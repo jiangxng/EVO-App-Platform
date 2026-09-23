@@ -45,9 +45,27 @@ Default:
 http://localhost:4300
 ```
 
-The current model is `createDevelopmentAgentModel()`.
+Two modes are available.
 
-It is intentionally deterministic and offline. It proves the Agent tool loop but is **not** the final LLM integration.
+Offline deterministic proof:
+
+```bash
+npm run start:agent
+```
+
+Real LLM proof:
+
+```bash
+OPENAI_API_KEY=... npm run start:agent
+```
+
+Optional model override:
+
+```text
+OPENAI_MODEL=gpt-5.6-luna
+```
+
+The model boundary remains the same `AgentModel` contract.
 
 ## 3. Start Eidos App Host MVP
 
@@ -109,7 +127,7 @@ This proves:
 
 It does not yet prove:
 
-- a production LLM provider integration;
+- a live real-LLM run in the user's deployment environment/API account;
 - durable App Manager persistence after process restart;
 - production authentication/authorization;
 - production CORS/security policy;
@@ -121,6 +139,6 @@ These are intentionally separate milestones.
 
 ## 7. Next increment
 
-Replace the development model through the existing `AgentModel` port with a real LLM adapter while preserving the exact App Manager tool contracts.
+Run the same end-to-end proof once with the real LLM adapter enabled, then proceed to the Trading Lite → EVO dependency proof.
 
-No App Manager or Eidos architecture change should be required for that replacement.
+No App Manager or Eidos architecture change is required to switch model adapters.
