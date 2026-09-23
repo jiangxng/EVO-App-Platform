@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "project": "EVO-App-Platform",
+  "projectType": "application-platform",
+  "owns": [
+    "app-manager",
+    "app-catalog",
+    "official-apps",
+    "app-lifecycle-contracts"
+  ],
+  "doesNotOwn": [
+    "evo-core",
+    "eidos-core",
+    "enterprise-knowledge",
+    "cloud-tenancy-storage-topology"
+  ],
+  "dependencies": {
+    "evo": "public-contract-only",
+    "eidos": "public-contract-only"
+  },
+  "invariantsFile": "INVARIANTS.md",
+  "llmEntry": "LLM.md"
+}
