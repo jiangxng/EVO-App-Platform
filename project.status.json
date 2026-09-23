@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "LOCAL_PROOF_A_CONFIRMED",
+  "status": "PROOF_B_DEPENDENCY_GRAPH_CI_PASS",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
@@ -26,26 +26,27 @@
     "openai-responses-agent-model-adapter",
     "agent-plan-before-install-policy",
     "company-notes-local-end-to-end-proof",
-    "agent-app-manager-eidos-local-convergence-proof"
+    "agent-app-manager-eidos-local-convergence-proof",
+    "feature-capability-dependency-resolver-proof",
+    "trading-lite-evo-dependency-graph-ci-proof"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
     "durable-lifecycle-persistence",
     "package-manifest-schema",
     "feature-manifest-schema",
-    "feature-dependency-resolver",
     "company-notes-reference-app",
     "trading-lite-end-to-end-proof",
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A is user-confirmed locally with the deterministic AgentModel: natural-language request → Agent → App Manager plan/install → Feature activation → effective Eidos Experience → Company Notes visible. Real LLM live validation and Trading Lite→EVO Proof B remain. Read the handoff document before continuing.",
+  "notes": "Proof A remains user-confirmed locally with the deterministic AgentModel. Proof B dependency-graph core is now CI-verified and merged: Trading Lite resolves required EVO capabilities through evo.core reference Features. Real LLM live validation, Eidos local Trading Lite proof, real EVO provider integration, durable persistence, and manifest freeze remain.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Validate the same Company Notes flow with the real LLM adapter, then implement Trading Lite → EVO capability dependency Proof B",
+  "currentStep": "Validate Company Notes with the real OpenAI AgentModel, then run Trading Lite natural-language install end-to-end through Agent → dependency graph → Eidos",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -66,5 +67,5 @@
       ]
     }
   },
-  "handoff": "docs/roadmap/HANDOFF-2026-09-23-AGENT-APP-INSTALL-MVP.md"
+  "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-B-DEPENDENCY-GRAPH.md"
 }
