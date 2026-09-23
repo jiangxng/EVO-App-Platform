@@ -40,8 +40,8 @@ Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modif
 
 Before continuing the current short-term mainline, read:
 
-`docs/roadmap/HANDOFF-2026-09-23-PROOF-B-DEPENDENCY-GRAPH.md`
+`docs/roadmap/HANDOFF-2026-09-23-LOCAL-PROOF-B-PASS.md`
 
-It records the user-confirmed local Proof A, the CI-verified Proof B dependency-graph core, current limitations, and the exact next end-to-end validation steps.
+It records the user-confirmed local Proof A and Proof B, the remaining reference-vs-real EVO boundary, and the next thin vertical Trading Lite → real EVO integration step.
 
 When `project.status.json` contains a `handoff` field, treat that referenced document as required continuation context.
