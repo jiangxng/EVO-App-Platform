@@ -12,7 +12,8 @@ export interface EnterpriseAgentRuntime {
 
 async function executeTool(
   call: AgentToolCall,
-  tools: AppManagerAgentTools
+  tools: AppManagerAgentTools,
+  observations: AgentToolObservation[]
 ): Promise<AgentToolObservation> {
   try {
     if (call.tool === "app.catalog.list") {
@@ -30,6 +31,30 @@ async function executeTool(
 
     if (call.tool === "app.install.plan") {
       return { tool: call.tool, ok: true, result: await tools.planInstall(packageId) };
+    }
+
+    const approvedPlan = [...observations].reverse().find(observation => {
+      if (observation.tool !== "app.install.plan" || !observation.ok) return false;
+      const plan = observation.result as {
+        packageId?: unknown;
+        blockers?: unknown;
+        sideEffectFree?: unknown;
+      } | undefined;
+      return plan?.packageId === packageId
+        && plan.sideEffectFree === true
+        && Array.isArray(plan.blockers)
+        && plan.blockers.length === 0;
+    });
+
+    if (!approvedPlan) {
+      return {
+        tool: call.tool,
+        ok: false,
+        error: {
+          code: "INSTALL_PLAN_REQUIRED",
+          message: `A successful side-effect-free install plan is required before installing '${packageId}'`
+        }
+      };
     }
 
     return { tool: call.tool, ok: true, result: await tools.install(packageId) };
@@ -69,7 +94,7 @@ export function createEnterpriseAgentRuntime(
           };
         }
 
-        observations.push(await executeTool(decision.call, tools));
+        observations.push(await executeTool(decision.call, tools, observations));
       }
 
       return {
