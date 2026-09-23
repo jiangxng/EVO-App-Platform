@@ -8,8 +8,17 @@ const catalog = createPackageCatalog([companyNotesPackage]);
 const store = createMemoryLifecycleStore();
 const manager = createAppManagerService(catalog, store, () => new Date(), companyNotesExperienceAssets);
 
+const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+
+function applyCors(response: ServerResponse): void {
+  response.setHeader("access-control-allow-origin", corsOrigin);
+  response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+  response.setHeader("access-control-allow-headers", "content-type,accept");
+}
+
 function json(response: ServerResponse, status: number, body: unknown): void {
   response.statusCode = status;
+  applyCors(response);
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.end(JSON.stringify(body));
 }
@@ -24,6 +33,12 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
+
+    if (request.method === "OPTIONS") {
+      response.statusCode = 204;
+      applyCors(response);
+      return response.end();
+    }
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
