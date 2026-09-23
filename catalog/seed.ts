@@ -52,3 +52,50 @@ export const companyNotesPackage: PackageManifestV010 = {
     }
   ]
 };
+
+
+export const companyNotesExperienceAssets = new Map<string, unknown>([
+  [
+    "app://company-notes/pages/home",
+    {
+      contractVersion: "0.1.1",
+      kind: "form",
+      id: "company-notes.home",
+      title: "Company Notes",
+      purpose: "execute-command",
+      command: {
+        code: "company-notes.save-note",
+        inputVersion: "0.1.0"
+      },
+      fields: [
+        {
+          key: "title",
+          label: "Title",
+          semanticType: "note-title",
+          control: "text",
+          required: true
+        },
+        {
+          key: "content",
+          label: "Content",
+          semanticType: "note-content",
+          control: "text",
+          required: true
+        }
+      ],
+      actions: [
+        {
+          id: "save",
+          label: "Save Note",
+          type: "submit",
+          command: "company-notes.save-note",
+          requiresConfirmation: false
+        }
+      ],
+      metadata: {
+        packageId: "company-notes",
+        featureId: "company-notes.default"
+      }
+    }
+  ]
+]);
