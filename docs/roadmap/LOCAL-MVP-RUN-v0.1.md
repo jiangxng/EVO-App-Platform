@@ -137,14 +137,71 @@ It does not yet prove:
 
 These are intentionally separate milestones.
 
-## 7. Next increment
+## 7. Proof B — Trading Lite with EVO dependency graph
 
-Run the same end-to-end proof once with the real LLM adapter enabled, then proceed to the Trading Lite → EVO dependency proof.
+After Proof A, restart App Manager if needed so the in-memory lifecycle state is clean, then run the same three services and send:
+
+```text
+帮我安装 Trading Lite
+```
+
+Expected tool trace:
+
+```text
+app.catalog.list
+→ app.install.plan
+→ app.install.execute
+```
+
+Expected install plan:
+
+```text
+installPackages:
+- evo.core
+- trading-lite
+
+activateFeatures:
+- evo.business-data
+- evo.posting
+- evo.ledger
+- evo.balance
+- trading-lite.default
+```
+
+Expected user-visible result:
+
+```text
+Trading Lite appears in Eidos navigation
+→ open Trading Lite
+→ Eidos renders the reference order form
+→ Customer
+→ Item
+→ Quantity
+→ Amount
+→ Create Order
+```
+
+The current reference page proves Experience integration only. The `trading-lite.create-order` backend business command is not yet the real EVO business-flow implementation.
+
+This proof demonstrates:
+
+> The user installs an App; the system installs the dependency graph.
+
+## 8. Real LLM validation
+
+Repeat Company Notes and then Trading Lite with the OpenAI adapter enabled:
+
+PowerShell:
+
+```powershell
+$env:OPENAI_API_KEY="..."
+npm run start:agent
+```
 
 No App Manager or Eidos architecture change is required to switch model adapters.
 
 
-## 8. Verified local result — 2026-09-23
+## 9. Verified local result — 2026-09-23
 
 The user confirmed the deterministic-model local MVP succeeds.
 
