@@ -14,7 +14,10 @@
     "activation-state-mvp",
     "effective-experience-api",
     "company-notes-catalog-seed",
-    "ci-build-test"
+    "ci-build-test",
+    "eidos-app-host-dynamic-discovery",
+    "eidos-app-manager-experience-source",
+    "eidos-browser-shell-foundation"
   ],
   "notYetImplemented": [
     "enterprise-agent-mvp",
@@ -22,17 +25,16 @@
     "package-manifest-schema",
     "feature-manifest-schema",
     "feature-dependency-resolver",
-    "eidos-app-host-dynamic-discovery",
     "company-notes-reference-app",
     "trading-lite-end-to-end-proof",
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "App Manager backend MVP and Eidos AppManagerExperienceSource are CI-verified. Next user-visible step is Browser Shell: install Company Notes → refresh App Host → navigation/page appears.",
+  "notes": "App Manager backend and Eidos App Host/Browser Shell are CI-verified. Next step is a runnable local harness proving install Company Notes → effective experience → navigation/page appears. Enterprise Agent chat/tool adapter follows immediately after this proof.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Mount Eidos Browser Shell against AppManagerExperienceSource and show Company Notes after install"
+  "currentStep": "Create runnable local end-to-end harness: App Manager + Eidos Browser Shell + Company Notes install/refresh/open"
 }
