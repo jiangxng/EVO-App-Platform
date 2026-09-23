@@ -28,7 +28,9 @@
     "company-notes-local-end-to-end-proof",
     "agent-app-manager-eidos-local-convergence-proof",
     "feature-capability-dependency-resolver-proof",
-    "trading-lite-evo-dependency-graph-ci-proof"
+    "trading-lite-evo-dependency-graph-ci-proof",
+    "agent-trading-lite-dependency-graph-ci-proof",
+    "trading-lite-eidos-compatible-reference-page"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -40,13 +42,13 @@
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A remains user-confirmed locally with the deterministic AgentModel. Proof B dependency-graph core is now CI-verified and merged: Trading Lite resolves required EVO capabilities through evo.core reference Features. Real LLM live validation, Eidos local Trading Lite proof, real EVO provider integration, durable persistence, and manifest freeze remain.",
+  "notes": "Proof A remains user-confirmed locally with the deterministic AgentModel. Proof B dependency resolution is now CI-verified through the Enterprise Agent: natural-language Trading Lite request → catalog → plan → EVO dependency graph → install. Trading Lite now exposes an Eidos-compatible form UIDL reference page. Browser-local Proof B, real OpenAI-model validation, real EVO runtime provider integration, durable persistence, and manifest freeze remain.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Validate Company Notes with the real OpenAI AgentModel, then run Trading Lite natural-language install end-to-end through Agent → dependency graph → Eidos",
+  "currentStep": "Run local browser Proof B: Eidos UI → Enterprise Agent → Trading Lite install → EVO dependency graph → App Host refresh → Trading Lite page renders; then validate the same path with the real OpenAI AgentModel",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
