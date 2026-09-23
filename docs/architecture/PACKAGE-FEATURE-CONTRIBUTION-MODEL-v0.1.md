@@ -296,6 +296,33 @@ Where code execution is required, prefer an external runtime extension behind a 
 - failure isolation;
 - explicit rollback/recovery semantics.
 
+## 9.1 EVO ApplicationAnchor contribution
+
+A business App that uses EVO must give EVO a stable routing identity.
+
+The target contribution model is:
+
+```text
+Business App Package
+→ contributes/registers ApplicationAnchor(applicationId)
+→ contributes/registers current PostingRules(applicationId)
+→ submits BusinessData(applicationId)
+```
+
+The same stable `applicationId` connects the App's EVO runtime configuration:
+
+```text
+ApplicationAnchor.applicationId
+= PostingRule.applicationId
+= BusinessData.applicationId
+```
+
+App Manager/Host still owns installation, activation, permissions, UI, Package/Feature lifecycle and capability discovery.
+
+EVO owns only the minimal ApplicationAnchor required to route BusinessData to the correct current PostingRules.
+
+PostingRule version/draft/approval/effective-date lifecycle remains owned by the rule/App package; EVO receives the current executable rule set.
+
 ## 10. Business application example
 
 ```text
@@ -325,6 +352,8 @@ requires:
 ```
 
 Generic UI primitives such as Form, DataGrid and Chart remain Eidos-owned. The App contributes business-specific compositions that use them.
+
+When the App uses EVO, its backend contribution must preserve one stable EVO `applicationId` across ApplicationAnchor, PostingRules and submitted BusinessData.
 
 ## 11. Repository topology is independent
 
