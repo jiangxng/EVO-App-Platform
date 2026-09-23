@@ -9,8 +9,11 @@ The lifecycle orchestrator for planning, installing, upgrading, deactivating and
 ## App Catalog
 The discoverable registry of available Apps, versions, dependencies and compatibility.
 
-## App Manifest
-The machine-readable identity and lifecycle contract of an App.
+## Package Manifest
+The machine-readable distribution/install/upgrade identity of a Package.
+
+## Feature Manifest
+The machine-readable activation/deactivation/dependency contract of a Feature.
 
 ## Backend Contribution
 Definitions, APIs, projections or optional runtime services provided through EVO public contracts.
@@ -42,3 +45,19 @@ The first planned Agent Package is **Enterprise Agent**, the successor product c
 Enterprise Agent preserves durable role, memory, knowledge, methods and tool contracts while allowing the underlying LLM/model provider to be replaced.
 
 See `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`.
+
+
+## Feature
+An independently discoverable and activatable lifecycle unit contained in a Package. A Feature may provide capabilities, require capabilities/features, declare activation scope and register Contributions.
+
+## Capability
+A machine-discoverable contract provided by one or more Features. Consumers should prefer capability dependencies when implementation substitution is desirable.
+
+## Contribution
+A concrete declarative or runtime registration made active by a Feature, such as an EVO ledger definition, posting rule, Eidos page/navigation entry, runtime extension registration or Agent tool.
+
+## Activation Scope
+The business/application scope at which a Feature is activated. It is explicitly distinct from cloud tenant/database topology.
+
+## Install vs Activate
+Installing a Package makes its Features available. Activating a Feature makes its Contributions effective. These are separate lifecycle transitions.
