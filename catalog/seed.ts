@@ -148,10 +148,26 @@ export const companyNotesExperienceAssets = new Map<string, unknown>([
 export const tradingLiteExperienceAssets = new Map<string, unknown>([
   ["app://trading-lite/pages/home", {
     contractVersion: "0.1.1",
-    kind: "dashboard",
+    kind: "form",
     id: "trading-lite.home",
     title: "Trading Lite",
-    purpose: "view-business-state",
+    purpose: "execute-command",
+    command: { code: "trading-lite.create-order", inputVersion: "0.1.0" },
+    fields: [
+      { key: "customer", label: "Customer", semanticType: "customer-name", control: "text", required: true },
+      { key: "item", label: "Item", semanticType: "item-name", control: "text", required: true },
+      { key: "quantity", label: "Quantity", semanticType: "quantity", control: "number", required: true },
+      { key: "amount", label: "Amount", semanticType: "money", control: "money", required: true }
+    ],
+    actions: [
+      {
+        id: "create-order",
+        label: "Create Order",
+        type: "submit",
+        command: "trading-lite.create-order",
+        requiresConfirmation: false
+      }
+    ],
     metadata: { packageId: "trading-lite", featureId: "trading-lite.default" }
   }]
 ]);
