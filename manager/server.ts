@@ -2,11 +2,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
-import { companyNotesPackage } from "../catalog/seed.js";
+import { companyNotesExperienceAssets, companyNotesPackage } from "../catalog/seed.js";
 
 const catalog = createPackageCatalog([companyNotesPackage]);
 const store = createMemoryLifecycleStore();
-const manager = createAppManagerService(catalog, store);
+const manager = createAppManagerService(catalog, store, () => new Date(), companyNotesExperienceAssets);
 
 function json(response: ServerResponse, status: number, body: unknown): void {
   response.statusCode = status;
@@ -39,6 +39,14 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return json(response, 200, manager.listEffectiveExperiences());
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
+      const source = url.searchParams.get("source");
+      if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      const page = manager.loadExperiencePage(source);
+      if (page === undefined) return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+      return json(response, 200, page);
     }
 
     if (request.method === "POST" && url.pathname === "/v1/install/plan") {
