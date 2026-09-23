@@ -111,5 +111,9 @@ test("Proof B install activates only required EVO Features and exposes Trading L
   assert.equal(experiences.length, 1);
   assert.equal(experiences[0].packageId, "trading-lite");
   assert.equal(experiences[0].navigation[0].label, "Trading Lite");
-  assert.equal(manager.loadExperiencePage("app://trading-lite/pages/home").id, "trading-lite.home");
+  const page = manager.loadExperiencePage("app://trading-lite/pages/home");
+  assert.equal(page.id, "trading-lite.home");
+  assert.equal(page.kind, "form");
+  assert.equal(page.purpose, "execute-command");
+  assert.equal(page.command.code, "trading-lite.create-order");
 });
