@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "MAINLINE_IMPLEMENTATION",
+  "status": "LOCAL_PROOF_A_CONFIRMED",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
@@ -24,7 +24,9 @@
     "agent-natural-language-install-proof",
     "eidos-enterprise-agent-chat-harness",
     "openai-responses-agent-model-adapter",
-    "agent-plan-before-install-policy"
+    "agent-plan-before-install-policy",
+    "company-notes-local-end-to-end-proof",
+    "agent-app-manager-eidos-local-convergence-proof"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -37,12 +39,32 @@
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Real OpenAI Responses AgentModel adapter is implemented and CI-tested with mocked API responses. Agent Runtime enforces plan-before-install independently of model behavior. A live API-key-backed run remains an environment validation step.",
+  "notes": "Proof A is user-confirmed locally with the deterministic AgentModel: natural-language request → Agent → App Manager plan/install → Feature activation → effective Eidos Experience → Company Notes visible. Real LLM live validation and Trading Lite→EVO Proof B remain. Read the handoff document before continuing.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Run the Company Notes install proof with the real LLM adapter enabled, then start Trading Lite → EVO capability dependency proof",
-  "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md"
+  "currentStep": "Validate the same Company Notes flow with the real LLM adapter, then implement Trading Lite → EVO capability dependency Proof B",
+  "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
+  "localProofs": {
+    "companyNotesNoEvo": {
+      "status": "PASS",
+      "date": "2026-09-23",
+      "mode": "deterministic-development-agent-model",
+      "confirmedBy": "user-local-run",
+      "flow": [
+        "eidos-agent-ui",
+        "enterprise-agent",
+        "app.catalog.list",
+        "app.install.plan",
+        "app.install.execute",
+        "feature-activation",
+        "effective-experience",
+        "eidos-app-host-refresh",
+        "company-notes-visible"
+      ]
+    }
+  },
+  "handoff": "docs/roadmap/HANDOFF-2026-09-23-AGENT-APP-INSTALL-MVP.md"
 }
