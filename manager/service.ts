@@ -13,6 +13,7 @@ export interface AppManagerService {
   install(packageId: string): PlatformSnapshotV010;
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
+  loadExperiencePage(source: string): unknown | undefined;
 }
 
 function uniqueSorted(values: Iterable<string>): string[] {
@@ -22,7 +23,8 @@ function uniqueSorted(values: Iterable<string>): string[] {
 export function createAppManagerService(
   catalog: PackageCatalog,
   store: LifecycleStore,
-  now: () => Date = () => new Date()
+  now: () => Date = () => new Date(),
+  experienceAssets: ReadonlyMap<string, unknown> = new Map()
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -213,11 +215,22 @@ export function createAppManagerService(
     });
   }
 
+  function loadExperiencePage(source: string): unknown | undefined {
+    const isEffective = listEffectiveExperiences().some(value => {
+      const manifest = value as { pages?: Array<{ source?: string }> };
+      return manifest.pages?.some(page => page.source === source) === true;
+    });
+    if (!isEffective) return undefined;
+    const asset = experienceAssets.get(source);
+    return asset === undefined ? undefined : structuredClone(asset);
+  }
+
   return {
     listCatalog: () => catalog.list().map(x => x.package),
     planInstall,
     install,
     getSnapshot,
-    listEffectiveExperiences
+    listEffectiveExperiences,
+    loadExperiencePage
   };
 }
