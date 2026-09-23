@@ -17,11 +17,16 @@
     "ci-build-test",
     "eidos-app-host-dynamic-discovery",
     "eidos-app-manager-experience-source",
-    "eidos-browser-shell-foundation"
+    "eidos-browser-shell-foundation",
+    "enterprise-agent-runtime-mvp",
+    "agent-model-port",
+    "agent-app-manager-tool-adapter",
+    "agent-natural-language-install-proof",
+    "eidos-enterprise-agent-chat-harness"
   ],
   "notYetImplemented": [
-    "enterprise-agent-mvp",
-    "agent-app-manager-tool-adapter",
+    "real-llm-agent-model-adapter",
+    "durable-lifecycle-persistence",
     "package-manifest-schema",
     "feature-manifest-schema",
     "feature-dependency-resolver",
@@ -30,11 +35,12 @@
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "App Manager backend and Eidos App Host/Browser Shell are CI-verified. Next step is a runnable local harness proving install Company Notes → effective experience → navigation/page appears. Enterprise Agent chat/tool adapter follows immediately after this proof.",
+  "notes": "CI verifies App Manager, Agent tool loop, Eidos App Host and chat harness independently. Current AgentModel is a deterministic development adapter, not a production LLM. Local three-process runbook is documented; real LLM adapter is the next increment.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Create runnable local end-to-end harness: App Manager + Eidos Browser Shell + Company Notes install/refresh/open"
+  "currentStep": "Replace deterministic Development AgentModel with a real LLM adapter, keeping Agent/App Manager/Eidos contracts unchanged",
+  "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md"
 }
