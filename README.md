@@ -49,22 +49,26 @@ Business App
 │  ├─ navigation
 │  ├─ pages / UIDL
 │  └─ data/action bindings
-└─ app.manifest.json
+└─ package.manifest.json
+   └─ features/*.feature.json
 ```
 
-The App Manager understands the manifest and lifecycle contract. It must not depend on an app's private implementation.
+The App Manager understands Package/Feature manifests and lifecycle contracts. It must not depend on an app's private implementation.
+
+Canonical rule: **Package is what enters the system. Feature is what becomes active. Contribution is what the Feature adds.**
 
 ## First reading order
 
 1. `PHILOSOPHY.md`
-2. `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
-3. `CONCEPTS.md`
-4. `INVARIANTS.md`
-5. `ARCHITECTURE.md`
-6. `PUBLIC-API.md`
-7. `LLM.md`
-8. `architecture.manifest.json`
-9. `project.status.json`
+2. `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md`
+3. `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
+4. `CONCEPTS.md`
+5. `INVARIANTS.md`
+6. `ARCHITECTURE.md`
+7. `PUBLIC-API.md`
+8. `LLM.md`
+9. `architecture.manifest.json`
+10. `project.status.json`
 
 ## Initial repository structure
 
