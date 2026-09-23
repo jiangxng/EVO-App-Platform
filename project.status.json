@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "ARCHITECTURE_BOOTSTRAP",
-  "currentMilestone": "Define Package Manifest + Feature Manifest, dependency graph, activation scope and first install/activation certification",
+  "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -10,15 +10,25 @@
     "agent-package-architecture"
   ],
   "notYetImplemented": [
+    "enterprise-agent-mvp",
+    "agent-app-manager-tool-adapter",
+    "catalog-runtime",
     "package-manifest-schema",
     "feature-manifest-schema",
     "feature-dependency-resolver",
     "activation-state-machine",
-    "app-manager-runtime",
-    "catalog-runtime",
     "install-api",
+    "eidos-app-host-dynamic-discovery",
+    "company-notes-reference-app",
+    "trading-lite-end-to-end-proof",
+    "app-manager-runtime",
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Architecture now uses Package → Feature → Contribution. Install != Activate. Do not migrate Finance/Trading implementation until Package/Feature contracts and lifecycle semantics are stabilized."
+  "notes": "Short-term mainline is the user-visible flow: ask Enterprise Agent to install an app → App Manager resolves Package/Feature dependencies → installs/activates → Eidos App Host discovers the experience. Migrate EC assets selectively for this path; do not migrate the whole EC platform first.",
+  "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
+  "referenceProofs": [
+    "company-notes-no-evo",
+    "trading-lite-with-evo-dependency"
+  ]
 }
