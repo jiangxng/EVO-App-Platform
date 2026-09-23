@@ -35,7 +35,7 @@ App Manager owns:
 - rollback/recovery metadata;
 - certification hooks.
 
-It must operate from public contracts and App Manifest data.
+It must operate from public contracts plus Package Manifest and Feature Manifest data.
 
 ## 4. App Catalog
 
@@ -52,11 +52,14 @@ Catalog exposes:
 - configuration schema;
 - installability status.
 
-## 5. App logical structure
+## 5. Package logical structure
 
 ```text
-apps/<app-id>/
-├─ app.manifest.json
+apps/<package-id>/
+├─ package.manifest.json
+├─ features/
+│  ├─ <feature>.feature.json
+│  └─ ...
 ├─ backend/
 ├─ experience/
 └─ tests/
@@ -150,3 +153,28 @@ The App Platform owns only the Agent Package lifecycle model and manifest compat
 The authoritative package-model definition is:
 
 `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
+
+
+## 12. Package → Feature → Contribution
+
+The canonical lifecycle hierarchy is:
+
+```text
+Package
+  ↓ contains
+Feature
+  ↓ contributes
+Contribution
+```
+
+- Package = distribution/install/upgrade unit.
+- Feature = activation/deactivation/dependency unit.
+- Contribution = concrete content/runtime registration.
+
+Installation and activation are distinct.
+
+The detailed authority is:
+
+`docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md`
+
+This model is conceptually inspired by SharePoint's historical Solution → Feature → Element separation, but does not inherit SharePoint's XML format, Farm/WebApplication deployment semantics or arbitrary in-process activation receiver model.
