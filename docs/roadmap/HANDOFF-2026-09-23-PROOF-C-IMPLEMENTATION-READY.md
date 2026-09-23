@@ -135,7 +135,7 @@ For ordinary business submission, Trading Lite submits the business fact once.
 Trading Lite
 → EVO governed Command
 → EVO accepts BusinessData
-→ EVO automatically owns the initial posting lifecycle
+→ EVO automatically owns the posting lifecycle
 ```
 
 Trading Lite does **not** make a second call to start posting.
@@ -156,7 +156,7 @@ It does **not** mean:
 
 > Trading Lite must call a Posting API to begin posting.
 
-EVO retains explicit Posting / PostingRun APIs for re-posting, Replay, bulk processing, recovery, repair and other governed platform operations. Those APIs may be asynchronous and are not part of the ordinary first-posting flow.
+EVO retains explicit Posting / PostingRun APIs for re-posting, Replay, bulk processing, recovery, repair and other governed platform operations. Those APIs may be asynchronous and are not part of the ordinary business-submission flow.
 
 Normative EVO authority:
 
@@ -165,6 +165,32 @@ INVARIANTS.md — INV-046..INV-050
 PUBLIC-API.md — Automatic Initial Posting Semantics
 docs/architecture/decisions/2026-09-23-automatic-initial-posting-and-async-results-v0.1.md
 ```
+
+## 4.2 Recalculation has two perspectives
+
+EVO and a business Application may both use the word "recalculation", but the meanings are intentionally different.
+
+```text
+EVO recalculation
+→ use EVO current governed runtime data/cache
+→ rebuild derived state
+
+Application recalculation
+→ Application resubmits its data through ordinary APIs
+→ EVO treats it as normal input
+```
+
+EVO does not inspect or require an Application-specific "recalculate" mode.
+
+EVO also defines a governed runtime-cache reset boundary:
+
+```text
+POST /api/v1/runtime-cache/clear
+```
+
+for explicit, authorized, scoped rebuilds. A business Application that wants a full replacement rebuild may clear its EVO runtime-cache scope and then resubmit its source data.
+
+Cache clear is not silent history destruction; required audit/provenance evidence remains governed and traceable.
 
 ## 5. Next action
 
