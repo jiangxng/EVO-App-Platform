@@ -373,7 +373,7 @@ postingSequence
 postingStatus
 ```
 
-`postingStatus` may initially be `QUEUED`. This is a valid successful acceptance state: EVO has already automatically taken ownership of the first posting lifecycle and the EVO worker continues processing independently. Do **not** call a second posting-start API from Trading Lite.
+`postingStatus` may initially be `QUEUED`. This is a valid successful acceptance state: EVO has already automatically taken ownership of the posting lifecycle and the EVO worker continues processing independently. Do **not** call a second posting-start API from Trading Lite.
 
 ### 10.3.1 Posting status semantics
 
@@ -399,7 +399,23 @@ ACCEPTED / QUEUED / RUNNING
 
 The second form means result delivery is asynchronous, not that posting is waiting for the caller to trigger it.
 
-A future explicit EVO Posting / PostingRun API remains valid for re-posting, Replay, bulk processing, recovery and administrative control; Trading Lite must not use it to start the first posting of a newly accepted order.
+A future explicit EVO Posting / PostingRun API remains valid for re-posting, Replay, bulk processing, recovery and administrative control; Trading Lite must not use it to start the posting of a newly accepted order.
+
+### 10.3.2 Recalculation note
+
+This Proof C does not use a special recalculation mode.
+
+If Trading Lite later exposes a user action called "Recalculate", EVO will not care about that label. Trading Lite may simply resubmit its data through the same ordinary API path.
+
+For a full Application-driven rebuild, EVO's target platform contract is:
+
+```text
+POST /api/v1/runtime-cache/clear
+→ scoped cache reset
+→ Application resubmits data normally
+```
+
+EVO-internal recalculation is different: EVO may rebuild derived state directly from its current governed runtime data without asking Trading Lite to resubmit.
 
 ### 10.4 What counts as Proof C PASS
 
