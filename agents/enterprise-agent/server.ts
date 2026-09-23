@@ -73,5 +73,9 @@ const server = createServer(async (request, response) => {
 server.listen(port, () => {
   console.log(`Enterprise Agent development server: http://localhost:${port}`);
   console.log(`App Manager: ${managerUrl}`);
-  console.log(openaiApiKey\n    ? `Model: OpenAI Responses API (${openaiModel})`\n    : "Model: deterministic development adapter (set OPENAI_API_KEY for real LLM)");
+  console.log(
+    openaiApiKey
+      ? `Model: OpenAI Responses API (${openaiModel})`
+      : "Model: deterministic development adapter (set OPENAI_API_KEY for real LLM)"
+  );
 });
