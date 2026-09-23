@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "project": "EVO-App-Platform",
+  "status": "ARCHITECTURE_BOOTSTRAP",
+  "currentMilestone": "Define App Manifest, lifecycle and first install certification",
+  "implemented": [
+    "repository-bootstrap",
+    "responsibility-boundary"
+  ],
+  "notYetImplemented": [
+    "app-manager-runtime",
+    "catalog-runtime",
+    "app-manifest-schema",
+    "install-api",
+    "official-apps-migration"
+  ],
+  "firstReferenceApp": "trading-lite",
+  "notes": "Do not migrate Finance/Trading implementation until public contracts and lifecycle semantics are stabilized."
+}
