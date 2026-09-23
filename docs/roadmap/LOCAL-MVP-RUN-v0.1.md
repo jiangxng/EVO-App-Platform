@@ -373,7 +373,33 @@ postingSequence
 postingStatus
 ```
 
-`postingStatus` may initially be `QUEUED`; the EVO worker processes posting independently.
+`postingStatus` may initially be `QUEUED`. This is a valid successful acceptance state: EVO has already automatically taken ownership of the first posting lifecycle and the EVO worker continues processing independently. Do **not** call a second posting-start API from Trading Lite.
+
+### 10.3.1 Posting status semantics
+
+For this Proof C, the business Application submits the order once.
+
+```text
+Create Order
+→ EVO accepts governed business fact
+→ EVO automatically enters posting lifecycle
+```
+
+Both of these result shapes are architecturally valid:
+
+```text
+POSTED / COMPLETED
+```
+
+or:
+
+```text
+ACCEPTED / QUEUED / RUNNING
+```
+
+The second form means result delivery is asynchronous, not that posting is waiting for the caller to trigger it.
+
+A future explicit EVO Posting / PostingRun API remains valid for re-posting, Replay, bulk processing, recovery and administrative control; Trading Lite must not use it to start the first posting of a newly accepted order.
 
 ### 10.4 What counts as Proof C PASS
 
