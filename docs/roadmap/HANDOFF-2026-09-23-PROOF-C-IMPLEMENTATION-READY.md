@@ -126,6 +126,46 @@ A public read/query projection back into the Trading Lite page is a subsequent s
 - Capability discovery does not grant execution authority.
 - EVO authorization policy is metadata-owned and fails closed when missing.
 
+
+## 4.1 EVO automatic-posting semantic clarified
+
+For ordinary business submission, Trading Lite submits the business fact once.
+
+```text
+Trading Lite
+→ EVO governed Command
+→ EVO accepts BusinessData
+→ EVO automatically owns the initial posting lifecycle
+```
+
+Trading Lite does **not** make a second call to start posting.
+
+Posting result delivery may be synchronous or asynchronous.
+
+If EVO returns:
+
+```text
+postingStatus = QUEUED
+```
+
+the correct interpretation is:
+
+> EVO has already accepted responsibility for continuing posting asynchronously.
+
+It does **not** mean:
+
+> Trading Lite must call a Posting API to begin posting.
+
+EVO retains explicit Posting / PostingRun APIs for re-posting, Replay, bulk processing, recovery, repair and other governed platform operations. Those APIs may be asynchronous and are not part of the ordinary first-posting flow.
+
+Normative EVO authority:
+
+```text
+INVARIANTS.md — INV-046..INV-050
+PUBLIC-API.md — Automatic Initial Posting Semantics
+docs/architecture/decisions/2026-09-23-automatic-initial-posting-and-async-results-v0.1.md
+```
+
 ## 5. Next action
 
 Run the local Proof C browser validation in `docs/roadmap/LOCAL-MVP-RUN-v0.1.md`.
