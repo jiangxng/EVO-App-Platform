@@ -2,11 +2,16 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
-import { companyNotesExperienceAssets, companyNotesPackage } from "../catalog/seed.js";
+import {
+  companyNotesPackage,
+  evoFoundationPackage,
+  referenceExperienceAssets,
+  tradingLitePackage
+} from "../catalog/seed.js";
 
-const catalog = createPackageCatalog([companyNotesPackage]);
+const catalog = createPackageCatalog([companyNotesPackage, evoFoundationPackage, tradingLitePackage]);
 const store = createMemoryLifecycleStore();
-const manager = createAppManagerService(catalog, store, () => new Date(), companyNotesExperienceAssets);
+const manager = createAppManagerService(catalog, store, () => new Date(), referenceExperienceAssets);
 
 const corsOrigin = process.env.CORS_ORIGIN ?? "*";
 
@@ -40,21 +45,10 @@ const server = createServer(async (request, response) => {
       return response.end();
     }
 
-    if (request.method === "GET" && url.pathname === "/health") {
-      return json(response, 200, { ok: true, service: "evo-app-manager" });
-    }
-
-    if (request.method === "GET" && url.pathname === "/v1/catalog") {
-      return json(response, 200, manager.listCatalog());
-    }
-
-    if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
-      return json(response, 200, manager.getSnapshot());
-    }
-
-    if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
-      return json(response, 200, manager.listEffectiveExperiences());
-    }
+    if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true, service: "evo-app-manager" });
+    if (request.method === "GET" && url.pathname === "/v1/catalog") return json(response, 200, manager.listCatalog());
+    if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") return json(response, 200, manager.getSnapshot());
+    if (request.method === "GET" && url.pathname === "/v1/experiences/effective") return json(response, 200, manager.listEffectiveExperiences());
 
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
@@ -78,14 +72,9 @@ const server = createServer(async (request, response) => {
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
-    return json(response, 500, {
-      code: "APP_MANAGER_ERROR",
-      message: error instanceof Error ? error.message : String(error)
-    });
+    return json(response, 500, { code: "APP_MANAGER_ERROR", message: error instanceof Error ? error.message : String(error) });
   }
 });
 
 const port = Number(process.env.PORT ?? 4100);
-server.listen(port, () => {
-  console.log(`EVO App Manager listening on http://localhost:${port}`);
-});
+server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
