@@ -12,3 +12,8 @@
 - **APP-10** Removing an App must not silently delete authoritative business history owned elsewhere.
 - **APP-11** Cloud tenancy/storage topology is outside this repository's core responsibility.
 - **APP-12** A capable LLM must reconstruct architecture and current status without prior chat history.
+
+- **APP-13** Package topology and repository topology are independent; App Manager must not infer lifecycle semantics from source-repository location.
+- **APP-14** An Agent Package may use EVO, Eidos and App Platform only through public contracts/tools.
+- **APP-15** Agent model replacement must not silently redefine durable role, memory semantics, knowledge provenance, methods or tool contracts.
+- **APP-16** Knowledge/memory required by an Agent does not automatically justify a separate platform/project; separation requires an independent lifecycle or ownership boundary.
