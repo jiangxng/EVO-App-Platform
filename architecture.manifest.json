@@ -6,7 +6,11 @@
     "app-manager",
     "app-catalog",
     "official-apps",
-    "app-lifecycle-contracts"
+    "app-lifecycle-contracts",
+    "package-manifest-contract",
+    "feature-manifest-contract",
+    "feature-activation-lifecycle",
+    "capability-dependency-graph"
   ],
   "doesNotOwn": [
     "evo-core",
@@ -19,5 +23,9 @@
     "eidos": "public-contract-only"
   },
   "invariantsFile": "INVARIANTS.md",
-  "llmEntry": "LLM.md"
+  "llmEntry": "LLM.md",
+  "architectureAuthorities": [
+    "docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md",
+    "docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md"
+  ]
 }
