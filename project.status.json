@@ -1,34 +1,38 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "ARCHITECTURE_BOOTSTRAP",
+  "status": "MAINLINE_IMPLEMENTATION",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
     "package-feature-contribution-architecture",
-    "agent-package-architecture"
+    "agent-package-architecture",
+    "app-manager-runtime-mvp",
+    "catalog-runtime-mvp",
+    "install-plan-mvp",
+    "activation-state-mvp",
+    "effective-experience-api",
+    "company-notes-catalog-seed",
+    "ci-build-test"
   ],
   "notYetImplemented": [
     "enterprise-agent-mvp",
     "agent-app-manager-tool-adapter",
-    "catalog-runtime",
     "package-manifest-schema",
     "feature-manifest-schema",
     "feature-dependency-resolver",
-    "activation-state-machine",
-    "install-api",
     "eidos-app-host-dynamic-discovery",
     "company-notes-reference-app",
     "trading-lite-end-to-end-proof",
-    "app-manager-runtime",
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Short-term mainline is the user-visible flow: ask Enterprise Agent to install an app → App Manager resolves Package/Feature dependencies → installs/activates → Eidos App Host discovers the experience. Migrate EC assets selectively for this path; do not migrate the whole EC platform first.",
+  "notes": "App Manager backend MVP and Eidos AppManagerExperienceSource are CI-verified. Next user-visible step is Browser Shell: install Company Notes → refresh App Host → navigation/page appears.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
-  ]
+  ],
+  "currentStep": "Mount Eidos Browser Shell against AppManagerExperienceSource and show Company Notes after install"
 }
