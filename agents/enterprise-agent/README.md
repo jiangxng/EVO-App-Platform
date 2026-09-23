@@ -20,9 +20,12 @@ The Agent runtime does not import App Manager private implementation.
 
 `AgentModel` is replaceable.
 
-The current `createDevelopmentAgentModel()` is deliberately **not an LLM**. It is an offline deterministic adapter used only to verify the end-to-end tool loop without credentials or provider lock-in.
+The runtime supports two model adapters:
 
-A real LLM adapter must implement the same `AgentModel` contract. Replacing the model must not change App Manager or Eidos.
+- `createDevelopmentAgentModel()`: deterministic/offline proof adapter; **not an LLM**.
+- `createOpenAIResponsesAgentModel()`: real LLM adapter using the OpenAI Responses API.
+
+Both implement the same stable `AgentModel` contract. Replacing the model does not change App Manager or Eidos.
 
 ## Current tools
 
@@ -60,3 +63,23 @@ app.catalog.list
 ```
 
 This server currently uses permissive CORS for the local proof only.
+
+
+## Real LLM mode
+
+Set an API key before starting the Agent service:
+
+```bash
+OPENAI_API_KEY=... npm run start:agent
+```
+
+Optional:
+
+```text
+OPENAI_MODEL=gpt-5.6-luna
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+When `OPENAI_API_KEY` is absent, the service falls back to the deterministic development model.
+
+The Agent Runtime mechanically enforces a successful side-effect-free install plan before allowing `app.install.execute`. This rule does not rely on model obedience.
