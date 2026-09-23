@@ -33,3 +33,18 @@ It does not own:
 - Eidos rendering;
 - Enterprise Agent reasoning;
 - business-app domain state.
+
+
+## Local MVP run
+
+For the current browser proof:
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+Default App Manager URL: `http://localhost:4100`.
+
+The MVP server currently defaults `CORS_ORIGIN=*` only to make the local cross-repository Eidos proof frictionless. Production deployment must replace this with an explicit trusted origin/authentication policy.
