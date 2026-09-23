@@ -46,3 +46,37 @@ test("Enterprise Agent asks for a target when install request is ambiguous", asy
   assert.match(reply.message, /Company Notes/);
   assert.deepEqual(reply.observations.map(x => x.tool), ["app.catalog.list"]);
 });
+
+
+test("Runtime blocks install execution without a successful plan", async () => {
+  let installCalls = 0;
+  const badModel = {
+    async decide({ observations }) {
+      if (observations.length === 0) {
+        return {
+          type: "tool",
+          call: {
+            tool: "app.install.execute",
+            arguments: { packageId: "company-notes" }
+          }
+        };
+      }
+      return { type: "final", message: "done" };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(badModel, {
+    async listCatalog() { return [companyNotesPackage]; },
+    async planInstall() { throw new Error("should not plan"); },
+    async install() {
+      installCalls += 1;
+      throw new Error("should not install");
+    }
+  });
+
+  const reply = await runtime.chat("帮我安装 Company Notes");
+
+  assert.equal(installCalls, 0);
+  assert.equal(reply.observations[0].ok, false);
+  assert.equal(reply.observations[0].error.code, "INSTALL_PLAN_REQUIRED");
+});
