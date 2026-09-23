@@ -11,7 +11,9 @@ A fresh LLM must first determine:
 Default rules:
 
 - Prefer existing App and public contract composition over creating new platform code.
-- Do not solve an App requirement by modifying EVO Core or Eidos Core unless a genuine reusable capability gap is proven.
+- EVO is a lightweight runtime plugin, not the enterprise platform Core.
+- Do not solve an App requirement by expanding EVO runtime unless generic BusinessData → PostingRule → Ledger → Balance genuinely requires it.
+- Identity, permissions, Application/Package lifecycle, capability discovery and PostingRule lifecycle belong to App Platform/Host or other plugins, not EVO runtime.
 - Do not import private EVO/Eidos implementation.
 - Do not let App Manager know app-specific business semantics.
 - Record confirmed architectural decisions in repository artifacts.

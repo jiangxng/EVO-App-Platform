@@ -181,39 +181,52 @@ requiresCapabilities:
 
 App Manager resolves the graph from capabilities and feature contracts, not from source repositories.
 
-## 6. Foundation Packages are still Packages
+## 6. Runtime Packages are ordinary Packages
 
-EVO Core and Eidos runtime can participate in the same package graph.
+EVO and Eidos may participate in the same package graph, but neither gains hidden platform privilege from the package model.
 
-Example:
-
-```text
-Package: evo.core
-type: FOUNDATION_RUNTIME
-
-Features:
-├─ evo.business-data
-├─ evo.posting
-├─ evo.ledger
-├─ evo.balance
-└─ evo.replay
-```
-
-Example:
+Target EVO model:
 
 ```text
-Package: eidos.runtime
-type: FOUNDATION_RUNTIME
+Package: evo.runtime
+type: RUNTIME_EXTENSION (or future generic PLUGIN type)
 
-Features:
-├─ eidos.core
-├─ eidos.component-registry
-└─ eidos.app-host
+Feature: evo.runtime
+provides:
+- evo.business-data
+- evo.posting
+- evo.ledger
+- evo.balance
+- evo.runtime.recalculate
+- evo.runtime.clear
+- evo.runtime.export
 ```
 
-Foundation status changes lifecycle policy, not the package abstraction.
+EVO is a lightweight runtime plugin. Identity, permissions, Application/Package lifecycle, capability discovery and PostingRule lifecycle are owned by the Host/App Platform or other plugins.
 
-For example, a foundation Feature may be non-removable while active dependents exist.
+The current reference seed still uses `packageId: evo.core`, `type: FOUNDATION_RUNTIME` and multiple Features because Proof B was certified against that shape. Treat it as compatibility/proof data, not the target product boundary. Do not add new platform privileges to `FOUNDATION_RUNTIME`.
+
+Eidos runtime is likewise a Package whose lifecycle is governed by App Manager; its frontend framework responsibilities remain separate from EVO runtime responsibilities.
+
+## 6.1 EVO is not the platform Core
+
+The name "EVO Core" in historical assets must not be interpreted as "the Core of the whole enterprise platform."
+
+The target composition is:
+
+```text
+App Platform / Host
+├─ identity / permissions
+├─ package / feature / application lifecycle
+├─ capability graph
+├─ rule plugins
+├─ audit/governance plugins
+├─ Eidos
+├─ Enterprise Agent
+└─ EVO Runtime Plugin
+```
+
+App Manager may install EVO because another App requires its capabilities, exactly as it installs another dependency package.
 
 ## 7. Agent Packages
 
