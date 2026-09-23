@@ -194,3 +194,26 @@ This milestone is intentionally user-visible.
 It proves that the system can convert a plain-language business request into a governed, deterministic application change without requiring the user to understand Package, Feature, Capability, EVO, Eidos, manifests, or dependency graphs.
 
 That is the first concrete proof of the LLM-native product direction.
+
+
+## 9. Proof A local result — 2026-09-23
+
+**PASS — user-confirmed local run.**
+
+The first no-EVO reference path has now been demonstrated locally using the deterministic Enterprise Agent development model:
+
+```text
+user natural-language request
+→ Enterprise Agent
+→ Catalog
+→ side-effect-free install plan
+→ install execution
+→ Feature activation
+→ effective Eidos Experience
+→ App Host refresh
+→ Company Notes visible
+```
+
+This confirms the first user-visible convergence of Enterprise Agent + App Platform + Eidos.
+
+Proof A does not close the whole mainline. Proof B — Trading Lite with EVO capability dependency resolution — remains the next larger architecture proof after live real-LLM validation.
