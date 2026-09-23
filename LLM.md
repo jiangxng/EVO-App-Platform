@@ -34,3 +34,14 @@ Contribution = what the Feature adds
 ```
 
 Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modifying manifests or lifecycle behavior.
+
+
+## Current handoff — 2026-09-23
+
+Before continuing the current short-term mainline, read:
+
+`docs/roadmap/HANDOFF-2026-09-23-AGENT-APP-INSTALL-MVP.md`
+
+It records the user-confirmed local Proof A, exact repository/branch state, local startup sequence, the discovered/fixed Eidos static path issue, current limitations, and the next Proof B direction.
+
+When `project.status.json` contains a `handoff` field, treat that referenced document as required continuation context.
