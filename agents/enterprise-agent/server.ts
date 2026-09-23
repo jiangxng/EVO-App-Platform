@@ -2,13 +2,25 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createDevelopmentAgentModel } from "./development-model.js";
 import { createAppManagerHttpTools } from "./app-manager-client.js";
+import { createOpenAIResponsesAgentModel } from "./openai-responses-model.js";
 
 const managerUrl = process.env.APP_MANAGER_URL ?? "http://localhost:4100";
 const port = Number(process.env.PORT ?? 4300);
 const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+const openaiModel = process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
+const openaiBaseUrl = process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
+
+const agentModel = openaiApiKey
+  ? createOpenAIResponsesAgentModel({
+      apiKey: openaiApiKey,
+      model: openaiModel,
+      baseUrl: openaiBaseUrl
+    })
+  : createDevelopmentAgentModel();
 
 const runtime = createEnterpriseAgentRuntime(
-  createDevelopmentAgentModel(),
+  agentModel,
   createAppManagerHttpTools({ baseUrl: managerUrl })
 );
 
@@ -61,5 +73,5 @@ const server = createServer(async (request, response) => {
 server.listen(port, () => {
   console.log(`Enterprise Agent development server: http://localhost:${port}`);
   console.log(`App Manager: ${managerUrl}`);
-  console.log("Model: deterministic development adapter (replace through AgentModel port)");
+  console.log(openaiApiKey\n    ? `Model: OpenAI Responses API (${openaiModel})`\n    : "Model: deterministic development adapter (set OPENAI_API_KEY for real LLM)");
 });
