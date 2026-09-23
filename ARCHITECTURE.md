@@ -112,3 +112,41 @@ Bare EVO
 → user can open installed app
 → deactivate/uninstall removes current exposure
 ```
+
+
+## 10. Generic Package Graph
+
+The platform should converge on one generic package model rather than treating EVO Core, Apps and Agents as unrelated lifecycle concepts.
+
+Candidate package roles:
+
+```text
+FOUNDATION_RUNTIME
+APPLICATION
+RUNTIME_EXTENSION
+EXPERIENCE
+AGENT
+```
+
+Examples:
+
+```text
+evo.core                 FOUNDATION_RUNTIME
+eidos.core               FOUNDATION_RUNTIME
+eidos.app-host           FOUNDATION_RUNTIME
+trading-lite             APPLICATION
+finance-reporting        APPLICATION
+enterprise-agent         AGENT
+```
+
+Package role does not determine source repository. A large package may be independently maintained while still participating in the same Package Graph.
+
+## 11. Enterprise Agent
+
+The former EC / Experience Compiler concept is being redefined as an **Enterprise Agent Package**.
+
+The App Platform owns only the Agent Package lifecycle model and manifest compatibility. It does not own the Agent's enterprise knowledge itself and does not become the Agent runtime.
+
+The authoritative package-model definition is:
+
+`docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
