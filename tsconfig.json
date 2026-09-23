@@ -8,11 +8,14 @@
     "outDir": "dist",
     "rootDir": ".",
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "manager/**/*.ts",
     "contracts/**/*.ts",
-    "catalog/**/*.ts"
+    "catalog/**/*.ts",
+    "agents/**/*.ts"
   ]
 }
