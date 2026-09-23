@@ -38,3 +38,25 @@ Errors must be stable, machine-readable and include correlation/operation identi
 ## Contract rule
 
 No public API may expose EVO/Eidos private classes, SQL tables or repository internals.
+
+
+## Implemented MVP endpoints — 2026-09-23
+
+The first App Manager backend now exposes:
+
+- `GET /health`
+- `GET /v1/catalog`
+- `GET /v1/platform/snapshot`
+- `POST /v1/install/plan`
+- `POST /v1/install`
+- `GET /v1/experiences/effective`
+- `GET /v1/experience-pages?source=<experience-source>`
+
+Current semantics:
+
+- `planInstall` is side-effect free;
+- `install` installs required Packages and activates planned default/dependency Features;
+- effective Eidos experiences are visible only from active Features;
+- page assets are not served through the effective page API until their Experience Contribution is active.
+
+These endpoints are MVP contracts, not yet frozen public v1 compatibility promises.
