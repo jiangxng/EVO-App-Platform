@@ -1,6 +1,6 @@
 # Local MVP Run — Agent-Driven App Installation v0.1
 
-**Status:** Development proof  
+**Status:** Local deterministic proof PASS; live real-LLM proof pending  
 **Date:** 2026-09-23
 
 This runbook validates the current short-term mainline:
@@ -142,3 +142,14 @@ These are intentionally separate milestones.
 Run the same end-to-end proof once with the real LLM adapter enabled, then proceed to the Trading Lite → EVO dependency proof.
 
 No App Manager or Eidos architecture change is required to switch model adapters.
+
+
+## 8. Verified local result — 2026-09-23
+
+The user confirmed the deterministic-model local MVP succeeds.
+
+A static-resource issue was found during the first browser run (`/main.js` returned 404 from the root URL). It was fixed in Eidos by using the canonical App Host MVP module path.
+
+After the fix, the local user-visible Proof A succeeded.
+
+This result should be treated as a regression baseline: future changes to App Manager, Enterprise Agent or Eidos App Host should preserve this flow.
