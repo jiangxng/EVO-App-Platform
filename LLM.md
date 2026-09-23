@@ -13,7 +13,7 @@ Default rules:
 - Prefer existing App and public contract composition over creating new platform code.
 - EVO is a lightweight runtime plugin, not the enterprise platform Core.
 - Do not solve an App requirement by expanding EVO runtime unless generic BusinessData → PostingRule → Ledger → Balance genuinely requires it.
-- Identity, permissions, Application/Package lifecycle, capability discovery and PostingRule lifecycle belong to App Platform/Host or other plugins, not EVO runtime.
+- Identity, permissions, rich Application/Package lifecycle, capability discovery and PostingRule lifecycle belong to App Platform/Host or other plugins. EVO runtime still owns a minimal ApplicationAnchor/applicationId used to route BusinessData to current PostingRules.
 - Do not import private EVO/Eidos implementation.
 - Do not let App Manager know app-specific business semantics.
 - Record confirmed architectural decisions in repository artifacts.
@@ -47,3 +47,16 @@ Before continuing the current short-term mainline, read:
 It records the user-confirmed local Proof A/Proof B, the CI-verified Proof C real EVO public-command integration, the remaining local browser proof, and the next public query/result slice.
 
 When `project.status.json` contains a `handoff` field, treat that referenced document as required continuation context.
+
+
+## EVO application routing invariant
+
+For any App using EVO:
+
+```text
+ApplicationAnchor.applicationId
+= PostingRule.applicationId
+= BusinessData.applicationId
+```
+
+Do not treat `applicationId` as optional provenance. It is the first PostingRule routing key.
