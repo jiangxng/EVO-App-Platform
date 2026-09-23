@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "PROOF_B_DEPENDENCY_GRAPH_CI_PASS",
+  "status": "LOCAL_PROOF_B_CONFIRMED",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
@@ -30,7 +30,9 @@
     "feature-capability-dependency-resolver-proof",
     "trading-lite-evo-dependency-graph-ci-proof",
     "agent-trading-lite-dependency-graph-ci-proof",
-    "trading-lite-eidos-compatible-reference-page"
+    "trading-lite-eidos-compatible-reference-page",
+    "trading-lite-local-end-to-end-proof",
+    "agent-app-manager-eidos-trading-lite-local-convergence-proof"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -38,17 +40,18 @@
     "package-manifest-schema",
     "feature-manifest-schema",
     "company-notes-reference-app",
-    "trading-lite-end-to-end-proof",
-    "official-apps-migration"
+    "official-apps-migration",
+    "real-evo-capability-provider-integration",
+    "trading-lite-real-business-flow"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A remains user-confirmed locally with the deterministic AgentModel. Proof B dependency resolution is now CI-verified through the Enterprise Agent: natural-language Trading Lite request → catalog → plan → EVO dependency graph → install. Trading Lite now exposes an Eidos-compatible form UIDL reference page. Browser-local Proof B, real OpenAI-model validation, real EVO runtime provider integration, durable persistence, and manifest freeze remain.",
+  "notes": "Proof A and Proof B are both user-confirmed locally with the deterministic AgentModel. Proof B now demonstrates Eidos Browser → Enterprise Agent → App Manager dependency resolution → evo.core reference dependency → Trading Lite activation → Eidos refresh → Trading Lite page rendered. The current evo.core provider is still a reference declaration, not real EVO runtime integration. Real OpenAI-model validation, real EVO business capability integration, durable persistence, manifest freeze, and uninstall/deactivate remain.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Run local browser Proof B: Eidos UI → Enterprise Agent → Trading Lite install → EVO dependency graph → App Host refresh → Trading Lite page renders; then validate the same path with the real OpenAI AgentModel",
+  "currentStep": "Integrate one thin Trading Lite vertical flow with real EVO public capabilities: Create Sales Order → authoritative BusinessData/command → posting → ledger/balance → query/result → Eidos",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -67,7 +70,27 @@
         "eidos-app-host-refresh",
         "company-notes-visible"
       ]
+    },
+    "tradingLiteWithEvoDependency": {
+      "status": "PASS",
+      "date": "2026-09-23",
+      "mode": "deterministic-development-agent-model",
+      "confirmedBy": "user-local-run",
+      "flow": [
+        "eidos-agent-ui",
+        "enterprise-agent",
+        "app.catalog.list",
+        "app.install.plan",
+        "capability-dependency-resolution",
+        "app.install.execute",
+        "evo-core-reference-dependency",
+        "trading-lite-feature-activation",
+        "effective-experience",
+        "eidos-app-host-refresh",
+        "trading-lite-visible",
+        "trading-lite-page-rendered"
+      ]
     }
   },
-  "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-B-DEPENDENCY-GRAPH.md"
+  "handoff": "docs/roadmap/HANDOFF-2026-09-23-LOCAL-PROOF-B-PASS.md"
 }
