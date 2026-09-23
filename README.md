@@ -1,9 +1,9 @@
 # EVO App Platform
 
 **Status:** Architecture bootstrap  
-**Repository role:** Application ecosystem layer for EVO + Eidos
+**Repository role:** Package lifecycle and application ecosystem layer
 
-EVO App Platform is the LLM-native application platform that manages installable business applications built on top of EVO backend contracts and Eidos frontend contracts.
+EVO App Platform is the LLM-native package and application platform that manages installable foundation packages, business applications, runtime extensions, experience packages and Agent Packages through public contracts.
 
 It owns three long-term responsibilities:
 
@@ -19,31 +19,23 @@ It does **not** own EVO Core and does **not** own Eidos Core.
 ## System relationship
 
 ```text
-                    EC
-        enterprise / industry knowledge
-                    │
-                    │
-                    ▼
-              project LLMs
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-      EVO                     Eidos
- backend runtime        frontend framework
-        ▲                       ▲
-        │                       │
-        └────── public contracts┘
-                    ▲
-                    │
-            EVO App Platform
-            ├─ App Manager
-            ├─ App Catalog
-            └─ Apps
+                 Enterprise Agent
+               (Agent Package)
+                      │
+          public tools / contracts
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+      EVO           Eidos     EVO App Platform
+ backend runtime  frontend      package/app
+                   framework      lifecycle
 ```
 
-## Installable application model
+The former EC / Experience Compiler concept is being transitioned into the Enterprise Agent model. The package-model authority is `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`.
 
-A business application may contribute both backend capability and frontend experience:
+## Installable package model
+
+A business application may contribute both backend capability and frontend experience. Other package types may instead provide foundation runtime, runtime extension, experience-only capability, or an LLM Agent.
 
 ```text
 Business App
@@ -65,13 +57,14 @@ The App Manager understands the manifest and lifecycle contract. It must not dep
 ## First reading order
 
 1. `PHILOSOPHY.md`
-2. `CONCEPTS.md`
-3. `INVARIANTS.md`
-4. `ARCHITECTURE.md`
-5. `PUBLIC-API.md`
-6. `LLM.md`
-7. `architecture.manifest.json`
-8. `project.status.json`
+2. `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
+3. `CONCEPTS.md`
+4. `INVARIANTS.md`
+5. `ARCHITECTURE.md`
+6. `PUBLIC-API.md`
+7. `LLM.md`
+8. `architecture.manifest.json`
+9. `project.status.json`
 
 ## Initial repository structure
 
