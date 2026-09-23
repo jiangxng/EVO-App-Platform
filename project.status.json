@@ -53,13 +53,13 @@
     "host-owned-evo-businessdata-adapter"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C and a public read/query result rendered back in Eidos remain. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract.",
+  "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C and a public read/query result rendered back in Eidos remain. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract. The previously prepared local Proof C remains a compatibility proof but is no longer the preferred next validation because EVO Core's target ingestion boundary is now generic BusinessDataSubmission rather than platform-owned /commands/capability orchestration.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Run local Proof C with automatic-posting semantics: submit Create Order once; accept POSTED or EVO-owned QUEUED/RUNNING as the immediate status, with no caller-side posting trigger. Then add the first public read/query projection back into Eidos.",
+  "currentStep": "Pause the old local Proof C compatibility validation. First implement Host/App Platform → generic EVO BusinessDataSubmission convergence (CORE-MIN-02), then rerun Trading Lite end-to-end through the new minimal runtime boundary.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -103,5 +103,9 @@
   "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md",
   "architectureCorrections": [
     "evo-is-lightweight-runtime-plugin-not-enterprise-platform-core"
-  ]
+  ],
+  "compatibilityProofC": {
+    "status": "IMPLEMENTATION_CI_PASS_LOCAL_DEFERRED",
+    "reason": "Target EVO boundary changed before user local validation; preserve compatibility path but migrate to generic BusinessDataSubmission first."
+  }
 }
