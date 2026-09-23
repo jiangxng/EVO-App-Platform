@@ -22,10 +22,12 @@
     "agent-model-port",
     "agent-app-manager-tool-adapter",
     "agent-natural-language-install-proof",
-    "eidos-enterprise-agent-chat-harness"
+    "eidos-enterprise-agent-chat-harness",
+    "openai-responses-agent-model-adapter",
+    "agent-plan-before-install-policy"
   ],
   "notYetImplemented": [
-    "real-llm-agent-model-adapter",
+    "live-real-llm-install-proof",
     "durable-lifecycle-persistence",
     "package-manifest-schema",
     "feature-manifest-schema",
@@ -35,12 +37,12 @@
     "official-apps-migration"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "CI verifies App Manager, Agent tool loop, Eidos App Host and chat harness independently. Current AgentModel is a deterministic development adapter, not a production LLM. Local three-process runbook is documented; real LLM adapter is the next increment.",
+  "notes": "Real OpenAI Responses AgentModel adapter is implemented and CI-tested with mocked API responses. Agent Runtime enforces plan-before-install independently of model behavior. A live API-key-backed run remains an environment validation step.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Replace deterministic Development AgentModel with a real LLM adapter, keeping Agent/App Manager/Eidos contracts unchanged",
+  "currentStep": "Run the Company Notes install proof with the real LLM adapter enabled, then start Trading Lite → EVO capability dependency proof",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md"
 }
