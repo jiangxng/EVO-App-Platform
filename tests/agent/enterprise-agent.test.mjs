@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { createEnterpriseAgentRuntime } from "../../dist/agents/enterprise-agent/runtime.js";
 import { createDevelopmentAgentModel } from "../../dist/agents/enterprise-agent/development-model.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
-import { companyNotesPackage } from "../../dist/catalog/seed.js";
+import {
+  companyNotesPackage,
+  evoFoundationPackage,
+  tradingLitePackage
+} from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 
@@ -79,4 +83,60 @@ test("Runtime blocks install execution without a successful plan", async () => {
   assert.equal(installCalls, 0);
   assert.equal(reply.observations[0].ok, false);
   assert.equal(reply.observations[0].error.code, "INSTALL_PLAN_REQUIRED");
+});
+
+
+test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency graph", async () => {
+  const catalog = createPackageCatalog([
+    companyNotesPackage,
+    evoFoundationPackage,
+    tradingLitePackage
+  ]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-23T00:00:00Z")
+  );
+
+  const runtime = createEnterpriseAgentRuntime(createDevelopmentAgentModel(), {
+    async listCatalog() { return manager.listCatalog(); },
+    async planInstall(packageId) { return manager.planInstall(packageId); },
+    async install(packageId) { return manager.install(packageId); }
+  });
+
+  const reply = await runtime.chat("帮我安装 Trading Lite");
+
+  assert.match(reply.message, /安装完成/);
+  assert.deepEqual(reply.observations.map(x => x.tool), [
+    "app.catalog.list",
+    "app.install.plan",
+    "app.install.execute"
+  ]);
+
+  const plan = reply.observations[1].result;
+  assert.equal(plan.packageId, "trading-lite");
+  assert.deepEqual(plan.blockers, []);
+  assert.deepEqual(plan.missingCapabilities, []);
+  assert.deepEqual(plan.installPackages, ["evo.core", "trading-lite"]);
+  assert.deepEqual(plan.activateFeatures, [
+    "evo.balance",
+    "evo.business-data",
+    "evo.ledger",
+    "evo.posting",
+    "trading-lite.default"
+  ]);
+
+  const snapshot = manager.getSnapshot();
+  assert.deepEqual(snapshot.installedPackages.map(x => x.packageId), [
+    "evo.core",
+    "trading-lite"
+  ]);
+  assert.deepEqual(snapshot.effectiveCapabilities, [
+    "evo.balance",
+    "evo.business-data",
+    "evo.ledger",
+    "evo.posting",
+    "trading-lite"
+  ]);
 });
