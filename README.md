@@ -95,3 +95,12 @@ First we stabilize:
 - certification model.
 
 Only then should existing apps be migrated.
+
+
+## Current continuation point
+
+The latest user-confirmed cross-project handoff is:
+
+`docs/roadmap/HANDOFF-2026-09-23-AGENT-APP-INSTALL-MVP.md`
+
+It records the successful local Company Notes Proof A and the next mainline step toward Trading Lite → EVO dependency resolution.
