@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "LOCAL_PROOF_B_CONFIRMED",
+  "status": "PROOF_C_IMPLEMENTATION_CI_PASS",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
@@ -32,7 +32,11 @@
     "agent-trading-lite-dependency-graph-ci-proof",
     "trading-lite-eidos-compatible-reference-page",
     "trading-lite-local-end-to-end-proof",
-    "agent-app-manager-eidos-trading-lite-local-convergence-proof"
+    "agent-app-manager-eidos-trading-lite-local-convergence-proof",
+    "eidos-action-host-runtime",
+    "app-manager-lifecycle-gated-action-router",
+    "trading-lite-evo-public-command-adapter",
+    "evo-public-capability-command-ci-proof"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -42,16 +46,17 @@
     "company-notes-reference-app",
     "official-apps-migration",
     "real-evo-capability-provider-integration",
-    "trading-lite-real-business-flow"
+    "trading-lite-real-business-flow",
+    "trading-lite-public-query-result"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A and Proof B are both user-confirmed locally with the deterministic AgentModel. Proof B now demonstrates Eidos Browser → Enterprise Agent → App Manager dependency resolution → evo.core reference dependency → Trading Lite activation → Eidos refresh → Trading Lite page rendered. The current evo.core provider is still a reference declaration, not real EVO runtime integration. Real OpenAI-model validation, real EVO business capability integration, durable persistence, manifest freeze, and uninstall/deactivate remain.",
+  "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C and a public read/query result rendered back in Eidos remain.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Integrate one thin Trading Lite vertical flow with real EVO public capabilities: Create Sales Order → authoritative BusinessData/command → posting → ledger/balance → query/result → Eidos",
+  "currentStep": "Run local Proof C: install/open Trading Lite in Eidos, submit Create Order, verify Eidos ActionHost → App Manager action router → Trading Lite adapter → EVO public command. Then add the first public read/query projection back into Eidos.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -92,5 +97,5 @@
       ]
     }
   },
-  "handoff": "docs/roadmap/HANDOFF-2026-09-23-LOCAL-PROOF-B-PASS.md"
+  "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md"
 }
