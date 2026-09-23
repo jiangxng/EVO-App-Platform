@@ -15,3 +15,22 @@ Default rules:
 - Do not import private EVO/Eidos implementation.
 - Do not let App Manager know app-specific business semantics.
 - Record confirmed architectural decisions in repository artifacts.
+
+
+Before changing package/application architecture, always distinguish:
+
+- Package lifecycle vs Feature lifecycle;
+- Package dependency vs Feature/capability dependency;
+- installation scope vs Feature activation scope;
+- Feature vs Capability vs Contribution;
+- package topology vs repository topology.
+
+Canonical mental model:
+
+```text
+Package = what enters the system
+Feature = what becomes active
+Contribution = what the Feature adds
+```
+
+Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modifying manifests or lifecycle behavior.
