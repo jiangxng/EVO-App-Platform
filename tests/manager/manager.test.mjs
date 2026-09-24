@@ -137,10 +137,10 @@ test("Ledger Runtime Configurator installs as an ordinary plugin with EVO ledger
   assert.deepEqual(plan.blockers, []);
   assert.deepEqual(plan.installPackages, ["evo-ledger-runtime-configurator", "evo.core"]);
   assert.deepEqual(plan.activateFeatures, [
+    "evo-ledger-runtime-configurator.default",
     "evo.business-data",
     "evo.ledger",
-    "evo.posting",
-    "evo-ledger-runtime-configurator.default"
+    "evo.posting"
   ]);
 
   const snapshot = manager.install("evo-ledger-runtime-configurator");
