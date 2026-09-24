@@ -442,9 +442,9 @@ const server = createServer(async (request, response) => {
             stage: "INSTALL_PLAN",
             packageId: itemId,
             message: plan.blockers.length === 0
-              ? "安装计划检查完成。请确认依赖和将激活的功能，然后点击“确认安装”。"
-              : "安装计划存在阻断项，解决阻断后才能安装。",
-            nextAction: plan.blockers.length === 0 ? "确认安装" : "解决阻断并重新生成安装计划",
+              ? "安装前检查完成，当前没有阻断项。"
+              : "安装前检查发现阻断项，需要处理后才能安装。",
+            nextAction: plan.blockers.length === 0 ? "可直接安装" : "解决阻断后重新安装",
             plan
           }))
         });
