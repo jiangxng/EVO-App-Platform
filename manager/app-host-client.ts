@@ -2,7 +2,7 @@ import {
   createAppHost,
   createAppManagerExperienceSource,
   createAppManagerActionHost,
-  mountBrowserAppHostShell
+  mountAgentWorkspaceShell
 } from "../vendor/eidos/src/app-host/index.js";
 import {
   createLocalizationRuntime,
@@ -42,10 +42,12 @@ async function refreshLocalizationBundles(): Promise<void> {
   ]);
 }
 
-await mountBrowserAppHostShell({
+await mountAgentWorkspaceShell({
   host,
   container: "#app",
   title: "EVO",
+  assistantRoute: "/enterprise-agent",
+  initialWorkspaceRoute: "/store",
   actionHost,
   localization,
   async onActionResult() {
