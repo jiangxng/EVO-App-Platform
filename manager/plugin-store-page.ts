@@ -88,32 +88,35 @@ export function createPluginStorePage(
             ...pkg.features.map(feature => feature.activationScope)
           ],
           status: {
-            label: !isInstalled ? "未安装" : isEnabled ? "已启用" : "已禁用",
+            id: !isInstalled ? "not-installed" : isEnabled ? "enabled" : "disabled",
+            label: !isInstalled ? "Not installed" : isEnabled ? "Enabled" : "Disabled",
             tone: isEnabled ? "positive" : "neutral"
           },
           metadata: {
             features: pkg.features.length,
             activeFeatures: activeFeatureIds.size,
+            providedCapabilities: pkg.features.flatMap(feature => feature.providesCapabilities ?? []).length,
+            requiredCapabilities: pkg.features.flatMap(feature => feature.requiresCapabilities ?? []).length,
             ...(route ? { route } : {})
           },
           ...(!isInstalled
             ? {
                 primaryAction: {
                   id: "install",
-                  label: "安装",
+                  label: "Install",
                   type: "command",
                   command: "app-platform.install-package",
                   inputVersion: "0.1.0",
-                  helpText: "系统会自动检查依赖和兼容性；只有存在阻断或需要人工判断时才会要求处理。"
+                  helpText: "The system automatically checks dependencies and compatibility. Human input is requested only when a material decision is required."
                 },
                 secondaryActions: [
                   {
                     id: "plan",
-                    label: "安装详情",
+                    label: "Installation details",
                     type: "command",
                     command: "app-platform.plan-install",
                     inputVersion: "0.1.0",
-                    helpText: "可选：预览依赖、将安装的 Package 和将激活的 Feature。"
+                    helpText: "Optional: preview dependencies, packages to install, and features to activate."
                   }
                 ]
               }
@@ -122,7 +125,7 @@ export function createPluginStorePage(
                   ...(route ? {
                     primaryAction: {
                       id: "open",
-                      label: "打开",
+                      label: "Open",
                       type: "navigate",
                       route
                     }
@@ -130,7 +133,7 @@ export function createPluginStorePage(
                   secondaryActions: [
                     {
                       id: "disable",
-                      label: "禁用",
+                      label: "Disable",
                       type: "command",
                       command: "app-platform.disable-package",
                       inputVersion: "0.1.0",
@@ -138,7 +141,7 @@ export function createPluginStorePage(
                     },
                     {
                       id: "uninstall",
-                      label: "卸载",
+                      label: "Uninstall",
                       type: "command",
                       command: "app-platform.uninstall-package",
                       inputVersion: "0.1.0",
@@ -149,7 +152,7 @@ export function createPluginStorePage(
               : {
                   primaryAction: {
                     id: "enable",
-                    label: "启用",
+                    label: "Enable",
                     type: "command",
                     command: "app-platform.enable-package",
                     inputVersion: "0.1.0"
