@@ -7,8 +7,10 @@ import type {
 export interface LifecycleStore {
   getInstalledPackage(packageId: string): InstalledPackageV010 | undefined;
   saveInstalledPackage(record: InstalledPackageV010): void;
+  deleteInstalledPackage(packageId: string): void;
   getActiveFeature(featureId: string): ActivatedFeatureV010 | undefined;
   saveActiveFeature(record: ActivatedFeatureV010): void;
+  deleteActiveFeature(featureId: string): void;
   snapshot(): PlatformSnapshotV010;
 }
 
@@ -26,6 +28,10 @@ export function createMemoryLifecycleStore(): LifecycleStore {
       installed.set(record.packageId, structuredClone(record));
     },
 
+    deleteInstalledPackage(packageId) {
+      installed.delete(packageId);
+    },
+
     getActiveFeature(featureId) {
       const item = active.get(featureId);
       return item ? structuredClone(item) : undefined;
@@ -33,6 +39,10 @@ export function createMemoryLifecycleStore(): LifecycleStore {
 
     saveActiveFeature(record) {
       active.set(record.featureId, structuredClone(record));
+    },
+
+    deleteActiveFeature(featureId) {
+      active.delete(featureId);
     },
 
     snapshot() {
