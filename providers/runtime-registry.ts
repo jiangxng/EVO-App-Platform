@@ -5,6 +5,8 @@ export interface ProviderDescriptorLike {
 
 export interface ProviderRuntimeRegistry {
   register<T>(providerId: string, runtime: T): void;
+  replace<T>(providerId: string, runtime: T): void;
+  remove(providerId: string): void;
   resolve<T>(
     descriptors: readonly ProviderDescriptorLike[],
     capability: string
@@ -19,6 +21,14 @@ export function createProviderRuntimeRegistry(): ProviderRuntimeRegistry {
     register<T>(providerId: string, runtime: T) {
       if (runtimes.has(providerId)) throw new Error(`PROVIDER_RUNTIME_DUPLICATE: ${providerId}`);
       runtimes.set(providerId, runtime);
+    },
+
+    replace<T>(providerId: string, runtime: T) {
+      runtimes.set(providerId, runtime);
+    },
+
+    remove(providerId: string) {
+      runtimes.delete(providerId);
     },
 
     resolve<T>(descriptors: readonly ProviderDescriptorLike[], capability: string) {
