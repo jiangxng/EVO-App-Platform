@@ -75,3 +75,24 @@ small vertical slice
 ```
 
 Demos and diagnostic pages may prove internals, but they do not define a new product shell or substitute for mainline integration.
+
+## 6. Closed-loop lifecycle acceptance
+
+A lifecycle feature is not complete when only its happy-path creation/install transition works.
+
+For standard Package lifecycle, acceptance covers:
+
+```text
+install
+→ Experience visible in App Host
+→ disable
+→ Experience disappears / APIs become unavailable
+→ enable
+→ Experience returns
+→ uninstall
+→ Package state and Experience disappear
+```
+
+Disable/uninstall must fail closed when active dependents would lose required Features or Capabilities. Authoritative business history is preserved unless a separate explicit data-retention operation exists.
+
+These are default platform expectations and do not require the human to request each transition separately.
