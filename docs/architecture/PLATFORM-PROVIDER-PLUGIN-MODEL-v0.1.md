@@ -355,3 +355,25 @@ Only the smallest generic provider-hosting mechanism may enter Core.
 ```
 
 This model is intentionally open-ended. Future platform capabilities should extend the same provider mechanism rather than creating new privileged subsystems.
+
+
+### First executable LLM provider
+
+The first reference implementation is:
+
+```text
+package: openai-llm-provider
+type: PLATFORM_PROVIDER
+providerId: openai.responses
+provides:
+  - llm.inference
+  - llm.tool-calling
+binding: IN_PROCESS
+secret boundary:
+  - OPENAI_API_KEY
+model configuration:
+  - OPENAI_MODEL
+  - OPENAI_BASE_URL
+```
+
+Enterprise Agent consumes the generic `evo.llm.inference@0.1.0` contract and does not import the OpenAI runtime. A generic Provider Runtime Registry resolves active provider descriptors to configured runtimes. An installed descriptor without configured credentials is not considered an executable provider.
