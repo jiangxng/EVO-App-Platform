@@ -168,3 +168,24 @@ Human
 ```
 
 Plugin Store is a system Experience hosted by App Host. Installed plugins add/remove effective Experience Contributions; they do not create independent application shells.
+
+## Closed-loop Completeness Rule
+
+For common platform capabilities, do not wait for the human to enumerate standard lifecycle operations one by one.
+
+Before declaring a capability complete, identify its conventional state machine and implement the normal forward, inverse and recovery transitions that belong to the accepted boundary. If a transition is unsafe or intentionally excluded, encode a deterministic blocker and document why.
+
+For App Platform Package lifecycle, the minimum normal closure is:
+
+```text
+not installed
+→ install
+→ enabled
+↔ disabled
+→ uninstall
+→ not installed
+```
+
+Dependencies must be checked before disable/uninstall. Disabling/uninstalling an App removes its effective Contributions/Experience from App Host but must not silently delete authoritative business history.
+
+Product acceptance also requires **human visibility**: an installed + enabled Experience must be discoverable in App Host navigation/store, loadable through the Experience source, and renderable through Eidos.

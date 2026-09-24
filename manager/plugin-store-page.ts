@@ -70,6 +70,12 @@ export function createPluginStorePage(
       .filter(pkg => pkg.type !== "FOUNDATION_RUNTIME")
       .map(pkg => {
         const isInstalled = installed.has(pkg.packageId);
+        const activeFeatureIds = new Set(
+          snapshot.activeFeatures
+            .filter(feature => feature.packageId === pkg.packageId)
+            .map(feature => feature.featureId)
+        );
+        const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
         const route = firstExperienceRoute(pkg);
         return {
           id: pkg.packageId,
@@ -82,25 +88,16 @@ export function createPluginStorePage(
             ...pkg.features.map(feature => feature.activationScope)
           ],
           status: {
-            label: isInstalled ? "已安装" : "未安装",
-            tone: isInstalled ? "positive" : "neutral"
+            label: !isInstalled ? "未安装" : isEnabled ? "已启用" : "已禁用",
+            tone: isEnabled ? "positive" : "neutral"
           },
           metadata: {
             features: pkg.features.length,
+            activeFeatures: activeFeatureIds.size,
             ...(route ? { route } : {})
           },
-          ...(isInstalled
-            ? route
-              ? {
-                  primaryAction: {
-                    id: "open",
-                    label: "打开",
-                    type: "navigate",
-                    route
-                  }
-                }
-              : {}
-            : {
+          ...(!isInstalled
+            ? {
                 primaryAction: {
                   id: "plan",
                   label: "查看安装计划",
@@ -118,7 +115,55 @@ export function createPluginStorePage(
                     requiresConfirmation: true
                   }
                 ]
-              })
+              }
+            : isEnabled
+              ? {
+                  ...(route ? {
+                    primaryAction: {
+                      id: "open",
+                      label: "打开",
+                      type: "navigate",
+                      route
+                    }
+                  } : {}),
+                  secondaryActions: [
+                    {
+                      id: "disable",
+                      label: "禁用",
+                      type: "command",
+                      command: "app-platform.disable-package",
+                      inputVersion: "0.1.0",
+                      requiresConfirmation: true
+                    },
+                    {
+                      id: "uninstall",
+                      label: "卸载",
+                      type: "command",
+                      command: "app-platform.uninstall-package",
+                      inputVersion: "0.1.0",
+                      requiresConfirmation: true
+                    }
+                  ]
+                }
+              : {
+                  primaryAction: {
+                    id: "enable",
+                    label: "启用",
+                    type: "command",
+                    command: "app-platform.enable-package",
+                    inputVersion: "0.1.0"
+                  },
+                  secondaryActions: [
+                    {
+                      id: "uninstall",
+                      label: "卸载",
+                      type: "command",
+                      command: "app-platform.uninstall-package",
+                      inputVersion: "0.1.0",
+                      requiresConfirmation: true
+                    }
+                  ]
+                })
         };
       })
   };

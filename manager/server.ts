@@ -321,6 +321,75 @@ const server = createServer(async (request, response) => {
         });
       }
 
+      if (action.command.code === "app-platform.enable-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        try {
+          const snapshot = manager.enable(itemId);
+          return json(response, 200, {
+            ok: true,
+            correlationId: action.sourceInteractionId,
+            result: JSON.parse(JSON.stringify({
+              stage: "ENABLED",
+              packageId: itemId,
+              snapshot,
+              effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+            }))
+          });
+        } catch (error) {
+          return json(response, 409, {
+            ok: false,
+            error: { code: "ENABLE_BLOCKED", message: error instanceof Error ? error.message : String(error) }
+          });
+        }
+      }
+
+      if (action.command.code === "app-platform.disable-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = manager.planDisable(itemId);
+        if (plan.blockers.length > 0) {
+          return json(response, 409, { ok: false, error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) } });
+        }
+        const snapshot = manager.disable(itemId);
+        return json(response, 200, {
+          ok: true,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "DISABLED",
+            packageId: itemId,
+            plan,
+            snapshot,
+            effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+          }))
+        });
+      }
+
+      if (action.command.code === "app-platform.uninstall-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = manager.planUninstall(itemId);
+        if (plan.blockers.length > 0) {
+          return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
+        }
+        const snapshot = manager.uninstall(itemId);
+        plannedInstallDigests.delete(itemId);
+        return json(response, 200, {
+          ok: true,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "UNINSTALLED",
+            packageId: itemId,
+            plan,
+            snapshot,
+            effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+          }))
+        });
+      }
+
       return json(response, 200, await actionRouter.execute(action));
     }
 
@@ -353,6 +422,55 @@ const server = createServer(async (request, response) => {
       const snapshot = manager.install(body.packageId);
       return json(response, 200, {
         snapshot,
+        effectiveExperiences: manager.listEffectiveExperiences()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/enable") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      try {
+        return json(response, 200, {
+          snapshot: manager.enable(body.packageId),
+          effectiveExperiences: manager.listEffectiveExperiences()
+        });
+      } catch (error) {
+        return json(response, 409, { code: "ENABLE_BLOCKED", message: error instanceof Error ? error.message : String(error) });
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/disable/plan") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      return json(response, 200, manager.planDisable(body.packageId));
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/disable") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      const plan = manager.planDisable(body.packageId);
+      if (plan.blockers.length > 0) return json(response, 409, { code: "DISABLE_BLOCKED", plan });
+      return json(response, 200, {
+        plan,
+        snapshot: manager.disable(body.packageId),
+        effectiveExperiences: manager.listEffectiveExperiences()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/uninstall/plan") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      return json(response, 200, manager.planUninstall(body.packageId));
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/uninstall") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      const plan = manager.planUninstall(body.packageId);
+      if (plan.blockers.length > 0) return json(response, 409, { code: "UNINSTALL_BLOCKED", plan });
+      return json(response, 200, {
+        plan,
+        snapshot: manager.uninstall(body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }

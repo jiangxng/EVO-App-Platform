@@ -85,3 +85,13 @@ export interface PlatformSnapshotV010 {
   activeFeatures: ActivatedFeatureV010[];
   effectiveCapabilities: string[];
 }
+
+export interface PackageLifecyclePlanV010 {
+  contractVersion: "0.1.0";
+  operation: "DISABLE" | "UNINSTALL";
+  packageId: string;
+  deactivateFeatures: string[];
+  uninstallPackages: string[];
+  blockers: Array<{ code: string; message: string }>;
+  sideEffectFree: true;
+}
