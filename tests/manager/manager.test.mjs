@@ -8,8 +8,7 @@ import {
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
-  tradingLitePackage,
-  evoLocalizationPackage
+  tradingLitePackage
 } from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
@@ -295,33 +294,6 @@ test("file lifecycle store survives process-style reopen", async () => {
   }
 });
 
-test("localization Provider package becomes discoverable only while active", () => {
-  const catalog = createPackageCatalog([evoLocalizationPackage]);
-  const store = createMemoryLifecycleStore();
-  const manager = createAppManagerService(catalog, store, () => new Date("2026-09-24T00:00:00.000Z"));
-
-  assert.deepEqual(manager.listEffectiveServiceProviders("localization.resources"), []);
-
-  const plan = manager.planInstall("evo-localization");
-  assert.deepEqual(plan.blockers, []);
-  manager.install("evo-localization");
-
-  const active = manager.listEffectiveServiceProviders("localization.resources");
-  assert.equal(active.length, 1);
-  assert.equal(active[0].providerId, "evo-localization.reference");
-  assert.equal(active[0].binding.type, "DECLARATIVE");
-  assert.match(active[0].binding.ref, /evo-localization/);
-
-  manager.disable("evo-localization");
-  assert.deepEqual(manager.listEffectiveServiceProviders("localization.resources"), []);
-
-  manager.enable("evo-localization");
-  assert.equal(manager.listEffectiveServiceProviders("localization.locale").length, 1);
-
-  manager.uninstall("evo-localization");
-  assert.deepEqual(manager.listEffectiveServiceProviders(), []);
-});
-
 test("Enterprise Agent installs as an ordinary AGENT Package without requiring an LLM provider", () => {
   const catalog = createPackageCatalog([enterpriseAgentPackage]);
   const store = createMemoryLifecycleStore();
@@ -355,4 +327,61 @@ test("Enterprise Agent installs as an ordinary AGENT Package without requiring a
 
   manager.uninstall("enterprise-agent");
   assert.equal(manager.listEffectiveExperiences().some(x => x.packageId === "enterprise-agent"), false);
+});
+
+test("active application owns localization bundles and lifecycle removes them", () => {
+  const catalog = createPackageCatalog([enterpriseAgentPackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);
+
+  manager.install("enterprise-agent");
+  const active = manager.listEffectiveLocalizationBundles();
+  assert.deepEqual(active.map(x => x.locale), ["en", "zh-CN"]);
+  assert.ok(active.every(x => x.namespace === "enterprise-agent"));
+  assert.equal(
+    active.find(x => x.locale === "zh-CN")?.messages["action.enterprise-agent.home.send.label"],
+    "发送"
+  );
+
+  manager.disable("enterprise-agent");
+  assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);
+
+  manager.enable("enterprise-agent");
+  assert.equal(manager.listEffectiveLocalizationBundles().length, 2);
+
+  manager.uninstall("enterprise-agent");
+  assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);
+});
+
+test("retired evo-localization experimental state is removed explicitly", async () => {
+  const { retireExperimentalPackageV010 } = await import("../../dist/manager/lifecycle-migrations.js");
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({
+    packageId: "evo-localization",
+    version: "0.1.0",
+    installedAt: "2026-09-24T00:00:00.000Z"
+  });
+  store.saveActiveFeature({
+    featureId: "evo-localization.default",
+    packageId: "evo-localization",
+    version: "0.1.0",
+    activatedAt: "2026-09-24T00:00:00.000Z"
+  });
+
+  const result = retireExperimentalPackageV010(
+    store,
+    "evo-localization",
+    ["evo-localization.default"]
+  );
+
+  assert.equal(result.changed, true);
+  assert.equal(store.getInstalledPackage("evo-localization"), undefined);
+  assert.equal(store.getActiveFeature("evo-localization.default"), undefined);
 });
