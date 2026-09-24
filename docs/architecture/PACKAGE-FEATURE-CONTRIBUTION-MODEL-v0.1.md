@@ -452,3 +452,22 @@ App Manager must eventually be able to:
 > **Package is what enters the system. Feature is what becomes active. Contribution is what the Feature adds.**
 
 This is the canonical mental model for EVO App Platform.
+
+
+## 16. Plugin-First extension rule
+
+EVO App Platform is plugin-first. New platform capability is assumed to be a Package/Feature/Capability/Contribution unless proven to require the minimal host Core.
+
+The Core owns the generic substrate:
+
+- catalog/discovery;
+- package + feature lifecycle;
+- dependency/capability resolution;
+- contribution registration;
+- App Host composition;
+- persistence of lifecycle state;
+- generic security/governance hooks.
+
+Everything else should preferentially enter as plugins. If Eidos cannot render the required human experience, Eidos is extended first; the product plugin then consumes the new public Eidos capability.
+
+This keeps long-term growth additive rather than centralizing every new requirement into a monolithic platform core.
