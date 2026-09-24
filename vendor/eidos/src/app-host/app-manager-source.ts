@@ -1,4 +1,5 @@
 import type { ExperienceSource } from "./contracts.js";
+import type { LocalizationBundleSource, LocalizationBundleV010 } from "../localization/contracts.js";
 
 export interface AppManagerExperienceSourceOptions {
   baseUrl: string;
@@ -23,7 +24,7 @@ async function readJsonResponse(response: Response, operation: string): Promise<
 
 export function createAppManagerExperienceSource(
   options: AppManagerExperienceSourceOptions
-): ExperienceSource {
+): ExperienceSource & LocalizationBundleSource {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
 
@@ -42,6 +43,18 @@ export function createAppManagerExperienceSource(
         throw new Error("EIDOS_APP_MANAGER_SOURCE_INVALID_MANIFEST_LIST");
       }
       return body;
+    },
+
+    async listEffectiveLocalizationBundles(): Promise<LocalizationBundleV010[]> {
+      const response = await fetchImpl(`${baseUrl}/v1/localization/bundles`, {
+        method: "GET",
+        headers: { accept: "application/json" }
+      });
+      const body = await readJsonResponse(response, "Localization bundle discovery");
+      if (!Array.isArray(body)) {
+        throw new Error("EIDOS_APP_MANAGER_SOURCE_INVALID_LOCALIZATION_BUNDLE_LIST");
+      }
+      return body as LocalizationBundleV010[];
     },
 
     async loadPage(page): Promise<unknown> {

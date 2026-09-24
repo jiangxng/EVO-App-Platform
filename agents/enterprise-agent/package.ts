@@ -54,6 +54,34 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
               }
             ]
           }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: ENTERPRISE_AGENT_PACKAGE_ID,
+            locale: "en",
+            messages: {
+              "navigation.enterprise-agent.nav.label": "Enterprise Agent",
+              "page.enterprise-agent.home.title": "Enterprise Agent",
+              "field.enterprise-agent.home.message.label": "Tell Enterprise Agent what you want to accomplish",
+              "action.enterprise-agent.home.send.label": "Send"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: ENTERPRISE_AGENT_PACKAGE_ID,
+            locale: "zh-CN",
+            messages: {
+              "navigation.enterprise-agent.nav.label": "企业智能体",
+              "page.enterprise-agent.home.title": "企业智能体",
+              "field.enterprise-agent.home.message.label": "告诉企业智能体你要完成什么",
+              "action.enterprise-agent.home.send.label": "发送"
+            }
+          }
         }
       ]
     }
@@ -74,7 +102,7 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
     fields: [
       {
         key: "message",
-        label: "告诉 Enterprise Agent 你要完成什么",
+        label: "Tell Enterprise Agent what you want to accomplish",
         semanticType: "agent-message",
         control: "text",
         required: true
@@ -83,7 +111,7 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
     actions: [
       {
         id: "send",
-        label: "发送",
+        label: "Send",
         type: "submit",
         command: "enterprise-agent.chat",
         requiresConfirmation: false

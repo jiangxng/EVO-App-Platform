@@ -20,7 +20,7 @@ export interface CatalogBrowserItemV010 {
   version?: string;
   category?: string;
   badges?: string[];
-  status?: { label: string; tone?: CatalogStatusTone };
+  status?: { id?: string; label: string; tone?: CatalogStatusTone };
   primaryAction?: CatalogBrowserActionV010;
   secondaryActions?: CatalogBrowserActionV010[];
   metadata?: Record<string, string | number | boolean | null>;

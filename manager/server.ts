@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
+import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
@@ -18,6 +19,7 @@ import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-run
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import { appHostShellHtml } from "./app-host-shell.js";
+import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createPluginStorePage,
   pluginStoreExperienceManifest,
@@ -27,7 +29,6 @@ import {
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
-  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
   tradingLitePackage
@@ -37,13 +38,20 @@ const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
-  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const retiredLocalization = retireExperimentalPackageV010(
+  store,
+  "evo-localization",
+  ["evo-localization.default"]
+);
+if (retiredLocalization.changed) {
+  console.log("Retired obsolete experimental package", JSON.stringify(retiredLocalization));
+}
 const manager = createAppManagerService(catalog, store, () => new Date(), referenceExperienceAssets);
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
@@ -188,6 +196,12 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/providers/effective") {
       const capability = url.searchParams.get("capability") ?? undefined;
       return json(response, 200, manager.listEffectiveServiceProviders(capability));
+    }
+    if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
+      return json(response, 200, [
+        ...appPlatformLocalizationBundles,
+        ...manager.listEffectiveLocalizationBundles()
+      ]);
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return json(response, 200, [

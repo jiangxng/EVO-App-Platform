@@ -28,6 +28,16 @@ export interface ExperienceContributionV010 {
   };
 }
 
+export interface EidosLocalizationBundleContributionV010 {
+  kind: "eidos.localization-bundle";
+  bundle: {
+    contractVersion: "0.1.0";
+    namespace: string;
+    locale: string;
+    messages: Record<string, string>;
+  };
+}
+
 export interface PlatformServiceProviderContributionV010 {
   kind: "platform.service-provider";
   provider: {
@@ -50,6 +60,7 @@ export interface PlatformServiceProviderContributionV010 {
 
 export type FeatureContributionV010 =
   | ExperienceContributionV010
+  | EidosLocalizationBundleContributionV010
   | PlatformServiceProviderContributionV010;
 
 export interface FeatureManifestV010 {
