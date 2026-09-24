@@ -315,13 +315,14 @@ The canonical EVO App Host is an Agent-first enterprise workspace:
 
 ```text
 desktop:
-  left   = application/plugin navigation
-  center = persistent Assistant Chat Experience
-  right  = Eidos application / configurator / workspace browser
+  Activity Bar = context switcher
+  Side Panel   = current contextual View Container (Apps, Agent, future Search...)
+  Workspace    = primary Eidos application / configurator / browser surface
+  Status Bar   = lightweight runtime/workspace context
 
 mobile:
-  Menu / Chat / Workspace
-  one visible pane at a time, preserving state
+  Activity Bar remains available
+  one main surface (Side Panel or Workspace) is shown at a time, preserving state
 ```
 
 Read `docs/architecture/AGENT-FIRST-APP-HOST-WORKSPACE-v0.1.md` before changing App Host layout or Enterprise Agent UX.
@@ -329,3 +330,41 @@ Read `docs/architecture/AGENT-FIRST-APP-HOST-WORKSPACE-v0.1.md` before changing 
 Enterprise Agent itself should be zero-config for ordinary users. Resolve LLM Provider, identity/session, enterprise scope, locale and authorized tools through platform contracts. Do not add provider/model/vendor settings to the Agent page.
 
 LLM-first does not mean UI-only automation. The Agent must use the same public Action/Query/Package contracts available to other clients. Human-facing configuration pages remain available in the right workspace for inspection, confirmation and direct override.
+
+
+## Workbench + Settings Rule
+
+Before changing the canonical EVO App Host shell or plugin configuration UX, read:
+
+`docs/architecture/EVO-WORKBENCH-v0.1.md`
+
+Default interaction model:
+
+```text
+Activity Bar
+→ Side Panel / View Container (toggleable + resizable)
+⇆
+Main Workspace
+→ Eidos Apps / Configurators / Browser
++
+Status Bar
+```
+
+Activity Bar entries select contexts; they are not a compressed duplicate of application navigation.
+
+For plugin configuration:
+
+```text
+simple typed non-secret configuration
+→ eidos.settings Contribution
+→ standard Settings Experience
+
+complex domain configuration
+→ dedicated Eidos Experience
+
+credentials / API keys / passwords
+→ secure Secrets boundary
+→ never ordinary Settings
+```
+
+Plugin Store exposes Configure only when a Package actually declares configuration.
