@@ -1,5 +1,5 @@
 // Generated from jiangxng/bookkeeping src/main/resources/accounts.sql. Preserve source semantics; do not hand-edit.
-export const bookkeepingAccounts = [
+export const bookkeepingAccounts: readonly Record<string, unknown>[] = [
   {
     "id": 1001,
     "title": "库存现金",
@@ -1974,4 +1974,4 @@ export const bookkeepingAccounts = [
     "allowNegative": null,
     "costCalcConfig": null
   }
-] as const;
+];
