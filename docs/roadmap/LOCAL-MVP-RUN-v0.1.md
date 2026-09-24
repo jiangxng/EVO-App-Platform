@@ -212,13 +212,22 @@ After the fix, the local user-visible Proof A succeeded.
 This result should be treated as a regression baseline: future changes to App Manager, Enterprise Agent or Eidos App Host should preserve this flow.
 
 
-## 9.5 Proof C compatibility run is currently deferred
+## 9.5 Proof C compatibility run — USER-LOCAL PASS
 
-The steps below are retained as a compatibility runbook, but they are **not the preferred next local validation** after the minimal EVO Runtime Plugin architecture correction.
+The compatibility run below was user-confirmed PASS on 2026-09-24.
 
-The user had not yet run this proof. Do not ask them to run it before CORE-MIN-02 generic BusinessDataSubmission convergence is implemented.
+Observed result included:
 
-Once the new Host → BusinessDataSubmission path is ready, this runbook should be revised and the browser proof should be run once against the target architecture.
+```text
+ok = true
+real commandExecutionId
+real businessDataId
+real postingInputId
+postingSequence = 4
+postingStatus = QUEUED
+```
+
+This remains a compatibility proof because the target EVO Ledger Runtime boundary will converge toward Host → BusinessDataSubmission(applicationId) rather than EVO-owned capability/Command orchestration.
 
 ## 10. Proof C — Trading Lite → real EVO public Command
 
