@@ -2,6 +2,7 @@ export type PackageType =
   | "FOUNDATION_RUNTIME"
   | "APPLICATION"
   | "RUNTIME_EXTENSION"
+  | "PLATFORM_PROVIDER"
   | "EXPERIENCE"
   | "AGENT";
 
