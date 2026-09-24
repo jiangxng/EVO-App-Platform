@@ -4,7 +4,8 @@ import type {
   PackageLifecyclePlanV010,
   PackageManifestV010,
   PlatformSnapshotV010,
-  PlatformServiceProviderContributionV010
+  PlatformServiceProviderContributionV010,
+  EidosLocalizationBundleContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
@@ -21,6 +22,7 @@ export interface AppManagerService {
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
+  listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
 
@@ -368,6 +370,32 @@ export function createAppManagerService(
     );
   }
 
+  function listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }> = [];
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "eidos.localization-bundle") continue;
+        if (contribution.bundle.namespace !== item.packageId) {
+          throw new Error(`LOCALIZATION_NAMESPACE_MISMATCH: ${contribution.bundle.namespace} != ${item.packageId}`);
+        }
+        result.push({
+          ...structuredClone(contribution.bundle),
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      a.namespace.localeCompare(b.namespace)
+      || a.locale.localeCompare(b.locale)
+    );
+  }
+
   function loadExperiencePage(source: string): unknown | undefined {
     const isEffective = listEffectiveExperiences().some(value => {
       const manifest = value as { pages?: Array<{ source?: string }> };
@@ -390,6 +418,7 @@ export function createAppManagerService(
     getSnapshot,
     listEffectiveExperiences,
     listEffectiveServiceProviders,
+    listEffectiveLocalizationBundles,
     loadExperiencePage
   };
 }
