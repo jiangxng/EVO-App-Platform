@@ -9,6 +9,11 @@ import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentStatusActionHandler } from "../agents/enterprise-agent/status-action-handler.js";
+import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
+import type { LlmInferenceProvider } from "../contracts/llm.js";
+import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
+import { createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
+import { openAiLlmProviderPackage } from "../providers/openai/package.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -25,6 +30,7 @@ import {
   evoFoundationPackage,
   evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
+  openAiLlmProviderPackage,
   referenceExperienceAssets,
   tradingLitePackage
 } from "../catalog/seed.js";
@@ -35,6 +41,7 @@ const catalog = createPackageCatalog([
   evoFoundationPackage,
   evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
+  openAiLlmProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -47,8 +54,41 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
+const providerRuntimeRegistry = createProviderRuntimeRegistry();
+const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+if (openaiApiKey) {
+  providerRuntimeRegistry.register<LlmInferenceProvider>(
+    "openai.responses",
+    createOpenAiResponsesLlmProvider({
+      apiKey: openaiApiKey,
+      model: process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna",
+      baseUrl: process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1"
+    })
+  );
+}
+
+function resolveLlmProvider(): {
+  installedProviderIds: string[];
+  provider?: LlmInferenceProvider;
+} {
+  const descriptors = manager.listEffectiveServiceProviders("llm.inference");
+  const installedProviderIds = descriptors.map(provider => provider.providerId);
+  const resolved = providerRuntimeRegistry.resolve<LlmInferenceProvider>(
+    descriptors,
+    "llm.inference"
+  );
+  return {
+    installedProviderIds,
+    ...(resolved ? { provider: resolved.runtime } : {})
+  };
+}
+
 const actionRouter = createAppActionRouter(
   [
+    createEnterpriseAgentChatActionHandler({
+      manager,
+      resolveLlmProvider
+    }),
     createEnterpriseAgentStatusActionHandler({
       listLlmProviders: () => manager.listEffectiveServiceProviders("llm.inference")
     }),
