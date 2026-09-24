@@ -18,6 +18,18 @@ export function settingsPackageRoute(packageId: string): string {
   return `/settings/${encodeURIComponent(packageId)}`;
 }
 
+export function packageIdFromSettingsPageSource(source: string): string | undefined {
+  const prefix = "app://evo-app-platform/pages/settings/";
+  if (!source.startsWith(prefix)) return undefined;
+  const encoded = source.slice(prefix.length);
+  if (!encoded) return undefined;
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return undefined;
+  }
+}
+
 export function packageHasSettings(pkg: PackageManifestV010): boolean {
   return pkg.features.some(feature =>
     (feature.contributions ?? []).some(contribution => contribution.kind === "eidos.settings")
