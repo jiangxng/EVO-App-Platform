@@ -4,7 +4,9 @@ import {
   createAppManagerActionHost
 } from "../vendor/eidos/src/app-host/index.js";
 import {
-  mountWorkbenchShell
+  mountWorkbenchShell,
+  type WorkbenchActivityV010,
+  type WorkbenchShell
 } from "../vendor/eidos/src/workbench/index.js";
 import {
   createLocalizationRuntime,
@@ -44,77 +46,100 @@ async function refreshLocalizationBundles(): Promise<void> {
   ]);
 }
 
-await mountWorkbenchShell({
+const platformActivities: WorkbenchActivityV010[] = [
+  {
+    id: "apps",
+    title: "Apps",
+    icon: "▦",
+    kind: "navigation",
+    order: 10,
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.apps"
+    }
+  },
+  {
+    id: "plugins",
+    title: "Plugins",
+    icon: "◇",
+    kind: "workspace-route",
+    route: "/store",
+    order: 30,
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.plugins"
+    }
+  },
+  {
+    id: "workspace",
+    title: "Workspace",
+    icon: "▣",
+    kind: "workspace-focus",
+    order: 40,
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.workspace"
+    }
+  },
+  {
+    id: "settings",
+    title: "Settings",
+    icon: "⚙",
+    kind: "workspace-route",
+    route: "/settings",
+    order: 1000,
+    placement: "secondary",
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.settings"
+    }
+  }
+];
+
+let lastEffectiveActivities = [...platformActivities];
+
+async function loadEffectiveWorkbenchActivities(): Promise<WorkbenchActivityV010[]> {
+  try {
+    const response = await fetch("/v1/workbench/activities", {
+      headers: { accept: "application/json" }
+    });
+    if (!response.ok) {
+      throw new Error(`WORKBENCH_ACTIVITIES_HTTP_${response.status}`);
+    }
+    const contributions = await response.json() as Array<
+      WorkbenchActivityV010 & {
+        contractVersion?: string;
+        packageId?: string;
+        featureId?: string;
+      }
+    >;
+    lastEffectiveActivities = [
+      ...platformActivities,
+      ...contributions.map(({ contractVersion: _contractVersion, packageId: _packageId, featureId: _featureId, ...activity }) => activity)
+    ];
+  } catch (error) {
+    console.error("Failed to refresh Workbench activities; keeping last known effective set.", error);
+  }
+  return [...lastEffectiveActivities];
+}
+
+let workbench: WorkbenchShell | undefined;
+const initialActivities = await loadEffectiveWorkbenchActivities();
+
+workbench = await mountWorkbenchShell({
   host,
   container: "#app",
   title: "EVO",
-  defaultActivityId: "agent",
+  defaultActivityId: "plugins",
   initialWorkspaceRoute: "/store",
-  activities: [
-    {
-      id: "apps",
-      title: "Apps",
-      icon: "▦",
-      kind: "navigation",
-      order: 10,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.apps"
-      }
-    },
-    {
-      id: "agent",
-      title: "Agent",
-      icon: "✦",
-      kind: "side-route",
-      route: "/enterprise-agent",
-      order: 20,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.agent"
-      }
-    },
-    {
-      id: "plugins",
-      title: "Plugins",
-      icon: "◇",
-      kind: "workspace-route",
-      route: "/store",
-      order: 30,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.plugins"
-      }
-    },
-    {
-      id: "workspace",
-      title: "Workspace",
-      icon: "▣",
-      kind: "workspace-focus",
-      order: 40,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.workspace"
-      }
-    },
-    {
-      id: "settings",
-      title: "Settings",
-      icon: "⚙",
-      kind: "workspace-route",
-      route: "/settings",
-      order: 1000,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.settings"
-      }
-    }
-  ],
+  activities: initialActivities,
   actionHost,
   localization,
   minSidePanelWidth: 260,
   maxSidePanelWidth: 720,
   async onActionResult() {
     await refreshLocalizationBundles();
+    const activities = await loadEffectiveWorkbenchActivities();
+    await workbench?.setActivities(activities);
   }
 });
