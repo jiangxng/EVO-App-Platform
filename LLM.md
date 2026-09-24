@@ -195,3 +195,8 @@ Product acceptance also requires **human visibility**: an installed + enabled Ex
 Package installation/activation state is durable product state. Production deployments MUST use a persistent `LifecycleStore` adapter; process-local memory is only for tests/development. A CI/CD deploy must not silently turn an installed App back into an uninstalled App.
 
 Current Railway single-replica adapter may use a mounted durable state file behind `LifecycleStore`. Storage topology remains replaceable; a future PostgreSQL-backed adapter must preserve the same lifecycle contracts and state semantics.
+
+
+## Lifecycle Completeness Rule
+
+Do not wait for the human to enumerate ordinary lifecycle closure. For an installable Package, default completeness includes discovery, side-effect-free plan, dependency resolution, install, enable, disable, uninstall, dependency-safe blocking, persistent lifecycle state, and upgrade when a newer compatible catalog version exists. Each transition must update effective Capabilities/Contributions/Experiences consistently and be regression-tested through the canonical App Host path.
