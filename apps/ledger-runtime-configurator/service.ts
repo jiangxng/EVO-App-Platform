@@ -229,6 +229,7 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
         compatibility: {
           burnReady: validation.burn.ready,
           requiredRuntimeCapabilities: [
+            "expression.bookkeeping-aviator-v1",
             "expression.evo-ir-v1",
             "legacy-import.bookkeeping-aviator-v1",
             "direction.financial-dr-cr",
