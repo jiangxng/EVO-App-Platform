@@ -1,5 +1,5 @@
 // Generated from jiangxng/bookkeeping src/main/resources/dictionary.sql. Preserve source semantics; do not hand-edit.
-export const bookkeepingDictionaries = [
+export const bookkeepingDictionaries: readonly Record<string, unknown>[] = [
   {
     "id": 1,
     "key": "数量",
@@ -742,4 +742,4 @@ export const bookkeepingDictionaries = [
     "type": null,
     "description": null
   }
-] as const;
+];
