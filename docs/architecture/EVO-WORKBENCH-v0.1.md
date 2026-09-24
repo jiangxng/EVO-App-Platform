@@ -22,17 +22,20 @@ The design is influenced by mature IDE/workbench patterns, but EVO keeps its own
 
 Activity Bar is narrow and persistent.
 
-Current EVO activities:
+Platform-owned Activities:
 
 - Apps → navigation View Container
-- Agent → Enterprise Agent Chat View Container
 - Plugins → Plugin Store workspace route
 - Workspace → maximize/focus current workspace
 - Settings → Settings workspace route
 
+Product Activities are lifecycle contributions. For example, Enterprise Agent contributes its own `eidos.workbench-activity` entry targeting `/enterprise-agent`; App Host does not hard-code an Agent slot. The same mechanism is the required path for future Search, Notifications, approvals or knowledge tools.
+
 An Activity is a **context selector**, not a duplicated App navigation entry.
 
 Selecting the currently active side-panel Activity toggles the Side Panel closed/open.
+
+The effective Activity set is recomputed from active Features. Install/enable can add entries and disable/uninstall removes them at runtime without remounting the Workbench. If the active contributed Activity disappears, Eidos falls back deterministically to the host default Activity. Duplicate IDs and malformed route Activities fail closed.
 
 ## 3. Side Panel
 
@@ -115,7 +118,7 @@ Target operating loop: Human intent → Agent inspects/reasons → right Workspa
 Workbench v0.1 is accepted only when:
 
 1. Activity Bar is visibly narrow;
-2. Apps and Agent can switch Side Panel content;
+2. Apps and any installed side-view contribution (including Enterprise Agent when enabled) can switch Side Panel content;
 3. selecting the active side Activity hides the Side Panel;
 4. dragging splitter changes Side Panel/Workspace proportions;
 5. layout restores after reload;
@@ -124,4 +127,7 @@ Workbench v0.1 is accepted only when:
 8. OpenAI model/base URL Settings persist;
 9. API key is absent from ordinary Settings;
 10. mobile remains operable with Activity Bar + one visible surface;
-11. all surfaces still use Eidos public contracts.
+11. all surfaces still use Eidos public contracts;
+12. Enterprise Agent is absent from Activity Bar before install, appears after activation, disappears after disable/uninstall, and returns after enable without shell remount;
+13. App Host source contains no product-specific Enterprise Agent Activity constant;
+14. transient Activity refresh failure keeps the last known good Activity set instead of erasing extension UI.
