@@ -15,8 +15,5 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
-  },
-  "dependencies": {
-    "@eidos/reference": "git+https://github.com/jiangxng/eidos.git#daafd5b43d2e3b62719c5541c9d1d99fb2a80beb"
   }
 }
