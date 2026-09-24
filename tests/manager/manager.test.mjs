@@ -232,3 +232,63 @@ test("disable/uninstall fail closed when another active feature depends on packa
   assert.throws(() => manager.disable("evo.core"), /DISABLE_BLOCKED/);
   assert.throws(() => manager.uninstall("evo.core"), /UNINSTALL_BLOCKED/);
 });
+
+
+test("file lifecycle store survives process-style reopen", async () => {
+  const { mkdtempSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { createFileLifecycleStore } = await import("../../dist/manager/store.js");
+
+  const dir = mkdtempSync(join(tmpdir(), "evo-app-platform-"));
+  const file = join(dir, "lifecycle.json");
+
+  try {
+    const catalog = createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage]);
+    const first = createAppManagerService(
+      catalog,
+      createFileLifecycleStore(file),
+      () => new Date("2026-09-24T00:00:00Z"),
+      referenceExperienceAssets
+    );
+
+    first.install("evo-ledger-runtime-configurator");
+    assert.equal(first.getSnapshot().installedPackages.length, 2);
+    assert.equal(first.getSnapshot().activeFeatures.some(x => x.featureId === "evo-ledger-runtime-configurator.default"), true);
+
+    const reopened = createAppManagerService(
+      catalog,
+      createFileLifecycleStore(file),
+      () => new Date("2026-09-24T01:00:00Z"),
+      referenceExperienceAssets
+    );
+
+    assert.equal(
+      reopened.getSnapshot().installedPackages.some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      true
+    );
+    assert.equal(
+      reopened.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      true
+    );
+
+    reopened.disable("evo-ledger-runtime-configurator");
+
+    const reopenedDisabled = createAppManagerService(
+      catalog,
+      createFileLifecycleStore(file),
+      () => new Date("2026-09-24T02:00:00Z"),
+      referenceExperienceAssets
+    );
+    assert.equal(
+      reopenedDisabled.getSnapshot().installedPackages.some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      true
+    );
+    assert.equal(
+      reopenedDisabled.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      false
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

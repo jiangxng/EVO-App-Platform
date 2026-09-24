@@ -29,3 +29,4 @@
 - **APP-28** Before implementing a new shell/runtime/capability, search for existing project assets and converge/reuse them when compatible; historical implementation is project capital.
 - **APP-29** Standard product lifecycles MUST be closed-loop by default. When a conventional inverse/recovery transition is inherent to the capability (for example install/enable/disable/uninstall), engineering must implement or explicitly and safely block that transition without waiting for the human to enumerate it.
 - **APP-30** An effective Experience is not product-accepted merely because its backend manifest/page asset exists; after lifecycle transitions it MUST be discoverable, navigable and renderable through the canonical Eidos App Host.
+- **APP-31** Production Package/Feature lifecycle state MUST survive process restarts and deployments. In-memory lifecycle storage is test/development-only evidence and cannot satisfy production product acceptance.
