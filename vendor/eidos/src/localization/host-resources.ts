@@ -28,7 +28,10 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.browserInvalidTarget": "Enter an App Host route beginning with '/' or an http(s) URL.",
       "shell.mobileMenu": "Menu",
       "shell.mobileChat": "Chat",
-      "shell.mobileWorkspace": "Workspace"
+      "shell.mobileWorkspace": "Workspace",
+      "shell.settingsSaved": "Settings saved.",
+      "workbench.activityBar": "Activity Bar",
+      "workbench.status": "{title} · {status}"
     }
   },
   {
@@ -58,7 +61,10 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.browserInvalidTarget": "请输入以“/”开头的 App Host 路径，或 http(s) URL。",
       "shell.mobileMenu": "菜单",
       "shell.mobileChat": "对话",
-      "shell.mobileWorkspace": "工作区"
+      "shell.mobileWorkspace": "工作区",
+      "shell.settingsSaved": "设置已保存。",
+      "workbench.activityBar": "活动栏",
+      "workbench.status": "{title} · {status}"
     }
   }
 ];

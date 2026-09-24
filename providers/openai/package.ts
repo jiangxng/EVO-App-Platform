@@ -24,6 +24,67 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
       ],
       contributions: [
         {
+          kind: "eidos.settings",
+          settings: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            title: "OpenAI LLM Provider",
+            description: "Runtime settings for the OpenAI provider. API credentials remain in the secure secret boundary.",
+            properties: [
+              {
+                key: "model",
+                label: "Model",
+                description: "Model id used for inference.",
+                type: "string",
+                defaultValue: "gpt-5.6-luna",
+                scope: "INSTALLATION"
+              },
+              {
+                key: "baseUrl",
+                label: "API Base URL",
+                description: "OpenAI-compatible Responses API base URL.",
+                type: "string",
+                defaultValue: "https://api.openai.com/v1",
+                scope: "INSTALLATION"
+              }
+            ]
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "en",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "Runtime settings for the OpenAI provider. API credentials remain in the secure secret boundary.",
+              "settings.saveLabel": "Save",
+              "settings.model.label": "Model",
+              "settings.model.description": "Model id used for inference.",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI-compatible Responses API base URL."
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "zh-CN",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider 的运行设置。API Key 继续由安全 Secrets 边界管理。",
+              "settings.saveLabel": "保存",
+              "settings.model.label": "模型",
+              "settings.model.description": "推理时使用的模型 ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 兼容 Responses API 的基础地址。"
+            }
+          }
+        },
+        {
           kind: "platform.service-provider",
           provider: {
             contractVersion: "0.1.0",

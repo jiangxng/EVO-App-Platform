@@ -1,6 +1,7 @@
 import { renderToHtml } from "../renderers/html/index.js";
 import { renderCatalogBrowserToHtml } from "../catalog-browser/render.js";
 import { isChatExperienceV010, renderChatExperienceToHtml } from "../chat/index.js";
+import { isSettingsEditorV010, renderSettingsEditorToHtml } from "../settings/index.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import { localizeAppHostPageDefinition } from "../localization/localize.js";
@@ -20,6 +21,10 @@ export function renderAppHostPageToHtml(
 
   if (isChatExperienceV010(localizedDefinition)) {
     return renderChatExperienceToHtml(localizedDefinition);
+  }
+
+  if (isSettingsEditorV010(localizedDefinition)) {
+    return renderSettingsEditorToHtml(localizedDefinition);
   }
 
   return renderToHtml(localizedDefinition);

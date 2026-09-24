@@ -1,5 +1,6 @@
 import type { PackageManifestV010, PlatformSnapshotV010 } from "../contracts/package.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
+import { packageHasSettings, settingsPackageRoute } from "./settings-page.js";
 
 export const pluginStorePageSource = "app://evo-app-platform/pages/plugin-store";
 
@@ -73,6 +74,7 @@ export function createPluginStorePage(
         );
         const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
         const route = firstExperienceRoute(pkg);
+        const settingsRoute = packageHasSettings(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
         return {
           id: pkg.packageId,
           title: pkg.displayName,
@@ -127,6 +129,12 @@ export function createPluginStorePage(
                     }
                   } : {}),
                   secondaryActions: [
+                    ...(settingsRoute ? [{
+                      id: "configure",
+                      label: "Configure",
+                      type: "navigate" as const,
+                      route: settingsRoute
+                    }] : []),
                     {
                       id: "disable",
                       label: "Disable",
@@ -154,9 +162,15 @@ export function createPluginStorePage(
                     inputVersion: "0.1.0"
                   },
                   secondaryActions: [
+                    ...(settingsRoute ? [{
+                      id: "configure",
+                      label: "Configure",
+                      type: "navigate" as const,
+                      route: settingsRoute
+                    }] : []),
                     {
                       id: "uninstall",
-                      label: "卸载",
+                      label: "Uninstall",
                       type: "command",
                       command: "app-platform.uninstall-package",
                       inputVersion: "0.1.0",

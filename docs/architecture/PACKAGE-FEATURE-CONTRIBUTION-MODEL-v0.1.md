@@ -473,7 +473,7 @@ Everything else should preferentially enter as plugins. If Eidos cannot render t
 This keeps long-term growth additive rather than centralizing every new requirement into a monolithic platform core.
 
 
-Provider-style platform services are specified by `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`. Use `type: PLATFORM_PROVIDER` plus `platform.service-provider` Contributions for replaceable LLM, identity, enterprise and localization providers.
+Provider-style platform services are specified by `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`. Use `type: PLATFORM_PROVIDER` plus `platform.service-provider` Contributions for replaceable LLM, identity and enterprise providers. Localization remains an Eidos/App Host rendering standard with app-owned resources.
 
 
 ## Localization Contribution
@@ -500,3 +500,32 @@ Ownership rules:
 - a future cross-package language-pack extension requires a separate explicit compatibility/provenance contract and cannot silently override another Package.
 
 Localization bundle Contributions are **not** platform service providers. They are declarative Experience resources owned by the same Feature that owns the human-facing vocabulary.
+
+
+## Settings Contribution
+
+Simple Package configuration uses:
+
+```text
+kind: eidos.settings
+settings:
+  contractVersion: 0.1.0
+  namespace: <owning packageId>
+  title: ...
+  properties:
+    - key
+      type: string | number | boolean | select
+      defaultValue
+      label
+      description
+      scope
+```
+
+Rules:
+
+- `namespace` MUST equal the owning Package id for ordinary Packages;
+- Settings are available for installed Packages even while their runtime Feature is disabled, so a user can repair configuration before re-enabling;
+- Plugin Store exposes Configure only when this Contribution exists (or a future explicit advanced settings Experience exists);
+- ordinary Settings MUST NOT contain credentials/API keys/passwords;
+- secrets remain in a secure secrets/configuration boundary;
+- complex business configuration remains a dedicated Eidos Experience rather than overloading generic Settings.

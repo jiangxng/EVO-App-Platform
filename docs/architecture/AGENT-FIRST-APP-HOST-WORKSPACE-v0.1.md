@@ -5,12 +5,13 @@
 
 ## 1. Product decision
 
-EVO App Platform uses the Eidos Agent Workspace Shell as its primary human workspace.
+EVO App Platform originally used the Eidos Agent Workspace Shell to prove persistent Agent + Workspace composition. The canonical product shell has now evolved to the Eidos Workbench.
 
 ```text
-Left     = applications/plugins/navigation
-Center   = Enterprise Agent conversation
-Right    = active application / configurator / browser workspace
+Activity Bar = Apps / Agent / Plugins / Workspace / Settings
+Side Panel   = current context (Apps navigation, Enterprise Agent, future Views)
+Workspace    = active application / configurator / browser
+Status Bar   = lightweight runtime/workspace context
 ```
 
 This is not an Enterprise-Agent-specific handwritten page. App Platform selects `/enterprise-agent` as the current assistant route on top of the generic Eidos shell.
@@ -75,13 +76,7 @@ External websites may be shown in the same workspace browser when embeddable; th
 
 ## 5. Mobile
 
-Mobile uses one visible pane at a time:
-
-- Menu
-- Chat
-- Workspace
-
-The current transcript and workspace target are retained while switching panes.
+Mobile keeps the Activity Bar available and shows one working surface at a time: Side Panel or Workspace. Selecting Agent/Apps opens the Side Panel; selecting an application/Plugin Store/Settings opens Workspace. Chat and workspace state are preserved while switching.
 
 ## 6. Immediate migration
 
@@ -101,3 +96,17 @@ After the shell is stable:
 - add Agent-driven workspace navigation;
 - expose Ledger Configurator operations through Agent tools;
 - keep Configurator itself directly operable in right pane for inspection/override.
+
+
+## 8. Workbench evolution
+
+The fixed three-pane Agent Workspace is retained as a reusable Eidos shell, but EVO App Platform uses the newer Workbench:
+
+- Activity Bar is narrow and persistent;
+- Agent is one View Container, not permanently reserved screen real estate;
+- clicking the current side Activity can hide the Side Panel;
+- Side Panel width is draggable and persisted;
+- Plugin Store and Settings are workspace targets;
+- the main Workspace expands when the Side Panel is hidden.
+
+Authority: `docs/architecture/EVO-WORKBENCH-v0.1.md`.

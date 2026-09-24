@@ -6,6 +6,7 @@ import {
   renderChatMessageToHtml,
   type ChatMessageV010
 } from "../chat/index.js";
+import { isSettingsEditorV010 } from "../settings/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import { executeAppHostPageAction } from "./action-executor.js";
@@ -292,6 +293,92 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       textarea.addEventListener("keydown", keyHandler);
       listeners.push(() => form.removeEventListener("submit", submitHandler));
       listeners.push(() => textarea.removeEventListener("keydown", keyHandler));
+    }
+
+    return {
+      dispose() {
+        for (const dispose of listeners) dispose();
+      }
+    };
+  }
+
+  if (isSettingsEditorV010(definition)) {
+    const form = container.querySelector<HTMLFormElement>("[data-eidos-settings-form]");
+    const status = document.createElement("div");
+    status.setAttribute("data-eidos-action-status", "");
+    status.setAttribute("role", "status");
+    container.appendChild(status);
+
+    if (form) {
+      const submitHandler = (event: SubmitEvent) => {
+        event.preventDefault();
+        void (async () => {
+          if (!options.actionHost) {
+            status.textContent = hostText("shell.noActionHost", "No App Host ActionHost is configured.");
+            return;
+          }
+
+          const values: Record<string, JsonValue> = {};
+          for (const field of definition.settings) {
+            const control = form.elements.namedItem(field.key);
+            if (!(control instanceof HTMLInputElement) && !(control instanceof HTMLSelectElement)) continue;
+            if (field.readOnly) continue;
+
+            if (field.type === "boolean" && control instanceof HTMLInputElement) {
+              values[field.key] = control.checked;
+            } else if (field.type === "number") {
+              values[field.key] = Number(control.value);
+            } else if (field.type === "select" && control instanceof HTMLSelectElement) {
+              const selected = control.selectedOptions[0];
+              const valueType = selected?.dataset.valueType;
+              if (valueType === "number") values[field.key] = Number(control.value);
+              else if (valueType === "boolean") values[field.key] = control.value === "true";
+              else values[field.key] = control.value;
+            } else {
+              values[field.key] = control.value;
+            }
+          }
+
+          const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+          if (button) button.disabled = true;
+          status.textContent = hostText("shell.executing", "Executing…");
+
+          try {
+            const request: ActionRequestV010 = {
+              contractVersion: "0.1.0",
+              type: "command",
+              command: { ...definition.command },
+              values: {
+                namespace: definition.namespace,
+                settings: values
+              },
+              sourceInteractionId: definition.id,
+              actionId: "settings.save",
+              requiresConfirmation: false
+            };
+            const result = await options.actionHost.execute(request);
+            status.textContent = result.ok
+              ? hostText("shell.settingsSaved", "Settings saved.")
+              : hostText(
+                  "shell.actionFailed",
+                  "Action failed: {message}",
+                  { message: result.error?.message ?? "Unknown action error" }
+                );
+            await options.onActionResult?.(result, page);
+          } catch (error) {
+            status.textContent = hostText(
+              "shell.actionFailed",
+              "Action failed: {message}",
+              { message: error instanceof Error ? error.message : String(error) }
+            );
+          } finally {
+            if (button) button.disabled = false;
+          }
+        })();
+      };
+
+      form.addEventListener("submit", submitHandler);
+      listeners.push(() => form.removeEventListener("submit", submitHandler));
     }
 
     return {

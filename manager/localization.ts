@@ -18,7 +18,17 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.plugin-store.action.open.label": "Open",
       "catalog.evo.plugin-store.action.disable.label": "Disable",
       "catalog.evo.plugin-store.action.uninstall.label": "Uninstall",
-      "catalog.evo.plugin-store.action.enable.label": "Enable"
+      "catalog.evo.plugin-store.action.enable.label": "Enable",
+      "catalog.evo.plugin-store.action.configure.label": "Configure",
+      "workbench.activity.apps": "Apps",
+      "workbench.activity.agent": "Agent",
+      "workbench.activity.plugins": "Plugins",
+      "workbench.activity.workspace": "Workspace",
+      "workbench.activity.settings": "Settings",
+      "catalog.evo.settings.title": "Settings",
+      "catalog.evo.settings.description": "Configure installed plugins that expose standard settings.",
+      "catalog.evo.settings.empty": "No installed plugins expose standard settings.",
+      "catalog.evo.settings.action.configure.label": "Configure"
     }
   },
   {
@@ -40,7 +50,17 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.plugin-store.action.open.label": "打开",
       "catalog.evo.plugin-store.action.disable.label": "禁用",
       "catalog.evo.plugin-store.action.uninstall.label": "卸载",
-      "catalog.evo.plugin-store.action.enable.label": "启用"
+      "catalog.evo.plugin-store.action.enable.label": "启用",
+      "catalog.evo.plugin-store.action.configure.label": "配置",
+      "workbench.activity.apps": "应用",
+      "workbench.activity.agent": "智能体",
+      "workbench.activity.plugins": "插件",
+      "workbench.activity.workspace": "工作区",
+      "workbench.activity.settings": "设置",
+      "catalog.evo.settings.title": "设置",
+      "catalog.evo.settings.description": "配置已安装且声明标准设置项的插件。",
+      "catalog.evo.settings.empty": "当前没有已安装插件提供标准设置。",
+      "catalog.evo.settings.action.configure.label": "配置"
     }
   }
 ];
