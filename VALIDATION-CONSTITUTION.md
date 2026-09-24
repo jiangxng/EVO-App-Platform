@@ -12,7 +12,7 @@ A valid product acceptance journey MUST demonstrate:
 
 ```text
 discover in Catalog
-→ inspect side-effect-free installation plan
+→ system runs side-effect-free preflight / installation plan automatically
 → resolve dependencies/capabilities
 → install Package(s)
 → activate Feature(s)
@@ -22,7 +22,9 @@ discover in Catalog
 → execute the representative business scenario
 ```
 
-Skipping these stages may still produce component/API evidence, but it MUST NOT be reported as end-to-end product acceptance.
+The preflight stage is mandatory for the system, not a mandatory human ritual. Normal low-risk installation SHOULD be one-click. Human review is required only when blockers, elevated risk, permissions, migrations, charges, destructive effects or other material decisions require it.
+
+Skipping lifecycle/preflight execution may still produce component/API evidence, but it MUST NOT be reported as end-to-end product acceptance.
 
 ## 2. Eidos-first human experience
 
