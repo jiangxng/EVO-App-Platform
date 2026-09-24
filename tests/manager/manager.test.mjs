@@ -159,3 +159,76 @@ test("Ledger Runtime Configurator installs as an ordinary plugin with EVO ledger
   assert.equal(page.command.code, "evo-ledger-runtime-configurator.validate-default");
   assert.equal(page.metadata.defaultConfiguration.postingRules, 912);
 });
+
+
+test("package lifecycle closes install enable disable uninstall loop", () => {
+  const catalog = createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  manager.install("evo-ledger-runtime-configurator");
+  assert.equal(
+    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    true
+  );
+
+  const disablePlan = manager.planDisable("evo-ledger-runtime-configurator");
+  assert.deepEqual(disablePlan.blockers, []);
+  assert.deepEqual(disablePlan.deactivateFeatures, ["evo-ledger-runtime-configurator.default"]);
+
+  manager.disable("evo-ledger-runtime-configurator");
+  assert.equal(
+    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    false
+  );
+  assert.equal(
+    manager.getSnapshot().installedPackages.some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    true
+  );
+
+  manager.enable("evo-ledger-runtime-configurator");
+  assert.equal(
+    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    true
+  );
+
+  const uninstallPlan = manager.planUninstall("evo-ledger-runtime-configurator");
+  assert.deepEqual(uninstallPlan.blockers, []);
+  manager.uninstall("evo-ledger-runtime-configurator");
+
+  assert.equal(
+    manager.getSnapshot().installedPackages.some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    false
+  );
+  assert.equal(
+    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    false
+  );
+  assert.equal(
+    manager.getSnapshot().installedPackages.some(x => x.packageId === "evo.core"),
+    true,
+    "shared dependency remains installed"
+  );
+});
+
+test("disable/uninstall fail closed when another active feature depends on package capability", () => {
+  const catalog = createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage, tradingLitePackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  manager.install("trading-lite");
+  const plan = manager.planDisable("evo.core");
+  assert.ok(plan.blockers.some(x => x.code === "ACTIVE_DEPENDENT_CAPABILITY"));
+  assert.throws(() => manager.disable("evo.core"), /DISABLE_BLOCKED/);
+  assert.throws(() => manager.uninstall("evo.core"), /UNINSTALL_BLOCKED/);
+});
