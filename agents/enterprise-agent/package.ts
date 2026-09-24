@@ -56,12 +56,29 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
           }
         },
         {
+          kind: "eidos.workbench-activity",
+          activity: {
+            contractVersion: "0.1.0",
+            id: "enterprise-agent",
+            title: "Enterprise Agent",
+            icon: "✦",
+            kind: "side-route",
+            route: "/enterprise-agent",
+            order: 20,
+            localization: {
+              namespace: ENTERPRISE_AGENT_PACKAGE_ID,
+              key: "workbench.activity.label"
+            }
+          }
+        },
+        {
           kind: "eidos.localization-bundle",
           bundle: {
             contractVersion: "0.1.0",
             namespace: ENTERPRISE_AGENT_PACKAGE_ID,
             locale: "en",
             messages: {
+              "workbench.activity.label": "Enterprise Agent",
               "navigation.enterprise-agent.nav.label": "Enterprise Agent",
               "page.enterprise-agent.home.title": "Enterprise Agent",
               "chat.enterprise-agent.home.composer.placeholder": "Tell Enterprise Agent what you want to accomplish",
@@ -77,6 +94,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             namespace: ENTERPRISE_AGENT_PACKAGE_ID,
             locale: "zh-CN",
             messages: {
+              "workbench.activity.label": "企业智能体",
               "navigation.enterprise-agent.nav.label": "企业智能体",
               "page.enterprise-agent.home.title": "企业智能体",
               "chat.enterprise-agent.home.composer.placeholder": "告诉 Enterprise Agent 你要完成什么",

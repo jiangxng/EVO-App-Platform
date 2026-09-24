@@ -237,6 +237,9 @@ const server = createServer(async (request, response) => {
         ...manager.listEffectiveLocalizationBundles()
       ]);
     }
+    if (request.method === "GET" && url.pathname === "/v1/workbench/activities") {
+      return json(response, 200, manager.listEffectiveWorkbenchActivities());
+    }
     if (request.method === "GET" && url.pathname === "/v1/settings/effective") {
       return json(response, 200, {
         contributions: manager.listInstalledSettings(),
