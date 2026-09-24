@@ -37,7 +37,7 @@ export interface PlatformServiceProviderContributionV010 {
     providerContract: string;
     providerContractVersion: string;
     binding: {
-      type: "HTTP" | "ACTION_HOST" | "QUERY_HOST" | "DECLARATIVE";
+      type: "HTTP" | "ACTION_HOST" | "QUERY_HOST" | "DECLARATIVE" | "IN_PROCESS";
       ref: string;
     };
     health?: {
