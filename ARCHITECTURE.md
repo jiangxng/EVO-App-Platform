@@ -171,6 +171,17 @@ Contribution
 - Feature = activation/deactivation/dependency unit.
 - Contribution = concrete content/runtime registration.
 
+Human-facing shell extensions follow the same rule. Product-specific Workbench entries are Contributions, not App Host constants:
+
+```text
+Enterprise Agent Feature
+  ├─ eidos.experience
+  ├─ eidos.localization-bundle
+  └─ eidos.workbench-activity
+```
+
+The App Platform aggregates only Contributions from currently effective Features. Eidos renders and reconciles the supplied Activity set; it does not discover package lifecycle itself.
+
 Installation and activation are distinct.
 
 The detailed authority is:
