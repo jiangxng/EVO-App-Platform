@@ -1,5 +1,5 @@
 // Generated from jiangxng/bookkeeping src/main/resources/policy.sql. This is the runtime-used default rule baseline.
-export const bookkeepingPostingRules = [
+export const bookkeepingPostingRules: readonly Record<string, unknown>[] = [
   {
     "sourceId": 1,
     "applicationId": "0c89da36-9891-4632-aea6-b690c1dc5622",
@@ -14592,4 +14592,4 @@ export const bookkeepingPostingRules = [
     "accountLaneFieldsValues": null,
     "source": "bookkeeping.policy.sql"
   }
-] as const;
+];
