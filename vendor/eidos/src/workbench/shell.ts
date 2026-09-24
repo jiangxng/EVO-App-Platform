@@ -9,6 +9,7 @@ import {
 import { renderAppHostPageToHtml } from "../app-host/page-renderer.js";
 import {
   createBrowserWorkbenchLayoutStateStore,
+  normalizeWorkbenchActivities,
   type WorkbenchActivityV010,
   type WorkbenchLayoutStateStore,
   type WorkbenchLayoutStateV010
@@ -31,6 +32,7 @@ export interface WorkbenchShellOptions {
 
 export interface WorkbenchShell {
   refresh(): Promise<AppHostSnapshotV010>;
+  setActivities(activities: WorkbenchActivityV010[]): Promise<void>;
   setActivity(activityId: string): Promise<void>;
   toggleSidePanel(): Promise<void>;
   navigateWorkspace(target: string): Promise<void>;
@@ -68,13 +70,14 @@ export async function mountWorkbenchShell(
 ): Promise<WorkbenchShell> {
   const container = resolveContainer(options.container);
   const { host, localization } = options;
-  const activities = [...options.activities].sort((a, b) =>
-    (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)
-  );
-  if (activities.length === 0) throw new Error("EIDOS_WORKBENCH_ACTIVITY_REQUIRED");
+  let activities = normalizeWorkbenchActivities(options.activities);
 
-  const defaultActivity = activities.find(item => item.id === options.defaultActivityId)
-    ?? activities[0]!;
+  function fallbackActivity(): WorkbenchActivityV010 {
+    return activities.find(item => item.id === options.defaultActivityId)
+      ?? activities[0]!;
+  }
+
+  const defaultActivity = fallbackActivity();
   const stateStore = options.layoutStateStore
     ?? createBrowserWorkbenchLayoutStateStore("eidos.workbench.layout");
   const persisted = stateStore.load();
@@ -251,7 +254,7 @@ export async function mountWorkbenchShell(
     sideMount = undefined;
     sideContent.replaceChildren();
 
-    const activity = activityById(state.activeActivityId) ?? defaultActivity;
+    const activity = activityById(state.activeActivityId) ?? fallbackActivity();
     sideTitle.textContent = activity.localization && localization
       ? localization.resolve(
           activity.localization.namespace,
@@ -416,7 +419,7 @@ export async function mountWorkbenchShell(
       button.appendChild(icon);
 
       button.addEventListener("click", () => { void setActivity(activity.id); });
-      const target = activity.id === "settings" ? activityBottom : activityTop;
+      const target = activity.placement === "secondary" ? activityBottom : activityTop;
       target.appendChild(button);
     }
 
@@ -425,6 +428,54 @@ export async function mountWorkbenchShell(
       "{title} · {status}",
       { title: options.title ?? "Eidos", status: host.getSnapshot().status }
     );
+  }
+
+  async function setActivities(nextActivities: WorkbenchActivityV010[]): Promise<void> {
+    if (disposed) throw new Error("EIDOS_WORKBENCH_DISPOSED");
+
+    const previousActivity = activityById(state.activeActivityId);
+    activities = normalizeWorkbenchActivities(nextActivities);
+
+    let active = activityById(state.activeActivityId);
+    const activeWasRemoved = !active;
+    if (!active) {
+      active = fallbackActivity();
+      state.activeActivityId = active.id;
+    }
+
+    if (active.kind === "workspace-focus") {
+      state.sidePanelVisible = false;
+    } else if (active.kind === "workspace-route") {
+      state.sidePanelVisible = false;
+    } else if (activeWasRemoved) {
+      state.sidePanelVisible = true;
+    }
+
+    persist();
+    updateLayoutAttributes();
+    renderActivities();
+
+    if (
+      active.kind === "workspace-route"
+      && active.route
+      && (
+        activeWasRemoved
+        || previousActivity?.kind !== active.kind
+        || previousActivity?.route !== active.route
+      )
+    ) {
+      await navigateWorkspace(active.route);
+      root.setAttribute("data-mobile-surface", "workspace");
+      return;
+    }
+
+    if (active.kind === "workspace-focus") {
+      root.setAttribute("data-mobile-surface", "workspace");
+      return;
+    }
+
+    await renderSidePanel();
+    if (state.sidePanelVisible) root.setAttribute("data-mobile-surface", "panel");
   }
 
   async function setActivity(activityId: string): Promise<void> {
@@ -590,6 +641,7 @@ export async function mountWorkbenchShell(
 
   return {
     refresh,
+    setActivities,
     setActivity,
     toggleSidePanel,
     navigateWorkspace,
