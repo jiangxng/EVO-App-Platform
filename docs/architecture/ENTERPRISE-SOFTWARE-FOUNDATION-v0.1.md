@@ -81,7 +81,6 @@ Core owns the minimal generic substrate:
 
 Platform/domain capabilities preferentially remain plugins:
 
-- localization;
 - identity/authentication;
 - authorization/policy;
 - enterprise directory/organization;
@@ -107,7 +106,6 @@ AuthorizationCheck
 AuthorizationDecision
 EnterpriseContext
 ServiceProviderRef
-LocalizationContext
 LlmExecutionContext
 ```
 
@@ -253,28 +251,19 @@ Apps consume capability contracts rather than concrete enterprise tables.
 
 ## 9. Localization boundary
 
-Localization is a Provider Package, not hard-coded App Host product behavior.
-
-Eidos owns localization-aware rendering hooks only.
-
-An `evo-localization` reference plugin is intended to prove:
+Localization is an Eidos/App Host framework responsibility plus app-owned resources.
 
 ```text
-Provider Package installation
-→ localization.* capabilities become effective
-→ App Host/Eidos consume locale context
-→ language resources resolve
-→ disable/uninstall removes provider capability safely
+Eidos/App Host
+→ locale context + deterministic resolver + rendering standard
+
+Each Package/Experience
+→ owns its own localization namespace + bundles
 ```
 
-Initial reference locales:
+No central `evo-localization` Package is required or retained. The experimental package was retired because it had no independent product responsibility.
 
-```text
-zh-CN
-en
-```
-
-Additional languages should be resource/plugin evolution, not business-code changes.
+A future enterprise locale preference/policy service may become a Provider only if a concrete independent lifecycle is required. Do not pre-create that Provider.
 
 ## 10. LLM provider boundary
 
@@ -389,7 +378,7 @@ Audit is cross-cutting but should still enter behind stable plugin/provider cont
 - Enterprise-first purpose.
 - Plugin-first extension rule.
 - Provider Plugin concept.
-- separation of Authentication / Authorization / Enterprise / LLM / Localization.
+- separation of Authentication / Authorization / Enterprise / LLM, plus localization ownership between Eidos/App Host and each Package.
 - normalized Principal/Scope/ProviderRef-style boundary.
 - multiple providers are supported conceptually.
 - vendor implementations do not enter Core.
@@ -406,7 +395,7 @@ Audit is cross-cutting but should still enter behind stable plugin/provider cont
 - specific vendor SDK choices;
 - secret manager implementation;
 - exact LLM request/response contract;
-- final localization bundle format.
+- advanced locale policy/preference service contracts, if a concrete enterprise requirement later needs them.
 
 Deferring these details is intentional: reserve the boundary now, freeze detailed contracts only when the immediately preceding layer is proven.
 
