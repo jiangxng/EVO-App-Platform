@@ -10,6 +10,7 @@
     "src/runtime/validate.ts",
     "src/runtime/render-model.ts",
     "src/runtime/action.ts",
+    "src/runtime/values.ts",
     "src/renderers/html/index.ts",
     "src/catalog-browser/contracts.ts",
     "src/catalog-browser/render.ts",
