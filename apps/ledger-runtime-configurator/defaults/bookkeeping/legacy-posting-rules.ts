@@ -1,5 +1,5 @@
 // Generated from jiangxng/bookkeeping src/main/resources/记账规则.sql. Kept as a separate legacy source set; never silently merged with the active baseline.
-export const bookkeepingLegacyPostingRules = [
+export const bookkeepingLegacyPostingRules: readonly Record<string, unknown>[] = [
   {
     "sourceId": 1,
     "applicationId": "0c89da36-9891-4632-aea6-b690c1dc5622",
@@ -7631,4 +7631,4 @@ export const bookkeepingLegacyPostingRules = [
     "entryConditions": null,
     "source": "bookkeeping.记账规则.sql"
   }
-] as const;
+];
