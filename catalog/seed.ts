@@ -7,67 +7,6 @@ import {
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 
 
-export const evoLocalizationPackage: PackageManifestV010 = {
-  contractVersion: "0.1.0",
-  packageId: "evo-localization",
-  displayName: "EVO Localization",
-  version: "0.1.0",
-  type: "PLATFORM_PROVIDER",
-  features: [
-    {
-      contractVersion: "0.1.0",
-      featureId: "evo-localization.default",
-      packageId: "evo-localization",
-      version: "0.1.0",
-      activationScope: "INSTALLATION",
-      defaultActivation: true,
-      providesCapabilities: [
-        "localization.locale",
-        "localization.resources",
-        "localization.format"
-      ],
-      contributions: [
-        {
-          kind: "platform.service-provider",
-          provider: {
-            contractVersion: "0.1.0",
-            providerId: "evo-localization.reference",
-            capability: "localization.resources",
-            providerContract: "evo.localization.resources",
-            providerContractVersion: "0.1.0",
-            binding: {
-              type: "DECLARATIVE",
-              ref: "app://evo-localization/resources/default"
-            },
-            metadata: {
-              defaultLocale: "zh-CN",
-              supportedLocales: "zh-CN,en"
-            }
-          }
-        },
-        {
-          kind: "platform.service-provider",
-          provider: {
-            contractVersion: "0.1.0",
-            providerId: "evo-localization.reference",
-            capability: "localization.locale",
-            providerContract: "evo.localization.locale",
-            providerContractVersion: "0.1.0",
-            binding: {
-              type: "DECLARATIVE",
-              ref: "app://evo-localization/locale/default"
-            },
-            metadata: {
-              defaultLocale: "zh-CN",
-              supportedLocales: "zh-CN,en"
-            }
-          }
-        }
-      ]
-    }
-  ]
-};
-
 export const companyNotesPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "company-notes",
@@ -101,6 +40,36 @@ export const companyNotesPackage: PackageManifestV010 = {
             navigation: [
               { id: "company-notes.nav", label: "Company Notes", route: "/notes", order: 20 }
             ]
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "company-notes",
+            locale: "en",
+            messages: {
+                      "navigation.company-notes.nav.label": "Company Notes",
+                      "page.company-notes.home.title": "Company Notes",
+                      "field.company-notes.home.title.label": "Title",
+                      "field.company-notes.home.content.label": "Content",
+                      "action.company-notes.home.save.label": "Save Note"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "company-notes",
+            locale: "zh-CN",
+            messages: {
+                      "navigation.company-notes.nav.label": "企业笔记",
+                      "page.company-notes.home.title": "企业笔记",
+                      "field.company-notes.home.title.label": "标题",
+                      "field.company-notes.home.content.label": "内容",
+                      "action.company-notes.home.save.label": "保存笔记"
+            }
           }
         }
       ]
@@ -202,6 +171,32 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
               }
             ]
           }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "evo-ledger-runtime-configurator",
+            locale: "en",
+            messages: {
+                      "navigation.evo-ledger-runtime-configurator.nav.label": "Ledger Configurator",
+                      "page.evo-ledger-runtime-configurator.home.title": "Ledger Runtime Configurator — Bookkeeping defaults",
+                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "Validate Default Configuration"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "evo-ledger-runtime-configurator",
+            locale: "zh-CN",
+            messages: {
+                      "navigation.evo-ledger-runtime-configurator.nav.label": "账本配置",
+                      "page.evo-ledger-runtime-configurator.home.title": "EVO 账本运行时配置 — Bookkeeping 默认配置",
+                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "校验默认配置"
+            }
+          }
         }
       ]
     }
@@ -242,6 +237,40 @@ export const tradingLitePackage: PackageManifestV010 = {
             navigation: [
               { id: "trading-lite.nav", label: "Trading Lite", route: "/trading", order: 30 }
             ]
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "trading-lite",
+            locale: "en",
+            messages: {
+                      "navigation.trading-lite.nav.label": "Trading Lite",
+                      "page.trading-lite.home.title": "Trading Lite",
+                      "field.trading-lite.home.customer.label": "Customer",
+                      "field.trading-lite.home.item.label": "Item",
+                      "field.trading-lite.home.quantity.label": "Quantity",
+                      "field.trading-lite.home.amount.label": "Amount",
+                      "action.trading-lite.home.create-order.label": "Create Order"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: "trading-lite",
+            locale: "zh-CN",
+            messages: {
+                      "navigation.trading-lite.nav.label": "轻量交易",
+                      "page.trading-lite.home.title": "轻量交易",
+                      "field.trading-lite.home.customer.label": "客户",
+                      "field.trading-lite.home.item.label": "商品",
+                      "field.trading-lite.home.quantity.label": "数量",
+                      "field.trading-lite.home.amount.label": "金额",
+                      "action.trading-lite.home.create-order.label": "创建订单"
+            }
           }
         }
       ]
