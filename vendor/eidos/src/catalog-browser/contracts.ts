@@ -8,6 +8,9 @@ export interface CatalogBrowserActionV010 {
   inputVersion?: string;
   route?: string;
   requiresConfirmation?: boolean;
+  enabled?: boolean;
+  disabledReason?: string;
+  helpText?: string;
 }
 
 export interface CatalogBrowserItemV010 {

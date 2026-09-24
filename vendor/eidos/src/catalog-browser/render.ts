@@ -29,7 +29,11 @@ function actionButton(itemId: string, action: import("./contracts.js").CatalogBr
   const command = action.command ? ` data-eidos-command="${esc(action.command)}"` : "";
   const inputVersion = action.inputVersion ? ` data-eidos-input-version="${esc(action.inputVersion)}"` : "";
   const route = action.route ? ` data-eidos-route="${esc(action.route)}"` : "";
-  return `<button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}" data-eidos-item-id="${esc(itemId)}" data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}>${esc(action.label)}</button>`;
+  const enabled = action.enabled !== false;
+  const disabled = enabled ? "" : " disabled";
+  const reason = action.disabledReason ? ` data-eidos-disabled-reason="${esc(action.disabledReason)}" title="${esc(action.disabledReason)}"` : "";
+  const help = action.helpText ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>` : "";
+  return `<span data-eidos-action-wrap><button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}" data-eidos-item-id="${esc(itemId)}" data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}${reason}${disabled}>${esc(action.label)}</button>${help}</span>`;
 }
 
 export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {

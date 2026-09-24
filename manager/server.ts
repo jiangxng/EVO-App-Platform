@@ -154,7 +154,11 @@ const server = createServer(async (request, response) => {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
       if (source === pluginStorePageSource) {
-        return json(response, 200, createPluginStorePage(manager.listCatalog(), manager.getSnapshot()));
+        return json(response, 200, createPluginStorePage(
+          manager.listCatalog(),
+          manager.getSnapshot(),
+          new Set(plannedInstallDigests.keys())
+        ));
       }
       const page = manager.loadExperiencePage(source);
       if (page === undefined) {
@@ -279,7 +283,15 @@ const server = createServer(async (request, response) => {
         return json(response, 200, {
           ok: plan.blockers.length === 0,
           correlationId: action.sourceInteractionId,
-          result: JSON.parse(JSON.stringify({ stage: "INSTALL_PLAN", packageId: itemId, plan }))
+          result: JSON.parse(JSON.stringify({
+            stage: "INSTALL_PLAN",
+            packageId: itemId,
+            message: plan.blockers.length === 0
+              ? "安装计划检查完成。请确认依赖和将激活的功能，然后点击“确认安装”。"
+              : "安装计划存在阻断项，解决阻断后才能安装。",
+            nextAction: plan.blockers.length === 0 ? "确认安装" : "解决阻断并重新生成安装计划",
+            plan
+          }))
         });
       }
 
@@ -383,6 +395,8 @@ const server = createServer(async (request, response) => {
           result: JSON.parse(JSON.stringify({
             stage: "INSTALLED_AND_ACTIVATED",
             packageId: itemId,
+            message: "插件安装并激活完成。相关 Eidos Experience 已进入 App Host。",
+            nextAction: "打开插件或返回商店继续管理",
             snapshot,
             effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
           }))

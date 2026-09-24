@@ -166,6 +166,10 @@ export async function mountBrowserAppHostShell(
       for (const button of Array.from(catalogButtons)) {
         button.addEventListener("click", () => {
           void (async () => {
+            if (button.disabled) {
+              actionStatus.textContent = button.dataset.eidosDisabledReason ?? "This action is not available yet.";
+              return;
+            }
             const actionType = button.dataset.eidosActionType;
             const route = button.dataset.eidosRoute;
             if (actionType === "navigate") {
@@ -200,9 +204,23 @@ export async function mountBrowserAppHostShell(
                 requiresConfirmation: button.dataset.eidosConfirm === "true"
               };
               const result = await options.actionHost.execute(request);
-              actionStatus.textContent = result.ok
-                ? JSON.stringify(result.result ?? { ok: true }, null, 2)
-                : `Action failed: ${result.error?.message ?? "Unknown action error"}`;
+              if (result.ok) {
+                const payload = result.result;
+                if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+                  const message = (payload as { message?: unknown }).message;
+                  const nextAction = (payload as { nextAction?: unknown }).nextAction;
+                  const details = JSON.stringify(payload, null, 2);
+                  actionStatus.textContent = [
+                    typeof message === "string" ? message : "Completed.",
+                    typeof nextAction === "string" ? `Next: ${nextAction}` : "",
+                    details
+                  ].filter(Boolean).join("\n\n");
+                } else {
+                  actionStatus.textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
+                }
+              } else {
+                actionStatus.textContent = `Action failed: ${result.error?.message ?? "Unknown action error"}`;
+              }
               options.onActionResult?.(result, loaded);
               if (result.ok) await refresh();
             } catch (error) {
