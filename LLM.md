@@ -238,3 +238,23 @@ Before designing LLM/model access, login/identity, enterprise/organization, loca
 `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`
 
 These capabilities are provider plugins by default. Consumers depend on capability contracts; they do not import vendor SDKs or concrete provider internals.
+
+
+## Enterprise-first architecture
+
+EVO-family systems ultimately serve enterprises. Before designing cross-cutting enterprise capabilities, read:
+
+- `docs/architecture/ENTERPRISE-SOFTWARE-FOUNDATION-v0.1.md`
+- `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`
+
+Architecture priority:
+
+```text
+Enterprise-first
+→ Plugin-first
+→ Eidos-first human experience
+→ public provider/capability contracts
+→ EVO Ledger Runtime only for ledger/business-fact execution
+```
+
+Reserve stable boundaries early, but freeze detailed provider/protocol contracts only one layer before implementation. Do not prebuild speculative subsystems.
