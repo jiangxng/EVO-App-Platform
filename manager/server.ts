@@ -30,7 +30,6 @@ import {
   evoFoundationPackage,
   evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
-  openAiLlmProviderPackage,
   referenceExperienceAssets,
   tradingLitePackage
 } from "../catalog/seed.js";
