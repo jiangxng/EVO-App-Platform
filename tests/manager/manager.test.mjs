@@ -315,7 +315,11 @@ test("Enterprise Agent installs as an ordinary AGENT Package without requiring a
 
   const page = manager.loadExperiencePage("app://enterprise-agent/pages/home");
   assert.equal(page.id, "enterprise-agent.home");
+  assert.equal(page.kind, "chat");
   assert.equal(page.command.code, "enterprise-agent.chat");
+  assert.equal(page.composer.key, "message");
+  assert.equal(page.fields, undefined);
+  assert.equal(page.actions, undefined);
   assert.equal(page.metadata.convergence.sourceRepository, "jiangxng/Experience-Compiler");
   assert.equal(page.metadata.llm.integrationStatus, "PROVIDER_RESOLVED_AT_RUNTIME");
 
@@ -346,7 +350,7 @@ test("active application owns localization bundles and lifecycle removes them", 
   assert.deepEqual(active.map(x => x.locale), ["en", "zh-CN"]);
   assert.ok(active.every(x => x.namespace === "enterprise-agent"));
   assert.equal(
-    active.find(x => x.locale === "zh-CN")?.messages["action.enterprise-agent.home.send.label"],
+    active.find(x => x.locale === "zh-CN")?.messages["chat.enterprise-agent.home.composer.sendLabel"],
     "发送"
   );
 
