@@ -45,3 +45,7 @@
 - **APP-44** Workbench Side Panel visibility/width/current workspace are user-interface state and SHOULD persist independently of business data. The main Workspace must remain usable when the Side Panel is hidden.
 - **APP-45** A Package receives a standard Configure entry only when it declares an `eidos.settings` Contribution or an explicit advanced settings Experience. Plugins without configuration MUST NOT show decorative Settings affordances.
 - **APP-46** Ordinary plugin Settings are declarative, typed and non-secret. Credentials/API keys/passwords MUST remain in the secure Secrets boundary and MUST NOT be persisted in the ordinary Settings store.
+
+- **APP-47** Workbench Activity entries owned by installable products MUST be contributed through versioned `eidos.workbench-activity` Contributions. App Host MUST NOT hard-code product-specific Activity entries such as Enterprise Agent, Search or Notifications.
+- **APP-48** The effective Workbench Activity set is lifecycle-derived. Install/enable may add Activities; disable/uninstall MUST remove them without requiring a shell remount. If the active Activity disappears, Eidos MUST reconcile to a deterministic host fallback and persisted UI state MUST NOT keep the removed capability effective.
+- **APP-49** Workbench Activity IDs are globally unique within one effective host composition. Conflicts fail closed; extension-owned localized Activity labels use the owning Package namespace.
