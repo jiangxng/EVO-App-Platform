@@ -74,7 +74,7 @@ export function createEnterpriseAgentChatActionHandler(
       return {
         ok: true,
         correlationId: request.sourceInteractionId,
-        result: reply
+        result: JSON.parse(JSON.stringify(reply))
       };
     }
   };
