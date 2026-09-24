@@ -56,7 +56,7 @@
     "host-owned-evo-businessdata-adapter",
     "evo-application-anchor-contribution",
     "trading-lite-stable-evo-application-id",
-    "ledger-runtime-configurator-legacy-expression-compiler",
+    "ledger-runtime-bookkeeping-aviator-compatible-expression-runtime",
     "ledger-runtime-configurator-ledger-runtime-burn-adapter"
   ],
   "firstReferenceApp": "trading-lite",
@@ -167,8 +167,11 @@
         "postingRules": 912,
         "referenceLegacyPostingRules": 587
       },
-      "burnStatus": "BLOCKED_UNTIL_LEGACY_EXPRESSION_COMPILER_AND_RUNTIME_ADAPTER"
+      "burnStatus": "BLOCKED_UNTIL_AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_AND_LEDGER_RUNTIME_BUILTINS"
     }
   },
-  "shortTermMainlineStatus": "HISTORICAL_REFERENCE_ONLY"
+  "shortTermMainlineStatus": "HISTORICAL_REFERENCE_ONLY",
+  "crossProjectPrinciples": [
+    "HUMAN_LLM_OPERABILITY_NO_DEVELOPER_DEPENDENCY"
+  ]
 }

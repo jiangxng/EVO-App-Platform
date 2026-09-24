@@ -8,3 +8,8 @@
 6. **Prefer declarative package content over executable installers.**
 7. **Install, upgrade, deactivate and uninstall must be observable, versioned and recoverable.**
 8. **Repository documents and machine-readable contracts are authoritative; chat memory is not.**
+
+9. **Business-readable, LLM-readable, no-developer operation.** Normal package/app/plugin configuration must be understandable by business users and LLMs and operable by novice users without SQL or source-code changes.
+10. **One semantic truth.** Human-readable configuration may compile to machine contracts, but the platform must not maintain a separate hidden meaning for humans and machines.
+
+Authority: `docs/architecture/HUMAN-LLM-OPERABILITY-v0.1.md`.

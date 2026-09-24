@@ -81,6 +81,12 @@ certification/  Installation and compatibility certification
 docs/           Architecture/product/ADR/status documentation
 ```
 
+## Human + LLM operability
+
+Apps and configuration tools are designed for LLM understanding and business-user operation at the same time. Normal configuration should be understandable and operable without developer assistance, SQL or source-code changes.
+
+See `docs/architecture/HUMAN-LLM-OPERABILITY-v0.1.md`.
+
 ## Current non-goals
 
 This bootstrap does not yet move Finance Reporting, Trading or other existing application code from EVO.
