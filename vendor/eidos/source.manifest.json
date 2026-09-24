@@ -22,7 +22,6 @@
     "src/chat/contracts.ts",
     "src/chat/index.ts",
     "src/chat/render.ts",
-    "src/index.ts",
     "src/localization/contracts.ts",
     "src/localization/host-resources.ts",
     "src/localization/index.ts",
