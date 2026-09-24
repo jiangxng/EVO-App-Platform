@@ -68,16 +68,24 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
     title: "Enterprise Agent",
     purpose: "execute-command",
     command: {
-      code: "enterprise-agent.status",
+      code: "enterprise-agent.chat",
       inputVersion: "0.1.0"
     },
-    fields: [],
+    fields: [
+      {
+        key: "message",
+        label: "告诉 Enterprise Agent 你要完成什么",
+        semanticType: "agent-message",
+        control: "text",
+        required: true
+      }
+    ],
     actions: [
       {
-        id: "status",
-        label: "检查智能运行时状态",
+        id: "send",
+        label: "发送",
         type: "submit",
-        command: "enterprise-agent.status",
+        command: "enterprise-agent.chat",
         requiresConfirmation: false
       }
     ],
@@ -92,7 +100,7 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
       },
       llm: {
         requiredCapability: "llm.inference",
-        integrationStatus: "PROVIDER_PENDING"
+        integrationStatus: "PROVIDER_RESOLVED_AT_RUNTIME"
       },
       preservedAssets: [
         "knowledge",
