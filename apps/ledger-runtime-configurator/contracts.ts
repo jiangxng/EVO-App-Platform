@@ -67,6 +67,7 @@ export interface LedgerConfiguratorLegacyPostingRuleV010 {
 export interface LedgerRuntimeSourceConfigurationV010 {
   contractVersion: "0.1.0";
   kind: "evo.ledger-runtime.source-configuration";
+  expressionLanguage: "bookkeeping-aviator-v1";
   configurationId: string;
   displayName: string;
   source: {
@@ -129,6 +130,7 @@ export interface LedgerRuntimeTemplateV010 {
   configuration: LedgerRuntimeSourceConfigurationV010;
   compatibility: {
     burnReady: boolean;
+    requiredRuntimeCapabilities: string[];
     blockers: Array<{ code: string; message: string; count?: number }>;
   };
 }
