@@ -1,5 +1,5 @@
 // Generated from jiangxng/bookkeeping src/main/resources/app.sql. Preserve source semantics; do not hand-edit.
-export const bookkeepingApplications = [
+export const bookkeepingApplications: readonly Record<string, unknown>[] = [
   {
     "legacyId": 165,
     "applicationId": "418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4",
@@ -1573,4 +1573,4 @@ export const bookkeepingApplications = [
     "modified": null,
     "entryType": null
   }
-] as const;
+];
