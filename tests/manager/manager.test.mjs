@@ -389,3 +389,87 @@ test("retired evo-localization experimental state is removed explicitly", async 
   assert.equal(store.getInstalledPackage("evo-localization"), undefined);
   assert.equal(store.getActiveFeature("evo-localization.default"), undefined);
 });
+
+
+test("Workbench activity follows Enterprise Agent lifecycle and is not host hardcoded state", () => {
+  const catalog = createPackageCatalog([enterpriseAgentPackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  assert.deepEqual(manager.listEffectiveWorkbenchActivities(), []);
+
+  manager.install("enterprise-agent");
+  const installed = manager.listEffectiveWorkbenchActivities();
+  assert.equal(installed.length, 1);
+  assert.equal(installed[0].id, "enterprise-agent");
+  assert.equal(installed[0].kind, "side-route");
+  assert.equal(installed[0].route, "/enterprise-agent");
+  assert.equal(installed[0].localization.namespace, "enterprise-agent");
+
+  manager.disable("enterprise-agent");
+  assert.deepEqual(manager.listEffectiveWorkbenchActivities(), []);
+
+  manager.enable("enterprise-agent");
+  assert.equal(manager.listEffectiveWorkbenchActivities().length, 1);
+
+  manager.uninstall("enterprise-agent");
+  assert.deepEqual(manager.listEffectiveWorkbenchActivities(), []);
+});
+
+test("Workbench activity IDs fail closed when active packages collide", () => {
+  const duplicate = structuredClone(enterpriseAgentPackage);
+  duplicate.packageId = "second-agent";
+  duplicate.displayName = "Second Agent";
+  duplicate.features[0].packageId = "second-agent";
+  duplicate.features[0].featureId = "second-agent.default";
+  duplicate.features[0].contributions = duplicate.features[0].contributions.map(contribution => {
+    if (contribution.kind === "eidos.workbench-activity") {
+      return {
+        ...contribution,
+        activity: {
+          ...contribution.activity,
+          localization: {
+            namespace: "second-agent",
+            key: "workbench.activity.label"
+          }
+        }
+      };
+    }
+    if (contribution.kind === "eidos.localization-bundle") {
+      return {
+        ...contribution,
+        bundle: {
+          ...contribution.bundle,
+          namespace: "second-agent"
+        }
+      };
+    }
+    if (contribution.kind === "eidos.experience") {
+      return {
+        ...contribution,
+        manifest: {
+          ...contribution.manifest,
+          packageId: "second-agent",
+          featureId: "second-agent.default"
+        }
+      };
+    }
+    return contribution;
+  });
+
+  const catalog = createPackageCatalog([enterpriseAgentPackage, duplicate]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(catalog, store);
+
+  manager.install("enterprise-agent");
+  manager.install("second-agent");
+  assert.throws(
+    () => manager.listEffectiveWorkbenchActivities(),
+    /WORKBENCH_ACTIVITY_ID_CONFLICT/
+  );
+});
