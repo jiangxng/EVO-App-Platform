@@ -276,3 +276,14 @@ Install
 ```
 
 "Installation details" may expose the plan for inspection, diagnostics and audit, but ordinary installation MUST NOT require a separate "generate/review plan" click.
+
+
+## Enterprise Agent / Experience Compiler convergence
+
+Before changing the Enterprise Agent package or migrating EC assets, read:
+
+`docs/architecture/ENTERPRISE-AGENT-EC-CONVERGENCE-v0.1.md`
+
+Do not rewrite or bulk-copy the Experience-Compiler repository into App Platform. Preserve the EC repository as the durable intelligence asset/runtime source and converge it through public contracts behind the installable `enterprise-agent` AGENT Package. The existing `agents/enterprise-agent` implementation is retained as host/runtime/tool integration capital.
+
+The direct OpenAI adapter is migration evidence only. Target model access is `llm.inference` through Provider Plugin resolution.

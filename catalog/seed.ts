@@ -1,4 +1,10 @@
 import type { PackageManifestV010 } from "../contracts/package.js";
+import {
+  enterpriseAgentExperienceAssets,
+  enterpriseAgentPackage
+} from "../agents/enterprise-agent/package.js";
+
+export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 
 
 export const evoLocalizationPackage: PackageManifestV010 = {
@@ -326,6 +332,7 @@ export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown
 ]);
 
 export const referenceExperienceAssets = new Map<string, unknown>([
+  ...enterpriseAgentExperienceAssets,
   ...companyNotesExperienceAssets,
   ...tradingLiteExperienceAssets,
   ...ledgerRuntimeConfiguratorExperienceAssets

@@ -8,6 +8,7 @@ import { createAppManagerService } from "./service.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
+import { createEnterpriseAgentStatusActionHandler } from "../agents/enterprise-agent/status-action-handler.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -20,6 +21,7 @@ import {
 } from "./plugin-store-page.js";
 import {
   companyNotesPackage,
+  enterpriseAgentPackage,
   evoFoundationPackage,
   evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
@@ -29,6 +31,7 @@ import {
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
+  enterpriseAgentPackage,
   evoFoundationPackage,
   evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
@@ -46,6 +49,9 @@ const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
 const actionRouter = createAppActionRouter(
   [
+    createEnterpriseAgentStatusActionHandler({
+      listLlmProviders: () => manager.listEffectiveServiceProviders("llm.inference")
+    }),
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
       baseUrl: evoBaseUrl,
