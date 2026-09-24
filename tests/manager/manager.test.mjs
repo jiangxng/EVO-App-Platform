@@ -133,6 +133,14 @@ test("Ledger Runtime Configurator installs as an ordinary plugin with EVO ledger
     referenceExperienceAssets
   );
 
+  assert.deepEqual(manager.getSnapshot().installedPackages, []);
+  assert.deepEqual(manager.getSnapshot().activeFeatures, []);
+  assert.equal(
+    manager.loadExperiencePage("app://evo-ledger-runtime-configurator/pages/home"),
+    undefined,
+    "Configurator Experience must be unavailable before installation/activation"
+  );
+
   const plan = manager.planInstall("evo-ledger-runtime-configurator");
   assert.deepEqual(plan.blockers, []);
   assert.deepEqual(plan.installPackages, ["evo-ledger-runtime-configurator", "evo.core"]);
