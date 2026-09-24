@@ -138,3 +138,33 @@ Catalog discovery
 → representative BusinessData
 → runtime result
 ```
+
+
+## Continuous System Growth Rule
+
+EVO is a long-lived continuously integrated system, not a sequence of disposable demonstrations.
+
+Every accepted MVP slice MUST converge into the existing architecture and leave durable project capital:
+
+- reusable implementation in the correct owner repository;
+- stable public contracts or explicit versioned changes;
+- automated regression/acceptance tests;
+- CI coverage;
+- architecture/status documentation sufficient for a fresh LLM;
+- deployment/validation paths that exercise the same production boundaries.
+
+Existing implementation assets must be discovered and reused/converged before creating replacements. A proof/demo is evidence only; it must not become a parallel product architecture.
+
+For frontend growth:
+
+```text
+App Platform lifecycle + business packages
+        ↓ effective Experience Contributions
+Eidos App Host (single production shell)
+        ↓
+Eidos public capabilities/renderers
+        ↓
+Human
+```
+
+Plugin Store is a system Experience hosted by App Host. Installed plugins add/remove effective Experience Contributions; they do not create independent application shells.
