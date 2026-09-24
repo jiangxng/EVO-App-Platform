@@ -307,3 +307,25 @@ optional future enterprise locale policy service
 ```
 
 The experimental `evo-localization` Package is retired. Machine identifiers, command codes, field keys, semantic types and business data are never localized. Literal UI strings remain deterministic fallbacks.
+
+
+## Agent-first Workspace Rule
+
+The canonical EVO App Host is an Agent-first enterprise workspace:
+
+```text
+desktop:
+  left   = application/plugin navigation
+  center = persistent Assistant Chat Experience
+  right  = Eidos application / configurator / workspace browser
+
+mobile:
+  Menu / Chat / Workspace
+  one visible pane at a time, preserving state
+```
+
+Read `docs/architecture/AGENT-FIRST-APP-HOST-WORKSPACE-v0.1.md` before changing App Host layout or Enterprise Agent UX.
+
+Enterprise Agent itself should be zero-config for ordinary users. Resolve LLM Provider, identity/session, enterprise scope, locale and authorized tools through platform contracts. Do not add provider/model/vendor settings to the Agent page.
+
+LLM-first does not mean UI-only automation. The Agent must use the same public Action/Query/Package contracts available to other clients. Human-facing configuration pages remain available in the right workspace for inspection, confirmation and direct override.
