@@ -64,8 +64,9 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             messages: {
               "navigation.enterprise-agent.nav.label": "Enterprise Agent",
               "page.enterprise-agent.home.title": "Enterprise Agent",
-              "field.enterprise-agent.home.message.label": "Tell Enterprise Agent what you want to accomplish",
-              "action.enterprise-agent.home.send.label": "Send"
+              "chat.enterprise-agent.home.composer.placeholder": "Tell Enterprise Agent what you want to accomplish",
+              "chat.enterprise-agent.home.composer.sendLabel": "Send",
+              "chat.enterprise-agent.home.emptyState": "Ask Enterprise Agent to inspect, explain or prepare a change."
             }
           }
         },
@@ -78,8 +79,9 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             messages: {
               "navigation.enterprise-agent.nav.label": "企业智能体",
               "page.enterprise-agent.home.title": "企业智能体",
-              "field.enterprise-agent.home.message.label": "告诉企业智能体你要完成什么",
-              "action.enterprise-agent.home.send.label": "发送"
+              "chat.enterprise-agent.home.composer.placeholder": "告诉 Enterprise Agent 你要完成什么",
+              "chat.enterprise-agent.home.composer.sendLabel": "发送",
+              "chat.enterprise-agent.home.emptyState": "让 Enterprise Agent 帮你查看、解释或准备变更。"
             }
           }
         }
@@ -90,33 +92,20 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
 
 export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
   [ENTERPRISE_AGENT_PAGE_SOURCE, {
-    contractVersion: "0.1.1",
-    kind: "form",
+    contractVersion: "0.1.0",
+    kind: "chat",
     id: "enterprise-agent.home",
     title: "Enterprise Agent",
-    purpose: "execute-command",
     command: {
       code: "enterprise-agent.chat",
       inputVersion: "0.1.0"
     },
-    fields: [
-      {
-        key: "message",
-        label: "Tell Enterprise Agent what you want to accomplish",
-        semanticType: "agent-message",
-        control: "text",
-        required: true
-      }
-    ],
-    actions: [
-      {
-        id: "send",
-        label: "Send",
-        type: "submit",
-        command: "enterprise-agent.chat",
-        requiresConfirmation: false
-      }
-    ],
+    composer: {
+      key: "message",
+      placeholder: "Tell Enterprise Agent what you want to accomplish",
+      sendLabel: "Send"
+    },
+    emptyState: "Ask Enterprise Agent to inspect, explain or prepare a change.",
     metadata: {
       packageId: ENTERPRISE_AGENT_PACKAGE_ID,
       featureId: ENTERPRISE_AGENT_FEATURE_ID,
