@@ -50,3 +50,28 @@ Validation reports distinguish:
 - end-to-end product evidence.
 
 Only the final class may claim the complete plugin product journey has been validated.
+
+## 5. Continuous integration and accumulation
+
+Product validation is cumulative. Passing a scenario is not sufficient if the implementation exists only in a throwaway page or isolated branch.
+
+A validated slice is considered integrated only when:
+
+1. it uses the canonical owner/boundary;
+2. it is covered by automated tests and repository CI;
+3. its architecture/contract decision is documented;
+4. it composes with previously accepted capabilities;
+5. later packages can extend the same App Host / lifecycle / Eidos framework without replacing the slice.
+
+The intended growth model is:
+
+```text
+small vertical slice
+→ mainline capability
+→ regression gate
+→ next vertical slice composes with it
+→ ...
+→ large integrated enterprise system
+```
+
+Demos and diagnostic pages may prove internals, but they do not define a new product shell or substitute for mainline integration.
