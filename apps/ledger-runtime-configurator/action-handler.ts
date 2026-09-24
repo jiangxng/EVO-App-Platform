@@ -1,7 +1,8 @@
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
-  AppActionRequestV010
+  AppActionRequestV010,
+  JsonValue
 } from "../../actions/contracts.js";
 import type { LedgerRuntimeConfiguratorService } from "./service.js";
 
@@ -14,13 +15,15 @@ export function createLedgerRuntimeConfiguratorActionHandler(
     commandCode: "evo-ledger-runtime-configurator.validate-default",
     async execute(request: AppActionRequestV010): Promise<AppActionExecutionResultV010> {
       const validation = service.validate();
+      const result = JSON.parse(JSON.stringify({
+        ...service.getSummary(),
+        validation
+      })) as JsonValue;
+
       return {
         ok: validation.ok,
         correlationId: request.runtimeInstanceId ?? request.sourceInteractionId,
-        result: {
-          ...service.getSummary(),
-          validation
-        }
+        result
       };
     }
   };
