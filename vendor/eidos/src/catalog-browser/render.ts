@@ -25,8 +25,11 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   return input;
 }
 
-function actionButton(itemId: string, action: { id: string; label: string; requiresConfirmation?: boolean }, primary: boolean): string {
-  return `<button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-item-id="${esc(itemId)}" data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}">${esc(action.label)}</button>`;
+function actionButton(itemId: string, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean): string {
+  const command = action.command ? ` data-eidos-command="${esc(action.command)}"` : "";
+  const inputVersion = action.inputVersion ? ` data-eidos-input-version="${esc(action.inputVersion)}"` : "";
+  const route = action.route ? ` data-eidos-route="${esc(action.route)}"` : "";
+  return `<button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}" data-eidos-item-id="${esc(itemId)}" data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}>${esc(action.label)}</button>`;
 }
 
 export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
