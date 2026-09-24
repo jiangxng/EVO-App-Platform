@@ -471,3 +471,6 @@ The Core owns the generic substrate:
 Everything else should preferentially enter as plugins. If Eidos cannot render the required human experience, Eidos is extended first; the product plugin then consumes the new public Eidos capability.
 
 This keeps long-term growth additive rather than centralizing every new requirement into a monolithic platform core.
+
+
+Provider-style platform services are specified by `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`. Use `type: PLATFORM_PROVIDER` plus `platform.service-provider` Contributions for replaceable LLM, identity, enterprise and localization providers.
