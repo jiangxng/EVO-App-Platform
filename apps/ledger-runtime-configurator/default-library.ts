@@ -11,6 +11,7 @@ import { bookkeepingLegacyPostingRules } from "./defaults/bookkeeping/legacy-pos
 export const bookkeepingDefaultConfiguration: LedgerRuntimeSourceConfigurationV010 = {
   contractVersion: "0.1.0",
   kind: "evo.ledger-runtime.source-configuration",
+  expressionLanguage: "bookkeeping-aviator-v1",
   configurationId: "bookkeeping-default",
   displayName: "Bookkeeping Default Ledger Configuration",
   source: {
