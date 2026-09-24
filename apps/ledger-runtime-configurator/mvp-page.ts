@@ -66,12 +66,12 @@ function fillRule(){
  $("direction").value=r.direction??"";$("condition").value=r.entryConditions??"";$("quantity").value=r.quantityFormula??"";$("amount").value=r.amountFormula??"";
 }
 function fillRules(){
- const rs=rulesForApp();$("rule").innerHTML=rs.map(r=>`<option value="${r.sourceId}">#${r.sourceId} · ${r.ledgerTitle??r.ledgerId}</option>`).join("");fillRule();
+ const rs=rulesForApp();$("rule").innerHTML=rs.map(r=>"<option value=\"" + r.sourceId + "\">#" + r.sourceId + " · " + (r.ledgerTitle??r.ledgerId) + "</option>").join("");fillRule();
 }
 async function load(){
  const [s,c]=await Promise.all([j("/v1/ledger-runtime-configurator/summary"),j("/v1/ledger-runtime-configurator/configuration")]);config=c;
- $("summary").textContent=`科目 ${s.counts.accounts} · 应用 ${s.counts.applications} · 字典 ${s.counts.dictionaries} · 规则 ${s.counts.postingRules} · digest ${s.semanticDigest.slice(0,12)}…`;
- $("app").innerHTML=config.applications.map(a=>`<option value="${a.applicationId}">${a.title} · ${a.applicationId}</option>`).join("");fillRules();
+ $("summary").textContent="科目 " + s.counts.accounts + " · 应用 " + s.counts.applications + " · 字典 " + s.counts.dictionaries + " · 规则 " + s.counts.postingRules + " · digest " + s.semanticDigest.slice(0,12) + "…";
+ $("app").innerHTML=config.applications.map(a=>"<option value=\"" + a.applicationId + "\">" + a.title + " · " + a.applicationId + "</option>").join("");fillRules();
 }
 $("app").onchange=fillRules;$("rule").onchange=fillRule;
 $("save").onclick=async()=>{
