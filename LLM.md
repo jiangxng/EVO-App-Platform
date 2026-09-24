@@ -221,7 +221,7 @@ new requirement
 
 Examples:
 
-- localization/language packs → plugin capability, not hard-coded Host business logic;
+- localization rendering/runtime → Eidos/App Host; each Package owns its own localization bundles; do not create a central translation Package;
 - reporting → plugin;
 - workflow/SOP → plugin;
 - permissions policy → plugin/service behind public contracts;
@@ -232,11 +232,11 @@ Examples:
 Core growth requires explicit justification that the capability cannot live behind the existing plugin model.
 
 
-Before designing LLM/model access, login/identity, enterprise/organization, localization or similar replaceable platform services, read:
+Before designing LLM/model access, login/identity, enterprise/organization or similar replaceable platform services, read:
 
 `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`
 
-These capabilities are provider plugins by default. Consumers depend on capability contracts; they do not import vendor SDKs or concrete provider internals.
+These replaceable services are Provider plugins by default. Localization is different: Eidos/App Host owns the localization standard/runtime and each Package owns its own language resources. Read `docs/architecture/APP-OWNED-LOCALIZATION-v0.1.md` before changing localization.
 
 
 ## Enterprise-first architecture
@@ -287,3 +287,23 @@ Before changing the Enterprise Agent package or migrating EC assets, read:
 Do not rewrite or bulk-copy the Experience-Compiler repository into App Platform. Preserve the EC repository as the durable intelligence asset/runtime source and converge it through public contracts behind the installable `enterprise-agent` AGENT Package. The existing `agents/enterprise-agent` implementation is retained as host/runtime/tool integration capital.
 
 The direct OpenAI adapter is migration evidence only. Target model access is `llm.inference` through Provider Plugin resolution.
+
+
+## Localization Ownership Rule
+
+Do not introduce a central translation Package merely to satisfy Plugin-First architecture.
+
+Canonical ownership:
+
+```text
+Eidos/App Host
+→ locale context + resolver + renderer semantics
+
+Package/Experience
+→ its own localization namespace + language bundles
+
+optional future enterprise locale policy service
+→ only if a concrete independent lifecycle exists
+```
+
+The experimental `evo-localization` Package is retired. Machine identifiers, command codes, field keys, semantic types and business data are never localized. Literal UI strings remain deterministic fallbacks.
