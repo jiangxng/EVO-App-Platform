@@ -1,5 +1,67 @@
 import type { PackageManifestV010 } from "../contracts/package.js";
 
+
+export const evoLocalizationPackage: PackageManifestV010 = {
+  contractVersion: "0.1.0",
+  packageId: "evo-localization",
+  displayName: "EVO Localization",
+  version: "0.1.0",
+  type: "PLATFORM_PROVIDER",
+  features: [
+    {
+      contractVersion: "0.1.0",
+      featureId: "evo-localization.default",
+      packageId: "evo-localization",
+      version: "0.1.0",
+      activationScope: "INSTALLATION",
+      defaultActivation: true,
+      providesCapabilities: [
+        "localization.locale",
+        "localization.resources",
+        "localization.format"
+      ],
+      contributions: [
+        {
+          kind: "platform.service-provider",
+          provider: {
+            contractVersion: "0.1.0",
+            providerId: "evo-localization.reference",
+            capability: "localization.resources",
+            providerContract: "evo.localization.resources",
+            providerContractVersion: "0.1.0",
+            binding: {
+              type: "DECLARATIVE",
+              ref: "app://evo-localization/resources/default"
+            },
+            metadata: {
+              defaultLocale: "zh-CN",
+              supportedLocales: "zh-CN,en"
+            }
+          }
+        },
+        {
+          kind: "platform.service-provider",
+          provider: {
+            contractVersion: "0.1.0",
+            providerId: "evo-localization.reference",
+            capability: "localization.locale",
+            providerContract: "evo.localization.locale",
+            providerContractVersion: "0.1.0",
+            binding: {
+              type: "DECLARATIVE",
+              ref: "app://evo-localization/locale/default"
+            },
+            metadata: {
+              defaultLocale: "zh-CN",
+              supportedLocales: "zh-CN,en"
+            }
+          }
+        }
+      ]
+    }
+  ]
+};
+
 export const companyNotesPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "company-notes",

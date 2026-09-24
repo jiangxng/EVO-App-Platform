@@ -3,7 +3,8 @@ import type {
   InstallPlanV010,
   PackageLifecyclePlanV010,
   PackageManifestV010,
-  PlatformSnapshotV010
+  PlatformSnapshotV010,
+  PlatformServiceProviderContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
@@ -19,6 +20,7 @@ export interface AppManagerService {
   uninstall(packageId: string): PlatformSnapshotV010;
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
+  listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
 
@@ -340,6 +342,32 @@ export function createAppManagerService(
     });
   }
 
+  function listEffectiveServiceProviders(
+    capability?: string
+  ): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }> = [];
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "platform.service-provider") continue;
+        if (capability !== undefined && contribution.provider.capability !== capability) continue;
+        result.push({
+          ...structuredClone(contribution.provider),
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      a.capability.localeCompare(b.capability)
+      || a.providerId.localeCompare(b.providerId)
+    );
+  }
+
   function loadExperiencePage(source: string): unknown | undefined {
     const isEffective = listEffectiveExperiences().some(value => {
       const manifest = value as { pages?: Array<{ source?: string }> };
@@ -361,6 +389,7 @@ export function createAppManagerService(
     uninstall,
     getSnapshot,
     listEffectiveExperiences,
+    listEffectiveServiceProviders,
     loadExperiencePage
   };
 }

@@ -7,7 +7,8 @@ import {
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
-  tradingLitePackage
+  tradingLitePackage,
+  evoLocalizationPackage
 } from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
@@ -291,4 +292,31 @@ test("file lifecycle store survives process-style reopen", async () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("localization Provider package becomes discoverable only while active", () => {
+  const catalog = createPackageCatalog([evoLocalizationPackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(catalog, store, () => new Date("2026-09-24T00:00:00.000Z"));
+
+  assert.deepEqual(manager.listEffectiveServiceProviders("localization.resources"), []);
+
+  const plan = manager.planInstall("evo-localization");
+  assert.deepEqual(plan.blockers, []);
+  manager.install("evo-localization");
+
+  const active = manager.listEffectiveServiceProviders("localization.resources");
+  assert.equal(active.length, 1);
+  assert.equal(active[0].providerId, "evo-localization.reference");
+  assert.equal(active[0].binding.type, "DECLARATIVE");
+  assert.match(active[0].binding.ref, /evo-localization/);
+
+  manager.disable("evo-localization");
+  assert.deepEqual(manager.listEffectiveServiceProviders("localization.resources"), []);
+
+  manager.enable("evo-localization");
+  assert.equal(manager.listEffectiveServiceProviders("localization.locale").length, 1);
+
+  manager.uninstall("evo-localization");
+  assert.deepEqual(manager.listEffectiveServiceProviders(), []);
 });
