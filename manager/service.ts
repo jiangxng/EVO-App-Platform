@@ -6,6 +6,7 @@ import type {
   PlatformSnapshotV010,
   PlatformServiceProviderContributionV010,
   EidosLocalizationBundleContributionV010,
+  EidosWorkbenchActivityContributionV010,
   EidosSettingsContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
@@ -24,6 +25,7 @@ export interface AppManagerService {
   listEffectiveExperiences(): unknown[];
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
+  listEffectiveWorkbenchActivities(): Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }>;
   listInstalledSettings(packageId?: string): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
@@ -398,6 +400,46 @@ export function createAppManagerService(
     );
   }
 
+  function listEffectiveWorkbenchActivities(): Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }> = [];
+    const ids = new Set<string>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "eidos.workbench-activity") continue;
+
+        const activity = structuredClone(contribution.activity);
+        if (ids.has(activity.id)) {
+          throw new Error(`WORKBENCH_ACTIVITY_ID_CONFLICT: ${activity.id}`);
+        }
+        ids.add(activity.id);
+
+        if (
+          activity.localization
+          && activity.localization.namespace !== item.packageId
+        ) {
+          throw new Error(
+            `WORKBENCH_ACTIVITY_LOCALIZATION_NAMESPACE_MISMATCH: ${activity.localization.namespace} != ${item.packageId}`
+          );
+        }
+
+        result.push({
+          ...activity,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      (a.order ?? 0) - (b.order ?? 0)
+      || a.id.localeCompare(b.id)
+    );
+  }
+
   function listInstalledSettings(
     packageId?: string
   ): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }> {
@@ -458,6 +500,7 @@ export function createAppManagerService(
     listEffectiveExperiences,
     listEffectiveServiceProviders,
     listEffectiveLocalizationBundles,
+    listEffectiveWorkbenchActivities,
     listInstalledSettings,
     loadExperiencePage
   };
