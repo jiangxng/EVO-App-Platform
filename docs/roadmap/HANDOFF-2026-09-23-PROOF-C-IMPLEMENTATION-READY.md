@@ -1,6 +1,6 @@
 # Handoff — Proof C Implementation Ready — 2026-09-23
 
-**Status:** CI-verified implementation ready; local browser proof pending  
+**Status:** USER-LOCAL PASS — compatibility Proof C confirmed  
 **Mainline:** Trading Lite → real EVO public Command runtime  
 **Repository:** `jiangxng/EVO-App-Platform`  
 **Branch:** `main`
@@ -94,14 +94,13 @@ App Manager lifecycle service remains business-semantic neutral.
 
 CI proves all three repository contracts independently.
 
-Do **not** yet mark Proof C local end-to-end PASS.
+Proof C local browser execution is now **user-confirmed PASS** for the compatibility path.
 
-Still required:
+User-confirmed local path on 2026-09-24:
 
 ```text
 User browser
-→ install Trading Lite
-→ open Trading Lite
+→ Trading Lite
 → submit Create Order
 → Eidos ActionHost
 → App Manager /v1/actions
@@ -109,8 +108,12 @@ User browser
 → EVO public capability discovery
 → EVO public command
 → BusinessData + PostingInput
-→ EVO worker posting
+→ postingStatus = QUEUED
 ```
+
+Returned evidence included real `commandExecutionId`, `businessDataId`, `postingInputId`, and `postingSequence = 4`.
+
+`QUEUED` is a valid PASS state because EVO has already taken ownership of asynchronous posting continuation; the caller did not need to trigger Posting separately.
 
 The browser currently reports the accepted EVO Command result. EVO's separate PostgreSQL E2E proves the resulting posting/ledger behavior.
 
@@ -194,11 +197,11 @@ Cache clear is not silent history destruction; required audit/provenance evidenc
 
 ## 5. Next action
 
-Run the local Proof C browser validation in `docs/roadmap/LOCAL-MVP-RUN-v0.1.md`.
+Proof C local compatibility validation is complete.
 
-If user-confirmed PASS, then:
+Next:
 
-1. record Proof C local PASS;
-2. add the first public read/query projection needed by Trading Lite;
-3. show resulting authoritative business state back in Eidos;
-4. only then expand Trading Lite to the next business command.
+1. continue EVO Ledger Runtime convergence around generic `BusinessDataSubmission(applicationId)` using the existing BusinessData / Posting / Ledger implementation;
+2. migrate Trading Lite from the compatibility capability/`/commands` path to the Host-owned generic submission adapter;
+3. add the first public read/query projection and show authoritative resulting state back in Eidos;
+4. keep the current compatibility path until the new Ledger Runtime path is database- and browser-proven.
