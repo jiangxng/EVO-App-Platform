@@ -8,7 +8,6 @@ import { createAppManagerService } from "./service.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
-import { createEnterpriseAgentStatusActionHandler } from "../agents/enterprise-agent/status-action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -87,9 +86,6 @@ const actionRouter = createAppActionRouter(
     createEnterpriseAgentChatActionHandler({
       manager,
       resolveLlmProvider
-    }),
-    createEnterpriseAgentStatusActionHandler({
-      listLlmProviders: () => manager.listEffectiveServiceProviders("llm.inference")
     }),
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
