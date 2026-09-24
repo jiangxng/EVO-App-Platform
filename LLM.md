@@ -112,3 +112,29 @@ For a capability that is already in scope:
 - incomplete data migration is not an acceptable shortcut if completeness is necessary to validate the chosen capability.
 
 For the Ledger Runtime Configurator bookkeeping baseline, the current acceptance rule is **912/912 posting rules must compile and be burnable as one configuration**. The 912-rule corpus is treated as in-boundary compatibility/pressure evidence, not as optional horizontal scope.
+
+## Project Validation Constitution
+
+These rules are founder-confirmed acceptance gates and MUST NOT be skipped:
+
+1. **Installation-first** — an installable plugin/package is not product-validated by testing a preinstalled state. Start with the target absent, inspect the install plan, execute Package installation and Feature activation through public lifecycle contracts, verify capabilities/Contributions/Experience become effective, then execute the business scenario.
+2. **Eidos-first human surface** — all human-facing EVO App/Configurator/business product validation surfaces use Eidos public contracts/capabilities. Handwritten diagnostic HTML/JS is allowed only when explicitly marked non-product and cannot satisfy UX/product acceptance.
+3. **No lifecycle bypass** — app-specific APIs and Experience assets are gated by active Feature state. A backdoor/direct endpoint must not make a not-yet-installed plugin appear usable.
+4. **Evidence labeling** — component/API tests that intentionally bypass installation remain useful engineering evidence, but must be labeled component evidence rather than end-to-end product acceptance.
+
+Canonical manual validation journey:
+
+```text
+Catalog discovery
+→ side-effect-free install plan
+→ dependency/capability resolution
+→ Package installation
+→ Feature activation
+→ Contribution + Eidos Experience discovery
+→ open Eidos-rendered product surface
+→ app configuration
+→ compile/validate
+→ Burn/activate runtime configuration
+→ representative BusinessData
+→ runtime result
+```
