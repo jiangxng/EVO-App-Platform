@@ -10,6 +10,7 @@ import {
   bookkeepingReferenceLegacyPostingRules
 } from "./default-library.js";
 import {
+  canonicalDirection,
   compileConfiguration,
   compileExpression,
   type CompiledLedgerRuntimeConfigurationV010
@@ -91,6 +92,15 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       }
       if (!rule.direction.trim()) {
         errors.push({ code: "POSTING_RULE_DIRECTION_MISSING", message: `Rule '${rule.sourceId}' has no direction.` });
+      } else {
+        try {
+          canonicalDirection(rule.direction);
+        } catch (error) {
+          errors.push({
+            code: "POSTING_RULE_DIRECTION_INVALID",
+            message: `Rule '${rule.sourceId}': ${error instanceof Error ? error.message : String(error)}`
+          });
+        }
       }
     }
 
