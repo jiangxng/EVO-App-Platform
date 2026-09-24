@@ -71,3 +71,44 @@ ApplicationAnchor.applicationId
 ```
 
 Do not treat `applicationId` as optional provenance. It is the first PostingRule routing key.
+
+
+## MVP Autonomy Rule
+
+When the human has already established the business goal and acceptance outcome, the LLM SHOULD proceed directly with the smallest reversible MVP implementation without asking for another "continue / shall I implement" confirmation.
+
+This rule applies when all are true:
+
+- the business intent is already clear;
+- no new human business judgment or authorization is required;
+- the change is bounded, reversible, and consistent with existing invariants;
+- an MVP implementation can provide concrete evidence faster than further discussion;
+- any likely correction remains small because scope is deliberately minimal.
+
+The LLM must still stop for destructive actions that require explicit authorization, material requirement reinterpretation, irreversible data changes, security-sensitive decisions, or choices whose business trade-off belongs to the human.
+
+Default delivery loop:
+
+```text
+clear business goal
+→ smallest sufficient implementation
+→ executable evidence
+→ deploy/test when useful
+→ human validates the business outcome
+```
+
+Do not spend conversation length explaining an obvious next engineering step when the step can be safely executed immediately. Record durable decisions and evidence in repository artifacts instead of relying on chat history.
+
+
+## MVP Depth Rule
+
+MVP limits **horizontal feature expansion**, not vertical depth, representative data volume, compatibility coverage, or evidence quality inside an already accepted capability boundary.
+
+For a capability that is already in scope:
+
+- use the full representative dataset when it is available;
+- do not replace real compatibility coverage with toy fixtures merely to make the MVP smaller;
+- pressure/stress-style historical datasets are valid MVP acceptance evidence when they test the capability boundary itself;
+- incomplete data migration is not an acceptable shortcut if completeness is necessary to validate the chosen capability.
+
+For the Ledger Runtime Configurator bookkeeping baseline, the current acceptance rule is **912/912 posting rules must compile and be burnable as one configuration**. The 912-rule corpus is treated as in-boundary compatibility/pressure evidence, not as optional horizontal scope.

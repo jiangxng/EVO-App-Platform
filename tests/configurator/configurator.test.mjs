@@ -25,13 +25,15 @@ test("bookkeeping baseline has no dangling application or ledger references", ()
   assert.equal(result.summary.postingRules, 912);
 });
 
-test("legacy expressions are preserved but burn is blocked until compiled", () => {
+test("all 912 legacy-source posting rules are compiled and burn-ready", () => {
   const service = createLedgerRuntimeConfiguratorService();
   const result = service.validate();
-  assert.equal(result.burn.ready, false);
-  const blocker = result.burn.blockers.find(x => x.code === "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED");
-  assert.ok(blocker);
-  assert.ok((blocker.count ?? 0) > 0);
+  assert.equal(result.ok, true, JSON.stringify(result.errors, null, 2));
+  assert.equal(result.burn.ready, true, JSON.stringify(result.burn.blockers, null, 2));
+  assert.deepEqual(result.burn.blockers, []);
+  const compiled = service.compileCurrent();
+  assert.equal(compiled.rules.length, 912);
+  assert.equal(compiled.compiler.compiledExpressionCount, compiled.compiler.uniqueExpressionCount);
 });
 
 test("export-import round trip preserves semantic digest", () => {
@@ -86,9 +88,12 @@ test("financial Dr/Cr directions are valid configuration semantics, not a burn b
   assert.equal(result.burn.blockers.some(x => x.code === "LEDGER_DIRECTION_SEMANTICS_REQUIRED"), false);
 });
 
-test("runtime-derived amount symbols are treated as Ledger Runtime built-ins", () => {
+test("runtime-derived amount symbols compile as runtime builtins without blocking burn", () => {
   const service = createLedgerRuntimeConfiguratorService();
   const result = service.validate();
-  assert.ok(result.burn.blockers.some(x => x.code === "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED"));
-  assert.ok(result.burn.blockers.some(x => x.code === "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED"));
+  assert.equal(result.burn.ready, true, JSON.stringify(result.burn.blockers, null, 2));
+  assert.ok(result.warnings.some(x => x.code === "LEDGER_RUNTIME_BUILTINS_PRESENT"));
+  const compiled = service.compileCurrent();
+  assert.ok(compiled.compiler.builtinNames.length > 0);
+  assert.ok(compiled.compiler.builtinNames.includes("cost"));
 });
