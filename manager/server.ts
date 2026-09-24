@@ -8,7 +8,7 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
-import { ledgerConfiguratorMvpHtml } from "../apps/ledger-runtime-configurator/mvp-page.js";
+import { appManagerInstallerHtml, ledgerConfiguratorMvpHtml } from "../apps/ledger-runtime-configurator/mvp-page.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
   companyNotesPackage,
@@ -40,7 +40,7 @@ const actionRouter = createAppActionRouter(
   )
 );
 
-const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";\nconst ledgerConfiguratorActive = () => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ledgerConfiguratorFeatureId);\n\nconst corsOrigin = process.env.CORS_ORIGIN ?? "*";
 
 function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-origin", corsOrigin);
@@ -84,9 +84,9 @@ const server = createServer(async (request, response) => {
       response.statusCode = 200;
       applyCors(response);
       response.setHeader("content-type", "text/html; charset=utf-8");
-      return response.end(ledgerConfiguratorMvpHtml);
+      return response.end(appManagerInstallerHtml);
     }
-    if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true, service: "evo-app-manager" });
+    if (request.method === "GET" && url.pathname === "/ledger-runtime-configurator") {\n      if (!ledgerConfiguratorActive()) { response.statusCode = 302; response.setHeader("location", "/"); return response.end(); }\n      response.statusCode = 200; applyCors(response); response.setHeader("content-type", "text/html; charset=utf-8"); return response.end(ledgerConfiguratorMvpHtml);\n    }\n    if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true, service: "evo-app-manager" });
     if (request.method === "GET" && url.pathname === "/v1/catalog") return json(response, 200, manager.listCatalog());
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") return json(response, 200, manager.getSnapshot());
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") return json(response, 200, manager.listEffectiveExperiences());
