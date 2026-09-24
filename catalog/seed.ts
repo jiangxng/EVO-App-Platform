@@ -85,6 +85,61 @@ export const evoFoundationPackage: PackageManifestV010 = {
   ]
 };
 
+
+export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
+  contractVersion: "0.1.0",
+  packageId: "evo-ledger-runtime-configurator",
+  displayName: "EVO Ledger Runtime Configurator",
+  version: "0.1.0",
+  type: "APPLICATION",
+  features: [
+    {
+      contractVersion: "0.1.0",
+      featureId: "evo-ledger-runtime-configurator.default",
+      packageId: "evo-ledger-runtime-configurator",
+      version: "0.1.0",
+      activationScope: "INSTALLATION",
+      defaultActivation: true,
+      requiresCapabilities: ["evo.posting", "evo.ledger"],
+      providesCapabilities: ["evo.ledger-runtime.configurator"],
+      contributions: [
+        {
+          kind: "eidos.experience",
+          manifest: {
+            contractVersion: "0.1.0",
+            experienceId: "evo-ledger-runtime-configurator",
+            packageId: "evo-ledger-runtime-configurator",
+            featureId: "evo-ledger-runtime-configurator.default",
+            defaultRoute: "/ledger-runtime-configurator",
+            pages: [
+              {
+                id: "evo-ledger-runtime-configurator.home",
+                title: "Ledger Runtime Configurator",
+                source: "app://evo-ledger-runtime-configurator/pages/home"
+              }
+            ],
+            routes: [
+              {
+                id: "evo-ledger-runtime-configurator.home",
+                path: "/ledger-runtime-configurator",
+                pageId: "evo-ledger-runtime-configurator.home"
+              }
+            ],
+            navigation: [
+              {
+                id: "evo-ledger-runtime-configurator.nav",
+                label: "Ledger Configurator",
+                route: "/ledger-runtime-configurator",
+                order: 40
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+};
+
 export const tradingLitePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "trading-lite",
@@ -172,7 +227,44 @@ export const tradingLiteExperienceAssets = new Map<string, unknown>([
   }]
 ]);
 
+
+export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown>([
+  ["app://evo-ledger-runtime-configurator/pages/home", {
+    contractVersion: "0.1.1",
+    kind: "form",
+    id: "evo-ledger-runtime-configurator.home",
+    title: "Ledger Runtime Configurator — Bookkeeping defaults",
+    purpose: "execute-command",
+    command: {
+      code: "evo-ledger-runtime-configurator.validate-default",
+      inputVersion: "0.1.0"
+    },
+    fields: [],
+    actions: [
+      {
+        id: "validate-default",
+        label: "Validate Default Configuration",
+        type: "submit",
+        command: "evo-ledger-runtime-configurator.validate-default",
+        requiresConfirmation: false
+      }
+    ],
+    metadata: {
+      packageId: "evo-ledger-runtime-configurator",
+      featureId: "evo-ledger-runtime-configurator.default",
+      defaultConfiguration: {
+        accounts: 141,
+        applications: 143,
+        dictionaries: 106,
+        postingRules: 912,
+        referenceLegacyPostingRules: 587
+      }
+    }
+  }]
+]);
+
 export const referenceExperienceAssets = new Map<string, unknown>([
   ...companyNotesExperienceAssets,
-  ...tradingLiteExperienceAssets
+  ...tradingLiteExperienceAssets,
+  ...ledgerRuntimeConfiguratorExperienceAssets
 ]);

@@ -5,6 +5,7 @@ import {
   companyNotesExperienceAssets,
   companyNotesPackage,
   evoFoundationPackage,
+  ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
   tradingLitePackage
 } from "../../dist/catalog/seed.js";
@@ -116,4 +117,37 @@ test("Proof B install activates only required EVO Features and exposes Trading L
   assert.equal(page.kind, "form");
   assert.equal(page.purpose, "execute-command");
   assert.equal(page.command.code, "trading-lite.create-order");
+});
+
+
+test("Ledger Runtime Configurator installs as an ordinary plugin with EVO ledger dependencies", () => {
+  const catalog = createPackageCatalog([
+    evoFoundationPackage,
+    ledgerRuntimeConfiguratorPackage
+  ]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  const plan = manager.planInstall("evo-ledger-runtime-configurator");
+  assert.deepEqual(plan.blockers, []);
+  assert.deepEqual(plan.installPackages, ["evo-ledger-runtime-configurator", "evo.core"]);
+  assert.deepEqual(plan.activateFeatures, [
+    "evo-ledger-runtime-configurator.default",
+    "evo.business-data",
+    "evo.ledger",
+    "evo.posting"
+  ]);
+
+  const snapshot = manager.install("evo-ledger-runtime-configurator");
+  assert.equal(snapshot.effectiveCapabilities.includes("evo.ledger-runtime.configurator"), true);
+
+  const page = manager.loadExperiencePage("app://evo-ledger-runtime-configurator/pages/home");
+  assert.equal(page.id, "evo-ledger-runtime-configurator.home");
+  assert.equal(page.command.code, "evo-ledger-runtime-configurator.validate-default");
+  assert.equal(page.metadata.defaultConfiguration.postingRules, 912);
 });
