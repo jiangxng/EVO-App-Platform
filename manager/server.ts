@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { fileURLToPath } from "node:url";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
@@ -9,9 +11,13 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
-import { ledgerConfiguratorMvpHtml } from "../apps/ledger-runtime-configurator/mvp-page.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
-import { pluginStoreHtml } from "./plugin-store-page.js";
+import { appHostShellHtml } from "./app-host-shell.js";
+import {
+  createPluginStorePage,
+  pluginStoreExperienceManifest,
+  pluginStorePageSource
+} from "./plugin-store-page.js";
 import {
   companyNotesPackage,
   evoFoundationPackage,
@@ -34,6 +40,7 @@ const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
+const plannedInstallDigests = new Map<string, string>();
 
 const actionRouter = createAppActionRouter(
   [
@@ -110,19 +117,20 @@ const server = createServer(async (request, response) => {
       response.statusCode = 200;
       applyCors(response);
       response.setHeader("content-type", "text/html; charset=utf-8");
-      return response.end(pluginStoreHtml(manager.listCatalog(), manager.getSnapshot()));
+      return response.end(appHostShellHtml);
     }
 
-    if (request.method === "GET" && url.pathname === "/ledger-runtime-configurator") {
-      if (!ledgerConfiguratorActive()) {
-        response.statusCode = 302;
-        response.setHeader("location", "/");
-        return response.end();
+    if (request.method === "GET" && url.pathname.startsWith("/assets/")) {
+      const assetPath = url.pathname.slice("/assets/".length);
+      if (!assetPath.endsWith(".js") || assetPath.includes("..")) {
+        return json(response, 404, { code: "ASSET_NOT_FOUND" });
       }
+      const assetUrl = new URL(`../${assetPath}`, import.meta.url);
+      const bytes = await readFile(fileURLToPath(assetUrl));
       response.statusCode = 200;
-      applyCors(response);
-      response.setHeader("content-type", "text/html; charset=utf-8");
-      return response.end(ledgerConfiguratorMvpHtml);
+      response.setHeader("content-type", "text/javascript; charset=utf-8");
+      response.setHeader("cache-control", "no-store");
+      return response.end(bytes);
     }
 
     if (request.method === "GET" && url.pathname === "/health") {
@@ -135,12 +143,18 @@ const server = createServer(async (request, response) => {
       return json(response, 200, manager.getSnapshot());
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
-      return json(response, 200, manager.listEffectiveExperiences());
+      return json(response, 200, [
+        pluginStoreExperienceManifest,
+        ...manager.listEffectiveExperiences()
+      ]);
     }
 
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === pluginStorePageSource) {
+        return json(response, 200, createPluginStorePage(manager.listCatalog(), manager.getSnapshot()));
+      }
       const page = manager.loadExperiencePage(source);
       if (page === undefined) {
         return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
@@ -251,7 +265,63 @@ const server = createServer(async (request, response) => {
           error: { code: "ACTION_REQUEST_INVALID", message: "Invalid ActionRequest." }
         });
       }
-      return json(response, 200, await actionRouter.execute(body as AppActionRequestV010));
+
+      const action = body as AppActionRequestV010;
+      const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
+
+      if (action.command.code === "app-platform.plan-install") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = installPlanWithDigest(itemId);
+        plannedInstallDigests.set(itemId, plan.planDigest);
+        return json(response, 200, {
+          ok: plan.blockers.length === 0,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({ stage: "INSTALL_PLAN", packageId: itemId, plan }))
+        });
+      }
+
+      if (action.command.code === "app-platform.install-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const approvedDigest = plannedInstallDigests.get(itemId);
+        if (!approvedDigest) {
+          return json(response, 409, {
+            ok: false,
+            error: { code: "INSTALL_PLAN_REQUIRED", message: "Generate and review the installation plan before installing this package." }
+          });
+        }
+        const current = installPlanWithDigest(itemId);
+        if (current.planDigest !== approvedDigest) {
+          plannedInstallDigests.delete(itemId);
+          return json(response, 409, {
+            ok: false,
+            error: { code: "INSTALL_PLAN_STALE", message: "Platform state changed. Generate a fresh installation plan." }
+          });
+        }
+        if (current.blockers.length > 0) {
+          return json(response, 409, {
+            ok: false,
+            error: { code: "INSTALL_BLOCKED", message: JSON.stringify(current.blockers) }
+          });
+        }
+        const snapshot = manager.install(itemId);
+        plannedInstallDigests.delete(itemId);
+        return json(response, 200, {
+          ok: true,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "INSTALLED_AND_ACTIVATED",
+            packageId: itemId,
+            snapshot,
+            effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+          }))
+        });
+      }
+
+      return json(response, 200, await actionRouter.execute(action));
     }
 
     if (request.method === "POST" && url.pathname === "/v1/install/plan") {
