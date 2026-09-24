@@ -13,7 +13,6 @@ This document reserves the common provider boundary for:
 - LLM/model providers;
 - identity/authentication/session providers;
 - enterprise/organization/membership providers;
-- localization/language providers;
 - future policy, notification, search, storage, workflow and similar platform services.
 
 The goal is additive long-term growth without turning App Platform Core into a monolith.
@@ -179,39 +178,15 @@ Apps depend on stable enterprise capability contracts rather than concrete enter
 
 This allows enterprise semantics to evolve without rewriting App Host, Eidos or EVO Ledger Runtime.
 
-## 7. Localization as a plugin
+## 7. Localization boundary
 
-Localization is a PLATFORM_PROVIDER capability.
+Localization itself is **not** a platform Provider requirement.
 
-Eidos owns only localization-aware Experience contracts/rendering hooks. It does not own product translation resources.
+Eidos/App Host owns locale-aware rendering contracts and deterministic resource resolution. Each human-facing Package owns its own language resources through `eidos.localization-bundle` Contributions.
 
-Candidate capabilities:
+A future locale preference/policy service may become a Provider only if a concrete independent lifecycle is needed (for example enterprise-enforced locale policy or roaming user preferences). Do not create such a Provider speculatively.
 
-```text
-localization.locale
-localization.resources
-localization.format
-```
-
-A localization plugin owns:
-
-- available locales;
-- locale selection policy;
-- translation bundles;
-- fallback chain;
-- number/date/currency formatting profile;
-- persistence of user/enterprise locale preference where appropriate.
-
-Initial reference package:
-
-```text
-evo-localization
-locales:
-  - zh-CN
-  - en
-```
-
-Additional languages are installed or upgraded as resources/features without changing business logic.
+See `docs/architecture/APP-OWNED-LOCALIZATION-v0.1.md`.
 
 ## 8. Scope and provider selection
 
@@ -291,13 +266,6 @@ EVO may receive stable scope identifiers or actor/context values through public 
 ## 13. Reserved package examples
 
 ```text
-evo-localization
-type: PLATFORM_PROVIDER
-provides:
-  - localization.locale
-  - localization.resources
-  - localization.format
-
 openai-provider
 type: PLATFORM_PROVIDER
 provides:
