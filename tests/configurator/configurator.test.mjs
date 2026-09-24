@@ -77,10 +77,15 @@ test("Ledger Runtime Template rejects content changed without digest update", ()
   assert.ok(result.errors.some(x => x.code === "TEMPLATE_DIGEST_MISMATCH"));
 });
 
-test("burn blockers distinguish compiler, direction and cost-derived runtime gaps", () => {
+test("financial Dr/Cr directions are valid configuration semantics, not a burn blocker", () => {
+  const service = createLedgerRuntimeConfiguratorService();
+  const result = service.validate();
+  assert.equal(result.burn.blockers.some(x => x.code === "LEDGER_DIRECTION_SEMANTICS_REQUIRED"), false);
+});
+
+test("runtime-derived amount symbols are treated as Ledger Runtime built-ins", () => {
   const service = createLedgerRuntimeConfiguratorService();
   const result = service.validate();
   assert.ok(result.burn.blockers.some(x => x.code === "LEGACY_EXPRESSION_COMPILER_REQUIRED"));
-  assert.ok(result.burn.blockers.some(x => x.code === "LEDGER_DIRECTION_SEMANTICS_REQUIRED"));
-  assert.ok(result.burn.blockers.some(x => x.code === "COST_DERIVED_VALUE_PROVIDER_REQUIRED"));
+  assert.ok(result.burn.blockers.some(x => x.code === "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED"));
 });
