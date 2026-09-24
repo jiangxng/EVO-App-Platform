@@ -95,7 +95,7 @@ No repository replacement is authorized by this convergence.
 
 ## 4. LLM boundary
 
-The current direct OpenAI adapter under `agents/enterprise-agent` is retained as migration evidence only.
+The old direct OpenAI adapter under `agents/enterprise-agent` is retained as migration evidence only. The executable mainline now uses the generic `LlmInferenceProvider` contract plus Provider Runtime Registry.
 
 Target dependency:
 
@@ -160,3 +160,19 @@ This convergence is accepted when:
 - status Action runs only while Feature is active;
 - CI preserves existing Agent Proofs and all existing App Platform tests;
 - docs in both repositories point to the same convergence decision.
+
+
+## 9. LLM Provider slice
+
+The second convergence slice adds `openai-llm-provider` as the first real `PLATFORM_PROVIDER` implementation.
+
+```text
+Enterprise Agent Eidos Experience
+→ enterprise-agent.chat Action
+→ provider-backed AgentModel
+→ llm.inference Provider Resolver
+→ openai.responses runtime
+→ OpenAI Responses API
+```
+
+The provider is lifecycle-managed independently of the Agent. Credentials are configuration/secrets, never Package data. Installing or removing the Provider changes model availability without changing the durable Agent identity.
