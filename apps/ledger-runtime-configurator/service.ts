@@ -49,8 +49,12 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
     const errors: LedgerConfiguratorValidationV010["errors"] = [];
     const warnings: LedgerConfiguratorValidationV010["warnings"] = [];
 
-    if (input.contractVersion !== "0.1.0" || input.kind !== "evo.ledger-runtime.source-configuration") {
-      errors.push({ code: "CONFIGURATION_CONTRACT_INVALID", message: "Unsupported Ledger Runtime source configuration contract." });
+    if (
+      input.contractVersion !== "0.1.0"
+      || input.kind !== "evo.ledger-runtime.source-configuration"
+      || input.expressionLanguage !== "bookkeeping-aviator-v1"
+    ) {
+      errors.push({ code: "CONFIGURATION_CONTRACT_INVALID", message: "Unsupported Ledger Runtime source configuration contract or expression language." });
     }
 
     const accountIds = new Set<number>();
@@ -102,20 +106,9 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
     const blockers: LedgerConfiguratorValidationV010["burn"]["blockers"] = [];
     if (legacyExpressionRules > 0) {
       blockers.push({
-        code: "LEGACY_EXPRESSION_COMPILER_REQUIRED",
-        message: "Bookkeeping formula/condition strings are preserved losslessly but must be compiled to the EVO Ledger Runtime executable rule contract before burn.",
+        code: "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED",
+        message: "Bookkeeping rule expressions are executable configuration. Burn requires a deterministic Ledger Runtime expression engine/compiler compatible with the imported Aviator semantics.",
         count: legacyExpressionRules
-      });
-    }
-
-    const directionalRules = input.postingRules.filter(
-      rule => ["借方", "贷方", "Dr", "Cr"].includes(rule.direction)
-    ).length;
-    if (directionalRules > 0) {
-      blockers.push({
-        code: "LEDGER_DIRECTION_SEMANTICS_REQUIRED",
-        message: "Financial debit/credit rules require an explicit executable direction model; the current generic LedgerEffect only carries signed quantity/amount.",
-        count: directionalRules
       });
     }
 
@@ -129,8 +122,8 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
     ).length;
     if (costDerivedRules > 0) {
       blockers.push({
-        code: "COST_DERIVED_VALUE_PROVIDER_REQUIRED",
-        message: "Some bookkeeping amount formulas depend on derived cost/debit/credit aggregate values that are not BusinessData payload fields.",
+        code: "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED",
+        message: "Some bookkeeping amount expressions reference Ledger Runtime built-ins such as cost and opposite-side debit/credit aggregates. These are runtime calculation capabilities, not configurable fields.",
         count: costDerivedRules
       });
     }
@@ -204,6 +197,12 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
         configuration,
         compatibility: {
           burnReady: validation.burn.ready,
+          requiredRuntimeCapabilities: [
+            "expression.bookkeeping-aviator-v1",
+            "direction.financial-dr-cr",
+            "direction.business-add-sub",
+            "amount.runtime-builtins"
+          ],
           blockers: clone(validation.burn.blockers)
         }
       };
