@@ -5,6 +5,8 @@ import type { JsonValue } from "../runtime/contracts.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import type { ActionHost } from "../adapters/ports.js";
 import type { AppHost, AppHostLoadedPageV010, AppHostSnapshotV010 } from "./contracts.js";
+import type { LocalizationRuntime } from "../localization/contracts.js";
+import { localizeAppHostPageDefinition } from "../localization/localize.js";
 
 export interface BrowserAppHostShellOptions {
   host: AppHost;
@@ -12,7 +14,8 @@ export interface BrowserAppHostShellOptions {
   title?: string;
   renderPage?: (page: AppHostLoadedPageV010) => string | Node;
   actionHost?: ActionHost;
-  onActionResult?: (result: unknown, page: AppHostLoadedPageV010) => void;
+  onActionResult?: (result: unknown, page: AppHostLoadedPageV010) => void | Promise<void>;
+  localization?: LocalizationRuntime;
 }
 
 export interface BrowserAppHostShell {
@@ -21,12 +24,16 @@ export interface BrowserAppHostShell {
   dispose(): void;
 }
 
-export function renderAppHostPageToHtml(page: AppHostLoadedPageV010): string {
-  const definition = page.definition as { kind?: unknown };
+export function renderAppHostPageToHtml(
+  page: AppHostLoadedPageV010,
+  localization?: LocalizationRuntime
+): string {
+  const localizedDefinition = localizeAppHostPageDefinition(page, localization);
+  const definition = localizedDefinition as { kind?: unknown };
   if (definition?.kind === "catalog-browser") {
-    return renderCatalogBrowserToHtml(page.definition as import("../catalog-browser/contracts.js").CatalogBrowserV010);
+    return renderCatalogBrowserToHtml(localizedDefinition as import("../catalog-browser/contracts.js").CatalogBrowserV010);
   }
-  return renderToHtml(page.definition);
+  return renderToHtml(localizedDefinition);
 }
 
 function resolveContainer(value: HTMLElement | string): HTMLElement {
@@ -85,7 +92,14 @@ export async function mountBrowserAppHostShell(
 ): Promise<BrowserAppHostShell> {
   const container = resolveContainer(options.container);
   const host = options.host;
-  const renderPage = options.renderPage ?? renderAppHostPageToHtml;
+  const localization = options.localization;
+  const renderPage = options.renderPage ?? ((page: AppHostLoadedPageV010) =>
+    renderAppHostPageToHtml(page, localization));
+  const hostText = (
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number | boolean | null>
+  ) => localization?.resolve("eidos.app-host", key, fallback, params) ?? fallback;
   let disposed = false;
   let activePath = currentPath();
 
@@ -105,7 +119,20 @@ export async function mountBrowserAppHostShell(
   heading.style.margin = "0 0 16px";
 
   const navigation = document.createElement("nav");
-  navigation.setAttribute("aria-label", "Applications");
+  navigation.setAttribute("aria-label", hostText("shell.applications", "Applications"));
+
+  const localeWrap = document.createElement("label");
+  localeWrap.style.display = "block";
+  localeWrap.style.marginBottom = "16px";
+  const localeLabel = document.createElement("span");
+  localeLabel.textContent = hostText("shell.language", "Language");
+  localeLabel.style.display = "block";
+  localeLabel.style.fontSize = "12px";
+  localeLabel.style.marginBottom = "4px";
+  const localeSelect = document.createElement("select");
+  localeSelect.setAttribute("data-eidos-locale", "");
+  localeSelect.style.width = "100%";
+  localeWrap.append(localeLabel, localeSelect);
 
   const main = document.createElement("main");
   main.style.padding = "24px";
@@ -116,7 +143,9 @@ export async function mountBrowserAppHostShell(
   status.style.marginBottom = "12px";
   status.style.fontSize = "12px";
 
-  sidebar.append(heading, navigation);
+  sidebar.append(heading);
+  if (localization) sidebar.append(localeWrap);
+  sidebar.append(navigation);
   main.append(status);
   root.append(sidebar, main);
   container.replaceChildren(root);
@@ -135,8 +164,8 @@ export async function mountBrowserAppHostShell(
     if (!loaded) {
       const message = document.createElement("p");
       message.textContent = path === "/"
-        ? "No active application page."
-        : `No active route for '${path}'.`;
+        ? hostText("shell.noActivePage", "No active application page.")
+        : hostText("shell.noRoute", "No active route for '{path}'.", { path });
       pageContainer.appendChild(message);
       main.appendChild(pageContainer);
       return;
@@ -179,7 +208,7 @@ export async function mountBrowserAppHostShell(
             }
             if (actionType !== "command") return;
             if (!options.actionHost) {
-              actionStatus.textContent = "No App Host ActionHost is configured.";
+              actionStatus.textContent = hostText("shell.noActionHost", "No App Host ActionHost is configured.");
               return;
             }
             const command = button.dataset.eidosCommand;
@@ -192,7 +221,7 @@ export async function mountBrowserAppHostShell(
               return;
             }
             button.disabled = true;
-            actionStatus.textContent = "Executing…";
+            actionStatus.textContent = hostText("shell.executing", "Executing…");
             try {
               const request = {
                 contractVersion: "0.1.0" as const,
@@ -211,20 +240,22 @@ export async function mountBrowserAppHostShell(
                   const nextAction = (payload as { nextAction?: unknown }).nextAction;
                   const details = JSON.stringify(payload, null, 2);
                   actionStatus.textContent = [
-                    typeof message === "string" ? message : "Completed.",
-                    typeof nextAction === "string" ? `Next: ${nextAction}` : "",
+                    typeof message === "string" ? message : hostText("shell.completed", "Completed."),
+                    typeof nextAction === "string"
+                      ? hostText("shell.next", "Next: {next}", { next: nextAction })
+                      : "",
                     details
                   ].filter(Boolean).join("\n\n");
                 } else {
                   actionStatus.textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
                 }
               } else {
-                actionStatus.textContent = `Action failed: ${result.error?.message ?? "Unknown action error"}`;
+                actionStatus.textContent = hostText("shell.actionFailed", "Action failed: {message}", { message: result.error?.message ?? "Unknown action error" });
               }
-              options.onActionResult?.(result, loaded);
+              await options.onActionResult?.(result, loaded);
               if (result.ok) await refresh();
             } catch (error) {
-              actionStatus.textContent = `Action failed: ${error instanceof Error ? error.message : String(error)}`;
+              actionStatus.textContent = hostText("shell.actionFailed", "Action failed: {message}", { message: error instanceof Error ? error.message : String(error) });
             } finally {
               button.disabled = false;
             }
@@ -245,13 +276,13 @@ export async function mountBrowserAppHostShell(
         event.preventDefault();
         void (async () => {
           if (!options.actionHost) {
-            actionStatus.textContent = "No App Host ActionHost is configured.";
+            actionStatus.textContent = hostText("shell.noActionHost", "No App Host ActionHost is configured.");
             return;
           }
 
           const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
           if (submit) submit.disabled = true;
-          actionStatus.textContent = "Executing…";
+          actionStatus.textContent = hostText("shell.executing", "Executing…");
 
           try {
             const values = collectFormValues(form, loaded.definition);
@@ -265,7 +296,7 @@ export async function mountBrowserAppHostShell(
             } else {
               actionStatus.textContent = `Action failed: ${execution.result.error?.message ?? "Unknown action error"}`;
             }
-            options.onActionResult?.(execution.result, loaded);
+            await options.onActionResult?.(execution.result, loaded);
           } catch (error) {
             actionStatus.textContent = `Action failed: ${error instanceof Error ? error.message : String(error)}`;
           } finally {
@@ -284,7 +315,16 @@ export async function mountBrowserAppHostShell(
     for (const item of snapshot.navigation) {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = item.label;
+      const owner = snapshot.manifests.find(manifest =>
+        (manifest.navigation ?? []).some(candidate => candidate.id === item.id)
+      );
+      button.textContent = owner && localization
+        ? localization.resolve(
+            owner.packageId,
+            `navigation.${item.id}.label`,
+            item.label
+          )
+        : item.label;
       button.setAttribute("data-route", item.route);
       button.style.display = "block";
       button.style.width = "100%";
@@ -296,14 +336,50 @@ export async function mountBrowserAppHostShell(
       navigation.appendChild(button);
     }
 
+    navigation.setAttribute("aria-label", hostText("shell.applications", "Applications"));
+    localeLabel.textContent = hostText("shell.language", "Language");
     status.textContent = snapshot.diagnostics.length === 0
-      ? `App Host: ${snapshot.status} · revision ${snapshot.revision}`
-      : `App Host: ${snapshot.status} · ${snapshot.diagnostics.length} diagnostic(s)`;
+      ? hostText("shell.status", "App Host: {status} · revision {revision}", {
+          status: snapshot.status,
+          revision: snapshot.revision
+        })
+      : hostText("shell.statusDiagnostics", "App Host: {status} · {count} diagnostic(s)", {
+          status: snapshot.status,
+          count: snapshot.diagnostics.length
+        });
   }
 
   const unsubscribe = host.subscribe(snapshot => {
     if (disposed) return;
     renderNavigation(snapshot);
+  });
+
+  const refreshLocaleOptions = () => {
+    if (!localization) return;
+    const current = localization.getContext().locale;
+    localeSelect.replaceChildren();
+    for (const locale of localization.availableLocales()) {
+      const option = document.createElement("option");
+      option.value = locale;
+      option.textContent = locale;
+      option.selected = locale === current;
+      localeSelect.appendChild(option);
+    }
+    document.documentElement.lang = current;
+  };
+
+  if (localization) {
+    refreshLocaleOptions();
+    localeSelect.addEventListener("change", () => {
+      localization.setLocale(localeSelect.value);
+    });
+  }
+
+  const unsubscribeLocale = localization?.subscribe(() => {
+    if (disposed) return;
+    refreshLocaleOptions();
+    renderNavigation(host.getSnapshot());
+    void renderRoute(activePath);
   });
 
   const onHashChange = () => {
@@ -341,6 +417,7 @@ export async function mountBrowserAppHostShell(
   function dispose(): void {
     disposed = true;
     unsubscribe();
+    unsubscribeLocale?.();
     window.removeEventListener("hashchange", onHashChange);
     root.remove();
   }
