@@ -172,6 +172,27 @@
   },
   "shortTermMainlineStatus": "HISTORICAL_REFERENCE_ONLY",
   "crossProjectPrinciples": [
-    "HUMAN_LLM_OPERABILITY_NO_DEVELOPER_DEPENDENCY"
-  ]
+    "HUMAN_LLM_OPERABILITY_NO_DEVELOPER_DEPENDENCY",
+    "LLM_PRIMARY_ENGINEERING_99_9_TARGET"
+  ],
+  "engineeringOperatingModel": {
+    "humanDeveloperRoleRequired": false,
+    "llmEngineeringTarget": "~99.9%",
+    "llmOwnsByDefault": [
+      "architecture",
+      "implementation",
+      "plugin extension",
+      "migration",
+      "testing",
+      "documentation",
+      "maintenance"
+    ],
+    "humanFocus": [
+      "business intent",
+      "judgment",
+      "authorization",
+      "constraints",
+      "acceptance"
+    ]
+  }
 }
