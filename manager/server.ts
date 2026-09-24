@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
+import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createAppManagerService } from "./service.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
@@ -13,13 +15,25 @@ import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-age
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import { createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
-import { openAiLlmProviderPackage } from "../providers/openai/package.js";
+import {
+  OPENAI_LLM_PACKAGE_ID,
+  OPENAI_LLM_PROVIDER_ID,
+  openAiLlmProviderPackage
+} from "../providers/openai/package.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import { appHostShellHtml } from "./app-host-shell.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
+import {
+  createSettingsExperienceManifest,
+  createSettingsIndexPage,
+  createSettingsPage,
+  packageIdFromSettingsPageSource,
+  settingsIndexPageSource,
+  validateAndMergeSettings
+} from "./settings-page.js";
 import {
   createPluginStorePage,
   pluginStoreExperienceManifest,
@@ -44,6 +58,11 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
+const settingsStore = settingsStateFile
+  ? createFileSettingsStore(settingsStateFile)
+  : createMemorySettingsStore();
 const retiredLocalization = retireExperimentalPackageV010(
   store,
   "evo-localization",
@@ -62,16 +81,31 @@ const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
 const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
-if (openaiApiKey) {
-  providerRuntimeRegistry.register<LlmInferenceProvider>(
-    "openai.responses",
+
+function refreshOpenAiProviderRuntime(): void {
+  if (!openaiApiKey) {
+    providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
+    return;
+  }
+  const values = settingsStore.getNamespace(OPENAI_LLM_PACKAGE_ID);
+  const model = typeof values.model === "string" && values.model.trim()
+    ? values.model.trim()
+    : process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
+  const baseUrl = typeof values.baseUrl === "string" && values.baseUrl.trim()
+    ? values.baseUrl.trim()
+    : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
+
+  providerRuntimeRegistry.replace<LlmInferenceProvider>(
+    OPENAI_LLM_PROVIDER_ID,
     createOpenAiResponsesLlmProvider({
       apiKey: openaiApiKey,
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna",
-      baseUrl: process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1"
+      model,
+      baseUrl
     })
   );
 }
+
+refreshOpenAiProviderRuntime();
 
 function resolveLlmProvider(): {
   installedProviderIds: string[];
@@ -203,9 +237,16 @@ const server = createServer(async (request, response) => {
         ...manager.listEffectiveLocalizationBundles()
       ]);
     }
+    if (request.method === "GET" && url.pathname === "/v1/settings/effective") {
+      return json(response, 200, {
+        contributions: manager.listInstalledSettings(),
+        values: settingsStore.snapshot()
+      });
+    }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return json(response, 200, [
         pluginStoreExperienceManifest,
+        createSettingsExperienceManifest(manager),
         ...manager.listEffectiveExperiences()
       ]);
     }
@@ -218,6 +259,17 @@ const server = createServer(async (request, response) => {
           manager.listCatalog(),
           manager.getSnapshot()
         ));
+      }
+      if (source === settingsIndexPageSource) {
+        return json(response, 200, createSettingsIndexPage(manager));
+      }
+      const settingsPackageId = packageIdFromSettingsPageSource(source);
+      if (settingsPackageId) {
+        const settingsPage = createSettingsPage(manager, settingsStore, settingsPackageId);
+        if (!settingsPage) {
+          return json(response, 404, { code: "SETTINGS_NOT_AVAILABLE", packageId: settingsPackageId });
+        }
+        return json(response, 200, settingsPage);
       }
       const page = manager.loadExperiencePage(source);
       if (page === undefined) {
@@ -332,6 +384,51 @@ const server = createServer(async (request, response) => {
 
       const action = body as AppActionRequestV010;
       const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
+
+      if (action.command.code === "app-platform.update-settings") {
+        const namespace = typeof action.values.namespace === "string"
+          ? action.values.namespace
+          : undefined;
+        const rawSettings = action.values.settings;
+        if (
+          !namespace
+          || rawSettings === null
+          || typeof rawSettings !== "object"
+          || Array.isArray(rawSettings)
+        ) {
+          return json(response, 400, {
+            ok: false,
+            error: { code: "SETTINGS_INPUT_INVALID", message: "Settings namespace and values are required." }
+          });
+        }
+
+        try {
+          const saved = validateAndMergeSettings(
+            manager,
+            settingsStore,
+            namespace,
+            rawSettings as Record<string, unknown>
+          );
+          if (namespace === OPENAI_LLM_PACKAGE_ID) refreshOpenAiProviderRuntime();
+          return json(response, 200, {
+            ok: true,
+            correlationId: action.sourceInteractionId,
+            result: {
+              message: "Settings saved.",
+              namespace,
+              settings: saved
+            }
+          });
+        } catch (error) {
+          return json(response, 422, {
+            ok: false,
+            error: {
+              code: "SETTINGS_UPDATE_REJECTED",
+              message: error instanceof Error ? error.message : String(error)
+            }
+          });
+        }
+      }
 
       if (action.command.code === "app-platform.plan-install") {
         if (!itemId) {
