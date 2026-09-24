@@ -200,3 +200,34 @@ Current Railway single-replica adapter may use a mounted durable state file behi
 ## Lifecycle Completeness Rule
 
 Do not wait for the human to enumerate ordinary lifecycle closure. For an installable Package, default completeness includes discovery, side-effect-free plan, dependency resolution, install, enable, disable, uninstall, dependency-safe blocking, persistent lifecycle state, and upgrade when a newer compatible catalog version exists. Each transition must update effective Capabilities/Contributions/Experiences consistently and be regression-tested through the canonical App Host path.
+
+
+## Plugin-First Extension Rule
+
+For every new EVO App Platform requirement, the first architectural question is:
+
+> Can this be implemented as a Package / Feature / Capability / Contribution plugin?
+
+Default answer should be **yes** unless the requirement is itself part of the minimal generic plugin-hosting mechanism.
+
+Decision order:
+
+```text
+new requirement
+→ existing plugin/capability can satisfy? reuse it
+→ new reusable plugin can satisfy? create Package/Feature/Contribution
+→ Eidos capability missing? extend Eidos, then consume from plugin
+→ only if plugin hosting itself is insufficient: extend App Platform Core minimally
+```
+
+Examples:
+
+- localization/language packs → plugin capability, not hard-coded Host business logic;
+- reporting → plugin;
+- workflow/SOP → plugin;
+- permissions policy → plugin/service behind public contracts;
+- industry semantics → plugin;
+- Configurator → plugin;
+- App Host lifecycle resolution itself → App Platform Core.
+
+Core growth requires explicit justification that the capability cannot live behind the existing plugin model.
