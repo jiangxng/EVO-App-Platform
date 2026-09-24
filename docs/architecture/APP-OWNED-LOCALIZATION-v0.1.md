@@ -84,34 +84,17 @@ App Host owns:
 
 App Host does not author the translation content of installed applications.
 
-## 6. Role of evo-localization after correction
+## 6. evo-localization is retired
 
-The current `evo-localization` package MUST NOT be treated as the thing that "adds multilingual support".
+The experimental `evo-localization` Package has no independent product responsibility after the ownership model above is applied, so it is removed from the Catalog rather than repurposed.
 
-Two valid futures exist:
+Current rule:
 
-### Baseline
+- App Host/Eidos supplies the localization standard and current locale.
+- Each Package supplies its own resource bundles.
+- No separate localization Package is required.
 
-No separate package is required. App Host uses browser/user explicit locale and application-owned bundles.
-
-### Optional provider
-
-`evo-localization` may be repurposed as a **Locale Preference Provider**, for example:
-
-```text
-localization.preference
-localization.policy
-localization.format-profile
-```
-
-It may persist or govern:
-
-- user locale;
-- enterprise default locale;
-- allowed locale list;
-- time zone/number/date conventions.
-
-It does not own `Enterprise Agent`, `Ledger Configurator`, Plugin Store or third-party app translations.
+If a future enterprise requirement introduces an independently lifecycle-managed locale policy/preference service, that service must be designed from the concrete requirement and may then become a Provider. The retired `evo-localization` package name/contract is not reserved as an architectural obligation.
 
 ## 7. Language packs
 
@@ -167,8 +150,8 @@ If a domain wants multilingual master data, that is a separate business-data cap
 3. make App Host fetch effective bundles;
 4. add locale switch and rerender;
 5. migrate Plugin Store, Enterprise Agent and Ledger Configurator to localized text refs;
-6. remove the misleading `localization.resources` ownership claim from `evo-localization`;
-7. optionally reintroduce it later as a locale preference/policy provider.
+6. remove `evo-localization` from the Catalog and explicitly retire any experimental persisted lifecycle state;
+7. add future locale policy/preference Providers only from a concrete independent requirement.
 
 ## 11. Acceptance gate
 
