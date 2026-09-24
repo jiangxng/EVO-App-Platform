@@ -3,6 +3,10 @@ export type CatalogStatusTone = "neutral" | "positive" | "warning";
 export interface CatalogBrowserActionV010 {
   id: string;
   label: string;
+  type: "command" | "navigate";
+  command?: string;
+  inputVersion?: string;
+  route?: string;
   requiresConfirmation?: boolean;
 }
 
