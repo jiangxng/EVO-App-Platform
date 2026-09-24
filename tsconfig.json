@@ -16,6 +16,7 @@
     "manager/**/*.ts",
     "contracts/**/*.ts",
     "catalog/**/*.ts",
-    "agents/**/*.ts"
+    "agents/**/*.ts",
+    "apps/**/*.ts"
   ]
 }
