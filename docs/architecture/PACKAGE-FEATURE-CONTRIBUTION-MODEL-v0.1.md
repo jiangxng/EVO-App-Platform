@@ -474,3 +474,29 @@ This keeps long-term growth additive rather than centralizing every new requirem
 
 
 Provider-style platform services are specified by `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`. Use `type: PLATFORM_PROVIDER` plus `platform.service-provider` Contributions for replaceable LLM, identity, enterprise and localization providers.
+
+
+## Localization Contribution
+
+Human-facing localization resources use a normal Feature Contribution:
+
+```text
+kind: eidos.localization-bundle
+bundle:
+  contractVersion: 0.1.0
+  namespace: <owning packageId>
+  locale: <BCP-47 locale>
+  messages:
+    <stable semantic slot>: <localized text>
+```
+
+Ownership rules:
+
+- the bundle is effective only while its owning Feature is active;
+- ordinary packages MUST use their own `packageId` as namespace;
+- App Host/Eidos resolves the current locale and fallback chain;
+- a Package does not publish translations for unrelated Packages;
+- the retired `evo-localization` experiment is not part of the package model;
+- a future cross-package language-pack extension requires a separate explicit compatibility/provenance contract and cannot silently override another Package.
+
+Localization bundle Contributions are **not** platform service providers. They are declarative Experience resources owned by the same Feature that owns the human-facing vocabulary.
