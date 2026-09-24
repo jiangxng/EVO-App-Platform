@@ -9,6 +9,11 @@ import {
   bookkeepingDefaultConfiguration,
   bookkeepingReferenceLegacyPostingRules
 } from "./default-library.js";
+import {
+  compileConfiguration,
+  compileExpression,
+  type CompiledLedgerRuntimeConfigurationV010
+} from "./expression-compiler.js";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -40,6 +45,7 @@ export interface LedgerRuntimeConfiguratorService {
   exportTemplate(): LedgerRuntimeTemplateV010;
   importTemplate(input: LedgerRuntimeTemplateV010): LedgerConfiguratorValidationV010;
   resetToBookkeepingDefault(): LedgerConfiguratorValidationV010;
+  compileCurrent(): CompiledLedgerRuntimeConfigurationV010;
 }
 
 export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfiguratorService {
@@ -99,16 +105,31 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       });
     }
 
-    const legacyExpressionRules = input.postingRules.filter(
-      rule => rule.quantityFormula !== null || rule.amountFormula !== null || rule.entryConditions !== null
-    ).length;
-
     const blockers: LedgerConfiguratorValidationV010["burn"]["blockers"] = [];
-    if (legacyExpressionRules > 0) {
-      blockers.push({
-        code: "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED",
-        message: "Bookkeeping rule expressions are executable configuration. Burn requires a deterministic Ledger Runtime expression engine/compiler compatible with the imported Aviator semantics.",
-        count: legacyExpressionRules
+    const uniqueExpressions = new Set<string>();
+    for (const rule of input.postingRules) {
+      for (const value of [rule.quantityFormula, rule.amountFormula, rule.entryConditions]) {
+        if (value !== null && value.trim().length > 0) uniqueExpressions.add(value);
+      }
+    }
+    let expressionCompileFailures = 0;
+    for (const source of uniqueExpressions) {
+      try {
+        compileExpression(source);
+      } catch (error) {
+        expressionCompileFailures += 1;
+        if (expressionCompileFailures <= 20) {
+          errors.push({
+            code: "EXPRESSION_COMPILE_FAILED",
+            message: `${source}: ${error instanceof Error ? error.message : String(error)}`
+          });
+        }
+      }
+    }
+    if (expressionCompileFailures > 20) {
+      errors.push({
+        code: "EXPRESSION_COMPILE_FAILED_MORE",
+        message: `${expressionCompileFailures - 20} additional unique expressions failed compilation.`
       });
     }
 
@@ -121,9 +142,9 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       && serverFormulaNames.some(name => rule.amountFormula?.includes(name))
     ).length;
     if (costDerivedRules > 0) {
-      blockers.push({
-        code: "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED",
-        message: "Some bookkeeping amount expressions reference Ledger Runtime built-ins such as cost and opposite-side debit/credit aggregates. These are runtime calculation capabilities, not configurable fields.",
+      warnings.push({
+        code: "LEDGER_RUNTIME_BUILTINS_PRESENT",
+        message: "Cost/debit/credit aggregate expressions compile to runtime builtin nodes. Their algorithms remain runtime-provider capabilities rather than Configurator formulas.",
         count: costDerivedRules
       });
     }
@@ -198,7 +219,8 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
         compatibility: {
           burnReady: validation.burn.ready,
           requiredRuntimeCapabilities: [
-            "expression.bookkeeping-aviator-v1",
+            "expression.evo-ir-v1",
+            "legacy-import.bookkeeping-aviator-v1",
             "direction.financial-dr-cr",
             "direction.business-add-sub",
             "amount.runtime-builtins"
@@ -237,6 +259,13 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
     resetToBookkeepingDefault() {
       current = clone(bookkeepingDefaultConfiguration);
       return validate(current);
+    },
+    compileCurrent() {
+      const validation = validate(current);
+      if (!validation.burn.ready) {
+        throw new Error("Current Ledger Runtime configuration is not burn-ready.");
+      }
+      return compileConfiguration(current, validation.semanticDigest);
     }
   };
 }
