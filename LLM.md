@@ -189,3 +189,9 @@ not installed
 Dependencies must be checked before disable/uninstall. Disabling/uninstalling an App removes its effective Contributions/Experience from App Host but must not silently delete authoritative business history.
 
 Product acceptance also requires **human visibility**: an installed + enabled Experience must be discoverable in App Host navigation/store, loadable through the Experience source, and renderable through Eidos.
+
+### Production lifecycle durability
+
+Package installation/activation state is durable product state. Production deployments MUST use a persistent `LifecycleStore` adapter; process-local memory is only for tests/development. A CI/CD deploy must not silently turn an installed App back into an uninstalled App.
+
+Current Railway single-replica adapter may use a mounted durable state file behind `LifecycleStore`. Storage topology remains replaceable; a future PostgreSQL-backed adapter must preserve the same lifecycle contracts and state semantics.
