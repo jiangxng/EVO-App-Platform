@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { createPackageCatalog } from "../catalog/catalog.js";
-import { createMemoryLifecycleStore } from "./store.js";
+import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -32,7 +32,8 @@ const catalog = createPackageCatalog([
   ledgerRuntimeConfiguratorPackage,
   tradingLitePackage
 ]);
-const store = createMemoryLifecycleStore();
+const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
+const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
 const manager = createAppManagerService(catalog, store, () => new Date(), referenceExperienceAssets);
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
