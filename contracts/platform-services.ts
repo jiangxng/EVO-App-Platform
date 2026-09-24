@@ -81,13 +81,6 @@ export interface ServiceProviderRefV010 {
   providerContractVersion: string;
 }
 
-export interface LocalizationContextV010 {
-  contractVersion: "0.1.0";
-  locale: string;
-  fallbackLocales: string[];
-  provider: ServiceProviderRefV010;
-}
-
 export interface LlmExecutionContextV010 {
   contractVersion: "0.1.0";
   provider: ServiceProviderRefV010;
@@ -107,9 +100,6 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "enterprise.organization",
   "enterprise.membership",
   "enterprise.scope",
-  "localization.locale",
-  "localization.resources",
-  "localization.format",
   "llm.inference",
   "llm.streaming",
   "llm.embedding",
