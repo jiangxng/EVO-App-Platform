@@ -18,6 +18,7 @@ import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-run
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import { appHostShellHtml } from "./app-host-shell.js";
+import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createPluginStorePage,
   pluginStoreExperienceManifest,
@@ -27,7 +28,6 @@ import {
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
-  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
   tradingLitePackage
@@ -37,7 +37,6 @@ const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
-  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
   tradingLitePackage
@@ -188,6 +187,12 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/providers/effective") {
       const capability = url.searchParams.get("capability") ?? undefined;
       return json(response, 200, manager.listEffectiveServiceProviders(capability));
+    }
+    if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
+      return json(response, 200, [
+        ...appPlatformLocalizationBundles,
+        ...manager.listEffectiveLocalizationBundles()
+      ]);
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return json(response, 200, [
