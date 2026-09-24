@@ -108,17 +108,6 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       });
     }
 
-    const directionalRules = input.postingRules.filter(
-      rule => ["借方", "贷方", "Dr", "Cr"].includes(rule.direction)
-    ).length;
-    if (directionalRules > 0) {
-      blockers.push({
-        code: "LEDGER_DIRECTION_SEMANTICS_REQUIRED",
-        message: "Financial debit/credit rules require an explicit executable direction model; the current generic LedgerEffect only carries signed quantity/amount.",
-        count: directionalRules
-      });
-    }
-
     const serverFormulaNames = [
       "成本", "成本合计", "借方成本", "贷方成本", "成本入库",
       "借方", "贷方", "贷方合计", "借方合计", "分摊成本", "跨库成本"
@@ -129,8 +118,8 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
     ).length;
     if (costDerivedRules > 0) {
       blockers.push({
-        code: "COST_DERIVED_VALUE_PROVIDER_REQUIRED",
-        message: "Some bookkeeping amount formulas depend on derived cost/debit/credit aggregate values that are not BusinessData payload fields.",
+        code: "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED",
+        message: "Some bookkeeping amount expressions reference Ledger Runtime built-ins such as cost and opposite-side debit/credit aggregates. These are runtime calculation capabilities, not configurable fields.",
         count: costDerivedRules
       });
     }
