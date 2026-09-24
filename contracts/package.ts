@@ -27,7 +27,29 @@ export interface ExperienceContributionV010 {
   };
 }
 
-export type FeatureContributionV010 = ExperienceContributionV010;
+export interface PlatformServiceProviderContributionV010 {
+  kind: "platform.service-provider";
+  provider: {
+    contractVersion: "0.1.0";
+    providerId: string;
+    capability: string;
+    providerContract: string;
+    providerContractVersion: string;
+    binding: {
+      type: "HTTP" | "ACTION_HOST" | "QUERY_HOST" | "DECLARATIVE";
+      ref: string;
+    };
+    health?: {
+      type: "HTTP";
+      ref: string;
+    };
+    metadata?: Record<string, string | number | boolean | null>;
+  };
+}
+
+export type FeatureContributionV010 =
+  | ExperienceContributionV010
+  | PlatformServiceProviderContributionV010;
 
 export interface FeatureManifestV010 {
   contractVersion: "0.1.0";
