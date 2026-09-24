@@ -20,12 +20,13 @@ The Agent runtime does not import App Manager private implementation.
 
 `AgentModel` is replaceable.
 
-The runtime supports two model adapters:
+The product runtime now resolves models through the platform `llm.inference` Provider contract.
 
-- `createDevelopmentAgentModel()`: deterministic/offline proof adapter; **not an LLM**.
-- `createOpenAIResponsesAgentModel()`: real LLM adapter using the OpenAI Responses API.
+- `createProviderBackedAgentModel()` adapts the generic LLM Provider contract to the AgentModel decision loop.
+- `createDevelopmentAgentModel()` remains an offline deterministic test/proof adapter.
+- `createOpenAIResponsesAgentModel()` is retained only as migration/reference evidence for the old direct-integration path.
 
-Both implement the same stable `AgentModel` contract. Replacing the model does not change App Manager or Eidos.
+Replacing the installed LLM Provider does not change the Enterprise Agent package, EC durable assets, App Manager or Eidos.
 
 ## Current tools
 
@@ -67,19 +68,16 @@ This server currently uses permissive CORS for the local proof only.
 
 ## Real LLM mode
 
-Set an API key before starting the Agent service:
+Install an LLM Provider Package such as `openai-llm-provider`. Provider credentials remain outside Package manifests.
 
-```bash
-OPENAI_API_KEY=... npm run start:agent
-```
-
-Optional:
+For the OpenAI reference provider, runtime configuration uses secure environment/secrets such as:
 
 ```text
-OPENAI_MODEL=gpt-5.6-luna
-OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY
+OPENAI_MODEL
+OPENAI_BASE_URL
 ```
 
-When `OPENAI_API_KEY` is absent, the service falls back to the deterministic development model.
+The App Host Enterprise Agent Experience resolves `llm.inference` from active Provider contributions. If the provider package is absent, chat fails closed with `LLM_PROVIDER_REQUIRED`; if installed but credentials/runtime are not configured, it fails closed with `LLM_PROVIDER_NOT_CONFIGURED`.
 
-The Agent Runtime mechanically enforces a successful side-effect-free install plan before allowing `app.install.execute`. This rule does not rely on model obedience.
+The Agent Runtime still performs installation planning internally as a safety preflight before `app.install.execute`; this is not a mandatory human UI step.
