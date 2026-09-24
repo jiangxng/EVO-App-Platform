@@ -10,25 +10,19 @@ const emptySnapshot = {
   effectiveCapabilities: []
 };
 
-test("Plugin Store blocks install until an installation plan has been reviewed", () => {
+test("Plugin Store presents one-click install with optional details", () => {
   const page = createPluginStorePage([ledgerRuntimeConfiguratorPackage], emptySnapshot);
   const item = page.items[0];
   assert.equal(item.status?.label, "未安装");
-  assert.equal(item.primaryAction?.id, "plan");
-  const install = item.secondaryActions?.find(action => action.id === "install");
-  assert.equal(install?.enabled, false);
-  assert.match(install?.disabledReason ?? "", /查看安装计划/);
+  assert.equal(item.primaryAction?.id, "install");
+  assert.equal(item.primaryAction?.label, "安装");
+  assert.notEqual(item.primaryAction?.enabled, false);
+  const details = item.secondaryActions?.find(action => action.id === "plan");
+  assert.equal(details?.label, "安装详情");
 });
 
-test("Plugin Store unlocks install after the package has a current plan", () => {
-  const page = createPluginStorePage(
-    [ledgerRuntimeConfiguratorPackage],
-    emptySnapshot,
-    new Set(["evo-ledger-runtime-configurator"])
-  );
-  const item = page.items[0];
-  assert.equal(item.status?.label, "安装计划已就绪");
-  const install = item.secondaryActions?.find(action => action.id === "install");
-  assert.equal(install?.enabled, true);
-  assert.match(install?.helpText ?? "", /可以确认安装/);
+test("one-click install delegates safety to automatic preflight", () => {
+  const page = createPluginStorePage([ledgerRuntimeConfiguratorPackage], emptySnapshot);
+  const install = page.items[0].primaryAction;
+  assert.match(install?.helpText ?? "", /自动检查依赖和兼容性/);
 });

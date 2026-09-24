@@ -117,7 +117,7 @@ For the Ledger Runtime Configurator bookkeeping baseline, the current acceptance
 
 These rules are founder-confirmed acceptance gates and MUST NOT be skipped:
 
-1. **Installation-first** — an installable plugin/package is not product-validated by testing a preinstalled state. Start with the target absent, inspect the install plan, execute Package installation and Feature activation through public lifecycle contracts, verify capabilities/Contributions/Experience become effective, then execute the business scenario.
+1. **Installation-first** — an installable plugin/package is not product-validated by testing a preinstalled state. Start with the target absent; the system must automatically execute side-effect-free preflight/dependency resolution before installation. Do not require a human to manually inspect a plan for ordinary low-risk installs. Escalate to human review only for blockers or material decisions.
 2. **Eidos-first human surface** — all human-facing EVO App/Configurator/business product validation surfaces use Eidos public contracts/capabilities. Handwritten diagnostic HTML/JS is allowed only when explicitly marked non-product and cannot satisfy UX/product acceptance.
 3. **No lifecycle bypass** — app-specific APIs and Experience assets are gated by active Feature state. A backdoor/direct endpoint must not make a not-yet-installed plugin appear usable.
 4. **Evidence labeling** — component/API tests that intentionally bypass installation remain useful engineering evidence, but must be labeled component evidence rather than end-to-end product acceptance.
@@ -126,8 +126,7 @@ Canonical manual validation journey:
 
 ```text
 Catalog discovery
-→ side-effect-free install plan
-→ dependency/capability resolution
+→ automatic side-effect-free preflight / dependency resolution
 → Package installation
 → Feature activation
 → Contribution + Eidos Experience discovery
@@ -258,3 +257,22 @@ Enterprise-first
 ```
 
 Reserve stable boundaries early, but freeze detailed provider/protocol contracts only one layer before implementation. Do not prebuild speculative subsystems.
+
+
+## Progressive Installation UX Rule
+
+Installation planning is a system safety mechanism, not a user ritual.
+
+Default UX:
+
+```text
+Install
+→ automatic preflight
+→ no blockers/material decision
+   → install automatically
+→ blocker/risk/permission/migration/charge/destructive effect
+   → surface concise reason + details
+   → request only the decision that genuinely belongs to the human
+```
+
+"Installation details" may expose the plan for inspection, diagnostics and audit, but ordinary installation MUST NOT require a separate "generate/review plan" click.

@@ -43,7 +43,6 @@ const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
-const plannedInstallDigests = new Map<string, string>();
 
 const actionRouter = createAppActionRouter(
   [
@@ -162,8 +161,7 @@ const server = createServer(async (request, response) => {
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
           manager.listCatalog(),
-          manager.getSnapshot(),
-          new Set(plannedInstallDigests.keys())
+          manager.getSnapshot()
         ));
       }
       const page = manager.loadExperiencePage(source);
@@ -285,7 +283,6 @@ const server = createServer(async (request, response) => {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
         const plan = installPlanWithDigest(itemId);
-        plannedInstallDigests.set(itemId, plan.planDigest);
         return json(response, 200, {
           ok: plan.blockers.length === 0,
           correlationId: action.sourceInteractionId,
@@ -372,29 +369,18 @@ const server = createServer(async (request, response) => {
         if (!itemId) {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
-        const approvedDigest = plannedInstallDigests.get(itemId);
-        if (!approvedDigest) {
+        const preflight = installPlanWithDigest(itemId);
+        if (preflight.blockers.length > 0) {
           return json(response, 409, {
             ok: false,
-            error: { code: "INSTALL_PLAN_REQUIRED", message: "Generate and review the installation plan before installing this package." }
-          });
-        }
-        const current = installPlanWithDigest(itemId);
-        if (current.planDigest !== approvedDigest) {
-          plannedInstallDigests.delete(itemId);
-          return json(response, 409, {
-            ok: false,
-            error: { code: "INSTALL_PLAN_STALE", message: "Platform state changed. Generate a fresh installation plan." }
-          });
-        }
-        if (current.blockers.length > 0) {
-          return json(response, 409, {
-            ok: false,
-            error: { code: "INSTALL_BLOCKED", message: JSON.stringify(current.blockers) }
+            error: {
+              code: "INSTALL_BLOCKED",
+              message: "安装前检查发现阻断项，请查看详情后处理。",
+              details: JSON.parse(JSON.stringify(preflight))
+            }
           });
         }
         const snapshot = manager.install(itemId);
-        plannedInstallDigests.delete(itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -464,7 +450,6 @@ const server = createServer(async (request, response) => {
           return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
         const snapshot = manager.uninstall(itemId);
-        plannedInstallDigests.delete(itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -490,22 +475,13 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/v1/install") {
       const body = await readJson(request) as { packageId?: string; planDigest?: string };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
-      if (!body.planDigest) {
-        return json(response, 409, {
-          code: "INSTALL_PLAN_REQUIRED",
-          message: "Generate and review the current installation plan before installation."
-        });
-      }
       const current = installPlanWithDigest(body.packageId);
-      if (current.planDigest !== body.planDigest) {
-        return json(response, 409, {
-          code: "INSTALL_PLAN_STALE",
-          message: "The installation plan no longer matches current platform state. Generate a fresh plan.",
-          currentPlan: current
-        });
-      }
       if (current.blockers.length > 0) {
-        return json(response, 409, { code: "INSTALL_BLOCKED", plan: current });
+        return json(response, 409, {
+          code: "INSTALL_BLOCKED",
+          message: "Preflight found blockers. Review the plan details and resolve them before installation.",
+          plan: current
+        });
       }
       const snapshot = manager.install(body.packageId);
       return json(response, 200, {
