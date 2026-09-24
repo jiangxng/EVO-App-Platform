@@ -25,3 +25,15 @@ test("Enterprise Agent remains a zero-config Chat Experience inside the Workbenc
   assert.equal(page.fields, undefined);
   assert.equal(page.actions, undefined);
 });
+
+
+test("Enterprise Agent owns its Activity contribution instead of App Host owning Agent semantics", async () => {
+  const { enterpriseAgentPackage } = await import("../../dist/agents/enterprise-agent/package.js");
+  const activity = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.workbench-activity"
+  );
+  assert.ok(activity);
+  assert.equal(activity.activity.id, "enterprise-agent");
+  assert.equal(activity.activity.route, "/enterprise-agent");
+  assert.equal(activity.activity.kind, "side-route");
+});
