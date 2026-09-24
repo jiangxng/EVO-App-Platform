@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "PROOF_C_IMPLEMENTATION_CI_PASS",
+  "status": "PROOF_C_LOCAL_PASS",
   "currentMilestone": "Agent-driven app installation: user asks Enterprise Agent to install an app and it becomes usable in Eidos",
   "implemented": [
     "repository-bootstrap",
@@ -36,7 +36,9 @@
     "eidos-action-host-runtime",
     "app-manager-lifecycle-gated-action-router",
     "trading-lite-evo-public-command-adapter",
-    "evo-public-capability-command-ci-proof"
+    "evo-public-capability-command-ci-proof",
+    "trading-lite-local-real-evo-command-proof",
+    "proof-c-user-local-browser-pass"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -45,8 +47,6 @@
     "feature-manifest-schema",
     "company-notes-reference-app",
     "official-apps-migration",
-    "real-evo-capability-provider-integration",
-    "trading-lite-real-business-flow",
     "trading-lite-public-query-result",
     "evo-runtime-cache-clear-api",
     "evo-runtime-plugin-manifest-convergence",
@@ -55,13 +55,13 @@
     "trading-lite-stable-evo-application-id"
   ],
   "firstReferenceApp": "trading-lite",
-  "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C and a public read/query result rendered back in Eidos remain. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract. The previously prepared local Proof C remains a compatibility proof but is no longer the preferred next validation because EVO Core's target ingestion boundary is now generic BusinessDataSubmission rather than platform-owned /commands/capability orchestration. Architecture refinement: EVO does retain one minimal ApplicationAnchor/applicationId. BusinessData and current PostingRules must carry the same applicationId so EVO can route to the correct candidate rule set before condition evaluation. Rich Application lifecycle remains App Platform-owned.",
+  "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C is now user-confirmed PASS. A public read/query result rendered back in Eidos remains. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract. The previously prepared local Proof C has now been user-confirmed PASS as a compatibility proof. The target EVO Ledger Runtime ingestion boundary is still generic BusinessDataSubmission rather than platform-owned /commands/capability orchestration. Architecture refinement: EVO does retain one minimal ApplicationAnchor/applicationId. BusinessData and current PostingRules must carry the same applicationId so EVO can route to the correct candidate rule set before condition evaluation. Rich Application lifecycle remains App Platform-owned. User-local Proof C evidence on 2026-09-24: Trading Lite Create Order returned ok=true with a real EVO commandExecutionId, businessDataId, postingInputId, postingSequence=4 and postingStatus=QUEUED. QUEUED is accepted as EVO-owned asynchronous posting continuation; no caller-side posting trigger was required.",
   "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Implement Host/App Platform → EVO generic BusinessDataSubmission with a stable applicationId, including ApplicationAnchor + current PostingRule registration, then rerun Trading Lite end-to-end through the minimal EVO runtime boundary.",
+  "currentStep": "Continue with EVO Ledger Runtime convergence: expose generic BusinessDataSubmission with stable applicationId over the existing runtime, then migrate Trading Lite from the compatibility /commands path. Public read/query projection back into Eidos remains the next visible product slice.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -100,6 +100,22 @@
         "trading-lite-visible",
         "trading-lite-page-rendered"
       ]
+    },
+    "proofCRealEvoBusinessFlow": {
+      "status": "PASS",
+      "date": "2026-09-24",
+      "confirmedBy": "user-local-run",
+      "flow": [
+        "eidos-trading-lite-form",
+        "ActionHost",
+        "app-manager-/v1/actions",
+        "trading-lite-handler",
+        "evo-capability-discovery",
+        "evo-/api/v1/commands",
+        "BusinessData",
+        "PostingInput",
+        "postingStatus-QUEUED-evo-owned"
+      ]
     }
   },
   "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md",
@@ -107,7 +123,20 @@
     "evo-is-lightweight-runtime-plugin-not-enterprise-platform-core"
   ],
   "compatibilityProofC": {
-    "status": "IMPLEMENTATION_CI_PASS_LOCAL_DEFERRED",
-    "reason": "Target EVO boundary changed before user local validation; preserve compatibility path but migrate to generic BusinessDataSubmission first."
+    "status": "PASS",
+    "date": "2026-09-24",
+    "confirmedBy": "user-local-run",
+    "immediateResult": {
+      "ok": true,
+      "postingStatus": "QUEUED",
+      "postingSequence": "4"
+    },
+    "evidence": [
+      "real commandExecutionId returned",
+      "real businessDataId returned",
+      "real postingInputId returned",
+      "no caller-side posting trigger required"
+    ],
+    "note": "Compatibility proof only; target EVO Ledger Runtime convergence will replace platform-oriented capability/command orchestration with generic BusinessDataSubmission(applicationId)."
   }
 }
