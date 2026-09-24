@@ -231,3 +231,10 @@ Examples:
 - App Host lifecycle resolution itself → App Platform Core.
 
 Core growth requires explicit justification that the capability cannot live behind the existing plugin model.
+
+
+Before designing LLM/model access, login/identity, enterprise/organization, localization or similar replaceable platform services, read:
+
+`docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`
+
+These capabilities are provider plugins by default. Consumers depend on capability contracts; they do not import vendor SDKs or concrete provider internals.
