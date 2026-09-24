@@ -21,6 +21,7 @@ import {
 import {
   companyNotesPackage,
   evoFoundationPackage,
+  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
   tradingLitePackage
@@ -29,6 +30,7 @@ import {
 const catalog = createPackageCatalog([
   companyNotesPackage,
   evoFoundationPackage,
+  evoLocalizationPackage,
   ledgerRuntimeConfiguratorPackage,
   tradingLitePackage
 ]);
@@ -142,6 +144,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
       return json(response, 200, manager.getSnapshot());
+    }
+    if (request.method === "GET" && url.pathname === "/v1/providers/effective") {
+      const capability = url.searchParams.get("capability") ?? undefined;
+      return json(response, 200, manager.listEffectiveServiceProviders(capability));
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return json(response, 200, [
