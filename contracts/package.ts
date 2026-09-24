@@ -38,6 +38,29 @@ export interface EidosLocalizationBundleContributionV010 {
   };
 }
 
+export type SettingValueV010 = string | number | boolean;
+
+export interface EidosSettingsContributionV010 {
+  kind: "eidos.settings";
+  settings: {
+    contractVersion: "0.1.0";
+    namespace: string;
+    title: string;
+    description?: string;
+    properties: Array<{
+      key: string;
+      label: string;
+      description?: string;
+      type: "string" | "number" | "boolean" | "select";
+      defaultValue: SettingValueV010;
+      options?: Array<{ label: string; value: SettingValueV010 }>;
+      scope?: ActivationScope;
+      readOnly?: boolean;
+    }>;
+    advancedRoute?: string;
+  };
+}
+
 export interface PlatformServiceProviderContributionV010 {
   kind: "platform.service-provider";
   provider: {
@@ -61,6 +84,7 @@ export interface PlatformServiceProviderContributionV010 {
 export type FeatureContributionV010 =
   | ExperienceContributionV010
   | EidosLocalizationBundleContributionV010
+  | EidosSettingsContributionV010
   | PlatformServiceProviderContributionV010;
 
 export interface FeatureManifestV010 {
