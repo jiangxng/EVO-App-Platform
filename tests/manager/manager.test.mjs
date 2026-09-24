@@ -343,9 +343,9 @@ test("Enterprise Agent installs as an ordinary AGENT Package without requiring a
 
   const page = manager.loadExperiencePage("app://enterprise-agent/pages/home");
   assert.equal(page.id, "enterprise-agent.home");
-  assert.equal(page.command.code, "enterprise-agent.status");
+  assert.equal(page.command.code, "enterprise-agent.chat");
   assert.equal(page.metadata.convergence.sourceRepository, "jiangxng/Experience-Compiler");
-  assert.equal(page.metadata.llm.integrationStatus, "PROVIDER_PENDING");
+  assert.equal(page.metadata.llm.integrationStatus, "PROVIDER_RESOLVED_AT_RUNTIME");
 
   manager.disable("enterprise-agent");
   assert.equal(manager.loadExperiencePage("app://enterprise-agent/pages/home"), undefined);
