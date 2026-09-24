@@ -8,6 +8,7 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
+import { ledgerConfiguratorMvpHtml } from "../apps/ledger-runtime-configurator/mvp-page.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
   companyNotesPackage,
@@ -61,6 +62,14 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+async function evoJson(path: string, init?: RequestInit): Promise<{ status: number; body: unknown }> {
+  const response = await fetch(`${evoBaseUrl}${path}`, init);
+  const text = await response.text();
+  let body: unknown = text;
+  try { body = JSON.parse(text); } catch { /* keep text */ }
+  return { status: response.status, body };
+}
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -71,6 +80,12 @@ const server = createServer(async (request, response) => {
       return response.end();
     }
 
+    if (request.method === "GET" && url.pathname === "/") {
+      response.statusCode = 200;
+      applyCors(response);
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      return response.end(ledgerConfiguratorMvpHtml);
+    }
     if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true, service: "evo-app-manager" });
     if (request.method === "GET" && url.pathname === "/v1/catalog") return json(response, 200, manager.listCatalog());
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") return json(response, 200, manager.getSnapshot());
@@ -139,6 +154,10 @@ const server = createServer(async (request, response) => {
       return json(response, 200, ledgerConfigurator.resetToBookkeepingDefault());
     }
 
+    if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/compile") {
+      return json(response, 200, ledgerConfigurator.compileCurrent());
+    }
+
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/burn") {
       const validation = ledgerConfigurator.validate();
       if (!validation.burn.ready) {
@@ -148,11 +167,28 @@ const server = createServer(async (request, response) => {
           validation
         });
       }
-      return json(response, 501, {
-        ok: false,
-        code: "LEDGER_RUNTIME_BURN_ADAPTER_NOT_CONNECTED",
-        message: "The runtime burn transport is intentionally not connected until the executable template contract is implemented."
+      const compiled = ledgerConfigurator.compileCurrent();
+      const result = await evoJson("/api/v1/configurator/burn", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(compiled)
       });
+      return json(response, result.status, result.body);
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/test-business-data") {
+      const body = await readJson(request);
+      const result = await evoJson("/api/v1/configurator/business-data", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      return json(response, result.status, result.body);
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/runtime-status") {
+      const result = await evoJson("/api/v1/configurator/status");
+      return json(response, result.status, result.body);
     }
 
     if (request.method === "POST" && url.pathname === "/v1/actions") {
