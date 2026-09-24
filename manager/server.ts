@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createAppManagerService } from "./service.js";
+import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
@@ -43,6 +44,14 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const retiredLocalization = retireExperimentalPackageV010(
+  store,
+  "evo-localization",
+  ["evo-localization.default"]
+);
+if (retiredLocalization.changed) {
+  console.log("Retired obsolete experimental package", JSON.stringify(retiredLocalization));
+}
 const manager = createAppManagerService(catalog, store, () => new Date(), referenceExperienceAssets);
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
