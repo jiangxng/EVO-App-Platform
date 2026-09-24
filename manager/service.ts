@@ -1,6 +1,7 @@
 import type {
   FeatureManifestV010,
   InstallPlanV010,
+  PackageLifecyclePlanV010,
   PackageManifestV010,
   PlatformSnapshotV010
 } from "../contracts/package.js";
@@ -11,6 +12,11 @@ export interface AppManagerService {
   listCatalog(): PackageManifestV010[];
   planInstall(packageId: string): InstallPlanV010;
   install(packageId: string): PlatformSnapshotV010;
+  enable(packageId: string): PlatformSnapshotV010;
+  planDisable(packageId: string): PackageLifecyclePlanV010;
+  disable(packageId: string): PlatformSnapshotV010;
+  planUninstall(packageId: string): PackageLifecyclePlanV010;
+  uninstall(packageId: string): PlatformSnapshotV010;
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
   loadExperiencePage(source: string): unknown | undefined;
@@ -184,6 +190,125 @@ export function createAppManagerService(
     return getSnapshot();
   }
 
+  function lifecyclePlan(
+    packageId: string,
+    operation: "DISABLE" | "UNINSTALL"
+  ): PackageLifecyclePlanV010 {
+    const snapshot = store.snapshot();
+    const installed = store.getInstalledPackage(packageId);
+    const blockers: Array<{ code: string; message: string }> = [];
+
+    if (!installed) {
+      blockers.push({
+        code: "PACKAGE_NOT_INSTALLED",
+        message: `Package '${packageId}' is not installed.`
+      });
+      return {
+        contractVersion: "0.1.0",
+        operation,
+        packageId,
+        deactivateFeatures: [],
+        uninstallPackages: [],
+        blockers,
+        sideEffectFree: true
+      };
+    }
+
+    const targetActive = snapshot.activeFeatures.filter(x => x.packageId === packageId);
+    const targetFeatureIds = new Set(targetActive.map(x => x.featureId));
+    const targetCapabilities = new Set<string>();
+
+    for (const active of targetActive) {
+      const pkg = catalog.get(active.packageId);
+      const feature = pkg?.features.find(x => x.featureId === active.featureId);
+      for (const capability of feature?.providesCapabilities ?? []) {
+        targetCapabilities.add(capability);
+      }
+    }
+
+    const activeOutsideTarget = snapshot.activeFeatures.filter(x => x.packageId !== packageId);
+    const alternativeCapabilities = new Set<string>();
+    for (const active of activeOutsideTarget) {
+      const pkg = catalog.get(active.packageId);
+      const feature = pkg?.features.find(x => x.featureId === active.featureId);
+      for (const capability of feature?.providesCapabilities ?? []) {
+        alternativeCapabilities.add(capability);
+      }
+    }
+
+    for (const active of activeOutsideTarget) {
+      const pkg = catalog.get(active.packageId);
+      const feature = pkg?.features.find(x => x.featureId === active.featureId);
+      if (!feature) continue;
+
+      for (const requiredFeature of feature.requiresFeatures ?? []) {
+        if (targetFeatureIds.has(requiredFeature)) {
+          blockers.push({
+            code: "ACTIVE_DEPENDENT_FEATURE",
+            message: `Active Feature '${feature.featureId}' depends on '${requiredFeature}' from Package '${packageId}'.`
+          });
+        }
+      }
+
+      for (const requiredCapability of feature.requiresCapabilities ?? []) {
+        if (targetCapabilities.has(requiredCapability) && !alternativeCapabilities.has(requiredCapability)) {
+          blockers.push({
+            code: "ACTIVE_DEPENDENT_CAPABILITY",
+            message: `Active Feature '${feature.featureId}' requires Capability '${requiredCapability}' provided by Package '${packageId}'.`
+          });
+        }
+      }
+    }
+
+    return {
+      contractVersion: "0.1.0",
+      operation,
+      packageId,
+      deactivateFeatures: uniqueSorted(targetFeatureIds),
+      uninstallPackages: operation === "UNINSTALL" ? [packageId] : [],
+      blockers,
+      sideEffectFree: true
+    };
+  }
+
+  function enable(packageId: string): PlatformSnapshotV010 {
+    if (!store.getInstalledPackage(packageId)) {
+      throw new Error(`ENABLE_REQUIRES_INSTALLED_PACKAGE: ${packageId}`);
+    }
+    return install(packageId);
+  }
+
+  function planDisable(packageId: string): PackageLifecyclePlanV010 {
+    return lifecyclePlan(packageId, "DISABLE");
+  }
+
+  function disable(packageId: string): PlatformSnapshotV010 {
+    const plan = planDisable(packageId);
+    if (plan.blockers.length > 0) {
+      throw new Error(`DISABLE_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    }
+    for (const featureId of plan.deactivateFeatures) {
+      store.deleteActiveFeature(featureId);
+    }
+    return getSnapshot();
+  }
+
+  function planUninstall(packageId: string): PackageLifecyclePlanV010 {
+    return lifecyclePlan(packageId, "UNINSTALL");
+  }
+
+  function uninstall(packageId: string): PlatformSnapshotV010 {
+    const plan = planUninstall(packageId);
+    if (plan.blockers.length > 0) {
+      throw new Error(`UNINSTALL_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    }
+    for (const featureId of plan.deactivateFeatures) {
+      store.deleteActiveFeature(featureId);
+    }
+    store.deleteInstalledPackage(packageId);
+    return getSnapshot();
+  }
+
   function getSnapshot(): PlatformSnapshotV010 {
     const snapshot = store.snapshot();
     return {
@@ -229,6 +354,11 @@ export function createAppManagerService(
     listCatalog: () => catalog.list().map(x => x.package),
     planInstall,
     install,
+    enable,
+    planDisable,
+    disable,
+    planUninstall,
+    uninstall,
     getSnapshot,
     listEffectiveExperiences,
     loadExperiencePage
