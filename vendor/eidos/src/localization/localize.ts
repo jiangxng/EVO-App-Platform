@@ -19,6 +19,40 @@ export function localizeAppHostPageDefinition(
   const namespace = page.packageId;
   const pageId = page.page.id;
 
+  if (definition.kind === "chat" && definition.contractVersion === "0.1.0") {
+    if (typeof definition.title === "string") {
+      definition.title = localization.resolve(
+        namespace,
+        `page.${pageId}.title`,
+        definition.title
+      );
+    }
+    if (isObject(definition.composer)) {
+      if (typeof definition.composer.placeholder === "string") {
+        definition.composer.placeholder = localization.resolve(
+          namespace,
+          `chat.${pageId}.composer.placeholder`,
+          definition.composer.placeholder
+        );
+      }
+      if (typeof definition.composer.sendLabel === "string") {
+        definition.composer.sendLabel = localization.resolve(
+          namespace,
+          `chat.${pageId}.composer.sendLabel`,
+          definition.composer.sendLabel
+        );
+      }
+    }
+    if (typeof definition.emptyState === "string") {
+      definition.emptyState = localization.resolve(
+        namespace,
+        `chat.${pageId}.emptyState`,
+        definition.emptyState
+      );
+    }
+    return definition;
+  }
+
   if (definition.kind === "form" && definition.contractVersion === "0.1.1") {
     if (typeof definition.title === "string") {
       definition.title = localization.resolve(
