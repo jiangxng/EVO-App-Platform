@@ -29,7 +29,7 @@ test("legacy expressions are preserved but burn is blocked until compiled", () =
   const service = createLedgerRuntimeConfiguratorService();
   const result = service.validate();
   assert.equal(result.burn.ready, false);
-  const blocker = result.burn.blockers.find(x => x.code === "LEGACY_EXPRESSION_COMPILER_REQUIRED");
+  const blocker = result.burn.blockers.find(x => x.code === "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED");
   assert.ok(blocker);
   assert.ok((blocker.count ?? 0) > 0);
 });
@@ -58,6 +58,9 @@ test("Ledger Runtime Template export/import preserves the complete configuration
   const service = createLedgerRuntimeConfiguratorService();
   const template = service.exportTemplate();
   assert.equal(template.kind, "evo.ledger-runtime.template");
+  assert.equal(template.configuration.expressionLanguage, "bookkeeping-aviator-v1");
+  assert.ok(template.compatibility.requiredRuntimeCapabilities.includes("expression.bookkeeping-aviator-v1"));
+  assert.ok(template.compatibility.requiredRuntimeCapabilities.includes("direction.financial-dr-cr"));
   assert.equal(template.configuration.accounts.length, 141);
   assert.equal(template.configuration.applications.length, 143);
   assert.equal(template.configuration.dictionaries.length, 106);
@@ -86,6 +89,6 @@ test("financial Dr/Cr directions are valid configuration semantics, not a burn b
 test("runtime-derived amount symbols are treated as Ledger Runtime built-ins", () => {
   const service = createLedgerRuntimeConfiguratorService();
   const result = service.validate();
-  assert.ok(result.burn.blockers.some(x => x.code === "LEGACY_EXPRESSION_COMPILER_REQUIRED"));
+  assert.ok(result.burn.blockers.some(x => x.code === "AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_REQUIRED"));
   assert.ok(result.burn.blockers.some(x => x.code === "LEDGER_RUNTIME_BUILTIN_AMOUNT_FUNCTIONS_REQUIRED"));
 });
