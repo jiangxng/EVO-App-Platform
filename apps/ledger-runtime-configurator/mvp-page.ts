@@ -1,4 +1,4 @@
-import { renderToHtml } from "@eidos/reference";
+import { renderToHtml } from "../../vendor/eidos/src/renderers/html/index.js";
 
 function eidosForm(document: unknown): string {
   return renderToHtml(document);
