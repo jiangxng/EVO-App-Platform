@@ -4,6 +4,7 @@ import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import {
   companyNotesExperienceAssets,
   companyNotesPackage,
+  enterpriseAgentPackage,
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
@@ -319,4 +320,39 @@ test("localization Provider package becomes discoverable only while active", () 
 
   manager.uninstall("evo-localization");
   assert.deepEqual(manager.listEffectiveServiceProviders(), []);
+});
+
+test("Enterprise Agent installs as an ordinary AGENT Package without requiring an LLM provider", () => {
+  const catalog = createPackageCatalog([enterpriseAgentPackage]);
+  const store = createMemoryLifecycleStore();
+  const manager = createAppManagerService(
+    catalog,
+    store,
+    () => new Date("2026-09-24T00:00:00Z"),
+    referenceExperienceAssets
+  );
+
+  const plan = manager.planInstall("enterprise-agent");
+  assert.deepEqual(plan.blockers, []);
+  assert.deepEqual(plan.installPackages, ["enterprise-agent"]);
+  assert.deepEqual(plan.activateFeatures, ["enterprise-agent.default"]);
+
+  const snapshot = manager.install("enterprise-agent");
+  assert.equal(snapshot.effectiveCapabilities.includes("agent.enterprise"), true);
+  assert.equal(snapshot.effectiveCapabilities.includes("agent.enterprise.app-manager-tools"), true);
+
+  const page = manager.loadExperiencePage("app://enterprise-agent/pages/home");
+  assert.equal(page.id, "enterprise-agent.home");
+  assert.equal(page.command.code, "enterprise-agent.status");
+  assert.equal(page.metadata.convergence.sourceRepository, "jiangxng/Experience-Compiler");
+  assert.equal(page.metadata.llm.integrationStatus, "PROVIDER_PENDING");
+
+  manager.disable("enterprise-agent");
+  assert.equal(manager.loadExperiencePage("app://enterprise-agent/pages/home"), undefined);
+
+  manager.enable("enterprise-agent");
+  assert.equal(manager.loadExperiencePage("app://enterprise-agent/pages/home").id, "enterprise-agent.home");
+
+  manager.uninstall("enterprise-agent");
+  assert.equal(manager.listEffectiveExperiences().some(x => x.packageId === "enterprise-agent"), false);
 });
