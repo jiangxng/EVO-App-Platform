@@ -1,9 +1,11 @@
 import {
   createAppHost,
   createAppManagerExperienceSource,
-  createAppManagerActionHost,
-  mountAgentWorkspaceShell
+  createAppManagerActionHost
 } from "../vendor/eidos/src/app-host/index.js";
+import {
+  mountWorkbenchShell
+} from "../vendor/eidos/src/workbench/index.js";
 import {
   createLocalizationRuntime,
   eidosAppHostLocalizationBundles
@@ -42,14 +44,76 @@ async function refreshLocalizationBundles(): Promise<void> {
   ]);
 }
 
-await mountAgentWorkspaceShell({
+await mountWorkbenchShell({
   host,
   container: "#app",
   title: "EVO",
-  assistantRoute: "/enterprise-agent",
+  defaultActivityId: "agent",
   initialWorkspaceRoute: "/store",
+  activities: [
+    {
+      id: "apps",
+      title: "Apps",
+      icon: "▦",
+      kind: "navigation",
+      order: 10,
+      localization: {
+        namespace: "evo-app-platform",
+        key: "workbench.activity.apps"
+      }
+    },
+    {
+      id: "agent",
+      title: "Agent",
+      icon: "✦",
+      kind: "side-route",
+      route: "/enterprise-agent",
+      order: 20,
+      localization: {
+        namespace: "evo-app-platform",
+        key: "workbench.activity.agent"
+      }
+    },
+    {
+      id: "plugins",
+      title: "Plugins",
+      icon: "◇",
+      kind: "workspace-route",
+      route: "/store",
+      order: 30,
+      localization: {
+        namespace: "evo-app-platform",
+        key: "workbench.activity.plugins"
+      }
+    },
+    {
+      id: "workspace",
+      title: "Workspace",
+      icon: "▣",
+      kind: "workspace-focus",
+      order: 40,
+      localization: {
+        namespace: "evo-app-platform",
+        key: "workbench.activity.workspace"
+      }
+    },
+    {
+      id: "settings",
+      title: "Settings",
+      icon: "⚙",
+      kind: "workspace-route",
+      route: "/settings",
+      order: 1000,
+      localization: {
+        namespace: "evo-app-platform",
+        key: "workbench.activity.settings"
+      }
+    }
+  ],
   actionHost,
   localization,
+  minSidePanelWidth: 260,
+  maxSidePanelWidth: 720,
   async onActionResult() {
     await refreshLocalizationBundles();
   }
