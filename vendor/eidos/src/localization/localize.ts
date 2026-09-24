@@ -53,6 +53,60 @@ export function localizeAppHostPageDefinition(
     return definition;
   }
 
+  if (definition.kind === "settings-editor" && definition.contractVersion === "0.1.0") {
+    const settingsNamespace = typeof definition.namespace === "string"
+      ? definition.namespace
+      : namespace;
+    if (typeof definition.title === "string") {
+      definition.title = localization.resolve(
+        settingsNamespace,
+        "settings.title",
+        definition.title
+      );
+    }
+    if (typeof definition.description === "string") {
+      definition.description = localization.resolve(
+        settingsNamespace,
+        "settings.description",
+        definition.description
+      );
+    }
+    if (typeof definition.saveLabel === "string") {
+      definition.saveLabel = localization.resolve(
+        settingsNamespace,
+        "settings.saveLabel",
+        definition.saveLabel
+      );
+    }
+    if (typeof definition.emptyMessage === "string") {
+      definition.emptyMessage = localization.resolve(
+        settingsNamespace,
+        "settings.emptyMessage",
+        definition.emptyMessage
+      );
+    }
+    if (Array.isArray(definition.settings)) {
+      for (const setting of definition.settings) {
+        if (!isObject(setting) || typeof setting.key !== "string") continue;
+        if (typeof setting.label === "string") {
+          setting.label = localization.resolve(
+            settingsNamespace,
+            `settings.${setting.key}.label`,
+            setting.label
+          );
+        }
+        if (typeof setting.description === "string") {
+          setting.description = localization.resolve(
+            settingsNamespace,
+            `settings.${setting.key}.description`,
+            setting.description
+          );
+        }
+      }
+    }
+    return definition;
+  }
+
   if (definition.kind === "form" && definition.contractVersion === "0.1.1") {
     if (typeof definition.title === "string") {
       definition.title = localization.resolve(
