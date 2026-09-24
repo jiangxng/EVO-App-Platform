@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import type {
   LedgerConfiguratorSummaryV010,
   LedgerConfiguratorValidationV010,
-  LedgerRuntimeSourceConfigurationV010
+  LedgerRuntimeSourceConfigurationV010,
+  LedgerRuntimeTemplateV010
 } from "./contracts.js";
 import {
   bookkeepingDefaultConfiguration,
@@ -36,6 +37,8 @@ export interface LedgerRuntimeConfiguratorService {
   getSummary(): LedgerConfiguratorSummaryV010;
   validate(input?: LedgerRuntimeSourceConfigurationV010): LedgerConfiguratorValidationV010;
   importConfiguration(input: LedgerRuntimeSourceConfigurationV010): LedgerConfiguratorValidationV010;
+  exportTemplate(): LedgerRuntimeTemplateV010;
+  importTemplate(input: LedgerRuntimeTemplateV010): LedgerConfiguratorValidationV010;
   resetToBookkeepingDefault(): LedgerConfiguratorValidationV010;
 }
 
@@ -105,6 +108,33 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       });
     }
 
+    const directionalRules = input.postingRules.filter(
+      rule => ["借方", "贷方", "Dr", "Cr"].includes(rule.direction)
+    ).length;
+    if (directionalRules > 0) {
+      blockers.push({
+        code: "LEDGER_DIRECTION_SEMANTICS_REQUIRED",
+        message: "Financial debit/credit rules require an explicit executable direction model; the current generic LedgerEffect only carries signed quantity/amount.",
+        count: directionalRules
+      });
+    }
+
+    const serverFormulaNames = [
+      "成本", "成本合计", "借方成本", "贷方成本", "成本入库",
+      "借方", "贷方", "贷方合计", "借方合计", "分摊成本", "跨库成本"
+    ];
+    const costDerivedRules = input.postingRules.filter(rule =>
+      rule.amountFormula !== null
+      && serverFormulaNames.some(name => rule.amountFormula?.includes(name))
+    ).length;
+    if (costDerivedRules > 0) {
+      blockers.push({
+        code: "COST_DERIVED_VALUE_PROVIDER_REQUIRED",
+        message: "Some bookkeeping amount formulas depend on derived cost/debit/credit aggregate values that are not BusinessData payload fields.",
+        count: costDerivedRules
+      });
+    }
+
     return {
       ok: errors.length === 0,
       semanticDigest: digest(input),
@@ -161,6 +191,49 @@ export function createLedgerRuntimeConfiguratorService(): LedgerRuntimeConfigura
       const result = validate(input);
       if (result.ok) current = clone(input);
       return result;
+    },
+    exportTemplate() {
+      const configuration = clone(current);
+      const validation = validate(configuration);
+      return {
+        contractVersion: "0.1.0",
+        kind: "evo.ledger-runtime.template",
+        templateId: configuration.configurationId,
+        displayName: configuration.displayName,
+        semanticDigest: validation.semanticDigest,
+        configuration,
+        compatibility: {
+          burnReady: validation.burn.ready,
+          blockers: clone(validation.burn.blockers)
+        }
+      };
+    },
+    importTemplate(input) {
+      if (input.contractVersion !== "0.1.0" || input.kind !== "evo.ledger-runtime.template") {
+        return {
+          ok: false,
+          semanticDigest: digest(input),
+          errors: [{ code: "TEMPLATE_CONTRACT_INVALID", message: "Unsupported Ledger Runtime template contract." }],
+          warnings: [],
+          summary: { accounts: 0, applications: 0, dictionaries: 0, postingRules: 0 },
+          burn: { ready: false, blockers: [] }
+        };
+      }
+      const actualDigest = digest(input.configuration);
+      if (actualDigest !== input.semanticDigest) {
+        const validation = validate(input.configuration);
+        return {
+          ...validation,
+          ok: false,
+          semanticDigest: actualDigest,
+          errors: [
+            ...validation.errors,
+            { code: "TEMPLATE_DIGEST_MISMATCH", message: "Template semanticDigest does not match its configuration content." }
+          ],
+          burn: { ...validation.burn, ready: false }
+        };
+      }
+      return this.importConfiguration(input.configuration);
     },
     resetToBookkeepingDefault() {
       current = clone(bookkeepingDefaultConfiguration);

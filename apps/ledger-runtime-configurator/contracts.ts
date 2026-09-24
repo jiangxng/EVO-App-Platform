@@ -119,3 +119,16 @@ export interface LedgerConfiguratorSummaryV010 {
   sourceLibraries: LedgerConfiguratorSourceLibraryV010[];
   burnReady: boolean;
 }
+
+export interface LedgerRuntimeTemplateV010 {
+  contractVersion: "0.1.0";
+  kind: "evo.ledger-runtime.template";
+  templateId: string;
+  displayName: string;
+  semanticDigest: string;
+  configuration: LedgerRuntimeSourceConfigurationV010;
+  compatibility: {
+    burnReady: boolean;
+    blockers: Array<{ code: string; message: string; count?: number }>;
+  };
+}

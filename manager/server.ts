@@ -8,7 +8,7 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
-import type { LedgerRuntimeSourceConfigurationV010 } from "../apps/ledger-runtime-configurator/contracts.js";
+import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
   companyNotesPackage,
   evoFoundationPackage,
@@ -91,6 +91,17 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/configuration") {
       return json(response, 200, ledgerConfigurator.getCurrent());
+    }
+
+
+    if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/template") {
+      return json(response, 200, ledgerConfigurator.exportTemplate());
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/template/import") {
+      const body = await readJson(request) as LedgerRuntimeTemplateV010;
+      const result = ledgerConfigurator.importTemplate(body);
+      return json(response, result.ok ? 200 : 422, result);
     }
 
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/reference-rule-sets") {

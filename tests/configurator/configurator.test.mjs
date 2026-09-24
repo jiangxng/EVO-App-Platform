@@ -52,3 +52,35 @@ test("reference legacy rule set stays separate from the active baseline", () => 
   assert.equal(summary.sourceLibraries[0].status, "ACTIVE_BASELINE");
   assert.equal(summary.sourceLibraries[1].status, "REFERENCE");
 });
+
+
+test("Ledger Runtime Template export/import preserves the complete configuration digest", () => {
+  const service = createLedgerRuntimeConfiguratorService();
+  const template = service.exportTemplate();
+  assert.equal(template.kind, "evo.ledger-runtime.template");
+  assert.equal(template.configuration.accounts.length, 141);
+  assert.equal(template.configuration.applications.length, 143);
+  assert.equal(template.configuration.dictionaries.length, 106);
+  assert.equal(template.configuration.postingRules.length, 912);
+
+  const result = service.importTemplate(structuredClone(template));
+  assert.equal(result.ok, true);
+  assert.equal(result.semanticDigest, template.semanticDigest);
+});
+
+test("Ledger Runtime Template rejects content changed without digest update", () => {
+  const service = createLedgerRuntimeConfiguratorService();
+  const template = service.exportTemplate();
+  template.configuration.displayName = "tampered";
+  const result = service.importTemplate(template);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some(x => x.code === "TEMPLATE_DIGEST_MISMATCH"));
+});
+
+test("burn blockers distinguish compiler, direction and cost-derived runtime gaps", () => {
+  const service = createLedgerRuntimeConfiguratorService();
+  const result = service.validate();
+  assert.ok(result.burn.blockers.some(x => x.code === "LEGACY_EXPRESSION_COMPILER_REQUIRED"));
+  assert.ok(result.burn.blockers.some(x => x.code === "LEDGER_DIRECTION_SEMANTICS_REQUIRED"));
+  assert.ok(result.burn.blockers.some(x => x.code === "COST_DERIVED_VALUE_PROVIDER_REQUIRED"));
+});
