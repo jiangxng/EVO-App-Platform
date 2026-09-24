@@ -11,7 +11,8 @@ A fresh LLM must first determine:
 Human + LLM operability:
 
 - apps/configurators must expose business-readable concepts, not only IDs/AST/internal contracts;
-- ordinary configuration must be possible without developer intervention;
+- human developers are not an assumed system role; LLMs are the default engineers for ordinary implementation and extension work;
+- ordinary configuration must be possible without human developer intervention;
 - UI should guide novice users while allowing advanced detail through progressive disclosure;
 - LLM-facing schemas and human-facing forms must describe the same semantics;
 - validation/error messages explain business consequences first.

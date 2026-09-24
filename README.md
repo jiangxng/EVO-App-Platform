@@ -83,7 +83,7 @@ docs/           Architecture/product/ADR/status documentation
 
 ## Human + LLM operability
 
-Apps and configuration tools are designed for LLM understanding and business-user operation at the same time. Normal configuration should be understandable and operable without developer assistance, SQL or source-code changes.
+Apps and configuration tools are designed for LLM understanding and business-user operation at the same time. Normal configuration should be understandable and operable without human developer assistance, SQL or source-code changes. The target operating model is that approximately 99.9% of software engineering work is performed by LLMs.
 
 See `docs/architecture/HUMAN-LLM-OPERABILITY-v0.1.md`.
 
