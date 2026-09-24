@@ -47,11 +47,7 @@ function firstExperienceRoute(pkg: PackageManifestV010): string | undefined {
 function packageSummary(pkg: PackageManifestV010): string {
   const provides = pkg.features.flatMap(feature => feature.providesCapabilities ?? []);
   const requires = pkg.features.flatMap(feature => feature.requiresCapabilities ?? []);
-  return [
-    `${pkg.features.length} Feature${pkg.features.length === 1 ? "" : "s"}`,
-    provides.length ? `提供 ${provides.length} 个 Capability` : "",
-    requires.length ? `依赖 ${requires.length} 个 Capability` : ""
-  ].filter(Boolean).join(" · ");
+  return `${pkg.features.length} feature(s) · ${provides.length} provided capability(ies) · ${requires.length} required capability(ies)`;
 }
 
 export function createPluginStorePage(
