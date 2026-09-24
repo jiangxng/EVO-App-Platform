@@ -5,7 +5,8 @@ import type {
   PackageManifestV010,
   PlatformSnapshotV010,
   PlatformServiceProviderContributionV010,
-  EidosLocalizationBundleContributionV010
+  EidosLocalizationBundleContributionV010,
+  EidosSettingsContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
@@ -23,6 +24,7 @@ export interface AppManagerService {
   listEffectiveExperiences(): unknown[];
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
+  listInstalledSettings(packageId?: string): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
 
@@ -396,6 +398,43 @@ export function createAppManagerService(
     );
   }
 
+  function listInstalledSettings(
+    packageId?: string
+  ): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }> {
+    const installed = new Set(
+      store.snapshot().installedPackages.map(item => item.packageId)
+    );
+    const result: Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }> = [];
+
+    for (const entry of catalog.list()) {
+      const pkg = entry.package;
+      if (!installed.has(pkg.packageId)) continue;
+      if (packageId !== undefined && pkg.packageId !== packageId) continue;
+
+      for (const feature of pkg.features) {
+        for (const contribution of feature.contributions ?? []) {
+          if (contribution.kind !== "eidos.settings") continue;
+          if (contribution.settings.namespace !== pkg.packageId) {
+            throw new Error(
+              `SETTINGS_NAMESPACE_MISMATCH: ${contribution.settings.namespace} != ${pkg.packageId}`
+            );
+          }
+          result.push({
+            ...structuredClone(contribution.settings),
+            packageId: pkg.packageId,
+            featureId: feature.featureId
+          });
+        }
+      }
+    }
+
+    return result.sort((a, b) =>
+      a.packageId.localeCompare(b.packageId)
+      || a.featureId.localeCompare(b.featureId)
+      || a.namespace.localeCompare(b.namespace)
+    );
+  }
+
   function loadExperiencePage(source: string): unknown | undefined {
     const isEffective = listEffectiveExperiences().some(value => {
       const manifest = value as { pages?: Array<{ source?: string }> };
@@ -419,6 +458,7 @@ export function createAppManagerService(
     listEffectiveExperiences,
     listEffectiveServiceProviders,
     listEffectiveLocalizationBundles,
+    listInstalledSettings,
     loadExperiencePage
   };
 }
