@@ -19,6 +19,14 @@ export interface InstallAuthorizationV010 {
   approvedPermissions?: string[];
 }
 
+export interface PluginLifecycleEventV010 {
+  contractVersion: "0.1.0";
+  type: "PACKAGE_INSTALLED" | "FEATURE_ACTIVATED" | "FEATURE_DEACTIVATED" | "PACKAGE_UNINSTALLED";
+  packageId: string;
+  featureId?: string;
+  occurredAt: string;
+}
+
 export interface AppManagerService {
   listCatalog(): PackageManifestV010[];
   planInstall(packageId: string): InstallPlanV010;
@@ -45,7 +53,8 @@ export function createAppManagerService(
   catalog: PackageCatalog,
   store: LifecycleStore,
   now: () => Date = () => new Date(),
-  experienceAssets: ReadonlyMap<string, unknown> = new Map()
+  experienceAssets: ReadonlyMap<string, unknown> = new Map(),
+  onLifecycleEvent: (event: PluginLifecycleEventV010) => void = () => {}
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -224,6 +233,12 @@ export function createAppManagerService(
       const pkg = catalog.get(id);
       if (!pkg) throw new Error(`PACKAGE_NOT_FOUND_DURING_INSTALL: ${id}`);
       store.saveInstalledPackage({ packageId: pkg.packageId, version: pkg.version, installedAt: timestamp });
+      onLifecycleEvent({
+        contractVersion: "0.1.0",
+        type: "PACKAGE_INSTALLED",
+        packageId: pkg.packageId,
+        occurredAt: timestamp
+      });
     }
 
     for (const featureId of plan.activateFeatures) {
@@ -243,6 +258,13 @@ export function createAppManagerService(
         packageId: owner.packageId,
         version: feature.version,
         activatedAt: timestamp
+      });
+      onLifecycleEvent({
+        contractVersion: "0.1.0",
+        type: "FEATURE_ACTIVATED",
+        packageId: owner.packageId,
+        featureId: feature.featureId,
+        occurredAt: timestamp
       });
     }
 
@@ -351,8 +373,19 @@ export function createAppManagerService(
     if (plan.blockers.length > 0) {
       throw new Error(`DISABLE_BLOCKED: ${JSON.stringify(plan.blockers)}`);
     }
+    const timestamp = now().toISOString();
     for (const featureId of plan.deactivateFeatures) {
+      const active = store.getActiveFeature(featureId);
       store.deleteActiveFeature(featureId);
+      if (active) {
+        onLifecycleEvent({
+          contractVersion: "0.1.0",
+          type: "FEATURE_DEACTIVATED",
+          packageId: active.packageId,
+          featureId,
+          occurredAt: timestamp
+        });
+      }
     }
     return getSnapshot();
   }
@@ -366,10 +399,27 @@ export function createAppManagerService(
     if (plan.blockers.length > 0) {
       throw new Error(`UNINSTALL_BLOCKED: ${JSON.stringify(plan.blockers)}`);
     }
+    const timestamp = now().toISOString();
     for (const featureId of plan.deactivateFeatures) {
+      const active = store.getActiveFeature(featureId);
       store.deleteActiveFeature(featureId);
+      if (active) {
+        onLifecycleEvent({
+          contractVersion: "0.1.0",
+          type: "FEATURE_DEACTIVATED",
+          packageId: active.packageId,
+          featureId,
+          occurredAt: timestamp
+        });
+      }
     }
     store.deleteInstalledPackage(packageId);
+    onLifecycleEvent({
+      contractVersion: "0.1.0",
+      type: "PACKAGE_UNINSTALLED",
+      packageId,
+      occurredAt: timestamp
+    });
     return getSnapshot();
   }
 
