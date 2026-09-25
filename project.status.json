@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform + Eidos P0 Host Foundations — package integrity trust chain and structured runtime observability implemented",
+  "currentMilestone": "App Platform + Eidos P0 Host Foundations — PROCESS isolation, signed packages, observability, and governed REMOTE runtime adapter",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -72,7 +72,12 @@
     "runtime-structured-event-stream",
     "runtime-bounded-diagnostics",
     "runtime-diagnostics-api",
-    "extension-manager-integrity-observability"
+    "extension-manager-integrity-observability",
+    "remote-runtime-v0-1-adapter",
+    "remote-runtime-host-bearer-auth-boundary",
+    "remote-runtime-host-access-none",
+    "remote-runtime-response-correlation",
+    "remote-runtime-timeout-observability"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -97,7 +102,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize signed package admission and runtime diagnostics. Next major gaps: trusted release signing workflow/provenance verification, remote/container isolation, and durable observability export.",
+  "currentStep": "Bind REMOTE runtime to a first-class credential-provider capability before normal REMOTE Package admission; then continue package release signing/provenance and durable telemetry.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -300,6 +305,14 @@
       "bundle-level-artifact-integrity",
       "remote-container-hostile-code-isolation",
       "durable-opentelemetry-compatible-runtime-telemetry"
-    ]
+    ],
+    "remoteRuntime": {
+      "adapter": "IMPLEMENTED_P0",
+      "admission": "FAIL_CLOSED_PENDING_CREDENTIAL_PROVIDER_BINDING",
+      "authority": "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md",
+      "hostAccess": "NONE",
+      "credentials": "HOST_PROVIDER_INJECTED",
+      "productionTransport": "HTTPS_REQUIRED"
+    }
   }
 }
