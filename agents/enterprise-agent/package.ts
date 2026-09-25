@@ -61,7 +61,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             contractVersion: "0.1.0",
             id: "enterprise-agent",
             title: "Enterprise Agent",
-            icon: "✦",
+            icon: "agent",
             kind: "side-route",
             route: "/enterprise-agent",
             order: 20,
