@@ -65,3 +65,5 @@
 - **APP-60** Internal plugin runtime, permissions, storage/events and Eidos Contributions evolve as App Platform/Eidos public contracts. External MCP/HTTP adapters remain separable plugins or provider capabilities behind those contracts.
 
 - **APP-61** EVO App Platform does not own ordinary App Host/Workbench visual language. It consumes Eidos public design tokens/styles and supplies lifecycle/content data. Plugin products inherit Eidos standard spacing, button hierarchy, focus and shell geometry unless a domain-specific Eidos capability explicitly permits otherwise.
+
+- **APP-62** Standard App Host/Workbench icons are semantic Eidos Icon Registry names. App Platform and ordinary plugins MUST NOT use raw Unicode glyphs, arbitrary copied SVG, or independent icon-library dependencies for standard host chrome when an Eidos semantic icon exists.
