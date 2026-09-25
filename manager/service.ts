@@ -186,7 +186,7 @@ export function createAppManagerService(
       }
 
       const candidateRuntime = inspectPluginRuntimeV010(candidate);
-      if (candidateRuntime.status === "UNSUPPORTED") {
+      if (candidateRuntime.status !== "READY") {
         blockers.push({
           code: candidatePackageId === target.packageId
             ? "PLUGIN_RUNTIME_UNSUPPORTED"
