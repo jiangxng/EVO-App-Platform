@@ -108,3 +108,7 @@
 - **APP-80** REMOTE runtime credentials are provided through the generic `plugin.remote-credential` Provider capability. REMOTE Package manifests MUST NOT contain bearer tokens or long-lived credential material.
 - **APP-81** A REMOTE Package is runtime-ready only when both an active credential Provider descriptor and a registered matching Provider Runtime exist. Descriptor-only or runtime-only state MUST remain fail-closed.
 - **APP-82** Extension Manager runtime history is an operator projection of App Platform runtime facts. Eidos MUST NOT synthesize runtime health/history from browser state.
+
+- **APP-83** A Package declaring `SIGSTORE_BUNDLE` provenance MUST pass external Sigstore verification before PROCESS execution. Missing verifier configuration or failed verification MUST fail closed.
+- **APP-84** Sigstore certificate issuer and identity expectations are Host-owned trust policy. Package-provided evidence MUST NOT define its own acceptance policy.
+- **APP-85** Sigstore evidence augments, rather than replaces, native EVO Package signature and artifact-digest verification. Native integrity MUST verify first.
