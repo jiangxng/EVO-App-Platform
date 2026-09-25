@@ -72,18 +72,24 @@ Eidos owns presentation only. It does not infer health from browser state.
 
 ## P0 boundary
 
-The current store is process-local and bounded.
+The default in-memory store is process-local and bounded.
+
+P0 now also exposes a pluggable sink boundary. The first durable sink appends structured runtime facts as JSONL when `APP_PLATFORM_RUNTIME_EVENTS_FILE` is configured.
+
+Sink failure is isolated from plugin execution: runtime behavior and admission MUST NOT fail merely because telemetry export is unavailable.
 
 P0 does not claim:
 
-- durable historical telemetry;
+- managed historical telemetry retention;
 - distributed tracing;
 - cross-node aggregation;
 - metrics retention/SLO management;
-- OpenTelemetry export.
+- a built-in OpenTelemetry SDK/exporter.
+
+The sink boundary is the extension point for OpenTelemetry-compatible export.
 
 Those belong to the next observability layer.
 
 ## Next
 
-The next compatible layer should add an observability sink interface so events/metrics can be exported to OpenTelemetry-compatible collectors or enterprise monitoring systems without changing Plugin Runtime semantics.
+The next compatible layer should add a dedicated OpenTelemetry adapter behind the existing sink interface, preserving Plugin Runtime semantics and avoiding a monitoring-vendor dependency in Core.
