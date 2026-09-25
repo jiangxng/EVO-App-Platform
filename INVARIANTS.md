@@ -95,3 +95,8 @@
 - **APP-83** Plugin Protocol MUST expose portable, versioned Package/Feature manifest schemas that do not require importing App Platform private implementation. Independent plugin repositories and LLM tooling may use these schemas as their structural contract.
 - **APP-84** JSON Schema structural validity is necessary but not sufficient. Canonical semantic validation remains responsible for cross-field ownership, namespace, runtime-security and admission rules that cannot be safely inferred from structure alone.
 - **APP-85** Package/Feature schema and semantic validator versions MUST move together. An incompatible manifest-schema change requires an explicit Plugin Protocol version change rather than silent drift.
+
+- **APP-73** Executable plugin invocation MUST pass through the Host-owned Plugin Runtime Dispatcher. Product/plugin code MUST NOT instantiate PROCESS/REMOTE runtime mechanics directly when the dispatcher can provide the admitted path.
+- **APP-74** Runtime Dispatcher invocation requires an installed Package and at least one active Feature owned by that Package. Runtime execution MUST NOT bypass lifecycle state.
+- **APP-75** App Platform MUST NOT expose a generic unauthenticated arbitrary plugin-method HTTP endpoint. Human/product actions enter through governed Action/Capability contracts; executable runtime dispatch remains an internal implementation boundary.
+- **APP-76** Runtime observability exporters are sinks, not execution dependencies. Telemetry sink failure MUST NOT break plugin execution or mutate runtime admission semantics.

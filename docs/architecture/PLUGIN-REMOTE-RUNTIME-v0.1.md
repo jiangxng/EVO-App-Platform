@@ -117,14 +117,27 @@ Normal App Manager installation remains **fail-closed** because runtime readines
 
 This avoids silently treating a missing authentication/provider configuration as a runnable plugin.
 
+The canonical execution path is now:
+
+```text
+installed + active Package
+→ Plugin Runtime Dispatcher
+→ resolve Remote Credential Provider runtime
+→ REMOTE Runtime adapter
+→ signed endpoint invocation
+```
+
+If no credential Provider runtime is resolved, REMOTE invocation remains fail-closed with `PLUGIN_REMOTE_CREDENTIAL_PROVIDER_UNAVAILABLE`.
+
+The dispatcher is an internal Host boundary; App Platform intentionally does not expose a generic unauthenticated HTTP endpoint for arbitrary plugin method execution.
+
 Next integration milestone:
 
 ```text
-Remote Auth Provider capability
-→ deterministic provider resolution
-→ App Manager runtime readiness
-→ REMOTE Package install admission
-→ invocation through Remote Runtime adapter
+Remote Auth Provider Package
+→ deterministic Provider Runtime registration
+→ policy/scope-aware provider resolution
+→ REMOTE Package runtime readiness at install time
 ```
 
 ## Not yet implemented
