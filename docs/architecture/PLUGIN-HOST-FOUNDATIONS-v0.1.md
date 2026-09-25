@@ -62,15 +62,22 @@ Runtime declarations support:
 
 - `DECLARATIVE / HOST`;
 - `WORKER / WORKER`;
+- `PROCESS / PROCESS`;
 - `REMOTE / REMOTE`.
 
-P0 executes only the declarative host model.
+P0 now implements **PROCESS / PROCESS** for FIRST_PARTY and VERIFIED executable packages.
 
-Executable WORKER/REMOTE runtimes are recognized by the protocol but currently return **UNSUPPORTED** and block activation/installation.
+PROCESS execution uses a supervised child process with minimal inherited environment, package-scoped asynchronous Host API over IPC, invocation timeout, V8 heap budget, crash containment and lazy restart.
 
-This is intentional. P0 does not pretend an in-process JavaScript call is a sandbox.
+`WORKER / WORKER` remains disabled as a security boundary because Worker threads are not treated as a sandbox.
 
-Next runtime milestone: isolated worker/process/remote execution with capability-scoped Host API proxies, crash containment, resource limits and restart supervision.
+`REMOTE / REMOTE` remains fail-closed until a governed remote runtime adapter exists.
+
+`UNVERIFIED` executable packages remain fail-closed for local PROCESS execution.
+
+Authority and threat model: `docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md`.
+
+PROCESS P0 is a process/reliability/Host-capability isolation boundary for trusted/verified plugins. It is explicitly **not** claimed as hostile-code sandboxing.
 
 ## 5. Plugin Storage and Events
 
@@ -129,7 +136,7 @@ Further usability work is evidence-driven and belongs to Eidos before plugin-spe
 | Host compatibility | IMPLEMENTED | make explicit ranges mandatory in a future protocol revision |
 | Activation/lifecycle | IMPLEMENTED P0 | activation event sources and runtime supervision |
 | Permissions/trust | IMPLEMENTED P0 | richer permission scopes, policy/enterprise admin approval |
-| Runtime isolation | PROTOCOL + FAIL-CLOSED | real isolated Worker/Process/Remote host |
+| Runtime isolation | PROCESS ISOLATION P0 IMPLEMENTED | container/remote hostile-code isolation, OS-level CPU/RSS/network policy |
 | Plugin Storage | IMPLEMENTED P0 | durable production backend, migration/versioning |
 | Plugin Events | IMPLEMENTED P0 | durable/evented transport where required, delivery guarantees |
 | Extension Manager | IMPLEMENTED P0 | filtering/search, richer details/history/update flows |
