@@ -1,5 +1,5 @@
 import { fork, type ChildProcess } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -13,6 +13,11 @@ import {
   type PluginHostContextV010,
   type PluginStorageServiceV010
 } from "./plugin-host-services.js";
+import {
+  verifyPackageIntegrityV010,
+  type PluginIntegrityTrustStoreV010
+} from "./package-integrity.js";
+import type { PluginRuntimeEventV010 } from "./plugin-runtime-observability.js";
 
 export interface PluginRuntimeStatusV010 {
   packageId: string;
@@ -36,6 +41,15 @@ export function inspectPluginRuntimeV010(pkg: PackageManifestV010): PluginRuntim
   }
 
   if (runtime.kind === "PROCESS" && runtime.isolation === "PROCESS") {
+    if (!pkg.integrity || pkg.integrity.artifact?.scope !== "PROCESS_ENTRYPOINT") {
+      return {
+        packageId: pkg.packageId,
+        kind: runtime.kind,
+        isolation: runtime.isolation,
+        status: "ERROR",
+        message: "Process runtime requires a signed PROCESS_ENTRYPOINT artifact digest."
+      };
+    }
     if (!runtime.entrypoint?.trim()) {
       return {
         packageId: pkg.packageId,
@@ -97,9 +111,14 @@ export interface ProcessPluginRuntimeInvocationV010 {
 export interface ProcessPluginRuntimeHostOptionsV010 {
   storageService: PluginStorageServiceV010;
   eventBus: PluginEventBusV010;
+  integrityTrustStore: PluginIntegrityTrustStoreV010;
   resolveEntrypoint?: (pkg: PackageManifestV010) => string;
   defaultInvocationTimeoutMs?: number;
   defaultMemoryMb?: number;
+  now?: () => Date;
+  onRuntimeEvent?: (
+    event: Omit<PluginRuntimeEventV010, "contractVersion" | "sequence">
+  ) => void;
 }
 
 export interface ProcessPluginRuntimeHostV010 {
@@ -167,6 +186,15 @@ export function createProcessPluginRuntimeHostV010(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
   );
   const resolveEntrypoint = options.resolveEntrypoint ?? defaultEntrypointResolver;
+  const now = options.now ?? (() => new Date());
+  const emit = (
+    event: Omit<PluginRuntimeEventV010, "contractVersion" | "sequence" | "occurredAt">
+  ): void => {
+    options.onRuntimeEvent?.({
+      ...event,
+      occurredAt: now().toISOString()
+    });
+  };
 
   async function handleHostCall(
     record: RuntimeRecord,
@@ -279,6 +307,23 @@ export function createProcessPluginRuntimeHostV010(
     }
 
     const entrypoint = resolveEntrypoint(pkg);
+    const integrity = verifyPackageIntegrityV010(
+      pkg,
+      options.integrityTrustStore,
+      readFileSync(entrypoint)
+    );
+    if (integrity.state !== "VERIFIED") {
+      throw new Error(
+        `PLUGIN_PROCESS_INTEGRITY_REQUIRED: ${pkg.packageId}: ${integrity.state}: ${integrity.message}`
+      );
+    }
+
+    emit({
+      packageId: pkg.packageId,
+      type: "PROCESS_STARTING",
+      message: "Starting verified plugin process."
+    });
+
     const pluginDir = dirname(entrypoint);
     const bootstrapDir = dirname(childEntrypoint);
     const memoryMb = pkg.runtime?.limits?.memoryMb ?? options.defaultMemoryMb ?? 64;
@@ -351,6 +396,11 @@ export function createProcessPluginRuntimeHostV010(
           status: "READY",
           message: "Supervised plugin process is ready."
         };
+        emit({
+          packageId: pkg.packageId,
+          type: "PROCESS_READY",
+          message: "Supervised plugin process is ready."
+        });
         if (!record.readySettled) {
           record.readySettled = true;
           record.resolveReady();
@@ -369,6 +419,11 @@ export function createProcessPluginRuntimeHostV010(
           status: "ERROR",
           message: error.message
         };
+        emit({
+          packageId: pkg.packageId,
+          type: "PROCESS_FATAL",
+          message: error.message
+        });
         if (!record.readySettled) {
           record.readySettled = true;
           record.rejectReady(error);
@@ -382,12 +437,23 @@ export function createProcessPluginRuntimeHostV010(
         if (!pending) return;
         record.pending.delete(message.invocationId);
         clearTimeout(pending.timer);
-        if (message.ok) pending.resolve(message.result);
-        else pending.reject(
-          new Error(
-            `PLUGIN_PROCESS_INVOCATION_FAILED: ${pkg.packageId}: ${message.error ?? "unknown error"}`
-          )
-        );
+        if (message.ok) {
+          emit({
+            packageId: pkg.packageId,
+            type: "INVOCATION_SUCCEEDED",
+            invocationId: message.invocationId
+          });
+          pending.resolve(message.result);
+        } else {
+          const failure = `PLUGIN_PROCESS_INVOCATION_FAILED: ${pkg.packageId}: ${message.error ?? "unknown error"}`;
+          emit({
+            packageId: pkg.packageId,
+            type: "INVOCATION_FAILED",
+            invocationId: message.invocationId,
+            message: failure
+          });
+          pending.reject(new Error(failure));
+        }
         return;
       }
 
@@ -418,6 +484,11 @@ export function createProcessPluginRuntimeHostV010(
         status: "ERROR",
         message: wrapped.message
       };
+      emit({
+        packageId: pkg.packageId,
+        type: "PROCESS_ERROR",
+        message: wrapped.message
+      });
       if (!record.readySettled) {
         record.readySettled = true;
         record.rejectReady(wrapped);
@@ -429,6 +500,13 @@ export function createProcessPluginRuntimeHostV010(
       const error = new Error(
         `PLUGIN_PROCESS_EXITED: ${pkg.packageId}: code=${code ?? "null"} signal=${signal ?? "null"}`
       );
+      if (runtimes.get(pkg.packageId) === record) {
+        emit({
+          packageId: pkg.packageId,
+          type: "PROCESS_EXITED",
+          message: error.message
+        });
+      }
       if (!record.readySettled) {
         record.readySettled = true;
         record.rejectReady(error);
@@ -459,6 +537,13 @@ export function createProcessPluginRuntimeHostV010(
     }
 
     const invocationId = randomUUID();
+    const startedAt = Date.now();
+    emit({
+      packageId: pkg.packageId,
+      type: "INVOCATION_STARTED",
+      invocationId,
+      method: request.method
+    });
     const timeoutMs = pkg.runtime?.limits?.invocationTimeoutMs
       ?? options.defaultInvocationTimeoutMs
       ?? 5000;
@@ -469,11 +554,16 @@ export function createProcessPluginRuntimeHostV010(
         if (runtimes.get(pkg.packageId) === record) {
           runtimes.delete(pkg.packageId);
         }
-        rejectPromise(
-          new Error(
-            `PLUGIN_PROCESS_TIMEOUT: ${pkg.packageId}: ${request.method}: ${timeoutMs}ms`
-          )
-        );
+        const timeoutMessage = `PLUGIN_PROCESS_TIMEOUT: ${pkg.packageId}: ${request.method}: ${timeoutMs}ms`;
+        emit({
+          packageId: pkg.packageId,
+          type: "INVOCATION_TIMEOUT",
+          invocationId,
+          method: request.method,
+          durationMs: Date.now() - startedAt,
+          message: timeoutMessage
+        });
+        rejectPromise(new Error(timeoutMessage));
         record.child.kill("SIGKILL");
       }, timeoutMs);
 
@@ -517,6 +607,11 @@ export function createProcessPluginRuntimeHostV010(
 
     await stopped;
     clearTimeout(killTimer);
+    emit({
+      packageId,
+      type: "PROCESS_STOPPED",
+      message: "Plugin process stopped by Host lifecycle."
+    });
     cleanupRecord(
       record,
       new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`)

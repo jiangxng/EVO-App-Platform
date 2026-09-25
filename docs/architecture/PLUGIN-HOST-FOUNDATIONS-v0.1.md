@@ -98,7 +98,25 @@ App Platform owns host services for plugin-local state and events.
 - subscribers may subscribe only to declared topics;
 - plugins receive a scoped event facade rather than the global bus.
 
-## 6. Extension Manager
+## 6. Package integrity and supply-chain trust
+
+App Platform verifies signed Package metadata against a Host-owned publisher key trust store.
+
+PROCESS runtimes require a signed PROCESS_ENTRYPOINT digest and the actual entrypoint bytes are re-verified before execution.
+
+Unsigned declarative Packages remain P0-compatible during the pre-1.0 transition; invalid or untrusted signed Packages fail admission.
+
+Authority: `docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md`.
+
+## 7. Runtime observability
+
+PROCESS runtime emits structured lifecycle/invocation events into a bounded App Platform diagnostic store.
+
+Extension Manager may display aggregate health, invocations, failures, timeouts, crashes and restarts.
+
+Authority: `docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md`.
+
+## 8. Extension Manager
 
 The Eidos Extension Manager now presents:
 
@@ -115,7 +133,7 @@ The Eidos Extension Manager now presents:
 
 App Platform supplies the truth. Eidos renders it without owning lifecycle/security semantics.
 
-## 7. Workbench usability
+## 9. Workbench usability
 
 Current P0 Workbench improvements include:
 
@@ -137,6 +155,8 @@ Further usability work is evidence-driven and belongs to Eidos before plugin-spe
 | Activation/lifecycle | IMPLEMENTED P0 | activation event sources and runtime supervision |
 | Permissions/trust | IMPLEMENTED P0 | richer permission scopes, policy/enterprise admin approval |
 | Runtime isolation | PROCESS ISOLATION P0 IMPLEMENTED | container/remote hostile-code isolation, OS-level CPU/RSS/network policy |
+| Package integrity/signing | IMPLEMENTED P0 | CI/KMS signing workflow, bundle-level artifacts, provenance verification |
+| Runtime observability | IMPLEMENTED P0 | durable telemetry sink, OpenTelemetry/SLO integration |
 | Plugin Storage | IMPLEMENTED P0 | durable production backend, migration/versioning |
 | Plugin Events | IMPLEMENTED P0 | durable/evented transport where required, delivery guarantees |
 | Extension Manager | IMPLEMENTED P0 | filtering/search, richer details/history/update flows |

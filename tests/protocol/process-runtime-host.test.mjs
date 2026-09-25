@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,9 +14,29 @@ import {
   createProcessPluginRuntimeHostV010,
   inspectPluginRuntimeV010
 } from "../../dist/manager/plugin-runtime-host.js";
+import {
+  createMemoryPluginIntegrityTrustStoreV010,
+  createPluginIntegrityV010,
+  sha256DigestV010
+} from "../../dist/manager/package-integrity.js";
+import {
+  createPluginRuntimeObservabilityV010
+} from "../../dist/manager/plugin-runtime-observability.js";
+
+const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+const trustStore = createMemoryPluginIntegrityTrustStoreV010([{
+  publisherId: "evo",
+  keyId: "release-key-1",
+  algorithm: "Ed25519",
+  publicKeyPem,
+  status: "TRUSTED",
+  source: "test"
+}]);
 
 function processPackage(overrides = {}) {
-  return {
+  const entrypoint = fileURLToPath(new URL("../fixtures/process-plugin.mjs", import.meta.url));
+  const base = {
     contractVersion: "0.1.0",
     packageId: "process-plugin",
     displayName: "Process Plugin",
@@ -35,7 +56,7 @@ function processPackage(overrides = {}) {
     runtime: {
       kind: "PROCESS",
       isolation: "PROCESS",
-      entrypoint: fileURLToPath(new URL("../fixtures/process-plugin.mjs", import.meta.url)),
+      entrypoint,
       limits: {
         invocationTimeoutMs: 250,
         memoryMb: 32
@@ -59,6 +80,21 @@ function processPackage(overrides = {}) {
     }],
     ...overrides
   };
+
+  if (!Object.prototype.hasOwnProperty.call(overrides, "integrity")) {
+    base.integrity = createPluginIntegrityV010(base, privateKey, {
+      keyId: "release-key-1",
+      artifact: {
+        scope: "PROCESS_ENTRYPOINT",
+        digest: sha256DigestV010(readFileSync(entrypoint))
+      },
+      provenance: {
+        type: "INTERNAL_CI",
+        reference: "test://process-runtime"
+      }
+    });
+  }
+  return base;
 }
 
 function installed() {
@@ -81,7 +117,11 @@ test("verified PROCESS runtime executes through scoped Host API in a supervised 
   const unsubscribe = eventBus.subscribe("observer", "process-plugin.changed", event => {
     observed.push(event);
   });
-  const host = createProcessPluginRuntimeHostV010({ storageService: storage, eventBus });
+  const host = createProcessPluginRuntimeHostV010({
+    storageService: storage,
+    eventBus,
+    integrityTrustStore: trustStore
+  });
 
   try {
     const echo = await host.invoke(pkg, installed(), {
@@ -125,7 +165,11 @@ test("process runtime does not inherit host secrets and ordinary fs APIs are per
   const pkg = processPackage();
   const storage = createMemoryPluginStorageService();
   const eventBus = createPluginEventBus();
-  const host = createProcessPluginRuntimeHostV010({ storageService: storage, eventBus });
+  const host = createProcessPluginRuntimeHostV010({
+    storageService: storage,
+    eventBus,
+    integrityTrustStore: trustStore
+  });
   const outsideFile = join(tmpdir(), `evo-runtime-outside-${process.pid}.txt`);
   writeFileSync(outsideFile, "host-only", "utf8");
   const previous = process.env.EVO_PROCESS_TEST_SECRET;
@@ -155,7 +199,13 @@ test("timeout or crash is contained and the next invocation starts a fresh plugi
   const pkg = processPackage();
   const storage = createMemoryPluginStorageService();
   const eventBus = createPluginEventBus();
-  const host = createProcessPluginRuntimeHostV010({ storageService: storage, eventBus });
+  const observability = createPluginRuntimeObservabilityV010();
+  const host = createProcessPluginRuntimeHostV010({
+    storageService: storage,
+    eventBus,
+    integrityTrustStore: trustStore,
+    onRuntimeEvent: event => observability.record(event)
+  });
 
   try {
     await assert.rejects(
@@ -185,6 +235,12 @@ test("timeout or crash is contained and the next invocation starts a fresh plugi
       input: "after-crash",
       packageId: "process-plugin"
     });
+
+    const diagnostics = observability.diagnostics("process-plugin");
+    assert.equal(diagnostics.timeouts, 1);
+    assert.ok(diagnostics.crashes >= 1);
+    assert.ok(diagnostics.restarts >= 2);
+    assert.ok(diagnostics.invocations >= 4);
   } finally {
     await host.shutdown();
   }
@@ -203,7 +259,8 @@ test("unverified executable packages remain fail-closed for local process execut
 
   const host = createProcessPluginRuntimeHostV010({
     storageService: createMemoryPluginStorageService(),
-    eventBus: createPluginEventBus()
+    eventBus: createPluginEventBus(),
+    integrityTrustStore: trustStore
   });
 
   await assert.rejects(

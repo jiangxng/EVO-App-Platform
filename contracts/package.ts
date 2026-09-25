@@ -38,6 +38,25 @@ export interface PluginPublisherV010 {
   source?: string;
 }
 
+export interface PluginArtifactIntegrityV010 {
+  scope: "PROCESS_ENTRYPOINT" | "PACKAGE_BUNDLE";
+  digest: string;
+}
+
+export interface PluginProvenanceV010 {
+  type: "INTERNAL_CI" | "SIGSTORE_BUNDLE" | "OIDC_CI";
+  reference?: string;
+}
+
+export interface PluginIntegrityV010 {
+  format: "EVO-SIGNATURE-v0.1";
+  algorithm: "Ed25519";
+  keyId: string;
+  artifact?: PluginArtifactIntegrityV010;
+  provenance?: PluginProvenanceV010;
+  signature: string;
+}
+
 export interface PluginRuntimeV010 {
   kind: "DECLARATIVE" | "WORKER" | "PROCESS" | "REMOTE";
   isolation: "HOST" | "WORKER" | "PROCESS" | "REMOTE";
@@ -179,6 +198,7 @@ export interface PackageManifestV010 {
   publisher?: PluginPublisherV010;
   permissions?: PluginPermissionV010[];
   runtime?: PluginRuntimeV010;
+  integrity?: PluginIntegrityV010;
   storage?: PluginStorageDeclarationV010;
   events?: PluginEventsDeclarationV010;
   features: FeatureManifestV010[];

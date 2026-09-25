@@ -129,7 +129,53 @@ export function validatePluginManifestV010(
     }
   }
 
+  if (pkg.integrity) {
+    if (pkg.integrity.format !== "EVO-SIGNATURE-v0.1") {
+      add(
+        "PLUGIN_INTEGRITY_FORMAT_UNSUPPORTED",
+        "integrity.format",
+        "Expected EVO-SIGNATURE-v0.1."
+      );
+    }
+    if (!pkg.integrity.keyId.trim()) {
+      add("PLUGIN_INTEGRITY_KEY_ID_REQUIRED", "integrity.keyId", "Signing key id is required.");
+    }
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(pkg.integrity.signature) || pkg.integrity.signature.length < 32) {
+      add(
+        "PLUGIN_INTEGRITY_SIGNATURE_INVALID",
+        "integrity.signature",
+        "Ed25519 signature must be non-empty base64."
+      );
+    }
+    if (
+      pkg.integrity.artifact
+      && !/^sha256:[0-9a-f]{64}$/.test(pkg.integrity.artifact.digest)
+    ) {
+      add(
+        "PLUGIN_INTEGRITY_DIGEST_INVALID",
+        "integrity.artifact.digest",
+        "Artifact digest must use lowercase sha256:<64 hex> format."
+      );
+    }
+  }
+
   if (pkg.runtime) {
+    if (pkg.runtime.kind === "PROCESS") {
+      if (!pkg.integrity) {
+        add(
+          "PLUGIN_PROCESS_INTEGRITY_REQUIRED",
+          "integrity",
+          "PROCESS runtime packages require a signed integrity envelope."
+        );
+      } else if (pkg.integrity.artifact?.scope !== "PROCESS_ENTRYPOINT") {
+        add(
+          "PLUGIN_PROCESS_ARTIFACT_DIGEST_REQUIRED",
+          "integrity.artifact",
+          "PROCESS runtime packages require a PROCESS_ENTRYPOINT artifact digest."
+        );
+      }
+    }
+
     const validPair = (
       (pkg.runtime.kind === "DECLARATIVE" && pkg.runtime.isolation === "HOST")
       || (pkg.runtime.kind === "WORKER" && pkg.runtime.isolation === "WORKER")

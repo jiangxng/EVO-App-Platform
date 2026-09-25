@@ -19,6 +19,11 @@ export interface InstallAuthorizationV010 {
   approvedPermissions?: string[];
 }
 
+export interface PackageIntegrityAdmissionV010 {
+  state: "VERIFIED" | "UNSIGNED" | "UNTRUSTED" | "INVALID" | "PENDING_ARTIFACT";
+  message: string;
+}
+
 export interface PluginLifecycleEventV010 {
   contractVersion: "0.1.0";
   type: "PACKAGE_INSTALLED" | "FEATURE_ACTIVATED" | "FEATURE_DEACTIVATED" | "PACKAGE_UNINSTALLED";
@@ -55,7 +60,9 @@ export function createAppManagerService(
   store: LifecycleStore,
   now: () => Date = () => new Date(),
   experienceAssets: ReadonlyMap<string, unknown> = new Map(),
-  onLifecycleEvent: (event: PluginLifecycleEventV010) => void = () => {}
+  onLifecycleEvent: (event: PluginLifecycleEventV010) => void = () => {},
+  evaluateIntegrity: (pkg: PackageManifestV010) => PackageIntegrityAdmissionV010 =
+    () => ({ state: "UNSIGNED", message: "Package integrity not evaluated by this Host." })
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -192,6 +199,24 @@ export function createAppManagerService(
             ? "PLUGIN_RUNTIME_UNSUPPORTED"
             : "DEPENDENCY_RUNTIME_UNSUPPORTED",
           message: `Package '${candidatePackageId}': ${candidateRuntime.message}`
+        });
+      }
+
+      const integrity = evaluateIntegrity(candidate);
+      if (integrity.state === "INVALID" || integrity.state === "UNTRUSTED") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "PACKAGE_INTEGRITY_REJECTED"
+            : "DEPENDENCY_INTEGRITY_REJECTED",
+          message: `Package '${candidatePackageId}': ${integrity.message}`
+        });
+      }
+      if (candidate.runtime?.kind === "PROCESS" && integrity.state === "UNSIGNED") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "PROCESS_PACKAGE_SIGNATURE_REQUIRED"
+            : "DEPENDENCY_PROCESS_SIGNATURE_REQUIRED",
+          message: `Package '${candidatePackageId}' requires a trusted signature before PROCESS execution.`
         });
       }
 

@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "2310decfc112c20fc8bf471ecaf0604a42e4877e",
+  "sourceCommit": "8ed4a3880e260e341b957ec7978e1982083f23df",
   "ownership": "Eidos",
   "policy": "Do not modify vendored semantics in EVO-App-Platform. Extend Eidos first, pass Eidos CI, then resync the pinned snapshot.",
   "files": [

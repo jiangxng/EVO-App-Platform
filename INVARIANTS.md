@@ -79,3 +79,10 @@
 - **APP-70** PROCESS runtime failure is contained: invocation timeout/crash terminates or loses only the plugin process, pending calls fail deterministically, and a later invocation may start a clean process.
 - **APP-71** Host secrets are not inherited wholesale by plugin processes. PROCESS runtime environment is minimized and privileged state crosses only explicit scoped Host APIs.
 - **APP-72** PROCESS runtime resource budgets are explicit. P0 timeout and V8 heap budgets MUST NOT be misrepresented as complete OS/container resource isolation.
+
+- **APP-73** Package publisher identity is not self-authenticating. Signed Package admission MUST verify against a Host-owned trusted publisher key store; a Package-provided key cannot establish its own trust.
+- **APP-74** PROCESS runtime execution requires a trusted cryptographic Package signature and a signed PROCESS_ENTRYPOINT digest. The Host MUST re-hash the actual entrypoint bytes before execution.
+- **APP-75** Invalid, tampered, unknown-key or revoked-key signed Packages fail closed. Unsigned declarative Packages are only a pre-1.0 compatibility allowance and MUST NOT be inferred as the long-term distribution trust model.
+- **APP-76** Provenance metadata is signed evidence metadata, not proof by itself. External OIDC/Sigstore provenance is considered verified only after its own verification procedure is implemented.
+- **APP-77** Plugin Runtime observability is structured Host data, not console-log parsing. Runtime lifecycle/invocation events and aggregate health are owned by App Platform; Eidos only renders supplied diagnostics.
+- **APP-78** Runtime observability storage is bounded by default. P0 in-memory diagnostics MUST NOT be represented as durable audit history, distributed tracing or an SLO system.
