@@ -1,3 +1,5 @@
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 export type PluginRuntimeEventTypeV010 =
   | "PROCESS_STARTING"
   | "PROCESS_READY"
@@ -37,11 +39,37 @@ export interface PluginRuntimeDiagnosticsV010 {
   lastError?: string;
 }
 
+export interface PluginRuntimeObservabilitySinkV010 {
+  write(event: PluginRuntimeEventV010): void;
+}
+
 export interface PluginRuntimeObservabilityV010 {
   record(input: Omit<PluginRuntimeEventV010, "contractVersion" | "sequence">): PluginRuntimeEventV010;
   listEvents(packageId?: string): PluginRuntimeEventV010[];
   diagnostics(packageId: string): PluginRuntimeDiagnosticsV010;
   listDiagnostics(): PluginRuntimeDiagnosticsV010[];
+}
+
+export function createJsonlPluginRuntimeObservabilitySinkV010(
+  filePath: string
+): PluginRuntimeObservabilitySinkV010 {
+  if (!filePath.trim()) throw new Error("PLUGIN_RUNTIME_OBSERVABILITY_FILE_REQUIRED");
+  mkdirSync(dirname(filePath), { recursive: true });
+  return {
+    write(event) {
+      appendFileSync(filePath, JSON.stringify(event) + "\n", "utf8");
+    }
+  };
+}
+
+export function createCompositePluginRuntimeObservabilitySinkV010(
+  sinks: readonly PluginRuntimeObservabilitySinkV010[]
+): PluginRuntimeObservabilitySinkV010 {
+  return {
+    write(event) {
+      for (const sink of sinks) sink.write(event);
+    }
+  };
 }
 
 interface MutableDiagnostics {
@@ -58,7 +86,8 @@ interface MutableDiagnostics {
 }
 
 export function createPluginRuntimeObservabilityV010(
-  maxEvents = 500
+  maxEvents = 500,
+  sink?: PluginRuntimeObservabilitySinkV010
 ): PluginRuntimeObservabilityV010 {
   if (!Number.isInteger(maxEvents) || maxEvents < 10) {
     throw new Error("PLUGIN_RUNTIME_OBSERVABILITY_CAPACITY_INVALID");
@@ -110,6 +139,11 @@ export function createPluginRuntimeObservabilityV010(
       };
       events.push(event);
       if (events.length > maxEvents) events.splice(0, events.length - maxEvents);
+      try {
+        sink?.write(structuredClone(event));
+      } catch {
+        // Observability export must not break plugin execution.
+      }
 
       const current = getMutable(event.packageId);
       current.lastEventAt = event.occurredAt;
