@@ -55,3 +55,7 @@
 - **APP-52** App Platform PR CI validates platform core, Plugin Protocol and synthetic reference fixtures. Full plugin-portfolio compatibility belongs to a separate Ecosystem Certification gate, not the ordinary platform feedback loop.
 - **APP-53** EVO Ledger Runtime, Eidos, Enterprise Agent/EC and other large capabilities are consumed by plugins only through public versioned contracts/capabilities. Their private implementations and full CI suites are never implicit plugin test dependencies.
 - **APP-54** A material Plugin Protocol change requires explicit versioning and ecosystem certification. Until protocol 1.0, plugins pin the exact protocol version rather than assuming pre-1.0 compatibility.
+
+- **APP-55** Until Plugin Platform foundation reaches a stable compatibility baseline, the primary integration mainline is EVO App Platform + Eidos. EVO Ledger Runtime, Enterprise Agent/EC, providers and business plugins are not default mainline CI dependencies.
+- **APP-56** A change to one plugin MUST NOT trigger unrelated plugin projects. The default cross-project integration gate is App Platform ↔ Eidos only; broader ecosystem runs are explicit certification.
+- **APP-57** Human-facing plugin discovery/lifecycle management uses Eidos public Extension Manager/Workbench capabilities. App Platform owns data and lifecycle semantics but MUST NOT create a parallel bespoke UI framework.
