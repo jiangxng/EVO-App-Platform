@@ -236,7 +236,7 @@ test("Plugin Protocol requires HTTPS, signed REMOTE metadata and no direct Host 
   });
   const result = validatePluginManifestV010(invalid);
   assert.equal(result.ok, false);
-  assert.ok(result.issues.some(x => x.code === "PLUGIN_PROCESS_INTEGRITY_REQUIRED"));
+  assert.ok(result.issues.some(x => x.code === "PLUGIN_EXECUTABLE_INTEGRITY_REQUIRED"));
   assert.ok(result.issues.some(x => x.code === "PLUGIN_REMOTE_HTTPS_REQUIRED"));
   assert.ok(result.issues.some(x => x.code === "PLUGIN_REMOTE_HOST_CAPABILITY_UNSUPPORTED"));
 });
