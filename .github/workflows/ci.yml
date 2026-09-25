@@ -7,6 +7,8 @@ on:
       - "manager/**"
       - "contracts/**"
       - "catalog/catalog.ts"
+      - "tools/**"
+      - "examples/plugin-manifest*.json"
       - "actions/router.ts"
       - "vendor/eidos/**"
       - "tests/protocol/**"
