@@ -1,6 +1,6 @@
 # Plugin Remote Runtime v0.1
 
-**Status:** Adapter implemented; platform admission intentionally fail-closed  
+**Status:** Adapter + credential Provider binding implemented; admission is readiness-gated  
 **Date:** 2026-09-25  
 **Owner:** EVO App Platform
 
@@ -39,7 +39,29 @@ The signature covers the endpoint and auth audience because they are part of the
 
 The Manifest does not contain credentials.
 
-The runtime adapter requires a Host-side credential provider:
+The runtime adapter requires a Host-side credential Provider capability.
+
+P0 capability:
+
+`plugin.remote-credential`
+
+Reference Package:
+
+`host-remote-credential-provider`
+
+Reference Provider runtime:
+
+`host.remote-bearer`
+
+The Provider is a normal `PLATFORM_PROVIDER` contribution and is resolved through the shared Provider Runtime Registry.
+
+The reference runtime reads secret material only from the Host secret boundary:
+
+`APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON`
+
+The Package Manifest contains only metadata describing the secret boundary; bearer values are never Package data.
+
+Credential contract:
 
 ```text
 getBearerToken(packageId, audience, endpoint)
@@ -113,9 +135,16 @@ Tests may explicitly permit insecure loopback HTTP. Production protocol conforma
 
 The REMOTE adapter itself is implemented and tested.
 
-Normal App Manager installation remains **fail-closed** because runtime readiness requires a bound credential provider capability.
+App Manager installation evaluates Host-specific runtime readiness.
 
-This avoids silently treating a missing authentication/provider configuration as a runnable plugin.
+A REMOTE Package is READY only when all of the following are true:
+
+- signed/trusted REMOTE metadata is valid;
+- the Remote Runtime adapter is supported;
+- an active `plugin.remote-credential` Provider descriptor exists;
+- a matching Provider Runtime is registered.
+
+If either the Provider Package or its configured runtime is absent, admission remains fail-closed.
 
 The canonical execution path is now:
 
@@ -131,13 +160,13 @@ If no credential Provider runtime is resolved, REMOTE invocation remains fail-cl
 
 The dispatcher is an internal Host boundary; App Platform intentionally does not expose a generic unauthenticated HTTP endpoint for arbitrary plugin method execution.
 
-Next integration milestone:
+Next maturity milestones:
 
 ```text
-Remote Auth Provider Package
-→ deterministic Provider Runtime registration
-→ policy/scope-aware provider resolution
-→ REMOTE Package runtime readiness at install time
+OAuth / workload-identity credential Provider Packages
+→ scope/policy-aware Provider selection
+→ token rotation / expiry telemetry
+→ mTLS or workload attestation where required
 ```
 
 ## Not yet implemented
