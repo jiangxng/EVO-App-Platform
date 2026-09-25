@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform + Eidos P0 Host Foundations — PROCESS runtime isolation implemented for trusted/verified executable plugins",
+  "currentMilestone": "App Platform + Eidos P0 Host Foundations — package integrity trust chain and structured runtime observability implemented",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -64,7 +64,15 @@
     "process-runtime-timeout-crash-restart",
     "process-runtime-minimal-environment",
     "process-runtime-resource-budgets",
-    "process-runtime-lifecycle-supervision"
+    "process-runtime-lifecycle-supervision",
+    "ed25519-plugin-package-signing",
+    "host-owned-publisher-key-trust-store",
+    "process-entrypoint-artifact-digest-verification",
+    "package-integrity-install-admission",
+    "runtime-structured-event-stream",
+    "runtime-bounded-diagnostics",
+    "runtime-diagnostics-api",
+    "extension-manager-integrity-observability"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -89,7 +97,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize PROCESS runtime isolation and then continue toward package integrity/signing, stronger remote/container isolation, runtime observability and Extension Manager operational history.",
+  "currentStep": "Stabilize signed package admission and runtime diagnostics. Next major gaps: trusted release signing workflow/provenance verification, remote/container isolation, and durable observability export.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -250,7 +258,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "2310decfc112c20fc8bf471ecaf0604a42e4877e",
+    "eidosSourceCommit": "8ed4a3880e260e341b957ec7978e1982083f23df",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
   },
@@ -281,6 +289,17 @@
       "worker-not-security-boundary",
       "remote-container-isolation-pending",
       "os-cpu-rss-network-policy-pending"
+    ],
+    "packageIntegrity": "IMPLEMENTED_P0",
+    "packageIntegrityAuthority": "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md",
+    "runtimeObservability": "IMPLEMENTED_P0",
+    "runtimeObservabilityAuthority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
+    "nextSecurityMaturity": [
+      "trusted-ci-kms-signing-workflow",
+      "sigstore-or-equivalent-provenance-verification",
+      "bundle-level-artifact-integrity",
+      "remote-container-hostile-code-isolation",
+      "durable-opentelemetry-compatible-runtime-telemetry"
     ]
   }
 }
