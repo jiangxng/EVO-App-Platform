@@ -362,6 +362,21 @@ form[data-eidos-id] button,
   padding:var(--eidos-space-md) var(--eidos-space-lg);border-radius:var(--eidos-radius-md);
   background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);font-size:10px;
 }
+[data-eidos-extension-trust]{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-sm);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);font-size:10px;background:var(--eidos-bg-subtle);
+}
+[data-eidos-extension-trust][data-level="trusted"] strong{color:var(--eidos-success)}
+[data-eidos-extension-trust][data-level="review"] strong{color:var(--eidos-warning)}
+[data-eidos-extension-trust][data-level="blocked"] strong{color:var(--eidos-danger)}
+[data-eidos-extension-permission],
+[data-eidos-extension-runtime-tag]{
+  border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-sm);
+  padding:3px 6px;background:#fafbfc;font-size:10px;color:#555a63;
+}
+[data-eidos-extension-permission][data-risk="high"]{border-color:#e2b2b2;background:var(--eidos-danger-bg);color:var(--eidos-danger)}
+[data-eidos-extension-permission][data-risk="medium"]{border-color:#e3d5a5;background:#fffaf0;color:var(--eidos-warning)}
 [data-eidos-extension-section]{display:grid;gap:var(--eidos-space-sm)}
 [data-eidos-extension-section-title]{
   font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--eidos-fg-subtle);
