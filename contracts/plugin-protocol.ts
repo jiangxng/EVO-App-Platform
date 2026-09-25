@@ -133,13 +133,14 @@ export function validatePluginManifestV010(
     const validPair = (
       (pkg.runtime.kind === "DECLARATIVE" && pkg.runtime.isolation === "HOST")
       || (pkg.runtime.kind === "WORKER" && pkg.runtime.isolation === "WORKER")
+      || (pkg.runtime.kind === "PROCESS" && pkg.runtime.isolation === "PROCESS")
       || (pkg.runtime.kind === "REMOTE" && pkg.runtime.isolation === "REMOTE")
     );
     if (!validPair) {
       add(
         "PLUGIN_RUNTIME_ISOLATION_INVALID",
         "runtime",
-        "Runtime kind and isolation must use DECLARATIVE/HOST, WORKER/WORKER or REMOTE/REMOTE."
+        "Runtime kind and isolation must use DECLARATIVE/HOST, WORKER/WORKER, PROCESS/PROCESS or REMOTE/REMOTE."
       );
     }
     if (pkg.runtime.kind !== "DECLARATIVE" && !pkg.runtime.entrypoint?.trim()) {
@@ -147,6 +148,34 @@ export function validatePluginManifestV010(
         "PLUGIN_RUNTIME_ENTRYPOINT_REQUIRED",
         "runtime.entrypoint",
         "Executable plugin runtimes require an entrypoint."
+      );
+    }
+    if (
+      pkg.runtime.limits?.invocationTimeoutMs !== undefined
+      && (
+        !Number.isInteger(pkg.runtime.limits.invocationTimeoutMs)
+        || pkg.runtime.limits.invocationTimeoutMs < 50
+        || pkg.runtime.limits.invocationTimeoutMs > 300000
+      )
+    ) {
+      add(
+        "PLUGIN_RUNTIME_TIMEOUT_INVALID",
+        "runtime.limits.invocationTimeoutMs",
+        "Invocation timeout must be an integer between 50 and 300000 ms."
+      );
+    }
+    if (
+      pkg.runtime.limits?.memoryMb !== undefined
+      && (
+        !Number.isInteger(pkg.runtime.limits.memoryMb)
+        || pkg.runtime.limits.memoryMb < 16
+        || pkg.runtime.limits.memoryMb > 2048
+      )
+    ) {
+      add(
+        "PLUGIN_RUNTIME_MEMORY_INVALID",
+        "runtime.limits.memoryMb",
+        "Process memory budget must be an integer between 16 and 2048 MB."
       );
     }
   }
