@@ -1,0 +1,619 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evo.local/schemas/plugin-feature-v0.1.schema.json",
+  "title": "EVO Plugin Feature Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "featureId",
+    "packageId",
+    "version",
+    "activationScope"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "0.1.0"
+    },
+    "featureId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "packageId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "activationScope": {
+      "enum": [
+        "SYSTEM",
+        "INSTALLATION",
+        "ENTERPRISE",
+        "COMPANY",
+        "WORKSPACE",
+        "USER"
+      ]
+    },
+    "defaultActivation": {
+      "type": "boolean"
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "EAGER",
+            "ON_DEMAND"
+          ]
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "ON_DEMAND"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "events"
+            ],
+            "properties": {
+              "events": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "requiresFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "requiresCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "providesCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "contributions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/contribution"
+      }
+    }
+  },
+  "$defs": {
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "pageId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pageId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "route"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "number"
+        },
+        "parentId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "experienceContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "manifest"
+      ],
+      "properties": {
+        "kind": {
+          "const": "eidos.experience"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "experienceId",
+            "packageId",
+            "featureId",
+            "pages",
+            "routes"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "experienceId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "packageId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "featureId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "defaultRoute": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/page"
+              }
+            },
+            "routes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/route"
+              }
+            },
+            "navigation": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/navigation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "localizationContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "bundle"
+      ],
+      "properties": {
+        "kind": {
+          "const": "eidos.localization-bundle"
+        },
+        "bundle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "namespace",
+            "locale",
+            "messages"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "locale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "messages": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "workbenchContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "activity"
+      ],
+      "properties": {
+        "kind": {
+          "const": "eidos.workbench-activity"
+        },
+        "activity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "id",
+            "title",
+            "icon",
+            "kind"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "icon": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "enum": [
+                "navigation",
+                "side-route",
+                "workspace-route",
+                "workspace-focus"
+              ]
+            },
+            "route": {
+              "type": "string",
+              "minLength": 1
+            },
+            "order": {
+              "type": "number"
+            },
+            "placement": {
+              "enum": [
+                "primary",
+                "secondary"
+              ]
+            },
+            "localization": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespace",
+                "key"
+              ],
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "key": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "settingValue": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "settingsContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "settings"
+      ],
+      "properties": {
+        "kind": {
+          "const": "eidos.settings"
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "namespace",
+            "title",
+            "properties"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string"
+            },
+            "advancedRoute": {
+              "type": "string",
+              "minLength": 1
+            },
+            "properties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "label",
+                  "type",
+                  "defaultValue"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "select"
+                    ]
+                  },
+                  "defaultValue": {
+                    "$ref": "#/$defs/settingValue"
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "label",
+                        "value"
+                      ],
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "value": {
+                          "$ref": "#/$defs/settingValue"
+                        }
+                      }
+                    }
+                  },
+                  "scope": {
+                    "enum": [
+                      "SYSTEM",
+                      "INSTALLATION",
+                      "ENTERPRISE",
+                      "COMPANY",
+                      "WORKSPACE",
+                      "USER"
+                    ]
+                  },
+                  "readOnly": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "providerContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "provider"
+      ],
+      "properties": {
+        "kind": {
+          "const": "platform.service-provider"
+        },
+        "provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "providerId",
+            "capability",
+            "providerContract",
+            "providerContractVersion",
+            "binding"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "providerId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "capability": {
+              "type": "string",
+              "minLength": 1
+            },
+            "providerContract": {
+              "type": "string",
+              "minLength": 1
+            },
+            "providerContractVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binding": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "ref"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "HTTP",
+                    "ACTION_HOST",
+                    "QUERY_HOST",
+                    "DECLARATIVE",
+                    "IN_PROCESS"
+                  ]
+                },
+                "ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "ref"
+              ],
+              "properties": {
+                "type": {
+                  "const": "HTTP"
+                },
+                "ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "contribution": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/experienceContribution"
+        },
+        {
+          "$ref": "#/$defs/localizationContribution"
+        },
+        {
+          "$ref": "#/$defs/workbenchContribution"
+        },
+        {
+          "$ref": "#/$defs/settingsContribution"
+        },
+        {
+          "$ref": "#/$defs/providerContribution"
+        }
+      ]
+    }
+  }
+}
