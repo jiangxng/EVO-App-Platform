@@ -41,6 +41,9 @@ function renderItem(item: ExtensionManagerItemV010): string {
   const trust = item.trust
     ? `<div data-eidos-extension-trust data-level="${esc(item.trust.level)}"><strong>${esc(item.trust.label)}</strong>${item.trust.publisher ? `<span>${esc(item.trust.publisher)}</span>` : ""}${item.trust.source ? `<span>${esc(item.trust.source)}</span>` : ""}${item.trust.message ? `<span>${esc(item.trust.message)}</span>` : ""}</div>`
     : "";
+  const integrity = item.integrity
+    ? `<div data-eidos-extension-integrity data-state="${esc(item.integrity.state)}"><strong>${esc(item.integrity.label)}</strong>${item.integrity.algorithm ? `<span>${esc(item.integrity.algorithm)}</span>` : ""}${item.integrity.keyId ? `<span>Key ${esc(item.integrity.keyId)}</span>` : ""}${item.integrity.digest ? `<span>${esc(item.integrity.digest)}</span>` : ""}${item.integrity.provenance ? `<span>${esc(item.integrity.provenance)}</span>` : ""}${item.integrity.message ? `<span>${esc(item.integrity.message)}</span>` : ""}</div>`
+    : "";
   const permissions = (item.permissions ?? [])
     .map(permission => `<span data-eidos-extension-permission data-risk="${esc(permission.risk)}" data-granted="${permission.granted === true ? "true" : "false"}">${esc(permission.label)}</span>`)
     .join("");
@@ -48,7 +51,10 @@ function renderItem(item: ExtensionManagerItemV010): string {
     ? `<span data-eidos-extension-runtime-tag>Activation: ${esc(item.activation.mode)}${item.activation.events?.length ? ` · ${esc(item.activation.events.join(", "))}` : ""}</span>`
     : "";
   const runtime = item.runtime
-    ? `<span data-eidos-extension-runtime-tag>Runtime: ${esc(item.runtime.kind)} / ${esc(item.runtime.isolation)}${item.runtime.status ? ` · ${esc(item.runtime.status)}` : ""}</span>`
+    ? `<span data-eidos-extension-runtime-tag>Runtime: ${esc(item.runtime.kind)} / ${esc(item.runtime.isolation)}${item.runtime.status ? ` · ${esc(item.runtime.status)}` : ""}${item.runtime.health ? ` · ${esc(item.runtime.health)}` : ""}</span>`
+    : "";
+  const runtimeMetrics = item.runtime?.metrics
+    ? `<span data-eidos-extension-runtime-tag>Runtime events: ${esc(item.runtime.metrics.invocations)} inv · ${esc(item.runtime.metrics.failures)} fail · ${esc(item.runtime.metrics.timeouts)} timeout · ${esc(item.runtime.metrics.crashes)} crash · ${esc(item.runtime.metrics.restarts)} restart${item.runtime.metrics.lastError ? ` · ${esc(item.runtime.metrics.lastError)}` : ""}</span>`
     : "";
   const storage = item.storage
     ? `<span data-eidos-extension-runtime-tag>Storage: ${esc(item.storage.state)}</span>`
@@ -73,13 +79,14 @@ function renderItem(item: ExtensionManagerItemV010): string {
     ${item.description ? `<p data-eidos-extension-description>${esc(item.description)}</p>` : ""}
     ${compatibility}
     ${trust}
+    ${integrity}
     <div data-eidos-extension-section>
       <span data-eidos-extension-section-title>Permissions</span>
       <div data-eidos-extension-tags>${permissions || "<span data-eidos-extension-muted>None requested</span>"}</div>
     </div>
     <div data-eidos-extension-section>
       <span data-eidos-extension-section-title>Activation & Runtime</span>
-      <div data-eidos-extension-tags>${activation}${runtime}${storage}${eventSummary}${!activation && !runtime && !storage && !eventSummary ? "<span data-eidos-extension-muted>Declarative host defaults</span>" : ""}</div>
+      <div data-eidos-extension-tags>${activation}${runtime}${runtimeMetrics}${storage}${eventSummary}${!activation && !runtime && !storage && !eventSummary ? "<span data-eidos-extension-muted>Declarative host defaults</span>" : ""}</div>
     </div>
     <div data-eidos-extension-section>
       <span data-eidos-extension-section-title>Contributions</span>
