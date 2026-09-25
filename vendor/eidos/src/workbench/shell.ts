@@ -158,6 +158,7 @@ export async function mountWorkbenchShell(
   splitter.setAttribute("data-eidos-workbench-splitter", "");
   splitter.setAttribute("role", "separator");
   splitter.setAttribute("aria-orientation", "vertical");
+  splitter.setAttribute("aria-label", hostText("workbench.resizeSidePanel", "Resize side panel"));
   splitter.tabIndex = 0;
 
   const workspace = document.createElement("main");
@@ -165,10 +166,12 @@ export async function mountWorkbenchShell(
 
   const browserToolbar = document.createElement("div");
   browserToolbar.setAttribute("data-eidos-browser-toolbar", "");
+  browserToolbar.setAttribute("aria-label", hostText("workbench.workspaceToolbar", "Workspace toolbar"));
   const browserAddress = document.createElement("input");
   browserAddress.type = "text";
   browserAddress.autocomplete = "off";
   browserAddress.setAttribute("data-eidos-browser-address", "");
+  browserAddress.setAttribute("aria-label", hostText("workbench.workspaceTarget", "Workspace route or web address"));
   const browserGo = document.createElement("button");
   browserGo.type = "button";
   browserGo.setAttribute("data-eidos-browser-go", "");
@@ -205,6 +208,11 @@ export async function mountWorkbenchShell(
 
   function updateLayoutAttributes(): void {
     root.setAttribute("data-side-panel-visible", state.sidePanelVisible ? "true" : "false");
+    const toggleLabel = state.sidePanelVisible
+      ? hostText("workbench.hideSidePanel", "Hide side panel")
+      : hostText("workbench.showSidePanel", "Show side panel");
+    sideToggle.setAttribute("aria-label", toggleLabel);
+    sideToggle.title = toggleLabel;
     root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
     splitter.setAttribute("aria-valuenow", String(state.sidePanelWidth));
     splitter.setAttribute("aria-valuemin", String(minWidth));
