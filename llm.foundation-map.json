@@ -19,7 +19,7 @@
     "permissionsTrust": "SOON",
     "isolatedPluginRuntime": "SOON",
     "pluginStorageEvents": "SOON",
-    "packageIntegritySigning": "SOON",
+    "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
     "secretsIdentityAuthorization": "SOON",
     "observabilityDiagnostics": "SOON",
@@ -44,7 +44,8 @@
     "runtimeDispatcher": "LIFECYCLE_GATED_PROCESS_REMOTE_IMPLEMENTED",
     "slsaProvenanceVerification": "IN_TOTO_STATEMENT_SLSA_V1_BUILDER_ARTIFACT_VERIFICATION_IMPLEMENTED",
     "remoteCredentialProvider": "PLATFORM_PROVIDER_RUNTIME_REGISTRY_BINDING_IMPLEMENTED",
-    "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED"
+    "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED",
+    "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -71,7 +72,9 @@
     "provenanceVerification": "METADATA_ONLY_EXTERNAL_VERIFICATION_PENDING",
     "slsaProvenance": "IMPLEMENTED",
     "hostBuilderPolicy": "IMPLEMENTED",
-    "sigstoreTransparencyOidcVerification": "PENDING_ADAPTER"
+    "sigstoreTransparencyOidcVerification": "IMPLEMENTED_P0",
+    "sigstoreNativeIntegrityOrdering": "NATIVE_FIRST",
+    "sigstoreProcessAdmission": "FAIL_CLOSED_WHEN_DECLARED"
   },
   "runtimeObservability": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
