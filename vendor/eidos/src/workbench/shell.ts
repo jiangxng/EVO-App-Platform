@@ -632,6 +632,24 @@ export async function mountWorkbenchShell(
     const path = currentHashPath();
     if (path && path !== state.workspaceTarget) void navigateWorkspace(path);
   };
+  const keyboardHandler = (event: KeyboardEvent) => {
+    const modifier = event.metaKey || event.ctrlKey;
+    if (modifier && event.key.toLowerCase() === "b") {
+      event.preventDefault();
+      void toggleSidePanel();
+      return;
+    }
+    if (modifier && event.key.toLowerCase() === "l") {
+      event.preventDefault();
+      browserAddress.focus();
+      browserAddress.select();
+      return;
+    }
+    if (event.key === "Escape" && document.activeElement === browserAddress) {
+      browserAddress.blur();
+    }
+  };
+  window.addEventListener("keydown", keyboardHandler);
   window.addEventListener("hashchange", hashHandler);
 
   async function refresh(): Promise<AppHostSnapshotV010> {
@@ -662,6 +680,7 @@ export async function mountWorkbenchShell(
     unsubscribeHost();
     unsubscribeLocale?.();
     window.removeEventListener("hashchange", hashHandler);
+    window.removeEventListener("keydown", keyboardHandler);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
     root.remove();
