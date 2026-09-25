@@ -1,0 +1,29 @@
+name: Plugin CI - OpenAI Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/openai/**"
+      - "tests/llm/provider.test.mjs"
+      - "tests/agent/openai-responses-model.test.mjs"
+  pull_request:
+    paths:
+      - "providers/openai/**"
+      - "tests/llm/provider.test.mjs"
+      - "tests/agent/openai-responses-model.test.mjs"
+
+concurrency:
+  group: plugin-openai-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:plugin:openai-provider
