@@ -466,6 +466,9 @@ export function createProcessPluginRuntimeHostV010(
     return await new Promise((resolvePromise, rejectPromise) => {
       const timer = setTimeout(() => {
         record.pending.delete(invocationId);
+        if (runtimes.get(pkg.packageId) === record) {
+          runtimes.delete(pkg.packageId);
+        }
         rejectPromise(
           new Error(
             `PLUGIN_PROCESS_TIMEOUT: ${pkg.packageId}: ${request.method}: ${timeoutMs}ms`
