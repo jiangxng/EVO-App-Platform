@@ -1,0 +1,79 @@
+export type ExtensionStatusTone = "neutral" | "positive" | "warning" | "danger";
+
+export interface ExtensionManagerActionV010 {
+  id: string;
+  label: string;
+  type: "command" | "navigate";
+  command?: string;
+  inputVersion?: string;
+  route?: string;
+  requiresConfirmation?: boolean;
+  enabled?: boolean;
+  disabledReason?: string;
+  helpText?: string;
+}
+
+export interface ExtensionContributionSummaryV010 {
+  kind: string;
+  count: number;
+}
+
+export interface ExtensionManagerItemV010 {
+  id: string;
+  title: string;
+  description?: string;
+  version: string;
+  publisher?: string;
+  category?: string;
+  status: {
+    id: "not-installed" | "enabled" | "disabled" | "incompatible" | "error";
+    label: string;
+    tone?: ExtensionStatusTone;
+  };
+  compatibility?: {
+    protocolVersion: string;
+    hostVersion?: string;
+    eidosVersion?: string;
+    state: "compatible" | "incompatible" | "unknown";
+    message?: string;
+  };
+  capabilities?: {
+    provides?: string[];
+    requires?: string[];
+  };
+  contributions?: ExtensionContributionSummaryV010[];
+  primaryAction?: ExtensionManagerActionV010;
+  secondaryActions?: ExtensionManagerActionV010[];
+}
+
+export interface ExtensionManagerV010 {
+  contractVersion: "0.1.0";
+  kind: "extension-manager";
+  id: string;
+  title: string;
+  description?: string;
+  protocol: {
+    name: string;
+    version: string;
+    status: "stable" | "preview" | "experimental";
+  };
+  host: {
+    name: string;
+    version?: string;
+    eidosVersion?: string;
+  };
+  items: ExtensionManagerItemV010[];
+  emptyMessage?: string;
+}
+
+export function isExtensionManagerV010(input: unknown): input is ExtensionManagerV010 {
+  if (!input || typeof input !== "object") return false;
+  const value = input as Partial<ExtensionManagerV010>;
+  return value.contractVersion === "0.1.0"
+    && value.kind === "extension-manager"
+    && typeof value.id === "string"
+    && typeof value.title === "string"
+    && !!value.protocol
+    && !!value.host
+    && Array.isArray(value.items);
+}
