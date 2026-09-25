@@ -7,6 +7,7 @@ export interface ProviderRuntimeRegistry {
   register<T>(providerId: string, runtime: T): void;
   replace<T>(providerId: string, runtime: T): void;
   remove(providerId: string): void;
+  get<T>(providerId: string): T | undefined;
   resolve<T>(
     descriptors: readonly ProviderDescriptorLike[],
     capability: string
@@ -29,6 +30,11 @@ export function createProviderRuntimeRegistry(): ProviderRuntimeRegistry {
 
     remove(providerId: string) {
       runtimes.delete(providerId);
+    },
+
+    get<T>(providerId: string) {
+      const runtime = runtimes.get(providerId);
+      return runtime === undefined ? undefined : runtime as T;
     },
 
     resolve<T>(descriptors: readonly ProviderDescriptorLike[], capability: string) {

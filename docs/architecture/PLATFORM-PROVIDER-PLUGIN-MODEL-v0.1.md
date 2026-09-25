@@ -378,3 +378,32 @@ Future interchangeable Provider Packages may implement:
 - mTLS workload credentials.
 
 REMOTE Runtime consumes only the generic credential Provider contract.
+
+
+## Provider resolution policy v0.1
+
+Provider runtime selection is now explicit and scope-aware.
+
+Resolution order is:
+
+```text
+USER
+→ WORKSPACE
+→ COMPANY
+→ ENTERPRISE
+→ INSTALLATION
+→ SYSTEM
+```
+
+Rules:
+
+- a matching explicit binding wins;
+- a single executable candidate may be selected automatically;
+- multiple executable candidates without an explicit binding fail closed with `PROVIDER_RESOLUTION_AMBIGUOUS`;
+- an explicit binding whose Provider runtime is unavailable fails closed and MUST NOT silently fall back;
+- binding state is Host-owned and may be persisted separately from Package manifests;
+- consumers receive the resolved Provider runtime, not selection heuristics.
+
+The default file-backed store is configured by `APP_PLATFORM_PROVIDER_BINDINGS_FILE`, or colocated with lifecycle state when available.
+
+This policy is shared by LLM, Remote Credential and future Identity/Enterprise Provider families.

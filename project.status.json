@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Plugin platform supply-chain reproducibility — frozen npm dependency graph",
+  "currentMilestone": "Platform Provider resolution — deterministic scope-aware binding policy",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -100,7 +100,10 @@
     "platform-ci-npm-ci",
     "platform-ci-npm-cache",
     "docker-frozen-npm-install",
-    "exact-node-22.22.2-platform-toolchain"
+    "exact-node-22.22.2-platform-toolchain",
+    "scope-aware-provider-resolution",
+    "provider-ambiguity-fail-closed",
+    "persistent-provider-bindings"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -123,7 +126,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Validate lockfile-authoritative Platform CI and exact container Node runtime, then continue plugin-platform maturity without broadening CI scope.",
+  "currentStep": "Stabilize Provider binding policy across LLM and Remote Credential. Next provider maturity: health-aware resolution and governed binding configuration UI.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -357,6 +360,20 @@
       "hostIdentityPolicy": "IMPLEMENTED",
       "processAdmission": "FAIL_CLOSED_WHEN_DECLARED",
       "nativeIntegrityFirst": true
+    },
+    "providerResolution": {
+      "status": "IMPLEMENTED_P0",
+      "scopes": [
+        "SYSTEM",
+        "INSTALLATION",
+        "ENTERPRISE",
+        "COMPANY",
+        "WORKSPACE",
+        "USER"
+      ],
+      "ambiguousMultipleProviders": "FAIL_CLOSED",
+      "unavailableExplicitBinding": "FAIL_CLOSED",
+      "authority": "docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md"
     }
   },
   "dependencyReproducibility": {
