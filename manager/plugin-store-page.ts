@@ -4,6 +4,12 @@ import { evaluatePackageCompatibility } from "./compatibility.js";
 import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
 import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
 import { packageHasSettings, settingsPackageRoute } from "./settings-page.js";
+import {
+  createMemoryPluginIntegrityTrustStoreV010,
+  verifyPackageIntegrityV010,
+  type PluginIntegrityTrustStoreV010
+} from "./package-integrity.js";
+import type { PluginRuntimeDiagnosticsV010 } from "./plugin-runtime-observability.js";
 
 export const pluginStorePageSource = "app://evo-app-platform/pages/plugin-store";
 
@@ -64,11 +70,22 @@ function contributionSummary(pkg: PackageManifestV010): Array<{ kind: string; co
     .sort((a, b) => a.kind.localeCompare(b.kind));
 }
 
+export interface PluginStorePageOptionsV010 {
+  integrityTrustStore?: PluginIntegrityTrustStoreV010;
+  runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
+}
+
 export function createPluginStorePage(
   packages: PackageManifestV010[],
-  snapshot: PlatformSnapshotV010
+  snapshot: PlatformSnapshotV010,
+  options: PluginStorePageOptionsV010 = {}
 ): ExtensionManagerV010 {
   const installed = new Set(snapshot.installedPackages.map(item => item.packageId));
+  const integrityTrustStore = options.integrityTrustStore
+    ?? createMemoryPluginIntegrityTrustStoreV010();
+  const diagnosticsByPackage = new Map(
+    (options.runtimeDiagnostics ?? []).map(item => [item.packageId, item])
+  );
 
   return {
     contractVersion: "0.1.0",
@@ -100,6 +117,8 @@ export function createPluginStorePage(
         const settingsRoute = packageHasSettings(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
         const compatibility = evaluatePackageCompatibility(pkg);
         const runtimeStatus = inspectPluginRuntimeV010(pkg);
+        const integrityStatus = verifyPackageIntegrityV010(pkg, integrityTrustStore);
+        const runtimeDiagnostics = diagnosticsByPackage.get(pkg.packageId);
         const compatible = (
           pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION
           && compatibility.state !== "INCOMPATIBLE"
@@ -159,6 +178,33 @@ export function createPluginStorePage(
               ? "Publisher trust must be approved before installation."
               : "Publisher trust is admitted for this installation."
           },
+          integrity: {
+            state: integrityStatus.state === "VERIFIED"
+              ? "verified" as const
+              : integrityStatus.state === "UNSIGNED"
+                ? "unsigned" as const
+                : integrityStatus.state === "UNTRUSTED"
+                  ? "untrusted" as const
+                  : integrityStatus.state === "INVALID"
+                    ? "invalid" as const
+                    : "pending" as const,
+            label: integrityStatus.state === "VERIFIED"
+              ? "Signature verified"
+              : integrityStatus.state === "UNSIGNED"
+                ? "Unsigned"
+                : integrityStatus.state === "UNTRUSTED"
+                  ? "Untrusted signature"
+                  : integrityStatus.state === "INVALID"
+                    ? "Invalid signature"
+                    : "Signature verified · artifact pending",
+            algorithm: integrityStatus.algorithm,
+            keyId: integrityStatus.keyId,
+            digest: integrityStatus.digest,
+            provenance: integrityStatus.provenance
+              ? `${integrityStatus.provenance.type}${integrityStatus.provenance.reference ? ` · ${integrityStatus.provenance.reference}` : ""}`
+              : undefined,
+            message: integrityStatus.message
+          },
           permissions: (pkg.permissions ?? []).map(permission => ({
             id: permission.id,
             label: permission.label,
@@ -180,7 +226,19 @@ export function createPluginStorePage(
                 ? "inactive" as const
                 : runtimeStatus.status === "ERROR"
                   ? "error" as const
-                  : "unsupported" as const
+                  : "unsupported" as const,
+            ...(runtimeDiagnostics ? {
+              health: runtimeDiagnostics.health,
+              metrics: {
+                invocations: runtimeDiagnostics.invocations,
+                failures: runtimeDiagnostics.failures,
+                timeouts: runtimeDiagnostics.timeouts,
+                crashes: runtimeDiagnostics.crashes,
+                restarts: runtimeDiagnostics.restarts,
+                lastEventAt: runtimeDiagnostics.lastEventAt,
+                lastError: runtimeDiagnostics.lastError
+              }
+            } : {})
           },
           storage: {
             scope: "package" as const,
