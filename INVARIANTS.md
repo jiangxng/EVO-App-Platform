@@ -100,3 +100,7 @@
 - **APP-74** Runtime Dispatcher invocation requires an installed Package and at least one active Feature owned by that Package. Runtime execution MUST NOT bypass lifecycle state.
 - **APP-75** App Platform MUST NOT expose a generic unauthenticated arbitrary plugin-method HTTP endpoint. Human/product actions enter through governed Action/Capability contracts; executable runtime dispatch remains an internal implementation boundary.
 - **APP-76** Runtime observability exporters are sinks, not execution dependencies. Telemetry sink failure MUST NOT break plugin execution or mutate runtime admission semantics.
+
+- **APP-77** SLSA provenance carried by a Package is admission evidence, not descriptive metadata. When present, its in-toto Statement subject MUST bind the declared artifact digest and Host-configured builder/build-type expectations MUST fail closed on mismatch.
+- **APP-78** Supply-chain roots of trust are Host-owned. Package manifests MUST NOT self-authorize builder identity, signing key trust or accepted build type.
+- **APP-79** External Sigstore/SLSA tooling may provide evidence, but EVO Plugin Protocol remains provider-neutral. Transparency-log/OIDC verification must enter through an explicit verifier boundary rather than becoming an implicit network dependency of ordinary plugin loading.
