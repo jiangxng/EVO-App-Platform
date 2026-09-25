@@ -370,6 +370,16 @@ form[data-eidos-id] button,
 [data-eidos-extension-trust][data-level="trusted"] strong{color:var(--eidos-success)}
 [data-eidos-extension-trust][data-level="review"] strong{color:var(--eidos-warning)}
 [data-eidos-extension-trust][data-level="blocked"] strong{color:var(--eidos-danger)}
+[data-eidos-extension-integrity]{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-sm);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);font-size:10px;background:#fbfcfe;
+}
+[data-eidos-extension-integrity][data-state="verified"] strong{color:var(--eidos-success)}
+[data-eidos-extension-integrity][data-state="pending"] strong,
+[data-eidos-extension-integrity][data-state="unsigned"] strong{color:var(--eidos-warning)}
+[data-eidos-extension-integrity][data-state="invalid"] strong,
+[data-eidos-extension-integrity][data-state="untrusted"] strong{color:var(--eidos-danger)}
 [data-eidos-extension-permission],
 [data-eidos-extension-runtime-tag]{
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-sm);
