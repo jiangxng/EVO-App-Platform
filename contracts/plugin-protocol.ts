@@ -160,18 +160,84 @@ export function validatePluginManifestV010(
   }
 
   if (pkg.runtime) {
-    if (pkg.runtime.kind === "PROCESS") {
+    if (pkg.runtime.kind === "PROCESS" || pkg.runtime.kind === "REMOTE") {
       if (!pkg.integrity) {
         add(
           "PLUGIN_PROCESS_INTEGRITY_REQUIRED",
           "integrity",
-          "PROCESS runtime packages require a signed integrity envelope."
+          "Executable PROCESS/REMOTE runtime packages require a signed integrity envelope."
         );
-      } else if (pkg.integrity.artifact?.scope !== "PROCESS_ENTRYPOINT") {
+      } else if (
+        pkg.runtime.kind === "PROCESS"
+        && pkg.integrity.artifact?.scope !== "PROCESS_ENTRYPOINT"
+      ) {
         add(
           "PLUGIN_PROCESS_ARTIFACT_DIGEST_REQUIRED",
           "integrity.artifact",
           "PROCESS runtime packages require a PROCESS_ENTRYPOINT artifact digest."
+        );
+      }
+    }
+
+    if (pkg.runtime.kind === "REMOTE") {
+      const remote = pkg.runtime.remote;
+      if (!remote) {
+        add(
+          "PLUGIN_REMOTE_RUNTIME_REQUIRED",
+          "runtime.remote",
+          "REMOTE runtime packages require a remote runtime declaration."
+        );
+      } else {
+        if (remote.protocol !== "EVO-REMOTE-RUNTIME-v0.1") {
+          add(
+            "PLUGIN_REMOTE_PROTOCOL_UNSUPPORTED",
+            "runtime.remote.protocol",
+            "Expected EVO-REMOTE-RUNTIME-v0.1."
+          );
+        }
+        if (remote.hostAccess !== "NONE") {
+          add(
+            "PLUGIN_REMOTE_HOST_ACCESS_UNSUPPORTED",
+            "runtime.remote.hostAccess",
+            "REMOTE P0 does not expose Host capability callbacks."
+          );
+        }
+        if (remote.auth.scheme !== "HOST_BEARER" || !remote.auth.audience.trim()) {
+          add(
+            "PLUGIN_REMOTE_AUTH_INVALID",
+            "runtime.remote.auth",
+            "REMOTE P0 requires HOST_BEARER auth with a non-empty audience."
+          );
+        }
+        try {
+          const endpoint = new URL(remote.endpoint);
+          if (endpoint.protocol !== "https:") {
+            add(
+              "PLUGIN_REMOTE_HTTPS_REQUIRED",
+              "runtime.remote.endpoint",
+              "REMOTE runtime endpoint must use HTTPS."
+            );
+          }
+          if (endpoint.username || endpoint.password || endpoint.hash) {
+            add(
+              "PLUGIN_REMOTE_ENDPOINT_INVALID",
+              "runtime.remote.endpoint",
+              "REMOTE endpoint must not embed credentials or fragments."
+            );
+          }
+        } catch {
+          add(
+            "PLUGIN_REMOTE_ENDPOINT_INVALID",
+            "runtime.remote.endpoint",
+            "REMOTE runtime endpoint must be an absolute HTTPS URL."
+          );
+        }
+      }
+      if (pkg.storage || (pkg.events?.publish.length ?? 0) > 0 || (pkg.events?.subscribe.length ?? 0) > 0) {
+        add(
+          "PLUGIN_REMOTE_HOST_CAPABILITY_UNSUPPORTED",
+          "runtime.remote.hostAccess",
+          "REMOTE P0 cannot directly use Host storage/events; hostAccess is NONE."
         );
       }
     }
@@ -189,11 +255,14 @@ export function validatePluginManifestV010(
         "Runtime kind and isolation must use DECLARATIVE/HOST, WORKER/WORKER, PROCESS/PROCESS or REMOTE/REMOTE."
       );
     }
-    if (pkg.runtime.kind !== "DECLARATIVE" && !pkg.runtime.entrypoint?.trim()) {
+    if (
+      (pkg.runtime.kind === "PROCESS" || pkg.runtime.kind === "WORKER")
+      && !pkg.runtime.entrypoint?.trim()
+    ) {
       add(
         "PLUGIN_RUNTIME_ENTRYPOINT_REQUIRED",
         "runtime.entrypoint",
-        "Executable plugin runtimes require an entrypoint."
+        "PROCESS/WORKER runtimes require an entrypoint."
       );
     }
     if (
