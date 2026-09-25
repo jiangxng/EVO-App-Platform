@@ -91,3 +91,7 @@
 - **APP-80** REMOTE P0 uses `hostAccess: NONE`. A remote plugin receives only explicit invocation input and MUST NOT receive generic callbacks into Host Storage, Events, Secrets, Catalog or lifecycle internals.
 - **APP-81** REMOTE invocation fails closed on unsigned/untrusted Package metadata, non-HTTPS production endpoints, empty credentials, redirects, timeout, HTTP failure or response-correlation mismatch.
 - **APP-82** The existence of the REMOTE adapter does not imply platform install readiness. App Manager admission remains blocked until the required remote credential-provider capability is deterministically bound.
+
+- **APP-83** Plugin Protocol MUST expose portable, versioned Package/Feature manifest schemas that do not require importing App Platform private implementation. Independent plugin repositories and LLM tooling may use these schemas as their structural contract.
+- **APP-84** JSON Schema structural validity is necessary but not sufficient. Canonical semantic validation remains responsible for cross-field ownership, namespace, runtime-security and admission rules that cannot be safely inferred from structure alone.
+- **APP-85** Package/Feature schema and semantic validator versions MUST move together. An incompatible manifest-schema change requires an explicit Plugin Protocol version change rather than silent drift.

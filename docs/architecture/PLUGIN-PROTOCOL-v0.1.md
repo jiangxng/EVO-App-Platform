@@ -178,3 +178,30 @@ REMOTE execution protocol authority:
 P0 requires HTTPS, a signed Manifest, Host-injected bearer credentials and `hostAccess: NONE`.
 
 The adapter exists, but normal platform admission remains fail-closed until the required credential-provider capability is bound.
+
+
+## Portable manifest schemas
+
+Plugin Protocol v0.1 publishes portable JSON Schema Draft 2020-12 contracts:
+
+```text
+contracts/schema/plugin-package-v0.1.schema.json
+contracts/schema/plugin-feature-v0.1.schema.json
+```
+
+These are the normal entry point for independent plugin repositories, IDEs and LLM tooling.
+
+Validation has two layers:
+
+1. JSON Schema — portable structural validation;
+2. `validatePluginManifestV010(...)` — canonical semantic/ownership/policy validation.
+
+Structural schema does not replace semantic validation for rules such as Package/Feature ownership, namespace ownership, event namespace ownership, HTTPS remote policy or host admission.
+
+A local manifest can be checked with:
+
+```bash
+npm run plugin:validate -- examples/plugin-manifest.minimal.json
+```
+
+An incompatible schema change requires an explicit Plugin Protocol version change.
