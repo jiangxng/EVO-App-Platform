@@ -63,3 +63,5 @@
 - **APP-58** EVO Plugin Protocol is the native internal plugin/mini-app protocol. MCP is an external interoperability protocol and MUST NOT become a mandatory hop for ordinary native plugin execution.
 - **APP-59** OAuth/OIDC belong to delegated external authorization/identity boundaries. Native first-party plugins MUST NOT be forced through OAuth merely to call same-platform public capabilities.
 - **APP-60** Internal plugin runtime, permissions, storage/events and Eidos Contributions evolve as App Platform/Eidos public contracts. External MCP/HTTP adapters remain separable plugins or provider capabilities behind those contracts.
+
+- **APP-61** EVO App Platform does not own ordinary App Host/Workbench visual language. It consumes Eidos public design tokens/styles and supplies lifecycle/content data. Plugin products inherit Eidos standard spacing, button hierarchy, focus and shell geometry unless a domain-specific Eidos capability explicitly permits otherwise.
