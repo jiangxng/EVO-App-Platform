@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform + Eidos P0 Host Foundations — PROCESS isolation, signed packages, observability, and governed REMOTE runtime adapter",
+  "currentMilestone": "App Platform runtime execution mainline — lifecycle-gated Runtime Dispatcher + durable observability sink",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -81,7 +81,11 @@
     "portable-package-manifest-json-schema",
     "portable-feature-manifest-json-schema",
     "standalone-plugin-manifest-validation-cli",
-    "minimal-independent-plugin-manifest-example"
+    "minimal-independent-plugin-manifest-example",
+    "plugin-runtime-dispatcher",
+    "runtime-lifecycle-execution-gate",
+    "runtime-observability-sink",
+    "runtime-observability-jsonl-export"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -104,7 +108,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Use the portable Plugin Protocol schemas as the default independent-plugin entrypoint. Next platform gaps: remote credential-provider binding, package release/provenance workflow, SDK ergonomics, and durable runtime telemetry.",
+  "currentStep": "Stabilize Runtime Dispatcher and remote credential Provider binding. Next supply-chain maturity is trusted CI provenance verification/signing; next stronger isolation maturity is remote/container workload identity and policy.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -309,7 +313,7 @@
     ],
     "packageIntegrity": "IMPLEMENTED_P0",
     "packageIntegrityAuthority": "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md",
-    "runtimeObservability": "IMPLEMENTED_P0",
+    "runtimeObservability": "IMPLEMENTED_P0_PLUS_DURABLE_SINK",
     "runtimeObservabilityAuthority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
     "nextSecurityMaturity": [
       "trusted-ci-kms-signing-workflow",
@@ -324,7 +328,10 @@
       "authority": "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md",
       "hostAccess": "NONE",
       "credentials": "HOST_PROVIDER_INJECTED",
-      "productionTransport": "HTTPS_REQUIRED"
-    }
+      "productionTransport": "HTTPS_REQUIRED",
+      "dispatch": "IMPLEMENTED_P0",
+      "genericHttpInvokeEndpoint": "PROHIBITED"
+    },
+    "runtimeDispatcher": "IMPLEMENTED_P0"
   }
 }
