@@ -1,5 +1,7 @@
 # LLM Context Contract
 
+> **P0 mainline (2026-09-25):** Read `docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md` first for plugin-platform work. The default integration scope is **EVO App Platform + Eidos only**. Do not load, modify or run EVO Ledger Runtime, Enterprise Agent/EC or unrelated plugin CI unless the task directly owns that dependency or changes Plugin Protocol compatibility.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
