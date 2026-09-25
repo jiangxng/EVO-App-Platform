@@ -193,3 +193,19 @@ REMOTE executable plugins authenticate through the generic `plugin.remote-creden
 The reference Host Provider is an installable `PLATFORM_PROVIDER`. Provider descriptor activation and Provider Runtime registration are both required for REMOTE readiness.
 
 Secrets remain outside Package manifests and Eidos settings.
+
+
+## Supply-chain evidence
+
+Package integrity supports layered evidence:
+
+```text
+EVO Ed25519 Package signature
++ artifact SHA-256
++ optional SLSA provenance
++ optional Sigstore bundle verification
+```
+
+Trust policy remains Host-owned. A Package cannot self-authorize signing keys, builder identities, OIDC issuers or workflow identities.
+
+Declared Sigstore evidence is enforced before PROCESS launch.
