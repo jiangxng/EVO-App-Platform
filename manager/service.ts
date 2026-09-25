@@ -157,7 +157,7 @@ export function createAppManagerService(
       };
     }
 
-    const packages = new Set<string>();
+    const packages = new Set<string>([target.packageId]);
     const features = new Set<string>();
     const missingCapabilities = new Set<string>();
     const blockers: Array<{ code: string; message: string }> = [];
@@ -170,19 +170,43 @@ export function createAppManagerService(
     }
 
     const compatibility = evaluatePackageCompatibility(target);
-    if (compatibility.state === "INCOMPATIBLE") {
-      blockers.push({
-        code: "HOST_INCOMPATIBLE",
-        message: compatibility.messages.join(" ")
-      });
-    }
 
-    const runtime = inspectPluginRuntimeV010(target);
-    if (runtime.status === "UNSUPPORTED") {
-      blockers.push({
-        code: "PLUGIN_RUNTIME_UNSUPPORTED",
-        message: runtime.message
-      });
+    for (const candidatePackageId of packages) {
+      const candidate = catalog.get(candidatePackageId);
+      if (!candidate) continue;
+
+      const candidateCompatibility = evaluatePackageCompatibility(candidate);
+      if (candidateCompatibility.state === "INCOMPATIBLE") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "HOST_INCOMPATIBLE"
+            : "DEPENDENCY_HOST_INCOMPATIBLE",
+          message: `Package '${candidatePackageId}': ${candidateCompatibility.messages.join(" ")}`
+        });
+      }
+
+      const candidateRuntime = inspectPluginRuntimeV010(candidate);
+      if (candidateRuntime.status === "UNSUPPORTED") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "PLUGIN_RUNTIME_UNSUPPORTED"
+            : "DEPENDENCY_RUNTIME_UNSUPPORTED",
+          message: `Package '${candidatePackageId}': ${candidateRuntime.message}`
+        });
+      }
+
+      if (
+        candidatePackageId !== target.packageId
+        && (
+          (candidate.permissions?.length ?? 0) > 0
+          || candidate.publisher?.trust === "UNVERIFIED"
+        )
+      ) {
+        blockers.push({
+          code: "DEPENDENCY_APPROVAL_REQUIRED",
+          message: `Dependency Package '${candidatePackageId}' requests permissions or unverified publisher trust and requires an explicit separate approval flow.`
+        });
+      }
     }
 
     const requestedPermissions = structuredClone(target.permissions ?? []);
@@ -236,7 +260,20 @@ export function createAppManagerService(
     for (const id of plan.installPackages) {
       const pkg = catalog.get(id);
       if (!pkg) throw new Error(`PACKAGE_NOT_FOUND_DURING_INSTALL: ${id}`);
-      store.saveInstalledPackage({ packageId: pkg.packageId, version: pkg.version, installedAt: timestamp });
+      const grantedPermissions = id === packageId
+        ? (authorization.approvedPermissions ?? []).filter(permissionId =>
+            (pkg.permissions ?? []).some(permission => permission.id === permissionId)
+          )
+        : [];
+      store.saveInstalledPackage({
+        packageId: pkg.packageId,
+        version: pkg.version,
+        installedAt: timestamp,
+        trustApproved: pkg.publisher?.trust === "UNVERIFIED"
+          ? id === packageId && authorization.trustApproved === true
+          : true,
+        grantedPermissions
+      });
       onLifecycleEvent({
         contractVersion: "0.1.0",
         type: "PACKAGE_INSTALLED",
