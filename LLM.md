@@ -1,5 +1,7 @@
 # LLM Context Contract
 
+> **Mandatory proactive-engineering instinct:** Read `docs/architecture/LLM-PROACTIVE-ENGINEERING-INSTINCTS-v0.1.md` and `llm.foundation-map.json` before treating an explicit user request as the complete engineering scope. A participating LLM must proactively detect mature-platform foundations the human did not know to name, classify gaps as NOW / SOON / WATCH, and address NOW gaps at the correct owner boundary before feature expansion makes them expensive.
+
 > **P0 mainline (2026-09-25):** Read `docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md` first for plugin-platform work, then `docs/architecture/INTERNAL-PLUGIN-AND-EXTERNAL-INTEGRATION-v0.1.md` when deciding protocol boundaries. For App Host/Workbench visual work, Eidos Productive Design Language is authoritative; App Platform must consume the pinned Eidos design-language snapshot rather than define parallel Workbench CSS. The default integration scope is **EVO App Platform + Eidos only**. Native EVO plugins use EVO Plugin Protocol; MCP/OAuth are external-integration protocols and are not default native-plugin dependencies. Do not load, modify or run EVO Ledger Runtime, Enterprise Agent/EC or unrelated plugin CI unless the task directly owns that dependency or changes Plugin Protocol compatibility.
 
 A fresh LLM must first determine:

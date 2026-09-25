@@ -50,7 +50,8 @@
     "app-platform-eidos-focused-integration-ci",
     "plugin-platform-permanent-test-surface",
     "native-plugin-vs-external-integration-boundary",
-    "eidos-productive-design-language-consumption"
+    "eidos-productive-design-language-consumption",
+    "llm-proactive-engineering-instincts"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -239,5 +240,16 @@
     "eidosSourceCommit": "8fd6071f190555e6083723f9c2eef5e4b1473bfe",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
+  },
+  "llmProactiveEngineering": {
+    "authority": "docs/architecture/LLM-PROACTIVE-ENGINEERING-INSTINCTS-v0.1.md",
+    "completenessMap": "llm.foundation-map.json",
+    "classification": [
+      "NOW",
+      "SOON",
+      "WATCH"
+    ],
+    "rule": "human need not enumerate standard platform foundations",
+    "review": "periodic clean-room fresh-LLM architecture review"
   }
 }

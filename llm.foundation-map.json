@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/architecture/LLM-PROACTIVE-ENGINEERING-INSTINCTS-v0.1.md",
+  "reviewModel": "NOW_SOON_WATCH",
+  "reviewTriggers": [
+    "before broad platform expansion",
+    "when the same workaround appears twice",
+    "when CI/context grows with unrelated modules",
+    "when a second consumer needs the same capability",
+    "before declaring a foundation stable",
+    "during periodic clean-room architecture review"
+  ],
+  "project": "EVO-App-Platform",
+  "domains": {
+    "pluginProtocol": "NOW",
+    "eidosIntegrationBoundary": "NOW",
+    "hostCompatibilityRange": "NOW",
+    "activationLifecycle": "NOW",
+    "permissionsTrust": "SOON",
+    "isolatedPluginRuntime": "SOON",
+    "pluginStorageEvents": "SOON",
+    "packageIntegritySigning": "SOON",
+    "catalogDistributionUpdates": "SOON",
+    "secretsIdentityAuthorization": "SOON",
+    "observabilityDiagnostics": "SOON",
+    "releaseDeprecationMigration": "SOON",
+    "designLanguage": "DELEGATED_EIDOS",
+    "accessibilityResponsive": "DELEGATED_EIDOS",
+    "externalMcpOauthInteroperability": "WATCH",
+    "ecosystemCertification": "NOW",
+    "llmContextArchitecture": "NOW"
+  }
+}
