@@ -345,3 +345,36 @@ model configuration:
 ```
 
 Enterprise Agent consumes the generic `evo.llm.inference@0.1.0` contract and does not import the OpenAI runtime. A generic Provider Runtime Registry resolves active provider descriptors to configured runtimes. An installed descriptor without configured credentials is not considered an executable provider.
+
+
+## Remote executable credential providers
+
+REMOTE plugin authentication is also a Provider capability.
+
+P0 capability:
+
+```text
+plugin.remote-credential
+contract: evo.plugin.remote-credential@0.1.0
+```
+
+Reference Provider:
+
+```text
+host-remote-credential-provider
+providerId: host.remote-bearer
+binding: IN_PROCESS
+secret boundary: APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON
+```
+
+The reference Provider is intentionally simple and deployment-scoped. It proves the contract without making static bearer tokens the long-term identity architecture.
+
+Future interchangeable Provider Packages may implement:
+
+- OAuth 2.1 client credentials;
+- workload identity federation;
+- cloud IAM tokens;
+- enterprise vault/KMS-issued credentials;
+- mTLS workload credentials.
+
+REMOTE Runtime consumes only the generic credential Provider contract.
