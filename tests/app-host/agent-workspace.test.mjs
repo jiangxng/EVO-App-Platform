@@ -6,7 +6,7 @@ import { enterpriseAgentExperienceAssets } from "../../dist/agents/enterprise-ag
 
 test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Panel and mobile surface switching", () => {
   assert.match(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
-  assert.match(appHostShellHtml, /--activity-width:50px/);
+  assert.match(appHostShellHtml, /--eidos-activity-width:48px/);
   assert.match(appHostShellHtml, /data-eidos-activity-bar/);
   assert.match(appHostShellHtml, /data-eidos-side-panel/);
   assert.match(appHostShellHtml, /data-eidos-workbench-splitter/);
@@ -36,6 +36,7 @@ test("Enterprise Agent owns its Activity contribution instead of App Host owning
   assert.equal(activity.activity.id, "enterprise-agent");
   assert.equal(activity.activity.route, "/enterprise-agent");
   assert.equal(activity.activity.kind, "side-route");
+  assert.equal(activity.activity.icon, "agent");
 });
 
 
