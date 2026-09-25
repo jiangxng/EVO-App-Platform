@@ -12,7 +12,10 @@ import type {
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
 import { evaluatePackageCompatibility } from "./compatibility.js";
-import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
+import {
+  inspectPluginRuntimeV010,
+  type PluginRuntimeStatusV010
+} from "./plugin-runtime-host.js";
 
 export interface InstallAuthorizationV010 {
   trustApproved?: boolean;
@@ -62,7 +65,9 @@ export function createAppManagerService(
   experienceAssets: ReadonlyMap<string, unknown> = new Map(),
   onLifecycleEvent: (event: PluginLifecycleEventV010) => void = () => {},
   evaluateIntegrity: (pkg: PackageManifestV010) => PackageIntegrityAdmissionV010 =
-    () => ({ state: "UNSIGNED", message: "Package integrity not evaluated by this Host." })
+    () => ({ state: "UNSIGNED", message: "Package integrity not evaluated by this Host." }),
+  evaluateRuntime: (pkg: PackageManifestV010) => PluginRuntimeStatusV010 =
+    inspectPluginRuntimeV010
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -192,7 +197,7 @@ export function createAppManagerService(
         });
       }
 
-      const candidateRuntime = inspectPluginRuntimeV010(candidate);
+      const candidateRuntime = evaluateRuntime(candidate);
       if (candidateRuntime.status !== "READY") {
         blockers.push({
           code: candidatePackageId === target.packageId
