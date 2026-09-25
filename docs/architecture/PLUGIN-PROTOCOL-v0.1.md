@@ -35,6 +35,8 @@ The current protocol surface is intentionally small:
 - EAGER / ON_DEMAND Feature activation;
 - runtime declaration: DECLARATIVE / WORKER / PROCESS / REMOTE;
 - package-scoped storage/event declarations;
+- publisher-key package integrity envelope and artifact digest;
+- provenance metadata;
 - deterministic manifest conformance.
 
 Plugins depend on public contracts/capabilities, never another repository's private code.
@@ -154,3 +156,14 @@ UNVERIFIED local executable code → fail-closed
 ```
 
 PROCESS plugins access Host capabilities only through the scoped IPC Host API.
+
+
+## Package integrity
+
+Supply-chain integrity is part of native Plugin Protocol admission.
+
+Authority:
+
+`docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md`
+
+PROCESS packages require a signed `PROCESS_ENTRYPOINT` digest. Invalid/untrusted signatures fail admission. The Host owns trusted keys; Packages cannot self-declare trusted public keys.
