@@ -11,6 +11,11 @@ import {
   pluginStorePageSource
 } from "../../dist/manager/plugin-store-page.js";
 import { renderAppHostPageToHtml } from "../../dist/vendor/eidos/src/app-host/index.js";
+import { appHostShellHtml } from "../../dist/manager/app-host-shell.js";
+import {
+  eidosDesignPolicyV010,
+  eidosDesignTokensV010
+} from "../../dist/vendor/eidos/src/design-language/index.js";
 
 function loaded(definition) {
   return {
@@ -68,4 +73,20 @@ test("App Platform lifecycle is reflected by Eidos Extension Manager", () => {
   const removed = createPluginStorePage([companyNotesPackage], manager.getSnapshot());
   assert.equal(removed.items[0].status.id, "not-installed");
   assert.equal(pluginStorePageSource, "app://evo-app-platform/pages/plugin-store");
+});
+
+
+test("App Platform consumes Eidos design language instead of owning Workbench CSS", async () => {
+  assert.equal(eidosDesignTokensV010.spacing.xs, 4);
+  assert.equal(eidosDesignPolicyV010.actions.maxPrimaryPerScope, 1);
+  assert.match(appHostShellHtml, /--eidos-space-xs:4px/);
+  assert.match(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
+
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(
+    new URL("../../manager/app-host-shell.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(source, /eidosProductiveWorkbenchCss/);
+  assert.doesNotMatch(source, /\[data-eidos-activity-bar\]\s*\{/);
 });
