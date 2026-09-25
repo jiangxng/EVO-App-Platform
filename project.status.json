@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform runtime execution mainline — lifecycle-gated Runtime Dispatcher + durable observability sink",
+  "currentMilestone": "Plugin supply-chain trust — signed package integrity + SLSA provenance verification",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -85,7 +85,10 @@
     "plugin-runtime-dispatcher",
     "runtime-lifecycle-execution-gate",
     "runtime-observability-sink",
-    "runtime-observability-jsonl-export"
+    "runtime-observability-jsonl-export",
+    "slsa-provenance-statement-contract",
+    "slsa-builder-root-of-trust-verification",
+    "slsa-artifact-subject-binding"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -108,7 +111,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize Runtime Dispatcher and remote credential Provider binding. Next supply-chain maturity is trusted CI provenance verification/signing; next stronger isolation maturity is remote/container workload identity and policy.",
+  "currentStep": "Stabilize SLSA-compatible provenance verification. Next optional public-ecosystem layer is Sigstore bundle/transparency/OIDC verification behind an explicit verifier adapter.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -311,15 +314,14 @@
       "remote-container-isolation-pending",
       "os-cpu-rss-network-policy-pending"
     ],
-    "packageIntegrity": "IMPLEMENTED_P0",
+    "packageIntegrity": "IMPLEMENTED_P0_PLUS_SLSA_PROVENANCE",
     "packageIntegrityAuthority": "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md",
     "runtimeObservability": "IMPLEMENTED_P0_PLUS_DURABLE_SINK",
     "runtimeObservabilityAuthority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
     "nextSecurityMaturity": [
-      "trusted-ci-kms-signing-workflow",
-      "sigstore-or-equivalent-provenance-verification",
-      "bundle-level-artifact-integrity",
-      "remote-container-hostile-code-isolation",
+      "sigstore-bundle-transparency-oidc-verifier-adapter",
+      "trusted-ci-kms-hsm-signing-workflow",
+      "remote-container-workload-identity",
       "durable-opentelemetry-compatible-runtime-telemetry"
     ],
     "remoteRuntime": {
