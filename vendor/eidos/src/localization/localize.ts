@@ -107,6 +107,73 @@ export function localizeAppHostPageDefinition(
     return definition;
   }
 
+  if (definition.kind === "extension-manager" && definition.contractVersion === "0.1.0") {
+    const managerId = typeof definition.id === "string" ? definition.id : pageId;
+    if (typeof definition.title === "string") {
+      definition.title = localization.resolve(
+        namespace,
+        `extensions.${managerId}.title`,
+        definition.title
+      );
+    }
+    if (typeof definition.description === "string") {
+      definition.description = localization.resolve(
+        namespace,
+        `extensions.${managerId}.description`,
+        definition.description
+      );
+    }
+    if (typeof definition.emptyMessage === "string") {
+      definition.emptyMessage = localization.resolve(
+        namespace,
+        `extensions.${managerId}.empty`,
+        definition.emptyMessage
+      );
+    }
+    if (Array.isArray(definition.items)) {
+      for (const item of definition.items) {
+        if (!isObject(item) || typeof item.id !== "string") continue;
+        if (isObject(item.status) && typeof item.status.label === "string") {
+          const statusId = typeof item.status.id === "string" ? item.status.id : "default";
+          item.status.label = localization.resolve(
+            namespace,
+            `extensions.${managerId}.status.${statusId}.label`,
+            item.status.label
+          );
+        }
+        const actions = [
+          ...(isObject(item.primaryAction) ? [item.primaryAction] : []),
+          ...(Array.isArray(item.secondaryActions) ? item.secondaryActions.filter(isObject) : [])
+        ];
+        for (const action of actions) {
+          if (typeof action.id !== "string") continue;
+          if (typeof action.label === "string") {
+            action.label = localization.resolve(
+              namespace,
+              `extensions.${managerId}.action.${action.id}.label`,
+              action.label
+            );
+          }
+          if (typeof action.helpText === "string") {
+            action.helpText = localization.resolve(
+              namespace,
+              `extensions.${managerId}.action.${action.id}.help`,
+              action.helpText
+            );
+          }
+          if (typeof action.disabledReason === "string") {
+            action.disabledReason = localization.resolve(
+              namespace,
+              `extensions.${managerId}.action.${action.id}.disabled`,
+              action.disabledReason
+            );
+          }
+        }
+      }
+    }
+    return definition;
+  }
+
   if (definition.kind === "form" && definition.contractVersion === "0.1.1") {
     if (typeof definition.title === "string") {
       definition.title = localization.resolve(
