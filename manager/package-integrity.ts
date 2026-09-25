@@ -28,6 +28,10 @@ export interface TrustedPublisherKeyV010 {
   publicKeyPem: string;
   status?: "TRUSTED" | "REVOKED";
   source?: string;
+  provenancePolicy?: {
+    allowedBuilderIds?: string[];
+    allowedBuildTypes?: string[];
+  };
 }
 
 export interface PluginIntegrityTrustStoreV010 {
@@ -268,6 +272,80 @@ export function verifyPackageIntegrityV010(
         provenance: integrity.provenance,
         message: `Artifact digest mismatch. Expected ${integrity.artifact.digest}, got ${actualDigest}.`
       };
+    }
+  }
+
+  const provenanceStatement = integrity.provenance?.statement;
+  if (provenanceStatement) {
+    if (
+      provenanceStatement._type !== "https://in-toto.io/Statement/v1"
+      || provenanceStatement.predicateType !== "https://slsa.dev/provenance/v1"
+    ) {
+      return {
+        state: "INVALID",
+        packageId: pkg.packageId,
+        publisherId,
+        keyId: integrity.keyId,
+        algorithm: integrity.algorithm,
+        digest: integrity.artifact?.digest,
+        provenance: integrity.provenance,
+        message: "SLSA provenance statement type/predicate is unsupported."
+      };
+    }
+
+    const builderId = provenanceStatement.predicate.runDetails.builder.id;
+    const buildType = provenanceStatement.predicate.buildDefinition.buildType;
+    const policy = trustedKey.provenancePolicy;
+
+    if (
+      policy?.allowedBuilderIds?.length
+      && !policy.allowedBuilderIds.includes(builderId)
+    ) {
+      return {
+        state: "UNTRUSTED",
+        packageId: pkg.packageId,
+        publisherId,
+        keyId: integrity.keyId,
+        algorithm: integrity.algorithm,
+        digest: integrity.artifact?.digest,
+        provenance: integrity.provenance,
+        message: `SLSA builder '${builderId}' is not trusted for this signing key.`
+      };
+    }
+
+    if (
+      policy?.allowedBuildTypes?.length
+      && !policy.allowedBuildTypes.includes(buildType)
+    ) {
+      return {
+        state: "UNTRUSTED",
+        packageId: pkg.packageId,
+        publisherId,
+        keyId: integrity.keyId,
+        algorithm: integrity.algorithm,
+        digest: integrity.artifact?.digest,
+        provenance: integrity.provenance,
+        message: `SLSA build type '${buildType}' is not trusted for this signing key.`
+      };
+    }
+
+    if (integrity.artifact) {
+      const expectedHex = integrity.artifact.digest.replace(/^sha256:/, "");
+      const subjectMatches = provenanceStatement.subject.some(subject =>
+        subject.digest.sha256 === expectedHex
+      );
+      if (!subjectMatches) {
+        return {
+          state: "INVALID",
+          packageId: pkg.packageId,
+          publisherId,
+          keyId: integrity.keyId,
+          algorithm: integrity.algorithm,
+          digest: integrity.artifact.digest,
+          provenance: integrity.provenance,
+          message: "SLSA provenance subject does not bind the declared artifact digest."
+        };
+      }
     }
   }
 
