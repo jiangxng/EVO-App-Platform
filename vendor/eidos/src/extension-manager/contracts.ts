@@ -60,7 +60,7 @@ export interface ExtensionManagerItemV010 {
     events?: string[];
   };
   runtime?: {
-    kind: "declarative" | "worker" | "remote";
+    kind: "declarative" | "worker" | "process" | "remote";
     isolation: "host" | "worker" | "process" | "remote";
     status?: "ready" | "inactive" | "unsupported" | "error";
   };
