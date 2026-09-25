@@ -41,7 +41,8 @@
     "packageIntegritySigning": "ED25519_TRUST_STORE_ARTIFACT_DIGEST_IMPLEMENTED",
     "runtimeObservability": "STRUCTURED_BOUNDED_DIAGNOSTICS_IMPLEMENTED",
     "portablePluginManifestSchemas": "PACKAGE_FEATURE_JSON_SCHEMA_AND_CLI_IMPLEMENTED",
-    "runtimeDispatcher": "LIFECYCLE_GATED_PROCESS_REMOTE_IMPLEMENTED"
+    "runtimeDispatcher": "LIFECYCLE_GATED_PROCESS_REMOTE_IMPLEMENTED",
+    "slsaProvenanceVerification": "IN_TOTO_STATEMENT_SLSA_V1_BUILDER_ARTIFACT_VERIFICATION_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -65,7 +66,10 @@
     "processEntrypointDigest": "IMPLEMENTED",
     "invalidOrUntrusted": "FAIL_CLOSED",
     "unsignedDeclarative": "PRE_1_0_COMPATIBILITY_ONLY",
-    "provenanceVerification": "METADATA_ONLY_EXTERNAL_VERIFICATION_PENDING"
+    "provenanceVerification": "METADATA_ONLY_EXTERNAL_VERIFICATION_PENDING",
+    "slsaProvenance": "IMPLEMENTED",
+    "hostBuilderPolicy": "IMPLEMENTED",
+    "sigstoreTransparencyOidcVerification": "PENDING_ADAPTER"
   },
   "runtimeObservability": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
