@@ -50,7 +50,7 @@ const platformActivities: WorkbenchActivityV010[] = [
   {
     id: "apps",
     title: "Apps",
-    icon: "▦",
+    icon: "dashboard",
     kind: "navigation",
     order: 10,
     localization: {
@@ -61,7 +61,7 @@ const platformActivities: WorkbenchActivityV010[] = [
   {
     id: "plugins",
     title: "Plugins",
-    icon: "◇",
+    icon: "plugins",
     kind: "workspace-route",
     route: "/store",
     order: 30,
@@ -73,7 +73,7 @@ const platformActivities: WorkbenchActivityV010[] = [
   {
     id: "workspace",
     title: "Workspace",
-    icon: "▣",
+    icon: "workspace",
     kind: "workspace-focus",
     order: 40,
     localization: {
@@ -84,7 +84,7 @@ const platformActivities: WorkbenchActivityV010[] = [
   {
     id: "settings",
     title: "Settings",
-    icon: "⚙",
+    icon: "settings",
     kind: "workspace-route",
     route: "/settings",
     order: 1000,
