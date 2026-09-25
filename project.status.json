@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
-  "status": "PLUGIN_PROTOCOL_FOUNDATION",
-  "currentMilestone": "Plugin Protocol v0.1 — stable plugin boundary and isolated CI",
+  "status": "PLUGIN_PLATFORM_MAINLINE",
+  "currentMilestone": "App Platform + Eidos Plugin Platform v0.1 — stable protocol, Extension Manager and focused integration CI",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -45,7 +45,10 @@
     "plugin-protocol-v0.1-baseline",
     "plugin-manifest-conformance-validator",
     "platform-plugin-ci-isolation",
-    "ecosystem-certification-separation"
+    "ecosystem-certification-separation",
+    "eidos-extension-manager",
+    "app-platform-eidos-focused-integration-ci",
+    "plugin-platform-permanent-test-surface"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -70,7 +73,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Freeze and certify Plugin Protocol v0.1, then develop each plugin as an independent CI unit. Do not resume broad plugin portfolio expansion until the protocol/CI boundary is stable.",
+  "currentStep": "Validate and ship the App Platform + Eidos Plugin Platform page and focused integration gate. Do not resume broad plugin/runtime development until this boundary is stable.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -204,5 +207,18 @@
     "authority": "docs/architecture/PLUGIN-PROTOCOL-v0.1.md",
     "ciRule": "platform-core-only / owning-plugin-only / separate-ecosystem-certification",
     "compatibility": "exact-version-pin-until-1.0"
+  },
+  "primaryIntegrationMainline": {
+    "projects": [
+      "EVO-App-Platform",
+      "Eidos"
+    ],
+    "defaultCI": "focused-app-platform-eidos-only",
+    "excludedByDefault": [
+      "EVO Ledger Runtime",
+      "Experience-Compiler/Enterprise Agent",
+      "unrelated plugins"
+    ],
+    "authority": "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
   }
 }
