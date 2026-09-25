@@ -92,15 +92,17 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   if (typeof rendered === "string") container.innerHTML = rendered;
   else container.replaceChildren(rendered);
 
-  const catalogButtons = container.querySelectorAll<HTMLButtonElement>("[data-eidos-catalog-action]");
-  if (catalogButtons.length > 0) {
+  const extensionActionButtons = container.querySelectorAll<HTMLButtonElement>(
+    "[data-eidos-catalog-action],[data-eidos-extension-action]"
+  );
+  if (extensionActionButtons.length > 0) {
     const actionStatus = document.createElement("pre");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");
     actionStatus.style.marginTop = "12px";
     container.appendChild(actionStatus);
 
-    for (const button of Array.from(catalogButtons)) {
+    for (const button of Array.from(extensionActionButtons)) {
       const handler = () => {
         void (async () => {
           if (button.disabled) {
@@ -156,7 +158,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               },
               values: { itemId },
               sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
-              actionId: button.dataset.eidosCatalogAction ?? command,
+              actionId: button.dataset.eidosCatalogAction
+                ?? button.dataset.eidosExtensionAction
+                ?? command,
               requiresConfirmation: button.dataset.eidosConfirm === "true"
             };
 
