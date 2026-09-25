@@ -98,3 +98,27 @@ install
 Disable/uninstall must fail closed when active dependents would lose required Features or Capabilities. Authoritative business history is preserved unless a separate explicit data-retention operation exists.
 
 These are default platform expectations and do not require the human to request each transition separately.
+
+
+## 7. Plugin CI isolation
+
+Continuous integration follows ownership boundaries.
+
+```text
+App Platform change
+→ Platform Core + Plugin Protocol tests
+→ no implicit full plugin portfolio
+
+Plugin A change
+→ Plugin A protocol conformance + Plugin A tests
+→ no Plugin B/C/... tests
+
+Plugin Protocol change / nightly / release
+→ separate Ecosystem Certification
+```
+
+Full-system validation remains valuable, but it is a certification layer rather than the default development loop.
+
+A plugin may use lightweight public-contract fixtures/fakes for ordinary CI. A real EVO/Eidos/provider runtime is started only when that plugin's direct integration contract materially requires it.
+
+Changing one plugin must not trigger repository-wide or ecosystem-wide CI merely because other plugins share the same host.

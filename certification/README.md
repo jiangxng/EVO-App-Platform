@@ -12,3 +12,15 @@ Planned baseline:
 - AP-IC-05 Uninstall/reinstall
 - AP-IC-06 External runtime extension
 - AP-IC-07 Eidos App Host discovery
+
+
+## CI separation
+
+Certification is intentionally separate from ordinary plugin development.
+
+- Platform PR: protocol/core tests only.
+- Plugin PR: owning plugin tests only.
+- Full portfolio: scheduled/manual/release Ecosystem Certification.
+- Material Plugin Protocol changes: run Ecosystem Certification before release/acceptance.
+
+The certification layer may become broader over time without making ordinary plugin feedback slower.

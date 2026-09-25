@@ -1,0 +1,27 @@
+name: Plugin CI - Trading Lite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/trading-lite/**"
+      - "tests/actions/trading-lite-evo.test.mjs"
+  pull_request:
+    paths:
+      - "apps/trading-lite/**"
+      - "tests/actions/trading-lite-evo.test.mjs"
+
+concurrency:
+  group: plugin-trading-lite-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:plugin:trading-lite

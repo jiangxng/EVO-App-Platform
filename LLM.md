@@ -2,7 +2,7 @@
 
 A fresh LLM must first determine:
 
-1. whether the task belongs to App Manager, Catalog, an App, EVO, or Eidos;
+1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
 2. which public contracts are authoritative;
 3. manifest/version/dependency impact;
 4. lifecycle safety and rollback implications;
@@ -47,6 +47,8 @@ Contribution = what the Feature adds
 ```
 
 Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modifying manifests or lifecycle behavior.
+
+For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. Load only that plugin's context plus the public contracts for capabilities it directly consumes. Do not load or test the whole plugin portfolio by default.
 
 
 ## Current handoff — 2026-09-23
@@ -368,3 +370,16 @@ credentials / API keys / passwords
 ```
 
 Plugin Store exposes Configure only when a Package actually declares configuration.
+
+
+## Plugin CI Isolation Rule
+
+The default LLM development unit is one owner boundary.
+
+```text
+platform task -> platform protocol/core context + platform CI
+plugin task   -> plugin context + Plugin Protocol + direct public contracts + plugin CI
+protocol task -> protocol context + protocol CI + explicit ecosystem certification
+```
+
+Do not use full-ecosystem CI as a substitute for defining stable contracts. Unrelated plugins are not ordinary regression dependencies.

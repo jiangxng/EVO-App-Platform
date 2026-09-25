@@ -1,0 +1,31 @@
+name: Plugin CI - Ledger Configurator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/ledger-runtime-configurator/**"
+      - "tests/configurator/**"
+      - "tests/ledger-runtime-configurator-compiler.test.mjs"
+      - "tests/ledger-runtime-configurator-ui.test.mjs"
+  pull_request:
+    paths:
+      - "apps/ledger-runtime-configurator/**"
+      - "tests/configurator/**"
+      - "tests/ledger-runtime-configurator-compiler.test.mjs"
+      - "tests/ledger-runtime-configurator-ui.test.mjs"
+
+concurrency:
+  group: plugin-ledger-configurator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:plugin:ledger-configurator

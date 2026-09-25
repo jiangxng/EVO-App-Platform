@@ -1,0 +1,24 @@
+{
+  "name": "EVO Plugin Protocol",
+  "protocolVersion": "0.1.0",
+  "authority": "EVO App Platform",
+  "packageContract": "PackageManifestV010",
+  "lifecycleModel": [
+    "Package",
+    "Feature",
+    "Contribution"
+  ],
+  "contributionKinds": [
+    "eidos.experience",
+    "eidos.localization-bundle",
+    "eidos.workbench-activity",
+    "eidos.settings",
+    "platform.service-provider"
+  ],
+  "validationBoundary": {
+    "platformCI": "platform-core-and-protocol-only",
+    "pluginCI": "own-plugin-only",
+    "ecosystemCertification": "separate-nightly-release-or-protocol-change"
+  },
+  "dependencyRule": "Plugins consume public capabilities/contracts only; repository identity is not a dependency."
+}

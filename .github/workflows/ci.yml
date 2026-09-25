@@ -1,12 +1,48 @@
-name: CI
+name: Platform CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - "manager/**"
+      - "contracts/**"
+      - "catalog/catalog.ts"
+      - "actions/router.ts"
+      - "vendor/eidos/**"
+      - "tests/protocol/**"
+      - "tests/manager/core-manager.test.mjs"
+      - "tests/actions/router.test.mjs"
+      - "package.json"
+      - "tsconfig.json"
+      - ".github/workflows/ci.yml"
+      - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
+      - "INVARIANTS.md"
+      - "VALIDATION-CONSTITUTION.md"
+      - "LLM.md"
   pull_request:
+    paths:
+      - "manager/**"
+      - "contracts/**"
+      - "catalog/catalog.ts"
+      - "actions/router.ts"
+      - "vendor/eidos/**"
+      - "tests/protocol/**"
+      - "tests/manager/core-manager.test.mjs"
+      - "tests/actions/router.test.mjs"
+      - "package.json"
+      - "tsconfig.json"
+      - ".github/workflows/ci.yml"
+      - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
+      - "INVARIANTS.md"
+      - "VALIDATION-CONSTITUTION.md"
+      - "LLM.md"
+
+concurrency:
+  group: platform-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-test:
+  protocol-and-core:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,4 +50,4 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm test
+      - run: npm run test:platform
