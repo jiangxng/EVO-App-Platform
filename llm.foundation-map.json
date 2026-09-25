@@ -42,14 +42,16 @@
     "runtimeObservability": "STRUCTURED_BOUNDED_DIAGNOSTICS_IMPLEMENTED",
     "portablePluginManifestSchemas": "PACKAGE_FEATURE_JSON_SCHEMA_AND_CLI_IMPLEMENTED",
     "runtimeDispatcher": "LIFECYCLE_GATED_PROCESS_REMOTE_IMPLEMENTED",
-    "slsaProvenanceVerification": "IN_TOTO_STATEMENT_SLSA_V1_BUILDER_ARTIFACT_VERIFICATION_IMPLEMENTED"
+    "slsaProvenanceVerification": "IN_TOTO_STATEMENT_SLSA_V1_BUILDER_ARTIFACT_VERIFICATION_IMPLEMENTED",
+    "remoteCredentialProvider": "PLATFORM_PROVIDER_RUNTIME_REGISTRY_BINDING_IMPLEMENTED",
+    "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
     "declarativeHost": "IMPLEMENTED",
     "processProcess": "IMPLEMENTED_P0_FIRST_PARTY_VERIFIED",
     "workerWorker": "DISABLED_NOT_SECURITY_BOUNDARY",
-    "remoteRemote": "ADAPTER_IMPLEMENTED_ADMISSION_FAIL_CLOSED_PENDING_CREDENTIAL_PROVIDER",
+    "remoteRemote": "ADAPTER_AND_PROVIDER_BINDING_IMPLEMENTED_READINESS_GATED",
     "unverifiedExecutable": "FAIL_CLOSED",
     "next": [
       "remote-auth-provider-binding",
@@ -80,17 +82,20 @@
     "openTelemetryExport": "PENDING",
     "durableJsonlSink": "IMPLEMENTED",
     "sinkFailureIsolation": "IMPLEMENTED",
-    "openTelemetryAdapter": "PENDING"
+    "openTelemetryAdapter": "PENDING",
+    "extensionManagerHistory": "IMPLEMENTED"
   },
   "remoteRuntime": {
     "authority": "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md",
     "adapter": "IMPLEMENTED_P0",
     "hostAccess": "NONE",
     "auth": "HOST_BEARER_PROVIDER_REQUIRED",
-    "installAdmission": "FAIL_CLOSED",
+    "installAdmission": "READINESS_GATED",
     "remoteHostCapabilityRpc": "NOT_IMPLEMENTED",
     "dispatcher": "IMPLEMENTED",
-    "credentialProviderResolution": "SUPPORTED_BY_DISPATCHER_FAIL_CLOSED_WHEN_MISSING"
+    "credentialProviderResolution": "SUPPORTED_BY_DISPATCHER_FAIL_CLOSED_WHEN_MISSING",
+    "credentialProviderBinding": "IMPLEMENTED",
+    "referenceProvider": "host-remote-credential-provider"
   },
   "pluginProtocolPortability": {
     "packageSchema": "contracts/schema/plugin-package-v0.1.schema.json",
