@@ -31,6 +31,11 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.mobileWorkspace": "Workspace",
       "shell.settingsSaved": "Settings saved.",
       "workbench.activityBar": "Activity Bar",
+      "workbench.workspaceToolbar": "Workspace toolbar",
+      "workbench.workspaceTarget": "Workspace route or web address",
+      "workbench.resizeSidePanel": "Resize side panel",
+      "workbench.hideSidePanel": "Hide side panel",
+      "workbench.showSidePanel": "Show side panel",
       "workbench.status": "{title} · {status}"
     }
   },
@@ -64,6 +69,11 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.mobileWorkspace": "工作区",
       "shell.settingsSaved": "设置已保存。",
       "workbench.activityBar": "活动栏",
+      "workbench.workspaceToolbar": "工作区工具栏",
+      "workbench.workspaceTarget": "工作区路径或网页地址",
+      "workbench.resizeSidePanel": "调整侧栏宽度",
+      "workbench.hideSidePanel": "隐藏侧栏",
+      "workbench.showSidePanel": "显示侧栏",
       "workbench.status": "{title} · {status}"
     }
   }
