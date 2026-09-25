@@ -74,7 +74,9 @@ function hostCall(
 function createHost(): ProcessPluginHostV010 {
   return {
     contractVersion: "0.1.0",
-    packageId,
+    get packageId() {
+      return packageId;
+    },
     permissions: {
       async has(permissionId) {
         return Boolean(await hostCall("permissions", "has", [permissionId]));
