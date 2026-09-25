@@ -167,3 +167,14 @@ Authority:
 `docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md`
 
 PROCESS packages require a signed `PROCESS_ENTRYPOINT` digest. Invalid/untrusted signatures fail admission. The Host owns trusted keys; Packages cannot self-declare trusted public keys.
+
+
+## REMOTE runtime
+
+REMOTE execution protocol authority:
+
+`docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md`
+
+P0 requires HTTPS, a signed Manifest, Host-injected bearer credentials and `hostAccess: NONE`.
+
+The adapter exists, but normal platform admission remains fail-closed until the required credential-provider capability is bound.
