@@ -41,6 +41,15 @@ export function inspectPluginRuntimeV010(pkg: PackageManifestV010): PluginRuntim
   }
 
   if (runtime.kind === "PROCESS" && runtime.isolation === "PROCESS") {
+    if (!pkg.integrity || pkg.integrity.artifact?.scope !== "PROCESS_ENTRYPOINT") {
+      return {
+        packageId: pkg.packageId,
+        kind: runtime.kind,
+        isolation: runtime.isolation,
+        status: "ERROR",
+        message: "Process runtime requires a signed PROCESS_ENTRYPOINT artifact digest."
+      };
+    }
     if (!runtime.entrypoint?.trim()) {
       return {
         packageId: pkg.packageId,
