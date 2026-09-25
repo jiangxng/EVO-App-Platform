@@ -104,3 +104,7 @@
 - **APP-77** SLSA provenance carried by a Package is admission evidence, not descriptive metadata. When present, its in-toto Statement subject MUST bind the declared artifact digest and Host-configured builder/build-type expectations MUST fail closed on mismatch.
 - **APP-78** Supply-chain roots of trust are Host-owned. Package manifests MUST NOT self-authorize builder identity, signing key trust or accepted build type.
 - **APP-79** External Sigstore/SLSA tooling may provide evidence, but EVO Plugin Protocol remains provider-neutral. Transparency-log/OIDC verification must enter through an explicit verifier boundary rather than becoming an implicit network dependency of ordinary plugin loading.
+
+- **APP-80** REMOTE runtime credentials are provided through the generic `plugin.remote-credential` Provider capability. REMOTE Package manifests MUST NOT contain bearer tokens or long-lived credential material.
+- **APP-81** A REMOTE Package is runtime-ready only when both an active credential Provider descriptor and a registered matching Provider Runtime exist. Descriptor-only or runtime-only state MUST remain fail-closed.
+- **APP-82** Extension Manager runtime history is an operator projection of App Platform runtime facts. Eidos MUST NOT synthesize runtime health/history from browser state.

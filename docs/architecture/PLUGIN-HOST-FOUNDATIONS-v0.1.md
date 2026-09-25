@@ -144,6 +144,7 @@ The Eidos Extension Manager now presents:
 - runtime/isolation posture;
 - storage availability;
 - event publish/subscribe counts;
+- recent runtime operational history;
 - Contributions and Capabilities;
 - install/open/configure/disable/enable/uninstall actions.
 
@@ -183,3 +184,12 @@ Further usability work is evidence-driven and belongs to Eidos before plugin-spe
 These host foundations are tested by App Platform protocol/core tests and focused App Platform ↔ Eidos integration.
 
 They do not require EVO Ledger Runtime, Experience Compiler or unrelated plugin product CI.
+
+
+## Remote credential Provider
+
+REMOTE executable plugins authenticate through the generic `plugin.remote-credential` Provider capability.
+
+The reference Host Provider is an installable `PLATFORM_PROVIDER`. Provider descriptor activation and Provider Runtime registration are both required for REMOTE readiness.
+
+Secrets remain outside Package manifests and Eidos settings.

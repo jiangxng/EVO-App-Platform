@@ -82,6 +82,14 @@ export interface ExtensionManagerItemV010 {
       lastEventAt?: string;
       lastError?: string;
     };
+    history?: Array<{
+      sequence: number;
+      occurredAt: string;
+      type: string;
+      method?: string;
+      durationMs?: number;
+      message?: string;
+    }>;
   };
   storage?: {
     scope: "package";

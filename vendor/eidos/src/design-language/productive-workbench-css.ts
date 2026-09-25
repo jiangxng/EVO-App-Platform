@@ -398,6 +398,23 @@ form[data-eidos-id] button,
 }
 [data-eidos-extension-capability][data-direction="provides"]::before{content:"+ ";color:var(--eidos-success)}
 [data-eidos-extension-capability][data-direction="requires"]::before{content:"→ ";color:var(--eidos-warning)}
+[data-eidos-extension-runtime-history]{
+  margin-top:var(--eidos-space-xs);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-sm);background:var(--eidos-bg-subtle);overflow:hidden;
+}
+[data-eidos-extension-runtime-history] summary{
+  cursor:pointer;padding:var(--eidos-space-sm) var(--eidos-space-md);
+  font-size:10px;font-weight:700;color:var(--eidos-fg-muted);
+}
+[data-eidos-extension-runtime-history]>div{border-top:1px solid var(--eidos-border)}
+[data-eidos-extension-runtime-event]{
+  display:grid;grid-template-columns:auto auto auto auto minmax(0,1fr);
+  gap:var(--eidos-space-sm);align-items:start;padding:6px var(--eidos-space-md);
+  font-size:10px;color:var(--eidos-fg-muted);border-top:1px solid var(--eidos-border);
+}
+[data-eidos-extension-runtime-event]:first-child{border-top:0}
+[data-eidos-extension-runtime-event] strong{color:var(--eidos-fg)}
+[data-eidos-extension-runtime-event] span:last-child{overflow:hidden;text-overflow:ellipsis}
 
 [data-eidos-action-status]{
   display:block;white-space:pre-wrap;word-break:break-word;
