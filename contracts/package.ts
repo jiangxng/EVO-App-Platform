@@ -43,9 +43,32 @@ export interface PluginArtifactIntegrityV010 {
   digest: string;
 }
 
+export interface SlsaProvenanceStatementV010 {
+  _type: "https://in-toto.io/Statement/v1";
+  subject: Array<{
+    name: string;
+    digest: { sha256: string };
+  }>;
+  predicateType: "https://slsa.dev/provenance/v1";
+  predicate: {
+    buildDefinition: {
+      buildType: string;
+      externalParameters: Record<string, unknown>;
+      internalParameters?: Record<string, unknown>;
+      resolvedDependencies?: unknown[];
+    };
+    runDetails: {
+      builder: { id: string };
+      metadata?: Record<string, unknown>;
+      byproducts?: unknown[];
+    };
+  };
+}
+
 export interface PluginProvenanceV010 {
-  type: "INTERNAL_CI" | "SIGSTORE_BUNDLE" | "OIDC_CI";
+  type: "INTERNAL_CI" | "SIGSTORE_BUNDLE" | "OIDC_CI" | "SLSA_PROVENANCE";
   reference?: string;
+  statement?: SlsaProvenanceStatementV010;
 }
 
 export interface PluginIntegrityV010 {
