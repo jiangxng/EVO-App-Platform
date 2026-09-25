@@ -66,7 +66,9 @@ These are operational facts, not business data.
 
 ## UI
 
-Eidos Extension Manager renders the App Platform-provided runtime health and aggregate metrics.
+Eidos Extension Manager renders the App Platform-provided runtime health, aggregate metrics and a bounded recent operational history.
+
+The Extension Manager receives only the most recent runtime events per Package for operator context. Full bounded process-local events remain available from the read-only diagnostics API, while durable history belongs to configured observability sinks.
 
 Eidos owns presentation only. It does not infer health from browser state.
 
