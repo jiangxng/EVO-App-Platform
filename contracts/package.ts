@@ -198,6 +198,7 @@ export interface InstallPlanV010 {
   };
   requestedPermissions?: PluginPermissionV010[];
   requiresTrustApproval?: boolean;
+  requiresUserApproval?: boolean;
   sideEffectFree: true;
 }
 
