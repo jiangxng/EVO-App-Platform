@@ -1,4 +1,5 @@
 import type { ActionHost } from "../adapters/ports.js";
+import { createEidosIconElement } from "../design-language/icons/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHost, AppHostSnapshotV010 } from "../app-host/contracts.js";
 import {
@@ -110,6 +111,33 @@ export async function mountWorkbenchShell(
     params?: Record<string, string | number | boolean | null>
   ) => localization?.resolve("eidos.app-host", key, fallback, params) ?? fallback;
 
+  function setIconContent(
+    element: HTMLElement,
+    iconName: string,
+    fallbackText?: string,
+    size = 20
+  ): void {
+    element.replaceChildren();
+    const icon = createEidosIconElement(iconName, { size });
+    if (icon) {
+      element.appendChild(icon);
+      return;
+    }
+    if (fallbackText) element.textContent = fallbackText;
+  }
+
+  function setIconButton(
+    button: HTMLButtonElement,
+    iconName: string,
+    label: string,
+    size = 18
+  ): void {
+    button.setAttribute("data-eidos-icon-button", "");
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    setIconContent(button, iconName, undefined, size);
+  }
+
   const root = document.createElement("div");
   root.setAttribute("data-eidos-app-host", "0.1.0");
   root.setAttribute("data-eidos-app-host-layout", "workbench");
@@ -136,7 +164,6 @@ export async function mountWorkbenchShell(
   const sideToggle = document.createElement("button");
   sideToggle.type = "button";
   sideToggle.setAttribute("data-eidos-side-panel-toggle", "");
-  sideToggle.textContent = "×";
   sideHeader.append(sideTitle, sideToggle);
 
   const sideContent = document.createElement("div");
@@ -211,8 +238,7 @@ export async function mountWorkbenchShell(
     const toggleLabel = state.sidePanelVisible
       ? hostText("workbench.hideSidePanel", "Hide side panel")
       : hostText("workbench.showSidePanel", "Show side panel");
-    sideToggle.setAttribute("aria-label", toggleLabel);
-    sideToggle.title = toggleLabel;
+    setIconButton(sideToggle, "sidebar", toggleLabel, 18);
     root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
     splitter.setAttribute("aria-valuenow", String(state.sidePanelWidth));
     splitter.setAttribute("aria-valuemin", String(minWidth));
@@ -423,7 +449,7 @@ export async function mountWorkbenchShell(
       button.setAttribute("aria-label", activityTitle);
       const icon = document.createElement("span");
       icon.setAttribute("data-eidos-activity-icon", "");
-      icon.textContent = activity.icon;
+      setIconContent(icon, activity.icon, activity.icon, 22);
       button.appendChild(icon);
 
       button.addEventListener("click", () => { void setActivity(activity.id); });
@@ -596,6 +622,7 @@ export async function mountWorkbenchShell(
   const unsubscribeLocale = localization?.subscribe(() => {
     if (disposed) return;
     refreshLocaleOptions();
+    updateChromeLabels();
     renderActivities();
     void renderSidePanel();
     if (workspaceMode === "app") void renderInternalWorkspace(state.workspaceTarget);
@@ -640,10 +667,19 @@ export async function mountWorkbenchShell(
     root.remove();
   }
 
-  localeLabel.textContent = hostText("shell.language", "Language");
-  browserAddress.setAttribute("aria-label", hostText("shell.browserAddress", "Workspace address"));
-  browserGo.textContent = hostText("shell.browserGo", "Open");
-  browserExternal.textContent = hostText("shell.browserOpenExternal", "Open externally");
+  function updateChromeLabels(): void {
+    localeLabel.textContent = hostText("shell.language", "Language");
+    browserAddress.setAttribute("aria-label", hostText("shell.browserAddress", "Workspace address"));
+    setIconButton(browserGo, "arrow-right", hostText("shell.browserGo", "Open"), 18);
+    setIconButton(
+      browserExternal,
+      "external-link",
+      hostText("shell.browserOpenExternal", "Open externally"),
+      18
+    );
+  }
+
+  updateChromeLabels();
   updateLayoutAttributes();
   await refresh();
 

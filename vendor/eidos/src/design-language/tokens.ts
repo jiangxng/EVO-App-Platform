@@ -41,6 +41,14 @@ export const eidosDesignTokensV010 = {
     sectionTitle: 16,
     pageTitle: 22
   },
+  icon: {
+    canvas: 24,
+    strokeWidth: 1.8,
+    compact: 16,
+    default: 20,
+    prominent: 24,
+    accent: "#1769ff"
+  },
   action: {
     maxPrimaryPerScope: 1,
     iconOnlyRequiresAccessibleName: true,
@@ -94,6 +102,7 @@ export const eidosDesignTokenCss = `
   --eidos-border:#dde1e7;
   --eidos-border-strong:#c8cdd5;
   --eidos-focus:#6b8fd6;
+  --eidos-icon-accent:#1769ff;
   --eidos-primary:#25272b;
   --eidos-primary-fg:#ffffff;
   --eidos-success:#0b6d39;

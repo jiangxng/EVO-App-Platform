@@ -14,7 +14,9 @@ import { renderAppHostPageToHtml } from "../../dist/vendor/eidos/src/app-host/in
 import { appHostShellHtml } from "../../dist/manager/app-host-shell.js";
 import {
   eidosDesignPolicyV010,
-  eidosDesignTokensV010
+  eidosDesignTokensV010,
+  eidosIconSystemMetadataV010,
+  renderEidosIconToSvg
 } from "../../dist/vendor/eidos/src/design-language/index.js";
 
 function loaded(definition) {
@@ -89,4 +91,21 @@ test("App Platform consumes Eidos design language instead of owning Workbench CS
   );
   assert.match(source, /eidosProductiveWorkbenchCss/);
   assert.doesNotMatch(source, /\[data-eidos-activity-bar\]\s*\{/);
+});
+
+
+test("App Platform Workbench consumes Eidos semantic icon system", async () => {
+  assert.equal(eidosIconSystemMetadataV010.externalIconLibraryDependency, false);
+  assert.match(renderEidosIconToSvg("plugins"), /data-eidos-icon="plugins"/);
+
+  const { readFile } = await import("node:fs/promises");
+  const client = await readFile(
+    new URL("../../manager/app-host-client.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(client, /icon: "dashboard"/);
+  assert.match(client, /icon: "plugins"/);
+  assert.match(client, /icon: "workspace"/);
+  assert.match(client, /icon: "settings"/);
+  assert.doesNotMatch(client, /icon: "[▦◇▣⚙]"/);
 });

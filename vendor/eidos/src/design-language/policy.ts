@@ -26,6 +26,14 @@ export const eidosDesignPolicyV010 = {
     maxVisibleLogicalGroups: 3,
     overflowLowFrequencyActions: true
   },
+  icons: {
+    owner: "Eidos",
+    registryRequiredForStandardUi: true,
+    arbitraryPluginSvgForbiddenByDefault: true,
+    externalLibraryDependencyForbiddenByDefault: true,
+    semanticNameStable: true,
+    brandIconsSeparate: true
+  },
   actions: {
     maxPrimaryPerScope: 1,
     primaryPlacement: "trailing",

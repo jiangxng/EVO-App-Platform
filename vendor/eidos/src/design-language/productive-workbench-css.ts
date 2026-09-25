@@ -13,6 +13,30 @@ body{
 }
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
+[data-eidos-icon]{
+  display:block;
+  flex:none;
+  color:currentColor;
+}
+[data-eidos-icon] [data-eidos-icon-accent]{
+  color:var(--eidos-icon-accent);
+}
+[data-eidos-activity-icon]{
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  line-height:1;
+}
+[data-eidos-activity-icon] [data-eidos-icon]{
+  width:22px;
+  height:22px;
+}
+[data-eidos-icon-button]{
+  display:grid!important;
+  place-items:center;
+  padding:0!important;
+}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
   outline:2px solid var(--eidos-focus);
   outline-offset:1px;
