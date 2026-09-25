@@ -157,6 +157,21 @@ export function validatePluginManifestV010(
         "Artifact digest must use lowercase sha256:<64 hex> format."
       );
     }
+    if (
+      pkg.integrity.provenance?.type === "SIGSTORE_BUNDLE"
+      && (
+        !pkg.integrity.provenance.sigstore
+        || !pkg.integrity.provenance.sigstore.bundle
+        || typeof pkg.integrity.provenance.sigstore.bundle !== "object"
+        || Array.isArray(pkg.integrity.provenance.sigstore.bundle)
+      )
+    ) {
+      add(
+        "PLUGIN_SIGSTORE_BUNDLE_REQUIRED",
+        "integrity.provenance.sigstore.bundle",
+        "SIGSTORE_BUNDLE provenance requires a serialized Sigstore bundle object."
+      );
+    }
   }
 
   if (pkg.runtime) {
