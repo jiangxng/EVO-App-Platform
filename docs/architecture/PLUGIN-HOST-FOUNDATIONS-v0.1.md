@@ -79,7 +79,23 @@ Authority and threat model: `docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md`
 
 PROCESS P0 is a process/reliability/Host-capability isolation boundary for trusted/verified plugins. It is explicitly **not** claimed as hostile-code sandboxing.
 
-## 5. Plugin Storage and Events
+## 5. Runtime dispatch
+
+Executable plugin invocation has one Host-owned dispatch boundary.
+
+```text
+installed Package + active Feature
+→ Runtime Dispatcher
+→ PROCESS or REMOTE Runtime Host
+```
+
+The dispatcher rejects uninstalled or inactive Packages and keeps runtime-specific mechanics out of business plugins.
+
+DECLARATIVE packages continue through declarative Contribution/Action contracts. WORKER remains disabled as a security boundary.
+
+There is no generic unauthenticated HTTP method-execution backdoor.
+
+## 6. Plugin Storage and Events
 
 App Platform owns host services for plugin-local state and events.
 
