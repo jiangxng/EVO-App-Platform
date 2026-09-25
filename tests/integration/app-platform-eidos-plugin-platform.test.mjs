@@ -40,7 +40,10 @@ test("App Platform + Eidos render Plugin Protocol compatibility without other ru
   assert.equal(page.kind, "extension-manager");
   assert.equal(page.protocol.name, "EVO Plugin Protocol");
   assert.equal(page.protocol.version, "0.1.0");
-  assert.equal(page.items[0].compatibility.state, "compatible");
+  assert.equal(page.items[0].compatibility.state, "unknown");
+  assert.equal(page.items[0].trust.level, "trusted");
+  assert.equal(page.items[0].runtime.kind, "declarative");
+  assert.equal(page.items[0].runtime.isolation, "host");
 
   const html = renderAppHostPageToHtml(loaded(page));
   assert.match(html, /data-eidos-extension-manager=/);
@@ -108,4 +111,50 @@ test("App Platform Workbench consumes Eidos semantic icon system", async () => {
   assert.match(client, /icon: "workspace"/);
   assert.match(client, /icon: "settings"/);
   assert.doesNotMatch(client, /icon: "[▦◇▣⚙]"/);
+});
+
+
+test("Plugin Platform surface exposes compatibility, trust, permissions and runtime posture", () => {
+  const governedPackage = structuredClone(companyNotesPackage);
+  governedPackage.compatibility = {
+    appPlatform: ">=0.1.0 <0.2.0",
+    eidos: "^1.3.0",
+    pluginProtocol: "0.1.0"
+  };
+  governedPackage.publisher = {
+    id: "example",
+    displayName: "Example Publisher",
+    trust: "UNVERIFIED",
+    source: "private-catalog"
+  };
+  governedPackage.permissions = [{
+    id: "workspace.read",
+    label: "Read workspace",
+    risk: "MEDIUM",
+    required: true,
+    reason: "Needed for notes."
+  }];
+  governedPackage.runtime = { kind: "DECLARATIVE", isolation: "HOST" };
+  governedPackage.storage = { scope: "PACKAGE", quotaBytes: 4096 };
+  governedPackage.events = { publish: ["company-notes.changed"], subscribe: [] };
+
+  const manager = createAppManagerService(
+    createPackageCatalog([governedPackage]),
+    createMemoryLifecycleStore()
+  );
+  const page = createPluginStorePage([governedPackage], manager.getSnapshot());
+  const item = page.items[0];
+
+  assert.equal(item.compatibility.state, "compatible");
+  assert.equal(item.trust.level, "review");
+  assert.equal(item.permissions[0].risk, "medium");
+  assert.equal(item.runtime.kind, "declarative");
+  assert.equal(item.storage.state, "available");
+  assert.deepEqual(item.events.publish, ["company-notes.changed"]);
+
+  const html = renderAppHostPageToHtml(loaded(page));
+  assert.match(html, /Review required/);
+  assert.match(html, /Read workspace/);
+  assert.match(html, /Runtime: declarative \/ host/);
+  assert.match(html, /Storage: available/);
 });
