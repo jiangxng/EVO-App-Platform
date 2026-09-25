@@ -206,6 +206,8 @@ export interface InstalledPackageV010 {
   packageId: string;
   version: string;
   installedAt: string;
+  trustApproved?: boolean;
+  grantedPermissions?: string[];
 }
 
 export interface ActivatedFeatureV010 {
