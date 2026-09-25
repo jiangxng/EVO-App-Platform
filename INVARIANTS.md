@@ -49,3 +49,9 @@
 - **APP-47** Workbench Activity entries owned by installable products MUST be contributed through versioned `eidos.workbench-activity` Contributions. App Host MUST NOT hard-code product-specific Activity entries such as Enterprise Agent, Search or Notifications.
 - **APP-48** The effective Workbench Activity set is lifecycle-derived. Install/enable may add Activities; disable/uninstall MUST remove them without requiring a shell remount. If the active Activity disappears, Eidos MUST reconcile to a deterministic host fallback and persisted UI state MUST NOT keep the removed capability effective.
 - **APP-49** Workbench Activity IDs are globally unique within one effective host composition. Conflicts fail closed; extension-owned localized Activity labels use the owning Package namespace.
+
+- **APP-50** Plugin Protocol is the stable integration boundary between App Platform and independently developed plugins. Ordinary plugin work MUST NOT require loading, building or testing unrelated plugins.
+- **APP-51** Plugin CI is owner-local: manifest conformance + the plugin's own unit/integration/lifecycle tests + only its direct public-contract adapters. A plugin change MUST NOT recursively trigger unrelated plugin CI.
+- **APP-52** App Platform PR CI validates platform core, Plugin Protocol and synthetic reference fixtures. Full plugin-portfolio compatibility belongs to a separate Ecosystem Certification gate, not the ordinary platform feedback loop.
+- **APP-53** EVO Ledger Runtime, Eidos, Enterprise Agent/EC and other large capabilities are consumed by plugins only through public versioned contracts/capabilities. Their private implementations and full CI suites are never implicit plugin test dependencies.
+- **APP-54** A material Plugin Protocol change requires explicit versioning and ecosystem certification. Until protocol 1.0, plugins pin the exact protocol version rather than assuming pre-1.0 compatibility.
