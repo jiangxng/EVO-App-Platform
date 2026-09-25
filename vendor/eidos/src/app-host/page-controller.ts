@@ -156,7 +156,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 code: command,
                 inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
               },
-              values: { itemId },
+              values: {
+                itemId,
+                confirmed: button.dataset.eidosConfirm === "true"
+              },
               sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
               actionId: button.dataset.eidosCatalogAction
                 ?? button.dataset.eidosExtensionAction

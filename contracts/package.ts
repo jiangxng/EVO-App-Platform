@@ -14,6 +14,51 @@ export type ActivationScope =
   | "WORKSPACE"
   | "USER";
 
+export type PluginTrustLevelV010 = "FIRST_PARTY" | "VERIFIED" | "UNVERIFIED";
+export type PluginPermissionRiskV010 = "LOW" | "MEDIUM" | "HIGH";
+
+export interface PluginPermissionV010 {
+  id: string;
+  label: string;
+  risk: PluginPermissionRiskV010;
+  required?: boolean;
+  reason?: string;
+}
+
+export interface PluginCompatibilityV010 {
+  appPlatform?: string;
+  eidos?: string;
+  pluginProtocol?: string;
+}
+
+export interface PluginPublisherV010 {
+  id: string;
+  displayName?: string;
+  trust?: PluginTrustLevelV010;
+  source?: string;
+}
+
+export interface PluginRuntimeV010 {
+  kind: "DECLARATIVE" | "WORKER" | "REMOTE";
+  isolation: "HOST" | "WORKER" | "REMOTE";
+  entrypoint?: string;
+}
+
+export interface PluginStorageDeclarationV010 {
+  scope: "PACKAGE";
+  quotaBytes?: number;
+}
+
+export interface PluginEventsDeclarationV010 {
+  publish?: string[];
+  subscribe?: string[];
+}
+
+export interface FeatureActivationV010 {
+  mode: "EAGER" | "ON_DEMAND";
+  events?: string[];
+}
+
 export interface ExperienceContributionV010 {
   kind: "eidos.experience";
   manifest: {
@@ -113,6 +158,7 @@ export interface FeatureManifestV010 {
   version: string;
   activationScope: ActivationScope;
   defaultActivation?: boolean;
+  activation?: FeatureActivationV010;
   requiresFeatures?: string[];
   requiresCapabilities?: string[];
   providesCapabilities?: string[];
@@ -125,6 +171,12 @@ export interface PackageManifestV010 {
   displayName: string;
   version: string;
   type: PackageType;
+  compatibility?: PluginCompatibilityV010;
+  publisher?: PluginPublisherV010;
+  permissions?: PluginPermissionV010[];
+  runtime?: PluginRuntimeV010;
+  storage?: PluginStorageDeclarationV010;
+  events?: PluginEventsDeclarationV010;
   features: FeatureManifestV010[];
 }
 
@@ -140,6 +192,13 @@ export interface InstallPlanV010 {
   activateFeatures: string[];
   missingCapabilities: string[];
   blockers: Array<{ code: string; message: string }>;
+  compatibility?: {
+    state: "COMPATIBLE" | "INCOMPATIBLE" | "UNKNOWN";
+    messages: string[];
+  };
+  requestedPermissions?: PluginPermissionV010[];
+  requiresTrustApproval?: boolean;
+  requiresUserApproval?: boolean;
   sideEffectFree: true;
 }
 
@@ -147,6 +206,8 @@ export interface InstalledPackageV010 {
   packageId: string;
   version: string;
   installedAt: string;
+  trustApproved?: boolean;
+  grantedPermissions?: string[];
 }
 
 export interface ActivatedFeatureV010 {

@@ -67,3 +67,9 @@
 - **APP-61** EVO App Platform does not own ordinary App Host/Workbench visual language. It consumes Eidos public design tokens/styles and supplies lifecycle/content data. Plugin products inherit Eidos standard spacing, button hierarchy, focus and shell geometry unless a domain-specific Eidos capability explicitly permits otherwise.
 
 - **APP-62** Standard App Host/Workbench icons are semantic Eidos Icon Registry names. App Platform and ordinary plugins MUST NOT use raw Unicode glyphs, arbitrary copied SVG, or independent icon-library dependencies for standard host chrome when an Eidos semantic icon exists.
+
+- **APP-63** A Package that declares incompatible App Platform/Eidos/Plugin Protocol host ranges MUST fail admission. Missing ranges are backward-compatible but explicitly reported as unknown compatibility.
+- **APP-64** User-facing confirmation is not authorization by itself. Publisher-trust and permission approval MUST be enforced server-side and persisted with installation state.
+- **APP-65** Executable plugin runtimes fail closed until an actual isolated Runtime Host exists. DECLARATIVE/HOST is the only executable P0 runtime; WORKER/REMOTE declarations are recognized but not silently executed in-process.
+- **APP-66** Plugin Storage and Events are accessed through package-scoped Host API facades. A plugin MUST NOT choose another package namespace or publish/subscribe undeclared event topics.
+- **APP-67** ON_DEMAND Feature activation keeps the Feature inactive at install time and activates only from declared host activation events.

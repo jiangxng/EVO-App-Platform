@@ -11,11 +11,27 @@ import type {
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
+import { evaluatePackageCompatibility } from "./compatibility.js";
+import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
+
+export interface InstallAuthorizationV010 {
+  trustApproved?: boolean;
+  approvedPermissions?: string[];
+}
+
+export interface PluginLifecycleEventV010 {
+  contractVersion: "0.1.0";
+  type: "PACKAGE_INSTALLED" | "FEATURE_ACTIVATED" | "FEATURE_DEACTIVATED" | "PACKAGE_UNINSTALLED";
+  packageId: string;
+  featureId?: string;
+  occurredAt: string;
+}
 
 export interface AppManagerService {
   listCatalog(): PackageManifestV010[];
   planInstall(packageId: string): InstallPlanV010;
-  install(packageId: string): PlatformSnapshotV010;
+  install(packageId: string, authorization?: InstallAuthorizationV010): PlatformSnapshotV010;
+  activateForEvent(eventName: string): PlatformSnapshotV010;
   enable(packageId: string): PlatformSnapshotV010;
   planDisable(packageId: string): PackageLifecyclePlanV010;
   disable(packageId: string): PlatformSnapshotV010;
@@ -38,7 +54,8 @@ export function createAppManagerService(
   catalog: PackageCatalog,
   store: LifecycleStore,
   now: () => Date = () => new Date(),
-  experienceAssets: ReadonlyMap<string, unknown> = new Map()
+  experienceAssets: ReadonlyMap<string, unknown> = new Map(),
+  onLifecycleEvent: (event: PluginLifecycleEventV010) => void = () => {}
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -140,14 +157,61 @@ export function createAppManagerService(
       };
     }
 
-    const packages = new Set<string>();
+    const packages = new Set<string>([target.packageId]);
     const features = new Set<string>();
     const missingCapabilities = new Set<string>();
     const blockers: Array<{ code: string; message: string }> = [];
 
     for (const feature of target.features.filter(x => x.defaultActivation === true)) {
       resolveFeature(target, feature, new Set(), packages, features, missingCapabilities, blockers);
+      if (feature.activation?.mode === "ON_DEMAND") {
+        features.delete(feature.featureId);
+      }
     }
+
+    const compatibility = evaluatePackageCompatibility(target);
+
+    for (const candidatePackageId of packages) {
+      const candidate = catalog.get(candidatePackageId);
+      if (!candidate) continue;
+
+      const candidateCompatibility = evaluatePackageCompatibility(candidate);
+      if (candidateCompatibility.state === "INCOMPATIBLE") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "HOST_INCOMPATIBLE"
+            : "DEPENDENCY_HOST_INCOMPATIBLE",
+          message: `Package '${candidatePackageId}': ${candidateCompatibility.messages.join(" ")}`
+        });
+      }
+
+      const candidateRuntime = inspectPluginRuntimeV010(candidate);
+      if (candidateRuntime.status === "UNSUPPORTED") {
+        blockers.push({
+          code: candidatePackageId === target.packageId
+            ? "PLUGIN_RUNTIME_UNSUPPORTED"
+            : "DEPENDENCY_RUNTIME_UNSUPPORTED",
+          message: `Package '${candidatePackageId}': ${candidateRuntime.message}`
+        });
+      }
+
+      if (
+        candidatePackageId !== target.packageId
+        && (
+          (candidate.permissions?.length ?? 0) > 0
+          || candidate.publisher?.trust === "UNVERIFIED"
+        )
+      ) {
+        blockers.push({
+          code: "DEPENDENCY_APPROVAL_REQUIRED",
+          message: `Dependency Package '${candidatePackageId}' requests permissions or unverified publisher trust and requires an explicit separate approval flow.`
+        });
+      }
+    }
+
+    const requestedPermissions = structuredClone(target.permissions ?? []);
+    const requiresTrustApproval = target.publisher?.trust === "UNVERIFIED";
+    const requiresUserApproval = requiresTrustApproval || requestedPermissions.length > 0;
 
     return {
       contractVersion: "0.1.0",
@@ -157,14 +221,38 @@ export function createAppManagerService(
       activateFeatures: uniqueSorted([...features].filter(id => !store.getActiveFeature(id))),
       missingCapabilities: uniqueSorted(missingCapabilities),
       blockers,
+      compatibility: {
+        state: compatibility.state,
+        messages: compatibility.messages
+      },
+      requestedPermissions,
+      requiresTrustApproval,
+      requiresUserApproval,
       sideEffectFree: true
     };
   }
 
-  function install(packageId: string): PlatformSnapshotV010 {
+  function install(
+    packageId: string,
+    authorization: InstallAuthorizationV010 = {}
+  ): PlatformSnapshotV010 {
     const plan = planInstall(packageId);
     if (plan.blockers.length > 0) {
       throw new Error(`INSTALL_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    }
+
+    if (plan.requiresTrustApproval && authorization.trustApproved !== true) {
+      throw new Error(`INSTALL_TRUST_APPROVAL_REQUIRED: ${packageId}`);
+    }
+
+    const approved = new Set(authorization.approvedPermissions ?? []);
+    const missingRequiredPermissions = (plan.requestedPermissions ?? [])
+      .filter(permission => permission.required !== false && !approved.has(permission.id))
+      .map(permission => permission.id);
+    if (missingRequiredPermissions.length > 0) {
+      throw new Error(
+        `INSTALL_PERMISSION_APPROVAL_REQUIRED: ${missingRequiredPermissions.join(",")}`
+      );
     }
 
     const timestamp = now().toISOString();
@@ -172,7 +260,26 @@ export function createAppManagerService(
     for (const id of plan.installPackages) {
       const pkg = catalog.get(id);
       if (!pkg) throw new Error(`PACKAGE_NOT_FOUND_DURING_INSTALL: ${id}`);
-      store.saveInstalledPackage({ packageId: pkg.packageId, version: pkg.version, installedAt: timestamp });
+      const grantedPermissions = id === packageId
+        ? (authorization.approvedPermissions ?? []).filter(permissionId =>
+            (pkg.permissions ?? []).some(permission => permission.id === permissionId)
+          )
+        : [];
+      store.saveInstalledPackage({
+        packageId: pkg.packageId,
+        version: pkg.version,
+        installedAt: timestamp,
+        trustApproved: pkg.publisher?.trust === "UNVERIFIED"
+          ? id === packageId && authorization.trustApproved === true
+          : true,
+        grantedPermissions
+      });
+      onLifecycleEvent({
+        contractVersion: "0.1.0",
+        type: "PACKAGE_INSTALLED",
+        packageId: pkg.packageId,
+        occurredAt: timestamp
+      });
     }
 
     for (const featureId of plan.activateFeatures) {
@@ -192,6 +299,84 @@ export function createAppManagerService(
         packageId: owner.packageId,
         version: feature.version,
         activatedAt: timestamp
+      });
+      onLifecycleEvent({
+        contractVersion: "0.1.0",
+        type: "FEATURE_ACTIVATED",
+        packageId: owner.packageId,
+        featureId: feature.featureId,
+        occurredAt: timestamp
+      });
+    }
+
+    return getSnapshot();
+  }
+
+  function activateForEvent(eventName: string): PlatformSnapshotV010 {
+    const normalized = eventName.trim();
+    if (!normalized) throw new Error("ACTIVATION_EVENT_REQUIRED");
+
+    const packages = new Set<string>();
+    const features = new Set<string>();
+    const missingCapabilities = new Set<string>();
+    const blockers: Array<{ code: string; message: string }> = [];
+
+    for (const installed of store.snapshot().installedPackages) {
+      const pkg = catalog.get(installed.packageId);
+      if (!pkg) continue;
+      for (const feature of pkg.features) {
+        if (store.getActiveFeature(feature.featureId)) continue;
+        if (feature.activation?.mode !== "ON_DEMAND") continue;
+        if (!(feature.activation.events ?? []).includes(normalized)) continue;
+        resolveFeature(
+          pkg,
+          feature,
+          new Set(),
+          packages,
+          features,
+          missingCapabilities,
+          blockers
+        );
+      }
+    }
+
+    const notInstalled = [...packages].filter(id => !store.getInstalledPackage(id));
+    if (notInstalled.length > 0) {
+      blockers.push({
+        code: "ACTIVATION_DEPENDENCY_NOT_INSTALLED",
+        message: `Activation event '${normalized}' requires installed packages: ${notInstalled.join(", ")}`
+      });
+    }
+    if (blockers.length > 0) {
+      throw new Error(`ACTIVATION_BLOCKED: ${JSON.stringify(blockers)}`);
+    }
+
+    const timestamp = now().toISOString();
+    for (const featureId of uniqueSorted(features)) {
+      if (store.getActiveFeature(featureId)) continue;
+      let owner: PackageManifestV010 | undefined;
+      let feature: FeatureManifestV010 | undefined;
+      for (const entry of catalog.list()) {
+        const candidate = entry.package.features.find(x => x.featureId === featureId);
+        if (candidate) {
+          owner = entry.package;
+          feature = candidate;
+          break;
+        }
+      }
+      if (!owner || !feature) continue;
+      store.saveActiveFeature({
+        featureId,
+        packageId: owner.packageId,
+        version: feature.version,
+        activatedAt: timestamp
+      });
+      onLifecycleEvent({
+        contractVersion: "0.1.0",
+        type: "FEATURE_ACTIVATED",
+        packageId: owner.packageId,
+        featureId,
+        occurredAt: timestamp
       });
     }
 
@@ -283,7 +468,12 @@ export function createAppManagerService(
     if (!store.getInstalledPackage(packageId)) {
       throw new Error(`ENABLE_REQUIRES_INSTALLED_PACKAGE: ${packageId}`);
     }
-    return install(packageId);
+    const target = catalog.get(packageId);
+    const authorization: InstallAuthorizationV010 = {
+      trustApproved: true,
+      approvedPermissions: target?.permissions?.map(permission => permission.id) ?? []
+    };
+    return install(packageId, authorization);
   }
 
   function planDisable(packageId: string): PackageLifecyclePlanV010 {
@@ -295,8 +485,19 @@ export function createAppManagerService(
     if (plan.blockers.length > 0) {
       throw new Error(`DISABLE_BLOCKED: ${JSON.stringify(plan.blockers)}`);
     }
+    const timestamp = now().toISOString();
     for (const featureId of plan.deactivateFeatures) {
+      const active = store.getActiveFeature(featureId);
       store.deleteActiveFeature(featureId);
+      if (active) {
+        onLifecycleEvent({
+          contractVersion: "0.1.0",
+          type: "FEATURE_DEACTIVATED",
+          packageId: active.packageId,
+          featureId,
+          occurredAt: timestamp
+        });
+      }
     }
     return getSnapshot();
   }
@@ -310,10 +511,27 @@ export function createAppManagerService(
     if (plan.blockers.length > 0) {
       throw new Error(`UNINSTALL_BLOCKED: ${JSON.stringify(plan.blockers)}`);
     }
+    const timestamp = now().toISOString();
     for (const featureId of plan.deactivateFeatures) {
+      const active = store.getActiveFeature(featureId);
       store.deleteActiveFeature(featureId);
+      if (active) {
+        onLifecycleEvent({
+          contractVersion: "0.1.0",
+          type: "FEATURE_DEACTIVATED",
+          packageId: active.packageId,
+          featureId,
+          occurredAt: timestamp
+        });
+      }
     }
     store.deleteInstalledPackage(packageId);
+    onLifecycleEvent({
+      contractVersion: "0.1.0",
+      type: "PACKAGE_UNINSTALLED",
+      packageId,
+      occurredAt: timestamp
+    });
     return getSnapshot();
   }
 
@@ -491,6 +709,7 @@ export function createAppManagerService(
     listCatalog: () => catalog.list().map(x => x.package),
     planInstall,
     install,
+    activateForEvent,
     enable,
     planDisable,
     disable,

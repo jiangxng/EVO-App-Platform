@@ -1,5 +1,7 @@
 import type { PackageManifestV010, PlatformSnapshotV010 } from "../contracts/package.js";
 import { EVO_PLUGIN_PROTOCOL_VERSION } from "../contracts/plugin-protocol.js";
+import { evaluatePackageCompatibility } from "./compatibility.js";
+import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
 import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
 import { packageHasSettings, settingsPackageRoute } from "./settings-page.js";
 
@@ -87,6 +89,7 @@ export function createPluginStorePage(
       .filter(pkg => pkg.type !== "FOUNDATION_RUNTIME")
       .map(pkg => {
         const isInstalled = installed.has(pkg.packageId);
+        const installedRecord = snapshot.installedPackages.find(item => item.packageId === pkg.packageId);
         const activeFeatureIds = new Set(
           snapshot.activeFeatures
             .filter(feature => feature.packageId === pkg.packageId)
@@ -95,7 +98,13 @@ export function createPluginStorePage(
         const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
         const route = firstExperienceRoute(pkg);
         const settingsRoute = packageHasSettings(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
-        const compatible = pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION;
+        const compatibility = evaluatePackageCompatibility(pkg);
+        const runtimeStatus = inspectPluginRuntimeV010(pkg);
+        const compatible = (
+          pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION
+          && compatibility.state !== "INCOMPATIBLE"
+          && runtimeStatus.status !== "UNSUPPORTED"
+        );
         const provides = unique(pkg.features.flatMap(feature => feature.providesCapabilities ?? []));
         const requires = unique(pkg.features.flatMap(feature => feature.requiresCapabilities ?? []));
 
@@ -124,10 +133,60 @@ export function createPluginStorePage(
           },
           compatibility: {
             protocolVersion: pkg.contractVersion,
-            state: compatible ? "compatible" as const : "incompatible" as const,
-            message: compatible
-              ? "Compatible with current Plugin Protocol"
-              : `Requires Plugin Protocol ${pkg.contractVersion}; host provides ${EVO_PLUGIN_PROTOCOL_VERSION}`
+            hostVersion: compatibility.host.appPlatform,
+            eidosVersion: compatibility.host.eidos,
+            state: compatible
+              ? compatibility.state === "UNKNOWN"
+                ? "unknown" as const
+                : "compatible" as const
+              : "incompatible" as const,
+            message: runtimeStatus.status === "UNSUPPORTED"
+              ? runtimeStatus.message
+              : compatibility.messages.join(" ")
+          },
+          trust: {
+            level: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
+              ? "review" as const
+              : "trusted" as const,
+            label: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
+              ? "Review required"
+              : pkg.publisher?.trust === "UNVERIFIED"
+                ? "Approved"
+                : "Trusted",
+            publisher: pkg.publisher?.displayName ?? pkg.publisher?.id ?? "EVO catalog",
+            source: pkg.publisher?.source ?? "host catalog",
+            message: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
+              ? "Publisher trust must be approved before installation."
+              : "Publisher trust is admitted for this installation."
+          },
+          permissions: (pkg.permissions ?? []).map(permission => ({
+            id: permission.id,
+            label: permission.label,
+            risk: permission.risk.toLowerCase() as "low" | "medium" | "high",
+            granted: installedRecord?.grantedPermissions?.includes(permission.id) === true
+          })),
+          activation: {
+            mode: pkg.features.some(feature => feature.activation?.mode === "ON_DEMAND")
+              ? "on-demand" as const
+              : "eager" as const,
+            events: unique(pkg.features.flatMap(feature => feature.activation?.events ?? []))
+          },
+          runtime: {
+            kind: runtimeStatus.kind.toLowerCase() as "declarative" | "worker" | "remote",
+            isolation: runtimeStatus.isolation.toLowerCase() as "host" | "worker" | "remote",
+            status: runtimeStatus.status === "READY"
+              ? "ready" as const
+              : runtimeStatus.status === "INACTIVE"
+                ? "inactive" as const
+                : "unsupported" as const
+          },
+          storage: {
+            scope: "package" as const,
+            state: pkg.storage ? "available" as const : "unavailable" as const
+          },
+          events: {
+            publish: pkg.events?.publish ?? [],
+            subscribe: pkg.events?.subscribe ?? []
           },
           capabilities: {
             provides,
@@ -144,7 +203,10 @@ export function createPluginStorePage(
                     type: "command" as const,
                     command: "app-platform.install-package",
                     inputVersion: "0.1.0",
-                    helpText: "Dependencies and protocol compatibility are checked automatically."
+                    requiresConfirmation: (pkg.permissions?.length ?? 0) > 0 || pkg.publisher?.trust === "UNVERIFIED",
+                    helpText: (pkg.permissions?.length ?? 0) > 0 || pkg.publisher?.trust === "UNVERIFIED"
+                      ? "Review requested permissions and publisher trust before installation."
+                      : "Dependencies and protocol compatibility are checked automatically."
                   },
                   secondaryActions: [
                     {

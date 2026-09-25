@@ -42,6 +42,36 @@ export interface ExtensionManagerItemV010 {
     requires?: string[];
   };
   contributions?: ExtensionContributionSummaryV010[];
+  trust?: {
+    level: "trusted" | "review" | "blocked";
+    label: string;
+    publisher?: string;
+    source?: string;
+    message?: string;
+  };
+  permissions?: Array<{
+    id: string;
+    label: string;
+    risk: "low" | "medium" | "high";
+    granted?: boolean;
+  }>;
+  activation?: {
+    mode: "eager" | "on-demand";
+    events?: string[];
+  };
+  runtime?: {
+    kind: "declarative" | "worker" | "remote";
+    isolation: "host" | "worker" | "process" | "remote";
+    status?: "ready" | "inactive" | "unsupported" | "error";
+  };
+  storage?: {
+    scope: "package";
+    state: "available" | "unavailable";
+  };
+  events?: {
+    publish: string[];
+    subscribe: string[];
+  };
   primaryAction?: ExtensionManagerActionV010;
   secondaryActions?: ExtensionManagerActionV010[];
 }

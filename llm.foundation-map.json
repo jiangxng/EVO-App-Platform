@@ -14,8 +14,8 @@
   "domains": {
     "pluginProtocol": "NOW",
     "eidosIntegrationBoundary": "NOW",
-    "hostCompatibilityRange": "NOW",
-    "activationLifecycle": "NOW",
+    "hostCompatibilityRange": "WATCH",
+    "activationLifecycle": "WATCH",
     "permissionsTrust": "SOON",
     "isolatedPluginRuntime": "SOON",
     "pluginStorageEvents": "SOON",
@@ -29,5 +29,14 @@
     "externalMcpOauthInteroperability": "WATCH",
     "ecosystemCertification": "NOW",
     "llmContextArchitecture": "NOW"
+  },
+  "deliveredP0": {
+    "hostCompatibilityRange": "IMPLEMENTED",
+    "activationLifecycle": "IMPLEMENTED_P0",
+    "permissionsTrust": "IMPLEMENTED_P0",
+    "isolatedPluginRuntime": "PROTOCOL_FAIL_CLOSED_EXECUTION_PENDING",
+    "pluginStorageEvents": "IMPLEMENTED_P0",
+    "extensionManager": "IMPLEMENTED_P0",
+    "workbenchProductiveUx": "CONTINUOUS_EIDOS"
   }
 }

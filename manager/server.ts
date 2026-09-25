@@ -7,6 +7,12 @@ import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createAppManagerService } from "./service.js";
+import {
+  createFilePluginStorageService,
+  createMemoryPluginStorageService,
+  createPluginEventBus,
+  type PluginEventV010
+} from "./plugin-host-services.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -63,6 +69,14 @@ const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
 const settingsStore = settingsStateFile
   ? createFileSettingsStore(settingsStateFile)
   : createMemorySettingsStore();
+const pluginStorageStateFile = process.env.APP_PLATFORM_PLUGIN_STORAGE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "plugin-storage.json") : undefined);
+const pluginStorage = pluginStorageStateFile
+  ? createFilePluginStorageService(pluginStorageStateFile)
+  : createMemoryPluginStorageService();
+const pluginEvents = createPluginEventBus();
+const lifecycleEventLog: PluginEventV010[] = [];
+
 const retiredLocalization = retireExperimentalPackageV010(
   store,
   "evo-localization",
@@ -71,7 +85,17 @@ const retiredLocalization = retireExperimentalPackageV010(
 if (retiredLocalization.changed) {
   console.log("Retired obsolete experimental package", JSON.stringify(retiredLocalization));
 }
-const manager = createAppManagerService(catalog, store, () => new Date(), referenceExperienceAssets);
+const manager = createAppManagerService(
+  catalog,
+  store,
+  () => new Date(),
+  referenceExperienceAssets,
+  event => {
+    const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
+    lifecycleEventLog.push(emitted);
+    if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
+  }
+);
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
@@ -226,6 +250,9 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
       return json(response, 200, manager.getSnapshot());
+    }
+    if (request.method === "GET" && url.pathname === "/v1/platform/lifecycle-events") {
+      return json(response, 200, lifecycleEventLog);
     }
     if (request.method === "GET" && url.pathname === "/v1/providers/effective") {
       const capability = url.searchParams.get("capability") ?? undefined;
@@ -535,7 +562,14 @@ const server = createServer(async (request, response) => {
             }
           });
         }
-        const snapshot = manager.install(itemId);
+        const confirmed = action.values.confirmed === true;
+        const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
+        const snapshot = manager.install(itemId, {
+          trustApproved: confirmed,
+          approvedPermissions: confirmed
+            ? target?.permissions?.map(permission => permission.id) ?? []
+            : []
+        });
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -628,7 +662,12 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && url.pathname === "/v1/install") {
-      const body = await readJson(request) as { packageId?: string; planDigest?: string };
+      const body = await readJson(request) as {
+        packageId?: string;
+        planDigest?: string;
+        trustApproved?: boolean;
+        approvedPermissions?: string[];
+      };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
       const current = installPlanWithDigest(body.packageId);
       if (current.blockers.length > 0) {
@@ -638,7 +677,10 @@ const server = createServer(async (request, response) => {
           plan: current
         });
       }
-      const snapshot = manager.install(body.packageId);
+      const snapshot = manager.install(body.packageId, {
+        trustApproved: body.trustApproved === true,
+        approvedPermissions: body.approvedPermissions ?? []
+      });
       return json(response, 200, {
         snapshot,
         effectiveExperiences: manager.listEffectiveExperiences()
