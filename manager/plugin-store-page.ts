@@ -103,7 +103,7 @@ export function createPluginStorePage(
         const compatible = (
           pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION
           && compatibility.state !== "INCOMPATIBLE"
-          && runtimeStatus.status !== "UNSUPPORTED"
+          && runtimeStatus.status === "READY"
         );
         const provides = unique(pkg.features.flatMap(feature => feature.providesCapabilities ?? []));
         const requires = unique(pkg.features.flatMap(feature => feature.requiresCapabilities ?? []));
@@ -178,7 +178,9 @@ export function createPluginStorePage(
               ? "ready" as const
               : runtimeStatus.status === "INACTIVE"
                 ? "inactive" as const
-                : "unsupported" as const
+                : runtimeStatus.status === "ERROR"
+                  ? "error" as const
+                  : "unsupported" as const
           },
           storage: {
             scope: "package" as const,
