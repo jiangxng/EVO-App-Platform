@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "REMOTE runtime Provider binding + operator runtime history",
+  "currentMilestone": "Plugin supply-chain trust — Sigstore bundle/OIDC/transparency verifier adapter",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -92,7 +92,10 @@
     "remote-credential-provider-package",
     "remote-credential-provider-runtime-registry-binding",
     "remote-runtime-host-readiness-evaluation",
-    "extension-manager-runtime-operational-history"
+    "extension-manager-runtime-operational-history",
+    "sigstore-bundle-verifier-adapter",
+    "sigstore-host-identity-policy",
+    "sigstore-process-execution-admission"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -115,7 +118,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize Remote Credential Provider readiness and Extension Manager operational history. Next supply-chain step is Sigstore bundle/OIDC/transparency verification behind the integrity verifier boundary.",
+  "currentStep": "Stabilize Sigstore external evidence admission. Next security maturity: trusted CI keyless/KMS signing workflow, package release artifacts, and stronger remote/container workload identity.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -318,15 +321,16 @@
       "remote-container-isolation-pending",
       "os-cpu-rss-network-policy-pending"
     ],
-    "packageIntegrity": "IMPLEMENTED_P0_PLUS_SLSA_PROVENANCE",
+    "packageIntegrity": "IMPLEMENTED_P0_PLUS_SLSA_AND_SIGSTORE_VERIFICATION",
     "packageIntegrityAuthority": "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md",
     "runtimeObservability": "IMPLEMENTED_P0_PLUS_DURABLE_SINK_AND_OPERATOR_HISTORY",
     "runtimeObservabilityAuthority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
     "nextSecurityMaturity": [
-      "sigstore-bundle-transparency-oidc-verifier-adapter",
-      "trusted-ci-kms-hsm-signing-workflow",
+      "trusted-ci-keyless-or-kms-signing-workflow",
+      "package-release-artifact-pipeline",
       "remote-container-workload-identity",
-      "durable-opentelemetry-compatible-runtime-telemetry"
+      "os-level-runtime-policy",
+      "opentelemetry-exporter"
     ],
     "remoteRuntime": {
       "adapter": "IMPLEMENTED_P0",
@@ -341,6 +345,13 @@
       "credentialCapability": "plugin.remote-credential",
       "referenceProviderPackage": "host-remote-credential-provider"
     },
-    "runtimeDispatcher": "IMPLEMENTED_P0"
+    "runtimeDispatcher": "IMPLEMENTED_P0",
+    "sigstore": {
+      "adapter": "IMPLEMENTED_P0",
+      "library": "sigstore@5.0.0",
+      "hostIdentityPolicy": "IMPLEMENTED",
+      "processAdmission": "FAIL_CLOSED_WHEN_DECLARED",
+      "nativeIntegrityFirst": true
+    }
   }
 }
