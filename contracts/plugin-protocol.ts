@@ -233,7 +233,7 @@ export function validatePluginManifestV010(
           );
         }
       }
-      if (pkg.storage || (pkg.events?.publish.length ?? 0) > 0 || (pkg.events?.subscribe.length ?? 0) > 0) {
+      if (pkg.storage || (pkg.events?.publish?.length ?? 0) > 0 || (pkg.events?.subscribe?.length ?? 0) > 0) {
         add(
           "PLUGIN_REMOTE_HOST_CAPABILITY_UNSUPPORTED",
           "runtime.remote.hostAccess",
