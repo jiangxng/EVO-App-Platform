@@ -37,7 +37,9 @@
     "isolatedPluginRuntime": "PROCESS_ISOLATION_P0_IMPLEMENTED",
     "pluginStorageEvents": "IMPLEMENTED_P0",
     "extensionManager": "IMPLEMENTED_P0",
-    "workbenchProductiveUx": "CONTINUOUS_EIDOS"
+    "workbenchProductiveUx": "CONTINUOUS_EIDOS",
+    "packageIntegritySigning": "ED25519_TRUST_STORE_ARTIFACT_DIGEST_IMPLEMENTED",
+    "runtimeObservability": "STRUCTURED_BOUNDED_DIAGNOSTICS_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -52,5 +54,22 @@
       "container-or-remote hostile-code isolation",
       "os-level CPU/RSS/network policy"
     ]
+  },
+  "packageIntegrity": {
+    "authority": "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md",
+    "signature": "ED25519_IMPLEMENTED",
+    "trustStore": "HOST_OWNED_IMPLEMENTED",
+    "processEntrypointDigest": "IMPLEMENTED",
+    "invalidOrUntrusted": "FAIL_CLOSED",
+    "unsignedDeclarative": "PRE_1_0_COMPATIBILITY_ONLY",
+    "provenanceVerification": "METADATA_ONLY_EXTERNAL_VERIFICATION_PENDING"
+  },
+  "runtimeObservability": {
+    "authority": "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md",
+    "structuredEvents": "IMPLEMENTED",
+    "boundedDiagnostics": "IMPLEMENTED",
+    "extensionManagerSurface": "IMPLEMENTED",
+    "durableTelemetry": "PENDING",
+    "openTelemetryExport": "PENDING"
   }
 }
