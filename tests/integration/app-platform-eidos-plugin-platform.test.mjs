@@ -158,3 +158,56 @@ test("Plugin Platform surface exposes compatibility, trust, permissions and runt
   assert.match(html, /Runtime: declarative \/ host/);
   assert.match(html, /Storage: available/);
 });
+
+
+test("Extension Manager receives Host-evaluated runtime readiness and recent operational history", () => {
+  const pkg = structuredClone(companyNotesPackage);
+  pkg.runtime = { kind: "REMOTE", isolation: "REMOTE", remote: {
+    protocol: "EVO-REMOTE-RUNTIME-v0.1",
+    endpoint: "https://runtime.example.invalid/invoke",
+    hostAccess: "NONE",
+    auth: { scheme: "HOST_BEARER", audience: "company-notes" }
+  }};
+  pkg.publisher = { id: "evo", displayName: "EVO", trust: "VERIFIED" };
+  pkg.integrity = {
+    format: "EVO-SIGNATURE-v0.1",
+    algorithm: "Ed25519",
+    keyId: "fixture",
+    signature: "x".repeat(32)
+  };
+
+  const manager = createAppManagerService(
+    createPackageCatalog([pkg]),
+    createMemoryLifecycleStore()
+  );
+  const page = createPluginStorePage([pkg], manager.getSnapshot(), {
+    evaluateRuntime() {
+      return {
+        packageId: pkg.packageId,
+        kind: "REMOTE",
+        isolation: "REMOTE",
+        status: "READY",
+        message: "credential Provider available"
+      };
+    },
+    runtimeEvents: [{
+      contractVersion: "0.1.0",
+      sequence: 7,
+      occurredAt: "2026-09-25T12:00:00.000Z",
+      packageId: pkg.packageId,
+      type: "INVOCATION_FAILED",
+      invocationId: "i-7",
+      method: "sync",
+      durationMs: 18,
+      message: "remote error"
+    }]
+  });
+
+  assert.equal(page.items[0].runtime.status, "ready");
+  assert.equal(page.items[0].runtime.history[0].type, "INVOCATION_FAILED");
+
+  const html = renderAppHostPageToHtml(loaded(page));
+  assert.match(html, /Recent runtime activity/);
+  assert.match(html, /INVOCATION_FAILED/);
+  assert.match(html, /remote error/);
+});
