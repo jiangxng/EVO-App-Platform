@@ -89,6 +89,7 @@ export function createPluginStorePage(
       .filter(pkg => pkg.type !== "FOUNDATION_RUNTIME")
       .map(pkg => {
         const isInstalled = installed.has(pkg.packageId);
+        const installedRecord = snapshot.installedPackages.find(item => item.packageId === pkg.packageId);
         const activeFeatureIds = new Set(
           snapshot.activeFeatures
             .filter(feature => feature.packageId === pkg.packageId)
@@ -144,21 +145,25 @@ export function createPluginStorePage(
               : compatibility.messages.join(" ")
           },
           trust: {
-            level: pkg.publisher?.trust === "UNVERIFIED"
+            level: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
               ? "review" as const
               : "trusted" as const,
-            label: pkg.publisher?.trust === "UNVERIFIED" ? "Review required" : "Trusted",
+            label: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
+              ? "Review required"
+              : pkg.publisher?.trust === "UNVERIFIED"
+                ? "Approved"
+                : "Trusted",
             publisher: pkg.publisher?.displayName ?? pkg.publisher?.id ?? "EVO catalog",
             source: pkg.publisher?.source ?? "host catalog",
-            message: pkg.publisher?.trust === "UNVERIFIED"
+            message: pkg.publisher?.trust === "UNVERIFIED" && installedRecord?.trustApproved !== true
               ? "Publisher trust must be approved before installation."
-              : "Catalog-owned or verified package."
+              : "Publisher trust is admitted for this installation."
           },
           permissions: (pkg.permissions ?? []).map(permission => ({
             id: permission.id,
             label: permission.label,
             risk: permission.risk.toLowerCase() as "low" | "medium" | "high",
-            granted: isInstalled
+            granted: installedRecord?.grantedPermissions?.includes(permission.id) === true
           })),
           activation: {
             mode: pkg.features.some(feature => feature.activation?.mode === "ON_DEMAND")
