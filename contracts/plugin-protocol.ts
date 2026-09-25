@@ -92,6 +92,79 @@ export function validatePluginManifestV010(
     add("PLUGIN_FEATURE_REQUIRED", "features", "At least one Feature is required.");
   }
 
+  if (pkg.compatibility) {
+    for (const [field, value] of Object.entries(pkg.compatibility)) {
+      if (typeof value !== "string" || !value.trim()) {
+        add(
+          "PLUGIN_COMPATIBILITY_RANGE_INVALID",
+          `compatibility.${field}`,
+          "Compatibility ranges must be non-empty strings."
+        );
+      }
+    }
+  }
+
+  if (pkg.publisher && !pkg.publisher.id.trim()) {
+    add("PLUGIN_PUBLISHER_ID_REQUIRED", "publisher.id", "Publisher id is required.");
+  }
+
+  const permissionIds = pkg.permissions?.map(permission => permission.id) ?? [];
+  for (const duplicate of duplicateValues(permissionIds)) {
+    add("PLUGIN_PERMISSION_DUPLICATE", "permissions", `Duplicate permission '${duplicate}'.`);
+  }
+  for (const [index, permission] of (pkg.permissions ?? []).entries()) {
+    if (!permission.id.trim() || !permission.label.trim()) {
+      add(
+        "PLUGIN_PERMISSION_INVALID",
+        `permissions[${index}]`,
+        "Permission id and label are required."
+      );
+    }
+    if (permission.risk === "HIGH" && !permission.reason?.trim()) {
+      add(
+        "PLUGIN_HIGH_RISK_PERMISSION_REASON_REQUIRED",
+        `permissions[${index}].reason`,
+        "High-risk permissions require an explicit reason."
+      );
+    }
+  }
+
+  if (pkg.runtime) {
+    const validPair = (
+      (pkg.runtime.kind === "DECLARATIVE" && pkg.runtime.isolation === "HOST")
+      || (pkg.runtime.kind === "WORKER" && pkg.runtime.isolation === "WORKER")
+      || (pkg.runtime.kind === "REMOTE" && pkg.runtime.isolation === "REMOTE")
+    );
+    if (!validPair) {
+      add(
+        "PLUGIN_RUNTIME_ISOLATION_INVALID",
+        "runtime",
+        "Runtime kind and isolation must use DECLARATIVE/HOST, WORKER/WORKER or REMOTE/REMOTE."
+      );
+    }
+    if (pkg.runtime.kind !== "DECLARATIVE" && !pkg.runtime.entrypoint?.trim()) {
+      add(
+        "PLUGIN_RUNTIME_ENTRYPOINT_REQUIRED",
+        "runtime.entrypoint",
+        "Executable plugin runtimes require an entrypoint."
+      );
+    }
+  }
+
+  if (pkg.storage?.quotaBytes !== undefined && pkg.storage.quotaBytes <= 0) {
+    add("PLUGIN_STORAGE_QUOTA_INVALID", "storage.quotaBytes", "Storage quota must be positive.");
+  }
+
+  for (const topic of pkg.events?.publish ?? []) {
+    if (!topic.startsWith(`${pkg.packageId}.`)) {
+      add(
+        "PLUGIN_EVENT_TOPIC_NOT_OWNED",
+        "events.publish",
+        `Published event '${topic}' must be namespaced by Package id '${pkg.packageId}'.`
+      );
+    }
+  }
+
   const featureIds = pkg.features.map(feature => feature.featureId);
   for (const duplicate of duplicateValues(featureIds)) {
     add(
@@ -133,6 +206,17 @@ export function validatePluginManifestV010(
         "PLUGIN_FEATURE_VERSION_REQUIRED",
         `${featurePath}.version`,
         "Feature version is required."
+      );
+    }
+
+    if (
+      feature.activation?.mode === "ON_DEMAND"
+      && (feature.activation.events?.length ?? 0) === 0
+    ) {
+      add(
+        "PLUGIN_ACTIVATION_EVENT_REQUIRED",
+        `${featurePath}.activation.events`,
+        "ON_DEMAND activation requires at least one activation event."
       );
     }
 
