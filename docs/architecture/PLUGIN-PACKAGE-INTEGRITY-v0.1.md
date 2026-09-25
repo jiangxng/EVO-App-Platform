@@ -86,7 +86,19 @@ The P0 envelope reserves provenance types:
 - `OIDC_CI`;
 - `SIGSTORE_BUNDLE`.
 
-Provenance metadata is signed, but P0 does not yet independently validate external Sigstore transparency-log inclusion or OIDC workflow identity.
+Provenance metadata is signed, but P0 now supports **SLSA-compatible provenance verification** carried inside the signed EVO integrity envelope.
+
+Supported provenance statement:
+
+- `_type = https://in-toto.io/Statement/v1`;
+- `predicateType = https://slsa.dev/provenance/v1`;
+- artifact subjects with SHA-256 digest;
+- buildDefinition.buildType;
+- runDetails.builder.id.
+
+The Host-owned trusted publisher key may additionally declare allowed builder identities and allowed build types. Verification fails closed when a signed SLSA statement names a builder/build type outside that root-of-trust policy, or when the provenance subject digest does not match the declared artifact digest.
+
+P0 still does not independently validate external Sigstore transparency-log inclusion, Fulcio/OIDC certificate identity, or Rekor evidence.
 
 This is intentional: EVO's native Package protocol keeps a provider-neutral verification boundary while allowing future integration with modern supply-chain systems.
 
@@ -105,6 +117,6 @@ source repository
 → Host verification
 ```
 
-Public ecosystems may use Sigstore-compatible bundles/transparency logs. Private enterprise catalogs may use internal PKI/KMS/HSM-backed keys and private provenance.
+Public ecosystems may use Sigstore-compatible bundles/transparency logs. Sigstore's JavaScript client supports bundle verification, making it a viable future verifier behind the EVO evidence boundary rather than a mandatory internal protocol dependency. Private enterprise catalogs may use internal PKI/KMS/HSM-backed keys and private provenance.
 
 The protocol should verify evidence without requiring one specific public provider.
