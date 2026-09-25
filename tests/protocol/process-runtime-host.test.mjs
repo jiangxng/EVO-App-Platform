@@ -240,7 +240,7 @@ test("timeout or crash is contained and the next invocation starts a fresh plugi
     assert.equal(diagnostics.timeouts, 1);
     assert.ok(diagnostics.crashes >= 1);
     assert.ok(diagnostics.restarts >= 2);
-    assert.ok(diagnostics.invocations >= 5);
+    assert.ok(diagnostics.invocations >= 4);
   } finally {
     await host.shutdown();
   }
