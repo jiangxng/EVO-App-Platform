@@ -39,9 +39,13 @@ export interface PluginPublisherV010 {
 }
 
 export interface PluginRuntimeV010 {
-  kind: "DECLARATIVE" | "WORKER" | "REMOTE";
-  isolation: "HOST" | "WORKER" | "REMOTE";
+  kind: "DECLARATIVE" | "WORKER" | "PROCESS" | "REMOTE";
+  isolation: "HOST" | "WORKER" | "PROCESS" | "REMOTE";
   entrypoint?: string;
+  limits?: {
+    invocationTimeoutMs?: number;
+    memoryMb?: number;
+  };
 }
 
 export interface PluginStorageDeclarationV010 {
