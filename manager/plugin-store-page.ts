@@ -1,7 +1,10 @@
 import type { PackageManifestV010, PlatformSnapshotV010 } from "../contracts/package.js";
 import { EVO_PLUGIN_PROTOCOL_VERSION } from "../contracts/plugin-protocol.js";
 import { evaluatePackageCompatibility } from "./compatibility.js";
-import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
+import {
+  inspectPluginRuntimeV010,
+  type PluginRuntimeStatusV010
+} from "./plugin-runtime-host.js";
 import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
 import { packageHasSettings, settingsPackageRoute } from "./settings-page.js";
 import {
@@ -9,7 +12,10 @@ import {
   verifyPackageIntegrityV010,
   type PluginIntegrityTrustStoreV010
 } from "./package-integrity.js";
-import type { PluginRuntimeDiagnosticsV010 } from "./plugin-runtime-observability.js";
+import type {
+  PluginRuntimeDiagnosticsV010,
+  PluginRuntimeEventV010
+} from "./plugin-runtime-observability.js";
 
 export const pluginStorePageSource = "app://evo-app-platform/pages/plugin-store";
 
@@ -73,6 +79,8 @@ function contributionSummary(pkg: PackageManifestV010): Array<{ kind: string; co
 export interface PluginStorePageOptionsV010 {
   integrityTrustStore?: PluginIntegrityTrustStoreV010;
   runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
+  runtimeEvents?: PluginRuntimeEventV010[];
+  evaluateRuntime?: (pkg: PackageManifestV010) => PluginRuntimeStatusV010;
 }
 
 export function createPluginStorePage(
@@ -86,6 +94,16 @@ export function createPluginStorePage(
   const diagnosticsByPackage = new Map(
     (options.runtimeDiagnostics ?? []).map(item => [item.packageId, item])
   );
+  const runtimeEventsByPackage = new Map<string, PluginRuntimeEventV010[]>();
+  for (const event of options.runtimeEvents ?? []) {
+    const current = runtimeEventsByPackage.get(event.packageId) ?? [];
+    current.push(event);
+    runtimeEventsByPackage.set(event.packageId, current);
+  }
+  for (const current of runtimeEventsByPackage.values()) {
+    current.sort((a, b) => b.sequence - a.sequence);
+  }
+  const evaluateRuntime = options.evaluateRuntime ?? inspectPluginRuntimeV010;
 
   return {
     contractVersion: "0.1.0",
@@ -116,9 +134,10 @@ export function createPluginStorePage(
         const route = firstExperienceRoute(pkg);
         const settingsRoute = packageHasSettings(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
         const compatibility = evaluatePackageCompatibility(pkg);
-        const runtimeStatus = inspectPluginRuntimeV010(pkg);
+        const runtimeStatus = evaluateRuntime(pkg);
         const integrityStatus = verifyPackageIntegrityV010(pkg, integrityTrustStore);
         const runtimeDiagnostics = diagnosticsByPackage.get(pkg.packageId);
+        const runtimeHistory = (runtimeEventsByPackage.get(pkg.packageId) ?? []).slice(0, 5);
         const compatible = (
           pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION
           && compatibility.state !== "INCOMPATIBLE"
@@ -238,6 +257,16 @@ export function createPluginStorePage(
                 lastEventAt: runtimeDiagnostics.lastEventAt,
                 lastError: runtimeDiagnostics.lastError
               }
+            } : {}),
+            ...(runtimeHistory.length > 0 ? {
+              history: runtimeHistory.map(event => ({
+                sequence: event.sequence,
+                occurredAt: event.occurredAt,
+                type: event.type,
+                ...(event.method ? { method: event.method } : {}),
+                ...(event.durationMs !== undefined ? { durationMs: event.durationMs } : {}),
+                ...(event.message ? { message: event.message } : {})
+              }))
             } : {})
           },
           storage: {
