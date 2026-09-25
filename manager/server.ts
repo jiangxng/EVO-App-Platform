@@ -14,6 +14,12 @@ import {
   type PluginEventV010
 } from "./plugin-host-services.js";
 import { createProcessPluginRuntimeHostV010 } from "./plugin-runtime-host.js";
+import {
+  createFilePluginIntegrityTrustStoreV010,
+  createMemoryPluginIntegrityTrustStoreV010,
+  verifyPackageIntegrityV010
+} from "./package-integrity.js";
+import { createPluginRuntimeObservabilityV010 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -76,9 +82,16 @@ const pluginStorage = pluginStorageStateFile
   ? createFilePluginStorageService(pluginStorageStateFile)
   : createMemoryPluginStorageService();
 const pluginEvents = createPluginEventBus();
+const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
+const pluginIntegrityTrustStore = pluginTrustStoreFile
+  ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
+  : createMemoryPluginIntegrityTrustStoreV010();
+const runtimeObservability = createPluginRuntimeObservabilityV010(500);
 const processRuntimeHost = createProcessPluginRuntimeHostV010({
   storageService: pluginStorage,
-  eventBus: pluginEvents
+  eventBus: pluginEvents,
+  integrityTrustStore: pluginIntegrityTrustStore,
+  onRuntimeEvent: event => runtimeObservability.record(event)
 });
 const lifecycleEventLog: PluginEventV010[] = [];
 
@@ -103,7 +116,8 @@ const manager = createAppManagerService(
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
     }
-  }
+  },
+  pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore)
 );
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
@@ -260,6 +274,20 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
       return json(response, 200, manager.getSnapshot());
     }
+    if (request.method === "GET" && url.pathname === "/v1/runtime/diagnostics") {
+      const packageId = url.searchParams.get("packageId")?.trim();
+      return json(
+        response,
+        200,
+        packageId
+          ? runtimeObservability.diagnostics(packageId)
+          : runtimeObservability.listDiagnostics()
+      );
+    }
+    if (request.method === "GET" && url.pathname === "/v1/runtime/events") {
+      const packageId = url.searchParams.get("packageId")?.trim();
+      return json(response, 200, runtimeObservability.listEvents(packageId || undefined));
+    }
     if (request.method === "GET" && url.pathname === "/v1/platform/lifecycle-events") {
       return json(response, 200, lifecycleEventLog);
     }
@@ -296,7 +324,11 @@ const server = createServer(async (request, response) => {
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
           manager.listCatalog(),
-          manager.getSnapshot()
+          manager.getSnapshot(),
+          {
+            integrityTrustStore: pluginIntegrityTrustStore,
+            runtimeDiagnostics: runtimeObservability.listDiagnostics()
+          }
         ));
       }
       if (source === settingsIndexPageSource) {
