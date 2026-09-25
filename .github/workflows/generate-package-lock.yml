@@ -1,0 +1,30 @@
+name: Generate Package Lock
+
+on:
+  push:
+    branches:
+      - feat/dependency-lock-ci-v0.1
+    paths:
+      - "package.json"
+      - ".github/workflows/generate-package-lock.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Generate lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Verify frozen install
+        run: npm ci --ignore-scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
+          retention-days: 1
