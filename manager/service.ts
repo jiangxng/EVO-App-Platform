@@ -11,11 +11,18 @@ import type {
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
+import { evaluatePackageCompatibility } from "./compatibility.js";
+import { inspectPluginRuntimeV010 } from "./plugin-runtime-host.js";
+
+export interface InstallAuthorizationV010 {
+  trustApproved?: boolean;
+  approvedPermissions?: string[];
+}
 
 export interface AppManagerService {
   listCatalog(): PackageManifestV010[];
   planInstall(packageId: string): InstallPlanV010;
-  install(packageId: string): PlatformSnapshotV010;
+  install(packageId: string, authorization?: InstallAuthorizationV010): PlatformSnapshotV010;
   enable(packageId: string): PlatformSnapshotV010;
   planDisable(packageId: string): PackageLifecyclePlanV010;
   disable(packageId: string): PlatformSnapshotV010;
@@ -149,6 +156,26 @@ export function createAppManagerService(
       resolveFeature(target, feature, new Set(), packages, features, missingCapabilities, blockers);
     }
 
+    const compatibility = evaluatePackageCompatibility(target);
+    if (compatibility.state === "INCOMPATIBLE") {
+      blockers.push({
+        code: "HOST_INCOMPATIBLE",
+        message: compatibility.messages.join(" ")
+      });
+    }
+
+    const runtime = inspectPluginRuntimeV010(target);
+    if (runtime.status === "UNSUPPORTED") {
+      blockers.push({
+        code: "PLUGIN_RUNTIME_UNSUPPORTED",
+        message: runtime.message
+      });
+    }
+
+    const requestedPermissions = structuredClone(target.permissions ?? []);
+    const requiresTrustApproval = target.publisher?.trust === "UNVERIFIED";
+    const requiresUserApproval = requiresTrustApproval || requestedPermissions.length > 0;
+
     return {
       contractVersion: "0.1.0",
       packageId: target.packageId,
@@ -157,14 +184,38 @@ export function createAppManagerService(
       activateFeatures: uniqueSorted([...features].filter(id => !store.getActiveFeature(id))),
       missingCapabilities: uniqueSorted(missingCapabilities),
       blockers,
+      compatibility: {
+        state: compatibility.state,
+        messages: compatibility.messages
+      },
+      requestedPermissions,
+      requiresTrustApproval,
+      requiresUserApproval,
       sideEffectFree: true
     };
   }
 
-  function install(packageId: string): PlatformSnapshotV010 {
+  function install(
+    packageId: string,
+    authorization: InstallAuthorizationV010 = {}
+  ): PlatformSnapshotV010 {
     const plan = planInstall(packageId);
     if (plan.blockers.length > 0) {
       throw new Error(`INSTALL_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    }
+
+    if (plan.requiresTrustApproval && authorization.trustApproved !== true) {
+      throw new Error(`INSTALL_TRUST_APPROVAL_REQUIRED: ${packageId}`);
+    }
+
+    const approved = new Set(authorization.approvedPermissions ?? []);
+    const missingRequiredPermissions = (plan.requestedPermissions ?? [])
+      .filter(permission => permission.required !== false && !approved.has(permission.id))
+      .map(permission => permission.id);
+    if (missingRequiredPermissions.length > 0) {
+      throw new Error(
+        `INSTALL_PERMISSION_APPROVAL_REQUIRED: ${missingRequiredPermissions.join(",")}`
+      );
     }
 
     const timestamp = now().toISOString();
@@ -283,7 +334,12 @@ export function createAppManagerService(
     if (!store.getInstalledPackage(packageId)) {
       throw new Error(`ENABLE_REQUIRES_INSTALLED_PACKAGE: ${packageId}`);
     }
-    return install(packageId);
+    const target = catalog.get(packageId);
+    const authorization: InstallAuthorizationV010 = {
+      trustApproved: true,
+      approvedPermissions: target?.permissions?.map(permission => permission.id) ?? []
+    };
+    return install(packageId, authorization);
   }
 
   function planDisable(packageId: string): PackageLifecyclePlanV010 {
