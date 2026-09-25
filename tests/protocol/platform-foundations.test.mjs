@@ -6,7 +6,8 @@ import { validatePluginManifestV010 } from "../../dist/contracts/plugin-protocol
 import { evaluatePackageCompatibility } from "../../dist/manager/compatibility.js";
 import {
   createMemoryPluginStorageService,
-  createPluginEventBus
+  createPluginEventBus,
+  createScopedPluginHostContextV010
 } from "../../dist/manager/plugin-host-services.js";
 import { inspectPluginRuntimeV010 } from "../../dist/manager/plugin-runtime-host.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
@@ -102,6 +103,9 @@ test("permission/trust admission and on-demand activation are server-side lifecy
     trustApproved: true,
     approvedPermissions: ["workspace.read"]
   });
+  const installed = manager.getSnapshot().installedPackages[0];
+  assert.equal(installed.trustApproved, true);
+  assert.deepEqual(installed.grantedPermissions, ["workspace.read"]);
   assert.equal(manager.getSnapshot().activeFeatures.length, 0);
   assert.equal(events.some(event => event.type === "PACKAGE_INSTALLED"), true);
 
@@ -134,24 +138,42 @@ test("executable plugin runtimes fail closed until an isolated runtime host exis
   assert.ok(manager.planInstall("sample-native").blockers.some(x => x.code === "PLUGIN_RUNTIME_UNSUPPORTED"));
 });
 
-test("plugin storage and events are package namespaced", () => {
+test("plugin storage and events are package namespaced and exposed through scoped Host API", () => {
   const storage = createMemoryPluginStorageService();
-  storage.set("plugin-a", "state", { count: 1 });
-  storage.set("plugin-b", "state", { count: 2 });
-  assert.deepEqual(storage.get("plugin-a", "state"), { count: 1 });
-  assert.deepEqual(storage.get("plugin-b", "state"), { count: 2 });
-
   const bus = createPluginEventBus(() => new Date("2026-09-25T00:00:00Z"));
+  const pkg = nativePackage();
+  const installed = {
+    packageId: "sample-native",
+    version: "1.0.0",
+    installedAt: "2026-09-25T00:00:00.000Z",
+    trustApproved: true,
+    grantedPermissions: ["workspace.read"]
+  };
+  const host = createScopedPluginHostContextV010(pkg, installed, storage, bus);
+
+  assert.equal(host.permissions.has("workspace.read"), true);
+  host.storage.set("state", { count: 1 });
+  assert.deepEqual(host.storage.get("state"), { count: 1 });
+  assert.deepEqual(storage.list("sample-native"), { state: { count: 1 } });
+
   const received = [];
-  const unsubscribe = bus.subscribe("plugin-b", "plugin-a.changed", event => received.push(event));
-  bus.publish("plugin-a", "plugin-a.changed", { id: 1 });
+  const external = bus.subscribe("observer", "sample-native.changed", event => received.push(event));
+  host.events.publish("sample-native.changed", { id: 1 });
   assert.equal(received.length, 1);
-  assert.equal(received[0].publisherPackageId, "plugin-a");
+  assert.equal(received[0].publisherPackageId, "sample-native");
   assert.throws(
-    () => bus.publish("plugin-a", "plugin-b.changed", {}),
-    /PLUGIN_EVENT_TOPIC_NOT_OWNED/
+    () => host.events.publish("other.changed", {}),
+    /PLUGIN_EVENT_PUBLISH_NOT_DECLARED/
   );
-  unsubscribe();
+  assert.throws(
+    () => host.events.subscribe("undeclared.topic", () => {}),
+    /PLUGIN_EVENT_SUBSCRIBE_NOT_DECLARED/
+  );
+  assert.throws(
+    () => host.storage.set("oversize", "x".repeat(2000)),
+    /PLUGIN_STORAGE_QUOTA_EXCEEDED/
+  );
+  external();
 });
 
 test("Plugin Protocol validates new foundation declarations", () => {
