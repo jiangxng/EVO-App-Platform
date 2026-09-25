@@ -15,6 +15,7 @@ Until the plugin foundation is stable, the primary product/engineering mainline 
             v
     Eidos
       owns Workbench / Extension Manager / Contribution rendering / Settings / localization
+      owns Productive Design Language / tokens / standard shell styling
 
 EVO Ledger Runtime, Enterprise Agent/EC, providers, business Apps and configurators are consumers/plugins around this boundary. They are not default CI dependencies of the mainline.
 
@@ -78,6 +79,8 @@ For a Plugin X change: run Plugin X protocol conformance, its direct public-cont
 A material Plugin Protocol change triggers separate Ecosystem Certification. It does not turn full-portfolio testing into the ordinary PR loop.
 
 Eidos runs Eidos CI. App Platform runs the focused App Platform ↔ Eidos integration when its pinned Eidos public snapshot changes.
+
+Visual ownership follows the same boundary: App Platform supplies plugin/lifecycle state, while Eidos owns standard Workbench layout, spacing, button hierarchy, focus and responsive styling.
 
 ## Testable product surface
 
