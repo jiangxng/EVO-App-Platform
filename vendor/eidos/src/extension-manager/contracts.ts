@@ -49,6 +49,15 @@ export interface ExtensionManagerItemV010 {
     source?: string;
     message?: string;
   };
+  integrity?: {
+    state: "verified" | "unsigned" | "untrusted" | "invalid" | "pending";
+    label: string;
+    algorithm?: string;
+    keyId?: string;
+    digest?: string;
+    provenance?: string;
+    message?: string;
+  };
   permissions?: Array<{
     id: string;
     label: string;
@@ -63,6 +72,16 @@ export interface ExtensionManagerItemV010 {
     kind: "declarative" | "worker" | "process" | "remote";
     isolation: "host" | "worker" | "process" | "remote";
     status?: "ready" | "inactive" | "unsupported" | "error";
+    health?: "healthy" | "degraded" | "stopped" | "unknown";
+    metrics?: {
+      invocations: number;
+      failures: number;
+      timeouts: number;
+      crashes: number;
+      restarts: number;
+      lastEventAt?: string;
+      lastError?: string;
+    };
   };
   storage?: {
     scope: "package";
