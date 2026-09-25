@@ -37,6 +37,11 @@ import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-age
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import {
+  createFileProviderBindingStoreV010,
+  createMemoryProviderBindingStoreV010,
+  resolveProviderRuntimeV010
+} from "./provider-resolution.js";
+import {
   HOST_REMOTE_CREDENTIAL_PROVIDER_ID,
   REMOTE_CREDENTIAL_CAPABILITY,
   hostRemoteCredentialProviderPackage
@@ -126,6 +131,11 @@ const processRuntimeHost = createProcessPluginRuntimeHostV010({
 });
 const lifecycleEventLog: PluginEventV010[] = [];
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
+const providerBindings = providerBindingsFile
+  ? createFileProviderBindingStoreV010(providerBindingsFile)
+  : createMemoryProviderBindingStoreV010();
 const remoteBearerTokenMap = parseHostRemoteBearerTokenMapV010(
   process.env.APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON
 );
@@ -157,9 +167,12 @@ function activeServiceProviderDescriptors(capability: string) {
 function resolveRemoteCredentialProvider(
   _packageId: string
 ): RemoteRuntimeCredentialProviderV010 | undefined {
-  return providerRuntimeRegistry.resolve<RemoteRuntimeCredentialProviderV010>(
+  return resolveProviderRuntimeV010<RemoteRuntimeCredentialProviderV010>(
+    providerRuntimeRegistry,
     activeServiceProviderDescriptors(REMOTE_CREDENTIAL_CAPABILITY),
-    REMOTE_CREDENTIAL_CAPABILITY
+    providerBindings,
+    REMOTE_CREDENTIAL_CAPABILITY,
+    { installationId: "default" }
   )?.runtime;
 }
 
@@ -252,9 +265,12 @@ function resolveLlmProvider(): {
 } {
   const descriptors = manager.listEffectiveServiceProviders("llm.inference");
   const installedProviderIds = descriptors.map(provider => provider.providerId);
-  const resolved = providerRuntimeRegistry.resolve<LlmInferenceProvider>(
+  const resolved = resolveProviderRuntimeV010<LlmInferenceProvider>(
+    providerRuntimeRegistry,
     descriptors,
-    "llm.inference"
+    providerBindings,
+    "llm.inference",
+    { installationId: "default" }
   );
   return {
     installedProviderIds,
@@ -386,6 +402,10 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/providers/effective") {
       const capability = url.searchParams.get("capability") ?? undefined;
       return json(response, 200, manager.listEffectiveServiceProviders(capability));
+    }
+    if (request.method === "GET" && url.pathname === "/v1/providers/bindings") {
+      const capability = url.searchParams.get("capability") ?? undefined;
+      return json(response, 200, providerBindings.list(capability));
     }
     if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
       return json(response, 200, [
