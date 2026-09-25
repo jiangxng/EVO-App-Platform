@@ -31,9 +31,15 @@ The design follows the common architecture seen in mature extension systems:
 7. Independent packaging and CI — one plugin is one engineering/test unit.
 8. Marketplace/catalog is separate from runtime — discovery metadata does not imply execution authority.
 
-VS Code is the strongest reference for manifest + Contribution Points + Extension Host isolation. Cursor demonstrates the value of ecosystem compatibility. ChatGPT's current plugin model reinforces a small installable package composed from declared skills/tools/MCP/UI with authorization remaining separate.
+The internal EVO plugin model is intentionally closer in product shape to a mini-app platform: a plugin is a complete hosted application with lifecycle, permissions, storage/runtime access and Eidos UI contributions.
 
-We adopt these principles, not another product's exact schema.
+VS Code remains the strongest engineering reference for manifest + Contribution Points + stable Host API + lazy activation + Extension Host isolation.
+
+MCP/OAuth belong to the external-integration layer. They may be used by EVO or an EVO plugin to connect external tools/services, but they are not the native internal plugin runtime protocol.
+
+See `INTERNAL-PLUGIN-AND-EXTERNAL-INTEGRATION-v0.1.md`.
+
+We adopt principles from mature systems, not another product's exact schema.
 
 ## EVO mapping
 
@@ -45,6 +51,7 @@ We adopt these principles, not another product's exact schema.
 | extension API | App Platform + Eidos public contracts |
 | activation | Feature/runtime activation |
 | extension host | future isolated Plugin Runtime Host |
+| mini-app host APIs | App Platform/Eidos public Host APIs |
 | Extensions view | Eidos Extension Manager |
 | Marketplace | App Catalog / future Plugin Directory |
 
@@ -89,6 +96,9 @@ After the declarative App Platform + Eidos mainline is stable:
 3. isolated Plugin Runtime Host;
 4. permission/trust declarations;
 5. signed artifacts/integrity;
-6. private/public catalog and update channels.
+6. private/public catalog and update channels;
+7. native plugin storage/events/runtime APIs.
+
+MCP/OAuth integration remains a separate external-interoperability track and is not a prerequisite for native plugin execution.
 
 Do not implement these by coupling existing plugins back into App Platform Core.

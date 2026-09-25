@@ -59,3 +59,7 @@
 - **APP-55** Until Plugin Platform foundation reaches a stable compatibility baseline, the primary integration mainline is EVO App Platform + Eidos. EVO Ledger Runtime, Enterprise Agent/EC, providers and business plugins are not default mainline CI dependencies.
 - **APP-56** A change to one plugin MUST NOT trigger unrelated plugin projects. The default cross-project integration gate is App Platform ↔ Eidos only; broader ecosystem runs are explicit certification.
 - **APP-57** Human-facing plugin discovery/lifecycle management uses Eidos public Extension Manager/Workbench capabilities. App Platform owns data and lifecycle semantics but MUST NOT create a parallel bespoke UI framework.
+
+- **APP-58** EVO Plugin Protocol is the native internal plugin/mini-app protocol. MCP is an external interoperability protocol and MUST NOT become a mandatory hop for ordinary native plugin execution.
+- **APP-59** OAuth/OIDC belong to delegated external authorization/identity boundaries. Native first-party plugins MUST NOT be forced through OAuth merely to call same-platform public capabilities.
+- **APP-60** Internal plugin runtime, permissions, storage/events and Eidos Contributions evolve as App Platform/Eidos public contracts. External MCP/HTTP adapters remain separable plugins or provider capabilities behind those contracts.

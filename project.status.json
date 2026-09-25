@@ -48,7 +48,8 @@
     "ecosystem-certification-separation",
     "eidos-extension-manager",
     "app-platform-eidos-focused-integration-ci",
-    "plugin-platform-permanent-test-surface"
+    "plugin-platform-permanent-test-surface",
+    "native-plugin-vs-external-integration-boundary"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -73,7 +74,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Validate and ship the App Platform + Eidos Plugin Platform page and focused integration gate. Do not resume broad plugin/runtime development until this boundary is stable.",
+  "currentStep": "Stabilize the native App Platform + Eidos mini-app/plugin boundary: compatibility range, activation, permissions/trust, isolated runtime and plugin APIs. Treat MCP/OAuth as a separate external-integration track.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -219,6 +220,16 @@
       "Experience-Compiler/Enterprise Agent",
       "unrelated plugins"
     ],
-    "authority": "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
+    "authority": "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md",
+    "protocolBoundary": {
+      "nativePlugin": "EVO Plugin Protocol",
+      "externalInteroperability": [
+        "MCP",
+        "OAuth 2.1 + PKCE",
+        "OIDC where identity claims are required",
+        "HTTP/Webhook where appropriate"
+      ],
+      "rule": "MCP/OAuth are not mandatory internal plugin hops"
+    }
   }
 }

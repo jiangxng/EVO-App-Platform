@@ -6,7 +6,9 @@
 
 ## Purpose
 
-The Plugin Protocol is the stable boundary between the App Platform and independently developed plugins.
+The Plugin Protocol is the stable **native EVO plugin** boundary between the App Platform and independently developed plugins.
+
+It is not an MCP replacement and MCP is not a replacement for it. Native plugins use Package / Feature / Capability / Contribution semantics inside EVO. MCP/OAuth may be used separately when EVO or a plugin connects to an external system.
 
 A normal plugin change MUST NOT trigger CI for unrelated plugins.
 
@@ -31,6 +33,8 @@ The current protocol surface is intentionally small:
 - deterministic manifest conformance.
 
 Plugins depend on public contracts/capabilities, never another repository's private code.
+
+Native plugins do not need to expose an MCP server or perform OAuth merely to run inside EVO. Those protocols are introduced only when an independent external integration boundary requires them.
 
 ## Protocol version
 
