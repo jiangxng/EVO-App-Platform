@@ -41,6 +41,8 @@ sha256:<64 lowercase hex>
 
 PROCESS runtime Packages MUST declare a signed `PROCESS_ENTRYPOINT` digest.
 
+REMOTE runtime Packages MUST also be signed. Their signed Manifest binds the remote endpoint, protocol, auth audience and Host-access mode; no local artifact digest is required by REMOTE P0.
+
 App Platform verifies the signature during install planning and re-verifies the actual entrypoint bytes before PROCESS execution.
 
 ## Trust store
@@ -69,8 +71,8 @@ Unknown or revoked keys fail closed for signed packages.
 | Integrity state | Declarative package | PROCESS package |
 | --- | --- | --- |
 | VERIFIED | allowed | allowed if all other runtime rules pass |
-| PENDING_ARTIFACT | allowed | install may proceed; actual bytes MUST verify before launch |
-| UNSIGNED | P0 allowed | blocked |
+| PENDING_ARTIFACT | allowed | PROCESS install may proceed; actual bytes MUST verify before launch |
+| UNSIGNED | P0 allowed | blocked for PROCESS/REMOTE |
 | UNTRUSTED | blocked | blocked |
 | INVALID | blocked | blocked |
 
