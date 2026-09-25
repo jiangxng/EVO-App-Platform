@@ -52,7 +52,7 @@ Contribution = what the Feature adds
 
 Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modifying manifests or lifecycle behavior.
 
-For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. Load only that plugin's context plus the public contracts for capabilities it directly consumes. Do not load or test the whole plugin portfolio by default.
+For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. For independent manifest authoring, load `contracts/schema/plugin-package-v0.1.schema.json` and `contracts/schema/plugin-feature-v0.1.schema.json` first, then the plugin's own manifest and only its direct public contracts. Use `npm run plugin:validate -- <manifest.json>` for canonical semantic validation. Do not load or test the whole plugin portfolio by default.
 
 
 ## Current handoff — 2026-09-23
