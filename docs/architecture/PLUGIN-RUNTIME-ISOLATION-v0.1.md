@@ -78,8 +78,13 @@ Local PROCESS execution requires:
 - runtime declaration `PROCESS / PROCESS`;
 - a resolvable entrypoint;
 - Publisher trust = `FIRST_PARTY` or `VERIFIED`;
+- a trusted Ed25519 Package signature;
+- a signed `PROCESS_ENTRYPOINT` SHA-256 digest;
+- successful re-verification of the actual entrypoint bytes before launch;
 - normal Plugin Protocol conformance;
 - normal install/permission admission.
+
+Package-integrity authority: `docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md`.
 
 `UNVERIFIED` executable packages remain fail-closed for local PROCESS execution.
 
@@ -132,6 +137,12 @@ A child is started on first invocation, remains supervised while useful, and is 
 - App Platform shutdown.
 
 After timeout/crash, the next valid invocation may start a clean process.
+
+## Observability
+
+PROCESS runtime emits structured runtime events and bounded aggregate diagnostics owned by App Platform.
+
+Authority: `docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md`.
 
 ## Future work
 
