@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform + Eidos P0 Host Foundations — compatibility, activation, trust, fail-closed runtime boundary, scoped storage/events, Extension Manager and Workbench",
+  "currentMilestone": "App Platform + Eidos P0 Host Foundations — PROCESS runtime isolation implemented for trusted/verified executable plugins",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -58,7 +58,13 @@
     "plugin-runtime-fail-closed-boundary",
     "package-scoped-plugin-storage-events",
     "extension-manager-governance-posture",
-    "workbench-productive-keyboard-shortcuts"
+    "workbench-productive-keyboard-shortcuts",
+    "process-isolated-plugin-runtime-host",
+    "process-runtime-ipc-host-api",
+    "process-runtime-timeout-crash-restart",
+    "process-runtime-minimal-environment",
+    "process-runtime-resource-budgets",
+    "process-runtime-lifecycle-supervision"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -83,7 +89,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Validate and stabilize the P0 host foundations. Next major technical gap is a real isolated executable Plugin Runtime Host; do not emulate isolation with in-process execution.",
+  "currentStep": "Stabilize PROCESS runtime isolation and then continue toward package integrity/signing, stronger remote/container isolation, runtime observability and Extension Manager operational history.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -244,7 +250,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "8fd6071f190555e6083723f9c2eef5e4b1473bfe",
+    "eidosSourceCommit": "2310decfc112c20fc8bf471ecaf0604a42e4877e",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
   },
@@ -264,9 +270,17 @@
     "hostCompatibility": "IMPLEMENTED_P0",
     "activationLifecycle": "IMPLEMENTED_P0",
     "permissionsTrust": "IMPLEMENTED_P0",
-    "runtimeIsolation": "PROTOCOL_FAIL_CLOSED_EXECUTION_PENDING",
+    "runtimeIsolation": "PROCESS_ISOLATION_P0_IMPLEMENTED",
     "storageEvents": "IMPLEMENTED_P0",
     "extensionManager": "IMPLEMENTED_P0",
-    "workbench": "CONTINUOUS_EIDOS"
+    "workbench": "CONTINUOUS_EIDOS",
+    "runtimeIsolationAuthority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
+    "runtimeIsolationLimits": [
+      "not-hostile-code-sandbox",
+      "unverified-local-executable-fail-closed",
+      "worker-not-security-boundary",
+      "remote-container-isolation-pending",
+      "os-cpu-rss-network-policy-pending"
+    ]
   }
 }

@@ -34,9 +34,23 @@
     "hostCompatibilityRange": "IMPLEMENTED",
     "activationLifecycle": "IMPLEMENTED_P0",
     "permissionsTrust": "IMPLEMENTED_P0",
-    "isolatedPluginRuntime": "PROTOCOL_FAIL_CLOSED_EXECUTION_PENDING",
+    "isolatedPluginRuntime": "PROCESS_ISOLATION_P0_IMPLEMENTED",
     "pluginStorageEvents": "IMPLEMENTED_P0",
     "extensionManager": "IMPLEMENTED_P0",
     "workbenchProductiveUx": "CONTINUOUS_EIDOS"
+  },
+  "runtimeIsolation": {
+    "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
+    "declarativeHost": "IMPLEMENTED",
+    "processProcess": "IMPLEMENTED_P0_FIRST_PARTY_VERIFIED",
+    "workerWorker": "DISABLED_NOT_SECURITY_BOUNDARY",
+    "remoteRemote": "FAIL_CLOSED_PENDING",
+    "unverifiedExecutable": "FAIL_CLOSED",
+    "next": [
+      "package integrity/signing",
+      "runtime observability",
+      "container-or-remote hostile-code isolation",
+      "os-level CPU/RSS/network policy"
+    ]
   }
 }

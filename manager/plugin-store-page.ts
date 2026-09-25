@@ -103,7 +103,7 @@ export function createPluginStorePage(
         const compatible = (
           pkg.contractVersion === EVO_PLUGIN_PROTOCOL_VERSION
           && compatibility.state !== "INCOMPATIBLE"
-          && runtimeStatus.status !== "UNSUPPORTED"
+          && runtimeStatus.status === "READY"
         );
         const provides = unique(pkg.features.flatMap(feature => feature.providesCapabilities ?? []));
         const requires = unique(pkg.features.flatMap(feature => feature.requiresCapabilities ?? []));
@@ -172,13 +172,15 @@ export function createPluginStorePage(
             events: unique(pkg.features.flatMap(feature => feature.activation?.events ?? []))
           },
           runtime: {
-            kind: runtimeStatus.kind.toLowerCase() as "declarative" | "worker" | "remote",
-            isolation: runtimeStatus.isolation.toLowerCase() as "host" | "worker" | "remote",
+            kind: runtimeStatus.kind.toLowerCase() as "declarative" | "worker" | "process" | "remote",
+            isolation: runtimeStatus.isolation.toLowerCase() as "host" | "worker" | "process" | "remote",
             status: runtimeStatus.status === "READY"
               ? "ready" as const
               : runtimeStatus.status === "INACTIVE"
                 ? "inactive" as const
-                : "unsupported" as const
+                : runtimeStatus.status === "ERROR"
+                  ? "error" as const
+                  : "unsupported" as const
           },
           storage: {
             scope: "package" as const,

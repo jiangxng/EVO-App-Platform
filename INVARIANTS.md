@@ -73,3 +73,9 @@
 - **APP-65** Executable plugin runtimes fail closed until an actual isolated Runtime Host exists. DECLARATIVE/HOST is the only executable P0 runtime; WORKER/REMOTE declarations are recognized but not silently executed in-process.
 - **APP-66** Plugin Storage and Events are accessed through package-scoped Host API facades. A plugin MUST NOT choose another package namespace or publish/subscribe undeclared event topics.
 - **APP-67** ON_DEMAND Feature activation keeps the Feature inactive at install time and activates only from declared host activation events.
+
+- **APP-68** App Platform MUST NOT import PROCESS plugin entrypoints into the Host process. PROCESS plugins execute in a supervised child process and interact with the Host only through a package-scoped IPC capability facade.
+- **APP-69** WORKER isolation is not a hostile-code security boundary and MUST NOT be described or admitted as one. Local executable PROCESS runtime is limited to FIRST_PARTY/VERIFIED publishers; UNVERIFIED executable code remains fail-closed.
+- **APP-70** PROCESS runtime failure is contained: invocation timeout/crash terminates or loses only the plugin process, pending calls fail deterministically, and a later invocation may start a clean process.
+- **APP-71** Host secrets are not inherited wholesale by plugin processes. PROCESS runtime environment is minimized and privileged state crosses only explicit scoped Host APIs.
+- **APP-72** PROCESS runtime resource budgets are explicit. P0 timeout and V8 heap budgets MUST NOT be misrepresented as complete OS/container resource isolation.

@@ -13,6 +13,7 @@ import {
   createPluginEventBus,
   type PluginEventV010
 } from "./plugin-host-services.js";
+import { createProcessPluginRuntimeHostV010 } from "./plugin-runtime-host.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -75,6 +76,10 @@ const pluginStorage = pluginStorageStateFile
   ? createFilePluginStorageService(pluginStorageStateFile)
   : createMemoryPluginStorageService();
 const pluginEvents = createPluginEventBus();
+const processRuntimeHost = createProcessPluginRuntimeHostV010({
+  storageService: pluginStorage,
+  eventBus: pluginEvents
+});
 const lifecycleEventLog: PluginEventV010[] = [];
 
 const retiredLocalization = retireExperimentalPackageV010(
@@ -94,6 +99,10 @@ const manager = createAppManagerService(
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
     if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
+
+    if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
+      void processRuntimeHost.stop(event.packageId);
+    }
   }
 );
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
@@ -747,3 +756,16 @@ const server = createServer(async (request, response) => {
 
 const port = Number(process.env.PORT ?? 4100);
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
+
+let shuttingDown = false;
+async function shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`EVO App Manager shutting down (${signal})`);
+  await processRuntimeHost.shutdown();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));
