@@ -18,6 +18,7 @@ import {
   inspectPluginRuntimeV010
 } from "./plugin-runtime-host.js";
 import { createPluginRuntimeDispatcherV010 } from "./plugin-runtime-dispatcher.js";
+import { verifySigstoreBundleEvidenceV010 } from "./sigstore-verifier.js";
 import type { RemoteRuntimeCredentialProviderV010 } from "./plugin-runtime-remote.js";
 import {
   createFilePluginIntegrityTrustStoreV010,
@@ -115,7 +116,13 @@ const processRuntimeHost = createProcessPluginRuntimeHostV010({
   storageService: pluginStorage,
   eventBus: pluginEvents,
   integrityTrustStore: pluginIntegrityTrustStore,
-  onRuntimeEvent: event => runtimeObservability.record(event)
+  onRuntimeEvent: event => runtimeObservability.record(event),
+  verifyExternalEvidence: (pkg, artifactBytes) =>
+    verifySigstoreBundleEvidenceV010(
+      pkg,
+      pluginIntegrityTrustStore,
+      artifactBytes
+    )
 });
 const lifecycleEventLog: PluginEventV010[] = [];
 const providerRuntimeRegistry = createProviderRuntimeRegistry();

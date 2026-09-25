@@ -98,7 +98,21 @@ Supported provenance statement:
 
 The Host-owned trusted publisher key may additionally declare allowed builder identities and allowed build types. Verification fails closed when a signed SLSA statement names a builder/build type outside that root-of-trust policy, or when the provenance subject digest does not match the declared artifact digest.
 
-P0 still does not independently validate external Sigstore transparency-log inclusion, Fulcio/OIDC certificate identity, or Rekor evidence.
+P0 now includes an explicit **Sigstore verifier adapter** backed by the pinned `sigstore` JavaScript client.
+
+When a Package declares `provenance.type = SIGSTORE_BUNDLE`:
+
+- the serialized Sigstore bundle is itself covered by the EVO Ed25519 Package signature;
+- native Package signature and artifact SHA-256 verification run first;
+- the Host retrieves Sigstore verification policy from the trusted publisher-key record;
+- Host policy MUST provide a certificate issuer and exactly one certificate identity matcher (URI or email);
+- transparency-log and certificate-transparency thresholds default to 1;
+- Sigstore verification failure is deterministic invalid evidence;
+- a PROCESS Package declaring Sigstore evidence MUST NOT start unless the external verifier returns VERIFIED.
+
+The Package does not choose its own trusted OIDC issuer/workflow identity. Those expectations are Host-owned root-of-trust configuration.
+
+The adapter uses Sigstore's public bundle verification API and leaves TUF/trust-root mechanics to the Sigstore verifier implementation.
 
 This is intentional: EVO's native Package protocol keeps a provider-neutral verification boundary while allowing future integration with modern supply-chain systems.
 
@@ -117,6 +131,6 @@ source repository
 → Host verification
 ```
 
-Public ecosystems may use Sigstore-compatible bundles/transparency logs. Sigstore's JavaScript client supports bundle verification, making it a viable future verifier behind the EVO evidence boundary rather than a mandatory internal protocol dependency. Private enterprise catalogs may use internal PKI/KMS/HSM-backed keys and private provenance.
+Public ecosystems may use Sigstore-compatible bundles/transparency logs through this adapter. EVO Plugin Protocol remains provider-neutral: Packages that do not declare Sigstore evidence continue to use the native integrity path without invoking Sigstore verification. Private enterprise catalogs may use internal PKI/KMS/HSM-backed keys and private provenance.
 
 The protocol should verify evidence without requiring one specific public provider.

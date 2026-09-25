@@ -18,6 +18,7 @@ import {
   type PluginIntegrityTrustStoreV010
 } from "./package-integrity.js";
 import type { PluginRuntimeEventV010 } from "./plugin-runtime-observability.js";
+import type { PluginExternalEvidenceVerificationV010 } from "./sigstore-verifier.js";
 
 export interface PluginRuntimeStatusV010 {
   packageId: string;
@@ -156,6 +157,10 @@ export interface ProcessPluginRuntimeHostOptionsV010 {
   onRuntimeEvent?: (
     event: Omit<PluginRuntimeEventV010, "contractVersion" | "sequence">
   ) => void;
+  verifyExternalEvidence?: (
+    pkg: PackageManifestV010,
+    artifactBytes: Buffer
+  ) => Promise<PluginExternalEvidenceVerificationV010>;
 }
 
 export interface ProcessPluginRuntimeHostV010 {
@@ -344,15 +349,30 @@ export function createProcessPluginRuntimeHostV010(
     }
 
     const entrypoint = resolveEntrypoint(pkg);
+    const artifactBytes = readFileSync(entrypoint);
     const integrity = verifyPackageIntegrityV010(
       pkg,
       options.integrityTrustStore,
-      readFileSync(entrypoint)
+      artifactBytes
     );
     if (integrity.state !== "VERIFIED") {
       throw new Error(
         `PLUGIN_PROCESS_INTEGRITY_REQUIRED: ${pkg.packageId}: ${integrity.state}: ${integrity.message}`
       );
+    }
+
+    if (pkg.integrity?.provenance?.type === "SIGSTORE_BUNDLE") {
+      if (!options.verifyExternalEvidence) {
+        throw new Error(
+          `PLUGIN_EXTERNAL_EVIDENCE_VERIFIER_REQUIRED: ${pkg.packageId}: SIGSTORE_BUNDLE`
+        );
+      }
+      const evidence = await options.verifyExternalEvidence(pkg, artifactBytes);
+      if (evidence.state !== "VERIFIED") {
+        throw new Error(
+          `PLUGIN_EXTERNAL_EVIDENCE_REJECTED: ${pkg.packageId}: ${evidence.state}: ${evidence.message}`
+        );
+      }
     }
 
     emit({

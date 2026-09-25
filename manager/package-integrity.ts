@@ -31,6 +31,13 @@ export interface TrustedPublisherKeyV010 {
   provenancePolicy?: {
     allowedBuilderIds?: string[];
     allowedBuildTypes?: string[];
+    sigstore?: {
+      certificateIssuer: string;
+      certificateIdentityURI?: string;
+      certificateIdentityEmail?: string;
+      tlogThreshold?: number;
+      ctLogThreshold?: number;
+    };
   };
 }
 

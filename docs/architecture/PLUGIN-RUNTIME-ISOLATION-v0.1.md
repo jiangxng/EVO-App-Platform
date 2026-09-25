@@ -37,7 +37,8 @@ The boundary provides:
 - crash containment;
 - lazy restart on the next invocation;
 - process termination on Feature deactivation / Package uninstall;
-- process shutdown with App Platform termination.
+- process shutdown with App Platform termination;
+- declared external supply-chain evidence verification before PROCESS launch.
 
 ## Entrypoint contract
 
@@ -167,3 +168,14 @@ The P0 REMOTE adapter is implemented and documented in:
 It provides authenticated request/response isolation with `hostAccess: NONE`, strict correlation, timeout handling and signed endpoint metadata.
 
 Normal App Manager admission remains fail-closed until a Host credential-provider capability is resolved.
+
+
+## External supply-chain evidence
+
+PROCESS Packages may declare additional signed evidence such as `SIGSTORE_BUNDLE`.
+
+Native EVO signature and artifact digest verification always run first.
+
+When Sigstore evidence is declared, PROCESS launch additionally requires the Host Sigstore verifier adapter to validate the bundle against Host-owned certificate issuer/identity policy and transparency evidence. Missing verifier configuration or failed verification is fail-closed.
+
+This does not make Sigstore mandatory for every internal plugin.

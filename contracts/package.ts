@@ -65,10 +65,15 @@ export interface SlsaProvenanceStatementV010 {
   };
 }
 
+export interface PluginSigstoreBundleEvidenceV010 {
+  bundle: Record<string, unknown>;
+}
+
 export interface PluginProvenanceV010 {
   type: "INTERNAL_CI" | "SIGSTORE_BUNDLE" | "OIDC_CI" | "SLSA_PROVENANCE";
   reference?: string;
   statement?: SlsaProvenanceStatementV010;
+  sigstore?: PluginSigstoreBundleEvidenceV010;
 }
 
 export interface PluginIntegrityV010 {

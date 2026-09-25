@@ -445,6 +445,18 @@
                   }
                 }
               }
+            },
+            "sigstore": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bundle"
+              ],
+              "properties": {
+                "bundle": {
+                  "type": "object"
+                }
+              }
             }
           }
         },
