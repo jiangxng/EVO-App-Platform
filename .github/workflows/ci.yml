@@ -22,6 +22,7 @@ on:
       - "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md"
       - "docs/architecture/PLUGIN-PACKAGE-INTEGRITY-v0.1.md"
       - "docs/architecture/PLUGIN-RUNTIME-OBSERVABILITY-v0.1.md"
+      - "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md"
       - "INVARIANTS.md"
       - "VALIDATION-CONSTITUTION.md"
       - "LLM.md"
