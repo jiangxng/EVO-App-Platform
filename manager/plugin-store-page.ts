@@ -172,8 +172,8 @@ export function createPluginStorePage(
             events: unique(pkg.features.flatMap(feature => feature.activation?.events ?? []))
           },
           runtime: {
-            kind: runtimeStatus.kind.toLowerCase() as "declarative" | "worker" | "remote",
-            isolation: runtimeStatus.isolation.toLowerCase() as "host" | "worker" | "remote",
+            kind: runtimeStatus.kind.toLowerCase() as "declarative" | "worker" | "process" | "remote",
+            isolation: runtimeStatus.isolation.toLowerCase() as "host" | "worker" | "process" | "remote",
             status: runtimeStatus.status === "READY"
               ? "ready" as const
               : runtimeStatus.status === "INACTIVE"
