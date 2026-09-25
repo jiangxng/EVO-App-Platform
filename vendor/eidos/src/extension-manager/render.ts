@@ -56,6 +56,9 @@ function renderItem(item: ExtensionManagerItemV010): string {
   const runtimeMetrics = item.runtime?.metrics
     ? `<span data-eidos-extension-runtime-tag>Runtime events: ${esc(item.runtime.metrics.invocations)} inv · ${esc(item.runtime.metrics.failures)} fail · ${esc(item.runtime.metrics.timeouts)} timeout · ${esc(item.runtime.metrics.crashes)} crash · ${esc(item.runtime.metrics.restarts)} restart${item.runtime.metrics.lastError ? ` · ${esc(item.runtime.metrics.lastError)}` : ""}</span>`
     : "";
+  const runtimeHistory = item.runtime?.history?.length
+    ? `<details data-eidos-extension-runtime-history><summary>Recent runtime activity · ${esc(item.runtime.history.length)}</summary><div>${item.runtime.history.map(event => `<div data-eidos-extension-runtime-event><span>${esc(event.occurredAt)}</span><strong>${esc(event.type)}</strong>${event.method ? `<span>${esc(event.method)}</span>` : ""}${event.durationMs !== undefined ? `<span>${esc(event.durationMs)}ms</span>` : ""}${event.message ? `<span>${esc(event.message)}</span>` : ""}</div>`).join("")}</div></details>`
+    : "";
   const storage = item.storage
     ? `<span data-eidos-extension-runtime-tag>Storage: ${esc(item.storage.state)}</span>`
     : "";
@@ -87,6 +90,7 @@ function renderItem(item: ExtensionManagerItemV010): string {
     <div data-eidos-extension-section>
       <span data-eidos-extension-section-title>Activation & Runtime</span>
       <div data-eidos-extension-tags>${activation}${runtime}${runtimeMetrics}${storage}${eventSummary}${!activation && !runtime && !storage && !eventSummary ? "<span data-eidos-extension-muted>Declarative host defaults</span>" : ""}</div>
+      ${runtimeHistory}
     </div>
     <div data-eidos-extension-section>
       <span data-eidos-extension-section-title>Contributions</span>
