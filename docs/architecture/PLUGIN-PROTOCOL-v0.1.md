@@ -30,6 +30,11 @@ The current protocol surface is intentionally small:
 - required/provided capabilities;
 - versioned Contributions;
 - lifecycle visibility;
+- host compatibility ranges;
+- publisher trust + requested permissions;
+- EAGER / ON_DEMAND Feature activation;
+- runtime declaration: DECLARATIVE / WORKER / PROCESS / REMOTE;
+- package-scoped storage/event declarations;
 - deterministic manifest conformance.
 
 Plugins depend on public contracts/capabilities, never another repository's private code.
@@ -114,7 +119,7 @@ and a fail-fast helper:
 
 `assertPluginManifestV010(manifest)`
 
-The validator checks protocol version, ownership, Feature identity, duplicate dependencies, Contribution ownership/namespaces, route requirements, setting-key uniqueness and provider contract declarations.
+The validator checks protocol version, ownership, Feature identity, duplicate dependencies, Contribution ownership/namespaces, route requirements, setting-key uniqueness, provider contract declarations, compatibility declarations, permission metadata, activation events, runtime/isolation pairing, executable entrypoints, runtime resource budgets, storage quotas and event-topic ownership.
 
 This validator is protocol conformance, not product correctness.
 
@@ -128,3 +133,24 @@ For plugin work, an LLM should load:
 4. the plugin's own tests.
 
 It should not load every plugin or the whole ecosystem by default.
+
+
+## Executable runtime boundary
+
+Executable runtime semantics are owned by App Platform and documented in:
+
+`docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md`
+
+A manifest declaring executable code does not grant execution authority.
+
+Current admission:
+
+```text
+DECLARATIVE / HOST → supported
+PROCESS / PROCESS  → supported for FIRST_PARTY / VERIFIED publishers
+WORKER / WORKER    → fail-closed
+REMOTE / REMOTE    → fail-closed
+UNVERIFIED local executable code → fail-closed
+```
+
+PROCESS plugins access Host capabilities only through the scoped IPC Host API.
