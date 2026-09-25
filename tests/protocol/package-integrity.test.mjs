@@ -8,6 +8,9 @@ import {
   sha256DigestV010,
   verifyPackageIntegrityV010
 } from "../../dist/manager/package-integrity.js";
+import { createPackageCatalog } from "../../dist/catalog/catalog.js";
+import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import { createAppManagerService } from "../../dist/manager/service.js";
 
 function basePackage() {
   return {
@@ -112,4 +115,25 @@ test("unknown or revoked signing keys fail closed", () => {
     ).state,
     "UNTRUSTED"
   );
+});
+
+
+test("install planning rejects a package whose signed publisher key is not trusted", () => {
+  const { privateKey } = generateKeyPairSync("ed25519");
+  const pkg = basePackage();
+  pkg.features[0].defaultActivation = true;
+  pkg.integrity = createPluginIntegrityV010(pkg, privateKey, { keyId: "unknown-key" });
+
+  const trust = createMemoryPluginIntegrityTrustStoreV010();
+  const manager = createAppManagerService(
+    createPackageCatalog([pkg]),
+    createMemoryLifecycleStore(),
+    () => new Date("2026-09-25T00:00:00Z"),
+    new Map(),
+    () => {},
+    candidate => verifyPackageIntegrityV010(candidate, trust)
+  );
+
+  const plan = manager.planInstall("signed-plugin");
+  assert.ok(plan.blockers.some(x => x.code === "PACKAGE_INTEGRITY_REJECTED"));
 });
