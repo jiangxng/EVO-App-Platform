@@ -154,7 +154,7 @@ Further usability work is evidence-driven and belongs to Eidos before plugin-spe
 | Host compatibility | IMPLEMENTED | make explicit ranges mandatory in a future protocol revision |
 | Activation/lifecycle | IMPLEMENTED P0 | activation event sources and runtime supervision |
 | Permissions/trust | IMPLEMENTED P0 | richer permission scopes, policy/enterprise admin approval |
-| Runtime isolation | PROCESS ISOLATION P0 IMPLEMENTED | container/remote hostile-code isolation, OS-level CPU/RSS/network policy |
+| Runtime isolation | PROCESS P0 + REMOTE ADAPTER IMPLEMENTED | bind remote-auth Provider; container/microVM hostile-code isolation; OS-level CPU/RSS/network policy |
 | Package integrity/signing | IMPLEMENTED P0 | CI/KMS signing workflow, bundle-level artifacts, provenance verification |
 | Runtime observability | IMPLEMENTED P0 | durable telemetry sink, OpenTelemetry/SLO integration |
 | Plugin Storage | IMPLEMENTED P0 | durable production backend, migration/versioning |
