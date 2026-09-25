@@ -87,22 +87,36 @@ export function createSettingsIndexPage(
     title: "Settings",
     description: "Configure installed plugins that declare standard settings.",
     emptyMessage: "No installed plugins expose standard settings.",
-    items: packageIds.map(packageId => {
-      const pkg = catalog.get(packageId);
-      return {
-        id: packageId,
-        title: pkg?.displayName ?? packageId,
-        version: pkg?.version,
-        category: pkg?.type,
-        summary: "Standard plugin settings",
+    items: [
+      {
+        id: "provider-bindings",
+        title: "Provider Bindings",
+        category: "PLATFORM",
+        summary: "Manage deterministic Provider selection by capability and scope.",
         primaryAction: {
           id: "configure",
           label: "Configure",
           type: "navigate",
-          route: settingsPackageRoute(packageId)
+          route: "/providers"
         }
-      };
-    })
+      },
+      ...packageIds.map(packageId => {
+      const pkg = catalog.get(packageId);
+        return {
+          id: packageId,
+          title: pkg?.displayName ?? packageId,
+          version: pkg?.version,
+          category: pkg?.type,
+          summary: "Standard plugin settings",
+          primaryAction: {
+            id: "configure",
+            label: "Configure",
+            type: "navigate",
+            route: settingsPackageRoute(packageId)
+          }
+        };
+      })
+    ]
   };
 }
 
