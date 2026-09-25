@@ -45,7 +45,8 @@
     "slsaProvenanceVerification": "IN_TOTO_STATEMENT_SLSA_V1_BUILDER_ARTIFACT_VERIFICATION_IMPLEMENTED",
     "remoteCredentialProvider": "PLATFORM_PROVIDER_RUNTIME_REGISTRY_BINDING_IMPLEMENTED",
     "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED",
-    "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED"
+    "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED",
+    "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -107,5 +108,13 @@
     "semanticValidator": "validatePluginManifestV010",
     "cli": "npm run plugin:validate -- <manifest.json>",
     "independentRepositoryReady": true
+  },
+  "dependencyReproducibility": {
+    "authority": "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md",
+    "packageLock": "AUTHORITATIVE",
+    "ci": "NPM_CI_WITH_CACHE",
+    "container": "NPM_CI",
+    "node": "22.22.2",
+    "manualLockSynthesis": "PROHIBITED"
   }
 }

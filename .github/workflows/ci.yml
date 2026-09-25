@@ -16,8 +16,11 @@ on:
       - "tests/actions/router.test.mjs"
       - "tests/integration/**"
       - "package.json"
+      - "package-lock.json"
       - "tsconfig.json"
       - ".github/workflows/ci.yml"
+      - "Dockerfile"
+      - "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md"
       - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
       - "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
       - "docs/architecture/PLUGIN-HOST-FOUNDATIONS-v0.1.md"
@@ -40,8 +43,11 @@ on:
       - "tests/actions/router.test.mjs"
       - "tests/integration/**"
       - "package.json"
+      - "package-lock.json"
       - "tsconfig.json"
       - ".github/workflows/ci.yml"
+      - "Dockerfile"
+      - "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md"
       - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
       - "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
       - "INVARIANTS.md"
@@ -59,6 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - run: npm install
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
       - run: npm run test:platform

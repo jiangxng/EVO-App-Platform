@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Plugin supply-chain trust — Sigstore bundle/OIDC/transparency verifier adapter",
+  "currentMilestone": "Plugin platform supply-chain reproducibility — frozen npm dependency graph",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -95,7 +95,12 @@
     "extension-manager-runtime-operational-history",
     "sigstore-bundle-verifier-adapter",
     "sigstore-host-identity-policy",
-    "sigstore-process-execution-admission"
+    "sigstore-process-execution-admission",
+    "package-lock-authoritative",
+    "platform-ci-npm-ci",
+    "platform-ci-npm-cache",
+    "docker-frozen-npm-install",
+    "exact-node-22.22.2-platform-toolchain"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -118,7 +123,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize Sigstore external evidence admission. Next security maturity: trusted CI keyless/KMS signing workflow, package release artifacts, and stronger remote/container workload identity.",
+  "currentStep": "Validate lockfile-authoritative Platform CI and exact container Node runtime, then continue plugin-platform maturity without broadening CI scope.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -353,5 +358,13 @@
       "processAdmission": "FAIL_CLOSED_WHEN_DECLARED",
       "nativeIntegrityFirst": true
     }
+  },
+  "dependencyReproducibility": {
+    "authority": "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md",
+    "lockfile": "package-lock.json",
+    "ciInstall": "npm ci",
+    "dockerInstall": "npm ci",
+    "node": "22.22.2",
+    "ciOwner": "Platform CI"
   }
 }

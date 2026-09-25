@@ -387,3 +387,6 @@ protocol task -> protocol context + protocol CI + explicit ecosystem certificati
 ```
 
 Do not use full-ecosystem CI as a substitute for defining stable contracts. Unrelated plugins are not ordinary regression dependencies.
+
+
+> **Dependency reproducibility:** Read `docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md` before dependency/toolchain changes. Treat `package-lock.json` as authoritative, use `npm ci`, and never fabricate a resolved lockfile manually.
