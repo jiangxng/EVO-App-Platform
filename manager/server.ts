@@ -13,7 +13,12 @@ import {
   createPluginEventBus,
   type PluginEventV010
 } from "./plugin-host-services.js";
-import { createProcessPluginRuntimeHostV010 } from "./plugin-runtime-host.js";
+import {
+  createProcessPluginRuntimeHostV010,
+  inspectPluginRuntimeV010
+} from "./plugin-runtime-host.js";
+import { createPluginRuntimeDispatcherV010 } from "./plugin-runtime-dispatcher.js";
+import type { RemoteRuntimeCredentialProviderV010 } from "./plugin-runtime-remote.js";
 import {
   createFilePluginIntegrityTrustStoreV010,
   createMemoryPluginIntegrityTrustStoreV010,
@@ -30,6 +35,15 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
+import {
+  HOST_REMOTE_CREDENTIAL_PROVIDER_ID,
+  REMOTE_CREDENTIAL_CAPABILITY,
+  hostRemoteCredentialProviderPackage
+} from "../providers/remote-credential/package.js";
+import {
+  createHostRemoteBearerCredentialProviderV010,
+  parseHostRemoteBearerTokenMapV010
+} from "../providers/remote-credential/runtime.js";
 import { createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
 import {
   OPENAI_LLM_PACKAGE_ID,
@@ -70,6 +84,7 @@ const catalog = createPackageCatalog([
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
+  hostRemoteCredentialProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -103,6 +118,59 @@ const processRuntimeHost = createProcessPluginRuntimeHostV010({
   onRuntimeEvent: event => runtimeObservability.record(event)
 });
 const lifecycleEventLog: PluginEventV010[] = [];
+const providerRuntimeRegistry = createProviderRuntimeRegistry();
+const remoteBearerTokenMap = parseHostRemoteBearerTokenMapV010(
+  process.env.APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON
+);
+if (remoteBearerTokenMap) {
+  providerRuntimeRegistry.replace<RemoteRuntimeCredentialProviderV010>(
+    HOST_REMOTE_CREDENTIAL_PROVIDER_ID,
+    createHostRemoteBearerCredentialProviderV010(remoteBearerTokenMap)
+  );
+}
+
+function activeServiceProviderDescriptors(capability: string) {
+  const active = store.snapshot().activeFeatures;
+  const result: Array<{ providerId: string; capability: string }> = [];
+  for (const item of active) {
+    const pkg = catalog.get(item.packageId);
+    const feature = pkg?.features.find(value => value.featureId === item.featureId);
+    for (const contribution of feature?.contributions ?? []) {
+      if (contribution.kind !== "platform.service-provider") continue;
+      if (contribution.provider.capability !== capability) continue;
+      result.push({
+        providerId: contribution.provider.providerId,
+        capability: contribution.provider.capability
+      });
+    }
+  }
+  return result;
+}
+
+function resolveRemoteCredentialProvider(
+  _packageId: string
+): RemoteRuntimeCredentialProviderV010 | undefined {
+  return providerRuntimeRegistry.resolve<RemoteRuntimeCredentialProviderV010>(
+    activeServiceProviderDescriptors(REMOTE_CREDENTIAL_CAPABILITY),
+    REMOTE_CREDENTIAL_CAPABILITY
+  )?.runtime;
+}
+
+function evaluateRuntimeForHost(pkg: Parameters<typeof inspectPluginRuntimeV010>[0]) {
+  const status = inspectPluginRuntimeV010(pkg);
+  if (
+    pkg.runtime?.kind === "REMOTE"
+    && status.status === "INACTIVE"
+    && resolveRemoteCredentialProvider(pkg.packageId)
+  ) {
+    return {
+      ...status,
+      status: "READY" as const,
+      message: "REMOTE runtime adapter and credential Provider runtime are available."
+    };
+  }
+  return status;
+}
 
 const retiredLocalization = retireExperimentalPackageV010(
   store,
@@ -126,8 +194,17 @@ const manager = createAppManagerService(
       void processRuntimeHost.stop(event.packageId);
     }
   },
-  pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore)
+  pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
+  evaluateRuntimeForHost
 );
+const runtimeDispatcher = createPluginRuntimeDispatcherV010({
+  catalog,
+  store,
+  processHost: processRuntimeHost,
+  integrityTrustStore: pluginIntegrityTrustStore,
+  resolveRemoteCredentialProvider,
+  onRuntimeEvent: event => runtimeObservability.record(event)
+});
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
@@ -135,7 +212,6 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
-const providerRuntimeRegistry = createProviderRuntimeRegistry();
 const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
 
 function refreshOpenAiProviderRuntime(): void {
@@ -336,7 +412,9 @@ const server = createServer(async (request, response) => {
           manager.getSnapshot(),
           {
             integrityTrustStore: pluginIntegrityTrustStore,
-            runtimeDiagnostics: runtimeObservability.listDiagnostics()
+            runtimeDiagnostics: runtimeObservability.listDiagnostics(),
+            runtimeEvents: runtimeObservability.listEvents(),
+            evaluateRuntime: evaluateRuntimeForHost
           }
         ));
       }
