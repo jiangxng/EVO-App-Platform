@@ -19,7 +19,10 @@ import {
   createMemoryPluginIntegrityTrustStoreV010,
   verifyPackageIntegrityV010
 } from "./package-integrity.js";
-import { createPluginRuntimeObservabilityV010 } from "./plugin-runtime-observability.js";
+import {
+  createJsonlPluginRuntimeObservabilitySinkV010,
+  createPluginRuntimeObservabilityV010
+} from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -86,7 +89,13 @@ const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.t
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
   : createMemoryPluginIntegrityTrustStoreV010();
-const runtimeObservability = createPluginRuntimeObservabilityV010(500);
+const runtimeEventsFile = process.env.APP_PLATFORM_RUNTIME_EVENTS_FILE?.trim();
+const runtimeObservability = createPluginRuntimeObservabilityV010(
+  500,
+  runtimeEventsFile
+    ? createJsonlPluginRuntimeObservabilitySinkV010(runtimeEventsFile)
+    : undefined
+);
 const processRuntimeHost = createProcessPluginRuntimeHostV010({
   storageService: pluginStorage,
   eventBus: pluginEvents,
