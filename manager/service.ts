@@ -211,12 +211,15 @@ export function createAppManagerService(
           message: `Package '${candidatePackageId}': ${integrity.message}`
         });
       }
-      if (candidate.runtime?.kind === "PROCESS" && integrity.state === "UNSIGNED") {
+      if (
+        (candidate.runtime?.kind === "PROCESS" || candidate.runtime?.kind === "REMOTE")
+        && integrity.state === "UNSIGNED"
+      ) {
         blockers.push({
           code: candidatePackageId === target.packageId
             ? "PROCESS_PACKAGE_SIGNATURE_REQUIRED"
             : "DEPENDENCY_PROCESS_SIGNATURE_REQUIRED",
-          message: `Package '${candidatePackageId}' requires a trusted signature before PROCESS execution.`
+          message: `Package '${candidatePackageId}' requires a trusted signature before executable runtime admission.`
         });
       }
 

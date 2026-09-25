@@ -46,12 +46,13 @@
     "declarativeHost": "IMPLEMENTED",
     "processProcess": "IMPLEMENTED_P0_FIRST_PARTY_VERIFIED",
     "workerWorker": "DISABLED_NOT_SECURITY_BOUNDARY",
-    "remoteRemote": "FAIL_CLOSED_PENDING",
+    "remoteRemote": "ADAPTER_IMPLEMENTED_ADMISSION_FAIL_CLOSED_PENDING_CREDENTIAL_PROVIDER",
     "unverifiedExecutable": "FAIL_CLOSED",
     "next": [
-      "package integrity/signing",
-      "runtime observability",
-      "container-or-remote hostile-code isolation",
+      "remote-auth-provider-binding",
+      "package release signing and provenance verification",
+      "runtime observability durable export",
+      "container-or-microVM hostile-code isolation",
       "os-level CPU/RSS/network policy"
     ]
   },
@@ -71,5 +72,13 @@
     "extensionManagerSurface": "IMPLEMENTED",
     "durableTelemetry": "PENDING",
     "openTelemetryExport": "PENDING"
+  },
+  "remoteRuntime": {
+    "authority": "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md",
+    "adapter": "IMPLEMENTED_P0",
+    "hostAccess": "NONE",
+    "auth": "HOST_BEARER_PROVIDER_REQUIRED",
+    "installAdmission": "FAIL_CLOSED",
+    "remoteHostCapabilityRpc": "NOT_IMPLEMENTED"
   }
 }

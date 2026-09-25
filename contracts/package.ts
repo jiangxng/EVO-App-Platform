@@ -57,10 +57,21 @@ export interface PluginIntegrityV010 {
   signature: string;
 }
 
+export interface PluginRemoteRuntimeV010 {
+  protocol: "EVO-REMOTE-RUNTIME-v0.1";
+  endpoint: string;
+  hostAccess: "NONE";
+  auth: {
+    scheme: "HOST_BEARER";
+    audience: string;
+  };
+}
+
 export interface PluginRuntimeV010 {
   kind: "DECLARATIVE" | "WORKER" | "PROCESS" | "REMOTE";
   isolation: "HOST" | "WORKER" | "PROCESS" | "REMOTE";
   entrypoint?: string;
+  remote?: PluginRemoteRuntimeV010;
   limits?: {
     invocationTimeoutMs?: number;
     memoryMb?: number;

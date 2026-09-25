@@ -86,3 +86,8 @@
 - **APP-76** Provenance metadata is signed evidence metadata, not proof by itself. External OIDC/Sigstore provenance is considered verified only after its own verification procedure is implemented.
 - **APP-77** Plugin Runtime observability is structured Host data, not console-log parsing. Runtime lifecycle/invocation events and aggregate health are owned by App Platform; Eidos only renders supplied diagnostics.
 - **APP-78** Runtime observability storage is bounded by default. P0 in-memory diagnostics MUST NOT be represented as durable audit history, distributed tracing or an SLO system.
+
+- **APP-79** REMOTE runtime credentials are Host-provided capabilities. Package Manifests MUST NOT contain bearer tokens or long-lived authentication secrets.
+- **APP-80** REMOTE P0 uses `hostAccess: NONE`. A remote plugin receives only explicit invocation input and MUST NOT receive generic callbacks into Host Storage, Events, Secrets, Catalog or lifecycle internals.
+- **APP-81** REMOTE invocation fails closed on unsigned/untrusted Package metadata, non-HTTPS production endpoints, empty credentials, redirects, timeout, HTTP failure or response-correlation mismatch.
+- **APP-82** The existence of the REMOTE adapter does not imply platform install readiness. App Manager admission remains blocked until the required remote credential-provider capability is deterministically bound.

@@ -15,7 +15,7 @@ The runtime model separates four execution classes:
 | DECLARATIVE | HOST | IMPLEMENTED | ordinary declarative Contributions and host-admitted commands |
 | WORKER | WORKER | DISABLED | future trusted performance isolation; not treated as a security sandbox |
 | PROCESS | PROCESS | IMPLEMENTED P0 | FIRST_PARTY / VERIFIED executable plugins |
-| REMOTE | REMOTE | FAIL-CLOSED | future strong isolation / independently operated runtime |
+| REMOTE | REMOTE | ADAPTER IMPLEMENTED / ADMISSION FAIL-CLOSED | independently operated runtime with Host credential-provider binding |
 
 ## PROCESS runtime
 
@@ -157,3 +157,13 @@ P0 does not yet provide:
 - production runtime telemetry dashboards.
 
 Those remain separate foundations and must not be inferred as complete from PROCESS P0.
+
+## REMOTE adapter
+
+The P0 REMOTE adapter is implemented and documented in:
+
+`docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md`
+
+It provides authenticated request/response isolation with `hostAccess: NONE`, strict correlation, timeout handling and signed endpoint metadata.
+
+Normal App Manager admission remains fail-closed until a Host credential-provider capability is resolved.

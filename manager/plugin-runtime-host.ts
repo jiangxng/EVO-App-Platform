@@ -77,6 +77,43 @@ export function inspectPluginRuntimeV010(pkg: PackageManifestV010): PluginRuntim
     };
   }
 
+  if (runtime.kind === "REMOTE" && runtime.isolation === "REMOTE") {
+    if (!pkg.integrity) {
+      return {
+        packageId: pkg.packageId,
+        kind: runtime.kind,
+        isolation: runtime.isolation,
+        status: "ERROR",
+        message: "Remote runtime requires a signed Package manifest."
+      };
+    }
+    if (!runtime.remote) {
+      return {
+        packageId: pkg.packageId,
+        kind: runtime.kind,
+        isolation: runtime.isolation,
+        status: "ERROR",
+        message: "Remote runtime requires EVO-REMOTE-RUNTIME-v0.1 endpoint metadata."
+      };
+    }
+    if (pkg.publisher?.trust !== "FIRST_PARTY" && pkg.publisher?.trust !== "VERIFIED") {
+      return {
+        packageId: pkg.packageId,
+        kind: runtime.kind,
+        isolation: runtime.isolation,
+        status: "UNSUPPORTED",
+        message: "REMOTE runtime is admitted only for FIRST_PARTY or VERIFIED publishers."
+      };
+    }
+    return {
+      packageId: pkg.packageId,
+      kind: runtime.kind,
+      isolation: runtime.isolation,
+      status: "INACTIVE",
+      message: "REMOTE adapter is available but requires a bound Host credential provider."
+    };
+  }
+
   if (runtime.kind === "WORKER") {
     return {
       packageId: pkg.packageId,

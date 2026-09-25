@@ -1,0 +1,141 @@
+# Plugin Remote Runtime v0.1
+
+**Status:** Adapter implemented; platform admission intentionally fail-closed  
+**Date:** 2026-09-25  
+**Owner:** EVO App Platform
+
+## Purpose
+
+REMOTE Runtime provides a stronger execution boundary than local in-process or child-process execution by moving executable plugin code outside the App Platform host.
+
+P0 is intentionally narrow:
+
+- remote runtime receives explicit invocation input only;
+- remote runtime receives no Host Storage/Event/Secrets callback API;
+- credentials are injected by a Host credential provider;
+- Package Manifest contains no bearer token or long-lived secret;
+- signed Package metadata binds the remote endpoint, audience and runtime declaration;
+- App Platform validates strict request/response correlation and timeout behavior.
+
+## Manifest model
+
+A REMOTE runtime declares:
+
+```text
+kind: REMOTE
+isolation: REMOTE
+remote.protocol: EVO-REMOTE-RUNTIME-v0.1
+remote.endpoint: https://...
+remote.hostAccess: NONE
+remote.auth.scheme: HOST_BEARER
+remote.auth.audience: <stable audience>
+```
+
+The Package must be cryptographically signed.
+
+The signature covers the endpoint and auth audience because they are part of the signed Package Manifest.
+
+## Credential boundary
+
+The Manifest does not contain credentials.
+
+The runtime adapter requires a Host-side credential provider:
+
+```text
+getBearerToken(packageId, audience, endpoint)
+→ short-lived bearer token
+```
+
+Long-lived provider secrets belong to the secure Provider/Secrets boundary.
+
+P0 adapter sends only:
+
+```http
+Authorization: Bearer <host-injected token>
+Content-Type: application/json
+```
+
+Redirects are rejected.
+
+## Invocation protocol
+
+Request:
+
+```json
+{
+  "contractVersion": "0.1.0",
+  "protocol": "EVO-REMOTE-RUNTIME-v0.1",
+  "invocationId": "<uuid>",
+  "packageId": "<package>",
+  "packageVersion": "<version>",
+  "method": "<method>",
+  "input": {}
+}
+```
+
+Response must echo the exact:
+
+- contractVersion;
+- protocol;
+- invocationId;
+- packageId.
+
+A correlation mismatch fails closed.
+
+## Host capability boundary
+
+P0 uses:
+
+`hostAccess: NONE`
+
+Therefore a REMOTE P0 Package cannot directly declare/use Plugin Storage or Plugin Events.
+
+This is deliberate.
+
+A future remote Host-capability RPC protocol must be designed as a separate, capability-scoped contract. P0 does not expose callbacks, App Platform internals or a generic arbitrary Host API over the network.
+
+## Security posture
+
+P0 requires:
+
+- HTTPS endpoint in Plugin Protocol conformance;
+- FIRST_PARTY or VERIFIED publisher posture;
+- trusted signed Package Manifest;
+- Host-injected credentials;
+- redirect rejection;
+- invocation timeout;
+- strict response correlation;
+- structured runtime diagnostics.
+
+Tests may explicitly permit insecure loopback HTTP. Production protocol conformance does not.
+
+## Current admission state
+
+The REMOTE adapter itself is implemented and tested.
+
+Normal App Manager installation remains **fail-closed** because runtime readiness requires a bound credential provider capability.
+
+This avoids silently treating a missing authentication/provider configuration as a runnable plugin.
+
+Next integration milestone:
+
+```text
+Remote Auth Provider capability
+→ deterministic provider resolution
+→ App Manager runtime readiness
+→ REMOTE Package install admission
+→ invocation through Remote Runtime adapter
+```
+
+## Not yet implemented
+
+- remote Host Storage/Event callback protocol;
+- mTLS workload identity;
+- runtime attestation;
+- signed remote deployment/image identity;
+- container/microVM provisioning;
+- network egress policy of the remote workload;
+- multi-region routing/failover;
+- remote session/state handoff.
+
+Those are separate foundations and must not be inferred from the existence of the P0 adapter.
