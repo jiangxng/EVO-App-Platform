@@ -268,3 +268,64 @@ test("unverified executable packages remain fail-closed for local process execut
     /PLUGIN_PROCESS_RUNTIME_NOT_ADMITTED/
   );
 });
+
+
+test("PROCESS runtime fails closed on declared Sigstore evidence unless external verification succeeds", async () => {
+  const pkg = processPackage();
+  const entrypoint = fileURLToPath(new URL("../fixtures/process-plugin.mjs", import.meta.url));
+  pkg.integrity = createPluginIntegrityV010(pkg, privateKey, {
+    keyId: "release-key-1",
+    artifact: {
+      scope: "PROCESS_ENTRYPOINT",
+      digest: sha256DigestV010(readFileSync(entrypoint))
+    },
+    provenance: {
+      type: "SIGSTORE_BUNDLE",
+      sigstore: {
+        bundle: {
+          mediaType: "application/vnd.dev.sigstore.bundle.v0.3+json"
+        }
+      }
+    }
+  });
+
+  const storage = createMemoryPluginStorageService();
+  const eventBus = createPluginEventBus();
+
+  const noVerifier = createProcessPluginRuntimeHostV010({
+    storageService: storage,
+    eventBus,
+    integrityTrustStore: trustStore
+  });
+  await assert.rejects(
+    noVerifier.start(pkg, installed()),
+    /PLUGIN_EXTERNAL_EVIDENCE_VERIFIER_REQUIRED/
+  );
+  await noVerifier.shutdown();
+
+  const verified = createProcessPluginRuntimeHostV010({
+    storageService: storage,
+    eventBus,
+    integrityTrustStore: trustStore,
+    async verifyExternalEvidence() {
+      return {
+        state: "VERIFIED",
+        packageId: pkg.packageId,
+        evidenceType: "SIGSTORE_BUNDLE",
+        message: "verified fixture"
+      };
+    }
+  });
+  try {
+    const result = await verified.invoke(pkg, installed(), {
+      method: "echo",
+      input: "verified"
+    });
+    assert.deepEqual(result, {
+      input: "verified",
+      packageId: "process-plugin"
+    });
+  } finally {
+    await verified.shutdown();
+  }
+});
