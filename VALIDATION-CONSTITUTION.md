@@ -122,3 +122,20 @@ Full-system validation remains valuable, but it is a certification layer rather 
 A plugin may use lightweight public-contract fixtures/fakes for ordinary CI. A real EVO/Eidos/provider runtime is started only when that plugin's direct integration contract materially requires it.
 
 Changing one plugin must not trigger repository-wide or ecosystem-wide CI merely because other plugins share the same host.
+
+
+## 8. Proactive architecture completeness
+
+A platform milestone is not complete merely because all explicitly requested features pass.
+
+Before broadening a shared platform capability, the owning LLM MUST review `llm.foundation-map.json` and the proactive-engineering constitution and ask whether current work is creating a standard platform concern that has not yet been made explicit.
+
+A NOW-class gap blocks broad horizontal feature expansion until it is either:
+
+- implemented at the correct owner boundary;
+- explicitly downgraded with evidence to SOON/WATCH; or
+- rejected because it belongs to another owner/standard.
+
+The human is not required to know the engineering name of the missing foundation.
+
+Fresh-LLM clean-room architecture review is valid acceptance evidence for context/architecture health.
