@@ -163,7 +163,7 @@ export function validatePluginManifestV010(
     if (pkg.runtime.kind === "PROCESS" || pkg.runtime.kind === "REMOTE") {
       if (!pkg.integrity) {
         add(
-          "PLUGIN_PROCESS_INTEGRITY_REQUIRED",
+          "PLUGIN_EXECUTABLE_INTEGRITY_REQUIRED",
           "integrity",
           "Executable PROCESS/REMOTE runtime packages require a signed integrity envelope."
         );
