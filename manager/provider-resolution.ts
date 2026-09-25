@@ -37,6 +37,7 @@ export interface ProviderResolutionResultV010<T> {
   scope?: ActivationScope;
   scopeId?: string;
   candidates: string[];
+  health: import("../providers/runtime-registry.js").ProviderRuntimeHealthV010;
   runtime: T;
 }
 
@@ -214,6 +215,12 @@ export function resolveProviderRuntimeV010<T>(
     if (runtime === undefined) {
       throw new Error(`PROVIDER_RUNTIME_UNAVAILABLE: ${binding.providerId}`);
     }
+    const health = registry.getHealth(binding.providerId);
+    if (health.state === "UNAVAILABLE") {
+      throw new Error(
+        `PROVIDER_BINDING_UNHEALTHY: ${normalizedCapability}: ${binding.providerId}: ${health.message ?? health.state}`
+      );
+    }
     return {
       contractVersion: "0.1.0",
       capability: normalizedCapability,
@@ -222,6 +229,7 @@ export function resolveProviderRuntimeV010<T>(
       scope: binding.scope,
       ...(binding.scopeId ? { scopeId: binding.scopeId } : {}),
       candidates: candidateIds,
+      health,
       runtime
     };
   }
@@ -235,6 +243,12 @@ export function resolveProviderRuntimeV010<T>(
   const providerId = candidateIds[0];
   const runtime = registry.get<T>(providerId);
   if (runtime === undefined) return undefined;
+  const health = registry.getHealth(providerId);
+  if (health.state === "UNAVAILABLE") {
+    throw new Error(
+      `PROVIDER_CANDIDATE_UNHEALTHY: ${normalizedCapability}: ${providerId}: ${health.message ?? health.state}`
+    );
+  }
 
   return {
     contractVersion: "0.1.0",
@@ -242,6 +256,7 @@ export function resolveProviderRuntimeV010<T>(
     providerId,
     source: "SINGLE_CANDIDATE",
     candidates: candidateIds,
+    health,
     runtime
   };
 }
