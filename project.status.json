@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "App Platform + Eidos Plugin Platform v0.1 — stable protocol, Extension Manager and focused integration CI",
+  "currentMilestone": "App Platform + Eidos P0 Host Foundations — compatibility, activation, trust, fail-closed runtime boundary, scoped storage/events, Extension Manager and Workbench",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -51,7 +51,14 @@
     "plugin-platform-permanent-test-surface",
     "native-plugin-vs-external-integration-boundary",
     "eidos-productive-design-language-consumption",
-    "llm-proactive-engineering-instincts"
+    "llm-proactive-engineering-instincts",
+    "host-compatibility-ranges",
+    "event-driven-feature-activation",
+    "server-side-plugin-trust-permission-admission",
+    "plugin-runtime-fail-closed-boundary",
+    "package-scoped-plugin-storage-events",
+    "extension-manager-governance-posture",
+    "workbench-productive-keyboard-shortcuts"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -76,7 +83,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize the native App Platform + Eidos mini-app/plugin boundary: compatibility range, activation, permissions/trust, isolated runtime and plugin APIs. Treat MCP/OAuth as a separate external-integration track.",
+  "currentStep": "Validate and stabilize the P0 host foundations. Next major technical gap is a real isolated executable Plugin Runtime Host; do not emulate isolation with in-process execution.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -251,5 +258,15 @@
     ],
     "rule": "human need not enumerate standard platform foundations",
     "review": "periodic clean-room fresh-LLM architecture review"
+  },
+  "pluginHostFoundations": {
+    "authority": "docs/architecture/PLUGIN-HOST-FOUNDATIONS-v0.1.md",
+    "hostCompatibility": "IMPLEMENTED_P0",
+    "activationLifecycle": "IMPLEMENTED_P0",
+    "permissionsTrust": "IMPLEMENTED_P0",
+    "runtimeIsolation": "PROTOCOL_FAIL_CLOSED_EXECUTION_PENDING",
+    "storageEvents": "IMPLEMENTED_P0",
+    "extensionManager": "IMPLEMENTED_P0",
+    "workbench": "CONTINUOUS_EIDOS"
   }
 }
