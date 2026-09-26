@@ -76,6 +76,13 @@ import {
   pluginStorePageSource
 } from "./plugin-store-page.js";
 import {
+  capabilityFromProviderManagerSource,
+  createProviderBindingPage,
+  createProviderManagerExperienceManifest,
+  createProviderManagerIndexPage,
+  providerManagerIndexPageSource
+} from "./provider-manager-page.js";
+import {
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
@@ -144,6 +151,11 @@ if (remoteBearerTokenMap) {
     HOST_REMOTE_CREDENTIAL_PROVIDER_ID,
     createHostRemoteBearerCredentialProviderV010(remoteBearerTokenMap)
   );
+  providerRuntimeRegistry.setHealth(HOST_REMOTE_CREDENTIAL_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: "Host bearer credential map is configured.",
+    checkedAt: new Date().toISOString()
+  });
 }
 
 function activeServiceProviderDescriptors(capability: string) {
@@ -255,6 +267,11 @@ function refreshOpenAiProviderRuntime(): void {
       baseUrl
     })
   );
+  providerRuntimeRegistry.setHealth(OPENAI_LLM_PROVIDER_ID, {
+    state: "UNKNOWN",
+    message: "Runtime is configured; external service health has not been actively probed.",
+    checkedAt: new Date().toISOString()
+  });
 }
 
 refreshOpenAiProviderRuntime();
@@ -426,6 +443,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, [
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
+        createProviderManagerExperienceManifest(manager),
         ...manager.listEffectiveExperiences()
       ]);
     }
@@ -447,6 +465,31 @@ const server = createServer(async (request, response) => {
       }
       if (source === settingsIndexPageSource) {
         return json(response, 200, createSettingsIndexPage(manager));
+      }
+      if (source === providerManagerIndexPageSource) {
+        return json(response, 200, createProviderManagerIndexPage(
+          manager,
+          providerRuntimeRegistry,
+          providerBindings,
+          { installationId: "default" }
+        ));
+      }
+      const providerCapability = capabilityFromProviderManagerSource(source);
+      if (providerCapability) {
+        const providerPage = createProviderBindingPage(
+          manager,
+          providerRuntimeRegistry,
+          providerBindings,
+          providerCapability,
+          { installationId: "default" }
+        );
+        if (!providerPage) {
+          return json(response, 404, {
+            code: "PROVIDER_CAPABILITY_NOT_AVAILABLE",
+            capability: providerCapability
+          });
+        }
+        return json(response, 200, providerPage);
       }
       const settingsPackageId = packageIdFromSettingsPageSource(source);
       if (settingsPackageId) {
@@ -569,6 +612,85 @@ const server = createServer(async (request, response) => {
 
       const action = body as AppActionRequestV010;
       const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
+
+      if (action.command.code === "app-platform.update-provider-binding") {
+        const namespace = typeof action.values.namespace === "string"
+          ? action.values.namespace
+          : undefined;
+        const rawSettings = action.values.settings;
+        if (
+          !namespace?.startsWith("provider-binding:")
+          || rawSettings === null
+          || typeof rawSettings !== "object"
+          || Array.isArray(rawSettings)
+        ) {
+          return json(response, 400, {
+            ok: false,
+            error: {
+              code: "PROVIDER_BINDING_INPUT_INVALID",
+              message: "Provider binding capability and values are required."
+            }
+          });
+        }
+
+        try {
+          const capability = namespace.slice("provider-binding:".length);
+          const values = rawSettings as Record<string, unknown>;
+          const providerId = typeof values.providerId === "string" ? values.providerId.trim() : "";
+          const scope = typeof values.scope === "string" ? values.scope : "";
+          const scopeId = typeof values.scopeId === "string" ? values.scopeId.trim() : "";
+          const priority = typeof values.priority === "number" ? values.priority : 0;
+
+          const allowedScopes = new Set([
+            "SYSTEM",
+            "INSTALLATION",
+            "ENTERPRISE",
+            "COMPANY",
+            "WORKSPACE",
+            "USER"
+          ]);
+          if (!capability || !providerId || !allowedScopes.has(scope)) {
+            throw new Error("PROVIDER_BINDING_FIELDS_INVALID");
+          }
+
+          const descriptors = manager.listEffectiveServiceProviders(capability);
+          if (!descriptors.some(provider => provider.providerId === providerId)) {
+            throw new Error(
+              `PROVIDER_BINDING_PROVIDER_NOT_ACTIVE: ${capability}: ${providerId}`
+            );
+          }
+
+          providerBindings.save({
+            contractVersion: "0.1.0",
+            capability,
+            providerId,
+            scope: scope as import("../contracts/package.js").ActivationScope,
+            ...(scope === "SYSTEM" ? {} : { scopeId }),
+            ...(priority !== 0 ? { priority } : {})
+          });
+
+          return json(response, 200, {
+            ok: true,
+            correlationId: action.sourceInteractionId,
+            result: {
+              message: "Provider binding saved.",
+              capability,
+              providerId,
+              scope,
+              scopeId: scope === "SYSTEM" ? undefined : scopeId,
+              priority
+            }
+          });
+        } catch (error) {
+          return json(response, 422, {
+            ok: false,
+            error: {
+              code: "PROVIDER_BINDING_UPDATE_REJECTED",
+              message: error instanceof Error ? error.message : String(error)
+            }
+          });
+        }
+      }
 
       if (action.command.code === "app-platform.update-settings") {
         const namespace = typeof action.values.namespace === "string"

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Platform Provider resolution — deterministic scope-aware binding policy",
+  "currentMilestone": "Platform Provider governance — scope-aware binding + health-aware resolution + Eidos management experience",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -103,7 +103,10 @@
     "exact-node-22.22.2-platform-toolchain",
     "scope-aware-provider-resolution",
     "provider-ambiguity-fail-closed",
-    "persistent-provider-bindings"
+    "persistent-provider-bindings",
+    "provider-runtime-health-posture",
+    "provider-health-aware-resolution",
+    "provider-binding-management-experience"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -126,7 +129,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Stabilize Provider binding policy across LLM and Remote Credential. Next provider maturity: health-aware resolution and governed binding configuration UI.",
+  "currentStep": "Stabilize Provider health posture and binding management. Next maturity: active health probes/health contribution execution and enterprise policy/authorization around binding changes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -362,7 +365,7 @@
       "nativeIntegrityFirst": true
     },
     "providerResolution": {
-      "status": "IMPLEMENTED_P0",
+      "status": "IMPLEMENTED_P0_PLUS_HEALTH_AND_MANAGEMENT",
       "scopes": [
         "SYSTEM",
         "INSTALLATION",
@@ -373,7 +376,15 @@
       ],
       "ambiguousMultipleProviders": "FAIL_CLOSED",
       "unavailableExplicitBinding": "FAIL_CLOSED",
-      "authority": "docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md"
+      "authority": "docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md",
+      "healthStates": [
+        "HEALTHY",
+        "DEGRADED",
+        "UNAVAILABLE",
+        "UNKNOWN"
+      ],
+      "healthBasedSilentFailover": "PROHIBITED",
+      "managementExperience": "EIDOS_SETTINGS_CATALOG_IMPLEMENTED"
     }
   },
   "dependencyReproducibility": {

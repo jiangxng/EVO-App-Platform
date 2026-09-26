@@ -46,7 +46,8 @@
     "remoteCredentialProvider": "PLATFORM_PROVIDER_RUNTIME_REGISTRY_BINDING_IMPLEMENTED",
     "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED",
     "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED",
-    "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED"
+    "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
+    "providerHealthManagement": "HEALTH_POSTURE_AND_EIDOS_BINDING_MANAGER_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -116,5 +117,20 @@
     "container": "NPM_CI",
     "node": "22.22.2",
     "manualLockSynthesis": "PROHIBITED"
+  },
+  "providerResolution": {
+    "status": "IMPLEMENTED_P0_PLUS_HEALTH",
+    "scopes": [
+      "SYSTEM",
+      "INSTALLATION",
+      "ENTERPRISE",
+      "COMPANY",
+      "WORKSPACE",
+      "USER"
+    ],
+    "ambiguousMultipleProviders": "FAIL_CLOSED",
+    "unavailableExplicitBinding": "FAIL_CLOSED",
+    "healthBasedSilentFailover": "PROHIBITED",
+    "managementExperience": "IMPLEMENTED"
   }
 }
