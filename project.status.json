@@ -153,7 +153,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Secrets Provider P0 implemented in branch: Package Secret declarations, encrypted Host store, Workbench credential entry through Eidos Settings, authorized non-readback mutation/audit, and OpenAI secrets.resolve migration. After CI/deployment/persistence verification, return immediately to Enterprise Agent Tool Discovery.",
+  "currentStep": "Secrets Provider P0 is CI-verified: Package Secret declarations, encrypted Host store, Eidos Settings credential entry, authorized non-readback mutation/audit, and OpenAI secrets.resolve migration all pass Platform + isolated Provider CI. Remaining production closure is durable Railway storage + deployment verification; then return immediately to Enterprise Agent Tool Discovery, with minimal Identity/Session pulled forward before interactive privileged writes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -432,7 +432,7 @@
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
     },
     "secrets": {
-      "status": "IMPLEMENTED_P0_PENDING_CI_DEPLOYMENT",
+      "status": "IMPLEMENTED_P0_CI_VERIFIED_DEPLOYMENT_PENDING",
       "capability": "secrets.resolve",
       "referenceProvider": "host.encrypted-secrets",
       "contract": "SecretReferenceV010/SecretDescriptorV010/SecretsResolverV010/ManagedSecretsProviderV010",
