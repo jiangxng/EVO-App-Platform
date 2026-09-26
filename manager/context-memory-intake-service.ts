@@ -47,7 +47,6 @@ function fingerprint(record: ContextMemoryIntakeRecordV010): string {
     context: record.context,
     kind: record.kind,
     summary: normalizedSummary(record.summary),
-    evidenceRefs: canonicalStrings(record.evidenceRefs),
     observedAt: record.observedAt ?? null,
     supersedesMemoryId: record.supersedesMemoryId ?? null,
     potentialContradictionMemoryIds: canonicalStrings(
@@ -147,13 +146,31 @@ export function createContextMemoryIntakeServiceV010(input: {
         }
 
         const recordFingerprint = fingerprint(record);
-        const duplicate = snapshot.receipts.find(item =>
-          item.fingerprint === recordFingerprint
-          && sameContextRefV010(item.context, record.context)
-          && item.outcome === "PROPOSED"
-        );
+        const duplicate = snapshot.receipts.find(item => {
+          if (
+            item.fingerprint !== recordFingerprint
+            || !sameContextRefV010(item.context, record.context)
+            || item.outcome !== "PROPOSED"
+            || !item.proposalId
+          ) {
+            return false;
+          }
+          return input.proposalService.get(item.proposalId)?.state === "PENDING";
+        });
 
-        if (duplicate) {
+        if (duplicate?.proposalId) {
+          const canonicalEvidenceRef =
+            `source-record:${record.sourceId}:${record.sourceRecordId}`;
+          await input.proposalService.enrichEvidence({
+            proposalId: duplicate.proposalId,
+            principal,
+            evidenceRefs: canonicalStrings([
+              ...record.evidenceRefs,
+              canonicalEvidenceRef
+            ]),
+            evidenceSources: [structuredClone(source)]
+          });
+
           const receipt: ContextMemoryIntakeReceiptV010 = {
             contractVersion: "0.1.0",
             receiptId: `memory-intake-receipt:${nextId()}`,
@@ -162,7 +179,7 @@ export function createContextMemoryIntakeServiceV010(input: {
             context: structuredClone(record.context),
             fingerprint: recordFingerprint,
             outcome: "DUPLICATE_FINGERPRINT",
-            ...(duplicate.proposalId ? { proposalId: duplicate.proposalId } : {}),
+            proposalId: duplicate.proposalId,
             duplicateOfReceiptId: duplicate.receiptId,
             evidenceSource: structuredClone(source),
             ingestedAt: now().toISOString(),
