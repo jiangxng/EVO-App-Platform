@@ -40,6 +40,15 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  ENTERPRISE_AGENT_PAGE_SOURCE,
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+} from "../agents/enterprise-agent/package.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010,
+  resolvePersonalAgentReadinessV010
+} from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -872,8 +881,67 @@ const server = createServer(async (request, response) => {
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
-            evaluateRuntime: evaluateRuntimeForHost
+            evaluateRuntime: evaluateRuntimeForHost,
+            evaluateReadiness(pkg, lifecycle) {
+              if (pkg.packageId !== "enterprise-agent" || !lifecycle.installed || !lifecycle.enabled) {
+                return undefined;
+              }
+              const readiness = resolvePersonalAgentReadinessV010(
+                manager,
+                providerRuntimeRegistry,
+                providerBindings
+              );
+              const ready = readiness.state === "ready" || readiness.state === "degraded";
+              return {
+                readiness: {
+                  id: ready
+                    ? "ready"
+                    : readiness.state === "unavailable"
+                      ? "error"
+                      : "setup-required",
+                  label: ready
+                    ? "Ready"
+                    : readiness.state === "unavailable"
+                      ? "Unavailable"
+                      : "Needs setup",
+                  tone: ready
+                    ? "positive"
+                    : readiness.state === "unavailable"
+                      ? "danger"
+                      : "warning",
+                  message: ready
+                    ? "Personal Agent can resolve an LLM Provider."
+                    : "Complete Personal Agent setup before opening the conversation."
+                },
+                primaryAction: ready
+                  ? {
+                      id: "open",
+                      label: "Open",
+                      type: "navigate",
+                      route: "/enterprise-agent"
+                    }
+                  : {
+                      id: "setup",
+                      label: "Set up",
+                      type: "navigate",
+                      route: "/enterprise-agent/setup"
+                    }
+              };
+            }
           }
+        ));
+      }
+      if (source === ENTERPRISE_AGENT_PAGE_SOURCE) {
+        return json(response, 200, createPersonalAgentChatPageV020(
+          resolvePersonalAgentReadinessV010(manager, providerRuntimeRegistry, providerBindings),
+          contextRegistry.resolve(),
+          requestedLocale(url)
+        ));
+      }
+      if (source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE) {
+        return json(response, 200, createPersonalAgentSetupPageV010(
+          resolvePersonalAgentReadinessV010(manager, providerRuntimeRegistry, providerBindings),
+          requestedLocale(url)
         ));
       }
       if (source === settingsIndexPageSource) {
