@@ -12,6 +12,7 @@ const required = new Set([
   "evo.authorization.authentication-vs-authorization",
   "evo.extension-manager.overview",
   "evo.settings.secrets",
+  "evo.secrets.configure-provider-credential",
   "evo.troubleshooting.provider-ambiguous",
   "evo.troubleshooting.provider-unavailable",
   "evo.troubleshooting.authorization-denied",
