@@ -145,7 +145,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Platform Help P0 is implemented as a parallel governance foundation: canonical Markdown sources compile to Eidos help-document, Workbench Help uses a searchable secondary side activity, deterministic search/context APIs are available, and CI validates the corpus. Main product maturity now returns to P1 Identity / Session / Principal / Scope / PlatformRequestContext.",
+  "currentStep": "Platform Help P0 is now multilingual and strictly Eidos-native: en + zh-CN seed variants, per-document deterministic fallback, active-locale propagation, cross-locale machine-metadata CI, and an Eidos Design Language CI gate. Main product maturity returns to P1 Identity / Session / Principal / Scope / PlatformRequestContext.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -316,9 +316,11 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "67acaac01e0f4e271a9ba865ac76dc29e761b143",
+    "eidosSourceCommit": "9b07e3d6da885f25b048ad79979239b823d84ef3",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
-    "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
+    "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization",
+    "enforcement": "PLATFORM_CI_STRICT_EIDOS_DESIGN_LANGUAGE_GATE",
+    "helpRule": "WORKBENCH_ACTIVITY_CATALOG_BROWSER_HELP_DOCUMENT_ONLY_NO_PLATFORM_HELP_CSS"
   },
   "llmProactiveEngineering": {
     "authority": "docs/architecture/LLM-PROACTIVE-ENGINEERING-INSTINCTS-v0.1.md",
@@ -432,7 +434,7 @@
   },
   "governanceInitiatives": {
     "platformHelp": {
-      "status": "IMPLEMENTED_P0",
+      "status": "IMPLEMENTED_P0_MULTILINGUAL",
       "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
       "intent": "Long-lived human + LLM product Help with package ownership, context, versioning, search, localization and CI governance.",
       "ownerSplit": {
@@ -457,13 +459,33 @@
         "settings-vs-secrets",
         "core-troubleshooting"
       ],
-      "next": "Package eidos.help-document Contribution, locale-aware variant selection, authorized enterprise Help and contextual Workbench suggestions.",
+      "next": "Package eidos.help-document Contribution, additional locale variants, authorized enterprise Help and contextual Workbench suggestions.",
       "eidosContract": "help-document@0.1.0",
       "source": "help/content/**/*.md",
       "compiler": "manager/help-system.ts",
       "search": "DETERMINISTIC_LOCAL_CATALOG_PLUS_HOST_SEARCH_CONTEXT_API",
-      "ci": "tools/help-validate.mjs via Platform CI",
-      "seedDocuments": 14
+      "ci": "help corpus + locale metadata + Eidos Design Language gates via Platform CI",
+      "seedDocuments": 14,
+      "locales": {
+        "canonical": "en",
+        "required": [
+          "en",
+          "zh-CN"
+        ],
+        "fallback": "PER_DOCUMENT_DETERMINISTIC",
+        "stableAcrossLocales": [
+          "id",
+          "route",
+          "owner",
+          "kind",
+          "audiences",
+          "appliesTo",
+          "contexts",
+          "related-machine-ids"
+        ]
+      },
+      "seedVariants": 28,
+      "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3"
     }
   }
 }
