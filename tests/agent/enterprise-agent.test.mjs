@@ -39,6 +39,7 @@ const personalContext = {
     contractVersion: "0.1.0",
     kind: "PERSONAL",
     contextId: "personal:test",
+    ownerSubjectId: "test-person",
     displayName: "Test Person"
   },
   activeContext: {
