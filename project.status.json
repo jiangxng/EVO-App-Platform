@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.4 is CI-verified and ready to merge: Eidos P0.4A sync, Host-computed Installed/Needs setup/Ready readiness, Setup Flow, explicit llm.inference Provider selection/configuration, Chat v0.2 structured activity/evidence/proposal output, and en/zh-CN/ja/zh-TW UX all pass Platform, Enterprise Agent, OpenAI Provider and Host Secrets Provider CI.",
+  "currentStep": "Personal Agent P0.5 implements the first real Enterprise Context source: a replaceable enterprise.directory Provider, dynamic Host Context Registry consumption, Eidos Chat Context selection, Host re-validation, context.available.list READ discovery, and read-only Enterprise Context reasoning. Functional CI passed; final documentation/help validation is in progress before merge.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -331,7 +331,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+    "eidosSourceCommit": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization",
     "enforcement": "PLATFORM_CI_STRICT_EIDOS_DESIGN_LANGUAGE_GATE",
@@ -590,7 +590,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MERGE_P0_4_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+    "next": "P0_5_FINAL_CI_THEN_MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -606,7 +606,7 @@
       "currentContextTool": "context.current.get",
       "memory": "READ_CONTRACT_ONLY_NO_GENERIC_WRITE",
       "platformScope": "LEGACY_COMPATIBILITY_PROJECTION",
-      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
+      "next": "P0_5_DELIVERED_THEN_PRINCIPAL_SESSION_GRANT"
     },
     "productExperience": {
       "status": "CI_VERIFIED_P0_4",
@@ -616,7 +616,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "MERGE_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+      "next": "P0_5_FINAL_CI_THEN_PRINCIPAL_SESSION_GRANT",
       "locales": [
         "en",
         "zh-CN",
@@ -624,9 +624,35 @@
         "zh-TW"
       ],
       "localization": "FOUR_LOCALE_P0_4_IMPLEMENTED",
-      "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
       "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
       "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
+    },
+    "contextP0_5": {
+      "status": "IMPLEMENTED_PENDING_FINAL_DOCS_CI",
+      "authority": "docs/architecture/ENTERPRISE-CONTEXT-PROVIDER-P0.5-v0.1.md",
+      "providerContract": "EnterpriseContextProviderV010",
+      "capability": "enterprise.directory",
+      "referenceProvider": "host.enterprise-context",
+      "referencePackage": "host-enterprise-context-provider",
+      "hostConfiguration": "APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON",
+      "registry": "DYNAMIC_PROVIDER_BACKED_FAIL_CLOSED_SELECTION",
+      "eidosContextSelector": "CHAT_V0_2_GENERIC_OPAQUE_VALUE_SELECTOR",
+      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+      "agentTools": [
+        "context.available.list",
+        "context.current.get"
+      ],
+      "agentUse": "READ_ONLY_REASONING_CONTEXT",
+      "forgedContext": "FAIL_CLOSED",
+      "memoryWrite": "NOT_IMPLEMENTED_DENY_BY_DEFAULT",
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT"
     }
   }
 }
