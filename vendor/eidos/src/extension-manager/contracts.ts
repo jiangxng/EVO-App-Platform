@@ -30,6 +30,12 @@ export interface ExtensionManagerItemV010 {
     label: string;
     tone?: ExtensionStatusTone;
   };
+  readiness?: {
+    id: "ready" | "setup-required" | "blocked" | "degraded" | "error";
+    label: string;
+    tone?: ExtensionStatusTone;
+    message?: string;
+  };
   compatibility?: {
     protocolVersion: string;
     hostVersion?: string;
@@ -121,6 +127,7 @@ export interface ExtensionManagerV010 {
   };
   items: ExtensionManagerItemV010[];
   emptyMessage?: string;
+  technicalDetailsLabel?: string;
 }
 
 export function isExtensionManagerV010(input: unknown): input is ExtensionManagerV010 {
