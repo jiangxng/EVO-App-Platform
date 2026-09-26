@@ -55,8 +55,12 @@ import {
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
+  EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
+  IdentitySessionProviderV010,
+  IdentitySessionV010,
   ManagedSecretsProviderV010,
+  PlatformPrincipalV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -111,6 +115,28 @@ import {
   createHostEnterpriseContextProviderV010,
   parseHostEnterpriseContextsV010
 } from "../providers/enterprise-context/runtime.js";
+import {
+  HOST_STATIC_SESSION_PACKAGE_ID,
+  HOST_STATIC_SESSION_PROVIDER_ID,
+  IDENTITY_SESSION_CAPABILITY,
+  hostStaticSessionProviderPackage
+} from "../providers/session/package.js";
+import {
+  createHostStaticSessionHealthProbeV010,
+  createHostStaticSessionProviderV010,
+  parseHostStaticSessionV010
+} from "../providers/session/runtime.js";
+import {
+  ENTERPRISE_MEMBERSHIP_CAPABILITY,
+  HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID,
+  HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+  hostEnterpriseContextGrantProviderPackage
+} from "../providers/enterprise-context-grant/package.js";
+import {
+  createHostEnterpriseContextGrantHealthProbeV010,
+  createHostEnterpriseContextGrantProviderV010,
+  parseHostEnterpriseContextGrantsV010
+} from "../providers/enterprise-context-grant/runtime.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -183,6 +209,8 @@ const catalog = createPackageCatalog([
   hostStaticAuthorizationProviderPackage,
   hostEncryptedSecretsProviderPackage,
   hostEnterpriseContextProviderPackage,
+  hostStaticSessionProviderPackage,
+  hostEnterpriseContextGrantProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -245,6 +273,48 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+
+const hostStaticSession = parseHostStaticSessionV010(
+  process.env.APP_PLATFORM_STATIC_SESSION_JSON
+);
+if (hostStaticSession) {
+  const sessionProvider = createHostStaticSessionProviderV010(hostStaticSession);
+  providerRuntimeRegistry.replace<IdentitySessionProviderV010>(
+    HOST_STATIC_SESSION_PROVIDER_ID,
+    sessionProvider
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_STATIC_SESSION_PROVIDER_ID,
+    createHostStaticSessionHealthProbeV010(sessionProvider)
+  );
+  providerRuntimeRegistry.setHealth(HOST_STATIC_SESSION_PROVIDER_ID, {
+    state: sessionProvider.current() ? "HEALTHY" : "UNAVAILABLE",
+    message: sessionProvider.current()
+      ? `Static session loaded for subject '${hostStaticSession.principal.subjectId}'.`
+      : "Static session is expired or unavailable.",
+    checkedAt: new Date().toISOString()
+  });
+}
+
+const hostEnterpriseContextGrants = parseHostEnterpriseContextGrantsV010(
+  process.env.APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON
+);
+if (hostEnterpriseContextGrants) {
+  providerRuntimeRegistry.replace<EnterpriseContextGrantProviderV010>(
+    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+    createHostEnterpriseContextGrantProviderV010(hostEnterpriseContextGrants)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+    createHostEnterpriseContextGrantHealthProbeV010(hostEnterpriseContextGrants)
+  );
+  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: `Host Enterprise Context Grant directory loaded with ${hostEnterpriseContextGrants.length} grant(s).`,
+    checkedAt: new Date().toISOString()
+  });
+}
+
 const hostEnterpriseContexts = parseHostEnterpriseContextsV010(
   process.env.APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON
 );
@@ -400,6 +470,28 @@ const manager = createAppManagerService(
 );
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
+  hostStaticSession
+  && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_STATIC_SESSION_PACKAGE_ID);
+    console.log("Activated Host Static Session Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Static Session Provider.", error);
+  }
+}
+if (
+  hostEnterpriseContextGrants
+  && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID);
+    console.log("Activated Host Enterprise Context Grant Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Enterprise Context Grant Provider.", error);
+  }
+}
+if (
   hostEnterpriseContexts
   && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_PACKAGE_ID)
 ) {
@@ -456,6 +548,76 @@ function resolveEnterpriseContextProvider(): EnterpriseContextProviderV010 | und
   )?.runtime;
 }
 
+function resolveEnterpriseContextGrantProvider(): EnterpriseContextGrantProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseContextGrantProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(ENTERPRISE_MEMBERSHIP_CAPABILITY),
+    providerBindings,
+    ENTERPRISE_MEMBERSHIP_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveIdentitySession(): IdentitySessionV010 {
+  const descriptors = manager.listEffectiveServiceProviders(IDENTITY_SESSION_CAPABILITY);
+  if (descriptors.length === 0) {
+    return {
+      contractVersion: "0.1.0",
+      sessionId: "compatibility-local-session",
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId: evoActorId,
+        actorType: evoActorType,
+        identityProviderId: "host.compatibility-local",
+        displayName: evoActorId
+      },
+      issuedAt: new Date(0).toISOString(),
+      assurance: ["COMPATIBILITY_LOCAL"]
+    };
+  }
+
+  const resolved = resolveProviderRuntimeV010<IdentitySessionProviderV010>(
+    providerRuntimeRegistry,
+    descriptors,
+    providerBindings,
+    IDENTITY_SESSION_CAPABILITY,
+    { installationId: "default" }
+  );
+  if (!resolved) throw new Error("IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+
+  const session = resolved.runtime.current();
+  if (!session) throw new Error("IDENTITY_SESSION_REQUIRED");
+  return session;
+}
+
+function createContextRegistryForPrincipal(principal: PlatformPrincipalV010) {
+  return createHostContextRegistryV010({
+    personalContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: `personal:${principal.subjectId}`,
+      ownerSubjectId: principal.subjectId,
+      displayName: principal.displayName ?? principal.subjectId
+    },
+    enterpriseContextSource() {
+      const directory = resolveEnterpriseContextProvider();
+      const grants = resolveEnterpriseContextGrantProvider();
+      if (!directory || !grants) return [];
+
+      const allowed = new Set(
+        grants.listForPrincipal(principal).map(grant => grant.contextId)
+      );
+      return directory.list().filter(context =>
+        context.contextId !== undefined && allowed.has(context.contextId)
+      );
+    }
+  });
+}
+
+function createContextRegistryForSession(session: IdentitySessionV010) {
+  return createContextRegistryForPrincipal(session.principal);
+}
+
 async function authorizeHostAdministration(
   token: string | undefined,
   action: string,
@@ -509,26 +671,6 @@ const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
-
-/**
- * Person-first P0.3 context source.
- *
- * Identity/session has not been activated yet, so production defaults to one
- * Host-owned Personal Context and no Enterprise Contexts. Future enterprise
- * context providers/grants register contexts here; request data may only select
- * among Host-owned entries.
- */
-const contextRegistry = createHostContextRegistryV010({
-  personalContext: {
-    contractVersion: "0.1.0",
-    kind: "PERSONAL",
-    contextId: "personal:default",
-    displayName: "Personal"
-  },
-  enterpriseContextSource() {
-    return resolveEnterpriseContextProvider()?.list() ?? [];
-  }
-});
 
 function openAiApiKeyReference(): SecretReferenceV010 {
   return {
@@ -623,12 +765,15 @@ const actionRouter = createAppActionRouter(
   [
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
-      resolveContext(selection) {
-        return contextRegistry.resolve(selection);
+      resolveIdentitySession,
+      resolveContext(selection, session) {
+        return createContextRegistryForSession(session).resolve(selection);
       },
-      createToolCatalog(locale, context) {
+      createToolCatalog(locale, context, principal) {
+        const contextRegistry = createContextRegistryForPrincipal(principal);
         return createEnterpriseAgentHostToolCatalogV010({
           manager,
+          principal,
           context,
           listAvailableContexts() {
             return contextRegistry.list();
@@ -742,8 +887,14 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
     }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
+      const session = resolveIdentitySession();
+      const contextRegistry = createContextRegistryForSession(session);
       return json(response, 200, {
         contractVersion: "0.1.0",
+        session: {
+          sessionId: session.sessionId,
+          principal: session.principal
+        },
         personalContext: contextRegistry.personal(),
         availableContexts: contextRegistry.list(),
         defaultActiveContext: contextRegistry.resolve().activeContext
@@ -944,6 +1095,8 @@ const server = createServer(async (request, response) => {
           return json(response, 200, createPersonalAgentSetupPageV010(readiness));
         }
 
+        const session = resolveIdentitySession();
+        const contextRegistry = createContextRegistryForSession(session);
         const context = contextRegistry.resolve();
         const availableContexts = contextRegistry.list().map(ref => {
           const resolved = contextRegistry.resolve(ref);
