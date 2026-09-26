@@ -40,6 +40,15 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  ENTERPRISE_AGENT_PAGE_SOURCE,
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+} from "../agents/enterprise-agent/package.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010,
+  evaluatePersonalAgentReadinessV010
+} from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -853,6 +862,37 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (
+        source === ENTERPRISE_AGENT_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+      ) {
+        const effective = manager.listEffectiveExperiences().some(value => {
+          const manifest = value as { pages?: Array<{ source?: string }> };
+          return manifest.pages?.some(page => page.source === source) === true;
+        });
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+
+        const readiness = evaluatePersonalAgentReadinessV010(
+          manager,
+          providerRuntimeRegistry,
+          providerBindings
+        );
+        if (source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentSetupPageV010(readiness));
+        }
+
+        const context = contextRegistry.resolve();
+        const contextLabel = context.activeContext.kind === "PERSONAL"
+          ? context.personalContext.displayName
+          : context.enterpriseContext?.displayName ?? context.activeContext.contextId;
+        return json(
+          response,
+          200,
+          createPersonalAgentChatPageV020(readiness, contextLabel)
+        );
+      }
       if (source === helpIndexPageSourceV010) {
         return json(response, 200, createHelpIndexPageV010(helpCorpus, requestedLocale(url)));
       }
