@@ -6,6 +6,10 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import {
+  createEncryptedFileSecretStoreV010,
+  createMemorySecretStoreV010
+} from "./secret-store.js";
 import { createAppManagerService } from "./service.js";
 import {
   createFilePluginStorageService,
@@ -35,7 +39,11 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
-import type { AuthorizationProviderV010 } from "../contracts/platform-services.js";
+import type {
+  AuthorizationProviderV010,
+  ManagedSecretsProviderV010,
+  SecretReferenceV010
+} from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import {
   createFileProviderBindingStoreV010,
@@ -52,6 +60,16 @@ import {
   parseHostRemoteBearerTokenMapV010
 } from "../providers/remote-credential/runtime.js";
 import { createOpenAiResponsesHealthProbe, createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
+import {
+  HOST_ENCRYPTED_SECRETS_PACKAGE_ID,
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  SECRETS_RESOLVE_CAPABILITY,
+  hostEncryptedSecretsProviderPackage
+} from "../providers/secrets/package.js";
+import {
+  createHostEncryptedSecretsHealthProbeV010,
+  createHostEncryptedSecretsProviderV010
+} from "../providers/secrets/runtime.js";
 import {
   OPENAI_LLM_PACKAGE_ID,
   OPENAI_LLM_PROVIDER_ID,
@@ -79,6 +97,7 @@ import {
   createSettingsPage,
   packageIdFromSettingsPageSource,
   settingsIndexPageSource,
+  secretReferenceForPackageV010,
   validateAndMergeSettings
 } from "./settings-page.js";
 import {
@@ -113,6 +132,12 @@ import {
   PROVIDER_HEALTH_PROBE_ACTION,
   providerAuditEventV010
 } from "./provider-governance.js";
+import {
+  createJsonlSecretAuditStoreV010,
+  createMemorySecretAuditStoreV010,
+  SECRET_VALUE_MANAGE_ACTION,
+  secretAuditEventV010
+} from "./secret-governance.js";
 import {
   companyNotesPackage,
   enterpriseAgentPackage,
