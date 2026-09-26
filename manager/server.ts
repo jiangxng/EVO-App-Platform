@@ -353,6 +353,27 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+if (!manager.getSnapshot().installedPackages.some(
+  item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID
+)) {
+  try {
+    manager.install(HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
+    console.log("Installed Host encrypted secrets Provider foundation.");
+  } catch (error) {
+    console.error("Failed to install Host encrypted secrets Provider foundation.", error);
+  }
+}
+
+function resolveManagedSecretsProvider(): ManagedSecretsProviderV010 | undefined {
+  return resolveProviderRuntimeV010<ManagedSecretsProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(SECRETS_RESOLVE_CAPABILITY),
+    providerBindings,
+    SECRETS_RESOLVE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
   return resolveProviderRuntimeV010<AuthorizationProviderV010>(
     providerRuntimeRegistry,
@@ -363,7 +384,7 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
   )?.runtime;
 }
 
-async function authorizeProviderGovernance(
+async function authorizeHostAdministration(
   token: string | undefined,
   action: string,
   resource: {
@@ -611,7 +632,7 @@ const server = createServer(async (request, response) => {
       const bearerToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
         ? authorization.slice("Bearer ".length)
         : undefined;
-      const decision = await authorizeProviderGovernance(
+      const decision = await authorizeHostAdministration(
         bearerToken,
         PROVIDER_GOVERNANCE_AUDIT_READ_ACTION,
         { type: "provider-governance-audit" }
@@ -651,7 +672,7 @@ const server = createServer(async (request, response) => {
       if (!providerId) {
         return json(response, 400, { ok: false, error: { code: "PROVIDER_ID_REQUIRED" } });
       }
-      const decision = await authorizeProviderGovernance(
+      const decision = await authorizeHostAdministration(
         adminToken,
         PROVIDER_HEALTH_PROBE_ACTION,
         {
@@ -970,7 +991,7 @@ const server = createServer(async (request, response) => {
           }
 
           const adminToken = typeof values.adminToken === "string" ? values.adminToken : undefined;
-          const decision = await authorizeProviderGovernance(
+          const decision = await authorizeHostAdministration(
             adminToken,
             PROVIDER_BINDING_UPDATE_ACTION,
             {
