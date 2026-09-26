@@ -222,7 +222,7 @@ export function createProviderBindingPage(
       {
         key: "adminToken",
         label: "Administrator authorization",
-        description: "Host-owned bootstrap administrator secret. It is submitted for this change only and is never persisted in Provider binding state or audit history.",
+        description: "Host bootstrap credential used only to authenticate the administrator principal. Authorization is decided by the active authorization.check Provider. The credential is never persisted in Provider binding state or audit history.",
         type: "secret",
         value: ""
       },
