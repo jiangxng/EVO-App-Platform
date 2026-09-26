@@ -11,6 +11,7 @@ import {
   createMemorySecretStoreV010
 } from "./secret-store.js";
 import { createAppManagerService } from "./service.js";
+import { createHostContextRegistryV010 } from "./context-registry.js";
 import {
   createFilePluginStorageService,
   createMemoryPluginStorageService,
@@ -445,6 +446,23 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
+/**
+ * Person-first P0.3 context source.
+ *
+ * Identity/session has not been activated yet, so production defaults to one
+ * Host-owned Personal Context and no Enterprise Contexts. Future enterprise
+ * context providers/grants register contexts here; request data may only select
+ * among Host-owned entries.
+ */
+const contextRegistry = createHostContextRegistryV010({
+  personalContext: {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:default",
+    displayName: "Personal"
+  }
+});
+
 function openAiApiKeyReference(): SecretReferenceV010 {
   return {
     contractVersion: "0.1.0",
@@ -538,17 +556,21 @@ const actionRouter = createAppActionRouter(
   [
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
-      createToolCatalog(locale) {
+      resolveContext(selection) {
+        return contextRegistry.resolve(selection);
+      },
+      createToolCatalog(locale, context) {
         return createEnterpriseAgentHostToolCatalogV010({
           manager,
+          context,
           listProviderBindings(capability) {
             return providerBindings.list(capability);
           },
           getProviderHealth(providerId) {
             return providerRuntimeRegistry.getHealth(providerId);
           },
-          searchHelp(query, context) {
-            return searchHelpV010(helpCorpus, query, locale, context);
+          searchHelp(query, helpContext) {
+            return searchHelpV010(helpCorpus, query, locale, helpContext);
           }
         });
       }
@@ -648,6 +670,14 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
+    }
+    if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        personalContext: contextRegistry.personal(),
+        availableContexts: contextRegistry.list(),
+        defaultActiveContext: contextRegistry.resolve().activeContext
+      });
     }
     if (request.method === "GET" && url.pathname === "/v1/catalog") {
       return json(response, 200, manager.listCatalog());
