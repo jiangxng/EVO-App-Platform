@@ -132,10 +132,11 @@ export function createHostEnterpriseContextProviderV010(
 }
 
 export function createHostEnterpriseContextHealthProbeV010(
-  contexts: readonly EnterpriseContextV010[]
+  contexts: readonly EnterpriseContextV010[],
+  dynamicSource: () => readonly EnterpriseContextV010[] = () => []
 ) {
   return () => ({
     state: "HEALTHY" as const,
-    message: `Host Enterprise Context directory loaded with ${contexts.length} context(s).`
+    message: `Host Enterprise Context directory loaded with ${contexts.length + dynamicSource().length} context(s).`
   });
 }
