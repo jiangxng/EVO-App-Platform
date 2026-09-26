@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.5 implements the first real Enterprise Context source: a replaceable enterprise.directory Provider, dynamic Host Context Registry consumption, Eidos Chat Context selection, Host re-validation, context.available.list READ discovery, and read-only Enterprise Context reasoning. Functional CI passed; final documentation/help validation is in progress before merge.",
+  "currentStep": "Personal Agent P0.5 is CI-verified: the first real Enterprise Context Provider, dynamic Host Context Registry, Eidos Context selector, Host fail-closed re-validation, context.available.list/context.current.get READ tools, and four-locale selector UX all pass Platform and owning-plugin CI. Next mainline: minimal Principal/Session + Relationship/Grant for Enterprise Context entitlement and Context-bound tool filtering.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -590,7 +590,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "P0_5_FINAL_CI_THEN_MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+    "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -616,7 +616,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "P0_5_FINAL_CI_THEN_PRINCIPAL_SESSION_GRANT",
+      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
       "locales": [
         "en",
         "zh-CN",
@@ -629,7 +629,7 @@
       "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
     },
     "contextP0_5": {
-      "status": "IMPLEMENTED_PENDING_FINAL_DOCS_CI",
+      "status": "CI_VERIFIED_P0_5",
       "authority": "docs/architecture/ENTERPRISE-CONTEXT-PROVIDER-P0.5-v0.1.md",
       "providerContract": "EnterpriseContextProviderV010",
       "capability": "enterprise.directory",
