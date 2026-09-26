@@ -165,7 +165,8 @@ const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.tr
 const providerBindings = providerBindingsFile
   ? createFileProviderBindingStoreV010(providerBindingsFile)
   : createMemoryProviderBindingStoreV010();
-const providerAdminToken = process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
+const bootstrapAdminToken = process.env.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
+  || process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
 const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-governance-audit.jsonl") : undefined);
 const providerAudit = providerAuditFile
@@ -298,7 +299,7 @@ async function authorizeProviderGovernance(
     attributes?: Record<string, string | number | boolean | null>;
   }
 ) {
-  const authentication = authenticateBootstrapAdministratorV010(token, providerAdminToken);
+  const authentication = authenticateBootstrapAdministratorV010(token, bootstrapAdminToken);
   if (!authentication.authenticated) {
     return authorizeProviderAdministrationV010(
       authentication,
