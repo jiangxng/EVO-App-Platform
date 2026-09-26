@@ -397,3 +397,7 @@ Do not use full-ecosystem CI as a substitute for defining stable contracts. Unre
 For user-visible platform, Workbench, Provider, plugin-lifecycle, settings, authorization, compatibility, error or migration changes, read `docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md` and classify Help impact before calling the change complete.
 
 Platform Help is a governed product knowledge surface, not a central FAQ dump. Eidos owns generic Help rendering/interaction contracts; App Platform owns aggregation/context/search/governance; each Package owns the Help content for behavior and vocabulary it introduces. Human and LLM Help should converge on the same canonical, version-aware source. Do not use chat history as authoritative Help.
+
+Multilingual Help rules are mandatory: stable Help IDs/routes/context/error/action identifiers are never translated; locale variants translate human text only; resolution is per document with deterministic fallback to canonical `en`; current core coverage includes `en` and `zh-CN`. Before changing Help locale behavior, read `docs/architecture/APP-OWNED-LOCALIZATION-v0.1.md`.
+
+For Help/Workbench visual changes, the Eidos Productive Design Language is not advisory. Reuse Eidos Workbench, Catalog Browser, HelpDocument, tokens and semantic icons. Do not add App Platform Help CSS or raw standard-control markup. If Eidos lacks a reusable pattern, implement and validate it in Eidos first. Platform CI runs `tools/eidos-design-language-validate.mjs` to enforce this ownership boundary.
