@@ -82,6 +82,19 @@ const platformActivities: WorkbenchActivityV010[] = [
     }
   },
   {
+    id: "help",
+    title: "Help",
+    icon: "help",
+    kind: "side-route",
+    route: "/help",
+    order: 900,
+    placement: "secondary",
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.help"
+    }
+  },
+  {
     id: "settings",
     title: "Settings",
     icon: "settings",
