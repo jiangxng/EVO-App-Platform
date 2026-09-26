@@ -630,6 +630,9 @@ const actionRouter = createAppActionRouter(
         return createEnterpriseAgentHostToolCatalogV010({
           manager,
           context,
+          listAvailableContexts() {
+            return contextRegistry.list();
+          },
           listProviderBindings(capability) {
             return providerBindings.list(capability);
           },
