@@ -8,6 +8,8 @@ import {
 import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import { providerManagerCapabilityRoute } from "./provider-manager-page.js";
 import { settingsPackageRoute } from "./settings-page.js";
+import type { ChatExperienceV020 } from "../vendor/eidos/src/chat/contracts.js";
+import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
 
 export const PERSONAL_AGENT_SETUP_ROUTE = "/enterprise-agent/setup";
 export const PERSONAL_AGENT_SETUP_PAGE_SOURCE =
@@ -301,7 +303,7 @@ export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
   context: ResolvedContextSetV010,
   locale: string
-) {
+): ChatExperienceV020 {
   const text = copy[uiLocale(locale)];
   const active = context.activeContext;
   const contextValue = active.kind === "PERSONAL"
@@ -364,7 +366,7 @@ export function createPersonalAgentChatPageV020(
 export function createPersonalAgentSetupPageV010(
   readiness: PersonalAgentReadinessV010,
   locale: string
-) {
+): SetupFlowV010 {
   const text = copy[uiLocale(locale)];
   const providerInstalled = readiness.providerIds.length > 0;
   const selectionRequired = readiness.code === "LLM_PROVIDER_SELECTION_REQUIRED";
