@@ -218,3 +218,33 @@ Personal Agent chat chrome, readiness/setup, Provider-selection/configuration or
 Existing Help may continue using per-document English fallback while Japanese and Traditional Chinese Help translations are filled incrementally. Missing Help translation must never hide the document.
 
 Machine identifiers and business data are not translated. Do not postpone ja/zh-TW support until after UI implementation; localization and text-expansion behavior are part of P0.4 design and CI.
+
+
+## P0.4 implementation checkpoint
+
+Personal Agent P0.4 has now been implemented on stacked integration branches.
+
+Implemented:
+
+- App Platform vendored Eidos advanced to `12f61d5a02011a5f974beac8e0fda8c34f81e142`;
+- Chat Experience upgraded to `chat@0.2.0`;
+- Host-computed Personal Agent readiness distinguishes Installed from Ready;
+- Setup Flow v0.1 routes Provider install/selection/configuration through platform-owned surfaces;
+- multiple usable `llm.inference` Providers require explicit human selection;
+- Provider credentials/settings remain owned by Provider + Host Secrets;
+- Extension Manager exposes `Needs setup / Ready / Degraded / Unavailable`;
+- Agent replies can render structured text/activity/evidence/proposal parts;
+- Personal Agent, Setup, llm.inference Provider selection and OpenAI Provider settings cover `en / zh-CN / ja / zh-TW`.
+
+Current integration stack:
+
+1. PR #59 — Eidos P0.4A vendor sync;
+2. PR #60 — Personal Agent readiness + Setup Flow;
+3. PR #61 — structured Chat v0.2;
+4. finalization branch — four-locale Provider configuration and authority/status updates.
+
+Do not restart Eidos P0.4A or redesign Personal Agent setup.
+
+Current blocker is executable CI, not product design: recent GitHub Actions runs terminate in approximately 2–3 seconds with no job steps or logs. Do not mark P0.4 CI-verified or merge the stack until an executable runner validates the branch.
+
+After P0.4 validation/merge, resume the Person-first roadmap at the first real Enterprise Context source and read-only Agent use. Do not expand to multi-Agent or generic Memory writes.
