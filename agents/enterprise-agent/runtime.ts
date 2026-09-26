@@ -1,3 +1,4 @@
+import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
 import type {
   AgentModel,
   AgentToolCatalogV010,
@@ -6,7 +7,10 @@ import type {
 } from "./contracts.js";
 
 export interface EnterpriseAgentRuntime {
-  chat(message: string): Promise<EnterpriseAgentReplyV010>;
+  chat(
+    message: string,
+    context?: ResolvedContextSetV010
+  ): Promise<EnterpriseAgentReplyV010>;
 }
 
 export function createEnterpriseAgentRuntime(
@@ -15,7 +19,7 @@ export function createEnterpriseAgentRuntime(
   maxSteps = 8
 ): EnterpriseAgentRuntime {
   return {
-    async chat(message) {
+    async chat(message, context) {
       const observations: AgentToolObservation[] = [];
       const tools = await catalog.list();
 
@@ -23,7 +27,8 @@ export function createEnterpriseAgentRuntime(
         const decision = await model.decide({
           userMessage: message,
           tools: structuredClone(tools),
-          observations: structuredClone(observations)
+          observations: structuredClone(observations),
+          ...(context ? { context: structuredClone(context) } : {})
         });
 
         if (decision.type === "final") {
@@ -31,6 +36,7 @@ export function createEnterpriseAgentRuntime(
             contractVersion: "0.1.0",
             agentId: "enterprise-agent",
             message: decision.message,
+            ...(context ? { context: structuredClone(context) } : {}),
             tools: tools.map(tool => ({
               id: tool.id,
               title: tool.title,
@@ -49,6 +55,7 @@ export function createEnterpriseAgentRuntime(
         contractVersion: "0.1.0",
         agentId: "enterprise-agent",
         message: "操作未能在允许的步骤数内完成。",
+        ...(context ? { context: structuredClone(context) } : {}),
         tools: tools.map(tool => ({
           id: tool.id,
           title: tool.title,
