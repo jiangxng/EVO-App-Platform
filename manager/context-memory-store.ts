@@ -29,6 +29,19 @@ function clone(value: ContextMemorySnapshotV010): ContextMemorySnapshotV010 {
   return structuredClone(value);
 }
 
+function sameContext(
+  left: { kind: string; contextId: string; enterpriseId?: string },
+  right: { kind: string; contextId: string; enterpriseId?: string }
+): boolean {
+  return left.kind === right.kind
+    && left.contextId === right.contextId
+    && (
+      left.kind !== "ENTERPRISE"
+      || right.kind !== "ENTERPRISE"
+      || left.enterpriseId === right.enterpriseId
+    );
+}
+
 function validate(snapshot: ContextMemorySnapshotV010): ContextMemorySnapshotV010 {
   if (
     snapshot.contractVersion !== "0.1.0"
@@ -89,20 +102,51 @@ function validate(snapshot: ContextMemorySnapshotV010): ContextMemorySnapshotV01
     }
   }
 
-  const known = new Set(snapshot.items.map(item => item.memoryId));
+  const byId = new Map(snapshot.items.map(item => [item.memoryId, item]));
   for (const item of snapshot.items) {
-    if (item.supersedesMemoryId && !known.has(item.supersedesMemoryId)) {
-      throw new Error(
-        `CONTEXT_MEMORY_SUPERSEDES_NOT_FOUND: ${item.supersedesMemoryId}`
-      );
+    if (item.provenance.origin === "DIRECT") {
+      if (!sameContext(item.context, item.provenance.sourceContext)) {
+        throw new Error(`CONTEXT_MEMORY_DIRECT_SOURCE_MISMATCH: ${item.memoryId}`);
+      }
+      if (item.provenance.sourceMemoryId) {
+        throw new Error(`CONTEXT_MEMORY_DIRECT_SOURCE_MEMORY_FORBIDDEN: ${item.memoryId}`);
+      }
     }
-    if (
-      item.provenance.sourceMemoryId
-      && !known.has(item.provenance.sourceMemoryId)
-    ) {
-      throw new Error(
-        `CONTEXT_MEMORY_SOURCE_NOT_FOUND: ${item.provenance.sourceMemoryId}`
-      );
+
+    if (item.supersedesMemoryId) {
+      const superseded = byId.get(item.supersedesMemoryId);
+      if (!superseded) {
+        throw new Error(
+          `CONTEXT_MEMORY_SUPERSEDES_NOT_FOUND: ${item.supersedesMemoryId}`
+        );
+      }
+      if (!sameContext(item.context, superseded.context)) {
+        throw new Error(
+          `CONTEXT_MEMORY_SUPERSEDES_CONTEXT_MISMATCH: ${item.memoryId}`
+        );
+      }
+    }
+
+    if (item.provenance.sourceMemoryId) {
+      const source = byId.get(item.provenance.sourceMemoryId);
+      if (!source) {
+        throw new Error(
+          `CONTEXT_MEMORY_SOURCE_NOT_FOUND: ${item.provenance.sourceMemoryId}`
+        );
+      }
+      if (!sameContext(source.context, item.provenance.sourceContext)) {
+        throw new Error(
+          `CONTEXT_MEMORY_SOURCE_CONTEXT_MISMATCH: ${item.memoryId}`
+        );
+      }
+      if (
+        item.provenance.origin === "PROMOTED"
+        && sameContext(item.context, item.provenance.sourceContext)
+      ) {
+        throw new Error(
+          `CONTEXT_MEMORY_PROMOTION_CROSS_CONTEXT_REQUIRED: ${item.memoryId}`
+        );
+      }
     }
   }
 
