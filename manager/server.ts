@@ -40,6 +40,17 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  ENTERPRISE_AGENT_PACKAGE_ID,
+  ENTERPRISE_AGENT_PAGE_SOURCE,
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+} from "../agents/enterprise-agent/package.js";
+import {
+  createPersonalAgentChatExperienceV020,
+  createPersonalAgentSetupFlowV010,
+  evaluatePersonalAgentReadinessV010,
+  PERSONAL_AGENT_SETUP_ROUTE
+} from "../agents/enterprise-agent/product-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -533,12 +544,8 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
 
 await refreshOpenAiProviderRuntime();
 
-function resolveLlmProvider(): {
-  installedProviderIds: string[];
-  provider?: LlmInferenceProvider;
-} {
+function resolveLlmProviderRuntime() {
   const descriptors = manager.listEffectiveServiceProviders("llm.inference");
-  const installedProviderIds = descriptors.map(provider => provider.providerId);
   const resolved = resolveProviderRuntimeV010<LlmInferenceProvider>(
     providerRuntimeRegistry,
     descriptors,
@@ -546,10 +553,42 @@ function resolveLlmProvider(): {
     "llm.inference",
     { installationId: "default" }
   );
+  return { descriptors, resolved };
+}
+
+function resolveLlmProvider(): {
+  installedProviderIds: string[];
+  provider?: LlmInferenceProvider;
+} {
+  const { descriptors, resolved } = resolveLlmProviderRuntime();
   return {
-    installedProviderIds,
+    installedProviderIds: descriptors.map(provider => provider.providerId),
     ...(resolved ? { provider: resolved.runtime } : {})
   };
+}
+
+function personalAgentReadiness() {
+  const descriptors = manager.listEffectiveServiceProviders("llm.inference");
+  return evaluatePersonalAgentReadinessV010({
+    catalog: manager.listCatalog(),
+    snapshot: manager.getSnapshot(),
+    effectiveProviders: descriptors,
+    resolveProvider() {
+      const resolved = resolveProviderRuntimeV010<LlmInferenceProvider>(
+        providerRuntimeRegistry,
+        descriptors,
+        providerBindings,
+        "llm.inference",
+        { installationId: "default" }
+      );
+      return resolved
+        ? {
+            providerId: resolved.providerId,
+            health: resolved.health
+          }
+        : undefined;
+    }
+  });
 }
 
 const actionRouter = createAppActionRouter(
@@ -678,6 +717,9 @@ const server = createServer(async (request, response) => {
         availableContexts: contextRegistry.list(),
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
+    }
+    if (request.method === "GET" && url.pathname === "/v1/personal-agent/readiness") {
+      return json(response, 200, personalAgentReadiness());
     }
     if (request.method === "GET" && url.pathname === "/v1/catalog") {
       return json(response, 200, manager.listCatalog());
@@ -853,6 +895,21 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === ENTERPRISE_AGENT_PAGE_SOURCE) {
+        const context = contextRegistry.resolve();
+        return json(
+          response,
+          200,
+          createPersonalAgentChatExperienceV020(
+            personalAgentReadiness(),
+            "Context",
+            context.personalContext.displayName ?? "Personal"
+          )
+        );
+      }
+      if (source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE) {
+        return json(response, 200, createPersonalAgentSetupFlowV010(personalAgentReadiness()));
+      }
       if (source === helpIndexPageSourceV010) {
         return json(response, 200, createHelpIndexPageV010(helpCorpus, requestedLocale(url)));
       }
@@ -872,7 +929,38 @@ const server = createServer(async (request, response) => {
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
-            evaluateRuntime: evaluateRuntimeForHost
+            evaluateRuntime: evaluateRuntimeForHost,
+            readinessForPackage(pkg, state) {
+              if (
+                pkg.packageId !== ENTERPRISE_AGENT_PACKAGE_ID
+                || !state.installed
+                || !state.enabled
+              ) {
+                return undefined;
+              }
+              const readiness = personalAgentReadiness();
+              return readiness.state === "READY"
+                ? {
+                    id: "ready",
+                    label: "Ready",
+                    tone: "positive"
+                  }
+                : readiness.state === "UNAVAILABLE"
+                  ? {
+                      id: "error",
+                      label: "Unavailable",
+                      tone: "danger",
+                      message: "The selected LLM Provider is currently unavailable.",
+                      setupRoute: PERSONAL_AGENT_SETUP_ROUTE
+                    }
+                  : {
+                      id: "setup-required",
+                      label: "Needs setup",
+                      tone: "warning",
+                      message: "Connect and configure an LLM Provider before opening Personal Agent.",
+                      setupRoute: PERSONAL_AGENT_SETUP_ROUTE
+                    };
+            }
           }
         ));
       }
