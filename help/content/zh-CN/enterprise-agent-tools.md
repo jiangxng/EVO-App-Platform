@@ -162,3 +162,28 @@ P1.0 将“候选学习内容”和“持久化 Context Memory”明确分开。
 
 > [!IMPORTANT] Evidence Quality 采用保守语义
 > `REFERENCED` 只表示存在证据引用，并不表示 Host 已验证该证据真实或权威。
+
+
+## 受治理的 Memory Intake 与 Evidence Source
+
+P1.1 允许外部或内部知识来源进入 Memory Proposal 审核流程，但不能绕过 Human Review。
+
+Intake 命令：
+
+`context.memory.intake.run`
+
+成功执行 Intake 需要：request-bound HUMAN Principal、明确确认、当前 Context 的 Memory 写权限，以及 `authorization.check` 返回 ALLOW。执行结果只会创建或去重 **PENDING Memory Proposal**，并写入 append-only Intake Receipt；不会直接创建 durable Context Memory。
+
+Evidence Source 具有稳定身份，并使用三种来源保障等级：
+
+- `UNVERIFIED`
+- `DECLARED`
+- `HOST_VERIFIED`
+
+这些等级描述的是“来源身份/完整性保障”，并不代表来源内容一定真实。即使来源是 HOST_VERIFIED 的 Experience Compiler，仍必须经过 Human Review 才能落入 durable Memory。
+
+相同候选知识会在 Human Review 前进行 fingerprint 去重。新的 Evidence 会通过新增 Proposal Revision 合并，旧 Revision 不会被修改。ACCEPTED 或 REJECTED Proposal 属于终态，后续不会被静默补写。
+
+Experience Compiler 通过通用 `ContextMemoryIntakeSourceAdapterV010` 边界接入；App Platform 不依赖 EC 内部数据结构或学习实现。
+
+Context Memory Reader 现在显式返回 retrieval strategy 与 ranking signal。参考 Host Reader 只实现确定性的 `LEXICAL` 检索；如果请求尚未实现的 SEMANTIC/HYBRID，会 fail-closed，而不会静默降级。
