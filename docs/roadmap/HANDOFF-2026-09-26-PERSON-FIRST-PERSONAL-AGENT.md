@@ -165,3 +165,40 @@ Once active Context is real and observable:
 5. then add real Personal/Enterprise Context Memory providers and Memory Attribution.
 
 This document exists specifically so a fresh LLM can continue without needing the original conversation.
+
+
+## Personal Agent product experience follow-up
+
+After the P0.3 Context plumbing was deployed and exercised in production, the Personal Agent UI was reviewed against Eidos Productive Design Language.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md`
+- Eidos RFC: `docs/product/ASSISTANT-AND-SETUP-EXPERIENCE-PATTERNS-v0.1.md` in the Eidos repository.
+
+Key finding:
+
+Using an Eidos renderer is necessary but not sufficient. The current `chat@0.1.0` and Extension Manager contracts are too thin for a mature Personal Agent installation/setup/chat experience.
+
+Do not fix this with Personal Agent CSS or custom controls.
+
+Implementation order:
+
+1. Eidos Chat/Assistant v0.2;
+2. Eidos Setup Flow v0.1;
+3. Eidos Extension Manager readiness + progressive disclosure;
+4. optionally Settings Editor v0.2 grouping;
+5. update App Platform Eidos pin;
+6. add Host-computed Personal Agent readiness and setup orchestration;
+7. keep Provider/model/API Key configuration owned by Provider + Secrets surfaces;
+8. then improve Personal Agent structured activity/evidence/proposal UX.
+
+Installation principle:
+
+```text
+Installed != Ready
+```
+
+Do not silently choose an LLM Provider when multiple candidates exist. Provider/vendor choice can carry cost, privacy and credential consequences and therefore belongs to an explicit setup step.
+
+Personal Agent remains zero ordinary configuration: it consumes the selected/resolved `llm.inference` Provider rather than owning vendor-specific settings.

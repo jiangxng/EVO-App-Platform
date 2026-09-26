@@ -261,6 +261,20 @@
       "memory": "READ_CONTRACT_ONLY",
       "fullIam": "DEFERRED",
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
+    },
+    "productExperience": {
+      "status": "DESIGN_BASELINE_PROPOSED",
+      "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
+      "eidosFirst": true,
+      "requiredEidosPatterns": [
+        "CHAT_V0_2_STRUCTURED_ASSISTANT",
+        "SETUP_FLOW_V0_1",
+        "EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE"
+      ],
+      "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
+      "installReadiness": "SEPARATE",
+      "providerConfigurationOwner": "PROVIDER_PACKAGE",
+      "next": "EIDOS_P0_4A"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

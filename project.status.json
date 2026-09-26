@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.3 — minimal Context plumbing complete",
+  "currentMilestone": "Personal Agent P0.4 — Eidos-native product experience design",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent Context P0.3 is CI-verified: Person-first Context contracts, Host-owned Context registry, Personal default Context, fail-closed unknown Enterprise Context selection, resolved Context in model/tool catalog, context.current.get, and read-only Context Memory contract. Next: add the first real Host/provider-backed Enterprise Context source without building full IAM; then let Personal Agent inspect that enterprise context using READ tools.",
+  "currentStep": "Personal Agent product UX has been researched and specified. Current Chat v0.1 and Extension Manager are Eidos-rendered but insufficient: assistant readiness/setup, progressive disclosure, structured activity/evidence/proposals and guided provider setup require reusable Eidos capabilities first. Next implementation owner is Eidos P0.4A, then App Platform onboarding/readiness integration.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -605,6 +605,17 @@
       "memory": "READ_CONTRACT_ONLY_NO_GENERIC_WRITE",
       "platformScope": "LEGACY_COMPATIBILITY_PROJECTION",
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
+    },
+    "productExperience": {
+      "status": "DESIGN_BASELINE_PROPOSED",
+      "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
+      "currentProblem": "EIDOS_CONTRACTS_USED_BUT_ASSISTANT_AND_INSTALL_UX_TOO_THIN",
+      "workbench": "ACTIVITY_SIDE_PANEL_AGENT_PLUS_MAIN_WORKSPACE_EVIDENCE_SETUP",
+      "installModel": "INSTALLED_NOT_EQUAL_READY",
+      "setup": "EIDOS_GENERIC_SETUP_FLOW_REQUIRED",
+      "providerChoice": "EXPLICIT_WHEN_MULTIPLE_NO_LEXICAL_AUTO_VENDOR_SELECTION",
+      "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
+      "next": "EIDOS_CHAT_V0_2_SETUP_FLOW_EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE"
     }
   }
 }
