@@ -115,7 +115,14 @@
     "host-static-authorization-provider",
     "provider-governance-authorization-check",
     "authentication-authorization-separation",
-    "authorization-provider-isolated-ci"
+    "authorization-provider-isolated-ci",
+    "eidos-help-document-capability",
+    "eidos-catalog-deterministic-search",
+    "platform-help-source-compiler",
+    "platform-help-index-search-context",
+    "workbench-secondary-help-activity",
+    "platform-help-seed-corpus",
+    "platform-help-ci-governance"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -138,7 +145,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Authorization Provider P0 implemented: bootstrap credential authenticates a Principal only; provider.binding.update, provider.health.probe and provider.governance.audit.read resolve through authorization.check and fail closed on missing/ambiguous/unavailable/deny. Next maturity: executable identity/session Provider and PlatformRequestContext propagation so bootstrap authentication can be retired.",
+  "currentStep": "Platform Help P0 is implemented as a parallel governance foundation: canonical Markdown sources compile to Eidos help-document, Workbench Help uses a searchable secondary side activity, deterministic search/context APIs are available, and CI validates the corpus. Main product maturity now returns to P1 Identity / Session / Principal / Scope / PlatformRequestContext.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -309,7 +316,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "dac8018c9ff0219e88ced7ad52a967047161ab62",
+    "eidosSourceCommit": "67acaac01e0f4e271a9ba865ac76dc29e761b143",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
   },
@@ -425,7 +432,7 @@
   },
   "governanceInitiatives": {
     "platformHelp": {
-      "status": "PLANNED_P0",
+      "status": "IMPLEMENTED_P0",
       "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
       "intent": "Long-lived human + LLM product Help with package ownership, context, versioning, search, localization and CI governance.",
       "ownerSplit": {
@@ -435,7 +442,7 @@
       },
       "workbench": {
         "activityPlacement": "secondary",
-        "navigator": "side-route",
+        "navigator": "side-route:/help",
         "articleSurface": "main-workspace"
       },
       "firstSeed": [
@@ -450,7 +457,13 @@
         "settings-vs-secrets",
         "core-troubleshooting"
       ],
-      "next": "Define Eidos Help contracts and App Platform Help source/index P0 without blocking the P1 enterprise context mainline."
+      "next": "Package eidos.help-document Contribution, locale-aware variant selection, authorized enterprise Help and contextual Workbench suggestions.",
+      "eidosContract": "help-document@0.1.0",
+      "source": "help/content/**/*.md",
+      "compiler": "manager/help-system.ts",
+      "search": "DETERMINISTIC_LOCAL_CATALOG_PLUS_HOST_SEARCH_CONTEXT_API",
+      "ci": "tools/help-validate.mjs via Platform CI",
+      "seedDocuments": 14
     }
   }
 }
