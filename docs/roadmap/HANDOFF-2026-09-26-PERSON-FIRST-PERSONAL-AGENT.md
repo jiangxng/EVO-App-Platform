@@ -245,6 +245,6 @@ Current integration stack:
 
 Do not restart Eidos P0.4A or redesign Personal Agent setup.
 
-Current blocker is executable CI, not product design: recent GitHub Actions runs terminate in approximately 2–3 seconds with no job steps or logs. Do not mark P0.4 CI-verified or merge the stack until an executable runner validates the branch.
+CI validation is now complete after the repositories were made public and GitHub-hosted runners resumed. Platform CI, Enterprise Agent CI, OpenAI Provider CI and Host Secrets Provider CI all pass on the final P0.4 integration branch.
 
-After P0.4 validation/merge, resume the Person-first roadmap at the first real Enterprise Context source and read-only Agent use. Do not expand to multi-Agent or generic Memory writes.
+After P0.4 merge, resume the Person-first roadmap at the first real Enterprise Context source and read-only Agent use. Do not expand to multi-Agent or generic Memory writes.
