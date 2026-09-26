@@ -457,9 +457,17 @@ P0 active probe behavior:
 - failed probes become UNAVAILABLE with a checkedAt timestamp;
 - health never rewrites or silently fails over an explicit binding.
 
-Binding mutation is a privileged Host operation. P0 uses a bootstrap administration secret supplied through `APP_PLATFORM_PROVIDER_ADMIN_TOKEN`. If that Host authorization mechanism is not configured, binding mutation and explicit health-probe execution fail closed.
+Binding mutation is a privileged Host operation. P0 now separates **authentication** from **authorization**:
 
-The bootstrap secret is transitional. It is not Package Manifest data, Provider state, or audit data, and will be replaced by the generic `authorization.check` Provider boundary when executable enterprise authorization is available.
+- `APP_PLATFORM_PROVIDER_ADMIN_TOKEN` authenticates only the transitional `bootstrap-admin` Principal;
+- the Host resolves the active `authorization.check` Provider through the same deterministic Provider resolution policy;
+- the Authorization Provider receives `AuthorizationCheckV010` with Principal, Scope, action and resource;
+- missing, ambiguous, unavailable or denying Authorization Providers fail closed;
+- a correct bootstrap credential does not authorize an operation by itself.
+
+The first executable reference implementation is the installable `host-static-authorization-provider`. Its policy is Host-owned JSON supplied through `APP_PLATFORM_AUTHORIZATION_POLICY_JSON`. Rules are explicit ALLOW/DENY, DENY overrides ALLOW, and unmatched requests deny by default.
+
+The bootstrap secret remains transitional authentication only. It is not Package Manifest data, Provider state, policy state or audit data. A future Identity Provider/session boundary may replace bootstrap authentication without changing the authorization contract.
 
 Provider governance audit is Host-owned and records only non-secret operational facts:
 
@@ -476,4 +484,34 @@ scope / scopeId
 reason
 ```
 
-A JSONL audit sink may be configured with `APP_PLATFORM_PROVIDER_AUDIT_FILE`; when lifecycle state is file-backed, the default audit file is colocated with that state. Governance audit reads are themselves administrator-protected and accept the Host bootstrap secret only through the `Authorization: Bearer ...` request boundary; the secret is never returned or written to audit storage.
+A JSONL audit sink may be configured with `APP_PLATFORM_PROVIDER_AUDIT_FILE`; when lifecycle state is file-backed, the default audit file is colocated with that state. Governance audit reads are themselves governed by `authorization.check`. The bootstrap credential may be presented through the `Authorization: Bearer ...` boundary to authenticate the Principal, but the policy Provider still decides whether `provider.governance.audit.read` is allowed. The credential is never returned or written to audit storage.
+
+Reference governance actions are:
+
+```text
+provider.binding.update
+provider.health.probe
+provider.governance.audit.read
+```
+
+Example static policy:
+
+```json
+{
+  "contractVersion": "0.1.0",
+  "rules": [
+    {
+      "id": "provider-admin",
+      "effect": "ALLOW",
+      "actions": [
+        "provider.binding.update",
+        "provider.health.probe",
+        "provider.governance.audit.read"
+      ],
+      "subjectIds": ["bootstrap-admin"]
+    }
+  ]
+}
+```
+
+This example is reference policy data, not a universal role model. Enterprises may replace the Provider with their own policy engine while preserving the public authorization contract.
