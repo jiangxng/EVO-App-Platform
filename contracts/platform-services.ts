@@ -310,6 +310,8 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "enterprise.scope",
   "context.memory.read",
   "context.memory.write",
+  "context.memory.intake-source",
+  "context.memory.evidence-source",
   "llm.inference",
   "llm.streaming",
   "llm.embedding",
@@ -330,12 +332,18 @@ export type ContextMemoryKindV010 =
   | "EXPERIENCE"
   | "PRACTICE";
 
+export type ContextMemoryRetrievalStrategyV010 =
+  | "LEXICAL"
+  | "SEMANTIC"
+  | "HYBRID";
+
 export interface ContextMemoryReadRequestV010 {
   contractVersion: "0.1.0";
   context: ActiveContextRefV010;
   query?: string;
   memoryIds?: string[];
   kinds?: ContextMemoryKindV010[];
+  strategy?: ContextMemoryRetrievalStrategyV010;
   limit?: number;
   cursor?: string;
 }
@@ -350,6 +358,7 @@ export interface ContextMemoryProvenanceV010 {
   sourceContext: ActiveContextRefV010;
   sourceMemoryId?: string;
   evidenceRefs: string[];
+  evidenceSources?: ContextMemoryEvidenceSourceV010[];
 }
 
 export interface ContextMemoryAttributionV010 {
@@ -375,9 +384,18 @@ export interface ContextMemoryItemV010 {
   supersededBy?: string;
 }
 
+export interface ContextMemoryRetrievalScoreV010 {
+  contractVersion: "0.1.0";
+  memoryId: string;
+  score: number;
+  signals: string[];
+}
+
 export interface ContextMemoryReadResultV010 {
   contractVersion: "0.1.0";
   items: ContextMemoryItemV010[];
+  strategyUsed?: ContextMemoryRetrievalStrategyV010;
+  ranking?: ContextMemoryRetrievalScoreV010[];
   nextCursor?: string;
 }
 
@@ -398,4 +416,70 @@ export interface ContextMemoryWriterV010 {
   write(
     input: ContextMemoryWriteRequestV010
   ): Promise<ContextMemoryItemV010> | ContextMemoryItemV010;
+}
+
+
+export type ContextMemoryEvidenceTrustLevelV010 =
+  | "UNVERIFIED"
+  | "DECLARED"
+  | "HOST_VERIFIED";
+
+export type ContextMemoryEvidenceSourceTypeV010 =
+  | "HUMAN"
+  | "APPLICATION"
+  | "DOCUMENT"
+  | "EXTERNAL_SYSTEM"
+  | "EXPERIENCE_COMPILER";
+
+export interface ContextMemoryEvidenceSourceV010 {
+  contractVersion: "0.1.0";
+  sourceId: string;
+  sourceType: ContextMemoryEvidenceSourceTypeV010;
+  displayName?: string;
+  trustLevel: ContextMemoryEvidenceTrustLevelV010;
+  trustPolicyId?: string;
+  verifiedAt?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+}
+
+export interface ContextMemoryEvidenceSourceProviderV010 {
+  providerId: string;
+  describe(sourceId: string): ContextMemoryEvidenceSourceV010 | undefined;
+  list(): ContextMemoryEvidenceSourceV010[];
+}
+
+export interface ContextMemoryIntakeRecordV010 {
+  contractVersion: "0.1.0";
+  sourceId: string;
+  sourceRecordId: string;
+  context: ActiveContextRefV010;
+  kind: ContextMemoryKindV010;
+  summary: string;
+  evidenceRefs: string[];
+  observedAt?: string;
+  proposedConfidence?: number;
+  supersedesMemoryId?: string;
+  potentialContradictionMemoryIds?: string[];
+  attributes?: Record<string, string | number | boolean | null>;
+}
+
+export interface ContextMemoryIntakePullRequestV010 {
+  contractVersion: "0.1.0";
+  context: ActiveContextRefV010;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface ContextMemoryIntakePullResultV010 {
+  contractVersion: "0.1.0";
+  records: ContextMemoryIntakeRecordV010[];
+  nextCursor?: string;
+}
+
+export interface ContextMemoryIntakeSourceAdapterV010 {
+  providerId: string;
+  sourceId: string;
+  pull(
+    input: ContextMemoryIntakePullRequestV010
+  ): Promise<ContextMemoryIntakePullResultV010> | ContextMemoryIntakePullResultV010;
 }

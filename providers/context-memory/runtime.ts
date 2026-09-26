@@ -52,34 +52,62 @@ export function createHostContextMemoryReaderV010(
       if (input.contractVersion !== "0.1.0") {
         throw new Error("CONTEXT_MEMORY_READ_CONTRACT_UNSUPPORTED");
       }
+      const strategy = input.strategy ?? "LEXICAL";
+      if (strategy !== "LEXICAL") {
+        throw new Error(`CONTEXT_MEMORY_RETRIEVAL_STRATEGY_UNSUPPORTED: ${strategy}`);
+      }
       const limit = canonicalLimit(input.limit);
       const offset = cursorOffset(input.cursor);
       const query = input.query?.trim().toLocaleLowerCase();
       const memoryIds = input.memoryIds ? new Set(input.memoryIds) : undefined;
       const kinds = input.kinds ? new Set(input.kinds) : undefined;
 
-      const items = store.snapshot().items
+      const scored = store.snapshot().items
         .filter(item => sameContext(item.context, input.context))
         .filter(item => !memoryIds || memoryIds.has(item.memoryId))
         .filter(item => !kinds || kinds.has(item.kind))
-        .filter(item => {
-          if (!query) return true;
-          return item.summary.toLocaleLowerCase().includes(query)
-            || item.provenance.evidenceRefs.some(ref =>
-              ref.toLocaleLowerCase().includes(query)
-            );
+        .map(item => {
+          if (!query) {
+            return {
+              item,
+              score: 0,
+              signals: ["RECENCY_ORDER"]
+            };
+          }
+          const summary = item.summary.toLocaleLowerCase();
+          const exact = summary === query;
+          const summaryContains = summary.includes(query);
+          const evidenceContains = item.provenance.evidenceRefs.some(ref =>
+            ref.toLocaleLowerCase().includes(query)
+          );
+          const score = exact ? 1 : summaryContains ? 0.75 : evidenceContains ? 0.5 : 0;
+          const signals = [
+            ...(exact ? ["SUMMARY_EXACT"] : []),
+            ...(!exact && summaryContains ? ["SUMMARY_CONTAINS"] : []),
+            ...(evidenceContains ? ["EVIDENCE_REF_CONTAINS"] : [])
+          ];
+          return { item, score, signals };
         })
+        .filter(entry => !query || entry.score > 0)
         .sort((a, b) =>
-          b.attribution.recordedAt.localeCompare(a.attribution.recordedAt)
-          || b.memoryId.localeCompare(a.memoryId)
+          b.score - a.score
+          || b.item.attribution.recordedAt.localeCompare(a.item.attribution.recordedAt)
+          || b.item.memoryId.localeCompare(a.item.memoryId)
         );
 
-      const page = items.slice(offset, offset + limit);
+      const page = scored.slice(offset, offset + limit);
       const nextOffset = offset + page.length;
       return {
         contractVersion: "0.1.0",
-        items: page.map(item => structuredClone(item)),
-        ...(nextOffset < items.length
+        items: page.map(entry => structuredClone(entry.item)),
+        strategyUsed: "LEXICAL",
+        ranking: page.map(entry => ({
+          contractVersion: "0.1.0",
+          memoryId: entry.item.memoryId,
+          score: entry.score,
+          signals: [...entry.signals]
+        })),
+        ...(nextOffset < scored.length
           ? { nextCursor: `offset:${nextOffset}` }
           : {})
       };

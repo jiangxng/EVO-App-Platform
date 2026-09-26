@@ -461,3 +461,38 @@ only Accept materializes immutable Context Memory
 P1.0 does not yet implement semantic contradiction judgment, evidence-source trust verification, retention/privacy policy, bulk learning ingestion or EC adapters.
 
 Next mainline: governed Memory intake/source identity + evidence trust metadata + retrieval quality/semantic search behind the Memory Provider contracts + EC adapter boundary, while preserving Human review as the durable-write authority.
+
+
+## P1.1 — Governed Memory Intake and Evidence Trust
+
+P1.1 opens the P1.0 review pipeline to external/internal learning sources without giving those sources durable Memory authority.
+
+Implemented:
+
+- `context.memory.intake-source` and `context.memory.evidence-source` capabilities;
+- reference `host-memory-intake-provider`;
+- generic `ContextMemoryIntakeSourceAdapterV010` boundary;
+- evidence source identity with HUMAN / APPLICATION / DOCUMENT / EXTERNAL_SYSTEM / EXPERIENCE_COMPILER types;
+- source assurance `UNVERIFIED / DECLARED / HOST_VERIFIED`;
+- explicit rule that source trust describes identity/integrity assurance, not content truth;
+- Human-confirmed and authorization-gated `context.memory.intake.run`;
+- intake produces PENDING Proposal only, never durable Memory;
+- append-only durable intake receipts;
+- deterministic source-record → Proposal identity for retry idempotency;
+- pending candidate fingerprint deduplication;
+- new Evidence merges through append-only SOURCE_ADAPTER Proposal revisions;
+- terminal ACCEPTED/REJECTED Proposals are never silently enriched;
+- source metadata survives Proposal acceptance into durable Memory provenance;
+- Memory Review Queue surfaces Host-verified / Declared / Unverified source counts;
+- trust labels are implemented in en / zh-CN / ja / zh-TW;
+- Context Memory Reader contract now declares LEXICAL / SEMANTIC / HYBRID strategies;
+- reference Host Reader implements explicit ranked LEXICAL only and fails closed for unsupported strategies;
+- Experience Compiler may implement the generic Adapter contract, while App Platform remains independent of EC internals.
+
+Authority:
+
+- `docs/architecture/GOVERNED-CONTEXT-MEMORY-INTAKE-P1.1-v0.1.md`
+
+P1.1 does **not** claim semantic/vector retrieval is implemented. It establishes the strategy/ranking contract and lexical reference behavior.
+
+Next mainline: retention/privacy governance + sensitive-data boundaries + production semantic/hybrid Memory Reader + production EC adapter + governed source credentials/health/backpressure/scheduling.

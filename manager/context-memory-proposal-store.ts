@@ -8,6 +8,7 @@ import {
 import { dirname } from "node:path";
 import type {
   ActiveContextRefV010,
+  ContextMemoryEvidenceSourceV010,
   ContextMemoryKindV010
 } from "../contracts/platform-services.js";
 
@@ -38,12 +39,13 @@ export interface ContextMemoryProposalRevisionV010 {
   kind: ContextMemoryKindV010;
   summary: string;
   evidenceRefs: string[];
+  evidenceSources?: ContextMemoryEvidenceSourceV010[];
   evidenceQuality: ContextMemoryEvidenceQualityV010;
   proposedConfidence?: number;
   observedAt?: string;
   supersedesMemoryId?: string;
   reviewSignals: ContextMemoryReviewSignalV010[];
-  authoredBy: "PERSONAL_AGENT" | "HUMAN";
+  authoredBy: "PERSONAL_AGENT" | "SOURCE_ADAPTER" | "HUMAN";
   authorSubjectId: string;
   createdAt: string;
 }
@@ -111,6 +113,23 @@ function validateRevision(
   if (!["UNVERIFIED", "REFERENCED"].includes(revision.evidenceQuality)) {
     throw new Error(`CONTEXT_MEMORY_PROPOSAL_EVIDENCE_QUALITY_INVALID: ${proposalId}`);
   }
+  if (revision.evidenceSources !== undefined) {
+    if (!Array.isArray(revision.evidenceSources)) {
+      throw new Error(`CONTEXT_MEMORY_PROPOSAL_EVIDENCE_SOURCES_INVALID: ${proposalId}`);
+    }
+    for (const source of revision.evidenceSources) {
+      if (
+        source.contractVersion !== "0.1.0"
+        || !source.sourceId?.trim()
+        || !["HUMAN", "APPLICATION", "DOCUMENT", "EXTERNAL_SYSTEM", "EXPERIENCE_COMPILER"]
+          .includes(source.sourceType)
+        || !["UNVERIFIED", "DECLARED", "HOST_VERIFIED"].includes(source.trustLevel)
+        || (source.verifiedAt !== undefined && !validDate(source.verifiedAt))
+      ) {
+        throw new Error(`CONTEXT_MEMORY_PROPOSAL_EVIDENCE_SOURCE_INVALID: ${proposalId}`);
+      }
+    }
+  }
   if (
     revision.proposedConfidence !== undefined
     && (
@@ -124,7 +143,7 @@ function validateRevision(
   if (revision.observedAt && !validDate(revision.observedAt)) {
     throw new Error(`CONTEXT_MEMORY_PROPOSAL_OBSERVED_AT_INVALID: ${proposalId}`);
   }
-  if (!["PERSONAL_AGENT", "HUMAN"].includes(revision.authoredBy)) {
+  if (!["PERSONAL_AGENT", "SOURCE_ADAPTER", "HUMAN"].includes(revision.authoredBy)) {
     throw new Error(`CONTEXT_MEMORY_PROPOSAL_AUTHOR_INVALID: ${proposalId}`);
   }
   if (!revision.authorSubjectId?.trim() || !validDate(revision.createdAt)) {

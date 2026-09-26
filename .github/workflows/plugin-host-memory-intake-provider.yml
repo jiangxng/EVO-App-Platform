@@ -1,0 +1,49 @@
+name: Plugin CI - Host Memory Intake Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/memory-intake/**"
+      - "providers/context-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-intake-*.ts"
+      - "manager/context-memory-proposal-*.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-authority.ts"
+      - "manager/server.ts"
+      - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-memory-intake-provider.yml"
+  pull_request:
+    paths:
+      - "providers/memory-intake/**"
+      - "providers/context-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-intake-*.ts"
+      - "manager/context-memory-proposal-*.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-authority.ts"
+      - "manager/server.ts"
+      - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-memory-intake-provider.yml"
+
+concurrency:
+  group: plugin-host-memory-intake-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-memory-intake-provider

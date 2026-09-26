@@ -79,6 +79,23 @@ function validate(snapshot: ContextMemorySnapshotV010): ContextMemorySnapshotV01
     if (!Array.isArray(item.provenance.evidenceRefs)) {
       throw new Error(`CONTEXT_MEMORY_EVIDENCE_REFS_INVALID: ${item.memoryId}`);
     }
+    if (item.provenance.evidenceSources !== undefined) {
+      if (!Array.isArray(item.provenance.evidenceSources)) {
+        throw new Error(`CONTEXT_MEMORY_EVIDENCE_SOURCES_INVALID: ${item.memoryId}`);
+      }
+      for (const source of item.provenance.evidenceSources) {
+        if (
+          source.contractVersion !== "0.1.0"
+          || !source.sourceId?.trim()
+          || !["HUMAN", "APPLICATION", "DOCUMENT", "EXTERNAL_SYSTEM", "EXPERIENCE_COMPILER"]
+            .includes(source.sourceType)
+          || !["UNVERIFIED", "DECLARED", "HOST_VERIFIED"].includes(source.trustLevel)
+          || (source.verifiedAt !== undefined && !Number.isFinite(Date.parse(source.verifiedAt)))
+        ) {
+          throw new Error(`CONTEXT_MEMORY_EVIDENCE_SOURCE_INVALID: ${item.memoryId}`);
+        }
+      }
+    }
     if (
       item.provenance.origin === "PROMOTED"
       && !item.provenance.sourceMemoryId?.trim()

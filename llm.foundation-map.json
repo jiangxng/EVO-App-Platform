@@ -32,7 +32,7 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "CI_VERIFIED_P1_0_HUMAN_REVIEWED_PROPOSALS_AND_GOVERNED_MATERIALIZATION",
+    "contextMemory": "FUNCTIONALLY_CI_VERIFIED_P1_1_GOVERNED_INTAKE_EVIDENCE_RETRIEVAL_STRATEGY",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
     "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
@@ -84,7 +84,12 @@
     "contextMemoryProposalRevisions": "CI_VERIFIED_P1_0_APPEND_ONLY",
     "contextMemoryProposalEvidenceSignals": "CI_VERIFIED_P1_0_REVIEW_ASSISTANCE",
     "contextMemoryProposalMaterialization": "CI_VERIFIED_P1_0_IDEMPOTENT_HUMAN_ACCEPT",
-    "eidosReviewQueue": "CI_VERIFIED_EIDOS_FAFFF980_AND_APP_PLATFORM_CONSUMED"
+    "eidosReviewQueue": "CI_VERIFIED_EIDOS_FAFFF980_AND_APP_PLATFORM_CONSUMED",
+    "contextMemoryIntake": "FUNCTIONALLY_CI_VERIFIED_P1_1",
+    "contextMemoryEvidenceSourceTrust": "FUNCTIONALLY_CI_VERIFIED_P1_1",
+    "contextMemoryIntakeDeduplication": "FUNCTIONALLY_CI_VERIFIED_P1_1_PENDING_ONLY",
+    "contextMemoryRetrievalStrategy": "FUNCTIONALLY_CI_VERIFIED_P1_1_LEXICAL_REFERENCE",
+    "experienceCompilerMemoryIntakeBoundary": "CONTRACT_IMPLEMENTED_P1_1_NO_INTERNAL_DEPENDENCY"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -174,14 +179,14 @@
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   },
   "authorization": {
-    "status": "IMPLEMENTED_P1_0_MEMORY_PROPOSAL_REVIEW_AND_DUAL_ACCEPT_GATE",
+    "status": "IMPLEMENTED_P1_1_GOVERNED_MEMORY_INTAKE",
     "capability": "authorization.check",
     "principal": "REQUEST_BOUND_IDENTITY_SESSION_PRINCIPAL_WITH_P0_6_COMPATIBILITY_FALLBACK",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "MEMORY_SOURCE_TRUST_RETENTION_AND_INGESTION_GOVERNANCE",
+    "next": "MEMORY_RETENTION_PRIVACY_AND_SCHEDULED_INTAKE_GOVERNANCE",
     "enterpriseGovernance": "HOST_STRUCTURAL_RELATIONSHIP_RULES_AND_PROVIDER_POLICY",
     "memoryProposal": "STAGE_REQUIRES_CONTEXT_AUTHORITY_AND_ALLOW; ACCEPT_REQUIRES_CONFIRMATION_PROPOSAL_ALLOW_AND_MEMORY_RECORD_ALLOW"
   },
@@ -244,11 +249,12 @@
     "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
     "writeAuthorization": "IMPLEMENTED_P0_8_ENTERPRISE_GOVERNANCE_DUAL_GATE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "GOVERNED_MEMORY_INTAKE_AND_EC_ADAPTER",
+    "next": "GOVERNED_RETENTION_SEMANTIC_RETRIEVAL_AND_EC_ADAPTER",
     "productIdentity": "Personal Agent",
     "currentContextTool": "context.current.get",
     "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY",
-    "memoryProposal": "IMPLEMENTED_P1_0_HUMAN_REVIEWED"
+    "memoryProposal": "IMPLEMENTED_P1_0_HUMAN_REVIEWED",
+    "memoryIntake": "IMPLEMENTED_P1_1_PROPOSAL_ONLY"
   },
   "personFirstWorldModel": {
     "status": "FROZEN_MVP",
@@ -280,7 +286,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
+    "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -305,7 +311,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
+      "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER",
       "locales": [
         "en",
         "zh-CN",
@@ -445,7 +451,28 @@
         "ja",
         "zh-TW"
       ],
-      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER"
+      "next": "P1_1_DELIVERED_THEN_RETENTION_PRIVACY_AND_SEMANTIC_RETRIEVAL"
+    },
+    "contextP1_1": {
+      "status": "FUNCTIONALLY_CI_VERIFIED_FINAL_DOCS_GATE",
+      "authority": "docs/architecture/GOVERNED-CONTEXT-MEMORY-INTAKE-P1.1-v0.1.md",
+      "sourceAdapter": "ContextMemoryIntakeSourceAdapterV010",
+      "evidenceSourceProvider": "ContextMemoryEvidenceSourceProviderV010",
+      "sourceTrust": "IDENTITY_INTEGRITY_ASSURANCE_NOT_TRUTH",
+      "intake": "HUMAN_CONFIRMED_AUTHORIZED_PROPOSAL_STAGING_ONLY",
+      "receipts": "APPEND_ONLY",
+      "deterministicRetry": true,
+      "dedupe": "PENDING_ONLY_WITH_EVIDENCE_REVISION_MERGE",
+      "ec": "GENERIC_ADAPTER_BOUNDARY",
+      "retrievalContract": [
+        "LEXICAL",
+        "SEMANTIC",
+        "HYBRID"
+      ],
+      "referenceReader": "LEXICAL_ONLY_WITH_EXPLICIT_RANKING",
+      "semanticRetrievalImplementation": false,
+      "fourLocaleTrustUx": true,
+      "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

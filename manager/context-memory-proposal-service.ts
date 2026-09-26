@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   ActiveContextRefV010,
+  ContextMemoryEvidenceSourceV010,
   ContextMemoryItemV010,
   ContextMemoryKindV010,
   ContextMemoryReaderV010,
@@ -19,6 +20,7 @@ export interface ContextMemoryProposalDraftV010 {
   kind: ContextMemoryKindV010;
   summary: string;
   evidenceRefs?: string[];
+  evidenceSources?: ContextMemoryEvidenceSourceV010[];
   proposedConfidence?: number;
   observedAt?: string;
   supersedesMemoryId?: string;
@@ -30,6 +32,9 @@ export interface ContextMemoryProposalServiceV010 {
     principal: PlatformPrincipalV010;
     context: ActiveContextRefV010;
     draft: ContextMemoryProposalDraftV010;
+    authoredBy?: "PERSONAL_AGENT" | "SOURCE_ADAPTER";
+    proposalId?: string;
+    revisionId?: string;
   }): Promise<ContextMemoryProposalV010>;
   list(contextIds?: readonly string[]): ContextMemoryProposalV010[];
   get(proposalId: string): ContextMemoryProposalV010 | undefined;
@@ -38,6 +43,12 @@ export interface ContextMemoryProposalServiceV010 {
     principal: PlatformPrincipalV010;
     kind?: ContextMemoryKindV010;
     summary?: string;
+  }): Promise<ContextMemoryProposalV010>;
+  enrichEvidence(input: {
+    proposalId: string;
+    principal: PlatformPrincipalV010;
+    evidenceRefs?: string[];
+    evidenceSources?: ContextMemoryEvidenceSourceV010[];
   }): Promise<ContextMemoryProposalV010>;
   reject(input: {
     proposalId: string;
@@ -58,6 +69,19 @@ function normalizedSummary(value: string): string {
 
 function canonicalStrings(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map(value => value.trim()).filter(Boolean))].sort();
+}
+
+function canonicalEvidenceSources(
+  values: readonly ContextMemoryEvidenceSourceV010[] | undefined
+): ContextMemoryEvidenceSourceV010[] {
+  const byId = new Map<string, ContextMemoryEvidenceSourceV010>();
+  for (const source of values ?? []) {
+    if (!source.sourceId?.trim()) {
+      throw new Error("CONTEXT_MEMORY_PROPOSAL_EVIDENCE_SOURCE_INVALID");
+    }
+    byId.set(source.sourceId.trim(), structuredClone(source));
+  }
+  return [...byId.values()].sort((a, b) => a.sourceId.localeCompare(b.sourceId));
 }
 
 function validKind(value: ContextMemoryKindV010): ContextMemoryKindV010 {
@@ -221,11 +245,13 @@ export function createContextMemoryProposalServiceV010(input: {
     context: ActiveContextRefV010,
     principal: PlatformPrincipalV010,
     draft: ContextMemoryProposalDraftV010,
-    authoredBy: "PERSONAL_AGENT" | "HUMAN"
+    authoredBy: "PERSONAL_AGENT" | "SOURCE_ADAPTER" | "HUMAN",
+    forcedRevisionId?: string
   ): Promise<ContextMemoryProposalRevisionV010> {
     const kind = validKind(draft.kind);
     const summary = validSummary(draft.summary);
     const evidenceRefs = canonicalStrings(draft.evidenceRefs);
+    const evidenceSources = canonicalEvidenceSources(draft.evidenceSources);
     const proposedConfidence = validConfidence(draft.proposedConfidence);
     const observedAt = validObservedAt(draft.observedAt);
     const supersedesMemoryId = draft.supersedesMemoryId?.trim() || undefined;
@@ -239,11 +265,14 @@ export function createContextMemoryProposalServiceV010(input: {
 
     return {
       contractVersion: "0.1.0",
-      revisionId: `memory-proposal-revision:${id()}`,
+      revisionId: forcedRevisionId?.trim() || `memory-proposal-revision:${id()}`,
       kind,
       summary,
       evidenceRefs,
-      evidenceQuality: evidenceRefs.length > 0 ? "REFERENCED" : "UNVERIFIED",
+      ...(evidenceSources.length > 0 ? { evidenceSources } : {}),
+      evidenceQuality: evidenceRefs.length > 0 || evidenceSources.length > 0
+        ? "REFERENCED"
+        : "UNVERIFIED",
       ...(proposedConfidence !== undefined ? { proposedConfidence } : {}),
       ...(observedAt ? { observedAt } : {}),
       ...(supersedesMemoryId ? { supersedesMemoryId } : {}),
@@ -283,6 +312,7 @@ export function createContextMemoryProposalServiceV010(input: {
         kind: nextKind,
         summary: nextSummary,
         evidenceRefs: previous.evidenceRefs,
+        ...(previous.evidenceSources ? { evidenceSources: previous.evidenceSources } : {}),
         ...(previous.proposedConfidence !== undefined
           ? { proposedConfidence: previous.proposedConfidence }
           : {}),
@@ -308,23 +338,55 @@ export function createContextMemoryProposalServiceV010(input: {
   }
 
   return {
-    async create({ principal, context, draft }) {
+    async create({
+      principal,
+      context,
+      draft,
+      authoredBy = "PERSONAL_AGENT",
+      proposalId: requestedProposalId,
+      revisionId: requestedRevisionId
+    }) {
+      const snapshot = input.store.snapshot();
+      const proposalId = requestedProposalId?.trim() || `memory-proposal:${id()}`;
+      const existing = snapshot.proposals.find(item => item.proposalId === proposalId);
+      if (existing) {
+        const current = latest(existing);
+        const expectedKind = validKind(draft.kind);
+        const expectedSummary = validSummary(draft.summary);
+        const expectedEvidenceRefs = canonicalStrings(draft.evidenceRefs);
+        const expectedEvidenceSources = canonicalEvidenceSources(draft.evidenceSources);
+        const existingEvidenceSources = canonicalEvidenceSources(current.evidenceSources);
+        if (
+          !sameContextRefV010(existing.context, context)
+          || current.kind !== expectedKind
+          || current.summary !== expectedSummary
+          || JSON.stringify(current.evidenceRefs) !== JSON.stringify(expectedEvidenceRefs)
+          || JSON.stringify(existingEvidenceSources) !== JSON.stringify(expectedEvidenceSources)
+          || current.proposedConfidence !== validConfidence(draft.proposedConfidence)
+          || current.observedAt !== validObservedAt(draft.observedAt)
+          || current.supersedesMemoryId !== (draft.supersedesMemoryId?.trim() || undefined)
+        ) {
+          throw new Error(`CONTEXT_MEMORY_PROPOSAL_IDEMPOTENCY_CONFLICT: ${proposalId}`);
+        }
+        return structuredClone(existing);
+      }
+
       const revision = await revisionFor(
         context,
         principal,
         draft,
-        "PERSONAL_AGENT"
+        authoredBy,
+        requestedRevisionId
       );
       const proposal: ContextMemoryProposalV010 = {
         contractVersion: "0.1.0",
-        proposalId: `memory-proposal:${id()}`,
+        proposalId,
         context: structuredClone(context),
         state: "PENDING",
         createdAt: revision.createdAt,
         createdBySubjectId: principal.subjectId,
         revisions: [revision]
       };
-      const snapshot = input.store.snapshot();
       input.store.save({
         contractVersion: "0.1.0",
         proposals: [...snapshot.proposals, proposal]
@@ -349,6 +411,70 @@ export function createContextMemoryProposalServiceV010(input: {
 
     async edit({ proposalId, principal, kind, summary }) {
       return editProposal({ proposalId, principal, kind, summary });
+    },
+
+    async enrichEvidence({
+      proposalId,
+      principal,
+      evidenceRefs,
+      evidenceSources
+    }) {
+      const snapshot = input.store.snapshot();
+      const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
+      if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+      if (proposal.state !== "PENDING") {
+        throw new Error(`CONTEXT_MEMORY_PROPOSAL_NOT_PENDING: ${proposal.state}`);
+      }
+      const previous = latest(proposal);
+      const mergedRefs = canonicalStrings([
+        ...previous.evidenceRefs,
+        ...(evidenceRefs ?? [])
+      ]);
+      const mergedSources = canonicalEvidenceSources([
+        ...(previous.evidenceSources ?? []),
+        ...(evidenceSources ?? [])
+      ]);
+      if (
+        JSON.stringify(mergedRefs) === JSON.stringify(previous.evidenceRefs)
+        && JSON.stringify(mergedSources)
+          === JSON.stringify(canonicalEvidenceSources(previous.evidenceSources))
+      ) {
+        return structuredClone(proposal);
+      }
+
+      const contradictionIds = previous.reviewSignals
+        .filter(signal => signal.kind === "POTENTIAL_CONTRADICTION")
+        .map(signal => signal.memoryId);
+      const revision = await revisionFor(
+        proposal.context,
+        principal,
+        {
+          kind: previous.kind,
+          summary: previous.summary,
+          evidenceRefs: mergedRefs,
+          evidenceSources: mergedSources,
+          ...(previous.proposedConfidence !== undefined
+            ? { proposedConfidence: previous.proposedConfidence }
+            : {}),
+          ...(previous.observedAt ? { observedAt: previous.observedAt } : {}),
+          ...(previous.supersedesMemoryId
+            ? { supersedesMemoryId: previous.supersedesMemoryId }
+            : {}),
+          potentialContradictionMemoryIds: contradictionIds
+        },
+        "SOURCE_ADAPTER"
+      );
+      const updated: ContextMemoryProposalV010 = {
+        ...proposal,
+        revisions: [...proposal.revisions, revision]
+      };
+      input.store.save({
+        contractVersion: "0.1.0",
+        proposals: snapshot.proposals.map(item =>
+          item.proposalId === proposalId ? updated : item
+        )
+      });
+      return structuredClone(updated);
     },
 
     reject({ proposalId, principal, reason }) {
@@ -431,7 +557,10 @@ export function createContextMemoryProposalServiceV010(input: {
               contractVersion: "0.1.0",
               origin: "DIRECT",
               sourceContext: structuredClone(proposal.context),
-              evidenceRefs: [...revision.evidenceRefs]
+              evidenceRefs: [...revision.evidenceRefs],
+              ...(revision.evidenceSources
+                ? { evidenceSources: structuredClone(revision.evidenceSources) }
+                : {})
             },
             attribution: {
               contractVersion: "0.1.0",
