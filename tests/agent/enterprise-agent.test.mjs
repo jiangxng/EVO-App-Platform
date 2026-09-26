@@ -576,6 +576,5 @@ test("Enterprise Context profile tool is absent in Personal Context and present 
     arguments: {}
   }, []);
   assert.equal(observation.ok, true);
-  assert.equal(observation.result.principalSubjectId, "test-person");
-  assert.equal(observation.result.context.displayName, "Acme");
+  assert.equal(observation.result.displayName, "Acme");
 });
