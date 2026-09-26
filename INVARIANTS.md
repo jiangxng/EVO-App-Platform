@@ -120,3 +120,7 @@
 - **APP-80** Provider resolution MUST be deterministic and scope-aware. Specific scope bindings override broader bindings in USER → WORKSPACE → COMPANY → ENTERPRISE → INSTALLATION → SYSTEM order.
 - **APP-81** Multiple executable Providers for the same capability without an applicable explicit binding MUST fail closed as ambiguous. ProviderId lexical order MUST NOT silently choose business/platform behavior.
 - **APP-82** An explicit Provider binding whose runtime is unavailable MUST fail closed; resolution MUST NOT silently fall back to a different Provider.
+
+- **APP-83** Provider health informs readiness and operator visibility but MUST NOT silently rewrite Provider policy. An unhealthy explicitly bound Provider fails closed rather than causing automatic failover.
+- **APP-84** Provider management state is Host-owned policy. Binding edits MUST NOT mutate Package manifests or provider package source.
+- **APP-85** Provider management UI MUST expose capability, candidate Provider, scope and effective health/resolution posture using Eidos capabilities rather than a parallel host-specific UI framework.
