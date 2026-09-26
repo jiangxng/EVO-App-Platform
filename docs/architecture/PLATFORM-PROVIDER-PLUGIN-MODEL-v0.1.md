@@ -459,7 +459,7 @@ P0 active probe behavior:
 
 Binding mutation is a privileged Host operation. P0 now separates **authentication** from **authorization**:
 
-- `APP_PLATFORM_PROVIDER_ADMIN_TOKEN` authenticates only the transitional `bootstrap-admin` Principal;
+- `APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN` authenticates only the transitional `bootstrap-admin` Principal; the previous `APP_PLATFORM_PROVIDER_ADMIN_TOKEN` name remains a temporary compatibility alias;
 - the Host resolves the active `authorization.check` Provider through the same deterministic Provider resolution policy;
 - the Authorization Provider receives `AuthorizationCheckV010` with Principal, Scope, action and resource;
 - missing, ambiguous, unavailable or denying Authorization Providers fail closed;
