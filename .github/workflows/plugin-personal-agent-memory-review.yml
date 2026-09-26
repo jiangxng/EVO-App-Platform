@@ -1,0 +1,61 @@
+name: Plugin CI - Personal Agent Memory Review
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/**"
+      - "manager/context-memory-authority.ts"
+      - "manager/context-memory-proposal-store.ts"
+      - "manager/context-memory-proposal-service.ts"
+      - "manager/context-memory-proposal-actions.ts"
+      - "manager/context-memory-actions.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "providers/context-memory/**"
+      - "vendor/eidos/src/review-queue/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/app-host/page-renderer.ts"
+      - "vendor/eidos/src/localization/localize.ts"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-personal-agent-memory-review.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/**"
+      - "manager/context-memory-authority.ts"
+      - "manager/context-memory-proposal-store.ts"
+      - "manager/context-memory-proposal-service.ts"
+      - "manager/context-memory-proposal-actions.ts"
+      - "manager/context-memory-actions.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "providers/context-memory/**"
+      - "vendor/eidos/src/review-queue/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/app-host/page-renderer.ts"
+      - "vendor/eidos/src/localization/localize.ts"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-personal-agent-memory-review.yml"
+
+concurrency:
+  group: plugin-personal-agent-memory-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:personal-agent-memory-review
