@@ -90,15 +90,26 @@ export function parseHostEnterpriseContextGrantsV010(
 }
 
 export function createHostEnterpriseContextGrantProviderV010(
-  grants: readonly EnterpriseContextGrantV010[]
+  grants: readonly EnterpriseContextGrantV010[],
+  dynamicSource: () => readonly EnterpriseContextGrantV010[] = () => []
 ): EnterpriseContextGrantProviderV010 {
   const canonical = grants.map(grant => structuredClone(grant));
   return {
     providerId: HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
     listForPrincipal(principal: PlatformPrincipalV010) {
-      return canonical
+      const byId = new Map<string, EnterpriseContextGrantV010>();
+      for (const grant of [...canonical, ...dynamicSource()]) {
+        if (byId.has(grant.grantId)) {
+          throw new Error(`ENTERPRISE_CONTEXT_GRANT_DUPLICATE: ${grant.grantId}`);
+        }
+        byId.set(grant.grantId, structuredClone(grant));
+      }
+      return [...byId.values()]
         .filter(grant => grant.subjectId === principal.subjectId)
-        .map(grant => structuredClone(grant));
+        .sort((a, b) =>
+          a.contextId.localeCompare(b.contextId)
+          || a.grantId.localeCompare(b.grantId)
+        );
     }
   };
 }
