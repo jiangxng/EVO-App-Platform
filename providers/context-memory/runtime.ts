@@ -55,10 +55,12 @@ export function createHostContextMemoryReaderV010(
       const limit = canonicalLimit(input.limit);
       const offset = cursorOffset(input.cursor);
       const query = input.query?.trim().toLocaleLowerCase();
+      const memoryIds = input.memoryIds ? new Set(input.memoryIds) : undefined;
       const kinds = input.kinds ? new Set(input.kinds) : undefined;
 
       const items = store.snapshot().items
         .filter(item => sameContext(item.context, input.context))
+        .filter(item => !memoryIds || memoryIds.has(item.memoryId))
         .filter(item => !kinds || kinds.has(item.kind))
         .filter(item => {
           if (!query) return true;
