@@ -41,13 +41,16 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import {
+  ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
   ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
   createPersonalAgentSetupPageV010,
-  evaluatePersonalAgentReadinessV010
+  evaluatePersonalAgentReadinessV010,
+  PERSONAL_AGENT_ROUTE,
+  PERSONAL_AGENT_SETUP_ROUTE
 } from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
@@ -912,7 +915,57 @@ const server = createServer(async (request, response) => {
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
-            evaluateRuntime: evaluateRuntimeForHost
+            evaluateRuntime: evaluateRuntimeForHost,
+            evaluateProductState(pkg, lifecycle) {
+              if (
+                pkg.packageId !== ENTERPRISE_AGENT_PACKAGE_ID
+                || !lifecycle.isInstalled
+                || !lifecycle.isEnabled
+              ) {
+                return undefined;
+              }
+              const readiness = evaluatePersonalAgentReadinessV010(
+                manager,
+                providerRuntimeRegistry,
+                providerBindings
+              );
+              const readinessId = readiness.state === "unavailable"
+                ? "error"
+                : readiness.state;
+              return {
+                readiness: {
+                  id: readinessId,
+                  label: readiness.state === "ready"
+                    ? "Ready"
+                    : readiness.state === "setup-required"
+                      ? "Needs setup"
+                      : readiness.state === "degraded"
+                        ? "Degraded"
+                        : "Unavailable",
+                  tone: readiness.state === "ready"
+                    ? "positive"
+                    : readiness.state === "setup-required"
+                      ? "warning"
+                      : readiness.state === "degraded"
+                        ? "warning"
+                        : "danger",
+                  message: readiness.message
+                },
+                primaryAction: readiness.state === "ready" || readiness.state === "degraded"
+                  ? {
+                      id: "open",
+                      label: "Open",
+                      type: "navigate",
+                      route: PERSONAL_AGENT_ROUTE
+                    }
+                  : {
+                      id: "setup",
+                      label: "Set up",
+                      type: "navigate",
+                      route: PERSONAL_AGENT_SETUP_ROUTE
+                    }
+              };
+            }
           }
         ));
       }
