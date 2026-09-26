@@ -76,7 +76,7 @@ export interface ResolvedContextSetV010 {
 
 export interface EnterpriseContextProviderV010 {
   providerId: string;
-  list(): Promise<EnterpriseContextV010[]> | EnterpriseContextV010[];
+  list(): EnterpriseContextV010[];
 }
 
 export interface PlatformRequestContextV010 {
