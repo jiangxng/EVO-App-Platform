@@ -447,3 +447,77 @@ test("Memory Review page uses Eidos Review Queue and has all four locale bundles
   assert.equal(tw.title, "記憶審核");
   assert.equal(tw.items[0].secondaryActions[1].label, "拒絕");
 });
+
+
+test("Memory Review localizes evidence source trust in all four product locales", async () => {
+  const h = harness({ ids: ["r-source", "p-source"] });
+  const proposal = await h.service.create({
+    principal: alice,
+    context: personalRef,
+    authoredBy: "SOURCE_ADAPTER",
+    draft: {
+      kind: "PRACTICE",
+      summary: "Source-backed proposal.",
+      evidenceRefs: ["source-record:ec:manufacturing:1"],
+      evidenceSources: [{
+        contractVersion: "0.1.0",
+        sourceId: "ec:manufacturing",
+        sourceType: "EXPERIENCE_COMPILER",
+        displayName: "Manufacturing EC",
+        trustLevel: "HOST_VERIFIED",
+        trustPolicyId: "host.ec.integration",
+        verifiedAt: "2026-09-27T00:00:00.000Z"
+      }]
+    }
+  });
+
+  const definition = createPersonalAgentMemoryReviewPageV010(
+    [proposal],
+    new Map([["personal:alice", "Alice"]])
+  );
+  const trustMetric = definition.items[0].metrics.find(
+    item => item.id === "source-trust-host-verified"
+  );
+  assert.equal(trustMetric.value, "1");
+  assert.equal(definition.items[0].evidence.some(
+    item => item.title === "Manufacturing EC" && item.source === "EXPERIENCE_COMPILER"
+  ), true);
+
+  const experience = enterpriseAgentPackage.features[0].contributions.find(
+    item => item.kind === "eidos.experience"
+  ).manifest;
+  const route = experience.routes.find(
+    item => item.pageId === "enterprise-agent.memory-review"
+  );
+  const page = {
+    experienceId: "enterprise-agent",
+    packageId: "enterprise-agent",
+    featureId: "enterprise-agent.default",
+    route,
+    page: {
+      id: "enterprise-agent.memory-review",
+      source: ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
+    },
+    definition
+  };
+  const bundles = enterpriseAgentPackage.features[0].contributions
+    .filter(item => item.kind === "eidos.localization-bundle")
+    .map(item => item.bundle);
+
+  const expected = new Map([
+    ["en", "Host-verified sources"],
+    ["zh-CN", "Host 已验证来源"],
+    ["ja", "Host 検証済みソース"],
+    ["zh-TW", "Host 已驗證來源"]
+  ]);
+  for (const [locale, label] of expected) {
+    const localized = localizeAppHostPageDefinition(
+      page,
+      createLocalizationRuntime(bundles, { locale })
+    );
+    const metric = localized.items[0].metrics.find(
+      item => item.id === "source-trust-host-verified"
+    );
+    assert.equal(metric.label, label);
+  }
+});
