@@ -63,6 +63,7 @@ function hostCatalog(manager, additional = [], context = personalContext) {
         message: "test health for " + providerId
       };
     },
+    authorizeWrite() { return { allowed: true }; },
     searchHelp(query, context) {
       return [{
         id: "test.help",
@@ -522,7 +523,8 @@ test("Personal Agent can list only Host-offered Context references", async () =>
     },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
-    searchHelp() { return []; }
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
   });
 
   const observation = await catalog.invoke({
