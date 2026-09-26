@@ -33,7 +33,7 @@
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
     "contextMemory": "READ_CONTRACT_P0_3",
-    "enterpriseContextProvider": "NOW_IMPLEMENTED_P0_5"
+    "enterpriseContextProvider": "CI_VERIFIED_P0_5"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -60,7 +60,7 @@
     "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
     "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT",
     "personalAgentProductExperience": "CI_VERIFIED_P0_4",
-    "enterpriseContextProvider": "IMPLEMENTED_P0_5_PENDING_FINAL_DOCS_CI",
+    "enterpriseContextProvider": "CI_VERIFIED_P0_5",
     "personalAgentEnterpriseContext": "PROVIDER_BACKED_SELECTABLE_FAIL_CLOSED_READ_ONLY"
   },
   "runtimeIsolation": {
@@ -253,7 +253,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "P0_5_FINAL_CI_THEN_MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+    "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -278,7 +278,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "P0_5_FINAL_CI_THEN_PRINCIPAL_SESSION_GRANT",
+      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
       "locales": [
         "en",
         "zh-CN",
@@ -292,7 +292,7 @@
       "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
     },
     "contextP0_5": {
-      "status": "IMPLEMENTED_PENDING_FINAL_DOCS_CI",
+      "status": "CI_VERIFIED_P0_5",
       "authority": "docs/architecture/ENTERPRISE-CONTEXT-PROVIDER-P0.5-v0.1.md",
       "providerCapability": "enterprise.directory",
       "providerContract": "EnterpriseContextProviderV010",
