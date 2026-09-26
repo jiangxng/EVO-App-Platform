@@ -341,6 +341,77 @@ export function localizeAppHostPageDefinition(
     return definition;
   }
 
+  if (definition.kind === "review-queue" && definition.contractVersion === "0.1.0") {
+    const reviewId = typeof definition.id === "string" ? definition.id : pageId;
+    if (typeof definition.title === "string") {
+      definition.title = localization.resolve(namespace, `review.${reviewId}.title`, definition.title);
+    }
+    if (typeof definition.description === "string") {
+      definition.description = localization.resolve(namespace, `review.${reviewId}.description`, definition.description);
+    }
+    if (typeof definition.emptyMessage === "string") {
+      definition.emptyMessage = localization.resolve(namespace, `review.${reviewId}.empty`, definition.emptyMessage);
+    }
+    if (Array.isArray(definition.items)) {
+      for (const item of definition.items) {
+        if (!isObject(item) || typeof item.id !== "string") continue;
+        if (typeof item.statusLabel === "string") {
+          const state = typeof item.state === "string" ? item.state : "default";
+          item.statusLabel = localization.resolve(
+            namespace,
+            `review.${reviewId}.status.${state}.label`,
+            item.statusLabel
+          );
+        }
+        if (Array.isArray(item.fields)) {
+          for (const field of item.fields) {
+            if (!isObject(field) || typeof field.key !== "string") continue;
+            if (typeof field.label === "string") {
+              field.label = localization.resolve(
+                namespace,
+                `review.${reviewId}.field.${field.key}.label`,
+                field.label
+              );
+            }
+            if (Array.isArray(field.options)) {
+              for (const option of field.options) {
+                if (!isObject(option) || typeof option.label !== "string") continue;
+                option.label = localization.resolve(
+                  namespace,
+                  `review.${reviewId}.field.${field.key}.option.${String(option.value)}.label`,
+                  option.label
+                );
+              }
+            }
+          }
+        }
+        if (Array.isArray(item.metrics)) {
+          for (const metric of item.metrics) {
+            if (!isObject(metric) || typeof metric.id !== "string" || typeof metric.label !== "string") continue;
+            metric.label = localization.resolve(
+              namespace,
+              `review.${reviewId}.metric.${metric.id}.label`,
+              metric.label
+            );
+          }
+        }
+        const actions = [
+          ...(isObject(item.primaryAction) ? [item.primaryAction] : []),
+          ...(Array.isArray(item.secondaryActions) ? item.secondaryActions.filter(isObject) : [])
+        ];
+        for (const action of actions) {
+          if (typeof action.id !== "string" || typeof action.label !== "string") continue;
+          action.label = localization.resolve(
+            namespace,
+            `review.${reviewId}.action.${action.id}.label`,
+            action.label
+          );
+        }
+      }
+    }
+    return definition;
+  }
+
   if (definition.kind === "setup-flow" && definition.contractVersion === "0.1.0") {
     const setupId = typeof definition.id === "string" ? definition.id : pageId;
     if (typeof definition.title === "string") {
