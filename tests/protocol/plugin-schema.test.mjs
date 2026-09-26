@@ -36,6 +36,8 @@ test("portable schema includes current runtime, integrity and Eidos contribution
     ["DECLARATIVE", "WORKER", "PROCESS", "REMOTE"]
   );
   assert.equal(packageSchema.properties.integrity.properties.algorithm.const, "Ed25519");
+  assert.equal(packageSchema.properties.secrets.items.properties.scope.enum.includes("INSTALLATION"), true);
+  assert.equal(packageSchema.properties.secrets.items.additionalProperties, false);
   assert.equal(
     featureSchema.$defs.workbenchContribution.properties.kind.const,
     "eidos.workbench-activity"
