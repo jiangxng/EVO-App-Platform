@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Platform Provider governance — active health probes + binding administration authorization/audit",
+  "currentMilestone": "Platform authorization Provider P0 — executable authorization.check for privileged Provider governance",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -110,7 +110,12 @@
     "provider-active-health-probes",
     "provider-admin-authorization-fail-closed",
     "provider-governance-audit",
-    "eidos-masked-secret-settings-field"
+    "eidos-masked-secret-settings-field",
+    "authorization-provider-contract-executable",
+    "host-static-authorization-provider",
+    "provider-governance-authorization-check",
+    "authentication-authorization-separation",
+    "authorization-provider-isolated-ci"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -133,7 +138,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Provider governance P0 implemented: explicit active health probes, server-side binding administration authorization, non-secret audit history. Next maturity: replace bootstrap administrator secret with executable authorization.check Provider policy and add scheduled/provider-owned probe cadence where justified.",
+  "currentStep": "Authorization Provider P0 implemented: bootstrap credential authenticates a Principal only; provider.binding.update, provider.health.probe and provider.governance.audit.read resolve through authorization.check and fail closed on missing/ambiguous/unavailable/deny. Next maturity: executable identity/session Provider and PlatformRequestContext propagation so bootstrap authentication can be retired.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -304,7 +309,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "c4bc421e4e2277988dfd73eb52e245c0524e8278",
+    "eidosSourceCommit": "dac8018c9ff0219e88ced7ad52a967047161ab62",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization"
   },
@@ -390,8 +395,24 @@
       "healthBasedSilentFailover": "PROHIBITED",
       "managementExperience": "EIDOS_SETTINGS_CATALOG_IMPLEMENTED",
       "activeHealthProbe": "IMPLEMENTED_EXPLICIT_ADMIN_TRIGGER",
-      "bindingAuthorization": "BOOTSTRAP_ADMIN_FAIL_CLOSED_P0",
-      "governanceAudit": "IMPLEMENTED_JSONL_OR_MEMORY"
+      "bindingAuthorization": "AUTHORIZATION_CHECK_PROVIDER_FAIL_CLOSED_P0",
+      "governanceAudit": "IMPLEMENTED_JSONL_OR_MEMORY",
+      "authenticationBoundary": "BOOTSTRAP_PRINCIPAL_TRANSITIONAL"
+    },
+    "authorization": {
+      "status": "IMPLEMENTED_P0_FOR_PROVIDER_GOVERNANCE",
+      "capability": "authorization.check",
+      "contract": "AuthorizationCheckV010/AuthorizationDecisionV010",
+      "referenceProvider": "host-static-authorization-provider",
+      "defaultDecision": "DENY",
+      "bootstrapCredentialRole": "AUTHENTICATION_ONLY",
+      "protectedActions": [
+        "provider.binding.update",
+        "provider.health.probe",
+        "provider.governance.audit.read"
+      ],
+      "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
+      "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
     }
   },
   "dependencyReproducibility": {

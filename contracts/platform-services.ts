@@ -54,6 +54,13 @@ export interface AuthorizationDecisionV010 {
   }>;
 }
 
+export interface AuthorizationProviderV010 {
+  providerId: string;
+  check(
+    input: AuthorizationCheckV010
+  ): Promise<AuthorizationDecisionV010> | AuthorizationDecisionV010;
+}
+
 export interface IdentitySessionV010 {
   contractVersion: "0.1.0";
   sessionId: string;

@@ -21,7 +21,7 @@
     "pluginStorageEvents": "SOON",
     "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
-    "secretsIdentityAuthorization": "SOON",
+    "secretsIdentityAuthorization": "NOW",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
     "designLanguage": "DELEGATED_EIDOS",
@@ -47,7 +47,8 @@
     "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED",
     "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED",
     "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
-    "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED"
+    "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED",
+    "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -133,7 +134,17 @@
     "healthBasedSilentFailover": "PROHIBITED",
     "managementExperience": "IMPLEMENTED",
     "activeHealthProbe": "EXPLICIT_HOST_ADMIN_OPERATION",
-    "bindingAuthorization": "FAIL_CLOSED_BOOTSTRAP_ADMIN_P0",
+    "bindingAuthorization": "AUTHORIZATION_CHECK_PROVIDER_P0",
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
+  },
+  "authorization": {
+    "status": "IMPLEMENTED_P0_PROVIDER_GOVERNANCE",
+    "capability": "authorization.check",
+    "principal": "BOOTSTRAP_AUTHENTICATED_TRANSITIONAL",
+    "decision": "PROVIDER_OWNED",
+    "missingOrAmbiguous": "FAIL_CLOSED",
+    "referenceProvider": "host-static-authorization-provider",
+    "policy": "HOST_OWNED_DENY_BY_DEFAULT",
+    "next": "IDENTITY_SESSION_PROVIDER_AND_REQUEST_CONTEXT"
   }
 }
