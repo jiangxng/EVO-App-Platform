@@ -26,6 +26,9 @@
   "llmEntry": "LLM.md",
   "architectureAuthorities": [
     "docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md",
-    "docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md"
+    "docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md",
+    "docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md",
+    "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
+    "docs/architecture/PLATFORM-SECRETS-v0.1.md"
   ]
 }
