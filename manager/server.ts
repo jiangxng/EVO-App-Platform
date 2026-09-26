@@ -60,6 +60,7 @@ import {
 } from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
+  ActiveContextRefV010,
   AuthorizationProviderV010,
   ContextMemoryReaderV010,
   ContextMemoryWriterV010,
@@ -69,6 +70,7 @@ import type {
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
+  PlatformPrincipalV010,
   RequestIdentitySessionProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
@@ -992,8 +994,8 @@ const contextMemoryProposalService = createContextMemoryProposalServiceV010({
 });
 
 function resolveContextForPrincipal(
-  principal: IdentitySessionV010["principal"],
-  ref: Parameters<ReturnType<typeof createPrincipalContextRegistryV010>["resolve"]>[0]
+  principal: PlatformPrincipalV010,
+  ref: ActiveContextRefV010
 ) {
   return createPrincipalContextRegistryV010(
     principal,
