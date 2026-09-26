@@ -58,6 +58,8 @@ import {
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
+  ContextMemoryReaderV010,
+  ContextMemoryWriterV010,
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
   EnterpriseContextRelationshipProviderV010,
@@ -163,6 +165,24 @@ import {
   createHostEnterpriseRelationshipProviderV010
 } from "../providers/enterprise-relationship/runtime.js";
 import {
+  CONTEXT_MEMORY_READ_CAPABILITY,
+  CONTEXT_MEMORY_WRITE_CAPABILITY,
+  HOST_CONTEXT_MEMORY_PACKAGE_ID,
+  HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
+  HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
+  hostContextMemoryProviderPackage
+} from "../providers/context-memory/package.js";
+import {
+  createHostContextMemoryHealthProbeV010,
+  createHostContextMemoryReaderV010,
+  createHostContextMemoryWriterV010
+} from "../providers/context-memory/runtime.js";
+import {
+  createFileContextMemoryStoreV010,
+  createMemoryContextMemoryStoreV010
+} from "./context-memory-store.js";
+import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
+import {
   createFileEnterpriseContextGovernanceStoreV010,
   createMemoryEnterpriseContextGovernanceStoreV010
 } from "./enterprise-context-governance-store.js";
@@ -253,6 +273,7 @@ const catalog = createPackageCatalog([
   hostBearerSessionProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
   hostEnterpriseRelationshipProviderPackage,
+  hostContextMemoryProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -262,6 +283,11 @@ const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERN
 const enterpriseGovernanceStore = enterpriseGovernanceStateFile
   ? createFileEnterpriseContextGovernanceStoreV010(enterpriseGovernanceStateFile)
   : createMemoryEnterpriseContextGovernanceStoreV010();
+const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory.json") : undefined);
+const contextMemoryStore = contextMemoryStateFile
+  ? createFileContextMemoryStoreV010(contextMemoryStateFile)
+  : createMemoryContextMemoryStoreV010();
 const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
 const settingsStore = settingsStateFile
@@ -426,6 +452,32 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   message: "Host Enterprise Context Provider is active.",
   checkedAt: new Date().toISOString()
 });
+providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
+  HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
+  createHostContextMemoryReaderV010(contextMemoryStore)
+);
+providerRuntimeRegistry.replace<ContextMemoryWriterV010>(
+  HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
+  createHostContextMemoryWriterV010(contextMemoryStore)
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
+  createHostContextMemoryHealthProbeV010(contextMemoryStore)
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
+  createHostContextMemoryHealthProbeV010(contextMemoryStore)
+);
+providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_READER_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Context Memory Reader is active.",
+  checkedAt: new Date().toISOString()
+});
+providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Context Memory Writer is active.",
+  checkedAt: new Date().toISOString()
+});
 providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
   createHostEncryptedSecretsProviderV010(secretStore)
@@ -581,6 +633,14 @@ if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATION
     console.error("Failed to activate Host Enterprise Relationship Provider.", error);
   }
 }
+if (!installedAtStartup.some(item => item.packageId === HOST_CONTEXT_MEMORY_PACKAGE_ID)) {
+  try {
+    manager.install(HOST_CONTEXT_MEMORY_PACKAGE_ID);
+    console.log("Activated Host Context Memory Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Context Memory Provider.", error);
+  }
+}
 if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
@@ -676,6 +736,26 @@ function resolveEnterpriseContextRelationshipProvider(): EnterpriseContextRelati
     manager.listEffectiveServiceProviders(ENTERPRISE_RELATIONSHIP_CAPABILITY),
     providerBindings,
     ENTERPRISE_RELATIONSHIP_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryReader(): ContextMemoryReaderV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryReaderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_READ_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_READ_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryWriter(): ContextMemoryWriterV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryWriterV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_WRITE_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_WRITE_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -900,6 +980,18 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    ...createContextMemoryActionHandlersV010({
+      resolveAuthorizationProvider,
+      resolveReader: resolveContextMemoryReader,
+      resolveWriter: resolveContextMemoryWriter,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      }
+    }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
       resolveIdentitySession,
@@ -923,6 +1015,15 @@ const actionRouter = createAppActionRouter(
           },
           getProviderHealth(providerId) {
             return providerRuntimeRegistry.getHealth(providerId);
+          },
+          readContextMemory(input) {
+            const provider = resolveContextMemoryReader();
+            if (!provider) throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+            return provider.read({
+              contractVersion: "0.1.0",
+              context: structuredClone(context.activeContext),
+              ...input
+            });
           },
           searchHelp(query, helpContext) {
             return searchHelpV010(helpCorpus, query, locale, helpContext);
