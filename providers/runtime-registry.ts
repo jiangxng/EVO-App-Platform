@@ -15,6 +15,9 @@ export interface ProviderRuntimeHealthV010 {
   checkedAt?: string;
 }
 
+export type ProviderHealthProbeV010 =
+  () => Promise<ProviderRuntimeHealthV010> | ProviderRuntimeHealthV010;
+
 export interface ProviderRuntimeRegistry {
   register<T>(providerId: string, runtime: T): void;
   replace<T>(providerId: string, runtime: T): void;
@@ -22,6 +25,8 @@ export interface ProviderRuntimeRegistry {
   get<T>(providerId: string): T | undefined;
   setHealth(providerId: string, health: ProviderRuntimeHealthV010): void;
   getHealth(providerId: string): ProviderRuntimeHealthV010;
+  setHealthProbe(providerId: string, probe: ProviderHealthProbeV010): void;
+  runHealthProbe(providerId: string): Promise<ProviderRuntimeHealthV010>;
   resolve<T>(
     descriptors: readonly ProviderDescriptorLike[],
     capability: string
@@ -43,6 +48,7 @@ function validateHealth(health: ProviderRuntimeHealthV010): ProviderRuntimeHealt
 export function createProviderRuntimeRegistry(): ProviderRuntimeRegistry {
   const runtimes = new Map<string, unknown>();
   const health = new Map<string, ProviderRuntimeHealthV010>();
+  const healthProbes = new Map<string, ProviderHealthProbeV010>();
 
   const ensureHealth = (providerId: string): void => {
     if (!health.has(providerId)) {
@@ -68,6 +74,7 @@ export function createProviderRuntimeRegistry(): ProviderRuntimeRegistry {
     remove(providerId: string) {
       runtimes.delete(providerId);
       health.delete(providerId);
+      healthProbes.delete(providerId);
     },
 
     get<T>(providerId: string) {
@@ -96,6 +103,52 @@ export function createProviderRuntimeRegistry(): ProviderRuntimeRegistry {
             message: "Runtime is registered; no active health probe has reported yet."
           }
       );
+    },
+
+    setHealthProbe(providerId, probe) {
+      if (!runtimes.has(providerId)) {
+        throw new Error(`PROVIDER_HEALTH_RUNTIME_NOT_REGISTERED: ${providerId}`);
+      }
+      healthProbes.set(providerId, probe);
+    },
+
+    async runHealthProbe(providerId) {
+      if (!runtimes.has(providerId)) {
+        const unavailable = {
+          state: "UNAVAILABLE" as const,
+          message: "Provider runtime is not registered.",
+          checkedAt: new Date().toISOString()
+        };
+        health.set(providerId, unavailable);
+        return structuredClone(unavailable);
+      }
+      const probe = healthProbes.get(providerId);
+      if (!probe) {
+        const unknown = {
+          state: "UNKNOWN" as const,
+          message: "No active health probe is registered for this Provider runtime.",
+          checkedAt: new Date().toISOString()
+        };
+        health.set(providerId, unknown);
+        return structuredClone(unknown);
+      }
+      try {
+        const result = validateHealth(await probe());
+        const checked = {
+          ...result,
+          checkedAt: result.checkedAt ?? new Date().toISOString()
+        };
+        health.set(providerId, checked);
+        return structuredClone(checked);
+      } catch (error) {
+        const unavailable = {
+          state: "UNAVAILABLE" as const,
+          message: error instanceof Error ? error.message : String(error),
+          checkedAt: new Date().toISOString()
+        };
+        health.set(providerId, unavailable);
+        return structuredClone(unavailable);
+      }
     },
 
     resolve<T>(descriptors: readonly ProviderDescriptorLike[], capability: string) {
