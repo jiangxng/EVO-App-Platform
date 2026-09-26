@@ -315,7 +315,6 @@ test("Reject is terminal and does not write Memory", async () => {
 
 test("Proposal review signals are assistance, not automatic truth decisions", async () => {
   const h = harness({ ids: ["r1", "p1"] });
-  await h.reader.providerId;
   const writer = createHostContextMemoryWriterV010(h.memoryStore);
   await writer.write({
     contractVersion: "0.1.0",
