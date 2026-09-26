@@ -61,3 +61,21 @@ P0.5 的第一个真实 Enterprise Context 来源是 Host Enterprise Context Pro
 这个参考来源可以被替换。未来的企业目录、身份、HCM 或客户自定义 Provider 可以实现相同的平台边界，而无需修改个人 Agent。
 
 P0.5 中 Enterprise Context 只用于只读推理上下文；它不会创建“企业 Agent”，也不允许自动复制到 Personal Context Memory。
+
+
+## Principal、Session 与企业授权关系
+
+P0.6 会先解析权威 Principal，然后个人 Agent 才解析 Context 并构建 Tool Catalog。
+
+参考 `identity.session` Provider 可通过 `APP_PLATFORM_STATIC_SESSION_JSON` 配置。它是部署级参考实现，不是最终的登录/Session 系统。
+
+Enterprise Context 是否可见，不再只取决于企业目录中是否存在。Host 会把 Enterprise Context Directory 与当前 Principal 的 `enterprise.membership` Grant 做交集。参考 Grant Provider 使用 `APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON`。
+
+如果某个 Context 存在于企业目录，但没有授权给当前 Principal，那么它不会出现在 Context 选择器中，不会由 `context.available.list` 返回，也不能通过手工提交 Context ID 来选择。
+
+在已授权的 Enterprise Context 中，个人 Agent 会获得只读工具 `enterprise.context.profile.get`；在 Personal Context 中该工具不存在。
+
+> [!IMPORTANT] Session 与 Grant 属于 Host 权威
+> 浏览器提交的值只能在 Host 已授权的 Context 中进行选择，不能建立身份、企业关系或权限。
+
+P0.6 仍然不会引入通用 Context Memory 写入，也不会扩大自主 WRITE 权限。
