@@ -1,11 +1,14 @@
 import type {
-  AppManagerAgentTools
-} from "./contracts.js";
-import type {
   InstallPlanV010,
   PackageManifestV010,
   PlatformSnapshotV010
 } from "../../contracts/package.js";
+
+export interface LegacyAppManagerHttpToolsV010 {
+  listCatalog(): Promise<PackageManifestV010[]>;
+  planInstall(packageId: string): Promise<InstallPlanV010>;
+  install(packageId: string): Promise<PlatformSnapshotV010>;
+}
 
 export interface AppManagerHttpClientOptions {
   baseUrl: string;
@@ -24,7 +27,7 @@ async function json<T>(response: Response): Promise<T> {
 
 export function createAppManagerHttpTools(
   options: AppManagerHttpClientOptions
-): AppManagerAgentTools {
+): LegacyAppManagerHttpToolsV010 {
   const baseUrl = base(options.baseUrl);
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   if (!fetchImpl) throw new Error("ENTERPRISE_AGENT_FETCH_UNAVAILABLE");
