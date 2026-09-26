@@ -283,7 +283,12 @@ const copy = {
 
 function readinessMessage(
   readiness: PersonalAgentReadinessV010,
-  text: typeof copy.en
+  text: {
+    providerMissing: string;
+    providerSelection: string;
+    providerConfig: string;
+    providerUnavailable: string;
+  }
 ): string {
   if (readiness.code === "LLM_PROVIDER_MISSING") return text.providerMissing;
   if (readiness.code === "LLM_PROVIDER_SELECTION_REQUIRED") return text.providerSelection;
