@@ -87,7 +87,11 @@ test("invalid setting types are rejected", () => {
 
 test("Settings index and Plugin Store expose Configure only for configurable installed packages", () => {
   const manager = createAppManagerService(
-    createPackageCatalog([openAiLlmProviderPackage, enterpriseAgentPackage]),
+    createPackageCatalog([
+      openAiLlmProviderPackage,
+      hostEncryptedSecretsProviderPackage,
+      enterpriseAgentPackage
+    ]),
     createMemoryLifecycleStore()
   );
   manager.install("openai-llm-provider");
