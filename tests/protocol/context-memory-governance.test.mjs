@@ -409,7 +409,7 @@ test("Provider rejects malformed provenance and cross-context supersession", asy
   };
   await writer.write({ contractVersion: "0.1.0", item: base });
 
-  await assert.rejects(
+  assert.throws(
     () => writer.write({
       contractVersion: "0.1.0",
       item: {
@@ -421,7 +421,7 @@ test("Provider rejects malformed provenance and cross-context supersession", asy
     /CONTEXT_MEMORY_DIRECT_SOURCE_MISMATCH/
   );
 
-  await assert.rejects(
+  assert.throws(
     () => writer.write({
       contractVersion: "0.1.0",
       item: {
