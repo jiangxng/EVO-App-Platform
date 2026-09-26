@@ -79,3 +79,30 @@ In an authorized Enterprise Context, Personal Agent gains the READ-only `enterpr
 > Browser values select among Host-authorized Contexts. They do not establish identity, membership or permission.
 
 P0.6 still does not introduce generic Context Memory writes or broad autonomous WRITE authority.
+
+
+## Request-bound Session and Enterprise Context creation
+
+P0.7 adds a request-bound reference Session Provider through `identity.session.request`. The reference Host Bearer Session Provider reads `APP_PLATFORM_BEARER_SESSIONS_JSON` and resolves the Principal from the HTTP Bearer credential.
+
+A bare session ID is not accepted as authentication by the reference bearer Provider.
+
+Enterprise Context creation is a governed Material WRITE through:
+
+`enterprise.context.create`
+
+The Host requires:
+
+1. a Host-resolved request Session and Principal;
+2. Personal Context as the active Context;
+3. a HUMAN Principal;
+4. explicit confirmation intent on the Action;
+5. an `authorization.check` decision that ALLOWs `enterprise.context.create`.
+
+A successful create operation atomically creates the Enterprise Context, an ACTIVE OWNER relationship for the creator, an initial access Grant, and append-only lifecycle events from CREATING to ACTIVE.
+
+The creator is historical audit data. OWNER is a separate governance relationship. Changing ownership in the future must not rewrite `createdBySubjectId`.
+
+An ACTIVE dynamically created Enterprise Context must always have at least one ACTIVE OWNER.
+
+Personal Agent WRITE tools now pass through the same Host Material WRITE authorization boundary before execution. READ and PLAN tools remain unaffected.
