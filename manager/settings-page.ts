@@ -5,10 +5,27 @@ import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.
 import type {
   EidosSettingsContributionV010,
   PackageManifestV010,
+  PackageSecretDeclarationV010,
   SettingValueV010
 } from "../contracts/package.js";
+import type {
+  SecretDescriptorV010,
+  SecretReferenceV010
+} from "../contracts/platform-services.js";
 
 export const settingsIndexPageSource = "app://evo-app-platform/pages/settings";
+
+export interface SettingsSecretScopeContextV010 {
+  installationId: string;
+  enterpriseId?: string;
+  companyId?: string;
+  workspaceId?: string;
+  userId?: string;
+}
+
+export type DescribeSecretV010 = (
+  reference: SecretReferenceV010
+) => SecretDescriptorV010 | undefined;
 
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
@@ -36,9 +53,21 @@ export function packageHasSettings(pkg: PackageManifestV010): boolean {
   );
 }
 
+export function packageHasConfiguration(pkg: PackageManifestV010): boolean {
+  return packageHasSettings(pkg) || (pkg.secrets?.length ?? 0) > 0;
+}
+
+function installedConfigurablePackages(manager: AppManagerService): PackageManifestV010[] {
+  const installed = new Set(
+    manager.getSnapshot().installedPackages.map(item => item.packageId)
+  );
+  return manager.listCatalog()
+    .filter(pkg => installed.has(pkg.packageId) && packageHasConfiguration(pkg))
+    .sort((a, b) => a.packageId.localeCompare(b.packageId));
+}
+
 export function createSettingsExperienceManifest(manager: AppManagerService) {
-  const installed = manager.listInstalledSettings();
-  const packageIds = [...new Set(installed.map(item => item.packageId))].sort();
+  const packages = installedConfigurablePackages(manager);
 
   return {
     contractVersion: "0.1.0",
@@ -52,10 +81,10 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         title: "Settings",
         source: settingsIndexPageSource
       },
-      ...packageIds.map(packageId => ({
-        id: `evo-settings.${packageId}`,
-        title: packageId,
-        source: settingsPackagePageSource(packageId)
+      ...packages.map(pkg => ({
+        id: `evo-settings.${pkg.packageId}`,
+        title: pkg.displayName,
+        source: settingsPackagePageSource(pkg.packageId)
       }))
     ],
     routes: [
@@ -64,10 +93,10 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         path: "/settings",
         pageId: "evo-settings.home"
       },
-      ...packageIds.map(packageId => ({
-        id: `evo-settings.${packageId}`,
-        path: settingsPackageRoute(packageId),
-        pageId: `evo-settings.${packageId}`
+      ...packages.map(pkg => ({
+        id: `evo-settings.${pkg.packageId}`,
+        path: settingsPackageRoute(pkg.packageId),
+        pageId: `evo-settings.${pkg.packageId}`
       }))
     ]
   } as const;
@@ -76,17 +105,15 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
 export function createSettingsIndexPage(
   manager: AppManagerService
 ): CatalogBrowserV010 {
-  const catalog = new Map(manager.listCatalog().map(pkg => [pkg.packageId, pkg]));
-  const installed = manager.listInstalledSettings();
-  const packageIds = [...new Set(installed.map(item => item.packageId))].sort();
+  const packages = installedConfigurablePackages(manager);
 
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo.settings",
     title: "Settings",
-    description: "Configure installed plugins that declare standard settings.",
-    emptyMessage: "No installed plugins expose standard settings.",
+    description: "Configure installed plugins and Provider credentials through Host-owned settings and Secret boundaries.",
+    emptyMessage: "No installed plugins expose configurable settings or credentials.",
     items: [
       {
         id: "provider-bindings",
@@ -100,22 +127,21 @@ export function createSettingsIndexPage(
           route: "/providers"
         }
       },
-      ...packageIds.map(packageId => {
-      const pkg = catalog.get(packageId);
-        return {
-          id: packageId,
-          title: pkg?.displayName ?? packageId,
-          version: pkg?.version,
-          category: pkg?.type,
-          summary: "Standard plugin settings",
-          primaryAction: {
-            id: "configure",
-            label: "Configure",
-            type: "navigate" as const,
-            route: settingsPackageRoute(packageId)
-          }
-        };
-      })
+      ...packages.map(pkg => ({
+        id: pkg.packageId,
+        title: pkg.displayName,
+        version: pkg.version,
+        category: pkg.type,
+        summary: (pkg.secrets?.length ?? 0) > 0
+          ? "Plugin settings and Host-managed credentials"
+          : "Standard plugin settings",
+        primaryAction: {
+          id: "configure",
+          label: "Configure",
+          type: "navigate" as const,
+          route: settingsPackageRoute(pkg.packageId)
+        }
+      }))
     ]
   };
 }
@@ -130,6 +156,14 @@ function mergeSettingsContributions(
     if (seen.has(property.key)) {
       throw new Error(`DUPLICATE_SETTING_KEY: ${first.namespace}.${property.key}`);
     }
+    if (
+      property.key.startsWith("secret:")
+      || property.key.startsWith("secret-status:")
+      || property.key.startsWith("secret-remove:")
+      || property.key === "adminToken"
+    ) {
+      throw new Error(`SETTING_KEY_RESERVED: ${first.namespace}.${property.key}`);
+    }
     seen.add(property.key);
     return true;
   });
@@ -143,38 +177,124 @@ function mergeSettingsContributions(
   };
 }
 
+export function secretReferenceForPackageV010(
+  packageId: string,
+  declaration: PackageSecretDeclarationV010,
+  context: SettingsSecretScopeContextV010
+): SecretReferenceV010 | undefined {
+  let scopeId: string | undefined;
+  if (declaration.scope === "INSTALLATION") scopeId = context.installationId;
+  else if (declaration.scope === "ENTERPRISE") scopeId = context.enterpriseId;
+  else if (declaration.scope === "COMPANY") scopeId = context.companyId;
+  else if (declaration.scope === "WORKSPACE") scopeId = context.workspaceId;
+  else if (declaration.scope === "USER") scopeId = context.userId;
+
+  if (declaration.scope !== "SYSTEM" && !scopeId) return undefined;
+
+  return {
+    contractVersion: "0.1.0",
+    namespace: packageId,
+    key: declaration.key,
+    scope: declaration.scope,
+    ...(scopeId ? { scopeId } : {})
+  };
+}
+
 export function createSettingsPage(
   manager: AppManagerService,
   store: SettingsStore,
-  packageId: string
+  packageId: string,
+  describeSecret?: DescribeSecretV010,
+  secretContext: SettingsSecretScopeContextV010 = { installationId: "default" }
 ): SettingsEditorV010 | undefined {
-  const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
-  if (!merged) return undefined;
+  const pkg = manager.listCatalog().find(item => item.packageId === packageId);
+  const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
+  if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
 
-  const current = store.getNamespace(merged.namespace);
+  const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
+  const namespace = merged?.namespace ?? packageId;
+  const current = store.getNamespace(namespace);
+  const ordinarySettings = (merged?.properties ?? []).map(property => ({
+    key: property.key,
+    label: property.label,
+    description: property.description,
+    type: property.type,
+    value: current[property.key] ?? property.defaultValue,
+    defaultValue: property.defaultValue,
+    options: property.options,
+    readOnly: property.readOnly
+  }));
+
+  const secretSettings = (pkg.secrets ?? []).flatMap(declaration => {
+    const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
+    const status = reference ? describeSecret?.(reference) : undefined;
+    const configured = status?.configured === true;
+    const unavailable = !reference;
+    const statusValue = unavailable
+      ? "Scope context unavailable"
+      : configured
+        ? `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
+        : "Not configured";
+
+    return [
+      {
+        key: `secret:${declaration.key}`,
+        label: configured ? `Replace ${declaration.label}` : declaration.label,
+        description: unavailable
+          ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
+          : declaration.description,
+        type: "secret" as const,
+        value: "",
+        readOnly: unavailable
+      },
+      {
+        key: `secret-status:${declaration.key}`,
+        label: `${declaration.label} status`,
+        type: "string" as const,
+        value: statusValue,
+        readOnly: true
+      },
+      ...(configured && !unavailable
+        ? [{
+            key: `secret-remove:${declaration.key}`,
+            label: `Remove ${declaration.label}`,
+            description: "Remove the stored Secret when saving.",
+            type: "boolean" as const,
+            value: false,
+            defaultValue: false
+          }]
+        : [])
+    ];
+  });
+
+  const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
+
   return {
     contractVersion: "0.1.0",
     kind: "settings-editor",
     id: `evo-settings.${packageId}`,
-    namespace: merged.namespace,
-    title: merged.title,
-    description: merged.description,
+    namespace,
+    title: merged?.title ?? pkg.displayName,
+    description: merged?.description ?? "Configure Host-managed credentials for this Package.",
     command: {
       code: "app-platform.update-settings",
       inputVersion: "0.1.0"
     },
-    settings: merged.properties.map(property => ({
-      key: property.key,
-      label: property.label,
-      description: property.description,
-      type: property.type,
-      value: current[property.key] ?? property.defaultValue,
-      defaultValue: property.defaultValue,
-      options: property.options,
-      readOnly: property.readOnly
-    })),
+    settings: [
+      ...ordinarySettings,
+      ...secretSettings,
+      ...(hasSecrets
+        ? [{
+            key: "adminToken",
+            label: "Administrator authorization",
+            description: "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
+            type: "secret" as const,
+            value: ""
+          }]
+        : [])
+    ],
     saveLabel: "Save",
-    emptyMessage: "This plugin has no editable standard settings."
+    emptyMessage: "This plugin has no editable configuration."
   };
 }
 
