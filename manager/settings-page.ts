@@ -1,7 +1,10 @@
 import type { AppManagerService } from "./service.js";
 import type { SettingsStore } from "./settings-store.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
-import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.js";
+import type {
+  SettingsEditorV020,
+  SettingsFieldV010
+} from "../vendor/eidos/src/settings/contracts.js";
 import type {
   EidosSettingsContributionV010,
   PackageManifestV010,
@@ -27,12 +30,25 @@ export type DescribeSecretV010 = (
   reference: SecretReferenceV010
 ) => SecretDescriptorV010 | undefined | Promise<SecretDescriptorV010 | undefined>;
 
-function settingsUiLocale(locale: string): "en" | "zh-CN" {
+type SettingsUiLocaleV010 = "en" | "zh-CN" | "ja" | "zh-TW";
+
+function settingsUiLocale(locale: string): SettingsUiLocaleV010 {
   try {
-    return Intl.getCanonicalLocales(locale.trim())[0] === "zh-CN" ? "zh-CN" : "en";
+    const canonical = Intl.getCanonicalLocales(locale.trim())[0] ?? "en";
+    if (canonical === "zh-CN" || canonical.startsWith("zh-Hans")) return "zh-CN";
+    if (canonical === "zh-TW" || canonical.startsWith("zh-Hant")) return "zh-TW";
+    if (canonical === "ja" || canonical.startsWith("ja-")) return "ja";
+    return "en";
   } catch {
     return "en";
   }
+}
+
+function settingsText(
+  locale: SettingsUiLocaleV010,
+  values: Record<SettingsUiLocaleV010, string>
+): string {
+  return values[locale] ?? values.en;
 }
 
 export function settingsPackagePageSource(packageId: string): string {
@@ -215,17 +231,16 @@ export async function createSettingsPage(
   describeSecret?: DescribeSecretV010,
   secretContext: SettingsSecretScopeContextV010 = { installationId: "default" },
   locale = "en"
-): Promise<SettingsEditorV010 | undefined> {
+): Promise<SettingsEditorV020 | undefined> {
   const pkg = manager.listCatalog().find(item => item.packageId === packageId);
   const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
   if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
 
   const uiLocale = settingsUiLocale(locale);
-  const zh = uiLocale === "zh-CN";
   const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
   const namespace = merged?.namespace ?? packageId;
   const current = store.getNamespace(namespace);
-  const ordinarySettings = (merged?.properties ?? []).map(property => ({
+  const ordinarySettings: SettingsFieldV010[] = (merged?.properties ?? []).map(property => ({
     key: property.key,
     label: property.label,
     description: property.description,
@@ -243,31 +258,82 @@ export async function createSettingsPage(
       const configured = status?.configured === true;
       const unavailable = !reference;
       const statusValue = unavailable
-        ? (zh ? "当前作用域上下文不可用" : "Scope context unavailable")
+        ? settingsText(uiLocale, {
+            en: "Scope context unavailable",
+            "zh-CN": "当前作用域上下文不可用",
+            ja: "現在のスコープコンテキストは利用できません",
+            "zh-TW": "目前的作用域上下文無法使用"
+          })
         : configured
-          ? (
-              zh
-                ? `已配置${status?.updatedAt ? ` · 更新于 ${status.updatedAt}` : ""} · 不显示已保存明文`
-                : `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
-            )
-          : (zh ? "未配置" : "Not configured");
+          ? settingsText(uiLocale, {
+              en: `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · saved value is never displayed`,
+              "zh-CN": `已配置${status?.updatedAt ? ` · 更新于 ${status.updatedAt}` : ""} · 不显示已保存明文`,
+              ja: `設定済み${status?.updatedAt ? ` · 更新 ${status.updatedAt}` : ""} · 保存済みの値は表示されません`,
+              "zh-TW": `已配置${status?.updatedAt ? ` · 更新於 ${status.updatedAt}` : ""} · 不顯示已儲存明文`
+            })
+          : settingsText(uiLocale, {
+              en: "Not configured",
+              "zh-CN": "未配置",
+              ja: "未設定",
+              "zh-TW": "未配置"
+            });
+
+      const secretInput: SettingsFieldV010 = {
+        key: `secret:${declaration.key}`,
+        label: configured
+          ? settingsText(uiLocale, {
+              en: `Replace ${declaration.label}`,
+              "zh-CN": `替换 ${declaration.label}`,
+              ja: `${declaration.label} を置き換える`,
+              "zh-TW": `替換 ${declaration.label}`
+            })
+          : declaration.label,
+        description: unavailable
+          ? settingsText(uiLocale, {
+              en: `Secret scope '${declaration.scope}' is not available in the current platform context.`,
+              "zh-CN": `当前平台上下文中无法使用 Secret 作用域 '${declaration.scope}'。`,
+              ja: `現在のプラットフォームコンテキストでは Secret スコープ '${declaration.scope}' を利用できません。`,
+              "zh-TW": `目前平台上下文中無法使用 Secret 作用域 '${declaration.scope}'。`
+            })
+          : declaration.description,
+        type: "secret",
+        value: "",
+        readOnly: unavailable,
+        status: {
+          label: unavailable
+            ? settingsText(uiLocale, {
+                en: "Unavailable",
+                "zh-CN": "不可用",
+                ja: "利用不可",
+                "zh-TW": "無法使用"
+              })
+            : configured
+              ? settingsText(uiLocale, {
+                  en: "Configured",
+                  "zh-CN": "已配置",
+                  ja: "設定済み",
+                  "zh-TW": "已配置"
+                })
+              : settingsText(uiLocale, {
+                  en: "Not configured",
+                  "zh-CN": "未配置",
+                  ja: "未設定",
+                  "zh-TW": "未配置"
+                }),
+          tone: unavailable ? "danger" : configured ? "positive" : "warning"
+        }
+      };
 
       return [
-        {
-          key: `secret:${declaration.key}`,
-          label: configured
-            ? (zh ? `替换 ${declaration.label}` : `Replace ${declaration.label}`)
-            : declaration.label,
-          description: unavailable
-            ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
-            : declaration.description,
-          type: "secret" as const,
-          value: "",
-          readOnly: unavailable
-        },
+        secretInput,
         {
           key: `secret-status:${declaration.key}`,
-          label: zh ? `${declaration.label} 状态` : `${declaration.label} status`,
+          label: settingsText(uiLocale, {
+            en: `${declaration.label} status`,
+            "zh-CN": `${declaration.label} 状态`,
+            ja: `${declaration.label} の状態`,
+            "zh-TW": `${declaration.label} 狀態`
+          }),
           type: "string" as const,
           value: statusValue,
           readOnly: true
@@ -275,51 +341,110 @@ export async function createSettingsPage(
         ...(configured && !unavailable
           ? [{
               key: `secret-remove:${declaration.key}`,
-              label: zh ? `删除 ${declaration.label}` : `Remove ${declaration.label}`,
-              description: zh ? "保存时删除当前已存储的 Secret。" : "Remove the stored Secret when saving.",
+              label: settingsText(uiLocale, {
+                en: `Remove ${declaration.label}`,
+                "zh-CN": `删除 ${declaration.label}`,
+                ja: `${declaration.label} を削除`,
+                "zh-TW": `刪除 ${declaration.label}`
+              }),
+              description: settingsText(uiLocale, {
+                en: "Remove the stored Secret when saving.",
+                "zh-CN": "保存时删除当前已存储的 Secret。",
+                ja: "保存時に現在保存されている Secret を削除します。",
+                "zh-TW": "儲存時刪除目前已儲存的 Secret。"
+              }),
               type: "boolean" as const,
               value: false,
               defaultValue: false
             }]
           : [])
-      ];
+      ] satisfies SettingsFieldV010[];
     }))
   ).flat();
 
   const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
+  const groups: SettingsEditorV020["groups"] = [];
+
+  if (ordinarySettings.length > 0) {
+    groups.push({
+      id: "general",
+      title: "General",
+      description: "Provider runtime and ordinary package settings.",
+      settings: ordinarySettings
+    });
+  }
+
+  if (secretSettings.length > 0) {
+    groups.push({
+      id: "credentials",
+      title: "Credentials",
+      description: "Credentials are stored by Host Secrets and saved values are never returned to the browser.",
+      settings: secretSettings
+    });
+  }
+
+  if (hasSecrets) {
+    groups.push({
+      id: "advanced",
+      title: "Advanced",
+      description: "Temporary bootstrap administration controls.",
+      advanced: true,
+      settings: [{
+        key: "adminToken",
+        label: settingsText(uiLocale, {
+          en: "Administrator authorization",
+          "zh-CN": "管理员授权",
+          ja: "管理者認証",
+          "zh-TW": "管理員授權"
+        }),
+        description: settingsText(uiLocale, {
+          en: "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
+          "zh-CN": "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。",
+          ja: "Secret を変更する場合のみ使用する bootstrap 段階の管理者認証です。保存されません。",
+          "zh-TW": "僅在修改 Secret 時用於 bootstrap 階段的管理員認證，不會被持久化。"
+        }),
+        type: "secret",
+        value: ""
+      }]
+    });
+  }
 
   return {
-    contractVersion: "0.1.0",
+    contractVersion: "0.2.0",
     kind: "settings-editor",
     id: `evo-settings.${packageId}`,
     namespace,
     title: merged?.title ?? pkg.displayName,
-    description: merged?.description ?? (
-      zh
-        ? "配置此 Package 的 Host 管理凭据。"
-        : "Configure Host-managed credentials for this Package."
-    ),
+    description: merged?.description ?? settingsText(uiLocale, {
+      en: "Configure Host-managed credentials for this Package.",
+      "zh-CN": "配置此 Package 的 Host 管理凭据。",
+      ja: "この Package の Host 管理資格情報を設定します。",
+      "zh-TW": "配置此 Package 的 Host 管理憑據。"
+    }),
+    ...(hasSecrets ? {
+      notice: {
+        tone: "info" as const,
+        title: "Credential security",
+        message: "Saved Secret values are managed by Host Secrets and are never displayed again."
+      }
+    } : {}),
     command: {
       code: "app-platform.update-settings",
       inputVersion: "0.1.0"
     },
-    settings: [
-      ...ordinarySettings,
-      ...secretSettings,
-      ...(hasSecrets
-        ? [{
-            key: "adminToken",
-            label: zh ? "管理员授权" : "Administrator authorization",
-            description: zh
-              ? "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。"
-              : "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
-            type: "secret" as const,
-            value: ""
-          }]
-        : [])
-    ],
-    saveLabel: zh ? "保存" : "Save",
-    emptyMessage: zh ? "此插件没有可编辑配置。" : "This plugin has no editable configuration."
+    groups,
+    saveLabel: settingsText(uiLocale, {
+      en: "Save",
+      "zh-CN": "保存",
+      ja: "保存",
+      "zh-TW": "儲存"
+    }),
+    emptyMessage: settingsText(uiLocale, {
+      en: "This plugin has no editable configuration.",
+      "zh-CN": "此插件没有可编辑配置。",
+      ja: "このプラグインには編集可能な設定がありません。",
+      "zh-TW": "此插件沒有可編輯配置。"
+    })
   };
 }
 
