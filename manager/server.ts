@@ -1078,11 +1078,13 @@ const server = createServer(async (request, response) => {
           .filter(item =>
             item.targetSubjectId === session.principal.subjectId
             && item.state === "PENDING"
+            && (item.expiresAt === undefined || Date.parse(item.expiresAt) > Date.now())
           ),
         pendingOwnershipTransfers: enterpriseGovernanceStore.snapshot().ownershipTransfers
           .filter(item =>
             item.toSubjectId === session.principal.subjectId
             && item.state === "PENDING"
+            && (item.expiresAt === undefined || Date.parse(item.expiresAt) > Date.now())
           ),
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
