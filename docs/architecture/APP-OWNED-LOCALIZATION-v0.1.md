@@ -188,4 +188,35 @@ Translation MUST NOT change machine semantics. Across locale variants of one Hel
 
 Human-readable title, summary, body and tags may be translated.
 
-Current governed Platform Help locales are `en` and `zh-CN`. Additional locales are additive and use the same contract; they do not require a new localization subsystem or central translation Package.
+The platform target locale set is:
+
+- `en` — English;
+- `zh-CN` — 简体中文;
+- `ja` — 日本語;
+- `zh-TW` — 繁體中文.
+
+New P0.4 Personal Agent, Setup Flow and Provider-configuration product chrome MUST be designed and shipped with all four locale bundles from the first implementation, rather than adding Japanese/Traditional Chinese after the UI is complete.
+
+The existing Help corpus currently has complete governed `en` and `zh-CN` variants. `ja` and `zh-TW` Help variants may be added incrementally because Help already resolves per document with deterministic `en` fallback; a missing translation MUST NOT remove a document.
+
+Locale identifiers, routes, commands, Capability IDs, Context IDs, status enums and other machine semantics remain language-independent. UI layout MUST tolerate text expansion/contraction across these locales and MUST NOT encode assumptions based on Latin text width.
+
+Do not create a central translation Package. Eidos owns generic chrome translations; each Package owns its own four-locale product vocabulary.
+
+
+## 13. Four-locale P0.4 development rule
+
+For new Personal Agent/plugin UX introduced from P0.4 onward, localization is part of the definition of done.
+
+At design/contract time:
+
+1. separate all human-facing text from machine semantics;
+2. define stable localization keys before visual polish;
+3. provide `en`, `zh-CN`, `ja`, and `zh-TW` bundle coverage;
+4. test layout with the longest realistic labels, especially Japanese and Traditional Chinese;
+5. avoid concatenating translated fragments into sentences;
+6. use locale-aware date/number formatting rather than translated format strings;
+7. keep Secret/provider/status machine values untranslated internally;
+8. let Eidos generic components own their own four-locale chrome.
+
+Fallback remains deterministic: exact locale -> explicitly supported language variant -> `en`. Fallback is resilience, not permission to omit planned translations for a newly delivered P0.4 surface.
