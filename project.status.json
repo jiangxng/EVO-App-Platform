@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.4 implementation is complete on stacked branches through personal-agent-p0-4-finalize: Eidos P0.4A sync, Host-computed Installed/Needs setup/Ready readiness, generic Setup Flow, explicit llm.inference Provider selection/configuration routing, Chat v0.2 structured activity/evidence/proposal presentation, and en/zh-CN/ja/zh-TW UX. GitHub Actions is currently infrastructure-blocked: affected runs fail in ~2-3 seconds with zero job steps, so main merge remains pending executable CI validation.",
+  "currentStep": "Personal Agent P0.4 is CI-verified and ready to merge: Eidos P0.4A sync, Host-computed Installed/Needs setup/Ready readiness, Setup Flow, explicit llm.inference Provider selection/configuration, Chat v0.2 structured activity/evidence/proposal output, and en/zh-CN/ja/zh-TW UX all pass Platform, Enterprise Agent, OpenAI Provider and Host Secrets Provider CI.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -590,7 +590,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "P0_4_EXECUTABLE_CI_VALIDATION_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+    "next": "MERGE_P0_4_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -609,15 +609,14 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
     },
     "productExperience": {
-      "status": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI",
+      "status": "CI_VERIFIED_P0_4",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
-      "currentProblem": "GITHUB_ACTIONS_RUNNER_FAILS_BEFORE_ANY_JOB_STEP",
       "workbench": "ACTIVITY_SIDE_PANEL_AGENT_PLUS_MAIN_WORKSPACE_EVIDENCE_SETUP",
       "installModel": "INSTALLED_NOT_EQUAL_READY",
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "RUN_EXECUTABLE_CI_AND_MERGE_STACK",
+      "next": "MERGE_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
       "locales": [
         "en",
         "zh-CN",
