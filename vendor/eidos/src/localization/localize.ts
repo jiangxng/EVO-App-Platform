@@ -45,6 +45,13 @@ export function localizeAppHostPageDefinition(
         `chat.${pageId}.context.label`,
         definition.context.label
       );
+      if (isObject(definition.context.selector) && typeof definition.context.selector.ariaLabel === "string") {
+        definition.context.selector.ariaLabel = localization.resolve(
+          namespace,
+          `chat.${pageId}.context.selector.ariaLabel`,
+          definition.context.selector.ariaLabel
+        );
+      }
     }
     if (isObject(definition.readiness)) {
       const state = typeof definition.readiness.state === "string" ? definition.readiness.state : "default";
