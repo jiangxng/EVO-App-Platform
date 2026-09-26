@@ -4,6 +4,7 @@ import type { LocalizationBundleSource, LocalizationBundleV010 } from "../locali
 export interface AppManagerExperienceSourceOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  locale?: () => string | undefined;
 }
 
 function normalizeBaseUrl(value: string): string {
@@ -32,9 +33,16 @@ export function createAppManagerExperienceSource(
     throw new Error("EIDOS_APP_MANAGER_SOURCE_FETCH_UNAVAILABLE");
   }
 
+  const withLocale = (path: string): URL => {
+    const url = new URL(`${baseUrl}${path}`);
+    const locale = options.locale?.()?.trim();
+    if (locale) url.searchParams.set("locale", locale);
+    return url;
+  };
+
   return {
     async listEffectiveExperienceManifests(): Promise<unknown[]> {
-      const response = await fetchImpl(`${baseUrl}/v1/experiences/effective`, {
+      const response = await fetchImpl(withLocale("/v1/experiences/effective"), {
         method: "GET",
         headers: { accept: "application/json" }
       });
@@ -58,7 +66,7 @@ export function createAppManagerExperienceSource(
     },
 
     async loadPage(page): Promise<unknown> {
-      const url = new URL(`${baseUrl}/v1/experience-pages`);
+      const url = withLocale("/v1/experience-pages");
       url.searchParams.set("source", page.source);
 
       const response = await fetchImpl(url, {

@@ -34,7 +34,7 @@ export function renderAppHostPageToHtml(
   }
 
   if (isHelpDocumentV010(localizedDefinition)) {
-    return renderHelpDocumentToHtml(localizedDefinition);
+    return renderHelpDocumentToHtml(localizedDefinition, localization);
   }
 
   return renderToHtml(localizedDefinition);

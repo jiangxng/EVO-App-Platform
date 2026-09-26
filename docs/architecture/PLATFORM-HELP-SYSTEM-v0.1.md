@@ -557,7 +557,18 @@ Rules:
 - unsupported translations fall back visibly rather than silently pretending translated coverage;
 - machine identifiers, command names, error codes and contract IDs are never translated.
 
-P0 should require at least one canonical locale for every required Help document.
+P0 requires English (`en`) as the canonical fallback for every required Help document and ships complete Simplified Chinese (`zh-CN`) variants for the Platform Help seed corpus.
+
+Locale resolution is **per document ID**, not per corpus. For a requested locale, each document independently resolves through:
+
+```text
+exact locale
+→ language-only variant when explicitly present
+→ configured fallback locale(s)
+→ en
+```
+
+Therefore one missing translation never removes unrelated Help documents from the index. Stable document IDs, routes, context selectors, action/command names, Capability IDs and error codes remain identical across locale variants. CI compares machine metadata across translations and fails on drift.
 
 ## 12. Governance model
 
@@ -620,6 +631,9 @@ P0 CI should eventually validate:
 - valid version syntax;
 - valid related-document references;
 - duplicate locale variants;
+- required-locale coverage;
+- cross-locale machine-metadata equivalence;
+- canonical BCP-47 locale tags;
 - broken internal links;
 - referenced action/command/error/context identifiers where machine-verifiable;
 - no raw executable HTML/scripts;
@@ -797,9 +811,12 @@ This check should eventually become part of the same engineering completion rhyt
 
 Current implementation:
 
-- Eidos `help-document@0.1.0` safe semantic renderer;
-- Eidos `catalog-browser` optional deterministic local search;
-- vendored Eidos revision `67acaac01e0f4e271a9ba865ac76dc29e761b143`;
+- Eidos `help-document@0.1.0` safe semantic renderer with localized renderer-owned chrome;
+- Eidos `catalog-browser` optional deterministic local search with localized search chrome;
+- active App Host locale propagation into experience/page loading;
+- per-document locale fallback with stable Help identity;
+- complete `en` + `zh-CN` seed corpus;
+- vendored Eidos revision `9b07e3d6da885f25b048ad79979239b823d84ef3`;
 - canonical sources under `help/content/**/*.md`;
 - source compiler/index in `manager/help-system.ts`;
 - Workbench secondary Help activity at `/help`;
@@ -809,3 +826,24 @@ Current implementation:
 - 14 initial English Help documents covering the stable P0 platform foundations and common failure modes.
 
 P0 intentionally does not yet introduce a Plugin Protocol `eidos.help-document` Contribution, semantic/vector search, enterprise/customer Help extensions or Agent answer generation. Those remain later layers over the same canonical model.
+
+
+## 21. Design-language enforcement
+
+Platform Help does not own a parallel visual system.
+
+The only supported P0 composition is:
+
+```text
+Eidos Workbench Activity
+→ Eidos catalog-browser
+→ Eidos help-document
+→ Eidos Productive Design Language tokens/styles
+→ Eidos semantic Icon Registry
+```
+
+App Platform may supply content, lifecycle/context data and localization resources. It MUST NOT introduce Help-specific CSS, inline visual styling, raw standard-control HTML, copied SVG icons, or a competing component hierarchy for ordinary Help/Workbench surfaces.
+
+A reusable visual or interaction requirement that Eidos cannot express is implemented in Eidos first and then consumed by App Platform.
+
+`tools/eidos-design-language-validate.mjs` enforces this boundary in Platform CI.

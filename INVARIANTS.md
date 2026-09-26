@@ -142,3 +142,6 @@
 - **APP-119** Help content is declarative and non-executable. Arbitrary HTML/JavaScript from Help sources MUST NOT execute in the App Host.
 - **APP-120** Client-side Help/catalog search is presentation filtering only and MUST NOT be treated as an authorization boundary. Restricted Help must be filtered by the Host before it reaches Eidos.
 - **APP-121** A material user-visible behavior, contract, setting, error, compatibility, security or migration change is incomplete until Help impact is classified and required Help changes pass governance validation.
+
+- **APP-122** Help localization is variant-based and identity-stable. Locale variants of one Help document MUST share the same document ID, route and machine semantics; locale resolution is per document with deterministic fallback, so one missing translation MUST NOT remove unrelated Help from the effective index.
+- **APP-123** Eidos Productive Design Language is mandatory for ordinary App Platform human surfaces. App Platform supplies semantics/content/lifecycle data but MUST NOT add parallel Workbench/Help CSS, inline visual styling, raw replacement controls or non-Eidos standard icons. A missing reusable visual/interaction pattern MUST be implemented in Eidos first.

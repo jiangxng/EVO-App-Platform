@@ -231,6 +231,29 @@ export function localizeAppHostPageDefinition(
     if (typeof definition.emptyMessage === "string") {
       definition.emptyMessage = localization.resolve(namespace, `catalog.${catalogId}.empty`, definition.emptyMessage);
     }
+    if (isObject(definition.search)) {
+      if (typeof definition.search.placeholder === "string") {
+        definition.search.placeholder = localization.resolve(
+          namespace,
+          `catalog.${catalogId}.search.placeholder`,
+          definition.search.placeholder
+        );
+      }
+      if (typeof definition.search.ariaLabel === "string") {
+        definition.search.ariaLabel = localization.resolve(
+          namespace,
+          `catalog.${catalogId}.search.ariaLabel`,
+          definition.search.ariaLabel
+        );
+      }
+      if (typeof definition.search.noResultsMessage === "string") {
+        definition.search.noResultsMessage = localization.resolve(
+          namespace,
+          `catalog.${catalogId}.search.noResults`,
+          definition.search.noResultsMessage
+        );
+      }
+    }
     if (Array.isArray(definition.items)) {
       for (const item of definition.items) {
         if (!isObject(item) || typeof item.id !== "string") continue;

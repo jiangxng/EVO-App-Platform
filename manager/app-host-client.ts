@@ -17,13 +17,17 @@ if (!window.location.hash || window.location.hash === "#") {
   window.location.hash = "/store";
 }
 
-const source = createAppManagerExperienceSource({ baseUrl: window.location.origin });
-const actionHost = createAppManagerActionHost({ baseUrl: window.location.origin });
-const host = createAppHost(source);
-
 const persistedLocale = window.localStorage.getItem("evo.locale")?.trim();
 const browserLocale = window.navigator.language?.trim();
 const initialLocale = persistedLocale || browserLocale || "en";
+let activeLocale = initialLocale;
+
+const source = createAppManagerExperienceSource({
+  baseUrl: window.location.origin,
+  locale: () => activeLocale
+});
+const actionHost = createAppManagerActionHost({ baseUrl: window.location.origin });
+const host = createAppHost(source);
 const initialBundles = await source.listEffectiveLocalizationBundles();
 
 const localization = createLocalizationRuntime(
@@ -35,6 +39,7 @@ const localization = createLocalizationRuntime(
 );
 
 localization.subscribe(context => {
+  activeLocale = context.locale;
   window.localStorage.setItem("evo.locale", context.locale);
 });
 

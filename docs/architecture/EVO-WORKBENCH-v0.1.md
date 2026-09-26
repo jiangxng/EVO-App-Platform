@@ -154,4 +154,8 @@ Help article rendering uses Eidos `help-document@0.1.0`. App Platform compiles r
 
 P0 Help remains available without Agent, embedding service or external network search.
 
+Help follows the active Workbench locale. Locale change re-loads Side Panel/Workspace content through App Host, while document routes and IDs remain stable.
+
+Visual realization is exclusively Eidos-owned: Help uses Productive Design Language spacing, typography, responsive behavior, focus treatment and semantic icons. App Platform does not add Help CSS or raw control markup. Missing reusable UI behavior must be added to Eidos first.
+
 Authority: `docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md`.

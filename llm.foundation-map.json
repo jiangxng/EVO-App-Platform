@@ -24,7 +24,7 @@
     "secretsIdentityAuthorization": "NOW",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
-    "designLanguage": "DELEGATED_EIDOS",
+    "designLanguage": "DELEGATED_EIDOS_CI_ENFORCED",
     "accessibilityResponsive": "DELEGATED_EIDOS",
     "externalMcpOauthInteroperability": "WATCH",
     "ecosystemCertification": "NOW",
@@ -50,7 +50,7 @@
     "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
     "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED",
     "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE",
-    "platformHelp": "HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_SEED_CI_IMPLEMENTED"
+    "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -150,17 +150,27 @@
     "next": "IDENTITY_SESSION_PROVIDER_AND_REQUEST_CONTEXT"
   },
   "platformHelp": {
-    "status": "IMPLEMENTED_P0",
+    "status": "IMPLEMENTED_P0_MULTILINGUAL",
     "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
     "canonicalModel": "REPOSITORY_MARKDOWN_TO_EIDOS_HELP_DOCUMENT",
     "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
-    "eidosRevision": "67acaac01e0f4e271a9ba865ac76dc29e761b143",
+    "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3",
     "workbench": "SECONDARY_HELP_ACTIVITY_SIDE_CATALOG_MAIN_WORKSPACE_DOCUMENT",
     "searchP0": "DETERMINISTIC_LOCAL_FILTER_AND_HOST_SEARCH_CONTEXT_API",
     "ci": "CORPUS_METADATA_RELATED_REQUIRED_SEED_VALIDATION",
     "semanticSearch": "PENDING_OPTIONAL_PROVIDER",
     "packageContribution": "PENDING_P1",
     "authorizedEnterpriseHelp": "PENDING_P1",
-    "contextualSuggestions": "API_IMPLEMENTED_UI_P1"
+    "contextualSuggestions": "API_IMPLEMENTED_UI_P1",
+    "localeModel": "PER_DOCUMENT_VARIANTS_WITH_DETERMINISTIC_EN_FALLBACK",
+    "requiredLocales": [
+      "en",
+      "zh-CN"
+    ],
+    "seedDocumentIds": 14,
+    "seedVariants": 28,
+    "localeMachineMetadata": "CI_ENFORCED_STABLE",
+    "eidosDesignLanguage": "CI_ENFORCED_NO_PARALLEL_PLATFORM_HELP_UI",
+    "designGate": "tools/eidos-design-language-validate.mjs"
   }
 }

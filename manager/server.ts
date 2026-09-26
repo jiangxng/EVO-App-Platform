@@ -448,6 +448,10 @@ function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-headers", "content-type,accept,authorization");
 }
 
+function requestedLocale(url: URL): string {
+  return url.searchParams.get("locale")?.trim() || "en";
+}
+
 function json(response: ServerResponse, status: number, body: unknown): void {
   response.statusCode = status;
   applyCors(response);
@@ -667,7 +671,7 @@ const server = createServer(async (request, response) => {
       const query = url.pathname === "/v1/help/search"
         ? url.searchParams.get("q") ?? ""
         : "";
-      const locale = url.searchParams.get("locale")?.trim() || "en";
+      const locale = requestedLocale(url);
       return json(response, 200, searchHelpV010(helpCorpus, query, locale, context));
     }
     if (request.method === "GET" && url.pathname === "/v1/workbench/activities") {
@@ -684,7 +688,7 @@ const server = createServer(async (request, response) => {
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
-        createHelpExperienceManifestV010(helpCorpus),
+        createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
         ...manager.listEffectiveExperiences()
       ]);
     }
@@ -693,11 +697,11 @@ const server = createServer(async (request, response) => {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
       if (source === helpIndexPageSourceV010) {
-        return json(response, 200, createHelpIndexPageV010(helpCorpus));
+        return json(response, 200, createHelpIndexPageV010(helpCorpus, requestedLocale(url)));
       }
       const helpDocumentId = helpIdFromPageSourceV010(source);
       if (helpDocumentId) {
-        const document = materializeHelpDocumentV010(helpCorpus, helpDocumentId);
+        const document = materializeHelpDocumentV010(helpCorpus, helpDocumentId, requestedLocale(url));
         if (!document) {
           return json(response, 404, { code: "HELP_DOCUMENT_NOT_FOUND", id: helpDocumentId });
         }
