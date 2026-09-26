@@ -390,3 +390,10 @@ Do not use full-ecosystem CI as a substitute for defining stable contracts. Unre
 
 
 > **Dependency reproducibility:** Read `docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md` before dependency/toolchain changes. Treat `package-lock.json` as authoritative, use `npm ci`, and never fabricate a resolved lockfile manually.
+
+
+## Platform Help governance
+
+For user-visible platform, Workbench, Provider, plugin-lifecycle, settings, authorization, compatibility, error or migration changes, read `docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md` and classify Help impact before calling the change complete.
+
+Platform Help is a governed product knowledge surface, not a central FAQ dump. Eidos owns generic Help rendering/interaction contracts; App Platform owns aggregation/context/search/governance; each Package owns the Help content for behavior and vocabulary it introduces. Human and LLM Help should converge on the same canonical, version-aware source. Do not use chat history as authoritative Help.

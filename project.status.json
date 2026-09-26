@@ -422,5 +422,35 @@
     "dockerInstall": "npm ci",
     "node": "22.22.2",
     "ciOwner": "Platform CI"
+  },
+  "governanceInitiatives": {
+    "platformHelp": {
+      "status": "PLANNED_P0",
+      "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
+      "intent": "Long-lived human + LLM product Help with package ownership, context, versioning, search, localization and CI governance.",
+      "ownerSplit": {
+        "eidos": "generic Help rendering, Workbench interaction, accessibility/responsive realization",
+        "appPlatform": "aggregation, lifecycle, context, search/index policy, authorization filtering and governance",
+        "package": "behavior/vocabulary Help content and translations"
+      },
+      "workbench": {
+        "activityPlacement": "secondary",
+        "navigator": "side-route",
+        "articleSurface": "main-workspace"
+      },
+      "firstSeed": [
+        "workbench-overview",
+        "package-feature-contribution",
+        "plugin-lifecycle",
+        "provider-model",
+        "provider-binding",
+        "provider-health",
+        "authentication-vs-authorization",
+        "extension-manager",
+        "settings-vs-secrets",
+        "core-troubleshooting"
+      ],
+      "next": "Define Eidos Help contracts and App Platform Help source/index P0 without blocking the P1 enterprise context mainline."
+    }
   }
 }
