@@ -32,7 +32,9 @@
 
 ## 当前观察工具
 
-个人 Agent 可以查看平台快照、有效 Capability、Package catalog、Provider、Provider 健康状态、Provider binding，以及权威 Platform Help。
+个人 Agent 可以查看 Host 已解析的当前 Context、平台快照、有效 Capability、Package catalog、Provider、Provider 健康状态、Provider binding，以及权威 Platform Help。
+
+当前 Context 可通过 `context.current.get` 读取。请求可以选择 Host 已提供的 Context，但不能仅通过提交任意企业/Context ID 来创建企业上下文。
 
 ## 安装工具
 

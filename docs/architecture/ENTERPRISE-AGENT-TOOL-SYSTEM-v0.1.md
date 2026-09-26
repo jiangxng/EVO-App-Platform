@@ -99,8 +99,9 @@ Effect metadata informs policy and model behavior. It does not itself grant auth
 
 The initial Host catalog supplies:
 
-### Platform observation
+### Context / platform observation
 
+- `context.current.get`
 - `platform.snapshot.get`
 - `capability.list`
 
@@ -171,6 +172,14 @@ execute / deny
 ```
 
 The model can never upgrade a Host deny into allow.
+
+### 4.4 Context is Host-resolved
+
+`context.current.get` returns the Host-resolved Context for the current Personal Agent run.
+
+A caller may request selection of a known Context, but arbitrary request values cannot create an Enterprise Context. Unknown Context selection fails closed before LLM resolution or tool execution.
+
+The effective Tool Catalog is constructed after Context resolution. Future Context-specific tools must therefore be filtered/registered from Host-owned Context state rather than trusting tool/context ids supplied by the model or browser.
 
 ## 5. Dynamic registration
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Person-first Context Memory MVP world model frozen",
+  "currentMilestone": "Personal Agent P0.3 — minimal Context plumbing complete",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "The MVP world model is frozen: Human -> Personal Agent -> Personal Context + authorized Enterprise Context(s), with separate Personal/Enterprise Context Memory and human final decision authority. Existing enterprise-agent machine identifiers remain compatibility identifiers. Next implementation slice: minimal PersonalContextV010 / EnterpriseContextV010 / active-context request plumbing and read-only Context Memory boundaries before broader WRITE autonomy.",
+  "currentStep": "Personal Agent Context P0.3 is CI-verified: Person-first Context contracts, Host-owned Context registry, Personal default Context, fail-closed unknown Enterprise Context selection, resolved Context in model/tool catalog, context.current.get, and read-only Context Memory contract. Next: add the first real Host/provider-backed Enterprise Context source without building full IAM; then let Personal Agent inspect that enterprise context using READ tools.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -217,7 +217,7 @@
       ]
     }
   },
-  "handoff": "docs/roadmap/HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md",
+  "handoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md",
   "architectureCorrections": [
     "evo-is-lightweight-runtime-plugin-not-enterprise-platform-core"
   ],
@@ -542,7 +542,8 @@
       "provider.list",
       "provider.health.get",
       "provider.binding.list",
-      "help.search"
+      "help.search",
+      "context.current.get"
     ],
     "unknownTool": "FAIL_CLOSED",
     "installSafety": "HOST_PLAN_REQUIRED",
@@ -587,6 +588,23 @@
       "zh-CN": "个人 Agent"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS"
+    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS",
+    "contextP0_3": {
+      "status": "CI_VERIFIED_P0_3_CONTEXT",
+      "contracts": [
+        "PersonalContextV010",
+        "EnterpriseContextV010",
+        "ActiveContextRefV010",
+        "ResolvedContextSetV010",
+        "ContextMemoryReaderV010"
+      ],
+      "hostResolver": "manager/context-registry.ts",
+      "productionDefault": "PERSONAL_CONTEXT_ONLY",
+      "enterpriseSelection": "HOST_REGISTERED_ONLY_FAIL_CLOSED",
+      "currentContextTool": "context.current.get",
+      "memory": "READ_CONTRACT_ONLY_NO_GENERIC_WRITE",
+      "platformScope": "LEGACY_COMPATIBILITY_PROJECTION",
+      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
+    }
   }
 }

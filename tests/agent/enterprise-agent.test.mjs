@@ -14,9 +14,26 @@ import {
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 
-function hostCatalog(manager, additional = []) {
+const personalContext = {
+  contractVersion: "0.1.0",
+  personalContext: {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:test",
+    displayName: "Test Person"
+  },
+  activeContext: {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:test"
+  }
+};
+
+
+function hostCatalog(manager, additional = [], context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
+    context,
     listProviderBindings() { return []; },
     getProviderHealth(providerId) {
       return {
@@ -55,6 +72,7 @@ test("Host dynamically exposes Enterprise Agent tools with ownership and effect 
     "app.install.execute",
     "app.install.plan",
     "capability.list",
+    "context.current.get",
     "help.search",
     "platform.snapshot.get",
     "provider.binding.list",
@@ -65,6 +83,40 @@ test("Host dynamically exposes Enterprise Agent tools with ownership and effect 
   assert.equal(tools.find(tool => tool.id === "app.install.plan").effect, "PLAN");
   assert.equal(tools.find(tool => tool.id === "app.install.execute").effect, "WRITE");
   assert.equal(tools.every(tool => tool.ownerPackageId === "evo-app-platform"), true);
+});
+
+test("Personal Agent can inspect the Host-resolved current Context", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const catalog = hostCatalog(manager);
+  const observation = await catalog.invoke({
+    tool: "context.current.get",
+    arguments: {}
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.deepEqual(observation.result, personalContext);
+});
+
+test("Personal Agent model receives the Host-resolved Context for the run", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let receivedContext;
+  const model = {
+    async decide(input) {
+      receivedContext = input.context;
+      return { type: "final", message: "ok" };
+    }
+  };
+  const runtime = createEnterpriseAgentRuntime(model, hostCatalog(manager));
+  const reply = await runtime.chat("inspect context", personalContext);
+
+  assert.deepEqual(receivedContext, personalContext);
+  assert.deepEqual(reply.context, personalContext);
 });
 
 test("Host tool catalog can accept a new tool without changing Enterprise Agent core", async () => {
@@ -172,7 +224,7 @@ test("Enterprise Agent installs Company Notes through Host-discovered tools", as
     hostCatalog(manager)
   );
 
-  const reply = await runtime.chat("帮我安装 Company Notes");
+  const reply = await runtime.chat("帮我安装 Company Notes", personalContext);
 
   assert.match(reply.message, /安装完成/);
   assert.deepEqual(reply.observations.map(x => x.tool), [
@@ -181,6 +233,7 @@ test("Enterprise Agent installs Company Notes through Host-discovered tools", as
     "app.install.execute"
   ]);
   assert.ok(reply.tools.some(tool => tool.id === "help.search" && tool.effect === "READ"));
+  assert.deepEqual(reply.context, personalContext);
   assert.deepEqual(manager.getSnapshot().installedPackages.map(x => x.packageId), [
     "company-notes"
   ]);

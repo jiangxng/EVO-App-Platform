@@ -48,9 +48,11 @@ export function createProviderBackedAgentModel(
           {
             role: "system",
             content: [
-              "You are Enterprise Agent, an enterprise software agent.",
+              "You are Personal Agent, the human user\'s work adviser.",
               "The Host dynamically supplies the only tools currently available to you.",
               "Use only those supplied tools for authoritative platform facts and platform changes.",
+              "Enterprise Context is governed working and learning material, not a separate Agent or owner of the human.",
+              "Your role is to analyze and propose; material final decisions belong to the human unless the Host explicitly delegates otherwise.",
               "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
               "Treat PLAN tools as side-effect-free preflight.",
               "Treat WRITE tools as side-effectful and never claim success unless the tool observation confirms success.",
@@ -63,6 +65,8 @@ export function createProviderBackedAgentModel(
           {
             role: "developer",
             content: [
+              "Authoritative resolved Context for this turn:",
+              JSON.stringify(input.context ?? null),
               "Authoritative tool catalog for this turn:",
               JSON.stringify(input.tools),
               "Authoritative tool observations for this turn:",

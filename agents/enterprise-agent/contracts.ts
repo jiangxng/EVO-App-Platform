@@ -1,3 +1,5 @@
+import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
+
 export type AgentToolEffectV010 = "READ" | "PLAN" | "WRITE";
 
 export interface AgentToolDescriptorV010 {
@@ -28,6 +30,7 @@ export interface AgentModelInput {
   userMessage: string;
   tools: AgentToolDescriptorV010[];
   observations: AgentToolObservation[];
+  context?: ResolvedContextSetV010;
 }
 
 export type AgentModelDecision =
@@ -46,13 +49,23 @@ export interface AgentToolCatalogV010 {
   ): Promise<AgentToolObservation>;
 }
 
-export interface EnterpriseAgentReplyV010 {
+export interface PersonalAgentReplyV010 {
   contractVersion: "0.1.0";
+  /**
+   * Compatibility machine id. Product identity is Personal Agent.
+   */
   agentId: "enterprise-agent";
   message: string;
+  context?: ResolvedContextSetV010;
   tools: Array<Pick<
     AgentToolDescriptorV010,
     "id" | "title" | "effect" | "ownerPackageId" | "capability"
   >>;
   observations: AgentToolObservation[];
 }
+
+
+/**
+ * Compatibility alias. New product-facing code should prefer PersonalAgentReplyV010.
+ */
+export type EnterpriseAgentReplyV010 = PersonalAgentReplyV010;

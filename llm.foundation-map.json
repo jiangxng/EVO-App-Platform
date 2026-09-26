@@ -32,7 +32,7 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "NEXT_MINIMAL_CONTRACTS"
+    "contextMemory": "READ_CONTRACT_P0_3"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -56,7 +56,8 @@
     "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED",
     "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED",
     "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
-    "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL"
+    "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
+    "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -205,7 +206,7 @@
       "PLAN",
       "WRITE"
     ],
-    "initialToolCount": 9,
+    "initialToolCount": 10,
     "unknownTool": "FAIL_CLOSED",
     "installPreflight": "HOST_ENFORCED",
     "helpSearch": "IMPLEMENTED",
@@ -215,7 +216,8 @@
     "writeAuthorization": "NEXT_ACTIVE_SLICE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
     "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_PLATFORM_REQUEST_CONTEXT_THEN_AUTHORIZED_WRITE_TOOLS",
-    "productIdentity": "Personal Agent"
+    "productIdentity": "Personal Agent",
+    "currentContextTool": "context.current.get"
   },
   "personFirstWorldModel": {
     "status": "FROZEN_MVP",
@@ -234,7 +236,8 @@
     "enterpriseOwnsHumanIdentity": false,
     "humanDecisionAuthority": true,
     "crossContextMemoryPromotion": "DENY_BY_DEFAULT",
-    "modelIndependentMemory": true
+    "modelIndependentMemory": true,
+    "continuation": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
   },
   "personalAgent": {
     "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
@@ -246,6 +249,19 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MINIMAL_CONTEXT_CONTRACTS_AND_ACTIVE_CONTEXT_TOOL_FILTER"
-  }
+    "next": "MINIMAL_CONTEXT_CONTRACTS_HOST_RESOLUTION_ACTIVE_CONTEXT_TOOL_CATALOG",
+    "contextP0_3": {
+      "status": "CI_VERIFIED_P0_3_CONTEXT",
+      "contextOwnership": "HOST_RESOLVED",
+      "default": "PERSONAL_ONLY",
+      "enterpriseSelection": "KNOWN_HOST_CONTEXT_ONLY",
+      "requestForgery": "FAIL_CLOSED",
+      "currentTool": "context.current.get",
+      "modelInput": "RESOLVED_CONTEXT",
+      "memory": "READ_CONTRACT_ONLY",
+      "fullIam": "DEFERRED",
+      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
+    }
+  },
+  "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
 }

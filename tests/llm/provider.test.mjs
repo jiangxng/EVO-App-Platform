@@ -16,9 +16,24 @@ import {
   enterpriseAgentPackage
 } from "../../dist/catalog/seed.js";
 
-function agentToolCatalog(manager) {
+const personalContext = {
+  contractVersion: "0.1.0",
+  personalContext: {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:test"
+  },
+  activeContext: {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:test"
+  }
+};
+
+function agentToolCatalog(manager, context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
+    context,
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
     searchHelp() { return []; }
@@ -162,7 +177,8 @@ test("Enterprise Agent chat fails closed without a configured LLM runtime", asyn
     resolveLlmProvider: () => ({
       installedProviderIds: ["openai.responses"]
     }),
-    createToolCatalog: () => agentToolCatalog(manager)
+    resolveContext: () => personalContext,
+    createToolCatalog: (_locale, context) => agentToolCatalog(manager, context)
   });
 
   const result = await handler.execute({
@@ -219,7 +235,8 @@ test("Enterprise Agent uses a generic LLM provider to drive App Manager tools", 
       installedProviderIds: ["fake"],
       provider
     }),
-    createToolCatalog: () => agentToolCatalog(manager)
+    resolveContext: () => personalContext,
+    createToolCatalog: (_locale, context) => agentToolCatalog(manager, context)
   });
 
   const result = await handler.execute({
@@ -234,6 +251,7 @@ test("Enterprise Agent uses a generic LLM provider to drive App Manager tools", 
 
   assert.equal(result.ok, true);
   assert.equal(result.result.message, "安装完成");
+  assert.deepEqual(result.result.context, personalContext);
   assert.equal(
     manager.getSnapshot().installedPackages.some(x => x.packageId === "company-notes"),
     true

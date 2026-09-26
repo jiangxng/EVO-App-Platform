@@ -77,7 +77,7 @@ function responseTools(tools: readonly AgentToolDescriptorV010[]) {
 /**
  * Historical direct OpenAI AgentModel adapter.
  *
- * Production Enterprise Agent uses the generic llm.inference Provider boundary.
+ * Production Personal Agent uses the generic llm.inference Provider boundary.
  * This adapter remains migration/reference evidence and therefore consumes the
  * same dynamic Host tool descriptors instead of preserving the old fixed tool list.
  */
@@ -102,8 +102,10 @@ export function createOpenAIResponsesAgentModel(
         body: JSON.stringify({
           model,
           instructions: [
-            "You are Enterprise Agent, an enterprise software agent.",
+            "You are Personal Agent, the human user\'s work adviser.",
             "Use only the tools supplied by the Host for this turn.",
+            "Enterprise Context is governed working and learning material, not a separate Agent.",
+            "Analyze and propose; material final decisions belong to the human unless the Host explicitly delegates otherwise.",
             "Prefer READ tools to inspect authoritative state before asking the human.",
             "PLAN tools are side-effect-free preflight.",
             "WRITE tools are side-effectful; never claim success unless the Host observation confirms success.",
@@ -118,6 +120,8 @@ export function createOpenAIResponsesAgentModel(
             {
               role: "developer",
               content: [
+                "Authoritative Host-resolved Context:",
+                JSON.stringify(input.context ?? null),
                 "Authoritative Host tool catalog:",
                 JSON.stringify(input.tools),
                 "Tool observations from this turn (authoritative):",

@@ -55,13 +55,15 @@ Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modif
 For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. For independent manifest authoring, load `contracts/schema/plugin-package-v0.1.schema.json` and `contracts/schema/plugin-feature-v0.1.schema.json` first, then the plugin's own manifest and only its direct public contracts. Use `npm run plugin:validate -- <manifest.json>` for canonical semantic validation. Do not load or test the whole plugin portfolio by default.
 
 
-## Current handoff — 2026-09-23
+## Current handoff — 2026-09-26
 
-Before continuing the current short-term mainline, read:
+Before continuing the current mainline, read:
 
-`docs/roadmap/HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md`
+`docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md`
 
-It records the user-confirmed local Proof A/Proof B, the CI-verified Proof C real EVO public-command integration, the remaining local browser proof, and the next public query/result slice.
+It protects the founder-confirmed Person-first world model, Personal Agent identity, Personal/Enterprise Context Memory distinction, human decision authority, compatibility migration strategy and immediate Context implementation boundary.
+
+The older `HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md` remains historical implementation evidence, not the current product-world-model authority.
 
 When `project.status.json` contains a `handoff` field, treat that referenced document as required continuation context.
 
@@ -443,3 +445,16 @@ Every exposed tool declares `READ | PLAN | WRITE`. Effect metadata is not author
 P0.2 Host registrations include platform snapshot/capability, catalog/install, Provider observation and Help search. Do not add a tool name to Agent core just because a new Package needs a tool. A real second tool owner should drive the future Plugin Protocol `agent.tool` contribution.
 
 Never expose stored Secret plaintext through Agent descriptors, observations or prompts. LLM credentials remain inside the Secrets Provider / LLM Provider runtime boundary.
+
+
+## Host-owned Context rule
+
+Before changing Personal Agent context selection or Context Memory, read `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md` and the current handoff.
+
+Request/browser/model data may select a Context only from a Host-owned registry/provider result. It MUST NOT manufacture an Enterprise Context by supplying arbitrary `enterpriseId` / `contextId` values.
+
+Until Identity/Session/Grant is executable, production defaults to the Host Personal Context and exposes no Enterprise Context unless one is explicitly registered by a trusted Host/provider boundary.
+
+Prefer `ResolvedContextSetV010` / `ActiveContextRefV010` for new Personal Agent code. `PlatformScopeV010` remains compatibility state and must not be used to recreate Enterprise-owned User semantics.
+
+Context Memory P0.3 is read-only contract surface. Do not add a generic learn/write API before Memory Attribution, provenance and cross-context ownership policy are explicit.
