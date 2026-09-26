@@ -1,12 +1,12 @@
-import type { AppManagerService } from "../manager/service.js";
-import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
-import type { ProviderBindingStoreV010 } from "../manager/provider-resolution.js";
-import { resolveProviderRuntimeV010 } from "../manager/provider-resolution.js";
-import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type { AppManagerService } from "../../manager/service.js";
+import type { ProviderRuntimeRegistry } from "../../providers/runtime-registry.js";
+import type { ProviderBindingStoreV010 } from "../../manager/provider-resolution.js";
+import { resolveProviderRuntimeV010 } from "../../manager/provider-resolution.js";
+import type { LlmInferenceProvider } from "../../contracts/llm.js";
 import {
   packageHasConfiguration,
   settingsPackageRoute
-} from "../manager/settings-page.js";
+} from "../../manager/settings-page.js";
 
 export type PersonalAgentReadinessStateV010 =
   | "READY"
