@@ -57,7 +57,8 @@
     "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED",
     "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
     "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
-    "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT"
+    "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT",
+    "personalAgentProductExperience": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -161,7 +162,7 @@
     "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
     "canonicalModel": "REPOSITORY_MARKDOWN_TO_EIDOS_HELP_DOCUMENT",
     "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
-    "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3",
+    "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
     "workbench": "SECONDARY_HELP_ACTIVITY_SIDE_CATALOG_MAIN_WORKSPACE_DOCUMENT",
     "searchP0": "DETERMINISTIC_LOCAL_FILTER_AND_HOST_SEARCH_CONTEXT_API",
     "ci": "CORPUS_METADATA_RELATED_REQUIRED_SEED_VALIDATION",
@@ -249,7 +250,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MINIMAL_CONTEXT_CONTRACTS_HOST_RESOLUTION_ACTIVE_CONTEXT_TOOL_CATALOG",
+    "next": "P0_4_EXECUTABLE_CI_VALIDATION_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -263,7 +264,7 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
     },
     "productExperience": {
-      "status": "DESIGN_BASELINE_PROPOSED",
+      "status": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
       "eidosFirst": true,
       "requiredEidosPatterns": [
@@ -273,15 +274,19 @@
       ],
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
-      "providerConfigurationOwner": "PROVIDER_PACKAGE",
-      "next": "EIDOS_P0_4A",
+      "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
+      "next": "EXECUTABLE_CI_THEN_MERGE",
       "locales": [
         "en",
         "zh-CN",
         "ja",
         "zh-TW"
       ],
-      "localization": "FOUR_LOCALE_REQUIRED_NEW_SURFACES"
+      "localization": "FOUR_LOCALE_IMPLEMENTED",
+      "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
+      "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED",
+      "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
