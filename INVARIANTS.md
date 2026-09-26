@@ -145,3 +145,10 @@
 
 - **APP-122** Help localization is variant-based and identity-stable. Locale variants of one Help document MUST share the same document ID, route and machine semantics; locale resolution is per document with deterministic fallback, so one missing translation MUST NOT remove unrelated Help from the effective index.
 - **APP-123** Eidos Productive Design Language is mandatory for ordinary App Platform human surfaces. App Platform supplies semantics/content/lifecycle data but MUST NOT add parallel Workbench/Help CSS, inline visual styling, raw replacement controls or non-Eidos standard icons. A missing reusable visual/interaction pattern MUST be implemented in Eidos first.
+
+- **APP-124** Package Secret declarations contain metadata only. Plaintext, encrypted credential payloads and default Secret values MUST NOT be Package Manifest content.
+- **APP-125** Secret values cross runtime boundaries only through the Host-owned `secrets.resolve` Provider contract. Ordinary SettingsStore, Help, logs, lifecycle state and Package source MUST NOT become Secret storage.
+- **APP-126** Stored Secret plaintext MUST NOT be returned to the browser after save. Workbench may display configured/not-configured metadata and accept replacement/removal input through Eidos secret controls.
+- **APP-127** Secret mutation is a privileged server-side administration action and MUST fail closed without authentication + `authorization.check` approval. Secret audit records MUST contain target metadata/outcome but never the Secret or raw authentication credential.
+- **APP-128** The P0 Host encrypted Secret store uses authenticated encryption and a Host-owned master key separate from encrypted state. Production file-backed Secrets require durable Host storage; process-local/ephemeral storage is development-only.
+- **APP-129** LLM/provider credentials are runtime configuration, not deployment configuration. Provider Packages SHOULD resolve them through `secrets.resolve`; environment-variable credentials may exist only as explicit compatibility/migration paths, not the normal Workbench UX.
