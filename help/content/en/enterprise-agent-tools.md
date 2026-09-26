@@ -128,3 +128,19 @@ The effective Context response includes pending non-expired invitations and owne
 
 > [!IMPORTANT] Governance WRITE has two gates
 > Host relationship rules and `authorization.check` must both allow the operation. A permissive policy Provider cannot override structural OWNER/ADMIN rules.
+
+
+## Governed Context Memory
+
+P0.9 adds durable Context Memory through the replaceable `context.memory.read` and `context.memory.write` Provider capabilities.
+
+Every Memory belongs to exactly one Personal or Enterprise Context and carries immutable provenance plus attribution. Existing Memory records are append-only: corrections create a new record with `supersedesMemoryId` rather than rewriting history.
+
+`context.memory.record` records a confirmed Memory in the current Context. Personal Memory requires the current Principal to own that Personal Context. Enterprise Memory requires an ACTIVE OWNER, ADMIN or MEMBER relationship; AUDITOR is read-only. `authorization.check` must also ALLOW the write.
+
+`context.memory.promote` creates a new Memory in another Host-authorized Context while preserving the source Context and `sourceMemoryId`. Promotion requires explicit confirmation, write authority on both source and target Contexts, and an explicit authorization ALLOW. It is deny-by-default.
+
+Personal Agent receives the READ-only `context.memory.search` tool. The Host binds that tool to the current resolved Active Context; the model cannot supply another Context id to read arbitrary Memory.
+
+> [!IMPORTANT] Memory is not automatic chat history
+> P0.9 does not silently persist model conversations or automatically synchronize Personal and Enterprise Memory. Durable writes are governed Human-confirmed Actions.
