@@ -3,7 +3,10 @@ import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import type { ProviderBindingStoreV010 } from "../manager/provider-resolution.js";
 import { resolveProviderRuntimeV010 } from "../manager/provider-resolution.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
-import { settingsPackageRoute } from "../manager/settings-page.js";
+import {
+  packageHasConfiguration,
+  settingsPackageRoute
+} from "../manager/settings-page.js";
 
 export type PersonalAgentReadinessStateV010 =
   | "READY"
@@ -65,7 +68,9 @@ function candidatePackages(
         installed: installed.has(pkg.packageId),
         active: active.has(pkg.packageId),
         runtimeReady: providerIds.some(id => registry.has(id)),
-        settingsRoute: settingsPackageRoute(pkg.packageId)
+        ...(packageHasConfiguration(pkg)
+          ? { settingsRoute: settingsPackageRoute(pkg.packageId) }
+          : {})
       } satisfies PersonalAgentProviderCandidateV010;
     })
     .filter((item): item is PersonalAgentProviderCandidateV010 => item !== undefined)
@@ -101,15 +106,43 @@ export function evaluatePersonalAgentReadinessV010(
     };
   }
 
-  const runtimeCandidates = activeDescriptors
-    .filter(descriptor => registry.has(descriptor.providerId));
+  const applicableBindings = bindings.list("llm.inference")
+    .filter(binding =>
+      binding.scope === "SYSTEM"
+      || (binding.scope === "INSTALLATION" && binding.scopeId === "default")
+    )
+    .sort((a, b) =>
+      (a.scope === "INSTALLATION" ? -1 : 0) - (b.scope === "INSTALLATION" ? -1 : 0)
+      || (b.priority ?? 0) - (a.priority ?? 0)
+      || a.providerId.localeCompare(b.providerId)
+    );
 
-  if (runtimeCandidates.length === 0) {
+  const activeProviderIds = [...new Set(activeDescriptors.map(item => item.providerId))].sort();
+  const selectedByBinding = applicableBindings.find(binding =>
+    activeProviderIds.includes(binding.providerId)
+  )?.providerId;
+
+  if (activeProviderIds.length > 1 && !selectedByBinding) {
+    return {
+      contractVersion: "0.1.0",
+      state: "SETUP_REQUIRED",
+      code: "PROVIDER_AMBIGUOUS",
+      message: "Choose which LLM Provider Personal Agent should use.",
+      candidates
+    };
+  }
+
+  const selectedProviderId = selectedByBinding ?? activeProviderIds[0];
+  const selectedDescriptor = activeDescriptors.find(item => item.providerId === selectedProviderId);
+
+  if (!selectedProviderId || !registry.has(selectedProviderId)) {
     return {
       contractVersion: "0.1.0",
       state: "SETUP_REQUIRED",
       code: "PROVIDER_NOT_CONFIGURED",
-      message: "The installed LLM Provider needs credentials or runtime configuration.",
+      message: "The selected LLM Provider needs credentials or runtime configuration.",
+      ...(selectedProviderId ? { providerId: selectedProviderId } : {}),
+      ...(selectedDescriptor ? { providerPackageId: selectedDescriptor.packageId } : {}),
       candidates
     };
   }
