@@ -32,7 +32,8 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "READ_CONTRACT_P0_3"
+    "contextMemory": "READ_CONTRACT_P0_3",
+    "enterpriseContextProvider": "NOW_IMPLEMENTED_P0_5"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -58,7 +59,9 @@
     "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
     "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
     "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT",
-    "personalAgentProductExperience": "CI_VERIFIED_P0_4"
+    "personalAgentProductExperience": "CI_VERIFIED_P0_4",
+    "enterpriseContextProvider": "IMPLEMENTED_P0_5_PENDING_FINAL_DOCS_CI",
+    "personalAgentEnterpriseContext": "PROVIDER_BACKED_SELECTABLE_FAIL_CLOSED_READ_ONLY"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -162,7 +165,7 @@
     "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
     "canonicalModel": "REPOSITORY_MARKDOWN_TO_EIDOS_HELP_DOCUMENT",
     "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
-    "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+    "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
     "workbench": "SECONDARY_HELP_ACTIVITY_SIDE_CATALOG_MAIN_WORKSPACE_DOCUMENT",
     "searchP0": "DETERMINISTIC_LOCAL_FILTER_AND_HOST_SEARCH_CONTEXT_API",
     "ci": "CORPUS_METADATA_RELATED_REQUIRED_SEED_VALIDATION",
@@ -250,7 +253,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MERGE_P0_4_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+    "next": "P0_5_FINAL_CI_THEN_MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -261,7 +264,7 @@
       "modelInput": "RESOLVED_CONTEXT",
       "memory": "READ_CONTRACT_ONLY",
       "fullIam": "DEFERRED",
-      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
+      "next": "P0_5_DELIVERED_THEN_PRINCIPAL_SESSION_GRANT"
     },
     "productExperience": {
       "status": "CI_VERIFIED_P0_4",
@@ -275,7 +278,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "MERGE_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+      "next": "P0_5_FINAL_CI_THEN_PRINCIPAL_SESSION_GRANT",
       "locales": [
         "en",
         "zh-CN",
@@ -283,10 +286,28 @@
         "zh-TW"
       ],
       "localization": "FOUR_LOCALE_IMPLEMENTED",
-      "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
       "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED",
       "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
+    },
+    "contextP0_5": {
+      "status": "IMPLEMENTED_PENDING_FINAL_DOCS_CI",
+      "authority": "docs/architecture/ENTERPRISE-CONTEXT-PROVIDER-P0.5-v0.1.md",
+      "providerCapability": "enterprise.directory",
+      "providerContract": "EnterpriseContextProviderV010",
+      "referenceProvider": "host.enterprise-context",
+      "hostSource": "APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON",
+      "contextSelector": "EIDOS_CHAT_V0_2_GENERIC_SELECTOR",
+      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+      "tools": [
+        "context.available.list",
+        "context.current.get"
+      ],
+      "selection": "HOST_OFFERED_ONLY_FAIL_CLOSED",
+      "usage": "READ_ONLY_REASONING",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
