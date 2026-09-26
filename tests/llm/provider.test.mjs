@@ -10,10 +10,35 @@ import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secret
 import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
 import { createProviderBackedAgentModel } from "../../dist/agents/enterprise-agent/provider-model.js";
 import { createEnterpriseAgentChatActionHandler } from "../../dist/agents/enterprise-agent/chat-action-handler.js";
+import { createEnterpriseAgentHostToolCatalogV010 } from "../../dist/agents/enterprise-agent/host-tool-catalog.js";
 import {
   companyNotesPackage,
   enterpriseAgentPackage
 } from "../../dist/catalog/seed.js";
+
+function agentToolCatalog(manager) {
+  return createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    searchHelp() { return []; }
+  });
+}
+
+const catalogListTool = {
+  contractVersion: "0.1.0",
+  id: "app.catalog.list",
+  modelName: "app_catalog_list",
+  title: "Package catalog",
+  description: "List Packages currently available in the App Manager catalog.",
+  inputSchema: {
+    type: "object",
+    properties: {},
+    additionalProperties: false
+  },
+  effect: "READ",
+  ownerPackageId: "evo-app-platform"
+};
 
 test("OpenAI LLM provider is an ordinary lifecycle-managed platform provider", () => {
   const catalog = createPackageCatalog([
@@ -119,7 +144,11 @@ test("Enterprise Agent model is provider-neutral", async () => {
     }
   });
 
-  const decision = await model.decide({ userMessage: "列出应用", observations: [] });
+  const decision = await model.decide({
+    userMessage: "列出应用",
+    tools: [catalogListTool],
+    observations: []
+  });
   assert.equal(decision.type, "tool");
   assert.equal(decision.call.tool, "app.catalog.list");
 });
@@ -130,10 +159,10 @@ test("Enterprise Agent chat fails closed without a configured LLM runtime", asyn
     createMemoryLifecycleStore()
   );
   const handler = createEnterpriseAgentChatActionHandler({
-    manager,
     resolveLlmProvider: () => ({
       installedProviderIds: ["openai.responses"]
-    })
+    }),
+    createToolCatalog: () => agentToolCatalog(manager)
   });
 
   const result = await handler.execute({
@@ -186,11 +215,11 @@ test("Enterprise Agent uses a generic LLM provider to drive App Manager tools", 
   };
 
   const handler = createEnterpriseAgentChatActionHandler({
-    manager,
     resolveLlmProvider: () => ({
       installedProviderIds: ["fake"],
       provider
-    })
+    }),
+    createToolCatalog: () => agentToolCatalog(manager)
   });
 
   const result = await handler.execute({
