@@ -2,6 +2,7 @@ import type { AppManagerService } from "../../manager/service.js";
 import type { ProviderBindingV010 } from "../../manager/provider-resolution.js";
 import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry.js";
 import type { HelpContextSelectorsV010, HelpSearchResultV010 } from "../../manager/help-system.js";
+import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
 import type {
   AgentToolCall,
   AgentToolCatalogV010,
@@ -20,6 +21,7 @@ export interface EnterpriseAgentToolRegistrationV010 {
 
 export interface EnterpriseAgentHostToolDependenciesV010 {
   manager: AppManagerService;
+  context: ResolvedContextSetV010;
   listProviderBindings(capability?: string): ProviderBindingV010[];
   getProviderHealth(providerId: string): ProviderRuntimeHealthV010;
   searchHelp(
@@ -70,6 +72,25 @@ export function createEnterpriseAgentHostToolCatalogV010(
   additional: readonly EnterpriseAgentToolRegistrationV010[] = []
 ): AgentToolCatalogV010 {
   const registrations: EnterpriseAgentToolRegistrationV010[] = [
+    {
+      descriptor: descriptor({
+        id: "context.current.get",
+        modelName: "context_current_get",
+        title: "Current Context",
+        description: "Read the Host-resolved Personal Context and current active Context for this Agent run.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "agent.personal"
+      }),
+      execute() {
+        return structuredClone(dependencies.context);
+      }
+    },
     {
       descriptor: descriptor({
         id: "platform.snapshot.get",
