@@ -162,3 +162,28 @@ Rejecting is terminal and creates no Memory.
 
 > [!IMPORTANT] Evidence quality is conservative
 > `REFERENCED` means evidence references are present. It does not mean the Host verified that those references are true or authoritative.
+
+
+## Governed Memory intake and evidence sources
+
+P1.1 allows external or internal knowledge sources to stage Memory Proposals without bypassing Human review.
+
+The intake command is:
+
+`context.memory.intake.run`
+
+A successful intake run requires a request-bound HUMAN Principal, explicit confirmation, current Context Memory write authority, and an `authorization.check` ALLOW. It creates or deduplicates **PENDING Memory Proposals** and append-only intake receipts. It does not create durable Context Memory.
+
+Evidence sources have stable identities and one of three source-assurance levels:
+
+- `UNVERIFIED`
+- `DECLARED`
+- `HOST_VERIFIED`
+
+These levels describe source identity/integrity assurance. They do not mean the source content is true. Even a HOST_VERIFIED Experience Compiler source still requires Human review before Memory materialization.
+
+Equivalent pending intake candidates are fingerprint-deduplicated before review. Additional evidence is merged by appending a new Proposal revision; previous revisions are never rewritten. ACCEPTED or REJECTED Proposals are terminal and are not silently enriched later.
+
+Experience Compiler integrates through the generic `ContextMemoryIntakeSourceAdapterV010` boundary. App Platform does not depend on EC internals.
+
+The reference Context Memory Reader now reports its explicit retrieval strategy and ranking signals. The Host reference implementation supports deterministic `LEXICAL` retrieval only and fails closed for unsupported SEMANTIC/HYBRID requests rather than silently degrading.
