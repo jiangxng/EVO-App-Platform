@@ -20,7 +20,10 @@ test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Pan
 test("Personal Agent remains a zero-config Chat Experience inside the Workbench", () => {
   const page = enterpriseAgentExperienceAssets.get("app://enterprise-agent/pages/home");
   assert.equal(page.kind, "chat");
+  assert.equal(page.contractVersion, "0.2.0");
   assert.equal(page.command.code, "enterprise-agent.chat");
+  assert.equal(page.context.value, "Personal");
+  assert.equal(page.readiness.state, "setup-required");
   assert.equal(page.composer.key, "message");
   assert.equal(page.fields, undefined);
   assert.equal(page.actions, undefined);
@@ -60,9 +63,23 @@ test("enterprise-agent compatibility identifiers present the product as Personal
     contribution => contribution.kind === "eidos.workbench-activity"
   );
   assert.equal(activity.activity.title, "Personal Agent");
-  const zh = enterpriseAgentPackage.features[0].contributions.find(
-    contribution => contribution.kind === "eidos.localization-bundle"
-      && contribution.bundle.locale === "zh-CN"
+  const bundles = enterpriseAgentPackage.features[0].contributions
+    .filter(contribution => contribution.kind === "eidos.localization-bundle");
+  assert.deepEqual(
+    bundles.map(contribution => contribution.bundle.locale).sort(),
+    ["en", "ja", "zh-CN", "zh-TW"]
   );
+  const zh = bundles.find(contribution => contribution.bundle.locale === "zh-CN");
+  const ja = bundles.find(contribution => contribution.bundle.locale === "ja");
+  const tw = bundles.find(contribution => contribution.bundle.locale === "zh-TW");
   assert.equal(zh.bundle.messages["workbench.activity.label"], "个人 Agent");
+  assert.equal(ja.bundle.messages["workbench.activity.label"], "パーソナルエージェント");
+  assert.equal(tw.bundle.messages["workbench.activity.label"], "個人 Agent");
+  assert.equal(
+    enterpriseAgentPackage.features[0].contributions
+      .find(contribution => contribution.kind === "eidos.experience")
+      .manifest.routes
+      .some(route => route.path === "/enterprise-agent/setup"),
+    true
+  );
 });
