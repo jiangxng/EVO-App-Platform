@@ -889,7 +889,8 @@ const server = createServer(async (request, response) => {
       if (source === ENTERPRISE_AGENT_PAGE_SOURCE) {
         return json(response, 200, createPersonalAgentChatPageV020(
           personalAgentReadiness(),
-          contextRegistry.resolve()
+          contextRegistry.resolve(),
+          requestedLocale(url)
         ));
       }
       if (source === PERSONAL_AGENT_SETUP_PAGE_SOURCE) {
