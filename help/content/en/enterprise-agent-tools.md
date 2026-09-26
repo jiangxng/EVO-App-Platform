@@ -6,21 +6,21 @@
   "ownerFeatureId": "enterprise-agent.default",
   "locale": "en",
   "kind": "concept",
-  "title": "Enterprise Agent tools",
-  "summary": "Understand how Enterprise Agent discovers and invokes Host-authorized platform tools.",
+  "title": "Personal Agent tools",
+  "summary": "Understand how Personal Agent discovers and invokes Host-authorized platform tools.",
   "audiences": ["user", "admin", "operator", "developer", "agent"],
   "tags": ["enterprise-agent", "tools", "tool-discovery", "agent"],
   "contexts": {
     "packageIds": ["enterprise-agent"],
     "featureIds": ["enterprise-agent.default"],
-    "capabilities": ["agent.enterprise.tool-discovery"],
+    "capabilities": ["agent.personal.tool-discovery", "agent.enterprise.tool-discovery"],
     "commands": ["enterprise-agent.chat"]
   },
   "related": ["evo.authorization.authentication-vs-authorization", "evo.provider.model", "evo.workbench.overview"],
   "lastReviewedAt": "2026-09-26"
 }
 ---
-Enterprise Agent does not contain a fixed list of platform tools. The App Platform Host supplies the effective tool catalog for each Agent run.
+Personal Agent does not contain a fixed list of platform tools. The App Platform Host supplies the effective tool catalog for each Agent run.
 
 ## Tool effects
 
@@ -32,7 +32,7 @@ A tool being visible to the Agent is not the same as authorization to execute it
 
 ## Current observation tools
 
-Enterprise Agent can inspect the platform snapshot, effective Capabilities, Package catalog, Providers, Provider health, Provider bindings and authoritative Platform Help.
+Personal Agent can inspect the platform snapshot, effective Capabilities, Package catalog, Providers, Provider health, Provider bindings and authoritative Platform Help.
 
 ## Installation tools
 
@@ -47,4 +47,4 @@ Package installation keeps a Host-enforced safety sequence:
 
 ## Credentials
 
-Enterprise Agent never receives saved API Key plaintext. LLM credentials stay inside the Host Secrets Provider and LLM Provider runtime boundary.
+Personal Agent never receives saved API Key plaintext. LLM credentials stay inside the Host Secrets Provider and LLM Provider runtime boundary.
