@@ -410,7 +410,9 @@
         "provider.binding.update",
         "provider.health.probe",
         "provider.governance.audit.read"
-      ]
+      ],
+      "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
+      "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
     }
   },
   "dependencyReproducibility": {
