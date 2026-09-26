@@ -33,6 +33,8 @@ export interface ContextMemoryProposalServiceV010 {
     context: ActiveContextRefV010;
     draft: ContextMemoryProposalDraftV010;
     authoredBy?: "PERSONAL_AGENT" | "SOURCE_ADAPTER";
+    proposalId?: string;
+    revisionId?: string;
   }): Promise<ContextMemoryProposalV010>;
   list(contextIds?: readonly string[]): ContextMemoryProposalV010[];
   get(proposalId: string): ContextMemoryProposalV010 | undefined;
@@ -237,7 +239,8 @@ export function createContextMemoryProposalServiceV010(input: {
     context: ActiveContextRefV010,
     principal: PlatformPrincipalV010,
     draft: ContextMemoryProposalDraftV010,
-    authoredBy: "PERSONAL_AGENT" | "SOURCE_ADAPTER" | "HUMAN"
+    authoredBy: "PERSONAL_AGENT" | "SOURCE_ADAPTER" | "HUMAN",
+    forcedRevisionId?: string
   ): Promise<ContextMemoryProposalRevisionV010> {
     const kind = validKind(draft.kind);
     const summary = validSummary(draft.summary);
@@ -256,7 +259,7 @@ export function createContextMemoryProposalServiceV010(input: {
 
     return {
       contractVersion: "0.1.0",
-      revisionId: `memory-proposal-revision:${id()}`,
+      revisionId: forcedRevisionId?.trim() || `memory-proposal-revision:${id()}`,
       kind,
       summary,
       evidenceRefs,
@@ -329,23 +332,55 @@ export function createContextMemoryProposalServiceV010(input: {
   }
 
   return {
-    async create({ principal, context, draft, authoredBy = "PERSONAL_AGENT" }) {
+    async create({
+      principal,
+      context,
+      draft,
+      authoredBy = "PERSONAL_AGENT",
+      proposalId: requestedProposalId,
+      revisionId: requestedRevisionId
+    }) {
+      const snapshot = input.store.snapshot();
+      const proposalId = requestedProposalId?.trim() || `memory-proposal:${id()}`;
+      const existing = snapshot.proposals.find(item => item.proposalId === proposalId);
+      if (existing) {
+        const current = latest(existing);
+        const expectedKind = validKind(draft.kind);
+        const expectedSummary = validSummary(draft.summary);
+        const expectedEvidenceRefs = canonicalStrings(draft.evidenceRefs);
+        const expectedEvidenceSources = canonicalEvidenceSources(draft.evidenceSources);
+        const existingEvidenceSources = canonicalEvidenceSources(current.evidenceSources);
+        if (
+          !sameContextRefV010(existing.context, context)
+          || current.kind !== expectedKind
+          || current.summary !== expectedSummary
+          || JSON.stringify(current.evidenceRefs) !== JSON.stringify(expectedEvidenceRefs)
+          || JSON.stringify(existingEvidenceSources) !== JSON.stringify(expectedEvidenceSources)
+          || current.proposedConfidence !== validConfidence(draft.proposedConfidence)
+          || current.observedAt !== validObservedAt(draft.observedAt)
+          || current.supersedesMemoryId !== (draft.supersedesMemoryId?.trim() || undefined)
+        ) {
+          throw new Error(`CONTEXT_MEMORY_PROPOSAL_IDEMPOTENCY_CONFLICT: ${proposalId}`);
+        }
+        return structuredClone(existing);
+      }
+
       const revision = await revisionFor(
         context,
         principal,
         draft,
-        authoredBy
+        authoredBy,
+        requestedRevisionId
       );
       const proposal: ContextMemoryProposalV010 = {
         contractVersion: "0.1.0",
-        proposalId: `memory-proposal:${id()}`,
+        proposalId,
         context: structuredClone(context),
         state: "PENDING",
         createdAt: revision.createdAt,
         createdBySubjectId: principal.subjectId,
         revisions: [revision]
       };
-      const snapshot = input.store.snapshot();
       input.store.save({
         contractVersion: "0.1.0",
         proposals: [...snapshot.proposals, proposal]
