@@ -293,7 +293,11 @@ export function createEnterpriseRelationshipActionHandlersV010(
       const at = now();
       const snapshot = dependencies.store.snapshot();
       requireActiveGovernedContext(snapshot, contextId);
-      requireRole(snapshot, contextId, actor, ["OWNER", "ADMIN"]);
+      if (kind === "ADMIN") {
+        requireRole(snapshot, contextId, actor, ["OWNER"]);
+      } else {
+        requireRole(snapshot, contextId, actor, ["OWNER", "ADMIN"]);
+      }
       if (
         activeRelationships(snapshot, contextId, targetSubjectId)
           .some(item => item.kind === kind)
@@ -557,10 +561,14 @@ export function createEnterpriseRelationshipActionHandlersV010(
       const at = now();
       const snapshot = dependencies.store.snapshot();
       requireActiveGovernedContext(snapshot, contextId);
-      requireRole(snapshot, contextId, actor, ["OWNER", "ADMIN"]);
       const invitation = snapshot.invitations.find(item => item.invitationId === invitationId);
       if (!invitation || invitation.contextId !== contextId) {
         throw new Error("ENTERPRISE_INVITATION_NOT_FOUND");
+      }
+      if (invitation.kind === "ADMIN") {
+        requireRole(snapshot, contextId, actor, ["OWNER"]);
+      } else {
+        requireRole(snapshot, contextId, actor, ["OWNER", "ADMIN"]);
       }
       if (invitation.state !== "PENDING") {
         throw new Error(`ENTERPRISE_INVITATION_NOT_PENDING: ${invitation.state}`);
