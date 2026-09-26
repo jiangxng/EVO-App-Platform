@@ -178,6 +178,7 @@ export function createEnterpriseContextCreationActionHandlerV010(
         const grantId = `grant:${nextId()}`;
         const creatingEventId = `lifecycle:${nextId()}`;
         const activeEventId = `lifecycle:${nextId()}`;
+        const ownerActivatedEventId = `relationship-event:${nextId()}`;
 
         const context: EnterpriseContextV010 = {
           contractVersion: "0.1.0",
@@ -212,6 +213,9 @@ export function createEnterpriseContextCreationActionHandlerV010(
           subjectId: requestContext.principal.subjectId,
           contextId,
           relationship: "OWNER",
+          state: "ACTIVE",
+          createdAt,
+          createdBySubjectId: requestContext.principal.subjectId,
           attributes: {
             source: "enterprise.context.create"
           }
@@ -240,6 +244,21 @@ export function createEnterpriseContextCreationActionHandlerV010(
               to: "ACTIVE",
               occurredAt: createdAt,
               actorSubjectId: requestContext.principal.subjectId
+            }
+          ],
+          invitations: snapshot.invitations,
+          ownershipTransfers: snapshot.ownershipTransfers,
+          relationshipEvents: [
+            ...snapshot.relationshipEvents,
+            {
+              contractVersion: "0.1.0",
+              eventId: ownerActivatedEventId,
+              contextId,
+              type: "RELATIONSHIP_ACTIVATED",
+              occurredAt: createdAt,
+              actorSubjectId: requestContext.principal.subjectId,
+              subjectId: requestContext.principal.subjectId,
+              relationshipId: owner.relationshipId
             }
           ]
         });
