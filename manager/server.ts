@@ -55,6 +55,7 @@ import {
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
+  EnterpriseContextProviderV010,
   ManagedSecretsProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
@@ -99,6 +100,17 @@ import {
   createHostStaticAuthorizationProviderV010,
   parseHostStaticAuthorizationPolicyV010
 } from "../providers/authorization/runtime.js";
+import {
+  ENTERPRISE_CONTEXT_CAPABILITY,
+  HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
+  HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  hostEnterpriseContextProviderPackage
+} from "../providers/enterprise-context/package.js";
+import {
+  createHostEnterpriseContextHealthProbeV010,
+  createHostEnterpriseContextProviderV010,
+  parseHostEnterpriseContextsV010
+} from "../providers/enterprise-context/runtime.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -170,6 +182,7 @@ const catalog = createPackageCatalog([
   hostRemoteCredentialProviderPackage,
   hostStaticAuthorizationProviderPackage,
   hostEncryptedSecretsProviderPackage,
+  hostEnterpriseContextProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -232,6 +245,24 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+const hostEnterpriseContexts = parseHostEnterpriseContextsV010(
+  process.env.APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON
+);
+if (hostEnterpriseContexts) {
+  providerRuntimeRegistry.replace<EnterpriseContextProviderV010>(
+    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+    createHostEnterpriseContextProviderV010(hostEnterpriseContexts)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+    createHostEnterpriseContextHealthProbeV010(hostEnterpriseContexts)
+  );
+  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: `Host Enterprise Context directory loaded with ${hostEnterpriseContexts.length} context(s).`,
+    checkedAt: new Date().toISOString()
+  });
+}
 providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
   createHostEncryptedSecretsProviderV010(secretStore)
@@ -368,6 +399,17 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 const installedAtStartup = manager.getSnapshot().installedPackages;
+if (
+  hostEnterpriseContexts
+  && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_ENTERPRISE_CONTEXT_PACKAGE_ID);
+    console.log("Activated Host Enterprise Context Provider from Host-owned configuration.");
+  } catch (error) {
+    console.error("Failed to activate Host Enterprise Context Provider.", error);
+  }
+}
 const hasInstalledSecretConsumer = installedAtStartup.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
@@ -400,6 +442,16 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
     manager.listEffectiveServiceProviders(AUTHORIZATION_CHECK_CAPABILITY),
     providerBindings,
     AUTHORIZATION_CHECK_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveEnterpriseContextProvider(): EnterpriseContextProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseContextProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(ENTERPRISE_CONTEXT_CAPABILITY),
+    providerBindings,
+    ENTERPRISE_CONTEXT_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -472,6 +524,9 @@ const contextRegistry = createHostContextRegistryV010({
     kind: "PERSONAL",
     contextId: "personal:default",
     displayName: "Personal"
+  },
+  enterpriseContextSource() {
+    return resolveEnterpriseContextProvider()?.list() ?? [];
   }
 });
 
