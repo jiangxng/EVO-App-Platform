@@ -299,9 +299,28 @@ async function authorizeProviderGovernance(
   }
 ) {
   const authentication = authenticateBootstrapAdministratorV010(token, providerAdminToken);
+  if (!authentication.authenticated) {
+    return authorizeProviderAdministrationV010(
+      authentication,
+      undefined,
+      { action, resource }
+    );
+  }
+
+  let authorizationProvider: AuthorizationProviderV010 | undefined;
+  try {
+    authorizationProvider = resolveAuthorizationProvider();
+  } catch {
+    return {
+      allowed: false,
+      actorId: authentication.principal?.subjectId ?? "anonymous",
+      reason: "AUTHORIZATION_PROVIDER_RESOLUTION_FAILED"
+    };
+  }
+
   return authorizeProviderAdministrationV010(
     authentication,
-    resolveAuthorizationProvider(),
+    authorizationProvider,
     {
       action,
       resource
