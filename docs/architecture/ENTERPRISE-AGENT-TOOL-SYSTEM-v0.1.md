@@ -1,8 +1,16 @@
-# Enterprise Agent Tool System v0.1
+# Personal Agent Tool System v0.1
 
 **Status:** P0.2 implementation baseline  
 **Date:** 2026-09-26  
-**Scope:** Enterprise Agent Host tool discovery and execution
+**Scope:** Personal Agent Host tool discovery and execution; legacy `enterprise-agent` identifiers remain compatible
+
+## 0. Person-first ownership
+
+The product ontology is defined by `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`.
+
+There is one Agent in the MVP: **Personal Agent**. Enterprise Context contributes governed data, memory and tools to the human's Personal Agent; it does not create an Enterprise Agent.
+
+The file path and implementation symbols retain `enterprise-agent` naming temporarily for compatibility.
 
 ## 1. Decision
 
@@ -112,7 +120,7 @@ The initial Host catalog supplies:
 
 - `help.search`
 
-These tools are App Platform-owned registrations. Enterprise Agent core only sees their descriptors.
+These tools are App Platform-owned registrations. Personal Agent core only sees their descriptors.
 
 ## 4. Safety boundary
 
@@ -170,8 +178,8 @@ P0.2 supports Host registration through `EnterpriseAgentToolRegistrationV010`.
 
 This proves that a new tool can be added without modifying:
 
-- Enterprise Agent runtime;
-- Enterprise Agent model contract;
+- Personal Agent runtime;
+- Personal Agent model contract;
 - Provider-backed model mapping.
 
 The current registration source is the Host.
@@ -200,7 +208,7 @@ Provider tools observe only Host-effective Providers.
 
 Agent tools MUST NOT expose saved secret plaintext.
 
-Enterprise Agent does not receive OpenAI/API credentials as tool arguments, observations or prompt context.
+Personal Agent does not receive OpenAI/API credentials as tool arguments, observations or prompt context.
 
 LLM Provider credentials remain resolved by the Host Secrets Provider inside the Provider runtime boundary.
 
@@ -247,7 +255,7 @@ Their implementation remains owned by the EC intelligence runtime.
 
 Tool Discovery P0.2 does not introduce new visual controls.
 
-Enterprise Agent remains an Eidos `chat` Experience in the Workbench.
+Personal Agent remains an Eidos `chat` Experience in the Workbench.
 
 When tool execution/evidence/pending decisions require richer UI, reusable presentation must be added to Eidos first and consumed through Eidos contracts and Productive Design Language.
 
@@ -255,7 +263,7 @@ When tool execution/evidence/pending decisions require richer UI, reusable prese
 
 P0.2 is complete when:
 
-1. Enterprise Agent runtime has no fixed App Platform tool switch;
+1. Personal Agent runtime has no fixed App Platform tool switch;
 2. Provider-backed model has no fixed tool-name mapping;
 3. Host supplies the effective descriptor list;
 4. a newly registered test tool works without editing Agent core;
