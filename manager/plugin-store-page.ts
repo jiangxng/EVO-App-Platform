@@ -76,11 +76,23 @@ function contributionSummary(pkg: PackageManifestV010): Array<{ kind: string; co
     .sort((a, b) => a.kind.localeCompare(b.kind));
 }
 
+export interface PluginProductReadinessV010 {
+  id: "ready" | "setup-required" | "blocked" | "degraded" | "error";
+  label: string;
+  tone?: "neutral" | "positive" | "warning" | "danger";
+  message?: string;
+  setupRoute?: string;
+}
+
 export interface PluginStorePageOptionsV010 {
   integrityTrustStore?: PluginIntegrityTrustStoreV010;
   runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
   runtimeEvents?: PluginRuntimeEventV010[];
   evaluateRuntime?: (pkg: PackageManifestV010) => PluginRuntimeStatusV010;
+  readinessForPackage?: (
+    pkg: PackageManifestV010,
+    state: { installed: boolean; enabled: boolean }
+  ) => PluginProductReadinessV010 | undefined;
 }
 
 export function createPluginStorePage(
@@ -120,6 +132,7 @@ export function createPluginStorePage(
       name: "EVO App Platform",
       version: "0.1.0"
     },
+    technicalDetailsLabel: "Technical details",
     items: packages
       .filter(pkg => pkg.type !== "FOUNDATION_RUNTIME")
       .map(pkg => {
@@ -133,6 +146,10 @@ export function createPluginStorePage(
         const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
         const route = firstExperienceRoute(pkg);
         const settingsRoute = packageHasConfiguration(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
+        const productReadiness = options.readinessForPackage?.(pkg, {
+          installed: isInstalled,
+          enabled: isEnabled
+        });
         const compatibility = evaluatePackageCompatibility(pkg);
         const runtimeStatus = evaluateRuntime(pkg);
         const integrityStatus = verifyPackageIntegrityV010(pkg, integrityTrustStore);
@@ -169,6 +186,14 @@ export function createPluginStorePage(
               : "Incompatible",
             tone: compatible && isEnabled ? "positive" as const : compatible ? "neutral" as const : "danger" as const
           },
+          ...(productReadiness ? {
+            readiness: {
+              id: productReadiness.id,
+              label: productReadiness.label,
+              ...(productReadiness.tone ? { tone: productReadiness.tone } : {}),
+              ...(productReadiness.message ? { message: productReadiness.message } : {})
+            }
+          } : {}),
           compatibility: {
             protocolVersion: pkg.contractVersion,
             hostVersion: compatibility.host.appPlatform,
@@ -310,14 +335,32 @@ export function createPluginStorePage(
                 }
               : isEnabled
                 ? {
-                    ...(route ? {
-                      primaryAction: {
-                        id: "open",
-                        label: "Open",
-                        type: "navigate" as const,
-                        route
-                      }
-                    } : {}),
+                    ...(productReadiness?.id === "setup-required" && productReadiness.setupRoute
+                      ? {
+                          primaryAction: {
+                            id: "setup",
+                            label: "Set up",
+                            type: "navigate" as const,
+                            route: productReadiness.setupRoute
+                          }
+                        }
+                      : productReadiness?.id === "blocked" && productReadiness.setupRoute
+                        ? {
+                            primaryAction: {
+                              id: "setup",
+                              label: "Resolve",
+                              type: "navigate" as const,
+                              route: productReadiness.setupRoute
+                            }
+                          }
+                        : route ? {
+                            primaryAction: {
+                              id: "open",
+                              label: "Open",
+                              type: "navigate" as const,
+                              route
+                            }
+                          } : {}),
                     secondaryActions: [
                       ...(settingsRoute ? [{
                         id: "configure",
