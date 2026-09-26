@@ -35,6 +35,7 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type { AuthorizationProviderV010 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import {
   createFileProviderBindingStoreV010,
@@ -56,6 +57,16 @@ import {
   OPENAI_LLM_PROVIDER_ID,
   openAiLlmProviderPackage
 } from "../providers/openai/package.js";
+import {
+  AUTHORIZATION_CHECK_CAPABILITY,
+  HOST_STATIC_AUTHORIZATION_PROVIDER_ID,
+  hostStaticAuthorizationProviderPackage
+} from "../providers/authorization/package.js";
+import {
+  createHostStaticAuthorizationHealthProbeV010,
+  createHostStaticAuthorizationProviderV010,
+  parseHostStaticAuthorizationPolicyV010
+} from "../providers/authorization/runtime.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -83,9 +94,13 @@ import {
   providerManagerIndexPageSource
 } from "./provider-manager-page.js";
 import {
+  authenticateBootstrapAdministratorV010,
   authorizeProviderAdministrationV010,
   createJsonlProviderBindingAuditStoreV010,
   createMemoryProviderBindingAuditStoreV010,
+  PROVIDER_BINDING_UPDATE_ACTION,
+  PROVIDER_GOVERNANCE_AUDIT_READ_ACTION,
+  PROVIDER_HEALTH_PROBE_ACTION,
   providerAuditEventV010
 } from "./provider-governance.js";
 import {
@@ -104,6 +119,7 @@ const catalog = createPackageCatalog([
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
+  hostStaticAuthorizationProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -155,6 +171,24 @@ const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
 const providerAudit = providerAuditFile
   ? createJsonlProviderBindingAuditStoreV010(providerAuditFile)
   : createMemoryProviderBindingAuditStoreV010();
+const authorizationPolicy = parseHostStaticAuthorizationPolicyV010(
+  process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
+);
+if (authorizationPolicy) {
+  providerRuntimeRegistry.replace<AuthorizationProviderV010>(
+    HOST_STATIC_AUTHORIZATION_PROVIDER_ID,
+    createHostStaticAuthorizationProviderV010(authorizationPolicy)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_STATIC_AUTHORIZATION_PROVIDER_ID,
+    createHostStaticAuthorizationHealthProbeV010(authorizationPolicy)
+  );
+  providerRuntimeRegistry.setHealth(HOST_STATIC_AUTHORIZATION_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: `Static authorization policy loaded with ${authorizationPolicy.rules.length} rule(s).`,
+    checkedAt: new Date().toISOString()
+  });
+}
 const remoteBearerTokenMap = parseHostRemoteBearerTokenMapV010(
   process.env.APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON
 );
@@ -245,6 +279,36 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
+  return resolveProviderRuntimeV010<AuthorizationProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(AUTHORIZATION_CHECK_CAPABILITY),
+    providerBindings,
+    AUTHORIZATION_CHECK_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+async function authorizeProviderGovernance(
+  token: string | undefined,
+  action: string,
+  resource: {
+    type: string;
+    id?: string;
+    attributes?: Record<string, string | number | boolean | null>;
+  }
+) {
+  const authentication = authenticateBootstrapAdministratorV010(token, providerAdminToken);
+  return authorizeProviderAdministrationV010(
+    authentication,
+    resolveAuthorizationProvider(),
+    {
+      action,
+      resource
+    }
+  );
+}
+
 const runtimeDispatcher = createPluginRuntimeDispatcherV010({
   catalog,
   store,
@@ -450,11 +514,22 @@ const server = createServer(async (request, response) => {
       const bearerToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
         ? authorization.slice("Bearer ".length)
         : undefined;
-      const decision = authorizeProviderAdministrationV010(bearerToken, providerAdminToken);
+      const decision = await authorizeProviderGovernance(
+        bearerToken,
+        PROVIDER_GOVERNANCE_AUDIT_READ_ACTION,
+        { type: "provider-governance-audit" }
+      );
+      providerAudit.append(providerAuditEventV010({
+        action: "READ_PROVIDER_GOVERNANCE_AUDIT",
+        outcome: decision.allowed ? "ALLOWED" : "DENIED",
+        actorId: decision.actorId,
+        ...(decision.policyProviderId ? { policyProviderId: decision.policyProviderId } : {}),
+        reason: decision.reason
+      }));
       if (!decision.allowed) {
         return json(response, 403, {
           ok: false,
-          error: { code: decision.reason, message: "Provider governance audit requires Host administrator authorization." }
+          error: { code: decision.reason, message: "Provider governance audit requires authorization policy approval." }
         });
       }
       const rawLimit = Number(url.searchParams.get("limit") ?? "100");
@@ -476,14 +551,25 @@ const server = createServer(async (request, response) => {
         : undefined;
       const adminToken = typeof body.adminToken === "string" ? body.adminToken : bearerToken;
       const correlationId = typeof body.correlationId === "string" ? body.correlationId : undefined;
-      const decision = authorizeProviderAdministrationV010(adminToken, providerAdminToken);
       if (!providerId) {
         return json(response, 400, { ok: false, error: { code: "PROVIDER_ID_REQUIRED" } });
       }
+      const decision = await authorizeProviderGovernance(
+        adminToken,
+        PROVIDER_HEALTH_PROBE_ACTION,
+        {
+          type: "provider-runtime",
+          id: providerId,
+          attributes: {
+            ...(capability ? { capability } : {})
+          }
+        }
+      );
       providerAudit.append(providerAuditEventV010({
         action: "PROBE_PROVIDER_HEALTH",
         outcome: decision.allowed ? "ALLOWED" : "DENIED",
         actorId: decision.actorId,
+        ...(decision.policyProviderId ? { policyProviderId: decision.policyProviderId } : {}),
         ...(correlationId ? { correlationId } : {}),
         ...(capability ? { capability } : {}),
         providerId,
@@ -492,7 +578,7 @@ const server = createServer(async (request, response) => {
       if (!decision.allowed) {
         return json(response, 403, {
           ok: false,
-          error: { code: decision.reason, message: "Provider administration authorization denied." }
+          error: { code: decision.reason, message: "Provider administration authorization policy denied this operation." }
         });
       }
       const descriptors = capability
@@ -744,11 +830,25 @@ const server = createServer(async (request, response) => {
           }
 
           const adminToken = typeof values.adminToken === "string" ? values.adminToken : undefined;
-          const decision = authorizeProviderAdministrationV010(adminToken, providerAdminToken);
+          const decision = await authorizeProviderGovernance(
+            adminToken,
+            PROVIDER_BINDING_UPDATE_ACTION,
+            {
+              type: "provider-binding",
+              id: capability,
+              attributes: {
+                providerId,
+                scope,
+                ...(scope === "SYSTEM" ? {} : { scopeId }),
+                priority
+              }
+            }
+          );
           providerAudit.append(providerAuditEventV010({
             action: "UPDATE_PROVIDER_BINDING",
             outcome: decision.allowed ? "ALLOWED" : "DENIED",
             actorId: decision.actorId,
+            ...(decision.policyProviderId ? { policyProviderId: decision.policyProviderId } : {}),
             correlationId: action.sourceInteractionId,
             capability,
             providerId,
@@ -762,7 +862,7 @@ const server = createServer(async (request, response) => {
               correlationId: action.sourceInteractionId,
               error: {
                 code: decision.reason,
-                message: "Provider binding change requires Host administrator authorization."
+                message: "Provider binding change requires authorization policy approval."
               }
             });
           }
