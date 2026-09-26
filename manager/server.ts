@@ -40,6 +40,17 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  ENTERPRISE_AGENT_PACKAGE_ID,
+  ENTERPRISE_AGENT_PAGE_SOURCE,
+  PERSONAL_AGENT_SETUP_PAGE_SOURCE,
+  PERSONAL_AGENT_SETUP_ROUTE
+} from "../agents/enterprise-agent/package.js";
+import { evaluatePersonalAgentReadinessV010 } from "../agents/enterprise-agent/readiness.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010
+} from "../agents/enterprise-agent/product-pages.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -533,6 +544,14 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
 
 await refreshOpenAiProviderRuntime();
 
+function personalAgentReadiness() {
+  return evaluatePersonalAgentReadinessV010(
+    manager,
+    providerRuntimeRegistry,
+    providerBindings
+  );
+}
+
 function resolveLlmProvider(): {
   installedProviderIds: string[];
   provider?: LlmInferenceProvider;
@@ -670,6 +689,9 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
+    }
+    if (request.method === "GET" && url.pathname === "/v1/personal-agent/readiness") {
+      return json(response, 200, personalAgentReadiness());
     }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       return json(response, 200, {
@@ -864,6 +886,17 @@ const server = createServer(async (request, response) => {
         }
         return json(response, 200, document);
       }
+      if (source === ENTERPRISE_AGENT_PAGE_SOURCE) {
+        return json(response, 200, createPersonalAgentChatPageV020(
+          personalAgentReadiness(),
+          contextRegistry.resolve()
+        ));
+      }
+      if (source === PERSONAL_AGENT_SETUP_PAGE_SOURCE) {
+        return json(response, 200, createPersonalAgentSetupPageV010(
+          personalAgentReadiness()
+        ));
+      }
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
           manager.listCatalog(),
@@ -872,7 +905,44 @@ const server = createServer(async (request, response) => {
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
-            evaluateRuntime: evaluateRuntimeForHost
+            evaluateRuntime: evaluateRuntimeForHost,
+            evaluateProductReadiness(pkg) {
+              if (pkg.packageId !== ENTERPRISE_AGENT_PACKAGE_ID) return undefined;
+              const readiness = personalAgentReadiness();
+              if (readiness.state === "READY") {
+                return {
+                  id: "ready",
+                  label: "Ready",
+                  tone: "positive"
+                };
+              }
+              if (readiness.state === "UNAVAILABLE") {
+                return {
+                  id: "error",
+                  label: "Unavailable",
+                  tone: "danger",
+                  message: readiness.message,
+                  primaryAction: {
+                    id: "setup",
+                    label: "Set up",
+                    type: "navigate",
+                    route: PERSONAL_AGENT_SETUP_ROUTE
+                  }
+                };
+              }
+              return {
+                id: "setup-required",
+                label: "Needs setup",
+                tone: "warning",
+                message: readiness.message,
+                primaryAction: {
+                  id: "setup",
+                  label: "Set up",
+                  type: "navigate",
+                  route: PERSONAL_AGENT_SETUP_ROUTE
+                }
+              };
+            }
           }
         ));
       }
