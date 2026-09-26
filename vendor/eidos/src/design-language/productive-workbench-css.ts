@@ -306,6 +306,13 @@ form[data-eidos-id] button,
 [data-eidos-catalog-item] button:not([data-eidos-primary="true"]):hover,
 [data-eidos-extension-item] button:not([data-eidos-primary="true"]):hover{background:var(--eidos-bg-hover)}
 
+[data-eidos-catalog-search]{margin-top:var(--eidos-space-lg)}
+[data-eidos-catalog-search] input{
+  width:100%;height:var(--eidos-control-normal);border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-sm);padding:0 var(--eidos-space-md);background:var(--eidos-bg);color:var(--eidos-fg);
+}
+[data-eidos-catalog-search-empty]{margin:var(--eidos-space-lg) 0 0;color:var(--eidos-fg-muted)}
+
 [data-eidos-catalog-items],[data-eidos-extension-items]{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--eidos-space-lg);margin-top:var(--eidos-space-lg);
 }
