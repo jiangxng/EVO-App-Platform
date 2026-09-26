@@ -70,6 +70,12 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.title": "OpenAI LLM Provider",
               "settings.description": "Runtime settings for the OpenAI provider. API credentials remain in the secure secret boundary.",
               "settings.saveLabel": "Save",
+              "settings.group.general.title": "General",
+              "settings.group.general.description": "Provider runtime settings.",
+              "settings.group.credentials.title": "Credentials",
+              "settings.group.credentials.description": "Host-managed Secrets. Saved plaintext is never displayed.",
+              "settings.group.advanced.title": "Advanced",
+              "settings.group.advanced.description": "Temporary/bootstrap administration controls.",
               "settings.model.label": "Model",
               "settings.model.description": "Model id used for inference.",
               "settings.baseUrl.label": "API Base URL",
@@ -94,6 +100,12 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.title": "OpenAI LLM Provider",
               "settings.description": "OpenAI Provider 的运行设置。API Key 继续由安全 Secrets 边界管理。",
               "settings.saveLabel": "保存",
+              "settings.group.general.title": "常规",
+              "settings.group.general.description": "Provider 运行设置。",
+              "settings.group.credentials.title": "凭据",
+              "settings.group.credentials.description": "由 Host 管理的 Secret；保存后的明文不会再次显示。",
+              "settings.group.advanced.title": "高级",
+              "settings.group.advanced.description": "临时/bootstrap 管理控制。",
               "settings.model.label": "模型",
               "settings.model.description": "推理时使用的模型 ID。",
               "settings.baseUrl.label": "API Base URL",
@@ -105,6 +117,66 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-remove:apiKey.description": "保存时删除当前已存储的凭据。",
               "settings.adminToken.label": "管理员授权",
               "settings.adminToken.description": "在 bootstrap 管理阶段，修改 Secret 时需要提供管理员认证。"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "ja",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider の実行設定です。API Key は安全な Secrets 境界で管理されます。",
+              "settings.saveLabel": "保存",
+              "settings.group.general.title": "一般",
+              "settings.group.general.description": "Provider の実行設定。",
+              "settings.group.credentials.title": "認証情報",
+              "settings.group.credentials.description": "Host 管理の Secret。保存済みの平文は再表示されません。",
+              "settings.group.advanced.title": "詳細設定",
+              "settings.group.advanced.description": "一時的な bootstrap 管理コントロール。",
+              "settings.model.label": "モデル",
+              "settings.model.description": "推論に使用するモデル ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 互換 Responses API のベース URL。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "保存済み認証情報を設定または置き換える新しい API Key を入力します。保存後に平文は再表示されません。",
+              "settings.secret-status:apiKey.label": "API Key の状態",
+              "settings.secret-remove:apiKey.label": "API Key を削除",
+              "settings.secret-remove:apiKey.description": "保存時に現在の認証情報を削除します。",
+              "settings.adminToken.label": "管理者認証",
+              "settings.adminToken.description": "bootstrap 管理フェーズで Secret を変更する場合にのみ必要です。"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "zh-TW",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider 的執行設定。API Key 由安全的 Secrets 邊界管理。",
+              "settings.saveLabel": "儲存",
+              "settings.group.general.title": "一般",
+              "settings.group.general.description": "Provider 執行設定。",
+              "settings.group.credentials.title": "憑證",
+              "settings.group.credentials.description": "由 Host 管理的 Secret；已儲存的明文不會再次顯示。",
+              "settings.group.advanced.title": "進階",
+              "settings.group.advanced.description": "暫時/bootstrap 管理控制。",
+              "settings.model.label": "模型",
+              "settings.model.description": "推論時使用的模型 ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 相容 Responses API 的基礎 URL。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "輸入新的 API Key 以設定或取代已儲存憑證。儲存後不會再次顯示明文。",
+              "settings.secret-status:apiKey.label": "API Key 狀態",
+              "settings.secret-remove:apiKey.label": "移除 API Key",
+              "settings.secret-remove:apiKey.description": "儲存時移除目前已保存的憑證。",
+              "settings.adminToken.label": "管理員授權",
+              "settings.adminToken.description": "僅在 bootstrap 管理階段修改 Secret 時需要。"
             }
           }
         },
