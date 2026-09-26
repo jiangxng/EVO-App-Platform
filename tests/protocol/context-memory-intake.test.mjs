@@ -382,6 +382,18 @@ test("different source records with identical intake content are fingerprint-ded
   );
   assert.equal(receipts[1].proposalId, receipts[0].proposalId);
   assert.equal(receipts[1].duplicateOfReceiptId, receipts[0].receiptId);
+
+  const proposal = h.proposalStore.snapshot().proposals[0];
+  assert.equal(proposal.revisions.length, 2);
+  assert.deepEqual(
+    proposal.revisions[1].evidenceRefs,
+    [
+      "ec-node:ec-a",
+      "ec-node:ec-b",
+      "source-record:ec:manufacturing:ec-a",
+      "source-record:ec:manufacturing:ec-b"
+    ]
+  );
 });
 
 test("intake requires Human confirmation and authorization", async () => {
