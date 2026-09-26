@@ -443,3 +443,37 @@ Settings
 ```
 
 Binding policy remains Host-owned state and does not modify Package manifests.
+
+
+## Active health probes and Provider administration governance
+
+Health posture is observable runtime state, not Provider selection policy.
+
+P0 active probe behavior:
+
+- probes run only after an explicit Host administration request; App Platform does not perform hidden startup polling;
+- a Provider Runtime may register a Host-owned executable health probe;
+- probe results update the runtime registry as HEALTHY / DEGRADED / UNAVAILABLE / UNKNOWN;
+- failed probes become UNAVAILABLE with a checkedAt timestamp;
+- health never rewrites or silently fails over an explicit binding.
+
+Binding mutation is a privileged Host operation. P0 uses a bootstrap administration secret supplied through `APP_PLATFORM_PROVIDER_ADMIN_TOKEN`. If that Host authorization mechanism is not configured, binding mutation and explicit health-probe execution fail closed.
+
+The bootstrap secret is transitional. It is not Package Manifest data, Provider state, or audit data, and will be replaced by the generic `authorization.check` Provider boundary when executable enterprise authorization is available.
+
+Provider governance audit is Host-owned and records only non-secret operational facts:
+
+```text
+eventId
+occurredAt
+action
+outcome
+actorId
+correlationId
+capability
+providerId
+scope / scopeId
+reason
+```
+
+A JSONL audit sink may be configured with `APP_PLATFORM_PROVIDER_AUDIT_FILE`; when lifecycle state is file-backed, the default audit file is colocated with that state.
