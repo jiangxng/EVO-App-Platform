@@ -114,6 +114,11 @@ test("request-bound bearer Session resolves the current Principal and rejects un
     contractVersion: "0.1.0",
     bearerToken: "wrong-token"
   }), undefined);
+
+  assert.equal(provider.resolve({
+    contractVersion: "0.1.0",
+    sessionId: "session:alice"
+  }), undefined);
 });
 
 test("Enterprise Context creation atomically creates context, OWNER relationship, initial grant and lifecycle", async () => {
