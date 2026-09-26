@@ -279,3 +279,35 @@ P0.5 does not add an Enterprise Agent, generic Context Memory writes, automatic 
 P0.5 is CI-verified across Platform CI, Enterprise Agent CI, Host Enterprise Context Provider CI, Host Authorization Provider CI, OpenAI Provider CI and Host Secrets Provider CI.
 
 After P0.5, the next mainline is the minimum executable Principal/Session + Relationship/Grant layer needed to determine which Enterprise Contexts a human is entitled to receive and which Context-bound tools are effective.
+
+
+## P0.6 — Principal, Session and Enterprise Context Grants
+
+P0.6 implements the minimum executable identity/relationship layer required by the frozen Person-first model.
+
+Implemented:
+
+- `IdentitySessionProviderV010`;
+- reference `host-static-session-provider` / `host.static-session`;
+- capability `identity.session`;
+- `APP_PLATFORM_STATIC_SESSION_JSON` reference configuration;
+- compatibility-local Session only when no effective Session Provider exists;
+- effective-but-unusable Session Provider fails closed;
+- `EnterpriseContextGrantV010` and `EnterpriseContextGrantProviderV010`;
+- reference `host-enterprise-context-grant-provider`;
+- capability `enterprise.membership`;
+- `APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON`;
+- Personal Context identity derived from current Principal;
+- available Enterprise Contexts = Enterprise Directory ∩ current Principal grants;
+- unknown/ungranted Context selection fails closed;
+- authoritative Principal supplied to Personal Agent model input;
+- `enterprise.context.profile.get` READ tool appears only in a Principal-consistent Enterprise Context;
+- isolated CI for Session and Grant Providers.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-PRINCIPAL-GRANTS-P0.6-v0.1.md`
+
+P0.6 deliberately does not implement full IAM, interactive login, request-bound bearer/cookie sessions, generic Memory writes or broad material WRITE authorization.
+
+The next mainline is request-bound identity/session transport plus Principal + Active Context authorization for material WRITE actions. Context Memory Providers and Memory Attribution/Governance follow after that security boundary is executable.

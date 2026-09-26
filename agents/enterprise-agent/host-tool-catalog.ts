@@ -4,6 +4,7 @@ import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry
 import type { HelpContextSelectorsV010, HelpSearchResultV010 } from "../../manager/help-system.js";
 import type {
   ActiveContextRefV010,
+  PlatformPrincipalV010,
   ResolvedContextSetV010
 } from "../../contracts/platform-services.js";
 import type {
@@ -24,6 +25,7 @@ export interface EnterpriseAgentToolRegistrationV010 {
 
 export interface EnterpriseAgentHostToolDependenciesV010 {
   manager: AppManagerService;
+  principal: PlatformPrincipalV010;
   context: ResolvedContextSetV010;
   listAvailableContexts(): ActiveContextRefV010[];
   listProviderBindings(capability?: string): ProviderBindingV010[];
@@ -112,6 +114,36 @@ export function createEnterpriseAgentHostToolCatalogV010(
       }),
       execute() {
         return dependencies.listAvailableContexts().map(context => structuredClone(context));
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "enterprise.context.profile.get",
+        modelName: "enterprise_context_profile_get",
+        title: "Enterprise Context profile",
+        description: "Read the Host-resolved Enterprise Context profile for the current authorized Agent run.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "enterprise.directory"
+      }),
+      available() {
+        return dependencies.context.activeContext.kind === "ENTERPRISE"
+          && dependencies.context.enterpriseContext !== undefined
+          && dependencies.context.personalContext.ownerSubjectId === dependencies.principal.subjectId;
+      },
+      execute() {
+        if (
+          dependencies.context.activeContext.kind !== "ENTERPRISE"
+          || !dependencies.context.enterpriseContext
+        ) {
+          throw new Error("ENTERPRISE_CONTEXT_REQUIRED");
+        }
+        return structuredClone(dependencies.context.enterpriseContext);
       }
     },
     {

@@ -4,6 +4,19 @@ import assert from "node:assert/strict";
 import { createHostContextRegistryV010 } from "../../dist/manager/context-registry.js";
 import { createEnterpriseAgentChatActionHandler } from "../../dist/agents/enterprise-agent/chat-action-handler.js";
 
+const aliceSession = {
+  contractVersion: "0.1.0",
+  sessionId: "session:alice",
+  principal: {
+    contractVersion: "0.1.0",
+    subjectId: "alice",
+    actorType: "HUMAN",
+    identityProviderId: "test.identity",
+    displayName: "Alice"
+  },
+  issuedAt: "2026-09-26T00:00:00.000Z"
+};
+
 function registryWithEnterprise() {
   return createHostContextRegistryV010({
     personalContext: {
@@ -74,6 +87,9 @@ test("Personal Agent chat cannot manufacture an Enterprise Context from request 
   });
 
   const handler = createEnterpriseAgentChatActionHandler({
+    resolveIdentitySession() {
+      return aliceSession;
+    },
     resolveContext(selection) {
       return registry.resolve(selection);
     },
@@ -131,6 +147,9 @@ test("Personal Agent accepts a Host-registered Enterprise Context and passes it 
   const registry = registryWithEnterprise();
   let toolContext;
   const handler = createEnterpriseAgentChatActionHandler({
+    resolveIdentitySession() {
+      return aliceSession;
+    },
     resolveContext(selection) {
       return registry.resolve(selection);
     },
@@ -154,8 +173,9 @@ test("Personal Agent accepts a Host-registered Enterprise Context and passes it 
         }
       };
     },
-    createToolCatalog(_locale, context) {
+    createToolCatalog(_locale, context, principal) {
       toolContext = context;
+      assert.equal(principal.subjectId, "alice");
       return {
         list() { return []; },
         async invoke() {

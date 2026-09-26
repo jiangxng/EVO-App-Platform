@@ -25,12 +25,21 @@ import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js
 import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
 import { enterpriseAgentPackage } from "../../dist/agents/enterprise-agent/package.js";
 
+const testPrincipal = {
+  contractVersion: "0.1.0",
+  subjectId: "test-person",
+  actorType: "HUMAN",
+  identityProviderId: "test.identity",
+  displayName: "Test Person"
+};
+
 const personalContext = {
   contractVersion: "0.1.0",
   personalContext: {
     contractVersion: "0.1.0",
     kind: "PERSONAL",
     contextId: "personal:test",
+    ownerSubjectId: "test-person",
     displayName: "Test Person"
   },
   activeContext: {
@@ -44,6 +53,7 @@ const personalContext = {
 function hostCatalog(manager, additional = [], context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
+    principal: testPrincipal,
     context,
     listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
@@ -119,16 +129,19 @@ test("Personal Agent model receives the Host-resolved Context for the run", asyn
     createMemoryLifecycleStore()
   );
   let receivedContext;
+  let receivedPrincipal;
   const model = {
     async decide(input) {
       receivedContext = input.context;
+      receivedPrincipal = input.principal;
       return { type: "final", message: "ok" };
     }
   };
   const runtime = createEnterpriseAgentRuntime(model, hostCatalog(manager));
-  const reply = await runtime.chat("inspect context", personalContext);
+  const reply = await runtime.chat("inspect context", personalContext, testPrincipal);
 
   assert.deepEqual(receivedContext, personalContext);
+  assert.deepEqual(receivedPrincipal, testPrincipal);
   assert.deepEqual(reply.context, personalContext);
 });
 
@@ -494,6 +507,7 @@ test("Personal Agent can list only Host-offered Context references", async () =>
   );
   const catalog = createEnterpriseAgentHostToolCatalogV010({
     manager,
+    principal: testPrincipal,
     context: personalContext,
     listAvailableContexts() {
       return [
@@ -521,4 +535,47 @@ test("Personal Agent can list only Host-offered Context references", async () =>
     "personal:test",
     "enterprise:acme"
   ]);
+});
+
+
+test("Enterprise Context profile tool is absent in Personal Context and present in Enterprise Context", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+
+  const personal = hostCatalog(manager);
+  assert.equal(
+    (await personal.list()).some(tool => tool.id === "enterprise.context.profile.get"),
+    false
+  );
+
+  const enterpriseContext = {
+    contractVersion: "0.1.0",
+    personalContext: personalContext.personalContext,
+    activeContext: {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme"
+    },
+    enterpriseContext: {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme",
+      enterpriseProviderId: "test.enterprise-directory",
+      displayName: "Acme"
+    }
+  };
+  const enterprise = hostCatalog(manager, [], enterpriseContext);
+  const tools = await enterprise.list();
+  assert.equal(tools.some(tool => tool.id === "enterprise.context.profile.get"), true);
+
+  const observation = await enterprise.invoke({
+    tool: "enterprise.context.profile.get",
+    arguments: {}
+  }, []);
+  assert.equal(observation.ok, true);
+  assert.equal(observation.result.displayName, "Acme");
 });

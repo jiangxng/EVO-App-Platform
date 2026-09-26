@@ -1,4 +1,7 @@
-import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
+import type {
+  PlatformPrincipalV010,
+  ResolvedContextSetV010
+} from "../../contracts/platform-services.js";
 import type {
   AgentModel,
   AgentToolCatalogV010,
@@ -9,7 +12,8 @@ import type {
 export interface EnterpriseAgentRuntime {
   chat(
     message: string,
-    context?: ResolvedContextSetV010
+    context?: ResolvedContextSetV010,
+    principal?: PlatformPrincipalV010
   ): Promise<EnterpriseAgentReplyV010>;
 }
 
@@ -19,7 +23,7 @@ export function createEnterpriseAgentRuntime(
   maxSteps = 8
 ): EnterpriseAgentRuntime {
   return {
-    async chat(message, context) {
+    async chat(message, context, principal) {
       const observations: AgentToolObservation[] = [];
       const tools = await catalog.list();
 
@@ -28,6 +32,7 @@ export function createEnterpriseAgentRuntime(
           userMessage: message,
           tools: structuredClone(tools),
           observations: structuredClone(observations),
+          ...(principal ? { principal: structuredClone(principal) } : {}),
           ...(context ? { context: structuredClone(context) } : {})
         });
 

@@ -1,4 +1,7 @@
-import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
+import type {
+  PlatformPrincipalV010,
+  ResolvedContextSetV010
+} from "../../contracts/platform-services.js";
 
 export type AgentToolEffectV010 = "READ" | "PLAN" | "WRITE";
 
@@ -30,6 +33,7 @@ export interface AgentModelInput {
   userMessage: string;
   tools: AgentToolDescriptorV010[];
   observations: AgentToolObservation[];
+  principal?: PlatformPrincipalV010;
   context?: ResolvedContextSetV010;
 }
 

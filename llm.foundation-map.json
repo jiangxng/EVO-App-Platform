@@ -21,7 +21,7 @@
     "pluginStorageEvents": "SOON",
     "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
-    "secretsIdentityAuthorization": "NOW_SECRETS_P0_IMPLEMENTED_IDENTITY_SESSION_NEXT_AS_AGENT_NEEDS",
+    "secretsIdentityAuthorization": "NOW_SESSION_AND_CONTEXT_GRANTS_P0_6_WRITE_AUTH_NEXT",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
     "designLanguage": "DELEGATED_EIDOS_CI_ENFORCED",
@@ -33,7 +33,9 @@
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
     "contextMemory": "READ_CONTRACT_P0_3",
-    "enterpriseContextProvider": "CI_VERIFIED_P0_5"
+    "enterpriseContextProvider": "CI_VERIFIED_P0_5",
+    "identitySession": "CI_VERIFIED_P0_6",
+    "enterpriseContextGrants": "CI_VERIFIED_P0_6"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -61,7 +63,10 @@
     "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT",
     "personalAgentProductExperience": "CI_VERIFIED_P0_4",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
-    "personalAgentEnterpriseContext": "PROVIDER_BACKED_SELECTABLE_FAIL_CLOSED_READ_ONLY"
+    "personalAgentEnterpriseContext": "PROVIDER_BACKED_SELECTABLE_FAIL_CLOSED_READ_ONLY",
+    "identitySessionProvider": "CI_VERIFIED_P0_6_REFERENCE_STATIC_SESSION",
+    "enterpriseContextGrantProvider": "CI_VERIFIED_P0_6",
+    "personalAgentPrincipalContextFiltering": "CI_VERIFIED_P0_6"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -153,12 +158,12 @@
   "authorization": {
     "status": "IMPLEMENTED_P0_PROVIDER_GOVERNANCE",
     "capability": "authorization.check",
-    "principal": "BOOTSTRAP_AUTHENTICATED_TRANSITIONAL",
+    "principal": "IDENTITY_SESSION_PRINCIPAL_P0_6_WITH_BOOTSTRAP_ADMIN_COMPATIBILITY",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "IDENTITY_SESSION_PROVIDER_AND_REQUEST_CONTEXT"
+    "next": "REQUEST_BOUND_SESSION_AND_CONTEXT_AWARE_MATERIAL_WRITE"
   },
   "platformHelp": {
     "status": "IMPLEMENTED_P0_MULTILINGUAL",
@@ -216,10 +221,10 @@
     "helpSearch": "IMPLEMENTED",
     "providerObservation": "IMPLEMENTED",
     "packageContribution": "PENDING_SECOND_TOOL_OWNER",
-    "principalScopeFilter": "NEXT_ACTIVE_SLICE",
+    "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
     "writeAuthorization": "NEXT_ACTIVE_SLICE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_PLATFORM_REQUEST_CONTEXT_THEN_AUTHORIZED_WRITE_TOOLS",
+    "next": "REQUEST_BOUND_SESSION_THEN_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "productIdentity": "Personal Agent",
     "currentContextTool": "context.current.get"
   },
@@ -253,7 +258,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+    "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -278,7 +283,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
       "locales": [
         "en",
         "zh-CN",
@@ -307,7 +312,24 @@
       "selection": "HOST_OFFERED_ONLY_FAIL_CLOSED",
       "usage": "READ_ONLY_REASONING",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT"
+      "next": "P0_6_DELIVERED_THEN_REQUEST_BOUND_SESSION"
+    },
+    "contextP0_6": {
+      "status": "CI_VERIFIED_P0_6",
+      "authority": "docs/architecture/PERSONAL-AGENT-PRINCIPAL-GRANTS-P0.6-v0.1.md",
+      "sessionCapability": "identity.session",
+      "sessionProvider": "host.static-session",
+      "sessionSource": "APP_PLATFORM_STATIC_SESSION_JSON",
+      "compatibilityFallback": "NO_EFFECTIVE_SESSION_PROVIDER_ONLY",
+      "grantCapability": "enterprise.membership",
+      "grantProvider": "host.enterprise-context-grant",
+      "grantSource": "APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON",
+      "contextDerivation": "DIRECTORY_INTERSECT_PRINCIPAL_GRANTS",
+      "principalModelInput": true,
+      "contextBoundTool": "enterprise.context.profile.get",
+      "writeAuthorization": "NEXT",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

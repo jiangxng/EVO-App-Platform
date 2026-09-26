@@ -16,6 +16,20 @@ import {
   enterpriseAgentPackage
 } from "../../dist/catalog/seed.js";
 
+const testPrincipal = {
+  contractVersion: "0.1.0",
+  subjectId: "test-person",
+  actorType: "HUMAN",
+  identityProviderId: "test.identity"
+};
+
+const testSession = {
+  contractVersion: "0.1.0",
+  sessionId: "session:test",
+  principal: testPrincipal,
+  issuedAt: "2026-09-26T00:00:00.000Z"
+};
+
 const personalContext = {
   contractVersion: "0.1.0",
   personalContext: {
@@ -33,6 +47,7 @@ const personalContext = {
 function agentToolCatalog(manager, context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
+    principal: testPrincipal,
     context,
     listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
@@ -175,6 +190,7 @@ test("Enterprise Agent chat fails closed without a configured LLM runtime", asyn
     createMemoryLifecycleStore()
   );
   const handler = createEnterpriseAgentChatActionHandler({
+    resolveIdentitySession: () => testSession,
     resolveLlmProvider: () => ({
       installedProviderIds: ["openai.responses"]
     }),
@@ -232,6 +248,7 @@ test("Enterprise Agent uses a generic LLM provider to drive App Manager tools", 
   };
 
   const handler = createEnterpriseAgentChatActionHandler({
+    resolveIdentitySession: () => testSession,
     resolveLlmProvider: () => ({
       installedProviderIds: ["fake"],
       provider
