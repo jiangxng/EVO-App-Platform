@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.3 — minimal Context plumbing",
+  "currentMilestone": "Personal Agent P0.3 — minimal Context plumbing complete",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P0.3 implementation is on branch: Person-first Context contracts, Host-owned Context registry, Personal default Context, fail-closed unknown Enterprise Context selection, Context passed into Personal Agent/model/tool catalog, READ-only context.current.get, and Context Memory read contract. Next closure: Agent/Platform/OpenAI CI, docs/status finalization, merge and Railway.",
+  "currentStep": "Personal Agent Context P0.3 is CI-verified: Person-first Context contracts, Host-owned Context registry, Personal default Context, fail-closed unknown Enterprise Context selection, resolved Context in model/tool catalog, context.current.get, and read-only Context Memory contract. Next: add the first real Host/provider-backed Enterprise Context source without building full IAM; then let Personal Agent inspect that enterprise context using READ tools.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -590,7 +590,7 @@
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
     "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS",
     "contextP0_3": {
-      "status": "IMPLEMENTED_BRANCH_PENDING_CI",
+      "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
         "PersonalContextV010",
         "EnterpriseContextV010",
@@ -604,7 +604,7 @@
       "currentContextTool": "context.current.get",
       "memory": "READ_CONTRACT_ONLY_NO_GENERIC_WRITE",
       "platformScope": "LEGACY_COMPATIBILITY_PROJECTION",
-      "next": "CI_MERGE_RAILWAY_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
+      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
     }
   }
 }
