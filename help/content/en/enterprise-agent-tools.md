@@ -61,3 +61,21 @@ The first reference Enterprise Context source is the Host Enterprise Context Pro
 This reference source is replaceable. Future directory, identity, HCM or customer-specific providers can implement the same platform boundary without changing Personal Agent.
 
 Enterprise Context use in P0.5 is read-only reasoning context. It does not create an Enterprise Agent and does not permit automatic copying into Personal Context Memory.
+
+
+## Principal, Session and Enterprise grants
+
+P0.6 resolves an authoritative Principal before Personal Agent resolves Context or builds its Tool Catalog.
+
+The reference `identity.session` Provider can be configured with `APP_PLATFORM_STATIC_SESSION_JSON`. It is a deployment-scoped reference implementation, not the final login/session system.
+
+Enterprise Context visibility is no longer based on directory presence alone. The Host intersects the Enterprise Context Directory with `enterprise.membership` grants for the current Principal. The reference Grant Provider reads `APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON`.
+
+A Context that exists in the directory but is not granted to the current Principal is not shown in the Context selector, is not returned by `context.available.list`, and cannot be selected by submitting its id manually.
+
+In an authorized Enterprise Context, Personal Agent gains the READ-only `enterprise.context.profile.get` tool. That tool is absent in Personal Context.
+
+> [!IMPORTANT] Session and grants are Host authority
+> Browser values select among Host-authorized Contexts. They do not establish identity, membership or permission.
+
+P0.6 still does not introduce generic Context Memory writes or broad autonomous WRITE authority.
