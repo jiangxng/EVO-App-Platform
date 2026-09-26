@@ -202,3 +202,19 @@ Installed != Ready
 Do not silently choose an LLM Provider when multiple candidates exist. Provider/vendor choice can carry cost, privacy and credential consequences and therefore belongs to an explicit setup step.
 
 Personal Agent remains zero ordinary configuration: it consumes the selected/resolved `llm.inference` Provider rather than owning vendor-specific settings.
+
+
+## Four-locale product requirement
+
+From Personal Agent P0.4 forward, new plugin/product UI is designed for four first-class user locales from the start:
+
+- `en` — English;
+- `zh-CN` — 简体中文;
+- `ja` — 日本語;
+- `zh-TW` — 繁體中文.
+
+Personal Agent chat chrome, readiness/setup, Provider-selection/configuration orchestration, errors/notices and proposal/confirmation actions must ship with all four locale bundles.
+
+Existing Help may continue using per-document English fallback while Japanese and Traditional Chinese Help translations are filled incrementally. Missing Help translation must never hide the document.
+
+Machine identifiers and business data are not translated. Do not postpone ja/zh-TW support until after UI implementation; localization and text-expansion behavior are part of P0.4 design and CI.
