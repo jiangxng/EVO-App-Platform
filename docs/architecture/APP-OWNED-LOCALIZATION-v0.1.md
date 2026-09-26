@@ -168,3 +168,24 @@ open App Host
 → its route/resources disappear
 → remaining plugin continues to localize
 ```
+
+
+## 12. Help localization
+
+Platform Help follows the same ownership model as UI vocabulary.
+
+Each Help document uses a language-independent stable document ID with separate locale variants. App Host propagates the active locale to Host page loading; the Help aggregator resolves each document independently and falls back to the canonical `en` variant when a requested translation is unavailable.
+
+Translation MUST NOT change machine semantics. Across locale variants of one Help document, the following remain stable:
+
+- document ID and route;
+- owner Package/Feature;
+- Help kind and audience semantics;
+- applies-to constraints;
+- context selectors;
+- Capability/action/command/error identifiers;
+- related document IDs.
+
+Human-readable title, summary, body and tags may be translated.
+
+Current governed Platform Help locales are `en` and `zh-CN`. Additional locales are additive and use the same contract; they do not require a new localization subsystem or central translation Package.
