@@ -1123,20 +1123,168 @@ const server = createServer(async (request, response) => {
         }
 
         try {
+          const values = rawSettings as Record<string, unknown>;
+          const pkg = manager.listCatalog().find(item => item.packageId === namespace);
+          if (!pkg || !manager.getSnapshot().installedPackages.some(item => item.packageId === namespace)) {
+            throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
+          }
+
+          const secretChanges: Array<{
+            operation: "PUT" | "REMOVE";
+            reference: SecretReferenceV010;
+            value?: string;
+          }> = [];
+
+          for (const declaration of pkg.secrets ?? []) {
+            const reference = secretReferenceForPackageV010(
+              pkg.packageId,
+              declaration,
+              { installationId: "default" }
+            );
+            const rawValue = values[`secret:${declaration.key}`];
+            const remove = values[`secret-remove:${declaration.key}`] === true;
+            if (rawValue !== undefined && typeof rawValue !== "string") {
+              throw new Error(`SECRET_INPUT_TYPE_INVALID: ${declaration.key}`);
+            }
+            const nextValue = typeof rawValue === "string" ? rawValue.trim() : "";
+            if (remove && nextValue) {
+              throw new Error(`SECRET_INPUT_CONFLICT: ${declaration.key}`);
+            }
+            if (!remove && !nextValue) continue;
+            if (!reference) {
+              throw new Error(`SECRET_SCOPE_CONTEXT_UNAVAILABLE: ${declaration.key}`);
+            }
+            secretChanges.push(remove
+              ? { operation: "REMOVE", reference }
+              : { operation: "PUT", reference, value: nextValue });
+          }
+
+          let secretsProvider: ManagedSecretsProviderV010 | undefined;
+          if (secretChanges.length > 0) {
+            secretsProvider = resolveManagedSecretsProvider();
+            if (!secretsProvider) throw new Error("SECRETS_PROVIDER_UNAVAILABLE");
+
+            const adminToken = typeof values.adminToken === "string"
+              ? values.adminToken
+              : undefined;
+
+            for (const change of secretChanges) {
+              const decision = await authorizeHostAdministration(
+                adminToken,
+                SECRET_VALUE_MANAGE_ACTION,
+                {
+                  type: "package-secret",
+                  id: `${change.reference.namespace}:${change.reference.key}`,
+                  attributes: {
+                    namespace: change.reference.namespace,
+                    key: change.reference.key,
+                    scope: change.reference.scope,
+                    ...(change.reference.scopeId
+                      ? { scopeId: change.reference.scopeId }
+                      : {})
+                  }
+                }
+              );
+
+              if (!decision.allowed) {
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "DENIED",
+                  actorId: decision.actorId,
+                  ...(decision.policyProviderId
+                    ? { policyProviderId: decision.policyProviderId }
+                    : {}),
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: decision.reason
+                }));
+                return json(response, 403, {
+                  ok: false,
+                  correlationId: action.sourceInteractionId,
+                  error: {
+                    code: decision.reason,
+                    message: "Secret change requires authorization policy approval."
+                  }
+                });
+              }
+            }
+          }
+
           const saved = validateAndMergeSettings(
             manager,
             settingsStore,
             namespace,
-            rawSettings as Record<string, unknown>
+            values
           );
-          if (namespace === OPENAI_LLM_PACKAGE_ID) await refreshOpenAiProviderRuntime();
+
+          if (secretsProvider) {
+            for (const change of secretChanges) {
+              try {
+                if (change.operation === "PUT") {
+                  await secretsProvider.put(change.reference, change.value!);
+                } else {
+                  await secretsProvider.remove(change.reference);
+                }
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "ALLOWED",
+                  actorId: "bootstrap-admin",
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: "AUTHORIZED_SECRET_CHANGE"
+                }));
+              } catch (error) {
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "FAILED",
+                  actorId: "bootstrap-admin",
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: error instanceof Error ? error.message : String(error)
+                }));
+                throw error;
+              }
+            }
+          }
+
+          if (namespace === OPENAI_LLM_PACKAGE_ID) {
+            await refreshOpenAiProviderRuntime();
+          }
+
+          const secretStatus = await Promise.all(
+            (pkg.secrets ?? []).map(async declaration => {
+              const reference = secretReferenceForPackageV010(
+                pkg.packageId,
+                declaration,
+                { installationId: "default" }
+              );
+              if (!reference) {
+                return {
+                  key: declaration.key,
+                  configured: false,
+                  scopeAvailable: false
+                };
+              }
+              const descriptor = await resolveManagedSecretsProvider()?.describe(reference);
+              return {
+                key: declaration.key,
+                configured: descriptor?.configured === true,
+                scopeAvailable: true,
+                ...(descriptor?.updatedAt ? { updatedAt: descriptor.updatedAt } : {})
+              };
+            })
+          );
+
           return json(response, 200, {
             ok: true,
             correlationId: action.sourceInteractionId,
             result: {
-              message: "Settings saved.",
+              message: secretChanges.length > 0
+                ? "Settings and Secrets saved."
+                : "Settings saved.",
               namespace,
-              settings: saved
+              settings: saved,
+              secrets: secretStatus
             }
           });
         } catch (error) {
