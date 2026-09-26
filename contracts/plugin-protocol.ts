@@ -108,6 +108,20 @@ export function validatePluginManifestV010(
     add("PLUGIN_PUBLISHER_ID_REQUIRED", "publisher.id", "Publisher id is required.");
   }
 
+  const secretKeys = pkg.secrets?.map(secret => secret.key) ?? [];
+  for (const duplicate of duplicateValues(secretKeys)) {
+    add("PLUGIN_SECRET_KEY_DUPLICATE", "secrets", `Duplicate Secret key '${duplicate}'.`);
+  }
+  for (const [index, secret] of (pkg.secrets ?? []).entries()) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(secret.key) || !secret.label.trim()) {
+      add(
+        "PLUGIN_SECRET_DECLARATION_INVALID",
+        `secrets[${index}]`,
+        "Secret key and human-readable label are required; values never belong in the manifest."
+      );
+    }
+  }
+
   const permissionIds = pkg.permissions?.map(permission => permission.id) ?? [];
   for (const duplicate of duplicateValues(permissionIds)) {
     add("PLUGIN_PERMISSION_DUPLICATE", "permissions", `Duplicate permission '${duplicate}'.`);
