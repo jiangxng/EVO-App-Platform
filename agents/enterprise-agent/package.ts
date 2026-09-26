@@ -7,7 +7,7 @@ export const ENTERPRISE_AGENT_PAGE_SOURCE = "app://enterprise-agent/pages/home";
 export const enterpriseAgentPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-  displayName: "Enterprise Agent",
+  displayName: "Personal Agent",
   version: "0.1.0",
   type: "AGENT",
   features: [
@@ -19,6 +19,8 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
       activationScope: "INSTALLATION",
       defaultActivation: true,
       providesCapabilities: [
+        "agent.personal",
+        "agent.personal.tool-discovery",
         "agent.enterprise",
         "agent.enterprise.app-manager-tools",
         "agent.enterprise.tool-discovery"
@@ -35,7 +37,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             pages: [
               {
                 id: "enterprise-agent.home",
-                title: "Enterprise Agent",
+                title: "Personal Agent",
                 source: ENTERPRISE_AGENT_PAGE_SOURCE
               }
             ],
@@ -49,7 +51,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             navigation: [
               {
                 id: "enterprise-agent.nav",
-                label: "Enterprise Agent",
+                label: "Personal Agent",
                 route: "/enterprise-agent",
                 order: 10
               }
@@ -61,7 +63,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
           activity: {
             contractVersion: "0.1.0",
             id: "enterprise-agent",
-            title: "Enterprise Agent",
+            title: "Personal Agent",
             icon: "agent",
             kind: "side-route",
             route: "/enterprise-agent",
@@ -79,12 +81,12 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             namespace: ENTERPRISE_AGENT_PACKAGE_ID,
             locale: "en",
             messages: {
-              "workbench.activity.label": "Enterprise Agent",
-              "navigation.enterprise-agent.nav.label": "Enterprise Agent",
-              "page.enterprise-agent.home.title": "Enterprise Agent",
-              "chat.enterprise-agent.home.composer.placeholder": "Tell Enterprise Agent what you want to accomplish",
+              "workbench.activity.label": "Personal Agent",
+              "navigation.enterprise-agent.nav.label": "Personal Agent",
+              "page.enterprise-agent.home.title": "Personal Agent",
+              "chat.enterprise-agent.home.composer.placeholder": "Tell Personal Agent what you want to accomplish",
               "chat.enterprise-agent.home.composer.sendLabel": "Send",
-              "chat.enterprise-agent.home.emptyState": "Ask Enterprise Agent to inspect, explain or prepare a change."
+              "chat.enterprise-agent.home.emptyState": "Ask Personal Agent to inspect, explain or prepare an opinion or change."
             }
           }
         },
@@ -95,12 +97,12 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             namespace: ENTERPRISE_AGENT_PACKAGE_ID,
             locale: "zh-CN",
             messages: {
-              "workbench.activity.label": "企业智能体",
-              "navigation.enterprise-agent.nav.label": "企业智能体",
-              "page.enterprise-agent.home.title": "企业智能体",
-              "chat.enterprise-agent.home.composer.placeholder": "告诉 Enterprise Agent 你要完成什么",
+              "workbench.activity.label": "个人 Agent",
+              "navigation.enterprise-agent.nav.label": "个人 Agent",
+              "page.enterprise-agent.home.title": "个人 Agent",
+              "chat.enterprise-agent.home.composer.placeholder": "告诉个人 Agent 你想分析或处理什么",
               "chat.enterprise-agent.home.composer.sendLabel": "发送",
-              "chat.enterprise-agent.home.emptyState": "让 Enterprise Agent 帮你查看、解释或准备变更。"
+              "chat.enterprise-agent.home.emptyState": "让个人 Agent 帮你查看、分析、提出意见或准备变更。"
             }
           }
         }
@@ -114,7 +116,7 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
     contractVersion: "0.1.0",
     kind: "chat",
     id: "enterprise-agent.home",
-    title: "Enterprise Agent",
+    title: "Personal Agent",
     command: {
       code: "enterprise-agent.chat",
       inputVersion: "0.1.0"
@@ -132,7 +134,7 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
         historicalProject: "Experience Compiler (EC)",
         sourceRepository: "jiangxng/Experience-Compiler",
         sourceRelease: "1.0.1",
-        targetIdentity: "Enterprise Agent"
+        targetIdentity: "Personal Agent"
       },
       llm: {
         requiredCapability: "llm.inference",
