@@ -945,13 +945,19 @@ const server = createServer(async (request, response) => {
         }
 
         const context = contextRegistry.resolve();
-        const contextLabel = context.activeContext.kind === "PERSONAL"
-          ? context.personalContext.displayName ?? context.activeContext.contextId
-          : context.enterpriseContext?.displayName ?? context.activeContext.contextId;
+        const availableContexts = contextRegistry.list().map(ref => {
+          const resolved = contextRegistry.resolve(ref);
+          return {
+            ref,
+            label: ref.kind === "PERSONAL"
+              ? resolved.personalContext.displayName ?? ref.contextId
+              : resolved.enterpriseContext?.displayName ?? ref.contextId
+          };
+        });
         return json(
           response,
           200,
-          createPersonalAgentChatPageV020(readiness, contextLabel)
+          createPersonalAgentChatPageV020(readiness, context, availableContexts)
         );
       }
       if (source === helpIndexPageSourceV010) {
