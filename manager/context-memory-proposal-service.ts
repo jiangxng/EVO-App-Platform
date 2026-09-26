@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   ActiveContextRefV010,
+  ContextMemoryEvidenceSourceV010,
   ContextMemoryItemV010,
   ContextMemoryKindV010,
   ContextMemoryReaderV010,
@@ -19,6 +20,7 @@ export interface ContextMemoryProposalDraftV010 {
   kind: ContextMemoryKindV010;
   summary: string;
   evidenceRefs?: string[];
+  evidenceSources?: ContextMemoryEvidenceSourceV010[];
   proposedConfidence?: number;
   observedAt?: string;
   supersedesMemoryId?: string;
@@ -30,6 +32,7 @@ export interface ContextMemoryProposalServiceV010 {
     principal: PlatformPrincipalV010;
     context: ActiveContextRefV010;
     draft: ContextMemoryProposalDraftV010;
+    authoredBy?: "PERSONAL_AGENT" | "SOURCE_ADAPTER";
   }): Promise<ContextMemoryProposalV010>;
   list(contextIds?: readonly string[]): ContextMemoryProposalV010[];
   get(proposalId: string): ContextMemoryProposalV010 | undefined;
@@ -58,6 +61,19 @@ function normalizedSummary(value: string): string {
 
 function canonicalStrings(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map(value => value.trim()).filter(Boolean))].sort();
+}
+
+function canonicalEvidenceSources(
+  values: readonly ContextMemoryEvidenceSourceV010[] | undefined
+): ContextMemoryEvidenceSourceV010[] {
+  const byId = new Map<string, ContextMemoryEvidenceSourceV010>();
+  for (const source of values ?? []) {
+    if (!source.sourceId?.trim()) {
+      throw new Error("CONTEXT_MEMORY_PROPOSAL_EVIDENCE_SOURCE_INVALID");
+    }
+    byId.set(source.sourceId.trim(), structuredClone(source));
+  }
+  return [...byId.values()].sort((a, b) => a.sourceId.localeCompare(b.sourceId));
 }
 
 function validKind(value: ContextMemoryKindV010): ContextMemoryKindV010 {
@@ -221,11 +237,12 @@ export function createContextMemoryProposalServiceV010(input: {
     context: ActiveContextRefV010,
     principal: PlatformPrincipalV010,
     draft: ContextMemoryProposalDraftV010,
-    authoredBy: "PERSONAL_AGENT" | "HUMAN"
+    authoredBy: "PERSONAL_AGENT" | "SOURCE_ADAPTER" | "HUMAN"
   ): Promise<ContextMemoryProposalRevisionV010> {
     const kind = validKind(draft.kind);
     const summary = validSummary(draft.summary);
     const evidenceRefs = canonicalStrings(draft.evidenceRefs);
+    const evidenceSources = canonicalEvidenceSources(draft.evidenceSources);
     const proposedConfidence = validConfidence(draft.proposedConfidence);
     const observedAt = validObservedAt(draft.observedAt);
     const supersedesMemoryId = draft.supersedesMemoryId?.trim() || undefined;
@@ -243,7 +260,10 @@ export function createContextMemoryProposalServiceV010(input: {
       kind,
       summary,
       evidenceRefs,
-      evidenceQuality: evidenceRefs.length > 0 ? "REFERENCED" : "UNVERIFIED",
+      ...(evidenceSources.length > 0 ? { evidenceSources } : {}),
+      evidenceQuality: evidenceRefs.length > 0 || evidenceSources.length > 0
+        ? "REFERENCED"
+        : "UNVERIFIED",
       ...(proposedConfidence !== undefined ? { proposedConfidence } : {}),
       ...(observedAt ? { observedAt } : {}),
       ...(supersedesMemoryId ? { supersedesMemoryId } : {}),
@@ -283,6 +303,7 @@ export function createContextMemoryProposalServiceV010(input: {
         kind: nextKind,
         summary: nextSummary,
         evidenceRefs: previous.evidenceRefs,
+        ...(previous.evidenceSources ? { evidenceSources: previous.evidenceSources } : {}),
         ...(previous.proposedConfidence !== undefined
           ? { proposedConfidence: previous.proposedConfidence }
           : {}),
@@ -308,12 +329,12 @@ export function createContextMemoryProposalServiceV010(input: {
   }
 
   return {
-    async create({ principal, context, draft }) {
+    async create({ principal, context, draft, authoredBy = "PERSONAL_AGENT" }) {
       const revision = await revisionFor(
         context,
         principal,
         draft,
-        "PERSONAL_AGENT"
+        authoredBy
       );
       const proposal: ContextMemoryProposalV010 = {
         contractVersion: "0.1.0",
@@ -431,7 +452,10 @@ export function createContextMemoryProposalServiceV010(input: {
               contractVersion: "0.1.0",
               origin: "DIRECT",
               sourceContext: structuredClone(proposal.context),
-              evidenceRefs: [...revision.evidenceRefs]
+              evidenceRefs: [...revision.evidenceRefs],
+              ...(revision.evidenceSources
+                ? { evidenceSources: structuredClone(revision.evidenceSources) }
+                : {})
             },
             attribution: {
               contractVersion: "0.1.0",
