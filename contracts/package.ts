@@ -227,6 +227,14 @@ export interface FeatureManifestV010 {
   contributions?: FeatureContributionV010[];
 }
 
+export interface PackageSecretDeclarationV010 {
+  key: string;
+  label: string;
+  description?: string;
+  scope: ActivationScope;
+  required?: boolean;
+}
+
 export interface PackageManifestV010 {
   contractVersion: "0.1.0";
   packageId: string;
@@ -236,6 +244,7 @@ export interface PackageManifestV010 {
   compatibility?: PluginCompatibilityV010;
   publisher?: PluginPublisherV010;
   permissions?: PluginPermissionV010[];
+  secrets?: PackageSecretDeclarationV010[];
   runtime?: PluginRuntimeV010;
   integrity?: PluginIntegrityV010;
   storage?: PluginStorageDeclarationV010;

@@ -21,7 +21,7 @@
     "pluginStorageEvents": "SOON",
     "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
-    "secretsIdentityAuthorization": "NOW",
+    "secretsIdentityAuthorization": "NOW_SECRETS_P0_IMPLEMENTED_IDENTITY_SESSION_NEXT_AS_AGENT_NEEDS",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
     "designLanguage": "DELEGATED_EIDOS_CI_ENFORCED",
@@ -50,7 +50,8 @@
     "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
     "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED",
     "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE",
-    "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED"
+    "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED",
+    "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -167,10 +168,23 @@
       "en",
       "zh-CN"
     ],
-    "seedDocumentIds": 14,
-    "seedVariants": 28,
+    "seedDocumentIds": 15,
+    "seedVariants": 30,
     "localeMachineMetadata": "CI_ENFORCED_STABLE",
     "eidosDesignLanguage": "CI_ENFORCED_NO_PARALLEL_PLATFORM_HELP_UI",
     "designGate": "tools/eidos-design-language-validate.mjs"
+  },
+  "secrets": {
+    "status": "IMPLEMENTED_P0_CI_VERIFIED_DEPLOYMENT_PENDING",
+    "capability": "secrets.resolve",
+    "provider": "host.encrypted-secrets",
+    "packageDeclaration": "PackageManifestV010.secrets",
+    "encryptedStorage": "AES_256_GCM_SEPARATE_HOST_MASTER_KEY",
+    "browserReadback": "FORBIDDEN",
+    "mutation": "AUTHORIZED_AND_METADATA_AUDITED",
+    "eidos": "SETTINGS_EDITOR_SECRET_CONTROL",
+    "openai": "openai-llm-provider/apiKey",
+    "legacyEnv": "OPENAI_API_KEY_MIGRATION_ONLY",
+    "next": "RAILWAY_DURABLE_STORAGE_THEN_ENTERPRISE_AGENT_TOOL_DISCOVERY_WITH_MINIMAL_IDENTITY_SESSION_FOR_PRIVILEGED_WRITES"
   }
 }

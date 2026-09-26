@@ -6,7 +6,7 @@ import {
   type PluginRuntimeStatusV010
 } from "./plugin-runtime-host.js";
 import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
-import { packageHasSettings, settingsPackageRoute } from "./settings-page.js";
+import { packageHasConfiguration, settingsPackageRoute } from "./settings-page.js";
 import {
   createMemoryPluginIntegrityTrustStoreV010,
   verifyPackageIntegrityV010,
@@ -132,7 +132,7 @@ export function createPluginStorePage(
         );
         const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
         const route = firstExperienceRoute(pkg);
-        const settingsRoute = packageHasSettings(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
+        const settingsRoute = packageHasConfiguration(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
         const compatibility = evaluatePackageCompatibility(pkg);
         const runtimeStatus = evaluateRuntime(pkg);
         const integrityStatus = verifyPackageIntegrityV010(pkg, integrityTrustStore);

@@ -205,3 +205,26 @@ npm run plugin:validate -- examples/plugin-manifest.minimal.json
 ```
 
 An incompatible schema change requires an explicit Plugin Protocol version change.
+
+
+## Package Secret requirements
+
+A Package may declare Secret requirements through `PackageManifestV010.secrets`.
+
+The declaration is metadata-only:
+
+```text
+key
+label
+description?
+scope
+required?
+```
+
+Secret values, encrypted payloads and credential defaults are forbidden Manifest content.
+
+A Package declaring one or more Secrets MUST explicitly require the `secrets.resolve` Capability in its Feature dependency graph. This keeps install planning portable and prevents a Secret-dependent Package from appearing ready without an admitted Secrets Provider.
+
+The Host owns collection, authorization, storage, audit and resolution. Packages consume the public Secret reference/resolver contracts and must not depend on Railway variables, filesystem paths or a specific Vault/KMS implementation.
+
+See `PLATFORM-SECRETS-v0.1.md`.

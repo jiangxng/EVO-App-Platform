@@ -6,6 +6,10 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import {
+  createEncryptedFileSecretStoreV010,
+  createMemorySecretStoreV010
+} from "./secret-store.js";
 import { createAppManagerService } from "./service.js";
 import {
   createFilePluginStorageService,
@@ -35,7 +39,11 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
-import type { AuthorizationProviderV010 } from "../contracts/platform-services.js";
+import type {
+  AuthorizationProviderV010,
+  ManagedSecretsProviderV010,
+  SecretReferenceV010
+} from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import {
   createFileProviderBindingStoreV010,
@@ -52,6 +60,16 @@ import {
   parseHostRemoteBearerTokenMapV010
 } from "../providers/remote-credential/runtime.js";
 import { createOpenAiResponsesHealthProbe, createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
+import {
+  HOST_ENCRYPTED_SECRETS_PACKAGE_ID,
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  SECRETS_RESOLVE_CAPABILITY,
+  hostEncryptedSecretsProviderPackage
+} from "../providers/secrets/package.js";
+import {
+  createHostEncryptedSecretsHealthProbeV010,
+  createHostEncryptedSecretsProviderV010
+} from "../providers/secrets/runtime.js";
 import {
   OPENAI_LLM_PACKAGE_ID,
   OPENAI_LLM_PROVIDER_ID,
@@ -79,6 +97,7 @@ import {
   createSettingsPage,
   packageIdFromSettingsPageSource,
   settingsIndexPageSource,
+  secretReferenceForPackageV010,
   validateAndMergeSettings
 } from "./settings-page.js";
 import {
@@ -114,6 +133,12 @@ import {
   providerAuditEventV010
 } from "./provider-governance.js";
 import {
+  createJsonlSecretAuditStoreV010,
+  createMemorySecretAuditStoreV010,
+  SECRET_VALUE_MANAGE_ACTION,
+  secretAuditEventV010
+} from "./secret-governance.js";
+import {
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
@@ -130,6 +155,7 @@ const catalog = createPackageCatalog([
   openAiLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
   hostStaticAuthorizationProviderPackage,
+  hostEncryptedSecretsProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -139,6 +165,18 @@ const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
 const settingsStore = settingsStateFile
   ? createFileSettingsStore(settingsStateFile)
   : createMemorySettingsStore();
+const secretsStateFile = process.env.APP_PLATFORM_SECRETS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secrets.enc.json") : undefined);
+const secretsKeyFile = process.env.APP_PLATFORM_SECRETS_KEY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secrets.master.key") : undefined);
+const secretStore = secretsStateFile && secretsKeyFile
+  ? createEncryptedFileSecretStoreV010(secretsStateFile, secretsKeyFile)
+  : createMemorySecretStoreV010();
+const secretAuditFile = process.env.APP_PLATFORM_SECRET_AUDIT_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secret-audit.jsonl") : undefined);
+const secretAudit = secretAuditFile
+  ? createJsonlSecretAuditStoreV010(secretAuditFile)
+  : createMemorySecretAuditStoreV010();
 const pluginStorageStateFile = process.env.APP_PLATFORM_PLUGIN_STORAGE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "plugin-storage.json") : undefined);
 const pluginStorage = pluginStorageStateFile
@@ -180,6 +218,21 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  createHostEncryptedSecretsProviderV010(secretStore)
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  createHostEncryptedSecretsHealthProbeV010(secretStore)
+);
+providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: secretsStateFile
+    ? "Encrypted Host secret store is configured."
+    : "In-memory Host secret store is active for this process.",
+  checkedAt: new Date().toISOString()
+});
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
 const providerBindings = providerBindingsFile
@@ -300,6 +353,33 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+const installedAtStartup = manager.getSnapshot().installedPackages;
+const hasInstalledSecretConsumer = installedAtStartup.some(installed => {
+  const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
+  return (pkg?.secrets?.length ?? 0) > 0;
+});
+if (
+  hasInstalledSecretConsumer
+  && !installedAtStartup.some(item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
+    console.log("Migrated installed Secret consumers onto Host encrypted secrets Provider.");
+  } catch (error) {
+    console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
+  }
+}
+
+function resolveManagedSecretsProvider(): ManagedSecretsProviderV010 | undefined {
+  return resolveProviderRuntimeV010<ManagedSecretsProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(SECRETS_RESOLVE_CAPABILITY),
+    providerBindings,
+    SECRETS_RESOLVE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
   return resolveProviderRuntimeV010<AuthorizationProviderV010>(
     providerRuntimeRegistry,
@@ -310,7 +390,7 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
   )?.runtime;
 }
 
-async function authorizeProviderGovernance(
+async function authorizeHostAdministration(
   token: string | undefined,
   action: string,
   resource: {
@@ -364,13 +444,46 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
-const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+function openAiApiKeyReference(): SecretReferenceV010 {
+  return {
+    contractVersion: "0.1.0",
+    namespace: OPENAI_LLM_PACKAGE_ID,
+    key: "apiKey",
+    scope: "INSTALLATION",
+    scopeId: "default"
+  };
+}
 
-function refreshOpenAiProviderRuntime(): void {
-  if (!openaiApiKey) {
+async function refreshOpenAiProviderRuntime(): Promise<void> {
+  const reference = openAiApiKeyReference();
+  const legacyApiKey = process.env.OPENAI_API_KEY?.trim();
+  let apiKey: string | undefined;
+
+  try {
+    const secrets = resolveManagedSecretsProvider();
+    if (secrets) {
+      const status = await secrets.describe(reference);
+      if (!status.configured && legacyApiKey) {
+        await secrets.put(reference, legacyApiKey);
+        console.log("Migrated legacy OpenAI credential into Host Secrets Provider.");
+      }
+      const refreshedStatus = await secrets.describe(reference);
+      if (refreshedStatus.configured) {
+        apiKey = (await secrets.resolve(reference)).trim();
+      }
+    }
+  } catch (error) {
+    console.error("OpenAI Secret resolution failed closed.", error);
+  }
+
+  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
+  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
+
+  if (!apiKey) {
     providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
     return;
   }
+
   const values = settingsStore.getNamespace(OPENAI_LLM_PACKAGE_ID);
   const model = typeof values.model === "string" && values.model.trim()
     ? values.model.trim()
@@ -380,7 +493,7 @@ function refreshOpenAiProviderRuntime(): void {
     : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
 
   const options = {
-    apiKey: openaiApiKey,
+    apiKey,
     model,
     baseUrl
   };
@@ -394,12 +507,12 @@ function refreshOpenAiProviderRuntime(): void {
   );
   providerRuntimeRegistry.setHealth(OPENAI_LLM_PROVIDER_ID, {
     state: "UNKNOWN",
-    message: "Runtime is configured; external service health has not been actively probed.",
+    message: "Runtime credential is configured through the Host Secrets boundary; external service health has not been actively probed.",
     checkedAt: new Date().toISOString()
   });
 }
 
-refreshOpenAiProviderRuntime();
+await refreshOpenAiProviderRuntime();
 
 function resolveLlmProvider(): {
   installedProviderIds: string[];
@@ -558,7 +671,7 @@ const server = createServer(async (request, response) => {
       const bearerToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
         ? authorization.slice("Bearer ".length)
         : undefined;
-      const decision = await authorizeProviderGovernance(
+      const decision = await authorizeHostAdministration(
         bearerToken,
         PROVIDER_GOVERNANCE_AUDIT_READ_ACTION,
         { type: "provider-governance-audit" }
@@ -598,7 +711,7 @@ const server = createServer(async (request, response) => {
       if (!providerId) {
         return json(response, 400, { ok: false, error: { code: "PROVIDER_ID_REQUIRED" } });
       }
-      const decision = await authorizeProviderGovernance(
+      const decision = await authorizeHostAdministration(
         adminToken,
         PROVIDER_HEALTH_PROBE_ACTION,
         {
@@ -749,7 +862,20 @@ const server = createServer(async (request, response) => {
       }
       const settingsPackageId = packageIdFromSettingsPageSource(source);
       if (settingsPackageId) {
-        const settingsPage = createSettingsPage(manager, settingsStore, settingsPackageId);
+        const settingsPage = await createSettingsPage(
+          manager,
+          settingsStore,
+          settingsPackageId,
+          async reference => {
+            try {
+              return await resolveManagedSecretsProvider()?.describe(reference);
+            } catch {
+              return undefined;
+            }
+          },
+          { installationId: "default" },
+          requestedLocale(url)
+        );
         if (!settingsPage) {
           return json(response, 404, { code: "SETTINGS_NOT_AVAILABLE", packageId: settingsPackageId });
         }
@@ -917,7 +1043,7 @@ const server = createServer(async (request, response) => {
           }
 
           const adminToken = typeof values.adminToken === "string" ? values.adminToken : undefined;
-          const decision = await authorizeProviderGovernance(
+          const decision = await authorizeHostAdministration(
             adminToken,
             PROVIDER_BINDING_UPDATE_ACTION,
             {
@@ -1004,20 +1130,186 @@ const server = createServer(async (request, response) => {
         }
 
         try {
+          const values = rawSettings as Record<string, unknown>;
+          const pkg = manager.listCatalog().find(item => item.packageId === namespace);
+          if (!pkg || !manager.getSnapshot().installedPackages.some(item => item.packageId === namespace)) {
+            throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
+          }
+
+          const secretChanges: Array<{
+            operation: "PUT" | "REMOVE";
+            reference: SecretReferenceV010;
+            value?: string;
+            authorization?: {
+              actorId: string;
+              policyProviderId?: string;
+              reason: string;
+            };
+          }> = [];
+
+          for (const declaration of pkg.secrets ?? []) {
+            const reference = secretReferenceForPackageV010(
+              pkg.packageId,
+              declaration,
+              { installationId: "default" }
+            );
+            const rawValue = values[`secret:${declaration.key}`];
+            const remove = values[`secret-remove:${declaration.key}`] === true;
+            if (rawValue !== undefined && typeof rawValue !== "string") {
+              throw new Error(`SECRET_INPUT_TYPE_INVALID: ${declaration.key}`);
+            }
+            const nextValue = typeof rawValue === "string" ? rawValue.trim() : "";
+            if (remove && nextValue) {
+              throw new Error(`SECRET_INPUT_CONFLICT: ${declaration.key}`);
+            }
+            if (!remove && !nextValue) continue;
+            if (!reference) {
+              throw new Error(`SECRET_SCOPE_CONTEXT_UNAVAILABLE: ${declaration.key}`);
+            }
+            secretChanges.push(remove
+              ? { operation: "REMOVE", reference }
+              : { operation: "PUT", reference, value: nextValue });
+          }
+
+          let secretsProvider: ManagedSecretsProviderV010 | undefined;
+          if (secretChanges.length > 0) {
+            secretsProvider = resolveManagedSecretsProvider();
+            if (!secretsProvider) throw new Error("SECRETS_PROVIDER_UNAVAILABLE");
+
+            const adminToken = typeof values.adminToken === "string"
+              ? values.adminToken
+              : undefined;
+
+            for (const change of secretChanges) {
+              const decision = await authorizeHostAdministration(
+                adminToken,
+                SECRET_VALUE_MANAGE_ACTION,
+                {
+                  type: "package-secret",
+                  id: `${change.reference.namespace}:${change.reference.key}`,
+                  attributes: {
+                    namespace: change.reference.namespace,
+                    key: change.reference.key,
+                    scope: change.reference.scope,
+                    ...(change.reference.scopeId
+                      ? { scopeId: change.reference.scopeId }
+                      : {})
+                  }
+                }
+              );
+
+              if (!decision.allowed) {
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "DENIED",
+                  actorId: decision.actorId,
+                  ...(decision.policyProviderId
+                    ? { policyProviderId: decision.policyProviderId }
+                    : {}),
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: decision.reason
+                }));
+                return json(response, 403, {
+                  ok: false,
+                  correlationId: action.sourceInteractionId,
+                  error: {
+                    code: decision.reason,
+                    message: "Secret change requires authorization policy approval."
+                  }
+                });
+              }
+              change.authorization = {
+                actorId: decision.actorId,
+                ...(decision.policyProviderId
+                  ? { policyProviderId: decision.policyProviderId }
+                  : {}),
+                reason: decision.reason
+              };
+            }
+          }
+
           const saved = validateAndMergeSettings(
             manager,
             settingsStore,
             namespace,
-            rawSettings as Record<string, unknown>
+            values
           );
-          if (namespace === OPENAI_LLM_PACKAGE_ID) refreshOpenAiProviderRuntime();
+
+          if (secretsProvider) {
+            for (const change of secretChanges) {
+              try {
+                if (change.operation === "PUT") {
+                  await secretsProvider.put(change.reference, change.value!);
+                } else {
+                  await secretsProvider.remove(change.reference);
+                }
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "ALLOWED",
+                  actorId: change.authorization?.actorId ?? "unknown",
+                  ...(change.authorization?.policyProviderId
+                    ? { policyProviderId: change.authorization.policyProviderId }
+                    : {}),
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
+                }));
+              } catch (error) {
+                secretAudit.append(secretAuditEventV010({
+                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                  outcome: "FAILED",
+                  actorId: change.authorization?.actorId ?? "unknown",
+                  ...(change.authorization?.policyProviderId
+                    ? { policyProviderId: change.authorization.policyProviderId }
+                    : {}),
+                  correlationId: action.sourceInteractionId,
+                  reference: change.reference,
+                  reason: error instanceof Error ? error.message : String(error)
+                }));
+                throw error;
+              }
+            }
+          }
+
+          if (namespace === OPENAI_LLM_PACKAGE_ID) {
+            await refreshOpenAiProviderRuntime();
+          }
+
+          const secretStatus = await Promise.all(
+            (pkg.secrets ?? []).map(async declaration => {
+              const reference = secretReferenceForPackageV010(
+                pkg.packageId,
+                declaration,
+                { installationId: "default" }
+              );
+              if (!reference) {
+                return {
+                  key: declaration.key,
+                  configured: false,
+                  scopeAvailable: false
+                };
+              }
+              const descriptor = await resolveManagedSecretsProvider()?.describe(reference);
+              return {
+                key: declaration.key,
+                configured: descriptor?.configured === true,
+                scopeAvailable: true,
+                ...(descriptor?.updatedAt ? { updatedAt: descriptor.updatedAt } : {})
+              };
+            })
+          );
+
           return json(response, 200, {
             ok: true,
             correlationId: action.sourceInteractionId,
             result: {
-              message: "Settings saved.",
+              message: secretChanges.length > 0
+                ? "Settings and Secrets saved."
+                : "Settings saved.",
               namespace,
-              settings: saved
+              settings: saved,
+              secrets: secretStatus
             }
           });
         } catch (error) {

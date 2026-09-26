@@ -108,6 +108,20 @@ export function validatePluginManifestV010(
     add("PLUGIN_PUBLISHER_ID_REQUIRED", "publisher.id", "Publisher id is required.");
   }
 
+  const secretKeys = pkg.secrets?.map(secret => secret.key) ?? [];
+  for (const duplicate of duplicateValues(secretKeys)) {
+    add("PLUGIN_SECRET_KEY_DUPLICATE", "secrets", `Duplicate Secret key '${duplicate}'.`);
+  }
+  for (const [index, secret] of (pkg.secrets ?? []).entries()) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(secret.key) || !secret.label.trim()) {
+      add(
+        "PLUGIN_SECRET_DECLARATION_INVALID",
+        `secrets[${index}]`,
+        "Secret key and human-readable label are required; values never belong in the manifest."
+      );
+    }
+  }
+
   const permissionIds = pkg.permissions?.map(permission => permission.id) ?? [];
   for (const duplicate of duplicateValues(permissionIds)) {
     add("PLUGIN_PERMISSION_DUPLICATE", "permissions", `Duplicate permission '${duplicate}'.`);
@@ -306,6 +320,19 @@ export function validatePluginManifestV010(
         "PLUGIN_RUNTIME_MEMORY_INVALID",
         "runtime.limits.memoryMb",
         "Process memory budget must be an integer between 16 and 2048 MB."
+      );
+    }
+  }
+
+  if ((pkg.secrets?.length ?? 0) > 0) {
+    const requiresSecretsCapability = pkg.features.some(feature =>
+      (feature.requiresCapabilities ?? []).includes("secrets.resolve")
+    );
+    if (!requiresSecretsCapability) {
+      add(
+        "PLUGIN_SECRET_CAPABILITY_REQUIRED",
+        "features.requiresCapabilities",
+        "A Package declaring Secrets must explicitly require the secrets.resolve capability."
       );
     }
   }

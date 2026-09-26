@@ -21,7 +21,8 @@
     "plugin:validate": "npm run build --silent && node tools/plugin-manifest-validate.mjs",
     "test:plugin:host-authorization-provider": "npm run build && node --test tests/protocol/authorization-provider.test.mjs tests/protocol/provider-governance.test.mjs",
     "help:validate": "npm run build --silent && node tools/help-validate.mjs",
-    "design:validate": "npm run build --silent && node tools/eidos-design-language-validate.mjs"
+    "design:validate": "npm run build --silent && node tools/eidos-design-language-validate.mjs",
+    "test:plugin:host-secrets-provider": "npm run build && node --test tests/protocol/secrets-provider.test.mjs tests/settings/plugin-settings.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

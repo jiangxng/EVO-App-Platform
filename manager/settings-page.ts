@@ -5,10 +5,35 @@ import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.
 import type {
   EidosSettingsContributionV010,
   PackageManifestV010,
+  PackageSecretDeclarationV010,
   SettingValueV010
 } from "../contracts/package.js";
+import type {
+  SecretDescriptorV010,
+  SecretReferenceV010
+} from "../contracts/platform-services.js";
 
 export const settingsIndexPageSource = "app://evo-app-platform/pages/settings";
+
+export interface SettingsSecretScopeContextV010 {
+  installationId: string;
+  enterpriseId?: string;
+  companyId?: string;
+  workspaceId?: string;
+  userId?: string;
+}
+
+export type DescribeSecretV010 = (
+  reference: SecretReferenceV010
+) => SecretDescriptorV010 | undefined | Promise<SecretDescriptorV010 | undefined>;
+
+function settingsUiLocale(locale: string): "en" | "zh-CN" {
+  try {
+    return Intl.getCanonicalLocales(locale.trim())[0] === "zh-CN" ? "zh-CN" : "en";
+  } catch {
+    return "en";
+  }
+}
 
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
@@ -36,9 +61,21 @@ export function packageHasSettings(pkg: PackageManifestV010): boolean {
   );
 }
 
+export function packageHasConfiguration(pkg: PackageManifestV010): boolean {
+  return packageHasSettings(pkg) || (pkg.secrets?.length ?? 0) > 0;
+}
+
+function installedConfigurablePackages(manager: AppManagerService): PackageManifestV010[] {
+  const installed = new Set(
+    manager.getSnapshot().installedPackages.map(item => item.packageId)
+  );
+  return manager.listCatalog()
+    .filter(pkg => installed.has(pkg.packageId) && packageHasConfiguration(pkg))
+    .sort((a, b) => a.packageId.localeCompare(b.packageId));
+}
+
 export function createSettingsExperienceManifest(manager: AppManagerService) {
-  const installed = manager.listInstalledSettings();
-  const packageIds = [...new Set(installed.map(item => item.packageId))].sort();
+  const packages = installedConfigurablePackages(manager);
 
   return {
     contractVersion: "0.1.0",
@@ -52,10 +89,10 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         title: "Settings",
         source: settingsIndexPageSource
       },
-      ...packageIds.map(packageId => ({
-        id: `evo-settings.${packageId}`,
-        title: packageId,
-        source: settingsPackagePageSource(packageId)
+      ...packages.map(pkg => ({
+        id: `evo-settings.${pkg.packageId}`,
+        title: pkg.displayName,
+        source: settingsPackagePageSource(pkg.packageId)
       }))
     ],
     routes: [
@@ -64,10 +101,10 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         path: "/settings",
         pageId: "evo-settings.home"
       },
-      ...packageIds.map(packageId => ({
-        id: `evo-settings.${packageId}`,
-        path: settingsPackageRoute(packageId),
-        pageId: `evo-settings.${packageId}`
+      ...packages.map(pkg => ({
+        id: `evo-settings.${pkg.packageId}`,
+        path: settingsPackageRoute(pkg.packageId),
+        pageId: `evo-settings.${pkg.packageId}`
       }))
     ]
   } as const;
@@ -76,17 +113,15 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
 export function createSettingsIndexPage(
   manager: AppManagerService
 ): CatalogBrowserV010 {
-  const catalog = new Map(manager.listCatalog().map(pkg => [pkg.packageId, pkg]));
-  const installed = manager.listInstalledSettings();
-  const packageIds = [...new Set(installed.map(item => item.packageId))].sort();
+  const packages = installedConfigurablePackages(manager);
 
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo.settings",
     title: "Settings",
-    description: "Configure installed plugins that declare standard settings.",
-    emptyMessage: "No installed plugins expose standard settings.",
+    description: "Configure installed plugins and Provider credentials through Host-owned settings and Secret boundaries.",
+    emptyMessage: "No installed plugins expose configurable settings or credentials.",
     items: [
       {
         id: "provider-bindings",
@@ -100,22 +135,21 @@ export function createSettingsIndexPage(
           route: "/providers"
         }
       },
-      ...packageIds.map(packageId => {
-      const pkg = catalog.get(packageId);
-        return {
-          id: packageId,
-          title: pkg?.displayName ?? packageId,
-          version: pkg?.version,
-          category: pkg?.type,
-          summary: "Standard plugin settings",
-          primaryAction: {
-            id: "configure",
-            label: "Configure",
-            type: "navigate" as const,
-            route: settingsPackageRoute(packageId)
-          }
-        };
-      })
+      ...packages.map(pkg => ({
+        id: pkg.packageId,
+        title: pkg.displayName,
+        version: pkg.version,
+        category: pkg.type,
+        summary: (pkg.secrets?.length ?? 0) > 0
+          ? "Plugin settings and Host-managed credentials"
+          : "Standard plugin settings",
+        primaryAction: {
+          id: "configure",
+          label: "Configure",
+          type: "navigate" as const,
+          route: settingsPackageRoute(pkg.packageId)
+        }
+      }))
     ]
   };
 }
@@ -130,6 +164,14 @@ function mergeSettingsContributions(
     if (seen.has(property.key)) {
       throw new Error(`DUPLICATE_SETTING_KEY: ${first.namespace}.${property.key}`);
     }
+    if (
+      property.key.startsWith("secret:")
+      || property.key.startsWith("secret-status:")
+      || property.key.startsWith("secret-remove:")
+      || property.key === "adminToken"
+    ) {
+      throw new Error(`SETTING_KEY_RESERVED: ${first.namespace}.${property.key}`);
+    }
     seen.add(property.key);
     return true;
   });
@@ -143,38 +185,141 @@ function mergeSettingsContributions(
   };
 }
 
-export function createSettingsPage(
+export function secretReferenceForPackageV010(
+  packageId: string,
+  declaration: PackageSecretDeclarationV010,
+  context: SettingsSecretScopeContextV010
+): SecretReferenceV010 | undefined {
+  let scopeId: string | undefined;
+  if (declaration.scope === "INSTALLATION") scopeId = context.installationId;
+  else if (declaration.scope === "ENTERPRISE") scopeId = context.enterpriseId;
+  else if (declaration.scope === "COMPANY") scopeId = context.companyId;
+  else if (declaration.scope === "WORKSPACE") scopeId = context.workspaceId;
+  else if (declaration.scope === "USER") scopeId = context.userId;
+
+  if (declaration.scope !== "SYSTEM" && !scopeId) return undefined;
+
+  return {
+    contractVersion: "0.1.0",
+    namespace: packageId,
+    key: declaration.key,
+    scope: declaration.scope,
+    ...(scopeId ? { scopeId } : {})
+  };
+}
+
+export async function createSettingsPage(
   manager: AppManagerService,
   store: SettingsStore,
-  packageId: string
-): SettingsEditorV010 | undefined {
-  const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
-  if (!merged) return undefined;
+  packageId: string,
+  describeSecret?: DescribeSecretV010,
+  secretContext: SettingsSecretScopeContextV010 = { installationId: "default" },
+  locale = "en"
+): Promise<SettingsEditorV010 | undefined> {
+  const pkg = manager.listCatalog().find(item => item.packageId === packageId);
+  const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
+  if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
 
-  const current = store.getNamespace(merged.namespace);
+  const uiLocale = settingsUiLocale(locale);
+  const zh = uiLocale === "zh-CN";
+  const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
+  const namespace = merged?.namespace ?? packageId;
+  const current = store.getNamespace(namespace);
+  const ordinarySettings = (merged?.properties ?? []).map(property => ({
+    key: property.key,
+    label: property.label,
+    description: property.description,
+    type: property.type,
+    value: current[property.key] ?? property.defaultValue,
+    defaultValue: property.defaultValue,
+    options: property.options,
+    readOnly: property.readOnly
+  }));
+
+  const secretSettings = (
+    await Promise.all((pkg.secrets ?? []).map(async declaration => {
+      const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
+      const status = reference && describeSecret ? await describeSecret(reference) : undefined;
+      const configured = status?.configured === true;
+      const unavailable = !reference;
+      const statusValue = unavailable
+        ? (zh ? "当前作用域上下文不可用" : "Scope context unavailable")
+        : configured
+          ? (
+              zh
+                ? `已配置${status?.updatedAt ? ` · 更新于 ${status.updatedAt}` : ""} · 不显示已保存明文`
+                : `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
+            )
+          : (zh ? "未配置" : "Not configured");
+
+      return [
+        {
+          key: `secret:${declaration.key}`,
+          label: configured
+            ? (zh ? `替换 ${declaration.label}` : `Replace ${declaration.label}`)
+            : declaration.label,
+          description: unavailable
+            ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
+            : declaration.description,
+          type: "secret" as const,
+          value: "",
+          readOnly: unavailable
+        },
+        {
+          key: `secret-status:${declaration.key}`,
+          label: zh ? `${declaration.label} 状态` : `${declaration.label} status`,
+          type: "string" as const,
+          value: statusValue,
+          readOnly: true
+        },
+        ...(configured && !unavailable
+          ? [{
+              key: `secret-remove:${declaration.key}`,
+              label: zh ? `删除 ${declaration.label}` : `Remove ${declaration.label}`,
+              description: zh ? "保存时删除当前已存储的 Secret。" : "Remove the stored Secret when saving.",
+              type: "boolean" as const,
+              value: false,
+              defaultValue: false
+            }]
+          : [])
+      ];
+    }))
+  ).flat();
+
+  const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
+
   return {
     contractVersion: "0.1.0",
     kind: "settings-editor",
     id: `evo-settings.${packageId}`,
-    namespace: merged.namespace,
-    title: merged.title,
-    description: merged.description,
+    namespace,
+    title: merged?.title ?? pkg.displayName,
+    description: merged?.description ?? (
+      zh
+        ? "配置此 Package 的 Host 管理凭据。"
+        : "Configure Host-managed credentials for this Package."
+    ),
     command: {
       code: "app-platform.update-settings",
       inputVersion: "0.1.0"
     },
-    settings: merged.properties.map(property => ({
-      key: property.key,
-      label: property.label,
-      description: property.description,
-      type: property.type,
-      value: current[property.key] ?? property.defaultValue,
-      defaultValue: property.defaultValue,
-      options: property.options,
-      readOnly: property.readOnly
-    })),
-    saveLabel: "Save",
-    emptyMessage: "This plugin has no editable standard settings."
+    settings: [
+      ...ordinarySettings,
+      ...secretSettings,
+      ...(hasSecrets
+        ? [{
+            key: "adminToken",
+            label: zh ? "管理员授权" : "Administrator authorization",
+            description: zh
+              ? "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。"
+              : "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
+            type: "secret" as const,
+            value: ""
+          }]
+        : [])
+    ],
+    saveLabel: zh ? "保存" : "Save",
+    emptyMessage: zh ? "此插件没有可编辑配置。" : "This plugin has no editable configuration."
   };
 }
 
@@ -185,7 +330,15 @@ export function validateAndMergeSettings(
   input: Record<string, unknown>
 ): Record<string, SettingValueV010> {
   const merged = mergeSettingsContributions(manager.listInstalledSettings(namespace));
-  if (!merged || merged.namespace !== namespace) {
+  if (!merged) {
+    const pkg = manager.listCatalog().find(item => item.packageId === namespace);
+    const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === namespace);
+    if (pkg && installed && (pkg.secrets?.length ?? 0) > 0) {
+      return store.getNamespace(namespace);
+    }
+    throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
+  }
+  if (merged.namespace !== namespace) {
     throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
   }
 

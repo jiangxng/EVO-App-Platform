@@ -401,3 +401,14 @@ Platform Help is a governed product knowledge surface, not a central FAQ dump. E
 Multilingual Help rules are mandatory: stable Help IDs/routes/context/error/action identifiers are never translated; locale variants translate human text only; resolution is per document with deterministic fallback to canonical `en`; current core coverage includes `en` and `zh-CN`. Before changing Help locale behavior, read `docs/architecture/APP-OWNED-LOCALIZATION-v0.1.md`.
 
 For Help/Workbench visual changes, the Eidos Productive Design Language is not advisory. Reuse Eidos Workbench, Catalog Browser, HelpDocument, tokens and semantic icons. Do not add App Platform Help CSS or raw standard-control markup. If Eidos lacks a reusable pattern, implement and validate it in Eidos first. Platform CI runs `tools/eidos-design-language-validate.mjs` to enforce this ownership boundary.
+
+
+## Secrets Provider boundary
+
+Before changing credentials/API keys/private material, read `docs/architecture/PLATFORM-SECRETS-v0.1.md`.
+
+Packages may declare Secret requirements, but Secret values never belong in Package manifests, ordinary `eidos.settings`, source constants, Help, logs or browser-readable persisted state. Human credential entry uses Eidos `settings-editor` secret controls; App Platform routes the value into the Host-managed `secrets.resolve` Provider boundary and never returns stored plaintext.
+
+The reference P0 Provider is `host.encrypted-secrets`. Its local encrypted-file implementation is replaceable by Vault/KMS/cloud Secret Providers without changing consuming Packages. Secret mutation is a privileged server-side authorized action and audit records contain metadata only.
+
+For OpenAI, `OPENAI_API_KEY` is compatibility migration input only. New credentials are configured through Workbench and resolved from `openai-llm-provider/apiKey`. Do not reintroduce Railway environment variables as the normal LLM credential UX.

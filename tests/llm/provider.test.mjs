@@ -6,6 +6,7 @@ import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js";
 import { createOpenAiResponsesLlmProvider } from "../../dist/providers/openai/runtime.js";
+import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
 import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
 import { createProviderBackedAgentModel } from "../../dist/agents/enterprise-agent/provider-model.js";
 import { createEnterpriseAgentChatActionHandler } from "../../dist/agents/enterprise-agent/chat-action-handler.js";
@@ -15,20 +16,31 @@ import {
 } from "../../dist/catalog/seed.js";
 
 test("OpenAI LLM provider is an ordinary lifecycle-managed platform provider", () => {
-  const catalog = createPackageCatalog([openAiLlmProviderPackage]);
+  const catalog = createPackageCatalog([
+    openAiLlmProviderPackage,
+    hostEncryptedSecretsProviderPackage
+  ]);
   const manager = createAppManagerService(catalog, createMemoryLifecycleStore());
 
   assert.deepEqual(manager.listEffectiveServiceProviders("llm.inference"), []);
 
   const plan = manager.planInstall("openai-llm-provider");
   assert.deepEqual(plan.blockers, []);
+  assert.deepEqual(plan.installPackages, [
+    "host-encrypted-secrets-provider",
+    "openai-llm-provider"
+  ]);
   manager.install("openai-llm-provider");
 
   const providers = manager.listEffectiveServiceProviders("llm.inference");
   assert.equal(providers.length, 1);
   assert.equal(providers[0].providerId, "openai.responses");
   assert.equal(providers[0].binding.type, "IN_PROCESS");
-  assert.equal(providers[0].metadata.apiKeySecretName, "OPENAI_API_KEY");
+  assert.equal(providers[0].metadata.apiKeySecretName, "openai-llm-provider/apiKey");
+  assert.equal(
+    manager.listEffectiveServiceProviders("secrets.resolve")[0].providerId,
+    "host.encrypted-secrets"
+  );
 
   manager.disable("openai-llm-provider");
   assert.deepEqual(manager.listEffectiveServiceProviders("llm.inference"), []);
