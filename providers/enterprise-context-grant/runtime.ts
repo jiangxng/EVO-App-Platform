@@ -115,10 +115,11 @@ export function createHostEnterpriseContextGrantProviderV010(
 }
 
 export function createHostEnterpriseContextGrantHealthProbeV010(
-  grants: readonly EnterpriseContextGrantV010[]
+  grants: readonly EnterpriseContextGrantV010[],
+  dynamicSource: () => readonly EnterpriseContextGrantV010[] = () => []
 ) {
   return () => ({
     state: "HEALTHY" as const,
-    message: `Host Enterprise Context Grant directory loaded with ${grants.length} grant(s).`
+    message: `Host Enterprise Context Grant directory loaded with ${grants.length + dynamicSource().length} grant(s).`
   });
 }
