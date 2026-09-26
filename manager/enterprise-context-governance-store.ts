@@ -9,7 +9,9 @@ import { dirname } from "node:path";
 import type {
   EnterpriseContextGrantV010,
   EnterpriseContextRelationshipV010,
-  EnterpriseContextV010
+  EnterpriseContextV010,
+  EnterpriseOwnershipTransferV010,
+  EnterpriseRelationshipInvitationV010
 } from "../contracts/platform-services.js";
 
 export interface EnterpriseContextLifecycleEventV010 {
@@ -22,12 +24,40 @@ export interface EnterpriseContextLifecycleEventV010 {
   actorSubjectId: string;
 }
 
+export type EnterpriseRelationshipLifecycleEventTypeV010 =
+  | "INVITATION_CREATED"
+  | "INVITATION_ACCEPTED"
+  | "INVITATION_DECLINED"
+  | "INVITATION_REVOKED"
+  | "RELATIONSHIP_ACTIVATED"
+  | "RELATIONSHIP_REVOKED"
+  | "OWNERSHIP_TRANSFER_CREATED"
+  | "OWNERSHIP_TRANSFER_ACCEPTED"
+  | "OWNERSHIP_TRANSFER_DECLINED"
+  | "OWNERSHIP_TRANSFER_CANCELLED";
+
+export interface EnterpriseRelationshipLifecycleEventV010 {
+  contractVersion: "0.1.0";
+  eventId: string;
+  contextId: string;
+  type: EnterpriseRelationshipLifecycleEventTypeV010;
+  occurredAt: string;
+  actorSubjectId: string;
+  subjectId?: string;
+  relationshipId?: string;
+  invitationId?: string;
+  transferId?: string;
+}
+
 export interface EnterpriseContextGovernanceSnapshotV010 {
   contractVersion: "0.1.0";
   contexts: EnterpriseContextV010[];
   relationships: EnterpriseContextRelationshipV010[];
   grants: EnterpriseContextGrantV010[];
   lifecycleEvents: EnterpriseContextLifecycleEventV010[];
+  invitations: EnterpriseRelationshipInvitationV010[];
+  ownershipTransfers: EnterpriseOwnershipTransferV010[];
+  relationshipEvents: EnterpriseRelationshipLifecycleEventV010[];
 }
 
 export interface EnterpriseContextGovernanceStoreV010 {
@@ -41,7 +71,10 @@ function empty(): EnterpriseContextGovernanceSnapshotV010 {
     contexts: [],
     relationships: [],
     grants: [],
-    lifecycleEvents: []
+    lifecycleEvents: [],
+    invitations: [],
+    ownershipTransfers: [],
+    relationshipEvents: []
   };
 }
 
@@ -51,62 +84,106 @@ function clone(
   return structuredClone(value);
 }
 
+function normalize(value: unknown): EnterpriseContextGovernanceSnapshotV010 {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("ENTERPRISE_GOVERNANCE_STATE_INVALID");
+  }
+  const raw = value as Partial<EnterpriseContextGovernanceSnapshotV010>;
+  return {
+    contractVersion: raw.contractVersion as "0.1.0",
+    contexts: Array.isArray(raw.contexts) ? structuredClone(raw.contexts) : [],
+    relationships: Array.isArray(raw.relationships) ? structuredClone(raw.relationships) : [],
+    grants: Array.isArray(raw.grants) ? structuredClone(raw.grants) : [],
+    lifecycleEvents: Array.isArray(raw.lifecycleEvents) ? structuredClone(raw.lifecycleEvents) : [],
+    invitations: Array.isArray(raw.invitations) ? structuredClone(raw.invitations) : [],
+    ownershipTransfers: Array.isArray(raw.ownershipTransfers)
+      ? structuredClone(raw.ownershipTransfers)
+      : [],
+    relationshipEvents: Array.isArray(raw.relationshipEvents)
+      ? structuredClone(raw.relationshipEvents)
+      : []
+  };
+}
+
+function duplicate(values: readonly string[], code: string): void {
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) throw new Error(`${code}: ${value}`);
+    seen.add(value);
+  }
+}
+
 function validate(
   value: EnterpriseContextGovernanceSnapshotV010
 ): EnterpriseContextGovernanceSnapshotV010 {
-  if (
-    value.contractVersion !== "0.1.0"
-    || !Array.isArray(value.contexts)
-    || !Array.isArray(value.relationships)
-    || !Array.isArray(value.grants)
-    || !Array.isArray(value.lifecycleEvents)
-  ) {
+  const normalized = normalize(value);
+  if (normalized.contractVersion !== "0.1.0") {
     throw new Error("ENTERPRISE_GOVERNANCE_STATE_INVALID");
   }
 
-  const contextIds = new Set<string>();
-  const enterpriseIds = new Set<string>();
-  for (const context of value.contexts) {
-    if (!context.contextId) throw new Error("ENTERPRISE_GOVERNANCE_CONTEXT_ID_REQUIRED");
-    if (contextIds.has(context.contextId)) {
-      throw new Error(`ENTERPRISE_GOVERNANCE_CONTEXT_DUPLICATE: ${context.contextId}`);
+  duplicate(
+    normalized.contexts.map(context => {
+      if (!context.contextId) throw new Error("ENTERPRISE_GOVERNANCE_CONTEXT_ID_REQUIRED");
+      return context.contextId;
+    }),
+    "ENTERPRISE_GOVERNANCE_CONTEXT_DUPLICATE"
+  );
+  duplicate(
+    normalized.contexts.map(context => context.enterpriseId),
+    "ENTERPRISE_GOVERNANCE_ENTERPRISE_DUPLICATE"
+  );
+  duplicate(
+    normalized.relationships.map(item => item.relationshipId),
+    "ENTERPRISE_GOVERNANCE_RELATIONSHIP_DUPLICATE"
+  );
+  duplicate(
+    normalized.grants.map(item => item.grantId),
+    "ENTERPRISE_GOVERNANCE_GRANT_DUPLICATE"
+  );
+  duplicate(
+    normalized.lifecycleEvents.map(item => item.eventId),
+    "ENTERPRISE_GOVERNANCE_EVENT_DUPLICATE"
+  );
+  duplicate(
+    normalized.invitations.map(item => item.invitationId),
+    "ENTERPRISE_GOVERNANCE_INVITATION_DUPLICATE"
+  );
+  duplicate(
+    normalized.ownershipTransfers.map(item => item.transferId),
+    "ENTERPRISE_GOVERNANCE_TRANSFER_DUPLICATE"
+  );
+  duplicate(
+    normalized.relationshipEvents.map(item => item.eventId),
+    "ENTERPRISE_GOVERNANCE_RELATIONSHIP_EVENT_DUPLICATE"
+  );
+
+  for (const relationship of normalized.relationships) {
+    if (!["ACTIVE", "REVOKED"].includes(relationship.state)) {
+      throw new Error(`ENTERPRISE_RELATIONSHIP_STATE_INVALID: ${relationship.relationshipId}`);
     }
-    if (enterpriseIds.has(context.enterpriseId)) {
-      throw new Error(`ENTERPRISE_GOVERNANCE_ENTERPRISE_DUPLICATE: ${context.enterpriseId}`);
+    if (
+      relationship.state === "REVOKED"
+      && (!relationship.revokedAt || !relationship.revokedBySubjectId)
+    ) {
+      throw new Error(`ENTERPRISE_RELATIONSHIP_REVOCATION_FACT_REQUIRED: ${relationship.relationshipId}`);
     }
-    contextIds.add(context.contextId);
-    enterpriseIds.add(context.enterpriseId);
   }
 
-  const relationshipIds = new Set<string>();
-  for (const relationship of value.relationships) {
-    if (relationshipIds.has(relationship.relationshipId)) {
-      throw new Error(
-        `ENTERPRISE_GOVERNANCE_RELATIONSHIP_DUPLICATE: ${relationship.relationshipId}`
-      );
+  for (const grant of normalized.grants) {
+    if (grant.state !== undefined && !["ACTIVE", "REVOKED"].includes(grant.state)) {
+      throw new Error(`ENTERPRISE_GRANT_STATE_INVALID: ${grant.grantId}`);
     }
-    relationshipIds.add(relationship.relationshipId);
+    if (
+      grant.state === "REVOKED"
+      && (!grant.revokedAt || !grant.revokedBySubjectId)
+    ) {
+      throw new Error(`ENTERPRISE_GRANT_REVOCATION_FACT_REQUIRED: ${grant.grantId}`);
+    }
   }
 
-  const grantIds = new Set<string>();
-  for (const grant of value.grants) {
-    if (grantIds.has(grant.grantId)) {
-      throw new Error(`ENTERPRISE_GOVERNANCE_GRANT_DUPLICATE: ${grant.grantId}`);
-    }
-    grantIds.add(grant.grantId);
-  }
-
-  const eventIds = new Set<string>();
-  for (const event of value.lifecycleEvents) {
-    if (eventIds.has(event.eventId)) {
-      throw new Error(`ENTERPRISE_GOVERNANCE_EVENT_DUPLICATE: ${event.eventId}`);
-    }
-    eventIds.add(event.eventId);
-  }
-
-  for (const context of value.contexts) {
+  for (const context of normalized.contexts) {
     if (context.lifecycleState !== "ACTIVE") continue;
-    const hasOwner = value.relationships.some(
+    const hasOwner = normalized.relationships.some(
       relationship =>
         relationship.contextId === context.contextId
         && relationship.kind === "OWNER"
@@ -117,30 +194,136 @@ function validate(
     }
   }
 
-  return clone(value);
+  return clone(normalized);
+}
+
+function requireUnchanged(
+  code: string,
+  id: string,
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  keys: readonly string[]
+): void {
+  for (const key of keys) {
+    if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) {
+      throw new Error(`${code}: ${id}`);
+    }
+  }
+}
+
+function validateAppendOnlyEvents(
+  code: string,
+  previous: readonly { eventId: string }[],
+  next: readonly { eventId: string }[]
+): void {
+  const nextIds = new Set(next.map(item => item.eventId));
+  for (const event of previous) {
+    if (!nextIds.has(event.eventId)) throw new Error(`${code}: ${event.eventId}`);
+  }
 }
 
 function validateTransition(
   previous: EnterpriseContextGovernanceSnapshotV010,
   next: EnterpriseContextGovernanceSnapshotV010
 ): void {
-  const before = new Map(
+  const beforeContexts = new Map(
     previous.contexts
       .filter(context => context.contextId)
       .map(context => [context.contextId!, context])
   );
   for (const context of next.contexts) {
     if (!context.contextId) continue;
-    const existing = before.get(context.contextId);
+    const existing = beforeContexts.get(context.contextId);
     if (!existing) continue;
-    if (
-      existing.enterpriseId !== context.enterpriseId
-      || existing.createdBySubjectId !== context.createdBySubjectId
-      || existing.createdAt !== context.createdAt
-    ) {
-      throw new Error(`ENTERPRISE_CONTEXT_CREATION_FACT_IMMUTABLE: ${context.contextId}`);
+    requireUnchanged(
+      "ENTERPRISE_CONTEXT_CREATION_FACT_IMMUTABLE",
+      context.contextId,
+      existing as unknown as Record<string, unknown>,
+      context as unknown as Record<string, unknown>,
+      ["enterpriseId", "createdBySubjectId", "createdAt"]
+    );
+  }
+
+  const beforeRelationships = new Map(
+    previous.relationships.map(item => [item.relationshipId, item])
+  );
+  for (const relationship of next.relationships) {
+    const existing = beforeRelationships.get(relationship.relationshipId);
+    if (!existing) continue;
+    requireUnchanged(
+      "ENTERPRISE_RELATIONSHIP_CREATION_FACT_IMMUTABLE",
+      relationship.relationshipId,
+      existing as unknown as Record<string, unknown>,
+      relationship as unknown as Record<string, unknown>,
+      ["subjectId", "contextId", "kind", "createdAt", "createdBySubjectId"]
+    );
+    if (existing.state === "REVOKED" && relationship.state !== "REVOKED") {
+      throw new Error(`ENTERPRISE_RELATIONSHIP_REACTIVATION_FORBIDDEN: ${relationship.relationshipId}`);
     }
   }
+
+  const beforeGrants = new Map(previous.grants.map(item => [item.grantId, item]));
+  for (const grant of next.grants) {
+    const existing = beforeGrants.get(grant.grantId);
+    if (!existing) continue;
+    requireUnchanged(
+      "ENTERPRISE_GRANT_CREATION_FACT_IMMUTABLE",
+      grant.grantId,
+      existing as unknown as Record<string, unknown>,
+      grant as unknown as Record<string, unknown>,
+      ["subjectId", "contextId", "relationship", "createdAt", "createdBySubjectId"]
+    );
+    if (existing.state === "REVOKED" && grant.state !== "REVOKED") {
+      throw new Error(`ENTERPRISE_GRANT_REACTIVATION_FORBIDDEN: ${grant.grantId}`);
+    }
+  }
+
+  const beforeInvitations = new Map(
+    previous.invitations.map(item => [item.invitationId, item])
+  );
+  for (const invitation of next.invitations) {
+    const existing = beforeInvitations.get(invitation.invitationId);
+    if (!existing) continue;
+    requireUnchanged(
+      "ENTERPRISE_INVITATION_CREATION_FACT_IMMUTABLE",
+      invitation.invitationId,
+      existing as unknown as Record<string, unknown>,
+      invitation as unknown as Record<string, unknown>,
+      ["contextId", "targetSubjectId", "kind", "invitedBySubjectId", "createdAt", "expiresAt"]
+    );
+    if (existing.state !== "PENDING" && invitation.state !== existing.state) {
+      throw new Error(`ENTERPRISE_INVITATION_TERMINAL_STATE_IMMUTABLE: ${invitation.invitationId}`);
+    }
+  }
+
+  const beforeTransfers = new Map(
+    previous.ownershipTransfers.map(item => [item.transferId, item])
+  );
+  for (const transfer of next.ownershipTransfers) {
+    const existing = beforeTransfers.get(transfer.transferId);
+    if (!existing) continue;
+    requireUnchanged(
+      "ENTERPRISE_OWNERSHIP_TRANSFER_CREATION_FACT_IMMUTABLE",
+      transfer.transferId,
+      existing as unknown as Record<string, unknown>,
+      transfer as unknown as Record<string, unknown>,
+      ["contextId", "fromOwnerSubjectId", "toSubjectId", "createdAt", "expiresAt"]
+    );
+    if (existing.state !== "PENDING" && transfer.state !== existing.state) {
+      throw new Error(`ENTERPRISE_OWNERSHIP_TRANSFER_TERMINAL_STATE_IMMUTABLE: ${transfer.transferId}`);
+    }
+  }
+
+  validateAppendOnlyEvents(
+    "ENTERPRISE_CONTEXT_LIFECYCLE_EVENT_APPEND_ONLY",
+    previous.lifecycleEvents,
+    next.lifecycleEvents
+  );
+  validateAppendOnlyEvents(
+    "ENTERPRISE_RELATIONSHIP_EVENT_APPEND_ONLY",
+    previous.relationshipEvents,
+    next.relationshipEvents
+  );
 }
 
 export function createMemoryEnterpriseContextGovernanceStoreV010(
@@ -164,9 +347,7 @@ export function createFileEnterpriseContextGovernanceStoreV010(
 ): EnterpriseContextGovernanceStoreV010 {
   const load = (): EnterpriseContextGovernanceSnapshotV010 => {
     if (!existsSync(path)) return empty();
-    return validate(
-      JSON.parse(readFileSync(path, "utf8")) as EnterpriseContextGovernanceSnapshotV010
-    );
+    return validate(JSON.parse(readFileSync(path, "utf8")));
   };
 
   return {
