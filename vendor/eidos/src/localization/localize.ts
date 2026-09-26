@@ -352,7 +352,12 @@ export function localizeAppHostPageDefinition(
           step.description = localization.resolve(namespace, `setup.${setupId}.step.${step.id}.description`, step.description);
         }
         if (typeof step.statusDetail === "string") {
-          step.statusDetail = localization.resolve(namespace, `setup.${setupId}.step.${step.id}.status`, step.statusDetail);
+          const stepState = typeof step.state === "string" ? step.state : "default";
+          step.statusDetail = localization.resolve(
+            namespace,
+            `setup.${setupId}.step.${step.id}.status.${stepState}`,
+            step.statusDetail
+          );
         }
         const actions = [
           ...(isObject(step.primaryAction) ? [step.primaryAction] : []),
