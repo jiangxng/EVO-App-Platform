@@ -175,7 +175,7 @@
     "designGate": "tools/eidos-design-language-validate.mjs"
   },
   "secrets": {
-    "status": "IMPLEMENTED_P0_PENDING_CI_DEPLOYMENT",
+    "status": "IMPLEMENTED_P0_CI_VERIFIED_DEPLOYMENT_PENDING",
     "capability": "secrets.resolve",
     "provider": "host.encrypted-secrets",
     "packageDeclaration": "PackageManifestV010.secrets",
@@ -185,6 +185,6 @@
     "eidos": "SETTINGS_EDITOR_SECRET_CONTROL",
     "openai": "openai-llm-provider/apiKey",
     "legacyEnv": "OPENAI_API_KEY_MIGRATION_ONLY",
-    "next": "ENTERPRISE_AGENT_TOOL_DISCOVERY"
+    "next": "RAILWAY_DURABLE_STORAGE_THEN_ENTERPRISE_AGENT_TOOL_DISCOVERY_WITH_MINIMAL_IDENTITY_SESSION_FOR_PRIVILEGED_WRITES"
   }
 }
