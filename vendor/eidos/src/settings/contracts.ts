@@ -9,7 +9,7 @@ export interface SettingsFieldV010 {
   key: string;
   label: string;
   description?: string;
-  type: "string" | "number" | "boolean" | "select";
+  type: "string" | "secret" | "number" | "boolean" | "select";
   value: SettingsValueV010;
   defaultValue?: SettingsValueV010;
   options?: SettingsOptionV010[];
