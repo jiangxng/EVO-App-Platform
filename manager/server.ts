@@ -170,6 +170,9 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  createEnterpriseRelationshipActionHandlersV010
+} from "./enterprise-relationship-actions.js";
+import {
   createPlatformRequestContextV010,
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
@@ -893,6 +896,10 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    ...createEnterpriseRelationshipActionHandlersV010({
+      store: enterpriseGovernanceStore,
+      resolveAuthorizationProvider
+    }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
       resolveIdentitySession,
@@ -1067,6 +1074,16 @@ const server = createServer(async (request, response) => {
         availableContexts: contextRegistry.list(),
         relationships: resolveEnterpriseContextRelationshipProvider()
           ?.listForPrincipal(session.principal) ?? [],
+        pendingInvitations: enterpriseGovernanceStore.snapshot().invitations
+          .filter(item =>
+            item.targetSubjectId === session.principal.subjectId
+            && item.state === "PENDING"
+          ),
+        pendingOwnershipTransfers: enterpriseGovernanceStore.snapshot().ownershipTransfers
+          .filter(item =>
+            item.toSubjectId === session.principal.subjectId
+            && item.state === "PENDING"
+          ),
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
