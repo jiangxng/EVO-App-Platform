@@ -16,7 +16,8 @@ import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
-  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
+  ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import { providerManagerCapabilityRoute } from "./provider-manager-page.js";
 import { settingsPackageRoute } from "./settings-page.js";
@@ -517,5 +518,5 @@ export function createPersonalAgentMemoryReviewPageV010(
 export function isPersonalAgentPageSource(source: string): boolean {
   return source === ENTERPRISE_AGENT_PAGE_SOURCE
     || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
-    || source === "app://enterprise-agent/pages/memory-review";
+    || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE;
 }
