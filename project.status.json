@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent product UX has been researched and specified. Current Chat v0.1 and Extension Manager are Eidos-rendered but insufficient: assistant readiness/setup, progressive disclosure, structured activity/evidence/proposals and guided provider setup require reusable Eidos capabilities first. Next implementation owner is Eidos P0.4A, then App Platform onboarding/readiness integration.",
+  "currentStep": "Personal Agent P0.4 implementation is complete on stacked branches through personal-agent-p0-4-finalize: Eidos P0.4A sync, Host-computed Installed/Needs setup/Ready readiness, generic Setup Flow, explicit llm.inference Provider selection/configuration routing, Chat v0.2 structured activity/evidence/proposal presentation, and en/zh-CN/ja/zh-TW UX. GitHub Actions is currently infrastructure-blocked: affected runs fail in ~2-3 seconds with zero job steps, so main merge remains pending executable CI validation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -331,7 +331,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "9b07e3d6da885f25b048ad79979239b823d84ef3",
+    "eidosSourceCommit": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization",
     "enforcement": "PLATFORM_CI_STRICT_EIDOS_DESIGN_LANGUAGE_GATE",
@@ -585,10 +585,12 @@
     ],
     "productName": {
       "en": "Personal Agent",
-      "zh-CN": "个人 Agent"
+      "zh-CN": "个人代理",
+      "ja": "パーソナルエージェント",
+      "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS",
+    "next": "P0_4_EXECUTABLE_CI_VALIDATION_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -607,22 +609,25 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
     },
     "productExperience": {
-      "status": "DESIGN_BASELINE_PROPOSED",
+      "status": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
-      "currentProblem": "EIDOS_CONTRACTS_USED_BUT_ASSISTANT_AND_INSTALL_UX_TOO_THIN",
+      "currentProblem": "GITHUB_ACTIONS_RUNNER_FAILS_BEFORE_ANY_JOB_STEP",
       "workbench": "ACTIVITY_SIDE_PANEL_AGENT_PLUS_MAIN_WORKSPACE_EVIDENCE_SETUP",
       "installModel": "INSTALLED_NOT_EQUAL_READY",
-      "setup": "EIDOS_GENERIC_SETUP_FLOW_REQUIRED",
-      "providerChoice": "EXPLICIT_WHEN_MULTIPLE_NO_LEXICAL_AUTO_VENDOR_SELECTION",
+      "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
+      "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "EIDOS_CHAT_V0_2_SETUP_FLOW_EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE",
+      "next": "RUN_EXECUTABLE_CI_AND_MERGE_STACK",
       "locales": [
         "en",
         "zh-CN",
         "ja",
         "zh-TW"
       ],
-      "localization": "FOUR_LOCALE_P0_4_DEFINITION_OF_DONE"
+      "localization": "FOUR_LOCALE_P0_4_IMPLEMENTED",
+      "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
+      "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
     }
   }
 }
