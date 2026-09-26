@@ -341,7 +341,7 @@ function ledgerConfiguratorActive(): boolean {
 function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-origin", corsOrigin);
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,accept");
+  response.setHeader("access-control-allow-headers", "content-type,accept,authorization");
 }
 
 function json(response: ServerResponse, status: number, body: unknown): void {
@@ -446,6 +446,17 @@ const server = createServer(async (request, response) => {
       return json(response, 200, providerBindings.list(capability));
     }
     if (request.method === "GET" && url.pathname === "/v1/providers/audit") {
+      const authorization = request.headers.authorization;
+      const bearerToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length)
+        : undefined;
+      const decision = authorizeProviderAdministrationV010(bearerToken, providerAdminToken);
+      if (!decision.allowed) {
+        return json(response, 403, {
+          ok: false,
+          error: { code: decision.reason, message: "Provider governance audit requires Host administrator authorization." }
+        });
+      }
       const rawLimit = Number(url.searchParams.get("limit") ?? "100");
       const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(Math.trunc(rawLimit), 500)) : 100;
       return json(response, 200, providerAudit.list(limit));
@@ -459,7 +470,11 @@ const server = createServer(async (request, response) => {
       };
       const providerId = typeof body.providerId === "string" ? body.providerId.trim() : "";
       const capability = typeof body.capability === "string" ? body.capability.trim() : undefined;
-      const adminToken = typeof body.adminToken === "string" ? body.adminToken : undefined;
+      const authorization = request.headers.authorization;
+      const bearerToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length)
+        : undefined;
+      const adminToken = typeof body.adminToken === "string" ? body.adminToken : bearerToken;
       const correlationId = typeof body.correlationId === "string" ? body.correlationId : undefined;
       const decision = authorizeProviderAdministrationV010(adminToken, providerAdminToken);
       if (!providerId) {
