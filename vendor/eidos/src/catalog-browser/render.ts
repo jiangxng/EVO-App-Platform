@@ -51,8 +51,24 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
       ...(item.secondaryActions ?? []).map(a => actionButton(item.id, a, false))
     ].join("");
 
-    return `<article data-eidos-catalog-item="${esc(item.id)}"><header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer></article>`;
+    const searchText = [
+      item.title,
+      item.summary ?? "",
+      item.version ?? "",
+      item.category ?? "",
+      ...(item.badges ?? []),
+      ...Object.entries(item.metadata ?? {}).flatMap(([key, value]) => [key, String(value ?? "")])
+    ].join(" ").toLocaleLowerCase();
+
+    return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}"><header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer></article>`;
   }).join("");
 
-  return `<section data-eidos-capability="catalog-browser" data-eidos-id="${esc(model.id)}"><header><h1>${esc(model.title)}</h1>${model.description ? `<p>${esc(model.description)}</p>` : ""}</header><div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div></section>`;
+  const search = model.search
+    ? `<div data-eidos-catalog-search><input type="search" data-eidos-catalog-search-input placeholder="${esc(model.search.placeholder ?? "Search")}" aria-label="${esc(model.search.ariaLabel ?? model.search.placeholder ?? "Search catalog")}"></div>`
+    : "";
+  const noResults = model.search
+    ? `<p data-eidos-catalog-search-empty hidden>${esc(model.search.noResultsMessage ?? "No matching items.")}</p>`
+    : "";
+
+  return `<section data-eidos-capability="catalog-browser" data-eidos-id="${esc(model.id)}"><header><h1>${esc(model.title)}</h1>${model.description ? `<p>${esc(model.description)}</p>` : ""}</header>${search}<div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>${noResults}</section>`;
 }
