@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createDevelopmentAgentModel } from "./development-model.js";
-import { createAppManagerHttpTools } from "./app-manager-client.js";
+import { createAppManagerHttpToolCatalogV010 } from "./app-manager-client.js";
 import { createOpenAIResponsesAgentModel } from "./openai-responses-model.js";
 
 const managerUrl = process.env.APP_MANAGER_URL ?? "http://localhost:4100";
@@ -21,7 +21,7 @@ const agentModel = openaiApiKey
 
 const runtime = createEnterpriseAgentRuntime(
   agentModel,
-  createAppManagerHttpTools({ baseUrl: managerUrl })
+  createAppManagerHttpToolCatalogV010({ baseUrl: managerUrl })
 );
 
 function applyCors(response: ServerResponse): void {
