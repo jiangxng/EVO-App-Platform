@@ -80,6 +80,32 @@ export interface EnterpriseContextV010 {
   attributes?: Record<string, string | number | boolean | null>;
 }
 
+export interface SecretReferenceV010 {
+  contractVersion: "0.1.0";
+  namespace: string;
+  key: string;
+  scope: "SYSTEM" | "INSTALLATION" | "ENTERPRISE" | "COMPANY" | "WORKSPACE" | "USER";
+  scopeId?: string;
+}
+
+export interface SecretDescriptorV010 {
+  contractVersion: "0.1.0";
+  reference: SecretReferenceV010;
+  configured: boolean;
+  updatedAt?: string;
+}
+
+export interface SecretsResolverV010 {
+  providerId: string;
+  resolve(reference: SecretReferenceV010): Promise<string> | string;
+  describe(reference: SecretReferenceV010): Promise<SecretDescriptorV010> | SecretDescriptorV010;
+}
+
+export interface ManagedSecretsProviderV010 extends SecretsResolverV010 {
+  put(reference: SecretReferenceV010, value: string): Promise<SecretDescriptorV010> | SecretDescriptorV010;
+  remove(reference: SecretReferenceV010): Promise<void> | void;
+}
+
 export interface ServiceProviderRefV010 {
   contractVersion: "0.1.0";
   providerId: string;
