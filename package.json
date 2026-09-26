@@ -27,7 +27,7 @@
     "test:plugin:host-static-session-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-enterprise-context-grant-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-bearer-session-provider": "npm run build && node --test tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs",
-    "test:plugin:host-enterprise-relationship-provider": "npm run build && node --test tests/protocol/enterprise-context-creation.test.mjs tests/protocol/principal-grants.test.mjs"
+    "test:plugin:host-enterprise-relationship-provider": "npm run build && node --test tests/protocol/enterprise-context-creation.test.mjs tests/protocol/enterprise-relationship-lifecycle.test.mjs tests/protocol/principal-grants.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
