@@ -103,3 +103,24 @@ test("Plugin Protocol v0.1 rejects route contributions that cannot be rendered d
   assert.equal(result.ok, false);
   assert.ok(result.issues.some(issue => issue.code === "PLUGIN_WORKBENCH_ROUTE_REQUIRED"));
 });
+
+
+test("Plugin Protocol accepts Secret requirements but rejects duplicate Secret keys", () => {
+  const valid = structuredClone(validPlugin);
+  valid.secrets = [{
+    key: "apiKey",
+    label: "API Key",
+    scope: "INSTALLATION",
+    required: true
+  }];
+  assert.equal(validatePluginManifestV010(valid).ok, true);
+
+  valid.secrets.push({
+    key: "apiKey",
+    label: "Duplicate",
+    scope: "INSTALLATION"
+  });
+  const result = validatePluginManifestV010(valid);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some(issue => issue.code === "PLUGIN_SECRET_KEY_DUPLICATE"));
+});
