@@ -14,6 +14,16 @@ import {
 } from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
+import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
+import { createMemoryProviderBindingStoreV010 } from "../../dist/manager/provider-resolution.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010,
+  evaluatePersonalAgentReadinessV010
+} from "../../dist/manager/personal-agent-experience.js";
+import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js";
+import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
+import { enterpriseAgentPackage } from "../../dist/agents/enterprise-agent/package.js";
 
 const personalContext = {
   contractVersion: "0.1.0",
@@ -406,4 +416,43 @@ test("Personal Agent presents tool work as Chat v0.2 activity, evidence and prop
   assert.equal(parts[3].type, "proposal");
   assert.equal(parts[3].title, "Install company-notes");
   assert.equal(parts[3].actions[0].route, "/store");
+});
+
+
+test("Personal Agent readiness distinguishes installed from ready", () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([
+      enterpriseAgentPackage,
+      openAiLlmProviderPackage,
+      hostEncryptedSecretsProviderPackage
+    ]),
+    createMemoryLifecycleStore()
+  );
+  const registry = createProviderRuntimeRegistry();
+  const bindings = createMemoryProviderBindingStoreV010();
+
+  manager.install("enterprise-agent");
+  const missing = evaluatePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(missing.state, "setup-required");
+  assert.equal(missing.code, "LLM_PROVIDER_REQUIRED");
+
+  manager.install("openai-llm-provider");
+  const unconfigured = evaluatePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(unconfigured.state, "setup-required");
+  assert.equal(unconfigured.code, "LLM_PROVIDER_CONFIGURATION_REQUIRED");
+
+  registry.register("openai.responses", { infer() {} });
+  const ready = evaluatePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(ready.state, "ready");
+  assert.equal(ready.providerId, "openai.responses");
+
+  const chat = createPersonalAgentChatPageV020(ready, "Personal");
+  assert.equal(chat.contractVersion, "0.2.0");
+  assert.equal(chat.composer.disabled, false);
+  assert.equal(chat.context.value, "Personal");
+
+  const setup = createPersonalAgentSetupPageV010(ready);
+  assert.equal(setup.kind, "setup-flow");
+  assert.equal(setup.steps.every(step => step.state === "complete"), true);
+  assert.equal(setup.completionAction.route, "/enterprise-agent");
 });
