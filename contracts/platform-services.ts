@@ -134,6 +134,27 @@ export interface IdentitySessionV010 {
   assurance?: string[];
 }
 
+export interface IdentitySessionProviderV010 {
+  providerId: string;
+  current(): IdentitySessionV010 | undefined;
+}
+
+export interface EnterpriseContextGrantV010 {
+  contractVersion: "0.1.0";
+  grantId: string;
+  subjectId: string;
+  contextId: string;
+  relationship?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+}
+
+export interface EnterpriseContextGrantProviderV010 {
+  providerId: string;
+  listForPrincipal(
+    principal: PlatformPrincipalV010
+  ): EnterpriseContextGrantV010[];
+}
+
 export interface SecretReferenceV010 {
   contractVersion: "0.1.0";
   namespace: string;
