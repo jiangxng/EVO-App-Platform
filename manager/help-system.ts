@@ -63,6 +63,20 @@ function nonEmpty(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function canonicalLocale(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  try {
+    return Intl.getCanonicalLocales(trimmed)[0] ?? trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function languageOf(locale: string): string {
+  return canonicalLocale(locale).split("-")[0] ?? locale;
+}
+
 function stringArray(value: unknown, field: string): string[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.some(item => !nonEmpty(item))) {
@@ -139,7 +153,7 @@ function validateMetadata(value: unknown, sourcePath: string): HelpSourceMetadat
     id: (item.id as string).trim(),
     ownerPackageId: (item.ownerPackageId as string).trim(),
     ...(nonEmpty(item.ownerFeatureId) ? { ownerFeatureId: item.ownerFeatureId.trim() } : {}),
-    locale: (item.locale as string).trim(),
+    locale: canonicalLocale(item.locale as string),
     kind: item.kind as HelpDocumentKindV010,
     title: (item.title as string).trim(),
     ...(nonEmpty(item.summary) ? { summary: item.summary.trim() } : {}),
@@ -339,13 +353,108 @@ export function helpIdFromPageSourceV010(source: string): string | undefined {
   }
 }
 
-function localeDocuments(
+function localeCandidates(
+  locale: string,
+  fallbackLocales: readonly string[] = ["en"]
+): string[] {
+  const result: string[] = [];
+  const add = (value: string | undefined) => {
+    if (!value) return;
+    const normalized = canonicalLocale(value);
+    if (normalized && !result.includes(normalized)) result.push(normalized);
+  };
+
+  const requested = canonicalLocale(locale || "en");
+  add(requested);
+  const requestedLanguage = languageOf(requested);
+  if (requestedLanguage !== requested) add(requestedLanguage);
+
+  for (const fallback of fallbackLocales) {
+    const normalized = canonicalLocale(fallback);
+    add(normalized);
+    const language = languageOf(normalized);
+    if (language !== normalized) add(language);
+  }
+  add("en");
+  return result;
+}
+
+export function resolveHelpVariantV010(
   corpus: CompiledHelpSourceV010[],
-  locale = "en"
+  id: string,
+  locale = "en",
+  fallbackLocales: readonly string[] = ["en"]
+): CompiledHelpSourceV010 | undefined {
+  const variants = corpus.filter(item => item.metadata.id === id);
+  if (variants.length === 0) return undefined;
+  for (const candidate of localeCandidates(locale, fallbackLocales)) {
+    const match = variants.find(item => canonicalLocale(item.metadata.locale) === candidate);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+export function resolveHelpDocumentsV010(
+  corpus: CompiledHelpSourceV010[],
+  locale = "en",
+  fallbackLocales: readonly string[] = ["en"]
 ): CompiledHelpSourceV010[] {
-  const exact = corpus.filter(item => item.metadata.locale === locale);
-  if (exact.length > 0) return exact;
-  return corpus.filter(item => item.metadata.locale === "en");
+  const ids = [...new Set(corpus.map(item => item.metadata.id))].sort();
+  return ids
+    .map(id => resolveHelpVariantV010(corpus, id, locale, fallbackLocales))
+    .filter((item): item is CompiledHelpSourceV010 => item !== undefined);
+}
+
+function helpUiLocale(locale: string): "en" | "zh-CN" {
+  return canonicalLocale(locale) === "zh-CN" ? "zh-CN" : "en";
+}
+
+function helpRootLabel(locale: string): string {
+  return helpUiLocale(locale) === "zh-CN" ? "帮助" : "Help";
+}
+
+function helpKindLabel(kind: HelpDocumentKindV010, locale: string): string {
+  const zh: Record<HelpDocumentKindV010, string> = {
+    start: "快速开始",
+    "how-to": "操作指南",
+    concept: "概念",
+    reference: "参考",
+    troubleshooting: "故障排查",
+    administration: "管理",
+    development: "开发",
+    migration: "迁移"
+  };
+  const en: Record<HelpDocumentKindV010, string> = {
+    start: "Getting started",
+    "how-to": "How-to",
+    concept: "Concept",
+    reference: "Reference",
+    troubleshooting: "Troubleshooting",
+    administration: "Administration",
+    development: "Development",
+    migration: "Migration"
+  };
+  return (helpUiLocale(locale) === "zh-CN" ? zh : en)[kind];
+}
+
+function helpAudienceLabel(audience: HelpAudienceV010, locale: string): string {
+  const zh: Record<HelpAudienceV010, string> = {
+    user: "用户",
+    admin: "管理员",
+    operator: "运维",
+    support: "支持",
+    developer: "开发者",
+    agent: "Agent"
+  };
+  const en: Record<HelpAudienceV010, string> = {
+    user: "User",
+    admin: "Admin",
+    operator: "Operator",
+    support: "Support",
+    developer: "Developer",
+    agent: "Agent"
+  };
+  return (helpUiLocale(locale) === "zh-CN" ? zh : en)[audience];
 }
 
 export function materializeHelpDocumentV010(
@@ -353,11 +462,8 @@ export function materializeHelpDocumentV010(
   id: string,
   locale = "en"
 ): HelpDocumentV010 | undefined {
-  const candidates = localeDocuments(corpus, locale);
-  const source = candidates.find(item => item.metadata.id === id)
-    ?? corpus.find(item => item.metadata.id === id && item.metadata.locale === "en");
+  const source = resolveHelpVariantV010(corpus, id, locale);
   if (!source) return undefined;
-  const byId = new Map(candidates.map(item => [item.metadata.id, item]));
   return {
     contractVersion: "0.1.0",
     kind: "help-document",
@@ -375,14 +481,12 @@ export function materializeHelpDocumentV010(
     ...(source.metadata.appliesTo ? { appliesTo: source.metadata.appliesTo } : {}),
     ...(source.metadata.lastReviewedAt ? { lastReviewedAt: source.metadata.lastReviewedAt } : {}),
     breadcrumbs: [
-      { label: "Help", route: "/help" },
-      { label: source.metadata.kind }
+      { label: helpRootLabel(locale), route: "/help" },
+      { label: helpKindLabel(source.metadata.kind, locale) }
     ],
     blocks: source.blocks,
     related: (source.metadata.related ?? []).map(relatedId => {
-      const related = byId.get(relatedId) ?? corpus.find(item =>
-        item.metadata.id === relatedId && item.metadata.locale === "en"
-      );
+      const related = resolveHelpVariantV010(corpus, relatedId, locale);
       return {
         id: relatedId,
         title: related?.metadata.title ?? relatedId,
@@ -416,7 +520,7 @@ export function searchHelpV010(
   context: HelpContextSelectorsV010 = {}
 ): HelpSearchResultV010[] {
   const normalized = query.trim().toLocaleLowerCase();
-  return localeDocuments(corpus, locale)
+  return resolveHelpDocumentsV010(corpus, locale)
     .map(item => {
       let score = 0;
       const matchedBy: string[] = [];
@@ -476,7 +580,7 @@ export function createHelpIndexPageV010(
   corpus: CompiledHelpSourceV010[],
   locale = "en"
 ): CatalogBrowserV010 {
-  const documents = localeDocuments(corpus, locale)
+  const documents = resolveHelpDocumentsV010(corpus, locale)
     .slice()
     .sort((a, b) => a.metadata.kind.localeCompare(b.metadata.kind) || a.metadata.title.localeCompare(b.metadata.title));
   return {
@@ -495,8 +599,8 @@ export function createHelpIndexPageV010(
       id: item.metadata.id,
       title: item.metadata.title,
       summary: item.metadata.summary,
-      category: item.metadata.kind,
-      badges: item.metadata.audiences,
+      category: helpKindLabel(item.metadata.kind, locale),
+      badges: item.metadata.audiences.map(audience => helpAudienceLabel(audience, locale)),
       metadata: {
         owner: item.metadata.ownerPackageId,
         locale: item.metadata.locale,
@@ -521,7 +625,7 @@ export function createHelpExperienceManifestV010(
   corpus: CompiledHelpSourceV010[],
   locale = "en"
 ) {
-  const documents = localeDocuments(corpus, locale);
+  const documents = resolveHelpDocumentsV010(corpus, locale);
   return {
     contractVersion: "0.1.0",
     experienceId: "evo-help",
@@ -531,7 +635,7 @@ export function createHelpExperienceManifestV010(
     pages: [
       {
         id: "evo-help.home",
-        title: "Help",
+        title: helpRootLabel(locale),
         source: "app://evo-app-platform/pages/help"
       },
       ...documents.map(item => ({
