@@ -65,6 +65,8 @@ export function createProviderBackedAgentModel(
           {
             role: "developer",
             content: [
+              "Authoritative Principal for this turn:",
+              JSON.stringify(input.principal ?? null),
               "Authoritative resolved Context for this turn:",
               JSON.stringify(input.context ?? null),
               "Authoritative tool catalog for this turn:",
