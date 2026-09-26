@@ -5,6 +5,7 @@ import { createEnterpriseAgentRuntime } from "../../dist/agents/enterprise-agent
 import { createDevelopmentAgentModel } from "../../dist/agents/enterprise-agent/development-model.js";
 import { createProviderBackedAgentModel } from "../../dist/agents/enterprise-agent/provider-model.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../../dist/agents/enterprise-agent/host-tool-catalog.js";
+import { presentPersonalAgentReplyV020 } from "../../dist/agents/enterprise-agent/reply-presentation.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import {
   companyNotesPackage,
@@ -367,4 +368,42 @@ test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency gra
     "evo.posting",
     "trading-lite"
   ]);
+});
+
+
+test("Personal Agent presents tool work as Chat v0.2 activity, evidence and proposal parts", () => {
+  const parts = presentPersonalAgentReplyV020({
+    contractVersion: "0.1.0",
+    agentId: "enterprise-agent",
+    message: "I prepared an installation plan.",
+    context: personalContext,
+    tools: [
+      {
+        id: "app.install.plan",
+        title: "Plan Package installation",
+        effect: "PLAN",
+        ownerPackageId: "evo-app-platform"
+      }
+    ],
+    observations: [
+      {
+        tool: "app.install.plan",
+        ok: true,
+        result: {
+          packageId: "company-notes",
+          blockers: [],
+          sideEffectFree: true
+        }
+      }
+    ]
+  });
+
+  assert.equal(parts[0].type, "text");
+  assert.equal(parts[1].type, "activity");
+  assert.equal(parts[1].state, "complete");
+  assert.equal(parts[2].type, "evidence");
+  assert.equal(parts[2].context, "Personal");
+  assert.equal(parts[3].type, "proposal");
+  assert.equal(parts[3].title, "Install company-notes");
+  assert.equal(parts[3].actions[0].route, "/store");
 });
