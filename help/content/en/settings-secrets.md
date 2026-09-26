@@ -12,7 +12,7 @@
   "contexts": {
     "routes": ["/settings"]
   },
-  "related": ["evo.workbench.overview", "evo.provider.model"],
+  "related": ["evo.workbench.overview", "evo.provider.model", "evo.secrets.configure-provider-credential"],
   "lastReviewedAt": "2026-09-26"
 }
 ---
@@ -34,3 +34,8 @@ Settings are ordinary typed configuration owned by a Package. Secrets are creden
 
 > [!WARNING] Do not persist secrets as ordinary Settings
 > A masked input control does not turn an ordinary Settings store into a secret store.
+
+
+## Workbench credential entry
+
+Packages may declare Secret requirements. Workbench can render those requirements with Eidos secret controls, but the submitted value is routed to the Host Secrets Provider rather than the ordinary Settings Store. Stored plaintext is never loaded back into the browser.
