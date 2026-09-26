@@ -44,6 +44,12 @@ export interface ContextMemoryProposalServiceV010 {
     kind?: ContextMemoryKindV010;
     summary?: string;
   }): Promise<ContextMemoryProposalV010>;
+  enrichEvidence(input: {
+    proposalId: string;
+    principal: PlatformPrincipalV010;
+    evidenceRefs?: string[];
+    evidenceSources?: ContextMemoryEvidenceSourceV010[];
+  }): Promise<ContextMemoryProposalV010>;
   reject(input: {
     proposalId: string;
     principal: PlatformPrincipalV010;
@@ -405,6 +411,70 @@ export function createContextMemoryProposalServiceV010(input: {
 
     async edit({ proposalId, principal, kind, summary }) {
       return editProposal({ proposalId, principal, kind, summary });
+    },
+
+    async enrichEvidence({
+      proposalId,
+      principal,
+      evidenceRefs,
+      evidenceSources
+    }) {
+      const snapshot = input.store.snapshot();
+      const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
+      if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+      if (proposal.state !== "PENDING") {
+        throw new Error(`CONTEXT_MEMORY_PROPOSAL_NOT_PENDING: ${proposal.state}`);
+      }
+      const previous = latest(proposal);
+      const mergedRefs = canonicalStrings([
+        ...previous.evidenceRefs,
+        ...(evidenceRefs ?? [])
+      ]);
+      const mergedSources = canonicalEvidenceSources([
+        ...(previous.evidenceSources ?? []),
+        ...(evidenceSources ?? [])
+      ]);
+      if (
+        JSON.stringify(mergedRefs) === JSON.stringify(previous.evidenceRefs)
+        && JSON.stringify(mergedSources)
+          === JSON.stringify(canonicalEvidenceSources(previous.evidenceSources))
+      ) {
+        return structuredClone(proposal);
+      }
+
+      const contradictionIds = previous.reviewSignals
+        .filter(signal => signal.kind === "POTENTIAL_CONTRADICTION")
+        .map(signal => signal.memoryId);
+      const revision = await revisionFor(
+        proposal.context,
+        principal,
+        {
+          kind: previous.kind,
+          summary: previous.summary,
+          evidenceRefs: mergedRefs,
+          evidenceSources: mergedSources,
+          ...(previous.proposedConfidence !== undefined
+            ? { proposedConfidence: previous.proposedConfidence }
+            : {}),
+          ...(previous.observedAt ? { observedAt: previous.observedAt } : {}),
+          ...(previous.supersedesMemoryId
+            ? { supersedesMemoryId: previous.supersedesMemoryId }
+            : {}),
+          potentialContradictionMemoryIds: contradictionIds
+        },
+        "SOURCE_ADAPTER"
+      );
+      const updated: ContextMemoryProposalV010 = {
+        ...proposal,
+        revisions: [...proposal.revisions, revision]
+      };
+      input.store.save({
+        contractVersion: "0.1.0",
+        proposals: snapshot.proposals.map(item =>
+          item.proposalId === proposalId ? updated : item
+        )
+      });
+      return structuredClone(updated);
     },
 
     reject({ proposalId, principal, reason }) {
