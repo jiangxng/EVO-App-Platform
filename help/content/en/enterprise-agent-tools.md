@@ -106,3 +106,25 @@ The creator is historical audit data. OWNER is a separate governance relationshi
 An ACTIVE dynamically created Enterprise Context must always have at least one ACTIVE OWNER.
 
 Personal Agent WRITE tools now pass through the same Host Material WRITE authorization boundary before execution. READ and PLAN tools remain unaffected.
+
+
+## Enterprise relationship lifecycle
+
+P0.8 adds governed membership and ownership lifecycles.
+
+Enterprise membership begins with `enterprise.relationship.invite`. An invitation does not grant access. The target human must accept it from Personal Context through `enterprise.relationship.invitation.accept`. Only then does the Host atomically create an ACTIVE Relationship and ACTIVE Enterprise Context Grant.
+
+OWNER may invite ADMIN, MEMBER or AUDITOR. ADMIN may invite MEMBER or AUDITOR but cannot appoint another ADMIN. MEMBER and AUDITOR cannot invite.
+
+A non-owner relationship can be revoked through `enterprise.relationship.revoke`. The matching access Grant is revoked in the same governance update. OWNER relationships cannot be directly revoked; ownership transfer is required.
+
+Ownership transfer uses a two-party lifecycle:
+
+`enterprise.ownership.transfer.initiate → accept / decline / cancel / expire`
+
+Acceptance atomically activates the new OWNER and revokes the outgoing owner's OWNER relationship and OWNER Grant, so an ACTIVE Enterprise Context never passes through an ownerless persisted state.
+
+The effective Context response includes pending non-expired invitations and ownership transfers addressed to the current Principal.
+
+> [!IMPORTANT] Governance WRITE has two gates
+> Host relationship rules and `authorization.check` must both allow the operation. A permissive policy Provider cannot override structural OWNER/ADMIN rules.

@@ -165,6 +165,11 @@ export interface EnterpriseContextGrantV010 {
   subjectId: string;
   contextId: string;
   relationship?: string;
+  state?: "ACTIVE" | "REVOKED";
+  createdAt?: string;
+  createdBySubjectId?: string;
+  revokedAt?: string;
+  revokedBySubjectId?: string;
   attributes?: Record<string, string | number | boolean | null>;
 }
 
@@ -187,9 +192,11 @@ export interface EnterpriseContextRelationshipV010 {
   subjectId: string;
   contextId: string;
   kind: EnterpriseContextRelationshipKindV010;
-  state: "ACTIVE";
+  state: "ACTIVE" | "REVOKED";
   createdAt: string;
   createdBySubjectId: string;
+  revokedAt?: string;
+  revokedBySubjectId?: string;
 }
 
 export interface EnterpriseContextRelationshipProviderV010 {
@@ -198,6 +205,52 @@ export interface EnterpriseContextRelationshipProviderV010 {
     principal: PlatformPrincipalV010
   ): EnterpriseContextRelationshipV010[];
   listForContext(contextId: string): EnterpriseContextRelationshipV010[];
+}
+
+export type EnterpriseRelationshipInvitationKindV010 =
+  | "ADMIN"
+  | "MEMBER"
+  | "AUDITOR";
+
+export type EnterpriseRelationshipInvitationStateV010 =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "REVOKED"
+  | "EXPIRED";
+
+export interface EnterpriseRelationshipInvitationV010 {
+  contractVersion: "0.1.0";
+  invitationId: string;
+  contextId: string;
+  targetSubjectId: string;
+  kind: EnterpriseRelationshipInvitationKindV010;
+  state: EnterpriseRelationshipInvitationStateV010;
+  invitedBySubjectId: string;
+  createdAt: string;
+  expiresAt?: string;
+  respondedAt?: string;
+  respondedBySubjectId?: string;
+}
+
+export type EnterpriseOwnershipTransferStateV010 =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+export interface EnterpriseOwnershipTransferV010 {
+  contractVersion: "0.1.0";
+  transferId: string;
+  contextId: string;
+  fromOwnerSubjectId: string;
+  toSubjectId: string;
+  state: EnterpriseOwnershipTransferStateV010;
+  createdAt: string;
+  expiresAt?: string;
+  respondedAt?: string;
+  respondedBySubjectId?: string;
 }
 
 export interface SecretReferenceV010 {

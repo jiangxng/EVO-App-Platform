@@ -105,7 +105,10 @@ export function createHostEnterpriseContextGrantProviderV010(
         byId.set(grant.grantId, structuredClone(grant));
       }
       return [...byId.values()]
-        .filter(grant => grant.subjectId === principal.subjectId)
+        .filter(grant =>
+          grant.subjectId === principal.subjectId
+          && grant.state !== "REVOKED"
+        )
         .sort((a, b) =>
           a.contextId.localeCompare(b.contextId)
           || a.grantId.localeCompare(b.grantId)

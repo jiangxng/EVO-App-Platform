@@ -21,7 +21,7 @@
     "pluginStorageEvents": "SOON",
     "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
-    "secretsIdentityAuthorization": "NOW_REQUEST_SESSION_AND_MATERIAL_WRITE_P0_7",
+    "secretsIdentityAuthorization": "CI_VERIFIED_P0_8_RELATIONSHIP_GOVERNANCE",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
     "designLanguage": "DELEGATED_EIDOS_CI_ENFORCED",
@@ -32,11 +32,12 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "READ_CONTRACT_P0_3",
+    "contextMemory": "NEXT_WRITE_PROVIDER_PROVENANCE_GOVERNANCE",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
     "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
-    "enterpriseContextOwnership": "CI_VERIFIED_P0_7"
+    "enterpriseContextOwnership": "CI_VERIFIED_P0_8_TRANSFER_LIFECYCLE",
+    "enterpriseRelationships": "CI_VERIFIED_P0_8"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -70,7 +71,11 @@
     "personalAgentPrincipalContextFiltering": "CI_VERIFIED_P0_6",
     "requestBoundSessionProvider": "CI_VERIFIED_P0_7_HOST_BEARER_REFERENCE",
     "enterpriseContextCreationOwnership": "CI_VERIFIED_P0_7",
-    "materialWriteAuthorization": "CI_VERIFIED_P0_7_ENTERPRISE_CREATE_AND_AGENT_WRITE_GATE"
+    "materialWriteAuthorization": "CI_VERIFIED_P0_7_ENTERPRISE_CREATE_AND_AGENT_WRITE_GATE",
+    "enterpriseRelationshipLifecycle": "CI_VERIFIED_P0_8",
+    "enterpriseOwnershipTransfer": "CI_VERIFIED_P0_8_ATOMIC_TWO_PARTY",
+    "enterpriseMembershipInvitationAcceptance": "CI_VERIFIED_P0_8",
+    "enterpriseGrantRevocation": "CI_VERIFIED_P0_8"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -160,14 +165,15 @@
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   },
   "authorization": {
-    "status": "IMPLEMENTED_P0_7_REQUEST_CONTEXT_MATERIAL_WRITE_FOUNDATION",
+    "status": "IMPLEMENTED_P0_8_REQUEST_CONTEXT_PLUS_RELATIONSHIP_DUAL_GATE",
     "capability": "authorization.check",
     "principal": "REQUEST_BOUND_IDENTITY_SESSION_PRINCIPAL_WITH_P0_6_COMPATIBILITY_FALLBACK",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
+    "next": "CONTEXT_MEMORY_WRITE_AND_PROMOTION_AUTHORIZATION",
+    "enterpriseGovernance": "HOST_STRUCTURAL_RELATIONSHIP_RULES_AND_PROVIDER_POLICY"
   },
   "platformHelp": {
     "status": "IMPLEMENTED_P0_MULTILINGUAL",
@@ -226,9 +232,9 @@
     "providerObservation": "IMPLEMENTED",
     "packageContribution": "PENDING_SECOND_TOOL_OWNER",
     "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
-    "writeAuthorization": "IMPLEMENTED_P0_7_HOST_GATE",
+    "writeAuthorization": "IMPLEMENTED_P0_8_ENTERPRISE_GOVERNANCE_DUAL_GATE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_MATERIAL_WRITE_GOVERNANCE",
+    "next": "CONTEXT_MEMORY_PROVIDER_AND_GOVERNED_MEMORY_TOOLS",
     "productIdentity": "Personal Agent",
     "currentContextTool": "context.current.get"
   },
@@ -262,7 +268,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -287,7 +293,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
       "locales": [
         "en",
         "zh-CN",
@@ -357,7 +363,25 @@
       "activeOwnerInvariant": true,
       "agentWriteAuthorization": "HOST_GATE_BEFORE_WRITE_TOOL_EXECUTION",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
+      "next": "P0_8_DELIVERED_THEN_CONTEXT_MEMORY"
+    },
+    "contextP0_8": {
+      "status": "CI_VERIFIED_P0_8",
+      "authority": "docs/architecture/ENTERPRISE-RELATIONSHIP-LIFECYCLE-P0.8-v0.1.md",
+      "invitation": "PENDING_TO_ACCEPTED_DECLINED_REVOKED_EXPIRED",
+      "access": "GRANT_CREATED_ONLY_ON_ACCEPT",
+      "rolePolicy": "OWNER_ADMIN_STRUCTURAL_HOST_RULES",
+      "relationship": "ACTIVE_TO_REVOKED_NO_REACTIVATION",
+      "grant": "ACTIVE_TO_REVOKED_NO_REACTIVATION",
+      "ownershipTransfer": "PENDING_TO_ACCEPTED_DECLINED_CANCELLED_EXPIRED",
+      "atomicTransfer": true,
+      "directOwnerRevoke": false,
+      "creatorImmutable": true,
+      "appendOnlyRelationshipEvents": true,
+      "authorization": "HOST_RULE_AND_AUTHORIZATION_PROVIDER_ALLOW",
+      "pendingReads": "PRINCIPAL_SCOPED",
+      "p0_7PersistenceCompatibility": true,
+      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

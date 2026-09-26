@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.7 — Request Session, Enterprise Context Creation and Ownership",
+  "currentMilestone": "Personal Agent P0.8 — Enterprise Relationship Lifecycle",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -154,7 +154,17 @@
     "enterprise-context-owner-relationship",
     "enterprise-context-active-owner-invariant",
     "enterprise-context-lifecycle-events",
-    "personal-agent-material-write-authorization"
+    "personal-agent-material-write-authorization",
+    "enterprise-relationship-invitation-lifecycle",
+    "enterprise-member-acceptance-before-access",
+    "enterprise-relationship-revocation",
+    "enterprise-grant-revocation",
+    "enterprise-owner-admin-host-governance-matrix",
+    "enterprise-ownership-transfer-two-party-lifecycle",
+    "enterprise-ownership-transfer-atomic-owner-switch",
+    "enterprise-relationship-append-only-events",
+    "enterprise-governance-p0-7-state-compatibility",
+    "principal-pending-enterprise-governance-reads"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -177,7 +187,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.7 is CI-verified and merge-ready: request-bound bearer Session, Host-derived PlatformRequestContext, governed Enterprise Context creation, separate OWNER Relationship + initial Grant, CREATING→ACTIVE lifecycle, ACTIVE-owner invariant, immutable creation facts, durable governance state, and Host authorization for Personal Agent Material WRITE tools all pass Platform and nine owning-plugin CI suites.",
+  "currentStep": "Personal Agent P0.8 is functionally CI-verified: governed invitations require acceptance before access, OWNER/ADMIN structural rules are Host-enforced, Relationship and Grant lifecycle is ACTIVE→REVOKED, ownership transfer is two-party and atomic, pending governance requests are Principal-scoped reads, and every governance WRITE also requires authorization.check. Final docs/help CI is the merge gate.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -441,7 +451,7 @@
       "authenticationBoundary": "BOOTSTRAP_PRINCIPAL_TRANSITIONAL"
     },
     "authorization": {
-      "status": "IMPLEMENTED_P0_PLUS_REQUEST_CONTEXT_MATERIAL_WRITE_P0_7",
+      "status": "IMPLEMENTED_P0_PLUS_REQUEST_CONTEXT_AND_ENTERPRISE_RELATIONSHIP_GOVERNANCE_P0_8",
       "capability": "authorization.check",
       "contract": "AuthorizationCheckV010/AuthorizationDecisionV010",
       "referenceProvider": "host-static-authorization-provider",
@@ -455,7 +465,8 @@
         "agent WRITE tool invocation"
       ],
       "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
-      "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
+      "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN",
+      "enterpriseGovernance": "HOST_RELATIONSHIP_RULES_AND_PROVIDER_POLICY_BOTH_REQUIRED"
     },
     "secrets": {
       "status": "IMPLEMENTED_P0_PRODUCTION_DEPLOYED_VOLUME_MOUNTED",
@@ -568,11 +579,11 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_MATERIAL_WRITE_GOVERNANCE",
+    "next": "CONTEXT_MEMORY_PROVIDER_AND_GOVERNED_MEMORY_TOOLS",
     "productIdentity": "Personal Agent",
     "preferredCapability": "agent.personal.tool-discovery",
     "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
-    "writeAuthorization": "IMPLEMENTED_P0_7_HOST_GATE_FOR_WRITE_TOOLS",
+    "writeAuthorization": "IMPLEMENTED_P0_8_GOVERNANCE_DUAL_GATE_PLUS_P0_7_AGENT_GATE",
     "initialToolCount": 12
   },
   "worldModel": {
@@ -612,7 +623,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -638,7 +649,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
       "locales": [
         "en",
         "zh-CN",
@@ -731,7 +742,63 @@
       ],
       "materialWrite": "ENTERPRISE_CREATE_PLUS_AGENT_WRITE_TOOL_HOST_AUTHORIZATION",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
+      "next": "P0_8_DELIVERED_THEN_CONTEXT_MEMORY"
+    },
+    "contextP0_8": {
+      "status": "CI_VERIFIED_P0_8",
+      "authority": "docs/architecture/ENTERPRISE-RELATIONSHIP-LIFECYCLE-P0.8-v0.1.md",
+      "invitationLifecycle": [
+        "PENDING",
+        "ACCEPTED",
+        "DECLINED",
+        "REVOKED",
+        "EXPIRED"
+      ],
+      "invitationAccessRule": "NO_GRANT_UNTIL_TARGET_ACCEPTS",
+      "roleMatrix": {
+        "OWNER": [
+          "INVITE_ADMIN",
+          "INVITE_MEMBER",
+          "INVITE_AUDITOR",
+          "REVOKE_ADMIN",
+          "REVOKE_MEMBER",
+          "REVOKE_AUDITOR",
+          "OWNERSHIP_TRANSFER"
+        ],
+        "ADMIN": [
+          "INVITE_MEMBER",
+          "INVITE_AUDITOR",
+          "REVOKE_MEMBER",
+          "REVOKE_AUDITOR"
+        ],
+        "MEMBER": [],
+        "AUDITOR": []
+      },
+      "relationshipLifecycle": [
+        "ACTIVE",
+        "REVOKED"
+      ],
+      "grantLifecycle": [
+        "ACTIVE",
+        "REVOKED"
+      ],
+      "reactivation": "FORBIDDEN_NEW_RECORD_REQUIRED",
+      "ownershipTransferLifecycle": [
+        "PENDING",
+        "ACCEPTED",
+        "DECLINED",
+        "CANCELLED",
+        "EXPIRED"
+      ],
+      "ownershipAcceptance": "ATOMIC_NEW_OWNER_ACTIVE_OLD_OWNER_REVOKED",
+      "directOwnerRevoke": "FORBIDDEN_TRANSFER_REQUIRED",
+      "creatorFact": "IMMUTABLE",
+      "relationshipEvents": "APPEND_ONLY",
+      "authorization": "HOST_RELATIONSHIP_INVARIANT_AND_AUTHORIZATION_CHECK_BOTH_REQUIRED",
+      "pendingReads": "PRINCIPAL_SCOPED_NON_EXPIRED_ONLY",
+      "userDirectory": "DEFERRED_SUBJECT_ID_ONLY",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION"
     }
   }
 }
