@@ -176,3 +176,16 @@ Enterprise Agent Eidos Experience
 ```
 
 The provider is lifecycle-managed independently of the Agent. Credentials are configuration/secrets, never Package data. Installing or removing the Provider changes model availability without changing the durable Agent identity.
+
+
+## 10. Tool Discovery slice
+
+Enterprise Agent P0.2 removes the fixed App Manager tool list from Agent core.
+
+Authority: `docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md`.
+
+The Host now supplies the effective tool catalog and the Agent model consumes it dynamically. Initial registrations cover platform/capability state, Package discovery/install planning, Provider observation and authoritative Help search.
+
+This is the required convergence boundary for future EC tools: EC context/knowledge/provenance functions must enter as registered tools/adapters rather than being embedded into Enterprise Agent prompt logic.
+
+The next convergence slice is Principal/Scope-aware tool visibility and authorization for privileged WRITE tools, followed by the first EC Context/Knowledge/Provenance adapters.
