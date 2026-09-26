@@ -518,9 +518,9 @@ After Eidos release/CI:
 4. Extension Manager exposes readiness and Set up;
 5. add Personal Agent setup Experience using Eidos setup-flow;
 6. orchestrate Provider selection/configuration routes;
-7. translate all Agent/setup chrome through package-owned localization;
-8. update Help;
-9. add design-language CI asserting Personal Agent uses only these Eidos capabilities.
+7. ship all Agent/setup product chrome in en / zh-CN / ja / zh-TW through package-owned localization;
+8. update Help, preserving per-document English fallback where ja/zh-TW variants are not yet complete;
+9. add design-language/localization CI asserting Personal Agent uses only these Eidos capabilities and has four-locale bundle coverage.
 
 No App Platform CSS.
 
@@ -685,8 +685,9 @@ The Personal Agent product experience is considered Eidos-native when:
 11. evidence can open in Main Workspace;
 12. consequential Agent proposals remain human-confirmed;
 13. desktop and mobile preserve Eidos Workbench semantics;
-14. en + zh-CN product chrome is complete;
-15. Eidos CI and App Platform design-language CI encode the above structural rules.
+14. en + zh-CN + ja + zh-TW product chrome is complete;
+15. locale changes preserve the same stable routes/actions/Context semantics and the layout remains usable with text expansion;
+16. Eidos CI and App Platform design-language CI encode the above structural rules.
 
 ## 20. Recommended implementation sequence
 
@@ -718,3 +719,28 @@ The Personal Agent product experience is considered Eidos-native when:
 5. READ/PLAN-first enterprise-context tools.
 
 Do not begin broad WRITE autonomy before P0.4A/B are coherent.
+
+
+## 21. Four-locale product requirement
+
+Personal Agent is planned for users working in English, Simplified Chinese, Japanese and Traditional Chinese.
+
+Required P0.4 UI locales:
+
+- `en`;
+- `zh-CN`;
+- `ja`;
+- `zh-TW`.
+
+This applies to Personal Agent chat chrome, readiness/setup states, Provider-selection/setup orchestration, Plugin Store labels specific to this flow, Settings labels owned by participating Packages, errors/notices and human-confirmation/proposal actions.
+
+Machine semantics do not change by locale.
+
+Design implications:
+
+- no fixed-width assumptions based on English labels;
+- no sentence construction from concatenated translation fragments;
+- status labels and action verbs must be independently localizable;
+- Context names that are user/business data are not UI translation strings;
+- exact-locale bundles are preferred, with deterministic English fallback for resilience;
+- Japanese and Traditional Chinese are first-class release targets for new P0.4 surfaces, not optional future polish.
