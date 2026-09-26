@@ -4,9 +4,30 @@ export const ENTERPRISE_AGENT_PACKAGE_ID = "enterprise-agent";
 export const ENTERPRISE_AGENT_FEATURE_ID = "enterprise-agent.default";
 export const ENTERPRISE_AGENT_PAGE_SOURCE = "app://enterprise-agent/pages/home";
 export const ENTERPRISE_AGENT_SETUP_PAGE_SOURCE = "app://enterprise-agent/pages/setup";
+export const ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/memory-review";
 
 const enMessages = {
   "workbench.activity.label": "Personal Agent",
+  "review.personal-agent.memory-review.title": "Memory review",
+  "review.personal-agent.memory-review.description": "Review, edit, accept or reject proposed durable knowledge before it becomes Context Memory.",
+  "review.personal-agent.memory-review.empty": "No Memory proposals need review.",
+  "review.personal-agent.memory-review.status.pending.label": "Pending",
+  "review.personal-agent.memory-review.status.attention.label": "Needs attention",
+  "review.personal-agent.memory-review.status.accepted.label": "Accepted",
+  "review.personal-agent.memory-review.status.rejected.label": "Rejected",
+  "review.personal-agent.memory-review.metric.confidence.label": "Proposed confidence",
+  "review.personal-agent.memory-review.metric.evidence.label": "Evidence refs",
+  "review.personal-agent.memory-review.metric.conflicts.label": "Review signals",
+  "review.personal-agent.memory-review.metric.context.label": "Context",
+  "review.personal-agent.memory-review.field.kind.label": "Kind",
+  "review.personal-agent.memory-review.field.kind.option.FACT.label": "Fact",
+  "review.personal-agent.memory-review.field.kind.option.CLAIM.label": "Claim",
+  "review.personal-agent.memory-review.field.kind.option.EXPERIENCE.label": "Experience",
+  "review.personal-agent.memory-review.field.kind.option.PRACTICE.label": "Practice",
+  "review.personal-agent.memory-review.field.summary.label": "Summary",
+  "review.personal-agent.memory-review.action.save.label": "Save edit",
+  "review.personal-agent.memory-review.action.accept.label": "Accept",
+  "review.personal-agent.memory-review.action.reject.label": "Reject",
   "navigation.enterprise-agent.nav.label": "Personal Agent",
   "page.enterprise-agent.home.title": "Personal Agent",
   "page.enterprise-agent.setup.title": "Personal Agent setup",
@@ -58,6 +79,26 @@ const enMessages = {
 
 const zhCnMessages = {
   "workbench.activity.label": "个人代理",
+  "review.personal-agent.memory-review.title": "记忆审核",
+  "review.personal-agent.memory-review.description": "在候选知识成为 Context Memory 前进行查看、编辑、接受或拒绝。",
+  "review.personal-agent.memory-review.empty": "当前没有需要审核的记忆提案。",
+  "review.personal-agent.memory-review.status.pending.label": "待审核",
+  "review.personal-agent.memory-review.status.attention.label": "需要关注",
+  "review.personal-agent.memory-review.status.accepted.label": "已接受",
+  "review.personal-agent.memory-review.status.rejected.label": "已拒绝",
+  "review.personal-agent.memory-review.metric.confidence.label": "建议置信度",
+  "review.personal-agent.memory-review.metric.evidence.label": "证据引用",
+  "review.personal-agent.memory-review.metric.conflicts.label": "审核信号",
+  "review.personal-agent.memory-review.metric.context.label": "上下文",
+  "review.personal-agent.memory-review.field.kind.label": "类型",
+  "review.personal-agent.memory-review.field.kind.option.FACT.label": "事实",
+  "review.personal-agent.memory-review.field.kind.option.CLAIM.label": "主张",
+  "review.personal-agent.memory-review.field.kind.option.EXPERIENCE.label": "经验",
+  "review.personal-agent.memory-review.field.kind.option.PRACTICE.label": "实践",
+  "review.personal-agent.memory-review.field.summary.label": "摘要",
+  "review.personal-agent.memory-review.action.save.label": "保存编辑",
+  "review.personal-agent.memory-review.action.accept.label": "接受",
+  "review.personal-agent.memory-review.action.reject.label": "拒绝",
   "navigation.enterprise-agent.nav.label": "个人代理",
   "page.enterprise-agent.home.title": "个人代理",
   "page.enterprise-agent.setup.title": "个人代理设置",
@@ -109,6 +150,26 @@ const zhCnMessages = {
 
 const jaMessages = {
   "workbench.activity.label": "パーソナルエージェント",
+  "review.personal-agent.memory-review.title": "メモリーレビュー",
+  "review.personal-agent.memory-review.description": "候補知識が Context Memory になる前に、確認・編集・承認・却下します。",
+  "review.personal-agent.memory-review.empty": "レビューが必要なメモリー提案はありません。",
+  "review.personal-agent.memory-review.status.pending.label": "レビュー待ち",
+  "review.personal-agent.memory-review.status.attention.label": "要確認",
+  "review.personal-agent.memory-review.status.accepted.label": "承認済み",
+  "review.personal-agent.memory-review.status.rejected.label": "却下済み",
+  "review.personal-agent.memory-review.metric.confidence.label": "提案信頼度",
+  "review.personal-agent.memory-review.metric.evidence.label": "証拠参照",
+  "review.personal-agent.memory-review.metric.conflicts.label": "レビュー信号",
+  "review.personal-agent.memory-review.metric.context.label": "コンテキスト",
+  "review.personal-agent.memory-review.field.kind.label": "種類",
+  "review.personal-agent.memory-review.field.kind.option.FACT.label": "事実",
+  "review.personal-agent.memory-review.field.kind.option.CLAIM.label": "主張",
+  "review.personal-agent.memory-review.field.kind.option.EXPERIENCE.label": "経験",
+  "review.personal-agent.memory-review.field.kind.option.PRACTICE.label": "プラクティス",
+  "review.personal-agent.memory-review.field.summary.label": "要約",
+  "review.personal-agent.memory-review.action.save.label": "編集を保存",
+  "review.personal-agent.memory-review.action.accept.label": "承認",
+  "review.personal-agent.memory-review.action.reject.label": "却下",
   "navigation.enterprise-agent.nav.label": "パーソナルエージェント",
   "page.enterprise-agent.home.title": "パーソナルエージェント",
   "page.enterprise-agent.setup.title": "パーソナルエージェントのセットアップ",
@@ -160,6 +221,26 @@ const jaMessages = {
 
 const zhTwMessages = {
   "workbench.activity.label": "個人代理",
+  "review.personal-agent.memory-review.title": "記憶審核",
+  "review.personal-agent.memory-review.description": "在候選知識成為 Context Memory 前進行查看、編輯、接受或拒絕。",
+  "review.personal-agent.memory-review.empty": "目前沒有需要審核的記憶提案。",
+  "review.personal-agent.memory-review.status.pending.label": "待審核",
+  "review.personal-agent.memory-review.status.attention.label": "需要關注",
+  "review.personal-agent.memory-review.status.accepted.label": "已接受",
+  "review.personal-agent.memory-review.status.rejected.label": "已拒絕",
+  "review.personal-agent.memory-review.metric.confidence.label": "建議信心度",
+  "review.personal-agent.memory-review.metric.evidence.label": "證據引用",
+  "review.personal-agent.memory-review.metric.conflicts.label": "審核訊號",
+  "review.personal-agent.memory-review.metric.context.label": "內容環境",
+  "review.personal-agent.memory-review.field.kind.label": "類型",
+  "review.personal-agent.memory-review.field.kind.option.FACT.label": "事實",
+  "review.personal-agent.memory-review.field.kind.option.CLAIM.label": "主張",
+  "review.personal-agent.memory-review.field.kind.option.EXPERIENCE.label": "經驗",
+  "review.personal-agent.memory-review.field.kind.option.PRACTICE.label": "實務",
+  "review.personal-agent.memory-review.field.summary.label": "摘要",
+  "review.personal-agent.memory-review.action.save.label": "儲存編輯",
+  "review.personal-agent.memory-review.action.accept.label": "接受",
+  "review.personal-agent.memory-review.action.reject.label": "拒絕",
   "navigation.enterprise-agent.nav.label": "個人代理",
   "page.enterprise-agent.home.title": "個人代理",
   "page.enterprise-agent.setup.title": "個人代理設定",
@@ -249,6 +330,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.setup",
                 title: "Personal Agent setup",
                 source: ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+              },
+              {
+                id: "enterprise-agent.memory-review",
+                title: "Memory review",
+                source: ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
               }
             ],
             routes: [
@@ -261,6 +347,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.setup",
                 path: "/enterprise-agent/setup",
                 pageId: "enterprise-agent.setup"
+              },
+              {
+                id: "enterprise-agent.memory-review",
+                path: "/enterprise-agent/memory",
+                pageId: "enterprise-agent.memory-review"
               }
             ],
             navigation: [
