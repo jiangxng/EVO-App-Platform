@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Person-first world model is frozen and protected by a dedicated handoff. Implement only minimal PersonalContextV010 / EnterpriseContextV010 / ActiveContextRefV010, Host-owned context resolution, active-context Tool Catalog plumbing and read-only Context Memory contracts. Do not expand IAM or Memory learning yet.",
+  "currentStep": "P0.3 implementation is on branch: Person-first Context contracts, Host-owned Context registry, Personal default Context, fail-closed unknown Enterprise Context selection, Context passed into Personal Agent/model/tool catalog, READ-only context.current.get, and Context Memory read contract. Next closure: Agent/Platform/OpenAI CI, docs/status finalization, merge and Railway.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -542,7 +542,8 @@
       "provider.list",
       "provider.health.get",
       "provider.binding.list",
-      "help.search"
+      "help.search",
+      "context.current.get"
     ],
     "unknownTool": "FAIL_CLOSED",
     "installSafety": "HOST_PLAN_REQUIRED",
@@ -587,6 +588,23 @@
       "zh-CN": "个人 Agent"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS"
+    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS",
+    "contextP0_3": {
+      "status": "IMPLEMENTED_BRANCH_PENDING_CI",
+      "contracts": [
+        "PersonalContextV010",
+        "EnterpriseContextV010",
+        "ActiveContextRefV010",
+        "ResolvedContextSetV010",
+        "ContextMemoryReaderV010"
+      ],
+      "hostResolver": "manager/context-registry.ts",
+      "productionDefault": "PERSONAL_CONTEXT_ONLY",
+      "enterpriseSelection": "HOST_REGISTERED_ONLY_FAIL_CLOSED",
+      "currentContextTool": "context.current.get",
+      "memory": "READ_CONTRACT_ONLY_NO_GENERIC_WRITE",
+      "platformScope": "LEGACY_COMPATIBILITY_PROJECTION",
+      "next": "CI_MERGE_RAILWAY_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
+    }
   }
 }
