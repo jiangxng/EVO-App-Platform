@@ -1140,6 +1140,11 @@ const server = createServer(async (request, response) => {
             operation: "PUT" | "REMOVE";
             reference: SecretReferenceV010;
             value?: string;
+            authorization?: {
+              actorId: string;
+              policyProviderId?: string;
+              reason: string;
+            };
           }> = [];
 
           for (const declaration of pkg.secrets ?? []) {
@@ -1214,6 +1219,13 @@ const server = createServer(async (request, response) => {
                   }
                 });
               }
+              change.authorization = {
+                actorId: decision.actorId,
+                ...(decision.policyProviderId
+                  ? { policyProviderId: decision.policyProviderId }
+                  : {}),
+                reason: decision.reason
+              };
             }
           }
 
@@ -1235,16 +1247,22 @@ const server = createServer(async (request, response) => {
                 secretAudit.append(secretAuditEventV010({
                   action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
                   outcome: "ALLOWED",
-                  actorId: "bootstrap-admin",
+                  actorId: change.authorization?.actorId ?? "unknown",
+                  ...(change.authorization?.policyProviderId
+                    ? { policyProviderId: change.authorization.policyProviderId }
+                    : {}),
                   correlationId: action.sourceInteractionId,
                   reference: change.reference,
-                  reason: "AUTHORIZED_SECRET_CHANGE"
+                  reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
                 }));
               } catch (error) {
                 secretAudit.append(secretAuditEventV010({
                   action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
                   outcome: "FAILED",
-                  actorId: "bootstrap-admin",
+                  actorId: change.authorization?.actorId ?? "unknown",
+                  ...(change.authorization?.policyProviderId
+                    ? { policyProviderId: change.authorization.policyProviderId }
+                    : {}),
                   correlationId: action.sourceInteractionId,
                   reference: change.reference,
                   reason: error instanceof Error ? error.message : String(error)
