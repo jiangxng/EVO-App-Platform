@@ -2,7 +2,7 @@ import type {
   AgentModel,
   AgentModelDecision,
   AgentModelInput,
-  AgentToolName
+  AgentToolDescriptorV010
 } from "./contracts.js";
 
 export interface OpenAIResponsesAgentModelOptions {
@@ -28,54 +28,6 @@ interface ResponsesApiBody {
   error?: { message?: string };
 }
 
-const toolNameToInternal: Record<string, AgentToolName> = {
-  app_catalog_list: "app.catalog.list",
-  app_install_plan: "app.install.plan",
-  app_install_execute: "app.install.execute"
-};
-
-const tools = [
-  {
-    type: "function",
-    name: "app_catalog_list",
-    description: "List installable Packages in the App Manager catalog.",
-    parameters: {
-      type: "object",
-      properties: {},
-      additionalProperties: false
-    },
-    strict: true
-  },
-  {
-    type: "function",
-    name: "app_install_plan",
-    description: "Create a side-effect-free installation plan for a Package. Always plan before executing installation.",
-    parameters: {
-      type: "object",
-      properties: {
-        packageId: { type: "string", description: "Exact Package id from the catalog." }
-      },
-      required: ["packageId"],
-      additionalProperties: false
-    },
-    strict: true
-  },
-  {
-    type: "function",
-    name: "app_install_execute",
-    description: "Execute installation through App Manager. Call only after a successful plan with no blockers.",
-    parameters: {
-      type: "object",
-      properties: {
-        packageId: { type: "string", description: "Exact Package id from the successful install plan." }
-      },
-      required: ["packageId"],
-      additionalProperties: false
-    },
-    strict: true
-  }
-] as const;
-
 function textFrom(body: ResponsesApiBody): string {
   for (const item of body.output ?? []) {
     if (item.type !== "message") continue;
@@ -100,6 +52,35 @@ function safeArguments(value: string): Record<string, unknown> {
   }
 }
 
+function responseTools(tools: readonly AgentToolDescriptorV010[]) {
+  const byModelName = new Map<string, AgentToolDescriptorV010>();
+  const definitions = tools.map(tool => {
+    if (byModelName.has(tool.modelName)) {
+      throw new Error(`AGENT_TOOL_MODEL_NAME_DUPLICATE: ${tool.modelName}`);
+    }
+    byModelName.set(tool.modelName, tool);
+    return {
+      type: "function",
+      name: tool.modelName,
+      description: [
+        tool.description,
+        `Effect: ${tool.effect}.`,
+        `Owner: ${tool.ownerPackageId}.`
+      ].join(" "),
+      parameters: tool.inputSchema,
+      strict: true
+    };
+  });
+  return { byModelName, definitions };
+}
+
+/**
+ * Historical direct OpenAI AgentModel adapter.
+ *
+ * Production Enterprise Agent uses the generic llm.inference Provider boundary.
+ * This adapter remains migration/reference evidence and therefore consumes the
+ * same dynamic Host tool descriptors instead of preserving the old fixed tool list.
+ */
 export function createOpenAIResponsesAgentModel(
   options: OpenAIResponsesAgentModelOptions
 ): AgentModel {
@@ -111,6 +92,7 @@ export function createOpenAIResponsesAgentModel(
 
   return {
     async decide(input: AgentModelInput): Promise<AgentModelDecision> {
+      const { byModelName, definitions } = responseTools(input.tools);
       const response = await fetchImpl(`${baseUrl}/responses`, {
         method: "POST",
         headers: {
@@ -121,12 +103,11 @@ export function createOpenAIResponsesAgentModel(
           model,
           instructions: [
             "You are Enterprise Agent, an enterprise software agent.",
-            "Use only the provided tools for App Manager lifecycle changes.",
-            "Never claim an app is installed unless app_install_execute succeeded.",
-            "Always inspect the catalog when package identity is not already established.",
-            "Always call app_install_plan before app_install_execute.",
-            "If a plan has blockers, explain them and do not execute.",
-            "If the user's target app is ambiguous, ask which catalog app they want.",
+            "Use only the tools supplied by the Host for this turn.",
+            "Prefer READ tools to inspect authoritative state before asking the human.",
+            "PLAN tools are side-effect-free preflight.",
+            "WRITE tools are side-effectful; never claim success unless the Host observation confirms success.",
+            "Never invent a tool that is not in the supplied catalog.",
             "Answer the user in the same language they used."
           ].join("\n"),
           input: [
@@ -136,10 +117,15 @@ export function createOpenAIResponsesAgentModel(
             },
             {
               role: "developer",
-              content: `Tool observations from this turn (authoritative):\n${JSON.stringify(input.observations)}`
+              content: [
+                "Authoritative Host tool catalog:",
+                JSON.stringify(input.tools),
+                "Tool observations from this turn (authoritative):",
+                JSON.stringify(input.observations)
+              ].join("\n")
             }
           ],
-          tools,
+          tools: definitions,
           tool_choice: "auto"
         })
       });
@@ -152,12 +138,12 @@ export function createOpenAIResponsesAgentModel(
       for (const item of body.output ?? []) {
         if (item.type !== "function_call") continue;
         const call = item as ResponseFunctionCall;
-        const internal = toolNameToInternal[call.name];
-        if (!internal) continue;
+        const descriptor = byModelName.get(call.name);
+        if (!descriptor) continue;
         return {
           type: "tool",
           call: {
-            tool: internal,
+            tool: descriptor.id,
             arguments: safeArguments(call.arguments)
           }
         };

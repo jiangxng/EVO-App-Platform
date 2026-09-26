@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Agent enablement — Secrets Provider P0 before dynamic Tool Discovery",
+  "currentMilestone": "Enterprise Agent P0.2 — dynamic Host Tool Discovery complete",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -130,7 +130,14 @@
     "secret-nonreadback-settings-ui",
     "openai-secrets-resolve",
     "openai-env-secret-migration",
-    "host-secrets-provider-isolated-ci"
+    "host-secrets-provider-isolated-ci",
+    "enterprise-agent-dynamic-tool-catalog",
+    "enterprise-agent-tool-effect-metadata",
+    "enterprise-agent-platform-observation-tools",
+    "enterprise-agent-provider-observation-tools",
+    "enterprise-agent-help-search-tool",
+    "enterprise-agent-host-install-preflight",
+    "enterprise-agent-tool-discovery-help"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -153,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Secrets Provider P0 is CI-verified: Package Secret declarations, encrypted Host store, Eidos Settings credential entry, authorized non-readback mutation/audit, and OpenAI secrets.resolve migration all pass Platform + isolated Provider CI. Remaining production closure is durable Railway storage + deployment verification; then return immediately to Enterprise Agent Tool Discovery, with minimal Identity/Session pulled forward before interactive privileged writes.",
+  "currentStep": "Enterprise Agent Tool Discovery P0.2 is CI-verified: Agent core/model consume Host-supplied tool descriptors; platform, Provider and Help observation tools are available; unknown tools fail closed; install preflight remains Host-enforced. Next: introduce minimal Identity / Session / Principal / Scope / PlatformRequestContext, filter the effective tool catalog by context, and route privileged WRITE invocation through authorization.check before expanding business/EC tools.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -432,7 +439,7 @@
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
     },
     "secrets": {
-      "status": "IMPLEMENTED_P0_CI_VERIFIED_DEPLOYMENT_PENDING",
+      "status": "IMPLEMENTED_P0_PRODUCTION_DEPLOYED_VOLUME_MOUNTED",
       "capability": "secrets.resolve",
       "referenceProvider": "host.encrypted-secrets",
       "contract": "SecretReferenceV010/SecretDescriptorV010/SecretsResolverV010/ManagedSecretsProviderV010",
@@ -441,7 +448,13 @@
       "readback": "FORBIDDEN",
       "ui": "EIDOS_SETTINGS_EDITOR_SECRET",
       "firstConsumer": "openai-llm-provider/apiKey",
-      "railwayApiKeyConfig": "DEPRECATED_AS_NORMAL_PATH"
+      "railwayApiKeyConfig": "DEPRECATED_AS_NORMAL_PATH",
+      "production": {
+        "deploymentCommit": "b618e5a342ed5a0df88522266d7751b2da404947",
+        "railwayVolumeMount": "/data",
+        "stateFileVariable": "CONFIGURED_VALUE_REDACTED",
+        "crossRedeploySecretPersistence": "VERIFY_WITH_FIRST_REAL_SECRET"
+      }
     }
   },
   "dependencyReproducibility": {
@@ -485,7 +498,7 @@
       "compiler": "manager/help-system.ts",
       "search": "DETERMINISTIC_LOCAL_CATALOG_PLUS_HOST_SEARCH_CONTEXT_API",
       "ci": "help corpus + locale metadata + Eidos Design Language gates via Platform CI",
-      "seedDocuments": 15,
+      "seedDocuments": 16,
       "locales": {
         "canonical": "en",
         "required": [
@@ -504,8 +517,37 @@
           "related-machine-ids"
         ]
       },
-      "seedVariants": 30,
+      "seedVariants": 32,
       "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3"
     }
+  },
+  "enterpriseAgent": {
+    "status": "CI_VERIFIED_P0_2_TOOL_DISCOVERY",
+    "authority": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
+    "packageId": "enterprise-agent",
+    "capability": "agent.enterprise.tool-discovery",
+    "toolOwnership": "HOST_EFFECTIVE_CATALOG",
+    "modelToolMapping": "DYNAMIC_FROM_EFFECTIVE_DESCRIPTORS",
+    "effects": [
+      "READ",
+      "PLAN",
+      "WRITE"
+    ],
+    "p0_2Tools": [
+      "platform.snapshot.get",
+      "capability.list",
+      "app.catalog.list",
+      "app.install.plan",
+      "app.install.execute",
+      "provider.list",
+      "provider.health.get",
+      "provider.binding.list",
+      "help.search"
+    ],
+    "unknownTool": "FAIL_CLOSED",
+    "installSafety": "HOST_PLAN_REQUIRED",
+    "secretsInToolContext": "PROHIBITED",
+    "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
+    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_REQUEST_CONTEXT_TOOL_FILTER_AND_AUTHORIZED_WRITES"
   }
 }

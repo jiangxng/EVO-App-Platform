@@ -412,3 +412,16 @@ Packages may declare Secret requirements, but Secret values never belong in Pack
 The reference P0 Provider is `host.encrypted-secrets`. Its local encrypted-file implementation is replaceable by Vault/KMS/cloud Secret Providers without changing consuming Packages. Secret mutation is a privileged server-side authorized action and audit records contain metadata only.
 
 For OpenAI, `OPENAI_API_KEY` is compatibility migration input only. New credentials are configured through Workbench and resolved from `openai-llm-provider/apiKey`. Do not reintroduce Railway environment variables as the normal LLM credential UX.
+
+
+## Enterprise Agent Tool System
+
+Before changing Enterprise Agent tools, read `docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md`.
+
+Enterprise Agent core does not own a fixed list of App Platform/business tools. The Host constructs the effective `AgentToolDescriptorV010[]` and the Provider-backed model derives LLM tool schemas only from that catalog. Unknown tools fail closed.
+
+Every exposed tool declares `READ | PLAN | WRITE`. Effect metadata is not authorization. Safety and authorization live at Host execution boundaries; do not rely on system prompts to enforce side-effect rules. Preserve the Host-owned `app.install.plan → app.install.execute` preflight rule.
+
+P0.2 Host registrations include platform snapshot/capability, catalog/install, Provider observation and Help search. Do not add a tool name to Agent core just because a new Package needs a tool. A real second tool owner should drive the future Plugin Protocol `agent.tool` contribution.
+
+Never expose stored Secret plaintext through Agent descriptors, observations or prompts. LLM credentials remain inside the Secrets Provider / LLM Provider runtime boundary.

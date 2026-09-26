@@ -38,6 +38,7 @@ import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
+import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -536,8 +537,21 @@ function resolveLlmProvider(): {
 const actionRouter = createAppActionRouter(
   [
     createEnterpriseAgentChatActionHandler({
-      manager,
-      resolveLlmProvider
+      resolveLlmProvider,
+      createToolCatalog(locale) {
+        return createEnterpriseAgentHostToolCatalogV010({
+          manager,
+          listProviderBindings(capability) {
+            return providerBindings.list(capability);
+          },
+          getProviderHealth(providerId) {
+            return providerRuntimeRegistry.getHealth(providerId);
+          },
+          searchHelp(query, context) {
+            return searchHelpV010(helpCorpus, query, locale, context);
+          }
+        });
+      }
     }),
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
     createTradingLiteEvoActionHandler({

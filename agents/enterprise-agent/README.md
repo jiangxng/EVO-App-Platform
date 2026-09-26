@@ -81,3 +81,55 @@ OPENAI_BASE_URL
 The App Host Enterprise Agent Experience resolves `llm.inference` from active Provider contributions. If the provider package is absent, chat fails closed with `LLM_PROVIDER_REQUIRED`; if installed but credentials/runtime are not configured, it fails closed with `LLM_PROVIDER_NOT_CONFIGURED`.
 
 The Agent Runtime still performs installation planning internally as a safety preflight before `app.install.execute`; this is not a mandatory human UI step.
+
+
+## Tool Discovery P0.2
+
+Enterprise Agent core no longer owns a fixed tool list.
+
+The runtime receives an effective Host tool catalog for each chat turn:
+
+```text
+Host state / lifecycle / Providers / Help
+            ↓
+EnterpriseAgentHostToolCatalogV010
+            ↓
+effective AgentToolDescriptorV010[]
+            ↓
+AgentModel
+            ↓
+LLM Provider tool schema
+            ↓
+tool call
+            ↓
+Host catalog invoke
+```
+
+Each descriptor declares:
+
+- stable tool id;
+- LLM-safe model name;
+- owner Package;
+- effect: `READ | PLAN | WRITE`;
+- JSON input schema;
+- optional Capability association.
+
+P0.2 Host tools include:
+
+- `platform.snapshot.get`;
+- `capability.list`;
+- `app.catalog.list`;
+- `app.install.plan`;
+- `app.install.execute`;
+- `provider.list`;
+- `provider.health.get`;
+- `provider.binding.list`;
+- `help.search`.
+
+Unknown/unavailable tools fail closed. The model cannot invent tools or promote a READ/PLAN tool into a WRITE operation.
+
+The existing installation safety rule remains Host-owned: `app.install.execute` requires a successful side-effect-free `app.install.plan` observation for the same Package.
+
+P0.2 registration is Host-owned. A future Plugin Protocol contribution will allow installed Packages to declare Agent tools without adding those tool names to Enterprise Agent source.
+
+Tool discovery is not authorization. Principal/Scope-aware filtering and write authorization remain the next security maturity step for privileged Agent tools.

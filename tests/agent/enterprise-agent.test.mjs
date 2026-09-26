@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+
 import { createEnterpriseAgentRuntime } from "../../dist/agents/enterprise-agent/runtime.js";
 import { createDevelopmentAgentModel } from "../../dist/agents/enterprise-agent/development-model.js";
+import { createProviderBackedAgentModel } from "../../dist/agents/enterprise-agent/provider-model.js";
+import { createEnterpriseAgentHostToolCatalogV010 } from "../../dist/agents/enterprise-agent/host-tool-catalog.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import {
   companyNotesPackage,
@@ -11,20 +14,163 @@ import {
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 
-test("Enterprise Agent installs Company Notes through App Manager tools", async () => {
-  const catalog = createPackageCatalog([companyNotesPackage]);
+function hostCatalog(manager, additional = []) {
+  return createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    listProviderBindings() { return []; },
+    getProviderHealth(providerId) {
+      return {
+        state: "UNKNOWN",
+        message: "test health for " + providerId
+      };
+    },
+    searchHelp(query, context) {
+      return [{
+        id: "test.help",
+        title: "Test Help",
+        kind: "reference",
+        ownerPackageId: "evo-app-platform",
+        locale: "en",
+        route: "/help/test.help",
+        score: 100,
+        matchedBy: [
+          "query:" + query,
+          ...(context?.errorCodes ?? []).map(code => "error:" + code)
+        ]
+      }];
+    }
+  }, additional);
+}
+
+test("Host dynamically exposes Enterprise Agent tools with ownership and effect metadata", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const catalog = hostCatalog(manager);
+  const tools = await catalog.list();
+
+  assert.deepEqual(tools.map(tool => tool.id), [
+    "app.catalog.list",
+    "app.install.execute",
+    "app.install.plan",
+    "capability.list",
+    "help.search",
+    "platform.snapshot.get",
+    "provider.binding.list",
+    "provider.health.get",
+    "provider.list"
+  ]);
+  assert.equal(tools.find(tool => tool.id === "platform.snapshot.get").effect, "READ");
+  assert.equal(tools.find(tool => tool.id === "app.install.plan").effect, "PLAN");
+  assert.equal(tools.find(tool => tool.id === "app.install.execute").effect, "WRITE");
+  assert.equal(tools.every(tool => tool.ownerPackageId === "evo-app-platform"), true);
+});
+
+test("Host tool catalog can accept a new tool without changing Enterprise Agent core", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const catalog = hostCatalog(manager, [{
+    descriptor: {
+      contractVersion: "0.1.0",
+      id: "demo.read",
+      modelName: "demo_read",
+      title: "Demo read",
+      description: "Read a dynamically registered demo value.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        additionalProperties: false
+      },
+      effect: "READ",
+      ownerPackageId: "demo-package",
+      capability: "demo.read"
+    },
+    execute() {
+      return { value: 42 };
+    }
+  }]);
+
+  assert.ok((await catalog.list()).some(tool => tool.id === "demo.read"));
+  const observation = await catalog.invoke({
+    tool: "demo.read",
+    arguments: {}
+  }, []);
+  assert.equal(observation.ok, true);
+  assert.deepEqual(observation.result, { value: 42 });
+});
+
+test("Provider-backed model builds LLM tool schema only from Host catalog", async () => {
+  let captured;
+  const provider = {
+    providerId: "test.provider",
+    modelId: "test-model",
+    async infer(request) {
+      captured = request;
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.provider",
+        modelId: "test-model",
+        text: "",
+        toolCalls: [{
+          name: "demo_read",
+          arguments: { value: "x" }
+        }],
+        usage: { inputTokens: 10, outputTokens: 2 },
+        finishReason: "tool_calls"
+      };
+    }
+  };
+
+  const model = createProviderBackedAgentModel(provider);
+  const decision = await model.decide({
+    userMessage: "inspect demo",
+    tools: [{
+      contractVersion: "0.1.0",
+      id: "demo.read",
+      modelName: "demo_read",
+      title: "Demo read",
+      description: "Read demo data.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          value: { type: "string" }
+        },
+        additionalProperties: false
+      },
+      effect: "READ",
+      ownerPackageId: "demo-package",
+      capability: "demo.read"
+    }],
+    observations: []
+  });
+
+  assert.deepEqual(captured.tools.map(tool => tool.name), ["demo_read"]);
+  assert.match(captured.tools[0].description, /Effect: READ/);
+  assert.deepEqual(decision, {
+    type: "tool",
+    call: {
+      tool: "demo.read",
+      arguments: { value: "x" }
+    }
+  });
+});
+
+test("Enterprise Agent installs Company Notes through Host-discovered tools", async () => {
+  const catalogSource = createPackageCatalog([companyNotesPackage]);
   const store = createMemoryLifecycleStore();
   const manager = createAppManagerService(
-    catalog,
+    catalogSource,
     store,
     () => new Date("2026-09-23T00:00:00Z")
   );
 
-  const runtime = createEnterpriseAgentRuntime(createDevelopmentAgentModel(), {
-    async listCatalog() { return manager.listCatalog(); },
-    async planInstall(packageId) { return manager.planInstall(packageId); },
-    async install(packageId) { return manager.install(packageId); }
-  });
+  const runtime = createEnterpriseAgentRuntime(
+    createDevelopmentAgentModel(),
+    hostCatalog(manager)
+  );
 
   const reply = await runtime.chat("帮我安装 Company Notes");
 
@@ -34,26 +180,47 @@ test("Enterprise Agent installs Company Notes through App Manager tools", async 
     "app.install.plan",
     "app.install.execute"
   ]);
+  assert.ok(reply.tools.some(tool => tool.id === "help.search" && tool.effect === "READ"));
   assert.deepEqual(manager.getSnapshot().installedPackages.map(x => x.packageId), [
     "company-notes"
   ]);
 });
 
 test("Enterprise Agent asks for a target when install request is ambiguous", async () => {
-  const runtime = createEnterpriseAgentRuntime(createDevelopmentAgentModel(), {
-    async listCatalog() { return [companyNotesPackage]; },
-    async planInstall() { throw new Error("should not plan"); },
-    async install() { throw new Error("should not install"); }
-  });
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const runtime = createEnterpriseAgentRuntime(
+    createDevelopmentAgentModel(),
+    hostCatalog(manager)
+  );
 
   const reply = await runtime.chat("帮我安装一个应用");
   assert.match(reply.message, /Company Notes/);
   assert.deepEqual(reply.observations.map(x => x.tool), ["app.catalog.list"]);
 });
 
-
-test("Runtime blocks install execution without a successful plan", async () => {
+test("Host blocks install execution without a successful plan", async () => {
   let installCalls = 0;
+  const manager = {
+    listCatalog() { return [companyNotesPackage]; },
+    getSnapshot() {
+      return {
+        contractVersion: "0.1.0",
+        installedPackages: [],
+        activeFeatures: [],
+        effectiveCapabilities: []
+      };
+    },
+    planInstall() { throw new Error("should not plan"); },
+    install() {
+      installCalls += 1;
+      throw new Error("should not install");
+    },
+    listEffectiveServiceProviders() { return []; }
+  };
+
   const badModel = {
     async decide({ observations }) {
       if (observations.length === 0) {
@@ -69,15 +236,10 @@ test("Runtime blocks install execution without a successful plan", async () => {
     }
   };
 
-  const runtime = createEnterpriseAgentRuntime(badModel, {
-    async listCatalog() { return [companyNotesPackage]; },
-    async planInstall() { throw new Error("should not plan"); },
-    async install() {
-      installCalls += 1;
-      throw new Error("should not install");
-    }
-  });
-
+  const runtime = createEnterpriseAgentRuntime(
+    badModel,
+    hostCatalog(manager)
+  );
   const reply = await runtime.chat("帮我安装 Company Notes");
 
   assert.equal(installCalls, 0);
@@ -85,25 +247,38 @@ test("Runtime blocks install execution without a successful plan", async () => {
   assert.equal(reply.observations[0].error.code, "INSTALL_PLAN_REQUIRED");
 });
 
+test("Tool calls not present in the effective Host catalog fail closed", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const catalog = hostCatalog(manager);
+  const observation = await catalog.invoke({
+    tool: "imaginary.superpower",
+    arguments: {}
+  }, []);
+
+  assert.equal(observation.ok, false);
+  assert.equal(observation.error.code, "AGENT_TOOL_UNAVAILABLE");
+});
 
 test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency graph", async () => {
-  const catalog = createPackageCatalog([
+  const catalogSource = createPackageCatalog([
     companyNotesPackage,
     evoFoundationPackage,
     tradingLitePackage
   ]);
   const store = createMemoryLifecycleStore();
   const manager = createAppManagerService(
-    catalog,
+    catalogSource,
     store,
     () => new Date("2026-09-23T00:00:00Z")
   );
 
-  const runtime = createEnterpriseAgentRuntime(createDevelopmentAgentModel(), {
-    async listCatalog() { return manager.listCatalog(); },
-    async planInstall(packageId) { return manager.planInstall(packageId); },
-    async install(packageId) { return manager.install(packageId); }
-  });
+  const runtime = createEnterpriseAgentRuntime(
+    createDevelopmentAgentModel(),
+    hostCatalog(manager)
+  );
 
   const reply = await runtime.chat("帮我安装 Trading Lite");
 
