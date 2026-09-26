@@ -199,13 +199,23 @@ function sameMaterializedMemory(
 
 export function createContextMemoryProposalServiceV010(input: {
   store: ContextMemoryProposalStoreV010;
-  reader: ContextMemoryReaderV010;
-  writer: ContextMemoryWriterV010;
+  resolveReader(): ContextMemoryReaderV010 | undefined;
+  resolveWriter(): ContextMemoryWriterV010 | undefined;
   now?: () => Date;
   id?: () => string;
 }): ContextMemoryProposalServiceV010 {
   const now = input.now ?? (() => new Date());
   const id = input.id ?? randomUUID;
+  const reader = (): ContextMemoryReaderV010 => {
+    const value = input.resolveReader();
+    if (!value) throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+    return value;
+  };
+  const writer = (): ContextMemoryWriterV010 => {
+    const value = input.resolveWriter();
+    if (!value) throw new Error("CONTEXT_MEMORY_WRITER_REQUIRED");
+    return value;
+  };
 
   async function revisionFor(
     context: ActiveContextRefV010,
@@ -219,7 +229,7 @@ export function createContextMemoryProposalServiceV010(input: {
     const proposedConfidence = validConfidence(draft.proposedConfidence);
     const observedAt = validObservedAt(draft.observedAt);
     const supersedesMemoryId = draft.supersedesMemoryId?.trim() || undefined;
-    const signals = await reviewSignals(input.reader, context, {
+    const signals = await reviewSignals(reader(), context, {
       ...draft,
       kind,
       summary,
@@ -367,7 +377,7 @@ export function createContextMemoryProposalServiceV010(input: {
       if (proposal.state === "ACCEPTED") {
         const memoryId = proposal.decision?.acceptedMemoryId;
         if (!memoryId) throw new Error("CONTEXT_MEMORY_PROPOSAL_ACCEPTED_MEMORY_REQUIRED");
-        const existing = await readExact(input.reader, proposal.context, [memoryId]);
+        const existing = await readExact(reader(), proposal.context, [memoryId]);
         const memory = existing.get(memoryId);
         if (!memory) throw new Error("CONTEXT_MEMORY_PROPOSAL_ACCEPTED_MEMORY_NOT_FOUND");
         return { proposal: structuredClone(proposal), memory: structuredClone(memory) };
@@ -391,7 +401,7 @@ export function createContextMemoryProposalServiceV010(input: {
 
       const revision = latest(proposal);
       const memoryId = `memory:proposal:${proposal.proposalId}`;
-      const existing = await readExact(input.reader, proposal.context, [memoryId]);
+      const existing = await readExact(reader(), proposal.context, [memoryId]);
       let memory = existing.get(memoryId);
 
       if (memory) {
@@ -399,7 +409,7 @@ export function createContextMemoryProposalServiceV010(input: {
           throw new Error("CONTEXT_MEMORY_PROPOSAL_MATERIALIZATION_CONFLICT");
         }
       } else {
-        memory = await input.writer.write({
+        memory = await writer().write({
           contractVersion: "0.1.0",
           item: {
             contractVersion: "0.1.0",
