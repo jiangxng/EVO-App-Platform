@@ -80,7 +80,12 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-remove:apiKey.label": "Remove API Key",
               "settings.secret-remove:apiKey.description": "Remove the stored credential when saving.",
               "settings.adminToken.label": "Administrator authorization",
-              "settings.adminToken.description": "Required only when changing Secret values during the bootstrap administration phase."
+              "settings.adminToken.description": "Required only when changing Secret values during the bootstrap administration phase.",
+              "settings.group.general.title": "General",
+              "settings.group.credentials.title": "Credentials",
+              "settings.group.credentials.description": "Credentials are stored by Host Secrets and are never read back after save.",
+              "settings.group.advanced.title": "Advanced",
+              "settings.group.advanced.description": "Temporary bootstrap administration controls."
             }
           }
         },
@@ -104,7 +109,70 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-remove:apiKey.label": "删除 API Key",
               "settings.secret-remove:apiKey.description": "保存时删除当前已存储的凭据。",
               "settings.adminToken.label": "管理员授权",
-              "settings.adminToken.description": "在 bootstrap 管理阶段，修改 Secret 时需要提供管理员认证。"
+              "settings.adminToken.description": "在 bootstrap 管理阶段，修改 Secret 时需要提供管理员认证。",
+              "settings.group.general.title": "常规",
+              "settings.group.credentials.title": "凭据",
+              "settings.group.credentials.description": "凭据由 Host Secrets 保存，保存后不会再次读取明文。",
+              "settings.group.advanced.title": "高级",
+              "settings.group.advanced.description": "临时的 bootstrap 管理控制项。"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "ja",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider の実行設定です。API Key は安全な Secrets 境界で管理されます。",
+              "settings.saveLabel": "保存",
+              "settings.model.label": "モデル",
+              "settings.model.description": "推論に使用するモデル ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 互換 Responses API のベース URL。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "新しい API Key を入力して保存済み認証情報を設定または置換します。保存後に平文は再表示されません。",
+              "settings.secret-status:apiKey.label": "API Key の状態",
+              "settings.secret-remove:apiKey.label": "API Key を削除",
+              "settings.secret-remove:apiKey.description": "保存時に保存済み認証情報を削除します。",
+              "settings.adminToken.label": "管理者認証",
+              "settings.adminToken.description": "bootstrap 管理段階で Secret を変更する場合にのみ必要です。",
+              "settings.group.general.title": "一般",
+              "settings.group.credentials.title": "認証情報",
+              "settings.group.credentials.description": "認証情報は Host Secrets に保存され、保存後に平文で再表示されません。",
+              "settings.group.advanced.title": "詳細設定",
+              "settings.group.advanced.description": "一時的な bootstrap 管理用コントロール。"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "zh-TW",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider 的執行設定。API Key 持續由安全的 Secrets 邊界管理。",
+              "settings.saveLabel": "儲存",
+              "settings.model.label": "模型",
+              "settings.model.description": "推理時使用的模型 ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 相容 Responses API 的基礎位址。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "輸入新的 API Key 以設定或取代已儲存的憑證。儲存後不會再次顯示明文。",
+              "settings.secret-status:apiKey.label": "API Key 狀態",
+              "settings.secret-remove:apiKey.label": "刪除 API Key",
+              "settings.secret-remove:apiKey.description": "儲存時刪除目前已儲存的憑證。",
+              "settings.adminToken.label": "管理員授權",
+              "settings.adminToken.description": "僅在 bootstrap 管理階段修改 Secret 時需要。",
+              "settings.group.general.title": "一般",
+              "settings.group.credentials.title": "憑證",
+              "settings.group.credentials.description": "憑證由 Host Secrets 儲存，儲存後不會再次讀取明文。",
+              "settings.group.advanced.title": "進階",
+              "settings.group.advanced.description": "暫時的 bootstrap 管理控制項。"
             }
           }
         },
