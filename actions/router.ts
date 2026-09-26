@@ -1,3 +1,4 @@
+import type { PlatformRequestContextV010 } from "../contracts/platform-services.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -5,7 +6,10 @@ import type {
 } from "./contracts.js";
 
 export interface AppActionRouter {
-  execute(request: AppActionRequestV010): Promise<AppActionExecutionResultV010>;
+  execute(
+    request: AppActionRequestV010,
+    context?: PlatformRequestContextV010
+  ): Promise<AppActionExecutionResultV010>;
 }
 
 export function createAppActionRouter(
@@ -22,7 +26,7 @@ export function createAppActionRouter(
   }
 
   return {
-    async execute(request) {
+    async execute(request, context) {
       if (request.contractVersion !== "0.1.0" || request.type !== "command") {
         return {
           ok: false,
@@ -54,7 +58,7 @@ export function createAppActionRouter(
         };
       }
 
-      return handler.execute(request);
+      return handler.execute(request, context);
     }
   };
 }

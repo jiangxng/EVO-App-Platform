@@ -311,3 +311,42 @@ Authority:
 P0.6 deliberately does not implement full IAM, interactive login, request-bound bearer/cookie sessions, generic Memory writes or broad material WRITE authorization.
 
 The next mainline is request-bound identity/session transport plus Principal + Active Context authorization for material WRITE actions. Context Memory Providers and Memory Attribution/Governance follow after that security boundary is executable.
+
+
+## P0.7 — request-bound Session, Enterprise Context creation and ownership
+
+P0.7 makes Enterprise Context creation the first explicit governed Material WRITE in the Person-first model.
+
+Implemented:
+
+- request-bound Session contract `RequestIdentitySessionProviderV010`;
+- capability `identity.session.request`;
+- reference `host-bearer-session-provider` / `host.bearer-session`;
+- bearer-only reference authentication; a session ID alone is not accepted;
+- Host-derived `PlatformRequestContextV010` passed separately from browser Action values;
+- durable/in-memory `EnterpriseContextGovernanceStoreV010`;
+- lifecycle states `CREATING / ACTIVE / SUSPENDED / ARCHIVED`;
+- platform command `enterprise.context.create`;
+- creation from Personal Context only;
+- HUMAN Principal requirement for initial ownership;
+- fail-closed `authorization.check` requirement;
+- explicit confirmation intent requirement;
+- atomic creation of Enterprise Context + ACTIVE OWNER Relationship + initial access Grant + CREATING→ACTIVE events;
+- immutable `enterpriseId / createdBySubjectId / createdAt`;
+- ACTIVE Enterprise Context must retain at least one ACTIVE OWNER;
+- capability `enterprise.relationship` with reference `host.enterprise-relationship`;
+- effective Context API exposes the current Principal's active enterprise relationships;
+- all Personal Agent WRITE tools now pass through a Host Material WRITE authorization hook before execution.
+
+Authority:
+
+- `docs/architecture/ENTERPRISE-CONTEXT-CREATION-OWNERSHIP-P0.7-v0.1.md`
+
+The creator is an immutable audit fact. OWNER is a separate governance relationship and is the future transfer mechanism.
+
+P0.7 does not yet implement ownership transfer, invitations, membership acceptance, lifecycle mutation commands, full IAM, or generic Context Memory writes.
+
+Next mainline: ownership transfer + member invitation/acceptance + broader Context-aware material WRITE authorization, then Context Memory Provider / provenance / attribution / governed cross-context promotion.
+
+
+P0.7 final verification: Platform CI plus Enterprise Agent, Authorization, Enterprise Context, Enterprise Context Grant, Enterprise Relationship, Static Session, Bearer Session, OpenAI Provider and Host Secrets Provider CI all pass on the final integration head. P0.7 is merge-ready.

@@ -110,22 +110,33 @@ export function parseHostEnterpriseContextsV010(
 }
 
 export function createHostEnterpriseContextProviderV010(
-  contexts: readonly EnterpriseContextV010[]
+  contexts: readonly EnterpriseContextV010[],
+  dynamicSource: () => readonly EnterpriseContextV010[] = () => []
 ): EnterpriseContextProviderV010 {
   const canonical = contexts.map(context => structuredClone(context));
   return {
     providerId: HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
     list() {
-      return canonical.map(context => structuredClone(context));
+      const byId = new Map<string, EnterpriseContextV010>();
+      for (const context of [...canonical, ...dynamicSource()]) {
+        const contextId = context.contextId;
+        if (!contextId) throw new Error("ENTERPRISE_CONTEXT_ID_REQUIRED");
+        if (byId.has(contextId)) throw new Error(`ENTERPRISE_CONTEXT_DUPLICATE: ${contextId}`);
+        byId.set(contextId, structuredClone(context));
+      }
+      return [...byId.values()].sort((a, b) =>
+        (a.contextId ?? "").localeCompare(b.contextId ?? "")
+      );
     }
   };
 }
 
 export function createHostEnterpriseContextHealthProbeV010(
-  contexts: readonly EnterpriseContextV010[]
+  contexts: readonly EnterpriseContextV010[],
+  dynamicSource: () => readonly EnterpriseContextV010[] = () => []
 ) {
   return () => ({
     state: "HEALTHY" as const,
-    message: `Host Enterprise Context directory loaded with ${contexts.length} context(s).`
+    message: `Host Enterprise Context directory loaded with ${contexts.length + dynamicSource().length} context(s).`
   });
 }

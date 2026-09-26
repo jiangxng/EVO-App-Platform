@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.6 — Principal, Session and Enterprise Context Grants",
+  "currentMilestone": "Personal Agent P0.7 — Request Session, Enterprise Context Creation and Ownership",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -145,7 +145,16 @@
     "principal-owned-personal-context",
     "principal-grant-enterprise-context-filtering",
     "personal-agent-principal-model-input",
-    "context-bound-enterprise-profile-tool"
+    "context-bound-enterprise-profile-tool",
+    "request-bound-session-provider-contract",
+    "host-bearer-session-provider",
+    "host-authoritative-platform-request-context",
+    "enterprise-context-governance-store",
+    "enterprise-context-create-material-write",
+    "enterprise-context-owner-relationship",
+    "enterprise-context-active-owner-invariant",
+    "enterprise-context-lifecycle-events",
+    "personal-agent-material-write-authorization"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -168,7 +177,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.6 is functionally CI-verified: identity.session resolves the current Principal, enterprise.membership grants filter Enterprise Context availability, Personal Context is Principal-owned, the Principal reaches Agent model input, and enterprise.context.profile.get is available only in an authorized Enterprise Context. Final docs/help CI is the merge gate.",
+  "currentStep": "Personal Agent P0.7 is CI-verified and merge-ready: request-bound bearer Session, Host-derived PlatformRequestContext, governed Enterprise Context creation, separate OWNER Relationship + initial Grant, CREATING→ACTIVE lifecycle, ACTIVE-owner invariant, immutable creation facts, durable governance state, and Host authorization for Personal Agent Material WRITE tools all pass Platform and nine owning-plugin CI suites.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -432,7 +441,7 @@
       "authenticationBoundary": "BOOTSTRAP_PRINCIPAL_TRANSITIONAL"
     },
     "authorization": {
-      "status": "IMPLEMENTED_P0_FOR_PROVIDER_GOVERNANCE",
+      "status": "IMPLEMENTED_P0_PLUS_REQUEST_CONTEXT_MATERIAL_WRITE_P0_7",
       "capability": "authorization.check",
       "contract": "AuthorizationCheckV010/AuthorizationDecisionV010",
       "referenceProvider": "host-static-authorization-provider",
@@ -441,7 +450,9 @@
       "protectedActions": [
         "provider.binding.update",
         "provider.health.probe",
-        "provider.governance.audit.read"
+        "provider.governance.audit.read",
+        "enterprise.context.create",
+        "agent WRITE tool invocation"
       ],
       "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
@@ -557,11 +568,11 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "REQUEST_BOUND_SESSION_THEN_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_MATERIAL_WRITE_GOVERNANCE",
     "productIdentity": "Personal Agent",
     "preferredCapability": "agent.personal.tool-discovery",
     "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
-    "writeAuthorization": "NEXT_ACTIVE_SLICE",
+    "writeAuthorization": "IMPLEMENTED_P0_7_HOST_GATE_FOR_WRITE_TOOLS",
     "initialToolCount": 12
   },
   "worldModel": {
@@ -601,7 +612,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -627,7 +638,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
       "locales": [
         "en",
         "zh-CN",
@@ -683,7 +694,44 @@
       "contextBoundTool": "enterprise.context.profile.get",
       "materialWriteAuthorization": "DEFERRED_NEXT_SLICE",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION"
+      "next": "P0_7_DELIVERED_THEN_OWNERSHIP_MEMBERSHIP_LIFECYCLE"
+    },
+    "contextP0_7": {
+      "status": "CI_VERIFIED_P0_7",
+      "authority": "docs/architecture/ENTERPRISE-CONTEXT-CREATION-OWNERSHIP-P0.7-v0.1.md",
+      "requestSessionCapability": "identity.session.request",
+      "referenceRequestSessionProvider": "host.bearer-session",
+      "requestSessionConfiguration": "APP_PLATFORM_BEARER_SESSIONS_JSON",
+      "bearerRule": "SESSION_ID_ALONE_NOT_AUTHENTICATION",
+      "requestContext": "HOST_DERIVED_SEPARATE_FROM_ACTION_VALUES",
+      "creationCommand": "enterprise.context.create",
+      "creationContext": "PERSONAL_CONTEXT_ONLY",
+      "creationPrincipal": "HUMAN_ONLY",
+      "creationAuthorization": "authorization.check REQUIRED ALLOW",
+      "creationConfirmation": "EXPLICIT_ACTION_INTENT_NOT_SECOND_FACTOR",
+      "governanceStore": "EnterpriseContextGovernanceStoreV010",
+      "governancePersistence": "APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE_OR_LIFECYCLE_SIBLING",
+      "lifecycle": [
+        "CREATING",
+        "ACTIVE",
+        "SUSPENDED",
+        "ARCHIVED"
+      ],
+      "initialLifecycle": [
+        "CREATING",
+        "ACTIVE"
+      ],
+      "ownerRelationship": "CREATOR_ACTIVE_OWNER",
+      "initialGrant": "CREATOR_OWNER_ACCESS_GRANT",
+      "activeOwnerInvariant": "AT_LEAST_ONE_ACTIVE_OWNER",
+      "immutableCreationFacts": [
+        "enterpriseId",
+        "createdBySubjectId",
+        "createdAt"
+      ],
+      "materialWrite": "ENTERPRISE_CREATE_PLUS_AGENT_WRITE_TOOL_HOST_AUTHORIZATION",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
     }
   }
 }

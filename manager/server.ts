@@ -60,9 +60,11 @@ import type {
   AuthorizationProviderV010,
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
+  EnterpriseContextRelationshipProviderV010,
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
+  RequestIdentitySessionProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -129,6 +131,17 @@ import {
   parseHostStaticSessionV010
 } from "../providers/session/runtime.js";
 import {
+  HOST_BEARER_SESSION_PACKAGE_ID,
+  HOST_BEARER_SESSION_PROVIDER_ID,
+  REQUEST_IDENTITY_SESSION_CAPABILITY,
+  hostBearerSessionProviderPackage
+} from "../providers/request-session/package.js";
+import {
+  createHostBearerSessionHealthProbeV010,
+  createHostBearerSessionProviderV010,
+  parseHostBearerSessionsV010
+} from "../providers/request-session/runtime.js";
+import {
   ENTERPRISE_MEMBERSHIP_CAPABILITY,
   HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
@@ -139,6 +152,28 @@ import {
   createHostEnterpriseContextGrantProviderV010,
   parseHostEnterpriseContextGrantsV010
 } from "../providers/enterprise-context-grant/runtime.js";
+import {
+  ENTERPRISE_RELATIONSHIP_CAPABILITY,
+  HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID,
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  hostEnterpriseRelationshipProviderPackage
+} from "../providers/enterprise-relationship/package.js";
+import {
+  createHostEnterpriseRelationshipHealthProbeV010,
+  createHostEnterpriseRelationshipProviderV010
+} from "../providers/enterprise-relationship/runtime.js";
+import {
+  createFileEnterpriseContextGovernanceStoreV010,
+  createMemoryEnterpriseContextGovernanceStoreV010
+} from "./enterprise-context-governance-store.js";
+import {
+  createEnterpriseContextCreationActionHandlerV010
+} from "./enterprise-context-creation.js";
+import {
+  createPlatformRequestContextV010,
+  identitySessionRequestFromHeadersV010
+} from "./request-context.js";
+import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -212,11 +247,18 @@ const catalog = createPackageCatalog([
   hostEncryptedSecretsProviderPackage,
   hostEnterpriseContextProviderPackage,
   hostStaticSessionProviderPackage,
+  hostBearerSessionProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
+  hostEnterpriseRelationshipProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "enterprise-governance.json") : undefined);
+const enterpriseGovernanceStore = enterpriseGovernanceStateFile
+  ? createFileEnterpriseContextGovernanceStoreV010(enterpriseGovernanceStateFile)
+  : createMemoryEnterpriseContextGovernanceStoreV010();
 const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
 const settingsStore = settingsStateFile
@@ -276,6 +318,26 @@ const helpCorpus = (() => {
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
 
+const hostBearerSessions = parseHostBearerSessionsV010(
+  process.env.APP_PLATFORM_BEARER_SESSIONS_JSON
+);
+if (hostBearerSessions) {
+  const requestSessionProvider = createHostBearerSessionProviderV010(hostBearerSessions);
+  providerRuntimeRegistry.replace<RequestIdentitySessionProviderV010>(
+    HOST_BEARER_SESSION_PROVIDER_ID,
+    requestSessionProvider
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_BEARER_SESSION_PROVIDER_ID,
+    createHostBearerSessionHealthProbeV010(hostBearerSessions)
+  );
+  providerRuntimeRegistry.setHealth(HOST_BEARER_SESSION_PROVIDER_ID, {
+    state: hostBearerSessions.length > 0 ? "HEALTHY" : "DEGRADED",
+    message: `Request-bound bearer Session directory loaded with ${hostBearerSessions.length} session(s).`,
+    checkedAt: new Date().toISOString()
+  });
+}
+
 const hostStaticSession = parseHostStaticSessionV010(
   process.env.APP_PLATFORM_STATIC_SESSION_JSON
 );
@@ -300,41 +362,67 @@ if (hostStaticSession) {
 
 const hostEnterpriseContextGrants = parseHostEnterpriseContextGrantsV010(
   process.env.APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON
+) ?? [];
+providerRuntimeRegistry.replace<EnterpriseContextGrantProviderV010>(
+  HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+  createHostEnterpriseContextGrantProviderV010(
+    hostEnterpriseContextGrants,
+    () => enterpriseGovernanceStore.snapshot().grants
+  )
 );
-if (hostEnterpriseContextGrants) {
-  providerRuntimeRegistry.replace<EnterpriseContextGrantProviderV010>(
-    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
-    createHostEnterpriseContextGrantProviderV010(hostEnterpriseContextGrants)
-  );
-  providerRuntimeRegistry.setHealthProbe(
-    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
-    createHostEnterpriseContextGrantHealthProbeV010(hostEnterpriseContextGrants)
-  );
-  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID, {
-    state: "HEALTHY",
-    message: `Host Enterprise Context Grant directory loaded with ${hostEnterpriseContextGrants.length} grant(s).`,
-    checkedAt: new Date().toISOString()
-  });
-}
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+  createHostEnterpriseContextGrantHealthProbeV010(
+    hostEnterpriseContextGrants,
+    () => enterpriseGovernanceStore.snapshot().grants
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Context Grant Provider is active.",
+  checkedAt: new Date().toISOString()
+});
+
+providerRuntimeRegistry.replace<EnterpriseContextRelationshipProviderV010>(
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  createHostEnterpriseRelationshipProviderV010(
+    () => enterpriseGovernanceStore.snapshot().relationships
+  )
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  createHostEnterpriseRelationshipHealthProbeV010(
+    () => enterpriseGovernanceStore.snapshot().relationships
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Relationship Provider is active.",
+  checkedAt: new Date().toISOString()
+});
 
 const hostEnterpriseContexts = parseHostEnterpriseContextsV010(
   process.env.APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON
+) ?? [];
+providerRuntimeRegistry.replace<EnterpriseContextProviderV010>(
+  HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  createHostEnterpriseContextProviderV010(
+    hostEnterpriseContexts,
+    () => enterpriseGovernanceStore.snapshot().contexts
+  )
 );
-if (hostEnterpriseContexts) {
-  providerRuntimeRegistry.replace<EnterpriseContextProviderV010>(
-    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
-    createHostEnterpriseContextProviderV010(hostEnterpriseContexts)
-  );
-  providerRuntimeRegistry.setHealthProbe(
-    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
-    createHostEnterpriseContextHealthProbeV010(hostEnterpriseContexts)
-  );
-  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
-    state: "HEALTHY",
-    message: `Host Enterprise Context directory loaded with ${hostEnterpriseContexts.length} context(s).`,
-    checkedAt: new Date().toISOString()
-  });
-}
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  createHostEnterpriseContextHealthProbeV010(
+    hostEnterpriseContexts,
+    () => enterpriseGovernanceStore.snapshot().contexts
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Context Provider is active.",
+  checkedAt: new Date().toISOString()
+});
 providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
   createHostEncryptedSecretsProviderV010(secretStore)
@@ -472,6 +560,25 @@ const manager = createAppManagerService(
 );
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
+  hostBearerSessions
+  && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_BEARER_SESSION_PACKAGE_ID);
+    console.log("Activated request-bound Host Bearer Session Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Bearer Session Provider.", error);
+  }
+}
+if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID)) {
+  try {
+    manager.install(HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
+    console.log("Activated Host Enterprise Relationship Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Enterprise Relationship Provider.", error);
+  }
+}
+if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
@@ -560,6 +667,16 @@ function resolveEnterpriseContextGrantProvider(): EnterpriseContextGrantProvider
   )?.runtime;
 }
 
+function resolveEnterpriseContextRelationshipProvider(): EnterpriseContextRelationshipProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseContextRelationshipProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(ENTERPRISE_RELATIONSHIP_CAPABILITY),
+    providerBindings,
+    ENTERPRISE_RELATIONSHIP_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveIdentitySession(): IdentitySessionV010 {
   const descriptors = manager.listEffectiveServiceProviders(IDENTITY_SESSION_CAPABILITY);
   if (descriptors.length === 0) {
@@ -589,6 +706,30 @@ function resolveIdentitySession(): IdentitySessionV010 {
 
   const session = resolved.runtime.current();
   if (!session) throw new Error("IDENTITY_SESSION_REQUIRED");
+  return session;
+}
+
+function resolveRequestIdentitySession(request: IncomingMessage): IdentitySessionV010 {
+  const descriptors = manager.listEffectiveServiceProviders(
+    REQUEST_IDENTITY_SESSION_CAPABILITY
+  );
+  if (descriptors.length === 0) {
+    return resolveIdentitySession();
+  }
+
+  const resolved = resolveProviderRuntimeV010<RequestIdentitySessionProviderV010>(
+    providerRuntimeRegistry,
+    descriptors,
+    providerBindings,
+    REQUEST_IDENTITY_SESSION_CAPABILITY,
+    { installationId: "default" }
+  );
+  if (!resolved) throw new Error("REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+
+  const session = resolved.runtime.resolve(
+    identitySessionRequestFromHeadersV010(request.headers)
+  );
+  if (!session) throw new Error("REQUEST_IDENTITY_SESSION_REQUIRED");
   return session;
 }
 
@@ -748,13 +889,17 @@ function resolveLlmProvider(): {
 
 const actionRouter = createAppActionRouter(
   [
+    createEnterpriseContextCreationActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      resolveAuthorizationProvider
+    }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
       resolveIdentitySession,
       resolveContext(selection, session) {
         return createContextRegistryForSession(session).resolve(selection);
       },
-      createToolCatalog(locale, context, principal) {
+      createToolCatalog(locale, context, principal, requestContext) {
         const contextRegistry = createPrincipalContextRegistryV010(
           principal,
           principalContextSources()
@@ -774,6 +919,38 @@ const actionRouter = createAppActionRouter(
           },
           searchHelp(query, helpContext) {
             return searchHelpV010(helpCorpus, query, locale, helpContext);
+          },
+          async authorizeWrite(descriptor) {
+            if (!requestContext) {
+              return {
+                allowed: false,
+                code: "REQUEST_CONTEXT_REQUIRED",
+                message: "Material WRITE requires a Host-resolved request context."
+              };
+            }
+            const decision = await authorizeMaterialWriteV010(
+              resolveAuthorizationProvider(),
+              requestContext,
+              {
+                action: descriptor.id,
+                resource: {
+                  type: "agent.tool",
+                  id: descriptor.id,
+                  attributes: {
+                    ownerPackageId: descriptor.ownerPackageId,
+                    effect: descriptor.effect,
+                    ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                  }
+                }
+              }
+            );
+            return decision.allowed
+              ? { allowed: true }
+              : {
+                  allowed: false,
+                  code: decision.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED",
+                  message: `Material WRITE denied by '${decision.policyProviderId}': ${decision.reasonCodes.join(", ")}`
+                };
           }
         });
       }
@@ -797,7 +974,10 @@ function ledgerConfiguratorActive(): boolean {
 function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-origin", corsOrigin);
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,accept,authorization");
+  response.setHeader(
+    "access-control-allow-headers",
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id"
+  );
 }
 
 function requestedLocale(url: URL): string {
@@ -875,7 +1055,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
     }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
-      const session = resolveIdentitySession();
+      const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
       return json(response, 200, {
         contractVersion: "0.1.0",
@@ -885,6 +1065,8 @@ const server = createServer(async (request, response) => {
         },
         personalContext: contextRegistry.personal(),
         availableContexts: contextRegistry.list(),
+        relationships: resolveEnterpriseContextRelationshipProvider()
+          ?.listForPrincipal(session.principal) ?? [],
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
@@ -1083,7 +1265,7 @@ const server = createServer(async (request, response) => {
           return json(response, 200, createPersonalAgentSetupPageV010(readiness));
         }
 
-        const session = resolveIdentitySession();
+        const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
         const context = contextRegistry.resolve();
         const availableContexts = contextRegistry.list().map(ref => {
@@ -1857,7 +2039,37 @@ const server = createServer(async (request, response) => {
         });
       }
 
-      return json(response, 200, await actionRouter.execute(action));
+      try {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const requestContext = createPlatformRequestContextV010(
+          session,
+          contextRegistry,
+          action,
+          request.headers,
+          requestedLocale(url)
+        );
+        return json(
+          response,
+          200,
+          await actionRouter.execute(action, requestContext)
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = message.split(":")[0]?.trim() || "REQUEST_CONTEXT_RESOLUTION_FAILED";
+        const status = code.startsWith("REQUEST_IDENTITY_SESSION")
+          || code.startsWith("IDENTITY_SESSION")
+          ? 401
+          : 403;
+        return json(response, status, {
+          ok: false,
+          correlationId: action.sourceInteractionId,
+          error: {
+            code,
+            message
+          }
+        });
+      }
     }
 
     if (request.method === "POST" && url.pathname === "/v1/install/plan") {

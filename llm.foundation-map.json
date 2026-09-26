@@ -21,7 +21,7 @@
     "pluginStorageEvents": "SOON",
     "packageIntegritySigning": "WATCH",
     "catalogDistributionUpdates": "SOON",
-    "secretsIdentityAuthorization": "NOW_SESSION_AND_CONTEXT_GRANTS_P0_6_WRITE_AUTH_NEXT",
+    "secretsIdentityAuthorization": "NOW_REQUEST_SESSION_AND_MATERIAL_WRITE_P0_7",
     "observabilityDiagnostics": "SOON",
     "releaseDeprecationMigration": "SOON",
     "designLanguage": "DELEGATED_EIDOS_CI_ENFORCED",
@@ -34,8 +34,9 @@
     "personFirstWorldModel": "FROZEN_MVP",
     "contextMemory": "READ_CONTRACT_P0_3",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
-    "identitySession": "CI_VERIFIED_P0_6",
-    "enterpriseContextGrants": "CI_VERIFIED_P0_6"
+    "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
+    "enterpriseContextGrants": "CI_VERIFIED_P0_6",
+    "enterpriseContextOwnership": "CI_VERIFIED_P0_7"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -66,7 +67,10 @@
     "personalAgentEnterpriseContext": "PROVIDER_BACKED_SELECTABLE_FAIL_CLOSED_READ_ONLY",
     "identitySessionProvider": "CI_VERIFIED_P0_6_REFERENCE_STATIC_SESSION",
     "enterpriseContextGrantProvider": "CI_VERIFIED_P0_6",
-    "personalAgentPrincipalContextFiltering": "CI_VERIFIED_P0_6"
+    "personalAgentPrincipalContextFiltering": "CI_VERIFIED_P0_6",
+    "requestBoundSessionProvider": "CI_VERIFIED_P0_7_HOST_BEARER_REFERENCE",
+    "enterpriseContextCreationOwnership": "CI_VERIFIED_P0_7",
+    "materialWriteAuthorization": "CI_VERIFIED_P0_7_ENTERPRISE_CREATE_AND_AGENT_WRITE_GATE"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -156,14 +160,14 @@
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   },
   "authorization": {
-    "status": "IMPLEMENTED_P0_PROVIDER_GOVERNANCE",
+    "status": "IMPLEMENTED_P0_7_REQUEST_CONTEXT_MATERIAL_WRITE_FOUNDATION",
     "capability": "authorization.check",
-    "principal": "IDENTITY_SESSION_PRINCIPAL_P0_6_WITH_BOOTSTRAP_ADMIN_COMPATIBILITY",
+    "principal": "REQUEST_BOUND_IDENTITY_SESSION_PRINCIPAL_WITH_P0_6_COMPATIBILITY_FALLBACK",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "REQUEST_BOUND_SESSION_AND_CONTEXT_AWARE_MATERIAL_WRITE"
+    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
   },
   "platformHelp": {
     "status": "IMPLEMENTED_P0_MULTILINGUAL",
@@ -222,9 +226,9 @@
     "providerObservation": "IMPLEMENTED",
     "packageContribution": "PENDING_SECOND_TOOL_OWNER",
     "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
-    "writeAuthorization": "NEXT_ACTIVE_SLICE",
+    "writeAuthorization": "IMPLEMENTED_P0_7_HOST_GATE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "REQUEST_BOUND_SESSION_THEN_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "OWNERSHIP_MEMBERSHIP_AND_BROADER_MATERIAL_WRITE_GOVERNANCE",
     "productIdentity": "Personal Agent",
     "currentContextTool": "context.current.get"
   },
@@ -258,7 +262,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+    "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -283,7 +287,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
+      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION",
       "locales": [
         "en",
         "zh-CN",
@@ -329,7 +333,31 @@
       "contextBoundTool": "enterprise.context.profile.get",
       "writeAuthorization": "NEXT",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION"
+      "next": "P0_7_DELIVERED_THEN_OWNERSHIP_MEMBERSHIP_LIFECYCLE"
+    },
+    "contextP0_7": {
+      "status": "CI_VERIFIED_P0_7",
+      "authority": "docs/architecture/ENTERPRISE-CONTEXT-CREATION-OWNERSHIP-P0.7-v0.1.md",
+      "requestSessionCapability": "identity.session.request",
+      "requestSessionProvider": "host.bearer-session",
+      "requestSessionSource": "APP_PLATFORM_BEARER_SESSIONS_JSON",
+      "authentication": "BEARER_REQUIRED_SESSION_ID_NOT_AUTHORITY",
+      "requestContext": "HOST_RESOLVED",
+      "creationCommand": "enterprise.context.create",
+      "creationAuthorization": "AUTHORIZATION_CHECK_FAIL_CLOSED",
+      "lifecycle": [
+        "CREATING",
+        "ACTIVE",
+        "SUSPENDED",
+        "ARCHIVED"
+      ],
+      "owner": "SEPARATE_ACTIVE_OWNER_RELATIONSHIP",
+      "creator": "IMMUTABLE_AUDIT_FACT",
+      "initialGrant": "OWNER_ACCESS",
+      "activeOwnerInvariant": true,
+      "agentWriteAuthorization": "HOST_GATE_BEFORE_WRITE_TOOL_EXECUTION",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "OWNERSHIP_TRANSFER_MEMBER_INVITATION_AND_BROADER_CONTEXT_AWARE_WRITE_AUTHORIZATION"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

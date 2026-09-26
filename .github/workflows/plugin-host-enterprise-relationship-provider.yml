@@ -1,0 +1,49 @@
+name: Plugin CI - Host Enterprise Relationship Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/enterprise-relationship/**"
+      - "providers/enterprise-context/**"
+      - "providers/enterprise-context-grant/**"
+      - "contracts/platform-services.ts"
+      - "manager/enterprise-context-governance-store.ts"
+      - "manager/enterprise-context-creation.ts"
+      - "manager/principal-context.ts"
+      - "manager/material-write-authorization.ts"
+      - "manager/server.ts"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/principal-grants.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-enterprise-relationship-provider.yml"
+  pull_request:
+    paths:
+      - "providers/enterprise-relationship/**"
+      - "providers/enterprise-context/**"
+      - "providers/enterprise-context-grant/**"
+      - "contracts/platform-services.ts"
+      - "manager/enterprise-context-governance-store.ts"
+      - "manager/enterprise-context-creation.ts"
+      - "manager/principal-context.ts"
+      - "manager/material-write-authorization.ts"
+      - "manager/server.ts"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/principal-grants.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-enterprise-relationship-provider.yml"
+
+concurrency:
+  group: plugin-host-enterprise-relationship-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-enterprise-relationship-provider

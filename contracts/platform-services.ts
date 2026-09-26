@@ -37,6 +37,12 @@ export interface PersonalContextV010 {
   attributes?: Record<string, string | number | boolean | null>;
 }
 
+export type EnterpriseContextLifecycleStateV010 =
+  | "CREATING"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "ARCHIVED";
+
 export interface EnterpriseContextV010 {
   contractVersion: "0.1.0";
   enterpriseId: string;
@@ -51,6 +57,9 @@ export interface EnterpriseContextV010 {
   companyId?: string;
   workspaceId?: string;
   membershipId?: string;
+  lifecycleState?: EnterpriseContextLifecycleStateV010;
+  createdBySubjectId?: string;
+  createdAt?: string;
   attributes?: Record<string, string | number | boolean | null>;
 }
 
@@ -139,6 +148,17 @@ export interface IdentitySessionProviderV010 {
   current(): IdentitySessionV010 | undefined;
 }
 
+export interface IdentitySessionRequestV010 {
+  contractVersion: "0.1.0";
+  bearerToken?: string;
+  sessionId?: string;
+}
+
+export interface RequestIdentitySessionProviderV010 {
+  providerId: string;
+  resolve(input: IdentitySessionRequestV010): IdentitySessionV010 | undefined;
+}
+
 export interface EnterpriseContextGrantV010 {
   contractVersion: "0.1.0";
   grantId: string;
@@ -153,6 +173,31 @@ export interface EnterpriseContextGrantProviderV010 {
   listForPrincipal(
     principal: PlatformPrincipalV010
   ): EnterpriseContextGrantV010[];
+}
+
+export type EnterpriseContextRelationshipKindV010 =
+  | "OWNER"
+  | "ADMIN"
+  | "MEMBER"
+  | "AUDITOR";
+
+export interface EnterpriseContextRelationshipV010 {
+  contractVersion: "0.1.0";
+  relationshipId: string;
+  subjectId: string;
+  contextId: string;
+  kind: EnterpriseContextRelationshipKindV010;
+  state: "ACTIVE";
+  createdAt: string;
+  createdBySubjectId: string;
+}
+
+export interface EnterpriseContextRelationshipProviderV010 {
+  providerId: string;
+  listForPrincipal(
+    principal: PlatformPrincipalV010
+  ): EnterpriseContextRelationshipV010[];
+  listForContext(contextId: string): EnterpriseContextRelationshipV010[];
 }
 
 export interface SecretReferenceV010 {
@@ -201,12 +246,14 @@ export interface LlmExecutionContextV010 {
 export const RESERVED_PLATFORM_CAPABILITIES = [
   "identity.authenticate",
   "identity.session",
+  "identity.session.request",
   "identity.user-directory",
   "authorization.check",
   "authorization.policy",
   "enterprise.directory",
   "enterprise.organization",
   "enterprise.membership",
+  "enterprise.relationship",
   "enterprise.scope",
   "llm.inference",
   "llm.streaming",

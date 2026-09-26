@@ -79,3 +79,30 @@ Enterprise Context 是否可见，不再只取决于企业目录中是否存在�
 > 浏览器提交的值只能在 Host 已授权的 Context 中进行选择，不能建立身份、企业关系或权限。
 
 P0.6 仍然不会引入通用 Context Memory 写入，也不会扩大自主 WRITE 权限。
+
+
+## Request-bound Session 与 Enterprise Context 创建
+
+P0.7 新增了请求级参考 Session Provider：`identity.session.request`。参考 Host Bearer Session Provider 使用 `APP_PLATFORM_BEARER_SESSIONS_JSON`，并通过 HTTP Bearer 凭据解析当前 Principal。
+
+参考 Bearer Provider 不会把裸 `sessionId` 当作认证凭据。
+
+Enterprise Context 的创建属于受治理的 Material WRITE：
+
+`enterprise.context.create`
+
+Host 会要求：
+
+1. 已由 Host 解析的 request Session 与 Principal；
+2. 当前 Active Context 必须是 Personal Context；
+3. Principal 必须是 HUMAN；
+4. Action 带有明确确认意图；
+5. `authorization.check` 对 `enterprise.context.create` 返回 ALLOW。
+
+创建成功后，会原子生成 Enterprise Context、创建者的 ACTIVE OWNER Relationship、初始访问 Grant，以及从 CREATING 到 ACTIVE 的追加式 lifecycle event。
+
+创建者属于不可修改的历史审计事实；OWNER 是独立的治理关系。未来所有权变化不能重写 `createdBySubjectId`。
+
+任何动态创建且处于 ACTIVE 状态的 Enterprise Context，都必须至少存在一个 ACTIVE OWNER。
+
+个人 Agent 的 WRITE 工具现在也会在执行前经过相同的 Host Material WRITE Authorization 边界；READ 与 PLAN 工具不受此门控影响。
