@@ -334,6 +334,7 @@ export interface ContextMemoryReadRequestV010 {
   contractVersion: "0.1.0";
   context: ActiveContextRefV010;
   query?: string;
+  memoryIds?: string[];
   kinds?: ContextMemoryKindV010[];
   limit?: number;
   cursor?: string;
