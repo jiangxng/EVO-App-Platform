@@ -515,3 +515,26 @@ Example static policy:
 ```
 
 This example is reference policy data, not a universal role model. Enterprises may replace the Provider with their own policy engine while preserving the public authorization contract.
+
+
+## Managed Secrets Provider P0
+
+Provider credential material now resolves through the generic `secrets.resolve` capability.
+
+A consuming Package declares Secret **requirements** in `PackageManifestV010.secrets`; the declaration contains only key/label/scope metadata. Any Package with Secret declarations must explicitly require `secrets.resolve` so installation dependency resolution remains visible and deterministic.
+
+The reference implementation is:
+
+```text
+Package: host-encrypted-secrets-provider
+Provider: host.encrypted-secrets
+Capability: secrets.resolve
+Contract: SecretReferenceV010 / SecretDescriptorV010 /
+          SecretsResolverV010 / ManagedSecretsProviderV010
+```
+
+The OpenAI Provider is the first consumer. Its `apiKey` is an INSTALLATION-scoped Secret under the `openai-llm-provider` namespace. Model ID and API Base URL remain ordinary Settings.
+
+Human Secret entry is composed into the Package's standard Eidos SettingsEditor. Stored Secret values are never materialized back into the browser; UI receives configured state and update timestamp only.
+
+Secret mutation uses `secret.value.manage` through the same Principal → `authorization.check` enforcement path as other privileged Host operations. See `PLATFORM-SECRETS-v0.1.md` for storage, audit and migration rules.
