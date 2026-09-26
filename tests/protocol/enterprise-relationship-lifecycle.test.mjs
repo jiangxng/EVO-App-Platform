@@ -298,6 +298,42 @@ test("Host relationship policy blocks MEMBER from inviting even when authorizati
   assert.equal(store.snapshot().invitations.length, 0);
 });
 
+test("ADMIN cannot appoint another ADMIN even when authorization Provider allows", async () => {
+  const state = seed();
+  state.relationships.push({
+    contractVersion: "0.1.0",
+    relationshipId: "relationship:bob-admin",
+    subjectId: "bob",
+    contextId: context.contextId,
+    kind: "ADMIN",
+    state: "ACTIVE",
+    createdAt: "2026-09-26T01:00:00.000Z",
+    createdBySubjectId: "alice"
+  });
+  state.grants.push({
+    contractVersion: "0.1.0",
+    grantId: "grant:bob-admin",
+    subjectId: "bob",
+    contextId: context.contextId,
+    relationship: "ADMIN",
+    state: "ACTIVE",
+    createdAt: "2026-09-26T01:00:00.000Z",
+    createdBySubjectId: "alice"
+  });
+  const store = createMemoryEnterpriseContextGovernanceStoreV010(state);
+  const map = handlers(store);
+
+  const result = await execute(
+    map,
+    "enterprise.relationship.invite",
+    { targetSubjectId: "carol", kind: "ADMIN" },
+    enterpriseContext(bob)
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "ENTERPRISE_GOVERNANCE_ROLE_REQUIRED");
+  assert.equal(store.snapshot().invitations.length, 0);
+});
+
 test("OWNER transfer acceptance atomically activates the new owner and revokes the old owner", async () => {
   const store = createMemoryEnterpriseContextGovernanceStoreV010(seed());
   const map = handlers(store, [
