@@ -20,8 +20,14 @@ test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Pan
 test("Personal Agent remains a zero-config Chat Experience inside the Workbench", () => {
   const page = enterpriseAgentExperienceAssets.get("app://enterprise-agent/pages/home");
   assert.equal(page.kind, "chat");
+  assert.equal(page.contractVersion, "0.2.0");
   assert.equal(page.command.code, "enterprise-agent.chat");
   assert.equal(page.composer.key, "message");
+  assert.equal(page.composer.disabled, true);
+  assert.equal(page.context.value, "Personal");
+  assert.equal(page.readiness.state, "setup-required");
+  assert.equal(page.readiness.action.route, "/enterprise-agent/setup");
+  assert.equal(page.emptyState.suggestions.length, 3);
   assert.equal(page.fields, undefined);
   assert.equal(page.actions, undefined);
 });
@@ -60,9 +66,22 @@ test("enterprise-agent compatibility identifiers present the product as Personal
     contribution => contribution.kind === "eidos.workbench-activity"
   );
   assert.equal(activity.activity.title, "Personal Agent");
-  const zh = enterpriseAgentPackage.features[0].contributions.find(
+  const bundles = enterpriseAgentPackage.features[0].contributions.filter(
     contribution => contribution.kind === "eidos.localization-bundle"
-      && contribution.bundle.locale === "zh-CN"
   );
+  assert.deepEqual(
+    bundles.map(contribution => contribution.bundle.locale).sort(),
+    ["en", "ja", "zh-CN", "zh-TW"].sort()
+  );
+  const zh = bundles.find(contribution => contribution.bundle.locale === "zh-CN");
+  const ja = bundles.find(contribution => contribution.bundle.locale === "ja");
+  const zhTw = bundles.find(contribution => contribution.bundle.locale === "zh-TW");
   assert.equal(zh.bundle.messages["workbench.activity.label"], "个人 Agent");
+  assert.equal(ja.bundle.messages["workbench.activity.label"], "パーソナルエージェント");
+  assert.equal(zhTw.bundle.messages["workbench.activity.label"], "個人 Agent");
+
+  const experience = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.experience"
+  ).manifest;
+  assert.ok(experience.routes.some(route => route.path === "/enterprise-agent/setup"));
 });
