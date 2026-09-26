@@ -850,8 +850,7 @@ const server = createServer(async (request, response) => {
           providerRuntimeRegistry,
           providerBindings,
           providerCapability,
-          { installationId: "default" },
-          requestedLocale(url)
+          { installationId: "default" }
         );
         if (!providerPage) {
           return json(response, 404, {
@@ -874,7 +873,8 @@ const server = createServer(async (request, response) => {
               return undefined;
             }
           },
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         );
         if (!settingsPage) {
           return json(response, 404, { code: "SETTINGS_NOT_AVAILABLE", packageId: settingsPackageId });
