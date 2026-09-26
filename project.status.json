@@ -615,7 +615,14 @@
       "setup": "EIDOS_GENERIC_SETUP_FLOW_REQUIRED",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_NO_LEXICAL_AUTO_VENDOR_SELECTION",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "EIDOS_CHAT_V0_2_SETUP_FLOW_EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE"
+      "next": "EIDOS_CHAT_V0_2_SETUP_FLOW_EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE",
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "localization": "FOUR_LOCALE_P0_4_DEFINITION_OF_DONE"
     }
   }
 }
