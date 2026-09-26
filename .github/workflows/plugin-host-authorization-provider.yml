@@ -1,0 +1,37 @@
+name: Plugin CI - Host Authorization Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/authorization/**"
+      - "contracts/platform-services.ts"
+      - "manager/provider-governance.ts"
+      - "tests/protocol/authorization-provider.test.mjs"
+      - "tests/protocol/provider-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-authorization-provider.yml"
+  pull_request:
+    paths:
+      - "providers/authorization/**"
+      - "contracts/platform-services.ts"
+      - "manager/provider-governance.ts"
+      - "tests/protocol/authorization-provider.test.mjs"
+      - "tests/protocol/provider-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-authorization-provider.yml"
+
+concurrency:
+  group: plugin-host-authorization-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:plugin:host-authorization-provider
