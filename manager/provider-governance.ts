@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 
 export interface ProviderGovernanceDecisionV010 {
   allowed: boolean;
@@ -119,7 +119,7 @@ export function providerAuditEventV010(
   now: () => Date = () => new Date()
 ): ProviderBindingAuditEventV010 {
   const occurredAt = now().toISOString();
-  const eventId = `${occurredAt}:${Math.random().toString(36).slice(2, 10)}`;
+  const eventId = randomUUID();
   return {
     contractVersion: "0.1.0",
     eventId,
