@@ -28,7 +28,8 @@
     "accessibilityResponsive": "DELEGATED_EIDOS",
     "externalMcpOauthInteroperability": "WATCH",
     "ecosystemCertification": "NOW",
-    "llmContextArchitecture": "NOW"
+    "llmContextArchitecture": "NOW",
+    "platformHelpGovernance": "NOW"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -146,5 +147,17 @@
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
     "next": "IDENTITY_SESSION_PROVIDER_AND_REQUEST_CONTEXT"
+  },
+  "platformHelp": {
+    "status": "PLANNED_P0",
+    "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
+    "canonicalModel": "HUMAN_AND_LLM_SHARED_VERSIONED_SOURCE",
+    "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
+    "workbench": "SECONDARY_ACTIVITY_SIDE_NAVIGATOR_MAIN_WORKSPACE_DOCUMENT",
+    "searchP0": "DETERMINISTIC_METADATA_AND_FULL_TEXT",
+    "semanticSearch": "LATER_OPTIONAL_PROVIDER",
+    "agent": "LATER_RETRIEVAL_WITH_CITATIONS",
+    "lifecycle": "INSTALLED_HELP_REMAINS_WHILE_DISABLED",
+    "next": "HELP_CONTRACT_INDEX_WORKBENCH_P0"
   }
 }
