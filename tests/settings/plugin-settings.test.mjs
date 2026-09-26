@@ -98,8 +98,14 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
   manager.install("enterprise-agent");
 
   const index = createSettingsIndexPage(manager);
-  assert.deepEqual(index.items.map(item => item.id), ["openai-llm-provider"]);
-  assert.equal(index.items[0].primaryAction.route, "/settings/openai-llm-provider");
+  assert.deepEqual(index.items.map(item => item.id), [
+    "provider-bindings",
+    "openai-llm-provider"
+  ]);
+  assert.equal(
+    index.items.find(item => item.id === "openai-llm-provider").primaryAction.route,
+    "/settings/openai-llm-provider"
+  );
 
   const storePage = createPluginStorePage(
     [openAiLlmProviderPackage, enterpriseAgentPackage],
