@@ -8,6 +8,7 @@ import type {
   ActiveContextRefV010,
   IdentitySessionV010,
   PlatformPrincipalV010,
+  PlatformRequestContextV010,
   ResolvedContextSetV010
 } from "../../contracts/platform-services.js";
 import type { AgentToolCatalogV010 } from "./contracts.js";
@@ -100,7 +101,10 @@ export function createEnterpriseAgentChatActionHandler(
     featureId: ENTERPRISE_AGENT_FEATURE_ID,
     commandCode: "enterprise-agent.chat",
 
-    async execute(request: AppActionRequestV010): Promise<AppActionExecutionResultV010> {
+    async execute(
+      request: AppActionRequestV010,
+      requestContext?: PlatformRequestContextV010
+    ): Promise<AppActionExecutionResultV010> {
       const message = request.values.message;
       if (typeof message !== "string" || !message.trim()) {
         return {
@@ -112,11 +116,17 @@ export function createEnterpriseAgentChatActionHandler(
         };
       }
 
-      let session: IdentitySessionV010;
+      let principal: PlatformPrincipalV010;
       let context: ResolvedContextSetV010;
       try {
-        session = dependencies.resolveIdentitySession();
-        context = dependencies.resolveContext(activeContextSelection(request), session);
+        if (requestContext?.context) {
+          principal = requestContext.principal;
+          context = requestContext.context;
+        } else {
+          const session: IdentitySessionV010 = dependencies.resolveIdentitySession();
+          principal = session.principal;
+          context = dependencies.resolveContext(activeContextSelection(request), session);
+        }
       } catch (error) {
         return {
           ok: false,
@@ -145,10 +155,10 @@ export function createEnterpriseAgentChatActionHandler(
       const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
-        dependencies.createToolCatalog(locale, context, session.principal)
+        dependencies.createToolCatalog(locale, context, principal)
       );
 
-      const reply = await runtime.chat(message.trim(), context, session.principal);
+      const reply = await runtime.chat(message.trim(), context, principal);
       return {
         ok: true,
         correlationId: request.sourceInteractionId,
