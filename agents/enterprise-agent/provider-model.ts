@@ -6,56 +6,42 @@ import type {
   AgentModel,
   AgentModelDecision,
   AgentModelInput,
-  AgentToolName
+  AgentToolDescriptorV010
 } from "./contracts.js";
 
-const toolNameToInternal: Record<string, AgentToolName> = {
-  app_catalog_list: "app.catalog.list",
-  app_install_plan: "app.install.plan",
-  app_install_execute: "app.install.execute"
-};
+function modelTools(tools: readonly AgentToolDescriptorV010[]): {
+  llmTools: LlmToolV010[];
+  byModelName: Map<string, AgentToolDescriptorV010>;
+} {
+  const byModelName = new Map<string, AgentToolDescriptorV010>();
+  const llmTools: LlmToolV010[] = [];
 
-const tools: LlmToolV010[] = [
-  {
-    name: "app_catalog_list",
-    description: "List installable Packages in the App Manager catalog.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      additionalProperties: false
+  for (const tool of tools) {
+    if (byModelName.has(tool.modelName)) {
+      throw new Error(`AGENT_TOOL_MODEL_NAME_DUPLICATE: ${tool.modelName}`);
     }
-  },
-  {
-    name: "app_install_plan",
-    description: "Run a side-effect-free internal preflight for a Package before installation.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        packageId: { type: "string", description: "Exact Package id from the catalog." }
-      },
-      required: ["packageId"],
-      additionalProperties: false
-    }
-  },
-  {
-    name: "app_install_execute",
-    description: "Execute Package installation after a successful internal preflight.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        packageId: { type: "string", description: "Exact Package id from the successful preflight." }
-      },
-      required: ["packageId"],
-      additionalProperties: false
-    }
+    byModelName.set(tool.modelName, tool);
+    llmTools.push({
+      name: tool.modelName,
+      description: [
+        tool.description,
+        `Effect: ${tool.effect}.`,
+        `Owner: ${tool.ownerPackageId}.`,
+        ...(tool.capability ? [`Capability: ${tool.capability}.`] : [])
+      ].join(" "),
+      inputSchema: tool.inputSchema
+    });
   }
-];
+
+  return { llmTools, byModelName };
+}
 
 export function createProviderBackedAgentModel(
   provider: LlmInferenceProvider
 ): AgentModel {
   return {
     async decide(input: AgentModelInput): Promise<AgentModelDecision> {
+      const { llmTools, byModelName } = modelTools(input.tools);
       const response = await provider.infer({
         contractVersion: "0.1.0",
         messages: [
@@ -63,32 +49,38 @@ export function createProviderBackedAgentModel(
             role: "system",
             content: [
               "You are Enterprise Agent, an enterprise software agent.",
-              "Use only the provided tools for App Manager lifecycle changes.",
-              "Never claim an app is installed unless app_install_execute succeeded.",
-              "Use app_install_plan as an internal preflight before app_install_execute.",
-              "Do not force the human to inspect an installation plan unless a blocker or material decision requires it.",
-              "If a preflight has blockers, explain them and do not execute.",
-              "If the target app is ambiguous, inspect the catalog before asking the user.",
+              "The Host dynamically supplies the only tools currently available to you.",
+              "Use only those supplied tools for authoritative platform facts and platform changes.",
+              "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
+              "Treat PLAN tools as side-effect-free preflight.",
+              "Treat WRITE tools as side-effectful and never claim success unless the tool observation confirms success.",
+              "Never invent a tool that is not present in the supplied catalog.",
+              "If a tool fails, explain the observed failure rather than pretending the requested action succeeded.",
               "Answer in the same language as the user."
             ].join("\n")
           },
           { role: "user", content: input.userMessage },
           {
             role: "developer",
-            content: `Authoritative tool observations for this turn:\n${JSON.stringify(input.observations)}`
+            content: [
+              "Authoritative tool catalog for this turn:",
+              JSON.stringify(input.tools),
+              "Authoritative tool observations for this turn:",
+              JSON.stringify(input.observations)
+            ].join("\n")
           }
         ],
-        tools
+        tools: llmTools
       });
 
       const call = response.toolCalls[0];
       if (call) {
-        const internal = toolNameToInternal[call.name];
-        if (internal) {
+        const descriptor = byModelName.get(call.name);
+        if (descriptor) {
           return {
             type: "tool",
             call: {
-              tool: internal,
+              tool: descriptor.id,
               arguments: call.arguments
             }
           };
