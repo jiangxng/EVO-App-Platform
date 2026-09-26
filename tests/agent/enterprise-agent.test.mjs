@@ -45,6 +45,7 @@ function hostCatalog(manager, additional = [], context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     context,
+    listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
     getProviderHealth(providerId) {
       return {
@@ -83,6 +84,7 @@ test("Host dynamically exposes Enterprise Agent tools with ownership and effect 
     "app.install.execute",
     "app.install.plan",
     "capability.list",
+    "context.available.list",
     "context.current.get",
     "help.search",
     "platform.snapshot.get",
@@ -455,4 +457,41 @@ test("Personal Agent readiness distinguishes installed from ready", () => {
   assert.equal(setup.kind, "setup-flow");
   assert.equal(setup.steps.every(step => step.state === "complete"), true);
   assert.equal(setup.completionAction.route, "/enterprise-agent");
+});
+
+
+test("Personal Agent can list only Host-offered Context references", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    context: personalContext,
+    listAvailableContexts() {
+      return [
+        personalContext.activeContext,
+        {
+          contractVersion: "0.1.0",
+          kind: "ENTERPRISE",
+          contextId: "enterprise:acme",
+          enterpriseId: "acme"
+        }
+      ];
+    },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    searchHelp() { return []; }
+  });
+
+  const observation = await catalog.invoke({
+    tool: "context.available.list",
+    arguments: {}
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.deepEqual(observation.result.map(item => item.contextId), [
+    "personal:test",
+    "enterprise:acme"
+  ]);
 });
