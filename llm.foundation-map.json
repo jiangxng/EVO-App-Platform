@@ -32,7 +32,8 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "READ_CONTRACT_P0_3"
+    "contextMemory": "READ_CONTRACT_P0_3",
+    "personalAgentProductExperience": "NOW_P0_4B"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -263,7 +264,7 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
     },
     "productExperience": {
-      "status": "DESIGN_BASELINE_PROPOSED",
+      "status": "IMPLEMENTED_BRANCH_PENDING_CI",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
       "eidosFirst": true,
       "requiredEidosPatterns": [
@@ -274,14 +275,20 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE",
-      "next": "EIDOS_P0_4A",
+      "next": "CI_MERGE_RAILWAY",
       "locales": [
         "en",
         "zh-CN",
         "ja",
         "zh-TW"
       ],
-      "localization": "FOUR_LOCALE_REQUIRED_NEW_SURFACES"
+      "localization": "FOUR_LOCALE_REQUIRED_NEW_SURFACES",
+      "eidosSourceCommit": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "chat": "EIDOS_CHAT_V0_2",
+      "setup": "EIDOS_SETUP_FLOW_V0_1",
+      "readiness": "HOST_COMPUTED",
+      "extensionManager": "READINESS_PROGRESSIVE_DISCLOSURE",
+      "settings": "GROUPED_V0_2"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
