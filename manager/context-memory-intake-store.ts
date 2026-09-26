@@ -13,7 +13,6 @@ import type {
 
 export type ContextMemoryIntakeOutcomeV010 =
   | "PROPOSED"
-  | "DUPLICATE_SOURCE_RECORD"
   | "DUPLICATE_FINGERPRINT";
 
 export interface ContextMemoryIntakeReceiptV010 {
@@ -79,8 +78,7 @@ function validate(
       || !receipt.sourceRecordId?.trim()
       || !receipt.context?.contextId?.trim()
       || !receipt.fingerprint?.trim()
-      || !["PROPOSED", "DUPLICATE_SOURCE_RECORD", "DUPLICATE_FINGERPRINT"]
-        .includes(receipt.outcome)
+      || !["PROPOSED", "DUPLICATE_FINGERPRINT"].includes(receipt.outcome)
       || !receipt.evidenceSource?.sourceId?.trim()
       || receipt.evidenceSource.sourceId !== receipt.sourceId
       || !receipt.ingestedBySubjectId?.trim()
