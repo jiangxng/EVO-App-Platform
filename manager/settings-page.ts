@@ -25,7 +25,7 @@ export interface SettingsSecretScopeContextV010 {
 
 export type DescribeSecretV010 = (
   reference: SecretReferenceV010
-) => SecretDescriptorV010 | undefined;
+) => SecretDescriptorV010 | undefined | Promise<SecretDescriptorV010 | undefined>;
 
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
@@ -200,7 +200,7 @@ export function secretReferenceForPackageV010(
   };
 }
 
-export function createSettingsPage(
+export async function createSettingsPage(
   manager: AppManagerService,
   store: SettingsStore,
   packageId: string,
@@ -227,7 +227,7 @@ export function createSettingsPage(
 
   const secretSettings = (pkg.secrets ?? []).flatMap(declaration => {
     const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
-    const status = reference ? describeSecret?.(reference) : undefined;
+    const status = reference && describeSecret ? await describeSecret(reference) : undefined;
     const configured = status?.configured === true;
     const unavailable = !reference;
     const statusValue = unavailable
