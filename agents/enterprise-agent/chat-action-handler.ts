@@ -165,7 +165,7 @@ export function createEnterpriseAgentChatActionHandler(
         correlationId: request.sourceInteractionId,
         result: JSON.parse(JSON.stringify({
           ...reply,
-          messageParts: presentPersonalAgentReplyV020(reply)
+          messageParts: presentPersonalAgentReplyV020(reply, locale)
         }))
       };
     }
