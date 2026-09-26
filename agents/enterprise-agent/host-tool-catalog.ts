@@ -9,7 +9,7 @@ import type {
   AgentToolObservation
 } from "./contracts.js";
 
-export interface EnterpriseAgentEnterpriseAgentToolRegistrationV010 {
+export interface EnterpriseAgentToolRegistrationV010 {
   descriptor: AgentToolDescriptorV010;
   available?: () => boolean;
   execute(
