@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.4 — Eidos-native product experience design",
+  "currentMilestone": "Personal Agent P0.4B — Eidos-native onboarding and assistant UX",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent product UX has been researched and specified. Current Chat v0.1 and Extension Manager are Eidos-rendered but insufficient: assistant readiness/setup, progressive disclosure, structured activity/evidence/proposals and guided provider setup require reusable Eidos capabilities first. Next implementation owner is Eidos P0.4A, then App Platform onboarding/readiness integration.",
+  "currentStep": "Personal Agent P0.4B implementation is on branch: vendored Eidos Chat v0.2 / Setup Flow / Extension readiness / Settings v0.2, Host readiness (Installed != Ready), Set up instead of Open when LLM is unusable, Provider-owned grouped credential configuration, structured observable tool activity, active-locale action propagation, and en/zh-CN/ja/zh-TW UI bundles. Next: PR CI, fix regressions, merge, main CI and Railway validation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -607,22 +607,31 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE_AND_READ_ONLY_AGENT_USE"
     },
     "productExperience": {
-      "status": "DESIGN_BASELINE_PROPOSED",
+      "status": "IMPLEMENTED_BRANCH_PENDING_CI",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
       "currentProblem": "EIDOS_CONTRACTS_USED_BUT_ASSISTANT_AND_INSTALL_UX_TOO_THIN",
       "workbench": "ACTIVITY_SIDE_PANEL_AGENT_PLUS_MAIN_WORKSPACE_EVIDENCE_SETUP",
       "installModel": "INSTALLED_NOT_EQUAL_READY",
-      "setup": "EIDOS_GENERIC_SETUP_FLOW_REQUIRED",
+      "setup": "EIDOS_SETUP_FLOW_V0_1",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_NO_LEXICAL_AUTO_VENDOR_SELECTION",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "EIDOS_CHAT_V0_2_SETUP_FLOW_EXTENSION_READINESS_PROGRESSIVE_DISCLOSURE",
+      "next": "CI_MERGE_RAILWAY_THEN_EVIDENCE_PROPOSAL_AND_ENTERPRISE_READ_TOOLS",
       "locales": [
         "en",
         "zh-CN",
         "ja",
         "zh-TW"
       ],
-      "localization": "FOUR_LOCALE_P0_4_DEFINITION_OF_DONE"
+      "localization": "FOUR_LOCALE_P0_4_DEFINITION_OF_DONE",
+      "eidosSourceCommit": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
+      "chat": "EIDOS_CHAT_V0_2",
+      "extensionManager": "READINESS_PLUS_PROGRESSIVE_DISCLOSURE",
+      "settings": "EIDOS_SETTINGS_V0_2_GROUPED",
+      "readiness": "HOST_COMPUTED_INSTALLED_NOT_EQUAL_READY",
+      "pluginPrimaryAction": "SETUP_WHEN_UNREADY_OPEN_WHEN_READY",
+      "providerSelection": "EXPLICIT_ON_AMBIGUITY",
+      "providerConfiguration": "PROVIDER_OWNED_SETTINGS_PLUS_HOST_SECRETS",
+      "toolActivity": "STRUCTURED_OBSERVABLE_NO_CHAIN_OF_THOUGHT"
     }
   }
 }
