@@ -332,12 +332,18 @@ export type ContextMemoryKindV010 =
   | "EXPERIENCE"
   | "PRACTICE";
 
+export type ContextMemoryRetrievalStrategyV010 =
+  | "LEXICAL"
+  | "SEMANTIC"
+  | "HYBRID";
+
 export interface ContextMemoryReadRequestV010 {
   contractVersion: "0.1.0";
   context: ActiveContextRefV010;
   query?: string;
   memoryIds?: string[];
   kinds?: ContextMemoryKindV010[];
+  strategy?: ContextMemoryRetrievalStrategyV010;
   limit?: number;
   cursor?: string;
 }
@@ -352,6 +358,7 @@ export interface ContextMemoryProvenanceV010 {
   sourceContext: ActiveContextRefV010;
   sourceMemoryId?: string;
   evidenceRefs: string[];
+  evidenceSources?: ContextMemoryEvidenceSourceV010[];
 }
 
 export interface ContextMemoryAttributionV010 {
@@ -377,9 +384,18 @@ export interface ContextMemoryItemV010 {
   supersededBy?: string;
 }
 
+export interface ContextMemoryRetrievalScoreV010 {
+  contractVersion: "0.1.0";
+  memoryId: string;
+  score: number;
+  signals: string[];
+}
+
 export interface ContextMemoryReadResultV010 {
   contractVersion: "0.1.0";
   items: ContextMemoryItemV010[];
+  strategyUsed?: ContextMemoryRetrievalStrategyV010;
+  ranking?: ContextMemoryRetrievalScoreV010[];
   nextCursor?: string;
 }
 
