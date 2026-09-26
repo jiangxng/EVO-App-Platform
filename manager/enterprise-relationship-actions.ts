@@ -34,6 +34,7 @@ export const ENTERPRISE_RELATIONSHIP_REVOKE_ACTION = "enterprise.relationship.re
 export const ENTERPRISE_OWNERSHIP_TRANSFER_INITIATE_ACTION = "enterprise.ownership.transfer.initiate";
 export const ENTERPRISE_OWNERSHIP_TRANSFER_ACCEPT_ACTION = "enterprise.ownership.transfer.accept";
 export const ENTERPRISE_OWNERSHIP_TRANSFER_DECLINE_ACTION = "enterprise.ownership.transfer.decline";
+export const ENTERPRISE_OWNERSHIP_TRANSFER_CANCEL_ACTION = "enterprise.ownership.transfer.cancel";
 
 export interface EnterpriseRelationshipActionDependenciesV010 {
   store: EnterpriseContextGovernanceStoreV010;
@@ -260,11 +261,11 @@ function relationshipHandler(
     packageId: HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID,
     featureId: HOST_ENTERPRISE_RELATIONSHIP_FEATURE_ID,
     commandCode,
-    execute(request, requestContext) {
+    async execute(request, requestContext) {
       try {
-        return execute(request, requireContext(requestContext));
+        return await execute(request, requireContext(requestContext));
       } catch (error) {
-        return Promise.resolve(errorResult(error));
+        return errorResult(error);
       }
     }
   };
@@ -996,6 +997,70 @@ export function createEnterpriseRelationshipActionHandlersV010(
     }
   );
 
+  const cancelTransfer = relationshipHandler(
+    ENTERPRISE_OWNERSHIP_TRANSFER_CANCEL_ACTION,
+    async (request, requestContext) => {
+      requireHuman(requestContext);
+      requireConfirmation(request);
+      const contextId = activeEnterpriseContextId(requestContext);
+      const actor = requestContext.principal.subjectId;
+      const transferId = stringValue(request.values, "transferId")!;
+      const at = now();
+      const snapshot = dependencies.store.snapshot();
+      requireActiveGovernedContext(snapshot, contextId);
+      requireRole(snapshot, contextId, actor, ["OWNER"]);
+      const transfer = snapshot.ownershipTransfers.find(item =>
+        item.transferId === transferId
+        && item.contextId === contextId
+      );
+      if (!transfer) throw new Error("ENTERPRISE_OWNERSHIP_TRANSFER_NOT_FOUND");
+      if (transfer.fromOwnerSubjectId !== actor) {
+        throw new Error("ENTERPRISE_OWNERSHIP_TRANSFER_SOURCE_MISMATCH");
+      }
+      if (transfer.state !== "PENDING") {
+        throw new Error(`ENTERPRISE_OWNERSHIP_TRANSFER_NOT_PENDING: ${transfer.state}`);
+      }
+      await authorize(
+        dependencies,
+        requestContext,
+        ENTERPRISE_OWNERSHIP_TRANSFER_CANCEL_ACTION,
+        {
+          type: "enterprise.ownership-transfer",
+          id: transferId,
+          attributes: { contextId, toSubjectId: transfer.toSubjectId }
+        }
+      );
+
+      const cancelled = {
+        ...transfer,
+        state: "CANCELLED" as const,
+        respondedAt: at.toISOString(),
+        respondedBySubjectId: actor
+      };
+      dependencies.store.save({
+        ...snapshot,
+        ownershipTransfers: snapshot.ownershipTransfers.map(item =>
+          item.transferId === transferId ? cancelled : item
+        ),
+        relationshipEvents: appendEvent(snapshot, {
+          contractVersion: "0.1.0",
+          eventId: nextId("relationship-event", snapshot, id),
+          contextId,
+          type: "OWNERSHIP_TRANSFER_CANCELLED",
+          occurredAt: at.toISOString(),
+          actorSubjectId: actor,
+          subjectId: transfer.toSubjectId,
+          transferId
+        })
+      });
+      return {
+        ok: true,
+        correlationId: requestContext.correlationId,
+        result: JSON.parse(JSON.stringify({ transfer: cancelled }))
+      };
+    }
+  );
+
   return [
     invite,
     acceptInvitation,
@@ -1004,6 +1069,7 @@ export function createEnterpriseRelationshipActionHandlersV010(
     revokeRelationship,
     initiateTransfer,
     acceptTransfer,
-    declineTransfer
+    declineTransfer,
+    cancelTransfer
   ];
 }
