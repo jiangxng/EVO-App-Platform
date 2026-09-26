@@ -20,6 +20,15 @@ export const appPlatformLocalizationBundles = [
       "extensions.evo.plugin-store.action.uninstall.label": "Uninstall",
       "extensions.evo.plugin-store.action.enable.label": "Enable",
       "extensions.evo.plugin-store.action.configure.label": "Configure",
+      "extensions.evo.plugin-store.action.setup.label": "Set up",
+      "extensions.evo.plugin-store.readiness.ready.label": "Ready",
+      "extensions.evo.plugin-store.readiness.ready.message": "Personal Agent is ready.",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "Needs setup",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "Complete Provider setup before opening Personal Agent.",
+      "extensions.evo.plugin-store.readiness.degraded.label": "Degraded",
+      "extensions.evo.plugin-store.readiness.degraded.message": "Personal Agent can open, but the selected LLM Provider is degraded.",
+      "extensions.evo.plugin-store.readiness.error.label": "Unavailable",
+      "extensions.evo.plugin-store.readiness.error.message": "Personal Agent cannot currently use the selected LLM Provider.",
       "catalog.evo.plugin-store.title": "EVO Plugin Store",
       "catalog.evo.plugin-store.description": "Discover, install and manage EVO plugins.",
       "catalog.evo.plugin-store.item.summary": "{features} feature(s) · {providedCapabilities} provided capability(ies) · {requiredCapabilities} required capability(ies)",
@@ -74,6 +83,15 @@ export const appPlatformLocalizationBundles = [
       "extensions.evo.plugin-store.action.uninstall.label": "卸载",
       "extensions.evo.plugin-store.action.enable.label": "启用",
       "extensions.evo.plugin-store.action.configure.label": "配置",
+      "extensions.evo.plugin-store.action.setup.label": "设置",
+      "extensions.evo.plugin-store.readiness.ready.label": "就绪",
+      "extensions.evo.plugin-store.readiness.ready.message": "个人代理已就绪。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "需要设置",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "打开个人代理前，请先完成 Provider 设置。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "性能下降",
+      "extensions.evo.plugin-store.readiness.degraded.message": "个人代理仍可打开，但当前 LLM Provider 处于降级状态。",
+      "extensions.evo.plugin-store.readiness.error.label": "不可用",
+      "extensions.evo.plugin-store.readiness.error.message": "个人代理当前无法使用已选择的 LLM Provider。",
       "catalog.evo.plugin-store.title": "EVO 插件商店",
       "catalog.evo.plugin-store.description": "发现、安装和管理 EVO 插件。",
       "catalog.evo.plugin-store.item.summary": "{features} 个 Feature · 提供 {providedCapabilities} 个 Capability · 依赖 {requiredCapabilities} 个 Capability",
@@ -105,6 +123,39 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.settings.description": "配置已安装且声明标准设置项的插件。",
       "catalog.evo.settings.empty": "当前没有已安装插件提供标准设置。",
       "catalog.evo.settings.action.configure.label": "配置"
+    }
+  }
+,
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "evo-app-platform",
+    locale: "ja",
+    messages: {
+      "extensions.evo.plugin-store.action.setup.label": "セットアップ",
+      "extensions.evo.plugin-store.readiness.ready.label": "準備完了",
+      "extensions.evo.plugin-store.readiness.ready.message": "パーソナルエージェントを利用できます。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "セットアップが必要",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "パーソナルエージェントを開く前に Provider の設定を完了してください。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "低下",
+      "extensions.evo.plugin-store.readiness.degraded.message": "パーソナルエージェントは開けますが、選択した LLM Provider は低下状態です。",
+      "extensions.evo.plugin-store.readiness.error.label": "利用不可",
+      "extensions.evo.plugin-store.readiness.error.message": "パーソナルエージェントは現在、選択した LLM Provider を利用できません。"
+    }
+  },
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "evo-app-platform",
+    locale: "zh-TW",
+    messages: {
+      "extensions.evo.plugin-store.action.setup.label": "設定",
+      "extensions.evo.plugin-store.readiness.ready.label": "就緒",
+      "extensions.evo.plugin-store.readiness.ready.message": "個人代理已就緒。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "需要設定",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "開啟個人代理前，請先完成 Provider 設定。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "效能下降",
+      "extensions.evo.plugin-store.readiness.degraded.message": "個人代理仍可開啟，但目前 LLM Provider 處於降級狀態。",
+      "extensions.evo.plugin-store.readiness.error.label": "無法使用",
+      "extensions.evo.plugin-store.readiness.error.message": "個人代理目前無法使用已選擇的 LLM Provider。"
     }
   }
 ];
