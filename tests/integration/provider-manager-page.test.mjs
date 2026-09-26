@@ -85,4 +85,7 @@ test("Provider Manager exposes capability page and health-aware summary", () => 
   assert.equal(page.command.code, "app-platform.update-provider-binding");
   assert.ok(page.settings.some(field => field.key === "scope"));
   assert.ok(page.settings.some(field => field.key === "providerId"));
+  const adminToken = page.settings.find(field => field.key === "adminToken");
+  assert.equal(adminToken.type, "secret");
+  assert.equal(adminToken.value, "");
 });
