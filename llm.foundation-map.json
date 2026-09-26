@@ -32,7 +32,7 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "NEXT_WRITE_PROVIDER_PROVENANCE_GOVERNANCE",
+    "contextMemory": "CI_VERIFIED_P0_9_GOVERNED_READ_WRITE_PROVENANCE_PROMOTION",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
     "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
@@ -75,7 +75,11 @@
     "enterpriseRelationshipLifecycle": "CI_VERIFIED_P0_8",
     "enterpriseOwnershipTransfer": "CI_VERIFIED_P0_8_ATOMIC_TWO_PARTY",
     "enterpriseMembershipInvitationAcceptance": "CI_VERIFIED_P0_8",
-    "enterpriseGrantRevocation": "CI_VERIFIED_P0_8"
+    "enterpriseGrantRevocation": "CI_VERIFIED_P0_8",
+    "contextMemoryProvider": "CI_VERIFIED_P0_9",
+    "contextMemoryProvenanceAttribution": "CI_VERIFIED_P0_9",
+    "contextMemoryPromotionGovernance": "CI_VERIFIED_P0_9_DENY_BY_DEFAULT",
+    "personalAgentContextMemoryRead": "CI_VERIFIED_P0_9_HOST_BOUND_CURRENT_CONTEXT"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -165,14 +169,14 @@
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   },
   "authorization": {
-    "status": "IMPLEMENTED_P0_8_REQUEST_CONTEXT_PLUS_RELATIONSHIP_DUAL_GATE",
+    "status": "IMPLEMENTED_P0_9_CONTEXT_MEMORY_WRITE_AND_PROMOTION_GOVERNANCE",
     "capability": "authorization.check",
     "principal": "REQUEST_BOUND_IDENTITY_SESSION_PRINCIPAL_WITH_P0_6_COMPATIBILITY_FALLBACK",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "CONTEXT_MEMORY_WRITE_AND_PROMOTION_AUTHORIZATION",
+    "next": "MEMORY_PROPOSAL_REVIEW_AND_EVIDENCE_GOVERNANCE",
     "enterpriseGovernance": "HOST_STRUCTURAL_RELATIONSHIP_RULES_AND_PROVIDER_POLICY"
   },
   "platformHelp": {
@@ -234,9 +238,10 @@
     "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
     "writeAuthorization": "IMPLEMENTED_P0_8_ENTERPRISE_GOVERNANCE_DUAL_GATE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "CONTEXT_MEMORY_PROVIDER_AND_GOVERNED_MEMORY_TOOLS",
+    "next": "MEMORY_PROPOSAL_REVIEW_AND_EIDOS_MEMORY_SURFACE",
     "productIdentity": "Personal Agent",
-    "currentContextTool": "context.current.get"
+    "currentContextTool": "context.current.get",
+    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY"
   },
   "personFirstWorldModel": {
     "status": "FROZEN_MVP",
@@ -268,7 +273,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
+    "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -293,7 +298,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
+      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
       "locales": [
         "en",
         "zh-CN",
@@ -381,7 +386,32 @@
       "authorization": "HOST_RULE_AND_AUTHORIZATION_PROVIDER_ALLOW",
       "pendingReads": "PRINCIPAL_SCOPED",
       "p0_7PersistenceCompatibility": true,
-      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION"
+      "next": "P0_9_DELIVERED_THEN_MEMORY_PROPOSAL_REVIEW"
+    },
+    "contextP0_9": {
+      "status": "CI_VERIFIED_P0_9",
+      "authority": "docs/architecture/CONTEXT-MEMORY-GOVERNANCE-P0.9-v0.1.md",
+      "capabilities": [
+        "context.memory.read",
+        "context.memory.write"
+      ],
+      "storage": "APPEND_ONLY_IMMUTABLE",
+      "provenance": "DIRECT_OR_PROMOTED_WITH_SOURCE_CONTEXT",
+      "attribution": "IMMUTABLE_PRINCIPAL_ACTOR_TIME",
+      "supersession": "SAME_CONTEXT_NEW_RECORD_ONLY",
+      "personalAuthority": "OWNER",
+      "enterpriseAuthority": [
+        "OWNER",
+        "ADMIN",
+        "MEMBER"
+      ],
+      "auditorWrite": false,
+      "confirmation": "HUMAN_ACTION_REQUIRED",
+      "promotion": "DENY_BY_DEFAULT_EXPLICIT_AUTHORIZATION",
+      "agentTool": "context.memory.search",
+      "agentScope": "CURRENT_HOST_RESOLVED_CONTEXT",
+      "automaticWriteback": false,
+      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

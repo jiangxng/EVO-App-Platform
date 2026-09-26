@@ -384,3 +384,36 @@ Authority:
 P0.8 still uses stable `subjectId` as invitation target and deliberately does not invent a user directory, email invitation system or full IAM.
 
 The next mainline is Context Memory Provider + immutable provenance/attribution + separate Personal/Enterprise Memory authority + governed cross-context promotion, using the Principal + Context + Relationship + Authorization foundation now in place.
+
+
+## P0.9 — Governed Context Memory
+
+P0.9 makes Context Memory executable without turning chat history or model internals into authority.
+
+Implemented:
+
+- replaceable `context.memory.read` and `context.memory.write` capabilities;
+- reference `host-context-memory-provider`;
+- durable/in-memory append-only Context Memory store;
+- Memory kinds `FACT / CLAIM / EXPERIENCE / PRACTICE`;
+- immutable provenance with DIRECT/PROMOTED origin, source Context, source Memory and evidence refs;
+- immutable attribution with recording Principal actor and time;
+- correction through new `supersedesMemoryId` record; historical Memory is never rewritten;
+- Personal Memory writes restricted to the current Personal Context owner;
+- Enterprise Memory writes restricted to ACTIVE OWNER/ADMIN/MEMBER; AUDITOR is read-only;
+- Human + explicit confirmation required for durable Memory mutation;
+- `authorization.check` required for `context.memory.record`;
+- `context.memory.promote` creates a new target Memory and preserves source provenance;
+- promotion requires write authority on source and target Contexts and explicit policy ALLOW, therefore deny-by-default;
+- Personal Agent READ tool `context.memory.search`;
+- Agent Memory reads are Host-bound to current Active Context; model-supplied Context selectors are ignored;
+- deterministic exact-Context retrieval with id/kind/text/limit/cursor filters;
+- isolated Context Memory Provider CI plus Platform/Agent integration verification.
+
+Authority:
+
+- `docs/architecture/CONTEXT-MEMORY-GOVERNANCE-P0.9-v0.1.md`
+
+P0.9 deliberately does not silently persist chat, automatically write learned conclusions, automatically synchronize Personal/Enterprise Memory, or introduce vector retrieval before authority/provenance is stable.
+
+Next mainline: Memory Proposal lifecycle + Human review/edit/accept/reject + evidence quality/confidence + contradiction/supersession assistance + Eidos Memory review surface. EC integration comes later behind these same Context Memory contracts.

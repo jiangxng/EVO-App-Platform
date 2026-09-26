@@ -128,3 +128,19 @@ Ownership Transfer 是双方确认流程：
 
 > [!IMPORTANT] Governance WRITE 有两道门
 > Host Relationship 结构规则与 `authorization.check` 必须同时允许。即使策略 Provider 很宽松，也不能绕过 OWNER / ADMIN 的结构性治理约束。
+
+
+## 受治理的 Context Memory
+
+P0.9 通过可替换的 `context.memory.read` 与 `context.memory.write` Provider Capability 引入持久化 Context Memory。
+
+每条 Memory 只属于一个 Personal 或 Enterprise Context，并携带不可修改的 Provenance 与 Attribution。已有 Memory 记录只追加不修改：纠正旧记忆时创建新记录，并通过 `supersedesMemoryId` 指向旧记录，而不是覆盖历史。
+
+`context.memory.record` 用于在当前 Context 中写入经过确认的 Memory。Personal Memory 要求当前 Principal 就是该 Personal Context 的 owner；Enterprise Memory 要求存在 ACTIVE 的 OWNER、ADMIN 或 MEMBER Relationship，AUDITOR 只读。同时 `authorization.check` 必须返回 ALLOW。
+
+`context.memory.promote` 会在另一个 Host 已授权 Context 中创建新的 Memory，同时保留原始 source Context 与 `sourceMemoryId`。Promotion 必须明确确认、同时具备源 Context 与目标 Context 的 Memory 写权限，并且授权 Provider 明确 ALLOW；默认拒绝。
+
+个人 Agent 获得只读工具 `context.memory.search`。Host 会把该工具绑定到当前已解析的 Active Context，模型不能自行提交另一个 Context ID 去读取任意 Memory。
+
+> [!IMPORTANT] Memory 不是自动保存的聊天记录
+> P0.9 不会静默持久化模型对话，也不会自动同步 Personal 与 Enterprise Memory。持久化写入必须经过受治理且由 Human 确认的 Action。

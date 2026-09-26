@@ -30,6 +30,11 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
   listAvailableContexts(): ActiveContextRefV010[];
   listProviderBindings(capability?: string): ProviderBindingV010[];
   getProviderHealth(providerId: string): ProviderRuntimeHealthV010;
+  readContextMemory?: (input: {
+    query?: string;
+    kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
+    limit?: number;
+  }) => Promise<unknown> | unknown;
   searchHelp(
     query: string,
     context?: HelpContextSelectorsV010
@@ -149,6 +154,67 @@ export function createEnterpriseAgentHostToolCatalogV010(
           throw new Error("ENTERPRISE_CONTEXT_REQUIRED");
         }
         return structuredClone(dependencies.context.enterpriseContext);
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read immutable Memory records only from the current Host-resolved Context, including provenance and attribution.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Optional text filter over memory summaries and evidence references."
+            },
+            kind: {
+              type: "string",
+              enum: ["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"],
+              description: "Optional Memory kind filter."
+            },
+            limit: {
+              type: "number",
+              description: "Optional result limit from 1 to 100."
+            }
+          },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.readContextMemory !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.readContextMemory) {
+          throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+        }
+        const query = stringArg(args, "query", false);
+        const rawKind = stringArg(args, "kind", false);
+        const kind = rawKind as "FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE" | undefined;
+        if (rawKind && !["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(rawKind)) {
+          throw new Error("CONTEXT_MEMORY_KIND_INVALID");
+        }
+        const rawLimit = args.limit;
+        if (
+          rawLimit !== undefined
+          && (
+            typeof rawLimit !== "number"
+            || !Number.isInteger(rawLimit)
+            || rawLimit < 1
+            || rawLimit > 100
+          )
+        ) {
+          throw new Error("CONTEXT_MEMORY_LIMIT_INVALID");
+        }
+        return dependencies.readContextMemory({
+          ...(query ? { query } : {}),
+          ...(kind ? { kinds: [kind] } : {}),
+          ...(rawLimit !== undefined ? { limit: rawLimit } : {})
+        });
       }
     },
     {

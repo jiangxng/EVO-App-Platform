@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.8 — Enterprise Relationship Lifecycle",
+  "currentMilestone": "Personal Agent P0.9 — Governed Context Memory",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -164,7 +164,17 @@
     "enterprise-ownership-transfer-atomic-owner-switch",
     "enterprise-relationship-append-only-events",
     "enterprise-governance-p0-7-state-compatibility",
-    "principal-pending-enterprise-governance-reads"
+    "principal-pending-enterprise-governance-reads",
+    "context-memory-read-provider-contract",
+    "context-memory-write-provider-contract",
+    "host-context-memory-provider",
+    "context-memory-append-only-store",
+    "context-memory-provenance-attribution",
+    "context-memory-same-context-supersession",
+    "personal-context-memory-owner-write-authority",
+    "enterprise-context-memory-relationship-write-authority",
+    "context-memory-cross-context-promotion-governance",
+    "personal-agent-current-context-memory-read-tool"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -187,7 +197,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.8 is functionally CI-verified: governed invitations require acceptance before access, OWNER/ADMIN structural rules are Host-enforced, Relationship and Grant lifecycle is ACTIVE→REVOKED, ownership transfer is two-party and atomic, pending governance requests are Principal-scoped reads, and every governance WRITE also requires authorization.check. Final docs/help CI is the merge gate.",
+  "currentStep": "Personal Agent P0.9 is CI-verified: replaceable Context Memory read/write Providers, append-only immutable records, provenance/attribution, same-Context supersession, Human-confirmed record/promote actions, Personal/Enterprise write authority, deny-by-default cross-context promotion, and Host-bound Personal Agent current-Context memory reads all pass Platform, Enterprise Agent and owning Provider CI.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -579,12 +589,13 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "CONTEXT_MEMORY_PROVIDER_AND_GOVERNED_MEMORY_TOOLS",
+    "next": "MEMORY_PROPOSAL_REVIEW_AND_EIDOS_MEMORY_SURFACE",
     "productIdentity": "Personal Agent",
     "preferredCapability": "agent.personal.tool-discovery",
     "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
     "writeAuthorization": "IMPLEMENTED_P0_8_GOVERNANCE_DUAL_GATE_PLUS_P0_7_AGENT_GATE",
-    "initialToolCount": 12
+    "initialToolCount": 12,
+    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY"
   },
   "worldModel": {
     "status": "FROZEN_MVP",
@@ -623,7 +634,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
+    "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -649,7 +660,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION",
+      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
       "locales": [
         "en",
         "zh-CN",
@@ -798,7 +809,43 @@
       "pendingReads": "PRINCIPAL_SCOPED_NON_EXPIRED_ONLY",
       "userDirectory": "DEFERRED_SUBJECT_ID_ONLY",
       "memoryWrite": "NOT_IMPLEMENTED",
-      "next": "CONTEXT_MEMORY_PROVIDER_PROVENANCE_ATTRIBUTION_AND_GOVERNED_PROMOTION"
+      "next": "P0_9_DELIVERED_THEN_MEMORY_PROPOSAL_REVIEW"
+    },
+    "contextP0_9": {
+      "status": "CI_VERIFIED_P0_9",
+      "authority": "docs/architecture/CONTEXT-MEMORY-GOVERNANCE-P0.9-v0.1.md",
+      "capabilities": [
+        "context.memory.read",
+        "context.memory.write"
+      ],
+      "referencePackage": "host-context-memory-provider",
+      "readerProvider": "host.context-memory-reader",
+      "writerProvider": "host.context-memory-writer",
+      "persistence": "APP_PLATFORM_CONTEXT_MEMORY_FILE_OR_LIFECYCLE_SIBLING",
+      "kinds": [
+        "FACT",
+        "CLAIM",
+        "EXPERIENCE",
+        "PRACTICE"
+      ],
+      "recordModel": "APPEND_ONLY_IMMUTABLE",
+      "correction": "NEW_RECORD_WITH_SUPERSEDES_MEMORY_ID",
+      "provenance": [
+        "DIRECT",
+        "PROMOTED"
+      ],
+      "attribution": "RECORDED_BY_SUBJECT_ACTOR_AND_TIME",
+      "personalWrite": "CURRENT_PERSONAL_OWNER_ONLY",
+      "enterpriseWrite": "ACTIVE_OWNER_ADMIN_MEMBER_AUDITOR_READ_ONLY",
+      "writeConfirmation": "HUMAN_CONFIRMED_ACTION_REQUIRED",
+      "writeAuthorization": "CONTEXT_AUTHORITY_AND_AUTHORIZATION_CHECK",
+      "promotion": "CROSS_CONTEXT_NEW_RECORD_DENY_BY_DEFAULT",
+      "promotionAuthority": "WRITE_AUTHORITY_REQUIRED_ON_SOURCE_AND_TARGET",
+      "agentReadTool": "context.memory.search",
+      "agentReadScope": "HOST_BOUND_CURRENT_ACTIVE_CONTEXT_ONLY",
+      "implicitChatWrite": "FORBIDDEN",
+      "semanticVectorSearch": "DEFERRED",
+      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE"
     }
   }
 }
