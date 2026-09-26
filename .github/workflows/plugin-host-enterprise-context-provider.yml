@@ -1,0 +1,41 @@
+name: Plugin CI - Host Enterprise Context Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/enterprise-context/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-registry.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/enterprise-context-provider.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-enterprise-context-provider.yml"
+  pull_request:
+    paths:
+      - "providers/enterprise-context/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-registry.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/enterprise-context-provider.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-enterprise-context-provider.yml"
+
+concurrency:
+  group: plugin-host-enterprise-context-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-enterprise-context-provider
