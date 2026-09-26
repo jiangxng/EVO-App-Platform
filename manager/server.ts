@@ -889,13 +889,17 @@ function resolveLlmProvider(): {
 
 const actionRouter = createAppActionRouter(
   [
+    createEnterpriseContextCreationActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      resolveAuthorizationProvider
+    }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
       resolveIdentitySession,
       resolveContext(selection, session) {
         return createContextRegistryForSession(session).resolve(selection);
       },
-      createToolCatalog(locale, context, principal) {
+      createToolCatalog(locale, context, principal, requestContext) {
         const contextRegistry = createPrincipalContextRegistryV010(
           principal,
           principalContextSources()
@@ -915,6 +919,38 @@ const actionRouter = createAppActionRouter(
           },
           searchHelp(query, helpContext) {
             return searchHelpV010(helpCorpus, query, locale, helpContext);
+          },
+          async authorizeWrite(descriptor) {
+            if (!requestContext) {
+              return {
+                allowed: false,
+                code: "REQUEST_CONTEXT_REQUIRED",
+                message: "Material WRITE requires a Host-resolved request context."
+              };
+            }
+            const decision = await authorizeMaterialWriteV010(
+              resolveAuthorizationProvider(),
+              requestContext,
+              {
+                action: descriptor.id,
+                resource: {
+                  type: "agent.tool",
+                  id: descriptor.id,
+                  attributes: {
+                    ownerPackageId: descriptor.ownerPackageId,
+                    effect: descriptor.effect,
+                    ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                  }
+                }
+              }
+            );
+            return decision.allowed
+              ? { allowed: true }
+              : {
+                  allowed: false,
+                  code: decision.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED",
+                  message: `Material WRITE denied by '${decision.policyProviderId}': ${decision.reasonCodes.join(", ")}`
+                };
           }
         });
       }
@@ -2001,7 +2037,37 @@ const server = createServer(async (request, response) => {
         });
       }
 
-      return json(response, 200, await actionRouter.execute(action));
+      try {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const requestContext = createPlatformRequestContextV010(
+          session,
+          contextRegistry,
+          action,
+          request.headers,
+          requestedLocale(url)
+        );
+        return json(
+          response,
+          200,
+          await actionRouter.execute(action, requestContext)
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = message.split(":")[0]?.trim() || "REQUEST_CONTEXT_RESOLUTION_FAILED";
+        const status = code.startsWith("REQUEST_IDENTITY_SESSION")
+          || code.startsWith("IDENTITY_SESSION")
+          ? 401
+          : 403;
+        return json(response, status, {
+          ok: false,
+          correlationId: action.sourceInteractionId,
+          error: {
+            code,
+            message
+          }
+        });
+      }
     }
 
     if (request.method === "POST" && url.pathname === "/v1/install/plan") {
