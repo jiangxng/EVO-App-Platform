@@ -62,6 +62,8 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
+  ContextMemoryEvidenceSourceProviderV010,
+  ContextMemoryIntakeSourceAdapterV010,
   ContextMemoryReaderV010,
   ContextMemoryWriterV010,
   EnterpriseContextGrantProviderV010,
@@ -183,6 +185,20 @@ import {
   createHostContextMemoryWriterV010
 } from "../providers/context-memory/runtime.js";
 import {
+  CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY,
+  CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY,
+  HOST_MEMORY_EVIDENCE_SOURCE_PROVIDER_ID,
+  HOST_MEMORY_INTAKE_PACKAGE_ID,
+  HOST_MEMORY_INTAKE_SOURCE_PROVIDER_ID,
+  hostMemoryIntakeProviderPackage
+} from "../providers/memory-intake/package.js";
+import {
+  createHostMemoryEvidenceSourceProviderV010,
+  createHostMemoryIntakeHealthProbeV010,
+  createHostMemoryIntakeSourceAdapterV010,
+  parseHostMemoryIntakeConfigV010
+} from "../providers/memory-intake/runtime.js";
+import {
   createFileContextMemoryStoreV010,
   createMemoryContextMemoryStoreV010
 } from "./context-memory-store.js";
@@ -194,6 +210,12 @@ import {
 import { createContextMemoryProposalServiceV010 } from "./context-memory-proposal-service.js";
 import { createContextMemoryProposalActionHandlersV010 } from "./context-memory-proposal-actions.js";
 import { requireContextMemoryWriteAuthorityV010 } from "./context-memory-authority.js";
+import {
+  createFileContextMemoryIntakeStoreV010,
+  createMemoryContextMemoryIntakeStoreV010
+} from "./context-memory-intake-store.js";
+import { createContextMemoryIntakeServiceV010 } from "./context-memory-intake-service.js";
+import { createContextMemoryIntakeActionHandlerV010 } from "./context-memory-intake-actions.js";
 import {
   createFileEnterpriseContextGovernanceStoreV010,
   createMemoryEnterpriseContextGovernanceStoreV010
@@ -286,6 +308,7 @@ const catalog = createPackageCatalog([
   hostEnterpriseContextGrantProviderPackage,
   hostEnterpriseRelationshipProviderPackage,
   hostContextMemoryProviderPackage,
+  hostMemoryIntakeProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -305,6 +328,11 @@ const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_P
 const contextMemoryProposalStore = contextMemoryProposalStateFile
   ? createFileContextMemoryProposalStoreV010(contextMemoryProposalStateFile)
   : createMemoryContextMemoryProposalStoreV010();
+const contextMemoryIntakeStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_INTAKE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-intake.json") : undefined);
+const contextMemoryIntakeStore = contextMemoryIntakeStateFile
+  ? createFileContextMemoryIntakeStoreV010(contextMemoryIntakeStateFile)
+  : createMemoryContextMemoryIntakeStoreV010();
 const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
 const settingsStore = settingsStateFile
@@ -495,6 +523,38 @@ providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID, {
   message: "Host Context Memory Writer is active.",
   checkedAt: new Date().toISOString()
 });
+
+const hostMemoryIntakeConfig = parseHostMemoryIntakeConfigV010(
+  process.env.APP_PLATFORM_MEMORY_INTAKE_JSON
+);
+if (hostMemoryIntakeConfig) {
+  providerRuntimeRegistry.replace<ContextMemoryEvidenceSourceProviderV010>(
+    HOST_MEMORY_EVIDENCE_SOURCE_PROVIDER_ID,
+    createHostMemoryEvidenceSourceProviderV010(hostMemoryIntakeConfig.source)
+  );
+  providerRuntimeRegistry.replace<ContextMemoryIntakeSourceAdapterV010>(
+    HOST_MEMORY_INTAKE_SOURCE_PROVIDER_ID,
+    createHostMemoryIntakeSourceAdapterV010(hostMemoryIntakeConfig)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_MEMORY_EVIDENCE_SOURCE_PROVIDER_ID,
+    createHostMemoryIntakeHealthProbeV010(hostMemoryIntakeConfig)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_MEMORY_INTAKE_SOURCE_PROVIDER_ID,
+    createHostMemoryIntakeHealthProbeV010(hostMemoryIntakeConfig)
+  );
+  providerRuntimeRegistry.setHealth(HOST_MEMORY_EVIDENCE_SOURCE_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: `Evidence source '${hostMemoryIntakeConfig.source.sourceId}' is configured with trust=${hostMemoryIntakeConfig.source.trustLevel}.`,
+    checkedAt: new Date().toISOString()
+  });
+  providerRuntimeRegistry.setHealth(HOST_MEMORY_INTAKE_SOURCE_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: `Memory intake source '${hostMemoryIntakeConfig.source.sourceId}' is configured.`,
+    checkedAt: new Date().toISOString()
+  });
+}
 providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
   createHostEncryptedSecretsProviderV010(secretStore)
@@ -659,6 +719,17 @@ if (!installedAtStartup.some(item => item.packageId === HOST_CONTEXT_MEMORY_PACK
   }
 }
 if (
+  hostMemoryIntakeConfig
+  && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_MEMORY_INTAKE_PACKAGE_ID);
+    console.log("Activated Host Memory Intake Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Memory Intake Provider.", error);
+  }
+}
+if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
@@ -773,6 +844,26 @@ function resolveContextMemoryWriter(): ContextMemoryWriterV010 | undefined {
     manager.listEffectiveServiceProviders(CONTEXT_MEMORY_WRITE_CAPABILITY),
     providerBindings,
     CONTEXT_MEMORY_WRITE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryIntakeSource(): ContextMemoryIntakeSourceAdapterV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryIntakeSourceAdapterV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryEvidenceSourceProvider(): ContextMemoryEvidenceSourceProviderV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryEvidenceSourceProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -993,6 +1084,13 @@ const contextMemoryProposalService = createContextMemoryProposalServiceV010({
   resolveWriter: resolveContextMemoryWriter
 });
 
+const contextMemoryIntakeService = createContextMemoryIntakeServiceV010({
+  store: contextMemoryIntakeStore,
+  proposalService: contextMemoryProposalService,
+  resolveSourceAdapter: resolveContextMemoryIntakeSource,
+  resolveEvidenceSourceProvider: resolveContextMemoryEvidenceSourceProvider
+});
+
 function resolveContextForPrincipal(
   principal: PlatformPrincipalV010,
   ref: ActiveContextRefV010
@@ -1038,6 +1136,12 @@ const actionRouter = createAppActionRouter(
       resolveContext(principal, ref) {
         return resolveContextForPrincipal(principal, ref);
       }
+    }),
+    createContextMemoryIntakeActionHandlerV010({
+      service: contextMemoryIntakeService,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
+      resolveSourceAdapter: resolveContextMemoryIntakeSource
     }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
