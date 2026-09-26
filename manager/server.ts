@@ -667,6 +667,16 @@ function resolveEnterpriseContextGrantProvider(): EnterpriseContextGrantProvider
   )?.runtime;
 }
 
+function resolveEnterpriseContextRelationshipProvider(): EnterpriseContextRelationshipProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseContextRelationshipProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(ENTERPRISE_RELATIONSHIP_CAPABILITY),
+    providerBindings,
+    ENTERPRISE_RELATIONSHIP_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveIdentitySession(): IdentitySessionV010 {
   const descriptors = manager.listEffectiveServiceProviders(IDENTITY_SESSION_CAPABILITY);
   if (descriptors.length === 0) {
@@ -696,6 +706,30 @@ function resolveIdentitySession(): IdentitySessionV010 {
 
   const session = resolved.runtime.current();
   if (!session) throw new Error("IDENTITY_SESSION_REQUIRED");
+  return session;
+}
+
+function resolveRequestIdentitySession(request: IncomingMessage): IdentitySessionV010 {
+  const descriptors = manager.listEffectiveServiceProviders(
+    REQUEST_IDENTITY_SESSION_CAPABILITY
+  );
+  if (descriptors.length === 0) {
+    return resolveIdentitySession();
+  }
+
+  const resolved = resolveProviderRuntimeV010<RequestIdentitySessionProviderV010>(
+    providerRuntimeRegistry,
+    descriptors,
+    providerBindings,
+    REQUEST_IDENTITY_SESSION_CAPABILITY,
+    { installationId: "default" }
+  );
+  if (!resolved) throw new Error("REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+
+  const session = resolved.runtime.resolve(
+    identitySessionRequestFromHeadersV010(request.headers)
+  );
+  if (!session) throw new Error("REQUEST_IDENTITY_SESSION_REQUIRED");
   return session;
 }
 
@@ -904,7 +938,10 @@ function ledgerConfiguratorActive(): boolean {
 function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-origin", corsOrigin);
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,accept,authorization");
+  response.setHeader(
+    "access-control-allow-headers",
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id"
+  );
 }
 
 function requestedLocale(url: URL): string {
@@ -982,7 +1019,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
     }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
-      const session = resolveIdentitySession();
+      const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
       return json(response, 200, {
         contractVersion: "0.1.0",
@@ -1190,7 +1227,7 @@ const server = createServer(async (request, response) => {
           return json(response, 200, createPersonalAgentSetupPageV010(readiness));
         }
 
-        const session = resolveIdentitySession();
+        const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
         const context = contextRegistry.resolve();
         const availableContexts = contextRegistry.list().map(ref => {
