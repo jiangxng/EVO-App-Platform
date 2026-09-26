@@ -7,18 +7,39 @@ import {
 } from "./package.js";
 import type { PersonalAgentReadinessV010 } from "./readiness.js";
 
-function contextValue(context: ResolvedContextSetV010): string {
+function canonicalUiLocale(locale: string): "en" | "zh-CN" | "ja" | "zh-TW" {
+  try {
+    const canonical = Intl.getCanonicalLocales(locale.trim())[0] ?? "en";
+    if (canonical === "zh-CN" || canonical.startsWith("zh-Hans")) return "zh-CN";
+    if (canonical === "zh-TW" || canonical === "zh-HK" || canonical.startsWith("zh-Hant")) return "zh-TW";
+    if (canonical === "ja" || canonical.startsWith("ja-")) return "ja";
+    return "en";
+  } catch {
+    return "en";
+  }
+}
+
+function contextValue(context: ResolvedContextSetV010, locale: string): string {
   if (context.activeContext.kind === "ENTERPRISE") {
     return context.enterpriseContext?.displayName
       ?? context.enterpriseContext?.enterpriseId
       ?? context.activeContext.enterpriseId;
   }
-  return context.personalContext.displayName ?? "Personal";
+  const displayName = context.personalContext.displayName?.trim();
+  if (displayName && displayName !== "Personal") return displayName;
+  const labels = {
+    en: "Personal",
+    "zh-CN": "个人",
+    ja: "個人",
+    "zh-TW": "個人"
+  } as const;
+  return labels[canonicalUiLocale(locale)];
 }
 
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
-  context: ResolvedContextSetV010
+  context: ResolvedContextSetV010,
+  locale = "en"
 ): ChatExperienceV020 {
   const ready = readiness.state === "READY";
   return {
@@ -38,7 +59,7 @@ export function createPersonalAgentChatPageV020(
     },
     context: {
       label: "Context",
-      value: contextValue(context),
+      value: contextValue(context, locale),
       tone: "neutral"
     },
     readiness: ready
