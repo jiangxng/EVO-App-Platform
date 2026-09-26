@@ -1,14 +1,22 @@
-# Enterprise Agent / EC Convergence v0.1
+# Personal Agent / EC Convergence v0.1
 
 **Status:** Architecture baseline  
 **Date:** 2026-09-24  
 **Authority:** EVO App Platform package integration for the former Experience Compiler
 
+## 0. Person-first supersession
+
+Product ontology is now frozen by `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`.
+
+There is one MVP Agent: **Personal Agent**. Enterprise Context is governed data/knowledge/memory available to that Agent; this document no longer implies a distinct Enterprise Agent persona.
+
+The historical filename and `enterprise-agent` implementation identifiers remain for compatibility until a versioned migration is justified.
+
 ## 1. Decision
 
 The historical Experience Compiler (EC) project is not rewritten or copied into EVO App Platform.
 
-It converges as the durable intelligence asset/runtime source behind an installable **Enterprise Agent** Package.
+It converges as the durable intelligence asset/runtime source behind the installable **Personal Agent** product surface. The existing `enterprise-agent` Package ID remains a compatibility identifier.
 
 ```text
 Experience-Compiler repository
@@ -100,7 +108,7 @@ The old direct OpenAI adapter under `agents/enterprise-agent` is retained as mig
 Target dependency:
 
 ```text
-Enterprise Agent
+Personal Agent
       ↓
 llm.inference public capability
       ↓
@@ -111,7 +119,7 @@ installed LLM Provider Package
 OpenAI / Anthropic / local / enterprise gateway / future provider
 ```
 
-The Enterprise Agent package MUST NOT permanently own an OpenAI-specific dependency.
+The Personal Agent package MUST NOT permanently own an OpenAI-specific dependency.
 
 ## 5. First convergence slice
 
@@ -123,7 +131,7 @@ It proves:
 Catalog
 → install enterprise-agent Package
 → Feature active
-→ Enterprise Agent Experience visible in canonical App Host
+→ Personal Agent Experience visible in canonical App Host
 → status Action executes through ActionHost
 → disable removes Experience
 → enable restores Experience
@@ -138,7 +146,7 @@ After Package convergence is green:
 
 1. introduce the first real `llm.inference` Provider Package;
 2. resolve the Provider through App Platform rather than directly reading `OPENAI_API_KEY` inside Agent code;
-3. route Enterprise Agent chat through the Provider;
+3. route Personal Agent chat through the Provider;
 4. keep human confirmation/authorization around side-effectful tools;
 5. then begin moving EC context/knowledge services behind explicit runtime contracts.
 
@@ -154,7 +162,7 @@ Repository topology remains independent from Package topology.
 
 This convergence is accepted when:
 
-- Enterprise Agent appears in Plugin Store as an ordinary AGENT package;
+- Personal Agent appears in Plugin Store as an ordinary AGENT package;
 - lifecycle closure works through App Manager;
 - App Host discovers/removes its Eidos Experience with lifecycle state;
 - status Action runs only while Feature is active;
@@ -180,12 +188,12 @@ The provider is lifecycle-managed independently of the Agent. Credentials are co
 
 ## 10. Tool Discovery slice
 
-Enterprise Agent P0.2 removes the fixed App Manager tool list from Agent core.
+Personal Agent P0.2 removes the fixed App Manager tool list from Agent core.
 
 Authority: `docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md`.
 
 The Host now supplies the effective tool catalog and the Agent model consumes it dynamically. Initial registrations cover platform/capability state, Package discovery/install planning, Provider observation and authoritative Help search.
 
-This is the required convergence boundary for future EC tools: EC context/knowledge/provenance functions must enter as registered tools/adapters rather than being embedded into Enterprise Agent prompt logic.
+This is the required convergence boundary for future EC tools: EC context/knowledge/provenance functions must enter as registered tools/adapters rather than being embedded into Personal Agent prompt logic.
 
 The next convergence slice is Principal/Scope-aware tool visibility and authorization for privileged WRITE tools, followed by the first EC Context/Knowledge/Provenance adapters.
