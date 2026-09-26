@@ -123,10 +123,10 @@ export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
     },
     composer: {
       key: "message",
-      placeholder: "Tell Enterprise Agent what you want to accomplish",
+      placeholder: "Tell Personal Agent what you want to accomplish",
       sendLabel: "Send"
     },
-    emptyState: "Ask Enterprise Agent to inspect, explain or prepare a change.",
+    emptyState: "Ask Personal Agent to inspect, explain or prepare an opinion or change.",
     metadata: {
       packageId: ENTERPRISE_AGENT_PACKAGE_ID,
       featureId: ENTERPRISE_AGENT_FEATURE_ID,
