@@ -248,3 +248,32 @@ Do not restart Eidos P0.4A or redesign Personal Agent setup.
 CI validation is now complete after the repositories were made public and GitHub-hosted runners resumed. Platform CI, Enterprise Agent CI, OpenAI Provider CI and Host Secrets Provider CI all pass on the final P0.4 integration branch.
 
 After P0.4 merge, resume the Person-first roadmap at the first real Enterprise Context source and read-only Agent use. Do not expand to multi-Agent or generic Memory writes.
+
+
+## P0.5 — first real Enterprise Context source
+
+P0.5 advances the frozen Person-first model from test-only Enterprise Context registration to a real replaceable Provider boundary.
+
+Implemented:
+
+- `EnterpriseContextProviderV010`;
+- reference Package `host-enterprise-context-provider`;
+- Provider `host.enterprise-context`;
+- capability `enterprise.directory`;
+- Host configuration source `APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON`;
+- dynamic Host Context Registry consumption;
+- generic Eidos Chat Context selector from Eidos commit `ff4b720d863f51a2121ef22178c6e54b5bdb8e9f`;
+- Personal Agent selection of Host-offered Personal/Enterprise Contexts;
+- Host re-validation of the selected Context before Agent execution;
+- `context.available.list` READ tool;
+- existing `context.current.get` remains the authoritative current Context read;
+- en / zh-CN / ja / zh-TW selector chrome;
+- tests proving registered Enterprise Context selection succeeds and forged Context selection still fails closed.
+
+Authority:
+
+- `docs/architecture/ENTERPRISE-CONTEXT-PROVIDER-P0.5-v0.1.md`
+
+P0.5 does not add an Enterprise Agent, generic Context Memory writes, automatic cross-context Memory promotion, or broad WRITE autonomy.
+
+After P0.5, the next mainline is the minimum executable Principal/Session + Relationship/Grant layer needed to determine which Enterprise Contexts a human is entitled to receive and which Context-bound tools are effective.
