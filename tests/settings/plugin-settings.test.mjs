@@ -67,6 +67,26 @@ test("Settings Editor persists only declared non-secret settings", async () => {
 
   const updated = await createSettingsPage(manager, store, "openai-llm-provider", describe);
   assert.equal(updated.settings.find(x => x.key === "model").value, "gpt-test");
+
+  await secrets.put({
+    contractVersion: "0.1.0",
+    namespace: "openai-llm-provider",
+    key: "apiKey",
+    scope: "INSTALLATION",
+    scopeId: "default"
+  }, "sk-never-render-this");
+
+  const zh = await createSettingsPage(
+    manager,
+    store,
+    "openai-llm-provider",
+    describe,
+    { installationId: "default" },
+    "zh-CN"
+  );
+  assert.match(zh.settings.find(x => x.key === "secret-status:apiKey").value, /已配置/);
+  assert.equal(zh.settings.find(x => x.key === "secret:apiKey").value, "");
+  assert.doesNotMatch(JSON.stringify(zh), /sk-never-render-this/);
 });
 
 test("invalid setting types are rejected", () => {
