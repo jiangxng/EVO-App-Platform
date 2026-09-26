@@ -155,6 +155,7 @@ const catalog = createPackageCatalog([
   openAiLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
   hostStaticAuthorizationProviderPackage,
+  hostEncryptedSecretsProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -164,6 +165,18 @@ const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
 const settingsStore = settingsStateFile
   ? createFileSettingsStore(settingsStateFile)
   : createMemorySettingsStore();
+const secretsStateFile = process.env.APP_PLATFORM_SECRETS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secrets.enc.json") : undefined);
+const secretsKeyFile = process.env.APP_PLATFORM_SECRETS_KEY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secrets.master.key") : undefined);
+const secretStore = secretsStateFile && secretsKeyFile
+  ? createEncryptedFileSecretStoreV010(secretsStateFile, secretsKeyFile)
+  : createMemorySecretStoreV010();
+const secretAuditFile = process.env.APP_PLATFORM_SECRET_AUDIT_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "secret-audit.jsonl") : undefined);
+const secretAudit = secretAuditFile
+  ? createJsonlSecretAuditStoreV010(secretAuditFile)
+  : createMemorySecretAuditStoreV010();
 const pluginStorageStateFile = process.env.APP_PLATFORM_PLUGIN_STORAGE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "plugin-storage.json") : undefined);
 const pluginStorage = pluginStorageStateFile
@@ -205,6 +218,21 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  createHostEncryptedSecretsProviderV010(secretStore)
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
+  createHostEncryptedSecretsHealthProbeV010(secretStore)
+);
+providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: secretsStateFile
+    ? "Encrypted Host secret store is configured."
+    : "In-memory Host secret store is active for this process.",
+  checkedAt: new Date().toISOString()
+});
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
 const providerBindings = providerBindingsFile
