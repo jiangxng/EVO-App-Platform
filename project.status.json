@@ -177,7 +177,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.7 is functionally CI-verified: request-bound bearer Session resolves the Principal, PlatformRequestContext is Host-derived, Enterprise Context creation is a governed Material WRITE, creation atomically creates Context + OWNER Relationship + initial Grant + CREATING→ACTIVE lifecycle events, ACTIVE contexts require an OWNER, creation facts are immutable, and Personal Agent WRITE tools fail closed through Host authorization. Final docs/help CI is the merge gate.",
+  "currentStep": "Personal Agent P0.7 is CI-verified and merge-ready: request-bound bearer Session, Host-derived PlatformRequestContext, governed Enterprise Context creation, separate OWNER Relationship + initial Grant, CREATING→ACTIVE lifecycle, ACTIVE-owner invariant, immutable creation facts, durable governance state, and Host authorization for Personal Agent Material WRITE tools all pass Platform and nine owning-plugin CI suites.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
