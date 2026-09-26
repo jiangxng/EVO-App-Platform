@@ -2,7 +2,10 @@ import type { AppManagerService } from "../../manager/service.js";
 import type { ProviderBindingV010 } from "../../manager/provider-resolution.js";
 import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry.js";
 import type { HelpContextSelectorsV010, HelpSearchResultV010 } from "../../manager/help-system.js";
-import type { ResolvedContextSetV010 } from "../../contracts/platform-services.js";
+import type {
+  ActiveContextRefV010,
+  ResolvedContextSetV010
+} from "../../contracts/platform-services.js";
 import type {
   AgentToolCall,
   AgentToolCatalogV010,
@@ -22,6 +25,7 @@ export interface EnterpriseAgentToolRegistrationV010 {
 export interface EnterpriseAgentHostToolDependenciesV010 {
   manager: AppManagerService;
   context: ResolvedContextSetV010;
+  listAvailableContexts(): ActiveContextRefV010[];
   listProviderBindings(capability?: string): ProviderBindingV010[];
   getProviderHealth(providerId: string): ProviderRuntimeHealthV010;
   searchHelp(
@@ -89,6 +93,25 @@ export function createEnterpriseAgentHostToolCatalogV010(
       }),
       execute() {
         return structuredClone(dependencies.context);
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.available.list",
+        modelName: "context_available_list",
+        title: "Available Contexts",
+        description: "List only the Personal and Enterprise Context references currently offered by the Host.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "agent.personal"
+      }),
+      execute() {
+        return dependencies.listAvailableContexts().map(context => structuredClone(context));
       }
     },
     {
