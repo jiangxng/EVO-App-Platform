@@ -1,0 +1,41 @@
+name: Plugin CI - Host Static Session Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/session/**"
+      - "contracts/platform-services.ts"
+      - "manager/principal-context.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/principal-grants.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-static-session-provider.yml"
+  pull_request:
+    paths:
+      - "providers/session/**"
+      - "contracts/platform-services.ts"
+      - "manager/principal-context.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/principal-grants.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-static-session-provider.yml"
+
+concurrency:
+  group: plugin-host-static-session-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-static-session-provider
