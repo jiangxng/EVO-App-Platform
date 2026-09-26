@@ -261,3 +261,37 @@ The product Help corpus must describe:
 - Personal vs Enterprise Context Memory;
 - human decision authority;
 - compatibility naming during migration.
+
+
+## 15. P0.3 minimal Context plumbing
+
+The first implementation slice after the world-model freeze intentionally does not implement full IAM.
+
+Public contracts:
+
+- `PersonalContextV010`;
+- compatibility-extended `EnterpriseContextV010`;
+- `ActiveContextRefV010`;
+- `ResolvedContextSetV010`;
+- Person-first `PlatformRequestContextV010.context`;
+- read-only `ContextMemoryReaderV010`.
+
+Host resolution rule:
+
+```text
+request may SELECT a Context ref
+        ↓
+Host Context Registry
+        ↓
+known Personal / Enterprise Context?
+        ├─ yes → resolved Context
+        └─ no  → fail closed
+```
+
+Request/browser data MUST NOT create an Enterprise Context by presenting an arbitrary enterprise/context id.
+
+Until Identity/Session/Grant becomes executable, production defaults to a Host-owned Personal Context and no Enterprise Context. Enterprise Contexts enter later from an explicit Host/provider/grant source.
+
+The Personal Agent receives the resolved Context in model input and can inspect it through the READ-only `context.current.get` tool.
+
+Context Memory in this slice is contract-only and read-only. There is deliberately no generic Context Memory write/learn API yet.
