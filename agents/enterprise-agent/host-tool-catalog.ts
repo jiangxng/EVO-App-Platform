@@ -34,6 +34,11 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     query: string,
     context?: HelpContextSelectorsV010
   ): HelpSearchResultV010[];
+  authorizeWrite?: (
+    descriptor: AgentToolDescriptorV010,
+    args: Record<string, unknown>
+  ) => Promise<{ allowed: boolean; code?: string; message?: string }>
+    | { allowed: boolean; code?: string; message?: string };
 }
 
 function stringArg(
