@@ -113,6 +113,7 @@ test("Plugin Protocol accepts Secret requirements but rejects duplicate Secret k
     scope: "INSTALLATION",
     required: true
   }];
+  valid.features[0].requiresCapabilities = ["secrets.resolve"];
   assert.equal(validatePluginManifestV010(valid).ok, true);
 
   valid.secrets.push({
@@ -123,4 +124,17 @@ test("Plugin Protocol accepts Secret requirements but rejects duplicate Secret k
   const result = validatePluginManifestV010(valid);
   assert.equal(result.ok, false);
   assert.ok(result.issues.some(issue => issue.code === "PLUGIN_SECRET_KEY_DUPLICATE"));
+});
+
+
+test("Plugin Protocol rejects Secret consumers that omit secrets.resolve dependency", () => {
+  const invalid = structuredClone(validPlugin);
+  invalid.secrets = [{
+    key: "apiKey",
+    label: "API Key",
+    scope: "INSTALLATION"
+  }];
+  const result = validatePluginManifestV010(invalid);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some(issue => issue.code === "PLUGIN_SECRET_CAPABILITY_REQUIRED"));
 });
