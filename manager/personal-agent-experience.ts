@@ -406,8 +406,25 @@ export function createPersonalAgentMemoryReviewPageV010(
     emptyMessage: "No Memory proposals need review.",
     items: pending.map(proposal => {
       const revision = proposal.revisions.at(-1)!;
+      const evidenceSources = revision.evidenceSources ?? [];
+      const sourceTrustMetrics = ([
+        ["HOST_VERIFIED", "source-trust-host-verified", "Host-verified sources"],
+        ["DECLARED", "source-trust-declared", "Declared sources"],
+        ["UNVERIFIED", "source-trust-unverified", "Unverified sources"]
+      ] as const).flatMap(([trustLevel, id, label]) => {
+        const count = evidenceSources.filter(source => source.trustLevel === trustLevel).length;
+        return count === 0
+          ? []
+          : [{
+              id,
+              label,
+              value: String(count),
+              tone: trustLevel === "UNVERIFIED" ? "warning" as const : "neutral" as const
+            }];
+      });
       const attention = revision.reviewSignals.length > 0
-        || revision.evidenceQuality === "UNVERIFIED";
+        || revision.evidenceQuality === "UNVERIFIED"
+        || evidenceSources.some(source => source.trustLevel === "UNVERIFIED");
       return {
         id: proposal.proposalId,
         title: revision.summary,
@@ -430,6 +447,7 @@ export function createPersonalAgentMemoryReviewPageV010(
             value: String(revision.evidenceRefs.length),
             tone: revision.evidenceRefs.length === 0 ? "warning" : "neutral"
           },
+          ...sourceTrustMetrics,
           {
             id: "conflicts",
             label: "Review signals",
@@ -468,6 +486,12 @@ export function createPersonalAgentMemoryReviewPageV010(
             title: ref,
             source: revision.evidenceQuality
           })),
+          ...evidenceSources.map((source, index) => ({
+            id: `evidence-source-${index + 1}`,
+            title: source.displayName ?? source.sourceId,
+            source: source.sourceType,
+            detail: source.sourceId
+          })),
           ...revision.reviewSignals.map((signal, index) => ({
             id: `signal-${index + 1}`,
             title: signal.summary,
@@ -504,7 +528,8 @@ export function createPersonalAgentMemoryReviewPageV010(
         metadata: {
           contextId: proposal.context.contextId,
           revisionId: revision.revisionId,
-          evidenceQuality: revision.evidenceQuality
+          evidenceQuality: revision.evidenceQuality,
+          evidenceSourceCount: evidenceSources.length
         }
       };
     }),
