@@ -32,7 +32,9 @@ A tool being visible to the Agent is not the same as authorization to execute it
 
 ## Current observation tools
 
-Personal Agent can inspect the platform snapshot, effective Capabilities, Package catalog, Providers, Provider health, Provider bindings and authoritative Platform Help.
+Personal Agent can inspect its Host-resolved current Context, the platform snapshot, effective Capabilities, Package catalog, Providers, Provider health, Provider bindings and authoritative Platform Help.
+
+The current Context is available through `context.current.get`. Request data may select a Context offered by the Host, but cannot create an Enterprise Context by supplying arbitrary ids.
 
 ## Installation tools
 
