@@ -325,7 +325,7 @@ export function createPluginStorePage(
                   secondaryActions: [
                     {
                       id: "plan",
-                      label: "Details",
+                      label: "Installation details",
                       type: "command" as const,
                       command: "app-platform.plan-install",
                       inputVersion: "0.1.0",
