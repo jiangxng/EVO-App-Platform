@@ -14,6 +14,12 @@ export interface PlatformPrincipalV010 {
   claims?: Record<string, string | number | boolean | null>;
 }
 
+/**
+ * Legacy hierarchical scope retained for compatibility while the platform
+ * migrates to the Person-first Context model.
+ *
+ * New Personal Agent code should prefer ResolvedContextSetV010 / ActiveContextRefV010.
+ */
 export interface PlatformScopeV010 {
   contractVersion: "0.1.0";
   enterpriseId?: string;
@@ -22,10 +28,63 @@ export interface PlatformScopeV010 {
   userId?: string;
 }
 
+export interface PersonalContextV010 {
+  contractVersion: "0.1.0";
+  kind: "PERSONAL";
+  contextId: string;
+  ownerSubjectId?: string;
+  displayName?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+}
+
+export interface EnterpriseContextV010 {
+  contractVersion: "0.1.0";
+  enterpriseId: string;
+  enterpriseProviderId: string;
+  /**
+   * Stable Context identity. Optional only for compatibility with the earlier
+   * enterprise-service contract; new Context-aware code should provide it.
+   */
+  contextId?: string;
+  kind?: "ENTERPRISE";
+  displayName?: string;
+  companyId?: string;
+  workspaceId?: string;
+  membershipId?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+}
+
+export type ActiveContextRefV010 =
+  | {
+      contractVersion: "0.1.0";
+      kind: "PERSONAL";
+      contextId: string;
+    }
+  | {
+      contractVersion: "0.1.0";
+      kind: "ENTERPRISE";
+      contextId: string;
+      enterpriseId: string;
+    };
+
+export interface ResolvedContextSetV010 {
+  contractVersion: "0.1.0";
+  personalContext: PersonalContextV010;
+  activeContext: ActiveContextRefV010;
+  enterpriseContext?: EnterpriseContextV010;
+}
+
 export interface PlatformRequestContextV010 {
   contractVersion: "0.1.0";
   principal: PlatformPrincipalV010;
+  /**
+   * Legacy compatibility projection. New Person-first code should use context.
+   */
   scope: PlatformScopeV010;
+  /**
+   * Person-first Context resolution. Optional during the compatibility phase.
+   */
+  context?: ResolvedContextSetV010;
   correlationId: string;
   locale?: string;
 }
@@ -68,16 +127,6 @@ export interface IdentitySessionV010 {
   issuedAt: string;
   expiresAt?: string;
   assurance?: string[];
-}
-
-export interface EnterpriseContextV010 {
-  contractVersion: "0.1.0";
-  enterpriseId: string;
-  enterpriseProviderId: string;
-  companyId?: string;
-  workspaceId?: string;
-  membershipId?: string;
-  attributes?: Record<string, string | number | boolean | null>;
 }
 
 export interface SecretReferenceV010 {
@@ -146,3 +195,42 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
 
 export type ReservedPlatformCapability =
   typeof RESERVED_PLATFORM_CAPABILITIES[number];
+
+export type ContextMemoryKindV010 =
+  | "FACT"
+  | "CLAIM"
+  | "EXPERIENCE"
+  | "PRACTICE";
+
+export interface ContextMemoryReadRequestV010 {
+  contractVersion: "0.1.0";
+  context: ActiveContextRefV010;
+  query?: string;
+  kinds?: ContextMemoryKindV010[];
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ContextMemoryItemV010 {
+  contractVersion: "0.1.0";
+  memoryId: string;
+  context: ActiveContextRefV010;
+  kind: ContextMemoryKindV010;
+  summary: string;
+  provenanceRefs?: string[];
+  observedAt?: string;
+  supersededBy?: string;
+}
+
+export interface ContextMemoryReadResultV010 {
+  contractVersion: "0.1.0";
+  items: ContextMemoryItemV010[];
+  nextCursor?: string;
+}
+
+export interface ContextMemoryReaderV010 {
+  providerId: string;
+  read(
+    input: ContextMemoryReadRequestV010
+  ): Promise<ContextMemoryReadResultV010> | ContextMemoryReadResultV010;
+}
