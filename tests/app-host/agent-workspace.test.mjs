@@ -2,7 +2,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { appHostShellHtml } from "../../dist/manager/app-host-shell.js";
-import { enterpriseAgentExperienceAssets } from "../../dist/agents/enterprise-agent/package.js";
+import {
+  enterpriseAgentExperienceAssets,
+  enterpriseAgentPackage
+} from "../../dist/agents/enterprise-agent/package.js";
+import { openAiLlmProviderPackage, OPENAI_LLM_PROVIDER_ID } from "../../dist/providers/openai/package.js";
+import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
+import { createPackageCatalog } from "../../dist/catalog/catalog.js";
+import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import { createAppManagerService } from "../../dist/manager/service.js";
+import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
+import { createMemoryProviderBindingStoreV010 } from "../../dist/manager/provider-resolution.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010,
+  resolvePersonalAgentReadinessV010
+} from "../../dist/manager/personal-agent-experience.js";
 
 test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Panel and mobile surface switching", () => {
   assert.match(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
@@ -84,4 +99,94 @@ test("enterprise-agent compatibility identifiers present the product as Personal
     contribution => contribution.kind === "eidos.experience"
   ).manifest;
   assert.ok(experience.routes.some(route => route.path === "/enterprise-agent/setup"));
+});
+
+
+test("Personal Agent readiness distinguishes installed, setup-required and ready", () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([
+      enterpriseAgentPackage,
+      openAiLlmProviderPackage,
+      hostEncryptedSecretsProviderPackage
+    ]),
+    createMemoryLifecycleStore()
+  );
+  const registry = createProviderRuntimeRegistry();
+  const bindings = createMemoryProviderBindingStoreV010();
+
+  manager.install("enterprise-agent");
+  const missing = resolvePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(missing.state, "setup-required");
+  assert.equal(missing.code, "LLM_PROVIDER_MISSING");
+
+  manager.install("openai-llm-provider");
+  const configure = resolvePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(configure.state, "setup-required");
+  assert.equal(configure.code, "LLM_PROVIDER_CONFIGURATION_REQUIRED");
+  assert.equal(configure.providerSettingsRoute, "/settings/openai-llm-provider");
+
+  registry.register(OPENAI_LLM_PROVIDER_ID, {
+    providerId: OPENAI_LLM_PROVIDER_ID,
+    modelId: "test",
+    async infer() {
+      throw new Error("not used");
+    }
+  });
+  registry.setHealth(OPENAI_LLM_PROVIDER_ID, { state: "HEALTHY" });
+
+  const ready = resolvePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(ready.state, "ready");
+  assert.equal(ready.code, "READY");
+  assert.equal(ready.selectedProviderId, OPENAI_LLM_PROVIDER_ID);
+});
+
+test("Personal Agent setup is an Eidos Setup Flow and ready Chat enables composer", () => {
+  const context = {
+    contractVersion: "0.1.0",
+    personalContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:test"
+    },
+    activeContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:test"
+    }
+  };
+
+  const setupRequired = {
+    contractVersion: "0.1.0",
+    state: "setup-required",
+    code: "LLM_PROVIDER_MISSING",
+    providerIds: [],
+    setupRoute: "/enterprise-agent/setup"
+  };
+  const setup = createPersonalAgentSetupPageV010(setupRequired, "ja");
+  assert.equal(setup.kind, "setup-flow");
+  assert.equal(setup.contractVersion, "0.1.0");
+  assert.equal(setup.title, "パーソナルエージェントのセットアップ");
+  assert.equal(setup.steps[0].state, "current");
+  assert.equal(setup.steps[0].primaryAction.route, "/store");
+
+  const ready = {
+    contractVersion: "0.1.0",
+    state: "ready",
+    code: "READY",
+    providerIds: ["openai.responses"],
+    selectedProviderId: "openai.responses",
+    selectedProviderPackageId: "openai-llm-provider",
+    setupRoute: "/enterprise-agent/setup",
+    providerSettingsRoute: "/settings/openai-llm-provider"
+  };
+  const chat = createPersonalAgentChatPageV020(ready, context, "zh-TW");
+  assert.equal(chat.kind, "chat");
+  assert.equal(chat.contractVersion, "0.2.0");
+  assert.equal(chat.title, "個人 Agent");
+  assert.equal(chat.composer.disabled, false);
+  assert.equal(chat.context.value, "個人");
+
+  const done = createPersonalAgentSetupPageV010(ready, "zh-CN");
+  assert.equal(done.steps.every(step => step.state === "complete"), true);
+  assert.equal(done.completionAction.route, "/enterprise-agent");
 });
