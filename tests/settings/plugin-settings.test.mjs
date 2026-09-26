@@ -48,11 +48,15 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   const describe = reference => secrets.describe(reference);
   const initial = await createSettingsPage(manager, store, "openai-llm-provider", describe);
   assert.equal(initial.kind, "settings-editor");
+  assert.equal(initial.contractVersion, "0.2.0");
   assert.equal(initial.namespace, "openai-llm-provider");
-  assert.equal(initial.settings.find(x => x.key === "model").value, "gpt-5.6-luna");
-  assert.equal(initial.settings.find(x => x.key === "secret:apiKey").type, "secret");
-  assert.equal(initial.settings.find(x => x.key === "secret:apiKey").value, "");
-  assert.match(initial.settings.find(x => x.key === "secret-status:apiKey").value, /Not configured/);
+  const initialSettings = initial.groups.flatMap(group => group.settings);
+  assert.deepEqual(initial.groups.map(group => group.id), ["general", "credentials", "advanced"]);
+  assert.equal(initial.groups.find(group => group.id === "advanced").advanced, true);
+  assert.equal(initialSettings.find(x => x.key === "model").value, "gpt-5.6-luna");
+  assert.equal(initialSettings.find(x => x.key === "secret:apiKey").type, "secret");
+  assert.equal(initialSettings.find(x => x.key === "secret:apiKey").value, "");
+  assert.match(initialSettings.find(x => x.key === "secret-status:apiKey").value, /Not configured/);
   assert.equal(store.getNamespace("openai-llm-provider").apiKey, undefined);
 
   const saved = validateAndMergeSettings(manager, store, "openai-llm-provider", {
@@ -66,7 +70,7 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   assert.equal(Object.prototype.hasOwnProperty.call(saved, "OPENAI_API_KEY"), false);
 
   const updated = await createSettingsPage(manager, store, "openai-llm-provider", describe);
-  assert.equal(updated.settings.find(x => x.key === "model").value, "gpt-test");
+  assert.equal(updated.groups.flatMap(group => group.settings).find(x => x.key === "model").value, "gpt-test");
 
   await secrets.put({
     contractVersion: "0.1.0",
@@ -84,8 +88,9 @@ test("Settings Editor persists only declared non-secret settings", async () => {
     { installationId: "default" },
     "zh-CN"
   );
-  assert.match(zh.settings.find(x => x.key === "secret-status:apiKey").value, /已配置/);
-  assert.equal(zh.settings.find(x => x.key === "secret:apiKey").value, "");
+  const zhSettings = zh.groups.flatMap(group => group.settings);
+  assert.match(zhSettings.find(x => x.key === "secret-status:apiKey").value, /已配置/);
+  assert.equal(zhSettings.find(x => x.key === "secret:apiKey").value, "");
   assert.doesNotMatch(JSON.stringify(zh), /sk-never-render-this/);
 });
 
@@ -136,4 +141,24 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
 
   assert.equal(openAi.secondaryActions.some(action => action.id === "configure"), true);
   assert.equal(agent.secondaryActions.some(action => action.id === "configure"), false);
+});
+
+
+test("OpenAI Provider settings support Japanese and Traditional Chinese grouped chrome", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage]),
+    createMemoryLifecycleStore()
+  );
+  const store = createMemorySettingsStore();
+  manager.install("openai-llm-provider");
+  const secretStore = createMemorySecretStoreV010();
+  const secrets = createHostEncryptedSecretsProviderV010(secretStore);
+  const describe = reference => secrets.describe(reference);
+
+  const ja = await createSettingsPage(manager, store, "openai-llm-provider", describe, { installationId: "default" }, "ja");
+  const tw = await createSettingsPage(manager, store, "openai-llm-provider", describe, { installationId: "default" }, "zh-TW");
+  assert.equal(ja.groups.find(group => group.id === "credentials").title, "認証情報");
+  assert.equal(tw.groups.find(group => group.id === "credentials").title, "憑證");
+  assert.equal(ja.groups.find(group => group.id === "advanced").advanced, true);
+  assert.equal(tw.groups.find(group => group.id === "advanced").advanced, true);
 });
