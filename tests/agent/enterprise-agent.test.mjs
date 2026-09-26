@@ -448,10 +448,37 @@ test("Personal Agent readiness distinguishes installed from ready", () => {
   assert.equal(ready.state, "ready");
   assert.equal(ready.providerId, "openai.responses");
 
-  const chat = createPersonalAgentChatPageV020(ready, "Personal");
+  const chat = createPersonalAgentChatPageV020(
+    ready,
+    personalContext,
+    [
+      {
+        ref: personalContext.activeContext,
+        label: "Test Person"
+      },
+      {
+        ref: {
+          contractVersion: "0.1.0",
+          kind: "ENTERPRISE",
+          contextId: "enterprise:acme",
+          enterpriseId: "acme"
+        },
+        label: "Acme"
+      }
+    ]
+  );
   assert.equal(chat.contractVersion, "0.2.0");
   assert.equal(chat.composer.disabled, false);
-  assert.equal(chat.context.value, "Personal");
+  assert.equal(chat.context.value, "Test Person");
+  assert.equal(chat.context.selector.key, "activeContext");
+  assert.equal(chat.context.selector.selectedId, "personal:test");
+  assert.deepEqual(chat.context.selector.options.map(item => item.label), ["Test Person", "Acme"]);
+  assert.deepEqual(chat.context.selector.options[1].value, {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:acme",
+    enterpriseId: "acme"
+  });
 
   const setup = createPersonalAgentSetupPageV010(ready);
   assert.equal(setup.kind, "setup-flow");
