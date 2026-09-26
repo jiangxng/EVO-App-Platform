@@ -317,6 +317,8 @@ export function loadHelpCorpusV010(
   return compiled;
 }
 
+export const helpIndexPageSourceV010 = "app://evo-app-platform/pages/help";
+
 export function helpDocumentRouteV010(id: string): string {
   return `/help/${encodeURIComponent(id)}`;
 }
