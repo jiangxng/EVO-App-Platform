@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Platform authorization Provider P0 — executable authorization.check for privileged Provider governance",
+  "currentMilestone": "Enterprise Agent enablement — Secrets Provider P0 before dynamic Tool Discovery",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -122,7 +122,15 @@
     "platform-help-index-search-context",
     "workbench-secondary-help-activity",
     "platform-help-seed-corpus",
-    "platform-help-ci-governance"
+    "platform-help-ci-governance",
+    "package-secret-declarations",
+    "host-encrypted-secrets-provider",
+    "encrypted-secret-store",
+    "authorized-secret-management",
+    "secret-nonreadback-settings-ui",
+    "openai-secrets-resolve",
+    "openai-env-secret-migration",
+    "host-secrets-provider-isolated-ci"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -145,7 +153,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Platform Help P0 is now multilingual and strictly Eidos-native: en + zh-CN seed variants, per-document deterministic fallback, active-locale propagation, cross-locale machine-metadata CI, and an Eidos Design Language CI gate. Main product maturity returns to P1 Identity / Session / Principal / Scope / PlatformRequestContext.",
+  "currentStep": "Secrets Provider P0 implemented in branch: Package Secret declarations, encrypted Host store, Workbench credential entry through Eidos Settings, authorized non-readback mutation/audit, and OpenAI secrets.resolve migration. After CI/deployment/persistence verification, return immediately to Enterprise Agent Tool Discovery.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -422,6 +430,18 @@
       ],
       "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN"
+    },
+    "secrets": {
+      "status": "IMPLEMENTED_P0_PENDING_CI_DEPLOYMENT",
+      "capability": "secrets.resolve",
+      "referenceProvider": "host.encrypted-secrets",
+      "contract": "SecretReferenceV010/SecretDescriptorV010/SecretsResolverV010/ManagedSecretsProviderV010",
+      "storage": "AES_256_GCM_HOST_KEY_FILE",
+      "mutationAction": "secret.value.manage",
+      "readback": "FORBIDDEN",
+      "ui": "EIDOS_SETTINGS_EDITOR_SECRET",
+      "firstConsumer": "openai-llm-provider/apiKey",
+      "railwayApiKeyConfig": "DEPRECATED_AS_NORMAL_PATH"
     }
   },
   "dependencyReproducibility": {
@@ -465,7 +485,7 @@
       "compiler": "manager/help-system.ts",
       "search": "DETERMINISTIC_LOCAL_CATALOG_PLUS_HOST_SEARCH_CONTEXT_API",
       "ci": "help corpus + locale metadata + Eidos Design Language gates via Platform CI",
-      "seedDocuments": 14,
+      "seedDocuments": 15,
       "locales": {
         "canonical": "en",
         "required": [
@@ -484,7 +504,7 @@
           "related-machine-ids"
         ]
       },
-      "seedVariants": 28,
+      "seedVariants": 30,
       "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3"
     }
   }
