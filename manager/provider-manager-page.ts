@@ -220,6 +220,13 @@ export function createProviderBindingPage(
         value: existing?.priority ?? 0
       },
       {
+        key: "adminToken",
+        label: "Administrator authorization",
+        description: "Host-owned bootstrap administrator secret. It is submitted for this change only and is never persisted in Provider binding state or audit history.",
+        type: "secret",
+        value: ""
+      },
+      {
         key: "currentResolution",
         label: "Current resolution",
         type: "string",
@@ -230,7 +237,7 @@ export function createProviderBindingPage(
         key: "selectedHealth",
         label: "Selected runtime health",
         type: "string",
-        value: `${health.state}${health.message ? ` · ${health.message}` : ""}`,
+        value: `${health.state}${health.message ? ` · ${health.message}` : ""}${health.checkedAt ? ` · checked ${health.checkedAt}` : ""}`,
         readOnly: true
       }
     ],
