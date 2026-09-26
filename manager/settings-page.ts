@@ -305,7 +305,15 @@ export function validateAndMergeSettings(
   input: Record<string, unknown>
 ): Record<string, SettingValueV010> {
   const merged = mergeSettingsContributions(manager.listInstalledSettings(namespace));
-  if (!merged || merged.namespace !== namespace) {
+  if (!merged) {
+    const pkg = manager.listCatalog().find(item => item.packageId === namespace);
+    const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === namespace);
+    if (pkg && installed && (pkg.secrets?.length ?? 0) > 0) {
+      return store.getNamespace(namespace);
+    }
+    throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
+  }
+  if (merged.namespace !== namespace) {
     throw new Error(`SETTINGS_NAMESPACE_NOT_INSTALLED: ${namespace}`);
   }
 
