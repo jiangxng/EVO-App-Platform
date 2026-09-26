@@ -331,7 +331,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "9b07e3d6da885f25b048ad79979239b823d84ef3",
+    "eidosSourceCommit": "12f61d5a02011a5f974beac8e0fda8c34f81e142",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization",
     "enforcement": "PLATFORM_CI_STRICT_EIDOS_DESIGN_LANGUAGE_GATE",
@@ -518,7 +518,7 @@
         ]
       },
       "seedVariants": 34,
-      "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3"
+      "eidosRevision": "12f61d5a02011a5f974beac8e0fda8c34f81e142"
     }
   },
   "enterpriseAgent": {
