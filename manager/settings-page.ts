@@ -1,7 +1,7 @@
 import type { AppManagerService } from "./service.js";
 import type { SettingsStore } from "./settings-store.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
-import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.js";
+import type { SettingsEditorV020 } from "../vendor/eidos/src/settings/contracts.js";
 import type {
   EidosSettingsContributionV010,
   PackageManifestV010,
@@ -27,13 +27,131 @@ export type DescribeSecretV010 = (
   reference: SecretReferenceV010
 ) => SecretDescriptorV010 | undefined | Promise<SecretDescriptorV010 | undefined>;
 
-function settingsUiLocale(locale: string): "en" | "zh-CN" {
+type SettingsUiLocale = "en" | "zh-CN" | "ja" | "zh-TW";
+
+function settingsUiLocale(locale: string): SettingsUiLocale {
   try {
-    return Intl.getCanonicalLocales(locale.trim())[0] === "zh-CN" ? "zh-CN" : "en";
+    const canonical = Intl.getCanonicalLocales(locale.trim())[0] ?? "en";
+    if (canonical === "zh-CN" || canonical.startsWith("zh-Hans")) return "zh-CN";
+    if (canonical === "zh-TW" || canonical === "zh-HK" || canonical.startsWith("zh-Hant")) return "zh-TW";
+    if (canonical === "ja" || canonical.startsWith("ja-")) return "ja";
+    return "en";
   } catch {
     return "en";
   }
 }
+
+const uiText: Record<SettingsUiLocale, {
+  configureCredentials: string;
+  configured: string;
+  notConfigured: string;
+  scopeUnavailable: string;
+  updated: string;
+  hidden: string;
+  replace: (label: string) => string;
+  status: (label: string) => string;
+  remove: (label: string) => string;
+  removeDescription: string;
+  general: string;
+  generalDescription: string;
+  credentials: string;
+  credentialsDescription: string;
+  advanced: string;
+  advancedDescription: string;
+  admin: string;
+  adminDescription: string;
+  save: string;
+  empty: string;
+}> = {
+  en: {
+    configureCredentials: "Configure Host-managed credentials for this Package.",
+    configured: "Configured",
+    notConfigured: "Not configured",
+    scopeUnavailable: "Scope context unavailable",
+    updated: "updated",
+    hidden: "value is never displayed",
+    replace: label => `Replace ${label}`,
+    status: label => `${label} status`,
+    remove: label => `Remove ${label}`,
+    removeDescription: "Remove the stored Secret when saving.",
+    general: "General",
+    generalDescription: "Provider and plugin runtime settings.",
+    credentials: "Credentials",
+    credentialsDescription: "Host-managed Secrets. Saved plaintext is never displayed.",
+    advanced: "Advanced",
+    advancedDescription: "Temporary/bootstrap administration controls.",
+    admin: "Administrator authorization",
+    adminDescription: "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
+    save: "Save",
+    empty: "This plugin has no editable configuration."
+  },
+  "zh-CN": {
+    configureCredentials: "配置此 Package 的 Host 管理凭据。",
+    configured: "已配置",
+    notConfigured: "未配置",
+    scopeUnavailable: "当前作用域上下文不可用",
+    updated: "更新于",
+    hidden: "不显示已保存明文",
+    replace: label => `替换 ${label}`,
+    status: label => `${label} 状态`,
+    remove: label => `删除 ${label}`,
+    removeDescription: "保存时删除当前已存储的 Secret。",
+    general: "常规",
+    generalDescription: "Provider 与插件运行设置。",
+    credentials: "凭据",
+    credentialsDescription: "由 Host 管理的 Secret；保存后的明文不会再次显示。",
+    advanced: "高级",
+    advancedDescription: "临时/bootstrap 管理控制。",
+    admin: "管理员授权",
+    adminDescription: "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。",
+    save: "保存",
+    empty: "此插件没有可编辑配置。"
+  },
+  ja: {
+    configureCredentials: "この Package の Host 管理認証情報を設定します。",
+    configured: "設定済み",
+    notConfigured: "未設定",
+    scopeUnavailable: "現在のスコープコンテキストを利用できません",
+    updated: "更新",
+    hidden: "保存済みの値は表示されません",
+    replace: label => `${label} を置き換える`,
+    status: label => `${label} の状態`,
+    remove: label => `${label} を削除`,
+    removeDescription: "保存時に現在の Secret を削除します。",
+    general: "一般",
+    generalDescription: "Provider とプラグインの実行設定。",
+    credentials: "認証情報",
+    credentialsDescription: "Host 管理の Secret。保存済みの平文は再表示されません。",
+    advanced: "詳細設定",
+    advancedDescription: "一時的な bootstrap 管理コントロール。",
+    admin: "管理者認証",
+    adminDescription: "Secret 変更時の bootstrap 管理者認証にのみ使用され、保存されません。",
+    save: "保存",
+    empty: "編集可能な設定はありません。"
+  },
+  "zh-TW": {
+    configureCredentials: "設定此 Package 的 Host 管理憑證。",
+    configured: "已設定",
+    notConfigured: "未設定",
+    scopeUnavailable: "目前的作用域上下文無法使用",
+    updated: "更新於",
+    hidden: "不顯示已儲存明文",
+    replace: label => `取代 ${label}`,
+    status: label => `${label} 狀態`,
+    remove: label => `移除 ${label}`,
+    removeDescription: "儲存時移除目前已保存的 Secret。",
+    general: "一般",
+    generalDescription: "Provider 與插件執行設定。",
+    credentials: "憑證",
+    credentialsDescription: "由 Host 管理的 Secret；已儲存的明文不會再次顯示。",
+    advanced: "進階",
+    advancedDescription: "暫時/bootstrap 管理控制。",
+    admin: "管理員授權",
+    adminDescription: "僅在修改 Secret 時用於 bootstrap 階段管理員驗證，不會被保存。",
+    save: "儲存",
+    empty: "此插件沒有可編輯設定。"
+  }
+};
 
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
@@ -215,13 +333,13 @@ export async function createSettingsPage(
   describeSecret?: DescribeSecretV010,
   secretContext: SettingsSecretScopeContextV010 = { installationId: "default" },
   locale = "en"
-): Promise<SettingsEditorV010 | undefined> {
+): Promise<SettingsEditorV020 | undefined> {
   const pkg = manager.listCatalog().find(item => item.packageId === packageId);
   const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
   if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
 
   const uiLocale = settingsUiLocale(locale);
-  const zh = uiLocale === "zh-CN";
+  const text = uiText[uiLocale];
   const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
   const namespace = merged?.namespace ?? packageId;
   const current = store.getNamespace(namespace);
@@ -243,21 +361,15 @@ export async function createSettingsPage(
       const configured = status?.configured === true;
       const unavailable = !reference;
       const statusValue = unavailable
-        ? (zh ? "当前作用域上下文不可用" : "Scope context unavailable")
+        ? text.scopeUnavailable
         : configured
-          ? (
-              zh
-                ? `已配置${status?.updatedAt ? ` · 更新于 ${status.updatedAt}` : ""} · 不显示已保存明文`
-                : `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
-            )
-          : (zh ? "未配置" : "Not configured");
+          ? `${text.configured}${status?.updatedAt ? ` · ${text.updated} ${status.updatedAt}` : ""} · ${text.hidden}`
+          : text.notConfigured;
 
       return [
         {
           key: `secret:${declaration.key}`,
-          label: configured
-            ? (zh ? `替换 ${declaration.label}` : `Replace ${declaration.label}`)
-            : declaration.label,
+          label: configured ? text.replace(declaration.label) : declaration.label,
           description: unavailable
             ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
             : declaration.description,
@@ -267,7 +379,7 @@ export async function createSettingsPage(
         },
         {
           key: `secret-status:${declaration.key}`,
-          label: zh ? `${declaration.label} 状态` : `${declaration.label} status`,
+          label: text.status(declaration.label),
           type: "string" as const,
           value: statusValue,
           readOnly: true
@@ -275,8 +387,8 @@ export async function createSettingsPage(
         ...(configured && !unavailable
           ? [{
               key: `secret-remove:${declaration.key}`,
-              label: zh ? `删除 ${declaration.label}` : `Remove ${declaration.label}`,
-              description: zh ? "保存时删除当前已存储的 Secret。" : "Remove the stored Secret when saving.",
+              label: text.remove(declaration.label),
+              description: text.removeDescription,
               type: "boolean" as const,
               value: false,
               defaultValue: false
@@ -289,37 +401,51 @@ export async function createSettingsPage(
   const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
 
   return {
-    contractVersion: "0.1.0",
+    contractVersion: "0.2.0",
     kind: "settings-editor",
     id: `evo-settings.${packageId}`,
     namespace,
     title: merged?.title ?? pkg.displayName,
-    description: merged?.description ?? (
-      zh
-        ? "配置此 Package 的 Host 管理凭据。"
-        : "Configure Host-managed credentials for this Package."
-    ),
+    description: merged?.description ?? text.configureCredentials,
     command: {
       code: "app-platform.update-settings",
       inputVersion: "0.1.0"
     },
-    settings: [
-      ...ordinarySettings,
-      ...secretSettings,
+    groups: [
+      ...(ordinarySettings.length > 0
+        ? [{
+            id: "general",
+            title: text.general,
+            description: text.generalDescription,
+            settings: ordinarySettings
+          }]
+        : []),
+      ...(secretSettings.length > 0
+        ? [{
+            id: "credentials",
+            title: text.credentials,
+            description: text.credentialsDescription,
+            settings: secretSettings
+          }]
+        : []),
       ...(hasSecrets
         ? [{
-            key: "adminToken",
-            label: zh ? "管理员授权" : "Administrator authorization",
-            description: zh
-              ? "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。"
-              : "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
-            type: "secret" as const,
-            value: ""
+            id: "advanced",
+            title: text.advanced,
+            description: text.advancedDescription,
+            advanced: true,
+            settings: [{
+              key: "adminToken",
+              label: text.admin,
+              description: text.adminDescription,
+              type: "secret" as const,
+              value: ""
+            }]
           }]
         : [])
     ],
-    saveLabel: zh ? "保存" : "Save",
-    emptyMessage: zh ? "此插件没有可编辑配置。" : "This plugin has no editable configuration."
+    saveLabel: text.save,
+    emptyMessage: text.empty
   };
 }
 
