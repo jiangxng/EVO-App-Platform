@@ -52,7 +52,8 @@ function agentToolCatalog(manager, context = personalContext) {
     listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
-    searchHelp() { return []; }
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
   });
 }
 
