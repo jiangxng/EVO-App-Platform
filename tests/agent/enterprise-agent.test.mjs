@@ -100,6 +100,25 @@ test("Personal Agent can inspect the Host-resolved current Context", async () =>
   assert.deepEqual(observation.result, personalContext);
 });
 
+test("Personal Agent model receives the Host-resolved Context for the run", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let receivedContext;
+  const model = {
+    async decide(input) {
+      receivedContext = input.context;
+      return { type: "final", message: "ok" };
+    }
+  };
+  const runtime = createEnterpriseAgentRuntime(model, hostCatalog(manager));
+  const reply = await runtime.chat("inspect context", personalContext);
+
+  assert.deepEqual(receivedContext, personalContext);
+  assert.deepEqual(reply.context, personalContext);
+});
+
 test("Host tool catalog can accept a new tool without changing Enterprise Agent core", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),
