@@ -50,7 +50,7 @@ import {
   createHostRemoteBearerCredentialProviderV010,
   parseHostRemoteBearerTokenMapV010
 } from "../providers/remote-credential/runtime.js";
-import { createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
+import { createOpenAiResponsesHealthProbe, createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
 import {
   OPENAI_LLM_PACKAGE_ID,
   OPENAI_LLM_PROVIDER_ID,
@@ -82,6 +82,12 @@ import {
   createProviderManagerIndexPage,
   providerManagerIndexPageSource
 } from "./provider-manager-page.js";
+import {
+  authorizeProviderAdministrationV010,
+  createJsonlProviderBindingAuditStoreV010,
+  createMemoryProviderBindingAuditStoreV010,
+  providerAuditEventV010
+} from "./provider-governance.js";
 import {
   companyNotesPackage,
   enterpriseAgentPackage,
@@ -143,6 +149,12 @@ const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.tr
 const providerBindings = providerBindingsFile
   ? createFileProviderBindingStoreV010(providerBindingsFile)
   : createMemoryProviderBindingStoreV010();
+const providerAdminToken = process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
+const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-governance-audit.jsonl") : undefined);
+const providerAudit = providerAuditFile
+  ? createJsonlProviderBindingAuditStoreV010(providerAuditFile)
+  : createMemoryProviderBindingAuditStoreV010();
 const remoteBearerTokenMap = parseHostRemoteBearerTokenMapV010(
   process.env.APP_PLATFORM_REMOTE_BEARER_TOKENS_JSON
 );
@@ -156,6 +168,10 @@ if (remoteBearerTokenMap) {
     message: "Host bearer credential map is configured.",
     checkedAt: new Date().toISOString()
   });
+  providerRuntimeRegistry.setHealthProbe(HOST_REMOTE_CREDENTIAL_PROVIDER_ID, () => ({
+    state: "HEALTHY",
+    message: "Host bearer credential map remains configured."
+  }));
 }
 
 function activeServiceProviderDescriptors(capability: string) {
@@ -259,13 +275,18 @@ function refreshOpenAiProviderRuntime(): void {
     ? values.baseUrl.trim()
     : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
 
+  const options = {
+    apiKey: openaiApiKey,
+    model,
+    baseUrl
+  };
   providerRuntimeRegistry.replace<LlmInferenceProvider>(
     OPENAI_LLM_PROVIDER_ID,
-    createOpenAiResponsesLlmProvider({
-      apiKey: openaiApiKey,
-      model,
-      baseUrl
-    })
+    createOpenAiResponsesLlmProvider(options)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    OPENAI_LLM_PROVIDER_ID,
+    createOpenAiResponsesHealthProbe(options)
   );
   providerRuntimeRegistry.setHealth(OPENAI_LLM_PROVIDER_ID, {
     state: "UNKNOWN",
@@ -423,6 +444,53 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/providers/bindings") {
       const capability = url.searchParams.get("capability") ?? undefined;
       return json(response, 200, providerBindings.list(capability));
+    }
+    if (request.method === "GET" && url.pathname === "/v1/providers/audit") {
+      const rawLimit = Number(url.searchParams.get("limit") ?? "100");
+      const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(Math.trunc(rawLimit), 500)) : 100;
+      return json(response, 200, providerAudit.list(limit));
+    }
+    if (request.method === "POST" && url.pathname === "/v1/providers/health/probe") {
+      const body = await readJson(request) as {
+        providerId?: unknown;
+        capability?: unknown;
+        adminToken?: unknown;
+        correlationId?: unknown;
+      };
+      const providerId = typeof body.providerId === "string" ? body.providerId.trim() : "";
+      const capability = typeof body.capability === "string" ? body.capability.trim() : undefined;
+      const adminToken = typeof body.adminToken === "string" ? body.adminToken : undefined;
+      const correlationId = typeof body.correlationId === "string" ? body.correlationId : undefined;
+      const decision = authorizeProviderAdministrationV010(adminToken, providerAdminToken);
+      if (!providerId) {
+        return json(response, 400, { ok: false, error: { code: "PROVIDER_ID_REQUIRED" } });
+      }
+      providerAudit.append(providerAuditEventV010({
+        action: "PROBE_PROVIDER_HEALTH",
+        outcome: decision.allowed ? "ALLOWED" : "DENIED",
+        actorId: decision.actorId,
+        ...(correlationId ? { correlationId } : {}),
+        ...(capability ? { capability } : {}),
+        providerId,
+        reason: decision.reason
+      }));
+      if (!decision.allowed) {
+        return json(response, 403, {
+          ok: false,
+          error: { code: decision.reason, message: "Provider administration authorization denied." }
+        });
+      }
+      const descriptors = capability
+        ? manager.listEffectiveServiceProviders(capability)
+        : manager.listEffectiveServiceProviders();
+      if (!descriptors.some(provider => provider.providerId === providerId)) {
+        return json(response, 404, {
+          ok: false,
+          error: { code: "PROVIDER_NOT_ACTIVE", message: providerId }
+        });
+      }
+      const health = await providerRuntimeRegistry.runHealthProbe(providerId);
+      return json(response, 200, { ok: true, providerId, health });
     }
     if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
       return json(response, 200, [
@@ -658,6 +726,30 @@ const server = createServer(async (request, response) => {
             throw new Error(
               `PROVIDER_BINDING_PROVIDER_NOT_ACTIVE: ${capability}: ${providerId}`
             );
+          }
+
+          const adminToken = typeof values.adminToken === "string" ? values.adminToken : undefined;
+          const decision = authorizeProviderAdministrationV010(adminToken, providerAdminToken);
+          providerAudit.append(providerAuditEventV010({
+            action: "UPDATE_PROVIDER_BINDING",
+            outcome: decision.allowed ? "ALLOWED" : "DENIED",
+            actorId: decision.actorId,
+            correlationId: action.sourceInteractionId,
+            capability,
+            providerId,
+            scope,
+            ...(scope === "SYSTEM" ? {} : { scopeId }),
+            reason: decision.reason
+          }));
+          if (!decision.allowed) {
+            return json(response, 403, {
+              ok: false,
+              correlationId: action.sourceInteractionId,
+              error: {
+                code: decision.reason,
+                message: "Provider binding change requires Host administrator authorization."
+              }
+            });
           }
 
           providerBindings.save({
