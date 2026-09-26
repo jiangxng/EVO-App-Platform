@@ -5,7 +5,10 @@ import {
   inspectPluginRuntimeV010,
   type PluginRuntimeStatusV010
 } from "./plugin-runtime-host.js";
-import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
+import type {
+  ExtensionManagerActionV010,
+  ExtensionManagerV010
+} from "../vendor/eidos/src/extension-manager/contracts.js";
 import { packageHasConfiguration, settingsPackageRoute } from "./settings-page.js";
 import {
   createMemoryPluginIntegrityTrustStoreV010,
@@ -76,11 +79,20 @@ function contributionSummary(pkg: PackageManifestV010): Array<{ kind: string; co
     .sort((a, b) => a.kind.localeCompare(b.kind));
 }
 
+export interface PluginProductReadinessV010 {
+  id: "ready" | "setup-required" | "blocked" | "degraded" | "error";
+  label: string;
+  tone?: "neutral" | "positive" | "warning" | "danger";
+  message?: string;
+  primaryAction?: ExtensionManagerActionV010;
+}
+
 export interface PluginStorePageOptionsV010 {
   integrityTrustStore?: PluginIntegrityTrustStoreV010;
   runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
   runtimeEvents?: PluginRuntimeEventV010[];
   evaluateRuntime?: (pkg: PackageManifestV010) => PluginRuntimeStatusV010;
+  evaluateProductReadiness?: (pkg: PackageManifestV010) => PluginProductReadinessV010 | undefined;
 }
 
 export function createPluginStorePage(
@@ -110,7 +122,7 @@ export function createPluginStorePage(
     kind: "extension-manager",
     id: "evo.plugin-store",
     title: "EVO Plugin Platform",
-    description: "App Platform owns plugin protocol and lifecycle. Eidos renders declared Contribution Points. Test install, enable, disable and uninstall here without coupling unrelated plugin CI.",
+    description: "Discover, install and manage EVO extensions. Product readiness is shown separately from lifecycle; technical protocol details stay available on demand.",
     protocol: {
       name: "EVO Plugin Protocol",
       version: EVO_PLUGIN_PROTOCOL_VERSION,
@@ -120,6 +132,7 @@ export function createPluginStorePage(
       name: "EVO App Platform",
       version: "0.1.0"
     },
+    technicalDetailsLabel: "Technical details",
     items: packages
       .filter(pkg => pkg.type !== "FOUNDATION_RUNTIME")
       .map(pkg => {
@@ -145,6 +158,9 @@ export function createPluginStorePage(
         );
         const provides = unique(pkg.features.flatMap(feature => feature.providesCapabilities ?? []));
         const requires = unique(pkg.features.flatMap(feature => feature.requiresCapabilities ?? []));
+        const productReadiness = isInstalled && isEnabled
+          ? options.evaluateProductReadiness?.(pkg)
+          : undefined;
 
         return {
           id: pkg.packageId,
@@ -169,6 +185,14 @@ export function createPluginStorePage(
               : "Incompatible",
             tone: compatible && isEnabled ? "positive" as const : compatible ? "neutral" as const : "danger" as const
           },
+          ...(productReadiness ? {
+            readiness: {
+              id: productReadiness.id,
+              label: productReadiness.label,
+              tone: productReadiness.tone,
+              message: productReadiness.message
+            }
+          } : {}),
           compatibility: {
             protocolVersion: pkg.contractVersion,
             hostVersion: compatibility.host.appPlatform,
@@ -310,14 +334,16 @@ export function createPluginStorePage(
                 }
               : isEnabled
                 ? {
-                    ...(route ? {
-                      primaryAction: {
-                        id: "open",
-                        label: "Open",
-                        type: "navigate" as const,
-                        route
-                      }
-                    } : {}),
+                    ...(productReadiness?.primaryAction
+                      ? { primaryAction: productReadiness.primaryAction }
+                      : route ? {
+                          primaryAction: {
+                            id: "open",
+                            label: "Open",
+                            type: "navigate" as const,
+                            route
+                          }
+                        } : {}),
                     secondaryActions: [
                       ...(settingsRoute ? [{
                         id: "configure",
