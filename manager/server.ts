@@ -353,14 +353,20 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
-if (!manager.getSnapshot().installedPackages.some(
-  item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID
-)) {
+const installedAtStartup = manager.getSnapshot().installedPackages;
+const hasInstalledSecretConsumer = installedAtStartup.some(installed => {
+  const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
+  return (pkg?.secrets?.length ?? 0) > 0;
+});
+if (
+  hasInstalledSecretConsumer
+  && !installedAtStartup.some(item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID)
+) {
   try {
     manager.install(HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
-    console.log("Installed Host encrypted secrets Provider foundation.");
+    console.log("Migrated installed Secret consumers onto Host encrypted secrets Provider.");
   } catch (error) {
-    console.error("Failed to install Host encrypted secrets Provider foundation.", error);
+    console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
   }
 }
 
