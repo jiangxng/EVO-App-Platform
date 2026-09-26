@@ -476,4 +476,4 @@ scope / scopeId
 reason
 ```
 
-A JSONL audit sink may be configured with `APP_PLATFORM_PROVIDER_AUDIT_FILE`; when lifecycle state is file-backed, the default audit file is colocated with that state.
+A JSONL audit sink may be configured with `APP_PLATFORM_PROVIDER_AUDIT_FILE`; when lifecycle state is file-backed, the default audit file is colocated with that state. Governance audit reads are themselves administrator-protected and accept the Host bootstrap secret only through the `Authorization: Bearer ...` request boundary; the secret is never returned or written to audit storage.
