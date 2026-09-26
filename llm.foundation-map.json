@@ -58,7 +58,7 @@
     "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
     "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
     "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT",
-    "personalAgentProductExperience": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI"
+    "personalAgentProductExperience": "CI_VERIFIED_P0_4"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -250,7 +250,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "P0_4_EXECUTABLE_CI_VALIDATION_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
+    "next": "MERGE_P0_4_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -264,7 +264,7 @@
       "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
     },
     "productExperience": {
-      "status": "IMPLEMENTED_P0_4_PENDING_EXECUTABLE_CI",
+      "status": "CI_VERIFIED_P0_4",
       "authority": "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md",
       "eidosFirst": true,
       "requiredEidosPatterns": [
@@ -275,7 +275,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "EXECUTABLE_CI_THEN_MERGE",
+      "next": "MERGE_THEN_FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE",
       "locales": [
         "en",
         "zh-CN",
