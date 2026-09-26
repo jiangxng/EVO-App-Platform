@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.4 — Eidos-native product experience design",
+  "currentMilestone": "Personal Agent P0.6 — Principal, Session and Enterprise Context Grants",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -137,7 +137,15 @@
     "enterprise-agent-provider-observation-tools",
     "enterprise-agent-help-search-tool",
     "enterprise-agent-host-install-preflight",
-    "enterprise-agent-tool-discovery-help"
+    "enterprise-agent-tool-discovery-help",
+    "identity-session-provider-contract",
+    "host-static-session-provider",
+    "enterprise-context-grant-provider-contract",
+    "host-enterprise-context-grant-provider",
+    "principal-owned-personal-context",
+    "principal-grant-enterprise-context-filtering",
+    "personal-agent-principal-model-input",
+    "context-bound-enterprise-profile-tool"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -160,7 +168,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.5 is CI-verified: the first real Enterprise Context Provider, dynamic Host Context Registry, Eidos Context selector, Host fail-closed re-validation, context.available.list/context.current.get READ tools, and four-locale selector UX all pass Platform and owning-plugin CI. Next mainline: minimal Principal/Session + Relationship/Grant for Enterprise Context entitlement and Context-bound tool filtering.",
+  "currentStep": "Personal Agent P0.6 is functionally CI-verified: identity.session resolves the current Principal, enterprise.membership grants filter Enterprise Context availability, Personal Context is Principal-owned, the Principal reaches Agent model input, and enterprise.context.profile.get is available only in an authorized Enterprise Context. Final docs/help CI is the merge gate.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -549,9 +557,12 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "USE_PERSON_FIRST_WORLD_MODEL_AUTHORITY",
+    "next": "REQUEST_BOUND_SESSION_THEN_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "productIdentity": "Personal Agent",
-    "preferredCapability": "agent.personal.tool-discovery"
+    "preferredCapability": "agent.personal.tool-discovery",
+    "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
+    "writeAuthorization": "NEXT_ACTIVE_SLICE",
+    "initialToolCount": 12
   },
   "worldModel": {
     "status": "FROZEN_MVP",
@@ -590,7 +601,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+    "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -616,7 +627,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT",
+      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION",
       "locales": [
         "en",
         "zh-CN",
@@ -652,7 +663,27 @@
         "ja",
         "zh-TW"
       ],
-      "next": "MINIMAL_PRINCIPAL_SESSION_RELATIONSHIP_GRANT"
+      "next": "P0_6_DELIVERED_THEN_REQUEST_BOUND_SESSION"
+    },
+    "contextP0_6": {
+      "status": "CI_VERIFIED_P0_6",
+      "authority": "docs/architecture/PERSONAL-AGENT-PRINCIPAL-GRANTS-P0.6-v0.1.md",
+      "sessionContract": "IdentitySessionProviderV010",
+      "sessionCapability": "identity.session",
+      "referenceSessionProvider": "host.static-session",
+      "sessionConfiguration": "APP_PLATFORM_STATIC_SESSION_JSON",
+      "compatibilityFallback": "EVO_ACTOR_ID_EVO_ACTOR_TYPE_ONLY_WHEN_NO_SESSION_PROVIDER_EFFECTIVE",
+      "grantContract": "EnterpriseContextGrantProviderV010",
+      "grantCapability": "enterprise.membership",
+      "referenceGrantProvider": "host.enterprise-context-grant",
+      "grantConfiguration": "APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON",
+      "effectiveEnterpriseContexts": "DIRECTORY_INTERSECT_PRINCIPAL_GRANTS",
+      "personalContextOwner": "CURRENT_PRINCIPAL",
+      "modelInput": "PRINCIPAL_PLUS_RESOLVED_CONTEXT",
+      "contextBoundTool": "enterprise.context.profile.get",
+      "materialWriteAuthorization": "DEFERRED_NEXT_SLICE",
+      "memoryWrite": "NOT_IMPLEMENTED",
+      "next": "REQUEST_BOUND_IDENTITY_SESSION_AND_CONTEXT_AWARE_WRITE_AUTHORIZATION"
     }
   }
 }
