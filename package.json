@@ -18,7 +18,8 @@
     "test:plugin:ledger-configurator": "npm run build && node --test tests/configurator/configurator.test.mjs tests/ledger-runtime-configurator-compiler.test.mjs tests/ledger-runtime-configurator-ui.test.mjs",
     "test:plugin:trading-lite": "npm run build && node --test tests/actions/trading-lite-evo.test.mjs",
     "test:integration:eidos": "npm run build && node --test tests/integration/app-platform-eidos-plugin-platform.test.mjs",
-    "plugin:validate": "npm run build --silent && node tools/plugin-manifest-validate.mjs"
+    "plugin:validate": "npm run build --silent && node tools/plugin-manifest-validate.mjs",
+    "test:plugin:host-authorization-provider": "npm run build && node --test tests/protocol/authorization-provider.test.mjs tests/protocol/provider-governance.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
