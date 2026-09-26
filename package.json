@@ -13,7 +13,7 @@
     "start:agent": "node dist/agents/enterprise-agent/server.js",
     "test:platform": "npm run build && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs",
     "test:all": "npm run build && node --test tests/**/*.test.mjs",
-    "test:plugin:enterprise-agent": "npm run build && node --test tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs",
+    "test:plugin:enterprise-agent": "npm run build && node --test tests/agent/enterprise-agent.test.mjs tests/agent/personal-agent-product-experience.test.mjs tests/app-host/agent-workspace.test.mjs",
     "test:plugin:openai-provider": "npm run build && node --test tests/llm/provider.test.mjs tests/agent/openai-responses-model.test.mjs",
     "test:plugin:ledger-configurator": "npm run build && node --test tests/configurator/configurator.test.mjs tests/ledger-runtime-configurator-compiler.test.mjs tests/ledger-runtime-configurator-ui.test.mjs",
     "test:plugin:trading-lite": "npm run build && node --test tests/actions/trading-lite-evo.test.mjs",
