@@ -63,8 +63,102 @@ function proposalFromInstallPlan(
   };
 }
 
+function memoryProposalText(locale: string) {
+  if (locale === "zh-CN") return {
+    title: "审核记忆提案",
+    summary: "这条候选知识只有在你审核并接受后，才会成为持久化 Context Memory。",
+    risk: "接受会创建不可修改的 Memory 记录；编辑只会新增 Proposal revision。",
+    action: "打开记忆审核",
+    evidence: "证据引用",
+    signals: "审核信号"
+  };
+  if (locale === "ja") return {
+    title: "メモリー提案をレビュー",
+    summary: "この候補知識は、レビューして承認するまで永続的な Context Memory にはなりません。",
+    risk: "承認すると不変の Memory レコードが作成され、編集は Proposal revision として追加されます。",
+    action: "メモリーレビューを開く",
+    evidence: "証拠参照",
+    signals: "レビュー信号"
+  };
+  if (locale === "zh-TW") return {
+    title: "審核記憶提案",
+    summary: "這筆候選知識只有在你審核並接受後，才會成為持久化 Context Memory。",
+    risk: "接受會建立不可修改的 Memory 記錄；編輯只會新增 Proposal revision。",
+    action: "開啟記憶審核",
+    evidence: "證據引用",
+    signals: "審核訊號"
+  };
+  return {
+    title: "Review proposed memory",
+    summary: "This proposed knowledge becomes durable Context Memory only after you review and accept it.",
+    risk: "Accepting creates an immutable Memory record; edits append Proposal revisions.",
+    action: "Open memory review",
+    evidence: "Evidence refs",
+    signals: "Review signals"
+  };
+}
+
+function proposalFromMemoryReview(
+  reply: PersonalAgentReplyV010,
+  locale: string
+): ChatMessagePartV020 | undefined {
+  const observation = [...reply.observations].reverse().find(
+    item => item.tool === "context.memory.proposal.create" && item.ok
+  );
+  if (!observation || observation.result === null || typeof observation.result !== "object") {
+    return undefined;
+  }
+  const result = observation.result as {
+    proposal?: {
+      proposalId?: unknown;
+      revisions?: Array<{
+        summary?: unknown;
+        evidenceRefs?: unknown;
+        reviewSignals?: unknown;
+      }>;
+    };
+    reviewRoute?: unknown;
+  };
+  if (
+    !result.proposal
+    || typeof result.proposal.proposalId !== "string"
+    || typeof result.reviewRoute !== "string"
+  ) {
+    return undefined;
+  }
+  const revision = result.proposal.revisions?.at(-1);
+  const text = memoryProposalText(locale);
+  const evidenceCount = Array.isArray(revision?.evidenceRefs)
+    ? revision!.evidenceRefs!.length
+    : 0;
+  const signalCount = Array.isArray(revision?.reviewSignals)
+    ? revision!.reviewSignals!.length
+    : 0;
+  return {
+    type: "proposal",
+    title: text.title,
+    summary: typeof revision?.summary === "string" && revision.summary.trim()
+      ? revision.summary
+      : text.summary,
+    reasons: [
+      text.summary,
+      `${text.evidence}: ${evidenceCount}`,
+      `${text.signals}: ${signalCount}`
+    ],
+    risk: text.risk,
+    actions: [{
+      id: "review-memory-proposal",
+      label: text.action,
+      type: "navigate",
+      route: result.reviewRoute,
+      primary: true
+    }]
+  };
+}
+
 export function presentPersonalAgentReplyV020(
-  reply: PersonalAgentReplyV010
+  reply: PersonalAgentReplyV010,
+  locale = "en"
 ): ChatMessagePartV020[] {
   const parts: ChatMessagePartV020[] = [];
   if (reply.message.trim()) {
@@ -94,6 +188,9 @@ export function presentPersonalAgentReplyV020(
       });
     }
   }
+
+  const memoryProposal = proposalFromMemoryReview(reply, locale);
+  if (memoryProposal) parts.push(memoryProposal);
 
   const proposal = proposalFromInstallPlan(reply);
   if (proposal) parts.push(proposal);
