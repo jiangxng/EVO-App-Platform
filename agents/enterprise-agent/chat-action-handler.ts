@@ -4,6 +4,10 @@ import type {
   AppActionRequestV010
 } from "../../actions/contracts.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
+import type {
+  ActiveContextRefV010,
+  ResolvedContextSetV010
+} from "../../contracts/platform-services.js";
 import type { AgentToolCatalogV010 } from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
@@ -17,7 +21,11 @@ export interface EnterpriseAgentChatDependencies {
     installedProviderIds: string[];
     provider?: LlmInferenceProvider;
   };
-  createToolCatalog(locale: string): AgentToolCatalogV010;
+  resolveContext(selection?: ActiveContextRefV010): ResolvedContextSetV010;
+  createToolCatalog(
+    locale: string,
+    context: ResolvedContextSetV010
+  ): AgentToolCatalogV010;
 }
 
 function localeForRequest(
@@ -27,6 +35,53 @@ function localeForRequest(
   const explicit = request.values.locale;
   if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
   return /[\u3400-\u9fff]/u.test(message) ? "zh-CN" : "en";
+}
+
+function activeContextSelection(
+  request: AppActionRequestV010
+): ActiveContextRefV010 | undefined {
+  const raw = request.values.activeContext;
+  if (raw === undefined) return undefined;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("ACTIVE_CONTEXT_INVALID");
+  }
+
+  const kind = raw.kind;
+  const contextId = raw.contextId;
+  if (typeof contextId !== "string" || !contextId.trim()) {
+    throw new Error("ACTIVE_CONTEXT_INVALID");
+  }
+
+  if (kind === "PERSONAL") {
+    return {
+      contractVersion: "0.1.0",
+      kind,
+      contextId: contextId.trim()
+    };
+  }
+
+  if (kind === "ENTERPRISE") {
+    const enterpriseId = raw.enterpriseId;
+    if (typeof enterpriseId !== "string" || !enterpriseId.trim()) {
+      throw new Error("ACTIVE_CONTEXT_INVALID");
+    }
+    return {
+      contractVersion: "0.1.0",
+      kind,
+      contextId: contextId.trim(),
+      enterpriseId: enterpriseId.trim()
+    };
+  }
+
+  throw new Error("ACTIVE_CONTEXT_INVALID");
+}
+
+function errorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const [candidate] = message.split(":");
+  return candidate && /^[A-Z0-9_]+$/.test(candidate)
+    ? candidate
+    : "CONTEXT_RESOLUTION_FAILED";
 }
 
 export function createEnterpriseAgentChatActionHandler(
@@ -44,7 +99,20 @@ export function createEnterpriseAgentChatActionHandler(
           ok: false,
           error: {
             code: "MESSAGE_REQUIRED",
-            message: "请输入要让 Enterprise Agent 处理的内容。"
+            message: "请输入要让个人 Agent 处理的内容。"
+          }
+        };
+      }
+
+      let context: ResolvedContextSetV010;
+      try {
+        context = dependencies.resolveContext(activeContextSelection(request));
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: errorCode(error),
+            message: error instanceof Error ? error.message : "Context resolution failed."
           }
         };
       }
@@ -59,7 +127,7 @@ export function createEnterpriseAgentChatActionHandler(
               : "LLM_PROVIDER_REQUIRED",
             message: resolved.installedProviderIds.length > 0
               ? "LLM Provider 已安装，但运行时凭据/配置尚未就绪。"
-              : "Enterprise Agent 需要先安装一个提供 llm.inference 的 LLM Provider 插件。"
+              : "个人 Agent 需要先安装一个提供 llm.inference 的 LLM Provider 插件。"
           }
         };
       }
@@ -67,10 +135,10 @@ export function createEnterpriseAgentChatActionHandler(
       const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
-        dependencies.createToolCatalog(locale)
+        dependencies.createToolCatalog(locale, context)
       );
 
-      const reply = await runtime.chat(message.trim());
+      const reply = await runtime.chat(message.trim(), context);
       return {
         ok: true,
         correlationId: request.sourceInteractionId,
