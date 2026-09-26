@@ -9,7 +9,7 @@ import type {
   AgentToolObservation
 } from "./contracts.js";
 
-interface ToolRegistrationV010 {
+export interface EnterpriseAgentEnterpriseAgentToolRegistrationV010 {
   descriptor: AgentToolDescriptorV010;
   available?: () => boolean;
   execute(
@@ -67,9 +67,9 @@ function descriptor(
 
 export function createEnterpriseAgentHostToolCatalogV010(
   dependencies: EnterpriseAgentHostToolDependenciesV010,
-  additional: readonly ToolRegistrationV010[] = []
+  additional: readonly EnterpriseAgentToolRegistrationV010[] = []
 ): AgentToolCatalogV010 {
-  const registrations: ToolRegistrationV010[] = [
+  const registrations: EnterpriseAgentToolRegistrationV010[] = [
     {
       descriptor: descriptor({
         id: "platform.snapshot.get",
@@ -306,7 +306,7 @@ export function createEnterpriseAgentHostToolCatalogV010(
     ...additional
   ];
 
-  const byId = new Map<string, ToolRegistrationV010>();
+  const byId = new Map<string, EnterpriseAgentToolRegistrationV010>();
   const byModelName = new Set<string>();
   for (const registration of registrations) {
     const id = registration.descriptor.id.trim();
@@ -320,7 +320,7 @@ export function createEnterpriseAgentHostToolCatalogV010(
     byModelName.add(modelName);
   }
 
-  const effective = (): ToolRegistrationV010[] =>
+  const effective = (): EnterpriseAgentToolRegistrationV010[] =>
     [...byId.values()]
       .filter(registration => registration.available?.() ?? true)
       .sort((a, b) => a.descriptor.id.localeCompare(b.descriptor.id));
