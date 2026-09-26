@@ -20,10 +20,13 @@ test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Pan
 test("Personal Agent remains a zero-config Chat Experience inside the Workbench", () => {
   const page = enterpriseAgentExperienceAssets.get("app://enterprise-agent/pages/home");
   assert.equal(page.kind, "chat");
+  assert.equal(page.contractVersion, "0.2.0");
   assert.equal(page.command.code, "enterprise-agent.chat");
   assert.equal(page.composer.key, "message");
   assert.equal(page.fields, undefined);
   assert.equal(page.actions, undefined);
+  assert.equal(page.context.label, "Context");
+  assert.equal(page.emptyState.suggestions.length, 3);
 });
 
 
@@ -65,4 +68,14 @@ test("enterprise-agent compatibility identifiers present the product as Personal
       && contribution.bundle.locale === "zh-CN"
   );
   assert.equal(zh.bundle.messages["workbench.activity.label"], "个人 Agent");
+});
+
+
+test("Personal Agent package ships four first-class locale bundles", async () => {
+  const { enterpriseAgentPackage } = await import("../../dist/agents/enterprise-agent/package.js");
+  const locales = enterpriseAgentPackage.features[0].contributions
+    .filter(contribution => contribution.kind === "eidos.localization-bundle")
+    .map(contribution => contribution.bundle.locale)
+    .sort();
+  assert.deepEqual(locales, ["en", "ja", "zh-CN", "zh-TW"]);
 });
