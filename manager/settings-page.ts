@@ -3,7 +3,9 @@ import type { SettingsStore } from "./settings-store.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
 import type {
   SettingsEditorV010,
-  SettingsEditorV020
+  SettingsEditorV020,
+  type SettingsFieldV010,
+  type SettingsValueV010
 } from "../vendor/eidos/src/settings/contracts.js";
 import type {
   EidosSettingsContributionV010,
@@ -130,6 +132,16 @@ const settingsCopy = {
     adminDescription: "僅在 bootstrap 管理階段修改 Secret 時用於管理員驗證，不會被持久化。"
   }
 } satisfies Record<SettingsUiLocale, Record<string, string>>;
+
+function fallbackSettingValue(
+  type: "string" | "number" | "boolean" | "select",
+  options?: Array<{ value: SettingValueV010 }>
+): SettingValueV010 {
+  if (type === "number") return 0;
+  if (type === "boolean") return false;
+  if (type === "select") return options?.[0]?.value ?? "";
+  return "";
+}
 
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
@@ -320,12 +332,14 @@ export async function createSettingsPage(
   const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
   const namespace = merged?.namespace ?? packageId;
   const current = store.getNamespace(namespace);
-  const ordinarySettings = (merged?.properties ?? []).map(property => ({
+  const ordinarySettings: SettingsFieldV010[] = (merged?.properties ?? []).map(property => ({
     key: property.key,
     label: property.label,
     description: property.description,
     type: property.type,
-    value: current[property.key] ?? property.defaultValue,
+    value: current[property.key]
+      ?? property.defaultValue
+      ?? fallbackSettingValue(property.type, property.options),
     defaultValue: property.defaultValue,
     options: property.options,
     readOnly: property.readOnly
