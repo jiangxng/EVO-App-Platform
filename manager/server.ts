@@ -438,13 +438,46 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
-const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+function openAiApiKeyReference(): SecretReferenceV010 {
+  return {
+    contractVersion: "0.1.0",
+    namespace: OPENAI_LLM_PACKAGE_ID,
+    key: "apiKey",
+    scope: "INSTALLATION",
+    scopeId: "default"
+  };
+}
 
-function refreshOpenAiProviderRuntime(): void {
-  if (!openaiApiKey) {
+async function refreshOpenAiProviderRuntime(): Promise<void> {
+  const reference = openAiApiKeyReference();
+  const legacyApiKey = process.env.OPENAI_API_KEY?.trim();
+  let apiKey: string | undefined;
+
+  try {
+    const secrets = resolveManagedSecretsProvider();
+    if (secrets) {
+      const status = await secrets.describe(reference);
+      if (!status.configured && legacyApiKey) {
+        await secrets.put(reference, legacyApiKey);
+        console.log("Migrated legacy OpenAI credential into Host Secrets Provider.");
+      }
+      const refreshedStatus = await secrets.describe(reference);
+      if (refreshedStatus.configured) {
+        apiKey = (await secrets.resolve(reference)).trim();
+      }
+    }
+  } catch (error) {
+    console.error("OpenAI Secret resolution failed closed.", error);
+  }
+
+  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
+  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
+
+  if (!apiKey) {
     providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
     return;
   }
+
   const values = settingsStore.getNamespace(OPENAI_LLM_PACKAGE_ID);
   const model = typeof values.model === "string" && values.model.trim()
     ? values.model.trim()
@@ -454,7 +487,7 @@ function refreshOpenAiProviderRuntime(): void {
     : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
 
   const options = {
-    apiKey: openaiApiKey,
+    apiKey,
     model,
     baseUrl
   };
@@ -468,12 +501,12 @@ function refreshOpenAiProviderRuntime(): void {
   );
   providerRuntimeRegistry.setHealth(OPENAI_LLM_PROVIDER_ID, {
     state: "UNKNOWN",
-    message: "Runtime is configured; external service health has not been actively probed.",
+    message: "Runtime credential is configured through the Host Secrets boundary; external service health has not been actively probed.",
     checkedAt: new Date().toISOString()
   });
 }
 
-refreshOpenAiProviderRuntime();
+await refreshOpenAiProviderRuntime();
 
 function resolveLlmProvider(): {
   installedProviderIds: string[];
@@ -823,7 +856,19 @@ const server = createServer(async (request, response) => {
       }
       const settingsPackageId = packageIdFromSettingsPageSource(source);
       if (settingsPackageId) {
-        const settingsPage = createSettingsPage(manager, settingsStore, settingsPackageId);
+        const settingsPage = await createSettingsPage(
+          manager,
+          settingsStore,
+          settingsPackageId,
+          async reference => {
+            try {
+              return await resolveManagedSecretsProvider()?.describe(reference);
+            } catch {
+              return undefined;
+            }
+          },
+          { installationId: "default" }
+        );
         if (!settingsPage) {
           return json(response, 404, { code: "SETTINGS_NOT_AVAILABLE", packageId: settingsPackageId });
         }
@@ -1084,7 +1129,7 @@ const server = createServer(async (request, response) => {
             namespace,
             rawSettings as Record<string, unknown>
           );
-          if (namespace === OPENAI_LLM_PACKAGE_ID) refreshOpenAiProviderRuntime();
+          if (namespace === OPENAI_LLM_PACKAGE_ID) await refreshOpenAiProviderRuntime();
           return json(response, 200, {
             ok: true,
             correlationId: action.sourceInteractionId,
