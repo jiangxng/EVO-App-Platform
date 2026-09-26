@@ -308,6 +308,8 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "enterprise.membership",
   "enterprise.relationship",
   "enterprise.scope",
+  "context.memory.read",
+  "context.memory.write",
   "llm.inference",
   "llm.streaming",
   "llm.embedding",
@@ -337,14 +339,38 @@ export interface ContextMemoryReadRequestV010 {
   cursor?: string;
 }
 
+export type ContextMemoryOriginKindV010 =
+  | "DIRECT"
+  | "PROMOTED";
+
+export interface ContextMemoryProvenanceV010 {
+  contractVersion: "0.1.0";
+  origin: ContextMemoryOriginKindV010;
+  sourceContext: ActiveContextRefV010;
+  sourceMemoryId?: string;
+  evidenceRefs: string[];
+}
+
+export interface ContextMemoryAttributionV010 {
+  contractVersion: "0.1.0";
+  recordedBySubjectId: string;
+  recordedByActorType: PlatformActorType;
+  recordedAt: string;
+}
+
 export interface ContextMemoryItemV010 {
   contractVersion: "0.1.0";
   memoryId: string;
   context: ActiveContextRefV010;
   kind: ContextMemoryKindV010;
   summary: string;
-  provenanceRefs?: string[];
+  provenance: ContextMemoryProvenanceV010;
+  attribution: ContextMemoryAttributionV010;
   observedAt?: string;
+  supersedesMemoryId?: string;
+  /** @deprecated Compatibility projection; new code uses provenance.evidenceRefs. */
+  provenanceRefs?: string[];
+  /** @deprecated Derived compatibility field; records are not mutated in P0.9. */
   supersededBy?: string;
 }
 
@@ -359,4 +385,16 @@ export interface ContextMemoryReaderV010 {
   read(
     input: ContextMemoryReadRequestV010
   ): Promise<ContextMemoryReadResultV010> | ContextMemoryReadResultV010;
+}
+
+export interface ContextMemoryWriteRequestV010 {
+  contractVersion: "0.1.0";
+  item: ContextMemoryItemV010;
+}
+
+export interface ContextMemoryWriterV010 {
+  providerId: string;
+  write(
+    input: ContextMemoryWriteRequestV010
+  ): Promise<ContextMemoryItemV010> | ContextMemoryItemV010;
 }
