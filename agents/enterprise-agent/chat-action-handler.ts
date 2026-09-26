@@ -4,7 +4,7 @@ import type {
   AppActionRequestV010
 } from "../../actions/contracts.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
-import type { AppManagerService } from "../../manager/service.js";
+import type { AgentToolCatalogV010 } from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 import {
@@ -13,11 +13,20 @@ import {
 } from "./package.js";
 
 export interface EnterpriseAgentChatDependencies {
-  manager: AppManagerService;
   resolveLlmProvider(): {
     installedProviderIds: string[];
     provider?: LlmInferenceProvider;
   };
+  createToolCatalog(locale: string): AgentToolCatalogV010;
+}
+
+function localeForRequest(
+  request: AppActionRequestV010,
+  message: string
+): string {
+  const explicit = request.values.locale;
+  if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
+  return /[\u3400-\u9fff]/u.test(message) ? "zh-CN" : "en";
 }
 
 export function createEnterpriseAgentChatActionHandler(
@@ -55,19 +64,10 @@ export function createEnterpriseAgentChatActionHandler(
         };
       }
 
+      const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
-        {
-          async listCatalog() {
-            return dependencies.manager.listCatalog();
-          },
-          async planInstall(packageId) {
-            return dependencies.manager.planInstall(packageId);
-          },
-          async install(packageId) {
-            return dependencies.manager.install(packageId);
-          }
-        }
+        dependencies.createToolCatalog(locale)
       );
 
       const reply = await runtime.chat(message.trim());
