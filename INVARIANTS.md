@@ -96,31 +96,37 @@
 - **APP-84** JSON Schema structural validity is necessary but not sufficient. Canonical semantic validation remains responsible for cross-field ownership, namespace, runtime-security and admission rules that cannot be safely inferred from structure alone.
 - **APP-85** Package/Feature schema and semantic validator versions MUST move together. An incompatible manifest-schema change requires an explicit Plugin Protocol version change rather than silent drift.
 
-- **APP-73** Executable plugin invocation MUST pass through the Host-owned Plugin Runtime Dispatcher. Product/plugin code MUST NOT instantiate PROCESS/REMOTE runtime mechanics directly when the dispatcher can provide the admitted path.
-- **APP-74** Runtime Dispatcher invocation requires an installed Package and at least one active Feature owned by that Package. Runtime execution MUST NOT bypass lifecycle state.
-- **APP-75** App Platform MUST NOT expose a generic unauthenticated arbitrary plugin-method HTTP endpoint. Human/product actions enter through governed Action/Capability contracts; executable runtime dispatch remains an internal implementation boundary.
-- **APP-76** Runtime observability exporters are sinks, not execution dependencies. Telemetry sink failure MUST NOT break plugin execution or mutate runtime admission semantics.
+- **APP-89** Executable plugin invocation MUST pass through the Host-owned Plugin Runtime Dispatcher. Product/plugin code MUST NOT instantiate PROCESS/REMOTE runtime mechanics directly when the dispatcher can provide the admitted path.
+- **APP-90** Runtime Dispatcher invocation requires an installed Package and at least one active Feature owned by that Package. Runtime execution MUST NOT bypass lifecycle state.
+- **APP-91** App Platform MUST NOT expose a generic unauthenticated arbitrary plugin-method HTTP endpoint. Human/product actions enter through governed Action/Capability contracts; executable runtime dispatch remains an internal implementation boundary.
+- **APP-92** Runtime observability exporters are sinks, not execution dependencies. Telemetry sink failure MUST NOT break plugin execution or mutate runtime admission semantics.
 
-- **APP-77** SLSA provenance carried by a Package is admission evidence, not descriptive metadata. When present, its in-toto Statement subject MUST bind the declared artifact digest and Host-configured builder/build-type expectations MUST fail closed on mismatch.
-- **APP-78** Supply-chain roots of trust are Host-owned. Package manifests MUST NOT self-authorize builder identity, signing key trust or accepted build type.
-- **APP-79** External Sigstore/SLSA tooling may provide evidence, but EVO Plugin Protocol remains provider-neutral. Transparency-log/OIDC verification must enter through an explicit verifier boundary rather than becoming an implicit network dependency of ordinary plugin loading.
+- **APP-93** SLSA provenance carried by a Package is admission evidence, not descriptive metadata. When present, its in-toto Statement subject MUST bind the declared artifact digest and Host-configured builder/build-type expectations MUST fail closed on mismatch.
+- **APP-94** Supply-chain roots of trust are Host-owned. Package manifests MUST NOT self-authorize builder identity, signing key trust or accepted build type.
+- **APP-95** External Sigstore/SLSA tooling may provide evidence, but EVO Plugin Protocol remains provider-neutral. Transparency-log/OIDC verification must enter through an explicit verifier boundary rather than becoming an implicit network dependency of ordinary plugin loading.
 
-- **APP-80** REMOTE runtime credentials are provided through the generic `plugin.remote-credential` Provider capability. REMOTE Package manifests MUST NOT contain bearer tokens or long-lived credential material.
-- **APP-81** A REMOTE Package is runtime-ready only when both an active credential Provider descriptor and a registered matching Provider Runtime exist. Descriptor-only or runtime-only state MUST remain fail-closed.
-- **APP-82** Extension Manager runtime history is an operator projection of App Platform runtime facts. Eidos MUST NOT synthesize runtime health/history from browser state.
+- **APP-96** REMOTE runtime credentials are provided through the generic `plugin.remote-credential` Provider capability. REMOTE Package manifests MUST NOT contain bearer tokens or long-lived credential material.
+- **APP-97** A REMOTE Package is runtime-ready only when both an active credential Provider descriptor and a registered matching Provider Runtime exist. Descriptor-only or runtime-only state MUST remain fail-closed.
+- **APP-98** Extension Manager runtime history is an operator projection of App Platform runtime facts. Eidos MUST NOT synthesize runtime health/history from browser state.
 
-- **APP-83** A Package declaring `SIGSTORE_BUNDLE` provenance MUST pass external Sigstore verification before PROCESS execution. Missing verifier configuration or failed verification MUST fail closed.
-- **APP-84** Sigstore certificate issuer and identity expectations are Host-owned trust policy. Package-provided evidence MUST NOT define its own acceptance policy.
-- **APP-85** Sigstore evidence augments, rather than replaces, native EVO Package signature and artifact-digest verification. Native integrity MUST verify first.
+- **APP-99** A Package declaring `SIGSTORE_BUNDLE` provenance MUST pass external Sigstore verification before PROCESS execution. Missing verifier configuration or failed verification MUST fail closed.
+- **APP-100** Sigstore certificate issuer and identity expectations are Host-owned trust policy. Package-provided evidence MUST NOT define its own acceptance policy.
+- **APP-101** Sigstore evidence augments, rather than replaces, native EVO Package signature and artifact-digest verification. Native integrity MUST verify first.
 
 - **APP-86** App Platform dependency resolution is lockfile-authoritative. `package-lock.json` MUST be committed and CI/container builds MUST use `npm ci`; unconstrained dependency resolution is not an accepted build path.
 - **APP-87** Dependency lockfiles are generated by the package manager and verified by a frozen install. LLMs MUST NOT synthesize or hand-edit resolved dependency graphs as a substitute for package-manager resolution.
 - **APP-88** Dependency and runtime-toolchain changes belong to Platform CI only unless a public contract change independently requires ecosystem certification.
 
-- **APP-80** Provider resolution MUST be deterministic and scope-aware. Specific scope bindings override broader bindings in USER → WORKSPACE → COMPANY → ENTERPRISE → INSTALLATION → SYSTEM order.
-- **APP-81** Multiple executable Providers for the same capability without an applicable explicit binding MUST fail closed as ambiguous. ProviderId lexical order MUST NOT silently choose business/platform behavior.
-- **APP-82** An explicit Provider binding whose runtime is unavailable MUST fail closed; resolution MUST NOT silently fall back to a different Provider.
+- **APP-102** Provider resolution MUST be deterministic and scope-aware. Specific scope bindings override broader bindings in USER → WORKSPACE → COMPANY → ENTERPRISE → INSTALLATION → SYSTEM order.
+- **APP-103** Multiple executable Providers for the same capability without an applicable explicit binding MUST fail closed as ambiguous. ProviderId lexical order MUST NOT silently choose business/platform behavior.
+- **APP-104** An explicit Provider binding whose runtime is unavailable MUST fail closed; resolution MUST NOT silently fall back to a different Provider.
 
-- **APP-83** Provider health informs readiness and operator visibility but MUST NOT silently rewrite Provider policy. An unhealthy explicitly bound Provider fails closed rather than causing automatic failover.
-- **APP-84** Provider management state is Host-owned policy. Binding edits MUST NOT mutate Package manifests or provider package source.
-- **APP-85** Provider management UI MUST expose capability, candidate Provider, scope and effective health/resolution posture using Eidos capabilities rather than a parallel host-specific UI framework.
+- **APP-105** Provider health informs readiness and operator visibility but MUST NOT silently rewrite Provider policy. An unhealthy explicitly bound Provider fails closed rather than causing automatic failover.
+- **APP-106** Provider management state is Host-owned policy. Binding edits MUST NOT mutate Package manifests or provider package source.
+- **APP-107** Provider management UI MUST expose capability, candidate Provider, scope and effective health/resolution posture using Eidos capabilities rather than a parallel host-specific UI framework.
+
+
+- **APP-108** Provider health probes are explicit Host-executed operations. Probe results update observable runtime posture but MUST NOT silently change Provider binding policy or selection.
+- **APP-109** Provider binding mutation is a privileged Host administration action. Authorization MUST be enforced server-side and fail closed when no administration authorization mechanism is configured.
+- **APP-110** Provider governance changes and active health probes MUST emit bounded/durable operator audit records with correlation, actor, target and outcome; secrets and raw authorization credentials MUST NOT be recorded.
+- **APP-111** The P0 bootstrap administrator secret is a transitional Host authorization mechanism only. It MUST remain outside Package manifests and Provider binding state and is replaced by the generic authorization Provider boundary when that capability becomes executable.
