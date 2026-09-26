@@ -124,6 +124,56 @@ test("Personal Agent can inspect the Host-resolved current Context", async () =>
   assert.deepEqual(observation.result, personalContext);
 });
 
+test("Personal Agent Memory tool reads only through the Host-bound current Context reader", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let receivedInput;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    readContextMemory(input) {
+      receivedInput = input;
+      return {
+        contractVersion: "0.1.0",
+        items: [{
+          memoryId: "memory:test",
+          contextId: personalContext.activeContext.contextId,
+          summary: "Host-bound current Context Memory"
+        }]
+      };
+    },
+    authorizeWrite() { return { allowed: true }; },
+    searchHelp() { return []; }
+  });
+
+  const tools = await catalog.list();
+  assert.equal(tools.some(tool => tool.id === "context.memory.search"), true);
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.search",
+    arguments: {
+      query: "current",
+      kind: "FACT",
+      limit: 5,
+      contextId: "enterprise:forged"
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.deepEqual(receivedInput, {
+    query: "current",
+    kinds: ["FACT"],
+    limit: 5
+  });
+  assert.equal(observation.result.items[0].contextId, "personal:test");
+});
+
 test("Personal Agent model receives the Host-resolved Context for the run", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),
