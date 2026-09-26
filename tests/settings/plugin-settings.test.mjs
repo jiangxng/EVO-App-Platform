@@ -16,6 +16,7 @@ import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secret
 import { createMemorySecretStoreV010 } from "../../dist/manager/secret-store.js";
 import { createHostEncryptedSecretsProviderV010 } from "../../dist/providers/secrets/runtime.js";
 import { enterpriseAgentPackage } from "../../dist/catalog/seed.js";
+import { appPlatformLocalizationBundles } from "../../dist/manager/localization.js";
 
 test("settings contributions appear only after the owning package is installed", () => {
   const manager = createAppManagerService(
@@ -166,4 +167,20 @@ test("OpenAI Provider settings ship all four Personal Agent P0.4 locales", () =>
     .map(contribution => contribution.bundle.locale)
     .sort();
   assert.deepEqual(locales, ["en", "ja", "zh-CN", "zh-TW"]);
+});
+
+
+test("llm.inference Provider selection ships all four P0.4 locales", () => {
+  const locales = appPlatformLocalizationBundles
+    .filter(bundle => bundle.namespace === "provider-binding:llm.inference")
+    .map(bundle => bundle.locale)
+    .sort();
+  assert.deepEqual(locales, ["en", "ja", "zh-CN", "zh-TW"]);
+  for (const locale of locales) {
+    const bundle = appPlatformLocalizationBundles.find(
+      item => item.namespace === "provider-binding:llm.inference" && item.locale === locale
+    );
+    assert.ok(bundle.messages["settings.providerId.label"]);
+    assert.ok(bundle.messages["settings.saveLabel"]);
+  }
 });
