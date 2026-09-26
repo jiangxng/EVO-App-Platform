@@ -218,3 +218,24 @@ Personal Agent chat chrome, readiness/setup, Provider-selection/configuration or
 Existing Help may continue using per-document English fallback while Japanese and Traditional Chinese Help translations are filled incrementally. Missing Help translation must never hide the document.
 
 Machine identifiers and business data are not translated. Do not postpone ja/zh-TW support until after UI implementation; localization and text-expansion behavior are part of P0.4 design and CI.
+
+
+## P0.4 implementation state
+
+Personal Agent is being migrated from the thin Eidos Chat v0.1 experience to the Eidos-native P0.4 product flow.
+
+Implemented on the active P0.4B branch:
+
+- Eidos pin upgraded to the CI-verified Assistant/Setup baseline `12f61d5a...`;
+- Chat v0.2 with Context/readiness/empty-state suggestions;
+- Host-computed readiness where Package Installed is not equivalent to Ready;
+- Plugin Store primary action becomes Set up when the Agent is unready and Open only when ready;
+- Eidos Setup Flow for Provider installation/selection, credential configuration and readiness;
+- Provider Settings upgraded to Eidos Settings v0.2 groups: General / Credentials / Advanced;
+- API Secret non-readback remains unchanged;
+- four first-class UI locales: en / zh-CN / ja / zh-TW;
+- Host injects the active locale into actions;
+- Agent replies expose structured observable tool activity plus answer text, not private model reasoning;
+- Extension Manager technical details remain progressively disclosed.
+
+Do not move LLM vendor settings into Personal Agent. Do not auto-select among multiple Providers. Do not add Personal Agent CSS.
