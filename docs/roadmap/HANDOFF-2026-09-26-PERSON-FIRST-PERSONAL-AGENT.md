@@ -350,3 +350,37 @@ Next mainline: ownership transfer + member invitation/acceptance + broader Conte
 
 
 P0.7 final verification: Platform CI plus Enterprise Agent, Authorization, Enterprise Context, Enterprise Context Grant, Enterprise Relationship, Static Session, Bearer Session, OpenAI Provider and Host Secrets Provider CI all pass on the final integration head. P0.7 is merge-ready.
+
+
+## P0.8 — Enterprise Relationship Lifecycle
+
+P0.8 completes the first executable Human ↔ Enterprise governance lifecycle on top of P0.7.
+
+Implemented:
+
+- invitation states `PENDING / ACCEPTED / DECLINED / REVOKED / EXPIRED`;
+- `enterprise.relationship.invite`;
+- target acceptance from Personal Context before any Enterprise access exists;
+- acceptance atomically creates ACTIVE Relationship + ACTIVE Grant;
+- OWNER can grant ADMIN/MEMBER/AUDITOR;
+- ADMIN can grant MEMBER/AUDITOR but cannot grant ADMIN;
+- MEMBER/AUDITOR cannot invite;
+- Relationship lifecycle `ACTIVE → REVOKED`, reactivation forbidden;
+- Grant lifecycle `ACTIVE → REVOKED`, revoked Grants excluded from effective Context access;
+- direct OWNER revocation forbidden;
+- ownership transfer states `PENDING / ACCEPTED / DECLINED / CANCELLED / EXPIRED`;
+- two-party ownership transfer with acceptance from target Personal Context;
+- atomic ownership acceptance: target OWNER activates while outgoing OWNER Relationship/Grant revoke in one validated commit;
+- immutable Enterprise creator facts remain unchanged through ownership transfer;
+- append-only relationship lifecycle events;
+- P0.7 governance files normalize missing P0.8 collections without manual migration;
+- effective Context API exposes current Principal's non-expired pending invitations/transfers;
+- Enterprise governance Material WRITE requires both Host structural role rules and `authorization.check` ALLOW.
+
+Authority:
+
+- `docs/architecture/ENTERPRISE-RELATIONSHIP-LIFECYCLE-P0.8-v0.1.md`
+
+P0.8 still uses stable `subjectId` as invitation target and deliberately does not invent a user directory, email invitation system or full IAM.
+
+The next mainline is Context Memory Provider + immutable provenance/attribution + separate Personal/Enterprise Memory authority + governed cross-context promotion, using the Principal + Context + Relationship + Authorization foundation now in place.
