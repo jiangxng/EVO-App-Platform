@@ -129,4 +129,10 @@
 - **APP-108** Provider health probes are explicit Host-executed operations. Probe results update observable runtime posture but MUST NOT silently change Provider binding policy or selection.
 - **APP-109** Provider binding mutation is a privileged Host administration action. Authorization MUST be enforced server-side and fail closed when no administration authorization mechanism is configured.
 - **APP-110** Provider governance changes and active health probes MUST emit bounded/durable operator audit records with correlation, actor, target and outcome; secrets and raw authorization credentials MUST NOT be recorded.
-- **APP-111** The P0 bootstrap administrator secret is a transitional Host authorization mechanism only. It MUST remain outside Package manifests and Provider binding state and is replaced by the generic authorization Provider boundary when that capability becomes executable.
+- **APP-111** The P0 bootstrap administrator secret is transitional authentication only. It MUST remain outside Package manifests, Provider binding state, authorization policy state and audit history; possession of the secret alone MUST NOT imply authorization.
+
+- **APP-112** Privileged Provider governance actions MUST resolve through the generic `authorization.check` Provider after Principal authentication. Missing, ambiguous, unavailable, errored or denying authorization resolution MUST fail closed.
+- **APP-113** App Platform MUST NOT convert authentication success into an allow decision. The Authorization Provider owns the allow/deny decision and the Host may only enforce it more strictly, never upgrade DENY to ALLOW.
+- **APP-114** Reference authorization policy is Host-owned configuration supplied to an installable Provider Package. A Package MUST NOT self-authorize its own policy, Principal, Provider binding or administrative action.
+- **APP-115** Provider governance audit MUST record the policy Provider identity and non-secret reason codes used for each allow/deny decision when available.
+- **APP-116** The reference static authorization Provider is deny-by-default and uses explicit policy rules. Its concrete rule syntax is replaceable implementation detail; consumers depend only on `AuthorizationCheckV010` / `AuthorizationDecisionV010`.
