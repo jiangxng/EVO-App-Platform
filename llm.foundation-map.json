@@ -57,7 +57,7 @@
     "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED",
     "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
     "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL",
-    "personalAgentContextPlumbing": "IMPLEMENTED_BRANCH_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_READ_MEMORY_CONTRACT"
+    "personalAgentContextPlumbing": "CI_VERIFIED_HOST_RESOLVED_CONTEXT_FAIL_CLOSED_SELECTION_MODEL_TOOL_PLUMBING_READ_MEMORY_CONTRACT"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -251,7 +251,7 @@
     "opinionBeforeDecision": "REQUIRED",
     "next": "MINIMAL_CONTEXT_CONTRACTS_HOST_RESOLUTION_ACTIVE_CONTEXT_TOOL_CATALOG",
     "contextP0_3": {
-      "status": "IMPLEMENTED_BRANCH_PENDING_CI",
+      "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
       "default": "PERSONAL_ONLY",
       "enterpriseSelection": "KNOWN_HOST_CONTEXT_ONLY",
@@ -259,7 +259,8 @@
       "currentTool": "context.current.get",
       "modelInput": "RESOLVED_CONTEXT",
       "memory": "READ_CONTRACT_ONLY",
-      "fullIam": "DEFERRED"
+      "fullIam": "DEFERRED",
+      "next": "FIRST_REAL_ENTERPRISE_CONTEXT_SOURCE"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
