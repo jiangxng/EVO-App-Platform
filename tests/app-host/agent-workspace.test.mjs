@@ -64,5 +64,30 @@ test("enterprise-agent compatibility identifiers present the product as Personal
     contribution => contribution.kind === "eidos.localization-bundle"
       && contribution.bundle.locale === "zh-CN"
   );
-  assert.equal(zh.bundle.messages["workbench.activity.label"], "个人 Agent");
+  assert.equal(zh.bundle.messages["workbench.activity.label"], "个人代理");
+  const ja = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.localization-bundle"
+      && contribution.bundle.locale === "ja"
+  );
+  const zhTw = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.localization-bundle"
+      && contribution.bundle.locale === "zh-TW"
+  );
+  assert.equal(ja.bundle.messages["workbench.activity.label"], "パーソナルエージェント");
+  assert.equal(zhTw.bundle.messages["workbench.activity.label"], "個人代理");
+});
+
+test("Personal Agent declares a separate Setup Flow route without changing compatibility ids", async () => {
+  const {
+    enterpriseAgentPackage,
+    ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+  } = await import("../../dist/agents/enterprise-agent/package.js");
+  const experience = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.experience"
+  );
+  const setupPage = experience.manifest.pages.find(page => page.id === "enterprise-agent.setup");
+  const setupRoute = experience.manifest.routes.find(route => route.id === "enterprise-agent.setup");
+  assert.equal(setupPage.source, ENTERPRISE_AGENT_SETUP_PAGE_SOURCE);
+  assert.equal(setupRoute.path, "/enterprise-agent/setup");
+  assert.equal(enterpriseAgentPackage.packageId, "enterprise-agent");
 });

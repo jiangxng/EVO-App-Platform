@@ -5,7 +5,11 @@ import {
   inspectPluginRuntimeV010,
   type PluginRuntimeStatusV010
 } from "./plugin-runtime-host.js";
-import type { ExtensionManagerV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
+import type {
+  ExtensionManagerActionV010,
+  ExtensionManagerItemV010,
+  ExtensionManagerV010
+} from "../vendor/eidos/src/extension-manager/contracts.js";
 import { packageHasConfiguration, settingsPackageRoute } from "./settings-page.js";
 import {
   createMemoryPluginIntegrityTrustStoreV010,
@@ -76,11 +80,20 @@ function contributionSummary(pkg: PackageManifestV010): Array<{ kind: string; co
     .sort((a, b) => a.kind.localeCompare(b.kind));
 }
 
+export interface PluginStoreProductStateV010 {
+  readiness?: NonNullable<ExtensionManagerItemV010["readiness"]>;
+  primaryAction?: ExtensionManagerActionV010;
+}
+
 export interface PluginStorePageOptionsV010 {
   integrityTrustStore?: PluginIntegrityTrustStoreV010;
   runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
   runtimeEvents?: PluginRuntimeEventV010[];
   evaluateRuntime?: (pkg: PackageManifestV010) => PluginRuntimeStatusV010;
+  evaluateProductState?: (
+    pkg: PackageManifestV010,
+    lifecycle: { isInstalled: boolean; isEnabled: boolean }
+  ) => PluginStoreProductStateV010 | undefined;
 }
 
 export function createPluginStorePage(
@@ -131,6 +144,7 @@ export function createPluginStorePage(
             .map(feature => feature.featureId)
         );
         const isEnabled = pkg.features.some(feature => activeFeatureIds.has(feature.featureId));
+        const productState = options.evaluateProductState?.(pkg, { isInstalled, isEnabled });
         const route = firstExperienceRoute(pkg);
         const settingsRoute = packageHasConfiguration(pkg) ? settingsPackageRoute(pkg.packageId) : undefined;
         const compatibility = evaluatePackageCompatibility(pkg);
@@ -367,7 +381,9 @@ export function createPluginStorePage(
                         requiresConfirmation: true
                       }
                     ]
-                  })
+                  }),
+          ...(productState?.readiness ? { readiness: productState.readiness } : {}),
+          ...(productState?.primaryAction ? { primaryAction: productState.primaryAction } : {})
         };
       })
   };

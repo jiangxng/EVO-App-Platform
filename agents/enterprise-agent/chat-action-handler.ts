@@ -11,6 +11,7 @@ import type {
 import type { AgentToolCatalogV010 } from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
+import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID
@@ -142,7 +143,10 @@ export function createEnterpriseAgentChatActionHandler(
       return {
         ok: true,
         correlationId: request.sourceInteractionId,
-        result: JSON.parse(JSON.stringify(reply))
+        result: JSON.parse(JSON.stringify({
+          ...reply,
+          messageParts: presentPersonalAgentReplyV020(reply)
+        }))
       };
     }
   };

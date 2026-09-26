@@ -109,6 +109,54 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
           }
         },
         {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "ja",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider のランタイム設定です。API Key は安全な Secrets 境界で管理されます。",
+              "settings.saveLabel": "保存",
+              "settings.model.label": "モデル",
+              "settings.model.description": "推論に使用するモデル ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 互換 Responses API のベース URL。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "保存済み認証情報を設定または置換する新しい API Key を入力します。保存後に値は再表示されません。",
+              "settings.secret-status:apiKey.label": "API Key の状態",
+              "settings.secret-remove:apiKey.label": "API Key を削除",
+              "settings.secret-remove:apiKey.description": "保存時に現在の認証情報を削除します。",
+              "settings.adminToken.label": "管理者認証",
+              "settings.adminToken.description": "bootstrap 管理フェーズで Secret を変更する場合にのみ必要です。"
+            }
+          }
+        },
+        {
+          kind: "eidos.localization-bundle",
+          bundle: {
+            contractVersion: "0.1.0",
+            namespace: OPENAI_LLM_PACKAGE_ID,
+            locale: "zh-TW",
+            messages: {
+              "settings.title": "OpenAI LLM Provider",
+              "settings.description": "OpenAI Provider 的執行設定。API Key 仍由安全的 Secrets 邊界管理。",
+              "settings.saveLabel": "儲存",
+              "settings.model.label": "模型",
+              "settings.model.description": "推論時使用的模型 ID。",
+              "settings.baseUrl.label": "API Base URL",
+              "settings.baseUrl.description": "OpenAI 相容 Responses API 的基礎網址。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "輸入新的 API Key，以設定或取代已儲存的憑證。儲存後不會再次顯示明文。",
+              "settings.secret-status:apiKey.label": "API Key 狀態",
+              "settings.secret-remove:apiKey.label": "刪除 API Key",
+              "settings.secret-remove:apiKey.description": "儲存時刪除目前已儲存的憑證。",
+              "settings.adminToken.label": "管理員授權",
+              "settings.adminToken.description": "僅在 bootstrap 管理階段修改 Secret 時需要。"
+            }
+          }
+        },
+        {
           kind: "platform.service-provider",
           provider: {
             contractVersion: "0.1.0",

@@ -20,6 +20,15 @@ export const appPlatformLocalizationBundles = [
       "extensions.evo.plugin-store.action.uninstall.label": "Uninstall",
       "extensions.evo.plugin-store.action.enable.label": "Enable",
       "extensions.evo.plugin-store.action.configure.label": "Configure",
+      "extensions.evo.plugin-store.action.setup.label": "Set up",
+      "extensions.evo.plugin-store.readiness.ready.label": "Ready",
+      "extensions.evo.plugin-store.readiness.ready.message": "Personal Agent is ready.",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "Needs setup",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "Complete Provider setup before opening Personal Agent.",
+      "extensions.evo.plugin-store.readiness.degraded.label": "Degraded",
+      "extensions.evo.plugin-store.readiness.degraded.message": "Personal Agent can open, but the selected LLM Provider is degraded.",
+      "extensions.evo.plugin-store.readiness.error.label": "Unavailable",
+      "extensions.evo.plugin-store.readiness.error.message": "Personal Agent cannot currently use the selected LLM Provider.",
       "catalog.evo.plugin-store.title": "EVO Plugin Store",
       "catalog.evo.plugin-store.description": "Discover, install and manage EVO plugins.",
       "catalog.evo.plugin-store.item.summary": "{features} feature(s) · {providedCapabilities} provided capability(ies) · {requiredCapabilities} required capability(ies)",
@@ -74,6 +83,15 @@ export const appPlatformLocalizationBundles = [
       "extensions.evo.plugin-store.action.uninstall.label": "卸载",
       "extensions.evo.plugin-store.action.enable.label": "启用",
       "extensions.evo.plugin-store.action.configure.label": "配置",
+      "extensions.evo.plugin-store.action.setup.label": "设置",
+      "extensions.evo.plugin-store.readiness.ready.label": "就绪",
+      "extensions.evo.plugin-store.readiness.ready.message": "个人代理已就绪。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "需要设置",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "打开个人代理前，请先完成 Provider 设置。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "性能下降",
+      "extensions.evo.plugin-store.readiness.degraded.message": "个人代理仍可打开，但当前 LLM Provider 处于降级状态。",
+      "extensions.evo.plugin-store.readiness.error.label": "不可用",
+      "extensions.evo.plugin-store.readiness.error.message": "个人代理当前无法使用已选择的 LLM Provider。",
       "catalog.evo.plugin-store.title": "EVO 插件商店",
       "catalog.evo.plugin-store.description": "发现、安装和管理 EVO 插件。",
       "catalog.evo.plugin-store.item.summary": "{features} 个 Feature · 提供 {providedCapabilities} 个 Capability · 依赖 {requiredCapabilities} 个 Capability",
@@ -105,6 +123,128 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.settings.description": "配置已安装且声明标准设置项的插件。",
       "catalog.evo.settings.empty": "当前没有已安装插件提供标准设置。",
       "catalog.evo.settings.action.configure.label": "配置"
+    }
+  }
+,
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "evo-app-platform",
+    locale: "ja",
+    messages: {
+      "extensions.evo.plugin-store.action.setup.label": "セットアップ",
+      "extensions.evo.plugin-store.readiness.ready.label": "準備完了",
+      "extensions.evo.plugin-store.readiness.ready.message": "パーソナルエージェントを利用できます。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "セットアップが必要",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "パーソナルエージェントを開く前に Provider の設定を完了してください。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "低下",
+      "extensions.evo.plugin-store.readiness.degraded.message": "パーソナルエージェントは開けますが、選択した LLM Provider は低下状態です。",
+      "extensions.evo.plugin-store.readiness.error.label": "利用不可",
+      "extensions.evo.plugin-store.readiness.error.message": "パーソナルエージェントは現在、選択した LLM Provider を利用できません。"
+    }
+  },
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "evo-app-platform",
+    locale: "zh-TW",
+    messages: {
+      "extensions.evo.plugin-store.action.setup.label": "設定",
+      "extensions.evo.plugin-store.readiness.ready.label": "就緒",
+      "extensions.evo.plugin-store.readiness.ready.message": "個人代理已就緒。",
+      "extensions.evo.plugin-store.readiness.setup-required.label": "需要設定",
+      "extensions.evo.plugin-store.readiness.setup-required.message": "開啟個人代理前，請先完成 Provider 設定。",
+      "extensions.evo.plugin-store.readiness.degraded.label": "效能下降",
+      "extensions.evo.plugin-store.readiness.degraded.message": "個人代理仍可開啟，但目前 LLM Provider 處於降級狀態。",
+      "extensions.evo.plugin-store.readiness.error.label": "無法使用",
+      "extensions.evo.plugin-store.readiness.error.message": "個人代理目前無法使用已選擇的 LLM Provider。"
+    }
+  }
+,
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "provider-binding:llm.inference",
+    locale: "en",
+    messages: {
+      "settings.title": "LLM Provider selection",
+      "settings.description": "Choose the installed Provider used for llm.inference. Scope identifiers and Provider IDs remain machine values.",
+      "settings.saveLabel": "Save binding",
+      "settings.providerId.label": "Provider",
+      "settings.providerId.description": "Installed Provider selected for this binding.",
+      "settings.scope.label": "Scope",
+      "settings.scope.description": "More specific scopes override broader scopes.",
+      "settings.scopeId.label": "Scope ID",
+      "settings.scopeId.description": "Required outside SYSTEM scope.",
+      "settings.priority.label": "Priority",
+      "settings.priority.description": "Tie-breaker within the same scope specificity.",
+      "settings.adminToken.label": "Administrator authorization",
+      "settings.adminToken.description": "Used only to authenticate the administrator. It is never persisted in Provider binding state.",
+      "settings.currentResolution.label": "Current resolution",
+      "settings.selectedHealth.label": "Selected runtime health"
+    }
+  },
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "provider-binding:llm.inference",
+    locale: "zh-CN",
+    messages: {
+      "settings.title": "LLM Provider 选择",
+      "settings.description": "选择用于 llm.inference 的已安装 Provider。作用域标识和 Provider ID 保持机器值，不进行翻译。",
+      "settings.saveLabel": "保存绑定",
+      "settings.providerId.label": "Provider",
+      "settings.providerId.description": "为此绑定选择已安装的 Provider。",
+      "settings.scope.label": "作用域",
+      "settings.scope.description": "更具体的作用域会覆盖更宽泛的作用域。",
+      "settings.scopeId.label": "作用域 ID",
+      "settings.scopeId.description": "除 SYSTEM 作用域外均需要填写。",
+      "settings.priority.label": "优先级",
+      "settings.priority.description": "仅用于同一作用域层级内的顺序判定。",
+      "settings.adminToken.label": "管理员授权",
+      "settings.adminToken.description": "仅用于验证管理员身份，不会持久化到 Provider 绑定状态。",
+      "settings.currentResolution.label": "当前解析结果",
+      "settings.selectedHealth.label": "已选择运行时健康状态"
+    }
+  },
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "provider-binding:llm.inference",
+    locale: "ja",
+    messages: {
+      "settings.title": "LLM Provider の選択",
+      "settings.description": "llm.inference に使用するインストール済み Provider を選択します。スコープ識別子と Provider ID は機械値のまま翻訳しません。",
+      "settings.saveLabel": "バインディングを保存",
+      "settings.providerId.label": "Provider",
+      "settings.providerId.description": "このバインディングで使用するインストール済み Provider。",
+      "settings.scope.label": "スコープ",
+      "settings.scope.description": "より具体的なスコープが広いスコープより優先されます。",
+      "settings.scopeId.label": "スコープ ID",
+      "settings.scopeId.description": "SYSTEM 以外のスコープでは必須です。",
+      "settings.priority.label": "優先度",
+      "settings.priority.description": "同じスコープ詳細度でのみ使用する優先順位です。",
+      "settings.adminToken.label": "管理者認証",
+      "settings.adminToken.description": "管理者の認証にのみ使用され、Provider バインディング状態には保存されません。",
+      "settings.currentResolution.label": "現在の解決結果",
+      "settings.selectedHealth.label": "選択したランタイムの状態"
+    }
+  },
+  {
+    contractVersion: "0.1.0" as const,
+    namespace: "provider-binding:llm.inference",
+    locale: "zh-TW",
+    messages: {
+      "settings.title": "LLM Provider 選擇",
+      "settings.description": "選擇用於 llm.inference 的已安裝 Provider。作用域識別碼與 Provider ID 保持機器值，不進行翻譯。",
+      "settings.saveLabel": "儲存綁定",
+      "settings.providerId.label": "Provider",
+      "settings.providerId.description": "為此綁定選擇已安裝的 Provider。",
+      "settings.scope.label": "作用域",
+      "settings.scope.description": "較具體的作用域會覆蓋較寬泛的作用域。",
+      "settings.scopeId.label": "作用域 ID",
+      "settings.scopeId.description": "除 SYSTEM 作用域外皆需要填寫。",
+      "settings.priority.label": "優先順序",
+      "settings.priority.description": "僅用於相同作用域層級內的順序判定。",
+      "settings.adminToken.label": "管理員授權",
+      "settings.adminToken.description": "僅用於驗證管理員身分，不會持久化到 Provider 綁定狀態。",
+      "settings.currentResolution.label": "目前解析結果",
+      "settings.selectedHealth.label": "已選擇執行階段健康狀態"
     }
   }
 ];

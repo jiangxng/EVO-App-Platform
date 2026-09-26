@@ -216,3 +216,38 @@ test("Extension Manager receives Host-evaluated runtime readiness and recent ope
   assert.match(html, /INVOCATION_FAILED/);
   assert.match(html, /remote error/);
 });
+
+
+test("Extension Manager can surface Host-owned product readiness without changing package lifecycle status", () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  manager.install("company-notes");
+
+  const page = createPluginStorePage([companyNotesPackage], manager.getSnapshot(), {
+    evaluateProductState(_pkg, lifecycle) {
+      assert.equal(lifecycle.isInstalled, true);
+      assert.equal(lifecycle.isEnabled, true);
+      return {
+        readiness: {
+          id: "setup-required",
+          label: "Needs setup",
+          tone: "warning",
+          message: "Complete setup."
+        },
+        primaryAction: {
+          id: "setup",
+          label: "Set up",
+          type: "navigate",
+          route: "/setup"
+        }
+      };
+    }
+  });
+
+  assert.equal(page.items[0].status.id, "enabled");
+  assert.equal(page.items[0].readiness.id, "setup-required");
+  assert.equal(page.items[0].primaryAction.id, "setup");
+  assert.equal(page.items[0].primaryAction.route, "/setup");
+});

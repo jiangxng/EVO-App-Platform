@@ -1,9 +1,10 @@
 import { renderToHtml } from "../renderers/html/index.js";
 import { renderCatalogBrowserToHtml } from "../catalog-browser/render.js";
-import { isChatExperienceV010, renderChatExperienceToHtml } from "../chat/index.js";
-import { isSettingsEditorV010, renderSettingsEditorToHtml } from "../settings/index.js";
+import { isChatExperienceV010, isChatExperienceV020, renderChatExperienceToHtml } from "../chat/index.js";
+import { isSettingsEditorV010, isSettingsEditorV020, renderSettingsEditorToHtml } from "../settings/index.js";
 import { isExtensionManagerV010, renderExtensionManagerToHtml } from "../extension-manager/index.js";
 import { isHelpDocumentV010, renderHelpDocumentToHtml } from "../help/index.js";
+import { isSetupFlowV010, renderSetupFlowToHtml } from "../setup-flow/index.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import { localizeAppHostPageDefinition } from "../localization/localize.js";
@@ -21,16 +22,20 @@ export function renderAppHostPageToHtml(
     );
   }
 
-  if (isChatExperienceV010(localizedDefinition)) {
+  if (isChatExperienceV010(localizedDefinition) || isChatExperienceV020(localizedDefinition)) {
     return renderChatExperienceToHtml(localizedDefinition);
   }
 
-  if (isSettingsEditorV010(localizedDefinition)) {
+  if (isSettingsEditorV010(localizedDefinition) || isSettingsEditorV020(localizedDefinition)) {
     return renderSettingsEditorToHtml(localizedDefinition);
   }
 
   if (isExtensionManagerV010(localizedDefinition)) {
     return renderExtensionManagerToHtml(localizedDefinition);
+  }
+
+  if (isSetupFlowV010(localizedDefinition)) {
+    return renderSetupFlowToHtml(localizedDefinition);
   }
 
   if (isHelpDocumentV010(localizedDefinition)) {

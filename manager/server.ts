@@ -40,6 +40,18 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  ENTERPRISE_AGENT_PACKAGE_ID,
+  ENTERPRISE_AGENT_PAGE_SOURCE,
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+} from "../agents/enterprise-agent/package.js";
+import {
+  createPersonalAgentChatPageV020,
+  createPersonalAgentSetupPageV010,
+  evaluatePersonalAgentReadinessV010,
+  PERSONAL_AGENT_ROUTE,
+  PERSONAL_AGENT_SETUP_ROUTE
+} from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   AuthorizationProviderV010,
@@ -853,6 +865,37 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (
+        source === ENTERPRISE_AGENT_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+      ) {
+        const effective = manager.listEffectiveExperiences().some(value => {
+          const manifest = value as { pages?: Array<{ source?: string }> };
+          return manifest.pages?.some(page => page.source === source) === true;
+        });
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+
+        const readiness = evaluatePersonalAgentReadinessV010(
+          manager,
+          providerRuntimeRegistry,
+          providerBindings
+        );
+        if (source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentSetupPageV010(readiness));
+        }
+
+        const context = contextRegistry.resolve();
+        const contextLabel = context.activeContext.kind === "PERSONAL"
+          ? context.personalContext.displayName ?? context.activeContext.contextId
+          : context.enterpriseContext?.displayName ?? context.activeContext.contextId;
+        return json(
+          response,
+          200,
+          createPersonalAgentChatPageV020(readiness, contextLabel)
+        );
+      }
       if (source === helpIndexPageSourceV010) {
         return json(response, 200, createHelpIndexPageV010(helpCorpus, requestedLocale(url)));
       }
@@ -872,7 +915,57 @@ const server = createServer(async (request, response) => {
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
-            evaluateRuntime: evaluateRuntimeForHost
+            evaluateRuntime: evaluateRuntimeForHost,
+            evaluateProductState(pkg, lifecycle) {
+              if (
+                pkg.packageId !== ENTERPRISE_AGENT_PACKAGE_ID
+                || !lifecycle.isInstalled
+                || !lifecycle.isEnabled
+              ) {
+                return undefined;
+              }
+              const readiness = evaluatePersonalAgentReadinessV010(
+                manager,
+                providerRuntimeRegistry,
+                providerBindings
+              );
+              const readinessId = readiness.state === "unavailable"
+                ? "error"
+                : readiness.state;
+              return {
+                readiness: {
+                  id: readinessId,
+                  label: readiness.state === "ready"
+                    ? "Ready"
+                    : readiness.state === "setup-required"
+                      ? "Needs setup"
+                      : readiness.state === "degraded"
+                        ? "Degraded"
+                        : "Unavailable",
+                  tone: readiness.state === "ready"
+                    ? "positive"
+                    : readiness.state === "setup-required"
+                      ? "warning"
+                      : readiness.state === "degraded"
+                        ? "warning"
+                        : "danger",
+                  message: readiness.message
+                },
+                primaryAction: readiness.state === "ready" || readiness.state === "degraded"
+                  ? {
+                      id: "open",
+                      label: "Open",
+                      type: "navigate",
+                      route: PERSONAL_AGENT_ROUTE
+                    }
+                  : {
+                      id: "setup",
+                      label: "Set up",
+                      type: "navigate",
+                      route: PERSONAL_AGENT_SETUP_ROUTE
+                    }
+              };
+            }
           }
         ));
       }

@@ -16,6 +16,7 @@ import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secret
 import { createMemorySecretStoreV010 } from "../../dist/manager/secret-store.js";
 import { createHostEncryptedSecretsProviderV010 } from "../../dist/providers/secrets/runtime.js";
 import { enterpriseAgentPackage } from "../../dist/catalog/seed.js";
+import { appPlatformLocalizationBundles } from "../../dist/manager/localization.js";
 
 test("settings contributions appear only after the owning package is installed", () => {
   const manager = createAppManagerService(
@@ -87,6 +88,27 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   assert.match(zh.settings.find(x => x.key === "secret-status:apiKey").value, /已配置/);
   assert.equal(zh.settings.find(x => x.key === "secret:apiKey").value, "");
   assert.doesNotMatch(JSON.stringify(zh), /sk-never-render-this/);
+
+  const ja = await createSettingsPage(
+    manager,
+    store,
+    "openai-llm-provider",
+    describe,
+    { installationId: "default" },
+    "ja"
+  );
+  const zhTw = await createSettingsPage(
+    manager,
+    store,
+    "openai-llm-provider",
+    describe,
+    { installationId: "default" },
+    "zh-TW"
+  );
+  assert.match(ja.settings.find(x => x.key === "secret-status:apiKey").value, /設定済み/);
+  assert.match(zhTw.settings.find(x => x.key === "secret-status:apiKey").value, /已設定/);
+  assert.doesNotMatch(JSON.stringify(ja), /sk-never-render-this/);
+  assert.doesNotMatch(JSON.stringify(zhTw), /sk-never-render-this/);
 });
 
 test("invalid setting types are rejected", () => {
@@ -136,4 +158,29 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
 
   assert.equal(openAi.secondaryActions.some(action => action.id === "configure"), true);
   assert.equal(agent.secondaryActions.some(action => action.id === "configure"), false);
+});
+
+
+test("OpenAI Provider settings ship all four Personal Agent P0.4 locales", () => {
+  const locales = openAiLlmProviderPackage.features[0].contributions
+    .filter(contribution => contribution.kind === "eidos.localization-bundle")
+    .map(contribution => contribution.bundle.locale)
+    .sort();
+  assert.deepEqual(locales, ["en", "ja", "zh-CN", "zh-TW"]);
+});
+
+
+test("llm.inference Provider selection ships all four P0.4 locales", () => {
+  const locales = appPlatformLocalizationBundles
+    .filter(bundle => bundle.namespace === "provider-binding:llm.inference")
+    .map(bundle => bundle.locale)
+    .sort();
+  assert.deepEqual(locales, ["en", "ja", "zh-CN", "zh-TW"]);
+  for (const locale of locales) {
+    const bundle = appPlatformLocalizationBundles.find(
+      item => item.namespace === "provider-binding:llm.inference" && item.locale === locale
+    );
+    assert.ok(bundle.messages["settings.providerId.label"]);
+    assert.ok(bundle.messages["settings.saveLabel"]);
+  }
 });
