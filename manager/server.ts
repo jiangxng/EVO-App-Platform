@@ -1065,6 +1065,8 @@ const server = createServer(async (request, response) => {
         },
         personalContext: contextRegistry.personal(),
         availableContexts: contextRegistry.list(),
+        relationships: resolveEnterpriseContextRelationshipProvider()
+          ?.listForPrincipal(session.principal) ?? [],
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
