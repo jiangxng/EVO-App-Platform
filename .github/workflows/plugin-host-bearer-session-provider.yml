@@ -1,0 +1,41 @@
+name: Plugin CI - Host Bearer Session Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/request-session/**"
+      - "contracts/platform-services.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-bearer-session-provider.yml"
+  pull_request:
+    paths:
+      - "providers/request-session/**"
+      - "contracts/platform-services.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-bearer-session-provider.yml"
+
+concurrency:
+  group: plugin-host-bearer-session-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-bearer-session-provider
