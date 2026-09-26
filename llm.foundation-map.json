@@ -274,7 +274,14 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE",
-      "next": "EIDOS_P0_4A"
+      "next": "EIDOS_P0_4A",
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "localization": "FOUR_LOCALE_REQUIRED_NEW_SURFACES"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
