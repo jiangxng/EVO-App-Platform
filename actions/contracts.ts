@@ -1,3 +1,5 @@
+import type { PlatformRequestContextV010 } from "../contracts/platform-services.js";
+
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
@@ -29,5 +31,8 @@ export interface AppActionHandler {
   readonly packageId: string;
   readonly featureId: string;
   readonly commandCode: string;
-  execute(request: AppActionRequestV010): Promise<AppActionExecutionResultV010>;
+  execute(
+    request: AppActionRequestV010,
+    context?: PlatformRequestContextV010
+  ): Promise<AppActionExecutionResultV010>;
 }
