@@ -26,7 +26,18 @@ const source = createAppManagerExperienceSource({
   baseUrl: window.location.origin,
   locale: () => activeLocale
 });
-const actionHost = createAppManagerActionHost({ baseUrl: window.location.origin });
+const baseActionHost = createAppManagerActionHost({ baseUrl: window.location.origin });
+const actionHost = {
+  execute(request: Parameters<typeof baseActionHost.execute>[0]) {
+    return baseActionHost.execute({
+      ...request,
+      values: {
+        ...request.values,
+        locale: activeLocale
+      }
+    });
+  }
+};
 const host = createAppHost(source);
 const initialBundles = await source.listEffectiveLocalizationBundles();
 
