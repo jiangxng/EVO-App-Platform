@@ -136,11 +136,8 @@ export function createHostBearerSessionProviderV010(
     providerId: HOST_BEARER_SESSION_PROVIDER_ID,
     resolve(input: IdentitySessionRequestV010) {
       const token = input.bearerToken?.trim();
-      const sessionId = input.sessionId?.trim();
-      const entry = canonical.find(candidate =>
-        (token ? tokenEquals(candidate.token, token) : false)
-        || (sessionId ? candidate.session.sessionId === sessionId : false)
-      );
+      if (!token) return undefined;
+      const entry = canonical.find(candidate => tokenEquals(candidate.token, token));
       if (!entry) return undefined;
       if (entry.session.expiresAt) {
         const expiresAt = Date.parse(entry.session.expiresAt);
