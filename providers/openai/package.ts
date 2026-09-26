@@ -10,6 +10,15 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
   displayName: "OpenAI LLM Provider",
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
+  secrets: [
+    {
+      key: "apiKey",
+      label: "API Key",
+      description: "OpenAI API credential. Stored only in the Host Secrets Provider and never returned to the browser after save.",
+      scope: "INSTALLATION",
+      required: true
+    }
+  ],
   features: [
     {
       contractVersion: "0.1.0",
@@ -18,6 +27,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
       version: "0.1.0",
       activationScope: "INSTALLATION",
       defaultActivation: true,
+      requiresCapabilities: ["secrets.resolve"],
       providesCapabilities: [
         "llm.inference",
         "llm.tool-calling"
@@ -63,7 +73,14 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.model.label": "Model",
               "settings.model.description": "Model id used for inference.",
               "settings.baseUrl.label": "API Base URL",
-              "settings.baseUrl.description": "OpenAI-compatible Responses API base URL."
+              "settings.baseUrl.description": "OpenAI-compatible Responses API base URL.",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "Enter a new API Key to configure or replace the stored credential. Saved values are never displayed again.",
+              "settings.secret-status:apiKey.label": "API Key status",
+              "settings.secret-remove:apiKey.label": "Remove API Key",
+              "settings.secret-remove:apiKey.description": "Remove the stored credential when saving.",
+              "settings.adminToken.label": "Administrator authorization",
+              "settings.adminToken.description": "Required only when changing Secret values during the bootstrap administration phase."
             }
           }
         },
@@ -80,7 +97,14 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
               "settings.model.label": "模型",
               "settings.model.description": "推理时使用的模型 ID。",
               "settings.baseUrl.label": "API Base URL",
-              "settings.baseUrl.description": "OpenAI 兼容 Responses API 的基础地址。"
+              "settings.baseUrl.description": "OpenAI 兼容 Responses API 的基础地址。",
+              "settings.secret:apiKey.label": "API Key",
+              "settings.secret:apiKey.description": "输入新的 API Key 以配置或替换已保存的凭据。保存后系统不会再次显示明文。",
+              "settings.secret-status:apiKey.label": "API Key 状态",
+              "settings.secret-remove:apiKey.label": "删除 API Key",
+              "settings.secret-remove:apiKey.description": "保存时删除当前已存储的凭据。",
+              "settings.adminToken.label": "管理员授权",
+              "settings.adminToken.description": "在 bootstrap 管理阶段，修改 Secret 时需要提供管理员认证。"
             }
           }
         },
@@ -98,7 +122,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
             },
             metadata: {
               apiFamily: "OpenAI Responses API",
-              apiKeySecretName: "OPENAI_API_KEY",
+              apiKeySecretName: "openai-llm-provider/apiKey",
               modelConfigName: "OPENAI_MODEL",
               defaultModel: "gpt-5.6-luna"
             }
