@@ -417,3 +417,47 @@ Authority:
 P0.9 deliberately does not silently persist chat, automatically write learned conclusions, automatically synchronize Personal/Enterprise Memory, or introduce vector retrieval before authority/provenance is stable.
 
 Next mainline: Memory Proposal lifecycle + Human review/edit/accept/reject + evidence quality/confidence + contradiction/supersession assistance + Eidos Memory review surface. EC integration comes later behind these same Context Memory contracts.
+
+
+## P1.0 — Human-reviewed Memory Proposal lifecycle
+
+P1.0 inserts an explicit Human review boundary between Personal Agent learning and durable Context Memory.
+
+Implemented:
+
+- Personal Agent tool `context.memory.proposal.create`;
+- Proposal staging is bound to the Host-resolved current Context and does not write durable Memory;
+- Proposal lifecycle `PENDING → ACCEPTED / REJECTED`;
+- append-only Proposal revisions;
+- Agent-authored initial revision and Human-authored edit revisions remain distinct;
+- evidence quality `UNVERIFIED / REFERENCED`, where REFERENCED means references exist, not that truth was verified;
+- optional `proposedConfidence` in `0..1`, explicitly supporting metadata rather than Host truth;
+- review assistance signals for potential duplicate, explicit potential contradiction references and supersession candidates;
+- review signals never make automatic truth decisions;
+- Human edit / accept / reject actions;
+- Accept requires explicit confirmation, current Context Memory write authority, Proposal Accept authorization and normal Memory Record authorization;
+- retry-safe deterministic Memory materialization, preventing duplicate Memory if Proposal finalization must be retried;
+- Reject is terminal and creates no Memory;
+- Eidos generic `review-queue@0.1.0` consumed from Eidos main `fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9`;
+- Personal Agent Memory Review route `/enterprise-agent/memory`;
+- Review Queue fields, evidence, confidence/signals/Context metrics and Accept/Edit/Reject controls;
+- Memory Proposal chat presentation explicitly says the proposal is not yet durable Memory;
+- UI and chat guidance delivered together in `en / zh-CN / ja / zh-TW`;
+- dedicated Personal Agent Memory Review CI plus Platform, Agent, Context Memory and authority integration coverage.
+
+Authority:
+
+- `docs/architecture/CONTEXT-MEMORY-PROPOSAL-REVIEW-P1.0-v0.1.md`
+
+The critical invariant is now executable:
+
+```text
+Personal Agent may propose
+Human reviews and decides
+Host revalidates Context + authorization
+only Accept materializes immutable Context Memory
+```
+
+P1.0 does not yet implement semantic contradiction judgment, evidence-source trust verification, retention/privacy policy, bulk learning ingestion or EC adapters.
+
+Next mainline: governed Memory intake/source identity + evidence trust metadata + retrieval quality/semantic search behind the Memory Provider contracts + EC adapter boundary, while preserving Human review as the durable-write authority.
