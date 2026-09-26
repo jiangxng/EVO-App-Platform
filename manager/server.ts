@@ -560,6 +560,25 @@ const manager = createAppManagerService(
 );
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
+  hostBearerSessions
+  && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_BEARER_SESSION_PACKAGE_ID);
+    console.log("Activated request-bound Host Bearer Session Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Bearer Session Provider.", error);
+  }
+}
+if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID)) {
+  try {
+    manager.install(HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
+    console.log("Activated Host Enterprise Relationship Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Enterprise Relationship Provider.", error);
+  }
+}
+if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
