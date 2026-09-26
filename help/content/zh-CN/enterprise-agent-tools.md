@@ -144,3 +144,21 @@ P0.9 通过可替换的 `context.memory.read` 与 `context.memory.write` Provide
 
 > [!IMPORTANT] Memory 不是自动保存的聊天记录
 > P0.9 不会静默持久化模型对话，也不会自动同步 Personal 与 Enterprise Memory。持久化写入必须经过受治理且由 Human 确认的 Action。
+
+
+## Memory Proposal 审核
+
+P1.0 将“候选学习内容”和“持久化 Context Memory”明确分开。
+
+个人 Agent 可以通过 `context.memory.proposal.create` 暂存候选知识。这个动作创建的是 **PENDING Proposal**，不是 Memory 记录。Proposal 始终绑定 Host 已解析的当前 Context，模型不能通过提交另一个 Context 来获得权限。
+
+在**记忆审核**页面中，可以查看 Proposal 所属 Context、建议置信度、证据引用与审核信号，并可在决策前编辑 Memory 类型或摘要。编辑会追加一条 Human-authored Proposal revision，不会覆盖 Agent 最初提出的 revision。
+
+审核信号可以提示潜在重复、明确引用的潜在冲突以及 supersession candidate。它们只用于辅助审核，不会自动判断真假。同样，建议置信度只是辅助信息，不代表 Host 真值，也不是自动接受阈值。
+
+接受 Proposal 时，必须经过明确确认、当前 Memory 写权限、Proposal Accept 授权，以及正常的 `context.memory.record` 授权。只有全部通过后，才会生成一条不可修改的 Context Memory。Accept 支持安全重试，同一个 Proposal 不会重复生成 Memory。
+
+拒绝 Proposal 后即进入终态，并且不会写入 Memory。
+
+> [!IMPORTANT] Evidence Quality 采用保守语义
+> `REFERENCED` 只表示存在证据引用，并不表示 Host 已验证该证据真实或权威。

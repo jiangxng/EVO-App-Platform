@@ -32,7 +32,7 @@
     "platformHelpGovernance": "NOW",
     "enterpriseAgentToolSystem": "NOW",
     "personFirstWorldModel": "FROZEN_MVP",
-    "contextMemory": "CI_VERIFIED_P0_9_GOVERNED_READ_WRITE_PROVENANCE_PROMOTION",
+    "contextMemory": "CI_VERIFIED_P1_0_HUMAN_REVIEWED_PROPOSALS_AND_GOVERNED_MATERIALIZATION",
     "enterpriseContextProvider": "CI_VERIFIED_P0_5",
     "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
@@ -79,7 +79,12 @@
     "contextMemoryProvider": "CI_VERIFIED_P0_9",
     "contextMemoryProvenanceAttribution": "CI_VERIFIED_P0_9",
     "contextMemoryPromotionGovernance": "CI_VERIFIED_P0_9_DENY_BY_DEFAULT",
-    "personalAgentContextMemoryRead": "CI_VERIFIED_P0_9_HOST_BOUND_CURRENT_CONTEXT"
+    "personalAgentContextMemoryRead": "CI_VERIFIED_P0_9_HOST_BOUND_CURRENT_CONTEXT",
+    "contextMemoryProposalReview": "CI_VERIFIED_P1_0",
+    "contextMemoryProposalRevisions": "CI_VERIFIED_P1_0_APPEND_ONLY",
+    "contextMemoryProposalEvidenceSignals": "CI_VERIFIED_P1_0_REVIEW_ASSISTANCE",
+    "contextMemoryProposalMaterialization": "CI_VERIFIED_P1_0_IDEMPOTENT_HUMAN_ACCEPT",
+    "eidosReviewQueue": "CI_VERIFIED_EIDOS_FAFFF980_AND_APP_PLATFORM_CONSUMED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -169,22 +174,23 @@
     "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   },
   "authorization": {
-    "status": "IMPLEMENTED_P0_9_CONTEXT_MEMORY_WRITE_AND_PROMOTION_GOVERNANCE",
+    "status": "IMPLEMENTED_P1_0_MEMORY_PROPOSAL_REVIEW_AND_DUAL_ACCEPT_GATE",
     "capability": "authorization.check",
     "principal": "REQUEST_BOUND_IDENTITY_SESSION_PRINCIPAL_WITH_P0_6_COMPATIBILITY_FALLBACK",
     "decision": "PROVIDER_OWNED",
     "missingOrAmbiguous": "FAIL_CLOSED",
     "referenceProvider": "host-static-authorization-provider",
     "policy": "HOST_OWNED_DENY_BY_DEFAULT",
-    "next": "MEMORY_PROPOSAL_REVIEW_AND_EVIDENCE_GOVERNANCE",
-    "enterpriseGovernance": "HOST_STRUCTURAL_RELATIONSHIP_RULES_AND_PROVIDER_POLICY"
+    "next": "MEMORY_SOURCE_TRUST_RETENTION_AND_INGESTION_GOVERNANCE",
+    "enterpriseGovernance": "HOST_STRUCTURAL_RELATIONSHIP_RULES_AND_PROVIDER_POLICY",
+    "memoryProposal": "STAGE_REQUIRES_CONTEXT_AUTHORITY_AND_ALLOW; ACCEPT_REQUIRES_CONFIRMATION_PROPOSAL_ALLOW_AND_MEMORY_RECORD_ALLOW"
   },
   "platformHelp": {
     "status": "IMPLEMENTED_P0_MULTILINGUAL",
     "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
     "canonicalModel": "REPOSITORY_MARKDOWN_TO_EIDOS_HELP_DOCUMENT",
     "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
-    "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+    "eidosRevision": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
     "workbench": "SECONDARY_HELP_ACTIVITY_SIDE_CATALOG_MAIN_WORKSPACE_DOCUMENT",
     "searchP0": "DETERMINISTIC_LOCAL_FILTER_AND_HOST_SEARCH_CONTEXT_API",
     "ci": "CORPUS_METADATA_RELATED_REQUIRED_SEED_VALIDATION",
@@ -238,10 +244,11 @@
     "principalScopeFilter": "IMPLEMENTED_P0_6_CONTEXT_BOUND",
     "writeAuthorization": "IMPLEMENTED_P0_8_ENTERPRISE_GOVERNANCE_DUAL_GATE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "MEMORY_PROPOSAL_REVIEW_AND_EIDOS_MEMORY_SURFACE",
+    "next": "GOVERNED_MEMORY_INTAKE_AND_EC_ADAPTER",
     "productIdentity": "Personal Agent",
     "currentContextTool": "context.current.get",
-    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY"
+    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY",
+    "memoryProposal": "IMPLEMENTED_P1_0_HUMAN_REVIEWED"
   },
   "personFirstWorldModel": {
     "status": "FROZEN_MVP",
@@ -273,7 +280,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
+    "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contextOwnership": "HOST_RESOLVED",
@@ -298,7 +305,7 @@
       "recommendedEidosPattern": "SETTINGS_EDITOR_V0_2_GROUPING",
       "installReadiness": "SEPARATE",
       "providerConfigurationOwner": "PROVIDER_PACKAGE_AND_HOST_SECRETS",
-      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
+      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
       "locales": [
         "en",
         "zh-CN",
@@ -306,7 +313,7 @@
         "zh-TW"
       ],
       "localization": "FOUR_LOCALE_IMPLEMENTED",
-      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+      "eidosRevision": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
       "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED",
       "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
@@ -411,7 +418,34 @@
       "agentTool": "context.memory.search",
       "agentScope": "CURRENT_HOST_RESOLVED_CONTEXT",
       "automaticWriteback": false,
-      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE"
+      "next": "P1_0_DELIVERED_THEN_GOVERNED_MEMORY_INTAKE"
+    },
+    "contextP1_0": {
+      "status": "CI_VERIFIED_P1_0",
+      "authority": "docs/architecture/CONTEXT-MEMORY-PROPOSAL-REVIEW-P1.0-v0.1.md",
+      "eidos": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
+      "reviewPattern": "review-queue@0.1.0",
+      "proposal": "SEPARATE_FROM_DURABLE_MEMORY",
+      "tool": "context.memory.proposal.create",
+      "staging": "HOST_CONTEXT_BOUND_AUTHORIZED",
+      "revisionHistory": "APPEND_ONLY",
+      "review": [
+        "EDIT",
+        "ACCEPT",
+        "REJECT"
+      ],
+      "evidenceQuality": "UNVERIFIED_OR_REFERENCED_REFERENCE_PRESENCE_ONLY",
+      "confidence": "OPTIONAL_SUPPORTING_METADATA_NOT_TRUTH",
+      "signals": "DUPLICATE_CONTRADICTION_SUPERSESSION_ASSISTANCE_ONLY",
+      "accept": "HUMAN_CONFIRMATION_AND_DUAL_AUTHORIZATION",
+      "materialization": "IDEMPOTENT_DETERMINISTIC_MEMORY_ID",
+      "localization": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER"
     }
   },
   "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"

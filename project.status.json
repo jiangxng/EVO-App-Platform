@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P0.9 — Governed Context Memory",
+  "currentMilestone": "Personal Agent P1.0 — Human-reviewed Memory Proposals",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -174,7 +174,17 @@
     "personal-context-memory-owner-write-authority",
     "enterprise-context-memory-relationship-write-authority",
     "context-memory-cross-context-promotion-governance",
-    "personal-agent-current-context-memory-read-tool"
+    "personal-agent-current-context-memory-read-tool",
+    "context-memory-proposal-store",
+    "context-memory-proposal-agent-staging",
+    "context-memory-proposal-append-only-revisions",
+    "context-memory-proposal-human-review",
+    "context-memory-proposal-evidence-quality",
+    "context-memory-proposal-confidence-metadata",
+    "context-memory-proposal-review-signals",
+    "context-memory-proposal-idempotent-materialization",
+    "eidos-review-queue-memory-integration",
+    "personal-agent-memory-review-four-locales"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -197,7 +207,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P0.9 is CI-verified: replaceable Context Memory read/write Providers, append-only immutable records, provenance/attribution, same-Context supersession, Human-confirmed record/promote actions, Personal/Enterprise write authority, deny-by-default cross-context promotion, and Host-bound Personal Agent current-Context memory reads all pass Platform, Enterprise Agent and owning Provider CI.",
+  "currentStep": "Personal Agent P1.0 is CI-verified: Personal Agent can stage Context-bound Memory Proposals without writing durable Memory; Proposal revisions are append-only; Human review can edit/accept/reject through Eidos Review Queue; evidence presence, proposed confidence and duplicate/contradiction/supersession signals remain review aids; Accept revalidates Context authority, requires explicit confirmation plus Proposal and Memory-record authorization, and materializes exactly one retry-safe immutable Memory.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -368,7 +378,7 @@
   "designLanguage": {
     "owner": "Eidos",
     "version": "0.1.0",
-    "eidosSourceCommit": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+    "eidosSourceCommit": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
     "authority": "Eidos docs/product/EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md",
     "hostRule": "App Platform consumes Eidos design tokens/styles; plugins inherit standard realization",
     "enforcement": "PLATFORM_CI_STRICT_EIDOS_DESIGN_LANGUAGE_GATE",
@@ -461,7 +471,7 @@
       "authenticationBoundary": "BOOTSTRAP_PRINCIPAL_TRANSITIONAL"
     },
     "authorization": {
-      "status": "IMPLEMENTED_P0_PLUS_REQUEST_CONTEXT_AND_ENTERPRISE_RELATIONSHIP_GOVERNANCE_P0_8",
+      "status": "IMPLEMENTED_P1_0_MEMORY_PROPOSAL_REVIEW_DUAL_MATERIALIZATION_GATE",
       "capability": "authorization.check",
       "contract": "AuthorizationCheckV010/AuthorizationDecisionV010",
       "referenceProvider": "host-static-authorization-provider",
@@ -476,7 +486,8 @@
       ],
       "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN",
-      "enterpriseGovernance": "HOST_RELATIONSHIP_RULES_AND_PROVIDER_POLICY_BOTH_REQUIRED"
+      "enterpriseGovernance": "HOST_RELATIONSHIP_RULES_AND_PROVIDER_POLICY_BOTH_REQUIRED",
+      "memoryProposal": "STAGING_AUTHORIZED_ACCEPT_REQUIRES_PROPOSAL_AND_MEMORY_RECORD_ALLOW"
     },
     "secrets": {
       "status": "IMPLEMENTED_P0_PRODUCTION_DEPLOYED_VOLUME_MOUNTED",
@@ -589,13 +600,14 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "MEMORY_PROPOSAL_REVIEW_AND_EIDOS_MEMORY_SURFACE",
+    "next": "GOVERNED_MEMORY_INTAKE_AND_EC_ADAPTER",
     "productIdentity": "Personal Agent",
     "preferredCapability": "agent.personal.tool-discovery",
     "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
     "writeAuthorization": "IMPLEMENTED_P0_8_GOVERNANCE_DUAL_GATE_PLUS_P0_7_AGENT_GATE",
     "initialToolCount": 12,
-    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY"
+    "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY",
+    "memoryProposal": "IMPLEMENTED_P1_0_HUMAN_REVIEWED"
   },
   "worldModel": {
     "status": "FROZEN_MVP",
@@ -634,7 +646,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
+    "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -660,7 +672,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE",
+      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER",
       "locales": [
         "en",
         "zh-CN",
@@ -668,9 +680,12 @@
         "zh-TW"
       ],
       "localization": "FOUR_LOCALE_P0_4_IMPLEMENTED",
-      "eidosRevision": "ff4b720d863f51a2121ef22178c6e54b5bdb8e9f",
+      "eidosRevision": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
       "chat": "CHAT_V0_2_STRUCTURED_ACTIVITY_EVIDENCE_PROPOSAL",
-      "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY"
+      "extensionReadiness": "INSTALLED_NEEDS_SETUP_READY",
+      "requiredEidosPatterns": [
+        "REVIEW_QUEUE_V0_1"
+      ]
     },
     "contextP0_5": {
       "status": "CI_VERIFIED_P0_5",
@@ -845,7 +860,50 @@
       "agentReadScope": "HOST_BOUND_CURRENT_ACTIVE_CONTEXT_ONLY",
       "implicitChatWrite": "FORBIDDEN",
       "semanticVectorSearch": "DEFERRED",
-      "next": "MEMORY_PROPOSAL_REVIEW_EVIDENCE_QUALITY_AND_EIDOS_MEMORY_SURFACE"
+      "next": "P1_0_DELIVERED_THEN_GOVERNED_MEMORY_INTAKE"
+    },
+    "contextP1_0": {
+      "status": "CI_VERIFIED_P1_0",
+      "authority": "docs/architecture/CONTEXT-MEMORY-PROPOSAL-REVIEW-P1.0-v0.1.md",
+      "eidosRevision": "fafff9808e82d5b1c1c6cf8dcbb9dd5602d165b9",
+      "eidosPattern": "REVIEW_QUEUE_V0_1",
+      "proposalTool": "context.memory.proposal.create",
+      "proposalState": [
+        "PENDING",
+        "ACCEPTED",
+        "REJECTED"
+      ],
+      "proposalVsMemory": "SEPARATE_STORES_AND_AUTHORITY",
+      "staging": "CONTEXT_BOUND_AUTHORIZED_NO_DURABLE_MEMORY",
+      "revisions": "APPEND_ONLY_AGENT_THEN_HUMAN",
+      "humanReview": [
+        "EDIT",
+        "ACCEPT",
+        "REJECT"
+      ],
+      "evidenceQuality": [
+        "UNVERIFIED",
+        "REFERENCED"
+      ],
+      "evidenceSemantics": "REFERENCE_PRESENCE_NOT_TRUTH_VERIFICATION",
+      "proposedConfidence": "OPTIONAL_0_TO_1_SUPPORTING_METADATA_NOT_HOST_TRUTH",
+      "reviewSignals": [
+        "POTENTIAL_DUPLICATE",
+        "POTENTIAL_CONTRADICTION",
+        "SUPERSESSION_CANDIDATE"
+      ],
+      "reviewSignalsSemantics": "ASSISTANCE_ONLY_NO_AUTOMATIC_TRUTH_DECISION",
+      "accept": "HUMAN_CONFIRMED_CONTEXT_AUTHORITY_PLUS_PROPOSAL_AND_MEMORY_RECORD_AUTHORIZATION",
+      "materialization": "DETERMINISTIC_ID_RETRY_SAFE_ONE_MEMORY_PER_PROPOSAL",
+      "reject": "TERMINAL_NO_MEMORY_WRITE",
+      "reviewRoute": "/enterprise-agent/memory",
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "next": "GOVERNED_MEMORY_INTAKE_EVIDENCE_TRUST_RETRIEVAL_AND_EC_ADAPTER"
     }
   }
 }

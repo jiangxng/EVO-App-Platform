@@ -155,7 +155,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   }
 
   const hostActionButtons = container.querySelectorAll<HTMLButtonElement>(
-    "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action]"
+    "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]"
   );
   if (hostActionButtons.length > 0) {
     const actionStatus = document.createElement("pre");
@@ -218,15 +218,40 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 code: command,
                 inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
               },
-              values: {
-                ...(itemId ? { itemId } : {}),
-                confirmed: button.dataset.eidosConfirm === "true"
-              },
+              values: (() => {
+                const values: Record<string, JsonValue> = {
+                  ...(itemId ? { itemId } : {}),
+                  confirmed: button.dataset.eidosConfirm === "true"
+                };
+                if (button.dataset.eidosReviewAction) {
+                  const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
+                  if (form) {
+                    const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+                      "[data-eidos-review-field]"
+                    );
+                    for (const control of Array.from(controls)) {
+                      if (control.disabled) continue;
+                      const key = control.dataset.eidosReviewField;
+                      if (!key) continue;
+                      if (control instanceof HTMLSelectElement) {
+                        const encoded = control.selectedOptions[0]?.dataset.valueJson;
+                        if (encoded !== undefined) {
+                          values[key] = JSON.parse(encoded) as JsonValue;
+                          continue;
+                        }
+                      }
+                      values[key] = control.value;
+                    }
+                  }
+                }
+                return values;
+              })(),
               sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
               actionId: button.dataset.eidosCatalogAction
                 ?? button.dataset.eidosExtensionAction
                 ?? button.dataset.eidosSetupAction
                 ?? button.dataset.eidosChatAction
+                ?? button.dataset.eidosReviewAction
                 ?? command,
               requiresConfirmation: button.dataset.eidosConfirm === "true"
             };

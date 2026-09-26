@@ -35,6 +35,15 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
     limit?: number;
   }) => Promise<unknown> | unknown;
+  proposeContextMemory?: (input: {
+    kind: "FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE";
+    summary: string;
+    evidenceRefs: string[];
+    proposedConfidence?: number;
+    observedAt?: string;
+    supersedesMemoryId?: string;
+    potentialContradictionMemoryIds: string[];
+  }) => Promise<unknown> | unknown;
   searchHelp(
     query: string,
     context?: HelpContextSelectorsV010
@@ -214,6 +223,90 @@ export function createEnterpriseAgentHostToolCatalogV010(
           ...(query ? { query } : {}),
           ...(kind ? { kinds: [kind] } : {}),
           ...(rawLimit !== undefined ? { limit: rawLimit } : {})
+        });
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.proposal.create",
+        modelName: "context_memory_proposal_create",
+        title: "Propose Context Memory",
+        description: "Create a reviewable Memory proposal for the current Host-resolved Context. This does not write durable Memory; a human must review and accept it.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            kind: {
+              type: "string",
+              enum: ["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"]
+            },
+            summary: { type: "string" },
+            evidenceRefs: {
+              type: "array",
+              items: { type: "string" }
+            },
+            proposedConfidence: {
+              type: "number",
+              minimum: 0,
+              maximum: 1
+            },
+            observedAt: { type: "string" },
+            supersedesMemoryId: { type: "string" },
+            potentialContradictionMemoryIds: {
+              type: "array",
+              items: { type: "string" }
+            }
+          },
+          required: ["kind", "summary"],
+          additionalProperties: false
+        },
+        effect: "WRITE",
+        ownerPackageId: "enterprise-agent",
+        capability: "context.memory.write"
+      }),
+      available() {
+        return dependencies.proposeContextMemory !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.proposeContextMemory) {
+          throw new Error("CONTEXT_MEMORY_PROPOSAL_SERVICE_REQUIRED");
+        }
+        const rawKind = stringArg(args, "kind")!;
+        if (!["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(rawKind)) {
+          throw new Error("CONTEXT_MEMORY_PROPOSAL_KIND_INVALID");
+        }
+        const summary = stringArg(args, "summary")!;
+        const stringArrayArg = (key: string): string[] => {
+          const value = args[key];
+          if (value === undefined) return [];
+          if (!Array.isArray(value) || value.some(item => typeof item !== "string" || !item.trim())) {
+            throw new Error(`CONTEXT_MEMORY_PROPOSAL_ARGUMENT_INVALID: ${key}`);
+          }
+          return [...new Set(value.map(item => (item as string).trim()))];
+        };
+        const confidence = args.proposedConfidence;
+        if (
+          confidence !== undefined
+          && (
+            typeof confidence !== "number"
+            || !Number.isFinite(confidence)
+            || confidence < 0
+            || confidence > 1
+          )
+        ) {
+          throw new Error("CONTEXT_MEMORY_PROPOSAL_CONFIDENCE_INVALID");
+        }
+        return dependencies.proposeContextMemory({
+          kind: rawKind as "FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE",
+          summary,
+          evidenceRefs: stringArrayArg("evidenceRefs"),
+          ...(confidence !== undefined ? { proposedConfidence: confidence } : {}),
+          ...(stringArg(args, "observedAt", false)
+            ? { observedAt: stringArg(args, "observedAt", false) }
+            : {}),
+          ...(stringArg(args, "supersedesMemoryId", false)
+            ? { supersedesMemoryId: stringArg(args, "supersedesMemoryId", false) }
+            : {}),
+          potentialContradictionMemoryIds: stringArrayArg("potentialContradictionMemoryIds")
         });
       }
     },

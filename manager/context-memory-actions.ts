@@ -21,6 +21,10 @@ import {
   HOST_CONTEXT_MEMORY_PACKAGE_ID
 } from "../providers/context-memory/package.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
+import {
+  requireContextMemoryWriteAuthorityV010,
+  sameContextRefV010
+} from "./context-memory-authority.js";
 
 export const CONTEXT_MEMORY_RECORD_ACTION = "context.memory.record";
 export const CONTEXT_MEMORY_PROMOTE_ACTION = "context.memory.promote";
@@ -143,52 +147,10 @@ function requireHuman(
   }
 }
 
-function sameContext(
-  left: ActiveContextRefV010,
-  right: ActiveContextRefV010
-): boolean {
-  return left.kind === right.kind
-    && left.contextId === right.contextId
-    && (
-      left.kind !== "ENTERPRISE"
-      || right.kind !== "ENTERPRISE"
-      || left.enterpriseId === right.enterpriseId
-    );
-}
-
 function activeContext(context: PlatformRequestContextV010): ActiveContextRefV010 {
   const active = context.context?.activeContext;
   if (!active) throw new Error("CONTEXT_MEMORY_ACTIVE_CONTEXT_REQUIRED");
   return structuredClone(active);
-}
-
-function requireWritableContext(
-  dependencies: ContextMemoryActionDependenciesV010,
-  requestContext: PlatformRequestContextV010,
-  context: ActiveContextRefV010
-): void {
-  if (context.kind === "PERSONAL") {
-    const personal = requestContext.context?.personalContext;
-    if (
-      !personal
-      || personal.contextId !== context.contextId
-      || personal.ownerSubjectId !== requestContext.principal.subjectId
-    ) {
-      throw new Error("PERSONAL_CONTEXT_MEMORY_OWNER_REQUIRED");
-    }
-    return;
-  }
-
-  const relationships = dependencies.resolveRelationshipProvider()
-    ?.listForPrincipal(requestContext.principal) ?? [];
-  const writable = relationships.some(item =>
-    item.contextId === context.contextId
-    && item.state === "ACTIVE"
-    && ["OWNER", "ADMIN", "MEMBER"].includes(item.kind)
-  );
-  if (!writable) {
-    throw new Error("ENTERPRISE_CONTEXT_MEMORY_WRITE_RELATIONSHIP_REQUIRED");
-  }
 }
 
 function requireAvailableContext(
@@ -266,7 +228,12 @@ export function createContextMemoryActionHandlersV010(
     async (request, requestContext) => {
       requireHuman(request, requestContext);
       const context = activeContext(requestContext);
-      requireWritableContext(dependencies, requestContext, context);
+      requireContextMemoryWriteAuthorityV010({
+        principal: requestContext.principal,
+        personalContext: requestContext.context?.personalContext,
+        targetContext: context,
+        relationshipProvider: dependencies.resolveRelationshipProvider()
+      });
 
       const kind = memoryKind(request.values);
       const summary = stringValue(request.values, "summary")!;
@@ -347,7 +314,12 @@ export function createContextMemoryActionHandlersV010(
     async (request, requestContext) => {
       requireHuman(request, requestContext);
       const sourceContext = activeContext(requestContext);
-      requireWritableContext(dependencies, requestContext, sourceContext);
+      requireContextMemoryWriteAuthorityV010({
+        principal: requestContext.principal,
+        personalContext: requestContext.context?.personalContext,
+        targetContext: sourceContext,
+        relationshipProvider: dependencies.resolveRelationshipProvider()
+      });
 
       const sourceMemoryId = stringValue(request.values, "sourceMemoryId")!;
       const targetContextId = stringValue(request.values, "targetContextId")!;
@@ -356,10 +328,15 @@ export function createContextMemoryActionHandlersV010(
         requestContext,
         targetContextId
       );
-      if (sameContext(sourceContext, targetContext)) {
+      if (sameContextRefV010(sourceContext, targetContext)) {
         throw new Error("CONTEXT_MEMORY_PROMOTION_CROSS_CONTEXT_REQUIRED");
       }
-      requireWritableContext(dependencies, requestContext, targetContext);
+      requireContextMemoryWriteAuthorityV010({
+        principal: requestContext.principal,
+        personalContext: requestContext.context?.personalContext,
+        targetContext,
+        relationshipProvider: dependencies.resolveRelationshipProvider()
+      });
 
       const source = await exactMemory(
         dependencies,

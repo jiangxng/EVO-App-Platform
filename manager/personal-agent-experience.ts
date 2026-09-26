@@ -10,17 +10,21 @@ import type {
   ResolvedContextSetV010
 } from "../contracts/platform-services.js";
 import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
+import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
+import type { ContextMemoryProposalV010 } from "./context-memory-proposal-store.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
-  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
+  ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import { providerManagerCapabilityRoute } from "./provider-manager-page.js";
 import { settingsPackageRoute } from "./settings-page.js";
 
 export const PERSONAL_AGENT_ROUTE = "/enterprise-agent";
 export const PERSONAL_AGENT_SETUP_ROUTE = "/enterprise-agent/setup";
+export const PERSONAL_AGENT_MEMORY_REVIEW_ROUTE = "/enterprise-agent/memory";
 const LLM_CAPABILITY = "llm.inference";
 
 export type PersonalAgentReadinessStateV010 =
@@ -388,6 +392,131 @@ export function createPersonalAgentSetupPageV010(
   };
 }
 
+export function createPersonalAgentMemoryReviewPageV010(
+  proposals: readonly ContextMemoryProposalV010[],
+  contextLabels: ReadonlyMap<string, string>
+): ReviewQueueV010 {
+  const pending = proposals.filter(item => item.state === "PENDING");
+  return {
+    contractVersion: "0.1.0",
+    kind: "review-queue",
+    id: "personal-agent.memory-review",
+    title: "Memory review",
+    description: "Review, edit, accept or reject proposed durable knowledge before it becomes Context Memory.",
+    emptyMessage: "No Memory proposals need review.",
+    items: pending.map(proposal => {
+      const revision = proposal.revisions.at(-1)!;
+      const attention = revision.reviewSignals.length > 0
+        || revision.evidenceQuality === "UNVERIFIED";
+      return {
+        id: proposal.proposalId,
+        title: revision.summary,
+        state: attention ? "attention" : "pending",
+        statusLabel: attention ? "Needs attention" : "Pending",
+        metrics: [
+          {
+            id: "confidence",
+            label: "Proposed confidence",
+            value: revision.proposedConfidence === undefined
+              ? "—"
+              : `${Math.round(revision.proposedConfidence * 100)}%`,
+            tone: revision.proposedConfidence !== undefined && revision.proposedConfidence < 0.5
+              ? "warning"
+              : "neutral"
+          },
+          {
+            id: "evidence",
+            label: "Evidence refs",
+            value: String(revision.evidenceRefs.length),
+            tone: revision.evidenceRefs.length === 0 ? "warning" : "neutral"
+          },
+          {
+            id: "conflicts",
+            label: "Review signals",
+            value: String(revision.reviewSignals.length),
+            tone: revision.reviewSignals.length > 0 ? "warning" : "neutral"
+          },
+          {
+            id: "context",
+            label: "Context",
+            value: contextLabels.get(proposal.context.contextId) ?? proposal.context.contextId
+          }
+        ],
+        fields: [
+          {
+            key: "kind",
+            label: "Kind",
+            control: "select",
+            value: revision.kind,
+            options: [
+              { label: "Fact", value: "FACT" },
+              { label: "Claim", value: "CLAIM" },
+              { label: "Experience", value: "EXPERIENCE" },
+              { label: "Practice", value: "PRACTICE" }
+            ]
+          },
+          {
+            key: "summary",
+            label: "Summary",
+            control: "textarea",
+            value: revision.summary
+          }
+        ],
+        evidence: [
+          ...revision.evidenceRefs.map((ref, index) => ({
+            id: `evidence-${index + 1}`,
+            title: ref,
+            source: revision.evidenceQuality
+          })),
+          ...revision.reviewSignals.map((signal, index) => ({
+            id: `signal-${index + 1}`,
+            title: signal.summary,
+            source: signal.kind,
+            detail: signal.memoryId
+          }))
+        ],
+        primaryAction: {
+          id: "accept",
+          label: "Accept",
+          type: "command",
+          command: "context.memory.proposal.accept",
+          inputVersion: "0.1.0",
+          primary: true,
+          requiresConfirmation: true
+        },
+        secondaryActions: [
+          {
+            id: "save",
+            label: "Save edit",
+            type: "command",
+            command: "context.memory.proposal.edit",
+            inputVersion: "0.1.0"
+          },
+          {
+            id: "reject",
+            label: "Reject",
+            type: "command",
+            command: "context.memory.proposal.reject",
+            inputVersion: "0.1.0",
+            requiresConfirmation: true
+          }
+        ],
+        metadata: {
+          contextId: proposal.context.contextId,
+          revisionId: revision.revisionId,
+          evidenceQuality: revision.evidenceQuality
+        }
+      };
+    }),
+    metadata: {
+      route: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE,
+      pendingCount: pending.length
+    }
+  };
+}
+
 export function isPersonalAgentPageSource(source: string): boolean {
-  return source === ENTERPRISE_AGENT_PAGE_SOURCE || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE;
+  return source === ENTERPRISE_AGENT_PAGE_SOURCE
+    || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+    || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE;
 }

@@ -174,6 +174,114 @@ test("Personal Agent Memory tool reads only through the Host-bound current Conte
   assert.equal(observation.result.items[0].contextId, "personal:test");
 });
 
+test("Personal Agent Memory Proposal tool stages review state without accepting a model-supplied Context", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let proposed;
+  let authorizedTool;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    proposeContextMemory(input) {
+      proposed = input;
+      return {
+        proposal: {
+          proposalId: "memory-proposal:test",
+          context: personalContext.activeContext,
+          state: "PENDING",
+          revisions: [{
+            summary: input.summary,
+            evidenceRefs: input.evidenceRefs,
+            reviewSignals: []
+          }]
+        },
+        reviewRoute: "/enterprise-agent/memory"
+      };
+    },
+    authorizeWrite(descriptor) {
+      authorizedTool = descriptor.id;
+      return { allowed: true };
+    },
+    searchHelp() { return []; }
+  });
+
+  const tool = (await catalog.list()).find(
+    item => item.id === "context.memory.proposal.create"
+  );
+  assert.ok(tool);
+  assert.equal(tool.effect, "WRITE");
+  assert.equal(tool.capability, "context.memory.write");
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.proposal.create",
+    arguments: {
+      kind: "PRACTICE",
+      summary: "Use two-person review.",
+      evidenceRefs: ["policy:7"],
+      proposedConfidence: 0.8,
+      contextId: "enterprise:forged"
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.equal(authorizedTool, "context.memory.proposal.create");
+  assert.deepEqual(proposed, {
+    kind: "PRACTICE",
+    summary: "Use two-person review.",
+    evidenceRefs: ["policy:7"],
+    proposedConfidence: 0.8,
+    potentialContradictionMemoryIds: []
+  });
+  assert.equal(observation.result.proposal.context.contextId, "personal:test");
+  assert.equal(observation.result.proposal.state, "PENDING");
+});
+
+test("Host authorization blocks Memory Proposal staging before proposal persistence", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let proposalCalls = 0;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    proposeContextMemory() {
+      proposalCalls += 1;
+      return {};
+    },
+    authorizeWrite(descriptor) {
+      return {
+        allowed: false,
+        code: "STATIC_POLICY_NO_MATCH",
+        message: "Denied " + descriptor.id
+      };
+    },
+    searchHelp() { return []; }
+  });
+
+  const denied = await catalog.invoke({
+    tool: "context.memory.proposal.create",
+    arguments: {
+      kind: "FACT",
+      summary: "Candidate fact"
+    }
+  }, []);
+
+  assert.equal(denied.ok, false);
+  assert.equal(denied.error.code, "STATIC_POLICY_NO_MATCH");
+  assert.equal(proposalCalls, 0);
+});
+
 test("Personal Agent model receives the Host-resolved Context for the run", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),

@@ -46,17 +46,21 @@ import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-a
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
-  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+  ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
+  ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
   createPersonalAgentSetupPageV010,
+  createPersonalAgentMemoryReviewPageV010,
   evaluatePersonalAgentReadinessV010,
   PERSONAL_AGENT_ROUTE,
-  PERSONAL_AGENT_SETUP_ROUTE
+  PERSONAL_AGENT_SETUP_ROUTE,
+  PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
 } from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
+  ActiveContextRefV010,
   AuthorizationProviderV010,
   ContextMemoryReaderV010,
   ContextMemoryWriterV010,
@@ -66,6 +70,7 @@ import type {
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
+  PlatformPrincipalV010,
   RequestIdentitySessionProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
@@ -183,6 +188,13 @@ import {
 } from "./context-memory-store.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
+  createFileContextMemoryProposalStoreV010,
+  createMemoryContextMemoryProposalStoreV010
+} from "./context-memory-proposal-store.js";
+import { createContextMemoryProposalServiceV010 } from "./context-memory-proposal-service.js";
+import { createContextMemoryProposalActionHandlersV010 } from "./context-memory-proposal-actions.js";
+import { requireContextMemoryWriteAuthorityV010 } from "./context-memory-authority.js";
+import {
   createFileEnterpriseContextGovernanceStoreV010,
   createMemoryEnterpriseContextGovernanceStoreV010
 } from "./enterprise-context-governance-store.js";
@@ -288,6 +300,11 @@ const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.tri
 const contextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
+const contextMemoryProposalStore = contextMemoryProposalStateFile
+  ? createFileContextMemoryProposalStoreV010(contextMemoryProposalStateFile)
+  : createMemoryContextMemoryProposalStoreV010();
 const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
 const settingsStore = settingsStateFile
@@ -970,6 +987,22 @@ function resolveLlmProvider(): {
   };
 }
 
+const contextMemoryProposalService = createContextMemoryProposalServiceV010({
+  store: contextMemoryProposalStore,
+  resolveReader: resolveContextMemoryReader,
+  resolveWriter: resolveContextMemoryWriter
+});
+
+function resolveContextForPrincipal(
+  principal: PlatformPrincipalV010,
+  ref: ActiveContextRefV010
+) {
+  return createPrincipalContextRegistryV010(
+    principal,
+    principalContextSources()
+  ).resolve(ref);
+}
+
 const actionRouter = createAppActionRouter(
   [
     createEnterpriseContextCreationActionHandlerV010({
@@ -990,6 +1023,20 @@ const actionRouter = createAppActionRouter(
           principal,
           principalContextSources()
         ).list();
+      }
+    }),
+    ...createContextMemoryProposalActionHandlersV010({
+      service: contextMemoryProposalService,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      },
+      resolveContext(principal, ref) {
+        return resolveContextForPrincipal(principal, ref);
       }
     }),
     createEnterpriseAgentChatActionHandler({
@@ -1025,6 +1072,26 @@ const actionRouter = createAppActionRouter(
               ...input
             });
           },
+          async proposeContextMemory(input) {
+            if (!requestContext) {
+              throw new Error("REQUEST_CONTEXT_REQUIRED");
+            }
+            requireContextMemoryWriteAuthorityV010({
+              principal,
+              personalContext: context.personalContext,
+              targetContext: context.activeContext,
+              relationshipProvider: resolveEnterpriseContextRelationshipProvider()
+            });
+            const proposal = await contextMemoryProposalService.create({
+              principal,
+              context: context.activeContext,
+              draft: input
+            });
+            return {
+              proposal,
+              reviewRoute: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
+            };
+          },
           searchHelp(query, helpContext) {
             return searchHelpV010(helpCorpus, query, locale, helpContext);
           },
@@ -1041,15 +1108,25 @@ const actionRouter = createAppActionRouter(
               requestContext,
               {
                 action: descriptor.id,
-                resource: {
-                  type: "agent.tool",
-                  id: descriptor.id,
-                  attributes: {
-                    ownerPackageId: descriptor.ownerPackageId,
-                    effect: descriptor.effect,
-                    ...(descriptor.capability ? { capability: descriptor.capability } : {})
-                  }
-                }
+                resource: descriptor.id === "context.memory.proposal.create"
+                  ? {
+                      type: "context.memory.proposal",
+                      attributes: {
+                        contextId: context.activeContext.contextId,
+                        contextKind: context.activeContext.kind,
+                        ownerPackageId: descriptor.ownerPackageId,
+                        effect: descriptor.effect
+                      }
+                    }
+                  : {
+                      type: "agent.tool",
+                      id: descriptor.id,
+                      attributes: {
+                        ownerPackageId: descriptor.ownerPackageId,
+                        effect: descriptor.effect,
+                        ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                      }
+                    }
               }
             );
             return decision.allowed
@@ -1367,6 +1444,7 @@ const server = createServer(async (request, response) => {
       if (
         source === ENTERPRISE_AGENT_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
       ) {
         const effective = manager.listEffectiveExperiences().some(value => {
           const manifest = value as { pages?: Array<{ source?: string }> };
@@ -1397,6 +1475,36 @@ const server = createServer(async (request, response) => {
               : resolved.enterpriseContext?.displayName ?? ref.contextId
           };
         });
+        if (source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE) {
+          const writableContextIds = new Set(
+            availableContexts
+              .filter(item => {
+                try {
+                  requireContextMemoryWriteAuthorityV010({
+                    principal: session.principal,
+                    personalContext: context.personalContext,
+                    targetContext: item.ref,
+                    relationshipProvider: resolveEnterpriseContextRelationshipProvider()
+                  });
+                  return true;
+                } catch {
+                  return false;
+                }
+              })
+              .map(item => item.ref.contextId)
+          );
+          const labels = new Map(
+            availableContexts.map(item => [item.ref.contextId, item.label])
+          );
+          return json(
+            response,
+            200,
+            createPersonalAgentMemoryReviewPageV010(
+              contextMemoryProposalService.list([...writableContextIds]),
+              labels
+            )
+          );
+        }
         return json(
           response,
           200,

@@ -5,6 +5,7 @@ import { isSettingsEditorV010, isSettingsEditorV020, renderSettingsEditorToHtml 
 import { isExtensionManagerV010, renderExtensionManagerToHtml } from "../extension-manager/index.js";
 import { isHelpDocumentV010, renderHelpDocumentToHtml } from "../help/index.js";
 import { isSetupFlowV010, renderSetupFlowToHtml } from "../setup-flow/index.js";
+import { isReviewQueueV010, renderReviewQueueToHtml } from "../review-queue/index.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import { localizeAppHostPageDefinition } from "../localization/localize.js";
@@ -36,6 +37,10 @@ export function renderAppHostPageToHtml(
 
   if (isSetupFlowV010(localizedDefinition)) {
     return renderSetupFlowToHtml(localizedDefinition);
+  }
+
+  if (isReviewQueueV010(localizedDefinition)) {
+    return renderReviewQueueToHtml(localizedDefinition);
   }
 
   if (isHelpDocumentV010(localizedDefinition)) {

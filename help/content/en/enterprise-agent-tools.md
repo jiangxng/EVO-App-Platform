@@ -144,3 +144,21 @@ Personal Agent receives the READ-only `context.memory.search` tool. The Host bin
 
 > [!IMPORTANT] Memory is not automatic chat history
 > P0.9 does not silently persist model conversations or automatically synchronize Personal and Enterprise Memory. Durable writes are governed Human-confirmed Actions.
+
+
+## Memory Proposal review
+
+P1.0 separates candidate learning from durable Context Memory.
+
+Personal Agent may stage a candidate through `context.memory.proposal.create`. This creates a **PENDING Proposal**, not a Memory record. The Proposal is always bound to the Host-resolved current Context; the model cannot choose another Context to gain authority.
+
+Open **Memory review** to inspect the proposal's Context, proposed confidence, evidence references and review signals. You may edit the Memory kind or summary before making a decision. Editing appends a new Human-authored Proposal revision; it does not rewrite the Agent's original revision.
+
+Review signals can identify potential duplicates, explicitly referenced potential contradictions and supersession candidates. They are review assistance only and do not determine truth automatically. Likewise, proposed confidence is supporting metadata, not Host truth or an automatic acceptance threshold.
+
+Accepting requires explicit confirmation, current Memory write authority, authorization for Proposal acceptance, and normal `context.memory.record` authorization. Only then is one immutable Context Memory record created. Acceptance is retry-safe and will not create duplicate Memory for the same Proposal.
+
+Rejecting is terminal and creates no Memory.
+
+> [!IMPORTANT] Evidence quality is conservative
+> `REFERENCED` means evidence references are present. It does not mean the Host verified that those references are true or authoritative.
