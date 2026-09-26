@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Agent P0.2 — dynamic Host Tool Discovery",
+  "currentMilestone": "Enterprise Agent P0.2 — dynamic Host Tool Discovery complete",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Enterprise Agent Tool Discovery P0.2 is implemented on the working branch: Agent core/model consume Host-supplied tool descriptors, platform/provider/help observation tools are registered, unknown tools fail closed, and install preflight remains Host-enforced. Next closure is CI/main/Railway, then Principal/Scope/PlatformRequestContext and authorization for privileged WRITE tools.",
+  "currentStep": "Enterprise Agent Tool Discovery P0.2 is CI-verified: Agent core/model consume Host-supplied tool descriptors; platform, Provider and Help observation tools are available; unknown tools fail closed; install preflight remains Host-enforced. Next: introduce minimal Identity / Session / Principal / Scope / PlatformRequestContext, filter the effective tool catalog by context, and route privileged WRITE invocation through authorization.check before expanding business/EC tools.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -522,7 +522,7 @@
     }
   },
   "enterpriseAgent": {
-    "status": "P0_2_TOOL_DISCOVERY_IMPLEMENTED_BRANCH",
+    "status": "CI_VERIFIED_P0_2_TOOL_DISCOVERY",
     "authority": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
     "packageId": "enterprise-agent",
     "capability": "agent.enterprise.tool-discovery",
@@ -548,6 +548,6 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "PRINCIPAL_SCOPE_PLATFORM_REQUEST_CONTEXT_AND_AUTHORIZED_WRITE_TOOLS"
+    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_REQUEST_CONTEXT_TOOL_FILTER_AND_AUTHORIZED_WRITES"
   }
 }
