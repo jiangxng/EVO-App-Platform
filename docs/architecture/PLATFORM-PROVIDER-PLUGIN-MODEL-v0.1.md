@@ -407,3 +407,39 @@ Rules:
 The default file-backed store is configured by `APP_PLATFORM_PROVIDER_BINDINGS_FILE`, or colocated with lifecycle state when available.
 
 This policy is shared by LLM, Remote Credential and future Identity/Enterprise Provider families.
+
+
+## Provider health posture and management
+
+Provider resolution is health-aware, but health MUST NOT become an implicit failover policy.
+
+Runtime health states:
+
+```text
+HEALTHY
+DEGRADED
+UNAVAILABLE
+UNKNOWN
+```
+
+Rules:
+
+- explicit binding + UNAVAILABLE runtime → fail closed;
+- explicit binding + DEGRADED/UNKNOWN runtime → preserve the binding and expose health posture;
+- multiple executable candidates without binding remain ambiguous even when one candidate appears healthier;
+- the Host MUST NOT silently switch a governed binding because another Provider is healthier;
+- a single unbound candidate may resolve and returns its health posture.
+
+The App Host exposes Provider management through the existing Eidos settings/catalog capabilities:
+
+```text
+Settings
+→ Provider Bindings
+→ capability
+→ Provider
+→ scope
+→ scopeId
+→ priority
+```
+
+Binding policy remains Host-owned state and does not modify Package manifests.
