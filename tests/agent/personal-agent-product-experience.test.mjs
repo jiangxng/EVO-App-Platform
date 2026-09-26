@@ -129,3 +129,42 @@ test("Extension Manager keeps technical detail behind progressive disclosure", (
   const page = createPluginStorePage([enterpriseAgentPackage], manager.getSnapshot());
   assert.equal(page.technicalDetailsLabel, "Technical details");
 });
+
+
+test("multiple installed LLM Providers require explicit selection before credential setup", () => {
+  const second = structuredClone(openAiLlmProviderPackage);
+  second.packageId = "second-llm-provider";
+  second.displayName = "Second LLM Provider";
+  second.features[0].packageId = second.packageId;
+  second.features[0].featureId = "second-llm-provider.default";
+  for (const contribution of second.features[0].contributions ?? []) {
+    if (contribution.kind === "platform.service-provider") {
+      contribution.provider.providerId = "second.llm";
+    }
+  }
+
+  const manager = createAppManagerService(
+    createPackageCatalog([
+      enterpriseAgentPackage,
+      openAiLlmProviderPackage,
+      second,
+      hostEncryptedSecretsProviderPackage
+    ]),
+    createMemoryLifecycleStore()
+  );
+  const registry = createProviderRuntimeRegistry();
+  const bindings = createMemoryProviderBindingStoreV010();
+  manager.install("enterprise-agent");
+  manager.install("openai-llm-provider");
+  manager.install("second-llm-provider");
+
+  const readiness = evaluatePersonalAgentReadinessV010(manager, registry, bindings);
+  assert.equal(readiness.code, "PROVIDER_AMBIGUOUS");
+
+  const setup = createPersonalAgentSetupPageV010(readiness);
+  assert.equal(setup.steps.find(step => step.id === "provider").state, "current");
+  assert.equal(
+    setup.steps.find(step => step.id === "provider").primaryAction.route,
+    "/providers/llm.inference"
+  );
+});
