@@ -276,4 +276,6 @@ Authority:
 
 P0.5 does not add an Enterprise Agent, generic Context Memory writes, automatic cross-context Memory promotion, or broad WRITE autonomy.
 
+P0.5 is CI-verified across Platform CI, Enterprise Agent CI, Host Enterprise Context Provider CI, Host Authorization Provider CI, OpenAI Provider CI and Host Secrets Provider CI.
+
 After P0.5, the next mainline is the minimum executable Principal/Session + Relationship/Grant layer needed to determine which Enterprise Contexts a human is entitled to receive and which Context-bound tools are effective.
