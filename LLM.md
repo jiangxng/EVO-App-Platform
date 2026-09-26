@@ -245,24 +245,40 @@ Before designing LLM/model access, login/identity, enterprise/organization or si
 These replaceable services are Provider plugins by default. Localization is different: Eidos/App Host owns the localization standard/runtime and each Package owns its own language resources. Read `docs/architecture/APP-OWNED-LOCALIZATION-v0.1.md` before changing localization.
 
 
-## Enterprise-first architecture
+## Person-first MVP architecture
 
-EVO-family systems ultimately serve enterprises. Before designing cross-cutting enterprise capabilities, read:
+EVO's first point of view is the human. Before designing identity, context, Agent, enterprise access or Context Memory, read:
 
-- `docs/architecture/ENTERPRISE-SOFTWARE-FOUNDATION-v0.1.md`
+- `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`
 - `docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md`
+
+Frozen MVP world model:
+
+```text
+Human
+  └── Personal Agent
+        ├── Personal Context
+        │     └── Personal Context Memory
+        └── Enterprise Context(s)
+              └── Enterprise Context Memory
+```
 
 Architecture priority:
 
 ```text
-Enterprise-first
+Person-first
+→ one Personal Agent
+→ governed Context access
+→ Context Memory separated by owner
 → Plugin-first
 → Eidos-first human experience
 → public provider/capability contracts
 → EVO Ledger Runtime only for ledger/business-fact execution
 ```
 
-Reserve stable boundaries early, but freeze detailed provider/protocol contracts only one layer before implementation. Do not prebuild speculative subsystems.
+Do not model human identity as a child of Enterprise. Enterprise Context is governed working/learning material for the Personal Agent, not a second Agent. Personal Agent produces analysis/opinion/proposal; final material decision authority remains with the human unless a future explicit delegation contract says otherwise.
+
+Reserve stable boundaries early, but freeze detailed provider/protocol contracts only one layer before implementation. Do not prebuild speculative multi-agent or AGI autonomy subsystems.
 
 
 ## Progressive Installation UX Rule
@@ -284,13 +300,15 @@ Install
 "Installation details" may expose the plan for inspection, diagnostics and audit, but ordinary installation MUST NOT require a separate "generate/review plan" click.
 
 
-## Enterprise Agent / Experience Compiler convergence
+## Personal Agent / Experience Compiler convergence
 
-Before changing the Enterprise Agent package or migrating EC assets, read:
+The current `enterprise-agent` Package is the compatibility implementation of the product-facing **Personal Agent**.
+
+Before changing the Personal Agent package or migrating EC assets, read:
 
 `docs/architecture/ENTERPRISE-AGENT-EC-CONVERGENCE-v0.1.md`
 
-Do not rewrite or bulk-copy the Experience-Compiler repository into App Platform. Preserve the EC repository as the durable intelligence asset/runtime source and converge it through public contracts behind the installable `enterprise-agent` AGENT Package. The existing `agents/enterprise-agent` implementation is retained as host/runtime/tool integration capital.
+Do not rewrite or bulk-copy the Experience-Compiler repository into App Platform. Preserve the EC repository as the durable intelligence asset/runtime source and converge it through public contracts behind the installable `enterprise-agent` AGENT Package. The existing `agents/enterprise-agent` implementation is retained as host/runtime/tool integration capital; its machine identifiers are compatibility debt, not the current product ontology.
 
 The direct OpenAI adapter is migration evidence only. Target model access is `llm.inference` through Provider Plugin resolution.
 
@@ -315,9 +333,9 @@ optional future enterprise locale policy service
 The experimental `evo-localization` Package is retired. Machine identifiers, command codes, field keys, semantic types and business data are never localized. Literal UI strings remain deterministic fallbacks.
 
 
-## Agent-first Workspace Rule
+## Person-first Workspace Rule
 
-The canonical EVO App Host is an Agent-first enterprise workspace:
+The canonical EVO App Host is a Personal-Agent-first workspace:
 
 ```text
 desktop:
@@ -331,9 +349,9 @@ mobile:
   one main surface (Side Panel or Workspace) is shown at a time, preserving state
 ```
 
-Read `docs/architecture/AGENT-FIRST-APP-HOST-WORKSPACE-v0.1.md` before changing App Host layout or Enterprise Agent UX.
+Read `docs/architecture/AGENT-FIRST-APP-HOST-WORKSPACE-v0.1.md` and `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md` before changing App Host layout or Personal Agent UX.
 
-Enterprise Agent itself should be zero-config for ordinary users. Resolve LLM Provider, identity/session, enterprise scope, locale and authorized tools through platform contracts. Do not add provider/model/vendor settings to the Agent page.
+Personal Agent itself should be zero-config for ordinary users. Resolve LLM Provider, identity/session, active context, locale and authorized tools through platform contracts. Do not add provider/model/vendor settings to the Agent page.
 
 LLM-first does not mean UI-only automation. The Agent must use the same public Action/Query/Package contracts available to other clients. Human-facing configuration pages remain available in the right workspace for inspection, confirmation and direct override.
 
@@ -414,11 +432,11 @@ The reference P0 Provider is `host.encrypted-secrets`. Its local encrypted-file 
 For OpenAI, `OPENAI_API_KEY` is compatibility migration input only. New credentials are configured through Workbench and resolved from `openai-llm-provider/apiKey`. Do not reintroduce Railway environment variables as the normal LLM credential UX.
 
 
-## Enterprise Agent Tool System
+## Personal Agent Tool System
 
-Before changing Enterprise Agent tools, read `docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md`.
+Before changing Personal Agent tools, read `docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md`.
 
-Enterprise Agent core does not own a fixed list of App Platform/business tools. The Host constructs the effective `AgentToolDescriptorV010[]` and the Provider-backed model derives LLM tool schemas only from that catalog. Unknown tools fail closed.
+Personal Agent core does not own a fixed list of App Platform/business tools. The Host constructs the effective `AgentToolDescriptorV010[]` and the Provider-backed model derives LLM tool schemas only from that catalog. Unknown tools fail closed.
 
 Every exposed tool declares `READ | PLAN | WRITE`. Effect metadata is not authorization. Safety and authorization live at Host execution boundaries; do not rely on system prompts to enforce side-effect rules. Preserve the Host-owned `app.install.plan → app.install.execute` preflight rule.
 
