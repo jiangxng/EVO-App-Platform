@@ -20,5 +20,6 @@
     "pluginCI": "own-plugin-only",
     "ecosystemCertification": "separate-nightly-release-or-protocol-change"
   },
-  "dependencyRule": "Plugins consume public capabilities/contracts only; repository identity is not a dependency."
+  "dependencyRule": "Plugins consume public capabilities/contracts only; repository identity is not a dependency.",
+  "packageSecretDeclaration": "PackageManifestV010.secrets (metadata-only) -> Host secrets.resolve Provider"
 }
