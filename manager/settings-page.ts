@@ -206,7 +206,7 @@ export async function createSettingsPage(
   packageId: string,
   describeSecret?: DescribeSecretV010,
   secretContext: SettingsSecretScopeContextV010 = { installationId: "default" }
-): SettingsEditorV010 | undefined {
+): Promise<SettingsEditorV010 | undefined> {
   const pkg = manager.listCatalog().find(item => item.packageId === packageId);
   const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
   if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
@@ -225,47 +225,49 @@ export async function createSettingsPage(
     readOnly: property.readOnly
   }));
 
-  const secretSettings = (pkg.secrets ?? []).flatMap(declaration => {
-    const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
-    const status = reference && describeSecret ? await describeSecret(reference) : undefined;
-    const configured = status?.configured === true;
-    const unavailable = !reference;
-    const statusValue = unavailable
-      ? "Scope context unavailable"
-      : configured
-        ? `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
-        : "Not configured";
+  const secretSettings = (
+    await Promise.all((pkg.secrets ?? []).map(async declaration => {
+      const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
+      const status = reference && describeSecret ? await describeSecret(reference) : undefined;
+      const configured = status?.configured === true;
+      const unavailable = !reference;
+      const statusValue = unavailable
+        ? "Scope context unavailable"
+        : configured
+          ? `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
+          : "Not configured";
 
-    return [
-      {
-        key: `secret:${declaration.key}`,
-        label: configured ? `Replace ${declaration.label}` : declaration.label,
-        description: unavailable
-          ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
-          : declaration.description,
-        type: "secret" as const,
-        value: "",
-        readOnly: unavailable
-      },
-      {
-        key: `secret-status:${declaration.key}`,
-        label: `${declaration.label} status`,
-        type: "string" as const,
-        value: statusValue,
-        readOnly: true
-      },
-      ...(configured && !unavailable
-        ? [{
-            key: `secret-remove:${declaration.key}`,
-            label: `Remove ${declaration.label}`,
-            description: "Remove the stored Secret when saving.",
-            type: "boolean" as const,
-            value: false,
-            defaultValue: false
-          }]
-        : [])
-    ];
-  });
+      return [
+        {
+          key: `secret:${declaration.key}`,
+          label: configured ? `Replace ${declaration.label}` : declaration.label,
+          description: unavailable
+            ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
+            : declaration.description,
+          type: "secret" as const,
+          value: "",
+          readOnly: unavailable
+        },
+        {
+          key: `secret-status:${declaration.key}`,
+          label: `${declaration.label} status`,
+          type: "string" as const,
+          value: statusValue,
+          readOnly: true
+        },
+        ...(configured && !unavailable
+          ? [{
+              key: `secret-remove:${declaration.key}`,
+              label: `Remove ${declaration.label}`,
+              description: "Remove the stored Secret when saving.",
+              type: "boolean" as const,
+              value: false,
+              defaultValue: false
+            }]
+          : [])
+      ];
+    }))
+  ).flat();
 
   const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
 
