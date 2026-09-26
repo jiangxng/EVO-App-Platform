@@ -11,7 +11,10 @@ import {
   createMemorySecretStoreV010
 } from "./secret-store.js";
 import { createAppManagerService } from "./service.js";
-import { createHostContextRegistryV010 } from "./context-registry.js";
+import {
+  createPrincipalContextRegistryV010,
+  createSessionContextRegistryV010
+} from "./principal-context.js";
 import {
   createFilePluginStorageService,
   createMemoryPluginStorageService,
@@ -60,7 +63,6 @@ import type {
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
-  PlatformPrincipalV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -590,32 +592,15 @@ function resolveIdentitySession(): IdentitySessionV010 {
   return session;
 }
 
-function createContextRegistryForPrincipal(principal: PlatformPrincipalV010) {
-  return createHostContextRegistryV010({
-    personalContext: {
-      contractVersion: "0.1.0",
-      kind: "PERSONAL",
-      contextId: `personal:${principal.subjectId}`,
-      ownerSubjectId: principal.subjectId,
-      displayName: principal.displayName ?? principal.subjectId
-    },
-    enterpriseContextSource() {
-      const directory = resolveEnterpriseContextProvider();
-      const grants = resolveEnterpriseContextGrantProvider();
-      if (!directory || !grants) return [];
-
-      const allowed = new Set(
-        grants.listForPrincipal(principal).map(grant => grant.contextId)
-      );
-      return directory.list().filter(context =>
-        context.contextId !== undefined && allowed.has(context.contextId)
-      );
-    }
-  });
+function principalContextSources() {
+  return {
+    enterpriseDirectory: resolveEnterpriseContextProvider(),
+    enterpriseGrants: resolveEnterpriseContextGrantProvider()
+  };
 }
 
 function createContextRegistryForSession(session: IdentitySessionV010) {
-  return createContextRegistryForPrincipal(session.principal);
+  return createSessionContextRegistryV010(session, principalContextSources());
 }
 
 async function authorizeHostAdministration(
@@ -770,7 +755,10 @@ const actionRouter = createAppActionRouter(
         return createContextRegistryForSession(session).resolve(selection);
       },
       createToolCatalog(locale, context, principal) {
-        const contextRegistry = createContextRegistryForPrincipal(principal);
+        const contextRegistry = createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        );
         return createEnterpriseAgentHostToolCatalogV010({
           manager,
           principal,
