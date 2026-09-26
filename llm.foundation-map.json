@@ -234,7 +234,8 @@
     "enterpriseOwnsHumanIdentity": false,
     "humanDecisionAuthority": true,
     "crossContextMemoryPromotion": "DENY_BY_DEFAULT",
-    "modelIndependentMemory": true
+    "modelIndependentMemory": true,
+    "continuation": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
   },
   "personalAgent": {
     "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
@@ -246,6 +247,7 @@
     ],
     "toolCatalog": "HOST_DYNAMIC",
     "opinionBeforeDecision": "REQUIRED",
-    "next": "MINIMAL_CONTEXT_CONTRACTS_AND_ACTIVE_CONTEXT_TOOL_FILTER"
-  }
+    "next": "MINIMAL_CONTEXT_CONTRACTS_HOST_RESOLUTION_ACTIVE_CONTEXT_TOOL_CATALOG"
+  },
+  "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
 }
