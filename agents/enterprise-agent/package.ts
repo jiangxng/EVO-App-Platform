@@ -20,7 +20,8 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
       defaultActivation: true,
       providesCapabilities: [
         "agent.enterprise",
-        "agent.enterprise.app-manager-tools"
+        "agent.enterprise.app-manager-tools",
+        "agent.enterprise.tool-discovery"
       ],
       contributions: [
         {
