@@ -581,3 +581,73 @@ test("Enterprise Context profile tool is absent in Personal Context and present 
   assert.equal(observation.ok, true);
   assert.equal(observation.result.displayName, "Acme");
 });
+
+
+test("Host authorization blocks Personal Agent Material WRITE before tool execution", async () => {
+  let installCalls = 0;
+  const manager = {
+    listCatalog() { return [companyNotesPackage]; },
+    getSnapshot() {
+      return {
+        contractVersion: "0.1.0",
+        installedPackages: [],
+        activeFeatures: [],
+        effectiveCapabilities: []
+      };
+    },
+    planInstall(packageId) {
+      return {
+        packageId,
+        blockers: [],
+        missingCapabilities: [],
+        installPackages: [packageId],
+        activateFeatures: []
+      };
+    },
+    install() {
+      installCalls += 1;
+      return {};
+    },
+    listEffectiveServiceProviders() { return []; }
+  };
+
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    searchHelp() { return []; },
+    authorizeWrite(descriptor) {
+      return {
+        allowed: false,
+        code: "STATIC_POLICY_NO_MATCH",
+        message: "Denied " + descriptor.id
+      };
+    }
+  });
+
+  const denied = await catalog.invoke({
+    tool: "app.install.execute",
+    arguments: { packageId: "company-notes" }
+  }, [{
+    tool: "app.install.plan",
+    ok: true,
+    result: {
+      packageId: "company-notes",
+      blockers: [],
+      sideEffectFree: true
+    }
+  }]);
+
+  assert.equal(denied.ok, false);
+  assert.equal(denied.error.code, "STATIC_POLICY_NO_MATCH");
+  assert.equal(installCalls, 0);
+
+  const read = await catalog.invoke({
+    tool: "app.catalog.list",
+    arguments: {}
+  }, []);
+  assert.equal(read.ok, true);
+});
