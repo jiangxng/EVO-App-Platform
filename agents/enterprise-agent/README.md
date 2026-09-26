@@ -1,4 +1,4 @@
-# Enterprise Agent MVP
+# Personal Agent MVP
 
 **Status:** short-term mainline implementation  
 **Purpose:** prove natural-language request → governed App Manager tools → application installation.
@@ -7,7 +7,7 @@
 
 ```text
 User
-→ Enterprise Agent
+→ Personal Agent
 → AgentModel
 → public Agent tools
 → App Manager HTTP API
@@ -26,7 +26,7 @@ The product runtime now resolves models through the platform `llm.inference` Pro
 - `createDevelopmentAgentModel()` remains an offline deterministic test/proof adapter.
 - `createOpenAIResponsesAgentModel()` is retained only as migration/reference evidence for the old direct-integration path.
 
-Replacing the installed LLM Provider does not change the Enterprise Agent package, EC durable assets, App Manager or Eidos.
+Replacing the installed LLM Provider does not change the Personal Agent package, EC durable assets, App Manager or Eidos.
 
 ## Current tools
 
@@ -78,14 +78,14 @@ OPENAI_MODEL
 OPENAI_BASE_URL
 ```
 
-The App Host Enterprise Agent Experience resolves `llm.inference` from active Provider contributions. If the provider package is absent, chat fails closed with `LLM_PROVIDER_REQUIRED`; if installed but credentials/runtime are not configured, it fails closed with `LLM_PROVIDER_NOT_CONFIGURED`.
+The App Host Personal Agent Experience resolves `llm.inference` from active Provider contributions. If the provider package is absent, chat fails closed with `LLM_PROVIDER_REQUIRED`; if installed but credentials/runtime are not configured, it fails closed with `LLM_PROVIDER_NOT_CONFIGURED`.
 
 The Agent Runtime still performs installation planning internally as a safety preflight before `app.install.execute`; this is not a mandatory human UI step.
 
 
 ## Tool Discovery P0.2
 
-Enterprise Agent core no longer owns a fixed tool list.
+Personal Agent core no longer owns a fixed tool list.
 
 The runtime receives an effective Host tool catalog for each chat turn:
 
@@ -133,3 +133,29 @@ The existing installation safety rule remains Host-owned: `app.install.execute` 
 P0.2 registration is Host-owned. A future Plugin Protocol contribution will allow installed Packages to declare Agent tools without adding those tool names to Enterprise Agent source.
 
 Tool discovery is not authorization. Principal/Scope-aware filtering and write authorization remain the next security maturity step for privileged Agent tools.
+
+
+## Person-first MVP identity
+
+The product-facing Agent is **Personal Agent**.
+
+The existing `enterprise-agent` Package/Feature/Experience/route/command identifiers remain as compatibility identifiers during migration. They do not mean that the enterprise owns the Agent.
+
+Frozen world model authority:
+
+`docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`
+
+MVP:
+
+```text
+Human
+  └── Personal Agent
+        ├── Personal Context
+        │     └── Personal Context Memory
+        └── Enterprise Context(s)
+              └── Enterprise Context Memory
+```
+
+Enterprise Context is governed learning/working material for Personal Agent, not a second Agent.
+
+Personal Agent produces analysis, opinions and proposals. Final material decisions belong to the human. Cross-context memory copying is not implied by context access.
