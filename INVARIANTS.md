@@ -165,3 +165,8 @@
 - **APP-138** Personal Agent output is analysis/opinion/proposal, not the final material decision. Material decisions remain with the human unless an explicit future delegation contract grants bounded authority.
 - **APP-139** Context Memory is durable platform data independent of any LLM Provider or model hidden state. Replacing the model MUST NOT erase Personal or Enterprise Context Memory.
 - **APP-140** The `enterprise-agent` Package/Feature/Experience/route/command identifiers are compatibility identifiers for the Personal Agent implementation. Product-facing naming is Personal Agent; machine identifier migration requires an explicit versioned compatibility plan.
+
+- **APP-141** Active Context is Host-resolved state. Browser/request/model input may select only among Context references offered by a Host-owned source; arbitrary client-supplied enterprise/context identifiers MUST NOT create or authorize an Enterprise Context.
+- **APP-142** Before executable Identity/Session/Grant resolution exists, Personal Agent defaults to a Host-owned Personal Context. Unknown or unavailable Enterprise Context selection MUST fail closed.
+- **APP-143** Context Memory P0.3 exposes read contracts only. A generic memory write/learn API MUST NOT be introduced before ownership, provenance, Memory Attribution and cross-context persistence policy are explicit.
+- **APP-144** `PlatformScopeV010` remains a compatibility projection, not the Person-first root ontology. New Personal Agent context-aware code SHOULD use `ResolvedContextSetV010` / `ActiveContextRefV010` and must not recreate `Enterprise -> User` ownership through legacy scope fields.
