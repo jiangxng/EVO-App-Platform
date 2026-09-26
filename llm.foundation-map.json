@@ -29,7 +29,8 @@
     "externalMcpOauthInteroperability": "WATCH",
     "ecosystemCertification": "NOW",
     "llmContextArchitecture": "NOW",
-    "platformHelpGovernance": "NOW"
+    "platformHelpGovernance": "NOW",
+    "enterpriseAgentToolSystem": "NOW"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -51,7 +52,8 @@
     "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED",
     "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE",
     "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED",
-    "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED"
+    "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED",
+    "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -168,14 +170,14 @@
       "en",
       "zh-CN"
     ],
-    "seedDocumentIds": 15,
-    "seedVariants": 30,
+    "seedDocumentIds": 16,
+    "seedVariants": 32,
     "localeMachineMetadata": "CI_ENFORCED_STABLE",
     "eidosDesignLanguage": "CI_ENFORCED_NO_PARALLEL_PLATFORM_HELP_UI",
     "designGate": "tools/eidos-design-language-validate.mjs"
   },
   "secrets": {
-    "status": "IMPLEMENTED_P0_CI_VERIFIED_DEPLOYMENT_PENDING",
+    "status": "IMPLEMENTED_P0_PRODUCTION_DEPLOYED_VOLUME_MOUNTED",
     "capability": "secrets.resolve",
     "provider": "host.encrypted-secrets",
     "packageDeclaration": "PackageManifestV010.secrets",
@@ -185,6 +187,29 @@
     "eidos": "SETTINGS_EDITOR_SECRET_CONTROL",
     "openai": "openai-llm-provider/apiKey",
     "legacyEnv": "OPENAI_API_KEY_MIGRATION_ONLY",
-    "next": "RAILWAY_DURABLE_STORAGE_THEN_ENTERPRISE_AGENT_TOOL_DISCOVERY_WITH_MINIMAL_IDENTITY_SESSION_FOR_PRIVILEGED_WRITES"
+    "next": "RAILWAY_DURABLE_STORAGE_THEN_ENTERPRISE_AGENT_TOOL_DISCOVERY_WITH_MINIMAL_IDENTITY_SESSION_FOR_PRIVILEGED_WRITES",
+    "productionVolume": "/data",
+    "crossRedeploySecretPersistence": "VERIFY_WITH_FIRST_REAL_SECRET"
+  },
+  "enterpriseAgent": {
+    "status": "P0_2_TOOL_DISCOVERY_IMPLEMENTED_BRANCH",
+    "authority": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
+    "agentCoreToolList": "NONE",
+    "effectiveCatalog": "HOST_OWNED",
+    "toolDescriptor": "AgentToolDescriptorV010",
+    "effects": [
+      "READ",
+      "PLAN",
+      "WRITE"
+    ],
+    "initialToolCount": 9,
+    "unknownTool": "FAIL_CLOSED",
+    "installPreflight": "HOST_ENFORCED",
+    "helpSearch": "IMPLEMENTED",
+    "providerObservation": "IMPLEMENTED",
+    "packageContribution": "PENDING_SECOND_TOOL_OWNER",
+    "principalScopeFilter": "NEXT",
+    "writeAuthorization": "NEXT",
+    "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION"
   }
 }
