@@ -412,7 +412,7 @@ test("Personal Agent presents tool work as Chat v0.2 activity, evidence and prop
   assert.equal(parts[1].type, "activity");
   assert.equal(parts[1].state, "complete");
   assert.equal(parts[2].type, "evidence");
-  assert.equal(parts[2].context, "Personal");
+  assert.equal(parts[2].context, "Test Person");
   assert.equal(parts[3].type, "proposal");
   assert.equal(parts[3].title, "Install company-notes");
   assert.equal(parts[3].actions[0].route, "/store");
