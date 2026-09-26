@@ -8,6 +8,7 @@ import type {
 export interface HostContextRegistryOptionsV010 {
   personalContext: PersonalContextV010;
   enterpriseContexts?: readonly EnterpriseContextV010[];
+  enterpriseContextSource?: () => readonly EnterpriseContextV010[];
 }
 
 function normalized(value: string | undefined, field: string): string {
@@ -58,18 +59,25 @@ export function createHostContextRegistryV010(
     contextId: personalContext.contextId
   };
 
-  const enterprises = new Map<string, EnterpriseContextV010>();
-  for (const source of options.enterpriseContexts ?? []) {
-    const context = structuredClone(source);
-    const ref = enterpriseRef(context);
-    context.kind = "ENTERPRISE";
-    context.contextId = ref.contextId;
+  const enterpriseMap = (): Map<string, EnterpriseContextV010> => {
+    const enterprises = new Map<string, EnterpriseContextV010>();
+    const all = [
+      ...(options.enterpriseContexts ?? []),
+      ...(options.enterpriseContextSource?.() ?? [])
+    ];
+    for (const source of all) {
+      const context = structuredClone(source);
+      const ref = enterpriseRef(context);
+      context.kind = "ENTERPRISE";
+      context.contextId = ref.contextId;
 
-    if (enterprises.has(ref.contextId)) {
-      throw new Error(`CONTEXT_DUPLICATE: ${ref.contextId}`);
+      if (enterprises.has(ref.contextId)) {
+        throw new Error(`CONTEXT_DUPLICATE: ${ref.contextId}`);
+      }
+      enterprises.set(ref.contextId, context);
     }
-    enterprises.set(ref.contextId, context);
-  }
+    return enterprises;
+  };
 
   return {
     personal() {
@@ -79,7 +87,7 @@ export function createHostContextRegistryV010(
     list() {
       return [
         structuredClone(personalRef),
-        ...[...enterprises.values()]
+        ...[...enterpriseMap().values()]
           .map(enterpriseRef)
           .sort((a, b) => a.contextId.localeCompare(b.contextId))
       ];
@@ -99,7 +107,7 @@ export function createHostContextRegistryV010(
         };
       }
 
-      const enterprise = enterprises.get(requested.contextId);
+      const enterprise = enterpriseMap().get(requested.contextId);
       if (!enterprise) {
         throw new Error(`CONTEXT_NOT_AVAILABLE: ${requested.contextId}`);
       }

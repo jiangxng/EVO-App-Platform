@@ -34,6 +34,7 @@ function agentToolCatalog(manager, context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     context,
+    listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
     searchHelp() { return []; }

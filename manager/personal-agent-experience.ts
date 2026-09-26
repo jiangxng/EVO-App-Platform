@@ -5,6 +5,10 @@ import {
   type ProviderBindingStoreV010
 } from "./provider-resolution.js";
 import type { ChatExperienceV020 } from "../vendor/eidos/src/chat/contracts.js";
+import type {
+  ActiveContextRefV010,
+  ResolvedContextSetV010
+} from "../contracts/platform-services.js";
 import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
@@ -182,10 +186,19 @@ export function evaluatePersonalAgentReadinessV010(
   }
 }
 
+export interface PersonalAgentContextOptionV010 {
+  ref: ActiveContextRefV010;
+  label: string;
+}
+
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
-  contextLabel: string
+  context: ResolvedContextSetV010,
+  availableContexts: readonly PersonalAgentContextOptionV010[]
 ): ChatExperienceV020 {
+  const contextLabel = context.activeContext.kind === "PERSONAL"
+    ? context.personalContext.displayName ?? context.activeContext.contextId
+    : context.enterpriseContext?.displayName ?? context.activeContext.contextId;
   return {
     contractVersion: "0.2.0",
     kind: "chat",
@@ -203,7 +216,17 @@ export function createPersonalAgentChatPageV020(
     },
     context: {
       label: "Current context",
-      value: contextLabel
+      value: contextLabel,
+      selector: {
+        key: "activeContext",
+        ariaLabel: "Choose context",
+        selectedId: context.activeContext.contextId,
+        options: availableContexts.map(item => ({
+          id: item.ref.contextId,
+          label: item.label,
+          value: structuredClone(item.ref)
+        }))
+      }
     },
     readiness: {
       state: readiness.state,

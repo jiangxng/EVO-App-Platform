@@ -335,11 +335,22 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (button) button.disabled = true;
 
         try {
+          const values: Record<string, JsonValue> = {
+            [definition.composer.key]: message
+          };
+          if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
+            const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
+            const selected = selector?.selectedOptions[0]?.dataset.eidosChatContextValue;
+            if (selected) {
+              values[definition.context.selector.key] = JSON.parse(selected) as JsonValue;
+            }
+          }
+
           const request: ActionRequestV010 = {
             contractVersion: "0.1.0",
             type: "command",
             command: { ...definition.command },
-            values: { [definition.composer.key]: message },
+            values,
             sourceInteractionId: definition.id,
             actionId: "chat.send",
             requiresConfirmation: false

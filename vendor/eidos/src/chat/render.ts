@@ -53,9 +53,23 @@ export function renderChatExperienceToHtml(document: ChatExperienceV010 | ChatEx
       + "</form></section>";
   }
 
+  const contextSelector = document.context?.selector
+    ? "<select data-eidos-chat-context-selector"
+      + attr("aria-label", document.context.selector.ariaLabel)
+      + ">" + document.context.selector.options.map(option =>
+        "<option"
+          + attr("value", option.id)
+          + attr("data-eidos-chat-context-value", JSON.stringify(option.value))
+          + (option.id === document.context?.selector?.selectedId ? " selected" : "")
+          + ">" + esc(option.label) + "</option>"
+      ).join("") + "</select>"
+    : "";
+
   const context = document.context
     ? "<div data-eidos-chat-context" + attr("data-tone", document.context.tone ?? "neutral")
-      + "><span>" + esc(document.context.label) + "</span><strong>" + esc(document.context.value) + "</strong></div>"
+      + "><span>" + esc(document.context.label) + "</span>"
+      + (contextSelector || "<strong>" + esc(document.context.value) + "</strong>")
+      + "</div>"
     : "";
 
   const readiness = document.readiness && document.readiness.state !== "ready"

@@ -125,3 +125,69 @@ test("registered Context references are the only selectable Contexts", () => {
     }
   ]);
 });
+
+
+test("Personal Agent accepts a Host-registered Enterprise Context and passes it into read-only reasoning", async () => {
+  const registry = registryWithEnterprise();
+  let toolContext;
+  const handler = createEnterpriseAgentChatActionHandler({
+    resolveContext(selection) {
+      return registry.resolve(selection);
+    },
+    resolveLlmProvider() {
+      return {
+        installedProviderIds: ["test"],
+        provider: {
+          providerId: "test",
+          modelId: "test-model",
+          async infer() {
+            return {
+              contractVersion: "0.1.0",
+              providerId: "test",
+              modelId: "test-model",
+              text: "ok",
+              toolCalls: [],
+              usage: { inputTokens: 0, outputTokens: 0 },
+              finishReason: "stop"
+            };
+          }
+        }
+      };
+    },
+    createToolCatalog(_locale, context) {
+      toolContext = context;
+      return {
+        list() { return []; },
+        async invoke() {
+          throw new Error("No tools expected");
+        }
+      };
+    }
+  });
+
+  const result = await handler.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "enterprise-agent.chat",
+      inputVersion: "0.1.0"
+    },
+    values: {
+      message: "Summarize this enterprise context",
+      activeContext: {
+        kind: "ENTERPRISE",
+        contextId: "enterprise:acme",
+        enterpriseId: "acme"
+      }
+    },
+    sourceInteractionId: "registered-enterprise-context-test",
+    actionId: "chat.send",
+    requiresConfirmation: false
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(toolContext.activeContext.kind, "ENTERPRISE");
+  assert.equal(toolContext.enterpriseContext.enterpriseId, "acme");
+  assert.equal(toolContext.enterpriseContext.displayName, "Acme");
+  assert.equal(result.result.context.activeContext.contextId, "enterprise:acme");
+});

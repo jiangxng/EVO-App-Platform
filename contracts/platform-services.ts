@@ -74,6 +74,11 @@ export interface ResolvedContextSetV010 {
   enterpriseContext?: EnterpriseContextV010;
 }
 
+export interface EnterpriseContextProviderV010 {
+  providerId: string;
+  list(): EnterpriseContextV010[];
+}
+
 export interface PlatformRequestContextV010 {
   contractVersion: "0.1.0";
   principal: PlatformPrincipalV010;

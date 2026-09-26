@@ -30,10 +30,24 @@ export interface ChatActionV020 {
   requiresConfirmation?: boolean;
 }
 
+export interface ChatContextOptionV020 {
+  id: string;
+  label: string;
+  value: JsonValue;
+}
+
+export interface ChatContextSelectorV020 {
+  key: string;
+  ariaLabel: string;
+  selectedId?: string;
+  options: ChatContextOptionV020[];
+}
+
 export interface ChatContextSummaryV020 {
   label: string;
   value: string;
   tone?: "neutral" | "positive" | "warning" | "danger";
+  selector?: ChatContextSelectorV020;
 }
 
 export interface ChatReadinessV020 {
