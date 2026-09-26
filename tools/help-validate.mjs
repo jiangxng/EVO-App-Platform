@@ -13,6 +13,7 @@ const required = new Set([
   "evo.extension-manager.overview",
   "evo.settings.secrets",
   "evo.secrets.configure-provider-credential",
+  "evo.enterprise-agent.tools",
   "evo.troubleshooting.provider-ambiguous",
   "evo.troubleshooting.provider-unavailable",
   "evo.troubleshooting.authorization-denied",
