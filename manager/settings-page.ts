@@ -419,7 +419,7 @@ export async function createSettingsPage(
     saveLabel: text.save,
     emptyMessage: text.empty
   };
-}}
+}
 
 export function validateAndMergeSettings(
   manager: AppManagerService,
