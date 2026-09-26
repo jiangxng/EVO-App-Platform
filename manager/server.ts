@@ -888,7 +888,7 @@ const server = createServer(async (request, response) => {
 
         const context = contextRegistry.resolve();
         const contextLabel = context.activeContext.kind === "PERSONAL"
-          ? context.personalContext.displayName
+          ? context.personalContext.displayName ?? context.activeContext.contextId
           : context.enterpriseContext?.displayName ?? context.activeContext.contextId;
         return json(
           response,
