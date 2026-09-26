@@ -7,6 +7,7 @@ import {
   createHelpIndexPageV010,
   loadHelpCorpusV010,
   materializeHelpDocumentV010,
+  resolveHelpDocumentsV010,
   searchHelpV010
 } from "../../dist/manager/help-system.js";
 import { renderAppHostPageToHtml } from "../../dist/vendor/eidos/src/app-host/index.js";
@@ -93,4 +94,48 @@ test("Help experience manifest exposes the index and stable document routes", ()
   const manifest = createHelpExperienceManifestV010(loadHelpCorpusV010());
   assert.equal(manifest.defaultRoute, "/help");
   assert.ok(manifest.routes.some(route => route.path === "/help/evo.provider.binding"));
+});
+
+
+test("Help locale selection is per-document with deterministic English fallback", () => {
+  const corpus = loadHelpCorpusV010();
+  const partial = corpus.filter(item =>
+    !(item.metadata.id === "evo.provider.health" && item.metadata.locale === "zh-CN")
+  );
+
+  const documents = resolveHelpDocumentsV010(partial, "zh-CN");
+  const binding = documents.find(item => item.metadata.id === "evo.provider.binding");
+  const health = documents.find(item => item.metadata.id === "evo.provider.health");
+
+  assert.equal(binding?.metadata.locale, "zh-CN");
+  assert.equal(binding?.metadata.title, "配置 Provider 绑定");
+  assert.equal(health?.metadata.locale, "en");
+  assert.equal(health?.metadata.title, "Provider health states");
+  assert.equal(documents.length, 14);
+});
+
+test("zh-CN Help corpus preserves stable IDs and routes while localizing content", () => {
+  const corpus = loadHelpCorpusV010();
+  const enManifest = createHelpExperienceManifestV010(corpus, "en");
+  const zhManifest = createHelpExperienceManifestV010(corpus, "zh-CN");
+
+  assert.deepEqual(
+    zhManifest.routes.map(route => route.path),
+    enManifest.routes.map(route => route.path)
+  );
+
+  const zhIndex = createHelpIndexPageV010(corpus, "zh-CN");
+  const zhBinding = zhIndex.items.find(item => item.id === "evo.provider.binding");
+  assert.equal(zhBinding?.title, "配置 Provider 绑定");
+  assert.equal(zhBinding?.category, "操作指南");
+  assert.ok(zhBinding?.badges.includes("管理员"));
+
+  const zhDocument = materializeHelpDocumentV010(corpus, "evo.provider.binding", "zh-CN");
+  assert.equal(zhDocument?.locale, "zh-CN");
+  assert.equal(zhDocument?.title, "配置 Provider 绑定");
+  assert.equal(zhDocument?.breadcrumbs[0].label, "帮助");
+
+  const fallback = materializeHelpDocumentV010(corpus, "evo.provider.binding", "ja-JP");
+  assert.equal(fallback?.locale, "en");
+  assert.equal(fallback?.title, "Configure a Provider binding");
 });
