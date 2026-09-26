@@ -36,7 +36,9 @@ export function createPrincipalContextRegistryV010(
       return sources.enterpriseDirectory
         .list()
         .filter(context =>
-          context.contextId !== undefined && allowed.has(context.contextId)
+          context.contextId !== undefined
+          && allowed.has(context.contextId)
+          && (context.lifecycleState === undefined || context.lifecycleState === "ACTIVE")
         );
     }
   });
