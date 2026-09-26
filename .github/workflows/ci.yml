@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "manager/**"
+      - "help/**"
       - "contracts/**"
       - "catalog/catalog.ts"
       - "tools/**"
@@ -21,6 +22,7 @@ on:
       - ".github/workflows/ci.yml"
       - "Dockerfile"
       - "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md"
+      - "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md"
       - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
       - "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
       - "docs/architecture/PLUGIN-HOST-FOUNDATIONS-v0.1.md"
@@ -34,6 +36,7 @@ on:
   pull_request:
     paths:
       - "manager/**"
+      - "help/**"
       - "contracts/**"
       - "catalog/catalog.ts"
       - "actions/router.ts"
@@ -48,6 +51,7 @@ on:
       - ".github/workflows/ci.yml"
       - "Dockerfile"
       - "docs/architecture/DEPENDENCY-REPRODUCIBILITY-v0.1.md"
+      - "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md"
       - "docs/architecture/PLUGIN-PROTOCOL-v0.1.md"
       - "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
       - "INVARIANTS.md"
