@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
-import { enterpriseAgentPackage } from "../../dist/agents/enterprise-agent/package.js";
+import {
+  enterpriseAgentExperienceAssets,
+  enterpriseAgentPackage
+} from "../../dist/agents/enterprise-agent/package.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import {
@@ -35,18 +38,67 @@ function loadedAgent(definition) {
     experienceId: manifest.experienceId,
     packageId: manifest.packageId,
     featureId: manifest.featureId,
-    route: manifest.routes[0],
-    page: manifest.pages[0],
+    route: manifest.routes.find(route => route.pageId === "enterprise-agent.home"),
+    page: manifest.pages.find(page => page.id === "enterprise-agent.home"),
     definition
   };
 }
 
-test("App Host locale changes platform chrome and app-owned Enterprise Agent text", () => {
+test("Personal Agent product chrome localizes across en zh-CN ja and zh-TW", () => {
   const manager = createAppManagerService(
     createPackageCatalog([enterpriseAgentPackage]),
     createMemoryLifecycleStore(),
-    () => new Date("2026-09-24T00:00:00Z"),
-    new Map()
+    () => new Date("2026-09-26T00:00:00Z"),
+    enterpriseAgentExperienceAssets
+  );
+  manager.install("enterprise-agent");
+
+  const runtime = createLocalizationRuntime(
+    [
+      ...eidosAppHostLocalizationBundles,
+      ...appPlatformLocalizationBundles,
+      ...manager.listEffectiveLocalizationBundles()
+    ],
+    { locale: "en", fallbackLocales: ["en"] }
+  );
+
+  const base = enterpriseAgentExperienceAssets.get("app://enterprise-agent/pages/home");
+  const expectations = [
+    ["en", "Personal Agent", "Context", "How can I help?", "Ask or describe a task"],
+    ["zh-CN", "个人 Agent", "上下文", "我可以帮你做什么？", "输入问题或描述任务"],
+    ["ja", "パーソナルエージェント", "コンテキスト", "何をお手伝いしましょうか？", "質問やタスクを入力"],
+    ["zh-TW", "個人 Agent", "上下文", "我可以如何協助你？", "輸入問題或描述工作"]
+  ];
+
+  for (const [locale, title, contextLabel, emptyTitle, placeholder] of expectations) {
+    runtime.setLocale(locale);
+    const localized = localizeAppHostPageDefinition(loadedAgent(base), runtime);
+    assert.equal(localized.contractVersion, "0.2.0");
+    assert.equal(localized.title, title);
+    assert.equal(localized.context.label, contextLabel);
+    assert.equal(localized.emptyState.title, emptyTitle);
+    assert.equal(localized.composer.placeholder, placeholder);
+    assert.equal(localized.emptyState.suggestions.length, 3);
+  }
+});
+
+test("Plugin Store readiness chrome has four-locale resources", () => {
+  const bundles = new Map(
+    appPlatformLocalizationBundles.map(bundle => [bundle.locale, bundle])
+  );
+  for (const locale of ["en", "zh-CN", "ja", "zh-TW"]) {
+    const bundle = bundles.get(locale);
+    assert.ok(bundle, "missing App Platform locale " + locale);
+    assert.ok(bundle.messages["extensions.evo.plugin-store.action.setup.label"]);
+    assert.ok(bundle.messages["extensions.evo.plugin-store.technicalDetails"]);
+    assert.ok(bundle.messages["extensions.evo.plugin-store.readiness.setup-required.label"]);
+  }
+});
+
+test("App Host locale changes Plugin Store platform chrome", () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([enterpriseAgentPackage]),
+    createMemoryLifecycleStore()
   );
   manager.install("enterprise-agent");
 
@@ -68,30 +120,8 @@ test("App Host locale changes platform chrome and app-owned Enterprise Agent tex
   );
   assert.equal(storeEn.title, "EVO Plugin Store");
   assert.equal(storeEn.items[0].status.label, "Enabled");
-  assert.equal(storeEn.items[0].primaryAction.label, "Open");
-  assert.match(storeEn.items[0].summary, /provided capability/);
-
-  const agentPage = {
-    contractVersion: "0.1.0",
-    kind: "chat",
-    id: "enterprise-agent.home",
-    title: "Enterprise Agent",
-    command: { code: "enterprise-agent.chat", inputVersion: "0.1.0" },
-    composer: {
-      key: "message",
-      placeholder: "Tell Enterprise Agent what you want to accomplish",
-      sendLabel: "Send"
-    },
-    emptyState: "Ask Enterprise Agent to inspect, explain or prepare a change."
-  };
-
-  const agentEn = localizeAppHostPageDefinition(loadedAgent(agentPage), runtime);
-  assert.equal(agentEn.title, "Enterprise Agent");
-  assert.equal(agentEn.composer.sendLabel, "Send");
-  assert.match(agentEn.emptyState, /Ask Enterprise Agent/);
 
   runtime.setLocale("zh-CN");
-
   const storeZh = localizeAppHostPageDefinition(
     loadedPluginStore(createPluginStorePage(
       [enterpriseAgentPackage],
@@ -101,14 +131,6 @@ test("App Host locale changes platform chrome and app-owned Enterprise Agent tex
   );
   assert.equal(storeZh.title, "EVO 插件商店");
   assert.equal(storeZh.items[0].status.label, "已启用");
-  assert.equal(storeZh.items[0].primaryAction.label, "打开");
-  assert.match(storeZh.items[0].summary, /提供/);
-
-  const agentZh = localizeAppHostPageDefinition(loadedAgent(agentPage), runtime);
-  assert.equal(agentZh.title, "企业智能体");
-  assert.equal(agentZh.composer.placeholder, "告诉 Enterprise Agent 你要完成什么");
-  assert.equal(agentZh.composer.sendLabel, "发送");
-  assert.match(agentZh.emptyState, /Enterprise Agent/);
 });
 
 test("application localization resources follow Feature lifecycle", () => {
@@ -120,8 +142,8 @@ test("application localization resources follow Feature lifecycle", () => {
   assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);
   manager.install("enterprise-agent");
   assert.deepEqual(
-    manager.listEffectiveLocalizationBundles().map(bundle => bundle.locale),
-    ["en", "zh-CN"]
+    manager.listEffectiveLocalizationBundles().map(bundle => bundle.locale).sort(),
+    ["en", "ja", "zh-CN", "zh-TW"].sort()
   );
 
   manager.disable("enterprise-agent");
