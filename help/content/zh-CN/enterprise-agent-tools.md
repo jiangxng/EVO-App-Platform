@@ -6,21 +6,21 @@
   "ownerFeatureId": "enterprise-agent.default",
   "locale": "zh-CN",
   "kind": "concept",
-  "title": "Enterprise Agent 工具系统",
-  "summary": "了解 Enterprise Agent 如何发现并调用由 Host 提供的平台工具。",
+  "title": "个人 Agent 工具系统",
+  "summary": "了解个人 Agent 如何发现并调用由 Host 提供的平台工具。",
   "audiences": ["user", "admin", "operator", "developer", "agent"],
   "tags": ["enterprise-agent", "工具", "tool-discovery", "agent"],
   "contexts": {
     "packageIds": ["enterprise-agent"],
     "featureIds": ["enterprise-agent.default"],
-    "capabilities": ["agent.enterprise.tool-discovery"],
+    "capabilities": ["agent.personal.tool-discovery", "agent.enterprise.tool-discovery"],
     "commands": ["enterprise-agent.chat"]
   },
   "related": ["evo.authorization.authentication-vs-authorization", "evo.provider.model", "evo.workbench.overview"],
   "lastReviewedAt": "2026-09-26"
 }
 ---
-Enterprise Agent 不再内置固定的平台工具列表。每次 Agent 运行时，App Platform Host 会提供当前有效的 Tool Catalog。
+个人 Agent 不再内置固定的平台工具列表。每次 Agent 运行时，App Platform Host 会提供当前有效的 Tool Catalog。
 
 ## 工具影响等级
 
@@ -32,7 +32,7 @@ Enterprise Agent 不再内置固定的平台工具列表。每次 Agent 运行�
 
 ## 当前观察工具
 
-Enterprise Agent 可以查看平台快照、有效 Capability、Package catalog、Provider、Provider 健康状态、Provider binding，以及权威 Platform Help。
+个人 Agent 可以查看平台快照、有效 Capability、Package catalog、Provider、Provider 健康状态、Provider binding，以及权威 Platform Help。
 
 ## 安装工具
 
@@ -47,4 +47,4 @@ Package 安装继续遵守 Host 强制执行的安全顺序：
 
 ## 凭据
 
-Enterprise Agent 永远不会收到已保存 API Key 的明文。LLM 凭据始终留在 Host Secrets Provider 与 LLM Provider Runtime 边界内部。
+个人 Agent 永远不会收到已保存 API Key 的明文。LLM 凭据始终留在 Host Secrets Provider 与 LLM Provider Runtime 边界内部。
