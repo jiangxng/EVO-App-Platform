@@ -33,7 +33,8 @@ export interface EnterpriseAgentChatDependencies {
   createToolCatalog(
     locale: string,
     context: ResolvedContextSetV010,
-    principal: PlatformPrincipalV010
+    principal: PlatformPrincipalV010,
+    requestContext?: PlatformRequestContextV010
   ): AgentToolCatalogV010;
 }
 
@@ -155,7 +156,7 @@ export function createEnterpriseAgentChatActionHandler(
       const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
-        dependencies.createToolCatalog(locale, context, principal)
+        dependencies.createToolCatalog(locale, context, principal, requestContext)
       );
 
       const reply = await runtime.chat(message.trim(), context, principal);
