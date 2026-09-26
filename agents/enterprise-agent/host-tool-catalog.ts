@@ -133,7 +133,8 @@ export function createEnterpriseAgentHostToolCatalogV010(
       }),
       available() {
         return dependencies.context.activeContext.kind === "ENTERPRISE"
-          && dependencies.context.enterpriseContext !== undefined;
+          && dependencies.context.enterpriseContext !== undefined
+          && dependencies.context.personalContext.ownerSubjectId === dependencies.principal.subjectId;
       },
       execute() {
         if (
@@ -142,10 +143,7 @@ export function createEnterpriseAgentHostToolCatalogV010(
         ) {
           throw new Error("ENTERPRISE_CONTEXT_REQUIRED");
         }
-        return {
-          principalSubjectId: dependencies.principal.subjectId,
-          context: structuredClone(dependencies.context.enterpriseContext)
-        };
+        return structuredClone(dependencies.context.enterpriseContext);
       }
     },
     {
