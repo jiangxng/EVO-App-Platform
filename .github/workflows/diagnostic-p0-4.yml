@@ -1,0 +1,31 @@
+name: Diagnostic P0.4 Build
+
+on:
+  push:
+    branches: [personal-agent-p0-4b]
+  workflow_dispatch:
+
+jobs:
+  build-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - name: Capture TypeScript build
+        shell: bash
+        run: |
+          set +e
+          npm run build > build.log 2>&1
+          code=$?
+          echo "$code" > build.exit
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p0-4-build-diagnostic
+          path: |
+            build.log
+            build.exit
