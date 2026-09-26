@@ -17,6 +17,12 @@ import { createMemorySecretStoreV010 } from "../../dist/manager/secret-store.js"
 import { createHostEncryptedSecretsProviderV010 } from "../../dist/providers/secrets/runtime.js";
 import { enterpriseAgentPackage } from "../../dist/catalog/seed.js";
 
+function settingsFields(page) {
+  return page.contractVersion === "0.2.0"
+    ? page.groups.flatMap(group => group.settings)
+    : page.settings;
+}
+
 test("settings contributions appear only after the owning package is installed", () => {
   const manager = createAppManagerService(
     createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage]),
@@ -48,11 +54,14 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   const describe = reference => secrets.describe(reference);
   const initial = await createSettingsPage(manager, store, "openai-llm-provider", describe);
   assert.equal(initial.kind, "settings-editor");
+  assert.equal(initial.contractVersion, "0.2.0");
   assert.equal(initial.namespace, "openai-llm-provider");
-  assert.equal(initial.settings.find(x => x.key === "model").value, "gpt-5.6-luna");
-  assert.equal(initial.settings.find(x => x.key === "secret:apiKey").type, "secret");
-  assert.equal(initial.settings.find(x => x.key === "secret:apiKey").value, "");
-  assert.match(initial.settings.find(x => x.key === "secret-status:apiKey").value, /Not configured/);
+  assert.deepEqual(initial.groups.map(group => group.id), ["general", "credentials", "advanced"]);
+  assert.equal(initial.groups.find(group => group.id === "advanced").advanced, true);
+  assert.equal(settingsFields(initial).find(x => x.key === "model").value, "gpt-5.6-luna");
+  assert.equal(settingsFields(initial).find(x => x.key === "secret:apiKey").type, "secret");
+  assert.equal(settingsFields(initial).find(x => x.key === "secret:apiKey").value, "");
+  assert.match(settingsFields(initial).find(x => x.key === "secret-status:apiKey").value, /Not configured/);
   assert.equal(store.getNamespace("openai-llm-provider").apiKey, undefined);
 
   const saved = validateAndMergeSettings(manager, store, "openai-llm-provider", {
@@ -66,7 +75,7 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   assert.equal(Object.prototype.hasOwnProperty.call(saved, "OPENAI_API_KEY"), false);
 
   const updated = await createSettingsPage(manager, store, "openai-llm-provider", describe);
-  assert.equal(updated.settings.find(x => x.key === "model").value, "gpt-test");
+  assert.equal(settingsFields(updated).find(x => x.key === "model").value, "gpt-test");
 
   await secrets.put({
     contractVersion: "0.1.0",
@@ -84,8 +93,8 @@ test("Settings Editor persists only declared non-secret settings", async () => {
     { installationId: "default" },
     "zh-CN"
   );
-  assert.match(zh.settings.find(x => x.key === "secret-status:apiKey").value, /已配置/);
-  assert.equal(zh.settings.find(x => x.key === "secret:apiKey").value, "");
+  assert.match(settingsFields(zh).find(x => x.key === "secret-status:apiKey").value, /已配置/);
+  assert.equal(settingsFields(zh).find(x => x.key === "secret:apiKey").value, "");
   assert.doesNotMatch(JSON.stringify(zh), /sk-never-render-this/);
 });
 
