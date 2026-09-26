@@ -324,6 +324,19 @@ export function validatePluginManifestV010(
     }
   }
 
+  if ((pkg.secrets?.length ?? 0) > 0) {
+    const requiresSecretsCapability = pkg.features.some(feature =>
+      (feature.requiresCapabilities ?? []).includes("secrets.resolve")
+    );
+    if (!requiresSecretsCapability) {
+      add(
+        "PLUGIN_SECRET_CAPABILITY_REQUIRED",
+        "features.requiresCapabilities",
+        "A Package declaring Secrets must explicitly require the secrets.resolve capability."
+      );
+    }
+  }
+
   if (pkg.storage?.quotaBytes !== undefined && pkg.storage.quotaBytes <= 0) {
     add("PLUGIN_STORAGE_QUOTA_INVALID", "storage.quotaBytes", "Storage quota must be positive.");
   }
