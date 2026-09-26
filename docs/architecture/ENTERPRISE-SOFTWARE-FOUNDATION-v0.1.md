@@ -1,21 +1,23 @@
 # Enterprise Software Foundation — Plugin-First Boundaries v0.1
 
-**Status:** Founder-confirmed architecture baseline  
+**Status:** Enterprise-context foundation; person-first root superseded by PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1  
 **Date:** 2026-09-24  
 **Authority:** EVO-family enterprise platform direction  
 **Applies to:** EVO App Platform, Apps/Agents, Eidos integration, EVO Runtime integration
 
+**Superseding root-world-model authority:** `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`
+
 ## 1. Product purpose
 
-EVO-family systems exist to serve enterprises.
+EVO's root product perspective is now **Person-first**. Enterprise remains a first-class governed Context and business-data/knowledge domain.
 
 Plugin architecture, Eidos, LLMs and Ledger Runtime are implementation means. They are not the product purpose.
 
 Every accepted platform capability should eventually be able to answer:
 
-- which enterprise problem it solves;
-- which enterprise/company/workspace/user scope it applies to;
-- which human/agent role uses it;
+- which human workflow or decision it supports;
+- which Personal or Enterprise Context it applies to;
+- which Principal/Agent uses it;
 - which business truth it reads or owns;
 - which side effects it may cause;
 - which audit/security obligations apply.
@@ -23,7 +25,9 @@ Every accepted platform capability should eventually be able to answer:
 The canonical architecture priority is:
 
 ```text
-Enterprise-first
+Person-first
+    ↓
+Personal Agent + governed Context
     ↓
 Plugin-first extension
     ↓
@@ -33,6 +37,8 @@ public capability/provider contracts
     ↓
 EVO Ledger Runtime when ledger/business-fact execution is required
 ```
+
+Enterprise-specific identity, membership, policy and provider material in this document remains valid as **Enterprise Context foundation**, but it no longer makes Enterprise the owner/root of human identity.
 
 ## 2. Stepwise development rule
 
@@ -375,7 +381,7 @@ Audit is cross-cutting but should still enter behind stable plugin/provider cont
 
 ### Frozen now
 
-- Enterprise-first purpose.
+- Person-first purpose; Enterprise remains a first-class governed Context.
 - Plugin-first extension rule.
 - Provider Plugin concept.
 - separation of Authentication / Authorization / Enterprise / LLM, plus localization ownership between Eidos/App Host and each Package.
