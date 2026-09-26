@@ -20,7 +20,7 @@ function fieldControl(field: SettingsFieldV010): string {
     ).join("");
     return `<select name="${esc(field.key)}" data-setting-type="select"${disabled}>${options}</select>`;
   }
-  const type = field.type === "number" ? "number" : "text";
+  const type = field.type === "number" ? "number" : field.type === "secret" ? "password" : "text";
   return `<input type="${type}" name="${esc(field.key)}" data-setting-type="${esc(field.type)}" value="${esc(field.value)}"${disabled}>`;
 }
 

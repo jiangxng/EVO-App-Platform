@@ -134,3 +134,46 @@ export function createOpenAiResponsesLlmProvider(
     }
   };
 }
+
+
+export function createOpenAiResponsesHealthProbe(
+  options: OpenAiResponsesLlmProviderOptions
+) {
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  if (!fetchImpl) throw new Error("OPENAI_PROVIDER_FETCH_UNAVAILABLE");
+  const baseUrl = (options.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
+  const modelId = options.model?.trim() || "gpt-5.6-luna";
+  return async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetchImpl(`${baseUrl}/models/${encodeURIComponent(modelId)}`, {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${options.apiKey}`,
+          accept: "application/json"
+        },
+        redirect: "error",
+        signal: controller.signal
+      });
+      if (response.ok) {
+        return {
+          state: "HEALTHY" as const,
+          message: `OpenAI model '${modelId}' is reachable.`
+        };
+      }
+      if (response.status === 429 || response.status >= 500) {
+        return {
+          state: "DEGRADED" as const,
+          message: `OpenAI health probe returned HTTP ${response.status}.`
+        };
+      }
+      return {
+        state: "UNAVAILABLE" as const,
+        message: `OpenAI health probe returned HTTP ${response.status}.`
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+}

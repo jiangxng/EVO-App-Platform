@@ -47,7 +47,7 @@
     "runtimeOperationalHistory": "EXTENSION_MANAGER_RECENT_HISTORY_IMPLEMENTED",
     "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED",
     "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
-    "providerHealthManagement": "HEALTH_POSTURE_AND_EIDOS_BINDING_MANAGER_IMPLEMENTED"
+    "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -119,7 +119,7 @@
     "manualLockSynthesis": "PROHIBITED"
   },
   "providerResolution": {
-    "status": "IMPLEMENTED_P0_PLUS_HEALTH",
+    "status": "IMPLEMENTED_P0_PLUS_HEALTH_MANAGEMENT_AND_GOVERNANCE",
     "scopes": [
       "SYSTEM",
       "INSTALLATION",
@@ -131,6 +131,9 @@
     "ambiguousMultipleProviders": "FAIL_CLOSED",
     "unavailableExplicitBinding": "FAIL_CLOSED",
     "healthBasedSilentFailover": "PROHIBITED",
-    "managementExperience": "IMPLEMENTED"
+    "managementExperience": "IMPLEMENTED",
+    "activeHealthProbe": "EXPLICIT_HOST_ADMIN_OPERATION",
+    "bindingAuthorization": "FAIL_CLOSED_BOOTSTRAP_ADMIN_P0",
+    "governanceAudit": "NON_SECRET_JSONL_OR_MEMORY"
   }
 }
