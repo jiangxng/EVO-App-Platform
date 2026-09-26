@@ -27,6 +27,14 @@ export type DescribeSecretV010 = (
   reference: SecretReferenceV010
 ) => SecretDescriptorV010 | undefined | Promise<SecretDescriptorV010 | undefined>;
 
+function settingsUiLocale(locale: string): "en" | "zh-CN" {
+  try {
+    return Intl.getCanonicalLocales(locale.trim())[0] === "zh-CN" ? "zh-CN" : "en";
+  } catch {
+    return "en";
+  }
+}
+
 export function settingsPackagePageSource(packageId: string): string {
   return `app://evo-app-platform/pages/settings/${encodeURIComponent(packageId)}`;
 }
@@ -205,12 +213,15 @@ export async function createSettingsPage(
   store: SettingsStore,
   packageId: string,
   describeSecret?: DescribeSecretV010,
-  secretContext: SettingsSecretScopeContextV010 = { installationId: "default" }
+  secretContext: SettingsSecretScopeContextV010 = { installationId: "default" },
+  locale = "en"
 ): Promise<SettingsEditorV010 | undefined> {
   const pkg = manager.listCatalog().find(item => item.packageId === packageId);
   const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
   if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
 
+  const uiLocale = settingsUiLocale(locale);
+  const zh = uiLocale === "zh-CN";
   const merged = mergeSettingsContributions(manager.listInstalledSettings(packageId));
   const namespace = merged?.namespace ?? packageId;
   const current = store.getNamespace(namespace);
@@ -232,15 +243,21 @@ export async function createSettingsPage(
       const configured = status?.configured === true;
       const unavailable = !reference;
       const statusValue = unavailable
-        ? "Scope context unavailable"
+        ? (zh ? "当前作用域上下文不可用" : "Scope context unavailable")
         : configured
-          ? `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
-          : "Not configured";
+          ? (
+              zh
+                ? `已配置${status?.updatedAt ? ` · 更新于 ${status.updatedAt}` : ""} · 不显示已保存明文`
+                : `Configured${status?.updatedAt ? ` · updated ${status.updatedAt}` : ""} · value is never displayed`
+            )
+          : (zh ? "未配置" : "Not configured");
 
       return [
         {
           key: `secret:${declaration.key}`,
-          label: configured ? `Replace ${declaration.label}` : declaration.label,
+          label: configured
+            ? (zh ? `替换 ${declaration.label}` : `Replace ${declaration.label}`)
+            : declaration.label,
           description: unavailable
             ? `Secret scope '${declaration.scope}' is not available in the current platform context.`
             : declaration.description,
@@ -250,7 +267,7 @@ export async function createSettingsPage(
         },
         {
           key: `secret-status:${declaration.key}`,
-          label: `${declaration.label} status`,
+          label: zh ? `${declaration.label} 状态` : `${declaration.label} status`,
           type: "string" as const,
           value: statusValue,
           readOnly: true
@@ -258,8 +275,8 @@ export async function createSettingsPage(
         ...(configured && !unavailable
           ? [{
               key: `secret-remove:${declaration.key}`,
-              label: `Remove ${declaration.label}`,
-              description: "Remove the stored Secret when saving.",
+              label: zh ? `删除 ${declaration.label}` : `Remove ${declaration.label}`,
+              description: zh ? "保存时删除当前已存储的 Secret。" : "Remove the stored Secret when saving.",
               type: "boolean" as const,
               value: false,
               defaultValue: false
@@ -277,7 +294,11 @@ export async function createSettingsPage(
     id: `evo-settings.${packageId}`,
     namespace,
     title: merged?.title ?? pkg.displayName,
-    description: merged?.description ?? "Configure Host-managed credentials for this Package.",
+    description: merged?.description ?? (
+      zh
+        ? "配置此 Package 的 Host 管理凭据。"
+        : "Configure Host-managed credentials for this Package."
+    ),
     command: {
       code: "app-platform.update-settings",
       inputVersion: "0.1.0"
@@ -288,15 +309,17 @@ export async function createSettingsPage(
       ...(hasSecrets
         ? [{
             key: "adminToken",
-            label: "Administrator authorization",
-            description: "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
+            label: zh ? "管理员授权" : "Administrator authorization",
+            description: zh
+              ? "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。"
+              : "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
             type: "secret" as const,
             value: ""
           }]
         : [])
     ],
-    saveLabel: "Save",
-    emptyMessage: "This plugin has no editable configuration."
+    saveLabel: zh ? "保存" : "Save",
+    emptyMessage: zh ? "此插件没有可编辑配置。" : "This plugin has no editable configuration."
   };
 }
 
