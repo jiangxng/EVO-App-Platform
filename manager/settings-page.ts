@@ -111,7 +111,7 @@ export function createSettingsIndexPage(
           primaryAction: {
             id: "configure",
             label: "Configure",
-            type: "navigate",
+            type: "navigate" as const,
             route: settingsPackageRoute(packageId)
           }
         };
