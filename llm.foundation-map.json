@@ -30,7 +30,9 @@
     "ecosystemCertification": "NOW",
     "llmContextArchitecture": "NOW",
     "platformHelpGovernance": "NOW",
-    "enterpriseAgentToolSystem": "NOW"
+    "enterpriseAgentToolSystem": "NOW",
+    "personFirstWorldModel": "FROZEN_MVP",
+    "contextMemory": "NEXT_MINIMAL_CONTRACTS"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -53,7 +55,8 @@
     "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE",
     "platformHelp": "MULTILINGUAL_HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_CI_DESIGN_GOVERNANCE_IMPLEMENTED",
     "secretsProvider": "HOST_ENCRYPTED_SECRETS_UI_OPENAI_INTEGRATION_IMPLEMENTED",
-    "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED"
+    "enterpriseAgentToolDiscovery": "HOST_DYNAMIC_CATALOG_PLATFORM_PROVIDER_HELP_OBSERVATION_AND_INSTALL_PREFLIGHT_IMPLEMENTED",
+    "personFirstWorldModel": "FROZEN_HUMAN_PERSONAL_AGENT_PERSONAL_ENTERPRISE_CONTEXT_MEMORY_MODEL"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -170,8 +173,8 @@
       "en",
       "zh-CN"
     ],
-    "seedDocumentIds": 16,
-    "seedVariants": 32,
+    "seedDocumentIds": 17,
+    "seedVariants": 34,
     "localeMachineMetadata": "CI_ENFORCED_STABLE",
     "eidosDesignLanguage": "CI_ENFORCED_NO_PARALLEL_PLATFORM_HELP_UI",
     "designGate": "tools/eidos-design-language-validate.mjs"
@@ -192,8 +195,8 @@
     "crossRedeploySecretPersistence": "VERIFY_WITH_FIRST_REAL_SECRET"
   },
   "enterpriseAgent": {
-    "status": "CI_VERIFIED_P0_2_TOOL_DISCOVERY",
-    "authority": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
+    "status": "LEGACY_COMPATIBILITY_NAME",
+    "authority": "docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md",
     "agentCoreToolList": "NONE",
     "effectiveCatalog": "HOST_OWNED",
     "toolDescriptor": "AgentToolDescriptorV010",
@@ -211,6 +214,38 @@
     "principalScopeFilter": "NEXT_ACTIVE_SLICE",
     "writeAuthorization": "NEXT_ACTIVE_SLICE",
     "ecAdapters": "AFTER_CONTEXT_AND_AUTHORIZATION",
-    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_PLATFORM_REQUEST_CONTEXT_THEN_AUTHORIZED_WRITE_TOOLS"
+    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_PLATFORM_REQUEST_CONTEXT_THEN_AUTHORIZED_WRITE_TOOLS",
+    "productIdentity": "Personal Agent"
+  },
+  "personFirstWorldModel": {
+    "status": "FROZEN_MVP",
+    "authority": "docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md",
+    "root": "HUMAN",
+    "agent": "PERSONAL_AGENT_ONLY",
+    "contexts": [
+      "PERSONAL",
+      "ENTERPRISE"
+    ],
+    "memories": [
+      "PERSONAL_CONTEXT_MEMORY",
+      "ENTERPRISE_CONTEXT_MEMORY"
+    ],
+    "enterpriseContextIsAgent": false,
+    "enterpriseOwnsHumanIdentity": false,
+    "humanDecisionAuthority": true,
+    "crossContextMemoryPromotion": "DENY_BY_DEFAULT",
+    "modelIndependentMemory": true
+  },
+  "personalAgent": {
+    "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
+    "compatibilityPackageId": "enterprise-agent",
+    "productName": "Personal Agent",
+    "preferredCapabilities": [
+      "agent.personal",
+      "agent.personal.tool-discovery"
+    ],
+    "toolCatalog": "HOST_DYNAMIC",
+    "opinionBeforeDecision": "REQUIRED",
+    "next": "MINIMAL_CONTEXT_CONTRACTS_AND_ACTIVE_CONTEXT_TOOL_FILTER"
   }
 }

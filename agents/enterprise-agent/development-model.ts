@@ -31,7 +31,7 @@ function selectPackage(message: string, catalog: PackageManifestV010[]): Package
  * Offline development model.
  *
  * It exists only to verify the Agent → Tool → App Manager loop without
- * binding Enterprise Agent to any LLM provider. Production should replace
+ * binding Personal Agent to any LLM provider. Production should replace
  * this through the AgentModel port.
  */
 export function createDevelopmentAgentModel(): AgentModel {

@@ -17,7 +17,7 @@ test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Pan
   assert.match(appHostShellHtml, /data-mobile-surface="workspace"/);
 });
 
-test("Enterprise Agent remains a zero-config Chat Experience inside the Workbench", () => {
+test("Personal Agent remains a zero-config Chat Experience inside the Workbench", () => {
   const page = enterpriseAgentExperienceAssets.get("app://enterprise-agent/pages/home");
   assert.equal(page.kind, "chat");
   assert.equal(page.command.code, "enterprise-agent.chat");
@@ -27,7 +27,7 @@ test("Enterprise Agent remains a zero-config Chat Experience inside the Workbenc
 });
 
 
-test("Enterprise Agent owns its Activity contribution instead of App Host owning Agent semantics", async () => {
+test("Personal Agent owns its Activity contribution instead of App Host owning Agent semantics", async () => {
   const { enterpriseAgentPackage } = await import("../../dist/agents/enterprise-agent/package.js");
   const activity = enterpriseAgentPackage.features[0].contributions.find(
     contribution => contribution.kind === "eidos.workbench-activity"
@@ -40,10 +40,29 @@ test("Enterprise Agent owns its Activity contribution instead of App Host owning
 });
 
 
-test("App Host client has no hard-coded Enterprise Agent route or Activity", async () => {
+test("App Host client has no hard-coded Personal Agent route or Activity", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../../dist/manager/app-host-client.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /\/enterprise-agent/);
   assert.doesNotMatch(source, /id:\s*["']agent["']/);
   assert.match(source, /\/v1\/workbench\/activities/);
+});
+
+
+test("enterprise-agent compatibility identifiers present the product as Personal Agent", async () => {
+  const { enterpriseAgentPackage } = await import("../../dist/agents/enterprise-agent/package.js");
+  assert.equal(enterpriseAgentPackage.packageId, "enterprise-agent");
+  assert.equal(enterpriseAgentPackage.displayName, "Personal Agent");
+  assert.ok(enterpriseAgentPackage.features[0].providesCapabilities.includes("agent.personal"));
+  assert.ok(enterpriseAgentPackage.features[0].providesCapabilities.includes("agent.personal.tool-discovery"));
+  assert.ok(enterpriseAgentPackage.features[0].providesCapabilities.includes("agent.enterprise"));
+  const activity = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.workbench-activity"
+  );
+  assert.equal(activity.activity.title, "Personal Agent");
+  const zh = enterpriseAgentPackage.features[0].contributions.find(
+    contribution => contribution.kind === "eidos.localization-bundle"
+      && contribution.bundle.locale === "zh-CN"
+  );
+  assert.equal(zh.bundle.messages["workbench.activity.label"], "个人 Agent");
 });

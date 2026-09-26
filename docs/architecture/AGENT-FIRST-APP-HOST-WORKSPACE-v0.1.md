@@ -3,22 +3,24 @@
 **Status:** Architecture baseline
 **Date:** 2026-09-24
 
+> **Person-first authority (2026-09-26):** This shell document is subordinate to `PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`. The product-facing Agent is Personal Agent; `/enterprise-agent` remains a compatibility route only.
+
 ## 1. Product decision
 
 EVO App Platform originally used the Eidos Agent Workspace Shell to prove persistent Agent + Workspace composition. The canonical product shell has now evolved to the Eidos Workbench.
 
 ```text
 Activity Bar = Apps / Agent / Plugins / Workspace / Settings
-Side Panel   = current context (Apps navigation, Enterprise Agent, future Views)
+Side Panel   = current context (Apps navigation, Personal Agent, future Views)
 Workspace    = active application / configurator / browser
 Status Bar   = lightweight runtime/workspace context
 ```
 
-This is not an Enterprise-Agent-specific handwritten page. App Platform selects `/enterprise-agent` as the current assistant route on top of the generic Eidos shell.
+This is not an Personal-Agent-specific handwritten page. App Platform selects `/enterprise-agent` as the current assistant route on top of the generic Eidos shell.
 
-## 2. Enterprise Agent configuration
+## 2. Personal Agent configuration
 
-Enterprise Agent itself has **zero ordinary user configuration**.
+Personal Agent itself has **zero ordinary user configuration**.
 
 It does not ask the user to configure:
 
@@ -35,7 +37,7 @@ Those are resolved from platform contracts:
 ```text
 LLM      ← llm.inference Provider
 Identity ← PlatformPrincipal / session
-Scope    ← EnterpriseContext / PlatformScope
+Context  ← PersonalContext + authorized EnterpriseContext / PlatformRequestContext
 Tools    ← authorized App Platform tool registry
 Locale   ← App Host locale context
 ```
@@ -43,9 +45,9 @@ Locale   ← App Host locale context
 The user's normal workflow is:
 
 ```text
-install Enterprise Agent
-→ open workspace
-→ chat
+open Personal Agent
+→ select/use authorized context
+→ inspect / analyze / chat
 ```
 
 If a required Provider is absent or not securely configured, Chat reports the missing platform dependency. The Agent does not grow a vendor-specific settings form.
@@ -56,7 +58,7 @@ Target operating model:
 
 ```text
 Human intent
-→ Enterprise Agent reasons
+→ Personal Agent reasons
 → inspects data/configuration
 → proposes change / prepares plan
 → human confirms consequential operation
@@ -82,7 +84,7 @@ Mobile keeps the Activity Bar available and shows one working surface at a time:
 
 1. extend Eidos with agent-workspace shell;
 2. add generic Chat Experience;
-3. convert Enterprise Agent page from form to Chat Experience;
+3. convert Personal Agent page from form to Chat Experience;
 4. configure App Platform `assistantRoute=/enterprise-agent`;
 5. make left application navigation drive right workspace;
 6. add responsive mobile pane switcher;

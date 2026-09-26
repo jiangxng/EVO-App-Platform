@@ -111,7 +111,7 @@ test("Help locale selection is per-document with deterministic English fallback"
   assert.equal(binding?.metadata.title, "配置 Provider 绑定");
   assert.equal(health?.metadata.locale, "en");
   assert.equal(health?.metadata.title, "Provider health states");
-  assert.equal(documents.length, 16);
+  assert.equal(documents.length, 17);
 });
 
 test("zh-CN Help corpus preserves stable IDs and routes while localizing content", () => {

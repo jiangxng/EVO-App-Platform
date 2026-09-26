@@ -153,8 +153,15 @@
 - **APP-128** The P0 Host encrypted Secret store uses authenticated encryption and a Host-owned master key separate from encrypted state. Production file-backed Secrets require durable Host storage; process-local/ephemeral storage is development-only.
 - **APP-129** LLM/provider credentials are runtime configuration, not deployment configuration. Provider Packages SHOULD resolve them through `secrets.resolve`; environment-variable credentials may exist only as explicit compatibility/migration paths, not the normal Workbench UX.
 
-- **APP-130** Enterprise Agent's effective platform/business tool set is Host-owned runtime state. Agent core and Provider-backed model MUST NOT hard-code the authoritative list of available tools.
+- **APP-130** Personal Agent's effective platform/business tool set is Host-owned runtime state. Agent core and Provider-backed model MUST NOT hard-code the authoritative list of available tools.
 - **APP-131** Every Agent tool exposed to a model MUST have a stable Host tool id, LLM-safe model name, owner, input schema and effect classification. A tool absent from the effective Host catalog MUST fail closed when invoked.
 - **APP-132** Agent tool safety rules are Host execution policy, not prompt policy. In particular, Package installation execution MUST retain the successful side-effect-free preflight requirement regardless of model behavior.
 - **APP-133** Tool discovery is not authorization. Principal/Scope-aware visibility and privileged WRITE authorization MUST be enforced by the Host as those contexts become executable; an LLM tool call can never upgrade a Host deny into allow.
 - **APP-134** New Package/EC Agent tools enter through explicit Host/protocol registration boundaries. Credentials and stored Secret plaintext MUST NOT be exposed as tool catalog metadata, tool observations or model prompt context.
+
+- **APP-135** EVO is Person-first in the frozen MVP world model. Human identity is not a child object owned by Enterprise; Enterprise is an accessible governed Context, not the root of the person.
+- **APP-136** The MVP has exactly one Agent ontology: Personal Agent. Enterprise Context MUST NOT be represented as a second Enterprise Agent merely to provide data, memory, policy or tools.
+- **APP-137** Personal Context Memory and Enterprise Context Memory are distinct long-lived assets. Access to Enterprise Context for reasoning MUST NOT imply permission to persist enterprise-confidential facts into Personal Context Memory.
+- **APP-138** Personal Agent output is analysis/opinion/proposal, not the final material decision. Material decisions remain with the human unless an explicit future delegation contract grants bounded authority.
+- **APP-139** Context Memory is durable platform data independent of any LLM Provider or model hidden state. Replacing the model MUST NOT erase Personal or Enterprise Context Memory.
+- **APP-140** The `enterprise-agent` Package/Feature/Experience/route/command identifiers are compatibility identifiers for the Personal Agent implementation. Product-facing naming is Personal Agent; machine identifier migration requires an explicit versioned compatibility plan.

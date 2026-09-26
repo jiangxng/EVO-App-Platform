@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Agent P0.2 — dynamic Host Tool Discovery complete",
+  "currentMilestone": "Person-first Context Memory MVP world model frozen",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -160,7 +160,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Enterprise Agent Tool Discovery P0.2 is CI-verified: Agent core/model consume Host-supplied tool descriptors; platform, Provider and Help observation tools are available; unknown tools fail closed; install preflight remains Host-enforced. Next: introduce minimal Identity / Session / Principal / Scope / PlatformRequestContext, filter the effective tool catalog by context, and route privileged WRITE invocation through authorization.check before expanding business/EC tools.",
+  "currentStep": "The MVP world model is frozen: Human -> Personal Agent -> Personal Context + authorized Enterprise Context(s), with separate Personal/Enterprise Context Memory and human final decision authority. Existing enterprise-agent machine identifiers remain compatibility identifiers. Next implementation slice: minimal PersonalContextV010 / EnterpriseContextV010 / active-context request plumbing and read-only Context Memory boundaries before broader WRITE autonomy.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -498,7 +498,7 @@
       "compiler": "manager/help-system.ts",
       "search": "DETERMINISTIC_LOCAL_CATALOG_PLUS_HOST_SEARCH_CONTEXT_API",
       "ci": "help corpus + locale metadata + Eidos Design Language gates via Platform CI",
-      "seedDocuments": 16,
+      "seedDocuments": 17,
       "locales": {
         "canonical": "en",
         "required": [
@@ -517,12 +517,12 @@
           "related-machine-ids"
         ]
       },
-      "seedVariants": 32,
+      "seedVariants": 34,
       "eidosRevision": "9b07e3d6da885f25b048ad79979239b823d84ef3"
     }
   },
   "enterpriseAgent": {
-    "status": "CI_VERIFIED_P0_2_TOOL_DISCOVERY",
+    "status": "LEGACY_COMPATIBILITY_IDENTITY_FOR_PERSONAL_AGENT",
     "authority": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
     "packageId": "enterprise-agent",
     "capability": "agent.enterprise.tool-discovery",
@@ -548,6 +548,45 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "IDENTITY_SESSION_PRINCIPAL_SCOPE_REQUEST_CONTEXT_TOOL_FILTER_AND_AUTHORIZED_WRITES"
+    "next": "USE_PERSON_FIRST_WORLD_MODEL_AUTHORITY",
+    "productIdentity": "Personal Agent",
+    "preferredCapability": "agent.personal.tool-discovery"
+  },
+  "worldModel": {
+    "status": "FROZEN_MVP",
+    "authority": "docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md",
+    "firstPerspective": "HUMAN",
+    "agent": "PERSONAL_AGENT_ONLY",
+    "personalContext": "LONG_LIVED_HUMAN_CONTEXT",
+    "enterpriseContext": "GOVERNED_WORKING_AND_LEARNING_MATERIAL",
+    "memories": [
+      "PERSONAL_CONTEXT_MEMORY",
+      "ENTERPRISE_CONTEXT_MEMORY"
+    ],
+    "enterpriseAgent": "OUT_OF_MVP",
+    "crossContextMemoryPromotion": "DENY_BY_DEFAULT_UNTIL_ATTRIBUTION_GOVERNANCE",
+    "agentOutput": "ANALYSIS_OPINION_PROPOSAL",
+    "decisionAuthority": "HUMAN",
+    "modelMemory": "NOT_AUTHORITATIVE_CONTEXT_MEMORY"
+  },
+  "personalAgent": {
+    "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
+    "authority": "docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md",
+    "compatibilityPackageId": "enterprise-agent",
+    "preferredCapabilities": [
+      "agent.personal",
+      "agent.personal.tool-discovery"
+    ],
+    "legacyCapabilities": [
+      "agent.enterprise",
+      "agent.enterprise.app-manager-tools",
+      "agent.enterprise.tool-discovery"
+    ],
+    "productName": {
+      "en": "Personal Agent",
+      "zh-CN": "个人 Agent"
+    },
+    "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
+    "next": "MINIMAL_PERSONAL_ENTERPRISE_CONTEXT_AND_CONTEXT_MEMORY_READ_CONTRACTS"
   }
 }

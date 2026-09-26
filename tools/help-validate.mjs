@@ -14,6 +14,7 @@ const required = new Set([
   "evo.settings.secrets",
   "evo.secrets.configure-provider-credential",
   "evo.enterprise-agent.tools",
+  "evo.personal-agent.world-model",
   "evo.troubleshooting.provider-ambiguous",
   "evo.troubleshooting.provider-unavailable",
   "evo.troubleshooting.authorization-denied",
