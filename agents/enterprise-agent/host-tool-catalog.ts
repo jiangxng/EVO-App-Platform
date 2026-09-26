@@ -423,6 +423,33 @@ export function createEnterpriseAgentHostToolCatalogV010(
       }
 
       try {
+        if (registration.descriptor.effect === "WRITE") {
+          if (!dependencies.authorizeWrite) {
+            return {
+              tool: call.tool,
+              ok: false,
+              error: {
+                code: "MATERIAL_WRITE_AUTHORIZATION_REQUIRED",
+                message: "Material WRITE tools require Host authorization."
+              }
+            };
+          }
+          const decision = await dependencies.authorizeWrite(
+            registration.descriptor,
+            call.arguments
+          );
+          if (!decision.allowed) {
+            return {
+              tool: call.tool,
+              ok: false,
+              error: {
+                code: decision.code ?? "MATERIAL_WRITE_DENIED",
+                message: decision.message ?? "Material WRITE denied by Host authorization."
+              }
+            };
+          }
+        }
+
         return {
           tool: call.tool,
           ok: true,
