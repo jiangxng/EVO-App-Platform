@@ -254,6 +254,59 @@ export function createContextMemoryProposalServiceV010(input: {
     };
   }
 
+  async function editProposal(inputEdit: {
+    proposalId: string;
+    principal: PlatformPrincipalV010;
+    kind?: ContextMemoryKindV010;
+    summary?: string;
+  }): Promise<ContextMemoryProposalV010> {
+    const { proposalId, principal, kind, summary } = inputEdit;
+    const snapshot = input.store.snapshot();
+    const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
+    if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+    if (proposal.state !== "PENDING") {
+      throw new Error(`CONTEXT_MEMORY_PROPOSAL_NOT_PENDING: ${proposal.state}`);
+    }
+    const previous = latest(proposal);
+    const nextKind = kind ?? previous.kind;
+    const nextSummary = summary === undefined ? previous.summary : validSummary(summary);
+    if (nextKind === previous.kind && nextSummary === previous.summary) {
+      return structuredClone(proposal);
+    }
+    const contradictionIds = previous.reviewSignals
+      .filter(signal => signal.kind === "POTENTIAL_CONTRADICTION")
+      .map(signal => signal.memoryId);
+    const revision = await revisionFor(
+      proposal.context,
+      principal,
+      {
+        kind: nextKind,
+        summary: nextSummary,
+        evidenceRefs: previous.evidenceRefs,
+        ...(previous.proposedConfidence !== undefined
+          ? { proposedConfidence: previous.proposedConfidence }
+          : {}),
+        ...(previous.observedAt ? { observedAt: previous.observedAt } : {}),
+        ...(previous.supersedesMemoryId
+          ? { supersedesMemoryId: previous.supersedesMemoryId }
+          : {}),
+        potentialContradictionMemoryIds: contradictionIds
+      },
+      "HUMAN"
+    );
+    const updated: ContextMemoryProposalV010 = {
+      ...proposal,
+      revisions: [...proposal.revisions, revision]
+    };
+    input.store.save({
+      contractVersion: "0.1.0",
+      proposals: snapshot.proposals.map(item =>
+        item.proposalId === proposalId ? updated : item
+      )
+    });
+    return structuredClone(updated);
+  }
+
   return {
     async create({ principal, context, draft }) {
       const revision = await revisionFor(
@@ -295,50 +348,7 @@ export function createContextMemoryProposalServiceV010(input: {
     },
 
     async edit({ proposalId, principal, kind, summary }) {
-      const snapshot = input.store.snapshot();
-      const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
-      if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
-      if (proposal.state !== "PENDING") {
-        throw new Error(`CONTEXT_MEMORY_PROPOSAL_NOT_PENDING: ${proposal.state}`);
-      }
-      const previous = latest(proposal);
-      const nextKind = kind ?? previous.kind;
-      const nextSummary = summary === undefined ? previous.summary : validSummary(summary);
-      if (nextKind === previous.kind && nextSummary === previous.summary) {
-        return structuredClone(proposal);
-      }
-      const contradictionIds = previous.reviewSignals
-        .filter(signal => signal.kind === "POTENTIAL_CONTRADICTION")
-        .map(signal => signal.memoryId);
-      const revision = await revisionFor(
-        proposal.context,
-        principal,
-        {
-          kind: nextKind,
-          summary: nextSummary,
-          evidenceRefs: previous.evidenceRefs,
-          ...(previous.proposedConfidence !== undefined
-            ? { proposedConfidence: previous.proposedConfidence }
-            : {}),
-          ...(previous.observedAt ? { observedAt: previous.observedAt } : {}),
-          ...(previous.supersedesMemoryId
-            ? { supersedesMemoryId: previous.supersedesMemoryId }
-            : {}),
-          potentialContradictionMemoryIds: contradictionIds
-        },
-        "HUMAN"
-      );
-      const updated: ContextMemoryProposalV010 = {
-        ...proposal,
-        revisions: [...proposal.revisions, revision]
-      };
-      input.store.save({
-        contractVersion: "0.1.0",
-        proposals: snapshot.proposals.map(item =>
-          item.proposalId === proposalId ? updated : item
-        )
-      });
-      return structuredClone(updated);
+      return editProposal({ proposalId, principal, kind, summary });
     },
 
     reject({ proposalId, principal, reason }) {
@@ -391,7 +401,7 @@ export function createContextMemoryProposalServiceV010(input: {
         (kind !== undefined && kind !== previous.kind)
         || (summary !== undefined && validSummary(summary) !== previous.summary)
       ) {
-        proposal = await this.edit({
+        proposal = await editProposal({
           proposalId,
           principal,
           ...(kind !== undefined ? { kind } : {}),
