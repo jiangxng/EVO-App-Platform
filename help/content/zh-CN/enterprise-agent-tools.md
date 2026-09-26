@@ -106,3 +106,25 @@ Host 会要求：
 任何动态创建且处于 ACTIVE 状态的 Enterprise Context，都必须至少存在一个 ACTIVE OWNER。
 
 个人 Agent 的 WRITE 工具现在也会在执行前经过相同的 Host Material WRITE Authorization 边界；READ 与 PLAN 工具不受此门控影响。
+
+
+## Enterprise Relationship 生命周期
+
+P0.8 新增了受治理的成员与所有权生命周期。
+
+企业成员关系从 `enterprise.relationship.invite` 开始。Invitation 本身不会授予企业访问权。目标 Human 必须在 Personal Context 中通过 `enterprise.relationship.invitation.accept` 接受；只有接受成功后，Host 才会原子创建 ACTIVE Relationship 与 ACTIVE Enterprise Context Grant。
+
+OWNER 可以邀请 ADMIN、MEMBER、AUDITOR。ADMIN 只能邀请 MEMBER 或 AUDITOR，不能自行授予另一个 ADMIN。MEMBER 与 AUDITOR 不能邀请成员。
+
+非 OWNER Relationship 可通过 `enterprise.relationship.revoke` 撤销，对应访问 Grant 会在同一次治理更新中撤销。OWNER Relationship 不能直接撤销，必须走 Ownership Transfer。
+
+Ownership Transfer 是双方确认流程：
+
+`enterprise.ownership.transfer.initiate → accept / decline / cancel / expire`
+
+接受转移时，新 OWNER 激活与原 OWNER 的 OWNER Relationship / OWNER Grant 撤销在同一个原子提交内完成，因此 ACTIVE Enterprise Context 不会出现持久化的“无 OWNER”中间状态。
+
+有效 Context 响应现在也会返回发给当前 Principal、尚未过期的待处理 Invitation 与 Ownership Transfer。
+
+> [!IMPORTANT] Governance WRITE 有两道门
+> Host Relationship 结构规则与 `authorization.check` 必须同时允许。即使策略 Provider 很宽松，也不能绕过 OWNER / ADMIN 的结构性治理约束。
