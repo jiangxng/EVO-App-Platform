@@ -458,3 +458,22 @@ Until Identity/Session/Grant is executable, production defaults to the Host Pers
 Prefer `ResolvedContextSetV010` / `ActiveContextRefV010` for new Personal Agent code. `PlatformScopeV010` remains compatibility state and must not be used to recreate Enterprise-owned User semantics.
 
 Context Memory P0.3 is read-only contract surface. Do not add a generic learn/write API before Memory Attribution, provenance and cross-context ownership policy are explicit.
+
+
+## Personal Agent P0.4 product experience
+
+Read `docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md` before changing Personal Agent install/setup/chat UX.
+
+P0.4 rules:
+
+- `Installed != Ready`.
+- Personal Agent uses Eidos Chat v0.2.
+- guided onboarding uses Eidos Setup Flow.
+- Plugin Store/Extension Manager exposes lifecycle separately from product readiness and keeps technical detail progressively disclosed.
+- Provider settings use Eidos Settings v0.2 grouping; Provider/model/endpoint/API credentials remain Provider + Secrets owned, never Personal Agent settings.
+- multiple `llm.inference` Providers without an explicit binding require human selection; lexical catalog order is not a product decision.
+- new Personal Agent/setup/provider chrome must ship in `en`, `zh-CN`, `ja`, and `zh-TW`.
+- observable tool activity is allowed; private chain-of-thought is not.
+- Personal Agent remains an adviser; proposals are not final human decisions.
+
+Eidos baseline for this slice: `12f61d5a02011a5f974beac8e0fda8c34f81e142`. Do not patch vendored Eidos semantics in App Platform; missing generic UI behavior goes to Eidos first.
