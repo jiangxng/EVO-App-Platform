@@ -444,8 +444,17 @@ export function searchHelpV010(
       }
       const contextFields = contextMatches(item.metadata.contexts, context);
       if (contextFields.length) {
-        score += contextFields.length * 40;
-        matchedBy.push(...contextFields.map(field => `context:${field}`));
+        for (const field of contextFields) {
+          score += field === "errorCodes" ? 80 : 40;
+          matchedBy.push(`context:${field}`);
+        }
+        if (
+          contextFields.includes("errorCodes")
+          && item.metadata.kind === "troubleshooting"
+        ) {
+          score += 30;
+          matchedBy.push("context:troubleshooting");
+        }
       }
       return {
         id: item.metadata.id,
