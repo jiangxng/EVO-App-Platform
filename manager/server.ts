@@ -94,6 +94,16 @@ import {
   providerManagerIndexPageSource
 } from "./provider-manager-page.js";
 import {
+  createHelpExperienceManifestV010,
+  createHelpIndexPageV010,
+  helpIdFromPageSourceV010,
+  helpIndexPageSourceV010,
+  loadHelpCorpusV010,
+  materializeHelpDocumentV010,
+  searchHelpV010,
+  type HelpContextSelectorsV010
+} from "./help-system.js";
+import {
   authenticateBootstrapAdministratorV010,
   authorizeProviderAdministrationV010,
   createJsonlProviderBindingAuditStoreV010,
@@ -159,6 +169,16 @@ const processRuntimeHost = createProcessPluginRuntimeHostV010({
     )
 });
 const lifecycleEventLog: PluginEventV010[] = [];
+let helpCorpusLoadError: string | undefined;
+const helpCorpus = (() => {
+  try {
+    return loadHelpCorpusV010();
+  } catch (error) {
+    helpCorpusLoadError = error instanceof Error ? error.message : String(error);
+    console.error("Platform Help corpus failed to load; Help is degraded.", error);
+    return [];
+  }
+})();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
@@ -619,6 +639,37 @@ const server = createServer(async (request, response) => {
         ...manager.listEffectiveLocalizationBundles()
       ]);
     }
+    if (request.method === "GET" && url.pathname === "/v1/help/health") {
+      return json(response, helpCorpusLoadError ? 503 : 200, {
+        status: helpCorpusLoadError ? "DEGRADED" : "HEALTHY",
+        documents: helpCorpus.length,
+        ...(helpCorpusLoadError ? { error: helpCorpusLoadError } : {})
+      });
+    }
+    if (
+      request.method === "GET"
+      && (url.pathname === "/v1/help/search" || url.pathname === "/v1/help/context")
+    ) {
+      const list = (name: string): string[] => url.searchParams.getAll(name)
+        .flatMap(value => value.split(","))
+        .map(value => value.trim())
+        .filter(Boolean);
+      const context: HelpContextSelectorsV010 = {
+        ...(list("packageId").length ? { packageIds: list("packageId") } : {}),
+        ...(list("featureId").length ? { featureIds: list("featureId") } : {}),
+        ...(list("capability").length ? { capabilities: list("capability") } : {}),
+        ...(list("route").length ? { routes: list("route") } : {}),
+        ...(list("action").length ? { actions: list("action") } : {}),
+        ...(list("command").length ? { commands: list("command") } : {}),
+        ...(list("providerId").length ? { providerIds: list("providerId") } : {}),
+        ...(list("errorCode").length ? { errorCodes: list("errorCode") } : {})
+      };
+      const query = url.pathname === "/v1/help/search"
+        ? url.searchParams.get("q") ?? ""
+        : "";
+      const locale = url.searchParams.get("locale")?.trim() || "en";
+      return json(response, 200, searchHelpV010(helpCorpus, query, locale, context));
+    }
     if (request.method === "GET" && url.pathname === "/v1/workbench/activities") {
       return json(response, 200, manager.listEffectiveWorkbenchActivities());
     }
@@ -633,6 +684,7 @@ const server = createServer(async (request, response) => {
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
+        createHelpExperienceManifestV010(helpCorpus),
         ...manager.listEffectiveExperiences()
       ]);
     }
@@ -640,6 +692,17 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === helpIndexPageSourceV010) {
+        return json(response, 200, createHelpIndexPageV010(helpCorpus));
+      }
+      const helpDocumentId = helpIdFromPageSourceV010(source);
+      if (helpDocumentId) {
+        const document = materializeHelpDocumentV010(helpCorpus, helpDocumentId);
+        if (!document) {
+          return json(response, 404, { code: "HELP_DOCUMENT_NOT_FOUND", id: helpDocumentId });
+        }
+        return json(response, 200, document);
+      }
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
           manager.listCatalog(),

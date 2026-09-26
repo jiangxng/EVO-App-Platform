@@ -131,3 +131,27 @@ Workbench v0.1 is accepted only when:
 12. Enterprise Agent is absent from Activity Bar before install, appears after activation, disappears after disable/uninstall, and returns after enable without shell remount;
 13. App Host source contains no product-specific Enterprise Agent Activity constant;
 14. transient Activity refresh failure keeps the last known good Activity set instead of erasing extension UI.
+
+
+## 13. Platform Help
+
+Platform Help is a stable secondary Workbench activity.
+
+```text
+Activity Bar (secondary)
+  Help
+    ↓
+Side Panel
+  searchable Help catalog
+    ↓ select article
+Main Workspace
+  Eidos help-document
+```
+
+The Help Side Panel reuses Eidos `catalog-browser` with deterministic local filtering. App Platform supplies only documents already admitted to the Help corpus; client-side filtering is presentation behavior and never an authorization boundary.
+
+Help article rendering uses Eidos `help-document@0.1.0`. App Platform compiles repository-owned Help Markdown into safe semantic blocks; arbitrary Help HTML/JavaScript is not executed.
+
+P0 Help remains available without Agent, embedding service or external network search.
+
+Authority: `docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md`.

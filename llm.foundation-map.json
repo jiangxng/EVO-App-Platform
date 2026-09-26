@@ -49,7 +49,8 @@
     "sigstoreBundleVerification": "HOST_POLICY_OIDC_IDENTITY_TRANSPARENCY_ADAPTER_IMPLEMENTED",
     "dependencyReproducibility": "PACKAGE_LOCK_NPM_CI_EXACT_NODE_IMPLEMENTED",
     "providerHealthManagement": "ACTIVE_PROBES_BINDING_AUTHORIZATION_AND_AUDIT_IMPLEMENTED",
-    "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE"
+    "authorizationCheckProvider": "EXECUTABLE_FAIL_CLOSED_PROVIDER_GOVERNANCE",
+    "platformHelp": "HELP_DOCUMENT_INDEX_SEARCH_WORKBENCH_SEED_CI_IMPLEMENTED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -149,15 +150,17 @@
     "next": "IDENTITY_SESSION_PROVIDER_AND_REQUEST_CONTEXT"
   },
   "platformHelp": {
-    "status": "PLANNED_P0",
+    "status": "IMPLEMENTED_P0",
     "authority": "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
-    "canonicalModel": "HUMAN_AND_LLM_SHARED_VERSIONED_SOURCE",
+    "canonicalModel": "REPOSITORY_MARKDOWN_TO_EIDOS_HELP_DOCUMENT",
     "ownership": "EIDOS_RENDERING_APP_PLATFORM_GOVERNANCE_PACKAGE_CONTENT",
-    "workbench": "SECONDARY_ACTIVITY_SIDE_NAVIGATOR_MAIN_WORKSPACE_DOCUMENT",
-    "searchP0": "DETERMINISTIC_METADATA_AND_FULL_TEXT",
-    "semanticSearch": "LATER_OPTIONAL_PROVIDER",
-    "agent": "LATER_RETRIEVAL_WITH_CITATIONS",
-    "lifecycle": "INSTALLED_HELP_REMAINS_WHILE_DISABLED",
-    "next": "HELP_CONTRACT_INDEX_WORKBENCH_P0"
+    "eidosRevision": "67acaac01e0f4e271a9ba865ac76dc29e761b143",
+    "workbench": "SECONDARY_HELP_ACTIVITY_SIDE_CATALOG_MAIN_WORKSPACE_DOCUMENT",
+    "searchP0": "DETERMINISTIC_LOCAL_FILTER_AND_HOST_SEARCH_CONTEXT_API",
+    "ci": "CORPUS_METADATA_RELATED_REQUIRED_SEED_VALIDATION",
+    "semanticSearch": "PENDING_OPTIONAL_PROVIDER",
+    "packageContribution": "PENDING_P1",
+    "authorizedEnterpriseHelp": "PENDING_P1",
+    "contextualSuggestions": "API_IMPLEMENTED_UI_P1"
   }
 }

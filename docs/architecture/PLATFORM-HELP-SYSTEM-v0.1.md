@@ -1,6 +1,6 @@
 # Platform Help System v0.1
 
-**Status:** Architecture plan  
+**Status:** P0 implemented  
 **Date:** 2026-09-26  
 **Scope:** EVO App Platform + Eidos Workbench  
 **Owner split:** Eidos owns Help rendering/Workbench interaction contracts; App Platform owns Help aggregation, lifecycle, context, search/index policy and governance; every Package owns the help content for the vocabulary and behavior it introduces.
@@ -675,9 +675,9 @@ Do not:
 
 Architecture documents, ADRs, developer references and end-user Help may share source knowledge, but their presentation and audience are distinct.
 
-## 15. Recommended P0 implementation
+## 15. P0 implementation
 
-P0 should stay intentionally small.
+P0 is implemented as the current baseline and remains intentionally small.
 
 ### Eidos P0
 
@@ -791,3 +791,21 @@ The classification may be:
 - new Help/troubleshooting/migration content required.
 
 This check should eventually become part of the same engineering completion rhythm as tests, public contracts, invariants and project status.
+
+
+## 20. P0 implementation evidence
+
+Current implementation:
+
+- Eidos `help-document@0.1.0` safe semantic renderer;
+- Eidos `catalog-browser` optional deterministic local search;
+- vendored Eidos revision `67acaac01e0f4e271a9ba865ac76dc29e761b143`;
+- canonical sources under `help/content/**/*.md`;
+- source compiler/index in `manager/help-system.ts`;
+- Workbench secondary Help activity at `/help`;
+- Help articles open in Main Workspace through normal App Host routing;
+- `GET /v1/help/search`, `GET /v1/help/context` and `GET /v1/help/health`;
+- `tools/help-validate.mjs` as a Platform CI governance gate;
+- 14 initial English Help documents covering the stable P0 platform foundations and common failure modes.
+
+P0 intentionally does not yet introduce a Plugin Protocol `eidos.help-document` Contribution, semantic/vector search, enterprise/customer Help extensions or Agent answer generation. Those remain later layers over the same canonical model.

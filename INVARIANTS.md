@@ -136,3 +136,9 @@
 - **APP-114** Reference authorization policy is Host-owned configuration supplied to an installable Provider Package. A Package MUST NOT self-authorize its own policy, Principal, Provider binding or administrative action.
 - **APP-115** Provider governance audit MUST record the policy Provider identity and non-secret reason codes used for each allow/deny decision when available.
 - **APP-116** The reference static authorization Provider is deny-by-default and uses explicit policy rules. Its concrete rule syntax is replaceable implementation detail; consumers depend only on `AuthorizationCheckV010` / `AuthorizationDecisionV010`.
+
+- **APP-117** Platform Help is governed product knowledge, not chat memory or an unversioned FAQ. Human and LLM consumers SHOULD converge on the same canonical version-aware Help sources.
+- **APP-118** Eidos owns generic Help rendering semantics; App Platform owns Help aggregation, indexing, context and governance; each Package owns Help for the behavior and vocabulary it introduces.
+- **APP-119** Help content is declarative and non-executable. Arbitrary HTML/JavaScript from Help sources MUST NOT execute in the App Host.
+- **APP-120** Client-side Help/catalog search is presentation filtering only and MUST NOT be treated as an authorization boundary. Restricted Help must be filtered by the Host before it reaches Eidos.
+- **APP-121** A material user-visible behavior, contract, setting, error, compatibility, security or migration change is incomplete until Help impact is classified and required Help changes pass governance validation.

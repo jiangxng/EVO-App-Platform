@@ -109,6 +109,11 @@ test("App Platform Workbench consumes Eidos semantic icon system", async () => {
   assert.match(client, /icon: "dashboard"/);
   assert.match(client, /icon: "plugins"/);
   assert.match(client, /icon: "workspace"/);
+  assert.match(client, /icon: "help"/);
+  assert.match(client, /id: "help"/);
+  assert.match(client, /kind: "side-route"/);
+  assert.match(client, /route: "\/help"/);
+  assert.match(client, /placement: "secondary"/);
   assert.match(client, /icon: "settings"/);
   assert.doesNotMatch(client, /icon: "[▦◇▣⚙]"/);
 });

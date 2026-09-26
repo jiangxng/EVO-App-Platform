@@ -32,6 +32,11 @@ export interface CatalogBrowserV010 {
   id: string;
   title: string;
   description?: string;
+  search?: {
+    placeholder?: string;
+    ariaLabel?: string;
+    noResultsMessage?: string;
+  };
   items: CatalogBrowserItemV010[];
   emptyMessage?: string;
 }

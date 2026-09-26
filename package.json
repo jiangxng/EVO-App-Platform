@@ -11,7 +11,7 @@
     "test": "npm run test:all",
     "start": "node dist/manager/server.js",
     "start:agent": "node dist/agents/enterprise-agent/server.js",
-    "test:platform": "npm run build && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs",
+    "test:platform": "npm run build && node tools/help-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs",
     "test:all": "npm run build && node --test tests/**/*.test.mjs",
     "test:plugin:enterprise-agent": "npm run build && node --test tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs",
     "test:plugin:openai-provider": "npm run build && node --test tests/llm/provider.test.mjs tests/agent/openai-responses-model.test.mjs",
@@ -19,7 +19,8 @@
     "test:plugin:trading-lite": "npm run build && node --test tests/actions/trading-lite-evo.test.mjs",
     "test:integration:eidos": "npm run build && node --test tests/integration/app-platform-eidos-plugin-platform.test.mjs",
     "plugin:validate": "npm run build --silent && node tools/plugin-manifest-validate.mjs",
-    "test:plugin:host-authorization-provider": "npm run build && node --test tests/protocol/authorization-provider.test.mjs tests/protocol/provider-governance.test.mjs"
+    "test:plugin:host-authorization-provider": "npm run build && node --test tests/protocol/authorization-provider.test.mjs tests/protocol/provider-governance.test.mjs",
+    "help:validate": "npm run build --silent && node tools/help-validate.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

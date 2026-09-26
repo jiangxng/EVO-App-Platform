@@ -92,6 +92,29 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   if (typeof rendered === "string") container.innerHTML = rendered;
   else container.replaceChildren(rendered);
 
+  const catalogSearch = container.querySelector<HTMLInputElement>(
+    "[data-eidos-catalog-search-input]"
+  );
+  if (catalogSearch) {
+    const catalogItems = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-eidos-catalog-item]")
+    );
+    const noResults = container.querySelector<HTMLElement>("[data-eidos-catalog-search-empty]");
+    const filterCatalog = () => {
+      const query = catalogSearch.value.trim().toLocaleLowerCase();
+      let visible = 0;
+      for (const item of catalogItems) {
+        const haystack = item.dataset.eidosCatalogSearchText ?? item.textContent?.toLocaleLowerCase() ?? "";
+        const matches = !query || haystack.includes(query);
+        item.hidden = !matches;
+        if (matches) visible += 1;
+      }
+      if (noResults) noResults.hidden = visible !== 0 || query.length === 0;
+    };
+    catalogSearch.addEventListener("input", filterCatalog);
+    listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
+  }
+
   const extensionActionButtons = container.querySelectorAll<HTMLButtonElement>(
     "[data-eidos-catalog-action],[data-eidos-extension-action]"
   );
