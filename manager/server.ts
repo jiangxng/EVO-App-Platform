@@ -850,7 +850,8 @@ const server = createServer(async (request, response) => {
           providerRuntimeRegistry,
           providerBindings,
           providerCapability,
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         );
         if (!providerPage) {
           return json(response, 404, {
