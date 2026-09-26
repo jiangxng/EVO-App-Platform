@@ -60,9 +60,11 @@ import type {
   AuthorizationProviderV010,
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
+  EnterpriseContextRelationshipProviderV010,
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
+  RequestIdentitySessionProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -129,6 +131,17 @@ import {
   parseHostStaticSessionV010
 } from "../providers/session/runtime.js";
 import {
+  HOST_BEARER_SESSION_PACKAGE_ID,
+  HOST_BEARER_SESSION_PROVIDER_ID,
+  REQUEST_IDENTITY_SESSION_CAPABILITY,
+  hostBearerSessionProviderPackage
+} from "../providers/request-session/package.js";
+import {
+  createHostBearerSessionHealthProbeV010,
+  createHostBearerSessionProviderV010,
+  parseHostBearerSessionsV010
+} from "../providers/request-session/runtime.js";
+import {
   ENTERPRISE_MEMBERSHIP_CAPABILITY,
   HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
@@ -139,6 +152,28 @@ import {
   createHostEnterpriseContextGrantProviderV010,
   parseHostEnterpriseContextGrantsV010
 } from "../providers/enterprise-context-grant/runtime.js";
+import {
+  ENTERPRISE_RELATIONSHIP_CAPABILITY,
+  HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID,
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  hostEnterpriseRelationshipProviderPackage
+} from "../providers/enterprise-relationship/package.js";
+import {
+  createHostEnterpriseRelationshipHealthProbeV010,
+  createHostEnterpriseRelationshipProviderV010
+} from "../providers/enterprise-relationship/runtime.js";
+import {
+  createFileEnterpriseContextGovernanceStoreV010,
+  createMemoryEnterpriseContextGovernanceStoreV010
+} from "./enterprise-context-governance-store.js";
+import {
+  createEnterpriseContextCreationActionHandlerV010
+} from "./enterprise-context-creation.js";
+import {
+  createPlatformRequestContextV010,
+  identitySessionRequestFromHeadersV010
+} from "./request-context.js";
+import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
@@ -212,11 +247,18 @@ const catalog = createPackageCatalog([
   hostEncryptedSecretsProviderPackage,
   hostEnterpriseContextProviderPackage,
   hostStaticSessionProviderPackage,
+  hostBearerSessionProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
+  hostEnterpriseRelationshipProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "enterprise-governance.json") : undefined);
+const enterpriseGovernanceStore = enterpriseGovernanceStateFile
+  ? createFileEnterpriseContextGovernanceStoreV010(enterpriseGovernanceStateFile)
+  : createMemoryEnterpriseContextGovernanceStoreV010();
 const settingsStateFile = process.env.APP_PLATFORM_SETTINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "settings.json") : undefined);
 const settingsStore = settingsStateFile
@@ -276,6 +318,26 @@ const helpCorpus = (() => {
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
 
+const hostBearerSessions = parseHostBearerSessionsV010(
+  process.env.APP_PLATFORM_BEARER_SESSIONS_JSON
+);
+if (hostBearerSessions) {
+  const requestSessionProvider = createHostBearerSessionProviderV010(hostBearerSessions);
+  providerRuntimeRegistry.replace<RequestIdentitySessionProviderV010>(
+    HOST_BEARER_SESSION_PROVIDER_ID,
+    requestSessionProvider
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_BEARER_SESSION_PROVIDER_ID,
+    createHostBearerSessionHealthProbeV010(hostBearerSessions)
+  );
+  providerRuntimeRegistry.setHealth(HOST_BEARER_SESSION_PROVIDER_ID, {
+    state: hostBearerSessions.length > 0 ? "HEALTHY" : "DEGRADED",
+    message: `Request-bound bearer Session directory loaded with ${hostBearerSessions.length} session(s).`,
+    checkedAt: new Date().toISOString()
+  });
+}
+
 const hostStaticSession = parseHostStaticSessionV010(
   process.env.APP_PLATFORM_STATIC_SESSION_JSON
 );
@@ -300,41 +362,67 @@ if (hostStaticSession) {
 
 const hostEnterpriseContextGrants = parseHostEnterpriseContextGrantsV010(
   process.env.APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON
+) ?? [];
+providerRuntimeRegistry.replace<EnterpriseContextGrantProviderV010>(
+  HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+  createHostEnterpriseContextGrantProviderV010(
+    hostEnterpriseContextGrants,
+    () => enterpriseGovernanceStore.snapshot().grants
+  )
 );
-if (hostEnterpriseContextGrants) {
-  providerRuntimeRegistry.replace<EnterpriseContextGrantProviderV010>(
-    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
-    createHostEnterpriseContextGrantProviderV010(hostEnterpriseContextGrants)
-  );
-  providerRuntimeRegistry.setHealthProbe(
-    HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
-    createHostEnterpriseContextGrantHealthProbeV010(hostEnterpriseContextGrants)
-  );
-  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID, {
-    state: "HEALTHY",
-    message: `Host Enterprise Context Grant directory loaded with ${hostEnterpriseContextGrants.length} grant(s).`,
-    checkedAt: new Date().toISOString()
-  });
-}
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
+  createHostEnterpriseContextGrantHealthProbeV010(
+    hostEnterpriseContextGrants,
+    () => enterpriseGovernanceStore.snapshot().grants
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Context Grant Provider is active.",
+  checkedAt: new Date().toISOString()
+});
+
+providerRuntimeRegistry.replace<EnterpriseContextRelationshipProviderV010>(
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  createHostEnterpriseRelationshipProviderV010(
+    () => enterpriseGovernanceStore.snapshot().relationships
+  )
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID,
+  createHostEnterpriseRelationshipHealthProbeV010(
+    () => enterpriseGovernanceStore.snapshot().relationships
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_RELATIONSHIP_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Relationship Provider is active.",
+  checkedAt: new Date().toISOString()
+});
 
 const hostEnterpriseContexts = parseHostEnterpriseContextsV010(
   process.env.APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON
+) ?? [];
+providerRuntimeRegistry.replace<EnterpriseContextProviderV010>(
+  HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  createHostEnterpriseContextProviderV010(
+    hostEnterpriseContexts,
+    () => enterpriseGovernanceStore.snapshot().contexts
+  )
 );
-if (hostEnterpriseContexts) {
-  providerRuntimeRegistry.replace<EnterpriseContextProviderV010>(
-    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
-    createHostEnterpriseContextProviderV010(hostEnterpriseContexts)
-  );
-  providerRuntimeRegistry.setHealthProbe(
-    HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
-    createHostEnterpriseContextHealthProbeV010(hostEnterpriseContexts)
-  );
-  providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
-    state: "HEALTHY",
-    message: `Host Enterprise Context directory loaded with ${hostEnterpriseContexts.length} context(s).`,
-    checkedAt: new Date().toISOString()
-  });
-}
+providerRuntimeRegistry.setHealthProbe(
+  HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  createHostEnterpriseContextHealthProbeV010(
+    hostEnterpriseContexts,
+    () => enterpriseGovernanceStore.snapshot().contexts
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Enterprise Context Provider is active.",
+  checkedAt: new Date().toISOString()
+});
 providerRuntimeRegistry.replace<ManagedSecretsProviderV010>(
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
   createHostEncryptedSecretsProviderV010(secretStore)
