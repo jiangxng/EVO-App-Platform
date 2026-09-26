@@ -6,12 +6,16 @@ on:
     paths:
       - "agents/enterprise-agent/**"
       - "tests/agent/enterprise-agent.test.mjs"
+      - "tests/agent/personal-agent-product-experience.test.mjs"
       - "tests/app-host/agent-workspace.test.mjs"
+      - "tests/plugin-store-install-guidance.test.mjs"
   pull_request:
     paths:
       - "agents/enterprise-agent/**"
       - "tests/agent/enterprise-agent.test.mjs"
+      - "tests/agent/personal-agent-product-experience.test.mjs"
       - "tests/app-host/agent-workspace.test.mjs"
+      - "tests/plugin-store-install-guidance.test.mjs"
 
 concurrency:
   group: plugin-enterprise-agent-${{ github.ref }}
