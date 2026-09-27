@@ -11,12 +11,14 @@ import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import type { ContextMemoryOperationLogV010 } from "./context-memory-operations.js";
+import { simulateContextMemoryRetentionV010 } from "./context-memory-retention-simulation.js";
 import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import type { AppManagerService } from "./service.js";
 
 export const memoryGovernancePageSource = "app://evo-app-platform/pages/memory";
 export const memorySearchPageSource = "app://evo-app-platform/pages/memory/search";
 export const memorySourceHealthPageSource = "app://evo-app-platform/pages/memory/sources";
+export const memoryRetentionSimulationPageSource = "app://evo-app-platform/pages/memory/retention-simulation";
 
 export function createMemoryGovernanceExperienceManifestV010() {
   return {
@@ -28,12 +30,14 @@ export function createMemoryGovernanceExperienceManifestV010() {
     pages: [
       { id: "evo-memory.home", title: "Memory Governance", source: memoryGovernancePageSource },
       { id: "evo-memory.search", title: "Memory Search", source: memorySearchPageSource },
-      { id: "evo-memory.sources", title: "Memory Source Health", source: memorySourceHealthPageSource }
+      { id: "evo-memory.sources", title: "Memory Source Health", source: memorySourceHealthPageSource },
+      { id: "evo-memory.retention-simulation", title: "Retention Simulation", source: memoryRetentionSimulationPageSource }
     ],
     routes: [
       { id: "evo-memory.home", path: "/memory", pageId: "evo-memory.home" },
       { id: "evo-memory.search", path: "/memory/search", pageId: "evo-memory.search" },
-      { id: "evo-memory.sources", path: "/memory/sources", pageId: "evo-memory.sources" }
+      { id: "evo-memory.sources", path: "/memory/sources", pageId: "evo-memory.sources" },
+      { id: "evo-memory.retention-simulation", path: "/memory/retention-simulation", pageId: "evo-memory.retention-simulation" }
     ]
   } as const;
 }
@@ -96,7 +100,7 @@ export function createMemoryGovernancePageV010(input: {
   const holds = new Map(
     input.legalHolds.listForContext(input.context).map(value => [value.memoryId, value])
   );
-  const items = input.memoryStore.snapshot().items
+  const governedItems = input.memoryStore.snapshot().items
     .filter(item => sameContext(item.context, input.context))
     .sort((a, b) => b.attribution.recordedAt.localeCompare(a.attribution.recordedAt))
     .map(item => {
@@ -153,7 +157,24 @@ export function createMemoryGovernancePageV010(input: {
       ariaLabel: "Filter governed Memory",
       noResultsMessage: "No governed Memory matches this filter."
     },
-    items,
+    items: [
+      {
+        id: "memory-governance:retention-simulation",
+        title: "Retention policy dry-run",
+        category: "Governance tool",
+        summary: "Preview the current retention impact without changing Memory or governance state.",
+        primaryAction: {
+          id: "open-retention-simulation",
+          label: "Open simulation",
+          type: "navigate",
+          route: "/memory/retention-simulation"
+        },
+        metadata: {
+          sideEffectFree: true
+        }
+      },
+      ...governedItems
+    ],
     emptyMessage: "No Memory exists in this Context."
   };
 }
@@ -245,5 +266,86 @@ export function createMemorySourceHealthPageV010(input: {
       };
     }),
     emptyMessage: "No effective Memory Providers are active."
+  };
+}
+
+
+export function createMemoryRetentionSimulationPageV010(input: {
+  principal: PlatformPrincipalV010;
+  personalContext: PersonalContextV010;
+  context: ActiveContextRefV010;
+  memoryStore: ContextMemoryStoreV010;
+  governanceStore: import("./context-memory-governance-store.js").ContextMemoryGovernanceStoreV010;
+  retentionPolicies: ContextMemoryRetentionPolicyStoreV010;
+  legalHolds: ContextMemoryLegalHoldStoreV010;
+  relationships?: EnterpriseContextRelationshipProviderV010;
+  now?: Date;
+}): CatalogBrowserV010 {
+  const allowed = governanceAllowed(
+    input.principal,
+    input.personalContext,
+    input.context,
+    input.relationships
+  );
+  if (!allowed) {
+    return {
+      contractVersion: "0.1.0",
+      kind: "catalog-browser",
+      id: "evo.memory.retention-simulation",
+      title: "Retention Simulation",
+      description: "Enterprise retention simulation requires an active OWNER or ADMIN relationship.",
+      items: [],
+      emptyMessage: "You do not have retention simulation authority for this Context."
+    };
+  }
+
+  const simulation = simulateContextMemoryRetentionV010({
+    context: input.context,
+    memoryStore: input.memoryStore,
+    governanceStore: input.governanceStore,
+    retentionPolicies: input.retentionPolicies,
+    legalHolds: input.legalHolds,
+    ...(input.now ? { now: input.now } : {})
+  });
+
+  return {
+    contractVersion: "0.1.0",
+    kind: "catalog-browser",
+    id: "evo.memory.retention-simulation",
+    title: "Retention Simulation",
+    description: [
+      `Dry-run only at ${simulation.simulatedAt}`,
+      `examined=${simulation.totals.examined}`,
+      `would-expire=${simulation.totals.wouldExpire}`,
+      `legal-hold=${simulation.totals.legalHold}`,
+      `already-expired=${simulation.totals.alreadyExpired}`
+    ].join(" · "),
+    items: simulation.items.map(item => ({
+      id: item.memoryId,
+      title: item.memoryId,
+      category: item.privacyClass,
+      summary: [
+        item.outcome,
+        `recorded=${item.recordedAt}`,
+        item.effectiveDeadline ? `deadline=${item.effectiveDeadline}` : undefined,
+        item.legalHoldId ? `legal-hold=${item.legalHoldId}` : undefined
+      ].filter(Boolean).join(" · "),
+      status: {
+        label: item.outcome,
+        tone: item.outcome === "WOULD_EXPIRE"
+          ? "warning"
+          : item.outcome === "LEGAL_HOLD"
+            ? "neutral"
+            : item.outcome === "ALREADY_EXPIRED"
+              ? "warning"
+              : "positive"
+      },
+      metadata: {
+        currentDeadline: item.currentDeadline ?? null,
+        candidateDeadline: item.candidateDeadline ?? null,
+        effectiveDeadline: item.effectiveDeadline ?? null
+      }
+    })),
+    emptyMessage: "No Memory exists in this Context."
   };
 }

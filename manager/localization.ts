@@ -65,6 +65,9 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.memory.sources.title": "Memory Source Health",
       "catalog.evo.memory.sources.description": "Operational health for Memory retrieval, governance, DLP, semantic ranking and intake Providers.",
       "catalog.evo.memory.sources.empty": "No effective Memory Providers are active.",
+      "catalog.evo.memory.retention-simulation.title": "Retention Simulation",
+      "catalog.evo.memory.retention-simulation.description": "Dry-run retention impact without changing Memory or governance state.",
+      "catalog.evo.memory.retention-simulation.empty": "No Memory exists in this Context.",
       "catalog.evo.help.title": "Help",
       "catalog.evo.help.description": "Search authoritative product Help. Results follow the active locale with deterministic fallback.",
       "catalog.evo.help.empty": "No Help documents are available.",
@@ -144,6 +147,9 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.memory.sources.title": "记忆来源健康状态",
       "catalog.evo.memory.sources.description": "查看 Memory 检索、治理、DLP、语义排序与 Intake Provider 的运行状态。",
       "catalog.evo.memory.sources.empty": "当前没有生效的 Memory Provider。",
+      "catalog.evo.memory.retention-simulation.title": "保留策略模拟",
+      "catalog.evo.memory.retention-simulation.description": "预演保留策略影响，不修改 Memory 或治理状态。",
+      "catalog.evo.memory.retention-simulation.empty": "当前 Context 没有 Memory。",
       "catalog.evo.help.title": "帮助",
       "catalog.evo.help.description": "搜索权威产品帮助。结果会跟随当前语言，并按确定性规则回退。",
       "catalog.evo.help.empty": "当前没有可用的帮助文档。",
@@ -182,6 +188,9 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.memory.sources.title": "メモリソースの状態",
       "catalog.evo.memory.sources.description": "Memory の検索、ガバナンス、DLP、セマンティックランキング、Intake Provider の稼働状態です。",
       "catalog.evo.memory.sources.empty": "有効な Memory Provider はありません。",
+      "catalog.evo.memory.retention-simulation.title": "保持ポリシーシミュレーション",
+      "catalog.evo.memory.retention-simulation.description": "Memory やガバナンス状態を変更せずに保持ポリシーの影響を確認します。",
+      "catalog.evo.memory.retention-simulation.empty": "この Context には Memory がありません。",
     }
   },
   {
@@ -208,6 +217,9 @@ export const appPlatformLocalizationBundles = [
       "catalog.evo.memory.sources.title": "記憶來源健康狀態",
       "catalog.evo.memory.sources.description": "檢視 Memory 檢索、治理、DLP、語意排序與 Intake Provider 的執行狀態。",
       "catalog.evo.memory.sources.empty": "目前沒有生效的 Memory Provider。",
+      "catalog.evo.memory.retention-simulation.title": "保留政策模擬",
+      "catalog.evo.memory.retention-simulation.description": "預演保留政策影響，不修改 Memory 或治理狀態。",
+      "catalog.evo.memory.retention-simulation.empty": "目前 Context 沒有 Memory。",
     }
   }
 ,

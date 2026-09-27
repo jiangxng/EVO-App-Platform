@@ -17,15 +17,19 @@ import {
   HOST_CONTEXT_MEMORY_PACKAGE_ID
 } from "../providers/context-memory/package.js";
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
+import type { ContextMemoryGovernanceStoreV010 } from "./context-memory-governance-store.js";
+import { simulateContextMemoryRetentionV010 } from "./context-memory-retention-simulation.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 
 export const CONTEXT_MEMORY_RETENTION_POLICY_SET_ACTION = "context.memory.retention-policy.set";
+export const CONTEXT_MEMORY_RETENTION_POLICY_SIMULATE_ACTION = "context.memory.retention-policy.simulate";
 export const CONTEXT_MEMORY_LEGAL_HOLD_SET_ACTION = "context.memory.legal-hold.set";
 
 export interface ContextMemoryPolicyActionDependenciesV010 {
   memoryStore: ContextMemoryStoreV010;
+  governanceStore: ContextMemoryGovernanceStoreV010;
   retentionPolicies: ContextMemoryRetentionPolicyStoreV010;
   legalHolds: ContextMemoryLegalHoldStoreV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
@@ -282,5 +286,83 @@ export function createContextMemoryPolicyActionHandlersV010(
     }
   };
 
-  return [retention, legalHold];
+
+  const simulateRetention: AppActionHandler = {
+    packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
+    featureId: HOST_CONTEXT_MEMORY_FEATURE_ID,
+    commandCode: CONTEXT_MEMORY_RETENTION_POLICY_SIMULATE_ACTION,
+    async execute(request, requestContext) {
+      try {
+        if (!requestContext) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (requestContext.principal.actorType !== "HUMAN") {
+          throw new Error("CONTEXT_MEMORY_HUMAN_REQUIRED");
+        }
+        requireGovernanceAuthority(dependencies, requestContext);
+
+        const context = activeContext(requestContext);
+        const retainForDays = request.values.retainForDays;
+        const policyId = stringValue(request.values, "policyId", false);
+        const kinds = arrayOfStrings(request.values, "kinds");
+        const privacyClasses = arrayOfStrings(request.values, "privacyClasses");
+
+        if (
+          kinds?.some(kind => !["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(kind))
+        ) throw new Error("CONTEXT_MEMORY_RETENTION_POLICY_KIND_INVALID");
+        if (
+          privacyClasses?.some(value => !["STANDARD", "SENSITIVE", "RESTRICTED"].includes(value))
+        ) throw new Error("CONTEXT_MEMORY_RETENTION_POLICY_PRIVACY_INVALID");
+
+        const candidatePolicy = retainForDays === undefined
+          ? undefined
+          : (() => {
+              if (
+                typeof retainForDays !== "number"
+                || !Number.isInteger(retainForDays)
+                || retainForDays < 1
+              ) throw new Error("CONTEXT_MEMORY_RETENTION_SIMULATION_DURATION_INVALID");
+              return {
+                contractVersion: "0.1.0" as const,
+                policyId: policyId ?? "simulation:candidate",
+                retainForDays,
+                ...(kinds?.length ? { kinds: kinds as ContextMemoryKindV010[] } : {}),
+                ...(privacyClasses?.length
+                  ? { privacyClasses: privacyClasses as ContextMemoryPrivacyClassV010[] }
+                  : {})
+              };
+            })();
+
+        const beforeGovernance = dependencies.governanceStore.snapshot();
+        const beforePolicy = dependencies.retentionPolicies.snapshot();
+        const beforeHolds = dependencies.legalHolds.snapshot();
+
+        const simulation = simulateContextMemoryRetentionV010({
+          context,
+          memoryStore: dependencies.memoryStore,
+          governanceStore: dependencies.governanceStore,
+          retentionPolicies: dependencies.retentionPolicies,
+          legalHolds: dependencies.legalHolds,
+          ...(candidatePolicy ? { candidatePolicy } : {}),
+          now: now()
+        });
+
+        if (
+          JSON.stringify(beforeGovernance) !== JSON.stringify(dependencies.governanceStore.snapshot())
+          || JSON.stringify(beforePolicy) !== JSON.stringify(dependencies.retentionPolicies.snapshot())
+          || JSON.stringify(beforeHolds) !== JSON.stringify(dependencies.legalHolds.snapshot())
+        ) {
+          throw new Error("CONTEXT_MEMORY_RETENTION_SIMULATION_MUTATED_STATE");
+        }
+
+        return {
+          ok: true,
+          correlationId: requestContext.correlationId,
+          result: JSON.parse(JSON.stringify(simulation))
+        };
+      } catch (error) {
+        return errorResult(error);
+      }
+    }
+  };
+
+  return [retention, simulateRetention, legalHold];
 }
