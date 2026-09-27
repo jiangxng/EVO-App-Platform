@@ -274,7 +274,11 @@
     "deepseek-host-secrets-credential-boundary",
     "deepseek-provider-health-probe",
     "deepseek-four-locale-settings",
-    "multi-llm-explicit-provider-selection-deepseek-openai"
+    "multi-llm-explicit-provider-selection-deepseek-openai",
+    "personal-agent-session-conversation-continuity",
+    "eidos-chat-bounded-conversation-history",
+    "host-validated-conversation-history",
+    "conversation-history-memory-authority-separation"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -297,7 +301,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "DeepSeek LLM Provider is CI-verified: 21/21 triggered workflows passed, including the dedicated DeepSeek Provider CI, Platform CI, P1.4X Experience CI and all Person-first/Memory regressions. The installable deepseek-llm-provider provides llm.inference + llm.tool-calling through the official DeepSeek Responses API, stores its API Key only through Host Secrets, ships four-locale Settings, validates configured models through /models, and preserves explicit Human Provider selection when OpenAI and DeepSeek coexist. Next: merge to main and deploy the Railway preview so the Human browser can install/configure DeepSeek.",
+  "currentStep": "P1.4X Human Browser checkpoint found and fixed a conversation continuity gap: Eidos previously rendered prior chat turns locally but enterprise-agent.chat sent only the newest message, so referential follow-ups such as '这个重复问题' lost their antecedent and caused broad tool exploration until maxSteps. Session-local user/assistant discourse is now sent as bounded conversationHistory (16 messages, 8k chars/message, 24k total), validated by Host, propagated through Agent tool steps and ordered before the current user turn. Conversation history is explicitly non-authoritative: current platform state still requires Host READ and durable cross-session knowledge remains Context Memory. 22/22 triggered workflows passed before final status documentation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1378,6 +1382,24 @@
         "ja",
         "zh-TW"
       ]
+    },
+    "conversationContinuityP1_4X": {
+      "status": "CI_VERIFIED_PENDING_FINAL_HEAD",
+      "source": "HUMAN_BROWSER_CHECKPOINT",
+      "scope": "SESSION_LOCAL",
+      "client": "EIDOS_CHAT_V0_2",
+      "maxMessages": 16,
+      "maxCharactersPerMessage": 8000,
+      "maxTotalCharacters": 24000,
+      "roles": [
+        "user",
+        "assistant"
+      ],
+      "authoritative": false,
+      "durable": false,
+      "platformTruth": "HOST_READ_REQUIRED",
+      "crossSessionKnowledge": "CONTEXT_MEMORY_REQUIRED",
+      "regression": "REFERENTIAL_FOLLOW_UP_DOES_NOT_REQUIRE_BROAD_PLATFORM_DISCOVERY"
     }
   },
   "experienceIntegration": {
