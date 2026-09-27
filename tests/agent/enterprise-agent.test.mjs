@@ -931,6 +931,7 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /Prefer repairing the approach and continuing/);
   assert.match(system, /After authorization is granted, continue/);
   assert.match(system, /not merely to describe options from the sidelines/);
+  assert.match(system, /context_memory_audit_compare/);
 });
 
 
@@ -1165,6 +1166,81 @@ test("Host exposes exact-ID Memory audit separately from ordinary retrieval", as
     memoryIds: ["memory:a"],
     limit: 1
   }]);
+});
+
+test("Host can compare effective retrieval with exact-ID history in one Memory READ tool", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const reads = [];
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    readContextMemory(input) {
+      reads.push(structuredClone(input));
+      if (input.memoryIds) {
+        return {
+          contractVersion: "0.1.0",
+          items: input.memoryIds.map(memoryId => ({
+            memoryId,
+            summary: "historical"
+          })),
+          strategyUsed: "LEXICAL",
+          ranking: []
+        };
+      }
+      return {
+        contractVersion: "0.1.0",
+        items: [{
+          memoryId: "memory:b",
+          summary: "仓库正常每天 17:00 截单"
+        }],
+        strategyUsed: "LEXICAL",
+        ranking: []
+      };
+    },
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
+  });
+
+  const tools = await catalog.list();
+  assert.equal(
+    tools.some(tool => tool.id === "context.memory.audit.compare"),
+    true
+  );
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.audit.compare",
+    arguments: {
+      query: "仓库 17:00 截单",
+      memoryIds: ["memory:a", "memory:b"]
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.deepEqual(
+    observation.result.effective.items.map(item => item.memoryId),
+    ["memory:b"]
+  );
+  assert.deepEqual(
+    new Set(observation.result.audit.items.map(item => item.memoryId)),
+    new Set(["memory:a", "memory:b"])
+  );
+  assert.deepEqual(observation.result.missingMemoryIds, []);
+  assert.equal(reads.length, 2);
+  assert.deepEqual(reads[0], {
+    query: "仓库 17:00 截单",
+    limit: 100
+  });
+  assert.deepEqual(reads[1], {
+    memoryIds: ["memory:a", "memory:b"],
+    limit: 2
+  });
 });
 
 test("Personal Agent can finish ordinary retrieval plus exact-ID audit after search retirement", async () => {
