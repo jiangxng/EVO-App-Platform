@@ -932,6 +932,8 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /After authorization is granted, continue/);
   assert.match(system, /not merely to describe options from the sidelines/);
   assert.match(system, /context_memory_audit_compare/);
+  assert.match(system, /context_memory_recall/);
+  assert.match(system, /Do not infer from that alone that the fact was never stored/);
 });
 
 
@@ -1116,6 +1118,103 @@ test("Personal Agent can continue with a different READ after an identical READ 
   assert.equal(reply.message, "proposal verified");
 });
 
+test("Host Memory recall merges short query expansion in one governed READ tool", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const reads = [];
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    readContextMemory(input) {
+      reads.push(structuredClone(input));
+      if (input.query === "截单") {
+        return {
+          contractVersion: "0.1.0",
+          items: [{
+            memoryId: "memory:b",
+            summary: "仓库正常每天 17:00 截单；正常意味着可能存在例外。"
+          }],
+          strategyUsed: "LEXICAL",
+          ranking: [{
+            contractVersion: "0.1.0",
+            memoryId: "memory:b",
+            score: 0.75,
+            signals: ["SUMMARY_CONTAINS"]
+          }]
+        };
+      }
+      if (input.query === "仓库") {
+        return {
+          contractVersion: "0.1.0",
+          items: [{
+            memoryId: "memory:b",
+            summary: "仓库正常每天 17:00 截单；正常意味着可能存在例外。"
+          }],
+          strategyUsed: "LEXICAL",
+          ranking: [{
+            contractVersion: "0.1.0",
+            memoryId: "memory:b",
+            score: 0.75,
+            signals: ["SUMMARY_CONTAINS"]
+          }]
+        };
+      }
+      return {
+        contractVersion: "0.1.0",
+        items: [],
+        strategyUsed: "LEXICAL",
+        ranking: []
+      };
+    },
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
+  });
+
+  const tools = await catalog.list();
+  assert.equal(
+    tools.some(tool => tool.id === "context.memory.recall"),
+    true
+  );
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.recall",
+    arguments: {
+      queries: ["订单当天处理", "截单", "仓库", "截单"],
+      kind: "FACT",
+      limit: 20
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.equal(observation.result.strategyUsed, "LEXICAL_QUERY_EXPANSION");
+  assert.deepEqual(observation.result.queries, [
+    "订单当天处理",
+    "截单",
+    "仓库"
+  ]);
+  assert.deepEqual(
+    observation.result.items.map(item => item.memoryId),
+    ["memory:b"]
+  );
+  assert.deepEqual(
+    observation.result.ranking[0].matchedQueries,
+    ["截单", "仓库"]
+  );
+  assert.equal(observation.result.ranking[0].score, 0.75);
+  assert.equal(reads.length, 3);
+  assert.deepEqual(reads[1], {
+    query: "截单",
+    kinds: ["FACT"],
+    limit: 20
+  });
+});
+
 test("Host exposes exact-ID Memory audit separately from ordinary retrieval", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),
@@ -1241,6 +1340,101 @@ test("Host can compare effective retrieval with exact-ID history in one Memory R
     memoryIds: ["memory:a", "memory:b"],
     limit: 2
   });
+});
+
+test("Personal Agent fresh-session recall can bridge different wording without conversation history", async () => {
+  const calls = [];
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.recall",
+        modelName: "context_memory_recall",
+        title: "Context Memory recall",
+        description: "Recall durable Memory with query expansion.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            queries: {
+              type: "array",
+              items: { type: "string" }
+            }
+          },
+          required: ["queries"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }];
+    },
+    async invoke(call) {
+      calls.push(structuredClone(call));
+      return {
+        tool: call.tool,
+        ok: true,
+        result: {
+          contractVersion: "0.1.0",
+          strategyUsed: "LEXICAL_QUERY_EXPANSION",
+          queries: call.arguments.queries,
+          items: [{
+            memoryId: "memory:b",
+            kind: "FACT",
+            summary: "仓库正常每天 17:00 截单；正常意味着可能存在例外，涉及当天判断时应确认是否有例外。"
+          }],
+          ranking: [{
+            contractVersion: "0.1.0",
+            memoryId: "memory:b",
+            score: 0.75,
+            signals: ["SUMMARY_CONTAINS"],
+            matchedQueries: ["截单"]
+          }]
+        }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide(input) {
+      step += 1;
+      if (step === 1) {
+        assert.equal(input.conversationHistory?.length ?? 0, 0);
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.recall",
+            arguments: {
+              queries: ["订单当天处理", "截单", "仓库"]
+            }
+          }
+        };
+      }
+      assert.equal(input.observations[0].result.items[0].memoryId, "memory:b");
+      return {
+        type: "final",
+        message: "根据 memory:b：正常每天 17:00 截单，所以 18:00 通常已超过当天截单时间；但“正常”意味着可能存在例外，需要确认今天是否有例外安排。"
+      };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat(
+    "今天 18:00 的订单还能当天处理吗？请根据已经保存的 Context Memory 判断。",
+    personalContext,
+    testPrincipal,
+    []
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].tool, "context.memory.recall");
+  assert.deepEqual(calls[0].arguments.queries, [
+    "订单当天处理",
+    "截单",
+    "仓库"
+  ]);
+  assert.match(reply.message, /memory:b/);
+  assert.match(reply.message, /通常已超过当天截单时间/);
+  assert.match(reply.message, /可能存在例外/);
 });
 
 test("Personal Agent can finish ordinary retrieval plus exact-ID audit after search retirement", async () => {

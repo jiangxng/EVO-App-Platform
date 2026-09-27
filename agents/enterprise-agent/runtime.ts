@@ -41,7 +41,7 @@ function readEvidenceSignature(
   result: unknown
 ): string | undefined {
   if (
-    tool === "context.memory.search"
+    (tool === "context.memory.search" || tool === "context.memory.recall")
     && result !== null
     && typeof result === "object"
     && Array.isArray((result as { items?: unknown }).items)
