@@ -82,6 +82,7 @@ export interface AgentRunV010 {
   createdAt: string;
   updatedAt: string;
   sliceCount: number;
+  activeSliceId?: string;
   lastEventId: string;
   decisions: AgentRunDecisionRecordV010[];
   observations: AgentToolObservation[];
