@@ -1,6 +1,6 @@
 # Personal Agent Quality Evidence + Retention Policy Flow P1.4C v0.1
 
-**Status:** implementation candidate  
+**Status:** CI-verified implementation candidate  
 **Date:** 2026-09-27  
 **Depends on:** P1.4A Responsibility Policy, P1.4B Quality Evaluation + Retention Simulation
 
