@@ -943,6 +943,26 @@ function resolveContextMemoryWriter(): ContextMemoryWriterV010 | undefined {
   )?.runtime;
 }
 
+function resolveContextMemoryGovernanceProvider(): ContextMemoryGovernanceProviderV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryGovernanceProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_GOVERNANCE_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_GOVERNANCE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemorySemanticRetriever(): ContextMemorySemanticRetrieverV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemorySemanticRetrieverV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveContextMemoryIntakeSource(): ContextMemoryIntakeSourceAdapterV010 | undefined {
   return resolveProviderRuntimeV010<ContextMemoryIntakeSourceAdapterV010>(
     providerRuntimeRegistry,
