@@ -61,6 +61,12 @@ function validate(snapshot: ContextMemoryGovernanceSnapshotV010): ContextMemoryG
     if (!["STANDARD", "SENSITIVE", "RESTRICTED"].includes(event.privacyClass)) {
       throw new Error(`CONTEXT_MEMORY_PRIVACY_CLASS_INVALID: ${event.eventId}`);
     }
+    if (
+      event.origin !== undefined
+      && !["HUMAN", "RETENTION_POLICY", "DLP_PROVIDER"].includes(event.origin)
+    ) {
+      throw new Error(`CONTEXT_MEMORY_GOVERNANCE_ORIGIN_INVALID: ${event.eventId}`);
+    }
     if (!Number.isFinite(Date.parse(event.occurredAt))) {
       throw new Error(`CONTEXT_MEMORY_GOVERNANCE_TIME_INVALID: ${event.eventId}`);
     }
