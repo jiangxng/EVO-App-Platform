@@ -36,7 +36,7 @@ export interface AgentConversationMessageV010 {
 
 export interface AgentModelInput {
   userMessage: string;
-  conversationHistory?: AgentConversationMessageV010[];
+  conversationHistory?: readonly AgentConversationMessageV010[];
   tools: AgentToolDescriptorV010[];
   observations: AgentToolObservation[];
   principal?: PlatformPrincipalV010;
