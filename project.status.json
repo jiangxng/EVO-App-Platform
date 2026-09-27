@@ -278,7 +278,15 @@
     "personal-agent-session-conversation-continuity",
     "eidos-chat-bounded-conversation-history",
     "host-validated-conversation-history",
-    "conversation-history-memory-authority-separation"
+    "conversation-history-memory-authority-separation",
+    "personal-agent-distinct-read-after-repeat-suppression",
+    "personal-agent-context-memory-proposal-readback",
+    "context-memory-supersession-effective-retrieval",
+    "context-memory-canonicalization-append-only-relations",
+    "context-memory-canonicalization-agent-proposal",
+    "context-memory-canonicalization-human-review",
+    "context-memory-canonicalization-effective-retrieval",
+    "context-memory-canonicalization-exact-id-audit"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -301,7 +309,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X session conversation continuity is CI-verified: 22/22 triggered workflows passed on the final implementation head. Eidos Chat v0.2 now sends bounded prior user/assistant discourse to enterprise-agent.chat; Host validates role/count/size, Agent Runtime preserves history through tool steps, and provider-backed models receive history before the current user turn. Conversation history remains session-local and non-authoritative: current platform state requires Host READ and durable cross-session knowledge remains Context Memory. Next: merge, deploy Railway preview, then re-run the two-turn duplicate-Memory browser scenario without refreshing between turns.",
+  "currentStep": "P1.4X live certification is in progress on the real Railway preview. PR #84 fixed repeated-READ convergence so distinct Host tools remain available and added authoritative Context Memory proposal readback. PR #85 made existing supersedesMemoryId semantics effective in ordinary retrieval while preserving exact-ID audit. PR #86 added append-only Human-reviewed duplicate→canonical Memory governance without creating a third Memory record; 22/22 final CI workflows passed and Railway production deployment 1b5e5aec-caf0-4c5d-a2b9-719c9b8e7f76 is SUCCESS at main 6197abf6ecb6fce300decea11b150b4a8229f1cf with the /data volume mounted. Next Human gate: use Personal Agent to stage A→B canonicalization for the two known 17:00 duplicate Memories, inspect the Review Memory before/after effect, accept once, then verify ordinary retrieval returns only canonical B while exact-ID audit preserves A+B.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1438,7 +1446,7 @@
     "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
   },
   "experienceCheckpointP1_4X": {
-    "status": "MACHINE_VERIFIED_READY_FOR_HUMAN_BROWSER",
+    "status": "LIVE_CERTIFICATION_IN_PROGRESS",
     "authority": "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md",
     "startCommand": "npm run experience:start",
     "resetCommand": "npm run experience:reset",
@@ -1453,8 +1461,8 @@
       "preconfiguredApiKey": false,
       "fakeMemory": false
     },
-    "machineGate": "PASS_20_OF_20",
-    "humanBrowserGate": "PENDING_USER_RUN",
+    "machineGate": "PASS_22_OF_22_CANONICALIZATION_HEAD",
+    "humanBrowserGate": "PARTIAL_PASS_CANONICALIZATION_ACCEPT_AND_POST_ACCEPT_RECALL_PENDING",
     "liveRealLlmProof": "PENDING_HUMAN_BROWSER",
     "journey": [
       "INSTALL",
@@ -1470,6 +1478,26 @@
       "HUMAN_QUALITY_EVALUATION",
       "CONTRADICTION_RESOLUTION",
       "PERSONAL_AGENT_FOLLOW_UP"
-    ]
+    ],
+    "liveDeployment": {
+      "platform": "RAILWAY",
+      "project": "EVO Ledger Runtime MVP",
+      "service": "Ledger Configurator",
+      "environment": "production",
+      "commit": "6197abf6ecb6fce300decea11b150b4a8229f1cf",
+      "deploymentId": "1b5e5aec-caf0-4c5d-a2b9-719c9b8e7f76",
+      "status": "SUCCESS",
+      "persistentStateMount": "/data"
+    },
+    "canonicalization": {
+      "contentProposalDc107947": "DO_NOT_ACCEPT_FOR_DEDUPLICATION",
+      "model": "APPEND_ONLY_DUPLICATE_TO_CANONICAL_RELATION",
+      "agentCanStageProposal": true,
+      "humanAcceptanceRequired": true,
+      "createsNewMemoryRecord": false,
+      "ordinaryRetrievalHidesAcceptedDuplicate": true,
+      "exactIdAuditPreservesHistory": true,
+      "liveHumanAcceptance": "PENDING"
+    }
   }
 }
