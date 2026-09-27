@@ -10,6 +10,7 @@ import type {
   ResolvedContextSetV010
 } from "../contracts/platform-services.js";
 import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
+import type { ExtensionManagerItemV010, ExtensionManagerActionV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
 import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
 import type { ContextMemoryProposalV010 } from "./context-memory-proposal-store.js";
 import {
@@ -49,6 +50,51 @@ export interface PersonalAgentReadinessV010 {
   providerPackageId?: string;
   installedProviderPackageIds: string[];
   catalogProviderPackageIds: string[];
+}
+
+
+export interface PersonalAgentPluginStoreProductStateV010 {
+  readiness: NonNullable<ExtensionManagerItemV010["readiness"]>;
+  primaryAction: ExtensionManagerActionV010;
+}
+
+export function createPersonalAgentPluginStoreProductStateV010(
+  readiness: PersonalAgentReadinessV010
+): PersonalAgentPluginStoreProductStateV010 {
+  const readinessId = readiness.state === "unavailable"
+    ? "error"
+    : readiness.state;
+  return {
+    readiness: {
+      id: readinessId,
+      label: readiness.state === "ready"
+        ? "Ready"
+        : readiness.state === "setup-required"
+          ? "Needs setup"
+          : readiness.state === "degraded"
+            ? "Degraded"
+            : "Unavailable",
+      tone: readiness.state === "ready"
+        ? "positive"
+        : readiness.state === "unavailable"
+          ? "danger"
+          : "warning",
+      message: readiness.message
+    },
+    primaryAction: readiness.state === "ready" || readiness.state === "degraded"
+      ? {
+          id: "open",
+          label: "Open",
+          type: "navigate",
+          route: PERSONAL_AGENT_ROUTE
+        }
+      : {
+          id: "setup",
+          label: "Set up",
+          type: "navigate",
+          route: PERSONAL_AGENT_SETUP_ROUTE
+        }
+  };
 }
 
 function providerPackagesInCatalog(manager: AppManagerService): string[] {
@@ -350,7 +396,13 @@ export function createPersonalAgentSetupPageV010(
                 label: "Configure Provider",
                 type: "navigate",
                 route: settingsPackageRoute(selectedPackageId)
-              } as const
+              } as const,
+              secondaryActions: [{
+                id: "provider-status",
+                label: "Provider status",
+                type: "navigate",
+                route: providerManagerCapabilityRoute(LLM_CAPABILITY)
+              }] as const
             }
           : {})
       },
@@ -369,14 +421,54 @@ export function createPersonalAgentSetupPageV010(
           ? "Complete"
           : readinessError
             ? "Attention required"
-            : "Waiting"
+            : "Waiting",
+        ...(!readinessComplete
+          ? {
+              primaryAction: {
+                id: "check-provider-status",
+                label: "Check Provider status",
+                type: "navigate",
+                route: providerManagerCapabilityRoute(LLM_CAPABILITY)
+              } as const,
+              secondaryActions: [{
+                id: "recheck-setup",
+                label: "Recheck setup",
+                type: "navigate",
+                route: PERSONAL_AGENT_SETUP_ROUTE
+              }] as const
+            }
+          : {})
       },
       {
         id: "ready",
         title: "Ready",
         description: "Personal Agent can now use the selected LLM Provider.",
         state: readinessComplete ? "complete" : "blocked",
-        statusDetail: readinessComplete ? "Complete" : "Waiting"
+        statusDetail: readinessComplete ? "Complete" : "Waiting",
+        ...(readinessComplete
+          ? {
+              secondaryActions: [
+                {
+                  id: "review-memory",
+                  label: "Review Memory",
+                  type: "navigate",
+                  route: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
+                },
+                {
+                  id: "memory-governance",
+                  label: "Memory Governance",
+                  type: "navigate",
+                  route: "/memory"
+                },
+                {
+                  id: "memory-source-health",
+                  label: "Memory Source Health",
+                  type: "navigate",
+                  route: "/memory/sources"
+                }
+              ] as const
+            }
+          : {})
       }
     ],
     ...(readinessComplete
