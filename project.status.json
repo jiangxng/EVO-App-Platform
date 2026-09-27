@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.5 — Durable Agent Operations",
+  "currentMilestone": "Personal Agent P1.6 — Run-backed Experience",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -298,7 +298,11 @@
     "live-real-llm-install-proof",
     "personal-agent-p1-4x-human-browser-live-pass",
     "personal-agent-fresh-session-context-memory-recall-live-pass",
-    "personal-agent-memory-epistemic-boundaries-live-pass"
+    "personal-agent-memory-epistemic-boundaries-live-pass",
+    "context-memory-governance-inventory-p1-5a-live-pass",
+    "agent-action-receipt-p1-5b-live-pass",
+    "resumable-agent-runs-p1-5c-platform-pass",
+    "personal-agent-p1-5-durable-agent-operations-complete"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -320,7 +324,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.5A Context Memory Governance Inventory and P1.5B Generic Durable Agent Action Receipt are Human LIVE PASS and closed. P1.5B fresh-chat readback proved durable execution continuity: a new Personal Agent chat used agent.action.receipt.list to recover SUCCEEDED receipt agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e, extracted proposalId memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b, then used context.memory.proposal.get to verify the Proposal remains PENDING. No WRITE was repeated. P1.5C now starts: make Personal Agent runs durable/resumable so long work does not depend on one synchronous HTTP connection or ephemeral model loop.",
+  "currentStep": "P1.5 Durable Agent Operations is complete. P1.5A governance inventory and P1.5B durable Action Receipts are Human LIVE PASS. P1.5C Resumable Agent Runs is PLATFORM/AUTOMATED ACCEPTANCE PASS: durable runId, append-only run state, one-model-decision bounded slices, run.start/get/resume/list actions, JSONL restart recovery, current Principal/Context re-authorization, Provider/model pinning, concurrent resume rejection, indeterminate WRITE fail-closed, successful WRITE replay deduplication through P1.5B receipts, and pre-decision crash recovery within the original slice all pass automated Host tests. PR #105 passed 26/26 triggered workflows; clean crash-window follow-up PR #107 passed 12/12; final code is deployed on Railway at d9f6855d84d947226be7efce2c6bdd8ae4003259, deployment 0158698d-66b0-4f7c-b000-bf3eba38555e, SUCCESS. No authenticated production /v1/actions request was claimed because the available external HTTP/Railway-agent path could not safely complete; Railway deployment/startup and automated action-handler/Host tests are the accepted backend evidence under the Human-approved no-UI testing policy. P1.6 now migrates the Personal Agent experience from compatibility synchronous enterprise-agent.chat to run-backed start/get/resume semantics with reconnect/progress behavior.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1565,8 +1569,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.5-2026-09-28-03",
-    "snapshotAt": "2026-09-28T06:37:00+08:00",
+    "snapshotId": "P1.6-2026-09-28-01",
+    "snapshotAt": "2026-09-27T23:12:29.919Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1586,42 +1590,38 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Personal Agent P1.5 — Durable Agent Operations",
+      "milestone": "Personal Agent P1.6 — Run-backed Experience",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "p1.5b-generic-durable-agent-action-receipt",
-        "status": "LIVE_PASS",
-        "summary": "A real Personal Agent WRITE produced a durable SUCCEEDED receipt linked to a test Proposal, and a fresh Personal Agent chat later recovered that receipt and current Proposal state using READ only without repeating the WRITE.",
-        "authority": "docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md",
+        "id": "p1.5-durable-agent-operations",
+        "status": "COMPLETE",
+        "summary": "P1.5 closed after P1.5A governance inventory and P1.5B Action Receipts passed Human live verification, while P1.5C resumable runs passed automated platform acceptance and production deployment. Long multi-step Agent work now has durable run state independent of one browser request.",
+        "authority": "docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md",
         "evidence": {
-          "receiptId": "agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e",
-          "receiptStatus": "SUCCEEDED",
-          "invocationId": "agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6",
-          "proposalId": "memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b",
-          "proposalState": "PENDING",
-          "crossChatReadback": true,
-          "repeatedWrite": false,
-          "receiptVsDomainBoundary": "PASS"
+          "p1_5A": "HUMAN_LIVE_PASS",
+          "p1_5B": "HUMAN_LIVE_PASS",
+          "p1_5C": "PLATFORM_AUTOMATED_ACCEPTANCE_PASS",
+          "p1_5cFinalCommit": "d9f6855d84d947226be7efce2c6bdd8ae4003259",
+          "p1_5cDeploymentId": "0158698d-66b0-4f7c-b000-bf3eba38555e",
+          "p1_5cDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "p1.5c-resumable-agent-runs",
-        "status": "ARCHITECTURE_IMPLEMENTATION_READY",
-        "summary": "Implement durable resumable Personal Agent runs so long work can survive HTTP disconnects/process restarts and continue from durable run state while preserving Action Receipt and Human authority boundaries.",
-        "authority": "docs/architecture/RESUMABLE-AGENT-RUNS-P1.5C-v0.1.md",
+        "id": "p1.6a-run-backed-eidos-chat-transport",
+        "status": "IMPLEMENTATION_READY",
+        "summary": "Migrate the Personal Agent chat interaction transport from one synchronous enterprise-agent.chat request to durable enterprise-agent.run.start/get/resume actions, while keeping current UI semantics and compatibility fallback.",
+        "authority": "docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md",
         "acceptance": [
-          "every resumable run has durable runId and Principal/Context ownership",
-          "run state is materialized from append-only events",
-          "run states are explicit and terminal states are immutable",
-          "one execution slice performs bounded work and persists before returning",
-          "resume uses runId and Host authority rather than conversation memory",
-          "completed tool observations and Action Receipt references survive resume",
-          "resume does not repeat a completed material WRITE",
-          "indeterminate WRITE receipts remain fail-closed",
-          "browser can reconnect and inspect run status/progress",
-          "process restart preserves run state when file-backed",
-          "resume rechecks current Principal/Context authorization",
-          "Human approval boundaries remain explicit; resume never silently approves pending governance"
+          "sending a Personal Agent message creates or resumes a durable run rather than executing the full multi-tool loop in one request",
+          "client persists current runId independently of transient request state",
+          "PAUSED run state triggers bounded continuation without resending original user input",
+          "page refresh/reconnect restores run state with run.get",
+          "SUCCEEDED renders the final Assistant reply exactly once",
+          "BLOCKED/FAILED states are surfaced without automatic authority escalation or unsafe retry",
+          "material WRITE observations remain linked to P1.5B Action Receipts",
+          "existing conversation-history semantics remain bounded and distinct from durable run state",
+          "legacy enterprise-agent.chat remains compatibility fallback until run-backed path is certified",
+          "no new Human governance approval is automated"
         ]
       },
       "productionPreview": {
@@ -1630,8 +1630,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7",
-        "deploymentId": "952825f9-6c7f-4f5f-ad04-a6a7b6286ba4",
+        "commit": "d9f6855d84d947226be7efce2c6bdd8ae4003259",
+        "deploymentId": "0158698d-66b0-4f7c-b000-bf3eba38555e",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1726,35 +1726,51 @@
         "pr": 103,
         "status": "MERGED",
         "summary": "Record P1.5B Human WRITE PASS and readback-only gate."
+      },
+      {
+        "pr": 104,
+        "status": "MERGED",
+        "summary": "Close P1.5B Human LIVE PASS and start P1.5C resumable runs."
+      },
+      {
+        "pr": 105,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Add durable resumable Personal Agent runs with bounded slices, restart recovery, scope re-authorization and Action Receipt replay safety."
+      },
+      {
+        "pr": 106,
+        "status": "CLOSED_NOT_MERGED",
+        "summary": "Oversized post-squash follow-up PR intentionally closed and replaced by clean PR #107."
+      },
+      {
+        "pr": 107,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Preserve active run slice across pre-decision crash; final P1.5C production revision."
       }
     ],
     "doNotRepeat": [
       "Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.",
-      "Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.",
-      "Do not reopen P1.4X Memory Canonicalization or fresh-session recall as active gates unless a new regression provides current evidence.",
-      "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context retrieval returned zero results.",
-      "Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.",
-      "Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.",
-      "Do not use ranked retrieval as the P1.5 governance inventory implementation.",
-      "Do not reopen P1.4X or P1.5A as active gates unless a new regression provides current evidence.",
-      "Do not use ranked retrieval as a governance inventory; P1.5A inventory is the completeness surface.",
-      "Do not automatically repeat a material Agent WRITE when its durable receipt is REQUESTED without a terminal event.",
+      "Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and remains a Human-governed Proposal.",
+      "Do not reopen P1.4X, P1.5A, P1.5B or P1.5C as active gates unless a new regression provides current evidence.",
+      "Do not use ranked retrieval as governance inventory; P1.5A inventory is the completeness surface.",
+      "Do not automatically repeat a material Agent WRITE when its Action Receipt is REQUESTED without a terminal event.",
       "Do not treat an Action Receipt as replacement for domain authoritative state.",
-      "Do not weaken the durable receipt requirement merely to preserve older WRITE tests; update test Host fixtures instead.",
-      "Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and currently PENDING.",
-      "Do not reopen P1.4X, P1.5A or P1.5B as active gates unless a new regression provides current evidence.",
-      "Do not make P1.5C resume depend on browser conversation memory or one long synchronous HTTP connection.",
-      "Do not let resume implicitly cross a Human approval boundary.",
-      "Do not restart PR #84–#103 work unless a new regression provides current evidence."
+      "Do not make run resume depend on browser conversation memory or resending the original user task.",
+      "Do not reorder append-only Agent Run events by wall-clock timestamp; append order is causal authority.",
+      "Do not create a new run slice after a durable SLICE_STARTED crash window when activeSliceId can be resumed.",
+      "Do not silently switch LLM Provider/model mid-run.",
+      "Do not let run resume implicitly cross a Human approval boundary.",
+      "Do not merge or revive closed PR #106; its clean replacement is merged PR #107."
     ],
     "freshSessionAcceptance": [
-      "state current milestone as Personal Agent P1.5 — Durable Agent Operations",
-      "state P1.4X, P1.5A and P1.5B as Human LIVE PASS and closed",
-      "state P1.5C Resumable Agent Runs as the current open gate",
-      "explain that P1.5B proved cross-chat WRITE execution continuity without repeating the WRITE",
-      "state current deployed runtime behavior revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7",
-      "identify the P1.5B smoke-test Proposal as test-only PENDING and do-not-accept",
-      "preserve Action Receipt indeterminate fail-closed semantics in P1.5C",
+      "state current milestone as Personal Agent P1.6 — Run-backed Experience",
+      "state P1.4X and P1.5 as closed",
+      "state P1.5A and P1.5B Human LIVE PASS; state P1.5C Platform/Automated Acceptance PASS",
+      "state P1.6A run-backed Eidos chat transport as the current open gate",
+      "state current production revision d9f6855d84d947226be7efce2c6bdd8ae4003259 and Railway deployment 0158698d-66b0-4f7c-b000-bf3eba38555e",
+      "explain that P1.5C has durable run.start/get/resume/list but current Personal Agent UI still uses compatibility enterprise-agent.chat",
+      "preserve P1.5B receipt and P1.5C Human-authority fail-closed semantics",
+      "identify the P1.5B smoke-test Proposal as test-only and not to be accepted",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -1892,7 +1908,7 @@
     }
   },
   "resumableAgentRunsP1_5C": {
-    "status": "ARCHITECTURE_IMPLEMENTATION_READY",
+    "status": "PLATFORM_AUTOMATED_ACCEPTANCE_PASS",
     "authority": "docs/architecture/RESUMABLE-AGENT-RUNS-P1.5C-v0.1.md",
     "problem": "Long Personal Agent work must not depend on one browser/server HTTP request or one ephemeral model loop surviving to completion.",
     "target": [
@@ -1906,6 +1922,83 @@
       "durable link from tool observations to Action Receipts",
       "no hidden authority escalation on resume"
     ],
+    "humanBrowserGate": "NOT_REQUIRED_FOR_BACKEND_NO_UI_CHANGE",
+    "implementation": {
+      "commands": [
+        "enterprise-agent.run.start",
+        "enterprise-agent.run.resume",
+        "enterprise-agent.run.get",
+        "enterprise-agent.run.list"
+      ],
+      "persistence": "APP_PLATFORM_AGENT_RUN_FILE_OR_STATE_SIBLING_AGENT_RUNS_JSONL",
+      "slice": "ONE_MODEL_DECISION_PER_RESUME_SLICE",
+      "eventOrder": "APPEND_ORDER_IS_CAUSAL_AUTHORITY_OCCURRED_AT_IS_AUDIT_METADATA",
+      "activeSliceCrashRecovery": true,
+      "providerModelPinned": true,
+      "currentScopeRecheckedOnResume": true,
+      "actionReceiptReplaySafety": true,
+      "concurrentResumeRejected": true
+    },
+    "machineEvidence": {
+      "pr105": {
+        "commit": "690cf2aa9047469146a57a06e65b8df1d10b98b1",
+        "triggeredCi": "26/26 PASS"
+      },
+      "pr107": {
+        "commit": "d9f6855d84d947226be7efce2c6bdd8ae4003259",
+        "triggeredCi": "12/12 PASS"
+      },
+      "automatedScenarios": [
+        "pause then resume to final across requests",
+        "JSONL process reconstruction",
+        "durable pending tool decision recovery without repeated inference",
+        "provider/model mismatch blocks",
+        "Principal/Context mismatch blocks",
+        "concurrent resume conflict",
+        "indeterminate WRITE receipt blocks fail-closed",
+        "successful WRITE-before-observation crash reuses receipt with side-effect count=1",
+        "run action start/get/resume without resending original task",
+        "SLICE_STARTED-before-decision crash resumes in original active slice",
+        "wall-clock rollback cannot reorder append-only causal events"
+      ]
+    },
+    "liveDeployment": {
+      "platform": "RAILWAY",
+      "project": "EVO Ledger Runtime MVP",
+      "service": "Ledger Configurator",
+      "environment": "production",
+      "commit": "d9f6855d84d947226be7efce2c6bdd8ae4003259",
+      "deploymentId": "0158698d-66b0-4f7c-b000-bf3eba38555e",
+      "status": "SUCCESS",
+      "persistentStateMount": "/data",
+      "startupObserved": "EVO App Manager listening on http://localhost:8080"
+    },
+    "evidenceBoundary": {
+      "authenticatedProductionActionInvocation": "NOT_CLAIMED",
+      "reason": "Available external HTTP/Railway Agent paths could not safely complete an authenticated application request from the assistant environment; backend acceptance therefore relies on automated real action-handler/Host tests plus production deployment/startup evidence.",
+      "futureUiMigration": "P1.6"
+    }
+  },
+  "durableAgentOperationsP1_5": {
+    "status": "COMPLETE",
+    "slices": {
+      "p1_5A": "HUMAN_LIVE_PASS",
+      "p1_5B": "HUMAN_LIVE_PASS",
+      "p1_5C": "PLATFORM_AUTOMATED_ACCEPTANCE_PASS"
+    },
+    "authority": "docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md",
+    "completedAt": "2026-09-27T23:12:29.919Z"
+  },
+  "runBackedPersonalAgentExperienceP1_6": {
+    "status": "ACTIVE",
+    "authority": "docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md",
+    "goal": "Make durable resumable Agent Runs the normal Personal Agent interaction path while preserving bounded requests, reconnectability, progress visibility, Human authority and compatibility fallback.",
+    "phases": [
+      "P1.6A run-backed Eidos chat transport",
+      "P1.6B reconnect/progress/blocked-state experience",
+      "P1.6C compatibility migration and live certification"
+    ],
+    "currentPhase": "P1.6A",
     "humanBrowserGate": "NOT_READY"
   }
 }
