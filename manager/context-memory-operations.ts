@@ -107,6 +107,7 @@ export function createContextMemoryScheduledOperationsV010(
             context: structuredClone(item.context),
             state: "EXPIRED",
             privacyClass,
+            origin: "RETENTION_POLICY",
             reason: `Scheduled retention evaluation reached ${deadline}`,
             occurredAt: started.toISOString(),
             actorSubjectId: "system:context-memory-scheduler"
@@ -168,8 +169,31 @@ export function createContextMemoryScheduledOperationsV010(
         return event;
       }
       try {
-        for (const item of dependencies.memoryStore.snapshot().items.filter(value => sameContext(value.context, context))) {
+        const items = dependencies.memoryStore.snapshot().items
+          .filter(value => sameContext(value.context, context));
+        const staged: Array<{
+          item: typeof items[number];
+          privacyClass: ContextMemoryPrivacyClassV010;
+          reasonCodes: string[];
+        }> = [];
+
+        for (const item of items) {
           examined++;
+          const historicalEvents = dependencies.governanceStore.snapshot().events
+            .filter(event => event.memoryId === item.memoryId);
+          const manualOverride = historicalEvents.some(event =>
+            event.origin === "HUMAN"
+            || (
+              event.origin === undefined
+              && !event.actorSubjectId.startsWith("provider:")
+              && !event.actorSubjectId.startsWith("system:")
+            )
+          );
+          if (manualOverride) {
+            skipped++;
+            continue;
+          }
+
           const result = await classifier.classify({
             contractVersion: "0.1.0",
             context: structuredClone(context),
@@ -182,22 +206,39 @@ export function createContextMemoryScheduledOperationsV010(
           }
           const current = dependencies.governanceStore.decision(item.memoryId, started);
           if ((current?.privacyClass ?? "STANDARD") === result.privacyClass) {
-            skipped++; continue;
+            skipped++;
+            continue;
           }
+          staged.push({
+            item,
+            privacyClass: result.privacyClass,
+            reasonCodes: [...result.reasonCodes]
+          });
+        }
+
+        // Provider calls are completed and validated before any governance mutation,
+        // so a remote failure cannot leave a partially classified batch.
+        for (const stagedItem of staged) {
+          const current = dependencies.governanceStore.decision(
+            stagedItem.item.memoryId,
+            started
+          );
           dependencies.governanceStore.append({
             contractVersion: "0.1.0",
             eventId: `memory-governance:dlp:${id()}`,
-            memoryId: item.memoryId,
-            context: structuredClone(item.context),
+            memoryId: stagedItem.item.memoryId,
+            context: structuredClone(stagedItem.item.context),
             state: current?.state ?? "ACTIVE",
-            privacyClass: result.privacyClass,
+            privacyClass: stagedItem.privacyClass,
+            origin: "DLP_PROVIDER",
             ...(current?.retainUntil ? { retainUntil: current.retainUntil } : {}),
-            reason: `DLP classification: ${result.reasonCodes.join(",") || "classified"}`,
+            reason: `DLP classification: ${stagedItem.reasonCodes.join(",") || "classified"}`,
             occurredAt: started.toISOString(),
             actorSubjectId: `provider:${classifier.providerId}`
           });
           changed++;
         }
+
         const event: ContextMemoryOperationEventV010 = {
           contractVersion: "0.1.0",
           operationId: runId,
