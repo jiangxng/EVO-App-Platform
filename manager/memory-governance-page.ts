@@ -598,12 +598,10 @@ export function createMemoryQualityPageV010(input:{
       memory,
       qualityStore:input.qualityStore,
       ...(input.now ? {now:input.now} : {}),
-      {
-        freshnessWindowDays:
-          input.freshnessPolicies?.freshnessWindowDays(memory)
-          ?? input.freshnessWindowDays
-          ?? 180
-      }
+      freshnessWindowDays:
+        input.freshnessPolicies?.freshnessWindowDays(memory)
+        ?? input.freshnessWindowDays
+        ?? 180
     })
   }));
   const openContradictions=input.qualityStore
