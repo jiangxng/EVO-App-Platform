@@ -43,10 +43,15 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
+import { createFilePersonalAgentFollowUpStoreV010, createMemoryPersonalAgentFollowUpStoreV010 } from "./personal-agent-follow-up-store.js";
+import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
+import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import { createPersonalAgentQualityPageV010, createPersonalAgentQualityReviewPageV010 } from "./personal-agent-quality-page.js";
 import { createFileContextMemoryQualityStoreV010, createMemoryContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
+import { createFileContextMemoryFreshnessPolicyStoreV010, createMemoryContextMemoryFreshnessPolicyStoreV010 } from "./context-memory-freshness-policy-store.js";
+import { createContextMemoryFreshnessPolicyActionHandlersV010 } from "./context-memory-freshness-policy-actions.js";
 import { createContextMemoryQualityActionHandlerV010 } from "./context-memory-quality-actions.js";
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
@@ -54,7 +59,8 @@ import {
   ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
   ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE,
   ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE,
-  ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
+  ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE,
+  ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
@@ -340,6 +346,8 @@ import {
   createMemoryRetentionDraftsPageV010,
   createMemoryQualityPageV010,
   createMemoryContradictionReviewPageV010,
+  createMemoryFreshnessPolicyFormV010,
+  createMemoryFreshnessPoliciesPageV010,
   memoryGovernancePageSource,
   memorySearchPageSource,
   memorySourceHealthPageSource,
@@ -347,7 +355,9 @@ import {
   memoryRetentionDraftNewPageSource,
   memoryRetentionDraftsPageSource,
   memoryQualityPageSource,
-  memoryContradictionReviewPageSource
+  memoryContradictionReviewPageSource,
+  memoryFreshnessPolicyNewPageSource,
+  memoryFreshnessPoliciesPageSource
 } from "./memory-governance-page.js";
 import {
   createHelpExperienceManifestV010,
@@ -461,6 +471,18 @@ const contextMemoryQualityStateFile =
 const contextMemoryQualityStore = contextMemoryQualityStateFile
   ? createFileContextMemoryQualityStoreV010(contextMemoryQualityStateFile)
   : createMemoryContextMemoryQualityStoreV010();
+const contextMemoryFreshnessPolicyStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_FRESHNESS_POLICY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-freshness-policy.json") : undefined);
+const contextMemoryFreshnessPolicyStore = contextMemoryFreshnessPolicyStateFile
+  ? createFileContextMemoryFreshnessPolicyStoreV010(contextMemoryFreshnessPolicyStateFile)
+  : createMemoryContextMemoryFreshnessPolicyStoreV010();
+const personalAgentFollowUpStateFile =
+  process.env.APP_PLATFORM_PERSONAL_AGENT_FOLLOW_UP_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "personal-agent-follow-ups.json") : undefined);
+const personalAgentFollowUpStore = personalAgentFollowUpStateFile
+  ? createFilePersonalAgentFollowUpStoreV010(personalAgentFollowUpStateFile)
+  : createMemoryPersonalAgentFollowUpStoreV010();
 const contextMemoryScheduleMs = Number(
   process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS?.trim() || "0"
 );
@@ -1634,8 +1656,17 @@ const actionRouter = createAppActionRouter(
     createContextMemoryQualityActionHandlerV010({
       memoryStore: contextMemoryStore,
       qualityStore: contextMemoryQualityStore,
+      followUpStore: personalAgentFollowUpStore,
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
+    ...createContextMemoryFreshnessPolicyActionHandlersV010({
+      store: contextMemoryFreshnessPolicyStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
+    ...createPersonalAgentFollowUpActionHandlersV010({
+      store: personalAgentFollowUpStore
     }),
     ...createContextMemoryPolicyActionHandlersV010({
       memoryStore: contextMemoryStore,
@@ -1705,6 +1736,12 @@ const actionRouter = createAppActionRouter(
               context: structuredClone(context.activeContext),
               ...input
             });
+          },
+          listPersonalFollowUps() {
+            return personalAgentFollowUpStore.listOpen(
+              principal.subjectId,
+              context.activeContext
+            );
           },
           async proposeContextMemory(input) {
             if (!requestContext) {
@@ -2082,6 +2119,7 @@ const server = createServer(async (request, response) => {
         || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
       ) {
         const effective = manager.listEffectiveExperiences().some(value => {
           const manifest = value as { pages?: Array<{ source?: string }> };
@@ -2156,10 +2194,25 @@ const server = createServer(async (request, response) => {
             store: personalAgentQualityEvidenceStore
           }));
         }
+        if (source === ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentFollowUpPageV010({
+            principal: session.principal,
+            context: context.activeContext,
+            store: personalAgentFollowUpStore
+          }));
+        }
         return json(
           response,
           200,
-          createPersonalAgentChatPageV020(readiness, context, availableContexts)
+          createPersonalAgentChatPageV020(
+            readiness,
+            context,
+            availableContexts,
+            personalAgentFollowUpStore.listOpen(
+              session.principal.subjectId,
+              context.activeContext
+            )
+          )
         );
       }
       if (source === helpIndexPageSourceV010) {
@@ -2209,6 +2262,8 @@ const server = createServer(async (request, response) => {
         || source === memoryRetentionDraftsPageSource
         || source === memoryQualityPageSource
         || source === memoryContradictionReviewPageSource
+        || source === memoryFreshnessPolicyNewPageSource
+        || source === memoryFreshnessPoliciesPageSource
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -2226,6 +2281,19 @@ const server = createServer(async (request, response) => {
             context: resolved.activeContext,
             memoryStore: contextMemoryStore,
             qualityStore: contextMemoryQualityStore,
+            freshnessPolicies: contextMemoryFreshnessPolicyStore,
+            relationships: resolveEnterpriseContextRelationshipProvider()
+          }));
+        }
+        if (source === memoryFreshnessPolicyNewPageSource) {
+          return json(response, 200, createMemoryFreshnessPolicyFormV010());
+        }
+        if (source === memoryFreshnessPoliciesPageSource) {
+          return json(response, 200, createMemoryFreshnessPoliciesPageV010({
+            principal: session.principal,
+            personalContext: resolved.personalContext,
+            context: resolved.activeContext,
+            policies: contextMemoryFreshnessPolicyStore,
             relationships: resolveEnterpriseContextRelationshipProvider()
           }));
         }
