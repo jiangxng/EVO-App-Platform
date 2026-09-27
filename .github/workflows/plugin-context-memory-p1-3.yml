@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - "providers/context-memory/**"
+      - "providers/context-memory-dlp/**"
       - "contracts/platform-services.ts"
       - "manager/context-memory-governance-**"
       - "manager/context-memory-retention-policy-store.ts"
       - "manager/context-memory-legal-hold-store.ts"
       - "manager/context-memory-policy-actions.ts"
       - "manager/context-memory-operations.ts"
+      - "manager/context-memory-scheduler.ts"
       - "manager/context-memory-store.ts"
       - "manager/server.ts"
       - "tests/protocol/context-memory-p1-3-operations.test.mjs"
@@ -23,12 +25,14 @@ on:
   pull_request:
     paths:
       - "providers/context-memory/**"
+      - "providers/context-memory-dlp/**"
       - "contracts/platform-services.ts"
       - "manager/context-memory-governance-**"
       - "manager/context-memory-retention-policy-store.ts"
       - "manager/context-memory-legal-hold-store.ts"
       - "manager/context-memory-policy-actions.ts"
       - "manager/context-memory-operations.ts"
+      - "manager/context-memory-scheduler.ts"
       - "manager/context-memory-store.ts"
       - "manager/server.ts"
       - "tests/protocol/context-memory-p1-3-operations.test.mjs"
