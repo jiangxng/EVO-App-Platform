@@ -7,6 +7,7 @@ export const ENTERPRISE_AGENT_SETUP_PAGE_SOURCE = "app://enterprise-agent/pages/
 export const ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/memory-review";
 export const ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE = "app://enterprise-agent/pages/quality";
 export const ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/quality-review";
+export const ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE = "app://enterprise-agent/pages/follow-ups";
 
 const enMessages = {
   "workbench.activity.label": "Personal Agent",
@@ -86,7 +87,8 @@ const enMessages = {
   "setup.personal-agent.setup.action.review-memory.label": "Review Memory",
   "setup.personal-agent.setup.action.memory-governance.label": "Memory Governance",
   "setup.personal-agent.setup.action.memory-source-health.label": "Memory Source Health",
-  "setup.personal-agent.setup.action.agent-quality.label": "Personal Agent Quality"
+  "setup.personal-agent.setup.action.agent-quality.label": "Personal Agent Quality",
+  "setup.personal-agent.setup.action.agent-follow-ups.label": "Personal Agent Follow-ups"
 };
 
 const zhCnMessages = {
@@ -167,7 +169,8 @@ const zhCnMessages = {
   "setup.personal-agent.setup.action.review-memory.label": "审核记忆",
   "setup.personal-agent.setup.action.memory-governance.label": "记忆治理",
   "setup.personal-agent.setup.action.memory-source-health.label": "记忆来源健康状态",
-  "setup.personal-agent.setup.action.agent-quality.label": "个人代理质量"
+  "setup.personal-agent.setup.action.agent-quality.label": "个人代理质量",
+  "setup.personal-agent.setup.action.agent-follow-ups.label": "个人代理后续事项"
 };
 
 const jaMessages = {
@@ -248,7 +251,8 @@ const jaMessages = {
   "setup.personal-agent.setup.action.review-memory.label": "メモリーをレビュー",
   "setup.personal-agent.setup.action.memory-governance.label": "メモリガバナンス",
   "setup.personal-agent.setup.action.memory-source-health.label": "メモリソースの状態",
-  "setup.personal-agent.setup.action.agent-quality.label": "パーソナルエージェント品質"
+  "setup.personal-agent.setup.action.agent-quality.label": "パーソナルエージェント品質",
+  "setup.personal-agent.setup.action.agent-follow-ups.label": "パーソナルエージェントのフォローアップ"
 };
 
 const zhTwMessages = {
@@ -329,7 +333,8 @@ const zhTwMessages = {
   "setup.personal-agent.setup.action.review-memory.label": "審核記憶",
   "setup.personal-agent.setup.action.memory-governance.label": "記憶治理",
   "setup.personal-agent.setup.action.memory-source-health.label": "記憶來源健康狀態",
-  "setup.personal-agent.setup.action.agent-quality.label": "個人代理品質"
+  "setup.personal-agent.setup.action.agent-quality.label": "個人代理品質",
+  "setup.personal-agent.setup.action.agent-follow-ups.label": "個人代理後續事項"
 };
 
 export const enterpriseAgentPackage: PackageManifestV010 = {
@@ -387,6 +392,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.quality-review",
                 title: "Personal Agent quality review",
                 source: ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
+              },
+              {
+                id: "enterprise-agent.follow-ups",
+                title: "Personal Agent follow-ups",
+                source: ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
               }
             ],
             routes: [
@@ -414,6 +424,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.quality-review",
                 path: "/enterprise-agent/quality/review",
                 pageId: "enterprise-agent.quality-review"
+              },
+              {
+                id: "enterprise-agent.follow-ups",
+                path: "/enterprise-agent/follow-ups",
+                pageId: "enterprise-agent.follow-ups"
               }
             ],
             navigation: [
