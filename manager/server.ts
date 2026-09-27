@@ -53,6 +53,7 @@ import {
   createPersonalAgentChatPageV020,
   createPersonalAgentSetupPageV010,
   createPersonalAgentMemoryReviewPageV010,
+  createPersonalAgentPluginStoreProductStateV010,
   evaluatePersonalAgentReadinessV010,
   PERSONAL_AGENT_ROUTE,
   PERSONAL_AGENT_SETUP_ROUTE,
@@ -2127,42 +2128,7 @@ const server = createServer(async (request, response) => {
                 providerRuntimeRegistry,
                 providerBindings
               );
-              const readinessId = readiness.state === "unavailable"
-                ? "error"
-                : readiness.state;
-              return {
-                readiness: {
-                  id: readinessId,
-                  label: readiness.state === "ready"
-                    ? "Ready"
-                    : readiness.state === "setup-required"
-                      ? "Needs setup"
-                      : readiness.state === "degraded"
-                        ? "Degraded"
-                        : "Unavailable",
-                  tone: readiness.state === "ready"
-                    ? "positive"
-                    : readiness.state === "setup-required"
-                      ? "warning"
-                      : readiness.state === "degraded"
-                        ? "warning"
-                        : "danger",
-                  message: readiness.message
-                },
-                primaryAction: readiness.state === "ready" || readiness.state === "degraded"
-                  ? {
-                      id: "open",
-                      label: "Open",
-                      type: "navigate",
-                      route: PERSONAL_AGENT_ROUTE
-                    }
-                  : {
-                      id: "setup",
-                      label: "Set up",
-                      type: "navigate",
-                      route: PERSONAL_AGENT_SETUP_ROUTE
-                    }
-              };
+              return createPersonalAgentPluginStoreProductStateV010(readiness);
             }
           }
         ));
