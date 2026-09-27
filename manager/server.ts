@@ -251,6 +251,7 @@ import {
   createMemoryContextMemoryGovernanceStoreV010
 } from "./context-memory-governance-store.js";
 import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
+import { createFileContextMemoryRetentionDraftStoreV010, createMemoryContextMemoryRetentionDraftStoreV010 } from "./context-memory-retention-draft-store.js";
 import { createFileContextMemoryRetentionPolicyStoreV010, createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import { createFileContextMemoryLegalHoldStoreV010, createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import { createContextMemoryPolicyActionHandlersV010 } from "./context-memory-policy-actions.js";
@@ -418,6 +419,12 @@ const contextMemoryRetentionPolicyStateFile =
 const contextMemoryRetentionPolicyStore = contextMemoryRetentionPolicyStateFile
   ? createFileContextMemoryRetentionPolicyStoreV010(contextMemoryRetentionPolicyStateFile)
   : createMemoryContextMemoryRetentionPolicyStoreV010();
+const contextMemoryRetentionDraftStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_RETENTION_DRAFT_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-retention-drafts.json") : undefined);
+const contextMemoryRetentionDraftStore = contextMemoryRetentionDraftStateFile
+  ? createFileContextMemoryRetentionDraftStoreV010(contextMemoryRetentionDraftStateFile)
+  : createMemoryContextMemoryRetentionDraftStoreV010();
 const contextMemoryLegalHoldStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_LEGAL_HOLD_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-legal-hold.json") : undefined);
@@ -1611,6 +1618,7 @@ const actionRouter = createAppActionRouter(
       governanceStore: contextMemoryGovernanceStore,
       retentionPolicies: contextMemoryRetentionPolicyStore,
       legalHolds: contextMemoryLegalHoldStore,
+      retentionDrafts: contextMemoryRetentionDraftStore,
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
     }),
