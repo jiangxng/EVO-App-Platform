@@ -1,4 +1,4 @@
-import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
+import type { CatalogBrowserItemV010, CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
 import type { ActiveContextRefV010, PlatformPrincipalV010 } from "../contracts/platform-services.js";
 import {
   aggregatePersonalAgentQualityEvidenceV010,
@@ -24,7 +24,7 @@ export function createPersonalAgentQualityPageV010(input:{
     .sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt));
   const aggregate=aggregatePersonalAgentQualityEvidenceV010(events);
 
-  const summaryItems = events.length === 0 ? [] : [
+  const summaryItems: CatalogBrowserItemV010[] = events.length === 0 ? [] : [
     {
       id:"quality:tool-success",
       title:"Tool execution evidence",
