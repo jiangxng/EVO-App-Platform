@@ -33,6 +33,7 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
   readContextMemory?: (input: {
     query?: string;
     kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
+    memoryIds?: string[];
     limit?: number;
   }) => Promise<unknown> | unknown;
   proposeContextMemory?: (input: {
@@ -257,6 +258,53 @@ export function createEnterpriseAgentHostToolCatalogV010(
           ...(kind ? { kinds: [kind] } : {}),
           ...(rawLimit !== undefined ? { limit: rawLimit } : {})
         });
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.audit.get",
+        modelName: "context_memory_audit_get",
+        title: "Context Memory exact-ID audit",
+        description: "Read one immutable Memory record by exact memoryId from the current Host-resolved Context, including records hidden from ordinary retrieval by supersession or canonicalization. Use only for audit/verification; this never changes Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            memoryId: {
+              type: "string",
+              description: "Exact Memory ID to audit."
+            }
+          },
+          required: ["memoryId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.readContextMemory !== undefined;
+      },
+      async execute(args) {
+        if (!dependencies.readContextMemory) {
+          throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+        }
+        const memoryId = stringArg(args, "memoryId")!;
+        const result = await dependencies.readContextMemory({
+          memoryIds: [memoryId],
+          limit: 1
+        });
+        if (
+          result === null
+          || typeof result !== "object"
+          || !Array.isArray((result as { items?: unknown }).items)
+        ) {
+          throw new Error("CONTEXT_MEMORY_AUDIT_RESULT_INVALID");
+        }
+        const items = (result as { items: unknown[] }).items;
+        if (items.length === 0) {
+          throw new Error("CONTEXT_MEMORY_NOT_FOUND");
+        }
+        return result;
       }
     },
     {
