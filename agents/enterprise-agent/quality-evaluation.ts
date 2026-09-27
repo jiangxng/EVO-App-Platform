@@ -91,7 +91,7 @@ export function evaluatePersonalAgentQualityV010(
   if (avoidableChoiceMenus === 1) signals.push("AVOIDABLE_CHOICE_MENU");
   if ((evidence.executableStepsReturnedToHuman ?? 0) > 0) signals.push("EXECUTABLE_WORK_PUSHED_TO_HUMAN");
   if (postAuthorizationContinuation === "FAIL") signals.push("AUTHORIZATION_WITHOUT_FOLLOW_THROUGH");
-  if (!evidence.completionVerified) signals.push("COMPLETION_NOT_VERIFIED");
+  if (evidence.completionVerified === false) signals.push("COMPLETION_NOT_VERIFIED");
   if (correctionQuality === "FAIL") signals.push("CORRECTION_DID_NOT_PRESERVE_GOAL");
   if (evidence.failedToolCalls > 0) signals.push("TOOL_FAILURE_OBSERVED");
 
