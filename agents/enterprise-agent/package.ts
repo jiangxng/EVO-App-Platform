@@ -77,7 +77,13 @@ const enMessages = {
   "setup.personal-agent.setup.action.choose-provider.label": "Choose Provider",
   "setup.personal-agent.setup.action.open-provider-catalog.label": "Open Provider catalog",
   "setup.personal-agent.setup.action.configure-provider.label": "Configure Provider",
-  "setup.personal-agent.setup.action.open-agent.label": "Open Personal Agent"
+  "setup.personal-agent.setup.action.open-agent.label": "Open Personal Agent",
+  "setup.personal-agent.setup.action.provider-status.label": "Provider status",
+  "setup.personal-agent.setup.action.check-provider-status.label": "Check Provider status",
+  "setup.personal-agent.setup.action.recheck-setup.label": "Recheck setup",
+  "setup.personal-agent.setup.action.review-memory.label": "Review Memory",
+  "setup.personal-agent.setup.action.memory-governance.label": "Memory Governance",
+  "setup.personal-agent.setup.action.memory-source-health.label": "Memory Source Health"
 };
 
 const zhCnMessages = {
@@ -151,7 +157,13 @@ const zhCnMessages = {
   "setup.personal-agent.setup.action.choose-provider.label": "选择 Provider",
   "setup.personal-agent.setup.action.open-provider-catalog.label": "打开 Provider 目录",
   "setup.personal-agent.setup.action.configure-provider.label": "配置 Provider",
-  "setup.personal-agent.setup.action.open-agent.label": "打开个人代理"
+  "setup.personal-agent.setup.action.open-agent.label": "打开个人代理",
+  "setup.personal-agent.setup.action.provider-status.label": "Provider 状态",
+  "setup.personal-agent.setup.action.check-provider-status.label": "检查 Provider 状态",
+  "setup.personal-agent.setup.action.recheck-setup.label": "重新检查设置",
+  "setup.personal-agent.setup.action.review-memory.label": "审核记忆",
+  "setup.personal-agent.setup.action.memory-governance.label": "记忆治理",
+  "setup.personal-agent.setup.action.memory-source-health.label": "记忆来源健康状态"
 };
 
 const jaMessages = {
@@ -225,7 +237,13 @@ const jaMessages = {
   "setup.personal-agent.setup.action.choose-provider.label": "Provider を選択",
   "setup.personal-agent.setup.action.open-provider-catalog.label": "Provider カタログを開く",
   "setup.personal-agent.setup.action.configure-provider.label": "Provider を設定",
-  "setup.personal-agent.setup.action.open-agent.label": "パーソナルエージェントを開く"
+  "setup.personal-agent.setup.action.open-agent.label": "パーソナルエージェントを開く",
+  "setup.personal-agent.setup.action.provider-status.label": "Provider の状態",
+  "setup.personal-agent.setup.action.check-provider-status.label": "Provider の状態を確認",
+  "setup.personal-agent.setup.action.recheck-setup.label": "セットアップを再確認",
+  "setup.personal-agent.setup.action.review-memory.label": "メモリーをレビュー",
+  "setup.personal-agent.setup.action.memory-governance.label": "メモリガバナンス",
+  "setup.personal-agent.setup.action.memory-source-health.label": "メモリソースの状態"
 };
 
 const zhTwMessages = {
@@ -299,7 +317,13 @@ const zhTwMessages = {
   "setup.personal-agent.setup.action.choose-provider.label": "選擇 Provider",
   "setup.personal-agent.setup.action.open-provider-catalog.label": "開啟 Provider 目錄",
   "setup.personal-agent.setup.action.configure-provider.label": "設定 Provider",
-  "setup.personal-agent.setup.action.open-agent.label": "開啟個人代理"
+  "setup.personal-agent.setup.action.open-agent.label": "開啟個人代理",
+  "setup.personal-agent.setup.action.provider-status.label": "Provider 狀態",
+  "setup.personal-agent.setup.action.check-provider-status.label": "檢查 Provider 狀態",
+  "setup.personal-agent.setup.action.recheck-setup.label": "重新檢查設定",
+  "setup.personal-agent.setup.action.review-memory.label": "審核記憶",
+  "setup.personal-agent.setup.action.memory-governance.label": "記憶治理",
+  "setup.personal-agent.setup.action.memory-source-health.label": "記憶來源健康狀態"
 };
 
 export const enterpriseAgentPackage: PackageManifestV010 = {
