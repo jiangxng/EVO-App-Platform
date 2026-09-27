@@ -202,7 +202,9 @@ export function createEnterpriseAgentRuntime(
           };
           const convergence = await model.decide(
             modelInput(offeredTools(), [
-              ...convergenceObservations(),
+              ...convergenceObservations().filter(
+                observation => observation.tool !== decision.call.tool
+              ),
               repeatedReadSuppressed
             ])
           );
