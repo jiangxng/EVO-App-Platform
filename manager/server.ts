@@ -236,8 +236,8 @@ import {
   createMemoryContextMemoryGovernanceStoreV010
 } from "./context-memory-governance-store.js";
 import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
-import { createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
-import { createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import { createFileContextMemoryRetentionPolicyStoreV010, createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
+import { createFileContextMemoryLegalHoldStoreV010, createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import { createContextMemoryPolicyActionHandlersV010 } from "./context-memory-policy-actions.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
@@ -370,8 +370,18 @@ const contextMemoryGovernanceStateFile =
 const contextMemoryGovernanceStore = contextMemoryGovernanceStateFile
   ? createFileContextMemoryGovernanceStoreV010(contextMemoryGovernanceStateFile)
   : createMemoryContextMemoryGovernanceStoreV010();
-const contextMemoryRetentionPolicyStore = createMemoryContextMemoryRetentionPolicyStoreV010();
-const contextMemoryLegalHoldStore = createMemoryContextMemoryLegalHoldStoreV010();
+const contextMemoryRetentionPolicyStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_RETENTION_POLICY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-retention-policy.json") : undefined);
+const contextMemoryRetentionPolicyStore = contextMemoryRetentionPolicyStateFile
+  ? createFileContextMemoryRetentionPolicyStoreV010(contextMemoryRetentionPolicyStateFile)
+  : createMemoryContextMemoryRetentionPolicyStoreV010();
+const contextMemoryLegalHoldStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_LEGAL_HOLD_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-legal-hold.json") : undefined);
+const contextMemoryLegalHoldStore = contextMemoryLegalHoldStateFile
+  ? createFileContextMemoryLegalHoldStoreV010(contextMemoryLegalHoldStateFile)
+  : createMemoryContextMemoryLegalHoldStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
