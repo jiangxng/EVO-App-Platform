@@ -42,6 +42,7 @@ import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
+import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
@@ -427,6 +428,12 @@ const contextMemoryOperationLogFile =
 const contextMemoryOperationLog = contextMemoryOperationLogFile
   ? createJsonlContextMemoryOperationLogV010(contextMemoryOperationLogFile)
   : createMemoryContextMemoryOperationLogV010();
+const personalAgentQualityEvidenceFile =
+  process.env.APP_PLATFORM_PERSONAL_AGENT_QUALITY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "personal-agent-quality.jsonl") : undefined);
+const personalAgentQualityEvidenceStore = personalAgentQualityEvidenceFile
+  ? createJsonlPersonalAgentQualityEvidenceStoreV010(personalAgentQualityEvidenceFile)
+  : createMemoryPersonalAgentQualityEvidenceStoreV010();
 const contextMemoryScheduleMs = Number(
   process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS?.trim() || "0"
 );
@@ -1627,6 +1634,8 @@ const actionRouter = createAppActionRouter(
     }),
     createEnterpriseAgentChatActionHandler({
       resolveLlmProvider,
+      qualityEvidenceStore: personalAgentQualityEvidenceStore,
+      qualityEventId: randomUUID,
       resolveIdentitySession,
       resolveContext(selection, session) {
         return createContextRegistryForSession(session).resolve(selection);
