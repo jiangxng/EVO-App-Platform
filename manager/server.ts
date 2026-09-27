@@ -1319,6 +1319,43 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
     })
   );
 
+  if (remoteDlpEndpoint) {
+    try {
+      const bearerToken = await optionalInstallationSecret(
+        REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
+        "apiToken"
+      );
+      const options = {
+        endpoint: remoteDlpEndpoint,
+        ...(Number.isFinite(remoteDlpTimeoutMs)
+          ? { timeoutMs: remoteDlpTimeoutMs }
+          : {}),
+        ...(bearerToken ? { bearerToken } : {})
+      };
+      providerRuntimeRegistry.replace<ContextMemoryDlpClassifierV010>(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        createRemoteContextMemoryDlpClassifierV010(options)
+      );
+      providerRuntimeRegistry.setHealthProbe(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        createRemoteContextMemoryDlpHealthProbeV010(options)
+      );
+      providerRuntimeRegistry.setHealth(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        {
+          state: "UNKNOWN",
+          message: "Remote Memory DLP Provider is configured; no classification has been executed yet.",
+          checkedAt: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+      console.error("Remote Context Memory DLP Provider failed closed.", error);
+    }
+  } else {
+    providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+  }
+
   if (experienceCompilerMemoryIntakeConfig) {
     try {
       const bearerToken = await optionalInstallationSecret(
@@ -2467,6 +2504,7 @@ const server = createServer(async (request, response) => {
           }
           if (
             namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+            || namespace === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
             || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
           ) {
             await refreshP12MemoryProviderRuntimes();
