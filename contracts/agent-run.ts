@@ -58,7 +58,7 @@ export interface AgentRunEventV010 {
     | { observation: AgentToolObservation; decisionEventId: string }
     | { reason: string; code?: string }
     | { message: string }
-    | Record<string, never>;
+    | Record<string, unknown>;
 }
 
 export interface AgentRunDecisionRecordV010 {
