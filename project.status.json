@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.3 — Scheduled Memory Operations, Retention Policy, Legal Hold, DLP and Eidos Memory Governance",
+  "currentMilestone": "Personal Agent P1.3.1 — Experience Integration Checkpoint",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -223,7 +223,13 @@
     "eidos-memory-governance-surface",
     "eidos-memory-search-surface",
     "eidos-memory-source-health-surface",
-    "p1-3-memory-governance-four-locale-ui"
+    "p1-3-memory-governance-four-locale-ui",
+    "llm-native-experience-integration-cadence",
+    "personal-agent-install-setup-ready-open-product-state",
+    "personal-agent-setup-provider-diagnostics-loop",
+    "personal-agent-setup-memory-continuation",
+    "personal-agent-p1-3-1-experience-ci",
+    "personal-agent-p1-3-1-browser-runbook"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -246,7 +252,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P1.3 is CI-verified on its feature branch: 13/13 triggered workflows passed, including Platform CI, Context Memory P1.3, P1.2 regression, Memory Intake/Review, Secrets, Authorization, session and enterprise Context/relationship/grant Providers. PR #71 is ready for mainline merge. Next mainline is P1.4 Memory evaluation/quality metrics, retention-policy simulation/dry-run and operational hardening.",
+  "currentStep": "P1.3.1 Experience Integration is implemented on its feature branch and pending CI: preserve the existing real Package/Provider/Secrets/Context/Memory architecture, but validate it as one browser lifecycle from Plugin Store Install → Needs setup → Provider install/configuration → Ready → Open → Context-aware use → Memory Review/Governance/Source Health. No demo-only state or UI bypass is permitted.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1097,5 +1103,40 @@
       "physicalDeletion": "NOT_IMPLEMENTED_NOT_CLAIMED",
       "next": "P1_4_MEMORY_EVALUATION_POLICY_SIMULATION_AND_OPERATIONAL_HARDENING"
     }
+  },
+  "experienceIntegration": {
+    "status": "IMPLEMENTED_PENDING_CI",
+    "authority": "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md",
+    "checkpoint": "docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md",
+    "cadence": "BIG_STEP_VERTICAL_CLOSURE_PLUS_SELECTIVE_EXPERIENCE_CHECKPOINTS",
+    "noDemoBypass": true,
+    "lifecycle": [
+      "DISCOVER",
+      "INSTALL",
+      "INSTALLED",
+      "NEEDS_SETUP",
+      "CONFIGURE_PROVIDER_AND_HOST_SECRETS",
+      "READY",
+      "OPEN",
+      "USE",
+      "OBSERVE",
+      "GOVERN",
+      "DIAGNOSE"
+    ],
+    "currentJourney": [
+      "PLUGIN_STORE",
+      "PERSONAL_AGENT_INSTALL",
+      "PERSONAL_AGENT_SETUP",
+      "LLM_PROVIDER_INSTALL_OR_SELECT",
+      "PROVIDER_SETTINGS",
+      "HOST_SECRETS",
+      "PROVIDER_READINESS",
+      "PERSONAL_AGENT_CHAT",
+      "CONTEXT_SELECTION",
+      "MEMORY_REVIEW",
+      "MEMORY_GOVERNANCE",
+      "MEMORY_SOURCE_HEALTH"
+    ],
+    "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
   }
 }
