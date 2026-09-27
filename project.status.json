@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.1 — Governed Memory Intake and Evidence Trust",
+  "currentMilestone": "Personal Agent P1.2 — Memory Retention, Privacy, Semantic Retrieval and Production EC Adapter",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -195,7 +195,19 @@
     "context-memory-evidence-source-trust-metadata",
     "context-memory-evidence-source-trust-review-ux",
     "context-memory-retrieval-explicit-strategy-ranking",
-    "experience-compiler-generic-memory-intake-adapter-boundary"
+    "experience-compiler-generic-memory-intake-adapter-boundary",
+    "context-memory-retention-privacy-governance-overlay",
+    "context-memory-governance-append-only-events",
+    "context-memory-restricted-expired-pre-ranking-filter",
+    "enterprise-memory-governance-owner-admin-only",
+    "context-memory-semantic-retrieval-provider-contract",
+    "context-memory-semantic-hybrid-provider-backed-ranking",
+    "remote-context-memory-semantic-http-adapter",
+    "semantic-provider-host-secrets-credential-boundary",
+    "experience-compiler-production-memory-intake-http-adapter",
+    "experience-compiler-host-secrets-credential-boundary",
+    "experience-compiler-proposal-only-memory-authority",
+    "p1-2-provider-four-locale-secret-settings"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -218,7 +230,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P1.1 is functionally CI-verified: external/internal source adapters can only stage PENDING Memory Proposals, evidence source identity/trust survives review into Memory provenance, intake receipts are append-only, retries are deterministic/idempotent, pending duplicate candidates merge evidence through append-only revisions, EC is isolated behind the generic intake adapter contract, and retrieval strategy/ranking is explicit with lexical-only reference behavior. Final docs/help/status CI is the merge gate.",
+  "currentStep": "Personal Agent P1.2 is CI-verified: immutable Memory now has append-only retention/privacy governance, restricted/expired Memory is filtered before Agent retrieval, Enterprise governance requires OWNER/ADMIN, SEMANTIC/HYBRID retrieval uses an explicit replaceable Provider and fails closed when unavailable, remote ranking cannot introduce unauthorized Memory ids, and Experience Compiler connects through a production generic HTTP intake adapter whose output still enters the Human-reviewed Proposal pipeline.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -498,7 +510,8 @@
       "bootstrapCredential": "APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN",
       "legacyBootstrapCredentialAlias": "APP_PLATFORM_PROVIDER_ADMIN_TOKEN",
       "enterpriseGovernance": "HOST_RELATIONSHIP_RULES_AND_PROVIDER_POLICY_BOTH_REQUIRED",
-      "memoryProposal": "STAGING_AUTHORIZED_ACCEPT_REQUIRES_PROPOSAL_AND_MEMORY_RECORD_ALLOW"
+      "memoryProposal": "STAGING_AUTHORIZED_ACCEPT_REQUIRES_PROPOSAL_AND_MEMORY_RECORD_ALLOW",
+      "memoryGovernance": "HUMAN_CONFIRMATION_CONTEXT_ROLE_AND_AUTHORIZATION_CHECK"
     },
     "secrets": {
       "status": "IMPLEMENTED_P0_PRODUCTION_DEPLOYED_VOLUME_MOUNTED",
@@ -611,7 +624,7 @@
     "installSafety": "HOST_PLAN_REQUIRED",
     "secretsInToolContext": "PROHIBITED",
     "packageToolContribution": "PENDING_REAL_SECOND_TOOL_OWNER",
-    "next": "GOVERNED_RETENTION_SEMANTIC_RETRIEVAL_AND_EC_ADAPTER",
+    "next": "SCHEDULED_MEMORY_OPERATIONS_AND_GOVERNANCE_UX",
     "productIdentity": "Personal Agent",
     "preferredCapability": "agent.personal.tool-discovery",
     "principalScopeFilter": "IMPLEMENTED_P0_6_FOR_CONTEXTS_AND_ENTERPRISE_PROFILE_TOOL",
@@ -619,7 +632,9 @@
     "initialToolCount": 12,
     "memoryRead": "IMPLEMENTED_P0_9_CURRENT_CONTEXT_ONLY",
     "memoryProposal": "IMPLEMENTED_P1_0_HUMAN_REVIEWED",
-    "memoryIntake": "IMPLEMENTED_P1_1_PROPOSAL_ONLY"
+    "memoryIntake": "IMPLEMENTED_P1_1_PROPOSAL_ONLY",
+    "memoryRetrieval": "P1_2_GOVERNANCE_FILTERED_LEXICAL_SEMANTIC_HYBRID",
+    "experienceCompiler": "P1_2_GENERIC_HTTP_INTAKE_ADAPTER_NO_INTERNAL_DEPENDENCY"
   },
   "worldModel": {
     "status": "FROZEN_MVP",
@@ -658,7 +673,7 @@
       "zh-TW": "個人代理"
     },
     "toolSystem": "docs/architecture/ENTERPRISE-AGENT-TOOL-SYSTEM-v0.1.md",
-    "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER",
+    "next": "SCHEDULED_MEMORY_OPERATIONS_LEGAL_HOLD_DLP_AND_EIDOS_GOVERNANCE",
     "contextP0_3": {
       "status": "CI_VERIFIED_P0_3_CONTEXT",
       "contracts": [
@@ -684,7 +699,7 @@
       "setup": "SETUP_FLOW_V0_1_HOST_COMPUTED_READINESS",
       "providerChoice": "EXPLICIT_WHEN_MULTIPLE_SINGLE_READY_AUTO_RESOLVE",
       "configurationOwnership": "PROVIDER_AND_SECRETS_NOT_PERSONAL_AGENT",
-      "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER",
+      "next": "MEMORY_GOVERNANCE_SEARCH_AND_SOURCE_HEALTH_SURFACE",
       "locales": [
         "en",
         "zh-CN",
@@ -918,7 +933,7 @@
       "next": "P1_1_DELIVERED_THEN_RETENTION_PRIVACY_AND_SEMANTIC_RETRIEVAL"
     },
     "contextP1_1": {
-      "status": "FUNCTIONALLY_CI_VERIFIED_FINAL_DOCS_GATE",
+      "status": "CI_VERIFIED_P1_1",
       "authority": "docs/architecture/GOVERNED-CONTEXT-MEMORY-INTAKE-P1.1-v0.1.md",
       "capabilities": [
         "context.memory.intake-source",
@@ -960,7 +975,59 @@
         "ja",
         "zh-TW"
       ],
-      "next": "MEMORY_RETENTION_PRIVACY_SEMANTIC_RETRIEVAL_AND_PRODUCTION_EC_ADAPTER"
+      "next": "P1_2_DELIVERED_THEN_SCHEDULED_POLICY_DLP_AND_MEMORY_GOVERNANCE_UX"
+    },
+    "contextP1_2": {
+      "status": "CI_VERIFIED_P1_2",
+      "authority": "docs/architecture/MEMORY-RETENTION-PRIVACY-SEMANTIC-EC-P1.2-v0.1.md",
+      "governanceCapability": "context.memory.governance",
+      "governanceState": [
+        "ACTIVE",
+        "RESTRICTED",
+        "EXPIRED"
+      ],
+      "privacyClass": [
+        "STANDARD",
+        "SENSITIVE",
+        "RESTRICTED"
+      ],
+      "retention": "OPTIONAL_RETAIN_UNTIL_EFFECTIVE_AT_READ_TIME",
+      "governanceStorage": "APPEND_ONLY_OVERLAY_MEMORY_UNCHANGED",
+      "personalGovernance": "PERSONAL_OWNER",
+      "enterpriseGovernance": [
+        "OWNER",
+        "ADMIN"
+      ],
+      "memberGovernance": false,
+      "retrievalFilter": "RESTRICTED_EXPIRED_AND_PRIVACY_RESTRICTED_BEFORE_RANKING",
+      "semanticCapability": "context.memory.semantic-retrieval",
+      "retrievalStrategies": [
+        "LEXICAL",
+        "SEMANTIC",
+        "HYBRID"
+      ],
+      "semanticFallback": "FAIL_CLOSED_NO_FALSE_SEMANTIC",
+      "semanticCandidateBoundary": "AUTHORIZED_GOVERNANCE_VISIBLE_ONLY",
+      "semanticProvider": "remote.context-memory-semantic",
+      "semanticConfiguration": "APP_PLATFORM_MEMORY_SEMANTIC_URL",
+      "semanticCredential": "HOST_SECRETS_OPTIONAL_API_TOKEN",
+      "ecPackage": "experience-compiler-memory-intake-provider",
+      "ecIntakeProvider": "experience-compiler.memory-intake",
+      "ecEvidenceProvider": "experience-compiler.evidence-source",
+      "ecConfiguration": "APP_PLATFORM_EC_MEMORY_INTAKE_JSON",
+      "ecCredential": "HOST_SECRETS_OPTIONAL_API_TOKEN",
+      "ecInternalDependency": false,
+      "ecDurableWrite": false,
+      "ecFlow": "HTTP_INTAKE_TO_PENDING_PROPOSAL_TO_HUMAN_REVIEW",
+      "sourceTrust": "IDENTITY_INTEGRITY_NOT_TRUTH",
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "physicalDeletion": "DEFERRED_NOT_CLAIMED",
+      "next": "SCHEDULED_MEMORY_OPERATIONS_LEGAL_HOLD_DLP_AND_EIDOS_GOVERNANCE"
     }
   }
 }
