@@ -99,8 +99,9 @@ export function materializeAgentRunsV010(
     if (
       typeof payload.principalSubjectId !== "string"
       || !payload.principalSubjectId.trim()
-      || (payload.principalActorType !== "HUMAN"
-        && payload.principalActorType !== "AGENT")
+      || !["HUMAN", "AI", "AUTOMATION", "SERVICE"].includes(
+        String(payload.principalActorType)
+      )
       || payload.context === null
       || typeof payload.context !== "object"
       || typeof (payload.context as { contextId?: unknown }).contextId !== "string"
@@ -292,7 +293,7 @@ export function materializeAgentRunsV010(
       runId,
       state,
       principalSubjectId: payload.principalSubjectId,
-      principalActorType: payload.principalActorType,
+      principalActorType: payload.principalActorType as AgentRunV010["principalActorType"],
       context: structuredClone(payload.context) as AgentRunV010["context"],
       sourceInteractionId: payload.sourceInteractionId,
       sourceActionId: payload.sourceActionId,
