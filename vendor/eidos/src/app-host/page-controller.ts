@@ -37,6 +37,25 @@ export interface MountedAppHostPage {
   dispose(): void;
 }
 
+
+export const APP_HOST_ACTION_SELECTOR =
+  "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]";
+
+export function bindDelegatedAppHostActionsV010(
+  container: HTMLElement,
+  onAction: (button: HTMLButtonElement) => void | Promise<void>
+): () => void {
+  const handler = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>(APP_HOST_ACTION_SELECTOR);
+    if (!button || !container.contains(button)) return;
+    void onAction(button);
+  };
+  container.addEventListener("click", handler);
+  return () => container.removeEventListener("click", handler);
+}
+
 function collectFormValues(
   form: HTMLFormElement,
   definition: unknown
@@ -154,151 +173,167 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
 
-  const hostActionButtons = container.querySelectorAll<HTMLButtonElement>(
-    "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]"
-  );
-  if (hostActionButtons.length > 0) {
-    const actionStatus = document.createElement("pre");
+  let actionStatus: HTMLPreElement | undefined;
+
+  const ensureActionStatus = (): HTMLPreElement => {
+    if (actionStatus) return actionStatus;
+    actionStatus = document.createElement("pre");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");
     actionStatus.style.marginTop = "12px";
     container.appendChild(actionStatus);
+    return actionStatus;
+  };
 
-    for (const button of Array.from(hostActionButtons)) {
-      const handler = () => {
-        void (async () => {
-          if (button.disabled) {
-            actionStatus.textContent = button.dataset.eidosDisabledReason
-              ?? hostText("shell.actionUnavailable", "This action is not available yet.");
-            return;
-          }
+  const executeHostAction = async (button: HTMLButtonElement): Promise<void> => {
+    try {
+      const status = () => ensureActionStatus();
 
-          const actionType = button.dataset.eidosActionType;
-          const route = button.dataset.eidosRoute;
-          if (actionType === "navigate") {
-            if (!route) throw new Error("EIDOS_CATALOG_NAVIGATE_ROUTE_REQUIRED");
-            await options.onNavigate?.(route);
-            return;
-          }
-          if (actionType !== "command") return;
+      if (button.disabled) {
+        status().textContent = button.dataset.eidosDisabledReason
+          ?? hostText("shell.actionUnavailable", "This action is not available yet.");
+        return;
+      }
 
-          if (!options.actionHost) {
-            actionStatus.textContent = hostText(
-              "shell.noActionHost",
-              "No App Host ActionHost is configured."
-            );
-            return;
-          }
+      const actionType = button.dataset.eidosActionType;
+      const route = button.dataset.eidosRoute;
 
-          const command = button.dataset.eidosCommand;
-          const itemId = button.dataset.eidosItemId;
-          if (!command) {
-            actionStatus.textContent = hostText(
-              "shell.actionIncomplete",
-              "Command action is incomplete."
-            );
-            return;
-          }
+      if (actionType === "navigate") {
+        if (!route) throw new Error("EIDOS_CATALOG_NAVIGATE_ROUTE_REQUIRED");
+        await options.onNavigate?.(route);
+        return;
+      }
 
-          if (
-            button.dataset.eidosConfirm === "true"
-            && !window.confirm(button.textContent ?? hostText("shell.confirm", "Confirm action?"))
-          ) {
-            return;
-          }
+      if (actionType === "prompt") {
+        const prompt = button.dataset.eidosChatPrompt;
+        const composer = container.querySelector<HTMLTextAreaElement>(
+          "[data-eidos-chat-composer] textarea"
+        );
+        if (!prompt || !composer) {
+          throw new Error("EIDOS_CHAT_PROMPT_TARGET_REQUIRED");
+        }
+        composer.value = prompt;
+        composer.focus();
+        return;
+      }
 
-          button.disabled = true;
-          actionStatus.textContent = hostText("shell.executing", "Executing…");
+      if (actionType !== "command") return;
 
-          try {
-            const request: ActionRequestV010 = {
-              contractVersion: "0.1.0",
-              type: "command",
-              command: {
-                code: command,
-                inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
-              },
-              values: (() => {
-                const values: Record<string, JsonValue> = {
-                  ...(itemId ? { itemId } : {}),
-                  confirmed: button.dataset.eidosConfirm === "true"
-                };
-                if (button.dataset.eidosReviewAction) {
-                  const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
-                  if (form) {
-                    const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-                      "[data-eidos-review-field]"
-                    );
-                    for (const control of Array.from(controls)) {
-                      if (control.disabled) continue;
-                      const key = control.dataset.eidosReviewField;
-                      if (!key) continue;
-                      if (control instanceof HTMLSelectElement) {
-                        const encoded = control.selectedOptions[0]?.dataset.valueJson;
-                        if (encoded !== undefined) {
-                          values[key] = JSON.parse(encoded) as JsonValue;
-                          continue;
-                        }
-                      }
-                      values[key] = control.value;
+      if (!options.actionHost) {
+        status().textContent = hostText(
+          "shell.noActionHost",
+          "No App Host ActionHost is configured."
+        );
+        return;
+      }
+
+      const command = button.dataset.eidosCommand;
+      const itemId = button.dataset.eidosItemId;
+      if (!command) {
+        status().textContent = hostText(
+          "shell.actionIncomplete",
+          "Command action is incomplete."
+        );
+        return;
+      }
+
+      if (
+        button.dataset.eidosConfirm === "true"
+        && !window.confirm(button.textContent ?? hostText("shell.confirm", "Confirm action?"))
+      ) {
+        return;
+      }
+
+      button.disabled = true;
+      status().textContent = hostText("shell.executing", "Executing…");
+
+      try {
+        const request: ActionRequestV010 = {
+          contractVersion: "0.1.0",
+          type: "command",
+          command: {
+            code: command,
+            inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
+          },
+          values: (() => {
+            const values: Record<string, JsonValue> = {
+              ...(itemId ? { itemId } : {}),
+              confirmed: button.dataset.eidosConfirm === "true"
+            };
+            if (button.dataset.eidosReviewAction) {
+              const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
+              if (form) {
+                const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+                  "[data-eidos-review-field]"
+                );
+                for (const control of Array.from(controls)) {
+                  if (control.disabled) continue;
+                  const key = control.dataset.eidosReviewField;
+                  if (!key) continue;
+                  if (control instanceof HTMLSelectElement) {
+                    const encoded = control.selectedOptions[0]?.dataset.valueJson;
+                    if (encoded !== undefined) {
+                      values[key] = JSON.parse(encoded) as JsonValue;
+                      continue;
                     }
                   }
+                  values[key] = control.value;
                 }
-                return values;
-              })(),
-              sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
-              actionId: button.dataset.eidosCatalogAction
-                ?? button.dataset.eidosExtensionAction
-                ?? button.dataset.eidosSetupAction
-                ?? button.dataset.eidosChatAction
-                ?? button.dataset.eidosReviewAction
-                ?? command,
-              requiresConfirmation: button.dataset.eidosConfirm === "true"
-            };
-
-            const result = await options.actionHost.execute(request);
-            if (result.ok) {
-              const payload = result.result;
-              if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
-                const message = (payload as { message?: unknown }).message;
-                const nextAction = (payload as { nextAction?: unknown }).nextAction;
-                const details = JSON.stringify(payload, null, 2);
-                actionStatus.textContent = [
-                  typeof message === "string"
-                    ? message
-                    : hostText("shell.completed", "Completed."),
-                  typeof nextAction === "string"
-                    ? hostText("shell.next", "Next: {next}", { next: nextAction })
-                    : "",
-                  details
-                ].filter(Boolean).join("\n\n");
-              } else {
-                actionStatus.textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
               }
-            } else {
-              actionStatus.textContent = hostText(
-                "shell.actionFailed",
-                "Action failed: {message}",
-                { message: result.error?.message ?? "Unknown action error" }
-              );
             }
+            return values;
+          })(),
+          sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
+          actionId: button.dataset.eidosCatalogAction
+            ?? button.dataset.eidosExtensionAction
+            ?? button.dataset.eidosSetupAction
+            ?? button.dataset.eidosChatAction
+            ?? button.dataset.eidosReviewAction
+            ?? command,
+          requiresConfirmation: button.dataset.eidosConfirm === "true"
+        };
 
-            await options.onActionResult?.(result, page);
-          } catch (error) {
-            actionStatus.textContent = hostText(
-              "shell.actionFailed",
-              "Action failed: {message}",
-              { message: error instanceof Error ? error.message : String(error) }
-            );
-          } finally {
-            button.disabled = false;
+        const result = await options.actionHost.execute(request);
+        if (result.ok) {
+          const payload = result.result;
+          if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+            const message = (payload as { message?: unknown }).message;
+            const nextAction = (payload as { nextAction?: unknown }).nextAction;
+            const details = JSON.stringify(payload, null, 2);
+            status().textContent = [
+              typeof message === "string"
+                ? message
+                : hostText("shell.completed", "Completed."),
+              typeof nextAction === "string"
+                ? hostText("shell.next", "Next: {next}", { next: nextAction })
+                : "",
+              details
+            ].filter(Boolean).join("\n\n");
+          } else {
+            status().textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
           }
-        })();
-      };
-      button.addEventListener("click", handler);
-      listeners.push(() => button.removeEventListener("click", handler));
+        } else {
+          status().textContent = hostText(
+            "shell.actionFailed",
+            "Action failed: {message}",
+            { message: result.error?.message ?? "Unknown action error" }
+          );
+        }
+
+        await options.onActionResult?.(result, page);
+      } finally {
+        button.disabled = false;
+      }
+    } catch (error) {
+      ensureActionStatus().textContent = hostText(
+        "shell.actionFailed",
+        "Action failed: {message}",
+        { message: error instanceof Error ? error.message : String(error) }
+      );
     }
-  }
+  };
+
+  listeners.push(bindDelegatedAppHostActionsV010(container, executeHostAction));
 
   const definition = page.definition;
   if (isChatExperienceV010(definition) || isChatExperienceV020(definition)) {
