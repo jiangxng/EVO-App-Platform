@@ -243,6 +243,69 @@ test("Personal Agent Memory Proposal tool stages review state without accepting 
   assert.equal(observation.result.proposal.state, "PENDING");
 });
 
+test("Personal Agent can authoritatively read back one current-context Memory Proposal", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let requestedProposalId;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    getContextMemoryProposal(proposalId) {
+      requestedProposalId = proposalId;
+      return {
+        contractVersion: "0.1.0",
+        proposalId,
+        context: personalContext.activeContext,
+        state: "PENDING",
+        revisions: [{
+          revisionId: "memory-proposal-revision:test",
+          kind: "FACT",
+          summary: "仓库正常每天 17:00 截单",
+          evidenceRefs: [],
+          evidenceQuality: "UNVERIFIED",
+          reviewSignals: [],
+          authoredBy: "PERSONAL_AGENT",
+          authorSubjectId: testPrincipal.subjectId,
+          createdAt: "2026-09-27T10:29:05.048Z"
+        }]
+      };
+    },
+    authorizeWrite() { return { allowed: true }; },
+    searchHelp() { return []; }
+  });
+
+  const tool = (await catalog.list()).find(
+    item => item.id === "context.memory.proposal.get"
+  );
+  assert.ok(tool);
+  assert.equal(tool.effect, "READ");
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.proposal.get",
+    arguments: {
+      proposalId: "memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f",
+      contextId: "enterprise:forged"
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.equal(
+    requestedProposalId,
+    "memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f"
+  );
+  assert.equal(observation.result.state, "PENDING");
+  assert.equal(
+    observation.result.context.contextId,
+    personalContext.activeContext.contextId
+  );
+});
+
 test("Host authorization blocks Memory Proposal staging before proposal persistence", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),
