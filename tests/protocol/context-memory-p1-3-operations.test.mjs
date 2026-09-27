@@ -26,6 +26,10 @@ import {
   createRemoteContextMemoryDlpClassifierV010
 } from "../../dist/providers/context-memory-dlp/runtime.js";
 import {
+  createMemoryGovernancePageV010,
+  createMemorySearchPageV010
+} from "../../dist/manager/memory-governance-page.js";
+import {
   createHostContextMemoryGovernanceProviderV010
 } from "../../dist/providers/context-memory/governance.js";
 import {
@@ -511,4 +515,93 @@ test("DLP Provider failure leaves the entire classification batch unmodified", a
   const result = await operations.runDlp(personal);
   assert.equal(result.state, "FAILED");
   assert.equal(governanceStore.snapshot().events.length, 0);
+});
+
+
+test("Eidos Memory Search receives only governance-visible Memory", async () => {
+  const memoryStore = createMemoryContextMemoryStoreV010({
+    contractVersion: "0.1.0",
+    items: [
+      item("memory:visible", "Visible operating practice"),
+      item("memory:hidden", "Restricted operating secret")
+    ]
+  });
+  const governanceStore = createMemoryContextMemoryGovernanceStoreV010({
+    contractVersion: "0.1.0",
+    events: [{
+      contractVersion: "0.1.0",
+      eventId: "g:hidden",
+      memoryId: "memory:hidden",
+      context: personal,
+      state: "ACTIVE",
+      privacyClass: "RESTRICTED",
+      origin: "HUMAN",
+      occurredAt: "2026-09-27T01:00:00.000Z",
+      actorSubjectId: "alice"
+    }]
+  });
+  const governance = createHostContextMemoryGovernanceProviderV010(
+    governanceStore,
+    () => new Date("2026-09-27T05:00:00.000Z"),
+    createMemoryContextMemoryLegalHoldStoreV010()
+  );
+  const reader = createHostContextMemoryReaderV010(memoryStore, { governance });
+  const page = await createMemorySearchPageV010({ context: personal, reader });
+  assert.deepEqual(page.items.map(value => value.id), ["memory:visible"]);
+});
+
+test("Eidos Enterprise Memory Governance hides detail from MEMBER", () => {
+  const enterprise = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise-context:acme",
+    enterpriseId: "enterprise:acme"
+  };
+  const enterpriseItem = {
+    ...item("memory:enterprise", "Enterprise confidential memory"),
+    context: enterprise
+  };
+  const page = createMemoryGovernancePageV010({
+    principal: {
+      contractVersion: "0.1.0",
+      subjectId: "member",
+      actorType: "HUMAN",
+      identityProviderId: "test"
+    },
+    personalContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:member",
+      ownerSubjectId: "member"
+    },
+    context: enterprise,
+    memoryStore: createMemoryContextMemoryStoreV010({
+      contractVersion: "0.1.0",
+      items: [enterpriseItem]
+    }),
+    governance: createHostContextMemoryGovernanceProviderV010(
+      createMemoryContextMemoryGovernanceStoreV010()
+    ),
+    retentionPolicies: createMemoryContextMemoryRetentionPolicyStoreV010(),
+    legalHolds: createMemoryContextMemoryLegalHoldStoreV010(),
+    operationLog: createMemoryContextMemoryOperationLogV010(),
+    relationships: {
+      providerId: "test.relationships",
+      listForPrincipal() {
+        return [{
+          contractVersion: "0.1.0",
+          relationshipId: "relationship:member",
+          subjectId: "member",
+          contextId: enterprise.contextId,
+          kind: "MEMBER",
+          state: "ACTIVE",
+          createdAt: "2026-09-01T00:00:00.000Z",
+          createdBySubjectId: "owner"
+        }];
+      },
+      listForContext() { return []; }
+    }
+  });
+  assert.equal(page.items.length, 0);
+  assert.match(page.emptyMessage, /authority/i);
 });
