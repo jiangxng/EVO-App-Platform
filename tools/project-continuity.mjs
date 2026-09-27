@@ -82,18 +82,22 @@ if (!Number.isFinite(Date.parse(continuity.snapshotAt))) {
   fail("projectContinuity.snapshotAt must be an ISO date");
 }
 
-if (
-  continuity.current?.productionPreview?.commit
-  !== status.experienceCheckpointP1_4X?.liveDeployment?.commit
-) {
-  fail("production preview commit must match experienceCheckpointP1_4X.liveDeployment.commit");
-}
+if (status.currentMilestone === "Personal Agent P1.4X — Vertical Experience Checkpoint") {
+  if (
+    continuity.current?.productionPreview?.commit
+    !== status.experienceCheckpointP1_4X?.liveDeployment?.commit
+  ) {
+    fail("while P1.4X is current, production preview commit must match experienceCheckpointP1_4X.liveDeployment.commit");
+  }
 
-if (
-  continuity.current?.productionPreview?.deploymentId
-  !== status.experienceCheckpointP1_4X?.liveDeployment?.deploymentId
-) {
-  fail("production preview deploymentId must match experienceCheckpointP1_4X.liveDeployment.deploymentId");
+  if (
+    continuity.current?.productionPreview?.deploymentId
+    !== status.experienceCheckpointP1_4X?.liveDeployment?.deploymentId
+  ) {
+    fail("while P1.4X is current, production preview deploymentId must match experienceCheckpointP1_4X.liveDeployment.deploymentId");
+  }
+} else if (status.experienceCheckpointP1_4X?.status !== "LIVE_PASS") {
+  fail("advancing beyond P1.4X requires experienceCheckpointP1_4X.status=LIVE_PASS");
 }
 
 if (
