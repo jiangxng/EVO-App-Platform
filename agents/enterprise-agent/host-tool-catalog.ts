@@ -45,6 +45,12 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     potentialContradictionMemoryIds: string[];
   }) => Promise<unknown> | unknown;
   getContextMemoryProposal?: (proposalId: string) => Promise<unknown> | unknown;
+  proposeContextMemoryCanonicalization?: (input: {
+    duplicateMemoryId: string;
+    canonicalMemoryId: string;
+    reason?: string;
+  }) => Promise<unknown> | unknown;
+  getContextMemoryCanonicalizationProposal?: (proposalId: string) => Promise<unknown> | unknown;
   listPersonalFollowUps?: () => Promise<unknown> | unknown;
   searchHelp(
     query: string,
@@ -281,6 +287,72 @@ export function createEnterpriseAgentHostToolCatalogV010(
         return dependencies.getContextMemoryProposal(
           stringArg(args, "proposalId")!
         );
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.canonicalization.proposal.get",
+        modelName: "context_memory_canonicalization_proposal_get",
+        title: "Memory canonicalization proposal",
+        description: "Read one existing duplicate-to-canonical Memory proposal by proposalId from the current Host-resolved Context. This never changes Memory or governance.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            proposalId: { type: "string" }
+          },
+          required: ["proposalId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "enterprise-agent",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.getContextMemoryCanonicalizationProposal !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.getContextMemoryCanonicalizationProposal) {
+          throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_READER_REQUIRED");
+        }
+        return dependencies.getContextMemoryCanonicalizationProposal(
+          stringArg(args, "proposalId")!
+        );
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.canonicalization.proposal.create",
+        modelName: "context_memory_canonicalization_proposal_create",
+        title: "Propose Memory canonicalization",
+        description: "Stage a reviewable proposal that marks one existing Memory as a semantic duplicate of another existing canonical Memory. This creates no Memory record and changes no retrieval until a Human accepts it.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            duplicateMemoryId: { type: "string" },
+            canonicalMemoryId: { type: "string" },
+            reason: { type: "string" }
+          },
+          required: ["duplicateMemoryId", "canonicalMemoryId"],
+          additionalProperties: false
+        },
+        effect: "WRITE",
+        ownerPackageId: "enterprise-agent",
+        capability: "context.memory.write"
+      }),
+      available() {
+        return dependencies.proposeContextMemoryCanonicalization !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.proposeContextMemoryCanonicalization) {
+          throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_SERVICE_REQUIRED");
+        }
+        return dependencies.proposeContextMemoryCanonicalization({
+          duplicateMemoryId: stringArg(args, "duplicateMemoryId")!,
+          canonicalMemoryId: stringArg(args, "canonicalMemoryId")!,
+          ...(stringArg(args, "reason", false)
+            ? { reason: stringArg(args, "reason", false) }
+            : {})
+        });
       }
     },
     {
