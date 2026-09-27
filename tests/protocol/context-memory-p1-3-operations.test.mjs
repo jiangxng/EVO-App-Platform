@@ -380,3 +380,135 @@ test("schedule context parser rejects implicit or malformed Context expansion", 
     /CONTEXT_MEMORY_SCHEDULE_CONTEXT_INVALID/
   );
 });
+
+
+test("releasing one Legal Hold does not release another active hold", () => {
+  const holds = createMemoryContextMemoryLegalHoldStoreV010({
+    contractVersion: "0.1.0",
+    events: [
+      {
+        contractVersion: "0.1.0",
+        eventId: "hold:a:placed",
+        holdId: "case:a",
+        memoryId: "memory:held",
+        context: personal,
+        state: "PLACED",
+        reason: "Case A",
+        occurredAt: "2026-09-01T00:00:00.000Z",
+        actorSubjectId: "alice"
+      },
+      {
+        contractVersion: "0.1.0",
+        eventId: "hold:b:placed",
+        holdId: "case:b",
+        memoryId: "memory:held",
+        context: personal,
+        state: "PLACED",
+        reason: "Case B",
+        occurredAt: "2026-09-02T00:00:00.000Z",
+        actorSubjectId: "alice"
+      },
+      {
+        contractVersion: "0.1.0",
+        eventId: "hold:b:released",
+        holdId: "case:b",
+        memoryId: "memory:held",
+        context: personal,
+        state: "RELEASED",
+        reason: "Case B closed",
+        occurredAt: "2026-09-03T00:00:00.000Z",
+        actorSubjectId: "alice"
+      }
+    ]
+  });
+  const decision = holds.decision("memory:held");
+  assert.equal(decision.held, true);
+  assert.equal(decision.holdId, "case:a");
+});
+
+test("DLP never overrides explicit human privacy governance", async () => {
+  const memoryStore = createMemoryContextMemoryStoreV010({
+    contractVersion: "0.1.0",
+    items: [item("memory:manual", "Human classified knowledge")]
+  });
+  const governanceStore = createMemoryContextMemoryGovernanceStoreV010({
+    contractVersion: "0.1.0",
+    events: [{
+      contractVersion: "0.1.0",
+      eventId: "human:classification",
+      memoryId: "memory:manual",
+      context: personal,
+      state: "ACTIVE",
+      privacyClass: "SENSITIVE",
+      origin: "HUMAN",
+      occurredAt: "2026-09-27T01:00:00.000Z",
+      actorSubjectId: "alice"
+    }]
+  });
+  let calls = 0;
+  const operations = createContextMemoryScheduledOperationsV010({
+    memoryStore,
+    governanceStore,
+    retentionPolicies: createMemoryContextMemoryRetentionPolicyStoreV010(),
+    legalHolds: createMemoryContextMemoryLegalHoldStoreV010(),
+    operationLog: createMemoryContextMemoryOperationLogV010(),
+    dlpClassifier: {
+      providerId: "test.dlp",
+      classify() {
+        calls++;
+        return {
+          contractVersion: "0.1.0",
+          privacyClass: "STANDARD",
+          labels: [],
+          reasonCodes: ["NO_MATCH"]
+        };
+      }
+    },
+    now: () => new Date("2026-09-27T05:00:00.000Z"),
+    id: () => "manual"
+  });
+  const result = await operations.runDlp(personal);
+  assert.equal(result.state, "SUCCEEDED");
+  assert.equal(result.changed, 0);
+  assert.equal(result.skipped, 1);
+  assert.equal(calls, 0);
+  assert.equal(governanceStore.snapshot().events.length, 1);
+  assert.equal(governanceStore.decision("memory:manual").privacyClass, "SENSITIVE");
+});
+
+test("DLP Provider failure leaves the entire classification batch unmodified", async () => {
+  const memoryStore = createMemoryContextMemoryStoreV010({
+    contractVersion: "0.1.0",
+    items: [
+      item("memory:first", "First candidate"),
+      item("memory:second", "Second candidate")
+    ]
+  });
+  const governanceStore = createMemoryContextMemoryGovernanceStoreV010();
+  let calls = 0;
+  const operations = createContextMemoryScheduledOperationsV010({
+    memoryStore,
+    governanceStore,
+    retentionPolicies: createMemoryContextMemoryRetentionPolicyStoreV010(),
+    legalHolds: createMemoryContextMemoryLegalHoldStoreV010(),
+    operationLog: createMemoryContextMemoryOperationLogV010(),
+    dlpClassifier: {
+      providerId: "test.dlp",
+      classify() {
+        calls++;
+        if (calls === 2) throw new Error("REMOTE_DLP_FAILED");
+        return {
+          contractVersion: "0.1.0",
+          privacyClass: "SENSITIVE",
+          labels: ["TEST"],
+          reasonCodes: ["TEST"]
+        };
+      }
+    },
+    now: () => new Date("2026-09-27T05:00:00.000Z"),
+    id: () => "atomic"
+  });
+  const result = await operations.runDlp(personal);
+  assert.equal(result.state, "FAILED");
+  assert.equal(governanceStore.snapshot().events.length, 0);
+});
