@@ -48,8 +48,8 @@ test("DeepSeek LLM Provider is a lifecycle-managed platform provider with Host S
   const plan = manager.planInstall("deepseek-llm-provider");
   assert.deepEqual(plan.blockers, []);
   assert.deepEqual(plan.installPackages, [
-    "host-encrypted-secrets-provider",
-    "deepseek-llm-provider"
+    "deepseek-llm-provider",
+    "host-encrypted-secrets-provider"
   ]);
 
   manager.install("deepseek-llm-provider");
