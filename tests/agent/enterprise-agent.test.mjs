@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createEnterpriseAgentRuntime } from "../../dist/agents/enterprise-agent/runtime.js";
 import { createDevelopmentAgentModel } from "../../dist/agents/enterprise-agent/development-model.js";
 import { createProviderBackedAgentModel } from "../../dist/agents/enterprise-agent/provider-model.js";
+import { personalAgentResponsibilityPolicyV010 } from "../../dist/agents/enterprise-agent/responsibility-policy.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../../dist/agents/enterprise-agent/host-tool-catalog.js";
 import { presentPersonalAgentReplyV020 } from "../../dist/agents/enterprise-agent/reply-presentation.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
@@ -808,4 +809,63 @@ test("Host authorization blocks Personal Agent Material WRITE before tool execut
     arguments: {}
   }, []);
   assert.equal(read.ok, true);
+});
+
+
+test("Personal Agent responsibility policy keeps Human intent/authority while Agent owns execution follow-through", () => {
+  assert.equal(
+    personalAgentResponsibilityPolicyV010.principle,
+    "Human owns intent and authority; Personal Agent owns understanding, judgment, execution and follow-through within that authority."
+  );
+  assert.deepEqual(personalAgentResponsibilityPolicyV010.toolEffectDefaults, {
+    READ: "EXECUTE",
+    PLAN: "EXECUTE",
+    WRITE: "ASK_FOR_AUTHORIZATION"
+  });
+  assert.ok(
+    personalAgentResponsibilityPolicyV010.clarificationRules.some(rule =>
+      /Do not ask the human for information that can be discovered/.test(rule)
+    )
+  );
+  assert.ok(
+    personalAgentResponsibilityPolicyV010.continuationRules.some(rule =>
+      /After authorization is granted, continue/.test(rule)
+    )
+  );
+});
+
+test("provider-backed Personal Agent receives durable responsibility policy independent of model Provider", async () => {
+  let captured;
+  const provider = {
+    providerId: "test.provider",
+    modelId: "replaceable-model",
+    async infer(request) {
+      captured = request;
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.provider",
+        modelId: "replaceable-model",
+        text: "done",
+        toolCalls: [],
+        usage: { inputTokens: 1, outputTokens: 1 },
+        finishReason: "stop"
+      };
+    }
+  };
+
+  const model = createProviderBackedAgentModel(provider);
+  const result = await model.decide({
+    userMessage: "Please handle this for me.",
+    tools: [],
+    observations: []
+  });
+
+  assert.equal(result.type, "final");
+  assert.equal(result.message, "done");
+  const system = captured.messages.find(message => message.role === "system").content;
+  assert.match(system, /Human owns intent and authority/);
+  assert.match(system, /Do not ask the human for information that can be discovered/);
+  assert.match(system, /Prefer repairing the approach and continuing/);
+  assert.match(system, /After authorization is granted, continue/);
+  assert.match(system, /not merely to describe options from the sidelines/);
 });
