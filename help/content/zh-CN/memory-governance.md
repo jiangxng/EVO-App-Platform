@@ -5,7 +5,7 @@
   "ownerPackageId": "evo-app-platform",
   "ownerFeatureId": "evo-memory-governance.system",
   "locale": "zh-CN",
-  "kind": "guide",
+  "kind": "administration",
   "title": "Memory 治理、保留策略与 Legal Hold",
   "summary": "在不修改 immutable Memory 的前提下管理 Context Memory 的保留、隐私分类、Legal Hold、定时操作与 Provider 健康状态。",
   "audiences": ["user", "admin", "operator", "developer", "agent"],
