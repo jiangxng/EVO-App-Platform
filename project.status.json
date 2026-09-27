@@ -257,7 +257,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4 has started with a durable Personal Agent responsibility policy: Human owns intent/authority while the Agent owns understanding, professional judgment, execution and follow-through within Host authority. The policy now governs clarification, constructive correction, continuation after authorization and default READ/PLAN/WRITE responsibility. Next: add measurable Agent/Memory quality evaluation signals and retention-policy simulation without weakening these authority boundaries.",
+  "currentStep": "P1.4A Personal Agent Responsibility Policy is CI-verified: all 16 triggered workflows passed, including Platform CI, Enterprise Agent, P1.3.1 Experience CI, P1.2/P1.3 Memory regressions and the dedicated Responsibility CI. Next: preserve the Human browser experience checkpoint, then continue P1.4 with measurable Agent/Memory quality evaluation and retention-policy simulation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1109,7 +1109,7 @@
       "next": "P1_4_MEMORY_EVALUATION_POLICY_SIMULATION_AND_OPERATIONAL_HARDENING"
     },
     "responsibilityP1_4": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4A",
       "authority": "docs/architecture/PERSONAL-AGENT-RESPONSIBILITY-POLICY-v0.1.md",
       "principle": "HUMAN_OWNS_INTENT_AND_AUTHORITY_AGENT_OWNS_UNDERSTANDING_JUDGMENT_EXECUTION_FOLLOW_THROUGH",
       "responsibilityModes": [
