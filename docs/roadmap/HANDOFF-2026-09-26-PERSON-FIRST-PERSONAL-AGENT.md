@@ -837,3 +837,66 @@ Authority:
 - `docs/architecture/PERSONAL-AGENT-TRENDS-FRESHNESS-FOLLOWUP-P1.4E-v0.1.md`
 
 After P1.4E, schedule a deliberate vertical browser experience checkpoint covering installation → Provider configuration → Personal Agent → Memory review → governance → quality → follow-up using only production contracts and Host capabilities.
+
+
+## P1.4X — Vertical Personal Agent Experience Checkpoint
+
+P1.4E completed the current architecture slice. The next step is deliberately **not** another backend feature wave.
+
+P1.4X validates the product vertically through real interfaces:
+
+```text
+Install
+→ LLM Provider setup
+→ Host Secrets
+→ Ready
+→ Personal Agent
+→ Memory Proposal / Review
+→ Governance / Retention
+→ Quality / Human evaluation
+→ Contradiction resolution
+→ Follow-up
+→ Agent continuation
+```
+
+Local entry point:
+
+- `npm run experience:start`
+- browser: `http://localhost:4100`
+- clean reset: `npm run experience:reset`
+
+The local profile configures only formal deployment inputs:
+
+- Host Static Session Provider;
+- Host Static Authorization Provider;
+- bootstrap administrator authentication;
+- durable local Host state.
+
+It does not preinstall Personal Agent/OpenAI Provider, store an API Key or create fake Memory.
+
+A startup gap was corrected: when `APP_PLATFORM_AUTHORIZATION_POLICY_JSON` is configured, the corresponding first-party Static Authorization Provider Package is automatically activated, matching the existing configured Static Session behavior.
+
+Machine gate:
+
+- boot the real App Platform server;
+- verify formal Session/Authorization Providers are effective;
+- verify bootstrap admin authorization through the real policy Provider;
+- install Personal Agent and OpenAI Provider through `/v1/actions`;
+- verify effective Experience routes;
+- reach the real Provider configuration-required Setup state;
+- verify OpenAI Settings exposes Host Secret + administrator authorization.
+
+Human gate:
+
+- real API Key;
+- real LLM conversation;
+- Memory Proposal and acceptance;
+- contradiction creation and Human resolution;
+- Follow-up continuity;
+- responsibility/terminology/usability judgment.
+
+Authority:
+
+- `docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md`
+
+Do not mark `live-real-llm-install-proof` complete before the Human browser gate is actually performed.
