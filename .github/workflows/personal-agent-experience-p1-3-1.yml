@@ -1,0 +1,45 @@
+name: Experience CI - Personal Agent P1.3.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "tests/app-host/agent-workspace.test.mjs"
+      - "tests/settings/plugin-settings.test.mjs"
+      - "tests/protocol/context-memory-p1-3-operations.test.mjs"
+      - "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md"
+      - "docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md"
+      - "package.json"
+      - ".github/workflows/personal-agent-experience-p1-3-1.yml"
+  pull_request:
+    paths:
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "tests/app-host/agent-workspace.test.mjs"
+      - "tests/settings/plugin-settings.test.mjs"
+      - "tests/protocol/context-memory-p1-3-operations.test.mjs"
+      - "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md"
+      - "docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md"
+      - "package.json"
+      - ".github/workflows/personal-agent-experience-p1-3-1.yml"
+
+concurrency:
+  group: personal-agent-experience-p1-3-1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  experience:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:experience:p1-3-1
