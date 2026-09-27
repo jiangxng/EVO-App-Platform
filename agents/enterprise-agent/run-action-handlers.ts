@@ -227,7 +227,8 @@ export function createPersonalAgentRunActionHandlersV010(
           const resumed = await dependencies.runExecutor.resume({
             runId: run.runId,
             principal,
-            context
+            context,
+            requestContext
           });
           return success(request, resumed);
         } catch (error) {
@@ -248,7 +249,8 @@ export function createPersonalAgentRunActionHandlersV010(
           const result = await dependencies.runExecutor.resume({
             runId: runIdFromRequest(request),
             principal,
-            context
+            context,
+            requestContext
           });
           return success(request, result);
         } catch (error) {
