@@ -187,3 +187,25 @@ Equivalent pending intake candidates are fingerprint-deduplicated before review.
 Experience Compiler integrates through the generic `ContextMemoryIntakeSourceAdapterV010` boundary. App Platform does not depend on EC internals.
 
 The reference Context Memory Reader now reports its explicit retrieval strategy and ranking signals. The Host reference implementation supports deterministic `LEXICAL` retrieval only and fails closed for unsupported SEMANTIC/HYBRID requests rather than silently degrading.
+
+
+## Memory retention, privacy and semantic retrieval
+
+P1.2 adds append-only governance over durable Context Memory.
+
+`context.memory.governance.set` can mark Memory as ACTIVE, RESTRICTED or EXPIRED and can assign STANDARD, SENSITIVE or RESTRICTED privacy classification plus an optional retention deadline.
+
+The Memory record itself is never rewritten. Governance changes are separate append-only events.
+
+By default, Personal Agent retrieval excludes RESTRICTED/EXPIRED Memory and any Memory with RESTRICTED privacy classification. Filtering happens before lexical, semantic or hybrid ranking.
+
+Enterprise Memory retention/privacy governance requires OWNER or ADMIN. MEMBER may contribute Memory under the P0.9 rules but cannot change enterprise retention/privacy policy.
+
+P1.2 also supports `SEMANTIC` and `HYBRID` retrieval through the replaceable `context.memory.semantic-retrieval` Provider. If no semantic Provider is configured, those strategies fail closed instead of silently behaving like lexical search.
+
+The optional remote semantic Provider receives only already-authorized, governance-visible candidates. It cannot return a Memory id outside that candidate set.
+
+Experience Compiler may connect through the production `experience-compiler-memory-intake-provider`. EC records still enter the normal P1.1 Proposal pipeline and never gain direct durable Memory write authority.
+
+> [!IMPORTANT] Source trust is not truth
+> HOST_VERIFIED means the Host verified the source/integration according to policy. Human review still decides whether a proposal becomes durable Memory.
