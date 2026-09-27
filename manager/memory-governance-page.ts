@@ -166,7 +166,7 @@ export async function createMemorySearchPageV010(input: {
     contractVersion: "0.1.0",
     context: input.context,
     strategy: "LEXICAL",
-    limit: 500
+    limit: 100
   });
   const scores = new Map((result.ranking ?? []).map(value => [value.memoryId, value]));
   return {
