@@ -1,0 +1,57 @@
+name: Plugin CI - Context Memory P1.2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/context-memory/**"
+      - "providers/context-memory-semantic/**"
+      - "providers/experience-compiler-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-governance-store.ts"
+      - "manager/context-memory-governance-actions.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-actions.ts"
+      - "manager/context-memory-intake-**"
+      - "manager/context-memory-proposal-**"
+      - "manager/server.ts"
+      - "tests/protocol/context-memory-retention-semantic-ec.test.mjs"
+      - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-context-memory-p1-2.yml"
+  pull_request:
+    paths:
+      - "providers/context-memory/**"
+      - "providers/context-memory-semantic/**"
+      - "providers/experience-compiler-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-governance-store.ts"
+      - "manager/context-memory-governance-actions.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-actions.ts"
+      - "manager/context-memory-intake-**"
+      - "manager/context-memory-proposal-**"
+      - "manager/server.ts"
+      - "tests/protocol/context-memory-retention-semantic-ec.test.mjs"
+      - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/context-memory-proposal-review.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-context-memory-p1-2.yml"
+
+concurrency:
+  group: plugin-context-memory-p1-2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:context-memory-p1-2
