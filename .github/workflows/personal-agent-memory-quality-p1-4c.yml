@@ -1,0 +1,51 @@
+name: Agent/Memory CI - Quality P1.4C
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/quality-evidence-store.ts"
+      - "agents/enterprise-agent/chat-action-handler.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/context-memory-retention-draft-store.ts"
+      - "manager/context-memory-policy-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4c.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/quality-evidence-store.ts"
+      - "agents/enterprise-agent/chat-action-handler.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/context-memory-retention-draft-store.ts"
+      - "manager/context-memory-policy-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4c.yml"
+
+concurrency:
+  group: personal-agent-memory-quality-p1-4c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-memory:quality-p1-4c

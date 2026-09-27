@@ -111,7 +111,8 @@ test("Ready completes the journey into Agent and governed Memory surfaces", () =
     [
       ["review-memory", "/enterprise-agent/memory"],
       ["memory-governance", "/memory"],
-      ["memory-source-health", "/memory/sources"]
+      ["memory-source-health", "/memory/sources"],
+      ["agent-quality", "/enterprise-agent/quality"]
     ]
   );
 });

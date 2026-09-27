@@ -465,6 +465,12 @@ export function createPersonalAgentSetupPageV010(
                   label: "Memory Source Health",
                   type: "navigate",
                   route: "/memory/sources"
+                },
+                {
+                  id: "agent-quality",
+                  label: "Personal Agent Quality",
+                  type: "navigate",
+                  route: "/enterprise-agent/quality"
                 }
               ] as const
             }

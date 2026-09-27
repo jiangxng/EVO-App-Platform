@@ -1,4 +1,5 @@
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
+import type { UidlFormV011 } from "../vendor/eidos/src/runtime/contracts.js";
 import type {
   ActiveContextRefV010,
   ContextMemoryGovernanceProviderV010,
@@ -10,6 +11,7 @@ import type {
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import type { ContextMemoryRetentionDraftStoreV010 } from "./context-memory-retention-draft-store.js";
 import type { ContextMemoryOperationLogV010 } from "./context-memory-operations.js";
 import { simulateContextMemoryRetentionV010 } from "./context-memory-retention-simulation.js";
 import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -19,6 +21,8 @@ export const memoryGovernancePageSource = "app://evo-app-platform/pages/memory";
 export const memorySearchPageSource = "app://evo-app-platform/pages/memory/search";
 export const memorySourceHealthPageSource = "app://evo-app-platform/pages/memory/sources";
 export const memoryRetentionSimulationPageSource = "app://evo-app-platform/pages/memory/retention-simulation";
+export const memoryRetentionDraftNewPageSource = "app://evo-app-platform/pages/memory/retention-drafts/new";
+export const memoryRetentionDraftsPageSource = "app://evo-app-platform/pages/memory/retention-drafts";
 
 export function createMemoryGovernanceExperienceManifestV010() {
   return {
@@ -31,13 +35,17 @@ export function createMemoryGovernanceExperienceManifestV010() {
       { id: "evo-memory.home", title: "Memory Governance", source: memoryGovernancePageSource },
       { id: "evo-memory.search", title: "Memory Search", source: memorySearchPageSource },
       { id: "evo-memory.sources", title: "Memory Source Health", source: memorySourceHealthPageSource },
-      { id: "evo-memory.retention-simulation", title: "Retention Simulation", source: memoryRetentionSimulationPageSource }
+      { id: "evo-memory.retention-simulation", title: "Retention Simulation", source: memoryRetentionSimulationPageSource },
+      { id: "evo-memory.retention-draft-new", title: "Prepare Retention Policy", source: memoryRetentionDraftNewPageSource },
+      { id: "evo-memory.retention-drafts", title: "Retention Drafts", source: memoryRetentionDraftsPageSource }
     ],
     routes: [
       { id: "evo-memory.home", path: "/memory", pageId: "evo-memory.home" },
       { id: "evo-memory.search", path: "/memory/search", pageId: "evo-memory.search" },
       { id: "evo-memory.sources", path: "/memory/sources", pageId: "evo-memory.sources" },
-      { id: "evo-memory.retention-simulation", path: "/memory/retention-simulation", pageId: "evo-memory.retention-simulation" }
+      { id: "evo-memory.retention-simulation", path: "/memory/retention-simulation", pageId: "evo-memory.retention-simulation" },
+      { id: "evo-memory.retention-draft-new", path: "/memory/retention-drafts/new", pageId: "evo-memory.retention-draft-new" },
+      { id: "evo-memory.retention-drafts", path: "/memory/retention-drafts", pageId: "evo-memory.retention-drafts" }
     ]
   } as const;
 }
@@ -171,6 +179,28 @@ export function createMemoryGovernancePageV010(input: {
         },
         metadata: {
           sideEffectFree: true
+        }
+      },
+      {
+        id: "memory-governance:retention-policy-draft",
+        title: "Prepare retention policy",
+        category: "Governance tool",
+        summary: "Create a non-authoritative draft, preview its impact, then confirm before append-only policy commit.",
+        primaryAction: {
+          id: "prepare-retention-policy",
+          label: "Prepare policy",
+          type: "navigate",
+          route: "/memory/retention-drafts/new"
+        },
+        secondaryActions: [{
+          id: "review-retention-drafts",
+          label: "Review drafts",
+          type: "navigate",
+          route: "/memory/retention-drafts"
+        }],
+        metadata: {
+          previewRequired: true,
+          appendOnlyCommit: true
         }
       },
       ...governedItems
@@ -347,5 +377,139 @@ export function createMemoryRetentionSimulationPageV010(input: {
       }
     })),
     emptyMessage: "No Memory exists in this Context."
+  };
+}
+
+
+export function createMemoryRetentionDraftFormV010(): UidlFormV011 {
+  return {
+    contractVersion: "0.1.1",
+    kind: "form",
+    id: "evo.memory.retention-draft-new",
+    title: "Prepare retention policy",
+    purpose: "execute-command",
+    command: {
+      code: "context.memory.retention-draft.prepare",
+      inputVersion: "0.1.0"
+    },
+    fields: [
+      {
+        key: "policyId",
+        label: "Policy ID",
+        semanticType: "context.memory.retention-policy.id",
+        control: "text",
+        required: true
+      },
+      {
+        key: "retainForDays",
+        label: "Retain for days",
+        semanticType: "duration.days",
+        control: "number",
+        required: true,
+        validation: { min: 1 }
+      },
+      {
+        key: "reason",
+        label: "Reason",
+        semanticType: "governance.reason",
+        control: "text",
+        required: false
+      }
+    ],
+    actions: [
+      {
+        id: "preview",
+        label: "Preview and prepare draft",
+        type: "submit",
+        requiresConfirmation: false
+      }
+    ],
+    metadata: {
+      authority: "planning-only",
+      governanceMutation: false,
+      nextRoute: "/memory/retention-drafts"
+    }
+  };
+}
+
+export function createMemoryRetentionDraftsPageV010(input:{
+  principal: PlatformPrincipalV010;
+  personalContext: PersonalContextV010;
+  context: ActiveContextRefV010;
+  drafts: ContextMemoryRetentionDraftStoreV010;
+  relationships?: EnterpriseContextRelationshipProviderV010;
+}): CatalogBrowserV010 {
+  const allowed=governanceAllowed(
+    input.principal,
+    input.personalContext,
+    input.context,
+    input.relationships
+  );
+  if(!allowed){
+    return {
+      contractVersion:"0.1.0",
+      kind:"catalog-browser",
+      id:"evo.memory.retention-drafts",
+      title:"Retention Drafts",
+      description:"Enterprise retention draft review requires an active OWNER or ADMIN relationship.",
+      items:[],
+      emptyMessage:"You do not have retention policy authority for this Context."
+    };
+  }
+
+  const drafts=input.drafts.listForContext(input.context);
+  return {
+    contractVersion:"0.1.0",
+    kind:"catalog-browser",
+    id:"evo.memory.retention-drafts",
+    title:"Retention Drafts",
+    description:"Prepared policies are non-authoritative until Human confirmation commits an append-only policy event.",
+    items:drafts.map(draft=>({
+      id:draft.draftId,
+      title:draft.policy.policyId,
+      category:draft.state,
+      summary:[
+        `retain=${draft.policy.retainForDays}d`,
+        `examined=${draft.simulation.totals.examined}`,
+        `would-expire=${draft.simulation.totals.wouldExpire}`,
+        `legal-hold=${draft.simulation.totals.legalHold}`,
+        draft.policy.reason ? `reason=${draft.policy.reason}` : undefined
+      ].filter(Boolean).join(" · "),
+      status:{
+        label:draft.state,
+        tone:draft.state==="PREPARED"
+          ? "warning" as const
+          : draft.state==="COMMITTED"
+            ? "positive" as const
+            : "neutral" as const
+      },
+      ...(draft.state==="PREPARED"
+        ? {
+            primaryAction:{
+              id:"commit-retention-draft",
+              label:"Confirm and commit",
+              type:"command" as const,
+              command:"context.memory.retention-draft.commit",
+              inputVersion:"0.1.0",
+              requiresConfirmation:true
+            },
+            secondaryActions:[{
+              id:"discard-retention-draft",
+              label:"Discard",
+              type:"command" as const,
+              command:"context.memory.retention-draft.discard",
+              inputVersion:"0.1.0",
+              requiresConfirmation:false
+            }]
+          }
+        : {}),
+      metadata:{
+        preparedAt:draft.occurredAt,
+        previewWouldExpire:draft.simulation.totals.wouldExpire,
+        previewLegalHold:draft.simulation.totals.legalHold,
+        committedPolicyEventId:draft.committedPolicyEventId ?? null
+      }
+    })),
+    emptyMessage:"No retention policy drafts exist for this Context."
   };
 }
