@@ -46,7 +46,8 @@
     "continuity:render": "node tools/project-continuity.mjs --write",
     "continuity:validate": "node tools/project-continuity.mjs --check",
     "test:plugin:context-memory-p1-5a": "npm run build && node --test tests/protocol/context-memory-inventory.test.mjs tests/protocol/context-memory-canonicalization.test.mjs tests/protocol/context-memory-governance.test.mjs tests/agent/enterprise-agent.test.mjs",
-    "test:agent-action-receipt:p1-5b": "npm run build && node --test tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs tests/agent/conversation-continuity.test.mjs"
+    "test:agent-action-receipt:p1-5b": "npm run build && node --test tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs tests/agent/conversation-continuity.test.mjs",
+    "test:agent-run:p1-5c": "npm run build && node --test tests/agent/resumable-agent-run.test.mjs tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
