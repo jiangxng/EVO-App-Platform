@@ -26,6 +26,9 @@ on:
       - "tests/protocol/context-memory-proposal-review.test.mjs"
       - "tests/protocol/context-memory-governance.test.mjs"
       - "package.json"
+      - "project.status.json"
+      - "docs/architecture/MEMORY-OPERATIONS-RETENTION-LEGAL-HOLD-DLP-P1.3-v0.1.md"
+      - "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
       - ".github/workflows/plugin-context-memory-p1-3.yml"
   pull_request:
     paths:
@@ -51,6 +54,9 @@ on:
       - "tests/protocol/context-memory-proposal-review.test.mjs"
       - "tests/protocol/context-memory-governance.test.mjs"
       - "package.json"
+      - "project.status.json"
+      - "docs/architecture/MEMORY-OPERATIONS-RETENTION-LEGAL-HOLD-DLP-P1.3-v0.1.md"
+      - "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
       - ".github/workflows/plugin-context-memory-p1-3.yml"
 
 concurrency:
