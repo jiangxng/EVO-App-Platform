@@ -41,7 +41,7 @@
     "test:agent-memory:quality-p1-4e": "npm run build && node --test tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs",
     "experience:start": "npm run build && node tools/start-personal-agent-experience.mjs",
     "experience:reset": "npm run build --silent && node tools/reset-personal-agent-experience.mjs",
-    "test:experience:p1-4-checkpoint": "npm run build && node --test tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs",
+    "test:experience:p1-4-checkpoint": "npm run build && node --test tests/app-host/dynamic-chat-actions.test.mjs tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs",
     "test:plugin:deepseek-provider": "npm run build && node --test tests/llm/deepseek-provider.test.mjs tests/llm/provider.test.mjs tests/integration/personal-agent-experience-journey.test.mjs"
   },
   "devDependencies": {
