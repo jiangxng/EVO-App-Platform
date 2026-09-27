@@ -1,0 +1,47 @@
+name: Experience CI - Personal Agent P1.4X
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "manager/local-experience-profile.ts"
+      - "manager/server.ts"
+      - "tools/start-personal-agent-experience.mjs"
+      - "tools/reset-personal-agent-experience.mjs"
+      - "tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md"
+      - "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md"
+      - "README.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-vertical-experience-p1-4x.yml"
+  pull_request:
+    paths:
+      - "manager/local-experience-profile.ts"
+      - "manager/server.ts"
+      - "tools/start-personal-agent-experience.mjs"
+      - "tools/reset-personal-agent-experience.mjs"
+      - "tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md"
+      - "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md"
+      - "README.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-vertical-experience-p1-4x.yml"
+
+concurrency:
+  group: personal-agent-vertical-experience-p1-4x-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vertical-experience:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:experience:p1-4-checkpoint

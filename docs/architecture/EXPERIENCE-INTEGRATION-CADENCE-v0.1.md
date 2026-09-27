@@ -89,7 +89,7 @@ Create one when at least one of these becomes true:
 
 Do not create one solely because a version number changed.
 
-## Current checkpoint: P1.3.1
+## Previous checkpoint: P1.3.1
 
 P1.3.1 does not create a second setup system.
 
@@ -119,6 +119,41 @@ The same readiness function drives:
 - Plugin Store product state.
 
 There is no UI-local readiness truth.
+
+## Current checkpoint: P1.4X
+
+P1.4A–P1.4E added responsibility, real quality evidence, Human/Lab evaluation, Memory Quality, retention preview/commit, freshness policy and Personal Agent Follow-up.
+
+Additional backend work would now multiply unvalidated interaction assumptions, so P1.4X deliberately pauses horizontal expansion and composes the real lifecycle:
+
+```text
+one-command local Host
+→ Plugin Store
+→ install Personal Agent
+→ Setup
+→ install/configure OpenAI Provider
+→ Host Secrets + authorization
+→ Ready
+→ Personal Agent
+→ Memory Proposal
+→ Human Review + Accept
+→ Memory Governance / Retention
+→ Memory Quality / Human quality review
+→ contradiction resolution
+→ Personal Agent Follow-up
+→ Agent continuation
+```
+
+P1.4X introduces no demo-only business state.
+
+Its local experience profile only supplies deployment-scoped Static Session + Static Authorization configuration and durable state location. Product Packages, credentials, Memory and quality data are still created through normal product contracts.
+
+The checkpoint has two distinct gates:
+
+- **MACHINE_VERIFIED** — automated real-Host/public-contract journey;
+- **HUMAN_BROWSER_PASS** — real LLM/browser judgment of terminology, sequencing, responsibility and continuity.
+
+Do not mark the live real-LLM proof complete from machine CI alone.
 
 ## Long-term rule
 

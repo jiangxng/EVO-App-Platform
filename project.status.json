@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4 — Trends + Freshness Policy + Follow-up",
+  "currentMilestone": "Personal Agent P1.4X — Vertical Experience Checkpoint",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -264,7 +264,11 @@
     "personal-agent-follow-up-append-only",
     "personal-agent-follow-up-agent-tool",
     "personal-agent-follow-up-chat-suggestions",
-    "eidos-personal-agent-follow-up-surface"
+    "eidos-personal-agent-follow-up-surface",
+    "personal-agent-vertical-experience-profile",
+    "configured-authorization-provider-auto-activation",
+    "personal-agent-one-command-local-experience",
+    "personal-agent-vertical-public-contract-machine-checkpoint"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -287,7 +291,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4E is CI-verified: 20/20 triggered workflows passed, including Platform CI, Experience CI, P1.4A/P1.4B/P1.4C/P1.4D regressions, P1.2/P1.3 Memory suites and the dedicated P1.4E CI. Personal Agent quality now has evidence-bounded 7/30/90-day trend windows; Memory freshness is governed by append-only Context/kind policies; Human-confirmed contradiction resolutions can create planning-only Personal Agent Follow-ups surfaced through a read-only Host tool and chat suggestions. Next: vertical browser experience checkpoint using production contracts only.",
+  "currentStep": "P1.4X machine gate is verified: 20/20 triggered workflows passed, including the dedicated vertical Experience CI that boots the real Host, verifies formal Static Session/Authorization Providers and bootstrap authorization, installs Personal Agent/OpenAI Provider through public /v1/actions, and reaches the real Provider configuration-required Eidos Setup/Settings surfaces. HUMAN_BROWSER_PASS remains pending. Next action is the user-run browser checkpoint with a real API key; live-real-llm-install-proof remains intentionally notYetImplemented until that Human gate passes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -342,6 +346,23 @@
         "PostingInput",
         "postingStatus-QUEUED-evo-owned"
       ]
+    },
+    "personalAgentVerticalExperienceMachine": {
+      "status": "PASS",
+      "date": "2026-09-27",
+      "mode": "REAL_HOST_PUBLIC_CONTRACTS_NO_LLM_SECRET",
+      "flow": [
+        "ONE_COMMAND_LOCAL_PROFILE",
+        "STATIC_SESSION_PROVIDER",
+        "STATIC_AUTHORIZATION_PROVIDER",
+        "BOOTSTRAP_ADMIN_AUTHORIZATION",
+        "PUBLIC_ACTIONHOST_PERSONAL_AGENT_INSTALL",
+        "PUBLIC_ACTIONHOST_OPENAI_PROVIDER_INSTALL",
+        "EFFECTIVE_EXPERIENCE",
+        "PROVIDER_CONFIGURATION_REQUIRED",
+        "HOST_SECRET_SETTINGS_SURFACE"
+      ],
+      "humanBrowserPass": false
     }
   },
   "handoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md",
@@ -1367,5 +1388,40 @@
       "MEMORY_SOURCE_HEALTH"
     ],
     "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
+  },
+  "experienceCheckpointP1_4X": {
+    "status": "MACHINE_VERIFIED_READY_FOR_HUMAN_BROWSER",
+    "authority": "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md",
+    "startCommand": "npm run experience:start",
+    "resetCommand": "npm run experience:reset",
+    "url": "http://localhost:4100",
+    "profile": {
+      "productionContractsOnly": true,
+      "sessionProvider": "host.static-session",
+      "authorizationProvider": "host.static-authorization",
+      "durableState": true,
+      "preinstalledPersonalAgent": false,
+      "preconfiguredLlmProvider": false,
+      "preconfiguredApiKey": false,
+      "fakeMemory": false
+    },
+    "machineGate": "PASS_20_OF_20",
+    "humanBrowserGate": "PENDING_USER_RUN",
+    "liveRealLlmProof": "PENDING_HUMAN_BROWSER",
+    "journey": [
+      "INSTALL",
+      "PROVIDER_SETUP",
+      "HOST_SECRETS",
+      "READY",
+      "PERSONAL_AGENT",
+      "MEMORY_PROPOSAL",
+      "HUMAN_REVIEW",
+      "MEMORY_GOVERNANCE",
+      "RETENTION_PREVIEW_COMMIT",
+      "MEMORY_QUALITY",
+      "HUMAN_QUALITY_EVALUATION",
+      "CONTRADICTION_RESOLUTION",
+      "PERSONAL_AGENT_FOLLOW_UP"
+    ]
   }
 }
