@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.5-2026-09-27-01`  
-**Snapshot time:** `2026-09-27T15:05:00.000Z`  
+**Snapshot:** `P1.5-2026-09-27-02`  
+**Snapshot time:** `2026-09-27T15:20:06.336Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -39,20 +39,21 @@ Evidence:
 
 ## Current open live gate
 
-**p1.5a-context-memory-governance-inventory: IMPLEMENTATION_READY**
+**p1.5a-context-memory-governance-inventory: DEPLOYED_HUMAN_GATE_READY**
 
-Add a deterministic paginated governance inventory/read surface for Context Memory so completeness, duplicate-set discovery and audit workflows do not misuse ranked retrieval as inventory.
+P1.5A deterministic paginated Context Memory inventory is deployed. Human browser must ask a completeness-sensitive question without naming the tool and verify Personal Agent selects inventory, reports exact reader-visible count/completeness, includes historical A/B relation, and does not fall back to ranked search/recall as proof of completeness.
 
 Acceptance:
 
-- inventory is deterministic and paginated
-- inventory is scoped by Host-resolved Context and authorization
-- governance/restriction visibility rules are explicit
-- inventory does not use relevance ranking
-- stable cursor semantics are defined
-- exact total/completeness semantics are explicit where supported
-- Personal Agent can distinguish inventory from ranked recall/search
-- existing retrieval and exact-ID audit behavior remains unchanged
+- fresh Personal Agent conversation or no useful prior discourse
+- Human asks for an exact complete governed Memory count/list without naming the inventory tool
+- Agent selects context.memory.inventory.list for completeness rather than ranked search/recall
+- Agent reports exact reader-visible totalCount and complete state
+- Agent paginates using nextCursor until complete=true if more than one page exists
+- Agent distinguishes effective Memory from historical superseded/canonicalized Memory
+- Agent can identify the 17:00 A/B canonicalization relationship from inventory metadata
+- Agent states the completeness scope is READER_VISIBLE_CURRENT_CONTEXT, not physical/global store
+- Agent performs READ only and creates no Proposal/WRITE
 
 ## Current production preview
 
@@ -61,8 +62,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `8ffc87369b3dfe021a3fd3c27f3b4ad6242789de`
-- Deployment: `34d37eee-45e7-4bb7-a55f-1b811120a8e8`
+- Commit: `64255c3905a905bf56a91492cdeff6b33ae19a36`
+- Deployment: `0e6de7ad-0015-4544-8dd6-18af20568785`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -103,7 +104,8 @@ Not proved:
 - PR #95 — MERGED: Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery.
 - PR #96 — MERGED_DEPLOYED: Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false.
 - PR #97 — MERGED: Record fresh-session recall functional pass and PR #96 epistemic retest gate.
-- PR #98 — PLANNED_IN_THIS_CHANGE: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
+- PR #98 — MERGED: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
+- PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
 
 ## DO NOT repeat stale actions
 
@@ -136,9 +138,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state current milestone as Personal Agent P1.5 — Durable Agent Operations
 - state P1.4X as Human LIVE PASS and closed
-- state P1.5A Context Memory governance inventory as the current open gate
-- state the current deployed runtime behavior revision and Railway service
-- identify PR #96 as the latest deployed behavioral change and PR #97 as the latest merged status change before P1.5 bootstrap
+- state P1.5A Context Memory governance inventory Human browser verification as the current open gate
+- state current deployed runtime revision 64255c3905a905bf56a91492cdeff6b33ae19a36 and Railway service
+- identify PR #99 as the latest deployed behavioral change
+- distinguish ranked retrieval from deterministic inventory
 - identify the old dc107947 content Proposal as a do-not-accept stale action
 - do not require the previous ChatGPT transcript to continue
 
