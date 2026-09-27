@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.5-2026-09-28-01`  
-**Snapshot time:** `2026-09-27T16:06:10.197Z`  
+**Snapshot:** `P1.5-2026-09-28-02`  
+**Snapshot time:** `2026-09-27T16:12:00.000Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,23 +40,24 @@ Evidence:
 
 ## Current open live gate
 
-**p1.5b-generic-durable-agent-action-receipt: DEPLOYED_HUMAN_GATE_READY**
+**p1.5b-generic-durable-agent-action-receipt-readback: HUMAN_WRITE_PASS_READBACK_PENDING**
 
-P1.5B durable Agent Action Receipts are deployed. Human live verification must prove one real Personal Agent WRITE produces a SUCCEEDED durable receipt and that a fresh chat can READ that receipt plus the domain Proposal without repeating the WRITE.
+The real WRITE half of P1.5B passed: a test-only Memory Proposal was staged PENDING and a durable SUCCEEDED receipt linked to its proposalId. The only remaining gate is fresh-chat READ-only recovery of the prior receipt and Proposal state without repeating the WRITE.
 
 Acceptance:
 
-- Human asks Personal Agent to stage one clearly test-only Memory Proposal; no acceptance into durable Memory
-- WRITE executes through ordinary Host authorization
-- Agent observation contains a durable receipt with status SUCCEEDED
-- receipt includes receiptId, invocationId, idempotencyKey, current Principal/Context, toolId, inputDigest and result entity references
-- resultEntityRefs includes the staged proposalId
-- a fresh Personal Agent chat performs READ only using agent.action.receipt.list/get
-- fresh chat identifies the prior SUCCEEDED receipt without repeating context.memory.proposal.create
-- fresh chat uses proposalId from receipt evidence to read the domain Proposal
-- Proposal domain READ remains authoritative for current proposal state
-- test Proposal remains PENDING until Human rejects it; it is never accepted as formal Memory
-- no duplicate Proposal is created merely to recover continuity
+- fresh Personal Agent conversation or no useful prior discourse
+- Human explicitly requests READ only and forbids Proposal creation/WRITE
+- Agent uses agent.action.receipt.list and/or agent.action.receipt.get
+- Agent recovers receiptId agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e
+- Agent reports receipt status SUCCEEDED and invocationId agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6
+- Agent reads proposalId memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b from receipt evidence
+- Agent uses context.memory.proposal.get to read current domain Proposal state
+- Proposal domain state is still PENDING
+- Agent explains receipt proves prior execution while Proposal READ is authoritative for current Proposal state
+- Agent does not call context.memory.proposal.create
+- Agent does not create a duplicate Proposal
+- Agent performs no WRITE
 
 ## Current production preview
 
@@ -148,12 +149,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state current milestone as Personal Agent P1.5 — Durable Agent Operations
 - state P1.4X and P1.5A as Human LIVE PASS and closed
-- state P1.5B Generic Durable Agent Action Receipt Human live verification as the current open gate
-- state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7 and Railway service
-- identify PR #101 as the latest deployed behavioral change
-- explain that receipts prove Agent WRITE execution state but do not replace domain authority
-- explain that orphan REQUESTED receipts fail closed and are not automatically retried
-- identify the old dc107947 content Proposal as a do-not-accept stale action
+- state P1.5B WRITE half as Human PASS and fresh-chat receipt/domain readback as the only remaining gate
+- identify the test proposalId and SUCCEEDED receiptId recorded in project.status.json
+- explain that receipt proves prior execution while Proposal READ remains current domain authority
+- state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7
+- do not repeat context.memory.proposal.create to recover continuity
+- identify the old dc107947 content Proposal as a separate do-not-accept stale action
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
