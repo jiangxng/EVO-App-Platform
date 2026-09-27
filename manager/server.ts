@@ -318,6 +318,15 @@ import {
   providerManagerIndexPageSource
 } from "./provider-manager-page.js";
 import {
+  createMemoryGovernanceExperienceManifestV010,
+  createMemoryGovernancePageV010,
+  createMemorySearchPageV010,
+  createMemorySourceHealthPageV010,
+  memoryGovernancePageSource,
+  memorySearchPageSource,
+  memorySourceHealthPageSource
+} from "./memory-governance-page.js";
+import {
   createHelpExperienceManifestV010,
   createHelpIndexPageV010,
   helpIdFromPageSourceV010,
@@ -1985,6 +1994,7 @@ const server = createServer(async (request, response) => {
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
+        createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
         ...manager.listEffectiveExperiences()
       ]);
@@ -2135,6 +2145,50 @@ const server = createServer(async (request, response) => {
             }
           }
         ));
+      }
+      if (
+        source === memoryGovernancePageSource
+        || source === memorySearchPageSource
+        || source === memorySourceHealthPageSource
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        if (source === memorySourceHealthPageSource) {
+          return json(response, 200, createMemorySourceHealthPageV010({
+            manager,
+            registry: providerRuntimeRegistry
+          }));
+        }
+        if (source === memorySearchPageSource) {
+          const reader = resolveContextMemoryReader();
+          if (!reader) {
+            return json(response, 503, {
+              code: "CONTEXT_MEMORY_READER_REQUIRED"
+            });
+          }
+          return json(response, 200, await createMemorySearchPageV010({
+            context: resolved.activeContext,
+            reader
+          }));
+        }
+        const governance = resolveContextMemoryGovernanceProvider();
+        if (!governance) {
+          return json(response, 503, {
+            code: "CONTEXT_MEMORY_GOVERNANCE_PROVIDER_REQUIRED"
+          });
+        }
+        return json(response, 200, createMemoryGovernancePageV010({
+          principal: session.principal,
+          personalContext: resolved.personalContext,
+          context: resolved.activeContext,
+          memoryStore: contextMemoryStore,
+          governance,
+          retentionPolicies: contextMemoryRetentionPolicyStore,
+          legalHolds: contextMemoryLegalHoldStore,
+          operationLog: contextMemoryOperationLog,
+          relationships: resolveEnterpriseContextRelationshipProvider()
+        }));
       }
       if (source === settingsIndexPageSource) {
         return json(response, 200, createSettingsIndexPage(manager));
