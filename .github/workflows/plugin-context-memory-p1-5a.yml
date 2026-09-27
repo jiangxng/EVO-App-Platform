@@ -1,0 +1,47 @@
+name: Plugin CI - Context Memory P1.5A Inventory
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/context-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-canonicalization-*.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/context-memory-inventory.test.mjs"
+      - "tests/protocol/context-memory-canonicalization.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-context-memory-p1-5a.yml"
+  pull_request:
+    paths:
+      - "providers/context-memory/**"
+      - "contracts/platform-services.ts"
+      - "manager/context-memory-store.ts"
+      - "manager/context-memory-canonicalization-*.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/context-memory-inventory.test.mjs"
+      - "tests/protocol/context-memory-canonicalization.test.mjs"
+      - "tests/protocol/context-memory-governance.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-context-memory-p1-5a.yml"
+
+concurrency:
+  group: plugin-context-memory-p1-5a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:context-memory-p1-5a

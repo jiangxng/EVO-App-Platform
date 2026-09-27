@@ -412,6 +412,47 @@ export interface ContextMemoryReaderV010 {
   ): Promise<ContextMemoryReadResultV010> | ContextMemoryReadResultV010;
 }
 
+export type ContextMemoryInventoryHistoricalReasonV010 =
+  | "SUPERSEDED"
+  | "CANONICALIZED_DUPLICATE";
+
+export interface ContextMemoryInventoryItemV010 {
+  contractVersion: "0.1.0";
+  memory: ContextMemoryItemV010;
+  effective: boolean;
+  historicalReasons: ContextMemoryInventoryHistoricalReasonV010[];
+  supersededByMemoryIds: string[];
+  canonicalizedToMemoryId?: string;
+  governance?: ContextMemoryGovernanceDecisionV010;
+}
+
+export interface ContextMemoryInventoryRequestV010 {
+  contractVersion: "0.1.0";
+  context: ActiveContextRefV010;
+  kinds?: ContextMemoryKindV010[];
+  includeHistorical?: boolean;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ContextMemoryInventoryResultV010 {
+  contractVersion: "0.1.0";
+  items: ContextMemoryInventoryItemV010[];
+  totalCount: number;
+  complete: boolean;
+  order: "RECORDED_AT_ASC_MEMORY_ID_ASC";
+  scope: "READER_VISIBLE_CURRENT_CONTEXT";
+  snapshotDigest: string;
+  nextCursor?: string;
+}
+
+export interface ContextMemoryInventoryReaderV010 {
+  providerId: string;
+  list(
+    input: ContextMemoryInventoryRequestV010
+  ): Promise<ContextMemoryInventoryResultV010> | ContextMemoryInventoryResultV010;
+}
+
 export interface ContextMemoryWriteRequestV010 {
   contractVersion: "0.1.0";
   item: ContextMemoryItemV010;
