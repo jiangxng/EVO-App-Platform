@@ -900,3 +900,39 @@ Authority:
 - `docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md`
 
 Do not mark `live-real-llm-install-proof` complete before the Human browser gate is actually performed.
+
+
+## DeepSeek LLM Provider v0.1
+
+A second production LLM Provider is now implemented behind the existing vendor-neutral `LlmInferenceProvider` contract.
+
+Package/runtime:
+
+- `deepseek-llm-provider`
+- Provider `deepseek.responses`
+- capabilities `llm.inference` + `llm.tool-calling`
+- default model `deepseek-flash`
+- default base URL `https://api.deepseek.com`
+- API Key stored as Host Secret `deepseek-llm-provider/apiKey`
+- four-locale Settings: en / zh-CN / ja / zh-TW
+- `GET /models` health probe
+- compatibility envs `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `DEEPSEEK_BASE_URL`
+
+Provider-specific API differences remain inside the Provider adapter.
+
+OpenAI's strict JSON Schema normalization is not moved into shared Agent contracts and is not applied to DeepSeek's regular Responses API tool definition.
+
+When OpenAI and DeepSeek are both usable, existing fail-closed resolution remains authoritative:
+
+```text
+multiple llm.inference candidates
+→ selection required
+→ Human chooses Provider
+→ explicit binding
+```
+
+Authority:
+
+- `docs/architecture/DEEPSEEK-LLM-PROVIDER-v0.1.md`
+
+After CI verification, deploy the merged main to the Railway single-user preview and configure DeepSeek from the normal Plugin Store / Provider Settings lifecycle.

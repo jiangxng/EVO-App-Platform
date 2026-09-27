@@ -109,6 +109,7 @@ import {
   parseHostRemoteBearerTokenMapV010
 } from "../providers/remote-credential/runtime.js";
 import { createOpenAiResponsesHealthProbe, createOpenAiResponsesLlmProvider } from "../providers/openai/runtime.js";
+import { createDeepSeekResponsesHealthProbe, createDeepSeekResponsesLlmProvider } from "../providers/deepseek/runtime.js";
 import {
   HOST_ENCRYPTED_SECRETS_PACKAGE_ID,
   HOST_ENCRYPTED_SECRETS_PROVIDER_ID,
@@ -124,6 +125,11 @@ import {
   OPENAI_LLM_PROVIDER_ID,
   openAiLlmProviderPackage
 } from "../providers/openai/package.js";
+import {
+  DEEPSEEK_LLM_PACKAGE_ID,
+  DEEPSEEK_LLM_PROVIDER_ID,
+  deepSeekLlmProviderPackage
+} from "../providers/deepseek/package.js";
 import {
   AUTHORIZATION_CHECK_CAPABILITY,
   HOST_STATIC_AUTHORIZATION_PACKAGE_ID,
@@ -401,6 +407,7 @@ const catalog = createPackageCatalog([
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
+  deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
   hostStaticAuthorizationProviderPackage,
   hostEncryptedSecretsProviderPackage,
@@ -1382,6 +1389,76 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
 }
 
 await refreshOpenAiProviderRuntime();
+
+function deepSeekApiKeyReference(): SecretReferenceV010 {
+  return {
+    contractVersion: "0.1.0",
+    namespace: DEEPSEEK_LLM_PACKAGE_ID,
+    key: "apiKey",
+    scope: "INSTALLATION",
+    scopeId: "default"
+  };
+}
+
+async function refreshDeepSeekProviderRuntime(): Promise<void> {
+  const reference = deepSeekApiKeyReference();
+  const legacyApiKey = process.env.DEEPSEEK_API_KEY?.trim();
+  let apiKey: string | undefined;
+
+  try {
+    const secrets = resolveManagedSecretsProvider();
+    if (secrets) {
+      const status = await secrets.describe(reference);
+      if (!status.configured && legacyApiKey) {
+        await secrets.put(reference, legacyApiKey);
+        console.log("Migrated legacy DeepSeek credential into Host Secrets Provider.");
+      }
+      const refreshedStatus = await secrets.describe(reference);
+      if (refreshedStatus.configured) {
+        apiKey = (await secrets.resolve(reference)).trim();
+      }
+    }
+  } catch (error) {
+    console.error("DeepSeek Secret resolution failed closed.", error);
+  }
+
+  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
+  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
+
+  if (!apiKey) {
+    providerRuntimeRegistry.remove(DEEPSEEK_LLM_PROVIDER_ID);
+    return;
+  }
+
+  const values = settingsStore.getNamespace(DEEPSEEK_LLM_PACKAGE_ID);
+  const model = typeof values.model === "string" && values.model.trim()
+    ? values.model.trim()
+    : process.env.DEEPSEEK_MODEL?.trim() || "deepseek-flash";
+  const baseUrl = typeof values.baseUrl === "string" && values.baseUrl.trim()
+    ? values.baseUrl.trim()
+    : process.env.DEEPSEEK_BASE_URL?.trim() || "https://api.deepseek.com";
+
+  const options = {
+    apiKey,
+    model,
+    baseUrl
+  };
+  providerRuntimeRegistry.replace<LlmInferenceProvider>(
+    DEEPSEEK_LLM_PROVIDER_ID,
+    createDeepSeekResponsesLlmProvider(options)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    DEEPSEEK_LLM_PROVIDER_ID,
+    createDeepSeekResponsesHealthProbe(options)
+  );
+  providerRuntimeRegistry.setHealth(DEEPSEEK_LLM_PROVIDER_ID, {
+    state: "UNKNOWN",
+    message: "Runtime credential is configured through the Host Secrets boundary; external DeepSeek service health has not been actively probed.",
+    checkedAt: new Date().toISOString()
+  });
+}
+
+await refreshDeepSeekProviderRuntime();
 
 async function refreshP12MemoryProviderRuntimes(): Promise<void> {
   let semanticRetriever: ContextMemorySemanticRetrieverV010 | undefined;
@@ -2817,6 +2894,9 @@ const server = createServer(async (request, response) => {
 
           if (namespace === OPENAI_LLM_PACKAGE_ID) {
             await refreshOpenAiProviderRuntime();
+          }
+          if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
+            await refreshDeepSeekProviderRuntime();
           }
           if (
             namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID

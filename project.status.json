@@ -268,7 +268,13 @@
     "personal-agent-vertical-experience-profile",
     "configured-authorization-provider-auto-activation",
     "personal-agent-one-command-local-experience",
-    "personal-agent-vertical-public-contract-machine-checkpoint"
+    "personal-agent-vertical-public-contract-machine-checkpoint",
+    "deepseek-llm-provider-package",
+    "deepseek-responses-runtime",
+    "deepseek-host-secrets-credential-boundary",
+    "deepseek-provider-health-probe",
+    "deepseek-four-locale-settings",
+    "multi-llm-explicit-provider-selection-deepseek-openai"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -291,7 +297,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X machine gate is verified: 20/20 triggered workflows passed, including the dedicated vertical Experience CI that boots the real Host, verifies formal Static Session/Authorization Providers and bootstrap authorization, installs Personal Agent/OpenAI Provider through public /v1/actions, and reaches the real Provider configuration-required Eidos Setup/Settings surfaces. HUMAN_BROWSER_PASS remains pending. Next action is the user-run browser checkpoint with a real API key; live-real-llm-install-proof remains intentionally notYetImplemented until that Human gate passes.",
+  "currentStep": "DeepSeek LLM Provider is CI-verified: 21/21 triggered workflows passed, including the dedicated DeepSeek Provider CI, Platform CI, P1.4X Experience CI and all Person-first/Memory regressions. The installable deepseek-llm-provider provides llm.inference + llm.tool-calling through the official DeepSeek Responses API, stores its API Key only through Host Secrets, ships four-locale Settings, validates configured models through /models, and preserves explicit Human Provider selection when OpenAI and DeepSeek coexist. Next: merge to main and deploy the Railway preview so the Human browser can install/configure DeepSeek.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1352,6 +1358,26 @@
       "authoritative": false,
       "durableMemoryWrite": false,
       "governanceFailureRule": "FOLLOW_UP_FAILURE_NEVER_ROLLS_BACK_CONTRADICTION_RESOLUTION"
+    },
+    "deepSeekProvider": {
+      "status": "CI_VERIFIED",
+      "authority": "docs/architecture/DEEPSEEK-LLM-PROVIDER-v0.1.md",
+      "packageId": "deepseek-llm-provider",
+      "providerId": "deepseek.responses",
+      "capability": [
+        "llm.inference",
+        "llm.tool-calling"
+      ],
+      "defaultModel": "deepseek-flash",
+      "defaultBaseUrl": "https://api.deepseek.com",
+      "secret": "deepseek-llm-provider/apiKey",
+      "explicitSelectionWhenMultiple": true,
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ]
     }
   },
   "experienceIntegration": {
