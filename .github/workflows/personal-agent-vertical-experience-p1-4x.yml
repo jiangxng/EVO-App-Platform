@@ -6,6 +6,8 @@ on:
     paths:
       - "manager/local-experience-profile.ts"
       - "manager/server.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/app-host/dynamic-chat-actions.test.mjs"
       - "tools/start-personal-agent-experience.mjs"
       - "tools/reset-personal-agent-experience.mjs"
       - "tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs"
@@ -20,6 +22,8 @@ on:
     paths:
       - "manager/local-experience-profile.ts"
       - "manager/server.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/app-host/dynamic-chat-actions.test.mjs"
       - "tools/start-personal-agent-experience.mjs"
       - "tools/reset-personal-agent-experience.mjs"
       - "tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs"
