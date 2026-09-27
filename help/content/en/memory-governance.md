@@ -16,7 +16,7 @@
     "capabilities": ["context.memory.governance", "context.memory.dlp-classification", "context.memory.semantic-retrieval"],
     "commands": ["context.memory.retention-policy.set", "context.memory.legal-hold.set"]
   },
-  "related": ["evo.personal-agent.world-model", "evo.provider.health", "evo.provider.configure-credential"],
+  "related": ["evo.personal-agent.world-model", "evo.provider.health", "evo.secrets.configure-provider-credential"],
   "lastReviewedAt": "2026-09-27"
 }
 ---
