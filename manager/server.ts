@@ -294,6 +294,16 @@ import {
 } from "./context-memory-proposal-store.js";
 import { createContextMemoryProposalServiceV010 } from "./context-memory-proposal-service.js";
 import { createContextMemoryProposalActionHandlersV010 } from "./context-memory-proposal-actions.js";
+import {
+  createFileContextMemoryCanonicalizationStoreV010,
+  createMemoryContextMemoryCanonicalizationStoreV010
+} from "./context-memory-canonicalization-store.js";
+import {
+  createContextMemoryCanonicalizationServiceV010
+} from "./context-memory-canonicalization-service.js";
+import {
+  createContextMemoryCanonicalizationActionHandlersV010
+} from "./context-memory-canonicalization-actions.js";
 import { requireContextMemoryWriteAuthorityV010 } from "./context-memory-authority.js";
 import {
   createFileContextMemoryIntakeStoreV010,
@@ -517,6 +527,14 @@ const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_P
 const contextMemoryProposalStore = contextMemoryProposalStateFile
   ? createFileContextMemoryProposalStoreV010(contextMemoryProposalStateFile)
   : createMemoryContextMemoryProposalStoreV010();
+const contextMemoryCanonicalizationStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_CANONICALIZATION_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "context-memory-canonicalization.json")
+    : undefined);
+const contextMemoryCanonicalizationStore = contextMemoryCanonicalizationStateFile
+  ? createFileContextMemoryCanonicalizationStoreV010(contextMemoryCanonicalizationStateFile)
+  : createMemoryContextMemoryCanonicalizationStoreV010();
 const contextMemoryIntakeStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_INTAKE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-intake.json") : undefined);
 const contextMemoryIntakeStore = contextMemoryIntakeStateFile
@@ -699,7 +717,13 @@ providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
 providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   createHostContextMemoryReaderV010(contextMemoryStore, {
-    governance: contextMemoryGovernanceProvider
+    governance: contextMemoryGovernanceProvider,
+    canonicalization: {
+      listActiveForContext(context) {
+        return contextMemoryCanonicalizationStore.listForContext(context)
+          .filter(item => item.state === "ACTIVE");
+      }
+    }
   })
 );
 providerRuntimeRegistry.replace<ContextMemoryWriterV010>(
@@ -1505,6 +1529,12 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
     HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
     createHostContextMemoryReaderV010(contextMemoryStore, {
       governance: contextMemoryGovernanceProvider,
+      canonicalization: {
+        listActiveForContext(context) {
+          return contextMemoryCanonicalizationStore.listForContext(context)
+            .filter(item => item.state === "ACTIVE");
+        }
+      },
       ...(semanticRetriever ? { semanticRetriever } : {})
     })
   );
@@ -1631,6 +1661,11 @@ const contextMemoryProposalService = createContextMemoryProposalServiceV010({
   resolveReader: resolveContextMemoryReader,
   resolveWriter: resolveContextMemoryWriter
 });
+const contextMemoryCanonicalizationService =
+  createContextMemoryCanonicalizationServiceV010({
+    store: contextMemoryCanonicalizationStore,
+    memoryStore: contextMemoryStore
+  });
 
 const contextMemoryIntakeService = createContextMemoryIntakeServiceV010({
   store: contextMemoryIntakeStore,
@@ -1783,6 +1818,20 @@ const actionRouter = createAppActionRouter(
         return resolveContextForPrincipal(principal, ref);
       }
     }),
+    ...createContextMemoryCanonicalizationActionHandlersV010({
+      service: contextMemoryCanonicalizationService,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      },
+      resolveContext(principal, ref) {
+        return resolveContextForPrincipal(principal, ref);
+      }
+    }),
     createPersonalAgentQualityEvaluationActionHandlerV010({
       store: personalAgentQualityEvidenceStore,
       resolveAuthorizationProvider
@@ -1848,6 +1897,39 @@ const actionRouter = createAppActionRouter(
             }
             return proposal;
           },
+          proposeContextMemoryCanonicalization(input) {
+            return {
+              proposal: contextMemoryCanonicalizationService.create({
+                principal,
+                context: context.activeContext,
+                duplicateMemoryId: input.duplicateMemoryId,
+                canonicalMemoryId: input.canonicalMemoryId,
+                ...(input.reason ? { reason: input.reason } : {}),
+                authoredBy: "PERSONAL_AGENT"
+              }),
+              reviewRoute: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
+            };
+          },
+          getContextMemoryCanonicalizationProposal(proposalId) {
+            const proposal = contextMemoryCanonicalizationService.get(proposalId);
+            if (!proposal) {
+              throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_NOT_FOUND");
+            }
+            const sameActiveContext =
+              proposal.context.kind === context.activeContext.kind
+              && proposal.context.contextId === context.activeContext.contextId
+              && (
+                proposal.context.kind !== "ENTERPRISE"
+                || (
+                  context.activeContext.kind === "ENTERPRISE"
+                  && proposal.context.enterpriseId === context.activeContext.enterpriseId
+                )
+              );
+            if (!sameActiveContext) {
+              throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_NOT_FOUND");
+            }
+            return proposal;
+          },
           listPersonalFollowUps() {
             return personalAgentFollowUpStore.listOpen(
               principal.subjectId,
@@ -1889,15 +1971,23 @@ const actionRouter = createAppActionRouter(
               resolveAuthorizationProvider(),
               requestContext,
               {
-                action: descriptor.id,
-                resource: descriptor.id === "context.memory.proposal.create"
+                action: descriptor.id === "context.memory.canonicalization.proposal.create"
+                  ? "context.memory.proposal.create"
+                  : descriptor.id,
+                resource: (
+                  descriptor.id === "context.memory.proposal.create"
+                  || descriptor.id === "context.memory.canonicalization.proposal.create"
+                )
                   ? {
                       type: "context.memory.proposal",
                       attributes: {
                         contextId: context.activeContext.contextId,
                         contextKind: context.activeContext.kind,
                         ownerPackageId: descriptor.ownerPackageId,
-                        effect: descriptor.effect
+                        effect: descriptor.effect,
+                        proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
+                          ? "CANONICALIZATION"
+                          : "CONTENT"
                       }
                     }
                   : {
@@ -2287,7 +2377,11 @@ const server = createServer(async (request, response) => {
             200,
             createPersonalAgentMemoryReviewPageV010(
               contextMemoryProposalService.list([...writableContextIds]),
-              labels
+              labels,
+              contextMemoryCanonicalizationService.list([...writableContextIds]),
+              new Map(
+                contextMemoryStore.snapshot().items.map(item => [item.memoryId, item.summary])
+              )
             )
           );
         }
