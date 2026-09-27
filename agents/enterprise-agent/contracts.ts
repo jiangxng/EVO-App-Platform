@@ -1,3 +1,4 @@
+import type { AgentActionReceiptV010 } from "../../contracts/agent-action-receipt.js";
 import type {
   PlatformPrincipalV010,
   ResolvedContextSetV010
@@ -27,6 +28,7 @@ export interface AgentToolObservation {
   ok: boolean;
   result?: unknown;
   error?: { code: string; message: string };
+  receipt?: AgentActionReceiptV010;
 }
 
 export interface AgentConversationMessageV010 {
