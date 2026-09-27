@@ -63,8 +63,10 @@ import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
   ContextMemoryEvidenceSourceProviderV010,
+  ContextMemoryGovernanceProviderV010,
   ContextMemoryIntakeSourceAdapterV010,
   ContextMemoryReaderV010,
+  ContextMemorySemanticRetrieverV010,
   ContextMemoryWriterV010,
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
@@ -172,8 +174,10 @@ import {
   createHostEnterpriseRelationshipProviderV010
 } from "../providers/enterprise-relationship/runtime.js";
 import {
+  CONTEXT_MEMORY_GOVERNANCE_CAPABILITY,
   CONTEXT_MEMORY_READ_CAPABILITY,
   CONTEXT_MEMORY_WRITE_CAPABILITY,
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_PACKAGE_ID,
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
@@ -184,6 +188,31 @@ import {
   createHostContextMemoryReaderV010,
   createHostContextMemoryWriterV010
 } from "../providers/context-memory/runtime.js";
+import {
+  createHostContextMemoryGovernanceProviderV010
+} from "../providers/context-memory/governance.js";
+import {
+  CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
+  REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
+  REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+  remoteContextMemorySemanticProviderPackage
+} from "../providers/context-memory-semantic/package.js";
+import {
+  createRemoteContextMemorySemanticHealthProbeV010,
+  createRemoteContextMemorySemanticRetrieverV010
+} from "../providers/context-memory-semantic/runtime.js";
+import {
+  EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
+  EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
+  EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+  experienceCompilerMemoryIntakeProviderPackage
+} from "../providers/experience-compiler-memory/package.js";
+import {
+  createExperienceCompilerEvidenceSourceProviderV010,
+  createExperienceCompilerMemoryIntakeHealthProbeV010,
+  createExperienceCompilerMemoryIntakeSourceAdapterV010,
+  parseExperienceCompilerMemoryIntakeConfigV010
+} from "../providers/experience-compiler-memory/runtime.js";
 import {
   CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY,
   CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY,
@@ -202,6 +231,11 @@ import {
   createFileContextMemoryStoreV010,
   createMemoryContextMemoryStoreV010
 } from "./context-memory-store.js";
+import {
+  createFileContextMemoryGovernanceStoreV010,
+  createMemoryContextMemoryGovernanceStoreV010
+} from "./context-memory-governance-store.js";
+import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -309,6 +343,8 @@ const catalog = createPackageCatalog([
   hostEnterpriseRelationshipProviderPackage,
   hostContextMemoryProviderPackage,
   hostMemoryIntakeProviderPackage,
+  remoteContextMemorySemanticProviderPackage,
+  experienceCompilerMemoryIntakeProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -323,6 +359,14 @@ const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.tri
 const contextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const contextMemoryGovernanceStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "context-memory-governance.json")
+    : undefined);
+const contextMemoryGovernanceStore = contextMemoryGovernanceStateFile
+  ? createFileContextMemoryGovernanceStoreV010(contextMemoryGovernanceStateFile)
+  : createMemoryContextMemoryGovernanceStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -497,9 +541,17 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   message: "Host Enterprise Context Provider is active.",
   checkedAt: new Date().toISOString()
 });
+const contextMemoryGovernanceProvider =
+  createHostContextMemoryGovernanceProviderV010(contextMemoryGovernanceStore);
+providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
+  contextMemoryGovernanceProvider
+);
 providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
-  createHostContextMemoryReaderV010(contextMemoryStore)
+  createHostContextMemoryReaderV010(contextMemoryStore, {
+    governance: contextMemoryGovernanceProvider
+  })
 );
 providerRuntimeRegistry.replace<ContextMemoryWriterV010>(
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
@@ -523,6 +575,23 @@ providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID, {
   message: "Host Context Memory Writer is active.",
   checkedAt: new Date().toISOString()
 });
+providerRuntimeRegistry.setHealth(
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Host Context Memory retention/privacy governance is active.",
+    checkedAt: new Date().toISOString()
+  }
+);
+
+const remoteSemanticEndpoint = process.env.APP_PLATFORM_MEMORY_SEMANTIC_URL?.trim();
+const remoteSemanticTimeoutMs = Number(
+  process.env.APP_PLATFORM_MEMORY_SEMANTIC_TIMEOUT_MS?.trim() || "8000"
+);
+const experienceCompilerMemoryIntakeConfig =
+  parseExperienceCompilerMemoryIntakeConfigV010(
+    process.env.APP_PLATFORM_EC_MEMORY_INTAKE_JSON
+  );
 
 const hostMemoryIntakeConfig = parseHostMemoryIntakeConfigV010(
   process.env.APP_PLATFORM_MEMORY_INTAKE_JSON
