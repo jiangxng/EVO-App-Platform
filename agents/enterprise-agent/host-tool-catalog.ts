@@ -44,6 +44,7 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     supersedesMemoryId?: string;
     potentialContradictionMemoryIds: string[];
   }) => Promise<unknown> | unknown;
+  listPersonalFollowUps?: () => Promise<unknown> | unknown;
   searchHelp(
     query: string,
     context?: HelpContextSelectorsV010
@@ -163,6 +164,31 @@ export function createEnterpriseAgentHostToolCatalogV010(
           throw new Error("ENTERPRISE_CONTEXT_REQUIRED");
         }
         return structuredClone(dependencies.context.enterpriseContext);
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "personal.follow-up.list",
+        modelName: "personal_follow_up_list",
+        title: "Personal Agent follow-ups",
+        description: "Read open planning-only Personal Agent follow-ups for the current Principal and active Context. Follow-ups may suggest review work but never authorize writes.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "enterprise-agent",
+        capability: "agent.personal"
+      }),
+      available() {
+        return dependencies.listPersonalFollowUps !== undefined;
+      },
+      execute() {
+        if (!dependencies.listPersonalFollowUps) {
+          throw new Error("PERSONAL_AGENT_FOLLOW_UP_READER_REQUIRED");
+        }
+        return dependencies.listPersonalFollowUps();
       }
     },
     {
