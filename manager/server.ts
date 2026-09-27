@@ -332,10 +332,14 @@ import {
   createMemorySearchPageV010,
   createMemorySourceHealthPageV010,
   createMemoryRetentionSimulationPageV010,
+  createMemoryRetentionDraftFormV010,
+  createMemoryRetentionDraftsPageV010,
   memoryGovernancePageSource,
   memorySearchPageSource,
   memorySourceHealthPageSource,
-  memoryRetentionSimulationPageSource
+  memoryRetentionSimulationPageSource,
+  memoryRetentionDraftNewPageSource,
+  memoryRetentionDraftsPageSource
 } from "./memory-governance-page.js";
 import {
   createHelpExperienceManifestV010,
@@ -2168,6 +2172,8 @@ const server = createServer(async (request, response) => {
         || source === memorySearchPageSource
         || source === memorySourceHealthPageSource
         || source === memoryRetentionSimulationPageSource
+        || source === memoryRetentionDraftNewPageSource
+        || source === memoryRetentionDraftsPageSource
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -2176,6 +2182,18 @@ const server = createServer(async (request, response) => {
           return json(response, 200, createMemorySourceHealthPageV010({
             manager,
             registry: providerRuntimeRegistry
+          }));
+        }
+        if (source === memoryRetentionDraftNewPageSource) {
+          return json(response, 200, createMemoryRetentionDraftFormV010());
+        }
+        if (source === memoryRetentionDraftsPageSource) {
+          return json(response, 200, createMemoryRetentionDraftsPageV010({
+            principal: session.principal,
+            personalContext: resolved.personalContext,
+            context: resolved.activeContext,
+            drafts: contextMemoryRetentionDraftStore,
+            relationships: resolveEnterpriseContextRelationshipProvider()
           }));
         }
         if (source === memoryRetentionSimulationPageSource) {
