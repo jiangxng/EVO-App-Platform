@@ -287,7 +287,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4E is implemented on its feature branch and pending CI: Personal Agent quality now exposes 7/30/90-day evidence windows cohorting by Host interaction time with explicit sample thresholds and no composite score. Memory freshness is governed by append-only Context/kind policies with kind-specific precedence and shortest-window resolution at equal specificity. Human-confirmed contradiction resolutions can create non-authoritative Personal Agent Follow-ups; the Agent receives a read-only follow-up tool and chat suggestions, while all durable Memory changes remain on the formal Proposal/review path.",
+  "currentStep": "P1.4E is CI-verified: 20/20 triggered workflows passed, including Platform CI, Experience CI, P1.4A/P1.4B/P1.4C/P1.4D regressions, P1.2/P1.3 Memory suites and the dedicated P1.4E CI. Personal Agent quality now has evidence-bounded 7/30/90-day trend windows; Memory freshness is governed by append-only Context/kind policies; Human-confirmed contradiction resolutions can create planning-only Personal Agent Follow-ups surfaced through a read-only Host tool and chat suggestions. Next: vertical browser experience checkpoint using production contracts only.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1269,7 +1269,7 @@
       "compositeScore": false
     },
     "qualityTrendsP1_4E": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4E",
       "authority": "docs/architecture/PERSONAL-AGENT-TRENDS-FRESHNESS-FOLLOWUP-P1.4E-v0.1.md",
       "windowsDays": [
         7,
@@ -1290,7 +1290,7 @@
       "insufficientEvidence": "EXPLICIT_NOT_INFERRED"
     },
     "memoryFreshnessPolicyP1_4E": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4E",
       "persistence": "APP_PLATFORM_CONTEXT_MEMORY_FRESHNESS_POLICY_FILE_OR_STATE_SIBLING",
       "states": [
         "ACTIVE",
@@ -1311,7 +1311,7 @@
       "requiresHumanConfirmation": true
     },
     "followUpP1_4E": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4E",
       "persistence": "APP_PLATFORM_PERSONAL_AGENT_FOLLOW_UP_FILE_OR_STATE_SIBLING",
       "states": [
         "OPEN",
