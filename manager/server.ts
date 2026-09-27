@@ -126,6 +126,7 @@ import {
 } from "../providers/openai/package.js";
 import {
   AUTHORIZATION_CHECK_CAPABILITY,
+  HOST_STATIC_AUTHORIZATION_PACKAGE_ID,
   HOST_STATIC_AUTHORIZATION_PROVIDER_ID,
   hostStaticAuthorizationProviderPackage
 } from "../providers/authorization/package.js";
@@ -991,6 +992,19 @@ if (
     console.log("Activated Host Static Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Static Session Provider.", error);
+  }
+}
+if (
+  authorizationPolicy
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === HOST_STATIC_AUTHORIZATION_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(HOST_STATIC_AUTHORIZATION_PACKAGE_ID);
+    console.log("Activated Host Static Authorization Provider from Host-owned policy.");
+  } catch (error) {
+    console.error("Failed to activate Host Static Authorization Provider.", error);
   }
 }
 if (
