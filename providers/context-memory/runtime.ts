@@ -1,6 +1,10 @@
+import { createHash } from "node:crypto";
 import type {
   ActiveContextRefV010,
   ContextMemoryGovernanceProviderV010,
+  ContextMemoryInventoryReaderV010,
+  ContextMemoryInventoryRequestV010,
+  ContextMemoryInventoryResultV010,
   ContextMemoryItemV010,
   ContextMemoryReadRequestV010,
   ContextMemoryReadResultV010,
@@ -10,6 +14,7 @@ import type {
 } from "../../contracts/platform-services.js";
 import type { ContextMemoryStoreV010 } from "../../manager/context-memory-store.js";
 import {
+  HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID
 } from "./package.js";
@@ -155,6 +160,176 @@ function validateSemanticRanking(
     }
     seen.add(item.memoryId);
   }
+}
+
+function canonicalInventoryLimit(limit: number | undefined): number {
+  if (limit === undefined) return 50;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw new Error("CONTEXT_MEMORY_INVENTORY_LIMIT_INVALID");
+  }
+  return limit;
+}
+
+interface ContextMemoryInventoryCursorV010 {
+  v: 1;
+  digest: string;
+  offset: number;
+}
+
+function encodeInventoryCursor(cursor: ContextMemoryInventoryCursorV010): string {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+function decodeInventoryCursor(cursor: string | undefined): ContextMemoryInventoryCursorV010 | undefined {
+  if (!cursor) return undefined;
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8")
+    ) as Partial<ContextMemoryInventoryCursorV010>;
+    if (
+      parsed.v !== 1
+      || typeof parsed.digest !== "string"
+      || !/^[a-f0-9]{64}$/.test(parsed.digest)
+      || !Number.isSafeInteger(parsed.offset)
+      || (parsed.offset ?? -1) < 0
+    ) {
+      throw new Error("invalid");
+    }
+    return {
+      v: 1,
+      digest: parsed.digest,
+      offset: parsed.offset as number
+    };
+  } catch {
+    throw new Error("CONTEXT_MEMORY_INVENTORY_CURSOR_INVALID");
+  }
+}
+
+function inventoryDigest(value: unknown): string {
+  return createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
+}
+
+export function createHostContextMemoryInventoryReaderV010(
+  store: ContextMemoryStoreV010,
+  options: {
+    governance?: ContextMemoryGovernanceProviderV010;
+    canonicalization?: {
+      listActiveForContext(context: ContextMemoryInventoryRequestV010["context"]): Array<{
+        duplicateMemoryId: string;
+        canonicalMemoryId: string;
+      }>;
+    };
+  } = {}
+): ContextMemoryInventoryReaderV010 {
+  return {
+    providerId: HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
+    list(input: ContextMemoryInventoryRequestV010): ContextMemoryInventoryResultV010 {
+      if (input.contractVersion !== "0.1.0") {
+        throw new Error("CONTEXT_MEMORY_INVENTORY_CONTRACT_UNSUPPORTED");
+      }
+      const limit = canonicalInventoryLimit(input.limit);
+      const cursor = decodeInventoryCursor(input.cursor);
+      const kinds = input.kinds ? new Set(input.kinds) : undefined;
+      const includeHistorical = input.includeHistorical ?? true;
+
+      const contextItems = store.snapshot().items
+        .filter(item => sameContext(item.context, input.context));
+
+      const supersededBy = new Map<string, string[]>();
+      for (const item of contextItems) {
+        if (!item.supersedesMemoryId) continue;
+        const current = supersededBy.get(item.supersedesMemoryId) ?? [];
+        current.push(item.memoryId);
+        supersededBy.set(item.supersedesMemoryId, current);
+      }
+      for (const ids of supersededBy.values()) ids.sort();
+
+      const canonicalizedTo = new Map(
+        (options.canonicalization?.listActiveForContext(input.context) ?? [])
+          .map(item => [item.duplicateMemoryId, item.canonicalMemoryId] as const)
+      );
+
+      const inventory = contextItems
+        .filter(item => !kinds || kinds.has(item.kind))
+        .filter(item => visibleByGovernance(item, options.governance))
+        .map(item => {
+          const supersededByMemoryIds = supersededBy.get(item.memoryId) ?? [];
+          const canonicalizedToMemoryId = canonicalizedTo.get(item.memoryId);
+          const historicalReasons = [
+            ...(supersededByMemoryIds.length > 0 ? ["SUPERSEDED" as const] : []),
+            ...(canonicalizedToMemoryId ? ["CANONICALIZED_DUPLICATE" as const] : [])
+          ];
+          return {
+            contractVersion: "0.1.0" as const,
+            memory: structuredClone(item),
+            effective: historicalReasons.length === 0,
+            historicalReasons,
+            supersededByMemoryIds: [...supersededByMemoryIds],
+            ...(canonicalizedToMemoryId ? { canonicalizedToMemoryId } : {}),
+            ...(options.governance?.get(item.memoryId)
+              ? { governance: structuredClone(options.governance.get(item.memoryId)!) }
+              : {})
+          };
+        })
+        .filter(item => includeHistorical || item.effective)
+        .sort((a, b) =>
+          a.memory.attribution.recordedAt.localeCompare(b.memory.attribution.recordedAt)
+          || a.memory.memoryId.localeCompare(b.memory.memoryId)
+        );
+
+      const snapshotDigest = inventoryDigest(
+        inventory.map(item => ({
+          memoryId: item.memory.memoryId,
+          recordedAt: item.memory.attribution.recordedAt,
+          effective: item.effective,
+          historicalReasons: item.historicalReasons,
+          supersededByMemoryIds: item.supersededByMemoryIds,
+          canonicalizedToMemoryId: item.canonicalizedToMemoryId ?? null,
+          governance: item.governance
+            ? {
+                state: item.governance.state,
+                privacyClass: item.governance.privacyClass,
+                retainUntil: item.governance.retainUntil ?? null,
+                effectiveEventId: item.governance.effectiveEventId ?? null
+              }
+            : null
+        }))
+      );
+
+      if (cursor && cursor.digest !== snapshotDigest) {
+        throw new Error("CONTEXT_MEMORY_INVENTORY_CHANGED_RESTART_REQUIRED");
+      }
+
+      const offset = cursor?.offset ?? 0;
+      if (offset > inventory.length) {
+        throw new Error("CONTEXT_MEMORY_INVENTORY_CURSOR_INVALID");
+      }
+      const page = inventory.slice(offset, offset + limit);
+      const nextOffset = offset + page.length;
+      const complete = nextOffset >= inventory.length;
+
+      return {
+        contractVersion: "0.1.0",
+        items: page.map(item => structuredClone(item)),
+        totalCount: inventory.length,
+        complete,
+        order: "RECORDED_AT_ASC_MEMORY_ID_ASC",
+        scope: "READER_VISIBLE_CURRENT_CONTEXT",
+        snapshotDigest,
+        ...(!complete
+          ? {
+              nextCursor: encodeInventoryCursor({
+                v: 1,
+                digest: snapshotDigest,
+                offset: nextOffset
+              })
+            }
+          : {})
+      };
+    }
+  };
 }
 
 export function createHostContextMemoryReaderV010(
