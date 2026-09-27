@@ -100,7 +100,7 @@ export function createMemoryGovernancePageV010(input: {
   const holds = new Map(
     input.legalHolds.listForContext(input.context).map(value => [value.memoryId, value])
   );
-  const items = input.memoryStore.snapshot().items
+  const governedItems = input.memoryStore.snapshot().items
     .filter(item => sameContext(item.context, input.context))
     .sort((a, b) => b.attribution.recordedAt.localeCompare(a.attribution.recordedAt))
     .map(item => {
@@ -157,7 +157,24 @@ export function createMemoryGovernancePageV010(input: {
       ariaLabel: "Filter governed Memory",
       noResultsMessage: "No governed Memory matches this filter."
     },
-    items,
+    items: [
+      {
+        id: "memory-governance:retention-simulation",
+        title: "Retention policy dry-run",
+        category: "Governance tool",
+        summary: "Preview the current retention impact without changing Memory or governance state.",
+        primaryAction: {
+          id: "open-retention-simulation",
+          label: "Open simulation",
+          type: "navigate",
+          route: "/memory/retention-simulation"
+        },
+        metadata: {
+          sideEffectFree: true
+        }
+      },
+      ...governedItems
+    ],
     emptyMessage: "No Memory exists in this Context."
   };
 }
