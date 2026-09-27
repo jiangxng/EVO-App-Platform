@@ -262,6 +262,95 @@ export function createEnterpriseAgentHostToolCatalogV010(
     },
     {
       descriptor: descriptor({
+        id: "context.memory.audit.compare",
+        modelName: "context_memory_audit_compare",
+        title: "Context Memory effective-vs-history audit",
+        description: "In one authoritative READ, compare ordinary effective Context Memory retrieval for a query with exact-ID historical audit of specified Memory records. Use this when the human wants to verify canonicalization/supersession effects without multiple model round trips. This never changes Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Text query for ordinary effective Memory retrieval."
+            },
+            memoryIds: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              maxItems: 20,
+              description: "Exact Memory IDs to audit historically, including records hidden from ordinary retrieval."
+            }
+          },
+          required: ["query", "memoryIds"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.readContextMemory !== undefined;
+      },
+      async execute(args) {
+        if (!dependencies.readContextMemory) {
+          throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+        }
+        const query = stringArg(args, "query")!;
+        const rawMemoryIds = args.memoryIds;
+        if (
+          !Array.isArray(rawMemoryIds)
+          || rawMemoryIds.length < 1
+          || rawMemoryIds.length > 20
+          || rawMemoryIds.some(item => typeof item !== "string" || !item.trim())
+        ) {
+          throw new Error("CONTEXT_MEMORY_AUDIT_MEMORY_IDS_INVALID");
+        }
+        const memoryIds = [...new Set(rawMemoryIds.map(item => (item as string).trim()))];
+
+        const [effective, audit] = await Promise.all([
+          dependencies.readContextMemory({
+            query,
+            limit: 100
+          }),
+          dependencies.readContextMemory({
+            memoryIds,
+            limit: Math.min(100, memoryIds.length)
+          })
+        ]);
+
+        if (
+          effective === null
+          || typeof effective !== "object"
+          || !Array.isArray((effective as { items?: unknown }).items)
+          || audit === null
+          || typeof audit !== "object"
+          || !Array.isArray((audit as { items?: unknown }).items)
+        ) {
+          throw new Error("CONTEXT_MEMORY_AUDIT_COMPARE_RESULT_INVALID");
+        }
+
+        const auditedIds = new Set(
+          (audit as { items: unknown[] }).items
+            .map(item =>
+              item !== null
+              && typeof item === "object"
+              && typeof (item as { memoryId?: unknown }).memoryId === "string"
+                ? (item as { memoryId: string }).memoryId
+                : undefined
+            )
+            .filter((memoryId): memoryId is string => Boolean(memoryId))
+        );
+
+        return {
+          contractVersion: "0.1.0",
+          effective,
+          audit,
+          missingMemoryIds: memoryIds.filter(memoryId => !auditedIds.has(memoryId))
+        };
+      }
+    },
+    {
+      descriptor: descriptor({
         id: "context.memory.audit.get",
         modelName: "context_memory_audit_get",
         title: "Context Memory exact-ID audit",
