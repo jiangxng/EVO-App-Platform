@@ -320,7 +320,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.5A Context Memory Governance Inventory is Human LIVE PASS and closed. P1.5B Generic Durable Agent Action Receipt is merged, deployed and Human-live-gate ready on Railway at 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7. Every Personal Agent material WRITE now requires an append-only Host-owned receipt, identical successful retries in the same source interaction do not re-execute, orphan REQUESTED fails closed, and receipt get/list are scoped READs. Current Human gate: create one review-only test Memory Proposal through Personal Agent, verify its SUCCEEDED Action Receipt and proposalId entity reference, then in a fresh Personal Agent chat use READ only to recover the receipt and read the Proposal state without repeating the WRITE.",
+  "currentStep": "P1.5A Context Memory Governance Inventory is Human LIVE PASS and closed. P1.5B Generic Durable Agent Action Receipt first Human live half is PASS: a real Personal Agent context.memory.proposal.create WRITE staged test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as PENDING and returned durable SUCCEEDED receipt agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e. The receipt invocationId was agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6 and resultEntityRefs included the exact proposalId. No duplicate WRITE was executed and no durable Memory was created. Remaining P1.5B Human gate: in a fresh Personal Agent chat, READ only, recover this prior receipt via agent.action.receipt.list/get, use its proposalId to read the current Proposal domain state, verify it remains PENDING, and do not invoke context.memory.proposal.create.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1565,8 +1565,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.5-2026-09-28-01",
-    "snapshotAt": "2026-09-27T16:06:10.197Z",
+    "snapshotId": "P1.5-2026-09-28-02",
+    "snapshotAt": "2026-09-27T16:12:00.000Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1606,22 +1606,23 @@
         }
       },
       "openGate": {
-        "id": "p1.5b-generic-durable-agent-action-receipt",
-        "status": "DEPLOYED_HUMAN_GATE_READY",
-        "summary": "P1.5B durable Agent Action Receipts are deployed. Human live verification must prove one real Personal Agent WRITE produces a SUCCEEDED durable receipt and that a fresh chat can READ that receipt plus the domain Proposal without repeating the WRITE.",
+        "id": "p1.5b-generic-durable-agent-action-receipt-readback",
+        "status": "HUMAN_WRITE_PASS_READBACK_PENDING",
+        "summary": "The real WRITE half of P1.5B passed: a test-only Memory Proposal was staged PENDING and a durable SUCCEEDED receipt linked to its proposalId. The only remaining gate is fresh-chat READ-only recovery of the prior receipt and Proposal state without repeating the WRITE.",
         "authority": "docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md",
         "acceptance": [
-          "Human asks Personal Agent to stage one clearly test-only Memory Proposal; no acceptance into durable Memory",
-          "WRITE executes through ordinary Host authorization",
-          "Agent observation contains a durable receipt with status SUCCEEDED",
-          "receipt includes receiptId, invocationId, idempotencyKey, current Principal/Context, toolId, inputDigest and result entity references",
-          "resultEntityRefs includes the staged proposalId",
-          "a fresh Personal Agent chat performs READ only using agent.action.receipt.list/get",
-          "fresh chat identifies the prior SUCCEEDED receipt without repeating context.memory.proposal.create",
-          "fresh chat uses proposalId from receipt evidence to read the domain Proposal",
-          "Proposal domain READ remains authoritative for current proposal state",
-          "test Proposal remains PENDING until Human rejects it; it is never accepted as formal Memory",
-          "no duplicate Proposal is created merely to recover continuity"
+          "fresh Personal Agent conversation or no useful prior discourse",
+          "Human explicitly requests READ only and forbids Proposal creation/WRITE",
+          "Agent uses agent.action.receipt.list and/or agent.action.receipt.get",
+          "Agent recovers receiptId agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e",
+          "Agent reports receipt status SUCCEEDED and invocationId agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6",
+          "Agent reads proposalId memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b from receipt evidence",
+          "Agent uses context.memory.proposal.get to read current domain Proposal state",
+          "Proposal domain state is still PENDING",
+          "Agent explains receipt proves prior execution while Proposal READ is authoritative for current Proposal state",
+          "Agent does not call context.memory.proposal.create",
+          "Agent does not create a duplicate Proposal",
+          "Agent performs no WRITE"
         ]
       },
       "productionPreview": {
@@ -1741,12 +1742,12 @@
     "freshSessionAcceptance": [
       "state current milestone as Personal Agent P1.5 — Durable Agent Operations",
       "state P1.4X and P1.5A as Human LIVE PASS and closed",
-      "state P1.5B Generic Durable Agent Action Receipt Human live verification as the current open gate",
-      "state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7 and Railway service",
-      "identify PR #101 as the latest deployed behavioral change",
-      "explain that receipts prove Agent WRITE execution state but do not replace domain authority",
-      "explain that orphan REQUESTED receipts fail closed and are not automatically retried",
-      "identify the old dc107947 content Proposal as a do-not-accept stale action",
+      "state P1.5B WRITE half as Human PASS and fresh-chat receipt/domain readback as the only remaining gate",
+      "identify the test proposalId and SUCCEEDED receiptId recorded in project.status.json",
+      "explain that receipt proves prior execution while Proposal READ remains current domain authority",
+      "state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7",
+      "do not repeat context.memory.proposal.create to recover continuity",
+      "identify the old dc107947 content Proposal as a separate do-not-accept stale action",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -1816,7 +1817,7 @@
     }
   },
   "agentActionReceiptP1_5B": {
-    "status": "DEPLOYED_HUMAN_GATE_READY",
+    "status": "DEPLOYED_HUMAN_WRITE_PASS_READBACK_PENDING",
     "authority": "docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md",
     "scope": "PERSONAL_AGENT_MATERIAL_WRITE",
     "storage": "APPEND_ONLY_REQUESTED_THEN_SINGLE_TERMINAL_EVENT",
@@ -1836,7 +1837,7 @@
     "readScope": "CURRENT_PRINCIPAL_AND_ACTIVE_CONTEXT",
     "domainAuthorityRule": "RECEIPT_PROVES_EXECUTION_STATE_NOT_DOMAIN_TRUTH",
     "machineGate": "PASS_26_OF_26_TRIGGERED_CI",
-    "humanBrowserGate": "READY",
+    "humanBrowserGate": "PARTIAL_PASS_WRITE_SUCCEEDED_READBACK_PENDING",
     "liveDeployment": {
       "platform": "RAILWAY",
       "project": "EVO Ledger Runtime MVP",
@@ -1846,6 +1847,26 @@
       "deploymentId": "952825f9-6c7f-4f5f-ad04-a6a7b6286ba4",
       "status": "SUCCESS",
       "persistentStateMount": "/data"
+    },
+    "liveHumanWriteEvidence": {
+      "proposalId": "memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b",
+      "proposalRevisionId": "memory-proposal-revision:67803442-8d81-4e33-be93-af75a639d933",
+      "proposalState": "PENDING",
+      "proposalKind": "PRACTICE",
+      "receiptId": "agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e",
+      "receiptStatus": "SUCCEEDED",
+      "invocationId": "agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6",
+      "resultEntityRefs": [
+        "memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b",
+        "personal:preview-user",
+        "preview-user",
+        "memory-proposal-revision:67803442-8d81-4e33-be93-af75a639d933"
+      ],
+      "proposalIdPresentInResultEntityRefs": true,
+      "repeatedWrite": false,
+      "durableMemoryCreated": false,
+      "humanAcceptedProposal": false,
+      "result": "PASS"
     }
   }
 }
