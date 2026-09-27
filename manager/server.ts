@@ -44,11 +44,13 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import { createPersonalAgentQualityPageV010 } from "./personal-agent-quality-page.js";
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
   ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
-  ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
+  ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE,
+  ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
@@ -2041,6 +2043,7 @@ const server = createServer(async (request, response) => {
         source === ENTERPRISE_AGENT_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
       ) {
         const effective = manager.listEffectiveExperiences().some(value => {
           const manifest = value as { pages?: Array<{ source?: string }> };
@@ -2100,6 +2103,13 @@ const server = createServer(async (request, response) => {
               labels
             )
           );
+        }
+        if (source === ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentQualityPageV010({
+            principal: session.principal,
+            context: context.activeContext,
+            store: personalAgentQualityEvidenceStore
+          }));
         }
         return json(
           response,
