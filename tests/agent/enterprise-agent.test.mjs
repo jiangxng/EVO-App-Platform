@@ -112,6 +112,8 @@ test("Host dynamically exposes Enterprise Agent tools with ownership and effect 
   const tools = await catalog.list();
 
   assert.deepEqual(tools.map(tool => tool.id), [
+    "agent.action.receipt.get",
+    "agent.action.receipt.list",
     "app.catalog.list",
     "app.install.execute",
     "app.install.plan",
