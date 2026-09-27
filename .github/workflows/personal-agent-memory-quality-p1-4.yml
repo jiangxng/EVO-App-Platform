@@ -1,0 +1,47 @@
+name: Agent/Memory CI - Quality P1.4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/quality-evaluation.ts"
+      - "manager/context-memory-retention-simulation.ts"
+      - "manager/context-memory-policy-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "tests/protocol/context-memory-p1-3-operations.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-QUALITY-RETENTION-SIMULATION-P1.4-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/quality-evaluation.ts"
+      - "manager/context-memory-retention-simulation.ts"
+      - "manager/context-memory-policy-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "tests/protocol/context-memory-p1-3-operations.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-QUALITY-RETENTION-SIMULATION-P1.4-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4.yml"
+
+concurrency:
+  group: personal-agent-memory-quality-p1-4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-memory:quality-p1-4
