@@ -38,6 +38,12 @@ export function createMemoryGovernanceExperienceManifestV010() {
   } as const;
 }
 
+function sameContext(a: ActiveContextRefV010, b: ActiveContextRefV010): boolean {
+  return a.kind === b.kind
+    && a.contextId === b.contextId
+    && (a.kind !== "ENTERPRISE" || b.kind !== "ENTERPRISE" || a.enterpriseId === b.enterpriseId);
+}
+
 function governanceAllowed(
   principal: PlatformPrincipalV010,
   personalContext: PersonalContextV010,
@@ -91,7 +97,7 @@ export function createMemoryGovernancePageV010(input: {
     input.legalHolds.listForContext(input.context).map(value => [value.memoryId, value])
   );
   const items = input.memoryStore.snapshot().items
-    .filter(item => item.context.kind === input.context.kind && item.context.contextId === input.context.contextId)
+    .filter(item => sameContext(item.context, input.context))
     .sort((a, b) => b.attribution.recordedAt.localeCompare(a.attribution.recordedAt))
     .map(item => {
       const decision = decisions.get(item.memoryId);
@@ -128,7 +134,7 @@ export function createMemoryGovernancePageV010(input: {
     });
 
   const operations = input.operationLog.list()
-    .filter(event => event.context.kind === input.context.kind && event.context.contextId === input.context.contextId)
+    .filter(event => sameContext(event.context, input.context))
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
   const latestOperation = operations[0];
 
