@@ -511,6 +511,16 @@ const agentActionReceiptService = createAgentActionReceiptServiceV010({
   store: agentActionReceiptEventStore,
   eventId: randomUUID
 });
+const agentRunFile =
+  process.env.APP_PLATFORM_AGENT_RUN_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "agent-runs.jsonl") : undefined);
+const agentRunEventStore = agentRunFile
+  ? createJsonlAgentRunEventStoreV010(agentRunFile)
+  : createMemoryAgentRunEventStoreV010();
+const agentRunStore = createAgentRunStoreV010({
+  eventStore: agentRunEventStore,
+  eventId: randomUUID
+});
 const contextMemoryQualityStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-quality.json") : undefined);
