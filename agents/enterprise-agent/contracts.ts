@@ -29,8 +29,14 @@ export interface AgentToolObservation {
   error?: { code: string; message: string };
 }
 
+export interface AgentConversationMessageV010 {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface AgentModelInput {
   userMessage: string;
+  conversationHistory?: AgentConversationMessageV010[];
   tools: AgentToolDescriptorV010[];
   observations: AgentToolObservation[];
   principal?: PlatformPrincipalV010;
