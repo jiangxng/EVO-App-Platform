@@ -201,6 +201,183 @@ export function createEnterpriseAgentHostToolCatalogV010(
     },
     {
       descriptor: descriptor({
+        id: "context.memory.recall",
+        modelName: "context_memory_recall",
+        title: "Context Memory recall",
+        description: "Recall durable Memory from the current Host-resolved Context using several short lexical retrieval queries in one authoritative READ. Use for cross-session natural-language questions when the user's wording may differ from stored Memory. The model supplies compact query expansion; the Host executes deterministic governed Memory reads, merges and deduplicates the results, and never changes Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            queries: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              maxItems: 6,
+              description: "One to six short atomic retrieval queries. Prefer business concepts/keywords rather than long natural-language sentences."
+            },
+            kind: {
+              type: "string",
+              enum: ["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"],
+              description: "Optional Memory kind filter."
+            },
+            limit: {
+              type: "number",
+              description: "Maximum merged result count from 1 to 100."
+            }
+          },
+          required: ["queries"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.readContextMemory !== undefined;
+      },
+      async execute(args) {
+        if (!dependencies.readContextMemory) {
+          throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+        }
+        const rawQueries = args.queries;
+        if (
+          !Array.isArray(rawQueries)
+          || rawQueries.length < 1
+          || rawQueries.length > 6
+          || rawQueries.some(item => typeof item !== "string" || !item.trim())
+        ) {
+          throw new Error("CONTEXT_MEMORY_RECALL_QUERIES_INVALID");
+        }
+        const queries = [...new Set(rawQueries.map(item => (item as string).trim()))];
+        const rawKind = stringArg(args, "kind", false);
+        const kind = rawKind as "FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE" | undefined;
+        if (rawKind && !["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(rawKind)) {
+          throw new Error("CONTEXT_MEMORY_KIND_INVALID");
+        }
+        const rawLimit = args.limit;
+        const limit = rawLimit === undefined ? 20 : rawLimit;
+        if (
+          typeof limit !== "number"
+          || !Number.isInteger(limit)
+          || limit < 1
+          || limit > 100
+        ) {
+          throw new Error("CONTEXT_MEMORY_LIMIT_INVALID");
+        }
+
+        const queryResults = await Promise.all(
+          queries.map(query =>
+            dependencies.readContextMemory!({
+              query,
+              ...(kind ? { kinds: [kind] } : {}),
+              limit
+            })
+          )
+        );
+
+        const byId = new Map<string, unknown>();
+        const rankingById = new Map<string, {
+          memoryId: string;
+          score: number;
+          signals: string[];
+          matchedQueries: string[];
+        }>();
+
+        queryResults.forEach((rawResult, index) => {
+          if (
+            rawResult === null
+            || typeof rawResult !== "object"
+            || !Array.isArray((rawResult as { items?: unknown }).items)
+          ) {
+            throw new Error("CONTEXT_MEMORY_RECALL_RESULT_INVALID");
+          }
+          const result = rawResult as {
+            items: unknown[];
+            ranking?: Array<{
+              memoryId?: unknown;
+              score?: unknown;
+              signals?: unknown;
+            }>;
+          };
+          for (const item of result.items) {
+            if (
+              item !== null
+              && typeof item === "object"
+              && typeof (item as { memoryId?: unknown }).memoryId === "string"
+            ) {
+              const memoryId = (item as { memoryId: string }).memoryId;
+              if (!byId.has(memoryId)) byId.set(memoryId, item);
+            }
+          }
+          for (const rank of result.ranking ?? []) {
+            if (
+              typeof rank.memoryId !== "string"
+              || typeof rank.score !== "number"
+              || !Number.isFinite(rank.score)
+            ) continue;
+            const current = rankingById.get(rank.memoryId);
+            const signals = Array.isArray(rank.signals)
+              ? rank.signals.filter((signal): signal is string => typeof signal === "string")
+              : [];
+            if (!current) {
+              rankingById.set(rank.memoryId, {
+                memoryId: rank.memoryId,
+                score: rank.score,
+                signals: [...new Set(signals)],
+                matchedQueries: [queries[index]]
+              });
+            } else {
+              current.score = Math.max(current.score, rank.score);
+              current.signals = [...new Set([...current.signals, ...signals])];
+              if (!current.matchedQueries.includes(queries[index])) {
+                current.matchedQueries.push(queries[index]);
+              }
+            }
+          }
+        });
+
+        const ranking = [...rankingById.values()].sort((a, b) =>
+          b.score - a.score
+          || b.matchedQueries.length - a.matchedQueries.length
+          || a.memoryId.localeCompare(b.memoryId)
+        );
+        const orderedIds = [
+          ...ranking.map(item => item.memoryId),
+          ...[...byId.keys()].filter(memoryId => !rankingById.has(memoryId))
+        ].slice(0, limit);
+
+        return {
+          contractVersion: "0.1.0",
+          strategyUsed: "LEXICAL_QUERY_EXPANSION",
+          queries,
+          items: orderedIds
+            .map(memoryId => byId.get(memoryId))
+            .filter(item => item !== undefined),
+          ranking: ranking
+            .filter(item => orderedIds.includes(item.memoryId))
+            .map(item => ({
+              contractVersion: "0.1.0",
+              ...item
+            })),
+          queryResults: queryResults.map((rawResult, index) => {
+            const result = rawResult as {
+              items: Array<{ memoryId?: unknown }>;
+              strategyUsed?: unknown;
+              ranking?: unknown;
+            };
+            return {
+              query: queries[index],
+              strategyUsed: result.strategyUsed,
+              memoryIds: result.items
+                .map(item => typeof item?.memoryId === "string" ? item.memoryId : undefined)
+                .filter((memoryId): memoryId is string => Boolean(memoryId))
+            };
+          })
+        };
+      }
+    },
+    {
+      descriptor: descriptor({
         id: "context.memory.search",
         modelName: "context_memory_search",
         title: "Context Memory",
