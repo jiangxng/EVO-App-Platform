@@ -1,6 +1,6 @@
 # Personal Agent Trends + Memory Freshness Policy + Follow-up P1.4E v0.1
 
-**Status:** implementation candidate  
+**Status:** CI-verified implementation candidate  
 **Date:** 2026-09-27  
 **Depends on:** P1.4A Responsibility Policy, P1.4B Quality Evaluation, P1.4C Real Evidence, P1.4D Human/Lab Evaluation + Memory Quality
 
