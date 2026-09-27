@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4X — Vertical Experience Checkpoint",
+  "currentMilestone": "Personal Agent P1.5 — Durable Agent Operations",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -294,10 +294,13 @@
     "context-memory-lexical-multi-token-retrieval",
     "context-memory-canonicalization-live-pass",
     "project-continuity-bootstrap-protocol",
-    "project-continuity-fresh-chat-live-pass"
+    "project-continuity-fresh-chat-live-pass",
+    "live-real-llm-install-proof",
+    "personal-agent-p1-4x-human-browser-live-pass",
+    "personal-agent-fresh-session-context-memory-recall-live-pass",
+    "personal-agent-memory-epistemic-boundaries-live-pass"
   ],
   "notYetImplemented": [
-    "live-real-llm-install-proof",
     "durable-lifecycle-persistence",
     "company-notes-reference-app",
     "official-apps-migration",
@@ -317,7 +320,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X live certification remains in progress. Repository-native Project Continuity is Human LIVE PASS and Memory Canonicalization is LIVE PASS. Fresh-session Personal Agent Context Memory recall is FUNCTIONALLY PASS: in a genuinely fresh Personal Agent conversation, PR #93 recalled canonical Memory B without being told 17:00 or any memoryId, cited B, reasoned that 18:00 is normally after the 17:00 cutoff, preserved possible exceptions, and performed READ only. The live response also exposed two epistemic overclaims: it stated an unsupported next-working-day/next-batch consequence and treated one recall hit as proof of global uniqueness. PR #96 is now merged and deployed at 8ffc87369b3dfe021a3fd3c27f3b4ad6242789de; it makes ranked-retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules and marks context.memory.recall exhaustive=false. Current Human gate: repeat the same fresh-session 18:00 question once and verify the answer keeps the successful recall/reasoning while removing those two overclaims.",
+  "currentStep": "P1.4X is Human LIVE PASS and closed. The full production-contract Personal Agent browser journey has been exercised with a real LLM, including install/provider/Host Secret/Ready, Memory Proposal and Human Review, governance, retention, quality/evaluation, contradiction resolution, Follow-up, canonicalization, fresh-session durable Memory recall and epistemically bounded reasoning. The final fresh-session 18:00 test recalled canonical Memory B, preserved the 'normally' qualifier, avoided unsupported downstream scheduling claims, explicitly treated recall as ranked/non-exhaustive, and performed READ only. P1.5 now starts from the operational gaps discovered during P1.4X: P1.5A deterministic paginated Context Memory governance inventory, then P1.5B generic durable Agent Action Receipt, then P1.5C resumable/asynchronous Agent runs beyond the observed ~60s synchronous HTTP ceiling.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -388,7 +391,9 @@
         "PROVIDER_CONFIGURATION_REQUIRED",
         "HOST_SECRET_SETTINGS_SURFACE"
       ],
-      "humanBrowserPass": false
+      "humanBrowserPass": true,
+      "humanBrowserPassDate": "2026-09-27",
+      "humanBrowserPassMode": "REAL_LLM_RAILWAY_HUMAN_BROWSER"
     }
   },
   "handoff": "docs/roadmap/HANDOFF-LATEST.md",
@@ -1454,7 +1459,7 @@
     "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
   },
   "experienceCheckpointP1_4X": {
-    "status": "LIVE_CERTIFICATION_IN_PROGRESS",
+    "status": "LIVE_PASS",
     "authority": "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md",
     "startCommand": "npm run experience:start",
     "resetCommand": "npm run experience:reset",
@@ -1470,8 +1475,8 @@
       "fakeMemory": false
     },
     "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_96",
-    "humanBrowserGate": "FRESH_SESSION_RECALL_FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
-    "liveRealLlmProof": "PARTIAL_PASS_REAL_PERSONAL_AGENT_MEMORY_RECALL_AND_GOVERNANCE",
+    "humanBrowserGate": "PASS",
+    "liveRealLlmProof": "PASS_REAL_LLM_HUMAN_BROWSER_END_TO_END",
     "journey": [
       "INSTALL",
       "PROVIDER_SETUP",
@@ -1528,17 +1533,28 @@
       },
       "status": "LIVE_PASS"
     },
-    "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md",
+    "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION.md",
     "freshSessionRecall": {
-      "status": "FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
+      "status": "LIVE_PASS",
       "targetMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
       "firstLiveResult": {
         "recall": "PASS",
         "qualifiedReasoning": "PASS",
         "evidenceCitation": "PASS",
         "readOnly": "PASS",
-        "unsupportedNextProcessingConsequence": "FAIL_FIXED_BY_PR_96_RETEST_PENDING",
-        "exhaustiveUniquenessClaim": "FAIL_FIXED_BY_PR_96_RETEST_PENDING"
+        "unsupportedNextProcessingConsequence": "FAIL_FIXED_BY_PR_96",
+        "exhaustiveUniquenessClaim": "FAIL_FIXED_BY_PR_96"
+      },
+      "finalLiveResult": {
+        "recall": "PASS",
+        "qualifiedReasoning": "PASS",
+        "evidenceCitation": "PASS",
+        "readOnly": "PASS",
+        "noUnsupportedDownstreamConsequence": "PASS",
+        "rankedRetrievalNonExhaustiveLanguage": "PASS",
+        "noGlobalUniquenessClaim": "PASS",
+        "noEnterpriseContextSpeculation": "PASS",
+        "proposalOrWrite": "NONE"
       },
       "deployedFix": {
         "pr": 96,
@@ -1549,8 +1565,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.4X-2026-09-27-03",
-    "snapshotAt": "2026-09-27T14:58:44.293Z",
+    "snapshotId": "P1.5-2026-09-27-01",
+    "snapshotAt": "2026-09-27T15:05:00.000Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1570,57 +1586,38 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Personal Agent P1.4X — Vertical Experience Checkpoint",
-      "milestoneStatus": "LIVE_CERTIFICATION_IN_PROGRESS",
+      "milestone": "Personal Agent P1.5 — Durable Agent Operations",
+      "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "context-memory-canonicalization",
+        "id": "personal-agent-p1.4x-vertical-experience-checkpoint",
         "status": "LIVE_PASS",
-        "summary": "Real A→B duplicate canonicalization is Human-accepted; ordinary retrieval returns only B while exact-ID audit preserves A+B and no third Memory was created.",
-        "authority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md",
+        "summary": "P1.4X Human browser checkpoint is closed end-to-end with real LLM behavior. Canonical Memory B is durable across sessions; fresh-session recall supports qualified reasoning; governance/audit/history remain intact; final epistemic-boundary retest passed.",
+        "authority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION.md",
         "evidence": {
-          "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
+          "productionBehaviorCommit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
+          "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8",
           "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
-          "proposalId": "memory-canonicalization-proposal:534175fa-fde5-42f1-8a54-510f4fa7900a",
-          "canonicalizationId": "memory-canonicalization:4e1d97e8-1bad-4e4c-9591-a2117263eedc",
-          "effectiveQuery": "仓库 17:00 截单",
-          "effectiveCount": 1,
-          "effectiveScore": 0.7,
-          "effectiveSignal": "SUMMARY_TOKENS_ALL",
-          "exactIdAudit": "A_AND_B_PRESENT"
+          "canonicalization": "LIVE_PASS",
+          "freshSessionRecall": "LIVE_PASS",
+          "qualifiedReasoning": "LIVE_PASS",
+          "epistemicBoundaries": "LIVE_PASS",
+          "projectContinuity": "LIVE_PASS"
         }
       },
       "openGate": {
-        "id": "fresh-session-context-memory-recall-epistemic",
-        "status": "FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
-        "summary": "Fresh-session recall already found canonical B and reasoned correctly about the normal 17:00 cutoff, but the live answer overclaimed a specific next-processing consequence and global uniqueness from ranked recall. PR #96 is deployed; repeat the same fresh-session question to verify epistemic boundaries.",
-        "targetMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
-        "observedFunctionalPass": [
-          "fresh conversation had no useful prior discourse",
-          "Agent used context.memory.recall",
-          "Agent recalled canonical Memory B without being told 17:00 or any memoryId",
-          "Agent cited Memory B",
-          "Agent reasoned 18:00 is normally after the 17:00 cutoff",
-          "Agent preserved that exceptions may exist",
-          "Agent performed READ only",
-          "Agent did not create Proposal or WRITE"
-        ],
-        "observedDefects": [
-          "Agent asserted that the order would roll to the next working day / next shipping batch although that consequence was not stated by authoritative Memory.",
-          "Agent said the returned Memory was the only relevant Memory and that there were no others, although ranked recall is not exhaustive inventory."
-        ],
+        "id": "p1.5a-context-memory-governance-inventory",
+        "status": "IMPLEMENTATION_READY",
+        "summary": "Add a deterministic paginated governance inventory/read surface for Context Memory so completeness, duplicate-set discovery and audit workflows do not misuse ranked retrieval as inventory.",
+        "authority": "docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md",
         "acceptance": [
-          "fresh conversation has no useful prior discourse",
-          "Agent performs READ only",
-          "Agent recalls canonical Memory B without being told 17:00 or any memoryId",
-          "Agent identifies Memory B as evidence",
-          "Agent says 18:00 is normally after the 17:00 cutoff",
-          "Agent preserves that exceptions may exist",
-          "Agent does not treat 17:00 as an unconditional absolute",
-          "Agent does not invent a specific next working day, next batch, carrier action, or fulfillment schedule absent authoritative evidence",
-          "Agent does not claim B is globally the only relevant Memory or that no other Memory exists based only on ranked recall",
-          "Agent may say B was the only item returned by this retrieval",
-          "Agent does not infer Enterprise Context merely from an empty retrieval",
-          "Agent creates no Proposal and performs no WRITE"
+          "inventory is deterministic and paginated",
+          "inventory is scoped by Host-resolved Context and authorization",
+          "governance/restriction visibility rules are explicit",
+          "inventory does not use relevance ranking",
+          "stable cursor semantics are defined",
+          "exact total/completeness semantics are explicit where supported",
+          "Personal Agent can distinguish inventory from ranked recall/search",
+          "existing retrieval and exact-ID audit behavior remains unchanged"
         ]
       },
       "productionPreview": {
@@ -1695,24 +1692,34 @@
         "pr": 96,
         "status": "MERGED_DEPLOYED",
         "summary": "Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false."
+      },
+      {
+        "pr": 97,
+        "status": "MERGED",
+        "summary": "Record fresh-session recall functional pass and PR #96 epistemic retest gate."
+      },
+      {
+        "pr": 98,
+        "status": "PLANNED_IN_THIS_CHANGE",
+        "summary": "Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations."
       }
     ],
     "doNotRepeat": [
       "Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.",
       "Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.",
-      "Do not treat Memory Canonicalization as the current open gate; it is closed.",
-      "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context lexical retrieval returned zero results.",
+      "Do not reopen P1.4X Memory Canonicalization or fresh-session recall as active gates unless a new regression provides current evidence.",
       "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context retrieval returned zero results.",
       "Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.",
       "Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.",
-      "Do not restart PR #84–#96 work unless a new regression provides current evidence."
+      "Do not use ranked retrieval as the P1.5 governance inventory implementation.",
+      "Do not restart PR #84–#97 work unless a new regression provides current evidence."
     ],
     "freshSessionAcceptance": [
-      "state the current milestone accurately",
-      "state Memory Canonicalization as LIVE PASS",
-      "state fresh-session Memory recall as the current open live gate",
-      "state the current deployed revision and Railway service",
-      "identify PR #93 as the latest deployed behavioral change",
+      "state current milestone as Personal Agent P1.5 — Durable Agent Operations",
+      "state P1.4X as Human LIVE PASS and closed",
+      "state P1.5A Context Memory governance inventory as the current open gate",
+      "state the current deployed runtime behavior revision and Railway service",
+      "identify PR #96 as the latest deployed behavioral change and PR #97 as the latest merged status change before P1.5 bootstrap",
       "identify the old dc107947 content Proposal as a do-not-accept stale action",
       "do not require the previous ChatGPT transcript to continue"
     ],
