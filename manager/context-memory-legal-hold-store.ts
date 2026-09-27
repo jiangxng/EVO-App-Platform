@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type {
   ActiveContextRefV010,
   ContextMemoryLegalHoldDecisionV010,
@@ -90,6 +92,39 @@ export function createMemoryContextMemoryLegalHoldStoreV010(
         .map(memoryId => decisionFor(memoryId, current.events))
         .filter((value): value is ContextMemoryLegalHoldDecisionV010 => value !== undefined)
         .sort((a, b) => a.memoryId.localeCompare(b.memoryId));
+    }
+  };
+}
+
+function readLegalHoldFile(path: string): ContextMemoryLegalHoldSnapshotV010 {
+  if (!existsSync(path)) return { contractVersion: "0.1.0", events: [] };
+  return JSON.parse(readFileSync(path, "utf8")) as ContextMemoryLegalHoldSnapshotV010;
+}
+
+function writeLegalHoldFile(path: string, snapshot: ContextMemoryLegalHoldSnapshotV010): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = path + ".tmp";
+  writeFileSync(tmp, JSON.stringify(snapshot, null, 2) + "\n", "utf8");
+  renameSync(tmp, path);
+}
+
+export function createFileContextMemoryLegalHoldStoreV010(
+  path: string
+): ContextMemoryLegalHoldStoreV010 {
+  return {
+    snapshot() {
+      return createMemoryContextMemoryLegalHoldStoreV010(readLegalHoldFile(path)).snapshot();
+    },
+    append(event) {
+      const memory = createMemoryContextMemoryLegalHoldStoreV010(readLegalHoldFile(path));
+      memory.append(event);
+      writeLegalHoldFile(path, memory.snapshot());
+    },
+    decision(memoryId) {
+      return createMemoryContextMemoryLegalHoldStoreV010(readLegalHoldFile(path)).decision(memoryId);
+    },
+    listForContext(context) {
+      return createMemoryContextMemoryLegalHoldStoreV010(readLegalHoldFile(path)).listForContext(context);
     }
   };
 }
