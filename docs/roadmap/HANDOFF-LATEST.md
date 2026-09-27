@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.5-2026-09-27-03`  
-**Snapshot time:** `2026-09-27T15:59:30.000Z`  
+**Snapshot:** `P1.5-2026-09-28-01`  
+**Snapshot time:** `2026-09-27T16:06:10.197Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,22 +40,23 @@ Evidence:
 
 ## Current open live gate
 
-**p1.5b-generic-durable-agent-action-receipt: MACHINE_VERIFIED_MERGE_READY**
+**p1.5b-generic-durable-agent-action-receipt: DEPLOYED_HUMAN_GATE_READY**
 
-P1.5B adds append-only Host-owned durable receipts for every Personal Agent material WRITE with deterministic idempotency, terminal success/failure/denial evidence, current-context readback, and fail-closed handling of orphan REQUESTED state. CI is green; merge/deploy is next before Human live verification.
+P1.5B durable Agent Action Receipts are deployed. Human live verification must prove one real Personal Agent WRITE produces a SUCCEEDED durable receipt and that a fresh chat can READ that receipt plus the domain Proposal without repeating the WRITE.
 
 Acceptance:
 
-- every Personal Agent material WRITE requires durable receipt infrastructure
-- REQUESTED is persisted before Host authorization/execution
-- exactly one terminal SUCCEEDED/FAILED/DENIED event may follow
-- identical successful retry in the same source interaction does not execute the WRITE twice
-- orphan REQUESTED is reported indeterminate and is not automatically repeated
-- receipt carries principal, active Context, tool, owner package, capability, input digest, timestamps and result/error evidence
-- receipt get/list are READ-only and scoped to current Principal + active Context
-- receipt execution evidence never replaces domain authoritative READ
-- JSONL persistence survives service reconstruction
-- Human live test after deployment proves one real WRITE receipt and subsequent READ-only receipt readback
+- Human asks Personal Agent to stage one clearly test-only Memory Proposal; no acceptance into durable Memory
+- WRITE executes through ordinary Host authorization
+- Agent observation contains a durable receipt with status SUCCEEDED
+- receipt includes receiptId, invocationId, idempotencyKey, current Principal/Context, toolId, inputDigest and result entity references
+- resultEntityRefs includes the staged proposalId
+- a fresh Personal Agent chat performs READ only using agent.action.receipt.list/get
+- fresh chat identifies the prior SUCCEEDED receipt without repeating context.memory.proposal.create
+- fresh chat uses proposalId from receipt evidence to read the domain Proposal
+- Proposal domain READ remains authoritative for current proposal state
+- test Proposal remains PENDING until Human rejects it; it is never accepted as formal Memory
+- no duplicate Proposal is created merely to recover continuity
 
 ## Current production preview
 
@@ -64,8 +65,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `64255c3905a905bf56a91492cdeff6b33ae19a36`
-- Deployment: `0e6de7ad-0015-4544-8dd6-18af20568785`
+- Commit: `4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7`
+- Deployment: `952825f9-6c7f-4f5f-ad04-a6a7b6286ba4`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -109,7 +110,7 @@ Not proved:
 - PR #98 — MERGED: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
 - PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
 - PR #100 — MERGED: Record deployed P1.5A inventory Human gate and advance continuity validation beyond closed P1.4X.
-- PR #101 — CI_VERIFIED_MERGE_READY: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
+- PR #101 — MERGED_DEPLOYED: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
 
 ## DO NOT repeat stale actions
 
@@ -147,8 +148,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state current milestone as Personal Agent P1.5 — Durable Agent Operations
 - state P1.4X and P1.5A as Human LIVE PASS and closed
-- state P1.5B Generic Durable Agent Action Receipt as the current open gate
-- state P1.5B is machine-verified 26/26 and awaiting merge/deploy before Human live verification
+- state P1.5B Generic Durable Agent Action Receipt Human live verification as the current open gate
+- state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7 and Railway service
+- identify PR #101 as the latest deployed behavioral change
 - explain that receipts prove Agent WRITE execution state but do not replace domain authority
 - explain that orphan REQUESTED receipts fail closed and are not automatically retried
 - identify the old dc107947 content Proposal as a do-not-accept stale action

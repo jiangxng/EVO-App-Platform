@@ -320,7 +320,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.5A Context Memory Governance Inventory is Human LIVE PASS and closed. Human verification used context.memory.inventory.list rather than ranked retrieval and returned totalCount=2, complete=true, scope=READER_VISIBLE_CURRENT_CONTEXT, with A marked historical CANONICALIZED_DUPLICATE -> B and B effective. P1.5B Generic Durable Agent Action Receipt is now machine-verified 26/26 CI and merge-ready: every Personal Agent material WRITE requires an append-only Host-owned REQUESTED -> SUCCEEDED/FAILED/DENIED receipt, stable idempotency prevents duplicate re-execution in the same interaction, orphan REQUESTED state fails closed as indeterminate, and current-context receipt get/list READ tools are available. Next step: merge/deploy P1.5B, then Human live-check one real WRITE plus receipt readback.",
+  "currentStep": "P1.5A Context Memory Governance Inventory is Human LIVE PASS and closed. P1.5B Generic Durable Agent Action Receipt is merged, deployed and Human-live-gate ready on Railway at 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7. Every Personal Agent material WRITE now requires an append-only Host-owned receipt, identical successful retries in the same source interaction do not re-execute, orphan REQUESTED fails closed, and receipt get/list are scoped READs. Current Human gate: create one review-only test Memory Proposal through Personal Agent, verify its SUCCEEDED Action Receipt and proposalId entity reference, then in a fresh Personal Agent chat use READ only to recover the receipt and read the Proposal state without repeating the WRITE.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1565,8 +1565,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.5-2026-09-27-03",
-    "snapshotAt": "2026-09-27T15:59:30.000Z",
+    "snapshotId": "P1.5-2026-09-28-01",
+    "snapshotAt": "2026-09-27T16:06:10.197Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1607,20 +1607,21 @@
       },
       "openGate": {
         "id": "p1.5b-generic-durable-agent-action-receipt",
-        "status": "MACHINE_VERIFIED_MERGE_READY",
-        "summary": "P1.5B adds append-only Host-owned durable receipts for every Personal Agent material WRITE with deterministic idempotency, terminal success/failure/denial evidence, current-context readback, and fail-closed handling of orphan REQUESTED state. CI is green; merge/deploy is next before Human live verification.",
+        "status": "DEPLOYED_HUMAN_GATE_READY",
+        "summary": "P1.5B durable Agent Action Receipts are deployed. Human live verification must prove one real Personal Agent WRITE produces a SUCCEEDED durable receipt and that a fresh chat can READ that receipt plus the domain Proposal without repeating the WRITE.",
         "authority": "docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md",
         "acceptance": [
-          "every Personal Agent material WRITE requires durable receipt infrastructure",
-          "REQUESTED is persisted before Host authorization/execution",
-          "exactly one terminal SUCCEEDED/FAILED/DENIED event may follow",
-          "identical successful retry in the same source interaction does not execute the WRITE twice",
-          "orphan REQUESTED is reported indeterminate and is not automatically repeated",
-          "receipt carries principal, active Context, tool, owner package, capability, input digest, timestamps and result/error evidence",
-          "receipt get/list are READ-only and scoped to current Principal + active Context",
-          "receipt execution evidence never replaces domain authoritative READ",
-          "JSONL persistence survives service reconstruction",
-          "Human live test after deployment proves one real WRITE receipt and subsequent READ-only receipt readback"
+          "Human asks Personal Agent to stage one clearly test-only Memory Proposal; no acceptance into durable Memory",
+          "WRITE executes through ordinary Host authorization",
+          "Agent observation contains a durable receipt with status SUCCEEDED",
+          "receipt includes receiptId, invocationId, idempotencyKey, current Principal/Context, toolId, inputDigest and result entity references",
+          "resultEntityRefs includes the staged proposalId",
+          "a fresh Personal Agent chat performs READ only using agent.action.receipt.list/get",
+          "fresh chat identifies the prior SUCCEEDED receipt without repeating context.memory.proposal.create",
+          "fresh chat uses proposalId from receipt evidence to read the domain Proposal",
+          "Proposal domain READ remains authoritative for current proposal state",
+          "test Proposal remains PENDING until Human rejects it; it is never accepted as formal Memory",
+          "no duplicate Proposal is created merely to recover continuity"
         ]
       },
       "productionPreview": {
@@ -1629,8 +1630,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "64255c3905a905bf56a91492cdeff6b33ae19a36",
-        "deploymentId": "0e6de7ad-0015-4544-8dd6-18af20568785",
+        "commit": "4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7",
+        "deploymentId": "952825f9-6c7f-4f5f-ad04-a6a7b6286ba4",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1718,7 +1719,7 @@
       },
       {
         "pr": 101,
-        "status": "CI_VERIFIED_MERGE_READY",
+        "status": "MERGED_DEPLOYED",
         "summary": "Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs."
       }
     ],
@@ -1740,8 +1741,9 @@
     "freshSessionAcceptance": [
       "state current milestone as Personal Agent P1.5 — Durable Agent Operations",
       "state P1.4X and P1.5A as Human LIVE PASS and closed",
-      "state P1.5B Generic Durable Agent Action Receipt as the current open gate",
-      "state P1.5B is machine-verified 26/26 and awaiting merge/deploy before Human live verification",
+      "state P1.5B Generic Durable Agent Action Receipt Human live verification as the current open gate",
+      "state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7 and Railway service",
+      "identify PR #101 as the latest deployed behavioral change",
       "explain that receipts prove Agent WRITE execution state but do not replace domain authority",
       "explain that orphan REQUESTED receipts fail closed and are not automatically retried",
       "identify the old dc107947 content Proposal as a do-not-accept stale action",
@@ -1814,7 +1816,7 @@
     }
   },
   "agentActionReceiptP1_5B": {
-    "status": "CI_VERIFIED_MERGE_READY",
+    "status": "DEPLOYED_HUMAN_GATE_READY",
     "authority": "docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md",
     "scope": "PERSONAL_AGENT_MATERIAL_WRITE",
     "storage": "APPEND_ONLY_REQUESTED_THEN_SINGLE_TERMINAL_EVENT",
@@ -1834,6 +1836,16 @@
     "readScope": "CURRENT_PRINCIPAL_AND_ACTIVE_CONTEXT",
     "domainAuthorityRule": "RECEIPT_PROVES_EXECUTION_STATE_NOT_DOMAIN_TRUTH",
     "machineGate": "PASS_26_OF_26_TRIGGERED_CI",
-    "humanBrowserGate": "PENDING_DEPLOYMENT"
+    "humanBrowserGate": "READY",
+    "liveDeployment": {
+      "platform": "RAILWAY",
+      "project": "EVO Ledger Runtime MVP",
+      "service": "Ledger Configurator",
+      "environment": "production",
+      "commit": "4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7",
+      "deploymentId": "952825f9-6c7f-4f5f-ad04-a6a7b6286ba4",
+      "status": "SUCCESS",
+      "persistentStateMount": "/data"
+    }
   }
 }
