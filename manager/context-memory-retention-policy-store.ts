@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type {
   ActiveContextRefV010,
   ContextMemoryItemV010,
@@ -118,6 +120,41 @@ export function createMemoryContextMemoryRetentionPolicyStoreV010(
         throw new Error("CONTEXT_MEMORY_RECORDED_AT_INVALID");
       }
       return new Date(recordedAt + days * 86_400_000).toISOString();
+    }
+  };
+}
+
+function readRetentionFile(path: string): ContextMemoryRetentionPolicySnapshotV010 {
+  if (!existsSync(path)) return { contractVersion: "0.1.0", events: [] };
+  return JSON.parse(readFileSync(path, "utf8")) as ContextMemoryRetentionPolicySnapshotV010;
+}
+
+function writeRetentionFile(path: string, snapshot: ContextMemoryRetentionPolicySnapshotV010): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = path + ".tmp";
+  writeFileSync(tmp, JSON.stringify(snapshot, null, 2) + "\n", "utf8");
+  renameSync(tmp, path);
+}
+
+export function createFileContextMemoryRetentionPolicyStoreV010(
+  path: string
+): ContextMemoryRetentionPolicyStoreV010 {
+  return {
+    snapshot() {
+      return createMemoryContextMemoryRetentionPolicyStoreV010(readRetentionFile(path)).snapshot();
+    },
+    append(event) {
+      const memory = createMemoryContextMemoryRetentionPolicyStoreV010(readRetentionFile(path));
+      memory.append(event);
+      writeRetentionFile(path, memory.snapshot());
+    },
+    effectiveForContext(context) {
+      return createMemoryContextMemoryRetentionPolicyStoreV010(readRetentionFile(path))
+        .effectiveForContext(context);
+    },
+    retentionDeadline(item, privacyClass) {
+      return createMemoryContextMemoryRetentionPolicyStoreV010(readRetentionFile(path))
+        .retentionDeadline(item, privacyClass);
     }
   };
 }
