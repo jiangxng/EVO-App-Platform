@@ -10,6 +10,7 @@ const statusPath = resolve(root, "project.status.json");
 const handoffPath = resolve(root, "docs/roadmap/HANDOFF-LATEST.md");
 const bootstrapPath = resolve(root, "AI-BOOTSTRAP.md");
 const llmPath = resolve(root, "LLM.md");
+const foundationMapPath = resolve(root, "llm.foundation-map.json");
 
 function fail(message) {
   console.error(`PROJECT_CONTINUITY_INVALID: ${message}`);
@@ -27,12 +28,20 @@ function requireFile(path, label) {
 const statusText = requireFile(statusPath, "project.status.json");
 const bootstrap = requireFile(bootstrapPath, "AI-BOOTSTRAP.md");
 const llm = requireFile(llmPath, "LLM.md");
+const foundationMapText = requireFile(foundationMapPath, "llm.foundation-map.json");
 
 let status;
+let foundationMap;
 try {
   status = JSON.parse(statusText);
 } catch (error) {
   fail(`project.status.json is not valid JSON: ${error}`);
+  process.exit();
+}
+try {
+  foundationMap = JSON.parse(foundationMapText);
+} catch (error) {
+  fail(`llm.foundation-map.json is not valid JSON: ${error}`);
   process.exit();
 }
 
@@ -108,6 +117,16 @@ if (!llm.includes("AI-BOOTSTRAP.md")) {
 }
 if (!llm.includes("docs/roadmap/HANDOFF-LATEST.md")) {
   fail("LLM.md must reference the stable HANDOFF-LATEST.md");
+}
+
+if (foundationMap.currentHandoff !== "docs/roadmap/HANDOFF-LATEST.md") {
+  fail("llm.foundation-map.json.currentHandoff must point to HANDOFF-LATEST.md");
+}
+if (foundationMap.projectContinuity?.bootstrap !== "AI-BOOTSTRAP.md") {
+  fail("llm.foundation-map.json.projectContinuity.bootstrap must point to AI-BOOTSTRAP.md");
+}
+if (foundationMap.projectContinuity?.stateAuthority !== "project.status.json") {
+  fail("llm.foundation-map.json.projectContinuity.stateAuthority must point to project.status.json");
 }
 
 function bullets(values) {
