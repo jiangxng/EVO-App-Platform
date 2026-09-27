@@ -156,6 +156,77 @@ function proposalFromMemoryReview(
   };
 }
 
+function canonicalizationProposalFromMemoryReview(
+  reply: PersonalAgentReplyV010,
+  locale: string
+): ChatMessagePartV020 | undefined {
+  const observation = [...reply.observations].reverse().find(
+    item => item.tool === "context.memory.canonicalization.proposal.create" && item.ok
+  );
+  if (!observation || observation.result === null || typeof observation.result !== "object") {
+    return undefined;
+  }
+  const result = observation.result as {
+    proposal?: {
+      proposalId?: unknown;
+      duplicateMemoryId?: unknown;
+      canonicalMemoryId?: unknown;
+      reason?: unknown;
+    };
+    reviewRoute?: unknown;
+  };
+  if (
+    !result.proposal
+    || typeof result.proposal.proposalId !== "string"
+    || typeof result.proposal.duplicateMemoryId !== "string"
+    || typeof result.proposal.canonicalMemoryId !== "string"
+    || typeof result.reviewRoute !== "string"
+  ) {
+    return undefined;
+  }
+
+  const zh = locale.toLowerCase().startsWith("zh");
+  const ja = locale.toLowerCase().startsWith("ja");
+  const title = zh
+    ? "审核记忆去重提案"
+    : ja
+      ? "メモリー正規化提案をレビュー"
+      : "Review Memory canonicalization";
+  const summary = zh
+    ? "该提案只建立已有 Memory 之间的 duplicate → canonical 治理关系，不会创建、编辑或删除 Memory 正文。"
+    : ja
+      ? "この提案は既存 Memory 間の duplicate → canonical ガバナンス関係のみを作成し、Memory 本文は作成・編集・削除しません。"
+      : "This proposal only creates a duplicate → canonical governance relation between existing Memory records; it does not create, edit or delete Memory content.";
+  const risk = zh
+    ? "接受后，重复记录会退出普通检索，但仍可通过精确 ID 用于审计。"
+    : ja
+      ? "承認後、重複記録は通常検索から除外されますが、正確な ID では監査用に引き続き参照できます。"
+      : "After acceptance, the duplicate leaves ordinary retrieval but remains addressable by exact ID for audit.";
+  const action = zh ? "打开记忆审核" : ja ? "メモリーレビューを開く" : "Open memory review";
+
+  return {
+    type: "proposal",
+    title,
+    summary,
+    reasons: [
+      summary,
+      `duplicate: ${result.proposal.duplicateMemoryId}`,
+      `canonical: ${result.proposal.canonicalMemoryId}`,
+      ...(typeof result.proposal.reason === "string" && result.proposal.reason.trim()
+        ? [`reason: ${result.proposal.reason}`]
+        : [])
+    ],
+    risk,
+    actions: [{
+      id: "review-memory-canonicalization",
+      label: action,
+      type: "navigate",
+      route: result.reviewRoute,
+      primary: true
+    }]
+  };
+}
+
 export function presentPersonalAgentReplyV020(
   reply: PersonalAgentReplyV010,
   locale = "en"
@@ -191,6 +262,9 @@ export function presentPersonalAgentReplyV020(
 
   const memoryProposal = proposalFromMemoryReview(reply, locale);
   if (memoryProposal) parts.push(memoryProposal);
+
+  const canonicalizationProposal = canonicalizationProposalFromMemoryReview(reply, locale);
+  if (canonicalizationProposal) parts.push(canonicalizationProposal);
 
   const proposal = proposalFromInstallPlan(reply);
   if (proposal) parts.push(proposal);
