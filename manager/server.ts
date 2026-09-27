@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
@@ -255,6 +255,12 @@ import {
   createJsonlContextMemoryOperationLogV010,
   createMemoryContextMemoryOperationLogV010
 } from "./context-memory-operations.js";
+import {
+  createContextMemorySchedulerV010,
+  createFileContextMemorySchedulerLeaseV010,
+  createMemoryContextMemorySchedulerLeaseV010,
+  parseContextMemoryScheduleContextsV010
+} from "./context-memory-scheduler.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -405,6 +411,21 @@ const contextMemoryOperationLogFile =
 const contextMemoryOperationLog = contextMemoryOperationLogFile
   ? createJsonlContextMemoryOperationLogV010(contextMemoryOperationLogFile)
   : createMemoryContextMemoryOperationLogV010();
+const contextMemoryScheduleMs = Number(
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS?.trim() || "0"
+);
+if (!Number.isFinite(contextMemoryScheduleMs) || contextMemoryScheduleMs < 0) {
+  throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_INVALID");
+}
+if (contextMemoryScheduleMs > 0 && contextMemoryScheduleMs < 60_000) {
+  throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_TOO_SMALL");
+}
+const contextMemoryScheduleContexts = parseContextMemoryScheduleContextsV010(
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_CONTEXTS_JSON
+);
+const contextMemorySchedulerLeaseFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULER_LEASE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-scheduler.lease.json") : undefined);
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -1448,6 +1469,62 @@ const contextMemoryIntakeService = createContextMemoryIntakeServiceV010({
   resolveSourceAdapter: resolveContextMemoryIntakeSource,
   resolveEvidenceSourceProvider: resolveContextMemoryEvidenceSourceProvider
 });
+
+const contextMemoryScheduledOperations = createContextMemoryScheduledOperationsV010({
+  memoryStore: contextMemoryStore,
+  governanceStore: contextMemoryGovernanceStore,
+  retentionPolicies: contextMemoryRetentionPolicyStore,
+  legalHolds: contextMemoryLegalHoldStore,
+  operationLog: contextMemoryOperationLog,
+  resolveDlpClassifier: resolveContextMemoryDlpClassifier
+});
+const contextMemorySchedulerLease = contextMemorySchedulerLeaseFile
+  ? createFileContextMemorySchedulerLeaseV010(
+      contextMemorySchedulerLeaseFile,
+      `context-memory-scheduler:${process.pid}:${randomUUID()}`,
+      Math.max(contextMemoryScheduleMs > 0 ? contextMemoryScheduleMs * 2 : 120_000, 120_000)
+    )
+  : createMemoryContextMemorySchedulerLeaseV010();
+const contextMemoryScheduler = createContextMemorySchedulerV010({
+  operations: contextMemoryScheduledOperations,
+  operationLog: contextMemoryOperationLog,
+  lease: contextMemorySchedulerLease,
+  listGovernanceContexts() {
+    return contextMemoryStore.snapshot().items.map(item => item.context);
+  },
+  listIntakeContexts() {
+    return contextMemoryScheduleContexts;
+  },
+  async runSourceIntake(context) {
+    const result = await contextMemoryIntakeService.run({
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId: "system:context-memory-scheduler",
+        actorType: "SERVICE",
+        identityProviderId: "host.scheduler",
+        displayName: "Context Memory Scheduler"
+      },
+      context,
+      limit: 100
+    });
+    const proposed = result.receipts.filter(receipt => receipt.outcome === "PROPOSED").length;
+    const duplicateFingerprints = result.receipts.length - proposed;
+    return {
+      examined: result.receipts.length + result.reusedSourceRecordReceiptIds.length,
+      changed: proposed,
+      skipped: duplicateFingerprints + result.reusedSourceRecordReceiptIds.length
+    };
+  }
+});
+let contextMemoryScheduleTimer: NodeJS.Timeout | undefined;
+if (contextMemoryScheduleMs > 0) {
+  contextMemoryScheduleTimer = setInterval(() => {
+    void contextMemoryScheduler.tick().catch(error => {
+      console.error("Scheduled Context Memory operation failed.", error);
+    });
+  }, contextMemoryScheduleMs);
+  contextMemoryScheduleTimer.unref();
+}
 
 function resolveContextForPrincipal(
   principal: PlatformPrincipalV010,
@@ -2880,6 +2957,8 @@ async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
+  if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
+  contextMemorySchedulerLease.release();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
