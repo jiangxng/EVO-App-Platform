@@ -2,6 +2,8 @@
 
 This file is the stable entry point for every fresh ChatGPT / LLM / Agent conversation working on EVO App Platform.
 
+Architecture authority: `docs/architecture/PROJECT-CONTINUITY-PROTOCOL-v0.1.md`.
+
 Do not reconstruct project state from chat memory.
 
 ## Mandatory startup order
@@ -85,10 +87,13 @@ Every accepted project step must leave repository evidence.
 
 At minimum, when project state materially changes:
 
-1. update `project.status.json`;
-2. update `docs/roadmap/HANDOFF-LATEST.md`;
-3. update or add the relevant architecture/live-certification authority document;
-4. add regression/CI evidence when behavior changed.
+1. update the structured `project.status.json.projectContinuity` snapshot;
+2. run `npm run continuity:render` to regenerate `docs/roadmap/HANDOFF-LATEST.md`;
+3. run `npm run continuity:validate`;
+4. update or add the relevant architecture/live-certification authority document;
+5. add regression/CI evidence when behavior changed.
+
+Do not hand-edit HANDOFF-LATEST as an independent source of truth.
 
 A chat-only decision is not durable project state.
 
