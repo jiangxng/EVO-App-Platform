@@ -595,3 +595,55 @@ P1.3 does not implement or claim physical deletion of immutable Memory. Expirati
 Completion gate passed: 13/13 triggered workflows were successful on the implementation head. `project.status.json` is now `CI_VERIFIED_P1_3`. PR #71 is ready for mainline merge.
 
 Next mainline after P1.3: Memory evaluation/quality metrics, retention-policy simulation/dry-run, operational hardening and broader long-running Provider observability without weakening Human/Context authority.
+
+
+## P1.3.1 — Experience Integration Checkpoint
+
+The user clarified that “larger development steps” and concern about over-design are primarily a request for earlier real product validation, not weaker architecture.
+
+The permanent cadence is:
+
+`big-step vertical closure + frequent verification + selective experience checkpoints`.
+
+Authority:
+
+- `docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md`
+
+Do not interpret this as “build UI for every backend change”.
+
+Do not build demo-only UI or fake product state to create frequent previews.
+
+Experience checkpoints must consume the same Package lifecycle, Host capability resolution, Provider bindings, Host Secrets, Principal/Context authority and Memory governance that production uses.
+
+P1.3.1 connects the already-real Personal Agent lifecycle:
+
+```text
+Plugin Store
+→ Install Personal Agent
+→ Needs setup
+→ Personal Agent Setup
+→ install/select LLM Provider
+→ Provider Settings + Host Secrets
+→ Host Provider readiness
+→ Ready
+→ Open Personal Agent
+→ Context selection
+→ Memory Review / Governance / Source Health
+```
+
+Changes in this checkpoint:
+
+- centralized Plugin Store readiness/primary-action mapping in Personal Agent product logic;
+- setup Provider configuration links to formal Provider status;
+- degraded/unavailable setup exposes Provider diagnosis and explicit recheck;
+- completed setup continues into Memory Review/Governance/Source Health;
+- all new product actions localized in en / zh-CN / ja / zh-TW;
+- dedicated vertical experience integration test;
+- dedicated experience CI;
+- real browser runbook without fake data paths.
+
+Browser checkpoint:
+
+- `docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md`
+
+After CI verification, the next step is Human browser experience. Product feedback from that checkpoint should be used before multiplying the same interaction assumptions into P1.4+.
