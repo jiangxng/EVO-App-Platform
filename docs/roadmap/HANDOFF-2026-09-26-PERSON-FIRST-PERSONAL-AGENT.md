@@ -592,6 +592,6 @@ Production configuration introduced by P1.3:
 
 P1.3 does not implement or claim physical deletion of immutable Memory. Expiration is still a governance/visibility state.
 
-Completion remains gated on final branch-head CI. After that gate passes, update project.status.json contextP1_3 to CI_VERIFIED_P1_3 and merge PR #71 to main.
+Completion gate passed: 13/13 triggered workflows were successful on the implementation head. `project.status.json` is now `CI_VERIFIED_P1_3`. PR #71 is ready for mainline merge.
 
 Next mainline after P1.3: Memory evaluation/quality metrics, retention-policy simulation/dry-run, operational hardening and broader long-running Provider observability without weakening Human/Context authority.
