@@ -14,6 +14,10 @@ import {
   tradingLitePackage
 } from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import {
+  createAgentActionReceiptServiceV010,
+  createMemoryAgentActionReceiptEventStoreV010
+} from "../../dist/manager/agent-action-receipt-store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
 import { createMemoryProviderBindingStoreV010 } from "../../dist/manager/provider-resolution.js";
@@ -51,11 +55,27 @@ const personalContext = {
 };
 
 
+let testReceiptSequence = 0;
+
+function actionReceipt(sourceInteractionId = "test-interaction:" + (++testReceiptSequence)) {
+  let eventSequence = 0;
+  return {
+    sourceInteractionId,
+    sourceActionId: "enterprise-agent.chat",
+    service: createAgentActionReceiptServiceV010({
+      store: createMemoryAgentActionReceiptEventStoreV010(),
+      eventId: () => "test-event-" + (++eventSequence)
+    }),
+    now: () => new Date("2026-09-27T16:00:00.000Z")
+  };
+}
+
 function hostCatalog(manager, additional = [], context = personalContext) {
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     principal: testPrincipal,
     context,
+    actionReceipt: actionReceipt(),
     listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
     getProviderHealth(providerId) {
@@ -186,6 +206,7 @@ test("Personal Agent Memory Proposal tool stages review state without accepting 
     manager,
     principal: testPrincipal,
     context: personalContext,
+    actionReceipt: actionReceipt(),
     listAvailableContexts() { return [personalContext.activeContext]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
@@ -316,6 +337,7 @@ test("Host authorization blocks Memory Proposal staging before proposal persiste
     manager,
     principal: testPrincipal,
     context: personalContext,
+    actionReceipt: actionReceipt(),
     listAvailableContexts() { return [personalContext.activeContext]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
@@ -837,6 +859,7 @@ test("Host authorization blocks Personal Agent Material WRITE before tool execut
     manager,
     principal: testPrincipal,
     context: personalContext,
+    actionReceipt: actionReceipt(),
     listAvailableContexts() { return [personalContext.activeContext]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },
