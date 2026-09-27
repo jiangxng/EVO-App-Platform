@@ -19,6 +19,7 @@ export function createPersonalAgentExperienceProfileV010(
     || PERSONAL_AGENT_EXPERIENCE_SUBJECT_ID;
   const bootstrapAdminToken =
     base.APP_PLATFORM_EXPERIENCE_ADMIN_TOKEN?.trim()
+    || base.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
     || PERSONAL_AGENT_EXPERIENCE_ADMIN_TOKEN;
   const stateFile =
     base.APP_PLATFORM_STATE_FILE?.trim()
