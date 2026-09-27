@@ -1008,8 +1008,7 @@ test("Personal Agent suppresses an identical successful READ and forces evidence
   assert.equal(reply.observations.length, 1);
   assert.equal(reply.observations[0].ok, true);
   assert.match(reply.message, /17:00/);
-  assert.equal(convergenceInput.tools.length, 1);
-  assert.equal(convergenceInput.tools[0].id, "context.memory.search");
+  assert.equal(convergenceInput.tools.length, 0);
   assert.equal(convergenceInput.observations.length, 2);
   assert.equal(
     convergenceInput.observations[1].error.code,
@@ -1102,7 +1101,11 @@ test("Personal Agent can continue with a different READ after an identical READ 
     "context.memory.search",
     "context.memory.proposal.get"
   ]);
-  assert.equal(suppressedInput.tools.length, 2);
+  assert.equal(suppressedInput.tools.length, 1);
+  assert.equal(
+    suppressedInput.tools[0].id,
+    "context.memory.proposal.get"
+  );
   assert.equal(
     suppressedInput.observations.at(-1).error.code,
     "AGENT_READ_REPEAT_SUPPRESSED"
@@ -1110,6 +1113,181 @@ test("Personal Agent can continue with a different READ after an identical READ 
   assert.equal(reply.observations.length, 2);
   assert.equal(reply.observations[1].result.state, "PENDING");
   assert.equal(reply.message, "proposal verified");
+});
+
+test("Host exposes exact-ID Memory audit separately from ordinary retrieval", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  const reads = [];
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    readContextMemory(input) {
+      reads.push(input);
+      return {
+        contractVersion: "0.1.0",
+        items: [{
+          memoryId: input.memoryIds?.[0] ?? "memory:ordinary",
+          summary: "仓库正常每天 17:00 截单"
+        }],
+        strategyUsed: "LEXICAL",
+        ranking: []
+      };
+    },
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
+  });
+
+  const tools = await catalog.list();
+  assert.equal(
+    tools.some(tool => tool.id === "context.memory.search"),
+    true
+  );
+  assert.equal(
+    tools.some(tool => tool.id === "context.memory.audit.get"),
+    true
+  );
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.audit.get",
+    arguments: { memoryId: "memory:a" }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.equal(observation.result.items[0].memoryId, "memory:a");
+  assert.deepEqual(reads, [{
+    memoryIds: ["memory:a"],
+    limit: 1
+  }]);
+});
+
+test("Personal Agent can finish ordinary retrieval plus exact-ID audit after search retirement", async () => {
+  const calls = [];
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read effective Memory.",
+        inputSchema: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }, {
+        contractVersion: "0.1.0",
+        id: "context.memory.audit.get",
+        modelName: "context_memory_audit_get",
+        title: "Context Memory exact-ID audit",
+        description: "Read one Memory by exact ID.",
+        inputSchema: {
+          type: "object",
+          properties: { memoryId: { type: "string" } },
+          required: ["memoryId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }];
+    },
+    async invoke(call) {
+      calls.push([call.tool, structuredClone(call.arguments)]);
+      if (call.tool === "context.memory.search") {
+        return {
+          tool: call.tool,
+          ok: true,
+          result: {
+            items: [{
+              memoryId: "memory:b",
+              summary: "仓库正常每天 17:00 截单"
+            }]
+          }
+        };
+      }
+      return {
+        tool: call.tool,
+        ok: true,
+        result: {
+          items: [{
+            memoryId: call.arguments.memoryId,
+            summary: "historical"
+          }]
+        }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide(input) {
+      step += 1;
+      if (step === 1 || step === 2) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "仓库 17:00 截单" }
+          }
+        };
+      }
+      if (step === 3) {
+        assert.equal(
+          input.tools.some(tool => tool.id === "context.memory.search"),
+          false
+        );
+        assert.equal(
+          input.tools.some(tool => tool.id === "context.memory.audit.get"),
+          true
+        );
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.audit.get",
+            arguments: { memoryId: "memory:a" }
+          }
+        };
+      }
+      if (step === 4) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.audit.get",
+            arguments: { memoryId: "memory:b" }
+          }
+        };
+      }
+      return {
+        type: "final",
+        message: "普通检索仅 B；精确审计 A/B 均存在。"
+      };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat(
+    "普通检索后精确审计 A 和 B",
+    personalContext,
+    testPrincipal
+  );
+
+  assert.deepEqual(calls.map(item => item[0]), [
+    "context.memory.search",
+    "context.memory.audit.get",
+    "context.memory.audit.get"
+  ]);
+  assert.equal(reply.observations.length, 3);
+  assert.match(reply.message, /仅 B/);
+  assert.match(reply.message, /A\/B 均存在/);
 });
 
 test("Personal Agent converges when paraphrased Memory READs return the same authoritative evidence", async () => {
