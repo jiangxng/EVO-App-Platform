@@ -261,6 +261,10 @@ import {
   createMemoryContextMemorySchedulerLeaseV010,
   parseContextMemoryScheduleContextsV010
 } from "./context-memory-scheduler.js";
+import {
+  createFileContextMemoryScheduleStateStoreV010,
+  createMemoryContextMemoryScheduleStateStoreV010
+} from "./context-memory-schedule-state-store.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -435,6 +439,12 @@ const contextMemoryScheduleContexts = parseContextMemoryScheduleContextsV010(
 const contextMemorySchedulerLeaseFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULER_LEASE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-scheduler.lease.json") : undefined);
+const contextMemoryScheduleStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_STATE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-schedule-state.json") : undefined);
+const contextMemoryScheduleStateStore = contextMemoryScheduleStateFile
+  ? createFileContextMemoryScheduleStateStoreV010(contextMemoryScheduleStateFile)
+  : createMemoryContextMemoryScheduleStateStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -1505,6 +1515,9 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
     return contextMemoryScheduleContexts;
   },
   async runSourceIntake(context) {
+    const adapter = resolveContextMemoryIntakeSource();
+    if (!adapter) throw new Error("CONTEXT_MEMORY_INTAKE_SOURCE_REQUIRED");
+    const cursorState = contextMemoryScheduleStateStore.get(adapter.sourceId, context);
     const result = await contextMemoryIntakeService.run({
       principal: {
         contractVersion: "0.1.0",
@@ -1514,7 +1527,15 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
         displayName: "Context Memory Scheduler"
       },
       context,
+      ...(cursorState?.cursor ? { cursor: cursorState.cursor } : {}),
       limit: 100
+    });
+    contextMemoryScheduleStateStore.set({
+      contractVersion: "0.1.0",
+      sourceId: adapter.sourceId,
+      context: structuredClone(context),
+      ...(result.nextCursor ? { cursor: result.nextCursor } : {}),
+      updatedAt: new Date().toISOString()
     });
     const proposed = result.receipts.filter(receipt => receipt.outcome === "PROPOSED").length;
     const duplicateFingerprints = result.receipts.length - proposed;
