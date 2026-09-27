@@ -718,3 +718,41 @@ Authority:
 - `docs/architecture/PERSONAL-AGENT-QUALITY-RETENTION-SIMULATION-P1.4-v0.1.md`
 
 Do not build a quality dashboard until real production/lab evidence exists. Unknown must remain unknown rather than being inferred from weak heuristics.
+
+
+## P1.4C — Real Quality Evidence and Retention Preview/Commit Flow
+
+P1.4C turns P1.4B metrics from an evaluation contract into real evidence without inventing subjective labels.
+
+Personal Agent:
+
+- every successful interaction can append Host-observed objective evidence;
+- evidence includes Principal, active Context, interaction id and tool success/failure counts;
+- evidence is append-only;
+- production persistence is JSONL;
+- subjective collaboration dimensions remain UNKNOWN unless explicitly evaluated;
+- /enterprise-agent/quality shows only current Principal + active Context evidence;
+- empty state explicitly says no real evidence exists instead of rendering sample metrics.
+
+Retention Policy:
+
+- policy editing uses a non-authoritative append-only Retention Draft;
+- prepare automatically runs candidate simulation;
+- PREPARED Draft shows preview impact;
+- commit requires Human confirmation + governance authority + Host material-write authorization;
+- immediately before commit, the Host re-simulates against current Memory/governance/policies/Legal Holds;
+- changed impact fails closed with CONTEXT_MEMORY_RETENTION_DRAFT_STALE_REPREVIEW_REQUIRED;
+- only a fresh confirmed Draft can append the authoritative Retention Policy event;
+- Draft state itself never becomes Memory governance truth.
+
+Eidos routes:
+
+- /enterprise-agent/quality
+- /memory/retention-drafts/new
+- /memory/retention-drafts
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md`
+
+This is the first full policy-editing pattern that follows the P1.4A responsibility model: system performs impact analysis, Human authorizes the consequential change, Host executes and verifies the formal write.
