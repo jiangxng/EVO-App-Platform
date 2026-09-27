@@ -317,7 +317,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X live certification remains in progress. Repository-native Project Continuity is now Human LIVE PASS: a fresh ChatGPT conversation successfully recovered current progress by following AI-BOOTSTRAP.md without relying on the previous transcript. Memory Canonicalization remains LIVE PASS. The current product gate remains fresh-session Personal Agent Context Memory recall after PR #93: ask whether an 18:00 order can still be handled the same day without mentioning 17:00 or any memoryId; the Agent must recall canonical Memory B, preserve the 'normally' qualifier, cite the Memory used, avoid unsupported Enterprise-Context speculation, and perform no WRITE.",
+  "currentStep": "P1.4X live certification remains in progress. Repository-native Project Continuity is Human LIVE PASS and Memory Canonicalization is LIVE PASS. Fresh-session Personal Agent Context Memory recall is FUNCTIONALLY PASS: in a genuinely fresh Personal Agent conversation, PR #93 recalled canonical Memory B without being told 17:00 or any memoryId, cited B, reasoned that 18:00 is normally after the 17:00 cutoff, preserved possible exceptions, and performed READ only. The live response also exposed two epistemic overclaims: it stated an unsupported next-working-day/next-batch consequence and treated one recall hit as proof of global uniqueness. PR #96 is now merged and deployed at 8ffc87369b3dfe021a3fd3c27f3b4ad6242789de; it makes ranked-retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules and marks context.memory.recall exhaustive=false. Current Human gate: repeat the same fresh-session 18:00 question once and verify the answer keeps the successful recall/reasoning while removing those two overclaims.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1469,9 +1469,9 @@
       "preconfiguredApiKey": false,
       "fakeMemory": false
     },
-    "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_93",
-    "humanBrowserGate": "PARTIAL_PASS_MEMORY_CANONICALIZATION_LIVE_PASS_FRESH_SESSION_RECALL_RETEST_READY",
-    "liveRealLlmProof": "PARTIAL_PASS_REAL_PERSONAL_AGENT_MEMORY_GOVERNANCE",
+    "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_96",
+    "humanBrowserGate": "FRESH_SESSION_RECALL_FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
+    "liveRealLlmProof": "PARTIAL_PASS_REAL_PERSONAL_AGENT_MEMORY_RECALL_AND_GOVERNANCE",
     "journey": [
       "INSTALL",
       "PROVIDER_SETUP",
@@ -1492,8 +1492,8 @@
       "project": "EVO Ledger Runtime MVP",
       "service": "Ledger Configurator",
       "environment": "production",
-      "commit": "fc4d5e42135d2f6dbc25600b2363cd57e3f4c259",
-      "deploymentId": "7fc9e813-8a7a-4678-b41b-d0a422fe58dc",
+      "commit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
+      "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8",
       "status": "SUCCESS",
       "persistentStateMount": "/data"
     },
@@ -1528,12 +1528,29 @@
       },
       "status": "LIVE_PASS"
     },
-    "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md"
+    "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md",
+    "freshSessionRecall": {
+      "status": "FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
+      "targetMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
+      "firstLiveResult": {
+        "recall": "PASS",
+        "qualifiedReasoning": "PASS",
+        "evidenceCitation": "PASS",
+        "readOnly": "PASS",
+        "unsupportedNextProcessingConsequence": "FAIL_FIXED_BY_PR_96_RETEST_PENDING",
+        "exhaustiveUniquenessClaim": "FAIL_FIXED_BY_PR_96_RETEST_PENDING"
+      },
+      "deployedFix": {
+        "pr": 96,
+        "commit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
+        "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8"
+      }
+    }
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.4X-2026-09-27-02",
-    "snapshotAt": "2026-09-27T14:48:17.768Z",
+    "snapshotId": "P1.4X-2026-09-27-03",
+    "snapshotAt": "2026-09-27T14:58:44.293Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1573,18 +1590,35 @@
         }
       },
       "openGate": {
-        "id": "fresh-session-context-memory-recall",
-        "status": "READY_FOR_LIVE_RETEST",
-        "summary": "In a fresh Personal Agent conversation, ask whether an 18:00 order can still be handled the same day without mentioning 17:00 or any memoryId. The Agent must recall canonical B through Context Memory and reason with the 'normally' qualifier.",
+        "id": "fresh-session-context-memory-recall-epistemic",
+        "status": "FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY",
+        "summary": "Fresh-session recall already found canonical B and reasoned correctly about the normal 17:00 cutoff, but the live answer overclaimed a specific next-processing consequence and global uniqueness from ranked recall. PR #96 is deployed; repeat the same fresh-session question to verify epistemic boundaries.",
         "targetMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
+        "observedFunctionalPass": [
+          "fresh conversation had no useful prior discourse",
+          "Agent used context.memory.recall",
+          "Agent recalled canonical Memory B without being told 17:00 or any memoryId",
+          "Agent cited Memory B",
+          "Agent reasoned 18:00 is normally after the 17:00 cutoff",
+          "Agent preserved that exceptions may exist",
+          "Agent performed READ only",
+          "Agent did not create Proposal or WRITE"
+        ],
+        "observedDefects": [
+          "Agent asserted that the order would roll to the next working day / next shipping batch although that consequence was not stated by authoritative Memory.",
+          "Agent said the returned Memory was the only relevant Memory and that there were no others, although ranked recall is not exhaustive inventory."
+        ],
         "acceptance": [
           "fresh conversation has no useful prior discourse",
           "Agent performs READ only",
           "Agent recalls canonical Memory B without being told 17:00 or any memoryId",
-          "Agent identifies the Memory evidence it used",
+          "Agent identifies Memory B as evidence",
           "Agent says 18:00 is normally after the 17:00 cutoff",
           "Agent preserves that exceptions may exist",
           "Agent does not treat 17:00 as an unconditional absolute",
+          "Agent does not invent a specific next working day, next batch, carrier action, or fulfillment schedule absent authoritative evidence",
+          "Agent does not claim B is globally the only relevant Memory or that no other Memory exists based only on ranked recall",
+          "Agent may say B was the only item returned by this retrieval",
           "Agent does not infer Enterprise Context merely from an empty retrieval",
           "Agent creates no Proposal and performs no WRITE"
         ]
@@ -1595,8 +1629,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "fc4d5e42135d2f6dbc25600b2363cd57e3f4c259",
-        "deploymentId": "7fc9e813-8a7a-4678-b41b-d0a422fe58dc",
+        "commit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
+        "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1651,6 +1685,16 @@
         "pr": 94,
         "status": "MERGED_HUMAN_LIVE_PASS",
         "summary": "Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS."
+      },
+      {
+        "pr": 95,
+        "status": "MERGED",
+        "summary": "Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery."
+      },
+      {
+        "pr": 96,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false."
       }
     ],
     "doNotRepeat": [
@@ -1658,7 +1702,10 @@
       "Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.",
       "Do not treat Memory Canonicalization as the current open gate; it is closed.",
       "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context lexical retrieval returned zero results.",
-      "Do not restart PR #84–#93 work unless a new regression provides current evidence."
+      "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context retrieval returned zero results.",
+      "Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.",
+      "Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.",
+      "Do not restart PR #84–#96 work unless a new regression provides current evidence."
     ],
     "freshSessionAcceptance": [
       "state the current milestone accurately",
