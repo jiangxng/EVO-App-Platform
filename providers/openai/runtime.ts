@@ -42,6 +42,146 @@ function safeArguments(value: string): Record<string, unknown> {
   }
 }
 
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringSet(value: unknown): Set<string> {
+  return new Set(
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : []
+  );
+}
+
+function makeOpenAiOptionalNullable(
+  schema: Record<string, unknown>
+): Record<string, unknown> {
+  const normalized = structuredClone(schema);
+  const type = normalized.type;
+
+  if (typeof type === "string") {
+    if (type !== "null") normalized.type = [type, "null"];
+  } else if (Array.isArray(type)) {
+    if (!type.includes("null")) normalized.type = [...type, "null"];
+  } else if (Array.isArray(normalized.anyOf)) {
+    normalized.anyOf = [
+      ...normalized.anyOf,
+      { type: "null" }
+    ];
+  } else {
+    normalized.anyOf = [
+      structuredClone(normalized),
+      { type: "null" }
+    ];
+    for (const key of Object.keys(normalized)) {
+      if (key !== "anyOf") delete normalized[key];
+    }
+  }
+
+  if (
+    Array.isArray(normalized.enum)
+    && !normalized.enum.some(value => value === null)
+  ) {
+    normalized.enum = [...normalized.enum, null];
+  }
+
+  return normalized;
+}
+
+export function normalizeOpenAiStrictToolSchemaV010(
+  schema: Record<string, unknown>
+): Record<string, unknown> {
+  const normalized = structuredClone(schema);
+
+  if (isRecord(normalized.$defs)) {
+    normalized.$defs = Object.fromEntries(
+      Object.entries(normalized.$defs).map(([key, value]) => [
+        key,
+        isRecord(value)
+          ? normalizeOpenAiStrictToolSchemaV010(value)
+          : value
+      ])
+    );
+  }
+
+  for (const composition of ["anyOf", "oneOf"] as const) {
+    const value = normalized[composition];
+    if (Array.isArray(value)) {
+      normalized[composition] = value.map(item =>
+        isRecord(item)
+          ? normalizeOpenAiStrictToolSchemaV010(item)
+          : item
+      );
+    }
+  }
+
+  if (isRecord(normalized.items)) {
+    normalized.items = normalizeOpenAiStrictToolSchemaV010(
+      normalized.items
+    );
+  }
+
+  if (isRecord(normalized.properties)) {
+    const originallyRequired = stringSet(normalized.required);
+    const properties: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(normalized.properties)) {
+      if (!isRecord(value)) {
+        throw new Error(
+          `OPENAI_TOOL_SCHEMA_PROPERTY_INVALID: ${key}`
+        );
+      }
+      const child = normalizeOpenAiStrictToolSchemaV010(value);
+      properties[key] = originallyRequired.has(key)
+        ? child
+        : makeOpenAiOptionalNullable(child);
+    }
+
+    normalized.properties = properties;
+    normalized.required = Object.keys(properties);
+    normalized.additionalProperties = false;
+  }
+
+  return normalized;
+}
+
+function restoreGenericOptionalArguments(
+  value: unknown,
+  schema: Record<string, unknown>
+): unknown {
+  if (Array.isArray(value)) {
+    const itemSchema = isRecord(schema.items)
+      ? schema.items
+      : undefined;
+    return itemSchema
+      ? value.map(item =>
+          restoreGenericOptionalArguments(item, itemSchema)
+        )
+      : value;
+  }
+
+  if (!isRecord(value) || !isRecord(schema.properties)) {
+    return value;
+  }
+
+  const originallyRequired = stringSet(schema.required);
+  const restored: Record<string, unknown> = {};
+
+  for (const [key, item] of Object.entries(value)) {
+    const propertySchema = schema.properties[key];
+    if (item === null && !originallyRequired.has(key)) {
+      continue;
+    }
+    restored[key] = isRecord(propertySchema)
+      ? restoreGenericOptionalArguments(item, propertySchema)
+      : item;
+  }
+
+  return restored;
+}
+
 export function createOpenAiResponsesLlmProvider(
   options: OpenAiResponsesLlmProviderOptions
 ): LlmInferenceProvider {
@@ -88,7 +228,9 @@ export function createOpenAiResponsesLlmProvider(
                   type: "function",
                   name: tool.name,
                   description: tool.description,
-                  parameters: tool.inputSchema,
+                  parameters: normalizeOpenAiStrictToolSchemaV010(
+                    tool.inputSchema
+                  ),
                   strict: true
                 })),
                 tool_choice: "auto"
@@ -102,12 +244,24 @@ export function createOpenAiResponsesLlmProvider(
         throw new Error(body.error?.message ?? `OpenAI Responses API HTTP ${response.status}`);
       }
 
+      const toolSchemas = new Map(
+        (request.tools ?? []).map(tool => [
+          tool.name,
+          tool.inputSchema
+        ])
+      );
       const toolCalls = (body.output ?? [])
         .filter((item): item is ResponseFunctionCall => item.type === "function_call")
-        .map(item => ({
-          name: item.name,
-          arguments: safeArguments(item.arguments)
-        }));
+        .map(item => {
+          const parsed = safeArguments(item.arguments);
+          const originalSchema = toolSchemas.get(item.name);
+          return {
+            name: item.name,
+            arguments: originalSchema
+              ? restoreGenericOptionalArguments(parsed, originalSchema) as Record<string, unknown>
+              : parsed
+          };
+        });
 
       let text = "";
       for (const item of body.output ?? []) {
