@@ -300,6 +300,7 @@ export function materializeAgentRunsV010(
       createdAt: created.occurredAt,
       updatedAt,
       sliceCount,
+      ...(activeSliceId ? { activeSliceId } : {}),
       lastEventId,
       decisions,
       observations,
