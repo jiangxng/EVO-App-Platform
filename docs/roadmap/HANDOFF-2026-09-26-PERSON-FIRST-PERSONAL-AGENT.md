@@ -791,3 +791,49 @@ Authority:
 - `docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md`
 
 Do not convert descriptive quality signals into automated truth decisions or hidden Agent authority.
+
+
+## P1.4E — Quality Trends, Freshness Policy and Agent Follow-up
+
+P1.4E connects real quality evidence to bounded trend windows, makes Memory freshness a governed policy, and carries confirmed Memory-quality decisions back into Personal Agent as planning work.
+
+Quality trends:
+
+- fixed 7 / 30 / 90 day windows;
+- cohort membership uses HOST_OBSERVED interaction time, not later evaluation time;
+- comparisons require at least 5 Host interactions in both windows;
+- subjective comparisons require at least 3 evaluated interactions in both windows;
+- insufficient evidence remains explicit;
+- no composite score and no overall “better/worse” verdict.
+
+Memory Freshness Policy:
+
+- append-only ACTIVE / RETIRED events;
+- optional Memory-kind targeting;
+- kind-specific policy overrides Context default;
+- shortest active window wins within the same specificity;
+- fallback remains 180 days only when no policy applies;
+- formal Human-confirmed actions:
+  - context.memory.quality.freshness-policy.set
+  - context.memory.quality.freshness-policy.retire
+- Eidos routes:
+  - /memory/quality/freshness-policies
+  - /memory/quality/freshness-policies/new
+
+Personal Agent Follow-up:
+
+- Human-confirmed contradiction resolution is committed first;
+- non-authoritative Follow-up creation happens after the governance fact;
+- Follow-up failure never rolls back contradiction resolution;
+- Follow-up states are OPEN / COMPLETED / DISMISSED;
+- Personal Agent receives read-only personal.follow-up.list;
+- up to three OPEN Follow-ups become Personal Agent suggested prompts;
+- Eidos route: /enterprise-agent/follow-ups;
+- completion/dismissal only mutate planning state;
+- no new Agent write authority and no automatic Memory supersession.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-TRENDS-FRESHNESS-FOLLOWUP-P1.4E-v0.1.md`
+
+After P1.4E, schedule a deliberate vertical browser experience checkpoint covering installation → Provider configuration → Personal Agent → Memory review → governance → quality → follow-up using only production contracts and Host capabilities.
