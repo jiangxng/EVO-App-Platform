@@ -3,61 +3,56 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.4X-2026-09-27-03`  
-**Snapshot time:** `2026-09-27T14:58:44.293Z`  
+**Snapshot:** `P1.5-2026-09-27-01`  
+**Snapshot time:** `2026-09-27T15:05:00.000Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Personal Agent P1.4X — Vertical Experience Checkpoint
-LIVE_CERTIFICATION_IN_PROGRESS
+Personal Agent P1.5 — Durable Agent Operations
+ACTIVE
 ```
 
 ## Latest closed live slice
 
-**context-memory-canonicalization: LIVE_PASS**
+**personal-agent-p1.4x-vertical-experience-checkpoint: LIVE_PASS**
 
-Real A→B duplicate canonicalization is Human-accepted; ordinary retrieval returns only B while exact-ID audit preserves A+B and no third Memory was created.
+P1.4X Human browser checkpoint is closed end-to-end with real LLM behavior. Canonical Memory B is durable across sessions; fresh-session recall supports qualified reasoning; governance/audit/history remain intact; final epistemic-boundary retest passed.
 
-Authority: `docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md`
+Authority: `docs/roadmap/P1.4X-LIVE-CERTIFICATION.md`
 
 Evidence:
 
 ```json
 {
-  "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
+  "productionBehaviorCommit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
+  "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8",
   "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
-  "proposalId": "memory-canonicalization-proposal:534175fa-fde5-42f1-8a54-510f4fa7900a",
-  "canonicalizationId": "memory-canonicalization:4e1d97e8-1bad-4e4c-9591-a2117263eedc",
-  "effectiveQuery": "仓库 17:00 截单",
-  "effectiveCount": 1,
-  "effectiveScore": 0.7,
-  "effectiveSignal": "SUMMARY_TOKENS_ALL",
-  "exactIdAudit": "A_AND_B_PRESENT"
+  "canonicalization": "LIVE_PASS",
+  "freshSessionRecall": "LIVE_PASS",
+  "qualifiedReasoning": "LIVE_PASS",
+  "epistemicBoundaries": "LIVE_PASS",
+  "projectContinuity": "LIVE_PASS"
 }
 ```
 
 ## Current open live gate
 
-**fresh-session-context-memory-recall-epistemic: FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY**
+**p1.5a-context-memory-governance-inventory: IMPLEMENTATION_READY**
 
-Fresh-session recall already found canonical B and reasoned correctly about the normal 17:00 cutoff, but the live answer overclaimed a specific next-processing consequence and global uniqueness from ranked recall. PR #96 is deployed; repeat the same fresh-session question to verify epistemic boundaries.
+Add a deterministic paginated governance inventory/read surface for Context Memory so completeness, duplicate-set discovery and audit workflows do not misuse ranked retrieval as inventory.
 
 Acceptance:
 
-- fresh conversation has no useful prior discourse
-- Agent performs READ only
-- Agent recalls canonical Memory B without being told 17:00 or any memoryId
-- Agent identifies Memory B as evidence
-- Agent says 18:00 is normally after the 17:00 cutoff
-- Agent preserves that exceptions may exist
-- Agent does not treat 17:00 as an unconditional absolute
-- Agent does not invent a specific next working day, next batch, carrier action, or fulfillment schedule absent authoritative evidence
-- Agent does not claim B is globally the only relevant Memory or that no other Memory exists based only on ranked recall
-- Agent may say B was the only item returned by this retrieval
-- Agent does not infer Enterprise Context merely from an empty retrieval
-- Agent creates no Proposal and performs no WRITE
+- inventory is deterministic and paginated
+- inventory is scoped by Host-resolved Context and authorization
+- governance/restriction visibility rules are explicit
+- inventory does not use relevance ranking
+- stable cursor semantics are defined
+- exact total/completeness semantics are explicit where supported
+- Personal Agent can distinguish inventory from ranked recall/search
+- existing retrieval and exact-ID audit behavior remains unchanged
 
 ## Current production preview
 
@@ -107,17 +102,19 @@ Not proved:
 - PR #94 — MERGED_HUMAN_LIVE_PASS: Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS.
 - PR #95 — MERGED: Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery.
 - PR #96 — MERGED_DEPLOYED: Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false.
+- PR #97 — MERGED: Record fresh-session recall functional pass and PR #96 epistemic retest gate.
+- PR #98 — PLANNED_IN_THIS_CHANGE: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
 
 ## DO NOT repeat stale actions
 
 - Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.
 - Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.
-- Do not treat Memory Canonicalization as the current open gate; it is closed.
-- Do not infer that a Memory belongs in Enterprise Context merely because Personal Context lexical retrieval returned zero results.
+- Do not reopen P1.4X Memory Canonicalization or fresh-session recall as active gates unless a new regression provides current evidence.
 - Do not infer that a Memory belongs in Enterprise Context merely because Personal Context retrieval returned zero results.
 - Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.
 - Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.
-- Do not restart PR #84–#96 work unless a new regression provides current evidence.
+- Do not use ranked retrieval as the P1.5 governance inventory implementation.
+- Do not restart PR #84–#97 work unless a new regression provides current evidence.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -137,11 +134,11 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
-- state the current milestone accurately
-- state Memory Canonicalization as LIVE PASS
-- state fresh-session Memory recall as the current open live gate
-- state the current deployed revision and Railway service
-- identify PR #93 as the latest deployed behavioral change
+- state current milestone as Personal Agent P1.5 — Durable Agent Operations
+- state P1.4X as Human LIVE PASS and closed
+- state P1.5A Context Memory governance inventory as the current open gate
+- state the current deployed runtime behavior revision and Railway service
+- identify PR #96 as the latest deployed behavioral change and PR #97 as the latest merged status change before P1.5 bootstrap
 - identify the old dc107947 content Proposal as a do-not-accept stale action
 - do not require the previous ChatGPT transcript to continue
 
