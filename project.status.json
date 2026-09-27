@@ -286,7 +286,13 @@
     "context-memory-canonicalization-agent-proposal",
     "context-memory-canonicalization-human-review",
     "context-memory-canonicalization-effective-retrieval",
-    "context-memory-canonicalization-exact-id-audit"
+    "context-memory-canonicalization-exact-id-audit",
+    "personal-agent-read-evidence-convergence",
+    "personal-agent-identical-read-retirement",
+    "context-memory-exact-id-audit-tool",
+    "context-memory-effective-vs-history-audit-compare",
+    "context-memory-lexical-multi-token-retrieval",
+    "context-memory-canonicalization-live-pass"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -309,7 +315,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X live certification is in progress on the real Railway preview. PR #84 fixed repeated-READ convergence so distinct Host tools remain available and added authoritative Context Memory proposal readback. PR #85 made existing supersedesMemoryId semantics effective in ordinary retrieval while preserving exact-ID audit. PR #86 added append-only Human-reviewed duplicate→canonical Memory governance without creating a third Memory record; 22/22 final CI workflows passed and Railway production deployment 1b5e5aec-caf0-4c5d-a2b9-719c9b8e7f76 is SUCCESS at main 6197abf6ecb6fce300decea11b150b4a8229f1cf with the /data volume mounted. Next Human gate: use Personal Agent to stage A→B canonicalization for the two known 17:00 duplicate Memories, inspect the Review Memory before/after effect, accept once, then verify ordinary retrieval returns only canonical B while exact-ID audit preserves A+B.",
+  "currentStep": "P1.4X live certification remains in progress. The real 17:00 duplicate-Memory canonicalization vertical slice is now LIVE PASS on Railway: A (older duplicate) canonicalizes to existing B (newer canonical) through an append-only Human-reviewed relation; Human acceptance is durable across subsequent deployments; ordinary effective retrieval for query '仓库 17:00 截单' returns only B with score 0.7 / SUMMARY_TOKENS_ALL; exact-ID historical audit still returns A+B; no Memory content was rewritten. PR #88 closed paraphrased READ loops, PR #89 added exact-ID audit, PR #90 added one-shot effective-vs-history audit to stay inside the observed ~60s synchronous HTTP ceiling, and PR #91 strengthened deterministic lexical multi-token matching. Next live Human gate: start a fresh conversation with no useful prior discourse, ask a date-specific operational question after 17:00, and verify Personal Agent retrieves B from Context Memory, applies the 'normally' qualifier rather than treating 17:00 as absolute, and can identify the Memory evidence used.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1461,9 +1467,9 @@
       "preconfiguredApiKey": false,
       "fakeMemory": false
     },
-    "machineGate": "PASS_22_OF_22_CANONICALIZATION_HEAD",
-    "humanBrowserGate": "PARTIAL_PASS_CANONICALIZATION_ACCEPT_AND_POST_ACCEPT_RECALL_PENDING",
-    "liveRealLlmProof": "PENDING_HUMAN_BROWSER",
+    "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_91",
+    "humanBrowserGate": "PARTIAL_PASS_MEMORY_CANONICALIZATION_LIVE_PASS_FRESH_SESSION_REASONING_PENDING",
+    "liveRealLlmProof": "PARTIAL_PASS_REAL_PERSONAL_AGENT_MEMORY_GOVERNANCE",
     "journey": [
       "INSTALL",
       "PROVIDER_SETUP",
@@ -1484,8 +1490,8 @@
       "project": "EVO Ledger Runtime MVP",
       "service": "Ledger Configurator",
       "environment": "production",
-      "commit": "6197abf6ecb6fce300decea11b150b4a8229f1cf",
-      "deploymentId": "1b5e5aec-caf0-4c5d-a2b9-719c9b8e7f76",
+      "commit": "d38b09d87bbc8ed70d0f6a7c320e3205eeece5fb",
+      "deploymentId": "e0961e55-6520-4c07-98e1-763315c077a3",
       "status": "SUCCESS",
       "persistentStateMount": "/data"
     },
@@ -1497,7 +1503,28 @@
       "createsNewMemoryRecord": false,
       "ordinaryRetrievalHidesAcceptedDuplicate": true,
       "exactIdAuditPreservesHistory": true,
-      "liveHumanAcceptance": "PENDING"
+      "liveHumanAcceptance": "PASS",
+      "liveProposalId": "memory-canonicalization-proposal:534175fa-fde5-42f1-8a54-510f4fa7900a",
+      "liveCanonicalizationId": "memory-canonicalization:4e1d97e8-1bad-4e4c-9591-a2117263eedc",
+      "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
+      "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
+      "effectiveQuery": "仓库 17:00 截单",
+      "effectiveResult": {
+        "count": 1,
+        "memoryIds": [
+          "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a"
+        ],
+        "score": 0.7,
+        "signals": [
+          "SUMMARY_TOKENS_ALL"
+        ]
+      },
+      "auditResult": {
+        "requested": 2,
+        "returned": 2,
+        "missingMemoryIds": []
+      },
+      "status": "LIVE_PASS"
     },
     "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md"
   }
