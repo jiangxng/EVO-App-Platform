@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -23,6 +24,7 @@ import {
 import type {
   ContextMemoryProposalServiceV010
 } from "./context-memory-proposal-service.js";
+import type { ContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
 import {
   authorizeMaterialWriteV010,
   legacyScopeFromRequestContextV010
@@ -41,6 +43,9 @@ export interface ContextMemoryProposalActionDependenciesV010 {
     principal: PlatformPrincipalV010,
     ref: ActiveContextRefV010
   ): ResolvedContextSetV010;
+  qualityStore?: ContextMemoryQualityStoreV010;
+  now?: () => Date;
+  id?: () => string;
 }
 
 function errorResult(error: unknown): AppActionExecutionResultV010 {
@@ -233,6 +238,9 @@ function handler(
 export function createContextMemoryProposalActionHandlersV010(
   dependencies: ContextMemoryProposalActionDependenciesV010
 ): AppActionHandler[] {
+  const now = dependencies.now ?? (() => new Date());
+  const id = dependencies.id ?? randomUUID;
+
   const edit = handler(
     CONTEXT_MEMORY_PROPOSAL_EDIT_ACTION,
     async (request, requestContext) => {
@@ -288,6 +296,32 @@ export function createContextMemoryProposalActionHandlersV010(
           ? { summary: stringValue(request.values, "summary", false) }
           : {})
       });
+
+      if (dependencies.qualityStore) {
+        const revision = accepted.proposal.revisions.at(-1);
+        for (const signal of revision?.reviewSignals ?? []) {
+          if (signal.kind !== "POTENTIAL_CONTRADICTION") continue;
+          const existing = dependencies.qualityStore.findByPair(
+            accepted.proposal.context,
+            accepted.memory.memoryId,
+            signal.memoryId
+          );
+          if (existing) continue;
+          dependencies.qualityStore.append({
+            contractVersion: "0.1.0",
+            eventId: `memory-contradiction:${id()}`,
+            contradictionId: `contradiction:${id()}`,
+            context: structuredClone(accepted.proposal.context),
+            leftMemoryId: accepted.memory.memoryId,
+            rightMemoryId: signal.memoryId,
+            state: "OPEN",
+            origin: "PROPOSAL_REVIEW",
+            occurredAt: now().toISOString(),
+            actorSubjectId: requestContext.principal.subjectId
+          });
+        }
+      }
+
       return {
         ok: true,
         correlationId: requestContext.correlationId,

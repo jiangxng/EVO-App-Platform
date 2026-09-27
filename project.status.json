@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4 — Real Quality Evidence + Retention Preview/Commit Flow",
+  "currentMilestone": "Personal Agent P1.4 — Human/Lab Evaluation + Memory Quality",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -246,7 +246,16 @@
     "context-memory-retention-draft-append-only",
     "context-memory-retention-preview-before-commit",
     "context-memory-retention-stale-preview-fail-closed",
-    "eidos-retention-draft-form-review-commit-flow"
+    "eidos-retention-draft-form-review-commit-flow",
+    "personal-agent-human-quality-evaluation",
+    "personal-agent-lab-quality-evaluation-authorized",
+    "personal-agent-quality-review-queue",
+    "context-memory-quality-overlay",
+    "context-memory-evidence-trust",
+    "context-memory-observation-freshness",
+    "context-memory-contradiction-lifecycle",
+    "eidos-memory-quality-surface",
+    "eidos-memory-contradiction-review"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -269,7 +278,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4C is CI-verified: 18/18 triggered workflows passed, including Platform CI, P1.3.1 Experience CI, P1.4A Responsibility, P1.4B Quality, P1.2/P1.3 Memory regressions and the dedicated P1.4C Quality Flow CI. Personal Agent now records real Host-observed objective quality evidence scoped by Principal+Context. Retention policy changes use non-authoritative append-only Draft → simulation → Human confirmation → fresh-preview verification → authoritative append-only commit. Next: Human/lab subjective evaluation ingestion and Memory evidence quality/freshness/contradiction lifecycle.",
+  "currentStep": "P1.4D is CI-verified: 19/19 triggered workflows passed, including Platform CI, Experience CI, P1.4A/P1.4B/P1.4C regressions, P1.2/P1.3 Memory suites and the dedicated P1.4D Quality CI. Human/Lab subjective evaluation now requires existing Host evidence; objective tool metrics remain Host-only. Memory Quality uses an append-only overlay for evidence trust, observedAt-based freshness and contradiction lifecycle without rewriting immutable Memory. Next: bounded trend windows after enough real evidence, configurable freshness policies and follow-up Agent work from resolved contradictions.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1205,6 +1214,50 @@
       "commitRequiresHumanConfirmation": true,
       "stalePreview": "FAIL_CLOSED_REPREVIEW_REQUIRED",
       "policyTruth": "APPEND_ONLY_RETENTION_POLICY_STORE"
+    },
+    "qualityEvaluationP1_4D": {
+      "status": "CI_VERIFIED_P1_4D",
+      "authority": "docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md",
+      "action": "enterprise-agent.quality.evaluate",
+      "human": "SELF_INTERACTION_SAME_CONTEXT",
+      "lab": "NON_HUMAN_PRINCIPAL_PLUS_HOST_AUTHORIZATION",
+      "objectiveMetrics": "HOST_OBSERVED_ONLY",
+      "subjectivePrecedence": [
+        "HUMAN_EVALUATED",
+        "LAB_EVALUATED",
+        "HOST_OBSERVED_UNKNOWN"
+      ],
+      "reviewRoute": "/enterprise-agent/quality/review",
+      "compositeScore": false
+    },
+    "memoryQualityP1_4D": {
+      "status": "CI_VERIFIED_P1_4D",
+      "persistence": "APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE_OR_STATE_SIBLING",
+      "immutableMemory": true,
+      "dimensions": [
+        "EVIDENCE_REFERENCES",
+        "SOURCE_TRUST",
+        "OBSERVATION_FRESHNESS",
+        "OPEN_CONTRADICTIONS"
+      ],
+      "freshnessSource": "observedAt",
+      "defaultFreshnessWindowDays": 180,
+      "contradictionStates": [
+        "OPEN",
+        "RESOLVED",
+        "DISMISSED"
+      ],
+      "contradictionResolution": [
+        "PREFER_LEFT",
+        "PREFER_RIGHT",
+        "BOTH_VALID",
+        "OTHER"
+      ],
+      "contradictionAction": "context.memory.quality.contradiction.resolve",
+      "qualityRoute": "/memory/quality",
+      "contradictionRoute": "/memory/quality/contradictions",
+      "supersessionSideEffect": false,
+      "compositeScore": false
     }
   },
   "experienceIntegration": {

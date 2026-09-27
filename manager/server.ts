@@ -43,14 +43,18 @@ import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
+import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
-import { createPersonalAgentQualityPageV010 } from "./personal-agent-quality-page.js";
+import { createPersonalAgentQualityPageV010, createPersonalAgentQualityReviewPageV010 } from "./personal-agent-quality-page.js";
+import { createFileContextMemoryQualityStoreV010, createMemoryContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
+import { createContextMemoryQualityActionHandlerV010 } from "./context-memory-quality-actions.js";
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
   ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
   ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE,
-  ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
+  ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE,
+  ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
@@ -334,12 +338,16 @@ import {
   createMemoryRetentionSimulationPageV010,
   createMemoryRetentionDraftFormV010,
   createMemoryRetentionDraftsPageV010,
+  createMemoryQualityPageV010,
+  createMemoryContradictionReviewPageV010,
   memoryGovernancePageSource,
   memorySearchPageSource,
   memorySourceHealthPageSource,
   memoryRetentionSimulationPageSource,
   memoryRetentionDraftNewPageSource,
-  memoryRetentionDraftsPageSource
+  memoryRetentionDraftsPageSource,
+  memoryQualityPageSource,
+  memoryContradictionReviewPageSource
 } from "./memory-governance-page.js";
 import {
   createHelpExperienceManifestV010,
@@ -447,6 +455,12 @@ const personalAgentQualityEvidenceFile =
 const personalAgentQualityEvidenceStore = personalAgentQualityEvidenceFile
   ? createJsonlPersonalAgentQualityEvidenceStoreV010(personalAgentQualityEvidenceFile)
   : createMemoryPersonalAgentQualityEvidenceStoreV010();
+const contextMemoryQualityStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-quality.json") : undefined);
+const contextMemoryQualityStore = contextMemoryQualityStateFile
+  ? createFileContextMemoryQualityStoreV010(contextMemoryQualityStateFile)
+  : createMemoryContextMemoryQualityStoreV010();
 const contextMemoryScheduleMs = Number(
   process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS?.trim() || "0"
 );
@@ -1617,6 +1631,12 @@ const actionRouter = createAppActionRouter(
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
     }),
+    createContextMemoryQualityActionHandlerV010({
+      memoryStore: contextMemoryStore,
+      qualityStore: contextMemoryQualityStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
     ...createContextMemoryPolicyActionHandlersV010({
       memoryStore: contextMemoryStore,
       governanceStore: contextMemoryGovernanceStore,
@@ -1628,6 +1648,7 @@ const actionRouter = createAppActionRouter(
     }),
     ...createContextMemoryProposalActionHandlersV010({
       service: contextMemoryProposalService,
+      qualityStore: contextMemoryQualityStore,
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
       listAvailableContexts(principal) {
@@ -1639,6 +1660,10 @@ const actionRouter = createAppActionRouter(
       resolveContext(principal, ref) {
         return resolveContextForPrincipal(principal, ref);
       }
+    }),
+    createPersonalAgentQualityEvaluationActionHandlerV010({
+      store: personalAgentQualityEvidenceStore,
+      resolveAuthorizationProvider
     }),
     createContextMemoryIntakeActionHandlerV010({
       service: contextMemoryIntakeService,
@@ -2056,6 +2081,7 @@ const server = createServer(async (request, response) => {
         || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
       ) {
         const effective = manager.listEffectiveExperiences().some(value => {
           const manifest = value as { pages?: Array<{ source?: string }> };
@@ -2123,6 +2149,13 @@ const server = createServer(async (request, response) => {
             store: personalAgentQualityEvidenceStore
           }));
         }
+        if (source === ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentQualityReviewPageV010({
+            principal: session.principal,
+            context: context.activeContext,
+            store: personalAgentQualityEvidenceStore
+          }));
+        }
         return json(
           response,
           200,
@@ -2174,6 +2207,8 @@ const server = createServer(async (request, response) => {
         || source === memoryRetentionSimulationPageSource
         || source === memoryRetentionDraftNewPageSource
         || source === memoryRetentionDraftsPageSource
+        || source === memoryQualityPageSource
+        || source === memoryContradictionReviewPageSource
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -2182,6 +2217,26 @@ const server = createServer(async (request, response) => {
           return json(response, 200, createMemorySourceHealthPageV010({
             manager,
             registry: providerRuntimeRegistry
+          }));
+        }
+        if (source === memoryQualityPageSource) {
+          return json(response, 200, createMemoryQualityPageV010({
+            principal: session.principal,
+            personalContext: resolved.personalContext,
+            context: resolved.activeContext,
+            memoryStore: contextMemoryStore,
+            qualityStore: contextMemoryQualityStore,
+            relationships: resolveEnterpriseContextRelationshipProvider()
+          }));
+        }
+        if (source === memoryContradictionReviewPageSource) {
+          return json(response, 200, createMemoryContradictionReviewPageV010({
+            principal: session.principal,
+            personalContext: resolved.personalContext,
+            context: resolved.activeContext,
+            memoryStore: contextMemoryStore,
+            qualityStore: contextMemoryQualityStore,
+            relationships: resolveEnterpriseContextRelationshipProvider()
           }));
         }
         if (source === memoryRetentionDraftNewPageSource) {

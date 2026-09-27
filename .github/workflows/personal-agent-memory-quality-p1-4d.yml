@@ -1,0 +1,51 @@
+name: Agent/Memory CI - Quality P1.4D
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/quality-evidence-store.ts"
+      - "agents/enterprise-agent/quality-evaluation-actions.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/context-memory-quality-store.ts"
+      - "manager/context-memory-quality-actions.ts"
+      - "manager/context-memory-proposal-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4d.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/quality-evidence-store.ts"
+      - "agents/enterprise-agent/quality-evaluation-actions.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/context-memory-quality-store.ts"
+      - "manager/context-memory-quality-actions.ts"
+      - "manager/context-memory-proposal-actions.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4d.yml"
+
+concurrency:
+  group: personal-agent-memory-quality-p1-4d-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-memory:quality-p1-4d

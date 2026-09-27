@@ -1,4 +1,5 @@
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
+import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
 import type { UidlFormV011 } from "../vendor/eidos/src/runtime/contracts.js";
 import type {
   ActiveContextRefV010,
@@ -11,6 +12,7 @@ import type {
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import { evaluateContextMemoryQualityV010, type ContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
 import type { ContextMemoryRetentionDraftStoreV010 } from "./context-memory-retention-draft-store.js";
 import type { ContextMemoryOperationLogV010 } from "./context-memory-operations.js";
 import { simulateContextMemoryRetentionV010 } from "./context-memory-retention-simulation.js";
@@ -23,6 +25,8 @@ export const memorySourceHealthPageSource = "app://evo-app-platform/pages/memory
 export const memoryRetentionSimulationPageSource = "app://evo-app-platform/pages/memory/retention-simulation";
 export const memoryRetentionDraftNewPageSource = "app://evo-app-platform/pages/memory/retention-drafts/new";
 export const memoryRetentionDraftsPageSource = "app://evo-app-platform/pages/memory/retention-drafts";
+export const memoryQualityPageSource = "app://evo-app-platform/pages/memory/quality";
+export const memoryContradictionReviewPageSource = "app://evo-app-platform/pages/memory/quality/contradictions";
 
 export function createMemoryGovernanceExperienceManifestV010() {
   return {
@@ -37,7 +41,9 @@ export function createMemoryGovernanceExperienceManifestV010() {
       { id: "evo-memory.sources", title: "Memory Source Health", source: memorySourceHealthPageSource },
       { id: "evo-memory.retention-simulation", title: "Retention Simulation", source: memoryRetentionSimulationPageSource },
       { id: "evo-memory.retention-draft-new", title: "Prepare Retention Policy", source: memoryRetentionDraftNewPageSource },
-      { id: "evo-memory.retention-drafts", title: "Retention Drafts", source: memoryRetentionDraftsPageSource }
+      { id: "evo-memory.retention-drafts", title: "Retention Drafts", source: memoryRetentionDraftsPageSource },
+      { id: "evo-memory.quality", title: "Memory Quality", source: memoryQualityPageSource },
+      { id: "evo-memory.contradictions", title: "Memory Contradictions", source: memoryContradictionReviewPageSource }
     ],
     routes: [
       { id: "evo-memory.home", path: "/memory", pageId: "evo-memory.home" },
@@ -45,7 +51,9 @@ export function createMemoryGovernanceExperienceManifestV010() {
       { id: "evo-memory.sources", path: "/memory/sources", pageId: "evo-memory.sources" },
       { id: "evo-memory.retention-simulation", path: "/memory/retention-simulation", pageId: "evo-memory.retention-simulation" },
       { id: "evo-memory.retention-draft-new", path: "/memory/retention-drafts/new", pageId: "evo-memory.retention-draft-new" },
-      { id: "evo-memory.retention-drafts", path: "/memory/retention-drafts", pageId: "evo-memory.retention-drafts" }
+      { id: "evo-memory.retention-drafts", path: "/memory/retention-drafts", pageId: "evo-memory.retention-drafts" },
+      { id: "evo-memory.quality", path: "/memory/quality", pageId: "evo-memory.quality" },
+      { id: "evo-memory.contradictions", path: "/memory/quality/contradictions", pageId: "evo-memory.contradictions" }
     ]
   } as const;
 }
@@ -201,6 +209,28 @@ export function createMemoryGovernancePageV010(input: {
         metadata: {
           previewRequired: true,
           appendOnlyCommit: true
+        }
+      },
+      {
+        id: "memory-governance:quality",
+        title: "Memory quality",
+        category: "Governance tool",
+        summary: "Inspect evidence references, source trust, observation freshness and unresolved contradictions without rewriting Memory.",
+        primaryAction: {
+          id: "open-memory-quality",
+          label: "Open quality",
+          type: "navigate",
+          route: "/memory/quality"
+        },
+        secondaryActions: [{
+          id: "review-contradictions",
+          label: "Review contradictions",
+          type: "navigate",
+          route: "/memory/quality/contradictions"
+        }],
+        metadata: {
+          immutableMemory: true,
+          compositeScore: false
         }
       },
       ...governedItems
@@ -511,5 +541,236 @@ export function createMemoryRetentionDraftsPageV010(input:{
       }
     })),
     emptyMessage:"No retention policy drafts exist for this Context."
+  };
+}
+
+
+export function createMemoryQualityPageV010(input:{
+  principal:PlatformPrincipalV010;
+  personalContext:PersonalContextV010;
+  context:ActiveContextRefV010;
+  memoryStore:ContextMemoryStoreV010;
+  qualityStore:ContextMemoryQualityStoreV010;
+  relationships?:EnterpriseContextRelationshipProviderV010;
+  now?:Date;
+  freshnessWindowDays?:number;
+}):CatalogBrowserV010{
+  const allowed=governanceAllowed(
+    input.principal,
+    input.personalContext,
+    input.context,
+    input.relationships
+  );
+  if(!allowed){
+    return {
+      contractVersion:"0.1.0",
+      kind:"catalog-browser",
+      id:"evo.memory.quality",
+      title:"Memory Quality",
+      description:"Enterprise Memory quality governance requires an active OWNER or ADMIN relationship.",
+      items:[],
+      emptyMessage:"You do not have Memory quality governance authority for this Context."
+    };
+  }
+
+  const memories=input.memoryStore.snapshot().items
+    .filter(item=>sameContext(item.context,input.context))
+    .sort((a,b)=>b.attribution.recordedAt.localeCompare(a.attribution.recordedAt));
+  const evaluations=memories.map(memory=>({
+    memory,
+    quality:evaluateContextMemoryQualityV010({
+      memory,
+      qualityStore:input.qualityStore,
+      ...(input.now ? {now:input.now} : {}),
+      ...(input.freshnessWindowDays ? {freshnessWindowDays:input.freshnessWindowDays} : {})
+    })
+  }));
+  const openContradictions=input.qualityStore
+    .listContradictionsForContext(input.context)
+    .filter(item=>item.state==="OPEN");
+
+  return {
+    contractVersion:"0.1.0",
+    kind:"catalog-browser",
+    id:"evo.memory.quality",
+    title:"Memory Quality",
+    description:[
+      `Context ${input.context.contextId}`,
+      `Memory=${memories.length}`,
+      `open contradictions=${openContradictions.length}`,
+      "No composite quality score: evidence dimensions remain visible."
+    ].join(" · "),
+    search:{
+      placeholder:"Filter Memory quality",
+      ariaLabel:"Filter Memory quality",
+      noResultsMessage:"No Memory quality item matches this filter."
+    },
+    items:[
+      {
+        id:"memory-quality:contradictions",
+        title:"Contradiction review",
+        category:"Quality governance",
+        summary:`${openContradictions.length} open contradiction(s) require explicit resolution or dismissal.`,
+        status:{
+          label:openContradictions.length ? "Attention" : "Clear",
+          tone:openContradictions.length ? "warning" : "positive"
+        },
+        primaryAction:{
+          id:"review-contradictions",
+          label:"Review contradictions",
+          type:"navigate",
+          route:"/memory/quality/contradictions"
+        },
+        metadata:{
+          openContradictions:openContradictions.length
+        }
+      },
+      ...evaluations.map(({memory,quality})=>({
+        id:memory.memoryId,
+        title:memory.summary,
+        category:memory.kind,
+        summary:[
+          `freshness=${quality.freshness.state}`,
+          quality.freshness.ageDays!==undefined ? `age=${quality.freshness.ageDays}d` : undefined,
+          `source-trust=${quality.evidence.trust}`,
+          `evidence-refs=${quality.evidence.referenceCount}`,
+          `open-contradictions=${quality.contradictions.openCount}`,
+          quality.signals.length ? `signals=${quality.signals.join(",")}` : "no quality warning signal"
+        ].filter(Boolean).join(" · "),
+        badges:[
+          quality.freshness.state,
+          quality.evidence.trust,
+          ...(quality.contradictions.openCount ? ["CONTRADICTION"] : [])
+        ],
+        status:{
+          label:quality.signals.length ? "Review" : "Observed",
+          tone:quality.signals.length ? "warning" as const : "positive" as const
+        },
+        metadata:{
+          observedAt:quality.freshness.observedAt ?? null,
+          freshnessWindowDays:quality.freshness.freshnessWindowDays,
+          hostVerifiedSources:quality.evidence.hostVerifiedSources,
+          declaredSources:quality.evidence.declaredSources,
+          unverifiedSources:quality.evidence.unverifiedSources,
+          openContradictions:quality.contradictions.openCount
+        }
+      }))
+    ],
+    emptyMessage:"No Memory exists in this Context."
+  };
+}
+
+export function createMemoryContradictionReviewPageV010(input:{
+  principal:PlatformPrincipalV010;
+  personalContext:PersonalContextV010;
+  context:ActiveContextRefV010;
+  memoryStore:ContextMemoryStoreV010;
+  qualityStore:ContextMemoryQualityStoreV010;
+  relationships?:EnterpriseContextRelationshipProviderV010;
+}):ReviewQueueV010{
+  const allowed=governanceAllowed(
+    input.principal,
+    input.personalContext,
+    input.context,
+    input.relationships
+  );
+  if(!allowed){
+    return {
+      contractVersion:"0.1.0",
+      kind:"review-queue",
+      id:"evo.memory.contradictions",
+      title:"Memory Contradictions",
+      description:"Enterprise contradiction governance requires an active OWNER or ADMIN relationship.",
+      items:[],
+      emptyMessage:"You do not have contradiction governance authority for this Context."
+    };
+  }
+
+  const byId=new Map(
+    input.memoryStore.snapshot().items
+      .filter(item=>sameContext(item.context,input.context))
+      .map(item=>[item.memoryId,item])
+  );
+  const open=input.qualityStore.listContradictionsForContext(input.context)
+    .filter(item=>item.state==="OPEN");
+
+  return {
+    contractVersion:"0.1.0",
+    kind:"review-queue",
+    id:"evo.memory.contradictions",
+    title:"Memory Contradictions",
+    description:"Resolve the relationship between immutable Memory records. This overlay does not rewrite or supersede Memory by itself.",
+    items:open.map(item=>{
+      const left=byId.get(item.leftMemoryId);
+      const right=byId.get(item.rightMemoryId);
+      return {
+        id:item.contradictionId,
+        title:`${left?.summary ?? item.leftMemoryId} ↔ ${right?.summary ?? item.rightMemoryId}`,
+        summary:`Detected from ${item.origin} at ${item.occurredAt}`,
+        state:"attention" as const,
+        statusLabel:"Open contradiction",
+        fields:[
+          {
+            key:"resolution",
+            label:"Resolution",
+            control:"select" as const,
+            value:"BOTH_VALID",
+            options:[
+              {label:"Prefer left Memory",value:"PREFER_LEFT"},
+              {label:"Prefer right Memory",value:"PREFER_RIGHT"},
+              {label:"Both are valid in context",value:"BOTH_VALID"},
+              {label:"Other",value:"OTHER"}
+            ]
+          },
+          {
+            key:"reason",
+            label:"Reason",
+            control:"textarea" as const,
+            value:""
+          }
+        ],
+        evidence:[
+          {
+            id:"left",
+            title:left?.summary ?? item.leftMemoryId,
+            source:"LEFT_MEMORY",
+            detail:item.leftMemoryId
+          },
+          {
+            id:"right",
+            title:right?.summary ?? item.rightMemoryId,
+            source:"RIGHT_MEMORY",
+            detail:item.rightMemoryId
+          }
+        ],
+        primaryAction:{
+          id:"resolve-contradiction",
+          label:"Confirm resolution",
+          type:"command" as const,
+          command:"context.memory.quality.contradiction.resolve",
+          inputVersion:"0.1.0",
+          primary:true,
+          requiresConfirmation:true
+        },
+        secondaryActions:[{
+          id:"dismiss-contradiction",
+          label:"Dismiss as not a contradiction",
+          type:"command" as const,
+          command:"context.memory.quality.contradiction.resolve",
+          inputVersion:"0.1.0",
+          requiresConfirmation:true
+        }],
+        metadata:{
+          leftMemoryId:item.leftMemoryId,
+          rightMemoryId:item.rightMemoryId,
+          detectedBy:item.origin
+        }
+      };
+    }),
+    emptyMessage:"No open Memory contradictions require review.",
+    metadata:{
+      contextId:input.context.contextId,
+      openCount:open.length
+    }
   };
 }

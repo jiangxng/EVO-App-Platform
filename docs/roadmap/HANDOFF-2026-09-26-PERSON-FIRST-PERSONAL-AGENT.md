@@ -756,3 +756,38 @@ Authority:
 - `docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md`
 
 This is the first full policy-editing pattern that follows the P1.4A responsibility model: system performs impact analysis, Human authorizes the consequential change, Host executes and verifies the formal write.
+
+
+## P1.4D — Human/Lab Evaluation and Memory Quality
+
+P1.4D adds explicit evaluator evidence and a durable Memory Quality overlay without weakening authority or immutable-Memory boundaries.
+
+Personal Agent quality:
+
+- formal command: `enterprise-agent.quality.evaluate`;
+- Human can evaluate only their own Host-observed interaction in the active Context;
+- Lab evaluation requires a non-Human Principal, a target Human subject and Host authorization;
+- evaluator evidence cannot exist without matching `HOST_OBSERVED` evidence;
+- tool execution metrics aggregate from Host evidence only, so Human/Lab labels do not double-count tool calls;
+- subjective precedence is Human → Lab → Host/UNKNOWN;
+- no composite quality score;
+- Eidos review route: `/enterprise-agent/quality/review`.
+
+Memory Quality:
+
+- independent append-only overlay; Memory payload stays immutable;
+- evidence refs/source trust are descriptive dimensions;
+- freshness uses `observedAt`, never `recordedAt`;
+- missing observation time stays UNKNOWN;
+- Proposal `POTENTIAL_CONTRADICTION` signals become durable OPEN contradictions when accepted;
+- contradiction lifecycle: OPEN → RESOLVED or DISMISSED;
+- resolution values are PREFER_LEFT / PREFER_RIGHT / BOTH_VALID / OTHER;
+- resolution does not perform supersession;
+- formal resolution requires Human confirmation, governance authority and Host material-write authorization;
+- Eidos routes: `/memory/quality`, `/memory/quality/contradictions`.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md`
+
+Do not convert descriptive quality signals into automated truth decisions or hidden Agent authority.
