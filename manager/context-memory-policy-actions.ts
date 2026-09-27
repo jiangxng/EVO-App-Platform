@@ -19,12 +19,16 @@ import {
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
 import type { ContextMemoryGovernanceStoreV010 } from "./context-memory-governance-store.js";
 import { simulateContextMemoryRetentionV010 } from "./context-memory-retention-simulation.js";
+import { createMemoryContextMemoryRetentionDraftStoreV010, type ContextMemoryRetentionDraftStoreV010 } from "./context-memory-retention-draft-store.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 
 export const CONTEXT_MEMORY_RETENTION_POLICY_SET_ACTION = "context.memory.retention-policy.set";
 export const CONTEXT_MEMORY_RETENTION_POLICY_SIMULATE_ACTION = "context.memory.retention-policy.simulate";
+export const CONTEXT_MEMORY_RETENTION_DRAFT_PREPARE_ACTION = "context.memory.retention-draft.prepare";
+export const CONTEXT_MEMORY_RETENTION_DRAFT_COMMIT_ACTION = "context.memory.retention-draft.commit";
+export const CONTEXT_MEMORY_RETENTION_DRAFT_DISCARD_ACTION = "context.memory.retention-draft.discard";
 export const CONTEXT_MEMORY_LEGAL_HOLD_SET_ACTION = "context.memory.legal-hold.set";
 
 export interface ContextMemoryPolicyActionDependenciesV010 {
@@ -32,6 +36,7 @@ export interface ContextMemoryPolicyActionDependenciesV010 {
   governanceStore: ContextMemoryGovernanceStoreV010;
   retentionPolicies: ContextMemoryRetentionPolicyStoreV010;
   legalHolds: ContextMemoryLegalHoldStoreV010;
+  retentionDrafts?: ContextMemoryRetentionDraftStoreV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
   resolveRelationshipProvider(): EnterpriseContextRelationshipProviderV010 | undefined;
   now?: () => Date;
@@ -146,6 +151,24 @@ export function createContextMemoryPolicyActionHandlersV010(
 ): AppActionHandler[] {
   const now = dependencies.now ?? (() => new Date());
   const id = dependencies.id ?? randomUUID;
+  const retentionDrafts = dependencies.retentionDrafts ?? createMemoryContextMemoryRetentionDraftStoreV010();
+
+  function simulationFingerprint(value: ReturnType<typeof simulateContextMemoryRetentionV010>): string {
+    return JSON.stringify({
+      candidatePolicy: value.candidatePolicy ?? null,
+      totals: value.totals,
+      items: value.items.map(item => ({
+        memoryId: item.memoryId,
+        outcome: item.outcome,
+        privacyClass: item.privacyClass,
+        recordedAt: item.recordedAt,
+        currentDeadline: item.currentDeadline ?? null,
+        candidateDeadline: item.candidateDeadline ?? null,
+        effectiveDeadline: item.effectiveDeadline ?? null,
+        legalHoldId: item.legalHoldId ?? null
+      }))
+    });
+  }
 
   const retention: AppActionHandler = {
     packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
@@ -364,5 +387,213 @@ export function createContextMemoryPolicyActionHandlersV010(
     }
   };
 
-  return [retention, simulateRetention, legalHold];
+
+  const prepareRetentionDraft: AppActionHandler = {
+    packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
+    featureId: HOST_CONTEXT_MEMORY_FEATURE_ID,
+    commandCode: CONTEXT_MEMORY_RETENTION_DRAFT_PREPARE_ACTION,
+    async execute(request, requestContext) {
+      try {
+        if (!requestContext) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (requestContext.principal.actorType !== "HUMAN") throw new Error("CONTEXT_MEMORY_HUMAN_REQUIRED");
+        requireGovernanceAuthority(dependencies, requestContext);
+
+        const policyId = stringValue(request.values, "policyId")!;
+        const retainForDays = request.values.retainForDays;
+        if (typeof retainForDays !== "number" || !Number.isInteger(retainForDays) || retainForDays < 1) {
+          throw new Error("CONTEXT_MEMORY_RETENTION_POLICY_DURATION_INVALID");
+        }
+        const kinds = arrayOfStrings(request.values, "kinds");
+        const privacyClasses = arrayOfStrings(request.values, "privacyClasses");
+        if (kinds?.some(kind => !["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(kind))) {
+          throw new Error("CONTEXT_MEMORY_RETENTION_POLICY_KIND_INVALID");
+        }
+        if (privacyClasses?.some(value => !["STANDARD", "SENSITIVE", "RESTRICTED"].includes(value))) {
+          throw new Error("CONTEXT_MEMORY_RETENTION_POLICY_PRIVACY_INVALID");
+        }
+
+        const context = activeContext(requestContext);
+        const policy = {
+          contractVersion: "0.1.0" as const,
+          policyId,
+          retainForDays,
+          ...(kinds?.length ? { kinds: kinds as ContextMemoryKindV010[] } : {}),
+          ...(privacyClasses?.length ? { privacyClasses: privacyClasses as ContextMemoryPrivacyClassV010[] } : {}),
+          ...(stringValue(request.values, "reason", false)
+            ? { reason: stringValue(request.values, "reason", false)! }
+            : {})
+        };
+        const simulation = simulateContextMemoryRetentionV010({
+          context,
+          memoryStore: dependencies.memoryStore,
+          governanceStore: dependencies.governanceStore,
+          retentionPolicies: dependencies.retentionPolicies,
+          legalHolds: dependencies.legalHolds,
+          candidatePolicy: policy,
+          now: now()
+        });
+        const draftId = `memory-retention-draft:${id()}`;
+        const event = {
+          contractVersion: "0.1.0" as const,
+          eventId: `memory-retention-draft-event:${id()}`,
+          draftId,
+          context: structuredClone(context),
+          state: "PREPARED" as const,
+          policy,
+          simulation,
+          occurredAt: now().toISOString(),
+          actorSubjectId: requestContext.principal.subjectId
+        };
+        retentionDrafts.append(event);
+        return {
+          ok: true,
+          correlationId: requestContext.correlationId,
+          result: JSON.parse(JSON.stringify({
+            draftId,
+            state: "PREPARED",
+            policy,
+            impact: simulation.totals,
+            reviewRoute: "/memory/retention-drafts"
+          }))
+        };
+      } catch (error) {
+        return errorResult(error);
+      }
+    }
+  };
+
+  const commitRetentionDraft: AppActionHandler = {
+    packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
+    featureId: HOST_CONTEXT_MEMORY_FEATURE_ID,
+    commandCode: CONTEXT_MEMORY_RETENTION_DRAFT_COMMIT_ACTION,
+    async execute(request, requestContext) {
+      try {
+        if (!requestContext) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        requireHumanAndConfirmation(request, requestContext);
+        requireGovernanceAuthority(dependencies, requestContext);
+        const draftId = stringValue(request.values, "itemId", false)
+          ?? stringValue(request.values, "draftId")!;
+        const draft = retentionDrafts.get(draftId);
+        if (!draft) throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_NOT_FOUND");
+        if (draft.state !== "PREPARED") throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_NOT_PENDING");
+        const context = activeContext(requestContext);
+        if (
+          draft.context.kind !== context.kind
+          || draft.context.contextId !== context.contextId
+          || (
+            draft.context.kind === "ENTERPRISE"
+            && context.kind === "ENTERPRISE"
+            && draft.context.enterpriseId !== context.enterpriseId
+          )
+        ) throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_CONTEXT_MISMATCH");
+
+        const currentSimulation = simulateContextMemoryRetentionV010({
+          context,
+          memoryStore: dependencies.memoryStore,
+          governanceStore: dependencies.governanceStore,
+          retentionPolicies: dependencies.retentionPolicies,
+          legalHolds: dependencies.legalHolds,
+          candidatePolicy: draft.policy,
+          now: now()
+        });
+        if (simulationFingerprint(currentSimulation) !== simulationFingerprint(draft.simulation)) {
+          throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_STALE_REPREVIEW_REQUIRED");
+        }
+
+        await authorize(
+          dependencies,
+          requestContext,
+          CONTEXT_MEMORY_RETENTION_POLICY_SET_ACTION,
+          "context.memory.retention-policy",
+          draft.policy.policyId
+        );
+        const policyEvent = {
+          contractVersion: "0.1.0" as const,
+          eventId: `memory-retention-policy:${id()}`,
+          policyId: draft.policy.policyId,
+          context: structuredClone(context),
+          state: "ACTIVE" as const,
+          retainForDays: draft.policy.retainForDays,
+          ...(draft.policy.kinds ? { kinds: [...draft.policy.kinds] } : {}),
+          ...(draft.policy.privacyClasses ? { privacyClasses: [...draft.policy.privacyClasses] } : {}),
+          ...(draft.policy.reason ? { reason: draft.policy.reason } : {}),
+          occurredAt: now().toISOString(),
+          actorSubjectId: requestContext.principal.subjectId
+        };
+        dependencies.retentionPolicies.append(policyEvent);
+        retentionDrafts.append({
+          contractVersion: "0.1.0",
+          eventId: `memory-retention-draft-event:${id()}`,
+          draftId,
+          context: structuredClone(context),
+          state: "COMMITTED",
+          policy: structuredClone(draft.policy),
+          simulation: structuredClone(draft.simulation),
+          occurredAt: now().toISOString(),
+          actorSubjectId: requestContext.principal.subjectId,
+          committedPolicyEventId: policyEvent.eventId
+        });
+        return {
+          ok: true,
+          correlationId: requestContext.correlationId,
+          result: JSON.parse(JSON.stringify({
+            draftId,
+            state: "COMMITTED",
+            policyEvent,
+            effective: dependencies.retentionPolicies.effectiveForContext(context)
+          }))
+        };
+      } catch (error) {
+        return errorResult(error);
+      }
+    }
+  };
+
+  const discardRetentionDraft: AppActionHandler = {
+    packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
+    featureId: HOST_CONTEXT_MEMORY_FEATURE_ID,
+    commandCode: CONTEXT_MEMORY_RETENTION_DRAFT_DISCARD_ACTION,
+    async execute(request, requestContext) {
+      try {
+        if (!requestContext) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (requestContext.principal.actorType !== "HUMAN") throw new Error("CONTEXT_MEMORY_HUMAN_REQUIRED");
+        requireGovernanceAuthority(dependencies, requestContext);
+        const draftId = stringValue(request.values, "itemId", false)
+          ?? stringValue(request.values, "draftId")!;
+        const draft = retentionDrafts.get(draftId);
+        if (!draft) throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_NOT_FOUND");
+        if (draft.state !== "PREPARED") throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_NOT_PENDING");
+        const context = activeContext(requestContext);
+        if (
+          draft.context.kind !== context.kind
+          || draft.context.contextId !== context.contextId
+          || (
+            draft.context.kind === "ENTERPRISE"
+            && context.kind === "ENTERPRISE"
+            && draft.context.enterpriseId !== context.enterpriseId
+          )
+        ) throw new Error("CONTEXT_MEMORY_RETENTION_DRAFT_CONTEXT_MISMATCH");
+        retentionDrafts.append({
+          contractVersion: "0.1.0",
+          eventId: `memory-retention-draft-event:${id()}`,
+          draftId,
+          context: structuredClone(context),
+          state: "DISCARDED",
+          policy: structuredClone(draft.policy),
+          simulation: structuredClone(draft.simulation),
+          occurredAt: now().toISOString(),
+          actorSubjectId: requestContext.principal.subjectId
+        });
+        return {
+          ok: true,
+          correlationId: requestContext.correlationId,
+          result: JSON.parse(JSON.stringify({ draftId, state: "DISCARDED" }))
+        };
+      } catch (error) {
+        return errorResult(error);
+      }
+    }
+  };
+
+  return [retention, simulateRetention, prepareRetentionDraft, commitRetentionDraft, discardRetentionDraft, legalHold];
 }
