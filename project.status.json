@@ -297,7 +297,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "DeepSeek LLM Provider is implemented on its feature branch and pending CI: installable deepseek-llm-provider contributes llm.inference + llm.tool-calling, uses the official DeepSeek Responses API with deepseek-flash default, stores API Key only through Host Secrets, exposes four-locale Eidos Settings, has /models health validation, and preserves explicit Provider selection when OpenAI and DeepSeek coexist. After CI, merge and deploy to the Railway preview for Human browser configuration.",
+  "currentStep": "DeepSeek LLM Provider is CI-verified: 21/21 triggered workflows passed, including the dedicated DeepSeek Provider CI, Platform CI, P1.4X Experience CI and all Person-first/Memory regressions. The installable deepseek-llm-provider provides llm.inference + llm.tool-calling through the official DeepSeek Responses API, stores its API Key only through Host Secrets, ships four-locale Settings, validates configured models through /models, and preserves explicit Human Provider selection when OpenAI and DeepSeek coexist. Next: merge to main and deploy the Railway preview so the Human browser can install/configure DeepSeek.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1360,7 +1360,7 @@
       "governanceFailureRule": "FOLLOW_UP_FAILURE_NEVER_ROLLS_BACK_CONTRADICTION_RESOLUTION"
     },
     "deepSeekProvider": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED",
       "authority": "docs/architecture/DEEPSEEK-LLM-PROVIDER-v0.1.md",
       "packageId": "deepseek-llm-provider",
       "providerId": "deepseek.responses",
