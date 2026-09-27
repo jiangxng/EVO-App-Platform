@@ -1,0 +1,43 @@
+name: Agent CI - Resumable Runs P1.5C
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/agent-run.ts"
+      - "manager/agent-run-store.ts"
+      - "agents/enterprise-agent/run-runtime.ts"
+      - "agents/enterprise-agent/run-action-handlers.ts"
+      - "agents/enterprise-agent/**"
+      - "manager/server.ts"
+      - "tests/agent/resumable-agent-run.test.mjs"
+      - "tests/protocol/agent-action-receipt.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-resumable-run-p1-5c.yml"
+  pull_request:
+    paths:
+      - "contracts/agent-run.ts"
+      - "manager/agent-run-store.ts"
+      - "agents/enterprise-agent/run-runtime.ts"
+      - "agents/enterprise-agent/run-action-handlers.ts"
+      - "agents/enterprise-agent/**"
+      - "manager/server.ts"
+      - "tests/agent/resumable-agent-run.test.mjs"
+      - "tests/protocol/agent-action-receipt.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-resumable-run-p1-5c.yml"
+
+concurrency:
+  group: agent-resumable-run-p1-5c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-run:p1-5c
