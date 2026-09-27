@@ -87,6 +87,14 @@ const platformActivities: WorkbenchActivityV010[] = [
     }
   },
   {
+    id: "memory",
+    title: "Memory",
+    icon: "database",
+    kind: "workspace-route",
+    route: "/memory",
+    order: 50
+  },
+  {
     id: "help",
     title: "Help",
     icon: "help",
