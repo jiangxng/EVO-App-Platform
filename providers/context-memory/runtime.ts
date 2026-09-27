@@ -105,6 +105,12 @@ export function createHostContextMemoryReaderV010(
   options: {
     governance?: ContextMemoryGovernanceProviderV010;
     semanticRetriever?: ContextMemorySemanticRetrieverV010;
+    canonicalization?: {
+      listActiveForContext(context: ContextMemoryReadRequestV010["context"]): Array<{
+        duplicateMemoryId: string;
+        canonicalMemoryId: string;
+      }>;
+    };
   } = {}
 ): ContextMemoryReaderV010 {
   return {
@@ -127,14 +133,20 @@ export function createHostContextMemoryReaderV010(
           .map(item => item.supersedesMemoryId)
           .filter((memoryId): memoryId is string => Boolean(memoryId))
       );
+      const canonicalizedDuplicateIds = new Set(
+        (options.canonicalization?.listActiveForContext(input.context) ?? [])
+          .map(item => item.duplicateMemoryId)
+      );
       const candidates = contextItems
         // Exact-ID reads are an audit/validation path and may address historical
         // records directly. Ordinary retrieval exposes only the effective
-        // supersession frontier so obsolete Memory does not compete in ranking.
+        // supersession/canonicalization frontier so obsolete or duplicate
+        // Memory does not compete in ranking.
         .filter(item =>
           memoryIds
             ? memoryIds.has(item.memoryId)
             : !supersededMemoryIds.has(item.memoryId)
+              && !canonicalizedDuplicateIds.has(item.memoryId)
         )
         .filter(item => !kinds || kinds.has(item.kind))
         .filter(item => visibleByGovernance(item, options.governance));

@@ -11,8 +11,14 @@ import type {
 } from "../contracts/platform-services.js";
 import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
 import type { ExtensionManagerItemV010, ExtensionManagerActionV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
-import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
+import type {
+  ReviewQueueItemV010,
+  ReviewQueueV010
+} from "../vendor/eidos/src/review-queue/contracts.js";
 import type { ContextMemoryProposalV010 } from "./context-memory-proposal-store.js";
+import type {
+  ContextMemoryCanonicalizationProposalV010
+} from "./context-memory-canonicalization-store.js";
 import type { PersonalAgentFollowUpV010 } from "./personal-agent-follow-up-store.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
@@ -506,17 +512,23 @@ export function createPersonalAgentSetupPageV010(
 
 export function createPersonalAgentMemoryReviewPageV010(
   proposals: readonly ContextMemoryProposalV010[],
-  contextLabels: ReadonlyMap<string, string>
+  contextLabels: ReadonlyMap<string, string>,
+  canonicalizationProposals: readonly ContextMemoryCanonicalizationProposalV010[] = [],
+  memorySummaries: ReadonlyMap<string, string> = new Map()
 ): ReviewQueueV010 {
   const pending = proposals.filter(item => item.state === "PENDING");
+  const canonicalizationPending = canonicalizationProposals.filter(
+    item => item.state === "PENDING"
+  );
   return {
     contractVersion: "0.1.0",
     kind: "review-queue",
     id: "personal-agent.memory-review",
     title: "Memory review",
-    description: "Review, edit, accept or reject proposed durable knowledge before it becomes Context Memory.",
+    description: "Review proposed durable knowledge and duplicate-to-canonical governance changes before they affect Context Memory.",
     emptyMessage: "No Memory proposals need review.",
-    items: pending.map(proposal => {
+    items: [
+      ...pending.map((proposal): ReviewQueueItemV010 => {
       const revision = proposal.revisions.at(-1)!;
       const evidenceSources = revision.evidenceSources ?? [];
       const sourceTrustMetrics = ([
@@ -645,9 +657,100 @@ export function createPersonalAgentMemoryReviewPageV010(
         }
       };
     }),
+      ...canonicalizationPending.map((proposal): ReviewQueueItemV010 => {
+        const duplicateSummary = memorySummaries.get(proposal.duplicateMemoryId)
+          ?? proposal.duplicateMemoryId;
+        const canonicalSummary = memorySummaries.get(proposal.canonicalMemoryId)
+          ?? proposal.canonicalMemoryId;
+        return {
+          id: proposal.proposalId,
+          title: "Canonicalize duplicate Memory",
+          state: "attention" as const,
+          statusLabel: "Needs Human review",
+          summary: `Mark '${duplicateSummary}' as a duplicate of existing canonical Memory '${canonicalSummary}'. No Memory content will be created, edited or deleted.`,
+          metrics: [
+            {
+              id: "context",
+              label: "Context",
+              value: contextLabels.get(proposal.context.contextId)
+                ?? proposal.context.contextId
+            },
+            {
+              id: "effect",
+              label: "Retrieval effect",
+              value: "1 duplicate hidden; canonical remains visible"
+            }
+          ],
+          fields: [
+            {
+              key: "duplicateMemoryId",
+              label: "Duplicate Memory",
+              control: "text" as const,
+              value: proposal.duplicateMemoryId,
+              readOnly: true
+            },
+            {
+              key: "canonicalMemoryId",
+              label: "Canonical Memory",
+              control: "text" as const,
+              value: proposal.canonicalMemoryId,
+              readOnly: true
+            },
+            {
+              key: "reason",
+              label: "Reason",
+              control: "textarea" as const,
+              value: proposal.reason ?? "",
+              readOnly: true
+            }
+          ],
+          evidence: [
+            {
+              id: "duplicate",
+              title: duplicateSummary,
+              source: "DUPLICATE",
+              detail: proposal.duplicateMemoryId
+            },
+            {
+              id: "canonical",
+              title: canonicalSummary,
+              source: "CANONICAL",
+              detail: proposal.canonicalMemoryId
+            }
+          ],
+          primaryAction: {
+            id: "accept-canonicalization",
+            label: "Accept canonicalization",
+            type: "command" as const,
+            command: "context.memory.canonicalization.proposal.accept",
+            inputVersion: "0.1.0",
+            primary: true,
+            requiresConfirmation: true
+          },
+          secondaryActions: [{
+            id: "reject-canonicalization",
+            label: "Reject",
+            type: "command" as const,
+            command: "context.memory.canonicalization.proposal.reject",
+            inputVersion: "0.1.0",
+            requiresConfirmation: true
+          }],
+          metadata: {
+            contextId: proposal.context.contextId,
+            proposalType: "CANONICALIZATION",
+            duplicateMemoryId: proposal.duplicateMemoryId,
+            canonicalMemoryId: proposal.canonicalMemoryId,
+            beforeActiveCount: 2,
+            afterActiveCount: 1
+          }
+        };
+      })
+    ],
     metadata: {
       route: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE,
-      pendingCount: pending.length
+      pendingCount: pending.length + canonicalizationPending.length,
+      contentProposalCount: pending.length,
+      canonicalizationProposalCount: canonicalizationPending.length
     }
   };
 }
