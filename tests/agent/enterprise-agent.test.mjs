@@ -937,6 +937,8 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /Evidence policy:/);
   assert.match(system, /not exhaustive inventory/);
   assert.match(system, /Separate authoritative facts from inference/);
+  assert.match(system, /completeness-sensitive Memory question/);
+  assert.match(system, /deterministic inventory tool/);
 });
 
 
@@ -1119,6 +1121,64 @@ test("Personal Agent can continue with a different READ after an identical READ 
   assert.equal(reply.observations.length, 2);
   assert.equal(reply.observations[1].result.state, "PENDING");
   assert.equal(reply.message, "proposal verified");
+});
+
+test("Host exposes deterministic Memory inventory separately from ranked retrieval", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let receivedInput;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    inventoryContextMemory(input) {
+      receivedInput = structuredClone(input);
+      return {
+        contractVersion: "0.1.0",
+        items: [],
+        totalCount: 0,
+        complete: true,
+        order: "RECORDED_AT_ASC_MEMORY_ID_ASC",
+        scope: "READER_VISIBLE_CURRENT_CONTEXT",
+        snapshotDigest: "0".repeat(64)
+      };
+    },
+    searchHelp() { return []; },
+    authorizeWrite() { return { allowed: true }; }
+  });
+
+  const tools = await catalog.list();
+  const tool = tools.find(item => item.id === "context.memory.inventory.list");
+  assert.ok(tool);
+  assert.equal(tool.effect, "READ");
+  assert.equal(tool.capability, "context.memory.inventory");
+  assert.match(tool.description, /inventory, not relevance retrieval/i);
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.inventory.list",
+    arguments: {
+      kind: "FACT",
+      includeHistorical: true,
+      limit: 25,
+      cursor: "opaque-cursor",
+      contextId: "enterprise:forged"
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.deepEqual(receivedInput, {
+    kinds: ["FACT"],
+    includeHistorical: true,
+    limit: 25,
+    cursor: "opaque-cursor"
+  });
+  assert.equal(observation.result.totalCount, 0);
+  assert.equal(observation.result.complete, true);
 });
 
 test("Host Memory recall merges short query expansion in one governed READ tool", async () => {
