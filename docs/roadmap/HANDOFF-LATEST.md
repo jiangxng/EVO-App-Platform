@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.5-2026-09-27-02`  
-**Snapshot time:** `2026-09-27T15:20:06.336Z`  
+**Snapshot:** `P1.5-2026-09-27-03`  
+**Snapshot time:** `2026-09-27T15:59:30.000Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,44 +16,46 @@ ACTIVE
 
 ## Latest closed live slice
 
-**personal-agent-p1.4x-vertical-experience-checkpoint: LIVE_PASS**
+**p1.5a-context-memory-governance-inventory: LIVE_PASS**
 
-P1.4X Human browser checkpoint is closed end-to-end with real LLM behavior. Canonical Memory B is durable across sessions; fresh-session recall supports qualified reasoning; governance/audit/history remain intact; final epistemic-boundary retest passed.
+Deterministic Context Memory governance inventory passed Human browser verification: exact reader-visible FACT count/list was obtained without ranked retrieval; A was historical CANONICALIZED_DUPLICATE -> B and B was effective.
 
-Authority: `docs/roadmap/P1.4X-LIVE-CERTIFICATION.md`
+Authority: `docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md`
 
 Evidence:
 
 ```json
 {
-  "productionBehaviorCommit": "8ffc87369b3dfe021a3fd3c27f3b4ad6242789de",
-  "deploymentId": "34d37eee-45e7-4bb7-a55f-1b811120a8e8",
+  "totalCount": 2,
+  "complete": true,
+  "scope": "READER_VISIBLE_CURRENT_CONTEXT",
+  "snapshotDigest": "7472698bccf6c1c5b3bdb2b21c3a03c261508a6a2c6f3c2dc79810d051016288",
+  "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
   "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
-  "canonicalization": "LIVE_PASS",
-  "freshSessionRecall": "LIVE_PASS",
-  "qualifiedReasoning": "LIVE_PASS",
-  "epistemicBoundaries": "LIVE_PASS",
-  "projectContinuity": "LIVE_PASS"
+  "duplicateState": "CANONICALIZED_DUPLICATE",
+  "canonicalEffective": true,
+  "readOnly": true
 }
 ```
 
 ## Current open live gate
 
-**p1.5a-context-memory-governance-inventory: DEPLOYED_HUMAN_GATE_READY**
+**p1.5b-generic-durable-agent-action-receipt: MACHINE_VERIFIED_MERGE_READY**
 
-P1.5A deterministic paginated Context Memory inventory is deployed. Human browser must ask a completeness-sensitive question without naming the tool and verify Personal Agent selects inventory, reports exact reader-visible count/completeness, includes historical A/B relation, and does not fall back to ranked search/recall as proof of completeness.
+P1.5B adds append-only Host-owned durable receipts for every Personal Agent material WRITE with deterministic idempotency, terminal success/failure/denial evidence, current-context readback, and fail-closed handling of orphan REQUESTED state. CI is green; merge/deploy is next before Human live verification.
 
 Acceptance:
 
-- fresh Personal Agent conversation or no useful prior discourse
-- Human asks for an exact complete governed Memory count/list without naming the inventory tool
-- Agent selects context.memory.inventory.list for completeness rather than ranked search/recall
-- Agent reports exact reader-visible totalCount and complete state
-- Agent paginates using nextCursor until complete=true if more than one page exists
-- Agent distinguishes effective Memory from historical superseded/canonicalized Memory
-- Agent can identify the 17:00 A/B canonicalization relationship from inventory metadata
-- Agent states the completeness scope is READER_VISIBLE_CURRENT_CONTEXT, not physical/global store
-- Agent performs READ only and creates no Proposal/WRITE
+- every Personal Agent material WRITE requires durable receipt infrastructure
+- REQUESTED is persisted before Host authorization/execution
+- exactly one terminal SUCCEEDED/FAILED/DENIED event may follow
+- identical successful retry in the same source interaction does not execute the WRITE twice
+- orphan REQUESTED is reported indeterminate and is not automatically repeated
+- receipt carries principal, active Context, tool, owner package, capability, input digest, timestamps and result/error evidence
+- receipt get/list are READ-only and scoped to current Principal + active Context
+- receipt execution evidence never replaces domain authoritative READ
+- JSONL persistence survives service reconstruction
+- Human live test after deployment proves one real WRITE receipt and subsequent READ-only receipt readback
 
 ## Current production preview
 
@@ -106,6 +108,8 @@ Not proved:
 - PR #97 — MERGED: Record fresh-session recall functional pass and PR #96 epistemic retest gate.
 - PR #98 — MERGED: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
 - PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
+- PR #100 — MERGED: Record deployed P1.5A inventory Human gate and advance continuity validation beyond closed P1.4X.
+- PR #101 — CI_VERIFIED_MERGE_READY: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
 
 ## DO NOT repeat stale actions
 
@@ -116,7 +120,12 @@ Not proved:
 - Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.
 - Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.
 - Do not use ranked retrieval as the P1.5 governance inventory implementation.
-- Do not restart PR #84–#97 work unless a new regression provides current evidence.
+- Do not reopen P1.4X or P1.5A as active gates unless a new regression provides current evidence.
+- Do not use ranked retrieval as a governance inventory; P1.5A inventory is the completeness surface.
+- Do not automatically repeat a material Agent WRITE when its durable receipt is REQUESTED without a terminal event.
+- Do not treat an Action Receipt as replacement for domain authoritative state.
+- Do not weaken the durable receipt requirement merely to preserve older WRITE tests; update test Host fixtures instead.
+- Do not restart PR #84–#100 work unless a new regression provides current evidence.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -137,11 +146,11 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state current milestone as Personal Agent P1.5 — Durable Agent Operations
-- state P1.4X as Human LIVE PASS and closed
-- state P1.5A Context Memory governance inventory Human browser verification as the current open gate
-- state current deployed runtime revision 64255c3905a905bf56a91492cdeff6b33ae19a36 and Railway service
-- identify PR #99 as the latest deployed behavioral change
-- distinguish ranked retrieval from deterministic inventory
+- state P1.4X and P1.5A as Human LIVE PASS and closed
+- state P1.5B Generic Durable Agent Action Receipt as the current open gate
+- state P1.5B is machine-verified 26/26 and awaiting merge/deploy before Human live verification
+- explain that receipts prove Agent WRITE execution state but do not replace domain authority
+- explain that orphan REQUESTED receipts fail closed and are not automatically retried
 - identify the old dc107947 content Proposal as a do-not-accept stale action
 - do not require the previous ChatGPT transcript to continue
 
