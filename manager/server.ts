@@ -1820,6 +1820,209 @@ function resolveContextForPrincipal(
   ).resolve(ref);
 }
 
+function createPersonalAgentToolCatalogV010(
+  locale: string,
+  context: ResolvedContextSetV010,
+  principal: PlatformPrincipalV010,
+  requestContext: PlatformRequestContextV010 | undefined,
+  interaction: {
+    sourceInteractionId: string;
+    sourceActionId: string;
+  }
+) {
+  const contextRegistry = createPrincipalContextRegistryV010(
+    principal,
+    principalContextSources()
+  );
+  return createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal,
+    context,
+    listAvailableContexts() {
+      return contextRegistry.list();
+    },
+    listProviderBindings(capability) {
+      return providerBindings.list(capability);
+    },
+    getProviderHealth(providerId) {
+      return providerRuntimeRegistry.getHealth(providerId);
+    },
+    actionReceipt: {
+      sourceInteractionId: interaction.sourceInteractionId,
+      sourceActionId: interaction.sourceActionId,
+      service: agentActionReceiptService
+    },
+    inventoryContextMemory(input) {
+      const provider = resolveContextMemoryInventoryReader();
+      if (!provider) throw new Error("CONTEXT_MEMORY_INVENTORY_READER_REQUIRED");
+      return provider.list({
+        contractVersion: "0.1.0",
+        context: structuredClone(context.activeContext),
+        ...input
+      });
+    },
+    readContextMemory(input) {
+      const provider = resolveContextMemoryReader();
+      if (!provider) throw new Error("CONTEXT_MEMORY_READER_REQUIRED");
+      return provider.read({
+        contractVersion: "0.1.0",
+        context: structuredClone(context.activeContext),
+        ...input
+      });
+    },
+    getContextMemoryProposal(proposalId) {
+      const proposal = contextMemoryProposalService.get(proposalId);
+      if (!proposal) {
+        throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+      }
+      const sameActiveContext =
+        proposal.context.kind === context.activeContext.kind
+        && proposal.context.contextId === context.activeContext.contextId
+        && (
+          proposal.context.kind !== "ENTERPRISE"
+          || (
+            context.activeContext.kind === "ENTERPRISE"
+            && proposal.context.enterpriseId === context.activeContext.enterpriseId
+          )
+        );
+      if (!sameActiveContext) {
+        throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+      }
+      return proposal;
+    },
+    proposeContextMemoryCanonicalization(input) {
+      return {
+        proposal: contextMemoryCanonicalizationService.create({
+          principal,
+          context: context.activeContext,
+          duplicateMemoryId: input.duplicateMemoryId,
+          canonicalMemoryId: input.canonicalMemoryId,
+          ...(input.reason ? { reason: input.reason } : {}),
+          authoredBy: "PERSONAL_AGENT"
+        }),
+        reviewRoute: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
+      };
+    },
+    getContextMemoryCanonicalizationProposal(proposalId) {
+      const proposal = contextMemoryCanonicalizationService.get(proposalId);
+      if (!proposal) {
+        throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_NOT_FOUND");
+      }
+      const sameActiveContext =
+        proposal.context.kind === context.activeContext.kind
+        && proposal.context.contextId === context.activeContext.contextId
+        && (
+          proposal.context.kind !== "ENTERPRISE"
+          || (
+            context.activeContext.kind === "ENTERPRISE"
+            && proposal.context.enterpriseId === context.activeContext.enterpriseId
+          )
+        );
+      if (!sameActiveContext) {
+        throw new Error("CONTEXT_MEMORY_CANONICALIZATION_PROPOSAL_NOT_FOUND");
+      }
+      return proposal;
+    },
+    listPersonalFollowUps() {
+      return personalAgentFollowUpStore.listOpen(
+        principal.subjectId,
+        context.activeContext
+      );
+    },
+    async proposeContextMemory(input) {
+      if (!requestContext) {
+        throw new Error("REQUEST_CONTEXT_REQUIRED");
+      }
+      requireContextMemoryWriteAuthorityV010({
+        principal,
+        personalContext: context.personalContext,
+        targetContext: context.activeContext,
+        relationshipProvider: resolveEnterpriseContextRelationshipProvider()
+      });
+      const proposal = await contextMemoryProposalService.create({
+        principal,
+        context: context.activeContext,
+        draft: input
+      });
+      return {
+        proposal,
+        reviewRoute: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
+      };
+    },
+    searchHelp(query, helpContext) {
+      return searchHelpV010(helpCorpus, query, locale, helpContext);
+    },
+    async authorizeWrite(descriptor) {
+      if (!requestContext) {
+        return {
+          allowed: false,
+          code: "REQUEST_CONTEXT_REQUIRED",
+          message: "Material WRITE requires a Host-resolved request context."
+        };
+      }
+      const decision = await authorizeMaterialWriteV010(
+        resolveAuthorizationProvider(),
+        requestContext,
+        {
+          action: descriptor.id === "context.memory.canonicalization.proposal.create"
+            ? "context.memory.proposal.create"
+            : descriptor.id,
+          resource: (
+            descriptor.id === "context.memory.proposal.create"
+            || descriptor.id === "context.memory.canonicalization.proposal.create"
+          )
+            ? {
+                type: "context.memory.proposal",
+                attributes: {
+                  contextId: context.activeContext.contextId,
+                  contextKind: context.activeContext.kind,
+                  ownerPackageId: descriptor.ownerPackageId,
+                  effect: descriptor.effect,
+                  proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
+                    ? "CANONICALIZATION"
+                    : "CONTENT"
+                }
+              }
+            : {
+                type: "agent.tool",
+                id: descriptor.id,
+                attributes: {
+                  ownerPackageId: descriptor.ownerPackageId,
+                  effect: descriptor.effect,
+                  ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                }
+              }
+        }
+      );
+      return decision.allowed
+        ? { allowed: true }
+        : {
+            allowed: false,
+            code: decision.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED",
+            message: "Material WRITE denied by '" + decision.policyProviderId + "': " + decision.reasonCodes.join(", ")
+          };
+    }
+  });
+}
+
+const agentRunExecutor = createResumableAgentRunExecutorV010({
+  store: agentRunStore,
+  resolveProvider() {
+    return resolveLlmProvider().provider;
+  },
+  createToolCatalog(run, principal, context, requestContext, interaction) {
+    return createPersonalAgentToolCatalogV010(
+      run.input.locale,
+      context,
+      principal,
+      requestContext,
+      interaction
+    );
+  },
+  eventId: randomUUID,
+  sliceId: randomUUID
+});
+
 const actionRouter = createAppActionRouter(
   [
     createEnterpriseContextCreationActionHandlerV010({
