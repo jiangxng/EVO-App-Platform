@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/agent-run.js";
 import type {
   PlatformPrincipalV010,
+  PlatformRequestContextV010,
   ResolvedContextSetV010
 } from "../../contracts/platform-services.js";
 import type {
@@ -43,6 +44,7 @@ export interface ResumableAgentRunExecutorDependenciesV010 {
     run: AgentRunV010,
     principal: PlatformPrincipalV010,
     context: ResolvedContextSetV010,
+    requestContext: PlatformRequestContextV010 | undefined,
     interaction: {
       sourceInteractionId: string;
       sourceActionId: string;
@@ -58,6 +60,7 @@ export interface ResumableAgentRunExecutorV010 {
     runId: string;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
+    requestContext?: PlatformRequestContextV010;
   }): Promise<AgentRunResumeResultV010>;
 }
 
@@ -109,6 +112,7 @@ export function createResumableAgentRunExecutorV010(
     run: AgentRunV010,
     principal: PlatformPrincipalV010,
     context: ResolvedContextSetV010,
+    requestContext: PlatformRequestContextV010 | undefined,
     decisionRecord: AgentRunV010["decisions"][number]
   ): Promise<AgentRunV010> => {
     if (decisionRecord.decision.type !== "tool") {
@@ -118,6 +122,7 @@ export function createResumableAgentRunExecutorV010(
       run,
       principal,
       context,
+      requestContext,
       {
         sourceInteractionId: run.runId,
         sourceActionId: decisionRecord.decisionEventId
@@ -210,6 +215,7 @@ export function createResumableAgentRunExecutorV010(
             run,
             input.principal,
             input.context,
+            input.requestContext,
             pendingDecision
           );
           return {
@@ -249,6 +255,7 @@ export function createResumableAgentRunExecutorV010(
           run,
           input.principal,
           input.context,
+          input.requestContext,
           {
             sourceInteractionId: run.runId,
             sourceActionId: "agent-run-tool-list:" + sliceId
@@ -313,6 +320,7 @@ export function createResumableAgentRunExecutorV010(
           run,
           input.principal,
           input.context,
+          input.requestContext,
           decisionRecord
         );
         return {
