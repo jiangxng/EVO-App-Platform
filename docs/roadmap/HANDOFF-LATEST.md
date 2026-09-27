@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.4X-2026-09-27-01`  
-**Snapshot time:** `2026-09-27T13:22:04.537Z`  
+**Snapshot:** `P1.4X-2026-09-27-02`  
+**Snapshot time:** `2026-09-27T14:48:17.768Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -68,6 +68,28 @@ Acceptance:
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
+## Project continuity live validation
+
+**Status:** `LIVE_PASS`
+
+**Scenario:** `FRESH_CHATGPT_CONVERSATION_COLD_START`
+
+USER_CONFIRMED_CURRENT_PROJECT_PROGRESS_WAS_RECOVERED
+
+Authority: `docs/roadmap/PROJECT-CONTINUITY-LIVE-CERTIFICATION.md`
+
+Proved:
+
+- fresh ChatGPT conversation can recover current project progress from repository-native bootstrap state
+- previous ChatGPT transcript is not required for basic continuation
+- stale dated handoff no longer determines current project state when bootstrap protocol is followed
+
+Not proved:
+
+- every future model will obey bootstrap without being instructed
+- all project details can be reconstructed without task-specific authority documents
+
+
 ## Recent mainline changes
 
 - PR #84 — MERGED: Preserve distinct Host tools after repeated READ suppression and add Memory Proposal readback.
@@ -79,6 +101,7 @@ Acceptance:
 - PR #91 — MERGED: Strengthen deterministic multi-token lexical retrieval.
 - PR #92 — MERGED: Record Memory canonicalization LIVE PASS.
 - PR #93 — MERGED_DEPLOYED: Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses.
+- PR #94 — MERGED_HUMAN_LIVE_PASS: Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS.
 
 ## DO NOT repeat stale actions
 

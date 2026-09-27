@@ -107,6 +107,15 @@ if (!Array.isArray(continuity.doNotRepeat) || continuity.doNotRepeat.length < 1)
   fail("projectContinuity.doNotRepeat must contain at least one explicit stale-action guard");
 }
 
+if (continuity.liveValidation?.status === "LIVE_PASS") {
+  if (!continuity.liveValidation.authority?.trim()) {
+    fail("LIVE_PASS projectContinuity.liveValidation requires an authority document");
+  }
+  if (!Array.isArray(continuity.liveValidation.proves) || continuity.liveValidation.proves.length < 1) {
+    fail("LIVE_PASS projectContinuity.liveValidation requires explicit proved claims");
+  }
+}
+
 for (const required of expectedStartup) {
   if (!bootstrap.includes(required)) {
     fail(`AI-BOOTSTRAP.md must reference ${required}`);
@@ -142,6 +151,7 @@ function renderHandoff() {
   const recent = continuity.recentMainline ?? [];
   const doNotRepeat = continuity.doNotRepeat ?? [];
   const acceptance = continuity.freshSessionAcceptance ?? [];
+  const liveValidation = continuity.liveValidation;
 
   return `# Handoff — Current Mainline
 
@@ -194,6 +204,25 @@ ${bullets(open.acceptance ?? [])}
 - Deployment: \`${deployment.deploymentId}\`
 - Status: \`${deployment.status}\`
 - Persistent state: \`${deployment.persistentStateMount}\`
+
+## Project continuity live validation
+
+${liveValidation ? `**Status:** \`${liveValidation.status}\`
+
+**Scenario:** \`${liveValidation.scenario}\`
+
+${liveValidation.observed}
+
+Authority: \`${liveValidation.authority}\`
+
+Proved:
+
+${bullets(liveValidation.proves ?? [])}
+
+Not proved:
+
+${bullets(liveValidation.doesNotProve ?? [])}
+` : "No Human cold-start validation recorded yet."}
 
 ## Recent mainline changes
 

@@ -292,7 +292,9 @@
     "context-memory-exact-id-audit-tool",
     "context-memory-effective-vs-history-audit-compare",
     "context-memory-lexical-multi-token-retrieval",
-    "context-memory-canonicalization-live-pass"
+    "context-memory-canonicalization-live-pass",
+    "project-continuity-bootstrap-protocol",
+    "project-continuity-fresh-chat-live-pass"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -315,7 +317,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X live certification remains in progress. Memory Canonicalization is LIVE PASS. PR #93 is merged and deployed on Railway at fc4d5e42135d2f6dbc25600b2363cd57e3f4c259, adding bounded cross-session Context Memory recall through short LLM-supplied query expansion with Host-governed lexical reads. The next Human live gate is a fresh Personal Agent conversation asking only whether an 18:00 order can still be handled the same day; the Agent must recall canonical Memory B without being told 17:00 or any memoryId, reason that 18:00 is normally after the 17:00 cutoff, preserve the possibility of exceptions, cite the Memory used, make no Enterprise-Context speculation from a miss, and perform no WRITE.",
+  "currentStep": "P1.4X live certification remains in progress. Repository-native Project Continuity is now Human LIVE PASS: a fresh ChatGPT conversation successfully recovered current progress by following AI-BOOTSTRAP.md without relying on the previous transcript. Memory Canonicalization remains LIVE PASS. The current product gate remains fresh-session Personal Agent Context Memory recall after PR #93: ask whether an 18:00 order can still be handled the same day without mentioning 17:00 or any memoryId; the Agent must recall canonical Memory B, preserve the 'normally' qualifier, cite the Memory used, avoid unsupported Enterprise-Context speculation, and perform no WRITE.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1530,8 +1532,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.4X-2026-09-27-01",
-    "snapshotAt": "2026-09-27T13:22:04.537Z",
+    "snapshotId": "P1.4X-2026-09-27-02",
+    "snapshotAt": "2026-09-27T14:48:17.768Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1644,6 +1646,11 @@
         "pr": 93,
         "status": "MERGED_DEPLOYED",
         "summary": "Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses."
+      },
+      {
+        "pr": 94,
+        "status": "MERGED_HUMAN_LIVE_PASS",
+        "summary": "Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS."
       }
     ],
     "doNotRepeat": [
@@ -1661,6 +1668,23 @@
       "identify PR #93 as the latest deployed behavioral change",
       "identify the old dc107947 content Proposal as a do-not-accept stale action",
       "do not require the previous ChatGPT transcript to continue"
-    ]
+    ],
+    "liveValidation": {
+      "status": "LIVE_PASS",
+      "date": "2026-09-27",
+      "authority": "docs/roadmap/PROJECT-CONTINUITY-LIVE-CERTIFICATION.md",
+      "scenario": "FRESH_CHATGPT_CONVERSATION_COLD_START",
+      "input": "Fresh ChatGPT conversation instructed to read AI-BOOTSTRAP.md from GitHub and restore project state without relying on prior chat memory.",
+      "observed": "USER_CONFIRMED_CURRENT_PROJECT_PROGRESS_WAS_RECOVERED",
+      "proves": [
+        "fresh ChatGPT conversation can recover current project progress from repository-native bootstrap state",
+        "previous ChatGPT transcript is not required for basic continuation",
+        "stale dated handoff no longer determines current project state when bootstrap protocol is followed"
+      ],
+      "doesNotProve": [
+        "every future model will obey bootstrap without being instructed",
+        "all project details can be reconstructed without task-specific authority documents"
+      ]
+    }
   }
 }
