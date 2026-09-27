@@ -244,12 +244,16 @@ export function createResumableAgentRunExecutorV010(
           };
         }
 
-        const sliceId = "agent-run-slice:" + dependencies.sliceId();
-        run = append(run.runId, {
-          type: "SLICE_STARTED",
-          sliceId,
-          payload: {}
-        });
+        const sliceId = run.state === "RUNNING" && run.activeSliceId
+          ? run.activeSliceId
+          : "agent-run-slice:" + dependencies.sliceId();
+        if (!(run.state === "RUNNING" && run.activeSliceId)) {
+          run = append(run.runId, {
+            type: "SLICE_STARTED",
+            sliceId,
+            payload: {}
+          });
+        }
 
         const listCatalog = dependencies.createToolCatalog(
           run,
