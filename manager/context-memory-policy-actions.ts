@@ -225,6 +225,18 @@ export function createContextMemoryPolicyActionHandlersV010(
           throw new Error("CONTEXT_MEMORY_LEGAL_HOLD_STATE_INVALID");
         }
         const context = activeContext(requestContext);
+        const holdHistory = dependencies.legalHolds.snapshot().events
+          .filter(event => event.memoryId === memoryId && event.holdId === holdId)
+          .sort((a, b) =>
+            b.occurredAt.localeCompare(a.occurredAt) || b.eventId.localeCompare(a.eventId)
+          );
+        if (state === "RELEASED" && holdHistory[0]?.state !== "PLACED") {
+          throw new Error("CONTEXT_MEMORY_LEGAL_HOLD_NOT_ACTIVE");
+        }
+        if (state === "PLACED" && holdHistory[0]?.state === "PLACED") {
+          throw new Error("CONTEXT_MEMORY_LEGAL_HOLD_ALREADY_ACTIVE");
+        }
+
         const memory = dependencies.memoryStore.snapshot().items.find(item => item.memoryId === memoryId);
         if (!memory) throw new Error("CONTEXT_MEMORY_NOT_FOUND");
         if (
