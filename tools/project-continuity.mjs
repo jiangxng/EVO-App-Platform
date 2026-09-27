@@ -50,6 +50,7 @@ if (!continuity || continuity.schemaVersion !== "0.1.0") {
   fail("project.status.json.projectContinuity@0.1.0 is required");
   process.exit();
 }
+const current = continuity.current;
 
 const expectedStartup = [
   "AI-BOOTSTRAP.md",
