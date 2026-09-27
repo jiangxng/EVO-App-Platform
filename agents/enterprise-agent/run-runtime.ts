@@ -11,9 +11,164 @@ import type {
 } from "../../contracts/platform-services.js";
 import type {
   AgentModelInput,
-  AgentToolCatalogV010
+  AgentToolCatalogV010,
+  AgentToolDescriptorV010,
+  AgentToolObservation
 } from "./contracts.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, stableValue(item)])
+    );
+  }
+  return value;
+}
+
+function toolCallSignature(
+  tool: string,
+  argumentsValue: Record<string, unknown>
+): string {
+  return tool + ":" + JSON.stringify(stableValue(argumentsValue));
+}
+
+function readEvidenceSignature(
+  tool: string,
+  result: unknown
+): string | undefined {
+  if (
+    (tool === "context.memory.search" || tool === "context.memory.recall")
+    && result !== null
+    && typeof result === "object"
+    && Array.isArray((result as { items?: unknown }).items)
+  ) {
+    const memoryIds = (result as { items: unknown[] }).items
+      .map(item =>
+        item !== null
+        && typeof item === "object"
+        && typeof (item as { memoryId?: unknown }).memoryId === "string"
+          ? (item as { memoryId: string }).memoryId
+          : undefined
+      )
+      .filter((memoryId): memoryId is string => Boolean(memoryId))
+      .sort();
+    if (memoryIds.length > 0) {
+      return tool + ":memoryIds:" + JSON.stringify(memoryIds);
+    }
+  }
+
+  if (result === undefined) return undefined;
+  return tool + ":result:" + JSON.stringify(stableValue(result));
+}
+
+function resultExplicitlyComplete(result: unknown): boolean {
+  return (
+    result !== null
+    && typeof result === "object"
+    && (result as { complete?: unknown }).complete === true
+  );
+}
+
+interface DurableReadConvergenceV010 {
+  successfulSignatures: Set<string>;
+  exhaustedTools: Map<string, string>;
+  convergenceObservations: AgentToolObservation[];
+}
+
+function deriveDurableReadConvergenceV010(
+  run: AgentRunV010,
+  tools: readonly AgentToolDescriptorV010[]
+): DurableReadConvergenceV010 {
+  const toolById = new Map(tools.map(tool => [tool.id, tool]));
+  const successfulSignatures = new Set<string>();
+  const evidenceByTool = new Map<string, Set<string>>();
+  const successCounts = new Map<string, number>();
+  const repeatSuppressions = new Map<string, number>();
+  const exhaustedTools = new Map<string, string>();
+  const maxSuccessfulReadsPerTool = 4;
+
+  for (const record of run.decisions) {
+    if (record.decision.type !== "tool" || !record.observation) continue;
+    const descriptor = toolById.get(record.decision.call.tool);
+    if (descriptor?.effect !== "READ") continue;
+
+    if (
+      !record.observation.ok
+      && record.observation.error?.code === "AGENT_READ_REPEAT_SUPPRESSED"
+    ) {
+      const count = (repeatSuppressions.get(descriptor.id) ?? 0) + 1;
+      repeatSuppressions.set(descriptor.id, count);
+      if (count >= 2) {
+        exhaustedTools.set(
+          descriptor.id,
+          "This READ repeatedly selected an already-successful identical call in earlier durable slices. Reuse the recorded observation and continue without probing this tool again."
+        );
+      }
+      continue;
+    }
+
+    if (!record.observation.ok) continue;
+
+    const signature = toolCallSignature(
+      record.decision.call.tool,
+      record.decision.call.arguments
+    );
+    successfulSignatures.add(signature);
+
+    const count = (successCounts.get(descriptor.id) ?? 0) + 1;
+    successCounts.set(descriptor.id, count);
+
+    if (resultExplicitlyComplete(record.observation.result)) {
+      exhaustedTools.set(
+        descriptor.id,
+        "This READ already returned an authoritative result with complete=true in an earlier durable slice. Use that complete evidence and answer or continue with a different tool."
+      );
+    }
+
+    const evidenceSignature = readEvidenceSignature(
+      descriptor.id,
+      record.observation.result
+    );
+    if (evidenceSignature) {
+      const seen = evidenceByTool.get(descriptor.id) ?? new Set<string>();
+      if (seen.has(evidenceSignature)) {
+        exhaustedTools.set(
+          descriptor.id,
+          "This READ has already returned the same authoritative evidence across durable slices. Stop paraphrased/redundant probing and use the evidence already recorded."
+        );
+      } else {
+        seen.add(evidenceSignature);
+        evidenceByTool.set(descriptor.id, seen);
+      }
+    }
+
+    if (count >= maxSuccessfulReadsPerTool) {
+      exhaustedTools.set(
+        descriptor.id,
+        "This READ reached the durable per-run successful-read limit (4). Use the observations already recorded and continue with another tool or final answer."
+      );
+    }
+  }
+
+  return {
+    successfulSignatures,
+    exhaustedTools,
+    convergenceObservations: [...exhaustedTools.entries()].map(
+      ([tool, reason]) => ({
+        tool,
+        ok: false,
+        error: {
+          code: "AGENT_READ_CONVERGENCE_REQUIRED",
+          message: reason
+        }
+      })
+    )
+  };
+}
 
 function sameContext(
   run: AgentRunV010,
@@ -115,7 +270,8 @@ export function createResumableAgentRunExecutorV010(
     requestContext: PlatformRequestContextV010 | undefined,
     decisionRecord: AgentRunV010["decisions"][number]
   ): Promise<AgentRunV010> => {
-    if (decisionRecord.decision.type !== "tool") {
+    const decision = decisionRecord.decision;
+    if (decision.type !== "tool") {
       throw new Error("AGENT_RUN_PENDING_TOOL_DECISION_REQUIRED");
     }
     const catalog = dependencies.createToolCatalog(
@@ -128,10 +284,31 @@ export function createResumableAgentRunExecutorV010(
         sourceActionId: decisionRecord.decisionEventId
       }
     );
-    const observation = await catalog.invoke(
-      decisionRecord.decision.call,
-      run.observations
+    const tools = await catalog.list();
+    const descriptor = tools.find(
+      tool => tool.id === decision.call.tool
     );
+    const convergence = deriveDurableReadConvergenceV010(run, tools);
+    const signature = toolCallSignature(
+      decision.call.tool,
+      decision.call.arguments
+    );
+    const observation: AgentToolObservation = (
+      descriptor?.effect === "READ"
+      && convergence.successfulSignatures.has(signature)
+    )
+      ? {
+          tool: decision.call.tool,
+          ok: false,
+          error: {
+            code: "AGENT_READ_REPEAT_SUPPRESSED",
+            message: "An identical READ already succeeded in an earlier durable slice. Reuse that authoritative observation; the Host did not invoke this READ again."
+          }
+        }
+      : await catalog.invoke(
+          decision.call,
+          run.observations
+        );
     let next = append(run.runId, {
       type: "TOOL_OBSERVATION_RECORDED",
       sliceId: decisionRecord.sliceId,
@@ -266,6 +443,10 @@ export function createResumableAgentRunExecutorV010(
           }
         );
         const tools = await listCatalog.list();
+        const convergence = deriveDurableReadConvergenceV010(run, tools);
+        const offeredTools = tools.filter(
+          tool => !convergence.exhaustedTools.has(tool.id)
+        );
         const modelInput: AgentModelInput = {
           userMessage: run.input.message,
           ...(run.input.conversationHistory.length > 0
@@ -275,8 +456,11 @@ export function createResumableAgentRunExecutorV010(
                 )
               }
             : {}),
-          tools: structuredClone(tools),
-          observations: structuredClone(run.observations),
+          tools: structuredClone(offeredTools),
+          observations: structuredClone([
+            ...run.observations,
+            ...convergence.convergenceObservations
+          ]),
           principal: structuredClone(input.principal),
           context: structuredClone(input.context)
         };
