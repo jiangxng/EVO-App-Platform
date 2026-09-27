@@ -11,7 +11,10 @@ import type {
 } from "../contracts/platform-services.js";
 import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js";
 import type { ExtensionManagerItemV010, ExtensionManagerActionV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
-import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
+import type {
+  ReviewQueueItemV010,
+  ReviewQueueV010
+} from "../vendor/eidos/src/review-queue/contracts.js";
 import type { ContextMemoryProposalV010 } from "./context-memory-proposal-store.js";
 import type {
   ContextMemoryCanonicalizationProposalV010
@@ -525,7 +528,7 @@ export function createPersonalAgentMemoryReviewPageV010(
     description: "Review proposed durable knowledge and duplicate-to-canonical governance changes before they affect Context Memory.",
     emptyMessage: "No Memory proposals need review.",
     items: [
-      ...pending.map(proposal => {
+      ...pending.map((proposal): ReviewQueueItemV010 => {
       const revision = proposal.revisions.at(-1)!;
       const evidenceSources = revision.evidenceSources ?? [];
       const sourceTrustMetrics = ([
@@ -654,7 +657,7 @@ export function createPersonalAgentMemoryReviewPageV010(
         }
       };
     }),
-      ...canonicalizationPending.map(proposal => {
+      ...canonicalizationPending.map((proposal): ReviewQueueItemV010 => {
         const duplicateSummary = memorySummaries.get(proposal.duplicateMemoryId)
           ?? proposal.duplicateMemoryId;
         const canonicalSummary = memorySummaries.get(proposal.canonicalMemoryId)
