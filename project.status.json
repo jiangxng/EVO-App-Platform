@@ -1498,6 +1498,7 @@
       "ordinaryRetrievalHidesAcceptedDuplicate": true,
       "exactIdAuditPreservesHistory": true,
       "liveHumanAcceptance": "PENDING"
-    }
+    },
+    "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md"
   }
 }
