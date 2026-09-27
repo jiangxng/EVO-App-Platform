@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4 — Trends + Freshness Policy + Follow-up",
+  "currentMilestone": "Personal Agent P1.4X — Vertical Experience Checkpoint",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -264,7 +264,11 @@
     "personal-agent-follow-up-append-only",
     "personal-agent-follow-up-agent-tool",
     "personal-agent-follow-up-chat-suggestions",
-    "eidos-personal-agent-follow-up-surface"
+    "eidos-personal-agent-follow-up-surface",
+    "personal-agent-vertical-experience-profile",
+    "configured-authorization-provider-auto-activation",
+    "personal-agent-one-command-local-experience",
+    "personal-agent-vertical-public-contract-machine-checkpoint"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -287,7 +291,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4E is CI-verified: 20/20 triggered workflows passed, including Platform CI, Experience CI, P1.4A/P1.4B/P1.4C/P1.4D regressions, P1.2/P1.3 Memory suites and the dedicated P1.4E CI. Personal Agent quality now has evidence-bounded 7/30/90-day trend windows; Memory freshness is governed by append-only Context/kind policies; Human-confirmed contradiction resolutions can create planning-only Personal Agent Follow-ups surfaced through a read-only Host tool and chat suggestions. Next: vertical browser experience checkpoint using production contracts only.",
+  "currentStep": "P1.4X is implemented on its feature branch and pending CI. Development has intentionally paused horizontal backend expansion to validate the real vertical browser lifecycle. A one-command local experience profile configures formal Static Session + Static Authorization Providers and durable Host state without preinstalling Personal Agent, preconfiguring the LLM/API key, or seeding Memory. Machine verification boots the real Host and reaches OpenAI Provider configuration through public /v1/actions and Eidos experience contracts. HUMAN_BROWSER_PASS remains pending and live-real-llm-install-proof must remain notYetImplemented until the user completes the browser checkpoint.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1367,5 +1371,40 @@
       "MEMORY_SOURCE_HEALTH"
     ],
     "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
+  },
+  "experienceCheckpointP1_4X": {
+    "status": "IMPLEMENTED_PENDING_CI",
+    "authority": "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md",
+    "startCommand": "npm run experience:start",
+    "resetCommand": "npm run experience:reset",
+    "url": "http://localhost:4100",
+    "profile": {
+      "productionContractsOnly": true,
+      "sessionProvider": "host.static-session",
+      "authorizationProvider": "host.static-authorization",
+      "durableState": true,
+      "preinstalledPersonalAgent": false,
+      "preconfiguredLlmProvider": false,
+      "preconfiguredApiKey": false,
+      "fakeMemory": false
+    },
+    "machineGate": "PENDING",
+    "humanBrowserGate": "PENDING",
+    "liveRealLlmProof": "PENDING_HUMAN_BROWSER",
+    "journey": [
+      "INSTALL",
+      "PROVIDER_SETUP",
+      "HOST_SECRETS",
+      "READY",
+      "PERSONAL_AGENT",
+      "MEMORY_PROPOSAL",
+      "HUMAN_REVIEW",
+      "MEMORY_GOVERNANCE",
+      "RETENTION_PREVIEW_COMMIT",
+      "MEMORY_QUALITY",
+      "HUMAN_QUALITY_EVALUATION",
+      "CONTRADICTION_RESOLUTION",
+      "PERSONAL_AGENT_FOLLOW_UP"
+    ]
   }
 }
