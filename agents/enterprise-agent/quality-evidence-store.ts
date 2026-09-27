@@ -34,6 +34,8 @@ export interface PersonalAgentQualityEvidenceStoreV010 {
     postAuthorizationContinuation: { pass: number; fail: number; unknown: number };
     verifiedCompletion: { pass: number; fail: number; unknown: number };
     correctionQuality: { pass: number; fail: number; unknown: number };
+    humanEvaluatedInteractions: number;
+    labEvaluatedInteractions: number;
   };
 }
 
@@ -54,46 +56,69 @@ function validate(event: PersonalAgentQualityEvidenceEventV010): PersonalAgentQu
 }
 
 export function aggregatePersonalAgentQualityEvidenceV010(events: readonly PersonalAgentQualityEvidenceEventV010[]) {
-  const latest = new Map<string, PersonalAgentQualityEvidenceEventV010>();
-  for (const event of [...events].sort((a,b) =>
+  const ordered=[...events].sort((a,b)=>
     a.occurredAt.localeCompare(b.occurredAt) || a.eventId.localeCompare(b.eventId)
-  )) {
-    const key = `${event.interactionId}:${event.source}`;
-    latest.set(key, event);
+  );
+  const latestHost=new Map<string,PersonalAgentQualityEvidenceEventV010>();
+  const latestLab=new Map<string,PersonalAgentQualityEvidenceEventV010>();
+  const latestHuman=new Map<string,PersonalAgentQualityEvidenceEventV010>();
+  for(const event of ordered){
+    if(event.source==="HOST_OBSERVED") latestHost.set(event.interactionId,event);
+    else if(event.source==="LAB_EVALUATED") latestLab.set(event.interactionId,event);
+    else latestHuman.set(event.interactionId,event);
   }
-  const values = [...latest.values()];
-  let toolCalls=0, success=0, failed=0, unnecessary=0, choices=0, pushed=0;
+
+  const interactionIds=new Set([
+    ...latestHost.keys(),
+    ...latestLab.keys(),
+    ...latestHuman.keys()
+  ]);
+  let toolCalls=0,success=0,failed=0,unnecessary=0,choices=0,pushed=0;
   const continuation={pass:0,fail:0,unknown:0};
   const completion={pass:0,fail:0,unknown:0};
   const correction={pass:0,fail:0,unknown:0};
-  for (const event of values) {
-    toolCalls += event.evidence.toolCalls;
-    success += event.evidence.successfulToolCalls;
-    failed += event.evidence.failedToolCalls;
-    if (event.evaluation.metrics.unnecessaryClarifications === 1) unnecessary++;
-    if (event.evaluation.metrics.avoidableChoiceMenus === 1) choices++;
-    if (typeof event.evaluation.metrics.executableStepsPushedToHuman === "number") {
-      pushed += event.evaluation.metrics.executableStepsPushedToHuman;
-    }
-    const p = event.evaluation.metrics.postAuthorizationContinuation;
-    if (p === "PASS") continuation.pass++; else if (p === "FAIL") continuation.fail++; else if (p === "UNKNOWN") continuation.unknown++;
-    const v = event.evaluation.metrics.verifiedCompletion;
-    if (v === true) completion.pass++; else if (v === false) completion.fail++; else completion.unknown++;
-    const q = event.evaluation.metrics.correctionQuality;
-    if (q === "PASS") correction.pass++; else if (q === "FAIL") correction.fail++; else if (q === "UNKNOWN") correction.unknown++;
+  let humanEvaluated=0,labEvaluated=0;
+
+  for(const host of latestHost.values()){
+    toolCalls+=host.evidence.toolCalls;
+    success+=host.evidence.successfulToolCalls;
+    failed+=host.evidence.failedToolCalls;
   }
+
+  for(const interactionId of interactionIds){
+    const human=latestHuman.get(interactionId);
+    const lab=latestLab.get(interactionId);
+    if(human) humanEvaluated++;
+    if(lab) labEvaluated++;
+    const event=human ?? lab ?? latestHost.get(interactionId);
+    if(!event) continue;
+    if(event.evaluation.metrics.unnecessaryClarifications===1) unnecessary++;
+    if(event.evaluation.metrics.avoidableChoiceMenus===1) choices++;
+    if(typeof event.evaluation.metrics.executableStepsPushedToHuman==="number"){
+      pushed+=event.evaluation.metrics.executableStepsPushedToHuman;
+    }
+    const p=event.evaluation.metrics.postAuthorizationContinuation;
+    if(p==="PASS") continuation.pass++; else if(p==="FAIL") continuation.fail++; else if(p==="UNKNOWN") continuation.unknown++;
+    const v=event.evaluation.metrics.verifiedCompletion;
+    if(v===true) completion.pass++; else if(v===false) completion.fail++; else completion.unknown++;
+    const q=event.evaluation.metrics.correctionQuality;
+    if(q==="PASS") correction.pass++; else if(q==="FAIL") correction.fail++; else if(q==="UNKNOWN") correction.unknown++;
+  }
+
   return {
-    contractVersion: "0.1.0" as const,
-    interactions: new Set(values.map(v=>v.interactionId)).size,
-    observedToolCalls: toolCalls,
-    successfulToolCalls: success,
-    failedToolCalls: failed,
-    knownUnnecessaryClarifications: unnecessary,
-    knownAvoidableChoiceMenus: choices,
-    knownExecutableStepsPushedToHuman: pushed,
-    postAuthorizationContinuation: continuation,
-    verifiedCompletion: completion,
-    correctionQuality: correction
+    contractVersion:"0.1.0" as const,
+    interactions:interactionIds.size,
+    observedToolCalls:toolCalls,
+    successfulToolCalls:success,
+    failedToolCalls:failed,
+    knownUnnecessaryClarifications:unnecessary,
+    knownAvoidableChoiceMenus:choices,
+    knownExecutableStepsPushedToHuman:pushed,
+    postAuthorizationContinuation:continuation,
+    verifiedCompletion:completion,
+    correctionQuality:correction,
+    humanEvaluatedInteractions:humanEvaluated,
+    labEvaluatedInteractions:labEvaluated
   };
 }
 
@@ -151,6 +176,40 @@ export function createHostObservedQualityEvidenceV010(input:{
     principalSubjectId:input.principalSubjectId,
     context:structuredClone(input.context),
     source:"HOST_OBSERVED",
+    evidence,
+    evaluation:evaluatePersonalAgentQualityV010(evidence)
+  });
+}
+
+
+export function createEvaluatedQualityEvidenceV010(input:{
+  eventId:string;
+  interactionId:string;
+  occurredAt:string;
+  principalSubjectId:string;
+  context:ActiveContextRefV010;
+  source:"HUMAN_EVALUATED"|"LAB_EVALUATED";
+  hostEvidence:PersonalAgentQualityEvidenceV010;
+  subjective:Partial<Omit<PersonalAgentQualityEvidenceV010,
+    "contractVersion"|"interactionId"|"toolCalls"|"successfulToolCalls"|"failedToolCalls">>;
+}):PersonalAgentQualityEvidenceEventV010{
+  const evidence:PersonalAgentQualityEvidenceV010={
+    ...structuredClone(input.hostEvidence),
+    ...structuredClone(input.subjective),
+    contractVersion:"0.1.0",
+    interactionId:input.interactionId,
+    toolCalls:input.hostEvidence.toolCalls,
+    successfulToolCalls:input.hostEvidence.successfulToolCalls,
+    failedToolCalls:input.hostEvidence.failedToolCalls
+  };
+  return validate({
+    contractVersion:"0.1.0",
+    eventId:input.eventId,
+    interactionId:input.interactionId,
+    occurredAt:input.occurredAt,
+    principalSubjectId:input.principalSubjectId,
+    context:structuredClone(input.context),
+    source:input.source,
     evidence,
     evaluation:evaluatePersonalAgentQualityV010(evidence)
   });
