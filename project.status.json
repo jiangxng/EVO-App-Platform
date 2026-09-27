@@ -252,7 +252,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.3.1 Experience Integration is implemented on its feature branch and pending CI: preserve the existing real Package/Provider/Secrets/Context/Memory architecture, but validate it as one browser lifecycle from Plugin Store Install → Needs setup → Provider install/configuration → Ready → Open → Context-aware use → Memory Review/Governance/Source Health. No demo-only state or UI bypass is permitted.",
+  "currentStep": "Personal Agent P1.3.1 Experience Integration is CI-verified: 15/15 triggered workflows passed, including Platform CI, Enterprise Agent, P1.2/P1.3 Memory regressions, Host Secrets/Authorization/session/enterprise providers, and the dedicated vertical Experience CI. The next action is Human browser experience using the formal Install → Needs setup → Provider/Host Secrets configuration → Ready → Open → Context-aware use → Memory Review/Governance/Source Health journey.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1105,7 +1105,7 @@
     }
   },
   "experienceIntegration": {
-    "status": "IMPLEMENTED_PENDING_CI",
+    "status": "CI_VERIFIED_P1_3_1",
     "authority": "docs/architecture/EXPERIENCE-INTEGRATION-CADENCE-v0.1.md",
     "checkpoint": "docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md",
     "cadence": "BIG_STEP_VERTICAL_CLOSURE_PLUS_SELECTIVE_EXPERIENCE_CHECKPOINTS",
