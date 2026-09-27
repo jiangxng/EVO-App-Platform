@@ -1,6 +1,6 @@
 # Personal Agent Quality + Retention Simulation P1.4 v0.1
 
-**Status:** implementation candidate  
+**Status:** CI-verified implementation candidate  
 **Date:** 2026-09-27  
 **Depends on:** P1.4A Responsibility Policy, P1.3 Memory Governance
 
