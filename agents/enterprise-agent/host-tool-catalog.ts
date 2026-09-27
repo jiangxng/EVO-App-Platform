@@ -30,6 +30,12 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
   listAvailableContexts(): ActiveContextRefV010[];
   listProviderBindings(capability?: string): ProviderBindingV010[];
   getProviderHealth(providerId: string): ProviderRuntimeHealthV010;
+  inventoryContextMemory?: (input: {
+    kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
+    includeHistorical?: boolean;
+    limit?: number;
+    cursor?: string;
+  }) => Promise<unknown> | unknown;
   readContextMemory?: (input: {
     query?: string;
     kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
@@ -197,6 +203,79 @@ export function createEnterpriseAgentHostToolCatalogV010(
           throw new Error("PERSONAL_AGENT_FOLLOW_UP_READER_REQUIRED");
         }
         return dependencies.listPersonalFollowUps();
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.inventory.list",
+        modelName: "context_memory_inventory_list",
+        title: "Context Memory governance inventory",
+        description: "Enumerate the current Host-resolved Context Memory deterministically with exact visible-set count and pagination. This is inventory, not relevance retrieval. Use when completeness, counts, duplicate-set discovery, governance history or pagination matters. Historical superseded/canonicalized records may be included explicitly; restricted/expired/private-invisible records remain outside this reader-visible scope.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            kind: {
+              type: "string",
+              enum: ["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"],
+              description: "Optional Memory kind filter."
+            },
+            includeHistorical: {
+              type: "boolean",
+              description: "Include reader-visible superseded and canonicalized duplicate history. Defaults to true."
+            },
+            limit: {
+              type: "number",
+              description: "Page size from 1 to 100. Defaults to 50."
+            },
+            cursor: {
+              type: "string",
+              description: "Opaque cursor returned by a previous inventory page. If the inventory changes between pages, the Host fails closed and requires restart."
+            }
+          },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.inventory"
+      }),
+      available() {
+        return dependencies.inventoryContextMemory !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.inventoryContextMemory) {
+          throw new Error("CONTEXT_MEMORY_INVENTORY_READER_REQUIRED");
+        }
+        const rawKind = stringArg(args, "kind", false);
+        const kind = rawKind as "FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE" | undefined;
+        if (rawKind && !["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"].includes(rawKind)) {
+          throw new Error("CONTEXT_MEMORY_KIND_INVALID");
+        }
+        const includeHistorical = args.includeHistorical;
+        if (
+          includeHistorical !== undefined
+          && typeof includeHistorical !== "boolean"
+        ) {
+          throw new Error("CONTEXT_MEMORY_INVENTORY_INCLUDE_HISTORICAL_INVALID");
+        }
+        const rawLimit = args.limit;
+        if (
+          rawLimit !== undefined
+          && (
+            typeof rawLimit !== "number"
+            || !Number.isInteger(rawLimit)
+            || rawLimit < 1
+            || rawLimit > 100
+          )
+        ) {
+          throw new Error("CONTEXT_MEMORY_INVENTORY_LIMIT_INVALID");
+        }
+        const cursor = stringArg(args, "cursor", false);
+        return dependencies.inventoryContextMemory({
+          ...(kind ? { kinds: [kind] } : {}),
+          ...(includeHistorical !== undefined ? { includeHistorical } : {}),
+          ...(rawLimit !== undefined ? { limit: rawLimit } : {}),
+          ...(cursor ? { cursor } : {})
+        });
       }
     },
     {
