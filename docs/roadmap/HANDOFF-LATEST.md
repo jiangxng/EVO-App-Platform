@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.4X-2026-09-27-02`  
-**Snapshot time:** `2026-09-27T14:48:17.768Z`  
+**Snapshot:** `P1.4X-2026-09-27-03`  
+**Snapshot time:** `2026-09-27T14:58:44.293Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,19 +40,22 @@ Evidence:
 
 ## Current open live gate
 
-**fresh-session-context-memory-recall: READY_FOR_LIVE_RETEST**
+**fresh-session-context-memory-recall-epistemic: FUNCTIONAL_PASS_EPISTEMIC_RETEST_READY**
 
-In a fresh Personal Agent conversation, ask whether an 18:00 order can still be handled the same day without mentioning 17:00 or any memoryId. The Agent must recall canonical B through Context Memory and reason with the 'normally' qualifier.
+Fresh-session recall already found canonical B and reasoned correctly about the normal 17:00 cutoff, but the live answer overclaimed a specific next-processing consequence and global uniqueness from ranked recall. PR #96 is deployed; repeat the same fresh-session question to verify epistemic boundaries.
 
 Acceptance:
 
 - fresh conversation has no useful prior discourse
 - Agent performs READ only
 - Agent recalls canonical Memory B without being told 17:00 or any memoryId
-- Agent identifies the Memory evidence it used
+- Agent identifies Memory B as evidence
 - Agent says 18:00 is normally after the 17:00 cutoff
 - Agent preserves that exceptions may exist
 - Agent does not treat 17:00 as an unconditional absolute
+- Agent does not invent a specific next working day, next batch, carrier action, or fulfillment schedule absent authoritative evidence
+- Agent does not claim B is globally the only relevant Memory or that no other Memory exists based only on ranked recall
+- Agent may say B was the only item returned by this retrieval
 - Agent does not infer Enterprise Context merely from an empty retrieval
 - Agent creates no Proposal and performs no WRITE
 
@@ -63,8 +66,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `fc4d5e42135d2f6dbc25600b2363cd57e3f4c259`
-- Deployment: `7fc9e813-8a7a-4678-b41b-d0a422fe58dc`
+- Commit: `8ffc87369b3dfe021a3fd3c27f3b4ad6242789de`
+- Deployment: `34d37eee-45e7-4bb7-a55f-1b811120a8e8`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -102,6 +105,8 @@ Not proved:
 - PR #92 — MERGED: Record Memory canonicalization LIVE PASS.
 - PR #93 — MERGED_DEPLOYED: Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses.
 - PR #94 — MERGED_HUMAN_LIVE_PASS: Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS.
+- PR #95 — MERGED: Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery.
+- PR #96 — MERGED_DEPLOYED: Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false.
 
 ## DO NOT repeat stale actions
 
@@ -109,7 +114,10 @@ Not proved:
 - Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.
 - Do not treat Memory Canonicalization as the current open gate; it is closed.
 - Do not infer that a Memory belongs in Enterprise Context merely because Personal Context lexical retrieval returned zero results.
-- Do not restart PR #84–#93 work unless a new regression provides current evidence.
+- Do not infer that a Memory belongs in Enterprise Context merely because Personal Context retrieval returned zero results.
+- Do not claim ranked Context Memory search/recall is exhaustive inventory or infer global absence/uniqueness from its returned set.
+- Do not state a specific downstream operational consequence as authoritative fact unless Memory or another Host source actually states it.
+- Do not restart PR #84–#96 work unless a new regression provides current evidence.
 
 ## Fresh ChatGPT / LLM startup
 
