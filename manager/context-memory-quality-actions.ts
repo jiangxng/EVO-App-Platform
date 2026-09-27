@@ -15,6 +15,7 @@ import {
   HOST_CONTEXT_MEMORY_PACKAGE_ID
 } from "../providers/context-memory/package.js";
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
+import type { PersonalAgentFollowUpStoreV010 } from "./personal-agent-follow-up-store.js";
 import type {
   ContextMemoryContradictionResolutionV010,
   ContextMemoryQualityStoreV010
@@ -27,6 +28,7 @@ export const CONTEXT_MEMORY_CONTRADICTION_RESOLVE_ACTION =
 export interface ContextMemoryQualityActionDependenciesV010 {
   memoryStore: ContextMemoryStoreV010;
   qualityStore: ContextMemoryQualityStoreV010;
+  followUpStore?: PersonalAgentFollowUpStoreV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
   resolveRelationshipProvider(): EnterpriseContextRelationshipProviderV010 | undefined;
   now?: () => Date;
@@ -186,12 +188,75 @@ export function createContextMemoryQualityActionHandlerV010(
           actorSubjectId:requestContext.principal.subjectId
         });
 
+        const effective = dependencies.qualityStore.contradiction(contradictionId);
+        let followUp;
+        let followUpCreationError:string|undefined;
+        if (!dismiss && resolution && dependencies.followUpStore) {
+          try {
+            followUp = dependencies.followUpStore.findBySource(
+              requestContext.principal.subjectId,
+              "MEMORY_CONTRADICTION",
+              contradictionId
+            );
+            if (!followUp) {
+              const preferredMemoryId = resolution === "PREFER_LEFT"
+                ? current.leftMemoryId
+                : resolution === "PREFER_RIGHT"
+                  ? current.rightMemoryId
+                  : undefined;
+              const otherMemoryId = resolution === "PREFER_LEFT"
+                ? current.rightMemoryId
+                : resolution === "PREFER_RIGHT"
+                  ? current.leftMemoryId
+                  : undefined;
+              const kind = preferredMemoryId
+                ? "REVIEW_PREFERRED_MEMORY" as const
+                : resolution === "BOTH_VALID"
+                  ? "CLARIFY_MEMORY_CONTEXT" as const
+                  : "REVIEW_MEMORY_RESOLUTION" as const;
+              const title = preferredMemoryId
+                ? "Review preferred Memory after contradiction resolution"
+                : resolution === "BOTH_VALID"
+                  ? "Clarify context for both valid Memory records"
+                  : "Review resolved Memory contradiction";
+              const instruction = preferredMemoryId && otherMemoryId
+                ? `Review preferred Memory '${preferredMemoryId}' against '${otherMemoryId}'. If durable knowledge should change, prepare a new Memory Proposal; do not rewrite either existing Memory record.`
+                : resolution === "BOTH_VALID"
+                  ? `Review Memory '${current.leftMemoryId}' and '${current.rightMemoryId}' and determine whether an additional contextual Memory Proposal would help explain when each is valid.`
+                  : `Review contradiction '${contradictionId}' and its Human resolution. Propose follow-up work only if new durable knowledge is warranted.`;
+
+              const followUpId=`personal-agent-follow-up:${id()}`;
+              dependencies.followUpStore.append({
+                contractVersion:"0.1.0",
+                eventId:`personal-agent-follow-up-event:${id()}`,
+                followUpId,
+                principalSubjectId:requestContext.principal.subjectId,
+                context:structuredClone(context),
+                state:"OPEN",
+                kind,
+                sourceType:"MEMORY_CONTRADICTION",
+                sourceId:contradictionId,
+                title,
+                instruction,
+                relatedMemoryIds:[current.leftMemoryId,current.rightMemoryId],
+                occurredAt:now().toISOString(),
+                actorSubjectId:requestContext.principal.subjectId
+              });
+              followUp=dependencies.followUpStore.get(followUpId);
+            }
+          } catch (error) {
+            followUpCreationError=error instanceof Error ? error.message : String(error);
+          }
+        }
+
         return {
           ok:true,
           correlationId:requestContext.correlationId,
-          result:JSON.parse(JSON.stringify(
-            dependencies.qualityStore.contradiction(contradictionId)
-          ))
+          result:JSON.parse(JSON.stringify({
+            contradiction: effective,
+            ...(followUp ? { followUp } : {}),
+            ...(followUpCreationError ? { followUpCreationError } : {})
+          }))
         };
       }catch(error){
         return errorResult(error);

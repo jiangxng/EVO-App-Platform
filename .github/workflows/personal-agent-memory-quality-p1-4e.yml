@@ -1,0 +1,59 @@
+name: Agent/Memory CI - Quality P1.4E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/quality-trends.ts"
+      - "agents/enterprise-agent/host-tool-catalog.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "manager/context-memory-freshness-policy-store.ts"
+      - "manager/context-memory-freshness-policy-actions.ts"
+      - "manager/personal-agent-follow-up-store.ts"
+      - "manager/personal-agent-follow-up-actions.ts"
+      - "manager/personal-agent-follow-up-page.ts"
+      - "manager/context-memory-quality-actions.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-TRENDS-FRESHNESS-FOLLOWUP-P1.4E-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4e.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/quality-trends.ts"
+      - "agents/enterprise-agent/host-tool-catalog.ts"
+      - "agents/enterprise-agent/package.ts"
+      - "manager/context-memory-freshness-policy-store.ts"
+      - "manager/context-memory-freshness-policy-actions.ts"
+      - "manager/personal-agent-follow-up-store.ts"
+      - "manager/personal-agent-follow-up-actions.ts"
+      - "manager/personal-agent-follow-up-page.ts"
+      - "manager/context-memory-quality-actions.ts"
+      - "manager/personal-agent-quality-page.ts"
+      - "manager/personal-agent-experience.ts"
+      - "manager/memory-governance-page.ts"
+      - "manager/server.ts"
+      - "tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-TRENDS-FRESHNESS-FOLLOWUP-P1.4E-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-memory-quality-p1-4e.yml"
+
+concurrency:
+  group: personal-agent-memory-quality-p1-4e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-memory:quality-p1-4e

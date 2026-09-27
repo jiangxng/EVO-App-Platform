@@ -5,6 +5,7 @@ import {
   aggregatePersonalAgentQualityEvidenceV010,
   type PersonalAgentQualityEvidenceStoreV010
 } from "../agents/enterprise-agent/quality-evidence-store.js";
+import { createPersonalAgentQualityTrendWindowsV010 } from "../agents/enterprise-agent/quality-trends.js";
 
 function sameContext(a: ActiveContextRefV010, b: ActiveContextRefV010): boolean {
   return a.kind === b.kind
@@ -24,6 +25,44 @@ export function createPersonalAgentQualityPageV010(input:{
     )
     .sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt));
   const aggregate=aggregatePersonalAgentQualityEvidenceV010(events);
+  const trends=createPersonalAgentQualityTrendWindowsV010({events});
+
+  const trendItems:CatalogBrowserItemV010[]=events.length===0 ? [] : trends.map(window=>{
+    const metricText=(label:string,value:{current?:number;previous?:number;delta?:number;comparable:boolean;reason?:string})=>{
+      if(!value.comparable) return `${label}=insufficient(${value.reason ?? "unknown"})`;
+      const pct=(v:number|undefined)=>v===undefined ? "—" : `${(v*100).toFixed(1)}%`;
+      const delta=value.delta===undefined ? "—" : `${value.delta>=0 ? "+" : ""}${(value.delta*100).toFixed(1)}pp`;
+      return `${label} ${pct(value.current)} vs ${pct(value.previous)} (Δ ${delta})`;
+    };
+    const comparable=Object.values(window.metrics).some(metric=>metric.comparable);
+    return {
+      id:`quality:trend:${window.windowDays}d`,
+      title:`${window.windowDays}-day evidence window`,
+      category:"Trend evidence",
+      summary:[
+        `current interactions=${window.current.interactions}`,
+        `previous=${window.previous.interactions}`,
+        metricText("tool success",window.metrics.toolSuccessRate),
+        metricText("Human coverage",window.metrics.humanEvaluationCoverage),
+        metricText("verified completion",window.metrics.verifiedCompletionRate),
+        metricText("post-auth continuation",window.metrics.postAuthorizationContinuationRate),
+        metricText("unnecessary clarification",window.metrics.unnecessaryClarificationRate)
+      ].join(" · "),
+      status:{
+        label:comparable ? "Comparable evidence" : "Insufficient evidence",
+        tone:"neutral" as const
+      },
+      metadata:{
+        windowDays:window.windowDays,
+        minimumComparableInteractions:window.minimumComparableInteractions,
+        minimumComparableEvaluatedInteractions:window.minimumComparableEvaluatedInteractions,
+        currentStartAt:window.current.startAt,
+        currentEndAt:window.current.endAt,
+        previousStartAt:window.previous.startAt,
+        previousEndAt:window.previous.endAt
+      }
+    };
+  });
 
   const summaryItems: CatalogBrowserItemV010[] = events.length === 0 ? [] : [
     {
@@ -93,6 +132,7 @@ export function createPersonalAgentQualityPageV010(input:{
     description:`Evidence-backed collaboration quality for ${input.context.contextId}. Subjective dimensions remain UNKNOWN until explicitly evaluated.`,
     items:[
       ...summaryItems,
+      ...trendItems,
       ...events.slice(0,50).map(event=>({
         id:event.eventId,
         title:event.interactionId,

@@ -37,7 +37,8 @@
     "test:agent:responsibility-p1-4": "npm run build && node --test tests/agent/enterprise-agent.test.mjs",
     "test:agent-memory:quality-p1-4": "npm run build && node --test tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs",
     "test:agent-memory:quality-p1-4c": "npm run build && node --test tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs",
-    "test:agent-memory:quality-p1-4d": "npm run build && node --test tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs"
+    "test:agent-memory:quality-p1-4d": "npm run build && node --test tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs tests/protocol/personal-agent-quality-retention-simulation-p1-4.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs",
+    "test:agent-memory:quality-p1-4e": "npm run build && node --test tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs tests/protocol/personal-agent-human-eval-memory-quality-p1-4d.test.mjs tests/protocol/personal-agent-quality-retention-flow-p1-4c.test.mjs tests/agent/enterprise-agent.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

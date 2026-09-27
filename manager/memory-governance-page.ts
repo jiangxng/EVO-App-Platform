@@ -12,6 +12,7 @@ import type {
 import type { ContextMemoryStoreV010 } from "./context-memory-store.js";
 import type { ContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import type { ContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import type { ContextMemoryFreshnessPolicyStoreV010 } from "./context-memory-freshness-policy-store.js";
 import { evaluateContextMemoryQualityV010, type ContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
 import type { ContextMemoryRetentionDraftStoreV010 } from "./context-memory-retention-draft-store.js";
 import type { ContextMemoryOperationLogV010 } from "./context-memory-operations.js";
@@ -27,6 +28,8 @@ export const memoryRetentionDraftNewPageSource = "app://evo-app-platform/pages/m
 export const memoryRetentionDraftsPageSource = "app://evo-app-platform/pages/memory/retention-drafts";
 export const memoryQualityPageSource = "app://evo-app-platform/pages/memory/quality";
 export const memoryContradictionReviewPageSource = "app://evo-app-platform/pages/memory/quality/contradictions";
+export const memoryFreshnessPolicyNewPageSource = "app://evo-app-platform/pages/memory/quality/freshness-policies/new";
+export const memoryFreshnessPoliciesPageSource = "app://evo-app-platform/pages/memory/quality/freshness-policies";
 
 export function createMemoryGovernanceExperienceManifestV010() {
   return {
@@ -43,7 +46,9 @@ export function createMemoryGovernanceExperienceManifestV010() {
       { id: "evo-memory.retention-draft-new", title: "Prepare Retention Policy", source: memoryRetentionDraftNewPageSource },
       { id: "evo-memory.retention-drafts", title: "Retention Drafts", source: memoryRetentionDraftsPageSource },
       { id: "evo-memory.quality", title: "Memory Quality", source: memoryQualityPageSource },
-      { id: "evo-memory.contradictions", title: "Memory Contradictions", source: memoryContradictionReviewPageSource }
+      { id: "evo-memory.contradictions", title: "Memory Contradictions", source: memoryContradictionReviewPageSource },
+      { id: "evo-memory.freshness-policy-new", title: "Set Freshness Policy", source: memoryFreshnessPolicyNewPageSource },
+      { id: "evo-memory.freshness-policies", title: "Freshness Policies", source: memoryFreshnessPoliciesPageSource }
     ],
     routes: [
       { id: "evo-memory.home", path: "/memory", pageId: "evo-memory.home" },
@@ -53,7 +58,9 @@ export function createMemoryGovernanceExperienceManifestV010() {
       { id: "evo-memory.retention-draft-new", path: "/memory/retention-drafts/new", pageId: "evo-memory.retention-draft-new" },
       { id: "evo-memory.retention-drafts", path: "/memory/retention-drafts", pageId: "evo-memory.retention-drafts" },
       { id: "evo-memory.quality", path: "/memory/quality", pageId: "evo-memory.quality" },
-      { id: "evo-memory.contradictions", path: "/memory/quality/contradictions", pageId: "evo-memory.contradictions" }
+      { id: "evo-memory.contradictions", path: "/memory/quality/contradictions", pageId: "evo-memory.contradictions" },
+      { id: "evo-memory.freshness-policy-new", path: "/memory/quality/freshness-policies/new", pageId: "evo-memory.freshness-policy-new" },
+      { id: "evo-memory.freshness-policies", path: "/memory/quality/freshness-policies", pageId: "evo-memory.freshness-policies" }
     ]
   } as const;
 }
@@ -215,19 +222,27 @@ export function createMemoryGovernancePageV010(input: {
         id: "memory-governance:quality",
         title: "Memory quality",
         category: "Governance tool",
-        summary: "Inspect evidence references, source trust, observation freshness and unresolved contradictions without rewriting Memory.",
+        summary: "Inspect evidence references, source trust, policy-driven observation freshness and unresolved contradictions without rewriting Memory.",
         primaryAction: {
           id: "open-memory-quality",
           label: "Open quality",
           type: "navigate",
           route: "/memory/quality"
         },
-        secondaryActions: [{
-          id: "review-contradictions",
-          label: "Review contradictions",
-          type: "navigate",
-          route: "/memory/quality/contradictions"
-        }],
+        secondaryActions: [
+          {
+            id: "review-contradictions",
+            label: "Review contradictions",
+            type: "navigate",
+            route: "/memory/quality/contradictions"
+          },
+          {
+            id: "manage-freshness-policies",
+            label: "Freshness policies",
+            type: "navigate",
+            route: "/memory/quality/freshness-policies"
+          }
+        ],
         metadata: {
           immutableMemory: true,
           compositeScore: false
@@ -551,6 +566,7 @@ export function createMemoryQualityPageV010(input:{
   context:ActiveContextRefV010;
   memoryStore:ContextMemoryStoreV010;
   qualityStore:ContextMemoryQualityStoreV010;
+  freshnessPolicies?:ContextMemoryFreshnessPolicyStoreV010;
   relationships?:EnterpriseContextRelationshipProviderV010;
   now?:Date;
   freshnessWindowDays?:number;
@@ -582,7 +598,10 @@ export function createMemoryQualityPageV010(input:{
       memory,
       qualityStore:input.qualityStore,
       ...(input.now ? {now:input.now} : {}),
-      ...(input.freshnessWindowDays ? {freshnessWindowDays:input.freshnessWindowDays} : {})
+      freshnessWindowDays:
+        input.freshnessPolicies?.freshnessWindowDays(memory)
+        ?? input.freshnessWindowDays
+        ?? 180
     })
   }));
   const openContradictions=input.qualityStore
@@ -772,5 +791,141 @@ export function createMemoryContradictionReviewPageV010(input:{
       contextId:input.context.contextId,
       openCount:open.length
     }
+  };
+}
+
+
+export function createMemoryFreshnessPolicyFormV010(): UidlFormV011 {
+  return {
+    contractVersion:"0.1.1",
+    kind:"form",
+    id:"evo.memory.freshness-policy-new",
+    title:"Set Memory freshness policy",
+    purpose:"execute-command",
+    command:{
+      code:"context.memory.quality.freshness-policy.set",
+      inputVersion:"0.1.0"
+    },
+    fields:[
+      {
+        key:"policyId",
+        label:"Policy ID",
+        semanticType:"context.memory.freshness-policy.id",
+        control:"text",
+        required:true
+      },
+      {
+        key:"freshnessWindowDays",
+        label:"Freshness window (days)",
+        semanticType:"duration.days",
+        control:"number",
+        required:true,
+        validation:{min:1,max:36500}
+      },
+      {
+        key:"kinds",
+        label:"Memory kinds (comma-separated; blank = Context default)",
+        semanticType:"context.memory.kind-list",
+        control:"text",
+        required:false
+      },
+      {
+        key:"reason",
+        label:"Reason",
+        semanticType:"governance.reason",
+        control:"text",
+        required:false
+      }
+    ],
+    actions:[
+      {
+        id:"save-freshness-policy",
+        label:"Confirm policy",
+        type:"submit",
+        requiresConfirmation:true
+      }
+    ],
+    metadata:{
+      appendOnly:true,
+      precedence:"KIND_SPECIFIC_THEN_CONTEXT_DEFAULT",
+      sameLevelRule:"SHORTEST_WINDOW"
+    }
+  };
+}
+
+export function createMemoryFreshnessPoliciesPageV010(input:{
+  principal:PlatformPrincipalV010;
+  personalContext:PersonalContextV010;
+  context:ActiveContextRefV010;
+  policies:ContextMemoryFreshnessPolicyStoreV010;
+  relationships?:EnterpriseContextRelationshipProviderV010;
+}):CatalogBrowserV010{
+  const allowed=governanceAllowed(
+    input.principal,
+    input.personalContext,
+    input.context,
+    input.relationships
+  );
+  if(!allowed){
+    return {
+      contractVersion:"0.1.0",
+      kind:"catalog-browser",
+      id:"evo.memory.freshness-policies",
+      title:"Freshness Policies",
+      description:"Enterprise freshness policy governance requires an active OWNER or ADMIN relationship.",
+      items:[],
+      emptyMessage:"You do not have freshness policy authority for this Context."
+    };
+  }
+
+  const policies=input.policies.effectiveForContext(input.context);
+  return {
+    contractVersion:"0.1.0",
+    kind:"catalog-browser",
+    id:"evo.memory.freshness-policies",
+    title:"Freshness Policies",
+    description:"Kind-specific policies override Context defaults. Within the same specificity, the shortest active window is used.",
+    items:[
+      {
+        id:"freshness-policy:new",
+        title:"Set or update freshness policy",
+        category:"Governance tool",
+        summary:"Append a new policy event. Existing policy history remains immutable.",
+        primaryAction:{
+          id:"new-freshness-policy",
+          label:"Set policy",
+          type:"navigate",
+          route:"/memory/quality/freshness-policies/new"
+        }
+      },
+      ...policies.map(policy=>({
+        id:policy.policyId,
+        title:policy.policyId,
+        category:policy.kinds?.length ? "Kind-specific" : "Context default",
+        summary:[
+          `window=${policy.freshnessWindowDays}d`,
+          policy.kinds?.length ? `kinds=${policy.kinds.join(",")}` : "kinds=all",
+          policy.reason ? `reason=${policy.reason}` : undefined
+        ].filter(Boolean).join(" · "),
+        status:{
+          label:"ACTIVE",
+          tone:"positive" as const
+        },
+        secondaryActions:[{
+          id:"retire-freshness-policy",
+          label:"Retire",
+          type:"command" as const,
+          command:"context.memory.quality.freshness-policy.retire",
+          inputVersion:"0.1.0",
+          requiresConfirmation:true
+        }],
+        metadata:{
+          effectiveEventId:policy.effectiveEventId,
+          occurredAt:policy.occurredAt,
+          actorSubjectId:policy.actorSubjectId
+        }
+      }))
+    ],
+    emptyMessage:"No active freshness policy exists for this Context."
   };
 }

@@ -13,6 +13,7 @@ import type { SetupFlowV010 } from "../vendor/eidos/src/setup-flow/contracts.js"
 import type { ExtensionManagerItemV010, ExtensionManagerActionV010 } from "../vendor/eidos/src/extension-manager/contracts.js";
 import type { ReviewQueueV010 } from "../vendor/eidos/src/review-queue/contracts.js";
 import type { ContextMemoryProposalV010 } from "./context-memory-proposal-store.js";
+import type { PersonalAgentFollowUpV010 } from "./personal-agent-follow-up-store.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID,
@@ -26,6 +27,7 @@ import { settingsPackageRoute } from "./settings-page.js";
 export const PERSONAL_AGENT_ROUTE = "/enterprise-agent";
 export const PERSONAL_AGENT_SETUP_ROUTE = "/enterprise-agent/setup";
 export const PERSONAL_AGENT_MEMORY_REVIEW_ROUTE = "/enterprise-agent/memory";
+export const PERSONAL_AGENT_FOLLOW_UP_ROUTE = "/enterprise-agent/follow-ups";
 const LLM_CAPABILITY = "llm.inference";
 
 export type PersonalAgentReadinessStateV010 =
@@ -244,7 +246,8 @@ export interface PersonalAgentContextOptionV010 {
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
   context: ResolvedContextSetV010,
-  availableContexts: readonly PersonalAgentContextOptionV010[]
+  availableContexts: readonly PersonalAgentContextOptionV010[],
+  followUps: readonly PersonalAgentFollowUpV010[] = []
 ): ChatExperienceV020 {
   const contextLabel = context.activeContext.kind === "PERSONAL"
     ? context.personalContext.displayName ?? context.activeContext.contextId
@@ -304,6 +307,11 @@ export function createPersonalAgentChatPageV020(
       title: "How can I help?",
       description: "I can inspect your available apps and Context, explain what is happening, and prepare an opinion or plan.",
       suggestions: [
+        ...followUps.slice(0, 3).map(item => ({
+          id: `follow-up:${item.followUpId}`,
+          label: item.title,
+          prompt: `Review Personal Agent follow-up '${item.followUpId}'. Use the personal_follow_up_list tool to inspect the Host-provided instruction and related Memory before proposing any next action.`
+        })),
         {
           id: "attention",
           label: "What needs my attention?",
@@ -471,6 +479,12 @@ export function createPersonalAgentSetupPageV010(
                   label: "Personal Agent Quality",
                   type: "navigate",
                   route: "/enterprise-agent/quality"
+                },
+                {
+                  id: "agent-follow-ups",
+                  label: "Personal Agent Follow-ups",
+                  type: "navigate",
+                  route: PERSONAL_AGENT_FOLLOW_UP_ROUTE
                 }
               ] as const
             }
