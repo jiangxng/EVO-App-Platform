@@ -389,7 +389,7 @@
       "humanBrowserPass": false
     }
   },
-  "handoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md",
+  "handoff": "docs/roadmap/HANDOFF-LATEST.md",
   "architectureCorrections": [
     "evo-is-lightweight-runtime-plugin-not-enterprise-platform-core"
   ],
@@ -1527,5 +1527,25 @@
       "status": "LIVE_PASS"
     },
     "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md"
+  },
+  "projectContinuity": {
+    "status": "IMPLEMENTED_BOOTSTRAP_PROTOCOL",
+    "bootstrap": "AI-BOOTSTRAP.md",
+    "currentHandoff": "docs/roadmap/HANDOFF-LATEST.md",
+    "sourceOfTruth": "REPOSITORY_STATE_WINS_OVER_CHAT_OR_MODEL_MEMORY",
+    "freshSessionStartup": [
+      "AI-BOOTSTRAP.md",
+      "project.status.json",
+      "docs/roadmap/HANDOFF-LATEST.md",
+      "LLM.md",
+      "llm.foundation-map.json"
+    ],
+    "acceptance": [
+      "fresh session can state current milestone",
+      "fresh session can state latest closed live slice",
+      "fresh session can state current open live gate",
+      "fresh session can state deployed revision",
+      "fresh session can identify do-not-repeat actions"
+    ]
   }
 }
