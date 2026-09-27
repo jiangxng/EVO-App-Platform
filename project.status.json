@@ -315,7 +315,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X live certification remains in progress. The real 17:00 duplicate-Memory canonicalization vertical slice is now LIVE PASS on Railway: A (older duplicate) canonicalizes to existing B (newer canonical) through an append-only Human-reviewed relation; Human acceptance is durable across subsequent deployments; ordinary effective retrieval for query '仓库 17:00 截单' returns only B with score 0.7 / SUMMARY_TOKENS_ALL; exact-ID historical audit still returns A+B; no Memory content was rewritten. PR #88 closed paraphrased READ loops, PR #89 added exact-ID audit, PR #90 added one-shot effective-vs-history audit to stay inside the observed ~60s synchronous HTTP ceiling, and PR #91 strengthened deterministic lexical multi-token matching. Next live Human gate: start a fresh conversation with no useful prior discourse, ask a date-specific operational question after 17:00, and verify Personal Agent retrieves B from Context Memory, applies the 'normally' qualifier rather than treating 17:00 as absolute, and can identify the Memory evidence used.",
+  "currentStep": "P1.4X live certification remains in progress. Memory Canonicalization is LIVE PASS. PR #93 is merged and deployed on Railway at fc4d5e42135d2f6dbc25600b2363cd57e3f4c259, adding bounded cross-session Context Memory recall through short LLM-supplied query expansion with Host-governed lexical reads. The next Human live gate is a fresh Personal Agent conversation asking only whether an 18:00 order can still be handled the same day; the Agent must recall canonical Memory B without being told 17:00 or any memoryId, reason that 18:00 is normally after the 17:00 cutoff, preserve the possibility of exceptions, cite the Memory used, make no Enterprise-Context speculation from a miss, and perform no WRITE.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1467,8 +1467,8 @@
       "preconfiguredApiKey": false,
       "fakeMemory": false
     },
-    "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_91",
-    "humanBrowserGate": "PARTIAL_PASS_MEMORY_CANONICALIZATION_LIVE_PASS_FRESH_SESSION_REASONING_PENDING",
+    "machineGate": "PASS_CURRENT_MAIN_AFTER_PR_93",
+    "humanBrowserGate": "PARTIAL_PASS_MEMORY_CANONICALIZATION_LIVE_PASS_FRESH_SESSION_RECALL_RETEST_READY",
     "liveRealLlmProof": "PARTIAL_PASS_REAL_PERSONAL_AGENT_MEMORY_GOVERNANCE",
     "journey": [
       "INSTALL",
@@ -1490,8 +1490,8 @@
       "project": "EVO Ledger Runtime MVP",
       "service": "Ledger Configurator",
       "environment": "production",
-      "commit": "d38b09d87bbc8ed70d0f6a7c320e3205eeece5fb",
-      "deploymentId": "e0961e55-6520-4c07-98e1-763315c077a3",
+      "commit": "fc4d5e42135d2f6dbc25600b2363cd57e3f4c259",
+      "deploymentId": "7fc9e813-8a7a-4678-b41b-d0a422fe58dc",
       "status": "SUCCESS",
       "persistentStateMount": "/data"
     },
@@ -1529,10 +1529,20 @@
     "liveCertificationAuthority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md"
   },
   "projectContinuity": {
-    "status": "IMPLEMENTED_BOOTSTRAP_PROTOCOL",
+    "schemaVersion": "0.1.0",
+    "snapshotId": "P1.4X-2026-09-27-01",
+    "snapshotAt": "2026-09-27T13:22:04.537Z",
+    "status": "AUTHORITATIVE_CURRENT",
+    "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
     "currentHandoff": "docs/roadmap/HANDOFF-LATEST.md",
-    "sourceOfTruth": "REPOSITORY_STATE_WINS_OVER_CHAT_OR_MODEL_MEMORY",
+    "staleStatePolicy": "ONLY_THE_HANDOFF_REFERENCED_BY_PROJECT_STATUS_IS_CURRENT; DATED_HANDOFFS_ARE_HISTORICAL_EVIDENCE_ONLY",
+    "repositoryStateWinsOver": [
+      "CHATGPT_CONVERSATION_MEMORY",
+      "MODEL_MEMORY",
+      "PRIOR_ASSISTANT_SUMMARIES",
+      "DATED_HANDOFF_GUESSING"
+    ],
     "freshSessionStartup": [
       "AI-BOOTSTRAP.md",
       "project.status.json",
@@ -1540,12 +1550,117 @@
       "LLM.md",
       "llm.foundation-map.json"
     ],
-    "acceptance": [
-      "fresh session can state current milestone",
-      "fresh session can state latest closed live slice",
-      "fresh session can state current open live gate",
-      "fresh session can state deployed revision",
-      "fresh session can identify do-not-repeat actions"
+    "current": {
+      "milestone": "Personal Agent P1.4X — Vertical Experience Checkpoint",
+      "milestoneStatus": "LIVE_CERTIFICATION_IN_PROGRESS",
+      "lastClosedLiveSlice": {
+        "id": "context-memory-canonicalization",
+        "status": "LIVE_PASS",
+        "summary": "Real A→B duplicate canonicalization is Human-accepted; ordinary retrieval returns only B while exact-ID audit preserves A+B and no third Memory was created.",
+        "authority": "docs/roadmap/P1.4X-LIVE-CERTIFICATION-MEMORY-CANONICALIZATION.md",
+        "evidence": {
+          "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
+          "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
+          "proposalId": "memory-canonicalization-proposal:534175fa-fde5-42f1-8a54-510f4fa7900a",
+          "canonicalizationId": "memory-canonicalization:4e1d97e8-1bad-4e4c-9591-a2117263eedc",
+          "effectiveQuery": "仓库 17:00 截单",
+          "effectiveCount": 1,
+          "effectiveScore": 0.7,
+          "effectiveSignal": "SUMMARY_TOKENS_ALL",
+          "exactIdAudit": "A_AND_B_PRESENT"
+        }
+      },
+      "openGate": {
+        "id": "fresh-session-context-memory-recall",
+        "status": "READY_FOR_LIVE_RETEST",
+        "summary": "In a fresh Personal Agent conversation, ask whether an 18:00 order can still be handled the same day without mentioning 17:00 or any memoryId. The Agent must recall canonical B through Context Memory and reason with the 'normally' qualifier.",
+        "targetMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
+        "acceptance": [
+          "fresh conversation has no useful prior discourse",
+          "Agent performs READ only",
+          "Agent recalls canonical Memory B without being told 17:00 or any memoryId",
+          "Agent identifies the Memory evidence it used",
+          "Agent says 18:00 is normally after the 17:00 cutoff",
+          "Agent preserves that exceptions may exist",
+          "Agent does not treat 17:00 as an unconditional absolute",
+          "Agent does not infer Enterprise Context merely from an empty retrieval",
+          "Agent creates no Proposal and performs no WRITE"
+        ]
+      },
+      "productionPreview": {
+        "platform": "RAILWAY",
+        "project": "EVO Ledger Runtime MVP",
+        "service": "Ledger Configurator",
+        "environment": "production",
+        "source": "jiangxng/EVO-App-Platform:main",
+        "commit": "fc4d5e42135d2f6dbc25600b2363cd57e3f4c259",
+        "deploymentId": "7fc9e813-8a7a-4678-b41b-d0a422fe58dc",
+        "status": "SUCCESS",
+        "persistentStateMount": "/data"
+      }
+    },
+    "recentMainline": [
+      {
+        "pr": 84,
+        "status": "MERGED",
+        "summary": "Preserve distinct Host tools after repeated READ suppression and add Memory Proposal readback."
+      },
+      {
+        "pr": 85,
+        "status": "MERGED",
+        "summary": "Make supersedesMemoryId effective in ordinary retrieval while preserving exact-ID history."
+      },
+      {
+        "pr": 86,
+        "status": "MERGED",
+        "summary": "Add append-only Human-reviewed existing-Memory canonicalization."
+      },
+      {
+        "pr": 88,
+        "status": "MERGED",
+        "summary": "Converge paraphrased Context Memory READ loops by authoritative evidence."
+      },
+      {
+        "pr": 89,
+        "status": "MERGED",
+        "summary": "Add exact-ID historical Context Memory audit."
+      },
+      {
+        "pr": 90,
+        "status": "MERGED",
+        "summary": "Add one-shot effective-vs-history audit to reduce sequential LLM/tool latency."
+      },
+      {
+        "pr": 91,
+        "status": "MERGED",
+        "summary": "Strengthen deterministic multi-token lexical retrieval."
+      },
+      {
+        "pr": 92,
+        "status": "MERGED",
+        "summary": "Record Memory canonicalization LIVE PASS."
+      },
+      {
+        "pr": 93,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses."
+      }
+    ],
+    "doNotRepeat": [
+      "Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.",
+      "Do not create or accept another A→B canonicalization for the known 17:00 duplicate pair; the Human already accepted it and the slice is LIVE PASS.",
+      "Do not treat Memory Canonicalization as the current open gate; it is closed.",
+      "Do not infer that a Memory belongs in Enterprise Context merely because Personal Context lexical retrieval returned zero results.",
+      "Do not restart PR #84–#93 work unless a new regression provides current evidence."
+    ],
+    "freshSessionAcceptance": [
+      "state the current milestone accurately",
+      "state Memory Canonicalization as LIVE PASS",
+      "state fresh-session Memory recall as the current open live gate",
+      "state the current deployed revision and Railway service",
+      "identify PR #93 as the latest deployed behavioral change",
+      "identify the old dc107947 content Proposal as a do-not-accept stale action",
+      "do not require the previous ChatGPT transcript to continue"
     ]
   }
 }
