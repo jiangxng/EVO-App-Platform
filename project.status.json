@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4 — Responsibility Policy + Evaluation Baseline",
+  "currentMilestone": "Personal Agent P1.4 — Quality Evaluation + Retention Simulation",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -234,7 +234,12 @@
     "personal-agent-inspect-before-ask",
     "personal-agent-constructive-correction",
     "personal-agent-post-authorization-follow-through",
-    "personal-agent-model-independent-behavior-policy"
+    "personal-agent-model-independent-behavior-policy",
+    "personal-agent-quality-evaluation-dimensions",
+    "personal-agent-quality-unknown-subjective-evidence",
+    "context-memory-retention-policy-simulation",
+    "context-memory-retention-simulation-zero-mutation",
+    "eidos-memory-retention-simulation-surface"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -257,7 +262,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4A Personal Agent Responsibility Policy is CI-verified: all 16 triggered workflows passed, including Platform CI, Enterprise Agent, P1.3.1 Experience CI, P1.2/P1.3 Memory regressions and the dedicated Responsibility CI. Next: preserve the Human browser experience checkpoint, then continue P1.4 with measurable Agent/Memory quality evaluation and retention-policy simulation.",
+  "currentStep": "P1.4B is implemented on its feature branch and pending CI: Agent collaboration quality is represented as evidence-backed dimensions with UNKNOWN for unevaluated subjective judgments; retention policy simulation is side-effect-free, governance-gated, supports candidate policy dry-run, preserves Legal Hold/EXPIRED precedence, and is exposed through formal ActionHost plus Eidos /memory/retention-simulation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1128,6 +1133,40 @@
       },
       "modelReplacement": "POLICY_DURABLE_ACROSS_LLM_PROVIDER_CHANGE",
       "next": "QUALITY_METRICS_AND_POLICY_SIMULATION"
+    },
+    "qualityP1_4": {
+      "status": "IMPLEMENTED_PENDING_CI",
+      "authority": "docs/architecture/PERSONAL-AGENT-QUALITY-RETENTION-SIMULATION-P1.4-v0.1.md",
+      "dimensions": [
+        "UNNECESSARY_CLARIFICATION",
+        "AVOIDABLE_CHOICE_MENU",
+        "EXECUTABLE_WORK_PUSHED_TO_HUMAN",
+        "POST_AUTHORIZATION_CONTINUATION",
+        "VERIFIED_COMPLETION",
+        "CORRECTION_QUALITY",
+        "TOOL_SUCCESS_RATE"
+      ],
+      "subjectiveUnknownRule": "UNKNOWN_UNLESS_EXPLICIT_EVALUATION_EVIDENCE",
+      "compositeScore": "NOT_INTRODUCED"
+    },
+    "retentionSimulationP1_4": {
+      "status": "IMPLEMENTED_PENDING_CI",
+      "action": "context.memory.retention-policy.simulate",
+      "route": "/memory/retention-simulation",
+      "sideEffectFree": true,
+      "authority": [
+        "PERSONAL_OWNER",
+        "ENTERPRISE_OWNER",
+        "ENTERPRISE_ADMIN"
+      ],
+      "outcomes": [
+        "ALREADY_EXPIRED",
+        "LEGAL_HOLD",
+        "WOULD_EXPIRE",
+        "WOULD_REMAIN_ACTIVE",
+        "NO_MATCHING_POLICY"
+      ],
+      "next": "CANDIDATE_POLICY_EDITING_FLOW_AND_REAL_QUALITY_EVIDENCE"
     }
   },
   "experienceIntegration": {
