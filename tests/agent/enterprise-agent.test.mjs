@@ -1112,6 +1112,241 @@ test("Personal Agent can continue with a different READ after an identical READ 
   assert.equal(reply.message, "proposal verified");
 });
 
+test("Personal Agent converges when paraphrased Memory READs return the same authoritative evidence", async () => {
+  const calls = [];
+  let convergenceInput;
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read current Context Memory.",
+        inputSchema: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }, {
+        contractVersion: "0.1.0",
+        id: "context.memory.canonicalization.proposal.create",
+        modelName: "context_memory_canonicalization_proposal_create",
+        title: "Propose Memory canonicalization",
+        description: "Stage duplicate to canonical relation.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            duplicateMemoryId: { type: "string" },
+            canonicalMemoryId: { type: "string" }
+          },
+          required: ["duplicateMemoryId", "canonicalMemoryId"],
+          additionalProperties: false
+        },
+        effect: "WRITE",
+        ownerPackageId: "enterprise-agent"
+      }];
+    },
+    async invoke(call) {
+      calls.push(call.tool);
+      if (call.tool === "context.memory.search") {
+        return {
+          tool: call.tool,
+          ok: true,
+          result: {
+            contractVersion: "0.1.0",
+            items: [
+              { memoryId: "memory:a", summary: "仓库正常每天 17:00 截单。" },
+              { memoryId: "memory:b", summary: "仓库正常每天 17:00 截单；可能有例外。" }
+            ],
+            strategyUsed: "LEXICAL",
+            ranking: []
+          }
+        };
+      }
+      return {
+        tool: call.tool,
+        ok: true,
+        result: {
+          proposal: {
+            proposalId: "memory-canonicalization-proposal:test",
+            duplicateMemoryId: "memory:a",
+            canonicalMemoryId: "memory:b",
+            state: "PENDING"
+          },
+          reviewRoute: "/enterprise-agent/memory"
+        }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide(input) {
+      step += 1;
+      if (step === 1) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "17:00 截单" }
+          }
+        };
+      }
+      if (step === 2) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "仓库正常截单时间" }
+          }
+        };
+      }
+      if (step === 3) {
+        convergenceInput = input;
+        assert.equal(
+          input.tools.some(tool => tool.id === "context.memory.search"),
+          false
+        );
+        assert.equal(
+          input.tools.some(tool =>
+            tool.id === "context.memory.canonicalization.proposal.create"
+          ),
+          true
+        );
+        assert.equal(
+          input.observations.at(-1).error.code,
+          "AGENT_READ_CONVERGENCE_REQUIRED"
+        );
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.canonicalization.proposal.create",
+            arguments: {
+              duplicateMemoryId: "memory:a",
+              canonicalMemoryId: "memory:b"
+            }
+          }
+        };
+      }
+      return {
+        type: "final",
+        message: "已提交 canonicalization proposal，等待人工审核。"
+      };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat(
+    "核实 A/B 后提交 A → B canonicalization proposal",
+    personalContext,
+    testPrincipal
+  );
+
+  assert.deepEqual(calls, [
+    "context.memory.search",
+    "context.memory.search",
+    "context.memory.canonicalization.proposal.create"
+  ]);
+  assert.ok(convergenceInput);
+  assert.equal(reply.observations.length, 3);
+  assert.equal(
+    reply.observations[2].result.proposal.state,
+    "PENDING"
+  );
+  assert.match(reply.message, /等待人工审核/);
+});
+
+test("Personal Agent caps successful READ attempts per tool even when each result differs", async () => {
+  const calls = [];
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read current Context Memory.",
+        inputSchema: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }, {
+        contractVersion: "0.1.0",
+        id: "context.memory.canonicalization.proposal.create",
+        modelName: "context_memory_canonicalization_proposal_create",
+        title: "Propose Memory canonicalization",
+        description: "Stage duplicate to canonical relation.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            duplicateMemoryId: { type: "string" },
+            canonicalMemoryId: { type: "string" }
+          },
+          required: ["duplicateMemoryId", "canonicalMemoryId"],
+          additionalProperties: false
+        },
+        effect: "WRITE",
+        ownerPackageId: "enterprise-agent"
+      }];
+    },
+    async invoke(call) {
+      calls.push(call.tool);
+      if (call.tool === "context.memory.search") {
+        const index = calls.filter(item => item === "context.memory.search").length;
+        return {
+          tool: call.tool,
+          ok: true,
+          result: {
+            items: [{ memoryId: `memory:${index}` }]
+          }
+        };
+      }
+      return {
+        tool: call.tool,
+        ok: true,
+        result: { proposal: { state: "PENDING" } }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide(input) {
+      step += 1;
+      if (step <= 4) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: `query-${step}` }
+          }
+        };
+      }
+      assert.equal(
+        input.tools.some(tool => tool.id === "context.memory.search"),
+        false
+      );
+      assert.equal(
+        input.observations.at(-1).error.code,
+        "AGENT_READ_CONVERGENCE_REQUIRED"
+      );
+      return { type: "final", message: "bounded" };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat("inspect", personalContext, testPrincipal);
+
+  assert.equal(calls.filter(item => item === "context.memory.search").length, 4);
+  assert.equal(reply.message, "bounded");
+});
+
 test("Personal Agent still permits distinct READ arguments within one turn", async () => {
   const calls = [];
   const catalog = {
