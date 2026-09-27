@@ -100,8 +100,7 @@ export function materializeAgentRunsV010(
       typeof payload.principalSubjectId !== "string"
       || !payload.principalSubjectId.trim()
       || (payload.principalActorType !== "HUMAN"
-        && payload.principalActorType !== "AGENT"
-        && payload.principalActorType !== "SYSTEM")
+        && payload.principalActorType !== "AGENT")
       || payload.context === null
       || typeof payload.context !== "object"
       || typeof (payload.context as { contextId?: unknown }).contextId !== "string"
