@@ -1,0 +1,35 @@
+name: Plugin CI - DeepSeek Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/deepseek/**"
+      - "manager/server.ts"
+      - "tests/llm/deepseek-provider.test.mjs"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-deepseek-provider.yml"
+  pull_request:
+    paths:
+      - "providers/deepseek/**"
+      - "manager/server.ts"
+      - "tests/llm/deepseek-provider.test.mjs"
+      - "tests/integration/personal-agent-experience-journey.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-deepseek-provider.yml"
+
+concurrency:
+  group: plugin-deepseek-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:plugin:deepseek-provider
