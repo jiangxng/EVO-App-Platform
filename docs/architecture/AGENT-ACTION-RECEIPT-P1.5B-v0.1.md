@@ -1,6 +1,6 @@
 # Generic Durable Agent Action Receipt — P1.5B v0.1
 
-**Status:** MACHINE_VERIFIED  
+**Status:** HUMAN LIVE PASS  
 **Milestone:** Personal Agent P1.5 — Durable Agent Operations  
 **Scope:** Personal Agent material WRITE execution evidence
 
@@ -281,3 +281,50 @@ The Human should verify:
 4. receipt IDs/result entity references connect the execution evidence to the domain object;
 5. domain READ still determines the object's current authoritative state;
 6. no duplicate WRITE is needed merely to recover continuity.
+
+
+## 16. Human live closure — PASS
+
+P1.5B was verified through two separate Personal Agent conversations.
+
+### WRITE conversation
+
+A real `context.memory.proposal.create` produced:
+
+```text
+proposalId:
+memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b
+
+receiptId:
+agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e
+
+receipt status:
+SUCCEEDED
+
+invocationId:
+agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6
+```
+
+The exact Proposal ID appeared in `resultEntityRefs`.
+
+The Proposal remained `PENDING`; no formal Memory was created.
+
+### Fresh-chat READ-only recovery
+
+A fresh Personal Agent chat then:
+
+1. used `agent.action.receipt.list`;
+2. recovered the exact prior SUCCEEDED receipt;
+3. recovered the Proposal ID from receipt evidence;
+4. used `context.memory.proposal.get`;
+5. verified current Proposal state = `PENDING`;
+6. explicitly distinguished execution receipt evidence from domain authority;
+7. performed no WRITE and created no duplicate Proposal.
+
+Result:
+
+```text
+P1.5B = HUMAN LIVE PASS = CLOSED
+```
+
+The smoke-test Proposal remains test-only and must not be accepted as formal Memory.
