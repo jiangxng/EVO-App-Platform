@@ -1597,6 +1597,7 @@ const actionRouter = createAppActionRouter(
     }),
     ...createContextMemoryPolicyActionHandlersV010({
       memoryStore: contextMemoryStore,
+      governanceStore: contextMemoryGovernanceStore,
       retentionPolicies: contextMemoryRetentionPolicyStore,
       legalHolds: contextMemoryLegalHoldStore,
       resolveAuthorizationProvider,
