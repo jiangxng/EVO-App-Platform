@@ -6,6 +6,7 @@ export const ENTERPRISE_AGENT_PAGE_SOURCE = "app://enterprise-agent/pages/home";
 export const ENTERPRISE_AGENT_SETUP_PAGE_SOURCE = "app://enterprise-agent/pages/setup";
 export const ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/memory-review";
 export const ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE = "app://enterprise-agent/pages/quality";
+export const ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/quality-review";
 
 const enMessages = {
   "workbench.activity.label": "Personal Agent",
@@ -381,6 +382,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.quality",
                 title: "Personal Agent quality",
                 source: ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
+              },
+              {
+                id: "enterprise-agent.quality-review",
+                title: "Personal Agent quality review",
+                source: ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
               }
             ],
             routes: [
@@ -403,6 +409,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.quality",
                 path: "/enterprise-agent/quality",
                 pageId: "enterprise-agent.quality"
+              },
+              {
+                id: "enterprise-agent.quality-review",
+                path: "/enterprise-agent/quality/review",
+                pageId: "enterprise-agent.quality-review"
               }
             ],
             navigation: [
