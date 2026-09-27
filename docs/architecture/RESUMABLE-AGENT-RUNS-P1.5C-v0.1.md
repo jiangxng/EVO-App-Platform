@@ -1,6 +1,6 @@
 # Resumable Agent Runs — P1.5C v0.1
 
-**Status:** ACTIVE DESIGN  
+**Status:** PLATFORM AUTOMATED ACCEPTANCE PASS  
 **Milestone:** Personal Agent P1.5 — Durable Agent Operations  
 **Predecessor:** P1.5B Human LIVE PASS
 
@@ -382,3 +382,23 @@ P1.5C v0.1 does not require:
 - autonomous approval of Human governance actions.
 
 Those can follow after the durable run contract is proven.
+
+
+## 22. Automated acceptance closure
+
+P1.5C backend semantics are accepted without a new Human browser gate because the slice introduced no UI behavior and the Human explicitly delegated non-UI technical validation to automated testing.
+
+The final implementation is deployed on Railway at:
+
+```text
+commit: d9f6855d84d947226be7efce2c6bdd8ae4003259
+deployment: 0158698d-66b0-4f7c-b000-bf3eba38555e
+status: SUCCESS
+```
+
+The final crash-window review added two important invariants:
+
+1. append order is the causal authority for run events; wall-clock timestamps are audit metadata and may move backward;
+2. a crash after durable `SLICE_STARTED` but before model decision resumes the same `activeSliceId` rather than creating a false extra slice.
+
+The current Personal Agent UI still uses compatibility `enterprise-agent.chat`. Migrating the user interaction transport to the run-backed commands is intentionally the next milestone rather than hidden inside P1.5C.
