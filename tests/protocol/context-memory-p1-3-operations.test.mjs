@@ -559,7 +559,13 @@ test("Eidos Enterprise Memory Governance hides detail from MEMBER", () => {
   };
   const enterpriseItem = {
     ...item("memory:enterprise", "Enterprise confidential memory"),
-    context: enterprise
+    context: enterprise,
+    provenance: {
+      contractVersion: "0.1.0",
+      origin: "DIRECT",
+      sourceContext: enterprise,
+      evidenceRefs: []
+    }
   };
   const page = createMemoryGovernancePageV010({
     principal: {
