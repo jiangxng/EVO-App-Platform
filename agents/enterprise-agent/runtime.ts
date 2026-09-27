@@ -109,14 +109,17 @@ export function createEnterpriseAgentRuntime(
           descriptor?.effect === "READ"
           && successfulReadSignatures.has(signature)
         ) {
-          const convergence = await model.decide(modelInput([], [{
+          const repeatedReadSuppressed: AgentToolObservation = {
             tool: decision.call.tool,
             ok: false,
             error: {
               code: "AGENT_READ_REPEAT_SUPPRESSED",
-              message: "An identical READ already succeeded in this turn. Use the existing authoritative observation and answer the human; do not repeat the same read."
+              message: "An identical READ already succeeded in this turn. Reuse that observation. Other distinct Host tools remain available when additional authoritative inspection is still required."
             }
-          }]));
+          };
+          const convergence = await model.decide(
+            modelInput(tools, [repeatedReadSuppressed])
+          );
 
           if (convergence.type === "final") {
             return replyFromFinalDecision({
@@ -127,12 +130,35 @@ export function createEnterpriseAgentRuntime(
             });
           }
 
-          return replyFromFinalDecision({
-            message: "我已经取得了所需的权威读取结果，但模型没有基于现有结果完成回答。请查看本轮证据；系统已阻止重复读取。",
-            context,
-            tools,
+          const convergenceDescriptor = toolById.get(convergence.call.tool);
+          const convergenceSignature = toolCallSignature(
+            convergence.call.tool,
+            convergence.call.arguments
+          );
+          if (
+            convergenceDescriptor?.effect === "READ"
+            && successfulReadSignatures.has(convergenceSignature)
+          ) {
+            return replyFromFinalDecision({
+              message: "我已经取得了该读取的权威结果，但模型仍重复请求完全相同的 READ。系统已阻止重复调用；请依据本轮已有证据继续。",
+              context,
+              tools,
+              observations
+            });
+          }
+
+          const convergenceObservation = await catalog.invoke(
+            convergence.call,
             observations
-          });
+          );
+          observations.push(convergenceObservation);
+          if (
+            convergenceDescriptor?.effect === "READ"
+            && convergenceObservation.ok
+          ) {
+            successfulReadSignatures.add(convergenceSignature);
+          }
+          continue;
         }
 
         const observation = await catalog.invoke(decision.call, observations);
