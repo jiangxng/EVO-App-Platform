@@ -55,17 +55,25 @@ Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modif
 For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. For independent manifest authoring, load `contracts/schema/plugin-package-v0.1.schema.json` and `contracts/schema/plugin-feature-v0.1.schema.json` first, then the plugin's own manifest and only its direct public contracts. Use `npm run plugin:validate -- <manifest.json>` for canonical semantic validation. Do not load or test the whole plugin portfolio by default.
 
 
-## Current handoff — 2026-09-26
+## Current handoff / fresh-chat bootstrap
 
-Before continuing the current mainline, read:
+For every fresh ChatGPT / LLM conversation, do not reconstruct current project state from chat memory.
 
-`docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md`
+Read first:
 
-It protects the founder-confirmed Person-first world model, Personal Agent identity, Personal/Enterprise Context Memory distinction, human decision authority, compatibility migration strategy and immediate Context implementation boundary.
+1. `AI-BOOTSTRAP.md`
+2. `project.status.json`
+3. the document referenced by `project.status.json.handoff`
+4. this `LLM.md`
+5. `llm.foundation-map.json`
 
-The older `HANDOFF-2026-09-23-PROOF-C-IMPLEMENTATION-READY.md` remains historical implementation evidence, not the current product-world-model authority.
+The stable current handoff is:
 
-When `project.status.json` contains a `handoff` field, treat that referenced document as required continuation context.
+`docs/roadmap/HANDOFF-LATEST.md`
+
+Dated handoffs remain historical architecture/implementation evidence. The 2026-09-26 Person-first handoff is still an important product-world-model authority, but it is no longer the sole current continuation pointer.
+
+When chat/model memory conflicts with repository state, repository state wins.
 
 
 ## EVO application routing invariant
