@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.5-2026-09-28-02`  
-**Snapshot time:** `2026-09-27T16:12:00.000Z`  
+**Snapshot:** `P1.5-2026-09-28-03`  
+**Snapshot time:** `2026-09-28T06:37:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,48 +16,47 @@ ACTIVE
 
 ## Latest closed live slice
 
-**p1.5a-context-memory-governance-inventory: LIVE_PASS**
+**p1.5b-generic-durable-agent-action-receipt: LIVE_PASS**
 
-Deterministic Context Memory governance inventory passed Human browser verification: exact reader-visible FACT count/list was obtained without ranked retrieval; A was historical CANONICALIZED_DUPLICATE -> B and B was effective.
+A real Personal Agent WRITE produced a durable SUCCEEDED receipt linked to a test Proposal, and a fresh Personal Agent chat later recovered that receipt and current Proposal state using READ only without repeating the WRITE.
 
-Authority: `docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md`
+Authority: `docs/architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "totalCount": 2,
-  "complete": true,
-  "scope": "READER_VISIBLE_CURRENT_CONTEXT",
-  "snapshotDigest": "7472698bccf6c1c5b3bdb2b21c3a03c261508a6a2c6f3c2dc79810d051016288",
-  "duplicateMemoryId": "memory:proposal:memory-proposal:bef0947e-4563-4618-9c1f-68f8452b0421",
-  "canonicalMemoryId": "memory:proposal:memory-proposal:cb145bad-bd4f-4bcd-b0b6-c4d105a5082a",
-  "duplicateState": "CANONICALIZED_DUPLICATE",
-  "canonicalEffective": true,
-  "readOnly": true
+  "receiptId": "agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e",
+  "receiptStatus": "SUCCEEDED",
+  "invocationId": "agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6",
+  "proposalId": "memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b",
+  "proposalState": "PENDING",
+  "crossChatReadback": true,
+  "repeatedWrite": false,
+  "receiptVsDomainBoundary": "PASS"
 }
 ```
 
 ## Current open live gate
 
-**p1.5b-generic-durable-agent-action-receipt-readback: HUMAN_WRITE_PASS_READBACK_PENDING**
+**p1.5c-resumable-agent-runs: ARCHITECTURE_IMPLEMENTATION_READY**
 
-The real WRITE half of P1.5B passed: a test-only Memory Proposal was staged PENDING and a durable SUCCEEDED receipt linked to its proposalId. The only remaining gate is fresh-chat READ-only recovery of the prior receipt and Proposal state without repeating the WRITE.
+Implement durable resumable Personal Agent runs so long work can survive HTTP disconnects/process restarts and continue from durable run state while preserving Action Receipt and Human authority boundaries.
 
 Acceptance:
 
-- fresh Personal Agent conversation or no useful prior discourse
-- Human explicitly requests READ only and forbids Proposal creation/WRITE
-- Agent uses agent.action.receipt.list and/or agent.action.receipt.get
-- Agent recovers receiptId agent-action-receipt:bd82451335a2acf0e657fb4c04dcfaa6cfce8d1ee09e00711bfaf0df595fc52e
-- Agent reports receipt status SUCCEEDED and invocationId agent-tool-invocation:bd82451335a2acf0e657fb4c04dcfaa6
-- Agent reads proposalId memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b from receipt evidence
-- Agent uses context.memory.proposal.get to read current domain Proposal state
-- Proposal domain state is still PENDING
-- Agent explains receipt proves prior execution while Proposal READ is authoritative for current Proposal state
-- Agent does not call context.memory.proposal.create
-- Agent does not create a duplicate Proposal
-- Agent performs no WRITE
+- every resumable run has durable runId and Principal/Context ownership
+- run state is materialized from append-only events
+- run states are explicit and terminal states are immutable
+- one execution slice performs bounded work and persists before returning
+- resume uses runId and Host authority rather than conversation memory
+- completed tool observations and Action Receipt references survive resume
+- resume does not repeat a completed material WRITE
+- indeterminate WRITE receipts remain fail-closed
+- browser can reconnect and inspect run status/progress
+- process restart preserves run state when file-backed
+- resume rechecks current Principal/Context authorization
+- Human approval boundaries remain explicit; resume never silently approves pending governance
 
 ## Current production preview
 
@@ -112,6 +111,7 @@ Not proved:
 - PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
 - PR #100 — MERGED: Record deployed P1.5A inventory Human gate and advance continuity validation beyond closed P1.4X.
 - PR #101 — MERGED_DEPLOYED: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
+- PR #103 — MERGED: Record P1.5B Human WRITE PASS and readback-only gate.
 
 ## DO NOT repeat stale actions
 
@@ -127,7 +127,11 @@ Not proved:
 - Do not automatically repeat a material Agent WRITE when its durable receipt is REQUESTED without a terminal event.
 - Do not treat an Action Receipt as replacement for domain authoritative state.
 - Do not weaken the durable receipt requirement merely to preserve older WRITE tests; update test Host fixtures instead.
-- Do not restart PR #84–#100 work unless a new regression provides current evidence.
+- Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and currently PENDING.
+- Do not reopen P1.4X, P1.5A or P1.5B as active gates unless a new regression provides current evidence.
+- Do not make P1.5C resume depend on browser conversation memory or one long synchronous HTTP connection.
+- Do not let resume implicitly cross a Human approval boundary.
+- Do not restart PR #84–#103 work unless a new regression provides current evidence.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -148,13 +152,12 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state current milestone as Personal Agent P1.5 — Durable Agent Operations
-- state P1.4X and P1.5A as Human LIVE PASS and closed
-- state P1.5B WRITE half as Human PASS and fresh-chat receipt/domain readback as the only remaining gate
-- identify the test proposalId and SUCCEEDED receiptId recorded in project.status.json
-- explain that receipt proves prior execution while Proposal READ remains current domain authority
-- state current deployed runtime revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7
-- do not repeat context.memory.proposal.create to recover continuity
-- identify the old dc107947 content Proposal as a separate do-not-accept stale action
+- state P1.4X, P1.5A and P1.5B as Human LIVE PASS and closed
+- state P1.5C Resumable Agent Runs as the current open gate
+- explain that P1.5B proved cross-chat WRITE execution continuity without repeating the WRITE
+- state current deployed runtime behavior revision 4e16fd5d5c0eb9cd3d0f3e8eb715ec6a3b18f5a7
+- identify the P1.5B smoke-test Proposal as test-only PENDING and do-not-accept
+- preserve Action Receipt indeterminate fail-closed semantics in P1.5C
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
