@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, readFileSync, appendFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type {
   ActiveContextRefV010,
@@ -24,6 +26,31 @@ export function createMemoryContextMemoryOperationLogV010(): ContextMemoryOperat
         throw new Error("CONTEXT_MEMORY_OPERATION_DUPLICATE");
       }
       events.push(structuredClone(event));
+    }
+  };
+}
+
+export function createJsonlContextMemoryOperationLogV010(
+  path: string
+): ContextMemoryOperationLogV010 {
+  function list(): ContextMemoryOperationEventV010[] {
+    if (!existsSync(path)) return [];
+    return readFileSync(path, "utf8")
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as ContextMemoryOperationEventV010);
+  }
+  return {
+    list() {
+      return structuredClone(list());
+    },
+    append(event) {
+      if (list().some(value => value.operationId === event.operationId)) {
+        throw new Error("CONTEXT_MEMORY_OPERATION_DUPLICATE");
+      }
+      mkdirSync(dirname(path), { recursive: true });
+      appendFileSync(path, JSON.stringify(event) + "\n", "utf8");
     }
   };
 }
