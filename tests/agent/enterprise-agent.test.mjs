@@ -243,6 +243,69 @@ test("Personal Agent Memory Proposal tool stages review state without accepting 
   assert.equal(observation.result.proposal.state, "PENDING");
 });
 
+test("Personal Agent can authoritatively read back one current-context Memory Proposal", async () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([companyNotesPackage]),
+    createMemoryLifecycleStore()
+  );
+  let requestedProposalId;
+  const catalog = createEnterpriseAgentHostToolCatalogV010({
+    manager,
+    principal: testPrincipal,
+    context: personalContext,
+    listAvailableContexts() { return [personalContext.activeContext]; },
+    listProviderBindings() { return []; },
+    getProviderHealth() { return { state: "UNKNOWN" }; },
+    getContextMemoryProposal(proposalId) {
+      requestedProposalId = proposalId;
+      return {
+        contractVersion: "0.1.0",
+        proposalId,
+        context: personalContext.activeContext,
+        state: "PENDING",
+        revisions: [{
+          revisionId: "memory-proposal-revision:test",
+          kind: "FACT",
+          summary: "仓库正常每天 17:00 截单",
+          evidenceRefs: [],
+          evidenceQuality: "UNVERIFIED",
+          reviewSignals: [],
+          authoredBy: "PERSONAL_AGENT",
+          authorSubjectId: testPrincipal.subjectId,
+          createdAt: "2026-09-27T10:29:05.048Z"
+        }]
+      };
+    },
+    authorizeWrite() { return { allowed: true }; },
+    searchHelp() { return []; }
+  });
+
+  const tool = (await catalog.list()).find(
+    item => item.id === "context.memory.proposal.get"
+  );
+  assert.ok(tool);
+  assert.equal(tool.effect, "READ");
+
+  const observation = await catalog.invoke({
+    tool: "context.memory.proposal.get",
+    arguments: {
+      proposalId: "memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f",
+      contextId: "enterprise:forged"
+    }
+  }, []);
+
+  assert.equal(observation.ok, true);
+  assert.equal(
+    requestedProposalId,
+    "memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f"
+  );
+  assert.equal(observation.result.state, "PENDING");
+  assert.equal(
+    observation.result.context.contextId,
+    personalContext.activeContext.contextId
+  );
+});
+
 test("Host authorization blocks Memory Proposal staging before proposal persistence", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([companyNotesPackage]),
@@ -914,7 +977,9 @@ test("Personal Agent suppresses an identical successful READ and forces evidence
   const model = {
     async decide(input) {
       modelCalls += 1;
-      if (input.tools.length === 0) {
+      if (
+        input.observations.at(-1)?.error?.code === "AGENT_READ_REPEAT_SUPPRESSED"
+      ) {
         convergenceInput = input;
         return {
           type: "final",
@@ -943,12 +1008,108 @@ test("Personal Agent suppresses an identical successful READ and forces evidence
   assert.equal(reply.observations.length, 1);
   assert.equal(reply.observations[0].ok, true);
   assert.match(reply.message, /17:00/);
-  assert.equal(convergenceInput.tools.length, 0);
+  assert.equal(convergenceInput.tools.length, 1);
+  assert.equal(convergenceInput.tools[0].id, "context.memory.search");
   assert.equal(convergenceInput.observations.length, 2);
   assert.equal(
     convergenceInput.observations[1].error.code,
     "AGENT_READ_REPEAT_SUPPRESSED"
   );
+});
+
+test("Personal Agent can continue with a different READ after an identical READ is suppressed", async () => {
+  const calls = [];
+  let suppressedInput;
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read current Context Memory.",
+        inputSchema: {
+          type: "object",
+          properties: { query: { type: "string" } },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }, {
+        contractVersion: "0.1.0",
+        id: "context.memory.proposal.get",
+        modelName: "context_memory_proposal_get",
+        title: "Context Memory Proposal",
+        description: "Read one proposal.",
+        inputSchema: {
+          type: "object",
+          properties: { proposalId: { type: "string" } },
+          required: ["proposalId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "enterprise-agent"
+      }];
+    },
+    async invoke(call) {
+      calls.push(call.tool);
+      if (call.tool === "context.memory.search") {
+        return {
+          tool: call.tool,
+          ok: true,
+          result: { items: [{ memoryId: "memory:cutoff" }] }
+        };
+      }
+      return {
+        tool: call.tool,
+        ok: true,
+        result: { proposalId: call.arguments.proposalId, state: "PENDING" }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide(input) {
+      step += 1;
+      if (step === 1 || step === 2) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "截单" }
+          }
+        };
+      }
+      if (step === 3) {
+        suppressedInput = input;
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.proposal.get",
+            arguments: { proposalId: "memory-proposal:test" }
+          }
+        };
+      }
+      return { type: "final", message: "proposal verified" };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat("verify", personalContext, testPrincipal);
+
+  assert.deepEqual(calls, [
+    "context.memory.search",
+    "context.memory.proposal.get"
+  ]);
+  assert.equal(suppressedInput.tools.length, 2);
+  assert.equal(
+    suppressedInput.observations.at(-1).error.code,
+    "AGENT_READ_REPEAT_SUPPRESSED"
+  );
+  assert.equal(reply.observations.length, 2);
+  assert.equal(reply.observations[1].result.state, "PENDING");
+  assert.equal(reply.message, "proposal verified");
 });
 
 test("Personal Agent still permits distinct READ arguments within one turn", async () => {

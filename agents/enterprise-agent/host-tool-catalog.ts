@@ -44,6 +44,7 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     supersedesMemoryId?: string;
     potentialContradictionMemoryIds: string[];
   }) => Promise<unknown> | unknown;
+  getContextMemoryProposal?: (proposalId: string) => Promise<unknown> | unknown;
   listPersonalFollowUps?: () => Promise<unknown> | unknown;
   searchHelp(
     query: string,
@@ -250,6 +251,36 @@ export function createEnterpriseAgentHostToolCatalogV010(
           ...(kind ? { kinds: [kind] } : {}),
           ...(rawLimit !== undefined ? { limit: rawLimit } : {})
         });
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "context.memory.proposal.get",
+        modelName: "context_memory_proposal_get",
+        title: "Context Memory Proposal",
+        description: "Read one existing Context Memory proposal by proposalId from the current Host-resolved Context. Use this to verify proposal state and review semantics; it never changes Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            proposalId: { type: "string" }
+          },
+          required: ["proposalId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "enterprise-agent",
+        capability: "context.memory.read"
+      }),
+      available() {
+        return dependencies.getContextMemoryProposal !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.getContextMemoryProposal) {
+          throw new Error("CONTEXT_MEMORY_PROPOSAL_READER_REQUIRED");
+        }
+        return dependencies.getContextMemoryProposal(
+          stringArg(args, "proposalId")!
+        );
       }
     },
     {
