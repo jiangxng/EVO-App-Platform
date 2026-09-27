@@ -120,9 +120,22 @@ export function createHostContextMemoryReaderV010(
       const memoryIds = input.memoryIds ? new Set(input.memoryIds) : undefined;
       const kinds = input.kinds ? new Set(input.kinds) : undefined;
 
-      const candidates = store.snapshot().items
-        .filter(item => sameContext(item.context, input.context))
-        .filter(item => !memoryIds || memoryIds.has(item.memoryId))
+      const contextItems = store.snapshot().items
+        .filter(item => sameContext(item.context, input.context));
+      const supersededMemoryIds = new Set(
+        contextItems
+          .map(item => item.supersedesMemoryId)
+          .filter((memoryId): memoryId is string => Boolean(memoryId))
+      );
+      const candidates = contextItems
+        // Exact-ID reads are an audit/validation path and may address historical
+        // records directly. Ordinary retrieval exposes only the effective
+        // supersession frontier so obsolete Memory does not compete in ranking.
+        .filter(item =>
+          memoryIds
+            ? memoryIds.has(item.memoryId)
+            : !supersededMemoryIds.has(item.memoryId)
+        )
         .filter(item => !kinds || kinds.has(item.kind))
         .filter(item => visibleByGovernance(item, options.governance));
 
