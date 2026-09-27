@@ -270,7 +270,8 @@ export function createResumableAgentRunExecutorV010(
     requestContext: PlatformRequestContextV010 | undefined,
     decisionRecord: AgentRunV010["decisions"][number]
   ): Promise<AgentRunV010> => {
-    if (decisionRecord.decision.type !== "tool") {
+    const decision = decisionRecord.decision;
+    if (decision.type !== "tool") {
       throw new Error("AGENT_RUN_PENDING_TOOL_DECISION_REQUIRED");
     }
     const catalog = dependencies.createToolCatalog(
@@ -285,19 +286,19 @@ export function createResumableAgentRunExecutorV010(
     );
     const tools = await catalog.list();
     const descriptor = tools.find(
-      tool => tool.id === decisionRecord.decision.call.tool
+      tool => tool.id === decision.call.tool
     );
     const convergence = deriveDurableReadConvergenceV010(run, tools);
     const signature = toolCallSignature(
-      decisionRecord.decision.call.tool,
-      decisionRecord.decision.call.arguments
+      decision.call.tool,
+      decision.call.arguments
     );
     const observation: AgentToolObservation = (
       descriptor?.effect === "READ"
       && convergence.successfulSignatures.has(signature)
     )
       ? {
-          tool: decisionRecord.decision.call.tool,
+          tool: decision.call.tool,
           ok: false,
           error: {
             code: "AGENT_READ_REPEAT_SUPPRESSED",
@@ -305,7 +306,7 @@ export function createResumableAgentRunExecutorV010(
           }
         }
       : await catalog.invoke(
-          decisionRecord.decision.call,
+          decision.call,
           run.observations
         );
     let next = append(run.runId, {
