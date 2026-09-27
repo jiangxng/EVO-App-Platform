@@ -501,6 +501,11 @@ export type ContextMemoryPrivacyClassV010 =
   | "SENSITIVE"
   | "RESTRICTED";
 
+export type ContextMemoryGovernanceEventOriginV010 =
+  | "HUMAN"
+  | "RETENTION_POLICY"
+  | "DLP_PROVIDER";
+
 export interface ContextMemoryGovernanceEventV010 {
   contractVersion: "0.1.0";
   eventId: string;
@@ -508,6 +513,7 @@ export interface ContextMemoryGovernanceEventV010 {
   context: ActiveContextRefV010;
   state: ContextMemoryGovernanceStateV010;
   privacyClass: ContextMemoryPrivacyClassV010;
+  origin?: ContextMemoryGovernanceEventOriginV010;
   reason?: string;
   retainUntil?: string;
   occurredAt: string;
