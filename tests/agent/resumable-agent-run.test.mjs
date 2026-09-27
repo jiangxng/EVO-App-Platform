@@ -233,6 +233,43 @@ test("file-backed run survives service reconstruction and resumes from durable o
   assert.equal(second.run.finalMessage, "done from durable observation");
 });
 
+test("crash after SLICE_STARTED resumes inside the same durable slice", async () => {
+  const store = memoryStore();
+  createRun(store);
+  store.append({
+    contractVersion: "0.1.0",
+    eventId: "agent-run-event:started-before-crash",
+    runId: "agent-run:test",
+    type: "SLICE_STARTED",
+    occurredAt: "2026-09-28T00:00:01.000Z",
+    sliceId: "agent-run-slice:crash-window",
+    payload: {}
+  });
+
+  const before = store.get("agent-run:test");
+  assert.equal(before.state, "RUNNING");
+  assert.equal(before.sliceCount, 1);
+  assert.equal(before.activeSliceId, "agent-run-slice:crash-window");
+  assert.equal(before.decisions.length, 0);
+
+  const runExecutor = executor(store, {
+    sliceId: () => {
+      throw new Error("NEW_SLICE_MUST_NOT_BE_CREATED");
+    }
+  });
+
+  const resumed = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+
+  assert.equal(resumed.run.state, "PAUSED");
+  assert.equal(resumed.run.sliceCount, 1);
+  assert.equal(resumed.run.decisions[0].sliceId, "agent-run-slice:crash-window");
+  assert.equal(resumed.run.observations.length, 1);
+});
+
 test("resume executes a durable pending tool decision without re-running model inference", async () => {
   const store = memoryStore();
   createRun(store);
