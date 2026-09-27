@@ -84,7 +84,8 @@ const enMessages = {
   "setup.personal-agent.setup.action.recheck-setup.label": "Recheck setup",
   "setup.personal-agent.setup.action.review-memory.label": "Review Memory",
   "setup.personal-agent.setup.action.memory-governance.label": "Memory Governance",
-  "setup.personal-agent.setup.action.memory-source-health.label": "Memory Source Health"
+  "setup.personal-agent.setup.action.memory-source-health.label": "Memory Source Health",
+  "setup.personal-agent.setup.action.agent-quality.label": "Personal Agent Quality"
 };
 
 const zhCnMessages = {
@@ -164,7 +165,8 @@ const zhCnMessages = {
   "setup.personal-agent.setup.action.recheck-setup.label": "重新检查设置",
   "setup.personal-agent.setup.action.review-memory.label": "审核记忆",
   "setup.personal-agent.setup.action.memory-governance.label": "记忆治理",
-  "setup.personal-agent.setup.action.memory-source-health.label": "记忆来源健康状态"
+  "setup.personal-agent.setup.action.memory-source-health.label": "记忆来源健康状态",
+  "setup.personal-agent.setup.action.agent-quality.label": "个人代理质量"
 };
 
 const jaMessages = {
@@ -244,7 +246,8 @@ const jaMessages = {
   "setup.personal-agent.setup.action.recheck-setup.label": "セットアップを再確認",
   "setup.personal-agent.setup.action.review-memory.label": "メモリーをレビュー",
   "setup.personal-agent.setup.action.memory-governance.label": "メモリガバナンス",
-  "setup.personal-agent.setup.action.memory-source-health.label": "メモリソースの状態"
+  "setup.personal-agent.setup.action.memory-source-health.label": "メモリソースの状態",
+  "setup.personal-agent.setup.action.agent-quality.label": "パーソナルエージェント品質"
 };
 
 const zhTwMessages = {
@@ -324,7 +327,8 @@ const zhTwMessages = {
   "setup.personal-agent.setup.action.recheck-setup.label": "重新檢查設定",
   "setup.personal-agent.setup.action.review-memory.label": "審核記憶",
   "setup.personal-agent.setup.action.memory-governance.label": "記憶治理",
-  "setup.personal-agent.setup.action.memory-source-health.label": "記憶來源健康狀態"
+  "setup.personal-agent.setup.action.memory-source-health.label": "記憶來源健康狀態",
+  "setup.personal-agent.setup.action.agent-quality.label": "個人代理品質"
 };
 
 export const enterpriseAgentPackage: PackageManifestV010 = {
