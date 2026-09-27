@@ -15,6 +15,7 @@ import type { AgentToolCatalogV010 } from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
+import { createHostObservedQualityEvidenceV010, type PersonalAgentQualityEvidenceStoreV010 } from "./quality-evidence-store.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID
@@ -36,6 +37,9 @@ export interface EnterpriseAgentChatDependencies {
     principal: PlatformPrincipalV010,
     requestContext?: PlatformRequestContextV010
   ): AgentToolCatalogV010;
+  qualityEvidenceStore?: PersonalAgentQualityEvidenceStoreV010;
+  now?: () => Date;
+  qualityEventId?: () => string;
 }
 
 function localeForRequest(
@@ -160,6 +164,16 @@ export function createEnterpriseAgentChatActionHandler(
       );
 
       const reply = await runtime.chat(message.trim(), context, principal);
+      if (dependencies.qualityEvidenceStore) {
+        dependencies.qualityEvidenceStore.append(createHostObservedQualityEvidenceV010({
+          eventId: `agent-quality:${dependencies.qualityEventId?.() ?? request.sourceInteractionId}`,
+          interactionId: request.sourceInteractionId,
+          occurredAt: (dependencies.now?.() ?? new Date()).toISOString(),
+          principalSubjectId: principal.subjectId,
+          context: context.activeContext,
+          observations: reply.observations
+        }));
+      }
       return {
         ok: true,
         correlationId: request.sourceInteractionId,
