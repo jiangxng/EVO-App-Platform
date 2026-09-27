@@ -221,11 +221,86 @@ test("Personal Context Memory record has immutable attribution and provenance", 
   assert.deepEqual(snapshot.items[0], original);
   assert.equal(snapshot.items[1].supersedesMemoryId, original.memoryId);
 
+  const effectiveRead = await h.reader.read({
+    contractVersion: "0.1.0",
+    context: personalRef,
+    limit: 100
+  });
+  assert.deepEqual(
+    effectiveRead.items.map(item => item.memoryId),
+    [snapshot.items[1].memoryId]
+  );
+
+  const historicalRead = await h.reader.read({
+    contractVersion: "0.1.0",
+    context: personalRef,
+    memoryIds: [original.memoryId],
+    limit: 100
+  });
+  assert.deepEqual(
+    historicalRead.items.map(item => item.memoryId),
+    [original.memoryId]
+  );
+
   const mutated = h.store.snapshot();
   mutated.items[0].summary = "rewrite history";
   assert.throws(
     () => h.store.save(mutated),
     /CONTEXT_MEMORY_APPEND_ONLY_MUTATION_FORBIDDEN/
+  );
+});
+
+test("ordinary retrieval resolves a supersession chain to its effective frontier", async () => {
+  const h = harness({ ids: ["memory-a", "memory-b", "memory-c"] });
+
+  await execute(
+    h,
+    "context.memory.record",
+    { kind: "FACT", summary: "Cutoff is 16:00." },
+    personalRequestContext()
+  );
+  const a = h.store.snapshot().items.at(-1);
+
+  await execute(
+    h,
+    "context.memory.record",
+    {
+      kind: "FACT",
+      summary: "Cutoff is 17:00.",
+      supersedesMemoryId: a.memoryId
+    },
+    personalRequestContext()
+  );
+  const b = h.store.snapshot().items.at(-1);
+
+  await execute(
+    h,
+    "context.memory.record",
+    {
+      kind: "FACT",
+      summary: "Normal cutoff is 17:00; exceptions require confirmation.",
+      supersedesMemoryId: b.memoryId
+    },
+    personalRequestContext()
+  );
+  const c = h.store.snapshot().items.at(-1);
+
+  const effective = await h.reader.read({
+    contractVersion: "0.1.0",
+    context: personalRef,
+    limit: 100
+  });
+  assert.deepEqual(effective.items.map(item => item.memoryId), [c.memoryId]);
+
+  const audit = await h.reader.read({
+    contractVersion: "0.1.0",
+    context: personalRef,
+    memoryIds: [a.memoryId, b.memoryId, c.memoryId],
+    limit: 100
+  });
+  assert.deepEqual(
+    new Set(audit.items.map(item => item.memoryId)),
+    new Set([a.memoryId, b.memoryId, c.memoryId])
   );
 });
 
