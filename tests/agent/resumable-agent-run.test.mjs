@@ -587,6 +587,281 @@ test("crash after successful WRITE but before run observation reuses Action Rece
   assert.equal(resumed.run.actionReceiptIds.length, 1);
 });
 
+test("durable run convergence removes a READ after complete=true and lets the next slice finalize", async () => {
+  const store = memoryStore();
+  createRun(store, { message: "Count complete inventory then answer" });
+
+  let inferenceCount = 0;
+  let invokeCount = 0;
+  const provider = {
+    providerId: "test.llm",
+    modelId: "test-model",
+    async infer(request) {
+      inferenceCount += 1;
+      const names = (request.tools ?? []).map(tool => tool.name);
+      const text = request.messages.map(message => message.content).join("\n");
+      if (names.includes("test_inventory")) {
+        return {
+          contractVersion: "0.1.0",
+          providerId: "test.llm",
+          modelId: "test-model",
+          text: "",
+          toolCalls: [{ name: "test_inventory", arguments: {} }],
+          usage: { inputTokens: 1, outputTokens: 1 },
+          finishReason: "tool_calls"
+        };
+      }
+      assert.match(text, /AGENT_READ_CONVERGENCE_REQUIRED/);
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.llm",
+        modelId: "test-model",
+        text: "complete inventory count is 2",
+        toolCalls: [],
+        usage: { inputTokens: 1, outputTokens: 1 },
+        finishReason: "stop"
+      };
+    }
+  };
+
+  const runExecutor = executor(store, {
+    resolveProvider: () => provider,
+    createToolCatalog() {
+      return {
+        list() {
+          return [{
+            contractVersion: "0.1.0",
+            id: "test.inventory",
+            modelName: "test_inventory",
+            title: "Inventory",
+            description: "Complete deterministic inventory.",
+            inputSchema: { type: "object", properties: {}, additionalProperties: false },
+            effect: "READ",
+            ownerPackageId: "test"
+          }];
+        },
+        async invoke() {
+          invokeCount += 1;
+          return {
+            tool: "test.inventory",
+            ok: true,
+            result: {
+              items: [{ id: "a" }, { id: "b" }],
+              totalCount: 2,
+              complete: true
+            }
+          };
+        }
+      };
+    }
+  });
+
+  const first = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(first.run.state, "PAUSED");
+  assert.equal(invokeCount, 1);
+
+  const second = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(second.run.state, "SUCCEEDED");
+  assert.equal(second.run.finalMessage, "complete inventory count is 2");
+  assert.equal(invokeCount, 1);
+  assert.equal(inferenceCount, 2);
+});
+
+test("durable run suppresses an identical successful READ across slices without invoking it twice", async () => {
+  const store = memoryStore();
+  createRun(store, { message: "Read once, then answer" });
+
+  let invocationCount = 0;
+  let inferenceCount = 0;
+  const provider = {
+    providerId: "test.llm",
+    modelId: "test-model",
+    async infer(request) {
+      inferenceCount += 1;
+      const text = request.messages.map(message => message.content).join("\n");
+      if (text.includes("AGENT_READ_REPEAT_SUPPRESSED")) {
+        return {
+          contractVersion: "0.1.0",
+          providerId: "test.llm",
+          modelId: "test-model",
+          text: "used prior durable read",
+          toolCalls: [],
+          usage: { inputTokens: 1, outputTokens: 1 },
+          finishReason: "stop"
+        };
+      }
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.llm",
+        modelId: "test-model",
+        text: "",
+        toolCalls: [{ name: "test_read", arguments: {} }],
+        usage: { inputTokens: 1, outputTokens: 1 },
+        finishReason: "tool_calls"
+      };
+    }
+  };
+
+  const runExecutor = executor(store, {
+    resolveProvider: () => provider,
+    createToolCatalog() {
+      return {
+        list() {
+          return [{
+            contractVersion: "0.1.0",
+            id: "test.read",
+            modelName: "test_read",
+            title: "Read",
+            description: "Read evidence.",
+            inputSchema: { type: "object", properties: {}, additionalProperties: false },
+            effect: "READ",
+            ownerPackageId: "test"
+          }];
+        },
+        async invoke() {
+          invocationCount += 1;
+          return {
+            tool: "test.read",
+            ok: true,
+            result: { value: "same" }
+          };
+        }
+      };
+    }
+  });
+
+  const first = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(first.run.state, "PAUSED");
+  assert.equal(invocationCount, 1);
+
+  const second = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(second.run.state, "PAUSED");
+  assert.equal(invocationCount, 1);
+  assert.equal(
+    second.run.observations[1].error.code,
+    "AGENT_READ_REPEAT_SUPPRESSED"
+  );
+
+  const third = await runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(third.run.state, "SUCCEEDED");
+  assert.equal(third.run.finalMessage, "used prior durable read");
+  assert.equal(invocationCount, 1);
+  assert.equal(inferenceCount, 3);
+});
+
+test("durable read convergence survives file-backed process reconstruction", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "agent-run-convergence-"));
+  const path = join(directory, "runs.jsonl");
+  const firstStore = createAgentRunStoreV010({
+    eventStore: createJsonlAgentRunEventStoreV010(path),
+    eventId: ids("first-store-")
+  });
+  createRun(firstStore, { message: "Complete inventory then answer" });
+
+  let invokeCount = 0;
+  const provider = {
+    providerId: "test.llm",
+    modelId: "test-model",
+    async infer(request) {
+      if ((request.tools ?? []).some(tool => tool.name === "test_inventory")) {
+        return {
+          contractVersion: "0.1.0",
+          providerId: "test.llm",
+          modelId: "test-model",
+          text: "",
+          toolCalls: [{ name: "test_inventory", arguments: {} }],
+          usage: { inputTokens: 1, outputTokens: 1 },
+          finishReason: "tool_calls"
+        };
+      }
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.llm",
+        modelId: "test-model",
+        text: "restored and complete",
+        toolCalls: [],
+        usage: { inputTokens: 1, outputTokens: 1 },
+        finishReason: "stop"
+      };
+    }
+  };
+  const catalogFactory = () => ({
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "test.inventory",
+        modelName: "test_inventory",
+        title: "Inventory",
+        description: "Complete inventory.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        effect: "READ",
+        ownerPackageId: "test"
+      }];
+    },
+    async invoke() {
+      invokeCount += 1;
+      return {
+        tool: "test.inventory",
+        ok: true,
+        result: { totalCount: 2, complete: true }
+      };
+    }
+  });
+
+  const firstExecutor = executor(firstStore, {
+    resolveProvider: () => provider,
+    createToolCatalog: catalogFactory,
+    eventId: ids("first-exec-"),
+    sliceId: ids("first-slice-")
+  });
+  const first = await firstExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(first.run.state, "PAUSED");
+  assert.equal(invokeCount, 1);
+
+  const restoredStore = createAgentRunStoreV010({
+    eventStore: createJsonlAgentRunEventStoreV010(path),
+    eventId: ids("restored-store-")
+  });
+  const restoredExecutor = executor(restoredStore, {
+    resolveProvider: () => provider,
+    createToolCatalog: catalogFactory,
+    eventId: ids("restored-exec-"),
+    sliceId: ids("restored-slice-")
+  });
+  const resumed = await restoredExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+  assert.equal(resumed.run.state, "SUCCEEDED");
+  assert.equal(resumed.run.finalMessage, "restored and complete");
+  assert.equal(invokeCount, 1);
+});
+
 test("run action handlers start, get and resume without resending original task", async () => {
   const store = memoryStore();
   const runExecutor = executor(store);
