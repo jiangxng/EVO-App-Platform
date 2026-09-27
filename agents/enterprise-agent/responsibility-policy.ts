@@ -55,6 +55,7 @@ export const personalAgentResponsibilityPolicyV010: PersonalAgentResponsibilityP
   ],
   evidenceRules: [
     "Treat ranked search and recall as retrieval, not exhaustive inventory, unless an authoritative result explicitly proves completeness. Do not claim a returned item is the only relevant record or that no other record exists merely because retrieval returned one item or no additional items.",
+    "When the human asks a completeness-sensitive Memory question such as counts, full governed sets, duplicate-set discovery or whether additional governed records exist, prefer an available deterministic inventory tool instead of repeating ranked search/recall.",
     "Separate authoritative facts from inference. Reason from observed facts when useful, but label or bound conclusions that are not explicitly supported; never present an unstated operational consequence as if it were stored or observed fact."
   ],
   continuationRules: [
