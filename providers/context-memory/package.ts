@@ -3,9 +3,11 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 export const HOST_CONTEXT_MEMORY_PACKAGE_ID = "host-context-memory-provider";
 export const HOST_CONTEXT_MEMORY_FEATURE_ID = "host-context-memory-provider.default";
 export const HOST_CONTEXT_MEMORY_READER_PROVIDER_ID = "host.context-memory-reader";
+export const HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID = "host.context-memory-inventory";
 export const HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID = "host.context-memory-writer";
 export const HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID = "host.context-memory-governance";
 export const CONTEXT_MEMORY_READ_CAPABILITY = "context.memory.read";
+export const CONTEXT_MEMORY_INVENTORY_CAPABILITY = "context.memory.inventory";
 export const CONTEXT_MEMORY_WRITE_CAPABILITY = "context.memory.write";
 export const CONTEXT_MEMORY_GOVERNANCE_CAPABILITY = "context.memory.governance";
 
@@ -35,6 +37,7 @@ export const hostContextMemoryProviderPackage: PackageManifestV010 = {
     defaultActivation: true,
     providesCapabilities: [
       CONTEXT_MEMORY_READ_CAPABILITY,
+      CONTEXT_MEMORY_INVENTORY_CAPABILITY,
       CONTEXT_MEMORY_WRITE_CAPABILITY,
       CONTEXT_MEMORY_GOVERNANCE_CAPABILITY
     ],
@@ -53,6 +56,23 @@ export const hostContextMemoryProviderPackage: PackageManifestV010 = {
           },
           metadata: {
             purpose: "Host-owned Context Memory read boundary"
+          }
+        }
+      },
+      {
+        kind: "platform.service-provider",
+        provider: {
+          contractVersion: "0.1.0",
+          providerId: HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
+          capability: CONTEXT_MEMORY_INVENTORY_CAPABILITY,
+          providerContract: "evo.context-memory.inventory",
+          providerContractVersion: "0.1.0",
+          binding: {
+            type: "IN_PROCESS",
+            ref: "runtime://host.context-memory-inventory"
+          },
+          metadata: {
+            purpose: "Host-owned deterministic Context Memory governance inventory boundary"
           }
         }
       },
