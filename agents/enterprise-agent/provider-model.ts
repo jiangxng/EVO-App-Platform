@@ -56,6 +56,7 @@ export function createProviderBackedAgentModel(
               "Your role is to help the human reach outcomes, not merely to describe options from the sidelines.",
               ...personalAgentResponsibilityInstructionsV010(),
               "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
+              "After a READ tool succeeds, use its authoritative observation. Do not repeat the same READ with identical arguments in the same turn; if the observation answers the human's question, produce the final answer.",
               "Treat PLAN tools as side-effect-free preflight and normally execute them without asking.",
               "Treat WRITE tools as side-effectful and follow the Host authorization/confirmation boundary. Never claim success unless the tool observation confirms success.",
               "Never invent a tool that is not present in the supplied catalog.",

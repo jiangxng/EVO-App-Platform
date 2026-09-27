@@ -869,3 +869,152 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /After authorization is granted, continue/);
   assert.match(system, /not merely to describe options from the sidelines/);
 });
+
+
+test("Personal Agent suppresses an identical successful READ and forces evidence-based convergence", async () => {
+  let readCalls = 0;
+  let modelCalls = 0;
+  let convergenceInput;
+
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read current Context Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string" }
+          },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "context.memory.read"
+      }];
+    },
+    async invoke(call) {
+      readCalls += 1;
+      return {
+        tool: call.tool,
+        ok: true,
+        result: {
+          items: [{
+            memoryId: "memory:cutoff",
+            summary: "仓库正常每天17:00截单"
+          }]
+        }
+      };
+    }
+  };
+
+  const model = {
+    async decide(input) {
+      modelCalls += 1;
+      if (input.tools.length === 0) {
+        convergenceInput = input;
+        return {
+          type: "final",
+          message: "我从 Context Memory 查到：仓库正常每天 17:00 截单。"
+        };
+      }
+      return {
+        type: "tool",
+        call: {
+          tool: "context.memory.search",
+          arguments: { query: "截单" }
+        }
+      };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat(
+    "请从 Context Memory 查询仓库正常几点截单",
+    personalContext,
+    testPrincipal
+  );
+
+  assert.equal(readCalls, 1);
+  assert.equal(modelCalls, 3);
+  assert.equal(reply.observations.length, 1);
+  assert.equal(reply.observations[0].ok, true);
+  assert.match(reply.message, /17:00/);
+  assert.equal(convergenceInput.tools.length, 0);
+  assert.equal(convergenceInput.observations.length, 2);
+  assert.equal(
+    convergenceInput.observations[1].error.code,
+    "AGENT_READ_REPEAT_SUPPRESSED"
+  );
+});
+
+test("Personal Agent still permits distinct READ arguments within one turn", async () => {
+  const calls = [];
+  const catalog = {
+    list() {
+      return [{
+        contractVersion: "0.1.0",
+        id: "context.memory.search",
+        modelName: "context_memory_search",
+        title: "Context Memory",
+        description: "Read current Context Memory.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string" }
+          },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform"
+      }];
+    },
+    async invoke(call) {
+      calls.push(call.arguments.query);
+      return {
+        tool: call.tool,
+        ok: true,
+        result: { query: call.arguments.query }
+      };
+    }
+  };
+
+  let step = 0;
+  const model = {
+    async decide() {
+      step += 1;
+      if (step === 1) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "截单" }
+          }
+        };
+      }
+      if (step === 2) {
+        return {
+          type: "tool",
+          call: {
+            tool: "context.memory.search",
+            arguments: { query: "例外" }
+          }
+        };
+      }
+      return {
+        type: "final",
+        message: "done"
+      };
+    }
+  };
+
+  const runtime = createEnterpriseAgentRuntime(model, catalog);
+  const reply = await runtime.chat("compare", personalContext, testPrincipal);
+
+  assert.deepEqual(calls, ["截单", "例外"]);
+  assert.equal(reply.observations.length, 2);
+  assert.equal(reply.message, "done");
+});
