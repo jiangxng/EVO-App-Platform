@@ -1,15 +1,15 @@
 export interface PersonalAgentQualityEvidenceV010 {
   contractVersion: "0.1.0";
   interactionId: string;
-  clarificationAsked: boolean;
+  clarificationAsked?: boolean;
   clarificationWasNecessary?: boolean;
-  presentedEquivalentOptionsWithoutRecommendation: boolean;
-  executableStepsReturnedToHuman: number;
-  authorizationRequired: boolean;
+  presentedEquivalentOptionsWithoutRecommendation?: boolean;
+  executableStepsReturnedToHuman?: number;
+  authorizationRequired?: boolean;
   authorizationGranted?: boolean;
   continuedAfterAuthorization?: boolean;
-  completionVerified: boolean;
-  correctedApproach: boolean;
+  completionVerified?: boolean;
+  correctedApproach?: boolean;
   correctionPreservedHumanGoal?: boolean;
   toolCalls: number;
   successfulToolCalls: number;
@@ -20,11 +20,11 @@ export interface PersonalAgentQualityEvaluationV010 {
   contractVersion: "0.1.0";
   interactionId: string;
   metrics: {
-    unnecessaryClarifications: number;
-    avoidableChoiceMenus: number;
-    executableStepsPushedToHuman: number;
+    unnecessaryClarifications: 0 | 1 | "UNKNOWN";
+    avoidableChoiceMenus: 0 | 1 | "UNKNOWN";
+    executableStepsPushedToHuman: number | "UNKNOWN";
     postAuthorizationContinuation: "NOT_APPLICABLE" | "PASS" | "FAIL" | "UNKNOWN";
-    verifiedCompletion: boolean;
+    verifiedCompletion: boolean | "UNKNOWN";
     correctionQuality: "NOT_APPLICABLE" | "PASS" | "FAIL" | "UNKNOWN";
     toolSuccessRate?: number;
   };
@@ -38,7 +38,9 @@ export function evaluatePersonalAgentQualityV010(
     throw new Error("PERSONAL_AGENT_QUALITY_EVIDENCE_INVALID");
   }
   for (const [key, value] of Object.entries({
-    executableStepsReturnedToHuman: evidence.executableStepsReturnedToHuman,
+    ...(evidence.executableStepsReturnedToHuman !== undefined
+      ? { executableStepsReturnedToHuman: evidence.executableStepsReturnedToHuman }
+      : {}),
     toolCalls: evidence.toolCalls,
     successfulToolCalls: evidence.successfulToolCalls,
     failedToolCalls: evidence.failedToolCalls
@@ -52,14 +54,21 @@ export function evaluatePersonalAgentQualityV010(
   }
 
   const unnecessaryClarifications =
-    evidence.clarificationAsked && evidence.clarificationWasNecessary === false ? 1 : 0;
-  const avoidableChoiceMenus = evidence.presentedEquivalentOptionsWithoutRecommendation ? 1 : 0;
+    evidence.clarificationAsked === undefined || evidence.clarificationWasNecessary === undefined
+      ? "UNKNOWN"
+      : evidence.clarificationAsked && evidence.clarificationWasNecessary === false ? 1 : 0;
+  const avoidableChoiceMenus =
+    evidence.presentedEquivalentOptionsWithoutRecommendation === undefined
+      ? "UNKNOWN"
+      : evidence.presentedEquivalentOptionsWithoutRecommendation ? 1 : 0;
 
   const postAuthorizationContinuation =
-    !evidence.authorizationRequired
-      ? "NOT_APPLICABLE"
-      : evidence.authorizationGranted !== true
-        ? "UNKNOWN"
+    evidence.authorizationRequired === undefined
+      ? "UNKNOWN"
+      : !evidence.authorizationRequired
+        ? "NOT_APPLICABLE"
+        : evidence.authorizationGranted !== true
+          ? "UNKNOWN"
         : evidence.continuedAfterAuthorization === true
           ? "PASS"
           : evidence.continuedAfterAuthorization === false
@@ -67,8 +76,10 @@ export function evaluatePersonalAgentQualityV010(
             : "UNKNOWN";
 
   const correctionQuality =
-    !evidence.correctedApproach
-      ? "NOT_APPLICABLE"
+    evidence.correctedApproach === undefined
+      ? "UNKNOWN"
+      : !evidence.correctedApproach
+        ? "NOT_APPLICABLE"
       : evidence.correctionPreservedHumanGoal === true
         ? "PASS"
         : evidence.correctionPreservedHumanGoal === false
@@ -76,9 +87,9 @@ export function evaluatePersonalAgentQualityV010(
           : "UNKNOWN";
 
   const signals: string[] = [];
-  if (unnecessaryClarifications) signals.push("UNNECESSARY_CLARIFICATION");
-  if (avoidableChoiceMenus) signals.push("AVOIDABLE_CHOICE_MENU");
-  if (evidence.executableStepsReturnedToHuman > 0) signals.push("EXECUTABLE_WORK_PUSHED_TO_HUMAN");
+  if (unnecessaryClarifications === 1) signals.push("UNNECESSARY_CLARIFICATION");
+  if (avoidableChoiceMenus === 1) signals.push("AVOIDABLE_CHOICE_MENU");
+  if ((evidence.executableStepsReturnedToHuman ?? 0) > 0) signals.push("EXECUTABLE_WORK_PUSHED_TO_HUMAN");
   if (postAuthorizationContinuation === "FAIL") signals.push("AUTHORIZATION_WITHOUT_FOLLOW_THROUGH");
   if (!evidence.completionVerified) signals.push("COMPLETION_NOT_VERIFIED");
   if (correctionQuality === "FAIL") signals.push("CORRECTION_DID_NOT_PRESERVE_GOAL");
@@ -90,9 +101,9 @@ export function evaluatePersonalAgentQualityV010(
     metrics: {
       unnecessaryClarifications,
       avoidableChoiceMenus,
-      executableStepsPushedToHuman: evidence.executableStepsReturnedToHuman,
+      executableStepsPushedToHuman: evidence.executableStepsReturnedToHuman ?? "UNKNOWN",
       postAuthorizationContinuation,
-      verifiedCompletion: evidence.completionVerified,
+      verifiedCompletion: evidence.completionVerified ?? "UNKNOWN",
       correctionQuality,
       ...(evidence.toolCalls > 0
         ? { toolSuccessRate: evidence.successfulToolCalls / evidence.toolCalls }
