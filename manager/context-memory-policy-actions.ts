@@ -103,7 +103,8 @@ function arrayOfStrings(values: Record<string, JsonValue>, key: string): string[
   if (!Array.isArray(value) || value.some(item => typeof item !== "string")) {
     throw new Error(`CONTEXT_MEMORY_POLICY_FIELD_INVALID: ${key}`);
   }
-  return value.map(value => value.trim()).filter(Boolean);
+  const strings = value as string[];
+  return strings.map(item => item.trim()).filter(Boolean);
 }
 
 async function authorize(
