@@ -1828,6 +1828,26 @@ const actionRouter = createAppActionRouter(
               ...input
             });
           },
+          getContextMemoryProposal(proposalId) {
+            const proposal = contextMemoryProposalService.get(proposalId);
+            if (!proposal) {
+              throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+            }
+            const sameActiveContext =
+              proposal.context.kind === context.activeContext.kind
+              && proposal.context.contextId === context.activeContext.contextId
+              && (
+                proposal.context.kind !== "ENTERPRISE"
+                || (
+                  context.activeContext.kind === "ENTERPRISE"
+                  && proposal.context.enterpriseId === context.activeContext.enterpriseId
+                )
+              );
+            if (!sameActiveContext) {
+              throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
+            }
+            return proposal;
+          },
           listPersonalFollowUps() {
             return personalAgentFollowUpStore.listOpen(
               principal.subjectId,
