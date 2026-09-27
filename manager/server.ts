@@ -1375,6 +1375,12 @@ const actionRouter = createAppActionRouter(
         ).list();
       }
     }),
+    createContextMemoryGovernanceActionHandlerV010({
+      memoryStore: contextMemoryStore,
+      governanceStore: contextMemoryGovernanceStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
     ...createContextMemoryProposalActionHandlersV010({
       service: contextMemoryProposalService,
       resolveAuthorizationProvider,
@@ -2382,6 +2388,12 @@ const server = createServer(async (request, response) => {
 
           if (namespace === OPENAI_LLM_PACKAGE_ID) {
             await refreshOpenAiProviderRuntime();
+          }
+          if (
+            namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+            || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
+          ) {
+            await refreshP12MemoryProviderRuntimes();
           }
 
           const secretStatus = await Promise.all(
