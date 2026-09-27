@@ -44,6 +44,11 @@ import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-h
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
 import { createFilePersonalAgentFollowUpStoreV010, createMemoryPersonalAgentFollowUpStoreV010 } from "./personal-agent-follow-up-store.js";
+import {
+  createAgentActionReceiptServiceV010,
+  createJsonlAgentActionReceiptEventStoreV010,
+  createMemoryAgentActionReceiptEventStoreV010
+} from "./agent-action-receipt-store.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
 import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
@@ -487,6 +492,16 @@ const personalAgentQualityEvidenceFile =
 const personalAgentQualityEvidenceStore = personalAgentQualityEvidenceFile
   ? createJsonlPersonalAgentQualityEvidenceStoreV010(personalAgentQualityEvidenceFile)
   : createMemoryPersonalAgentQualityEvidenceStoreV010();
+const agentActionReceiptFile =
+  process.env.APP_PLATFORM_AGENT_ACTION_RECEIPT_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "agent-action-receipts.jsonl") : undefined);
+const agentActionReceiptEventStore = agentActionReceiptFile
+  ? createJsonlAgentActionReceiptEventStoreV010(agentActionReceiptFile)
+  : createMemoryAgentActionReceiptEventStoreV010();
+const agentActionReceiptService = createAgentActionReceiptServiceV010({
+  store: agentActionReceiptEventStore,
+  eventId: randomUUID
+});
 const contextMemoryQualityStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-quality.json") : undefined);
@@ -1885,7 +1900,7 @@ const actionRouter = createAppActionRouter(
       resolveContext(selection, session) {
         return createContextRegistryForSession(session).resolve(selection);
       },
-      createToolCatalog(locale, context, principal, requestContext) {
+      createToolCatalog(locale, context, principal, requestContext, interaction) {
         const contextRegistry = createPrincipalContextRegistryV010(
           principal,
           principalContextSources()
@@ -1902,6 +1917,11 @@ const actionRouter = createAppActionRouter(
           },
           getProviderHealth(providerId) {
             return providerRuntimeRegistry.getHealth(providerId);
+          },
+          actionReceipt: {
+            sourceInteractionId: interaction.sourceInteractionId,
+            sourceActionId: interaction.sourceActionId,
+            service: agentActionReceiptService
           },
           inventoryContextMemory(input) {
             const provider = resolveContextMemoryInventoryReader();
