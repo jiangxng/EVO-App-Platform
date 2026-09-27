@@ -5,7 +5,7 @@
   "ownerPackageId": "evo-app-platform",
   "ownerFeatureId": "evo-memory-governance.system",
   "locale": "en",
-  "kind": "guide",
+  "kind": "administration",
   "title": "Memory governance, retention and Legal Hold",
   "summary": "Operate Context Memory retention, privacy classification, Legal Hold, scheduled operations and Provider health without changing immutable Memory.",
   "audiences": ["user", "admin", "operator", "developer", "agent"],
