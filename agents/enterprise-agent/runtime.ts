@@ -36,6 +36,36 @@ function toolCallSignature(tool: string, argumentsValue: Record<string, unknown>
   return tool + ":" + JSON.stringify(stableValue(argumentsValue));
 }
 
+function readEvidenceSignature(
+  tool: string,
+  result: unknown
+): string | undefined {
+  if (
+    tool === "context.memory.search"
+    && result !== null
+    && typeof result === "object"
+    && Array.isArray((result as { items?: unknown }).items)
+  ) {
+    const items = (result as { items: unknown[] }).items;
+    const memoryIds = items
+      .map(item =>
+        item !== null
+        && typeof item === "object"
+        && typeof (item as { memoryId?: unknown }).memoryId === "string"
+          ? (item as { memoryId: string }).memoryId
+          : undefined
+      )
+      .filter((memoryId): memoryId is string => Boolean(memoryId))
+      .sort();
+    if (memoryIds.length > 0) {
+      return tool + ":memoryIds:" + JSON.stringify(memoryIds);
+    }
+  }
+
+  if (result === undefined) return undefined;
+  return tool + ":result:" + JSON.stringify(stableValue(result));
+}
+
 function replyFromFinalDecision(input: {
   message: string;
   context?: ResolvedContextSetV010;
@@ -69,16 +99,63 @@ export function createEnterpriseAgentRuntime(
       const tools = await catalog.list();
       const toolById = new Map(tools.map(tool => [tool.id, tool]));
       const successfulReadSignatures = new Set<string>();
+      const readEvidenceSignatures = new Map<string, Set<string>>();
+      const successfulReadCounts = new Map<string, number>();
+      const exhaustedReadTools = new Map<string, string>();
+      const maxSuccessfulReadsPerTool = 4;
+
+      const offeredTools = () => tools.filter(
+        tool => !exhaustedReadTools.has(tool.id)
+      );
+
+      const convergenceObservations = (): AgentToolObservation[] =>
+        [...exhaustedReadTools.entries()].map(([tool, reason]) => ({
+          tool,
+          ok: false,
+          error: {
+            code: "AGENT_READ_CONVERGENCE_REQUIRED",
+            message: reason
+          }
+        }));
+
+      const noteSuccessfulRead = (
+        tool: string,
+        result: unknown
+      ): void => {
+        const count = (successfulReadCounts.get(tool) ?? 0) + 1;
+        successfulReadCounts.set(tool, count);
+
+        const evidenceSignature = readEvidenceSignature(tool, result);
+        if (evidenceSignature) {
+          const seen = readEvidenceSignatures.get(tool) ?? new Set<string>();
+          if (seen.has(evidenceSignature)) {
+            exhaustedReadTools.set(
+              tool,
+              "This READ has already returned the same authoritative evidence with different arguments in this turn. Stop probing it with paraphrased queries; use the evidence already obtained and continue with a different tool or answer the human."
+            );
+          } else {
+            seen.add(evidenceSignature);
+            readEvidenceSignatures.set(tool, seen);
+          }
+        }
+
+        if (count >= maxSuccessfulReadsPerTool) {
+          exhaustedReadTools.set(
+            tool,
+            `This READ has reached the per-turn successful-read limit (${maxSuccessfulReadsPerTool}). Use the authoritative observations already obtained and continue with a different tool or answer the human.`
+          );
+        }
+      };
 
       const modelInput = (
-        offeredTools: typeof tools,
+        offeredToolList: typeof tools,
         extraObservations: AgentToolObservation[] = []
       ) => ({
         userMessage: message,
         ...(conversationHistory.length
           ? { conversationHistory: structuredClone(conversationHistory) }
           : {}),
-        tools: structuredClone(offeredTools),
+        tools: structuredClone(offeredToolList),
         observations: structuredClone([
           ...observations,
           ...extraObservations
@@ -88,7 +165,9 @@ export function createEnterpriseAgentRuntime(
       });
 
       for (let step = 0; step < maxSteps; step += 1) {
-        const decision = await model.decide(modelInput(tools));
+        const decision = await model.decide(
+          modelInput(offeredTools(), convergenceObservations())
+        );
 
         if (decision.type === "final") {
           return replyFromFinalDecision({
@@ -118,7 +197,10 @@ export function createEnterpriseAgentRuntime(
             }
           };
           const convergence = await model.decide(
-            modelInput(tools, [repeatedReadSuppressed])
+            modelInput(offeredTools(), [
+              ...convergenceObservations(),
+              repeatedReadSuppressed
+            ])
           );
 
           if (convergence.type === "final") {
@@ -157,6 +239,10 @@ export function createEnterpriseAgentRuntime(
             && convergenceObservation.ok
           ) {
             successfulReadSignatures.add(convergenceSignature);
+            noteSuccessfulRead(
+              convergence.call.tool,
+              convergenceObservation.result
+            );
           }
           continue;
         }
@@ -169,6 +255,7 @@ export function createEnterpriseAgentRuntime(
           && observation.ok
         ) {
           successfulReadSignatures.add(signature);
+          noteSuccessfulRead(decision.call.tool, observation.result);
         }
       }
 
