@@ -48,16 +48,31 @@ function validate(snapshot: ContextMemoryLegalHoldSnapshotV010) {
 }
 
 function decisionFor(memoryId: string, events: readonly ContextMemoryLegalHoldEventV010[]) {
-  const latest = events
-    .filter(event => event.memoryId === memoryId)
-    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.eventId.localeCompare(a.eventId))[0];
-  if (!latest) return undefined;
+  const relevant = events.filter(event => event.memoryId === memoryId);
+  if (!relevant.length) return undefined;
+
+  const latestByHold = new Map<string, ContextMemoryLegalHoldEventV010>();
+  for (const event of [...relevant].sort((a, b) =>
+    a.occurredAt.localeCompare(b.occurredAt) || a.eventId.localeCompare(b.eventId)
+  )) {
+    latestByHold.set(event.holdId, event);
+  }
+
+  const active = [...latestByHold.values()]
+    .filter(event => event.state === "PLACED")
+    .sort((a, b) =>
+      b.occurredAt.localeCompare(a.occurredAt) || b.eventId.localeCompare(a.eventId)
+    );
+  const latest = active[0] ?? [...latestByHold.values()]
+    .sort((a, b) =>
+      b.occurredAt.localeCompare(a.occurredAt) || b.eventId.localeCompare(a.eventId)
+    )[0]!;
   return {
     contractVersion: "0.1.0" as const,
     holdId: latest.holdId,
     memoryId,
     context: structuredClone(latest.context),
-    held: latest.state === "PLACED",
+    held: active.length > 0,
     reason: latest.reason,
     effectiveEventId: latest.eventId
   };
