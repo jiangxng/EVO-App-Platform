@@ -42,6 +42,8 @@ import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
+import { createPersonalAgentRunActionHandlersV010 } from "../agents/enterprise-agent/run-action-handlers.js";
+import { createResumableAgentRunExecutorV010 } from "../agents/enterprise-agent/run-runtime.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
 import { createFilePersonalAgentFollowUpStoreV010, createMemoryPersonalAgentFollowUpStoreV010 } from "./personal-agent-follow-up-store.js";
 import {
@@ -49,6 +51,11 @@ import {
   createJsonlAgentActionReceiptEventStoreV010,
   createMemoryAgentActionReceiptEventStoreV010
 } from "./agent-action-receipt-store.js";
+import {
+  createAgentRunStoreV010,
+  createJsonlAgentRunEventStoreV010,
+  createMemoryAgentRunEventStoreV010
+} from "./agent-run-store.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
 import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
@@ -96,6 +103,8 @@ import type {
   IdentitySessionV010,
   ManagedSecretsProviderV010,
   PlatformPrincipalV010,
+  PlatformRequestContextV010,
+  ResolvedContextSetV010,
   RequestIdentitySessionProviderV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
