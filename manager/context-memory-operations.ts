@@ -68,6 +68,7 @@ export interface ContextMemoryScheduledOperationsDependenciesV010 {
   legalHolds: ContextMemoryLegalHoldStoreV010;
   operationLog: ContextMemoryOperationLogV010;
   dlpClassifier?: ContextMemoryDlpClassifierV010;
+  resolveDlpClassifier?: () => ContextMemoryDlpClassifierV010 | undefined;
   now?: () => Date;
   id?: () => string;
 }
@@ -149,7 +150,7 @@ export function createContextMemoryScheduledOperationsV010(
       const started = now();
       let examined = 0, changed = 0, skipped = 0;
       const runId = `memory-operation:dlp:${id()}`;
-      const classifier = dependencies.dlpClassifier;
+      const classifier = dependencies.resolveDlpClassifier?.() ?? dependencies.dlpClassifier;
       if (!classifier) {
         const event: ContextMemoryOperationEventV010 = {
           contractVersion: "0.1.0",
