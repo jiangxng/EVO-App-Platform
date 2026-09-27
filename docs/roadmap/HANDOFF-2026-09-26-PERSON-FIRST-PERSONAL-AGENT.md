@@ -679,3 +679,42 @@ Product-quality implication:
 P1.4 evaluation should not measure only answer correctness. Future metrics should include unnecessary clarification, work pushed back to the Human, post-authorization completion, avoidable choice menus, verified completion and correction quality.
 
 Do not convert this into unrestricted autonomy. Responsibility is bounded by formal Host authority.
+
+
+## P1.4B — Quality Evaluation and Retention Simulation
+
+P1.4B begins measurable product-quality work without manufacturing fake precision.
+
+Agent quality evaluation now has explicit dimensions for unnecessary clarification, avoidable choice menus, work pushed back to the Human, post-authorization continuation, verified completion, correction quality and tool success rate.
+
+Important rule:
+
+- objective evidence can be measured automatically;
+- subjective collaboration judgments remain `UNKNOWN` unless explicit Human/lab evaluation evidence exists;
+- no composite quality score is introduced yet.
+
+Retention policy simulation is now a formal side-effect-free capability:
+
+- current-policy dry-run;
+- optional candidate policy;
+- Legal Hold precedence;
+- already-expired precedence;
+- earliest matching deadline;
+- zero Memory/governance/policy/hold mutation;
+- Personal owner / Enterprise OWNER/ADMIN governance visibility.
+
+Formal command:
+
+- `context.memory.retention-policy.simulate`
+
+Eidos route:
+
+- `/memory/retention-simulation`
+
+The dry-run is discoverable from Memory Governance.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-QUALITY-RETENTION-SIMULATION-P1.4-v0.1.md`
+
+Do not build a quality dashboard until real production/lab evidence exists. Unknown must remain unknown rather than being inferred from weak heuristics.
