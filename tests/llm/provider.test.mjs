@@ -154,9 +154,169 @@ test("OpenAI Responses provider implements generic LLM inference and tool calls"
 
   assert.equal(requestBody.model, "gpt-test");
   assert.equal(requestBody.tools[0].name, "app_catalog_list");
+  assert.deepEqual(requestBody.tools[0].parameters.required, []);
+  assert.equal(requestBody.tools[0].parameters.additionalProperties, false);
   assert.equal(result.providerId, "openai.responses");
   assert.equal(result.toolCalls[0].name, "app_catalog_list");
   assert.equal(result.usage.inputTokens, 11);
+});
+
+test("OpenAI strict tool adapter preserves EVO optional semantics", async () => {
+  let requestBody;
+  const provider = createOpenAiResponsesLlmProvider({
+    apiKey: "test-key",
+    model: "gpt-test",
+    fetchImpl: async (_url, init) => {
+      requestBody = JSON.parse(init.body);
+      return new Response(JSON.stringify({
+        model: "gpt-test",
+        output: [{
+          type: "function_call",
+          name: "context_memory_proposal_create",
+          arguments: JSON.stringify({
+            kind: "FACT",
+            summary: "Warehouse cut-off is 17:00",
+            evidenceRefs: null,
+            proposedConfidence: null,
+            observedAt: null,
+            supersedesMemoryId: null,
+            potentialContradictionMemoryIds: []
+          })
+        }],
+        usage: { input_tokens: 25, output_tokens: 8 }
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+  });
+
+  const inputSchema = {
+    type: "object",
+    properties: {
+      kind: {
+        type: "string",
+        enum: ["FACT", "CLAIM", "EXPERIENCE", "PRACTICE"]
+      },
+      summary: { type: "string" },
+      evidenceRefs: {
+        type: "array",
+        items: { type: "string" }
+      },
+      proposedConfidence: {
+        type: "number",
+        minimum: 0,
+        maximum: 1
+      },
+      observedAt: { type: "string" },
+      supersedesMemoryId: { type: "string" },
+      potentialContradictionMemoryIds: {
+        type: "array",
+        items: { type: "string" }
+      }
+    },
+    required: ["kind", "summary"],
+    additionalProperties: false
+  };
+
+  const result = await provider.infer({
+    contractVersion: "0.1.0",
+    messages: [
+      { role: "system", content: "system" },
+      { role: "user", content: "remember this" }
+    ],
+    tools: [{
+      name: "context_memory_proposal_create",
+      description: "Create Memory proposal",
+      inputSchema
+    }]
+  });
+
+  const parameters = requestBody.tools[0].parameters;
+  assert.equal(requestBody.tools[0].strict, true);
+  assert.deepEqual(
+    parameters.required,
+    Object.keys(parameters.properties)
+  );
+  assert.deepEqual(
+    parameters.properties.evidenceRefs.type,
+    ["array", "null"]
+  );
+  assert.deepEqual(
+    parameters.properties.proposedConfidence.type,
+    ["number", "null"]
+  );
+  assert.deepEqual(
+    parameters.properties.observedAt.type,
+    ["string", "null"]
+  );
+  assert.deepEqual(
+    parameters.properties.kind.type,
+    "string"
+  );
+  assert.deepEqual(
+    result.toolCalls[0].arguments,
+    {
+      kind: "FACT",
+      summary: "Warehouse cut-off is 17:00",
+      potentialContradictionMemoryIds: []
+    }
+  );
+});
+
+test("OpenAI strict tool adapter recursively normalizes nested optional object fields", async () => {
+  let requestBody;
+  const provider = createOpenAiResponsesLlmProvider({
+    apiKey: "test-key",
+    model: "gpt-test",
+    fetchImpl: async (_url, init) => {
+      requestBody = JSON.parse(init.body);
+      return new Response(JSON.stringify({
+        model: "gpt-test",
+        output: [],
+        usage: { input_tokens: 1, output_tokens: 1 }
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+  });
+
+  await provider.infer({
+    contractVersion: "0.1.0",
+    messages: [{ role: "user", content: "hello" }],
+    tools: [{
+      name: "nested_tool",
+      description: "nested",
+      inputSchema: {
+        type: "object",
+        properties: {
+          options: {
+            type: "object",
+            properties: {
+              mode: {
+                type: "string",
+                enum: ["A", "B"]
+              }
+            },
+            additionalProperties: true
+          }
+        },
+        additionalProperties: true
+      }
+    }]
+  });
+
+  const schema = requestBody.tools[0].parameters;
+  assert.deepEqual(schema.required, ["options"]);
+  assert.deepEqual(schema.properties.options.type, ["object", "null"]);
+  assert.equal(schema.properties.options.additionalProperties, false);
+  assert.deepEqual(
+    schema.properties.options.required,
+    ["mode"]
+  );
+  assert.deepEqual(
+    schema.properties.options.properties.mode.type,
+    ["string", "null"]
+  );
+  assert.deepEqual(
+    schema.properties.options.properties.mode.enum,
+    ["A", "B", null]
+  );
 });
 
 test("Enterprise Agent model is provider-neutral", async () => {
