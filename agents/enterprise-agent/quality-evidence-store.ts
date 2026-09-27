@@ -53,7 +53,7 @@ function validate(event: PersonalAgentQualityEvidenceEventV010): PersonalAgentQu
   return structuredClone(event);
 }
 
-function aggregate(events: readonly PersonalAgentQualityEvidenceEventV010[]) {
+export function aggregatePersonalAgentQualityEvidenceV010(events: readonly PersonalAgentQualityEvidenceEventV010[]) {
   const latest = new Map<string, PersonalAgentQualityEvidenceEventV010>();
   for (const event of [...events].sort((a,b) =>
     a.occurredAt.localeCompare(b.occurredAt) || a.eventId.localeCompare(b.eventId)
@@ -105,7 +105,7 @@ export function createMemoryPersonalAgentQualityEvidenceStoreV010(): PersonalAge
       if(events.some(v=>v.eventId===event.eventId)) throw new Error("PERSONAL_AGENT_QUALITY_EVIDENCE_DUPLICATE");
       events.push(validate(event));
     },
-    aggregate(){ return aggregate(events); }
+    aggregate(){ return aggregatePersonalAgentQualityEvidenceV010(events); }
   };
 }
 
@@ -122,7 +122,7 @@ export function createJsonlPersonalAgentQualityEvidenceStoreV010(path:string): P
       mkdirSync(dirname(path),{recursive:true});
       appendFileSync(path,JSON.stringify(valid)+"\n","utf8");
     },
-    aggregate(){ return aggregate(read()); }
+    aggregate(){ return aggregatePersonalAgentQualityEvidenceV010(read()); }
   };
 }
 
