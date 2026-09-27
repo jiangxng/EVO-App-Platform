@@ -291,7 +291,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4X is implemented on its feature branch and pending CI. Development has intentionally paused horizontal backend expansion to validate the real vertical browser lifecycle. A one-command local experience profile configures formal Static Session + Static Authorization Providers and durable Host state without preinstalling Personal Agent, preconfiguring the LLM/API key, or seeding Memory. Machine verification boots the real Host and reaches OpenAI Provider configuration through public /v1/actions and Eidos experience contracts. HUMAN_BROWSER_PASS remains pending and live-real-llm-install-proof must remain notYetImplemented until the user completes the browser checkpoint.",
+  "currentStep": "P1.4X machine gate is verified: 20/20 triggered workflows passed, including the dedicated vertical Experience CI that boots the real Host, verifies formal Static Session/Authorization Providers and bootstrap authorization, installs Personal Agent/OpenAI Provider through public /v1/actions, and reaches the real Provider configuration-required Eidos Setup/Settings surfaces. HUMAN_BROWSER_PASS remains pending. Next action is the user-run browser checkpoint with a real API key; live-real-llm-install-proof remains intentionally notYetImplemented until that Human gate passes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -346,6 +346,23 @@
         "PostingInput",
         "postingStatus-QUEUED-evo-owned"
       ]
+    },
+    "personalAgentVerticalExperienceMachine": {
+      "status": "PASS",
+      "date": "2026-09-27",
+      "mode": "REAL_HOST_PUBLIC_CONTRACTS_NO_LLM_SECRET",
+      "flow": [
+        "ONE_COMMAND_LOCAL_PROFILE",
+        "STATIC_SESSION_PROVIDER",
+        "STATIC_AUTHORIZATION_PROVIDER",
+        "BOOTSTRAP_ADMIN_AUTHORIZATION",
+        "PUBLIC_ACTIONHOST_PERSONAL_AGENT_INSTALL",
+        "PUBLIC_ACTIONHOST_OPENAI_PROVIDER_INSTALL",
+        "EFFECTIVE_EXPERIENCE",
+        "PROVIDER_CONFIGURATION_REQUIRED",
+        "HOST_SECRET_SETTINGS_SURFACE"
+      ],
+      "humanBrowserPass": false
     }
   },
   "handoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md",
@@ -1373,7 +1390,7 @@
     "next": "CI_VERIFY_THEN_USER_BROWSER_EXPERIENCE"
   },
   "experienceCheckpointP1_4X": {
-    "status": "IMPLEMENTED_PENDING_CI",
+    "status": "MACHINE_VERIFIED_READY_FOR_HUMAN_BROWSER",
     "authority": "docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md",
     "startCommand": "npm run experience:start",
     "resetCommand": "npm run experience:reset",
@@ -1388,8 +1405,8 @@
       "preconfiguredApiKey": false,
       "fakeMemory": false
     },
-    "machineGate": "PENDING",
-    "humanBrowserGate": "PENDING",
+    "machineGate": "PASS_20_OF_20",
+    "humanBrowserGate": "PENDING_USER_RUN",
     "liveRealLlmProof": "PENDING_HUMAN_BROWSER",
     "journey": [
       "INSTALL",
