@@ -246,7 +246,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P1.3 implementation is complete on its feature branch and awaiting final CI verification: immutable Memory is governed by append-only retention policy and independent Legal Hold overlays; scheduled retention/DLP/intake use operation evidence plus lease/concurrency protection; scheduled intake is explicitly Context-scoped, cursor-persisted and Proposal-only; remote DLP uses Host Secrets, batch fail-closed classification and cannot override Human privacy governance; Eidos exposes Memory Governance, Search and Source Health without bypassing Host Reader/authority rules.",
+  "currentStep": "Personal Agent P1.3 is CI-verified on its feature branch: 13/13 triggered workflows passed, including Platform CI, Context Memory P1.3, P1.2 regression, Memory Intake/Review, Secrets, Authorization, session and enterprise Context/relationship/grant Providers. PR #71 is ready for mainline merge. Next mainline is P1.4 Memory evaluation/quality metrics, retention-policy simulation/dry-run and operational hardening.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1046,7 +1046,7 @@
       "next": "SCHEDULED_MEMORY_OPERATIONS_LEGAL_HOLD_DLP_AND_EIDOS_GOVERNANCE"
     },
     "contextP1_3": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_3",
       "authority": "docs/architecture/MEMORY-OPERATIONS-RETENTION-LEGAL-HOLD-DLP-P1.3-v0.1.md",
       "capabilities": [
         "context.memory.retention-policy",
