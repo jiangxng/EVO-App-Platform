@@ -1,0 +1,19 @@
+name: Project Continuity CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: project-continuity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  continuity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - run: node tools/project-continuity.mjs --check

@@ -11,7 +11,7 @@
     "test": "npm run test:all",
     "start": "node dist/manager/server.js",
     "start:agent": "node dist/agents/enterprise-agent/server.js",
-    "test:platform": "npm run build && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs",
+    "test:platform": "npm run build && npm run continuity:validate && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs",
     "test:all": "npm run build && node --test tests/**/*.test.mjs",
     "test:plugin:enterprise-agent": "npm run build && node --test tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs",
     "test:plugin:openai-provider": "npm run build && node --test tests/llm/provider.test.mjs tests/agent/openai-responses-model.test.mjs",
@@ -42,7 +42,9 @@
     "experience:start": "npm run build && node tools/start-personal-agent-experience.mjs",
     "experience:reset": "npm run build --silent && node tools/reset-personal-agent-experience.mjs",
     "test:experience:p1-4-checkpoint": "npm run build && node --test tests/app-host/dynamic-chat-actions.test.mjs tests/app-host/chat-conversation-history.test.mjs tests/agent/conversation-continuity.test.mjs tests/integration/personal-agent-vertical-experience-checkpoint.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/protocol/personal-agent-trends-freshness-followup-p1-4e.test.mjs",
-    "test:plugin:deepseek-provider": "npm run build && node --test tests/llm/deepseek-provider.test.mjs tests/llm/provider.test.mjs tests/integration/personal-agent-experience-journey.test.mjs"
+    "test:plugin:deepseek-provider": "npm run build && node --test tests/llm/deepseek-provider.test.mjs tests/llm/provider.test.mjs tests/integration/personal-agent-experience-journey.test.mjs",
+    "continuity:render": "node tools/project-continuity.mjs --write",
+    "continuity:validate": "node tools/project-continuity.mjs --check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

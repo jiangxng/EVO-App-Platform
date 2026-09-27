@@ -37,7 +37,8 @@
     "identitySession": "CI_VERIFIED_P0_7_REQUEST_BOUND_REFERENCE",
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
     "enterpriseContextOwnership": "CI_VERIFIED_P0_8_TRANSFER_LIFECYCLE",
-    "enterpriseRelationships": "CI_VERIFIED_P0_8"
+    "enterpriseRelationships": "CI_VERIFIED_P0_8",
+    "projectContinuity": "AUTHORITATIVE_BOOTSTRAP_CI_ENFORCED"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -91,7 +92,8 @@
     "contextMemoryRetrievalStrategy": "CI_VERIFIED_P1_2_PROVIDER_BACKED",
     "experienceCompilerMemoryIntakeBoundary": "CI_VERIFIED_P1_2_PRODUCTION_HTTP",
     "contextMemoryRetentionPrivacy": "CI_VERIFIED_P1_2_APPEND_ONLY_GOVERNANCE",
-    "contextMemorySemanticRetrieval": "CI_VERIFIED_P1_2_REMOTE_PROVIDER_BOUNDARY"
+    "contextMemorySemanticRetrieval": "CI_VERIFIED_P1_2_REMOTE_PROVIDER_BOUNDARY",
+    "projectContinuity": "AI_BOOTSTRAP_PROJECT_STATUS_GENERATED_HANDOFF_LATEST_CI_ENFORCED"
   },
   "runtimeIsolation": {
     "authority": "docs/architecture/PLUGIN-RUNTIME-ISOLATION-v0.1.md",
@@ -508,5 +510,15 @@
       "next": "SCHEDULED_MEMORY_OPERATIONS_LEGAL_HOLD_DLP_AND_EIDOS_GOVERNANCE"
     }
   },
-  "currentHandoff": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
+  "currentHandoff": "docs/roadmap/HANDOFF-LATEST.md",
+  "projectContinuity": {
+    "status": "AUTHORITATIVE_CURRENT_STATE_PROTOCOL",
+    "bootstrap": "AI-BOOTSTRAP.md",
+    "stateAuthority": "project.status.json",
+    "currentHandoff": "docs/roadmap/HANDOFF-LATEST.md",
+    "validator": "tools/project-continuity.mjs",
+    "ci": ".github/workflows/project-continuity.yml",
+    "staleDatedHandoffs": "HISTORICAL_EVIDENCE_ONLY",
+    "repositoryStateWinsOverChatMemory": true
+  }
 }
