@@ -23,6 +23,9 @@ import {
   parseContextMemoryScheduleContextsV010
 } from "../../dist/manager/context-memory-scheduler.js";
 import {
+  createMemoryContextMemoryScheduleStateStoreV010
+} from "../../dist/manager/context-memory-schedule-state-store.js";
+import {
   createRemoteContextMemoryDlpClassifierV010
 } from "../../dist/providers/context-memory-dlp/runtime.js";
 import {
@@ -610,4 +613,26 @@ test("Eidos Enterprise Memory Governance hides detail from MEMBER", () => {
   });
   assert.equal(page.items.length, 0);
   assert.match(page.emptyMessage, /authority/i);
+});
+
+
+test("scheduled intake cursor state advances one page and resets at source end", () => {
+  const store = createMemoryContextMemoryScheduleStateStoreV010();
+  store.set({
+    contractVersion: "0.1.0",
+    sourceId: "source:ec",
+    context: personal,
+    cursor: "cursor:page-2",
+    updatedAt: "2026-09-27T05:00:00.000Z"
+  });
+  assert.equal(store.get("source:ec", personal).cursor, "cursor:page-2");
+
+  store.set({
+    contractVersion: "0.1.0",
+    sourceId: "source:ec",
+    context: personal,
+    updatedAt: "2026-09-27T05:05:00.000Z"
+  });
+  assert.equal(store.get("source:ec", personal).cursor, undefined);
+  assert.equal(store.snapshot().cursors.length, 1);
 });
