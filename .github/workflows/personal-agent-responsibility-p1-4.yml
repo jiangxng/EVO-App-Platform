@@ -1,0 +1,39 @@
+name: Agent CI - Responsibility P1.4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/enterprise-agent/responsibility-policy.ts"
+      - "agents/enterprise-agent/provider-model.ts"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-RESPONSIBILITY-POLICY-v0.1.md"
+      - "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-responsibility-p1-4.yml"
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/responsibility-policy.ts"
+      - "agents/enterprise-agent/provider-model.ts"
+      - "tests/agent/enterprise-agent.test.mjs"
+      - "docs/architecture/PERSONAL-AGENT-RESPONSIBILITY-POLICY-v0.1.md"
+      - "docs/architecture/PERSONAL-AGENT-PRODUCT-EXPERIENCE-v0.1.md"
+      - "project.status.json"
+      - "package.json"
+      - ".github/workflows/personal-agent-responsibility-p1-4.yml"
+
+concurrency:
+  group: personal-agent-responsibility-p1-4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  responsibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent:responsibility-p1-4

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.3.1 — Experience Integration Checkpoint",
+  "currentMilestone": "Personal Agent P1.4 — Responsibility Policy + Evaluation Baseline",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -229,7 +229,12 @@
     "personal-agent-setup-provider-diagnostics-loop",
     "personal-agent-setup-memory-continuation",
     "personal-agent-p1-3-1-experience-ci",
-    "personal-agent-p1-3-1-browser-runbook"
+    "personal-agent-p1-3-1-browser-runbook",
+    "personal-agent-responsibility-policy-v0-1",
+    "personal-agent-inspect-before-ask",
+    "personal-agent-constructive-correction",
+    "personal-agent-post-authorization-follow-through",
+    "personal-agent-model-independent-behavior-policy"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -252,7 +257,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P1.3.1 Experience Integration is CI-verified: 15/15 triggered workflows passed, including Platform CI, Enterprise Agent, P1.2/P1.3 Memory regressions, Host Secrets/Authorization/session/enterprise providers, and the dedicated vertical Experience CI. The next action is Human browser experience using the formal Install → Needs setup → Provider/Host Secrets configuration → Ready → Open → Context-aware use → Memory Review/Governance/Source Health journey.",
+  "currentStep": "P1.4A Personal Agent Responsibility Policy is CI-verified: all 16 triggered workflows passed, including Platform CI, Enterprise Agent, P1.3.1 Experience CI, P1.2/P1.3 Memory regressions and the dedicated Responsibility CI. Next: preserve the Human browser experience checkpoint, then continue P1.4 with measurable Agent/Memory quality evaluation and retention-policy simulation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1102,6 +1107,27 @@
       ],
       "physicalDeletion": "NOT_IMPLEMENTED_NOT_CLAIMED",
       "next": "P1_4_MEMORY_EVALUATION_POLICY_SIMULATION_AND_OPERATIONAL_HARDENING"
+    },
+    "responsibilityP1_4": {
+      "status": "CI_VERIFIED_P1_4A",
+      "authority": "docs/architecture/PERSONAL-AGENT-RESPONSIBILITY-POLICY-v0.1.md",
+      "principle": "HUMAN_OWNS_INTENT_AND_AUTHORITY_AGENT_OWNS_UNDERSTANDING_JUDGMENT_EXECUTION_FOLLOW_THROUGH",
+      "responsibilityModes": [
+        "EXECUTE",
+        "RECOMMEND_AND_EXECUTE",
+        "ASK_FOR_HUMAN_JUDGMENT",
+        "ASK_FOR_AUTHORIZATION"
+      ],
+      "clarification": "INSPECT_AND_DISCOVER_BEFORE_ASKING",
+      "correction": "PRESERVE_GOAL_IDENTIFY_GAP_REPAIR_AND_CONTINUE",
+      "continuation": "AFTER_AUTHORIZATION_CONTINUE_UNTIL_COMPLETE_BLOCKED_OR_NEW_AUTHORITY_BOUNDARY",
+      "toolDefaults": {
+        "READ": "EXECUTE",
+        "PLAN": "EXECUTE",
+        "WRITE": "ASK_FOR_AUTHORIZATION"
+      },
+      "modelReplacement": "POLICY_DURABLE_ACROSS_LLM_PROVIDER_CHANGE",
+      "next": "QUALITY_METRICS_AND_POLICY_SIMULATION"
     }
   },
   "experienceIntegration": {

@@ -647,3 +647,35 @@ Browser checkpoint:
 - `docs/roadmap/P1.3.1-PERSONAL-AGENT-EXPERIENCE-CHECKPOINT.md`
 
 After CI verification, the next step is Human browser experience. Product feedback from that checkpoint should be used before multiplying the same interaction assumptions into P1.4+.
+
+
+## P1.4A — Personal Agent Responsibility Policy
+
+The product target now explicitly includes the collaboration quality discussed with the user:
+
+> Human owns intent and authority; Personal Agent owns understanding, judgment, execution and follow-through within that authority.
+
+This is not a tone/personality preference. It is durable product behavior.
+
+Authority:
+
+- `docs/architecture/PERSONAL-AGENT-RESPONSIBILITY-POLICY-v0.1.md`
+
+Implementation:
+
+- versioned `personalAgentResponsibilityPolicyV010`;
+- responsibility modes EXECUTE / RECOMMEND_AND_EXECUTE / ASK_FOR_HUMAN_JUDGMENT / ASK_FOR_AUTHORIZATION;
+- inspect/discover before asking;
+- avoid unnecessary option menus when one reversible approach is materially preferable;
+- constructive correction preserves the user's valid goal and repairs the approach;
+- authorization is followed by continued execution rather than a tutorial/checklist;
+- READ and PLAN default to autonomous execution;
+- WRITE defaults to Host authorization;
+- provider-backed model receives this policy independently of the selected LLM Provider;
+- Host identity/Context/authorization remain the hard boundary.
+
+Product-quality implication:
+
+P1.4 evaluation should not measure only answer correctness. Future metrics should include unnecessary clarification, work pushed back to the Human, post-authorization completion, avoidable choice menus, verified completion and correction quality.
+
+Do not convert this into unrestricted autonomy. Responsibility is bounded by formal Host authority.

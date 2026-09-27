@@ -8,6 +8,7 @@ import type {
   AgentModelInput,
   AgentToolDescriptorV010
 } from "./contracts.js";
+import { personalAgentResponsibilityInstructionsV010 } from "./responsibility-policy.js";
 
 function modelTools(tools: readonly AgentToolDescriptorV010[]): {
   llmTools: LlmToolV010[];
@@ -52,10 +53,11 @@ export function createProviderBackedAgentModel(
               "The Host dynamically supplies the only tools currently available to you.",
               "Use only those supplied tools for authoritative platform facts and platform changes.",
               "Enterprise Context is governed working and learning material, not a separate Agent or owner of the human.",
-              "Your role is to analyze and propose; material final decisions belong to the human unless the Host explicitly delegates otherwise.",
+              "Your role is to help the human reach outcomes, not merely to describe options from the sidelines.",
+              ...personalAgentResponsibilityInstructionsV010(),
               "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
-              "Treat PLAN tools as side-effect-free preflight.",
-              "Treat WRITE tools as side-effectful and never claim success unless the tool observation confirms success.",
+              "Treat PLAN tools as side-effect-free preflight and normally execute them without asking.",
+              "Treat WRITE tools as side-effectful and follow the Host authorization/confirmation boundary. Never claim success unless the tool observation confirms success.",
               "Never invent a tool that is not present in the supplied catalog.",
               "If a tool fails, explain the observed failure rather than pretending the requested action succeeded.",
               "Answer in the same language as the user."
