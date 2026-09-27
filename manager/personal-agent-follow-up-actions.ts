@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -59,7 +60,11 @@ function sameContext(
 function handler(
   commandCode: string,
   state: "COMPLETED" | "DISMISSED",
-  store: PersonalAgentFollowUpStoreV010
+  dependencies: {
+    store: PersonalAgentFollowUpStoreV010;
+    now: () => Date;
+    id: () => string;
+  }
 ): AppActionHandler {
   return {
     packageId: ENTERPRISE_AGENT_PACKAGE_ID,
@@ -84,7 +89,7 @@ function handler(
           && request.values.itemId.trim()
           ? request.values.itemId.trim()
           : stringValue(request.values, "followUpId");
-        const current = store.get(followUpId);
+        const current = dependencies.store.get(followUpId);
         if (!current) {
           throw new Error("PERSONAL_AGENT_FOLLOW_UP_NOT_FOUND");
         }
@@ -98,9 +103,9 @@ function handler(
           throw new Error("PERSONAL_AGENT_FOLLOW_UP_SCOPE_MISMATCH");
         }
 
-        store.append({
+        dependencies.store.append({
           contractVersion: "0.1.0",
-          eventId: `personal-agent-follow-up-state:${crypto.randomUUID()}`,
+          eventId: `personal-agent-follow-up-state:${dependencies.id()}`,
           followUpId: current.followUpId,
           principalSubjectId: current.principalSubjectId,
           context: structuredClone(current.context),
@@ -111,14 +116,14 @@ function handler(
           title: current.title,
           instruction: current.instruction,
           relatedMemoryIds: [...current.relatedMemoryIds],
-          occurredAt: new Date().toISOString(),
+          occurredAt: dependencies.now().toISOString(),
           actorSubjectId: requestContext.principal.subjectId
         });
 
         return {
           ok: true,
           correlationId: requestContext.correlationId,
-          result: JSON.parse(JSON.stringify(store.get(followUpId)))
+          result: JSON.parse(JSON.stringify(dependencies.store.get(followUpId)))
         };
       } catch (error) {
         return errorResult(error);
@@ -128,10 +133,19 @@ function handler(
 }
 
 export function createPersonalAgentFollowUpActionHandlersV010(
-  store: PersonalAgentFollowUpStoreV010
+  input: {
+    store: PersonalAgentFollowUpStoreV010;
+    now?: () => Date;
+    id?: () => string;
+  }
 ): AppActionHandler[] {
+  const dependencies = {
+    store: input.store,
+    now: input.now ?? (() => new Date()),
+    id: input.id ?? randomUUID
+  };
   return [
-    handler(PERSONAL_AGENT_FOLLOW_UP_COMPLETE_ACTION, "COMPLETED", store),
-    handler(PERSONAL_AGENT_FOLLOW_UP_DISMISS_ACTION, "DISMISSED", store)
+    handler(PERSONAL_AGENT_FOLLOW_UP_COMPLETE_ACTION, "COMPLETED", dependencies),
+    handler(PERSONAL_AGENT_FOLLOW_UP_DISMISS_ACTION, "DISMISSED", dependencies)
   ];
 }
