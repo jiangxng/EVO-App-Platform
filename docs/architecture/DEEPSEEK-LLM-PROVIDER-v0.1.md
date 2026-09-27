@@ -1,6 +1,6 @@
 # DeepSeek LLM Provider v0.1
 
-**Status:** implementation candidate  
+**Status:** CI-verified implementation candidate  
 **Date:** 2026-09-27
 
 ## Purpose
