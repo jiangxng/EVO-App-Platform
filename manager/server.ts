@@ -236,6 +236,9 @@ import {
   createMemoryContextMemoryGovernanceStoreV010
 } from "./context-memory-governance-store.js";
 import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
+import { createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
+import { createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import { createContextMemoryPolicyActionHandlersV010 } from "./context-memory-policy-actions.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -367,6 +370,8 @@ const contextMemoryGovernanceStateFile =
 const contextMemoryGovernanceStore = contextMemoryGovernanceStateFile
   ? createFileContextMemoryGovernanceStoreV010(contextMemoryGovernanceStateFile)
   : createMemoryContextMemoryGovernanceStoreV010();
+const contextMemoryRetentionPolicyStore = createMemoryContextMemoryRetentionPolicyStoreV010();
+const contextMemoryLegalHoldStore = createMemoryContextMemoryLegalHoldStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -542,7 +547,11 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   checkedAt: new Date().toISOString()
 });
 const contextMemoryGovernanceProvider =
-  createHostContextMemoryGovernanceProviderV010(contextMemoryGovernanceStore);
+  createHostContextMemoryGovernanceProviderV010(
+    contextMemoryGovernanceStore,
+    () => new Date(),
+    contextMemoryLegalHoldStore
+  );
 providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
   HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
   contextMemoryGovernanceProvider
@@ -1378,6 +1387,13 @@ const actionRouter = createAppActionRouter(
     createContextMemoryGovernanceActionHandlerV010({
       memoryStore: contextMemoryStore,
       governanceStore: contextMemoryGovernanceStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
+    ...createContextMemoryPolicyActionHandlersV010({
+      memoryStore: contextMemoryStore,
+      retentionPolicies: contextMemoryRetentionPolicyStore,
+      legalHolds: contextMemoryLegalHoldStore,
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
     }),
