@@ -188,17 +188,23 @@ export function createEnterpriseAgentRuntime(
           descriptor?.effect === "READ"
           && successfulReadSignatures.has(signature)
         ) {
+          exhaustedReadTools.set(
+            decision.call.tool,
+            "An identical READ already succeeded in this turn. Reuse that authoritative observation. This READ is now unavailable for the remainder of the turn; continue with a different Host tool or answer the human."
+          );
           const repeatedReadSuppressed: AgentToolObservation = {
             tool: decision.call.tool,
             ok: false,
             error: {
               code: "AGENT_READ_REPEAT_SUPPRESSED",
-              message: "An identical READ already succeeded in this turn. Reuse that observation. Other distinct Host tools remain available when additional authoritative inspection is still required."
+              message: "An identical READ already succeeded in this turn. Reuse that observation. This READ is no longer offered for the remainder of the turn; other distinct Host tools remain available when additional authoritative inspection is still required."
             }
           };
           const convergence = await model.decide(
             modelInput(offeredTools(), [
-              ...convergenceObservations(),
+              ...convergenceObservations().filter(
+                observation => observation.tool !== decision.call.tool
+              ),
               repeatedReadSuppressed
             ])
           );
@@ -217,16 +223,16 @@ export function createEnterpriseAgentRuntime(
             convergence.call.tool,
             convergence.call.arguments
           );
-          if (
-            convergenceDescriptor?.effect === "READ"
-            && successfulReadSignatures.has(convergenceSignature)
-          ) {
-            return replyFromFinalDecision({
-              message: "我已经取得了该读取的权威结果，但模型仍重复请求完全相同的 READ。系统已阻止重复调用；请依据本轮已有证据继续。",
-              context,
-              tools,
-              observations
+          if (exhaustedReadTools.has(convergence.call.tool)) {
+            observations.push({
+              tool: convergence.call.tool,
+              ok: false,
+              error: {
+                code: "AGENT_TOOL_EXHAUSTED_FOR_TURN",
+                message: "The model selected a READ that the Host already exhausted for this turn. Continue with another offered tool or answer from existing authoritative evidence."
+              }
             });
+            continue;
           }
 
           const convergenceObservation = await catalog.invoke(

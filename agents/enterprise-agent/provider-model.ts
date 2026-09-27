@@ -59,6 +59,7 @@ export function createProviderBackedAgentModel(
               ...personalAgentResponsibilityInstructionsV010(),
               "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
               "After a READ tool succeeds, use its authoritative observation. Do not repeat the same READ with identical arguments in the same turn, and do not keep probing the same READ with paraphrased arguments when it returns the same evidence. Once the required IDs/facts are present, continue to the next distinct tool or answer the human.",
+              "Use context_memory_search for ordinary effective retrieval. When the human asks to verify a specific historical Memory by exact memoryId, use context_memory_audit_get rather than trying to simulate exact-ID audit with ordinary search.",
               "Treat PLAN tools as side-effect-free preflight and normally execute them without asking.",
               "Treat WRITE tools as side-effectful and follow the Host authorization/confirmation boundary. Never claim success unless the tool observation confirms success.",
               "For Memory canonicalization, once Context Memory evidence establishes the duplicateMemoryId and canonicalMemoryId requested by the human, stage the canonicalization proposal instead of repeatedly re-searching the same Memory facts.",
