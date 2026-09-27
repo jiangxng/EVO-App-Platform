@@ -80,6 +80,7 @@ import type {
   ContextMemoryEvidenceSourceProviderV010,
   ContextMemoryGovernanceProviderV010,
   ContextMemoryIntakeSourceAdapterV010,
+  ContextMemoryInventoryReaderV010,
   ContextMemoryReaderV010,
   ContextMemorySemanticRetrieverV010,
   ContextMemoryWriterV010,
@@ -197,9 +198,11 @@ import {
 } from "../providers/enterprise-relationship/runtime.js";
 import {
   CONTEXT_MEMORY_GOVERNANCE_CAPABILITY,
+  CONTEXT_MEMORY_INVENTORY_CAPABILITY,
   CONTEXT_MEMORY_READ_CAPABILITY,
   CONTEXT_MEMORY_WRITE_CAPABILITY,
   HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
+  HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_PACKAGE_ID,
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
@@ -207,6 +210,7 @@ import {
 } from "../providers/context-memory/package.js";
 import {
   createHostContextMemoryHealthProbeV010,
+  createHostContextMemoryInventoryReaderV010,
   createHostContextMemoryReaderV010,
   createHostContextMemoryWriterV010
 } from "../providers/context-memory/runtime.js";
@@ -714,6 +718,18 @@ providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
   HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
   contextMemoryGovernanceProvider
 );
+providerRuntimeRegistry.replace<ContextMemoryInventoryReaderV010>(
+  HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
+  createHostContextMemoryInventoryReaderV010(contextMemoryStore, {
+    governance: contextMemoryGovernanceProvider,
+    canonicalization: {
+      listActiveForContext(context) {
+        return contextMemoryCanonicalizationStore.listForContext(context)
+          .filter(item => item.state === "ACTIVE");
+      }
+    }
+  })
+);
 providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   createHostContextMemoryReaderV010(contextMemoryStore, {
@@ -731,6 +747,10 @@ providerRuntimeRegistry.replace<ContextMemoryWriterV010>(
   createHostContextMemoryWriterV010(contextMemoryStore)
 );
 providerRuntimeRegistry.setHealthProbe(
+  HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID,
+  createHostContextMemoryHealthProbeV010(contextMemoryStore)
+);
+providerRuntimeRegistry.setHealthProbe(
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   createHostContextMemoryHealthProbeV010(contextMemoryStore)
 );
@@ -738,6 +758,11 @@ providerRuntimeRegistry.setHealthProbe(
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
   createHostContextMemoryHealthProbeV010(contextMemoryStore)
 );
+providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_INVENTORY_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Context Memory Inventory is active.",
+  checkedAt: new Date().toISOString()
+});
 providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_READER_PROVIDER_ID, {
   state: "HEALTHY",
   message: "Host Context Memory Reader is active.",
@@ -1122,6 +1147,16 @@ function resolveEnterpriseContextRelationshipProvider(): EnterpriseContextRelati
     manager.listEffectiveServiceProviders(ENTERPRISE_RELATIONSHIP_CAPABILITY),
     providerBindings,
     ENTERPRISE_RELATIONSHIP_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryInventoryReader(): ContextMemoryInventoryReaderV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryInventoryReaderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_INVENTORY_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_INVENTORY_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -1867,6 +1902,15 @@ const actionRouter = createAppActionRouter(
           },
           getProviderHealth(providerId) {
             return providerRuntimeRegistry.getHealth(providerId);
+          },
+          inventoryContextMemory(input) {
+            const provider = resolveContextMemoryInventoryReader();
+            if (!provider) throw new Error("CONTEXT_MEMORY_INVENTORY_READER_REQUIRED");
+            return provider.list({
+              contractVersion: "0.1.0",
+              context: structuredClone(context.activeContext),
+              ...input
+            });
           },
           readContextMemory(input) {
             const provider = resolveContextMemoryReader();
