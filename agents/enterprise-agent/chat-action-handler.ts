@@ -11,7 +11,10 @@ import type {
   PlatformRequestContextV010,
   ResolvedContextSetV010
 } from "../../contracts/platform-services.js";
-import type { AgentToolCatalogV010 } from "./contracts.js";
+import type {
+  AgentConversationMessageV010,
+  AgentToolCatalogV010
+} from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
@@ -49,6 +52,55 @@ function localeForRequest(
   const explicit = request.values.locale;
   if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
   return /[\u3400-\u9fff]/u.test(message) ? "zh-CN" : "en";
+}
+
+export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGES = 16;
+export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_CHARACTERS = 24_000;
+export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGE_CHARACTERS = 8_000;
+
+export function parsePersonalAgentConversationHistoryV010(
+  request: AppActionRequestV010
+): AgentConversationMessageV010[] {
+  const raw = request.values.conversationHistory;
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) {
+    throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_INVALID");
+  }
+  if (raw.length > PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGES) {
+    throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_TOO_MANY_MESSAGES");
+  }
+
+  const history: AgentConversationMessageV010[] = [];
+  let totalCharacters = 0;
+
+  for (const item of raw) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_ITEM_INVALID");
+    }
+    const role = item.role;
+    const content = item.content;
+    if (
+      (role !== "user" && role !== "assistant")
+      || typeof content !== "string"
+      || !content.trim()
+    ) {
+      throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_ITEM_INVALID");
+    }
+    const normalized = content.trim();
+    if (normalized.length > PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGE_CHARACTERS) {
+      throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_MESSAGE_TOO_LARGE");
+    }
+    totalCharacters += normalized.length;
+    if (totalCharacters > PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_CHARACTERS) {
+      throw new Error("PERSONAL_AGENT_CONVERSATION_HISTORY_TOO_LARGE");
+    }
+    history.push({
+      role,
+      content: normalized
+    });
+  }
+
+  return history;
 }
 
 function activeContextSelection(
@@ -157,13 +209,33 @@ export function createEnterpriseAgentChatActionHandler(
         };
       }
 
+      let conversationHistory: AgentConversationMessageV010[];
+      try {
+        conversationHistory = parsePersonalAgentConversationHistoryV010(request);
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: errorCode(error),
+            message: error instanceof Error
+              ? error.message
+              : "Conversation history validation failed."
+          }
+        };
+      }
+
       const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
         dependencies.createToolCatalog(locale, context, principal, requestContext)
       );
 
-      const reply = await runtime.chat(message.trim(), context, principal);
+      const reply = await runtime.chat(
+        message.trim(),
+        context,
+        principal,
+        conversationHistory
+      );
       if (dependencies.qualityEvidenceStore) {
         dependencies.qualityEvidenceStore.append(createHostObservedQualityEvidenceV010({
           eventId: `agent-quality:${dependencies.qualityEventId?.() ?? request.sourceInteractionId}`,

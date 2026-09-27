@@ -274,7 +274,11 @@
     "deepseek-host-secrets-credential-boundary",
     "deepseek-provider-health-probe",
     "deepseek-four-locale-settings",
-    "multi-llm-explicit-provider-selection-deepseek-openai"
+    "multi-llm-explicit-provider-selection-deepseek-openai",
+    "personal-agent-session-conversation-continuity",
+    "eidos-chat-bounded-conversation-history",
+    "host-validated-conversation-history",
+    "conversation-history-memory-authority-separation"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -297,7 +301,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "DeepSeek LLM Provider is CI-verified: 21/21 triggered workflows passed, including the dedicated DeepSeek Provider CI, Platform CI, P1.4X Experience CI and all Person-first/Memory regressions. The installable deepseek-llm-provider provides llm.inference + llm.tool-calling through the official DeepSeek Responses API, stores its API Key only through Host Secrets, ships four-locale Settings, validates configured models through /models, and preserves explicit Human Provider selection when OpenAI and DeepSeek coexist. Next: merge to main and deploy the Railway preview so the Human browser can install/configure DeepSeek.",
+  "currentStep": "P1.4X session conversation continuity is CI-verified: 22/22 triggered workflows passed on the final implementation head. Eidos Chat v0.2 now sends bounded prior user/assistant discourse to enterprise-agent.chat; Host validates role/count/size, Agent Runtime preserves history through tool steps, and provider-backed models receive history before the current user turn. Conversation history remains session-local and non-authoritative: current platform state requires Host READ and durable cross-session knowledge remains Context Memory. Next: merge, deploy Railway preview, then re-run the two-turn duplicate-Memory browser scenario without refreshing between turns.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1378,6 +1382,24 @@
         "ja",
         "zh-TW"
       ]
+    },
+    "conversationContinuityP1_4X": {
+      "status": "CI_VERIFIED",
+      "source": "HUMAN_BROWSER_CHECKPOINT",
+      "scope": "SESSION_LOCAL",
+      "client": "EIDOS_CHAT_V0_2",
+      "maxMessages": 16,
+      "maxCharactersPerMessage": 8000,
+      "maxTotalCharacters": 24000,
+      "roles": [
+        "user",
+        "assistant"
+      ],
+      "authoritative": false,
+      "durable": false,
+      "platformTruth": "HOST_READ_REQUIRED",
+      "crossSessionKnowledge": "CONTEXT_MEMORY_REQUIRED",
+      "regression": "REFERENTIAL_FOLLOW_UP_DOES_NOT_REQUIRE_BROAD_PLATFORM_DISCOVERY"
     }
   },
   "experienceIntegration": {

@@ -53,6 +53,8 @@ export function createProviderBackedAgentModel(
               "The Host dynamically supplies the only tools currently available to you.",
               "Use only those supplied tools for authoritative platform facts and platform changes.",
               "Enterprise Context is governed working and learning material, not a separate Agent or owner of the human.",
+              "Conversation history is session-local discourse context only. Use it to resolve references such as 'this', 'that', 'continue', and 'what we just discussed', but do not treat historical assistant claims as authoritative platform facts.",
+              "When current platform state matters, re-read it with the supplied Host tools. Durable cross-session knowledge belongs in Context Memory, not conversation history.",
               "Your role is to help the human reach outcomes, not merely to describe options from the sidelines.",
               ...personalAgentResponsibilityInstructionsV010(),
               "Prefer READ tools to inspect current state before asking the human for information that the platform can discover.",
@@ -64,6 +66,10 @@ export function createProviderBackedAgentModel(
               "Answer in the same language as the user."
             ].join("\n")
           },
+          ...(input.conversationHistory ?? []).map(item => ({
+            role: item.role,
+            content: item.content
+          })),
           { role: "user", content: input.userMessage },
           {
             role: "developer",

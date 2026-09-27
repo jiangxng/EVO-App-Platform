@@ -22,6 +22,69 @@ export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
 }
 
+
+export interface ChatConversationHistoryItemV010 {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function chatMessageContentForHistory(
+  message: ChatMessageV010 | ChatMessageV020
+): string {
+  if ("text" in message) return message.text.trim();
+
+  return message.parts
+    .flatMap(part => {
+      if (part.type === "text") return [part.text];
+      if (part.type === "notice") {
+        return [[part.title, part.text].filter(Boolean).join(": ")];
+      }
+      if (part.type === "proposal") {
+        return [[
+          part.title,
+          part.summary,
+          ...(part.reasons ?? [])
+        ].filter(Boolean).join("\n")];
+      }
+      return [];
+    })
+    .join("\n\n")
+    .trim();
+}
+
+export function createChatConversationHistoryV010(
+  messages: readonly (ChatMessageV010 | ChatMessageV020)[],
+  options: {
+    maxMessages?: number;
+    maxTotalCharacters?: number;
+    maxCharactersPerMessage?: number;
+  } = {}
+): ChatConversationHistoryItemV010[] {
+  const maxMessages = options.maxMessages ?? 16;
+  const maxTotalCharacters = options.maxTotalCharacters ?? 24_000;
+  const maxCharactersPerMessage = options.maxCharactersPerMessage ?? 8_000;
+
+  const candidates = messages
+    .filter(message => message.role === "user" || message.role === "assistant")
+    .map(message => ({
+      role: message.role as "user" | "assistant",
+      content: chatMessageContentForHistory(message).slice(0, maxCharactersPerMessage)
+    }))
+    .filter(message => message.content.length > 0)
+    .slice(-maxMessages);
+
+  const selected: ChatConversationHistoryItemV010[] = [];
+  let characters = 0;
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const item = candidates[index];
+    if (characters + item.content.length > maxTotalCharacters) break;
+    selected.push(item);
+    characters += item.content.length;
+  }
+
+  return selected.reverse();
+}
+
 export interface MountAppHostPageOptions {
   page: AppHostLoadedPageV010;
   container: HTMLElement;
@@ -355,6 +418,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         const message = textarea.value.trim();
         if (!message) return;
 
+        const conversationHistory = definition.contractVersion === "0.2.0"
+          ? createChatConversationHistoryV010(state.messages)
+          : [];
+
         state.messages.push(definition.contractVersion === "0.2.0"
           ? {
               id: `user-${Date.now()}-${state.messages.length}`,
@@ -396,7 +463,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
         try {
           const values: Record<string, JsonValue> = {
-            [definition.composer.key]: message
+            [definition.composer.key]: message,
+            ...(definition.contractVersion === "0.2.0" && conversationHistory.length
+              ? {
+                  conversationHistory: conversationHistory.map(item => ({
+                    role: item.role,
+                    content: item.content
+                  }))
+                }
+              : {})
           };
           if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
             const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
