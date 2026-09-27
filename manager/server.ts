@@ -62,6 +62,7 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
+  ContextMemoryDlpClassifierV010,
   ContextMemoryEvidenceSourceProviderV010,
   ContextMemoryGovernanceProviderV010,
   ContextMemoryIntakeSourceAdapterV010,
@@ -202,6 +203,16 @@ import {
   createRemoteContextMemorySemanticRetrieverV010
 } from "../providers/context-memory-semantic/runtime.js";
 import {
+  CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY,
+  REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
+  REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+  remoteContextMemoryDlpProviderPackage
+} from "../providers/context-memory-dlp/package.js";
+import {
+  createRemoteContextMemoryDlpClassifierV010,
+  createRemoteContextMemoryDlpHealthProbeV010
+} from "../providers/context-memory-dlp/runtime.js";
+import {
   EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
   EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
   EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
@@ -239,6 +250,11 @@ import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory
 import { createFileContextMemoryRetentionPolicyStoreV010, createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
 import { createFileContextMemoryLegalHoldStoreV010, createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
 import { createContextMemoryPolicyActionHandlersV010 } from "./context-memory-policy-actions.js";
+import {
+  createContextMemoryScheduledOperationsV010,
+  createJsonlContextMemoryOperationLogV010,
+  createMemoryContextMemoryOperationLogV010
+} from "./context-memory-operations.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -347,6 +363,7 @@ const catalog = createPackageCatalog([
   hostContextMemoryProviderPackage,
   hostMemoryIntakeProviderPackage,
   remoteContextMemorySemanticProviderPackage,
+  remoteContextMemoryDlpProviderPackage,
   experienceCompilerMemoryIntakeProviderPackage,
   tradingLitePackage
 ]);
@@ -382,6 +399,12 @@ const contextMemoryLegalHoldStateFile =
 const contextMemoryLegalHoldStore = contextMemoryLegalHoldStateFile
   ? createFileContextMemoryLegalHoldStoreV010(contextMemoryLegalHoldStateFile)
   : createMemoryContextMemoryLegalHoldStoreV010();
+const contextMemoryOperationLogFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_OPERATIONS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-operations.jsonl") : undefined);
+const contextMemoryOperationLog = contextMemoryOperationLogFile
+  ? createJsonlContextMemoryOperationLogV010(contextMemoryOperationLogFile)
+  : createMemoryContextMemoryOperationLogV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -607,6 +630,10 @@ const remoteSemanticEndpoint = process.env.APP_PLATFORM_MEMORY_SEMANTIC_URL?.tri
 const remoteSemanticTimeoutMs = Number(
   process.env.APP_PLATFORM_MEMORY_SEMANTIC_TIMEOUT_MS?.trim() || "8000"
 );
+const remoteDlpEndpoint = process.env.APP_PLATFORM_MEMORY_DLP_URL?.trim();
+const remoteDlpTimeoutMs = Number(
+  process.env.APP_PLATFORM_MEMORY_DLP_TIMEOUT_MS?.trim() || "8000"
+);
 const experienceCompilerMemoryIntakeConfig =
   parseExperienceCompilerMemoryIntakeConfigV010(
     process.env.APP_PLATFORM_EC_MEMORY_INTAKE_JSON
@@ -831,6 +858,19 @@ if (
   }
 }
 if (
+  remoteDlpEndpoint
+  && !installedAtStartup.some(
+    item => item.packageId === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
+    console.log("Activated Remote Context Memory DLP Provider.");
+  } catch (error) {
+    console.error("Failed to activate Remote Context Memory DLP Provider.", error);
+  }
+}
+if (
   experienceCompilerMemoryIntakeConfig
   && !installedAtStartup.some(
     item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
@@ -978,6 +1018,16 @@ function resolveContextMemorySemanticRetriever(): ContextMemorySemanticRetriever
     manager.listEffectiveServiceProviders(CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY),
     providerBindings,
     CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryDlpClassifier(): ContextMemoryDlpClassifierV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryDlpClassifierV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
