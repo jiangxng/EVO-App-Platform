@@ -204,7 +204,7 @@ export function createEnterpriseAgentHostToolCatalogV010(
         id: "context.memory.recall",
         modelName: "context_memory_recall",
         title: "Context Memory recall",
-        description: "Recall durable Memory from the current Host-resolved Context using several short lexical retrieval queries in one authoritative READ. Use for cross-session natural-language questions when the user's wording may differ from stored Memory. The model supplies compact query expansion; the Host executes deterministic governed Memory reads, merges and deduplicates the results, and never changes Memory.",
+        description: "Recall durable Memory from the current Host-resolved Context using several short lexical retrieval queries in one authoritative READ. Use for cross-session natural-language questions when the user's wording may differ from stored Memory. The model supplies compact query expansion; the Host executes deterministic governed Memory reads, merges and deduplicates the results, and never changes Memory. This is ranked retrieval, not exhaustive inventory; absence of additional results does not prove no other Memory exists.",
         inputSchema: {
           type: "object",
           properties: {
@@ -349,6 +349,8 @@ export function createEnterpriseAgentHostToolCatalogV010(
         return {
           contractVersion: "0.1.0",
           strategyUsed: "LEXICAL_QUERY_EXPANSION",
+          exhaustive: false,
+          completeness: "RANKED_RETRIEVAL_NOT_INVENTORY",
           queries,
           items: orderedIds
             .map(memoryId => byId.get(memoryId))
