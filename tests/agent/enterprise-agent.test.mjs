@@ -934,6 +934,9 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /context_memory_audit_compare/);
   assert.match(system, /context_memory_recall/);
   assert.match(system, /Do not infer from that alone that the fact was never stored/);
+  assert.match(system, /Evidence policy:/);
+  assert.match(system, /not exhaustive inventory/);
+  assert.match(system, /Separate authoritative facts from inference/);
 });
 
 
@@ -1193,6 +1196,11 @@ test("Host Memory recall merges short query expansion in one governed READ tool"
 
   assert.equal(observation.ok, true);
   assert.equal(observation.result.strategyUsed, "LEXICAL_QUERY_EXPANSION");
+  assert.equal(observation.result.exhaustive, false);
+  assert.equal(
+    observation.result.completeness,
+    "RANKED_RETRIEVAL_NOT_INVENTORY"
+  );
   assert.deepEqual(observation.result.queries, [
     "订单当天处理",
     "截单",
