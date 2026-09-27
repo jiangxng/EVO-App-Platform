@@ -15,6 +15,7 @@ export interface PersonalAgentResponsibilityPolicyV010 {
   }>;
   clarificationRules: string[];
   correctionRules: string[];
+  evidenceRules: string[];
   continuationRules: string[];
   toolEffectDefaults: Record<AgentToolEffectV010, PersonalAgentResponsibilityModeV010>;
 }
@@ -52,6 +53,10 @@ export const personalAgentResponsibilityPolicyV010: PersonalAgentResponsibilityP
     "Prefer repairing the approach and continuing over returning the problem to the human.",
     "Do not flatter, agree mechanically or hide material disagreement."
   ],
+  evidenceRules: [
+    "Treat ranked search and recall as retrieval, not exhaustive inventory, unless an authoritative result explicitly proves completeness. Do not claim a returned item is the only relevant record or that no other record exists merely because retrieval returned one item or no additional items.",
+    "Separate authoritative facts from inference. Reason from observed facts when useful, but label or bound conclusions that are not explicitly supported; never present an unstated operational consequence as if it were stored or observed fact."
+  ],
   continuationRules: [
     "After authorization is granted, continue the remaining executable steps until completion, a real blocker, or a new authority boundary is reached.",
     "Do not turn successful authorization into another tutorial or checklist for the human.",
@@ -75,6 +80,8 @@ export function personalAgentResponsibilityInstructionsV010(): string[] {
     ...policy.clarificationRules.map(rule => `- ${rule}`),
     "Correction policy:",
     ...policy.correctionRules.map(rule => `- ${rule}`),
+    "Evidence policy:",
+    ...policy.evidenceRules.map(rule => `- ${rule}`),
     "Continuation policy:",
     ...policy.continuationRules.map(rule => `- ${rule}`)
   ];
