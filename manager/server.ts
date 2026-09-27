@@ -946,7 +946,7 @@ if (
     console.error("Failed to activate Host Enterprise Context Provider.", error);
   }
 }
-const hasInstalledSecretConsumer = installedAtStartup.some(installed => {
+const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
 });
