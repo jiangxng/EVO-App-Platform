@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.2 — Memory Retention, Privacy, Semantic Retrieval and Production EC Adapter",
+  "currentMilestone": "Personal Agent P1.3 — Scheduled Memory Operations, Retention Policy, Legal Hold, DLP and Eidos Memory Governance",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -207,7 +207,23 @@
     "experience-compiler-production-memory-intake-http-adapter",
     "experience-compiler-host-secrets-credential-boundary",
     "experience-compiler-proposal-only-memory-authority",
-    "p1-2-provider-four-locale-secret-settings"
+    "p1-2-provider-four-locale-secret-settings",
+    "context-memory-retention-policy-append-only-events",
+    "context-memory-legal-hold-independent-overlays",
+    "context-memory-scheduled-retention-execution",
+    "context-memory-dlp-classification-provider-contract",
+    "remote-context-memory-dlp-http-adapter",
+    "context-memory-dlp-human-override",
+    "context-memory-dlp-batch-fail-closed",
+    "context-memory-operation-jsonl-audit",
+    "context-memory-scheduler-ttl-lease",
+    "context-memory-scheduled-intake-explicit-contexts",
+    "context-memory-scheduled-intake-durable-cursor-backpressure",
+    "context-memory-scheduled-intake-proposal-only-authority",
+    "eidos-memory-governance-surface",
+    "eidos-memory-search-surface",
+    "eidos-memory-source-health-surface",
+    "p1-3-memory-governance-four-locale-ui"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -230,7 +246,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Personal Agent P1.2 is CI-verified: immutable Memory now has append-only retention/privacy governance, restricted/expired Memory is filtered before Agent retrieval, Enterprise governance requires OWNER/ADMIN, SEMANTIC/HYBRID retrieval uses an explicit replaceable Provider and fails closed when unavailable, remote ranking cannot introduce unauthorized Memory ids, and Experience Compiler connects through a production generic HTTP intake adapter whose output still enters the Human-reviewed Proposal pipeline.",
+  "currentStep": "Personal Agent P1.3 is CI-verified on its feature branch: 13/13 triggered workflows passed, including Platform CI, Context Memory P1.3, P1.2 regression, Memory Intake/Review, Secrets, Authorization, session and enterprise Context/relationship/grant Providers. PR #71 is ready for mainline merge. Next mainline is P1.4 Memory evaluation/quality metrics, retention-policy simulation/dry-run and operational hardening.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1028,6 +1044,58 @@
       ],
       "physicalDeletion": "DEFERRED_NOT_CLAIMED",
       "next": "SCHEDULED_MEMORY_OPERATIONS_LEGAL_HOLD_DLP_AND_EIDOS_GOVERNANCE"
+    },
+    "contextP1_3": {
+      "status": "CI_VERIFIED_P1_3",
+      "authority": "docs/architecture/MEMORY-OPERATIONS-RETENTION-LEGAL-HOLD-DLP-P1.3-v0.1.md",
+      "capabilities": [
+        "context.memory.retention-policy",
+        "context.memory.legal-hold",
+        "context.memory.dlp-classification",
+        "context.memory.operations"
+      ],
+      "retentionPolicy": "APPEND_ONLY_POLICY_EVENTS_EARLIEST_MATCHING_DEADLINE",
+      "legalHold": "INDEPENDENT_APPEND_ONLY_HOLDS_BLOCK_RETENTION_EXPIRATION",
+      "legalHoldRelease": "RELEASE_MATCHING_HOLD_ONLY",
+      "governanceOrigins": [
+        "HUMAN",
+        "RETENTION_POLICY",
+        "DLP_PROVIDER"
+      ],
+      "dlpProvider": "remote.context-memory-dlp",
+      "dlpConfiguration": "APP_PLATFORM_MEMORY_DLP_URL",
+      "dlpCredential": "HOST_SECRETS_OPTIONAL_API_TOKEN",
+      "dlpFailure": "FAIL_CLOSED_BATCH_NO_PARTIAL_GOVERNANCE_MUTATION",
+      "dlpHumanOverride": "HUMAN_PRIVACY_GOVERNANCE_WINS",
+      "scheduledOperations": [
+        "RETENTION_EVALUATION",
+        "DLP_RECLASSIFICATION",
+        "SOURCE_INTAKE"
+      ],
+      "operationAudit": "DURABLE_JSONL_NOT_MEMORY_AUTHORITY",
+      "scheduler": "PROCESS_REENTRANCY_PLUS_DURABLE_TTL_LEASE",
+      "scheduleInterval": "APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS_MIN_60000",
+      "scheduledIntakeContexts": "EXPLICIT_APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_CONTEXTS_JSON",
+      "scheduledIntakeBackpressure": "ONE_PAGE_100_PER_CONTEXT_PER_TICK_WITH_DURABLE_NEXT_CURSOR",
+      "scheduledIntakeAuthority": "SERVICE_TO_PENDING_PROPOSAL_ONLY_HUMAN_ACCEPT_REQUIRED",
+      "eidosRoutes": [
+        "/memory",
+        "/memory/search",
+        "/memory/sources"
+      ],
+      "eidosSearchBoundary": "HOST_READER_VISIBLE_SET_ONLY_PRE_RANKING_SUPPRESSION_PRESERVED",
+      "enterpriseGovernance": [
+        "OWNER",
+        "ADMIN"
+      ],
+      "locales": [
+        "en",
+        "zh-CN",
+        "ja",
+        "zh-TW"
+      ],
+      "physicalDeletion": "NOT_IMPLEMENTED_NOT_CLAIMED",
+      "next": "P1_4_MEMORY_EVALUATION_POLICY_SIMULATION_AND_OPERATIONAL_HARDENING"
     }
   }
 }

@@ -195,6 +195,7 @@ export function createContextMemoryGovernanceActionHandlerV010(
           context: structuredClone(context),
           state,
           privacyClass,
+          origin: "HUMAN" as const,
           ...(reason ? { reason } : {}),
           ...(retainUntil ? { retainUntil } : {}),
           occurredAt: now().toISOString(),

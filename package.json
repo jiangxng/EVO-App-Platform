@@ -31,7 +31,8 @@
     "test:plugin:host-context-memory-provider": "npm run build && node --test tests/protocol/context-memory-governance.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:personal-agent-memory-review": "npm run build && node --test tests/protocol/context-memory-proposal-review.test.mjs tests/protocol/context-memory-governance.test.mjs tests/agent/enterprise-agent.test.mjs",
     "test:plugin:host-memory-intake-provider": "npm run build && node --test tests/protocol/context-memory-intake.test.mjs tests/protocol/context-memory-proposal-review.test.mjs tests/protocol/context-memory-governance.test.mjs",
-    "test:plugin:context-memory-p1-2": "npm run build && node --test tests/protocol/context-memory-retention-semantic-ec.test.mjs tests/protocol/context-memory-intake.test.mjs tests/protocol/context-memory-proposal-review.test.mjs tests/protocol/context-memory-governance.test.mjs"
+    "test:plugin:context-memory-p1-2": "npm run build && node --test tests/protocol/context-memory-retention-semantic-ec.test.mjs tests/protocol/context-memory-intake.test.mjs tests/protocol/context-memory-proposal-review.test.mjs tests/protocol/context-memory-governance.test.mjs",
+    "test:plugin:context-memory-p1-3": "npm run build && node --test tests/protocol/context-memory-p1-3-operations.test.mjs tests/protocol/context-memory-retention-semantic-ec.test.mjs tests/protocol/context-memory-intake.test.mjs tests/protocol/context-memory-proposal-review.test.mjs tests/protocol/context-memory-governance.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

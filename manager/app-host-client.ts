@@ -87,6 +87,18 @@ const platformActivities: WorkbenchActivityV010[] = [
     }
   },
   {
+    id: "memory",
+    title: "Memory",
+    icon: "database",
+    kind: "workspace-route",
+    route: "/memory",
+    order: 50,
+    localization: {
+      namespace: "evo-app-platform",
+      key: "workbench.activity.memory"
+    }
+  },
+  {
     id: "help",
     title: "Help",
     icon: "help",

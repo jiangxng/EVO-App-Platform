@@ -532,3 +532,66 @@ Authority:
 P1.2 deliberately does not claim physical deletion, legal hold, DLP classification, scheduled intake/expiration execution, or an App Platform-owned vector index.
 
 Next mainline: scheduled governed Memory operations + retention policy templates/legal hold + DLP/sensitive classification Provider + Eidos Memory governance/search/source-health surface + semantic retrieval observability/evaluation.
+
+
+## P1.3 — Scheduled Memory Operations, Retention Policy, Legal Hold, DLP and Eidos Governance
+
+P1.3 operationalizes the P1.2 governance model without creating a second Memory authority.
+
+Implemented on the P1.3 branch:
+
+- append-only Retention Policy events with ACTIVE/RETIRED lifecycle;
+- deterministic retention deadline evaluation from immutable Memory recordedAt;
+- earliest applicable policy deadline wins;
+- append-only independent Legal Hold overlays with PLACED/RELEASED lifecycle;
+- releasing one hold never releases another active hold on the same Memory;
+- Legal Hold blocks retention-driven expiration, including P1.2 read-time retainUntil expiration;
+- explicit RESTRICTED/EXPIRED governance is not reactivated by Legal Hold;
+- governance evidence origin HUMAN / RETENTION_POLICY / DLP_PROVIDER;
+- replaceable context.memory.dlp-classification Provider contract;
+- production remote HTTP DLP Provider;
+- DLP bearer token only through Host Secrets;
+- missing/invalid DLP Provider fails closed;
+- complete DLP Provider batch is evaluated before governance writes, preventing partial classification on remote failure;
+- Human privacy governance overrides automatic DLP classification;
+- scheduled operation evidence for RETENTION_EVALUATION / DLP_RECLASSIFICATION / SOURCE_INTAKE;
+- durable JSONL operation audit, explicitly not a Memory truth source;
+- scheduler process re-entrancy protection plus durable TTL lease for shared-state multi-process execution;
+- scheduled Source Intake only for explicit configured Contexts;
+- one-page-per-tick intake backpressure with limit=100;
+- durable nextCursor state across ticks, reset at source end;
+- scheduled intake uses SERVICE Principal but remains Pending Proposal only;
+- durable Memory creation still requires Human Review + Accept;
+- durable/in-memory Retention Policy, Legal Hold and scheduler cursor stores;
+- Eidos Workbench Memory activity;
+- Eidos /memory governance surface;
+- Eidos /memory/search surface through Host Reader;
+- Eidos /memory/sources Provider health surface;
+- Enterprise governance detail restricted to OWNER/ADMIN;
+- Search preserves RESTRICTED/EXPIRED pre-ranking suppression;
+- Memory Source Health never exposes Secret values;
+- App Platform Memory UI copy in en / zh-CN / ja / zh-TW;
+- Help guide in en / zh-CN;
+- dedicated P1.3 protocol/CI coverage.
+
+Authority:
+
+- `docs/architecture/MEMORY-OPERATIONS-RETENTION-LEGAL-HOLD-DLP-P1.3-v0.1.md`
+
+Production configuration introduced by P1.3:
+
+- `APP_PLATFORM_MEMORY_DLP_URL`;
+- `APP_PLATFORM_MEMORY_DLP_TIMEOUT_MS`;
+- `APP_PLATFORM_CONTEXT_MEMORY_RETENTION_POLICY_FILE`;
+- `APP_PLATFORM_CONTEXT_MEMORY_LEGAL_HOLD_FILE`;
+- `APP_PLATFORM_CONTEXT_MEMORY_OPERATIONS_FILE`;
+- `APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS`;
+- `APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_CONTEXTS_JSON`;
+- `APP_PLATFORM_CONTEXT_MEMORY_SCHEDULER_LEASE_FILE`;
+- `APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_STATE_FILE`.
+
+P1.3 does not implement or claim physical deletion of immutable Memory. Expiration is still a governance/visibility state.
+
+Completion gate passed: 13/13 triggered workflows were successful on the implementation head. `project.status.json` is now `CI_VERIFIED_P1_3`. PR #71 is ready for mainline merge.
+
+Next mainline after P1.3: Memory evaluation/quality metrics, retention-policy simulation/dry-run, operational hardening and broader long-running Provider observability without weakening Human/Context authority.

@@ -312,6 +312,10 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "context.memory.write",
   "context.memory.governance",
   "context.memory.semantic-retrieval",
+  "context.memory.retention-policy",
+  "context.memory.legal-hold",
+  "context.memory.dlp-classification",
+  "context.memory.operations",
   "context.memory.intake-source",
   "context.memory.evidence-source",
   "llm.inference",
@@ -497,6 +501,11 @@ export type ContextMemoryPrivacyClassV010 =
   | "SENSITIVE"
   | "RESTRICTED";
 
+export type ContextMemoryGovernanceEventOriginV010 =
+  | "HUMAN"
+  | "RETENTION_POLICY"
+  | "DLP_PROVIDER";
+
 export interface ContextMemoryGovernanceEventV010 {
   contractVersion: "0.1.0";
   eventId: string;
@@ -504,6 +513,7 @@ export interface ContextMemoryGovernanceEventV010 {
   context: ActiveContextRefV010;
   state: ContextMemoryGovernanceStateV010;
   privacyClass: ContextMemoryPrivacyClassV010;
+  origin?: ContextMemoryGovernanceEventOriginV010;
   reason?: string;
   retainUntil?: string;
   occurredAt: string;
@@ -554,4 +564,107 @@ export interface ContextMemorySemanticRetrieverV010 {
   ):
     | Promise<ContextMemorySemanticSearchResultV010>
     | ContextMemorySemanticSearchResultV010;
+}
+
+
+export type ContextMemoryRetentionPolicyStateV010 = "ACTIVE" | "RETIRED";
+
+export interface ContextMemoryRetentionPolicyEventV010 {
+  contractVersion: "0.1.0";
+  eventId: string;
+  policyId: string;
+  context: ActiveContextRefV010;
+  state: ContextMemoryRetentionPolicyStateV010;
+  retainForDays: number;
+  kinds?: ContextMemoryKindV010[];
+  privacyClasses?: ContextMemoryPrivacyClassV010[];
+  reason?: string;
+  occurredAt: string;
+  actorSubjectId: string;
+}
+
+export interface ContextMemoryRetentionPolicyV010 {
+  contractVersion: "0.1.0";
+  policyId: string;
+  context: ActiveContextRefV010;
+  state: ContextMemoryRetentionPolicyStateV010;
+  retainForDays: number;
+  kinds?: ContextMemoryKindV010[];
+  privacyClasses?: ContextMemoryPrivacyClassV010[];
+  reason?: string;
+  effectiveEventId: string;
+}
+
+export type ContextMemoryLegalHoldStateV010 = "PLACED" | "RELEASED";
+
+export interface ContextMemoryLegalHoldEventV010 {
+  contractVersion: "0.1.0";
+  eventId: string;
+  holdId: string;
+  memoryId: string;
+  context: ActiveContextRefV010;
+  state: ContextMemoryLegalHoldStateV010;
+  reason: string;
+  occurredAt: string;
+  actorSubjectId: string;
+}
+
+export interface ContextMemoryLegalHoldDecisionV010 {
+  contractVersion: "0.1.0";
+  holdId: string;
+  memoryId: string;
+  context: ActiveContextRefV010;
+  held: boolean;
+  reason: string;
+  effectiveEventId: string;
+}
+
+export interface ContextMemoryDlpClassificationRequestV010 {
+  contractVersion: "0.1.0";
+  context: ActiveContextRefV010;
+  memoryId?: string;
+  kind: ContextMemoryKindV010;
+  summary: string;
+}
+
+export interface ContextMemoryDlpClassificationResultV010 {
+  contractVersion: "0.1.0";
+  privacyClass: ContextMemoryPrivacyClassV010;
+  labels: string[];
+  confidence?: number;
+  reasonCodes: string[];
+}
+
+export interface ContextMemoryDlpClassifierV010 {
+  providerId: string;
+  classify(
+    input: ContextMemoryDlpClassificationRequestV010
+  ):
+    | Promise<ContextMemoryDlpClassificationResultV010>
+    | ContextMemoryDlpClassificationResultV010;
+}
+
+export type ContextMemoryOperationKindV010 =
+  | "RETENTION_EVALUATION"
+  | "DLP_RECLASSIFICATION"
+  | "SOURCE_INTAKE";
+
+export type ContextMemoryOperationStateV010 =
+  | "SUCCEEDED"
+  | "FAILED"
+  | "SKIPPED";
+
+export interface ContextMemoryOperationEventV010 {
+  contractVersion: "0.1.0";
+  operationId: string;
+  kind: ContextMemoryOperationKindV010;
+  context: ActiveContextRefV010;
+  state: ContextMemoryOperationStateV010;
+  startedAt: string;
+  completedAt: string;
+  examined: number;
+  changed: number;
+  skipped: number;
+  failureCode?: string;
+  message?: string;
 }

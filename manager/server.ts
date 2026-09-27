@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
@@ -62,6 +62,7 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
+  ContextMemoryDlpClassifierV010,
   ContextMemoryEvidenceSourceProviderV010,
   ContextMemoryGovernanceProviderV010,
   ContextMemoryIntakeSourceAdapterV010,
@@ -202,6 +203,16 @@ import {
   createRemoteContextMemorySemanticRetrieverV010
 } from "../providers/context-memory-semantic/runtime.js";
 import {
+  CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY,
+  REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
+  REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+  remoteContextMemoryDlpProviderPackage
+} from "../providers/context-memory-dlp/package.js";
+import {
+  createRemoteContextMemoryDlpClassifierV010,
+  createRemoteContextMemoryDlpHealthProbeV010
+} from "../providers/context-memory-dlp/runtime.js";
+import {
   EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
   EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
   EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
@@ -236,6 +247,24 @@ import {
   createMemoryContextMemoryGovernanceStoreV010
 } from "./context-memory-governance-store.js";
 import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
+import { createFileContextMemoryRetentionPolicyStoreV010, createMemoryContextMemoryRetentionPolicyStoreV010 } from "./context-memory-retention-policy-store.js";
+import { createFileContextMemoryLegalHoldStoreV010, createMemoryContextMemoryLegalHoldStoreV010 } from "./context-memory-legal-hold-store.js";
+import { createContextMemoryPolicyActionHandlersV010 } from "./context-memory-policy-actions.js";
+import {
+  createContextMemoryScheduledOperationsV010,
+  createJsonlContextMemoryOperationLogV010,
+  createMemoryContextMemoryOperationLogV010
+} from "./context-memory-operations.js";
+import {
+  createContextMemorySchedulerV010,
+  createFileContextMemorySchedulerLeaseV010,
+  createMemoryContextMemorySchedulerLeaseV010,
+  parseContextMemoryScheduleContextsV010
+} from "./context-memory-scheduler.js";
+import {
+  createFileContextMemoryScheduleStateStoreV010,
+  createMemoryContextMemoryScheduleStateStoreV010
+} from "./context-memory-schedule-state-store.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -293,6 +322,15 @@ import {
   providerManagerIndexPageSource
 } from "./provider-manager-page.js";
 import {
+  createMemoryGovernanceExperienceManifestV010,
+  createMemoryGovernancePageV010,
+  createMemorySearchPageV010,
+  createMemorySourceHealthPageV010,
+  memoryGovernancePageSource,
+  memorySearchPageSource,
+  memorySourceHealthPageSource
+} from "./memory-governance-page.js";
+import {
   createHelpExperienceManifestV010,
   createHelpIndexPageV010,
   helpIdFromPageSourceV010,
@@ -344,6 +382,7 @@ const catalog = createPackageCatalog([
   hostContextMemoryProviderPackage,
   hostMemoryIntakeProviderPackage,
   remoteContextMemorySemanticProviderPackage,
+  remoteContextMemoryDlpProviderPackage,
   experienceCompilerMemoryIntakeProviderPackage,
   tradingLitePackage
 ]);
@@ -367,6 +406,45 @@ const contextMemoryGovernanceStateFile =
 const contextMemoryGovernanceStore = contextMemoryGovernanceStateFile
   ? createFileContextMemoryGovernanceStoreV010(contextMemoryGovernanceStateFile)
   : createMemoryContextMemoryGovernanceStoreV010();
+const contextMemoryRetentionPolicyStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_RETENTION_POLICY_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-retention-policy.json") : undefined);
+const contextMemoryRetentionPolicyStore = contextMemoryRetentionPolicyStateFile
+  ? createFileContextMemoryRetentionPolicyStoreV010(contextMemoryRetentionPolicyStateFile)
+  : createMemoryContextMemoryRetentionPolicyStoreV010();
+const contextMemoryLegalHoldStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_LEGAL_HOLD_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-legal-hold.json") : undefined);
+const contextMemoryLegalHoldStore = contextMemoryLegalHoldStateFile
+  ? createFileContextMemoryLegalHoldStoreV010(contextMemoryLegalHoldStateFile)
+  : createMemoryContextMemoryLegalHoldStoreV010();
+const contextMemoryOperationLogFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_OPERATIONS_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-operations.jsonl") : undefined);
+const contextMemoryOperationLog = contextMemoryOperationLogFile
+  ? createJsonlContextMemoryOperationLogV010(contextMemoryOperationLogFile)
+  : createMemoryContextMemoryOperationLogV010();
+const contextMemoryScheduleMs = Number(
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS?.trim() || "0"
+);
+if (!Number.isFinite(contextMemoryScheduleMs) || contextMemoryScheduleMs < 0) {
+  throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_INVALID");
+}
+if (contextMemoryScheduleMs > 0 && contextMemoryScheduleMs < 60_000) {
+  throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_TOO_SMALL");
+}
+const contextMemoryScheduleContexts = parseContextMemoryScheduleContextsV010(
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_CONTEXTS_JSON
+);
+const contextMemorySchedulerLeaseFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULER_LEASE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-scheduler.lease.json") : undefined);
+const contextMemoryScheduleStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_STATE_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-schedule-state.json") : undefined);
+const contextMemoryScheduleStateStore = contextMemoryScheduleStateFile
+  ? createFileContextMemoryScheduleStateStoreV010(contextMemoryScheduleStateFile)
+  : createMemoryContextMemoryScheduleStateStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -542,7 +620,11 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   checkedAt: new Date().toISOString()
 });
 const contextMemoryGovernanceProvider =
-  createHostContextMemoryGovernanceProviderV010(contextMemoryGovernanceStore);
+  createHostContextMemoryGovernanceProviderV010(
+    contextMemoryGovernanceStore,
+    () => new Date(),
+    contextMemoryLegalHoldStore
+  );
 providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
   HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
   contextMemoryGovernanceProvider
@@ -587,6 +669,10 @@ providerRuntimeRegistry.setHealth(
 const remoteSemanticEndpoint = process.env.APP_PLATFORM_MEMORY_SEMANTIC_URL?.trim();
 const remoteSemanticTimeoutMs = Number(
   process.env.APP_PLATFORM_MEMORY_SEMANTIC_TIMEOUT_MS?.trim() || "8000"
+);
+const remoteDlpEndpoint = process.env.APP_PLATFORM_MEMORY_DLP_URL?.trim();
+const remoteDlpTimeoutMs = Number(
+  process.env.APP_PLATFORM_MEMORY_DLP_TIMEOUT_MS?.trim() || "8000"
 );
 const experienceCompilerMemoryIntakeConfig =
   parseExperienceCompilerMemoryIntakeConfigV010(
@@ -812,6 +898,19 @@ if (
   }
 }
 if (
+  remoteDlpEndpoint
+  && !installedAtStartup.some(
+    item => item.packageId === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
+    console.log("Activated Remote Context Memory DLP Provider.");
+  } catch (error) {
+    console.error("Failed to activate Remote Context Memory DLP Provider.", error);
+  }
+}
+if (
   experienceCompilerMemoryIntakeConfig
   && !installedAtStartup.some(
     item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
@@ -857,7 +956,7 @@ if (
     console.error("Failed to activate Host Enterprise Context Provider.", error);
   }
 }
-const hasInstalledSecretConsumer = installedAtStartup.some(installed => {
+const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
 });
@@ -959,6 +1058,16 @@ function resolveContextMemorySemanticRetriever(): ContextMemorySemanticRetriever
     manager.listEffectiveServiceProviders(CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY),
     providerBindings,
     CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryDlpClassifier(): ContextMemoryDlpClassifierV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryDlpClassifierV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -1250,6 +1359,43 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
     })
   );
 
+  if (remoteDlpEndpoint) {
+    try {
+      const bearerToken = await optionalInstallationSecret(
+        REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
+        "apiToken"
+      );
+      const options = {
+        endpoint: remoteDlpEndpoint,
+        ...(Number.isFinite(remoteDlpTimeoutMs)
+          ? { timeoutMs: remoteDlpTimeoutMs }
+          : {}),
+        ...(bearerToken ? { bearerToken } : {})
+      };
+      providerRuntimeRegistry.replace<ContextMemoryDlpClassifierV010>(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        createRemoteContextMemoryDlpClassifierV010(options)
+      );
+      providerRuntimeRegistry.setHealthProbe(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        createRemoteContextMemoryDlpHealthProbeV010(options)
+      );
+      providerRuntimeRegistry.setHealth(
+        REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+        {
+          state: "UNKNOWN",
+          message: "Remote Memory DLP Provider is configured; no classification has been executed yet.",
+          checkedAt: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+      console.error("Remote Context Memory DLP Provider failed closed.", error);
+    }
+  } else {
+    providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+  }
+
   if (experienceCompilerMemoryIntakeConfig) {
     try {
       const bearerToken = await optionalInstallationSecret(
@@ -1343,6 +1489,73 @@ const contextMemoryIntakeService = createContextMemoryIntakeServiceV010({
   resolveEvidenceSourceProvider: resolveContextMemoryEvidenceSourceProvider
 });
 
+const contextMemoryScheduledOperations = createContextMemoryScheduledOperationsV010({
+  memoryStore: contextMemoryStore,
+  governanceStore: contextMemoryGovernanceStore,
+  retentionPolicies: contextMemoryRetentionPolicyStore,
+  legalHolds: contextMemoryLegalHoldStore,
+  operationLog: contextMemoryOperationLog,
+  resolveDlpClassifier: resolveContextMemoryDlpClassifier
+});
+const contextMemorySchedulerLease = contextMemorySchedulerLeaseFile
+  ? createFileContextMemorySchedulerLeaseV010(
+      contextMemorySchedulerLeaseFile,
+      `context-memory-scheduler:${process.pid}:${randomUUID()}`,
+      Math.max(contextMemoryScheduleMs > 0 ? contextMemoryScheduleMs * 2 : 120_000, 120_000)
+    )
+  : createMemoryContextMemorySchedulerLeaseV010();
+const contextMemoryScheduler = createContextMemorySchedulerV010({
+  operations: contextMemoryScheduledOperations,
+  operationLog: contextMemoryOperationLog,
+  lease: contextMemorySchedulerLease,
+  listGovernanceContexts() {
+    return contextMemoryStore.snapshot().items.map(item => item.context);
+  },
+  listIntakeContexts() {
+    return contextMemoryScheduleContexts;
+  },
+  async runSourceIntake(context) {
+    const adapter = resolveContextMemoryIntakeSource();
+    if (!adapter) throw new Error("CONTEXT_MEMORY_INTAKE_SOURCE_REQUIRED");
+    const cursorState = contextMemoryScheduleStateStore.get(adapter.sourceId, context);
+    const result = await contextMemoryIntakeService.run({
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId: "system:context-memory-scheduler",
+        actorType: "SERVICE",
+        identityProviderId: "host.scheduler",
+        displayName: "Context Memory Scheduler"
+      },
+      context,
+      ...(cursorState?.cursor ? { cursor: cursorState.cursor } : {}),
+      limit: 100
+    });
+    contextMemoryScheduleStateStore.set({
+      contractVersion: "0.1.0",
+      sourceId: adapter.sourceId,
+      context: structuredClone(context),
+      ...(result.nextCursor ? { cursor: result.nextCursor } : {}),
+      updatedAt: new Date().toISOString()
+    });
+    const proposed = result.receipts.filter(receipt => receipt.outcome === "PROPOSED").length;
+    const duplicateFingerprints = result.receipts.length - proposed;
+    return {
+      examined: result.receipts.length + result.reusedSourceRecordReceiptIds.length,
+      changed: proposed,
+      skipped: duplicateFingerprints + result.reusedSourceRecordReceiptIds.length
+    };
+  }
+});
+let contextMemoryScheduleTimer: NodeJS.Timeout | undefined;
+if (contextMemoryScheduleMs > 0) {
+  contextMemoryScheduleTimer = setInterval(() => {
+    void contextMemoryScheduler.tick().catch(error => {
+      console.error("Scheduled Context Memory operation failed.", error);
+    });
+  }, contextMemoryScheduleMs);
+  contextMemoryScheduleTimer.unref();
+}
+
 function resolveContextForPrincipal(
   principal: PlatformPrincipalV010,
   ref: ActiveContextRefV010
@@ -1378,6 +1591,13 @@ const actionRouter = createAppActionRouter(
     createContextMemoryGovernanceActionHandlerV010({
       memoryStore: contextMemoryStore,
       governanceStore: contextMemoryGovernanceStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
+    }),
+    ...createContextMemoryPolicyActionHandlersV010({
+      memoryStore: contextMemoryStore,
+      retentionPolicies: contextMemoryRetentionPolicyStore,
+      legalHolds: contextMemoryLegalHoldStore,
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
     }),
@@ -1795,6 +2015,7 @@ const server = createServer(async (request, response) => {
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
+        createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
         ...manager.listEffectiveExperiences()
       ]);
@@ -1945,6 +2166,50 @@ const server = createServer(async (request, response) => {
             }
           }
         ));
+      }
+      if (
+        source === memoryGovernancePageSource
+        || source === memorySearchPageSource
+        || source === memorySourceHealthPageSource
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        if (source === memorySourceHealthPageSource) {
+          return json(response, 200, createMemorySourceHealthPageV010({
+            manager,
+            registry: providerRuntimeRegistry
+          }));
+        }
+        if (source === memorySearchPageSource) {
+          const reader = resolveContextMemoryReader();
+          if (!reader) {
+            return json(response, 503, {
+              code: "CONTEXT_MEMORY_READER_REQUIRED"
+            });
+          }
+          return json(response, 200, await createMemorySearchPageV010({
+            context: resolved.activeContext,
+            reader
+          }));
+        }
+        const governance = resolveContextMemoryGovernanceProvider();
+        if (!governance) {
+          return json(response, 503, {
+            code: "CONTEXT_MEMORY_GOVERNANCE_PROVIDER_REQUIRED"
+          });
+        }
+        return json(response, 200, createMemoryGovernancePageV010({
+          principal: session.principal,
+          personalContext: resolved.personalContext,
+          context: resolved.activeContext,
+          memoryStore: contextMemoryStore,
+          governance,
+          retentionPolicies: contextMemoryRetentionPolicyStore,
+          legalHolds: contextMemoryLegalHoldStore,
+          operationLog: contextMemoryOperationLog,
+          relationships: resolveEnterpriseContextRelationshipProvider()
+        }));
       }
       if (source === settingsIndexPageSource) {
         return json(response, 200, createSettingsIndexPage(manager));
@@ -2391,6 +2656,7 @@ const server = createServer(async (request, response) => {
           }
           if (
             namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+            || namespace === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
             || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
           ) {
             await refreshP12MemoryProviderRuntimes();
@@ -2766,6 +3032,8 @@ async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
+  if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
+  contextMemorySchedulerLease.release();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
