@@ -278,7 +278,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4D is implemented on its feature branch and pending CI: Human and authorized Lab evaluators can append subjective quality evidence only for existing Host-observed interactions; objective tool metrics remain Host-only and are not double-counted. Memory Quality is a separate append-only overlay exposing evidence trust, observedAt-based freshness and OPEN/RESOLVED/DISMISSED contradiction lifecycle without rewriting immutable Memory.",
+  "currentStep": "P1.4D is CI-verified: 19/19 triggered workflows passed, including Platform CI, Experience CI, P1.4A/P1.4B/P1.4C regressions, P1.2/P1.3 Memory suites and the dedicated P1.4D Quality CI. Human/Lab subjective evaluation now requires existing Host evidence; objective tool metrics remain Host-only. Memory Quality uses an append-only overlay for evidence trust, observedAt-based freshness and contradiction lifecycle without rewriting immutable Memory. Next: bounded trend windows after enough real evidence, configurable freshness policies and follow-up Agent work from resolved contradictions.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1216,7 +1216,7 @@
       "policyTruth": "APPEND_ONLY_RETENTION_POLICY_STORE"
     },
     "qualityEvaluationP1_4D": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4D",
       "authority": "docs/architecture/PERSONAL-AGENT-HUMAN-EVAL-MEMORY-QUALITY-P1.4D-v0.1.md",
       "action": "enterprise-agent.quality.evaluate",
       "human": "SELF_INTERACTION_SAME_CONTEXT",
@@ -1231,7 +1231,7 @@
       "compositeScore": false
     },
     "memoryQualityP1_4D": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4D",
       "persistence": "APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE_OR_STATE_SIBLING",
       "immutableMemory": true,
       "dimensions": [
