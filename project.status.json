@@ -269,7 +269,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4C is implemented on its feature branch and pending CI: successful Personal Agent interactions emit scoped Host-observed objective quality evidence; subjective dimensions remain UNKNOWN until explicit evaluation. Retention policy changes now use an append-only non-authoritative Draft → simulation → Human confirmation → fresh-preview check → formal append-only policy commit flow. Stale preview fails closed.",
+  "currentStep": "P1.4C is CI-verified: 18/18 triggered workflows passed, including Platform CI, P1.3.1 Experience CI, P1.4A Responsibility, P1.4B Quality, P1.2/P1.3 Memory regressions and the dedicated P1.4C Quality Flow CI. Personal Agent now records real Host-observed objective quality evidence scoped by Principal+Context. Retention policy changes use non-authoritative append-only Draft → simulation → Human confirmation → fresh-preview verification → authoritative append-only commit. Next: Human/lab subjective evaluation ingestion and Memory evidence quality/freshness/contradiction lifecycle.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1176,7 +1176,7 @@
       "next": "CANDIDATE_POLICY_EDITING_FLOW_AND_REAL_QUALITY_EVIDENCE"
     },
     "qualityEvidenceP1_4C": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4C",
       "authority": "docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md",
       "persistence": "APP_PLATFORM_PERSONAL_AGENT_QUALITY_FILE_OR_STATE_SIBLING_JSONL",
       "automaticSource": "HOST_OBSERVED",
@@ -1189,7 +1189,7 @@
       "fakeMetrics": false
     },
     "retentionDraftP1_4C": {
-      "status": "IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED_P1_4C",
       "persistence": "APP_PLATFORM_CONTEXT_MEMORY_RETENTION_DRAFT_FILE_OR_STATE_SIBLING",
       "states": [
         "PREPARED",
