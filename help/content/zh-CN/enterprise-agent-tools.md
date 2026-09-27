@@ -187,3 +187,25 @@ Evidence Source 具有稳定身份，并使用三种来源保障等级：
 Experience Compiler 通过通用 `ContextMemoryIntakeSourceAdapterV010` 边界接入；App Platform 不依赖 EC 内部数据结构或学习实现。
 
 Context Memory Reader 现在显式返回 retrieval strategy 与 ranking signal。参考 Host Reader 只实现确定性的 `LEXICAL` 检索；如果请求尚未实现的 SEMANTIC/HYBRID，会 fail-closed，而不会静默降级。
+
+
+## Memory 保留、隐私与语义检索
+
+P1.2 为持久化 Context Memory 增加追加式治理层。
+
+`context.memory.governance.set` 可以把 Memory 标记为 ACTIVE、RESTRICTED 或 EXPIRED，并设置 STANDARD、SENSITIVE、RESTRICTED 隐私分类以及可选的保留截止时间。
+
+Memory 本体不会被改写。所有治理变化都会形成独立的追加式 Governance Event。
+
+默认情况下，个人 Agent 检索会排除 RESTRICTED / EXPIRED Memory，以及隐私分类为 RESTRICTED 的 Memory。过滤发生在关键词、语义或 Hybrid 排序之前。
+
+Enterprise Memory 的保留/隐私治理要求 OWNER 或 ADMIN。MEMBER 可以按照 P0.9 规则贡献 Memory，但不能修改企业级保留或隐私策略。
+
+P1.2 还通过可替换的 `context.memory.semantic-retrieval` Provider 支持 `SEMANTIC` 与 `HYBRID` 检索。如果没有配置语义 Provider，这两种策略会 fail-closed，不会把关键词检索伪装成语义检索。
+
+可选 Remote Semantic Provider 只能接收已经通过 Context 授权和治理过滤的候选 Memory，也不能返回候选集以外的 Memory ID。
+
+Experience Compiler 可通过生产级 `experience-compiler-memory-intake-provider` 接入。EC 数据仍然必须进入 P1.1 Proposal 审核流程，不会获得直接写入 durable Memory 的权限。
+
+> [!IMPORTANT] 来源可信度不等于内容为真
+> HOST_VERIFIED 只表示 Host 按策略验证了来源或集成身份。Proposal 是否成为 durable Memory，仍由 Human Review 决定。

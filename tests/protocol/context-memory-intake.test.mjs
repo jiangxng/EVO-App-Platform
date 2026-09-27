@@ -486,7 +486,7 @@ test("LEXICAL retrieval returns explicit ranking and unsupported semantic strate
   assert.equal(result.ranking[0].score, 0.75);
   assert.deepEqual(result.ranking[0].signals, ["SUMMARY_CONTAINS"]);
 
-  assert.throws(
+  await assert.rejects(
     () => reader.read({
       contractVersion: "0.1.0",
       context: personalRef,

@@ -63,8 +63,10 @@ import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
   ContextMemoryEvidenceSourceProviderV010,
+  ContextMemoryGovernanceProviderV010,
   ContextMemoryIntakeSourceAdapterV010,
   ContextMemoryReaderV010,
+  ContextMemorySemanticRetrieverV010,
   ContextMemoryWriterV010,
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
@@ -172,8 +174,10 @@ import {
   createHostEnterpriseRelationshipProviderV010
 } from "../providers/enterprise-relationship/runtime.js";
 import {
+  CONTEXT_MEMORY_GOVERNANCE_CAPABILITY,
   CONTEXT_MEMORY_READ_CAPABILITY,
   CONTEXT_MEMORY_WRITE_CAPABILITY,
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_PACKAGE_ID,
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
@@ -184,6 +188,31 @@ import {
   createHostContextMemoryReaderV010,
   createHostContextMemoryWriterV010
 } from "../providers/context-memory/runtime.js";
+import {
+  createHostContextMemoryGovernanceProviderV010
+} from "../providers/context-memory/governance.js";
+import {
+  CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
+  REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
+  REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+  remoteContextMemorySemanticProviderPackage
+} from "../providers/context-memory-semantic/package.js";
+import {
+  createRemoteContextMemorySemanticHealthProbeV010,
+  createRemoteContextMemorySemanticRetrieverV010
+} from "../providers/context-memory-semantic/runtime.js";
+import {
+  EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
+  EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
+  EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+  experienceCompilerMemoryIntakeProviderPackage
+} from "../providers/experience-compiler-memory/package.js";
+import {
+  createExperienceCompilerEvidenceSourceProviderV010,
+  createExperienceCompilerMemoryIntakeHealthProbeV010,
+  createExperienceCompilerMemoryIntakeSourceAdapterV010,
+  parseExperienceCompilerMemoryIntakeConfigV010
+} from "../providers/experience-compiler-memory/runtime.js";
 import {
   CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY,
   CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY,
@@ -202,6 +231,11 @@ import {
   createFileContextMemoryStoreV010,
   createMemoryContextMemoryStoreV010
 } from "./context-memory-store.js";
+import {
+  createFileContextMemoryGovernanceStoreV010,
+  createMemoryContextMemoryGovernanceStoreV010
+} from "./context-memory-governance-store.js";
+import { createContextMemoryGovernanceActionHandlerV010 } from "./context-memory-governance-actions.js";
 import { createContextMemoryActionHandlersV010 } from "./context-memory-actions.js";
 import {
   createFileContextMemoryProposalStoreV010,
@@ -309,6 +343,8 @@ const catalog = createPackageCatalog([
   hostEnterpriseRelationshipProviderPackage,
   hostContextMemoryProviderPackage,
   hostMemoryIntakeProviderPackage,
+  remoteContextMemorySemanticProviderPackage,
+  experienceCompilerMemoryIntakeProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -323,6 +359,14 @@ const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.tri
 const contextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const contextMemoryGovernanceStateFile =
+  process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "context-memory-governance.json")
+    : undefined);
+const contextMemoryGovernanceStore = contextMemoryGovernanceStateFile
+  ? createFileContextMemoryGovernanceStoreV010(contextMemoryGovernanceStateFile)
+  : createMemoryContextMemoryGovernanceStoreV010();
 const contextMemoryProposalStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_PROPOSALS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-proposals.json") : undefined);
 const contextMemoryProposalStore = contextMemoryProposalStateFile
@@ -497,9 +541,17 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   message: "Host Enterprise Context Provider is active.",
   checkedAt: new Date().toISOString()
 });
+const contextMemoryGovernanceProvider =
+  createHostContextMemoryGovernanceProviderV010(contextMemoryGovernanceStore);
+providerRuntimeRegistry.replace<ContextMemoryGovernanceProviderV010>(
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
+  contextMemoryGovernanceProvider
+);
 providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
   HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
-  createHostContextMemoryReaderV010(contextMemoryStore)
+  createHostContextMemoryReaderV010(contextMemoryStore, {
+    governance: contextMemoryGovernanceProvider
+  })
 );
 providerRuntimeRegistry.replace<ContextMemoryWriterV010>(
   HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID,
@@ -523,6 +575,23 @@ providerRuntimeRegistry.setHealth(HOST_CONTEXT_MEMORY_WRITER_PROVIDER_ID, {
   message: "Host Context Memory Writer is active.",
   checkedAt: new Date().toISOString()
 });
+providerRuntimeRegistry.setHealth(
+  HOST_CONTEXT_MEMORY_GOVERNANCE_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Host Context Memory retention/privacy governance is active.",
+    checkedAt: new Date().toISOString()
+  }
+);
+
+const remoteSemanticEndpoint = process.env.APP_PLATFORM_MEMORY_SEMANTIC_URL?.trim();
+const remoteSemanticTimeoutMs = Number(
+  process.env.APP_PLATFORM_MEMORY_SEMANTIC_TIMEOUT_MS?.trim() || "8000"
+);
+const experienceCompilerMemoryIntakeConfig =
+  parseExperienceCompilerMemoryIntakeConfigV010(
+    process.env.APP_PLATFORM_EC_MEMORY_INTAKE_JSON
+  );
 
 const hostMemoryIntakeConfig = parseHostMemoryIntakeConfigV010(
   process.env.APP_PLATFORM_MEMORY_INTAKE_JSON
@@ -730,6 +799,32 @@ if (
   }
 }
 if (
+  remoteSemanticEndpoint
+  && !installedAtStartup.some(
+    item => item.packageId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
+    console.log("Activated Remote Context Memory Semantic Provider.");
+  } catch (error) {
+    console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
+  }
+}
+if (
+  experienceCompilerMemoryIntakeConfig
+  && !installedAtStartup.some(
+    item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
+    console.log("Activated Experience Compiler Memory Intake Provider.");
+  } catch (error) {
+    console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
+  }
+}
+if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
@@ -844,6 +939,26 @@ function resolveContextMemoryWriter(): ContextMemoryWriterV010 | undefined {
     manager.listEffectiveServiceProviders(CONTEXT_MEMORY_WRITE_CAPABILITY),
     providerBindings,
     CONTEXT_MEMORY_WRITE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemoryGovernanceProvider(): ContextMemoryGovernanceProviderV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemoryGovernanceProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_GOVERNANCE_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_GOVERNANCE_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function resolveContextMemorySemanticRetriever(): ContextMemorySemanticRetrieverV010 | undefined {
+  return resolveProviderRuntimeV010<ContextMemorySemanticRetrieverV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY),
+    providerBindings,
+    CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
 }
@@ -989,6 +1104,33 @@ const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" 
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 
+function installationSecretReference(
+  namespace: string,
+  key: string
+): SecretReferenceV010 {
+  return {
+    contractVersion: "0.1.0",
+    namespace,
+    key,
+    scope: "INSTALLATION",
+    scopeId: "default"
+  };
+}
+
+async function optionalInstallationSecret(
+  namespace: string,
+  key: string
+): Promise<string | undefined> {
+  const secrets = resolveManagedSecretsProvider();
+  if (!secrets) throw new Error("SECRETS_PROVIDER_REQUIRED");
+  const reference = installationSecretReference(namespace, key);
+  const status = await secrets.describe(reference);
+  if (!status.configured) return undefined;
+  const value = (await secrets.resolve(reference)).trim();
+  if (!value) throw new Error(`SECRET_VALUE_EMPTY: ${namespace}/${key}`);
+  return value;
+}
+
 function openAiApiKeyReference(): SecretReferenceV010 {
   return {
     contractVersion: "0.1.0",
@@ -1059,6 +1201,116 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
 
 await refreshOpenAiProviderRuntime();
 
+async function refreshP12MemoryProviderRuntimes(): Promise<void> {
+  let semanticRetriever: ContextMemorySemanticRetrieverV010 | undefined;
+
+  if (remoteSemanticEndpoint) {
+    try {
+      const bearerToken = await optionalInstallationSecret(
+        REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
+        "apiToken"
+      );
+      const options = {
+        endpoint: remoteSemanticEndpoint,
+        ...(Number.isFinite(remoteSemanticTimeoutMs)
+          ? { timeoutMs: remoteSemanticTimeoutMs }
+          : {}),
+        ...(bearerToken ? { bearerToken } : {})
+      };
+      providerRuntimeRegistry.replace<ContextMemorySemanticRetrieverV010>(
+        REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+        createRemoteContextMemorySemanticRetrieverV010(options)
+      );
+      providerRuntimeRegistry.setHealthProbe(
+        REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+        createRemoteContextMemorySemanticHealthProbeV010(options)
+      );
+      providerRuntimeRegistry.setHealth(
+        REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+        {
+          state: "UNKNOWN",
+          message: "Remote semantic retrieval Provider is configured; no query has been executed yet.",
+          checkedAt: new Date().toISOString()
+        }
+      );
+      semanticRetriever = resolveContextMemorySemanticRetriever();
+    } catch (error) {
+      providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
+      console.error("Remote Context Memory Semantic Provider failed closed.", error);
+    }
+  } else {
+    providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
+  }
+
+  providerRuntimeRegistry.replace<ContextMemoryReaderV010>(
+    HOST_CONTEXT_MEMORY_READER_PROVIDER_ID,
+    createHostContextMemoryReaderV010(contextMemoryStore, {
+      governance: contextMemoryGovernanceProvider,
+      ...(semanticRetriever ? { semanticRetriever } : {})
+    })
+  );
+
+  if (experienceCompilerMemoryIntakeConfig) {
+    try {
+      const bearerToken = await optionalInstallationSecret(
+        EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
+        "apiToken"
+      );
+      const options = {
+        config: experienceCompilerMemoryIntakeConfig,
+        ...(bearerToken ? { bearerToken } : {})
+      };
+      providerRuntimeRegistry.replace<ContextMemoryEvidenceSourceProviderV010>(
+        EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
+        createExperienceCompilerEvidenceSourceProviderV010(
+          experienceCompilerMemoryIntakeConfig
+        )
+      );
+      providerRuntimeRegistry.replace<ContextMemoryIntakeSourceAdapterV010>(
+        EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+        createExperienceCompilerMemoryIntakeSourceAdapterV010(options)
+      );
+      providerRuntimeRegistry.setHealthProbe(
+        EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
+        createExperienceCompilerMemoryIntakeHealthProbeV010(
+          experienceCompilerMemoryIntakeConfig
+        )
+      );
+      providerRuntimeRegistry.setHealthProbe(
+        EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+        createExperienceCompilerMemoryIntakeHealthProbeV010(
+          experienceCompilerMemoryIntakeConfig
+        )
+      );
+      providerRuntimeRegistry.setHealth(
+        EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
+        {
+          state: "HEALTHY",
+          message: `Experience Compiler evidence source '${experienceCompilerMemoryIntakeConfig.source.sourceId}' is configured.`,
+          checkedAt: new Date().toISOString()
+        }
+      );
+      providerRuntimeRegistry.setHealth(
+        EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+        {
+          state: "UNKNOWN",
+          message: "Experience Compiler intake endpoint is configured; no pull has been executed yet.",
+          checkedAt: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID);
+      providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
+      console.error("Experience Compiler Memory Intake Provider failed closed.", error);
+    }
+  } else {
+    providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID);
+    providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
+  }
+}
+
+await refreshP12MemoryProviderRuntimes();
+
 function resolveLlmProvider(): {
   installedProviderIds: string[];
   provider?: LlmInferenceProvider;
@@ -1122,6 +1374,12 @@ const actionRouter = createAppActionRouter(
           principalContextSources()
         ).list();
       }
+    }),
+    createContextMemoryGovernanceActionHandlerV010({
+      memoryStore: contextMemoryStore,
+      governanceStore: contextMemoryGovernanceStore,
+      resolveAuthorizationProvider,
+      resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider
     }),
     ...createContextMemoryProposalActionHandlersV010({
       service: contextMemoryProposalService,
@@ -2130,6 +2388,12 @@ const server = createServer(async (request, response) => {
 
           if (namespace === OPENAI_LLM_PACKAGE_ID) {
             await refreshOpenAiProviderRuntime();
+          }
+          if (
+            namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+            || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
+          ) {
+            await refreshP12MemoryProviderRuntimes();
           }
 
           const secretStatus = await Promise.all(

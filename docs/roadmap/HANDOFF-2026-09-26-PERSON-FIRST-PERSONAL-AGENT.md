@@ -496,3 +496,39 @@ Authority:
 P1.1 does **not** claim semantic/vector retrieval is implemented. It establishes the strategy/ranking contract and lexical reference behavior.
 
 Next mainline: retention/privacy governance + sensitive-data boundaries + production semantic/hybrid Memory Reader + production EC adapter + governed source credentials/health/backpressure/scheduling.
+
+
+## P1.2 — Memory Retention, Privacy, Semantic Retrieval and Production EC Adapter
+
+P1.2 is CI-verified and extends the P0.9–P1.1 Memory pipeline without weakening Human or Context authority.
+
+Implemented:
+
+- `context.memory.governance` capability and Host governance Provider;
+- separate append-only retention/privacy governance events; durable Memory records remain immutable;
+- governance states `ACTIVE / RESTRICTED / EXPIRED`;
+- privacy classes `STANDARD / SENSITIVE / RESTRICTED`;
+- optional `retainUntil` evaluated at read time;
+- `context.memory.governance.set` with Human confirmation + `authorization.check`;
+- Personal governance by Personal owner; Enterprise governance by OWNER/ADMIN only;
+- restricted/expired/privacy-restricted Memory filtered before any ranking Provider sees candidates;
+- `context.memory.semantic-retrieval` Provider contract;
+- SEMANTIC and HYBRID retrieval with explicit Provider-backed ranking;
+- unsupported semantic retrieval fails closed rather than impersonating semantic search with lexical behavior;
+- remote semantic HTTP Provider `remote.context-memory-semantic`;
+- semantic ranking output restricted to the Host-authorized candidate set;
+- optional semantic API token resolved only through Host Secrets;
+- production `experience-compiler-memory-intake-provider`;
+- generic HTTP EC intake contract with no EC internal implementation dependency;
+- EC evidence remains source identity/integrity metadata, not truth authority;
+- EC can only stage PENDING proposals through the existing P1.1 pipeline and cannot directly write durable Memory;
+- optional EC API token resolved only through Host Secrets;
+- four-locale Provider secret configuration copy for en / zh-CN / ja / zh-TW.
+
+Authority:
+
+- `docs/architecture/MEMORY-RETENTION-PRIVACY-SEMANTIC-EC-P1.2-v0.1.md`
+
+P1.2 deliberately does not claim physical deletion, legal hold, DLP classification, scheduled intake/expiration execution, or an App Platform-owned vector index.
+
+Next mainline: scheduled governed Memory operations + retention policy templates/legal hold + DLP/sensitive classification Provider + Eidos Memory governance/search/source-health surface + semantic retrieval observability/evaluation.
