@@ -45,6 +45,19 @@ function cursorOffset(cursor: string | undefined): number {
   return offset;
 }
 
+function normalizeLexicalText(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase().trim();
+}
+
+function lexicalTokens(query: string): string[] {
+  return [...new Set(
+    normalizeLexicalText(query)
+      .split(/\s+/u)
+      .map(token => token.trim())
+      .filter(Boolean)
+  )];
+}
+
 function lexicalScore(item: ContextMemoryItemV010, query: string | undefined) {
   if (!query) {
     return {
@@ -52,19 +65,63 @@ function lexicalScore(item: ContextMemoryItemV010, query: string | undefined) {
       signals: ["RECENCY_ORDER"]
     };
   }
-  const summary = item.summary.toLocaleLowerCase();
-  const exact = summary === query;
-  const summaryContains = summary.includes(query);
-  const evidenceContains = item.provenance.evidenceRefs.some(ref =>
-    ref.toLocaleLowerCase().includes(query)
+
+  const normalizedQuery = normalizeLexicalText(query);
+  const summary = normalizeLexicalText(item.summary);
+  const evidenceRefs = item.provenance.evidenceRefs.map(normalizeLexicalText);
+  const exact = summary === normalizedQuery;
+  const summaryContains = summary.includes(normalizedQuery);
+  const evidenceContains = evidenceRefs.some(ref => ref.includes(normalizedQuery));
+
+  const tokens = lexicalTokens(normalizedQuery);
+  const summaryTokenMatches = tokens.filter(token => summary.includes(token));
+  const evidenceTokenMatches = tokens.filter(token =>
+    evidenceRefs.some(ref => ref.includes(token))
   );
-  const score = exact ? 1 : summaryContains ? 0.75 : evidenceContains ? 0.5 : 0;
+  const allSummaryTokens = tokens.length > 1
+    && summaryTokenMatches.length === tokens.length;
+  const allEvidenceTokens = tokens.length > 1
+    && evidenceTokenMatches.length === tokens.length;
+  const partialSummaryCoverage = tokens.length > 1
+    ? summaryTokenMatches.length / tokens.length
+    : 0;
+  const partialEvidenceCoverage = tokens.length > 1
+    ? evidenceTokenMatches.length / tokens.length
+    : 0;
+
+  const tokenScore = allSummaryTokens
+    ? 0.7
+    : allEvidenceTokens
+      ? 0.45
+      : summaryTokenMatches.length >= 2 && partialSummaryCoverage >= 0.6
+        ? 0.55 * partialSummaryCoverage
+        : evidenceTokenMatches.length >= 2 && partialEvidenceCoverage >= 0.6
+          ? 0.35 * partialEvidenceCoverage
+          : 0;
+
+  const score = exact
+    ? 1
+    : summaryContains
+      ? 0.75
+      : evidenceContains
+        ? 0.5
+        : tokenScore;
+
   return {
     score,
     signals: [
       ...(exact ? ["SUMMARY_EXACT"] : []),
       ...(!exact && summaryContains ? ["SUMMARY_CONTAINS"] : []),
-      ...(evidenceContains ? ["EVIDENCE_REF_CONTAINS"] : [])
+      ...(evidenceContains ? ["EVIDENCE_REF_CONTAINS"] : []),
+      ...(!exact && !summaryContains && allSummaryTokens
+        ? ["SUMMARY_TOKENS_ALL"]
+        : []),
+      ...(!exact && !summaryContains && !allSummaryTokens && tokenScore > 0 && summaryTokenMatches.length >= 2
+        ? ["SUMMARY_TOKENS_PARTIAL"]
+        : []),
+      ...(!evidenceContains && allEvidenceTokens
+        ? ["EVIDENCE_REF_TOKENS_ALL"]
+        : [])
     ]
   };
 }

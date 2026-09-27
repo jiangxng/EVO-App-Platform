@@ -135,6 +135,21 @@ test("Human-accepted canonicalization removes duplicate from ordinary retrieval 
   });
   assert.deepEqual(after.items.map(item => item.memoryId), ["memory:b"]);
 
+  const naturalKeywordQuery = await h.reader.read({
+    contractVersion: "0.1.0",
+    context,
+    query: "仓库 17:00 截单",
+    limit: 100
+  });
+  assert.deepEqual(
+    naturalKeywordQuery.items.map(item => item.memoryId),
+    ["memory:b"]
+  );
+  assert.deepEqual(
+    naturalKeywordQuery.ranking[0].signals,
+    ["SUMMARY_TOKENS_ALL"]
+  );
+
   const audit = await h.reader.read({
     contractVersion: "0.1.0",
     context,
@@ -149,6 +164,35 @@ test("Human-accepted canonicalization removes duplicate from ordinary retrieval 
   const relation = h.canonicalizationStore.activeForDuplicate("memory:a");
   assert.equal(relation.canonicalMemoryId, "memory:b");
   assert.equal(relation.sourceProposalId, proposal.proposalId);
+});
+
+test("lexical Memory retrieval supports deterministic multi-token matching without semantic Provider", async () => {
+  const h = await harness();
+
+  const allTokens = await h.reader.read({
+    contractVersion: "0.1.0",
+    context,
+    query: "仓库 17:00 截单",
+    limit: 100
+  });
+  assert.deepEqual(
+    new Set(allTokens.items.map(item => item.memoryId)),
+    new Set(["memory:a", "memory:b"])
+  );
+  assert.equal(
+    allTokens.ranking.every(entry =>
+      entry.signals.includes("SUMMARY_TOKENS_ALL")
+    ),
+    true
+  );
+
+  const noMatch = await h.reader.read({
+    contractVersion: "0.1.0",
+    context,
+    query: "仓库 18:00 发货",
+    limit: 100
+  });
+  assert.equal(noMatch.items.length, 0);
 });
 
 test("canonicalization proposal creation is idempotent for the same pending pair", async () => {
