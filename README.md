@@ -1,6 +1,6 @@
 # EVO App Platform
 
-**Status:** Architecture bootstrap  
+**Status:** Personal Agent vertical experience checkpoint  
 **Repository role:** Package lifecycle and application ecosystem layer
 
 EVO App Platform is the LLM-native package and application platform that manages installable foundation packages, business applications, runtime extensions, experience packages and Agent Packages through public contracts.
@@ -105,8 +105,34 @@ Only then should existing apps be migrated.
 
 ## Current continuation point
 
-The latest user-confirmed cross-project handoff is:
+The current mainline is the P1.4X Personal Agent vertical experience checkpoint:
 
-`docs/roadmap/HANDOFF-2026-09-23-AGENT-APP-INSTALL-MVP.md`
+`docs/roadmap/P1.4X-PERSONAL-AGENT-VERTICAL-EXPERIENCE-CHECKPOINT.md`
 
-It records the successful local Company Notes Proof A and the next mainline step toward Trading Lite → EVO dependency resolution.
+It composes the real product lifecycle built through P1.4E:
+
+```text
+Install Personal Agent
+→ install/configure LLM Provider
+→ Host Secrets
+→ Ready
+→ Personal Agent
+→ Memory Proposal / Human Review
+→ Governance / Retention
+→ Memory Quality / Human quality evaluation
+→ contradiction resolution
+→ Personal Agent Follow-up
+```
+
+For the local Human checkpoint:
+
+```bash
+npm ci
+npm run experience:start
+```
+
+Open `http://localhost:4100`.
+
+The launcher uses formal Static Session and Static Authorization Provider contracts and durable local Host state. It does not preinstall Personal Agent, preconfigure an API Key, or seed fake Memory.
+
+The older Company Notes / Trading Lite proof runbooks remain historical regression references.
