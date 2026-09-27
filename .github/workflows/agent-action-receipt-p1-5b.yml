@@ -1,0 +1,37 @@
+name: Agent CI - Action Receipt P1.5B
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/agent-action-receipt.ts"
+      - "manager/agent-action-receipt-store.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/agent-action-receipt.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-action-receipt-p1-5b.yml"
+  pull_request:
+    paths:
+      - "contracts/agent-action-receipt.ts"
+      - "manager/agent-action-receipt-store.ts"
+      - "manager/server.ts"
+      - "agents/enterprise-agent/**"
+      - "tests/protocol/agent-action-receipt.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-action-receipt-p1-5b.yml"
+
+concurrency:
+  group: agent-action-receipt-p1-5b-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:agent-action-receipt:p1-5b

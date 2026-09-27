@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import {
+  createAgentActionReceiptServiceV010,
+  createMemoryAgentActionReceiptEventStoreV010
+} from "../../dist/manager/agent-action-receipt-store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js";
 import { createOpenAiResponsesLlmProvider } from "../../dist/providers/openai/runtime.js";
@@ -44,11 +48,23 @@ const personalContext = {
   }
 };
 
+let receiptSequence = 0;
+
 function agentToolCatalog(manager, context = personalContext) {
+  let eventSequence = 0;
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     principal: testPrincipal,
     context,
+    actionReceipt: {
+      sourceInteractionId: "provider-test:" + (++receiptSequence),
+      sourceActionId: "enterprise-agent.chat",
+      service: createAgentActionReceiptServiceV010({
+        store: createMemoryAgentActionReceiptEventStoreV010(),
+        eventId: () => "provider-test-event:" + (++eventSequence)
+      }),
+      now: () => new Date("2026-09-27T16:00:00.000Z")
+    },
     listAvailableContexts() { return [structuredClone(context.activeContext)]; },
     listProviderBindings() { return []; },
     getProviderHealth() { return { state: "UNKNOWN" }; },

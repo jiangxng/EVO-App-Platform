@@ -60,6 +60,9 @@ export const personalAgentResponsibilityPolicyV010: PersonalAgentResponsibilityP
   ],
   continuationRules: [
     "After authorization is granted, continue the remaining executable steps until completion, a real blocker, or a new authority boundary is reached.",
+    "For material WRITE tools, use the Host-owned Action Receipt as durable execution evidence. A SUCCEEDED receipt means the Host observed completion of that invocation; a REQUESTED receipt without a terminal state is indeterminate and must not be repeated automatically.",
+    "Do not repeat an identical material WRITE merely to regain lost conversational context. Inspect the durable receipt and domain authority first.",
+    "A receipt proves execution state but does not replace the domain object's authoritative state; use domain READ when the human needs current business/governance truth.",
     "Do not turn successful authorization into another tutorial or checklist for the human.",
     "Report completed work, important evidence, material deviations and unresolved blockers.",
     "Never claim success unless authoritative tool observations confirm success."

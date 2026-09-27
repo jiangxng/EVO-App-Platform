@@ -38,7 +38,11 @@ export interface EnterpriseAgentChatDependencies {
     locale: string,
     context: ResolvedContextSetV010,
     principal: PlatformPrincipalV010,
-    requestContext?: PlatformRequestContextV010
+    requestContext: PlatformRequestContextV010 | undefined,
+    interaction: {
+      sourceInteractionId: string;
+      sourceActionId: string;
+    }
   ): AgentToolCatalogV010;
   qualityEvidenceStore?: PersonalAgentQualityEvidenceStoreV010;
   now?: () => Date;
@@ -227,7 +231,16 @@ export function createEnterpriseAgentChatActionHandler(
       const locale = localeForRequest(request, message);
       const runtime = createEnterpriseAgentRuntime(
         createProviderBackedAgentModel(resolved.provider),
-        dependencies.createToolCatalog(locale, context, principal, requestContext)
+        dependencies.createToolCatalog(
+          locale,
+          context,
+          principal,
+          requestContext,
+          {
+            sourceInteractionId: request.sourceInteractionId,
+            sourceActionId: request.actionId
+          }
+        )
       );
 
       const reply = await runtime.chat(

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import type { AgentActionReceiptServiceV010, AgentActionReceiptV010 } from "../../contracts/agent-action-receipt.js";
 import type { AppManagerService } from "../../manager/service.js";
 import type { ProviderBindingV010 } from "../../manager/provider-resolution.js";
 import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry.js";
@@ -30,6 +32,12 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
   listAvailableContexts(): ActiveContextRefV010[];
   listProviderBindings(capability?: string): ProviderBindingV010[];
   getProviderHealth(providerId: string): ProviderRuntimeHealthV010;
+  actionReceipt?: {
+    sourceInteractionId: string;
+    sourceActionId: string;
+    service: AgentActionReceiptServiceV010;
+    now?: () => Date;
+  };
   inventoryContextMemory?: (input: {
     kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
     includeHistorical?: boolean;
@@ -83,6 +91,80 @@ function stringArg(
   return value.trim();
 }
 
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, stableValue(item)])
+    );
+  }
+  return value;
+}
+
+function sha256(value: unknown): string {
+  return createHash("sha256")
+    .update(typeof value === "string" ? value : JSON.stringify(stableValue(value)))
+    .digest("hex");
+}
+
+function sameContext(
+  left: ActiveContextRefV010,
+  right: ActiveContextRefV010
+): boolean {
+  return left.kind === right.kind
+    && left.contextId === right.contextId
+    && (
+      left.kind !== "ENTERPRISE"
+      || right.kind !== "ENTERPRISE"
+      || left.enterpriseId === right.enterpriseId
+    );
+}
+
+function resultEntityRefs(value: unknown): string[] {
+  const refs = new Set<string>();
+  const visit = (current: unknown, key?: string): void => {
+    if (refs.size >= 100 || current === null || current === undefined) return;
+    if (typeof current === "string") {
+      if (key && /(?:^|_)(?:id|ids)$/iu.test(key) && current.trim()) {
+        refs.add(current.trim());
+      } else if (key && /Id$/u.test(key) && current.trim()) {
+        refs.add(current.trim());
+      }
+      return;
+    }
+    if (Array.isArray(current)) {
+      if (key && /Ids$/u.test(key)) {
+        for (const item of current) {
+          if (typeof item === "string" && item.trim()) refs.add(item.trim());
+          if (refs.size >= 100) break;
+        }
+        return;
+      }
+      for (const item of current) visit(item);
+      return;
+    }
+    if (typeof current === "object") {
+      for (const [childKey, child] of Object.entries(current as Record<string, unknown>)) {
+        visit(child, childKey);
+        if (refs.size >= 100) break;
+      }
+    }
+  };
+  visit(value);
+  return [...refs];
+}
+
+function receiptMatchesCurrentScope(
+  receipt: AgentActionReceiptV010,
+  principal: PlatformPrincipalV010,
+  context: ActiveContextRefV010
+): boolean {
+  return receipt.principalSubjectId === principal.subjectId
+    && sameContext(receipt.context, context);
+}
+
 function successfulInstallPlan(
   observations: readonly AgentToolObservation[],
   packageId: string
@@ -112,6 +194,93 @@ export function createEnterpriseAgentHostToolCatalogV010(
   additional: readonly EnterpriseAgentToolRegistrationV010[] = []
 ): AgentToolCatalogV010 {
   const registrations: EnterpriseAgentToolRegistrationV010[] = [
+    {
+      descriptor: descriptor({
+        id: "agent.action.receipt.list",
+        modelName: "agent_action_receipt_list",
+        title: "Agent Action Receipts",
+        description: "Read recent durable Host-owned receipts for Personal Agent WRITE actions in the current Principal and active Context. Use this to verify whether a prior material action completed, failed, was denied, or is indeterminate. Receipts are execution evidence and do not replace domain authority.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Maximum receipts from 1 to 100. Defaults to 20."
+            }
+          },
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "agent.action.receipt"
+      }),
+      available() {
+        return dependencies.actionReceipt !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.actionReceipt) {
+          throw new Error("AGENT_ACTION_RECEIPT_SERVICE_REQUIRED");
+        }
+        const rawLimit = args.limit;
+        if (
+          rawLimit !== undefined
+          && (
+            typeof rawLimit !== "number"
+            || !Number.isInteger(rawLimit)
+            || rawLimit < 1
+            || rawLimit > 100
+          )
+        ) {
+          throw new Error("AGENT_ACTION_RECEIPT_LIMIT_INVALID");
+        }
+        return dependencies.actionReceipt.service.list({
+          principalSubjectId: dependencies.principal.subjectId,
+          context: dependencies.context.activeContext,
+          ...(rawLimit !== undefined ? { limit: rawLimit } : {})
+        });
+      }
+    },
+    {
+      descriptor: descriptor({
+        id: "agent.action.receipt.get",
+        modelName: "agent_action_receipt_get",
+        title: "Agent Action Receipt",
+        description: "Read one durable Host-owned Personal Agent WRITE receipt by receiptId. The receipt proves the Host-observed execution state for that invocation but does not replace the domain object's authoritative state.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            receiptId: { type: "string" }
+          },
+          required: ["receiptId"],
+          additionalProperties: false
+        },
+        effect: "READ",
+        ownerPackageId: "evo-app-platform",
+        capability: "agent.action.receipt"
+      }),
+      available() {
+        return dependencies.actionReceipt !== undefined;
+      },
+      execute(args) {
+        if (!dependencies.actionReceipt) {
+          throw new Error("AGENT_ACTION_RECEIPT_SERVICE_REQUIRED");
+        }
+        const receipt = dependencies.actionReceipt.service.get(
+          stringArg(args, "receiptId")!
+        );
+        if (
+          !receipt
+          || !receiptMatchesCurrentScope(
+            receipt,
+            dependencies.principal,
+            dependencies.context.activeContext
+          )
+        ) {
+          throw new Error("AGENT_ACTION_RECEIPT_NOT_FOUND");
+        }
+        return receipt;
+      }
+    },
     {
       descriptor: descriptor({
         id: "context.current.get",
@@ -1110,51 +1279,176 @@ export function createEnterpriseAgentHostToolCatalogV010(
         };
       }
 
+      let receipt: AgentActionReceiptV010 | undefined;
+      const finishReceipt = (
+        status: "SUCCEEDED" | "FAILED" | "DENIED",
+        input: {
+          result?: unknown;
+          error?: { code: string; message: string };
+        } = {}
+      ): AgentActionReceiptV010 | undefined => {
+        if (!receipt || !dependencies.actionReceipt) return receipt;
+        const completedAt = (
+          dependencies.actionReceipt.now?.() ?? new Date()
+        ).toISOString();
+        receipt = dependencies.actionReceipt.service.complete({
+          receiptId: receipt.receiptId,
+          status,
+          completedAt,
+          ...(input.result !== undefined
+            ? {
+                resultDigest: sha256(input.result),
+                resultEntityRefs: resultEntityRefs(input.result),
+                resultSummary: "Tool '" + registration.descriptor.id + "' completed successfully."
+              }
+            : {}),
+          ...(input.error ? { error: input.error } : {})
+        });
+        return receipt;
+      };
+
       try {
         if (registration.descriptor.effect === "WRITE") {
-          if (!dependencies.authorizeWrite) {
+          if (!dependencies.actionReceipt) {
             return {
               tool: call.tool,
               ok: false,
               error: {
-                code: "MATERIAL_WRITE_AUTHORIZATION_REQUIRED",
-                message: "Material WRITE tools require Host authorization."
+                code: "AGENT_ACTION_RECEIPT_REQUIRED",
+                message: "Material Personal Agent WRITE tools require a durable Host Action Receipt service."
               }
             };
+          }
+
+          const inputDigest = sha256(call.arguments);
+          const idempotencyKey = sha256({
+            contractVersion: "0.1.0",
+            sourceInteractionId: dependencies.actionReceipt.sourceInteractionId,
+            sourceActionId: dependencies.actionReceipt.sourceActionId,
+            principalSubjectId: dependencies.principal.subjectId,
+            context: dependencies.context.activeContext,
+            toolId: registration.descriptor.id,
+            inputDigest
+          });
+          const existing = dependencies.actionReceipt.service
+            .getByIdempotencyKey(idempotencyKey);
+          if (existing) {
+            if (existing.status === "SUCCEEDED") {
+              return {
+                tool: call.tool,
+                ok: true,
+                result: {
+                  replayedFromReceipt: true,
+                  receiptId: existing.receiptId,
+                  resultEntityRefs: [...existing.resultEntityRefs]
+                },
+                receipt: existing
+              };
+            }
+            if (existing.status === "REQUESTED") {
+              return {
+                tool: call.tool,
+                ok: false,
+                error: {
+                  code: "AGENT_ACTION_RECEIPT_INDETERMINATE",
+                  message: "A prior identical WRITE was requested but has no terminal receipt. The Host will not repeat it automatically."
+                },
+                receipt: existing
+              };
+            }
+            return {
+              tool: call.tool,
+              ok: false,
+              error: existing.error ?? {
+                code: "AGENT_ACTION_PREVIOUSLY_NOT_SUCCEEDED",
+                message: "A prior identical WRITE has a terminal non-success receipt."
+              },
+              receipt: existing
+            };
+          }
+
+          const requestedAt = (
+            dependencies.actionReceipt.now?.() ?? new Date()
+          ).toISOString();
+          receipt = dependencies.actionReceipt.service.begin({
+            receiptId: "agent-action-receipt:" + idempotencyKey,
+            invocationId: "agent-tool-invocation:" + idempotencyKey.slice(0, 32),
+            idempotencyKey,
+            sourceInteractionId: dependencies.actionReceipt.sourceInteractionId,
+            sourceActionId: dependencies.actionReceipt.sourceActionId,
+            principalSubjectId: dependencies.principal.subjectId,
+            principalActorType: dependencies.principal.actorType,
+            context: dependencies.context.activeContext,
+            toolId: registration.descriptor.id,
+            ownerPackageId: registration.descriptor.ownerPackageId,
+            ...(registration.descriptor.capability
+              ? { capability: registration.descriptor.capability }
+              : {}),
+            inputDigest,
+            requestedAt
+          });
+
+          if (!dependencies.authorizeWrite) {
+            const error = {
+              code: "MATERIAL_WRITE_AUTHORIZATION_REQUIRED",
+              message: "Material WRITE tools require Host authorization."
+            };
+            finishReceipt("DENIED", { error });
+            return { tool: call.tool, ok: false, error, receipt };
           }
           const decision = await dependencies.authorizeWrite(
             registration.descriptor,
             call.arguments
           );
           if (!decision.allowed) {
-            return {
-              tool: call.tool,
-              ok: false,
-              error: {
-                code: decision.code ?? "MATERIAL_WRITE_DENIED",
-                message: decision.message ?? "Material WRITE denied by Host authorization."
-              }
+            const error = {
+              code: decision.code ?? "MATERIAL_WRITE_DENIED",
+              message: decision.message ?? "Material WRITE denied by Host authorization."
             };
+            finishReceipt("DENIED", { error });
+            return { tool: call.tool, ok: false, error, receipt };
           }
         }
 
+        const result = await registration.execute(call.arguments, observations);
+        if (registration.descriptor.effect === "WRITE") {
+          finishReceipt("SUCCEEDED", { result });
+        }
         return {
           tool: call.tool,
           ok: true,
-          result: await registration.execute(call.arguments, observations)
+          result,
+          ...(receipt ? { receipt } : {})
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const [candidate] = message.split(":");
+        const normalized = {
+          code: candidate && /^[A-Z0-9_]+$/.test(candidate)
+            ? candidate
+            : "TOOL_EXECUTION_FAILED",
+          message
+        };
+        if (registration.descriptor.effect === "WRITE" && receipt?.status === "REQUESTED") {
+          try {
+            finishReceipt("FAILED", { error: normalized });
+          } catch {
+            return {
+              tool: call.tool,
+              ok: false,
+              error: {
+                code: "AGENT_ACTION_RECEIPT_FINALIZATION_FAILED",
+                message: "The WRITE execution failed and its durable receipt could not be finalized. The Host will not claim a safe retry."
+              },
+              ...(receipt ? { receipt } : {})
+            };
+          }
+        }
         return {
           tool: call.tool,
           ok: false,
-          error: {
-            code: candidate && /^[A-Z0-9_]+$/.test(candidate)
-              ? candidate
-              : "TOOL_EXECUTION_FAILED",
-            message
-          }
+          error: normalized,
+          ...(receipt ? { receipt } : {})
         };
       }
     }
