@@ -799,6 +799,32 @@ if (
   }
 }
 if (
+  remoteSemanticEndpoint
+  && !installedAtStartup.some(
+    item => item.packageId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
+    console.log("Activated Remote Context Memory Semantic Provider.");
+  } catch (error) {
+    console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
+  }
+}
+if (
+  experienceCompilerMemoryIntakeConfig
+  && !installedAtStartup.some(
+    item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
+    console.log("Activated Experience Compiler Memory Intake Provider.");
+  } catch (error) {
+    console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
+  }
+}
+if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
