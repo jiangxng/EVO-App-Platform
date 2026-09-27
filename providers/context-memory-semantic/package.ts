@@ -15,6 +15,13 @@ export const remoteContextMemorySemanticProviderPackage: PackageManifestV010 = {
   displayName: "Remote Context Memory Semantic Provider",
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
+  secrets: [{
+    key: "apiToken",
+    label: "API Token",
+    description: "Optional bearer credential used only by the Host when calling the semantic retrieval endpoint.",
+    scope: "INSTALLATION",
+    required: false
+  }],
   publisher: {
     id: "evo",
     displayName: "EVO",
@@ -33,6 +40,7 @@ export const remoteContextMemorySemanticProviderPackage: PackageManifestV010 = {
     version: "0.1.0",
     activationScope: "INSTALLATION",
     defaultActivation: true,
+    requiresCapabilities: ["secrets.resolve"],
     providesCapabilities: [CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY],
     contributions: [{
       kind: "platform.service-provider",
