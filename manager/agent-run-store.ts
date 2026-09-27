@@ -57,10 +57,9 @@ function validateEvent(event: AgentRunEventV010): void {
 function orderedEvents(
   events: readonly AgentRunEventV010[]
 ): AgentRunEventV010[] {
-  return [...events].sort((a, b) =>
-    a.occurredAt.localeCompare(b.occurredAt)
-    || a.eventId.localeCompare(b.eventId)
-  );
+  // Append order is the causal authority. occurredAt is audit metadata only:
+  // wall clocks may move backwards and must never reorder durable run facts.
+  return [...events];
 }
 
 export function materializeAgentRunsV010(
