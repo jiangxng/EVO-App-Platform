@@ -920,6 +920,16 @@ test("Personal Agent responsibility policy keeps Human intent/authority while Ag
       /After authorization is granted, continue/.test(rule)
     )
   );
+  assert.ok(
+    personalAgentResponsibilityPolicyV010.evidenceRules.some(rule =>
+      /exact Host scope and filters/.test(rule)
+    )
+  );
+  assert.ok(
+    personalAgentResponsibilityPolicyV010.evidenceRules.some(rule =>
+      /same governance action again/.test(rule)
+    )
+  );
 });
 
 test("provider-backed Personal Agent receives durable responsibility policy independent of model Provider", async () => {
@@ -964,6 +974,8 @@ test("provider-backed Personal Agent receives durable responsibility policy inde
   assert.match(system, /Separate authoritative facts from inference/);
   assert.match(system, /completeness-sensitive Memory question/);
   assert.match(system, /deterministic inventory tool/);
+  assert.match(system, /Inventory completeness applies only to the exact Host scope and filters/);
+  assert.match(system, /do not recommend or offer to stage the same governance action again/);
 });
 
 
