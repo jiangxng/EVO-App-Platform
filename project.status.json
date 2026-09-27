@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.4 — Quality Evaluation + Retention Simulation",
+  "currentMilestone": "Personal Agent P1.4 — Real Quality Evidence + Retention Preview/Commit Flow",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -239,7 +239,14 @@
     "personal-agent-quality-unknown-subjective-evidence",
     "context-memory-retention-policy-simulation",
     "context-memory-retention-simulation-zero-mutation",
-    "eidos-memory-retention-simulation-surface"
+    "eidos-memory-retention-simulation-surface",
+    "personal-agent-quality-evidence-jsonl",
+    "personal-agent-host-observed-quality-evidence",
+    "eidos-personal-agent-quality-surface",
+    "context-memory-retention-draft-append-only",
+    "context-memory-retention-preview-before-commit",
+    "context-memory-retention-stale-preview-fail-closed",
+    "eidos-retention-draft-form-review-commit-flow"
   ],
   "notYetImplemented": [
     "live-real-llm-install-proof",
@@ -262,7 +269,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.4B is CI-verified: 17/17 triggered workflows passed, including Platform CI, P1.2/P1.3 Memory regressions, P1.3.1 Experience CI, P1.4 Responsibility CI and the dedicated Agent/Memory Quality P1.4 CI. Agent quality dimensions preserve UNKNOWN for unevaluated subjective judgments; retention simulation is governance-gated and side-effect-free. Next: collect real quality evidence and integrate candidate policy preview into the formal policy editing experience.",
+  "currentStep": "P1.4C is implemented on its feature branch and pending CI: successful Personal Agent interactions emit scoped Host-observed objective quality evidence; subjective dimensions remain UNKNOWN until explicit evaluation. Retention policy changes now use an append-only non-authoritative Draft → simulation → Human confirmation → fresh-preview check → formal append-only policy commit flow. Stale preview fails closed.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1167,6 +1174,37 @@
         "NO_MATCHING_POLICY"
       ],
       "next": "CANDIDATE_POLICY_EDITING_FLOW_AND_REAL_QUALITY_EVIDENCE"
+    },
+    "qualityEvidenceP1_4C": {
+      "status": "IMPLEMENTED_PENDING_CI",
+      "authority": "docs/architecture/PERSONAL-AGENT-QUALITY-EVIDENCE-RETENTION-FLOW-P1.4C-v0.1.md",
+      "persistence": "APP_PLATFORM_PERSONAL_AGENT_QUALITY_FILE_OR_STATE_SIBLING_JSONL",
+      "automaticSource": "HOST_OBSERVED",
+      "scopedBy": [
+        "PRINCIPAL",
+        "ACTIVE_CONTEXT"
+      ],
+      "route": "/enterprise-agent/quality",
+      "subjectiveRule": "UNKNOWN_UNTIL_EXPLICIT_HUMAN_OR_LAB_EVIDENCE",
+      "fakeMetrics": false
+    },
+    "retentionDraftP1_4C": {
+      "status": "IMPLEMENTED_PENDING_CI",
+      "persistence": "APP_PLATFORM_CONTEXT_MEMORY_RETENTION_DRAFT_FILE_OR_STATE_SIBLING",
+      "states": [
+        "PREPARED",
+        "COMMITTED",
+        "DISCARDED"
+      ],
+      "authoritative": false,
+      "prepareAction": "context.memory.retention-draft.prepare",
+      "commitAction": "context.memory.retention-draft.commit",
+      "discardAction": "context.memory.retention-draft.discard",
+      "prepareRoute": "/memory/retention-drafts/new",
+      "reviewRoute": "/memory/retention-drafts",
+      "commitRequiresHumanConfirmation": true,
+      "stalePreview": "FAIL_CLOSED_REPREVIEW_REQUIRED",
+      "policyTruth": "APPEND_ONLY_RETENTION_POLICY_STORE"
     }
   },
   "experienceIntegration": {
