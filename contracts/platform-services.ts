@@ -310,6 +310,8 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "enterprise.scope",
   "context.memory.read",
   "context.memory.write",
+  "context.memory.governance",
+  "context.memory.semantic-retrieval",
   "context.memory.intake-source",
   "context.memory.evidence-source",
   "llm.inference",
@@ -482,4 +484,74 @@ export interface ContextMemoryIntakeSourceAdapterV010 {
   pull(
     input: ContextMemoryIntakePullRequestV010
   ): Promise<ContextMemoryIntakePullResultV010> | ContextMemoryIntakePullResultV010;
+}
+
+
+export type ContextMemoryGovernanceStateV010 =
+  | "ACTIVE"
+  | "RESTRICTED"
+  | "EXPIRED";
+
+export type ContextMemoryPrivacyClassV010 =
+  | "STANDARD"
+  | "SENSITIVE"
+  | "RESTRICTED";
+
+export interface ContextMemoryGovernanceEventV010 {
+  contractVersion: "0.1.0";
+  eventId: string;
+  memoryId: string;
+  context: ActiveContextRefV010;
+  state: ContextMemoryGovernanceStateV010;
+  privacyClass: ContextMemoryPrivacyClassV010;
+  reason?: string;
+  retainUntil?: string;
+  occurredAt: string;
+  actorSubjectId: string;
+}
+
+export interface ContextMemoryGovernanceDecisionV010 {
+  contractVersion: "0.1.0";
+  memoryId: string;
+  context: ActiveContextRefV010;
+  state: ContextMemoryGovernanceStateV010;
+  privacyClass: ContextMemoryPrivacyClassV010;
+  retainUntil?: string;
+  effectiveEventId?: string;
+}
+
+export interface ContextMemoryGovernanceProviderV010 {
+  providerId: string;
+  get(memoryId: string): ContextMemoryGovernanceDecisionV010 | undefined;
+  listForContext(context: ActiveContextRefV010): ContextMemoryGovernanceDecisionV010[];
+}
+
+export interface ContextMemorySemanticCandidateV010 {
+  contractVersion: "0.1.0";
+  memoryId: string;
+  summary: string;
+  kind: ContextMemoryKindV010;
+  evidenceRefs: string[];
+}
+
+export interface ContextMemorySemanticSearchRequestV010 {
+  contractVersion: "0.1.0";
+  context: ActiveContextRefV010;
+  query: string;
+  candidates: ContextMemorySemanticCandidateV010[];
+  limit: number;
+}
+
+export interface ContextMemorySemanticSearchResultV010 {
+  contractVersion: "0.1.0";
+  ranking: ContextMemoryRetrievalScoreV010[];
+}
+
+export interface ContextMemorySemanticRetrieverV010 {
+  providerId: string;
+  search(
+    input: ContextMemorySemanticSearchRequestV010
+  ):
+    | Promise<ContextMemorySemanticSearchResultV010>
+    | ContextMemorySemanticSearchResultV010;
 }
