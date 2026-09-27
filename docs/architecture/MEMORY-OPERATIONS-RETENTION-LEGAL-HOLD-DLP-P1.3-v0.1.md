@@ -1,6 +1,6 @@
 # Scheduled Memory Operations, Retention Policy, Legal Hold and DLP P1.3 v0.1
 
-**Status:** implementation complete; CI verification required before merge  
+**Status:** CI-verified implementation candidate for mainline  
 **Date:** 2026-09-27  
 **Depends on:** P1.2 Memory retention/privacy governance, semantic retrieval and EC adapter  
 **World model:** Human → Personal Agent → Host-resolved Context → governed immutable Memory
@@ -284,7 +284,7 @@ Implemented on the P1.3 branch:
 
 ## 13. Completion gate
 
-P1.3 may be merged only when the latest branch head passes:
+P1.3 completion gate passed on the implementation head with 13/13 triggered workflows successful, including:
 
 - dedicated Context Memory P1.3 CI;
 - Platform CI;
