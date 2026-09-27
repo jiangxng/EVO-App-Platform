@@ -17,8 +17,8 @@ export type ContextMemoryContradictionStateV010 =
   | "DISMISSED";
 
 export type ContextMemoryContradictionResolutionV010 =
-  | "SUPERSEDE_LEFT"
-  | "SUPERSEDE_RIGHT"
+  | "PREFER_LEFT"
+  | "PREFER_RIGHT"
   | "BOTH_VALID"
   | "OTHER";
 
@@ -121,7 +121,7 @@ function validate(snapshot:ContextMemoryQualitySnapshotV010):ContextMemoryQualit
     }
     if(
       event.resolution!==undefined
-      && !["SUPERSEDE_LEFT","SUPERSEDE_RIGHT","BOTH_VALID","OTHER"].includes(event.resolution)
+      && !["PREFER_LEFT","PREFER_RIGHT","BOTH_VALID","OTHER"].includes(event.resolution)
     ){
       throw new Error("CONTEXT_MEMORY_CONTRADICTION_RESOLUTION_INVALID");
     }
