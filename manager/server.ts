@@ -74,6 +74,12 @@ import {
 import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-agent-tools.js";
+import {
+  createEnterpriseOperatingGraphEditorPageV010,
+  createEnterpriseOperatingGraphExperienceManifestV010,
+  createEnterpriseOperatingGraphViewActionHandlersV010,
+  EOG_EDITOR_PAGE_SOURCE
+} from "./enterprise-operating-graph-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -91,6 +97,7 @@ import { createContextMemoryFreshnessPolicyActionHandlersV010 } from "./context-
 import { createContextMemoryQualityActionHandlerV010 } from "./context-memory-quality-actions.js";
 import {
   ENTERPRISE_AGENT_PACKAGE_ID,
+  ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PAGE_SOURCE,
   ENTERPRISE_AGENT_SETUP_PAGE_SOURCE,
   ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE,
@@ -2097,6 +2104,13 @@ const actionRouter = createAppActionRouter(
       service: enterpriseOperatingGraphService,
       resolveAuthorizationProvider
     }),
+    ...createEnterpriseOperatingGraphViewActionHandlersV010({
+      service: enterpriseOperatingGraphService,
+      resolveAuthorizationProvider,
+      locale(context) {
+        return context.locale;
+      }
+    }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
@@ -2540,13 +2554,45 @@ const server = createServer(async (request, response) => {
         createProviderManagerExperienceManifest(manager),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
-        ...manager.listEffectiveExperiences()
+        ...manager.listEffectiveExperiences(),
+        ...(manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+        )
+          ? [createEnterpriseOperatingGraphExperienceManifestV010()]
+          : [])
       ]);
     }
 
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === EOG_EDITOR_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraphEditorPageV010({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
       if (
         source === ENTERPRISE_AGENT_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_SETUP_PAGE_SOURCE

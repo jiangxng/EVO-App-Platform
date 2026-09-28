@@ -15,6 +15,10 @@ import {
 } from "../settings/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
+import {
+  isDiagramEditorPageV010,
+  mountDiagramEditorPageV010
+} from "../diagram/surface.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
 import {
@@ -383,6 +387,26 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   const rendered = renderPage(page);
   if (typeof rendered === "string") container.innerHTML = rendered;
   else container.replaceChildren(rendered);
+
+  if (isDiagramEditorPageV010(page.definition)) {
+    if (!options.actionHost) {
+      throw new Error("EIDOS_DIAGRAM_EDITOR_ACTION_HOST_REQUIRED");
+    }
+    const mountedDiagram = mountDiagramEditorPageV010({
+      definition: page.definition,
+      container,
+      actionHost: options.actionHost,
+      onActionResult(result) {
+        return options.onActionResult?.(result, page);
+      }
+    });
+    return {
+      dispose() {
+        mountedDiagram.dispose();
+        for (const dispose of listeners) dispose();
+      }
+    };
+  }
 
   const catalogSearch = container.querySelector<HTMLInputElement>(
     "[data-eidos-catalog-search-input]"

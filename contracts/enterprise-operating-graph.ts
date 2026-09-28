@@ -1,4 +1,5 @@
 export const EOG_CONTRACT_VERSION_V010 = "0.1.0" as const;
+export const PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010 = "eog:primary" as const;
 
 export type EogGraphStateV010 = "DRAFT" | "PUBLISHED";
 

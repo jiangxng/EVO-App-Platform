@@ -243,6 +243,63 @@ export const appPlatformExperienceArchitectureV010: ExperienceArchitectureDescri
     archetype: "work-queue",
     taskMode: "exploration",
     goal: "Review and complete Personal Agent follow-up work"
+  },
+  {
+    contractVersion: "0.1.0",
+    experienceId: "enterprise-operating-graph.editor",
+    maturity: "candidate",
+    archetype: "editor",
+    taskMode: "exploration",
+    goal: "Inspect, directly edit and Human-confirm the Host-authoritative Enterprise Operating Graph",
+    subject: "enterprise-operating-graph",
+    journey: {
+      goal: "Converge Guidance topology into a Human-confirmed publishable enterprise model",
+      entry: ["/operating-graph"],
+      prerequisites: ["Personal Agent feature active", "Enterprise Context selected"],
+      states: ["not-created", "draft", "published"],
+      currentState: "draft",
+      completionStates: ["published"],
+      resumable: true,
+      recoveryActions: ["reload-host-state", "resolve-revision-conflict"]
+    },
+    actions: [
+      {
+        id: "move-node",
+        label: "Move node",
+        determinism: "deterministic",
+        frequency: "frequent",
+        surface: "direct",
+        primary: true,
+        availableInStates: ["draft"]
+      },
+      {
+        id: "confirm-guidance",
+        label: "Confirm guidance relation",
+        determinism: "deterministic",
+        frequency: "occasional",
+        surface: "direct",
+        availableInStates: ["draft"]
+      },
+      {
+        id: "publish",
+        label: "Publish",
+        determinism: "deterministic",
+        frequency: "rare",
+        surface: "direct",
+        availableInStates: ["draft"]
+      }
+    ],
+    agent: {
+      enabled: true,
+      mayRecommendDeclaredActions: true,
+      mayPrepareDeclaredActionInputs: true,
+      mayExecuteOnlyDeclaredActions: true
+    },
+    quality: {
+      systemStringsLocalized: true,
+      machineValuesSeparatedFromHumanCopy: true,
+      designLanguageCompliant: true
+    }
   }
 ];
 

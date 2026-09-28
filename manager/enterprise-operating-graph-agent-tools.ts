@@ -1,6 +1,9 @@
 import type {
   AgentToolDescriptorV010
 } from "../agents/enterprise-agent/contracts.js";
+import {
+  PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
+} from "../contracts/enterprise-operating-graph.js";
 import type {
   EnterpriseAgentToolRegistrationV010
 } from "../agents/enterprise-agent/host-tool-catalog.js";
@@ -157,7 +160,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
           properties: {
             graphId: {
               type: "string",
-              description: "Optional stable graph id. Omit to let the Host assign one."
+              description: "Optional stable graph id. Omit to use the v0.1 primary enterprise graph."
             }
           },
           additionalProperties: false
@@ -171,7 +174,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         const graphId = stringArg(args, "graphId", false);
         return input.service.create({
           enterpriseId: enterpriseId(input.context),
-          ...(graphId ? { graphId } : {})
+          graphId: graphId ?? PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
         });
       }
     },
