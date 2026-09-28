@@ -889,6 +889,10 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
   position:sticky;
   bottom:0;
   z-index:2;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:var(--eidos-space-sm);
   margin-top:var(--eidos-space-lg);
   padding:var(--eidos-space-md) 0;
   background:var(--eidos-bg-subtle);
@@ -900,6 +904,11 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
   padding:0 var(--eidos-space-xl);
   background:var(--eidos-primary);
   color:var(--eidos-primary-fg);
+}
+[data-eidos-settings-editor][data-settings-version="0.2.0"] [data-eidos-settings-return]{
+  border:1px solid var(--eidos-border-strong);
+  background:var(--eidos-bg);
+  color:var(--eidos-fg-muted);
 }
 
 
