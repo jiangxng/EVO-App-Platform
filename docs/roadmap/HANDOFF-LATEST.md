@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.8-2026-09-28-04`  
-**Snapshot time:** `2026-09-28T09:40:00+08:00`  
+**Snapshot:** `BUSINESSDATA-2026-09-28-01`  
+**Snapshot time:** `2026-09-28T09:50:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Personal Agent P1.8 — Conversation Lifecycle & Retention
+Primary Integration — Host-owned EVO BusinessData Adapter
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**p1.8b-conversation-retention-policy: VERIFIED_LIVE_PASS**
+**p1.8-durable-conversation-lifecycle-retention: VERIFIED_PRODUCTION_PASS**
 
-Human selected a 90-day archived-thread retention policy. The effective policy is readable, default preview uses 90 days, production config explicitly records 90 days, ACTIVE threads remain ineligible, and destructive purge is disabled.
+Personal Agent durable conversation lifecycle is complete: durable Host threads, run-bound turns, Eidos transcript recovery, append-only archive lifecycle, Human-selected 90-day archived retention policy, and Eidos New Chat/history/switch/archive/read-only management are production-deployed.
 
 Authority: `docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md`
 
@@ -26,35 +26,36 @@ Evidence:
 
 ```json
 {
-  "pr": 122,
-  "ci": "27/27 PASS",
-  "productionCommit": "33301b49ddf4bdd36fec57097ea989326d28038a",
-  "deploymentId": "b82e8c29-df24-498d-ac1d-94504760d34a",
+  "p18aPr": 119,
+  "p18bPreviewPr": 120,
+  "p18bPolicyPr": 122,
+  "p18cPr": 123,
+  "p18cCi": "32/32 PASS",
+  "productionCommit": "d5e4748900f3682d50d6cf3014c98c1251f8d155",
+  "deploymentId": "75fd7061-f471-423a-bbb8-b8160361095e",
   "deploymentStatus": "SUCCESS",
-  "retainArchivedForDays": 90,
-  "productionConfig": "APP_PLATFORM_CONVERSATION_RETENTION_DAYS=90",
+  "archivedRetentionDays": 90,
   "destructivePurgeEnabled": false
 }
 ```
 
 ## Current open live gate
 
-**p1.8c-eidos-thread-management: IMPLEMENTATION_READY**
+**host-owned-evo-businessdata-adapter: IMPLEMENTATION_READY**
 
-Expose durable Conversation Thread lifecycle in Eidos without changing authority boundaries: explicit New Chat, scoped history, switch/reopen, archive, selected-thread refresh continuity, and no discourse carry-over between thread IDs.
+Implement the previously approved Proof C continuation: a Host-owned generic adapter from App Platform actions to EVO BusinessData submission, then the first stable read/query projection back into Eidos, while retaining the current /commands compatibility path until the replacement is proven.
 
 Acceptance:
 
-- New Chat creates a fresh durable threadId
-- New Chat does not reuse prior thread Host history
-- thread history is loaded from Host thread.list
-- switching thread loads that thread's Host transcript
-- archived threads remain reopenable read-only
-- archive action uses Host scoped thread.archive
-- selected thread survives refresh/re-mount
-- no browser conversationHistory becomes authority
-- no Context Memory side effect
-- legacy run-backed fallback occurs only before durable thread authority exists
+- adapter is Host-owned and business-semantic neutral
+- EVO private tables/modules are never imported
+- target submission preserves scopeKey/applicationId/businessDataType/businessObjectKey/effectiveAt/payload/correlation/idempotency identity
+- applicationId is stable routing anchor and not an EVO-private ApplicationInstance id
+- Host derives actor/Principal authority rather than trusting App payload identity
+- retry uses deterministic idempotency and does not duplicate BusinessData
+- Trading Lite becomes a consumer of the generic adapter, not a Host special case
+- first public query/result projection is returned through a stable Host contract and rendered in Eidos
+- existing compatibility /commands path remains until new path passes database and browser proof
 
 ## Current production preview
 
@@ -63,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `33301b49ddf4bdd36fec57097ea989326d28038a`
-- Deployment: `b82e8c29-df24-498d-ac1d-94504760d34a`
+- Commit: `d5e4748900f3682d50d6cf3014c98c1251f8d155`
+- Deployment: `75fd7061-f471-423a-bbb8-b8160361095e`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -123,6 +124,7 @@ Not proved:
 - PR #119 — MERGED_DEPLOYED: Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS.
 - PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
 - PR #122 — MERGED_DEPLOYED: Apply Human-selected 90-day archived Conversation Thread retention policy; 27/27 CI PASS; destructive purge remains disabled.
+- PR #123 — MERGED_DEPLOYED: Add Eidos durable Conversation Thread management (New Chat/history/switch/archive/read-only); 32/32 CI PASS and Railway SUCCESS.
 
 ## DO NOT repeat stale actions
 
@@ -150,6 +152,10 @@ Not proved:
 - Do not implement ordinary thread deletion as in-place mutation; P1.8 lifecycle/retention must remain auditable.
 - Do not let 'New Chat' reuse the prior threadId or Host-built history once P1.8C is implemented.
 - Do not reuse Context Memory retention semantics automatically for conversation threads.
+- Do not reopen Personal Agent P1.8 conversation lifecycle as the active mainline without new regression evidence.
+- Do not replace the current Trading Lite /commands compatibility path before the generic BusinessData adapter is database- and browser-proven.
+- Do not move Trading Lite business-specific mapping into Host Core; the Host adapter must remain generic.
+- Do not pass EVO-private ApplicationInstance IDs as the target application routing contract; use stable applicationId.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -169,13 +175,12 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
-- state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
-- state P1.8A and P1.8B as verified and production-live
-- state archived Conversation Thread retention as 90 days from archivedAt
-- state destructive purge remains disabled and was not authorized by the 90-day decision
-- state P1.8C Eidos thread management as the current open gate
-- state current deployed runtime revision 33301b49ddf4bdd36fec57097ea989326d28038a
-- explain true irreversible erasure is a separate future security boundary, not a logical tombstone
+- state Personal Agent P1.8 as verified and production-closed
+- state archived Conversation Thread retention as 90 days from archivedAt and destructive purge as disabled
+- state current mainline as Host-owned EVO BusinessData Adapter
+- state the target EVO routing tuple scopeKey/applicationId/businessDataType/businessObjectKey/effectiveAt/payload/correlation-idempotency
+- state current compatibility /capabilities + /commands path must remain until replacement proof passes
+- state current deployed App Platform revision d5e4748900f3682d50d6cf3014c98c1251f8d155
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
