@@ -64,6 +64,10 @@ test("configured Provider step links real Provider Settings and Provider status"
   assert.equal(credentials.state, "current");
   assert.equal(credentials.primaryAction.id, "configure-provider");
   assert.equal(credentials.primaryAction.route, "/settings/openai-llm-provider");
+  assert.deepEqual(credentials.primaryAction.continuation, {
+    onActionId: "settings.save",
+    route: "/enterprise-agent/setup"
+  });
   assert.equal(
     credentials.secondaryActions.find(action => action.id === "provider-status").route,
     "/providers/llm.inference"
@@ -77,10 +81,12 @@ test("Provider selection and degraded/unavailable readiness stay on governed Pro
     installedProviderPackageIds: ["openai-llm-provider", "other-llm-provider"],
     catalogProviderPackageIds: ["openai-llm-provider", "other-llm-provider"]
   }));
-  assert.equal(
-    selection.steps.find(step => step.id === "provider").primaryAction.route,
-    "/providers/llm.inference"
-  );
+  const selectionAction = selection.steps.find(step => step.id === "provider").primaryAction;
+  assert.equal(selectionAction.route, "/providers/llm.inference");
+  assert.deepEqual(selectionAction.continuation, {
+    onActionId: "settings.save",
+    route: "/enterprise-agent/setup"
+  });
 
   const unavailable = createPersonalAgentSetupPageV010(readiness({
     state: "unavailable",
