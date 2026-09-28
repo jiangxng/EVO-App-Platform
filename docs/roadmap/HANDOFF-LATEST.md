@@ -3,61 +3,56 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.7-2026-09-28-01`  
-**Snapshot time:** `2026-09-28T08:36:00+08:00`  
+**Snapshot:** `P1.8-2026-09-28-01`  
+**Snapshot time:** `2026-09-28T09:12:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Personal Agent P1.7 — Durable Conversation Threads
+Personal Agent P1.8 — Conversation Lifecycle & Retention
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**p1.6-run-backed-personal-agent-experience: VERIFIED_PASS**
+**p1.7-durable-conversation-threads: VERIFIED_PASS**
 
-Eidos Personal Agent chat uses durable Agent Runs as the default transport, auto-resumes bounded slices, recovers the same run across reconnect, preserves rich terminal replies and Action Receipt write safety, and falls back to legacy synchronous chat only before a durable run exists when run actions are unavailable.
+Conversation discourse is now durable Host state: thread foundation, run-bound turns and Eidos transcript recovery are implemented; PR #118 passed 30/30 CI and deployed successfully.
 
-Authority: `docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md`
+Authority: `docs/roadmap/P1.7-DURABLE-CONVERSATION-THREADS.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 112,
-  "integrationProofPr": 114,
-  "implementationCi": "27/27 PASS",
-  "p16aFocusedTests": "30/30 PASS",
-  "integrationCi": "26/26 PASS",
-  "productionCommit": "1feb6229280c7c8a997b602e7e4aa808c1a63efa",
-  "deploymentId": "fabb4b62-4e15-425c-a15b-8f0fd9ed04fd",
-  "deploymentStatus": "SUCCESS",
-  "writeReconnectNoDuplicate": true,
-  "legacyFallbackAfterRunCreation": false
+  "p17aPr": 116,
+  "p17bPr": 117,
+  "p17cPr": 118,
+  "p17cCi": "30/30 PASS",
+  "productionCommit": "39f346ef790bdc634848b2dba3a51fe24ad6a4bc",
+  "deploymentId": "4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17",
+  "deploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**p1.7a-durable-conversation-thread-foundation: IMPLEMENTATION_READY**
+**p1.8a-thread-lifecycle-foundation: IMPLEMENTATION_READY**
 
-Define and implement durable Host-owned Personal Agent conversation threads and append-only message events. The Host, not the browser, must become the source of discourse continuity while Context Memory remains the separate governed knowledge authority.
+Add append-only durable thread lifecycle state so active and archived conversations are explicit Host semantics before retention/purge and UI thread management are added.
 
 Acceptance:
 
-- threadId is durable and Host-generated
-- thread is scoped to Principal + active Context
-- thread facts/ownership are immutable
-- messages are append-only events with stable messageId and role
-- user and assistant messages may link to runId
-- assistant terminal reply can be correlated to the originating user turn/run
-- thread.get/list are Principal + active-Context scoped
-- Host can build bounded conversationHistory from thread messages
-- browser-provided conversationHistory is no longer required for thread-backed turns
-- conversation messages do not become Context Memory unless a separate governed Memory Proposal flow occurs
-- file-backed persistence survives process reconstruction
+- thread lifecycle is materialized from append-only events
+- new threads begin ACTIVE
+- archive does not rewrite/delete messages
+- archive is Principal + active-Context scoped
+- archived thread remains exact-ID readable
+- default list excludes archived and includeArchived=true can include them
+- conversation history projection still works for archived thread reads but new send to archived thread is rejected
+- Context Memory is not affected
+- file-backed reconstruction preserves lifecycle state
 
 ## Current production preview
 
@@ -66,8 +61,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `1feb6229280c7c8a997b602e7e4aa808c1a63efa`
-- Deployment: `fabb4b62-4e15-425c-a15b-8f0fd9ed04fd`
+- Commit: `39f346ef790bdc634848b2dba3a51fe24ad6a4bc`
+- Deployment: `4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -120,6 +115,9 @@ Not proved:
 - PR #110 — MERGED_DEPLOYED: Make Personal Agent recommendations governance-state aware and inventory completeness filter-bounded.
 - PR #112 — MERGED_DEPLOYED: Make Eidos Personal Agent chat run-backed by default with automatic resume, reconnect recovery, rich terminal presentation and bounded legacy fallback.
 - PR #114 — MERGED_CI_PASS: Add clean Host+Eidos integration proof for multi-slice READ and post-WRITE reconnect with no duplicate WRITE.
+- PR #116 — MERGED: Add durable Conversation Thread foundation.
+- PR #117 — MERGED: Bind durable Conversation Threads to Agent Runs and Host-built history.
+- PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
 
 ## DO NOT repeat stale actions
 
@@ -142,6 +140,11 @@ Not proved:
 - Do not store hidden model chain-of-thought in conversation threads.
 - Do not require the browser to resubmit durable thread history once P1.7 thread-backed turns are active.
 - Do not restart P1.4X, P1.5 or P1.6 work unless a new regression provides current evidence.
+- Do not reopen P1.7 thread durability as the active gate unless a new regression provides current evidence.
+- Do not treat durable conversation messages as Context Memory authority; promotion still requires governed Memory Proposal/Review.
+- Do not implement ordinary thread deletion as in-place mutation; P1.8 lifecycle/retention must remain auditable.
+- Do not let 'New Chat' reuse the prior threadId or Host-built history once P1.8C is implemented.
+- Do not reuse Context Memory retention semantics automatically for conversation threads.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -161,13 +164,12 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
-- state current milestone as Personal Agent P1.7 — Durable Conversation Threads
-- state P1.4X, P1.5 and P1.6 as closed/verified
-- state P1.7A durable conversation thread foundation as the current open gate
-- state that Eidos Personal Agent chat now uses run.start/get/resume as the default transport
-- state production run-backed behavior revision 1feb6229280c7c8a997b602e7e4aa808c1a63efa and Railway deployment
-- explain that durable conversation discourse remains separate from Context Memory authority
-- identify the P1.5B smoke-test Proposal as test-only and not to be accepted
+- state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
+- state P1.7 Durable Conversation Threads as verified and closed
+- state P1.8A Thread Lifecycle Foundation as current open gate
+- state current deployed runtime revision 39f346ef790bdc634848b2dba3a51fe24ad6a4bc
+- explain Conversation Thread is durable discourse and is not Context Memory
+- explain archive/lifecycle must be append-only and retention is a separate later destructive-governance concern
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.

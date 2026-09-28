@@ -1,0 +1,43 @@
+name: Agent CI - Conversation Lifecycle P1.8A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "agents/enterprise-agent/thread-turn-action-handlers.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-lifecycle-p1-8a.yml"
+  pull_request:
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "agents/enterprise-agent/thread-turn-action-handlers.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-lifecycle-p1-8a.yml"
+
+concurrency:
+  group: agent-conversation-lifecycle-p1-8a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:conversation-thread:p1-8a

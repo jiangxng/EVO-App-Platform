@@ -349,7 +349,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           );
           const threadId = stringValue(request, "threadId");
           const message = stringValue(request, "message");
-          threadForScope(dependencies, threadId, principal, context);
+          const scopedThread = threadForScope(
+            dependencies,
+            threadId,
+            principal,
+            context
+          );
+          if (scopedThread.state === "ARCHIVED") {
+            throw new Error("CONVERSATION_THREAD_ARCHIVED");
+          }
 
           const resolved = dependencies.resolveLlmProvider();
           if (!resolved.provider) {

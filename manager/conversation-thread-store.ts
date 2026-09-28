@@ -8,6 +8,7 @@ import { dirname } from "node:path";
 import type {
   ConversationMessageAppendedEventV010,
   ConversationMessageRoleV010,
+  ConversationThreadArchivedEventV010,
   ConversationThreadEventStoreV010,
   ConversationThreadEventV010,
   ConversationThreadStoreV010,
@@ -61,6 +62,18 @@ function validateEvent(event: ConversationThreadEventV010): void {
     return;
   }
 
+  if (event.type === "THREAD_ARCHIVED") {
+    const payload = event.payload;
+    if (
+      !Number.isFinite(Date.parse(payload.archivedAt))
+      || !payload.archivedBySubjectId?.trim()
+      || payload.archivedAt !== event.occurredAt
+    ) {
+      throw new Error("CONVERSATION_THREAD_ARCHIVED_EVENT_INVALID");
+    }
+    return;
+  }
+
   const payload = event.payload;
   if (
     !payload.messageId?.trim()
@@ -109,6 +122,12 @@ function materialize(
       throw new Error("CONVERSATION_THREAD_CREATED_EVENT_MUST_BE_FIRST");
     }
 
+    const archivedEvents = ordered.filter(event => event.type === "THREAD_ARCHIVED");
+    if (archivedEvents.length > 1) {
+      throw new Error("CONVERSATION_THREAD_ALREADY_ARCHIVED");
+    }
+    const archived = archivedEvents[0];
+
     const messages = [];
     const messageIds = new Set<string>();
     for (const event of ordered) {
@@ -145,6 +164,7 @@ function materialize(
     result.push({
       contractVersion: "0.1.0",
       threadId,
+      state: archived ? "ARCHIVED" : "ACTIVE",
       principalSubjectId: root.payload.principalSubjectId,
       principalActorType: root.payload.principalActorType,
       context: structuredClone(root.payload.context),
@@ -154,6 +174,12 @@ function materialize(
         ? { sourceInteractionId: root.payload.sourceInteractionId }
         : {}),
       ...(root.payload.title ? { title: root.payload.title } : {}),
+      ...(archived && archived.type === "THREAD_ARCHIVED"
+        ? {
+            archivedAt: archived.payload.archivedAt,
+            archivedBySubjectId: archived.payload.archivedBySubjectId
+          }
+        : {}),
       messages,
       lastEventId: latest.eventId
     });
@@ -238,9 +264,35 @@ export function createConversationThreadStoreV010(input: {
       );
     },
 
+    archive(request) {
+      const thread = threads().find(item => item.threadId === request.threadId);
+      if (!thread) throw new Error("CONVERSATION_THREAD_NOT_FOUND");
+      if (thread.state === "ARCHIVED") {
+        return structuredClone(thread);
+      }
+      const event: ConversationThreadArchivedEventV010 = {
+        contractVersion: "0.1.0",
+        eventId: "conversation-thread-event:" + input.eventId(),
+        threadId: request.threadId,
+        type: "THREAD_ARCHIVED",
+        occurredAt: request.archivedAt,
+        payload: {
+          archivedAt: request.archivedAt,
+          archivedBySubjectId: request.archivedBySubjectId
+        }
+      };
+      input.eventStore.append(event);
+      return structuredClone(
+        threads().find(item => item.threadId === request.threadId)!
+      );
+    },
+
     appendMessage(request) {
       const thread = threads().find(item => item.threadId === request.threadId);
       if (!thread) throw new Error("CONVERSATION_THREAD_NOT_FOUND");
+      if (thread.state === "ARCHIVED") {
+        throw new Error("CONVERSATION_THREAD_ARCHIVED");
+      }
       if (thread.messages.some(message => message.messageId === request.messageId)) {
         throw new Error("CONVERSATION_MESSAGE_ID_DUPLICATE");
       }
@@ -284,6 +336,7 @@ export function createConversationThreadStoreV010(input: {
         .filter(thread =>
           thread.principalSubjectId === request.principalSubjectId
           && sameContext(thread.context, request.context)
+          && (request.includeArchived === true || thread.state === "ACTIVE")
         )
         .sort((a, b) =>
           b.updatedAt.localeCompare(a.updatedAt)

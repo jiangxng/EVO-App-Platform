@@ -27,6 +27,18 @@ export interface ConversationThreadCreatedEventV010 {
   };
 }
 
+export interface ConversationThreadArchivedEventV010 {
+  contractVersion: "0.1.0";
+  eventId: string;
+  threadId: string;
+  type: "THREAD_ARCHIVED";
+  occurredAt: string;
+  payload: {
+    archivedAt: string;
+    archivedBySubjectId: string;
+  };
+}
+
 export interface ConversationMessageAppendedEventV010 {
   contractVersion: "0.1.0";
   eventId: string;
@@ -46,6 +58,7 @@ export interface ConversationMessageAppendedEventV010 {
 
 export type ConversationThreadEventV010 =
   | ConversationThreadCreatedEventV010
+  | ConversationThreadArchivedEventV010
   | ConversationMessageAppendedEventV010;
 
 export interface ConversationMessageV010 {
@@ -61,9 +74,12 @@ export interface ConversationMessageV010 {
   eventId: string;
 }
 
+export type ConversationThreadStateV010 = "ACTIVE" | "ARCHIVED";
+
 export interface ConversationThreadV010 {
   contractVersion: "0.1.0";
   threadId: string;
+  state: ConversationThreadStateV010;
   principalSubjectId: string;
   principalActorType: PlatformActorType;
   context: ActiveContextRefV010;
@@ -71,6 +87,8 @@ export interface ConversationThreadV010 {
   updatedAt: string;
   sourceInteractionId?: string;
   title?: string;
+  archivedAt?: string;
+  archivedBySubjectId?: string;
   messages: ConversationMessageV010[];
   lastEventId: string;
 }
@@ -90,6 +108,11 @@ export interface ConversationThreadStoreV010 {
     sourceInteractionId?: string;
     title?: string;
   }): ConversationThreadV010;
+  archive(input: {
+    threadId: string;
+    archivedAt: string;
+    archivedBySubjectId: string;
+  }): ConversationThreadV010;
   appendMessage(input: {
     threadId: string;
     messageId: string;
@@ -105,6 +128,7 @@ export interface ConversationThreadStoreV010 {
     principalSubjectId: string;
     context: ActiveContextRefV010;
     limit?: number;
+    includeArchived?: boolean;
   }): ConversationThreadV010[];
   events(threadId: string): ConversationThreadEventV010[];
   conversationHistory(input: {
