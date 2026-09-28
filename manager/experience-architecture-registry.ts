@@ -6,6 +6,7 @@ export const APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010 = {
   eidosReviewDecisionCommit: "82dcea59abf14518394fd605faf5b741e57a7ef0",
   eidosJourneyContinuationCommit: "b937d45e6149dc16bdd2f0f6141df468f9014bda",
   eidosScopedJourneyContinuationCommit: "a2c2cf3380f1155c76dd405183abedec4e670cdc",
+  eidosRuntimeLocalizationCommit: "05fa28cfa2b1019fa22c9811eaf06d3278d344af",
   eidosPolicyVersion: "0.1.0",
   constitution: "Eidos Experience Architecture Constitution v0.1",
   baselineExpansionRequiresHumanApproval: true

@@ -52,6 +52,20 @@ export function localizeAppHostPageDefinition(
           definition.context.selector.ariaLabel
         );
       }
+      if (isObject(definition.context.selector) && Array.isArray(definition.context.selector.options)) {
+        for (const option of definition.context.selector.options) {
+          if (
+            !isObject(option)
+            || typeof option.label !== "string"
+            || typeof option.localizationKey !== "string"
+          ) continue;
+          option.label = localization.resolve(
+            namespace,
+            `chat.${pageId}.context.option.${option.localizationKey}.label`,
+            option.label
+          );
+        }
+      }
     }
     if (isObject(definition.readiness)) {
       const state = typeof definition.readiness.state === "string" ? definition.readiness.state : "default";

@@ -33,6 +33,7 @@ export interface ChatActionV020 {
 export interface ChatContextOptionV020 {
   id: string;
   label: string;
+  localizationKey?: string;
   value: JsonValue;
 }
 

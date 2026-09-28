@@ -252,7 +252,7 @@ export async function mountWorkbenchShell(
     for (const locale of localization.availableLocales()) {
       const option = document.createElement("option");
       option.value = locale;
-      option.textContent = locale;
+      option.textContent = hostText(`shell.locale.${locale}`, locale);
       option.selected = locale === current;
       localeSelect.appendChild(option);
     }
