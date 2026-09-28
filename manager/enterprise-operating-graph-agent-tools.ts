@@ -4,9 +4,11 @@ import type {
 import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
 } from "../contracts/enterprise-operating-graph.js";
-import type {
-  EnterpriseOperatingGraphViewKindV010,
-  EnterpriseOperatingGraphViewMutationV010
+import {
+  PRIMARY_EOG_DIAGRAM_VIEW_ID_V010,
+  PRIMARY_EOG_SPATIAL_VIEW_ID_V010,
+  type EnterpriseOperatingGraphViewKindV010,
+  type EnterpriseOperatingGraphViewMutationV010
 } from "../contracts/enterprise-operating-graph-view.js";
 import type {
   EnterpriseAgentToolRegistrationV010
@@ -91,6 +93,14 @@ function proposalMutation(
   ) {
     throw new Error("EOG_HUMAN_CONFIRMATION_REQUIRED");
   }
+  if (
+    mutation.type !== "NODE_BIND"
+    && mutation.type !== "NODE_REMOVE"
+    && mutation.type !== "GUIDANCE_RELATION_PUT"
+    && mutation.type !== "GUIDANCE_RELATION_REMOVE"
+  ) {
+    throw new Error("EOG_MUTATION_INVALID");
+  }
   return mutation;
 }
 
@@ -102,6 +112,22 @@ function viewKindArg(
     throw new Error("EOG_AGENT_ARGUMENT_INVALID:kind");
   }
   return value;
+}
+
+function defaultViewId(
+  graphId: string,
+  kind: EnterpriseOperatingGraphViewKindV010
+): string {
+  if (graphId === PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010) {
+    return kind === "DIAGRAM_2D"
+      ? PRIMARY_EOG_DIAGRAM_VIEW_ID_V010
+      : PRIMARY_EOG_SPATIAL_VIEW_ID_V010;
+  }
+  return graphId + (
+    kind === "DIAGRAM_2D"
+      ? ":view:diagram-2d"
+      : ":view:spatial-3d"
+  );
 }
 
 function viewMutation(
@@ -299,18 +325,29 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
       available,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
+        const enterpriseId = currentEnterpriseId();
         input.service.get({
-          enterpriseId: currentEnterpriseId(),
+          enterpriseId,
           graphId
         });
-        return input.viewService.ensure({
-          enterpriseId: currentEnterpriseId(),
+        const kind = viewKindArg(args);
+        const suppliedViewId = stringArg(args, "viewId", false);
+        const viewId = suppliedViewId ?? defaultViewId(graphId, kind);
+        const existing = input.viewService.list({
+          enterpriseId,
+          graphId
+        }).find(view => view.viewId === viewId);
+        return existing ?? {
+          contractVersion: "0.1.0",
+          viewId,
           graphId,
-          kind: viewKindArg(args),
-          ...(stringArg(args, "viewId", false)
-            ? { viewId: stringArg(args, "viewId", false) }
-            : {})
-        });
+          enterpriseId,
+          kind,
+          revision: 0,
+          placements: [],
+          createdAt: "",
+          updatedAt: ""
+        };
       }
     },
 
