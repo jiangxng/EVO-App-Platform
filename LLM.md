@@ -312,6 +312,18 @@ Install
 "Installation details" may expose the plan for inspection, diagnostics and audit, but ordinary installation MUST NOT require a separate "generate/review plan" click.
 
 
+## Enterprise Operating Graph product authority
+
+Before implementing enterprise-process modeling, APQC-assisted modeling, visual process/enterprise graphs, or Personal Agent actions that create/edit those models, read:
+
+`docs/architecture/ENTERPRISE-OPERATING-GRAPH-PRODUCT-DIRECTION-v0.1.md`
+
+and the canonical EVO semantic authority:
+
+`docs/architecture/EVO-15-ENTERPRISE-OPERATING-GRAPH-v0.1.md` in the EVO repository.
+
+Do not create a ProcessOn-like generic diagram product or duplicate Transaction Type, Application, Metadata, PostingRule or Ledger semantics inside App Platform. Human direct graphical edits and Agent actions must converge on the same structured model.
+
 ## Enterprise migration Agent learning authority
 
 Before designing enterprise onboarding/migration, source-system discovery, metadata/fact classification, Best Data Provider generation, migration curriculum/evaluation, or customer migration chat flows, read:
