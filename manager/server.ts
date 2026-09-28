@@ -56,6 +56,12 @@ import {
   createJsonlAgentRunEventStoreV010,
   createMemoryAgentRunEventStoreV010
 } from "./agent-run-store.js";
+import {
+  createConversationThreadStoreV010,
+  createJsonlConversationThreadEventStoreV010,
+  createMemoryConversationThreadEventStoreV010
+} from "./conversation-thread-store.js";
+import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
 import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
@@ -519,6 +525,16 @@ const agentRunEventStore = agentRunFile
   : createMemoryAgentRunEventStoreV010();
 const agentRunStore = createAgentRunStoreV010({
   eventStore: agentRunEventStore,
+  eventId: randomUUID
+});
+const conversationThreadFile =
+  process.env.APP_PLATFORM_CONVERSATION_THREAD_FILE?.trim()
+  || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "conversation-threads.jsonl") : undefined);
+const conversationThreadEventStore = conversationThreadFile
+  ? createJsonlConversationThreadEventStoreV010(conversationThreadFile)
+  : createMemoryConversationThreadEventStoreV010();
+const conversationThreadStore = createConversationThreadStoreV010({
+  eventStore: conversationThreadEventStore,
   eventId: randomUUID
 });
 const contextMemoryQualityStateFile =
@@ -2113,6 +2129,14 @@ const actionRouter = createAppActionRouter(
       resolveAuthorizationProvider,
       resolveRelationshipProvider: resolveEnterpriseContextRelationshipProvider,
       resolveSourceAdapter: resolveContextMemoryIntakeSource
+    }),
+    ...createPersonalAgentThreadActionHandlersV010({
+      threadStore: conversationThreadStore,
+      resolveIdentitySession,
+      resolveContext(selection, session) {
+        return createContextRegistryForSession(session).resolve(selection);
+      },
+      threadId: randomUUID
     }),
     ...createPersonalAgentRunActionHandlersV010({
       runStore: agentRunStore,
