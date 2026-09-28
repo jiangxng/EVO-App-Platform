@@ -132,7 +132,7 @@ Host-managed credential
   API Key status       Configured / Not configured
   Remove API Key       [boolean when configured]
 
-bootstrap admin auth    [temporary secret input]
+bootstrap admin verification [temporary secret input; only before sign-in/session authorization]
 ```
 
 Rules:
@@ -161,7 +161,21 @@ The current bootstrap phase authenticates `bootstrap-admin`; authorization is st
 
 Missing authentication, missing/ambiguous authorization Provider, policy denial or Provider failure fails closed.
 
-The temporary bootstrap credential is not a substitute for the planned Identity/Session/Principal boundary.
+The temporary bootstrap credential is not a substitute for the Identity/Session/Principal boundary.
+
+The target product behavior is:
+
+```text
+signed-in Principal
+  ↓
+current Session
+  ↓
+authorization.check(secret.value.manage)
+  ↓
+allow / deny
+```
+
+When session-backed authentication and authorization are available, ordinary Provider Settings MUST NOT ask the user to manually enter an administrator token. The bootstrap credential remains only as an initialization / break-glass mechanism outside normal day-to-day Settings UI.
 
 ## 8. Audit
 
@@ -209,7 +223,7 @@ The OpenAI runtime resolves that reference through `secrets.resolve`.
 
 New configuration MUST use Workbench/Secrets rather than Railway environment variables.
 
-Model ID and API Base URL remain ordinary non-secret Settings.
+Model selection and API Base URL remain ordinary non-secret Settings. Model choice SHOULD be rendered as a controlled Provider-owned selection rather than a free-form identifier whenever the Provider has a declared model catalog.
 
 ## 10. Lifecycle
 
@@ -268,4 +282,4 @@ install OpenAI Provider
 → CI and Help describe the same behavior
 ```
 
-Identity/Session remains the next security maturity layer for replacing bootstrap administration authentication.
+Identity/Session remains the next security maturity layer for replacing bootstrap administration authentication in ordinary Settings. Authorization itself remains mandatory; only the manual bootstrap credential field disappears from the normal product surface.
