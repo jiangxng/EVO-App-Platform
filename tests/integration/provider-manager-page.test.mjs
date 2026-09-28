@@ -88,10 +88,24 @@ test("Provider Manager exposes capability page and health-aware summary", () => 
     page.groups.map(group => group.id),
     ["selection", "scope", "runtime-status", "administration"]
   );
+  assert.equal(page.title, "AI service");
+  assert.equal(page.saveLabel, "Save choice");
+  assert.equal(page.notice.title, "Connection status");
+  assert.equal(page.notice.message, "Provider Pack");
+  const selection = page.groups.find(group => group.id === "selection");
+  assert.equal(selection.advanced, undefined);
+  assert.equal(selection.settings[0].label, "Service");
+  assert.deepEqual(
+    selection.settings[0].options.map(option => option.label),
+    ["Provider Pack"]
+  );
   const settings = page.groups.flatMap(group => group.settings);
   assert.ok(settings.some(field => field.key === "scope"));
   assert.ok(settings.some(field => field.key === "providerId"));
+  const scopeGroup = page.groups.find(group => group.id === "scope");
+  assert.equal(scopeGroup.advanced, true);
   const runtimeGroup = page.groups.find(group => group.id === "runtime-status");
+  assert.equal(runtimeGroup.advanced, true);
   assert.ok(runtimeGroup.settings.every(field => field.readOnly === true));
   const administration = page.groups.find(group => group.id === "administration");
   assert.equal(administration.advanced, true);
