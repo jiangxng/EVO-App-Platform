@@ -69,6 +69,13 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
 import {
+  createFileEnterpriseOperatingGraphViewStoreV010,
+  createMemoryEnterpriseOperatingGraphViewStoreV010
+} from "./enterprise-operating-graph-view-store.js";
+import {
+  createEnterpriseOperatingGraphViewHostServiceV010
+} from "./enterprise-operating-graph-view-service.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010
 } from "./enterprise-operating-graph-actions.js";
 import {
@@ -508,6 +515,20 @@ const enterpriseOperatingGraphService =
   createEnterpriseOperatingGraphHostServiceV010({
     store: enterpriseOperatingGraphStore,
     id: randomUUID
+  });
+const enterpriseOperatingGraphViewStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_VIEW_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-operating-graph-views.json")
+    : undefined);
+const enterpriseOperatingGraphViewStore = enterpriseOperatingGraphViewStateFile
+  ? createFileEnterpriseOperatingGraphViewStoreV010(
+      enterpriseOperatingGraphViewStateFile
+    )
+  : createMemoryEnterpriseOperatingGraphViewStoreV010();
+const enterpriseOperatingGraphViewService =
+  createEnterpriseOperatingGraphViewHostServiceV010({
+    store: enterpriseOperatingGraphViewStore
   });
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
@@ -2075,6 +2096,7 @@ function createPersonalAgentToolCatalogV010(
     }
   }, createEnterpriseOperatingGraphAgentToolRegistrationsV010({
     service: enterpriseOperatingGraphService,
+    viewService: enterpriseOperatingGraphViewService,
     principal,
     context
   }));
@@ -2106,6 +2128,7 @@ const actionRouter = createAppActionRouter(
     }),
     ...createEnterpriseOperatingGraphViewActionHandlersV010({
       service: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService,
       resolveAuthorizationProvider,
       locale(context) {
         return context.locale;
