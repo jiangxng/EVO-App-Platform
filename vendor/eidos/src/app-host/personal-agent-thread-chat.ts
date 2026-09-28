@@ -549,7 +549,9 @@ export async function recoverThreadBackedChatV010(
   }
 
   const thread = resolved.thread;
-  const pendingRunId = latestPendingRunId(thread);
+  const pendingRunId = thread.state === "ARCHIVED"
+    ? undefined
+    : latestPendingRunId(thread);
   if (!pendingRunId) {
     await progress(options, thread.threadId, undefined, 0);
     return {
