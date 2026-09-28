@@ -177,6 +177,7 @@ export function createPersonalAgentThreadActionHandlersV010(
             principalActorType: principal.actorType,
             context: structuredClone(context.activeContext),
             createdAt,
+            sourceInteractionId: request.sourceInteractionId,
             ...(typeof rawTitle === "string" && rawTitle.trim()
               ? { title: rawTitle.trim() }
               : {})
