@@ -47,10 +47,27 @@ test("first-run Setup points Provider discovery back to the real Plugin Store", 
   assert.equal(provider.state, "current");
   assert.equal(provider.primaryAction.id, "open-provider-catalog");
   assert.equal(provider.primaryAction.route, "/store");
+  assert.deepEqual(provider.primaryAction.continuation, {
+    onActionId: "install",
+    route: "/enterprise-agent/setup",
+    onItemIds: ["openai-llm-provider"]
+  });
   assert.equal(setup.completionAction, undefined);
   assert.match(setup.title, /Set up Personal Agent/);
   assert.doesNotMatch(setup.description, /llm\.inference|Provider/);
   assert.doesNotMatch(provider.title + " " + provider.description, /llm\.inference|Provider/);
+});
+
+test("first-run Plugin Store continuation accepts any catalog AI service but not unrelated packages", () => {
+  const setup = createPersonalAgentSetupPageV010(readiness({
+    catalogProviderPackageIds: ["openai-llm-provider", "deepseek-llm-provider"]
+  }));
+  const provider = setup.steps.find(step => step.id === "provider");
+  assert.deepEqual(provider.primaryAction.continuation, {
+    onActionId: "install",
+    route: "/enterprise-agent/setup",
+    onItemIds: ["openai-llm-provider", "deepseek-llm-provider"]
+  });
 });
 
 test("configured Provider step links real Provider Settings and Provider status", () => {
