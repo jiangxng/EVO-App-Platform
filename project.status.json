@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Personal Agent P1.6 — Run-backed Experience Integration",
+  "currentMilestone": "Personal Agent P1.7 — Durable Conversation Threads",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -301,7 +301,12 @@
     "personal-agent-memory-epistemic-boundaries-live-pass",
     "personal-agent-p1-5c-resumable-runs",
     "personal-agent-p1-5c-production-live-pass",
-    "personal-agent-p1-5-durable-agent-operations-live-pass"
+    "personal-agent-p1-5-durable-agent-operations-live-pass",
+    "personal-agent-p1-6-run-backed-chat-default",
+    "eidos-run-backed-chat-auto-resume",
+    "eidos-run-backed-chat-reconnect-recovery",
+    "eidos-run-backed-chat-legacy-fallback",
+    "p1-6-host-eidos-run-integration-proof"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -323,7 +328,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.5 Durable Agent Operations is closed as LIVE PASS. P1.5A deterministic governance inventory and P1.5B durable Action Receipts passed Human live verification. P1.5C durable resumable Agent Runs passed machine and automated production validation against the real Railway/DeepSeek runtime: bounded run.start/get/resume, durable PAUSED/SUCCEEDED state, process-restart reconstruction, cross-request READ convergence, and a paused run containing one material context.memory.proposal.create WRITE survived a full Railway restart and resumed to SUCCEEDED with exactly one unchanged SUCCEEDED Action Receipt and no duplicate Proposal WRITE. P1.6 now starts: replace the Personal Agent chat surface's synchronous enterprise-agent.chat orchestration with run-backed start/get/resume behavior while preserving current UX, Human authority boundaries, conversation continuity and compatibility fallback during migration.",
+  "currentStep": "P1.6 Run-backed Personal Agent Experience Integration is verified and closed. Eidos Personal Agent chat now uses durable enterprise-agent.run.start/get/resume as the primary transport, automatically advances PAUSED slices, persists/re-discovers runId for reconnect, renders terminal rich chat replies, preserves session conversation-history compatibility, keeps legacy enterprise-agent.chat only as explicit pre-run compatibility fallback, and never falls back after a durable run exists. PR #112 passed 27/27 triggered CI and deployed successfully to Railway at 1feb6229280c7c8a997b602e7e4aa808c1a63efa / fabb4b62-4e15-425c-a15b-8f0fd9ed04fd. PR #114 added clean Host+Eidos integration proof and passed 26/26 CI, including a material WRITE pause/reconnect flow with exactly one SUCCEEDED Action Receipt and no duplicate WRITE. Direct public HTTP smoke from the automation container was unavailable because outbound DNS is disabled; the exact production contracts are covered by integration tests and the deployed runtime is healthy. P1.7 now starts: make visible Personal Agent conversation threads durable Host state so transcript continuity survives refresh/new browser sessions without turning conversation text into Context Memory authority.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1568,8 +1573,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.6-2026-09-28-01",
-    "snapshotAt": "2026-09-28T00:01:05.402Z",
+    "snapshotId": "P1.7-2026-09-28-01",
+    "snapshotAt": "2026-09-28T08:36:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1589,44 +1594,43 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Personal Agent P1.6 — Run-backed Experience Integration",
+      "milestone": "Personal Agent P1.7 — Durable Conversation Threads",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "p1.5-durable-agent-operations",
-        "status": "LIVE_PASS",
-        "summary": "P1.5A governance inventory, P1.5B durable Action Receipts and P1.5C resumable Agent Runs are closed. Production P1.5C proved bounded multi-request runs, process-restart recovery, durable READ convergence and a material WRITE surviving restart with exactly one unchanged SUCCEEDED receipt and no duplicate WRITE.",
-        "authority": "docs/roadmap/P1.5-DURABLE-AGENT-OPERATIONS.md",
+        "id": "p1.6-run-backed-personal-agent-experience",
+        "status": "VERIFIED_PASS",
+        "summary": "Eidos Personal Agent chat uses durable Agent Runs as the default transport, auto-resumes bounded slices, recovers the same run across reconnect, preserves rich terminal replies and Action Receipt write safety, and falls back to legacy synchronous chat only before a durable run exists when run actions are unavailable.",
+        "authority": "docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md",
         "evidence": {
-          "p1_5A": "HUMAN_LIVE_PASS",
-          "p1_5B": "HUMAN_LIVE_PASS",
-          "p1_5C": "PRODUCTION_LIVE_PASS",
-          "productionCommit": "35bc1e5f50677a6dca739e290892ad60afbc07c4",
-          "deploymentId": "ca0bc54b-2b32-4bc3-a7a0-288a60d75eab",
-          "readRunId": "agent-run:b6bd76b7-0438-4ef9-a4a0-b453407f6faf",
-          "restartRunId": "agent-run:955bdd34-3f6b-4763-a630-1b158297eceb",
-          "writeRunId": "agent-run:af8ce534-f17a-436e-af00-246547390643",
-          "writeReceiptId": "agent-action-receipt:3236edfb214c3dcc86dc0c3c4fb8bb2b74dadad75c8561ccfe0e713c02fe5081",
-          "writeProposalId": "memory-proposal:974893e1-6a91-4473-8de8-e3e395342f62",
-          "duplicateWrite": false
+          "implementationPr": 112,
+          "integrationProofPr": 114,
+          "implementationCi": "27/27 PASS",
+          "p16aFocusedTests": "30/30 PASS",
+          "integrationCi": "26/26 PASS",
+          "productionCommit": "1feb6229280c7c8a997b602e7e4aa808c1a63efa",
+          "deploymentId": "fabb4b62-4e15-425c-a15b-8f0fd9ed04fd",
+          "deploymentStatus": "SUCCESS",
+          "writeReconnectNoDuplicate": true,
+          "legacyFallbackAfterRunCreation": false
         }
       },
       "openGate": {
-        "id": "p1.6a-eidos-run-backed-chat-orchestration",
+        "id": "p1.7a-durable-conversation-thread-foundation",
         "status": "IMPLEMENTATION_READY",
-        "summary": "Migrate the Personal Agent interaction surface from one synchronous enterprise-agent.chat request to Host durable enterprise-agent.run.start/get/resume orchestration. The UI should feel like the same chat while the transport automatically advances bounded run slices, survives reconnect/refresh and renders durable progress/final state.",
-        "authority": "docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md",
+        "summary": "Define and implement durable Host-owned Personal Agent conversation threads and append-only message events. The Host, not the browser, must become the source of discourse continuity while Context Memory remains the separate governed knowledge authority.",
+        "authority": "docs/roadmap/P1.7-DURABLE-CONVERSATION-THREADS.md",
         "acceptance": [
-          "Eidos starts a durable Agent Run instead of relying on one long enterprise-agent.chat request for the primary path",
-          "UI stores runId as interaction transport state",
-          "UI automatically resumes PAUSED runs without asking the Human to manage slices",
-          "refresh/reconnect can recover run state by runId",
-          "terminal SUCCEEDED renders the final Personal Agent reply",
-          "BLOCKED/FAILED/CANCELLED are rendered explicitly without pretending success",
-          "material WRITE Action Receipt evidence remains attached and no completed WRITE is repeated",
-          "current Principal/Context and Human approval boundaries remain authoritative on every resume",
-          "session conversation history behavior remains compatible",
-          "legacy enterprise-agent.chat remains available only as bounded compatibility fallback until migration certification",
-          "no UI-only hidden state is required to recover an active run"
+          "threadId is durable and Host-generated",
+          "thread is scoped to Principal + active Context",
+          "thread facts/ownership are immutable",
+          "messages are append-only events with stable messageId and role",
+          "user and assistant messages may link to runId",
+          "assistant terminal reply can be correlated to the originating user turn/run",
+          "thread.get/list are Principal + active-Context scoped",
+          "Host can build bounded conversationHistory from thread messages",
+          "browser-provided conversationHistory is no longer required for thread-backed turns",
+          "conversation messages do not become Context Memory unless a separate governed Memory Proposal flow occurs",
+          "file-backed persistence survives process reconstruction"
         ]
       },
       "productionPreview": {
@@ -1635,8 +1639,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "35bc1e5f50677a6dca739e290892ad60afbc07c4",
-        "deploymentId": "ca0bc54b-2b32-4bc3-a7a0-288a60d75eab",
+        "commit": "1feb6229280c7c8a997b602e7e4aa808c1a63efa",
+        "deploymentId": "fabb4b62-4e15-425c-a15b-8f0fd9ed04fd",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1756,6 +1760,16 @@
         "pr": 110,
         "status": "MERGED_DEPLOYED",
         "summary": "Make Personal Agent recommendations governance-state aware and inventory completeness filter-bounded."
+      },
+      {
+        "pr": 112,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Make Eidos Personal Agent chat run-backed by default with automatic resume, reconnect recovery, rich terminal presentation and bounded legacy fallback."
+      },
+      {
+        "pr": 114,
+        "status": "MERGED_CI_PASS",
+        "summary": "Add clean Host+Eidos integration proof for multi-slice READ and post-WRITE reconnect with no duplicate WRITE."
       }
     ],
     "doNotRepeat": [
@@ -1770,17 +1784,23 @@
       "Do not make run recovery depend on browser conversation memory or one long synchronous HTTP request.",
       "Do not let resume implicitly cross a Human approval boundary.",
       "Do not recommend governance work that authoritative current state already shows as completed.",
-      "Do not remove enterprise-agent.chat compatibility until the run-backed Eidos path is certified."
+      "Do not remove enterprise-agent.chat compatibility until the run-backed Eidos path is certified.",
+      "Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only.",
+      "Do not reintroduce enterprise-agent.chat as the primary Personal Agent transport; durable run-backed orchestration is now the default.",
+      "Do not fall back to legacy chat after a durable run has been created.",
+      "Do not make durable conversation threads the authority for Context Memory facts.",
+      "Do not store hidden model chain-of-thought in conversation threads.",
+      "Do not require the browser to resubmit durable thread history once P1.7 thread-backed turns are active.",
+      "Do not restart P1.4X, P1.5 or P1.6 work unless a new regression provides current evidence."
     ],
     "freshSessionAcceptance": [
-      "state current milestone as Personal Agent P1.6 — Run-backed Experience Integration",
-      "state P1.4X and all P1.5 slices A/B/C as closed LIVE PASS",
-      "state P1.6A Eidos run-backed chat orchestration as the current open gate",
-      "explain that P1.5C production validation proved a paused run with a material WRITE survives Railway restart without duplicate WRITE",
-      "state current deployed runtime revision 35bc1e5f50677a6dca739e290892ad60afbc07c4 and latest successful restart deployment ca0bc54b-2b32-4bc3-a7a0-288a60d75eab",
-      "identify both P1.5B and P1.5C smoke-test Proposals as test-only PENDING and do-not-accept",
-      "preserve Action Receipt indeterminate fail-closed semantics",
-      "preserve current Principal/Context and Human authority on every run resume",
+      "state current milestone as Personal Agent P1.7 — Durable Conversation Threads",
+      "state P1.4X, P1.5 and P1.6 as closed/verified",
+      "state P1.7A durable conversation thread foundation as the current open gate",
+      "state that Eidos Personal Agent chat now uses run.start/get/resume as the default transport",
+      "state production run-backed behavior revision 1feb6229280c7c8a997b602e7e4aa808c1a63efa and Railway deployment",
+      "explain that durable conversation discourse remains separate from Context Memory authority",
+      "identify the P1.5B smoke-test Proposal as test-only and not to be accepted",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -2004,10 +2024,71 @@
     "closedAt": "2026-09-28T00:01:05.402Z"
   },
   "runBackedExperienceP1_6": {
-    "status": "IMPLEMENTATION_READY",
+    "status": "VERIFIED_PASS",
     "authority": "docs/roadmap/P1.6-RUN-BACKED-PERSONAL-AGENT-EXPERIENCE.md",
-    "goal": "Make durable Agent Runs the default Personal Agent interaction transport/orchestration without requiring the Human to manually manage run.start/get/resume.",
-    "compatibility": "enterprise-agent.chat remains temporary compatibility path until migration is proven",
-    "firstSlice": "P1.6A_EIDOS_RUN_BACKED_CHAT_ORCHESTRATION"
+    "primaryTransport": [
+      "enterprise-agent.run.start",
+      "enterprise-agent.run.get",
+      "enterprise-agent.run.resume"
+    ],
+    "legacyFallback": "enterprise-agent.chat",
+    "fallbackRule": "ONLY_BEFORE_DURABLE_RUN_CREATION_WHEN_RUN_ACTIONS_UNAVAILABLE",
+    "automaticResume": true,
+    "clientResumeBudget": 12,
+    "reconnect": [
+      "SESSION_STORAGE_RUN_ID",
+      "HOST_RUN_LIST_DETERMINISTIC_NON_TERMINAL_MATCH"
+    ],
+    "ambiguousRecovery": "FAIL_CLOSED",
+    "terminalStates": [
+      "SUCCEEDED",
+      "BLOCKED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "terminalPresentation": "EXISTING_PERSONAL_AGENT_RICH_MESSAGE_PARTS",
+    "conversationHistoryCompatibility": "PASS",
+    "actionReceiptWriteSafety": "PASS",
+    "machineGate": {
+      "pr112": "27_OF_27_TRIGGERED_CI_PASS",
+      "p16aTests": "30_OF_30_PASS",
+      "pr114": "26_OF_26_TRIGGERED_CI_PASS",
+      "hostEidosIntegration": "PASS"
+    },
+    "deployment": {
+      "platform": "RAILWAY",
+      "project": "EVO Ledger Runtime MVP",
+      "service": "Ledger Configurator",
+      "environment": "production",
+      "commit": "1feb6229280c7c8a997b602e7e4aa808c1a63efa",
+      "deploymentId": "fabb4b62-4e15-425c-a15b-8f0fd9ed04fd",
+      "status": "SUCCESS",
+      "persistentStateMount": "/data"
+    },
+    "liveVerification": {
+      "manualBrowserRequired": false,
+      "reason": "Human delegated unchanged-UI transport validation to automated tests.",
+      "directExternalHttpSmoke": "UNAVAILABLE_FROM_AUTOMATION_ENVIRONMENT_OUTBOUND_DNS_DISABLED",
+      "productionDeployHealth": "PASS",
+      "exactContractIntegration": "PASS"
+    }
+  },
+  "durableConversationThreadsP1_7": {
+    "status": "ARCHITECTURE_IMPLEMENTATION_READY",
+    "authority": "docs/roadmap/P1.7-DURABLE-CONVERSATION-THREADS.md",
+    "invariant": "CONVERSATION_THREAD_IS_DURABLE_DISCOURSE_NOT_CONTEXT_MEMORY_AUTHORITY",
+    "target": [
+      "durable threadId",
+      "append-only user/assistant/system message events",
+      "Principal + active Context scope",
+      "user turn linked to durable Agent runId",
+      "assistant terminal reply linked to same runId",
+      "Host-built bounded conversation history from durable thread",
+      "refresh/new browser session transcript recovery",
+      "no browser-resubmitted history required for continuity",
+      "no automatic promotion of conversation text into Context Memory",
+      "Human governance boundaries unchanged"
+    ],
+    "currentSlice": "P1.7A_THREAD_CONTRACT_STORE_AND_HOST_READ_WRITE_BOUNDARY"
   }
 }
