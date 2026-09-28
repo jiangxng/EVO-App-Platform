@@ -63,6 +63,7 @@ import {
 } from "./conversation-thread-store.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
+import { createConversationRetentionPreviewActionHandlerV010 } from "../agents/enterprise-agent/thread-retention-action-handler.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
 import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
@@ -2150,6 +2151,13 @@ const actionRouter = createAppActionRouter(
       },
       createToolCatalog: createPersonalAgentToolCatalogV010,
       runId: randomUUID
+    }),
+    createConversationRetentionPreviewActionHandlerV010({
+      threadStore: conversationThreadStore,
+      resolveIdentitySession,
+      resolveContext(selection, session) {
+        return createContextRegistryForSession(session).resolve(selection);
+      }
     }),
     ...createPersonalAgentRunActionHandlersV010({
       runStore: agentRunStore,

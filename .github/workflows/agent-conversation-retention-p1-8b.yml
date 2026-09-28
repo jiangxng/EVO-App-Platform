@@ -1,0 +1,39 @@
+name: Agent CI - Conversation Retention P1.8B
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/conversation-retention.ts"
+      - "manager/conversation-thread-retention.ts"
+      - "agents/enterprise-agent/thread-retention-action-handler.ts"
+      - "manager/server.ts"
+      - "tests/protocol/conversation-retention-p1-8b.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-retention-p1-8b.yml"
+  pull_request:
+    paths:
+      - "contracts/conversation-retention.ts"
+      - "manager/conversation-thread-retention.ts"
+      - "agents/enterprise-agent/thread-retention-action-handler.ts"
+      - "manager/server.ts"
+      - "tests/protocol/conversation-retention-p1-8b.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-retention-p1-8b.yml"
+
+concurrency:
+  group: agent-conversation-retention-p1-8b-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:conversation-retention:p1-8b
