@@ -1,5 +1,6 @@
 import type {
   ConversationRetentionCandidatePolicyV010,
+  ConversationRetentionPolicySourceV010,
   ConversationRetentionPreviewResultV010
 } from "../contracts/conversation-retention.js";
 import type {
@@ -25,6 +26,7 @@ export function previewConversationRetentionV010(input: {
   principalSubjectId: string;
   context: ActiveContextRefV010;
   candidatePolicy: ConversationRetentionCandidatePolicyV010;
+  policySource?: ConversationRetentionPolicySourceV010;
   now?: Date;
 }): ConversationRetentionPreviewResultV010 {
   validatePolicy(input.candidatePolicy);
@@ -77,6 +79,7 @@ export function previewConversationRetentionV010(input: {
     context: structuredClone(input.context),
     simulatedAt: now.toISOString(),
     candidatePolicy: structuredClone(input.candidatePolicy),
+    policySource: input.policySource ?? "PREVIEW_OVERRIDE",
     scope: "READER_VISIBLE_CURRENT_CONTEXT",
     destructiveActionExecuted: false,
     totals: {

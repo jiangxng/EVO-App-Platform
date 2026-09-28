@@ -3,6 +3,9 @@ import type {
   AppActionHandler,
   AppActionRequestV010
 } from "../../actions/contracts.js";
+import type {
+  ConversationRetentionPolicySourceV010
+} from "../../contracts/conversation-retention.js";
 import type { ConversationThreadStoreV010 } from "../../contracts/conversation-thread.js";
 import type {
   ActiveContextRefV010,
@@ -23,6 +26,8 @@ export interface ConversationRetentionPreviewActionDependenciesV010 {
     selection: ActiveContextRefV010 | undefined,
     session: IdentitySessionV010
   ): ResolvedContextSetV010;
+  retainArchivedForDays: number;
+  policySource: Exclude<ConversationRetentionPolicySourceV010, "PREVIEW_OVERRIDE">;
   now?: () => Date;
 }
 
@@ -103,10 +108,24 @@ export function createConversationRetentionPreviewActionHandlerV010(
       requestContext?: PlatformRequestContextV010
     ): Promise<AppActionExecutionResultV010> {
       try {
-        const days = request.values.retainArchivedForDays;
+        const requestedDays = request.values.retainArchivedForDays;
         if (
-          typeof days !== "number"
-          || !Number.isInteger(days)
+          requestedDays !== undefined
+          && (
+            typeof requestedDays !== "number"
+            || !Number.isInteger(requestedDays)
+            || requestedDays < 1
+            || requestedDays > 36500
+          )
+        ) {
+          throw new Error("CONVERSATION_RETENTION_POLICY_INVALID");
+        }
+        const explicitOverride = typeof requestedDays === "number";
+        const days = explicitOverride
+          ? requestedDays
+          : dependencies.retainArchivedForDays;
+        if (
+          !Number.isInteger(days)
           || days < 1
           || days > 36500
         ) {
@@ -130,8 +149,61 @@ export function createConversationRetentionPreviewActionHandlerV010(
             contractVersion: "0.1.0",
             retainArchivedForDays: days
           },
+          policySource: explicitOverride
+            ? "PREVIEW_OVERRIDE"
+            : dependencies.policySource,
           now: dependencies.now?.()
         }));
+      } catch (error) {
+        return failure(request, error);
+      }
+    }
+  };
+}
+
+
+export function createConversationRetentionPolicyGetActionHandlerV010(
+  dependencies: ConversationRetentionPreviewActionDependenciesV010
+): AppActionHandler {
+  const days = dependencies.retainArchivedForDays;
+  if (
+    !Number.isInteger(days)
+    || days < 1
+    || days > 36500
+  ) {
+    throw new Error("CONVERSATION_RETENTION_POLICY_INVALID");
+  }
+
+  return {
+    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
+    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    commandCode: "enterprise-agent.thread.retention.policy.get",
+
+    async execute(
+      request,
+      requestContext?: PlatformRequestContextV010
+    ): Promise<AppActionExecutionResultV010> {
+      try {
+        let session: IdentitySessionV010 | undefined;
+        if (!requestContext?.context) {
+          session = dependencies.resolveIdentitySession();
+          dependencies.resolveContext(
+            activeContextSelection(request),
+            session
+          );
+        }
+
+        return result(request, {
+          policy: {
+            contractVersion: "0.1.0",
+            retainArchivedForDays: days,
+            source: dependencies.policySource,
+            appliesOnlyTo: "ARCHIVED_THREADS",
+            clockStartsAt: "archivedAt",
+            activeThreadsNeverEligible: true,
+            destructivePurgeEnabled: false
+          }
+        });
       } catch (error) {
         return failure(request, error);
       }

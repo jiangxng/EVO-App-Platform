@@ -63,7 +63,10 @@ import {
 } from "./conversation-thread-store.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
-import { createConversationRetentionPreviewActionHandlerV010 } from "../agents/enterprise-agent/thread-retention-action-handler.js";
+import {
+  createConversationRetentionPolicyGetActionHandlerV010,
+  createConversationRetentionPreviewActionHandlerV010
+} from "../agents/enterprise-agent/thread-retention-action-handler.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
 import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
@@ -539,6 +542,21 @@ const conversationThreadStore = createConversationThreadStoreV010({
   eventStore: conversationThreadEventStore,
   eventId: randomUUID
 });
+const configuredConversationRetentionDays =
+  process.env.APP_PLATFORM_CONVERSATION_RETENTION_DAYS?.trim();
+const conversationRetentionDays = Number(
+  configuredConversationRetentionDays || "90"
+);
+if (
+  !Number.isInteger(conversationRetentionDays)
+  || conversationRetentionDays < 1
+  || conversationRetentionDays > 36500
+) {
+  throw new Error("CONVERSATION_RETENTION_POLICY_INVALID");
+}
+const conversationRetentionPolicySource = configuredConversationRetentionDays
+  ? "PLATFORM_CONFIG" as const
+  : "HUMAN_PLATFORM_DEFAULT" as const;
 const contextMemoryQualityStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_QUALITY_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory-quality.json") : undefined);
@@ -2157,7 +2175,18 @@ const actionRouter = createAppActionRouter(
       resolveIdentitySession,
       resolveContext(selection, session) {
         return createContextRegistryForSession(session).resolve(selection);
-      }
+      },
+      retainArchivedForDays: conversationRetentionDays,
+      policySource: conversationRetentionPolicySource
+    }),
+    createConversationRetentionPolicyGetActionHandlerV010({
+      threadStore: conversationThreadStore,
+      resolveIdentitySession,
+      resolveContext(selection, session) {
+        return createContextRegistryForSession(session).resolve(selection);
+      },
+      retainArchivedForDays: conversationRetentionDays,
+      policySource: conversationRetentionPolicySource
     }),
     ...createPersonalAgentRunActionHandlersV010({
       runStore: agentRunStore,

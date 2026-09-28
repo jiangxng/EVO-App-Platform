@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.8-2026-09-28-02`  
-**Snapshot time:** `2026-09-28T09:24:00+08:00`  
+**Snapshot:** `P1.8-2026-09-28-03`  
+**Snapshot time:** `2026-09-28T09:03:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -36,19 +36,20 @@ Evidence:
 
 ## Current open live gate
 
-**p1.8b-conversation-retention-policy: HUMAN_POLICY_DECISION_REQUIRED**
+**p1.8b-conversation-retention-policy-90-day: IMPLEMENTATION_IN_PROGRESS**
 
-The non-destructive retention preview is deployed and verified. Before durable policy commit or purge governance is added, the Human must choose how many days an ARCHIVED thread is retained from archivedAt.
+Human selected retainArchivedForDays=90. Make the 90-day archived-thread policy explicit/readable and use it as the default retention preview. Do not enable destructive purge from this decision.
 
 Acceptance:
 
-- chosen retention duration is recorded as explicit Human policy
-- policy is separate from Context Memory retention
-- preview shows deterministic eligibility before any purge
+- effective retention policy reads as 90 days
+- default preview uses 90 days without requiring the caller to resupply it
+- retention clock begins at archivedAt
 - ACTIVE threads remain ineligible
-- irreversible purge requires separate Human authorization
-- purge/tombstone evidence is auditable
-- Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup
+- explicit preview overrides remain simulation-only
+- destructivePurgeEnabled remains false
+- no Conversation Thread, Context Memory, Agent Run or Action Receipt is deleted
+- production config records 90 days explicitly
 
 ## Current production preview
 
@@ -164,12 +165,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
 - state P1.7 and P1.8A as verified and closed
-- state P1.8B retention preview as deployed and non-destructive
-- state retainArchivedForDays Human policy decision as the current open gate
-- state current deployed runtime revision e0b1307b09823b9253cf737edf5e472b9fce52c3
-- explain ACTIVE threads are never purge-eligible and archived retention clock starts at archivedAt
-- explain no destructive purge is currently enabled
-- do not infer or invent a retention duration without Human decision
+- state the Human-selected archived Conversation Thread retention policy as 90 days from archivedAt
+- state P1.8B implementation is making that policy explicit/readable while destructive purge remains disabled
+- state ACTIVE threads are never purge-eligible
+- do not interpret the 90-day decision as authorization to delete anything
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
