@@ -215,6 +215,28 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
   );
 });
 
+test("Agent create defaults to the same primary graph opened by the Eidos editor", async () => {
+  const service = hostService();
+  const tool = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service,
+    context: enterpriseRequestContext().context,
+    principal: enterpriseRequestContext().principal
+  }).find(
+    item => item.descriptor.id === "enterprise.operating_graph.create"
+  );
+  assert.ok(tool);
+
+  const graph = await tool.execute({}, []);
+  assert.equal(graph.graphId, "eog:primary");
+  assert.equal(
+    service.get({
+      enterpriseId: "enterprise:demo",
+      graphId: "eog:primary"
+    }).graphId,
+    "eog:primary"
+  );
+});
+
 test("Agent proposal tool cannot confirm or publish enterprise truth", async () => {
   const service = hostService();
   const graph = service.create({
