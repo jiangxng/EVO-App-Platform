@@ -328,7 +328,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.7 Durable Conversation Threads is verified and closed. P1.7A added Host-owned append-only Conversation Thread state; P1.7B bound thread turns to durable Agent Runs and Host-built conversation history; P1.7C moved Eidos Personal Agent transcript recovery/send to durable Host threads. PR #118 passed 30/30 triggered CI and deployed successfully to Railway at 39f346ef790bdc634848b2dba3a51fe24ad6a4bc / 4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17. P1.8 now starts to define explicit thread lifecycle and retention so durable conversation state does not grow forever and 'new chat' / history management has clear Host semantics. P1.8A begins with append-only thread lifecycle state (ACTIVE/ARCHIVED) and current-Principal/current-Context scoped archive/read/list behavior; physical deletion remains a later retention operation, not an ordinary mutation.",
+  "currentStep": "P1.8A Thread Lifecycle Foundation is verified, merged and deployed: PR #119 passed 31/31 triggered CI and Railway is SUCCESS at 17a0878fccfca53689ed7d505da7a7e9906100b1 / 94d7334a-4076-4b13-ace3-9a646f87e172. P1.8B non-destructive Conversation Retention preview is also merged and deployed: PR #120 passed 32/32 CI and Railway is SUCCESS at e0b1307b09823b9253cf737edf5e472b9fce52c3 / e0165b11-4bad-485e-b2c0-ee349af14a86. Retention preview applies only to ARCHIVED threads, starts the clock at archivedAt, never marks ACTIVE threads purge-eligible, and executes no destructive action. The next gate is a genuine Human policy decision: choose retainArchivedForDays before any durable retention policy or Human-authorized purge workflow is implemented/activated.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1573,8 +1573,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.8-2026-09-28-01",
-    "snapshotAt": "2026-09-28T09:12:00+08:00",
+    "snapshotId": "P1.8-2026-09-28-02",
+    "snapshotAt": "2026-09-28T09:24:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1597,35 +1597,59 @@
       "milestone": "Personal Agent P1.8 — Conversation Lifecycle & Retention",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "p1.7-durable-conversation-threads",
+        "id": "p1.8a-thread-lifecycle-foundation",
         "status": "VERIFIED_PASS",
-        "summary": "Conversation discourse is now durable Host state: thread foundation, run-bound turns and Eidos transcript recovery are implemented; PR #118 passed 30/30 CI and deployed successfully.",
-        "authority": "docs/roadmap/P1.7-DURABLE-CONVERSATION-THREADS.md",
+        "summary": "Conversation Threads now have append-only ACTIVE→ARCHIVED lifecycle. Archive preserves all messages, exact read remains available, default list hides archived threads, and new Agent turns are rejected before run creation.",
+        "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
         "evidence": {
-          "p17aPr": 116,
-          "p17bPr": 117,
-          "p17cPr": 118,
-          "p17cCi": "30/30 PASS",
-          "productionCommit": "39f346ef790bdc634848b2dba3a51fe24ad6a4bc",
-          "deploymentId": "4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17",
+          "pr": 119,
+          "ci": "31/31 PASS",
+          "productionCommit": "17a0878fccfca53689ed7d505da7a7e9906100b1",
+          "deploymentId": "94d7334a-4076-4b13-ace3-9a646f87e172",
           "deploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "p1.8a-thread-lifecycle-foundation",
-        "status": "IMPLEMENTATION_READY",
-        "summary": "Add append-only durable thread lifecycle state so active and archived conversations are explicit Host semantics before retention/purge and UI thread management are added.",
+        "id": "p1.8b-conversation-retention-policy",
+        "status": "HUMAN_POLICY_DECISION_REQUIRED",
+        "summary": "The non-destructive retention preview is deployed and verified. Before durable policy commit or purge governance is added, the Human must choose how many days an ARCHIVED thread is retained from archivedAt.",
         "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
-        "acceptance": [
-          "thread lifecycle is materialized from append-only events",
-          "new threads begin ACTIVE",
-          "archive does not rewrite/delete messages",
-          "archive is Principal + active-Context scoped",
-          "archived thread remains exact-ID readable",
-          "default list excludes archived and includeArchived=true can include them",
-          "conversation history projection still works for archived thread reads but new send to archived thread is rejected",
-          "Context Memory is not affected",
-          "file-backed reconstruction preserves lifecycle state"
+        "decisionRequired": {
+          "field": "retainArchivedForDays",
+          "type": "INTEGER_DAYS",
+          "minimum": 1,
+          "maximum": 36500,
+          "appliesOnlyTo": "ARCHIVED_THREADS",
+          "clockStartsAt": "archivedAt",
+          "activeThreadsNeverEligible": true,
+          "destructiveActionCurrentlyEnabled": false
+        },
+        "recommendedStartingOptions": [
+          {
+            "days": 30,
+            "tradeoff": "privacy/storage aggressive; short recovery window"
+          },
+          {
+            "days": 90,
+            "tradeoff": "balanced MVP default; useful recovery window without very long archived retention"
+          },
+          {
+            "days": 180,
+            "tradeoff": "longer operational history; more retained sensitive discourse"
+          },
+          {
+            "days": 365,
+            "tradeoff": "maximum convenience among common defaults; largest retention/privacy footprint"
+          }
+        ],
+        "acceptanceAfterDecision": [
+          "chosen retention duration is recorded as explicit Human policy",
+          "policy is separate from Context Memory retention",
+          "preview shows deterministic eligibility before any purge",
+          "ACTIVE threads remain ineligible",
+          "irreversible purge requires separate Human authorization",
+          "purge/tombstone evidence is auditable",
+          "Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup"
         ]
       },
       "productionPreview": {
@@ -1634,8 +1658,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "39f346ef790bdc634848b2dba3a51fe24ad6a4bc",
-        "deploymentId": "4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17",
+        "commit": "e0b1307b09823b9253cf737edf5e472b9fce52c3",
+        "deploymentId": "e0165b11-4bad-485e-b2c0-ee349af14a86",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1780,6 +1804,16 @@
         "pr": 118,
         "status": "MERGED_DEPLOYED",
         "summary": "Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS."
+      },
+      {
+        "pr": 119,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS."
+      },
+      {
+        "pr": 120,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled."
       }
     ],
     "doNotRepeat": [
@@ -1810,11 +1844,13 @@
     ],
     "freshSessionAcceptance": [
       "state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention",
-      "state P1.7 Durable Conversation Threads as verified and closed",
-      "state P1.8A Thread Lifecycle Foundation as current open gate",
-      "state current deployed runtime revision 39f346ef790bdc634848b2dba3a51fe24ad6a4bc",
-      "explain Conversation Thread is durable discourse and is not Context Memory",
-      "explain archive/lifecycle must be append-only and retention is a separate later destructive-governance concern",
+      "state P1.7 and P1.8A as verified and closed",
+      "state P1.8B retention preview as deployed and non-destructive",
+      "state retainArchivedForDays Human policy decision as the current open gate",
+      "state current deployed runtime revision e0b1307b09823b9253cf737edf5e472b9fce52c3",
+      "explain ACTIVE threads are never purge-eligible and archived retention clock starts at archivedAt",
+      "explain no destructive purge is currently enabled",
+      "do not infer or invent a retention duration without Human decision",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -2123,14 +2159,14 @@
     }
   },
   "conversationLifecycleP1_8": {
-    "status": "ACTIVE_P1_8A_IMPLEMENTATION_READY",
+    "status": "ACTIVE_P1_8B_HUMAN_POLICY_DECISION_REQUIRED",
     "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
     "invariant": "DURABLE_CONVERSATION_REQUIRES_EXPLICIT_LIFECYCLE_AND_RETENTION_SEPARATE_FROM_CONTEXT_MEMORY",
     "slices": [
       {
         "id": "P1.8A",
         "title": "Thread lifecycle foundation",
-        "status": "IMPLEMENTATION_READY",
+        "status": "VERIFIED_PASS",
         "target": [
           "append-only thread lifecycle events",
           "ACTIVE and ARCHIVED materialized states",
@@ -2138,18 +2174,37 @@
           "archived threads remain readable by exact threadId",
           "default list excludes archived unless explicitly requested",
           "no message mutation or Context Memory side effect"
-        ]
+        ],
+        "evidence": {
+          "pr": 119,
+          "ci": "31/31 PASS",
+          "deployedCommit": "17a0878fccfca53689ed7d505da7a7e9906100b1",
+          "deploymentId": "94d7334a-4076-4b13-ace3-9a646f87e172",
+          "deploymentStatus": "SUCCESS"
+        }
       },
       {
         "id": "P1.8B",
         "title": "Conversation retention policy",
-        "status": "PLANNED",
+        "status": "PREVIEW_DEPLOYED_HUMAN_POLICY_DECISION_REQUIRED",
         "target": [
           "thread-specific retention policy independent from Context Memory retention",
           "retention preview before destructive purge",
           "Human-authorized purge/tombstone workflow",
           "audit evidence of retention actions"
-        ]
+        ],
+        "preview": {
+          "pr": 120,
+          "ci": "32/32 PASS",
+          "deployedCommit": "e0b1307b09823b9253cf737edf5e472b9fce52c3",
+          "deploymentId": "e0165b11-4bad-485e-b2c0-ee349af14a86",
+          "deploymentStatus": "SUCCESS",
+          "action": "enterprise-agent.thread.retention.preview",
+          "destructiveActionExecuted": false,
+          "activeThreadsEligible": false,
+          "archivedClock": "archivedAt",
+          "scope": "READER_VISIBLE_CURRENT_CONTEXT"
+        }
       },
       {
         "id": "P1.8C",
