@@ -6,6 +6,7 @@ import { isExtensionManagerV010, renderExtensionManagerToHtml } from "../extensi
 import { isHelpDocumentV010, renderHelpDocumentToHtml } from "../help/index.js";
 import { isSetupFlowV010, renderSetupFlowToHtml } from "../setup-flow/index.js";
 import { isReviewQueueV010, renderReviewQueueToHtml } from "../review-queue/index.js";
+import { isDiagramEditorPageV010, renderDiagramEditorPageShellToHtmlV010 } from "../diagram/surface.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import { localizeAppHostPageDefinition } from "../localization/localize.js";
@@ -41,6 +42,10 @@ export function renderAppHostPageToHtml(
 
   if (isReviewQueueV010(localizedDefinition)) {
     return renderReviewQueueToHtml(localizedDefinition);
+  }
+
+  if (isDiagramEditorPageV010(localizedDefinition)) {
+    return renderDiagramEditorPageShellToHtmlV010(localizedDefinition);
   }
 
   if (isHelpDocumentV010(localizedDefinition)) {
