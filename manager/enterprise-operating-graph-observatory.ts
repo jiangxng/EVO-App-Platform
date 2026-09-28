@@ -4,6 +4,7 @@ import type {
   EogAnalysisSnapshotV020,
   EogObservationSnapshotV020,
   EogObservatoryTargetV020,
+  EogResolvedObservatoryTargetV020,
   EogRuntimeFactV020,
   EogTimeLensV020,
   EogTimeWindowV020,
@@ -106,6 +107,76 @@ function assertTarget(
         relation => relation.relationId === target.relationId
       );
   if (!exists) throw new Error("EOG_OBSERVATORY_TARGET_NOT_FOUND");
+}
+
+function resolvedTarget(
+  graph: EnterpriseOperatingGraphV010,
+  target: EogObservatoryTargetV020
+): EogResolvedObservatoryTargetV020 {
+  assertTarget(graph, target);
+
+  if (target.kind === "NODE") {
+    const node = graph.nodes.find(
+      item => item.nodeId === target.nodeId
+    )!;
+    return {
+      target: structuredClone(target),
+      node: structuredClone(node)
+    };
+  }
+
+  const relation = target.authority === "GUIDANCE"
+    ? graph.guidanceRelations.find(
+        item => item.relationId === target.relationId
+      )!
+    : graph.enterpriseRelations.find(
+        item => item.relationId === target.relationId
+      )!;
+  const application = graph.nodes.find(
+    item => item.nodeId === relation.applicationNodeId
+  );
+  const ledger = graph.nodes.find(
+    item => item.nodeId === relation.ledgerNodeId
+  );
+  if (!application || !ledger) {
+    throw new Error("EOG_OBSERVATORY_RELATION_ENDPOINT_NOT_FOUND");
+  }
+
+  return {
+    target: structuredClone(target),
+    relation: {
+      kind: "APPLICATION_LEDGER",
+      application: {
+        nodeId: application.nodeId,
+        semanticRef: structuredClone(application.semanticRef)
+      },
+      ledger: {
+        nodeId: ledger.nodeId,
+        semanticRef: structuredClone(ledger.semanticRef)
+      }
+    }
+  };
+}
+
+function graphTargets(
+  graph: EnterpriseOperatingGraphV010
+): EogObservatoryTargetV020[] {
+  return [
+    ...graph.nodes.map(node => ({
+      kind: "NODE" as const,
+      nodeId: node.nodeId
+    })),
+    ...graph.guidanceRelations.map(relation => ({
+      kind: "RELATION" as const,
+      authority: "GUIDANCE" as const,
+      relationId: relation.relationId
+    })),
+    ...graph.enterpriseRelations.map(relation => ({
+      kind: "RELATION" as const,
+      authority: "ENTERPRISE" as const,
+      relationId: relation.relationId
+    }))
+  ].sort((a, b) => targetKey(a).localeCompare(targetKey(b)));
 }
 
 function assertWindowContained(
@@ -357,6 +428,13 @@ export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
       throw new Error("EOG_RUNTIME_METRIC_FILTER_INVALID");
     }
 
+    const effectiveTargets = targets?.length
+      ? structuredClone(targets)
+      : graphTargets(graph);
+    const semanticTargets = effectiveTargets.map(
+      target => resolvedTarget(graph, target)
+    );
+
     const request = {
       contractVersion: "0.2.0" as const,
       enterpriseId: graph.enterpriseId,
@@ -365,6 +443,7 @@ export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
       ...(targets?.length
         ? { targets: structuredClone(targets) }
         : {}),
+      semanticTargets,
       ...(metricCodes?.length
         ? { metricCodes: [...metricCodes] }
         : {})

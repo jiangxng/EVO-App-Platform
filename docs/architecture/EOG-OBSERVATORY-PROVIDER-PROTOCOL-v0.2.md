@@ -39,6 +39,22 @@ Runtime:
 
 The Provider receives a bounded graph/window/target/metric query and returns Runtime Facts. It must not widen the requested target or metric scope.
 
+Before invoking the Provider, the Host resolves every effective target to canonical EOG semantics. The request therefore includes `semanticTargets`.
+
+For a node this includes its canonical binding, for example:
+
+```text
+nodeId
+→ kind = LEDGER
+→ semanticRef.authority = EVO
+→ semanticRef.kind = LEDGER_DEFINITION
+→ semanticRef.refId = ledger:pending-production
+```
+
+For an Application→Ledger relation the Host supplies both canonical endpoint bindings plus the relation authority (Guidance or Enterprise).
+
+A Provider MUST use these Host-resolved bindings rather than infer business meaning from visual labels or `nodeId`. This is the bridge that allows a generic EVO Runtime adapter to map an EOG Ledger node to an EVO LedgerDefinition without coupling EVO to EOG layout or UI identities.
+
 ### Analysis Provider
 
 ```text

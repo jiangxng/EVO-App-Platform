@@ -1,3 +1,8 @@
+import type {
+  EogCanonicalRefV010,
+  EogNodeKindV010
+} from "./enterprise-operating-graph.js";
+
 export const EOG_OBSERVATORY_CONTRACT_VERSION_V020 = "0.2.0" as const;
 
 export const EOG_RUNTIME_METRIC_CODES_V020 = {
@@ -22,6 +27,41 @@ export type EogObservatoryTargetV020 =
       authority: "GUIDANCE" | "ENTERPRISE";
       relationId: string;
     };
+
+export interface EogResolvedNodeTargetV020 {
+  target: {
+    kind: "NODE";
+    nodeId: string;
+  };
+  node: {
+    nodeId: string;
+    kind: EogNodeKindV010;
+    semanticRef: EogCanonicalRefV010;
+  };
+}
+
+export interface EogResolvedRelationTargetV020 {
+  target: {
+    kind: "RELATION";
+    authority: "GUIDANCE" | "ENTERPRISE";
+    relationId: string;
+  };
+  relation: {
+    kind: "APPLICATION_LEDGER";
+    application: {
+      nodeId: string;
+      semanticRef: EogCanonicalRefV010;
+    };
+    ledger: {
+      nodeId: string;
+      semanticRef: EogCanonicalRefV010;
+    };
+  };
+}
+
+export type EogResolvedObservatoryTargetV020 =
+  | EogResolvedNodeTargetV020
+  | EogResolvedRelationTargetV020;
 
 export interface EogTimeWindowV020 {
   startAt: string;
@@ -141,7 +181,16 @@ export interface EogRuntimeFactQueryV020 {
   enterpriseId: string;
   graphId: string;
   window: EogTimeWindowV020;
+  /**
+   * Explicit caller filter when one was supplied.
+   * Omitted means graph-wide within Host-authorized semantic targets.
+   */
   targets?: EogObservatoryTargetV020[];
+  /**
+   * Host-resolved canonical semantic bindings for the effective target scope.
+   * Providers must use these bindings instead of inferring semantics from nodeId.
+   */
+  semanticTargets: EogResolvedObservatoryTargetV020[];
   metricCodes?: string[];
 }
 
