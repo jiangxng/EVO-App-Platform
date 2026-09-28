@@ -1,6 +1,6 @@
 # Resumable Agent Runs — P1.5C v0.1
 
-**Status:** ACTIVE DESIGN  
+**Status:** PRODUCTION LIVE PASS — CLOSED  
 **Milestone:** Personal Agent P1.5 — Durable Agent Operations  
 **Predecessor:** P1.5B Human LIVE PASS
 
@@ -382,3 +382,76 @@ P1.5C v0.1 does not require:
 - autonomous approval of Human governance actions.
 
 Those can follow after the durable run contract is proven.
+
+
+## 22. Production certification — PASS
+
+P1.5C is closed.
+
+Certified evidence includes:
+
+- real Railway + real LLM `run.start → PAUSED → run.get → run.resume → SUCCEEDED`;
+- one model decision per bounded slice;
+- durable terminal readback;
+- actual Railway process restart reconstruction;
+- original Provider/model continuity;
+- Principal/Context scope enforcement through the run actions;
+- READ convergence reconstructed from append-only durable run history;
+- `complete=true` READ exhaustion across requests;
+- material WRITE linked to P1.5B Action Receipt;
+- PAUSED run containing a completed WRITE surviving Railway process restart;
+- resume to final success without repeating the WRITE;
+- exactly one unchanged receipt for the material side effect.
+
+Production evidence:
+
+```text
+READ final run:
+agent-run:b6bd76b7-0438-4ef9-a4a0-b453407f6faf
+
+restart reconstruction run:
+agent-run:955bdd34-3f6b-4763-a630-1b158297eceb
+
+WRITE + restart run:
+agent-run:af8ce534-f17a-436e-af00-246547390643
+
+WRITE receipt:
+agent-action-receipt:3236edfb214c3dcc86dc0c3c4fb8bb2b74dadad75c8561ccfe0e713c02fe5081
+
+test Proposal:
+memory-proposal:974893e1-6a91-4473-8de8-e3e395342f62
+
+deployed behavior:
+35bc1e5f50677a6dca739e290892ad60afbc07c4
+
+restart deployment:
+ca0bc54b-2b32-4bc3-a7a0-288a60d75eab
+```
+
+The test Proposal is intentionally PENDING and must not be accepted as durable knowledge.
+
+### Production defect history
+
+The first production smoke proved that persistence alone was insufficient: the real LLM repeatedly selected the same complete READ across resume requests.
+
+PR #109 made convergence durable by deriving it from recorded decisions/observations rather than ephemeral synchronous-chat loop state.
+
+A later production output offered to repeat already-completed canonicalization. PR #110 added provider-independent governance-state and inventory-scope rules.
+
+Both fixes were revalidated in production.
+
+### Final invariant
+
+```text
+Browser/request lifetime
+!=
+Agent Run lifetime
+
+and
+
+Resume
+does not imply
+repeat completed side effect
+```
+
+P1.6 may now migrate the Eidos Personal Agent interaction surface onto these durable run contracts.
