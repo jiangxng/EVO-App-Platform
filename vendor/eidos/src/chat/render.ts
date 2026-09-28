@@ -1,3 +1,4 @@
+import { renderChatMarkdownToHtml } from "./markdown.js";
 import type {
   ChatActionV020,
   ChatExperienceV010,
@@ -121,9 +122,15 @@ export function renderChatExperienceToHtml(document: ChatExperienceV010 | ChatEx
     + "</form></section>";
 }
 
-function renderPart(part: ChatMessagePartV020): string {
+function plainTextToHtml(text: string): string {
+  return esc(text).replaceAll("\n", "<br>");
+}
+
+function renderPart(part: ChatMessagePartV020, richText: boolean): string {
   if (part.type === "text") {
-    return "<div data-eidos-chat-part=\"text\">" + esc(part.text) + "</div>";
+    return "<div data-eidos-chat-part=\"text\">"
+      + (richText ? renderChatMarkdownToHtml(part.text) : plainTextToHtml(part.text))
+      + "</div>";
   }
   if (part.type === "notice") {
     return "<section data-eidos-chat-part=\"notice\""
@@ -164,11 +171,20 @@ export function renderChatMessageToHtml(message: ChatMessageV010 | ChatMessageV0
       + attr("data-role", message.role)
       + attr("data-message-version", "0.1.0")
       + "><div data-eidos-chat-message-role>" + esc(message.role) + "</div>"
-      + "<div data-eidos-chat-message-text>" + esc(message.text) + "</div></article>";
+      + "<div data-eidos-chat-message-text>"
+      + (message.role === "assistant" || message.role === "system"
+        ? renderChatMarkdownToHtml(message.text)
+        : plainTextToHtml(message.text))
+      + "</div></article>";
   }
   return "<article data-eidos-chat-message"
     + attr("data-role", message.role)
     + attr("data-message-version", "0.2.0")
     + "><div data-eidos-chat-message-role>" + esc(message.role) + "</div>"
-    + "<div data-eidos-chat-message-parts>" + message.parts.map(renderPart).join("") + "</div></article>";
+    + "<div data-eidos-chat-message-parts>"
+    + message.parts.map(part => renderPart(
+      part,
+      message.role === "assistant" || message.role === "system"
+    )).join("")
+    + "</div></article>";
 }
