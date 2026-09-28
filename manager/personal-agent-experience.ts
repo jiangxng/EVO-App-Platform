@@ -540,6 +540,7 @@ export function createPersonalAgentMemoryReviewPageV010(
 
         const technicalDetails = [
           { key: "proposalId", label: "Proposal ID", value: proposal.proposalId },
+          { key: "contextId", label: "Context ID", value: proposal.context.contextId },
           { key: "revisionId", label: "Revision ID", value: revision.revisionId },
           { key: "evidenceQuality", label: "Evidence quality", value: revision.evidenceQuality },
           ...revision.evidenceRefs.map(ref => ({
@@ -591,11 +592,13 @@ export function createPersonalAgentMemoryReviewPageV010(
               value: String(revision.reviewSignals.length),
               tone: revision.reviewSignals.length > 0 ? "warning" : "neutral"
             },
-            {
-              id: "context",
-              label: "Context",
-              value: contextLabels.get(proposal.context.contextId) ?? proposal.context.contextId
-            }
+            ...(contextLabels.get(proposal.context.contextId)
+              ? [{
+                  id: "context",
+                  label: "Context",
+                  value: contextLabels.get(proposal.context.contextId)!
+                }]
+              : [])
           ],
           fields: [
             {
@@ -623,19 +626,25 @@ export function createPersonalAgentMemoryReviewPageV010(
               localizationKey: revision.evidenceQuality === "UNVERIFIED"
                 ? "reference-unverified"
                 : "reference",
-              title: `Evidence ${index + 1}`,
+              title: "Evidence",
               source: revision.evidenceQuality === "UNVERIFIED"
                 ? "Unverified evidence"
                 : "Referenced evidence"
             })),
             ...evidenceSources.map((source, index) => ({
               id: `evidence-source-${index + 1}`,
-              localizationKey: source.trustLevel === "HOST_VERIFIED"
-                ? "source-host-verified"
-                : source.trustLevel === "DECLARED"
-                  ? "source-declared"
-                  : "source-unverified",
-              title: source.displayName ?? `Evidence source ${index + 1}`,
+              localizationKey: source.displayName
+                ? source.trustLevel === "HOST_VERIFIED"
+                  ? "source-host-verified"
+                  : source.trustLevel === "DECLARED"
+                    ? "source-declared"
+                    : "source-unverified"
+                : source.trustLevel === "HOST_VERIFIED"
+                  ? "source-host-verified-generic"
+                  : source.trustLevel === "DECLARED"
+                    ? "source-declared-generic"
+                    : "source-unverified-generic",
+              title: source.displayName ?? "Evidence source",
               source: trustLabel(source.trustLevel)
             })),
             ...revision.reviewSignals.map((signal, index) => {
@@ -698,12 +707,13 @@ export function createPersonalAgentMemoryReviewPageV010(
           state: "attention" as const,
           statusLabel: "Needs attention",
           summary: "If accepted, the duplicate will be hidden from normal retrieval while the existing Memory remains available. No Memory text is deleted.",
-          metrics: [{
-            id: "context",
-            label: "Context",
-            value: contextLabels.get(proposal.context.contextId)
-              ?? proposal.context.contextId
-          }],
+          metrics: contextLabels.get(proposal.context.contextId)
+            ? [{
+                id: "context",
+                label: "Context",
+                value: contextLabels.get(proposal.context.contextId)!
+              }]
+            : [],
           fields: proposal.reason
             ? [{
                 key: "reason",
@@ -729,6 +739,7 @@ export function createPersonalAgentMemoryReviewPageV010(
           ],
           technicalDetails: [
             { key: "proposalId", label: "Proposal ID", value: proposal.proposalId },
+            { key: "contextId", label: "Context ID", value: proposal.context.contextId },
             { key: "duplicateMemoryId", label: "Duplicate Memory ID", value: proposal.duplicateMemoryId },
             { key: "canonicalMemoryId", label: "Canonical Memory ID", value: proposal.canonicalMemoryId }
           ],
