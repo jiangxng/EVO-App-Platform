@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-28-01`  
-**Snapshot time:** `2026-09-28T19:39:00+08:00`  
+**Snapshot:** `EOG-2026-09-28-02`  
+**Snapshot time:** `2026-09-28T21:57:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -41,20 +41,21 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-contract-v0-1: DESIGN_READY**
+**enterprise-operating-graph-eidos-surface-v0-1: IMPLEMENTATION_READY**
 
-Freeze the smallest executable Enterprise Operating Graph contract before UI implementation: reuse canonical Process / Transaction Type / Application / Business Fact / Metadata / PostingRule / Ledger definitions; distinguish guidance topology from Human-confirmed enterprise topology; and define one semantic operation model shared by Personal Agent and direct graphical editing.
+Bind the first Eidos graph surface to the Host-persisted Enterprise Operating Graph. Render Application and Ledger canonical references, Guidance vs Human-confirmed Enterprise relations, and Position from the same EOG state; translate direct Human manipulation into the existing EOG operations. Do not introduce a UI-owned semantic graph, duplicate persistence model, or generic ProcessOn abstraction.
 
 Acceptance:
 
-- no parallel Application, Metadata, PostingRule or Ledger ontology is created for the graph
-- graph nodes use stable references to canonical definitions plus separate layout/presentation state
-- guidance topology is explicitly distinct from published enterprise topology
-- bookkeeping and Asloop semantic genealogy is preserved as design evidence
-- natural-language Agent edits and Human direct graphical edits converge on the same declared model operations
-- APQC/accounting guidance can propose or validate structure but cannot silently become enterprise truth
-- v0.1 contract is small enough to support one end-to-end Human + LLM + Agent + graph vertical slice
-- legacy-data projection, Best Data Provider work and model training remain deferred until the target operating model is usable
+- Eidos reads one Host-authoritative EOG by Enterprise Context and graphId
+- Application and Ledger nodes render from canonical semantic references rather than copied business definitions
+- Guidance relations are visually distinguishable from Human-confirmed Enterprise relations
+- node drag/move writes NODE_MOVE with expectedRevision and survives refresh from Host persistence
+- Human confirmation of an Application-to-Ledger Guidance relation writes ENTERPRISE_RELATION_CONFIRM through the existing Host action boundary
+- publish remains an explicit Human-confirmed action and published graphs remain immutable
+- Personal Agent proposal edits and Human direct edits are observable on the same persisted graph revision stream
+- no parallel Eidos graph ontology or free-form XML/diagram blob becomes enterprise truth
+- the vertical slice remains limited to Application, Ledger, Guidance/Confirmed relation and Position before broader EOG node kinds are added
 
 ## Current production preview
 
@@ -126,6 +127,9 @@ Not proved:
 - PR #123 — MERGED_DEPLOYED: Add Eidos durable Conversation Thread management (New Chat/history/switch/archive/read-only); 32/32 CI PASS and Railway SUCCESS.
 - PR #133 — MERGED: Record enterprise migration Agent learning as a supporting roadmap and repository-native knowledge asset.
 - PR #134 — MERGED: Prioritize Enterprise Operating Graph: Personal Agent + LLM + Human direct editing converge on one structured target enterprise model; migration/training deferred.
+- PR #135 — MERGED: Converge repository continuity on Enterprise Operating Graph — Contract & Editor v0.1 and defer the Host-owned EVO BusinessData Adapter without cancelling it.
+- PR #136 — MERGED_CI_PASS: Add the first executable EOG Application/Ledger contract foundation, legacy designer archaeology, separate Guidance/Enterprise relations, Position, shared Human/Agent operations, revision protection and publish immutability.
+- PR #137 — MERGED_CI_PASS: Add enterprise-scoped EOG Host persistence, Human AppActions and proposal-only Personal Agent tools over one graph service; keep Enterprise confirmation and publish Human-only.
 
 ## DO NOT repeat stale actions
 
@@ -161,6 +165,9 @@ Not proved:
 - Do not start legacy-data projection, Best Data Provider implementation or model fine-tuning before the target Enterprise Operating Model is usable.
 - Do not build a generic ProcessOn clone; graph UI exists to edit and confirm EVO enterprise semantics.
 - Do not let accounting/APQC/legacy templates become published enterprise truth without Human confirmation.
+- Do not reopen the EOG v0.1 Application/Ledger contract foundation as an unresolved design gate unless a concrete regression requires it; PR #136 is merged and CI-passed.
+- Do not create Eidos-owned EOG semantic persistence; Eidos must render and mutate the Host-authoritative graph through the existing EOG action boundary.
+- Do not let Personal Agent tools confirm Enterprise relations, remove Human-confirmed Enterprise relations, or publish EOG; those remain Human authority boundaries in v0.1.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -183,10 +190,13 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Personal Agent P1.8 as verified and production-closed
 - state archived Conversation Thread retention as 90 days from archivedAt and destructive purge as disabled
 - state current product/engineering priority as Enterprise Operating Graph — Contract & Editor v0.1
-- state the Enterprise Operating Graph reuses canonical Process / Transaction Type / Application / Business Fact / Metadata / PostingRule / Ledger definitions rather than creating a parallel ontology
-- state guidance topology (bookkeeping/Asloop/accounting/APQC/templates) is advisory and published enterprise topology requires Human confirmation
-- state the Host-owned EVO BusinessData Adapter mainline is deferred, not cancelled, until the target operating model is usable
-- state legacy-data projection / Best Data Provider / training are downstream of the target Enterprise Operating Model
+- state PR #136 EOG Application/Ledger contract foundation as merged and CI-passed
+- state PR #137 EOG Host persistence plus Human/Agent action boundary as merged and CI-passed
+- state the current open gate as the first Eidos EOG graph surface bound to Host-authoritative state
+- state guidance topology (bookkeeping/Asloop/accounting/APQC/templates) as advisory and published enterprise topology as Human-confirmed
+- state Personal Agent EOG tools as proposal-only: no Enterprise relation confirmation/removal and no publish
+- state the Host-owned EVO BusinessData Adapter mainline as deferred, not cancelled, until the target operating model is usable
+- state legacy-data projection / Best Data Provider / training as downstream of the target Enterprise Operating Model
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
