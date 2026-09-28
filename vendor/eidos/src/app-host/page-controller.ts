@@ -23,10 +23,17 @@ import {
   runBackedChatStorageKeyV010,
   type RunBackedChatProgressV010
 } from "./personal-agent-run-chat.js";
+import {
+  executeThreadBackedChatV010,
+  recoverThreadBackedChatV010,
+  threadBackedChatStorageKeyV010,
+  type ThreadBackedChatExecutionV010
+} from "./personal-agent-thread-chat.js";
 
 export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
   activeRunId?: string;
+  activeThreadId?: string;
 }
 
 
@@ -459,9 +466,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     };
 
     const runBacked = definition.command.code === "enterprise-agent.chat";
+    const threadBacked = runBacked && definition.contractVersion === "0.2.0";
     const runStorage = browserSessionStorage();
     const runStorageKey = runBacked
       ? runBackedChatStorageKeyV010(definition.id)
+      : undefined;
+    const threadStorageKey = threadBacked
+      ? threadBackedChatStorageKeyV010(definition.id)
       : undefined;
     let runProgressMessageId: string | undefined;
     let runTransportInFlight = false;
@@ -485,6 +496,35 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       } catch {
         return undefined;
       }
+    };
+
+    const persistThreadId = (threadId: string | undefined): void => {
+      state.activeThreadId = threadId;
+      if (!runStorage || !threadStorageKey) return;
+      try {
+        if (threadId) runStorage.setItem(threadStorageKey, threadId);
+        else runStorage.removeItem(threadStorageKey);
+      } catch {
+        // Host thread state is authoritative; session storage is only a fast recovery hint.
+      }
+    };
+
+    const storedThreadId = (): string | undefined => {
+      if (state.activeThreadId) return state.activeThreadId;
+      if (!runStorage || !threadStorageKey) return undefined;
+      try {
+        return runStorage.getItem(threadStorageKey) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const applyThreadExecution = (
+      execution: ThreadBackedChatExecutionV010
+    ): void => {
+      if (execution.threadId) persistThreadId(execution.threadId);
+      state.messages = execution.transcript.map(message => structuredClone(message));
+      renderTranscript();
     };
 
     const onRunProgress = async (progress: RunBackedChatProgressV010): Promise<void> => {
@@ -612,26 +652,54 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
           const request = baseChatRequest(values);
           runTransportInFlight = true;
-          const execution = runBacked
-            ? await executeRunBackedChatV010({
+
+          const threadExecution = threadBacked
+            ? await executeThreadBackedChatV010({
                 actionHost: options.actionHost,
                 request,
-                onProgress: onRunProgress
+                threadId: storedThreadId(),
+                onProgress: async progress => {
+                  if (progress.runId && progress.state) {
+                    await onRunProgress({
+                      runId: progress.runId,
+                      state: progress.state,
+                      resumeCount: progress.resumeCount
+                    });
+                  }
+                }
               })
-            : {
-                mode: "LEGACY" as const,
-                result: await options.actionHost.execute(request),
-                resumeCount: 0
-              };
-          if (execution.mode === "LEGACY") persistRunId(undefined);
-          if (
-            execution.mode === "RUN"
-            && execution.runState
-            && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(execution.runState)
-          ) {
+            : undefined;
+
+          if (threadExecution) {
             persistRunId(undefined);
+            applyThreadExecution(threadExecution);
+            if (!threadExecution.result.ok) {
+              await appendChatResult(threadExecution.result);
+            } else {
+              await options.onActionResult?.(threadExecution.result, page);
+            }
+          } else {
+            const execution = runBacked
+              ? await executeRunBackedChatV010({
+                  actionHost: options.actionHost,
+                  request,
+                  onProgress: onRunProgress
+                })
+              : {
+                  mode: "LEGACY" as const,
+                  result: await options.actionHost.execute(request),
+                  resumeCount: 0
+                };
+            if (execution.mode === "LEGACY") persistRunId(undefined);
+            if (
+              execution.mode === "RUN"
+              && execution.runState
+              && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(execution.runState)
+            ) {
+              persistRunId(undefined);
+            }
+            await appendChatResult(execution.result);
           }
-          await appendChatResult(execution.result);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           state.messages.push(definition.contractVersion === "0.2.0"
@@ -660,7 +728,36 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         runTransportInFlight = true;
         if (button) button.disabled = true;
         try {
-          const request = baseChatRequest(contextValues(), "chat.run.recover");
+          const request = baseChatRequest(contextValues(), "chat.recover");
+
+          const threadRecovered = threadBacked
+            ? await recoverThreadBackedChatV010({
+                actionHost: options.actionHost,
+                request,
+                threadId: storedThreadId(),
+                onProgress: async progress => {
+                  if (progress.runId && progress.state) {
+                    await onRunProgress({
+                      runId: progress.runId,
+                      state: progress.state,
+                      resumeCount: progress.resumeCount
+                    });
+                  }
+                }
+              })
+            : undefined;
+
+          if (threadRecovered) {
+            persistRunId(undefined);
+            applyThreadExecution(threadRecovered);
+            if (!threadRecovered.result.ok) {
+              await appendChatResult(threadRecovered.result);
+            } else {
+              await options.onActionResult?.(threadRecovered.result, page);
+            }
+            return;
+          }
+
           const recovered = await recoverRunBackedChatV010({
             actionHost: options.actionHost,
             request,

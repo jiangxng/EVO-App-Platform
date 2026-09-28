@@ -22,6 +22,7 @@ export interface ConversationThreadCreatedEventV010 {
     principalActorType: PlatformActorType;
     context: ActiveContextRefV010;
     createdAt: string;
+    sourceInteractionId?: string;
     title?: string;
   };
 }
@@ -68,6 +69,7 @@ export interface ConversationThreadV010 {
   context: ActiveContextRefV010;
   createdAt: string;
   updatedAt: string;
+  sourceInteractionId?: string;
   title?: string;
   messages: ConversationMessageV010[];
   lastEventId: string;
@@ -85,6 +87,7 @@ export interface ConversationThreadStoreV010 {
     principalActorType: PlatformActorType;
     context: ActiveContextRefV010;
     createdAt: string;
+    sourceInteractionId?: string;
     title?: string;
   }): ConversationThreadV010;
   appendMessage(input: {

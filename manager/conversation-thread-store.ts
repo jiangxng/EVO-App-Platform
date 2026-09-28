@@ -53,6 +53,7 @@ function validateEvent(event: ConversationThreadEventV010): void {
       !payload.principalSubjectId?.trim()
       || !payload.context?.contextId?.trim()
       || !Number.isFinite(Date.parse(payload.createdAt))
+      || (payload.sourceInteractionId !== undefined && !payload.sourceInteractionId.trim())
       || (payload.title !== undefined && !payload.title.trim())
     ) {
       throw new Error("CONVERSATION_THREAD_CREATED_EVENT_INVALID");
@@ -149,6 +150,9 @@ function materialize(
       context: structuredClone(root.payload.context),
       createdAt: root.payload.createdAt,
       updatedAt: latest.occurredAt,
+      ...(root.payload.sourceInteractionId
+        ? { sourceInteractionId: root.payload.sourceInteractionId }
+        : {}),
       ...(root.payload.title ? { title: root.payload.title } : {}),
       messages,
       lastEventId: latest.eventId
@@ -223,6 +227,9 @@ export function createConversationThreadStoreV010(input: {
           principalActorType: request.principalActorType,
           context: structuredClone(request.context),
           createdAt: request.createdAt,
+          ...(request.sourceInteractionId
+            ? { sourceInteractionId: request.sourceInteractionId.trim() }
+            : {}),
           ...(request.title ? { title: request.title.trim() } : {})
         }
       });
