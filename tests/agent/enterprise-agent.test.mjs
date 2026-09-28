@@ -732,7 +732,9 @@ test("Personal Agent readiness distinguishes installed from ready", () => {
   assert.equal(chat.context.value, "Test Person");
   assert.equal(chat.context.selector.key, "activeContext");
   assert.equal(chat.context.selector.selectedId, "personal:test");
-  assert.deepEqual(chat.context.selector.options.map(item => item.label), ["Test Person", "Acme"]);
+  assert.deepEqual(chat.context.selector.options.map(item => item.label), ["Personal", "Acme"]);
+  assert.equal(chat.context.selector.options[0].localizationKey, "personal");
+  assert.equal(chat.context.value, "Test Person");
   assert.deepEqual(chat.context.selector.options[1].value, {
     contractVersion: "0.1.0",
     kind: "ENTERPRISE",
