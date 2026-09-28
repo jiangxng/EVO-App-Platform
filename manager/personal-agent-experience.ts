@@ -282,7 +282,8 @@ export function createPersonalAgentChatPageV020(
         selectedId: context.activeContext.contextId,
         options: availableContexts.map(item => ({
           id: item.ref.contextId,
-          label: item.label,
+          label: item.ref.kind === "PERSONAL" ? "Personal" : item.label,
+          ...(item.ref.kind === "PERSONAL" ? { localizationKey: "personal" } : {}),
           value: structuredClone(item.ref)
         }))
       }
