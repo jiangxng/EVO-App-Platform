@@ -4,6 +4,7 @@ export const APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010 = {
   contractVersion: "0.1.0",
   eidosCommit: "9440d8c32b9f23eab2c55b0f58a8be711573da33",
   eidosReviewDecisionCommit: "82dcea59abf14518394fd605faf5b741e57a7ef0",
+  eidosJourneyContinuationCommit: "b937d45e6149dc16bdd2f0f6141df468f9014bda",
   eidosPolicyVersion: "0.1.0",
   constitution: "Eidos Experience Architecture Constitution v0.1",
   baselineExpansionRequiresHumanApproval: true
