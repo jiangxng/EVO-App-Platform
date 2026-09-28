@@ -13,6 +13,14 @@ test("critical App Platform Experiences are registered under pinned Eidos experi
     APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosCommit,
     "9440d8c32b9f23eab2c55b0f58a8be711573da33"
   );
+  assert.equal(
+    APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosReviewDecisionCommit,
+    "82dcea59abf14518394fd605faf5b741e57a7ef0"
+  );
+  assert.equal(
+    APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosJourneyContinuationCommit,
+    "b937d45e6149dc16bdd2f0f6141df468f9014bda"
+  );
   for (const id of [
     "personal-agent.chat",
     "personal-agent.setup",
@@ -22,6 +30,10 @@ test("critical App Platform Experiences are registered under pinned Eidos experi
   ]) {
     assert.ok(appPlatformExperienceArchitectureV010.some(item => item.experienceId === id), id);
   }
+});
+
+test("Foundation UX Pass 1 leaves no accepted candidate Experience diagnostics", () => {
+  assert.deepEqual(appPlatformExperienceArchitectureKnownDebtV010, {});
 });
 
 test("candidate Experience diagnostics equal the ratcheted known-debt baseline", () => {
