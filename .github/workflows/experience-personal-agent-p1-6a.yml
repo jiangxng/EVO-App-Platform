@@ -1,0 +1,43 @@
+name: Experience CI - Personal Agent P1.6A Run-backed Chat
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vendor/eidos/src/app-host/**"
+      - "agents/enterprise-agent/run-action-handlers.ts"
+      - "agents/enterprise-agent/reply-presentation.ts"
+      - "contracts/agent-run.ts"
+      - "tests/app-host/run-backed-chat.test.mjs"
+      - "tests/app-host/chat-conversation-history.test.mjs"
+      - "tests/app-host/dynamic-chat-actions.test.mjs"
+      - "tests/agent/resumable-agent-run.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-personal-agent-p1-6a.yml"
+  pull_request:
+    paths:
+      - "vendor/eidos/src/app-host/**"
+      - "agents/enterprise-agent/run-action-handlers.ts"
+      - "agents/enterprise-agent/reply-presentation.ts"
+      - "contracts/agent-run.ts"
+      - "tests/app-host/run-backed-chat.test.mjs"
+      - "tests/app-host/chat-conversation-history.test.mjs"
+      - "tests/app-host/dynamic-chat-actions.test.mjs"
+      - "tests/agent/resumable-agent-run.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-personal-agent-p1-6a.yml"
+
+concurrency:
+  group: experience-p1-6a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:experience:p1-6a
