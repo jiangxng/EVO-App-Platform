@@ -230,7 +230,7 @@ test("Agent proposal tool cannot confirm or publish enterprise truth", async () 
   );
   assert.ok(tool);
 
-  await assert.rejects(
+  assert.throws(
     () => tool.execute({
       graphId: graph.graphId,
       expectedRevision: graph.revision,
@@ -239,7 +239,7 @@ test("Agent proposal tool cannot confirm or publish enterprise truth", async () 
     /EOG_HUMAN_CONFIRMATION_REQUIRED/
   );
 
-  await assert.rejects(
+  assert.throws(
     () => tool.execute({
       graphId: graph.graphId,
       expectedRevision: graph.revision,
