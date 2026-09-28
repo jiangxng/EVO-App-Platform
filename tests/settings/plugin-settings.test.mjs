@@ -57,24 +57,32 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   assert.equal(initial.namespace, "openai-llm-provider");
   assert.deepEqual(initial.groups.map(group => group.id), ["runtime", "credentials", "administration"]);
   assert.equal(initial.groups.find(group => group.id === "administration").advanced, true);
-  assert.equal(settingsOf(initial).find(x => x.key === "model").value, "gpt-5.6-luna");
+  const model = settingsOf(initial).find(x => x.key === "model");
+  assert.equal(model.value, "gpt-5.6-luna");
+  assert.equal(model.type, "select");
+  assert.deepEqual(model.options, [
+    { label: "GPT-5.6 Luna", value: "gpt-5.6-luna" }
+  ]);
+  const bootstrapAuthorization = initial.groups.find(group => group.id === "administration");
+  assert.match(bootstrapAuthorization.title, /Bootstrap/);
+  assert.match(settingsOf(initial).find(x => x.key === "adminToken").label, /Bootstrap/);
   assert.equal(settingsOf(initial).find(x => x.key === "secret:apiKey").type, "secret");
   assert.equal(settingsOf(initial).find(x => x.key === "secret:apiKey").value, "");
   assert.match(settingsOf(initial).find(x => x.key === "secret:apiKey").status.label, /Not configured/);
   assert.equal(store.getNamespace("openai-llm-provider").apiKey, undefined);
 
   const saved = validateAndMergeSettings(manager, store, "openai-llm-provider", {
-    model: "gpt-test",
+    model: "gpt-5.6-luna",
     baseUrl: "https://example.invalid/v1",
     OPENAI_API_KEY: "must-not-be-persisted"
   });
 
-  assert.equal(saved.model, "gpt-test");
+  assert.equal(saved.model, "gpt-5.6-luna");
   assert.equal(saved.baseUrl, "https://example.invalid/v1");
   assert.equal(Object.prototype.hasOwnProperty.call(saved, "OPENAI_API_KEY"), false);
 
   const updated = await createSettingsPage(manager, store, "openai-llm-provider", describe);
-  assert.equal(settingsOf(updated).find(x => x.key === "model").value, "gpt-test");
+  assert.equal(settingsOf(updated).find(x => x.key === "model").value, "gpt-5.6-luna");
 
   await secrets.put({
     contractVersion: "0.1.0",
@@ -118,7 +126,7 @@ test("Settings Editor persists only declared non-secret settings", async () => {
   assert.doesNotMatch(JSON.stringify(zhTw), /sk-never-render-this/);
 });
 
-test("invalid setting types are rejected", () => {
+test("invalid setting types and undeclared select values are rejected", () => {
   const manager = createAppManagerService(
     createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage]),
     createMemoryLifecycleStore()
@@ -128,9 +136,15 @@ test("invalid setting types are rejected", () => {
 
   assert.throws(
     () => validateAndMergeSettings(manager, store, "openai-llm-provider", {
-      model: 42
+      baseUrl: 42
     }),
     /SETTING_TYPE_INVALID/
+  );
+  assert.throws(
+    () => validateAndMergeSettings(manager, store, "openai-llm-provider", {
+      model: "undeclared-model"
+    }),
+    /SETTING_VALUE_INVALID/
   );
 });
 
