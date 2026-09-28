@@ -40,18 +40,15 @@ Evidence:
 
 The non-destructive retention preview is deployed and verified. Before durable policy commit or purge governance is added, the Human must choose how many days an ARCHIVED thread is retained from archivedAt.
 
-```json
-{
-  "field": "retainArchivedForDays",
-  "type": "INTEGER_DAYS",
-  "minimum": 1,
-  "maximum": 36500,
-  "appliesOnlyTo": "ARCHIVED_THREADS",
-  "clockStartsAt": "archivedAt",
-  "activeThreadsNeverEligible": true,
-  "destructiveActionCurrentlyEnabled": false
-}
-```
+Acceptance:
+
+- chosen retention duration is recorded as explicit Human policy
+- policy is separate from Context Memory retention
+- preview shows deterministic eligibility before any purge
+- ACTIVE threads remain ineligible
+- irreversible purge requires separate Human authorization
+- purge/tombstone evidence is auditable
+- Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup
 
 ## Current production preview
 
@@ -149,15 +146,21 @@ Not proved:
 
 ## Fresh ChatGPT / LLM startup
 
+A fresh session must read, in order:
+
 1. `AI-BOOTSTRAP.md`
 2. `project.status.json`
 3. `docs/roadmap/HANDOFF-LATEST.md`
 4. `LLM.md`
 5. `llm.foundation-map.json`
 
-Repository state wins over chat/model memory and dated handoff guesses.
+The repository state wins over ChatGPT Memory, model memory, prior assistant summaries and dated handoff guesses.
+
+A dated handoff is historical evidence unless `project.status.json.handoff` points to it.
 
 ## Fresh-session continuity acceptance
+
+A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
 - state P1.7 and P1.8A as verified and closed
@@ -170,3 +173,22 @@ Repository state wins over chat/model memory and dated handoff guesses.
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
+
+## State-layer distinction
+
+```text
+Conversation History
+= current-chat discourse continuity
+
+ChatGPT / model Memory
+= selective cross-chat assistance, not authoritative project state
+
+Context Memory
+= governed product-level durable knowledge
+
+Project Status + HANDOFF-LATEST
+= authoritative engineering-project continuity
+
+Host READ
+= current runtime/platform truth
+```
