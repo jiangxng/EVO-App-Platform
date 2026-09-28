@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-28-02`  
-**Snapshot time:** `2026-09-28T21:57:00+08:00`  
+**Snapshot:** `EOG-2026-09-28-03`  
+**Snapshot time:** `2026-09-28T23:29:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Enterprise Operating Graph — Contract & Editor v0.1
+Enterprise Operating Graph — Runtime & Observatory Foundation v0.2
 ACTIVE
 ```
 
@@ -41,21 +41,22 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-eidos-surface-v0-1: IMPLEMENTATION_READY**
+**enterprise-operating-graph-runtime-analysis-overlay-v0-2: IMPLEMENTATION_READY**
 
-Bind the first Eidos graph surface to the Host-persisted Enterprise Operating Graph. Render Application and Ledger canonical references, Guidance vs Human-confirmed Enterprise relations, and Position from the same EOG state; translate direct Human manipulation into the existing EOG operations. Do not introduce a UI-owned semantic graph, duplicate persistence model, or generic ProcessOn abstraction.
+Define the first Host-authoritative Runtime Fact, derived Analysis Overlay and Time Lens contracts over the existing EOG semantic graph. Runtime observations and derived diagnostics must target stable EOG semantic identities while remaining separate from semantic truth and View State. Keep this slice renderer-independent: the future 3D Observatory will consume these contracts through Eidos spatial-core, but Three.js is not the current implementation gate.
 
 Acceptance:
 
-- Eidos reads one Host-authoritative EOG by Enterprise Context and graphId
-- Application and Ledger nodes render from canonical semantic references rather than copied business definitions
-- Guidance relations are visually distinguishable from Human-confirmed Enterprise relations
-- node drag/move writes NODE_MOVE with expectedRevision and survives refresh from Host persistence
-- Human confirmation of an Application-to-Ledger Guidance relation writes ENTERPRISE_RELATION_CONFIRM through the existing Host action boundary
-- publish remains an explicit Human-confirmed action and published graphs remain immutable
-- Personal Agent proposal edits and Human direct edits are observable on the same persisted graph revision stream
-- no parallel Eidos graph ontology or free-form XML/diagram blob becomes enterprise truth
-- the vertical slice remains limited to Application, Ledger, Guidance/Confirmed relation and Position before broader EOG node kinds are added
+- Runtime Facts are time-bounded observations with explicit source/provenance and can target an EOG node or relation without mutating the Semantic Graph
+- raw Runtime Facts remain distinguishable from derived Analysis Overlay results
+- Time Lens selects a deterministic observation window and comparison window without rewriting source facts
+- event frequency, throughput, WIP/backlog, wait/lead time and amount/quantity can be represented as typed measurements without hard-coding a single business domain
+- Analysis Overlay can represent bottleneck, SOP-conformance/deviation and anomaly evidence as derived observations with provenance and confidence/status metadata
+- dynamic metrics never change semantic node identity or force semantic revision changes
+- 2D DIAGRAM_2D and future SPATIAL_3D views can consume the same runtime/analysis overlay contracts
+- no Three.js/WebGL object, Eidos scene object, renderer XML or client cache becomes runtime or enterprise truth
+- the existing Application/Ledger semantic scope remains stable while the runtime/analysis contract is proven; broader semantic node kinds are not added merely to support visualization
+- define the minimum provider/source boundary needed to connect future EVO BusinessData/Ledger runtime observations without resuming business-specific Host mappings
 
 ## Current production preview
 
@@ -130,6 +131,9 @@ Not proved:
 - PR #135 — MERGED: Converge repository continuity on Enterprise Operating Graph — Contract & Editor v0.1 and defer the Host-owned EVO BusinessData Adapter without cancelling it.
 - PR #136 — MERGED_CI_PASS: Add the first executable EOG Application/Ledger contract foundation, legacy designer archaeology, separate Guidance/Enterprise relations, Position, shared Human/Agent operations, revision protection and publish immutability.
 - PR #137 — MERGED_CI_PASS: Add enterprise-scoped EOG Host persistence, Human AppActions and proposal-only Personal Agent tools over one graph service; keep Enterprise confirmation and publish Human-only.
+- PR #138 — MERGED_CI_PASS: Advance repository continuity from EOG contract design to the first Eidos graph-surface implementation gate.
+- PR #139 — MERGED_CI_PASS: Bind the first Eidos Diagram Editor vertical slice to Host-authoritative EOG state; Human drag/confirm/publish and Agent proposals converge on eog:primary without an Eidos-owned semantic model.
+- PR #140 — MERGED_CI_PASS: Separate EOG semantic truth from durable DIAGRAM_2D/SPATIAL_3D View State, introduce independent revisions and Agent view tools, and record the Enterprise Observatory architecture.
 
 ## DO NOT repeat stale actions
 
@@ -168,6 +172,11 @@ Not proved:
 - Do not reopen the EOG v0.1 Application/Ledger contract foundation as an unresolved design gate unless a concrete regression requires it; PR #136 is merged and CI-passed.
 - Do not create Eidos-owned EOG semantic persistence; Eidos must render and mutate the Host-authoritative graph through the existing EOG action boundary.
 - Do not let Personal Agent tools confirm Enterprise relations, remove Human-confirmed Enterprise relations, or publish EOG; those remain Human authority boundaries in v0.1.
+- Do not put x/y/z position, camera, zoom or other presentation state back into the EOG Semantic Graph; PR #140 moved layout into independent View State.
+- Do not treat semantic publish as freezing View State; published enterprise semantics are immutable while 2D/3D arrangements remain presentation state.
+- Do not make Three.js, maxGraph, SVG, WebGL, Eidos scene objects or renderer serialization authoritative EOG state.
+- Do not let event frequency, heat, bottleneck scores, SOP conformance or other runtime/analysis metrics mutate stable semantic node identity or layout automatically.
+- Do not overwrite raw Runtime Facts with derived Analysis Overlay conclusions; preserve provenance and the fact-vs-analysis boundary.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -189,14 +198,15 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state Personal Agent P1.8 as verified and production-closed
 - state archived Conversation Thread retention as 90 days from archivedAt and destructive purge as disabled
-- state current product/engineering priority as Enterprise Operating Graph — Contract & Editor v0.1
-- state PR #136 EOG Application/Ledger contract foundation as merged and CI-passed
-- state PR #137 EOG Host persistence plus Human/Agent action boundary as merged and CI-passed
-- state the current open gate as the first Eidos EOG graph surface bound to Host-authoritative state
-- state guidance topology (bookkeeping/Asloop/accounting/APQC/templates) as advisory and published enterprise topology as Human-confirmed
-- state Personal Agent EOG tools as proposal-only: no Enterprise relation confirmation/removal and no publish
-- state the Host-owned EVO BusinessData Adapter mainline as deferred, not cancelled, until the target operating model is usable
-- state legacy-data projection / Best Data Provider / training as downstream of the target Enterprise Operating Model
+- state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
+- state PR #139 as the merged Host-backed Eidos 2D editor vertical slice over the shared eog:primary graph
+- state PR #140 as the merged semantic/View-State separation: Semantic Graph has no coordinates; DIAGRAM_2D and SPATIAL_3D View State have independent revisions
+- state Guidance topology as advisory and Human-confirmed Enterprise relations/publish as Human authority
+- state Personal Agent semantic tools as proposal-only for enterprise truth while separate Agent View tools may arrange 2D/3D presentation state
+- state the current open gate as Runtime Facts + Analysis Overlay + Time Lens foundation, renderer-independent
+- state the 3D Enterprise Observatory as a formal future Eidos spatial view for operational observation/diagnosis rather than visual decoration
+- state the Host-owned EVO BusinessData Adapter as deferred pending the Runtime Fact source boundary, not cancelled
+- state legacy-data projection / Best Data Provider / training as downstream of a usable target Enterprise Operating Model
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
