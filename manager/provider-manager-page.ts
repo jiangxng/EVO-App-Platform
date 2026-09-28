@@ -189,7 +189,7 @@ export function createProviderBindingPage(
     description: "Choose the Provider for this capability and govern where the binding applies. Runtime status remains read-only.",
     notice: {
       tone: healthTone,
-      title: health.state === "HEALTHY" ? "Provider ready" : "Provider attention required",
+      title: "Provider status",
       message: `${selectedProviderId} · ${health.state.toLowerCase()}${health.message ? ` · ${health.message}` : ""}`
     },
     command: {
