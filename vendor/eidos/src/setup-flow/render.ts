@@ -30,6 +30,9 @@ function actionButton(action: SetupFlowActionV010): string {
     + (action.continuation
       ? attr("data-eidos-continuation-action-id", action.continuation.onActionId)
         + attr("data-eidos-continuation-route", action.continuation.route)
+        + (action.continuation.onItemIds?.length
+          ? attr("data-eidos-continuation-item-ids", JSON.stringify(action.continuation.onItemIds))
+          : "")
       : "")
     + (action.disabledReason ? attr("title", action.disabledReason) + attr("data-eidos-disabled-reason", action.disabledReason) : "")
     + (enabled ? "" : " disabled")
