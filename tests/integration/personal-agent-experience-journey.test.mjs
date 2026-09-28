@@ -2,9 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  createPersonalAgentChatPageV020,
   createPersonalAgentPluginStoreProductStateV010,
   createPersonalAgentSetupPageV010
 } from "../../dist/manager/personal-agent-experience.js";
+import {
+  createLocalizationRuntime,
+  localizeAppHostPageDefinition
+} from "../../dist/vendor/eidos/src/localization/index.js";
 import {
   enterpriseAgentPackage
 } from "../../dist/agents/enterprise-agent/package.js";
@@ -137,24 +142,92 @@ test("Ready completes setup with one clear next action instead of unrelated exit
   assert.equal(finalStep.secondaryActions, undefined);
 });
 
-test("experience journey actions ship in all four first-class locales", () => {
+test("Personal Agent first-class locale bundles keep exact key parity", () => {
   const bundles = enterpriseAgentPackage.features[0].contributions
-    .filter(contribution => contribution.kind === "eidos.localization-bundle");
-  assert.deepEqual(bundles.map(item => item.bundle.locale).sort(), [
+    .filter(contribution => contribution.kind === "eidos.localization-bundle")
+    .map(contribution => contribution.bundle);
+  assert.deepEqual(bundles.map(item => item.locale).sort(), [
     "en",
     "ja",
     "zh-CN",
     "zh-TW"
   ]);
-  for (const contribution of bundles) {
-    const messages = contribution.bundle.messages;
-    for (const key of [
-      "setup.personal-agent.setup.action.provider-status.label",
-      "setup.personal-agent.setup.action.check-provider-status.label",
-      "setup.personal-agent.setup.action.recheck-setup.label",
-      "setup.personal-agent.setup.action.open-agent.label"
-    ]) {
-      assert.ok(messages[key], contribution.bundle.locale + " missing " + key);
-    }
+
+  const byLocale = Object.fromEntries(bundles.map(bundle => [bundle.locale, bundle.messages]));
+  const baseline = Object.keys(byLocale.en).sort();
+  for (const locale of ["en", "ja", "zh-CN", "zh-TW"]) {
+    assert.deepEqual(
+      Object.keys(byLocale[locale]).sort(),
+      baseline,
+      locale + " Personal Agent localization keys diverged from en"
+    );
   }
+});
+
+test("system-owned Personal context label localizes while enterprise display names remain data", () => {
+  const context = {
+    contractVersion: "0.1.0",
+    activeContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:preview-user"
+    },
+    personalContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:preview-user",
+      ownerSubjectId: "preview-user",
+      displayName: "Preview User"
+    }
+  };
+  const definition = createPersonalAgentChatPageV020(
+    readiness({
+      state: "ready",
+      code: "READY",
+      message: "Personal Agent is ready.",
+      providerId: "openai.responses",
+      providerPackageId: "openai-llm-provider",
+      installedProviderPackageIds: ["openai-llm-provider"]
+    }),
+    context,
+    [
+      {
+        ref: {
+          contractVersion: "0.1.0",
+          kind: "PERSONAL",
+          contextId: "personal:preview-user"
+        },
+        label: "Preview User"
+      },
+      {
+        ref: {
+          contractVersion: "0.1.0",
+          kind: "ENTERPRISE",
+          contextId: "enterprise:acme",
+          enterpriseId: "acme"
+        },
+        label: "ACME Japan"
+      }
+    ]
+  );
+
+  const bundles = enterpriseAgentPackage.features[0].contributions
+    .filter(contribution => contribution.kind === "eidos.localization-bundle")
+    .map(contribution => contribution.bundle);
+  const page = {
+    experienceId: "enterprise-agent",
+    packageId: "enterprise-agent",
+    featureId: "enterprise-agent.default",
+    route: { id: "enterprise-agent.home", path: "/enterprise-agent", pageId: "enterprise-agent.home" },
+    page: { id: "enterprise-agent.home", title: "Personal Agent", source: "memory://personal-agent" },
+    definition
+  };
+  const localized = localizeAppHostPageDefinition(
+    page,
+    createLocalizationRuntime(bundles, { locale: "zh-CN", fallbackLocales: ["en"] })
+  );
+
+  assert.equal(localized.context.selector.options[0].label, "个人");
+  assert.equal(localized.context.selector.options[1].label, "ACME Japan");
+  assert.doesNotMatch(localized.context.selector.options[0].label, /Preview User/);
 });
