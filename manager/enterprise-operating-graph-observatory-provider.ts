@@ -94,6 +94,42 @@ export function createEnterpriseOperatingGraphObservatoryProviderResolverV020(
       : undefined;
   };
 
+  const resolveRuntime = (
+    enterpriseId: string
+  ): EnterpriseOperatingGraphRuntimeFactProviderV020 | undefined => {
+    const resolved =
+      resolve<EnterpriseOperatingGraphRuntimeFactProviderV020>(
+        EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020,
+        enterpriseId
+      );
+    if (!resolved) return undefined;
+    if (
+      resolved.runtime.contractVersion !== "0.2.0"
+      || resolved.runtime.providerId !== resolved.providerId
+    ) {
+      throw new Error("EOG_RUNTIME_PROVIDER_CONTRACT_MISMATCH");
+    }
+    return resolved.runtime;
+  };
+
+  const resolveAnalysis = (
+    enterpriseId: string
+  ): EnterpriseOperatingGraphAnalysisProviderV020 | undefined => {
+    const resolved =
+      resolve<EnterpriseOperatingGraphAnalysisProviderV020>(
+        EOG_ANALYSIS_PROVIDER_CAPABILITY_V020,
+        enterpriseId
+      );
+    if (!resolved) return undefined;
+    if (
+      resolved.runtime.contractVersion !== "0.2.0"
+      || resolved.runtime.providerId !== resolved.providerId
+    ) {
+      throw new Error("EOG_ANALYSIS_PROVIDER_CONTRACT_MISMATCH");
+    }
+    return resolved.runtime;
+  };
+
   return {
     hasRuntimeCandidate() {
       return hasCandidate(EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020);
@@ -103,55 +139,35 @@ export function createEnterpriseOperatingGraphObservatoryProviderResolverV020(
       return hasCandidate(EOG_ANALYSIS_PROVIDER_CAPABILITY_V020);
     },
 
-    resolveRuntime(enterpriseId) {
-      const resolved =
-        resolve<EnterpriseOperatingGraphRuntimeFactProviderV020>(
-          EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020,
-          enterpriseId
-        );
-      if (!resolved) return undefined;
-      if (
-        resolved.runtime.contractVersion !== "0.2.0"
-        || resolved.runtime.providerId !== resolved.providerId
-      ) {
-        throw new Error("EOG_RUNTIME_PROVIDER_CONTRACT_MISMATCH");
-      }
-      return resolved.runtime;
-    },
+    resolveRuntime,
 
-    resolveAnalysis(enterpriseId) {
-      const resolved =
-        resolve<EnterpriseOperatingGraphAnalysisProviderV020>(
-          EOG_ANALYSIS_PROVIDER_CAPABILITY_V020,
-          enterpriseId
-        );
-      if (!resolved) return undefined;
-      if (
-        resolved.runtime.contractVersion !== "0.2.0"
-        || resolved.runtime.providerId !== resolved.providerId
-      ) {
-        throw new Error("EOG_ANALYSIS_PROVIDER_CONTRACT_MISMATCH");
-      }
-      return resolved.runtime;
-    },
+    resolveAnalysis,
 
     createService(request) {
       const enterpriseId = required(
         request.enterpriseId,
         "EOG_ENTERPRISE_ID_REQUIRED"
       );
-      const runtimeProvider = this.resolveRuntime(enterpriseId);
+      const runtimeProvider = resolveRuntime(enterpriseId);
       if (!runtimeProvider) {
         throw new Error("EOG_RUNTIME_PROVIDER_REQUIRED");
       }
-      const analysisProvider = this.resolveAnalysis(enterpriseId);
-      if (request.requireAnalysis && !analysisProvider) {
+
+      if (!request.requireAnalysis) {
+        return createEnterpriseOperatingGraphObservatoryServiceV020({
+          graphService: request.graphService,
+          runtimeProvider
+        });
+      }
+
+      const analysisProvider = resolveAnalysis(enterpriseId);
+      if (!analysisProvider) {
         throw new Error("EOG_ANALYSIS_PROVIDER_REQUIRED");
       }
       return createEnterpriseOperatingGraphObservatoryServiceV020({
         graphService: request.graphService,
         runtimeProvider,
-        ...(analysisProvider ? { analysisProvider } : {})
+        analysisProvider
       });
     }
   };
