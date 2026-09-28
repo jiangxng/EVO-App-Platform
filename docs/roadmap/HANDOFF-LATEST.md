@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.8-2026-09-28-01`  
-**Snapshot time:** `2026-09-28T09:12:00+08:00`  
+**Snapshot:** `P1.8-2026-09-28-02`  
+**Snapshot time:** `2026-09-28T09:24:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,43 +16,42 @@ ACTIVE
 
 ## Latest closed live slice
 
-**p1.7-durable-conversation-threads: VERIFIED_PASS**
+**p1.8a-thread-lifecycle-foundation: VERIFIED_PASS**
 
-Conversation discourse is now durable Host state: thread foundation, run-bound turns and Eidos transcript recovery are implemented; PR #118 passed 30/30 CI and deployed successfully.
+Conversation Threads now have append-only ACTIVE→ARCHIVED lifecycle. Archive preserves all messages, exact read remains available, default list hides archived threads, and new Agent turns are rejected before run creation.
 
-Authority: `docs/roadmap/P1.7-DURABLE-CONVERSATION-THREADS.md`
+Authority: `docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md`
 
 Evidence:
 
 ```json
 {
-  "p17aPr": 116,
-  "p17bPr": 117,
-  "p17cPr": 118,
-  "p17cCi": "30/30 PASS",
-  "productionCommit": "39f346ef790bdc634848b2dba3a51fe24ad6a4bc",
-  "deploymentId": "4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17",
+  "pr": 119,
+  "ci": "31/31 PASS",
+  "productionCommit": "17a0878fccfca53689ed7d505da7a7e9906100b1",
+  "deploymentId": "94d7334a-4076-4b13-ace3-9a646f87e172",
   "deploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**p1.8a-thread-lifecycle-foundation: IMPLEMENTATION_READY**
+**p1.8b-conversation-retention-policy: HUMAN_POLICY_DECISION_REQUIRED**
 
-Add append-only durable thread lifecycle state so active and archived conversations are explicit Host semantics before retention/purge and UI thread management are added.
+The non-destructive retention preview is deployed and verified. Before durable policy commit or purge governance is added, the Human must choose how many days an ARCHIVED thread is retained from archivedAt.
 
-Acceptance:
-
-- thread lifecycle is materialized from append-only events
-- new threads begin ACTIVE
-- archive does not rewrite/delete messages
-- archive is Principal + active-Context scoped
-- archived thread remains exact-ID readable
-- default list excludes archived and includeArchived=true can include them
-- conversation history projection still works for archived thread reads but new send to archived thread is rejected
-- Context Memory is not affected
-- file-backed reconstruction preserves lifecycle state
+```json
+{
+  "field": "retainArchivedForDays",
+  "type": "INTEGER_DAYS",
+  "minimum": 1,
+  "maximum": 36500,
+  "appliesOnlyTo": "ARCHIVED_THREADS",
+  "clockStartsAt": "archivedAt",
+  "activeThreadsNeverEligible": true,
+  "destructiveActionCurrentlyEnabled": false
+}
+```
 
 ## Current production preview
 
@@ -61,8 +60,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `39f346ef790bdc634848b2dba3a51fe24ad6a4bc`
-- Deployment: `4fd23d70-0a89-4ae0-b1d0-f3c7402a3b17`
+- Commit: `e0b1307b09823b9253cf737edf5e472b9fce52c3`
+- Deployment: `e0165b11-4bad-485e-b2c0-ee349af14a86`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -118,6 +117,8 @@ Not proved:
 - PR #116 — MERGED: Add durable Conversation Thread foundation.
 - PR #117 — MERGED: Bind durable Conversation Threads to Agent Runs and Host-built history.
 - PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
+- PR #119 — MERGED_DEPLOYED: Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS.
+- PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
 
 ## DO NOT repeat stale actions
 
@@ -148,47 +149,24 @@ Not proved:
 
 ## Fresh ChatGPT / LLM startup
 
-A fresh session must read, in order:
-
 1. `AI-BOOTSTRAP.md`
 2. `project.status.json`
 3. `docs/roadmap/HANDOFF-LATEST.md`
 4. `LLM.md`
 5. `llm.foundation-map.json`
 
-The repository state wins over ChatGPT Memory, model memory, prior assistant summaries and dated handoff guesses.
-
-A dated handoff is historical evidence unless `project.status.json.handoff` points to it.
+Repository state wins over chat/model memory and dated handoff guesses.
 
 ## Fresh-session continuity acceptance
 
-A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
-
 - state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
-- state P1.7 Durable Conversation Threads as verified and closed
-- state P1.8A Thread Lifecycle Foundation as current open gate
-- state current deployed runtime revision 39f346ef790bdc634848b2dba3a51fe24ad6a4bc
-- explain Conversation Thread is durable discourse and is not Context Memory
-- explain archive/lifecycle must be append-only and retention is a separate later destructive-governance concern
+- state P1.7 and P1.8A as verified and closed
+- state P1.8B retention preview as deployed and non-destructive
+- state retainArchivedForDays Human policy decision as the current open gate
+- state current deployed runtime revision e0b1307b09823b9253cf737edf5e472b9fce52c3
+- explain ACTIVE threads are never purge-eligible and archived retention clock starts at archivedAt
+- explain no destructive purge is currently enabled
+- do not infer or invent a retention duration without Human decision
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
-
-## State-layer distinction
-
-```text
-Conversation History
-= current-chat discourse continuity
-
-ChatGPT / model Memory
-= selective cross-chat assistance, not authoritative project state
-
-Context Memory
-= governed product-level durable knowledge
-
-Project Status + HANDOFF-LATEST
-= authoritative engineering-project continuity
-
-Host READ
-= current runtime/platform truth
-```
