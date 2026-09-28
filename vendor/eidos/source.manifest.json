@@ -3,7 +3,7 @@
   "sourceRepository": "jiangxng/eidos",
   "sourceCommit": "9be0fb00b35317c50eaefd29f1b33f7021914ea7",
   "ownership": "Eidos",
-  "policy": "Do not modify vendored semantics in EVO-App-Platform. Extend Eidos first, pass Eidos CI, then resync the pinned snapshot.",
+  "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
     "src/adapters/ports.ts",
     "src/app-host/action-executor.ts",
@@ -56,5 +56,13 @@
     "src/workbench/contracts.ts",
     "src/workbench/index.ts",
     "src/workbench/shell.ts"
+  ],
+  "hostOverlays": [
+    {
+      "path": "src/app-host/page-controller.ts",
+      "owner": "EVO-App-Platform",
+      "reason": "Host integration overlay preserving production-verified durable Personal Agent thread/run behavior while mounting generic Eidos page capabilities such as Diagram Editor.",
+      "syncPolicy": "Never replace wholesale. Start from the current App-Platform overlay and apply the minimal Eidos semantic delta."
+    }
   ]
 }
