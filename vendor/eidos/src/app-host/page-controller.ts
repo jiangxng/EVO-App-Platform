@@ -641,7 +641,8 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     });
 
     const appendChatResult = async (
-      result: Awaited<ReturnType<ActionHost["execute"]>>
+      result: Awaited<ReturnType<ActionHost["execute"]>>,
+      notifyActionResult = true
     ): Promise<void> => {
       const resultId = `${result.ok ? "assistant" : "error"}-${Date.now()}-${state.messages.length}`;
       state.messages.push(definition.contractVersion === "0.2.0"
@@ -659,7 +660,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               : result.error?.message ?? "Unknown action error"
           });
       renderTranscript();
-      await options.onActionResult?.(result, page);
+      if (notifyActionResult) {
+        await options.onActionResult?.(result, page);
+      }
     };
 
     renderTranscript();
@@ -976,9 +979,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             applyThreadExecution(threadRecovered);
             await refreshThreadHistory();
             if (!threadRecovered.result.ok) {
-              await appendChatResult(threadRecovered.result);
-            } else {
-              await options.onActionResult?.(threadRecovered.result, page);
+              await appendChatResult(threadRecovered.result, false);
             }
             return;
           }
@@ -1000,7 +1001,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             persistRunId(undefined);
           }
           if (recovered.result.ok || recovered.result.error) {
-            await appendChatResult(recovered.result);
+            await appendChatResult(recovered.result, false);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -1010,7 +1011,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               code: "EIDOS_AGENT_RUN_RECOVERY_FAILED",
               message
             }
-          });
+          }, false);
         } finally {
           runTransportInFlight = false;
           if (button) button.disabled = false;
