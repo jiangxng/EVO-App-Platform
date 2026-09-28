@@ -352,9 +352,34 @@ export function localizeAppHostPageDefinition(
     if (typeof definition.emptyMessage === "string") {
       definition.emptyMessage = localization.resolve(namespace, `review.${reviewId}.empty`, definition.emptyMessage);
     }
+    if (typeof definition.technicalDetailsLabel === "string") {
+      definition.technicalDetailsLabel = localization.resolve(
+        namespace,
+        `review.${reviewId}.technicalDetails.label`,
+        definition.technicalDetailsLabel
+      );
+    }
     if (Array.isArray(definition.items)) {
       for (const item of definition.items) {
         if (!isObject(item) || typeof item.id !== "string") continue;
+        if (typeof item.localizationKey === "string") {
+          if (typeof item.title === "string") {
+            item.title = localization.resolve(
+              namespace,
+              `review.${reviewId}.item.${item.localizationKey}.title`,
+              item.title,
+              isObject(item.metadata) ? item.metadata : undefined
+            );
+          }
+          if (typeof item.summary === "string") {
+            item.summary = localization.resolve(
+              namespace,
+              `review.${reviewId}.item.${item.localizationKey}.summary`,
+              item.summary,
+              isObject(item.metadata) ? item.metadata : undefined
+            );
+          }
+        }
         if (typeof item.statusLabel === "string") {
           const state = typeof item.state === "string" ? item.state : "default";
           item.statusLabel = localization.resolve(
@@ -392,6 +417,46 @@ export function localizeAppHostPageDefinition(
               namespace,
               `review.${reviewId}.metric.${metric.id}.label`,
               metric.label
+            );
+          }
+        }
+        if (Array.isArray(item.evidence)) {
+          for (const evidence of item.evidence) {
+            if (!isObject(evidence) || typeof evidence.localizationKey !== "string") continue;
+            const evidenceKey = evidence.localizationKey;
+            if (typeof evidence.title === "string") {
+              evidence.title = localization.resolve(
+                namespace,
+                `review.${reviewId}.evidence.${evidenceKey}.title`,
+                evidence.title,
+                isObject(item.metadata) ? item.metadata : undefined
+              );
+            }
+            if (typeof evidence.source === "string") {
+              evidence.source = localization.resolve(
+                namespace,
+                `review.${reviewId}.evidence.${evidenceKey}.source`,
+                evidence.source,
+                isObject(item.metadata) ? item.metadata : undefined
+              );
+            }
+            if (typeof evidence.detail === "string") {
+              evidence.detail = localization.resolve(
+                namespace,
+                `review.${reviewId}.evidence.${evidenceKey}.detail`,
+                evidence.detail,
+                isObject(item.metadata) ? item.metadata : undefined
+              );
+            }
+          }
+        }
+        if (Array.isArray(item.technicalDetails)) {
+          for (const detail of item.technicalDetails) {
+            if (!isObject(detail) || typeof detail.key !== "string" || typeof detail.label !== "string") continue;
+            detail.label = localization.resolve(
+              namespace,
+              `review.${reviewId}.technicalDetail.${detail.key}.label`,
+              detail.label
             );
           }
         }

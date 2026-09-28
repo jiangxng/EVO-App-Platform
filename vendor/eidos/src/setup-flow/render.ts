@@ -27,6 +27,10 @@ function actionButton(action: SetupFlowActionV010): string {
     + (action.command ? attr("data-eidos-command", action.command) : "")
     + (action.inputVersion ? attr("data-eidos-input-version", action.inputVersion) : "")
     + (action.route ? attr("data-eidos-route", action.route) : "")
+    + (action.continuation
+      ? attr("data-eidos-continuation-action-id", action.continuation.onActionId)
+        + attr("data-eidos-continuation-route", action.continuation.route)
+      : "")
     + (action.disabledReason ? attr("title", action.disabledReason) + attr("data-eidos-disabled-reason", action.disabledReason) : "")
     + (enabled ? "" : " disabled")
     + ">" + esc(action.label) + "</button>";

@@ -360,27 +360,31 @@ export function createPersonalAgentSetupPageV010(
     contractVersion: "0.1.0",
     kind: "setup-flow",
     id: "personal-agent.setup",
-    title: "Personal Agent setup",
-    description: "Complete the required platform-owned Provider steps. Personal Agent does not store Provider credentials.",
+    title: "Set up Personal Agent",
+    description: "Follow these steps to connect an AI service. Only the choices needed to get started are shown here.",
     steps: [
       {
         id: "provider",
-        title: "LLM Provider",
-        description: "Select or install a Provider for llm.inference.",
+        title: "Choose an AI service",
+        description: "Select the service Personal Agent will use. If you do not have one installed yet, browse the available AI services.",
         state: providerComplete ? "complete" : providerCurrent ? "current" : "pending",
-        statusDetail: providerComplete ? "Complete" : "Required",
+        statusDetail: providerComplete ? "Complete" : "Choose now",
         ...(!providerComplete
           ? {
               primaryAction: readiness.code === "LLM_PROVIDER_SELECTION_REQUIRED"
                 ? {
                     id: "choose-provider",
-                    label: "Choose Provider",
+                    label: "Choose AI service",
                     type: "navigate",
-                    route: providerManagerCapabilityRoute(LLM_CAPABILITY)
+                    route: providerManagerCapabilityRoute(LLM_CAPABILITY),
+                    continuation: {
+                      onActionId: "settings.save",
+                      route: PERSONAL_AGENT_SETUP_ROUTE
+                    }
                   } as const
                 : {
                     id: "open-provider-catalog",
-                    label: "Open Provider catalog",
+                    label: "Browse AI services",
                     type: "navigate",
                     route: "/store"
                   } as const
@@ -389,8 +393,8 @@ export function createPersonalAgentSetupPageV010(
       },
       {
         id: "credentials",
-        title: "Provider configuration",
-        description: "Configure credentials and Provider-owned runtime settings in the Provider Settings surface.",
+        title: "Connect the service",
+        description: "Enter the credentials and model settings required by the selected service.",
         state: configurationComplete
           ? "complete"
           : configurationCurrent
@@ -401,19 +405,23 @@ export function createPersonalAgentSetupPageV010(
         statusDetail: configurationComplete
           ? "Complete"
           : configurationCurrent
-            ? "Required"
+            ? "Connect now"
             : "Waiting",
         ...(configurationCurrent && selectedPackageId
           ? {
               primaryAction: {
                 id: "configure-provider",
-                label: "Configure Provider",
+                label: "Connect service",
                 type: "navigate",
-                route: settingsPackageRoute(selectedPackageId)
+                route: settingsPackageRoute(selectedPackageId),
+                continuation: {
+                  onActionId: "settings.save",
+                  route: PERSONAL_AGENT_SETUP_ROUTE
+                }
               } as const,
               secondaryActions: [{
                 id: "provider-status",
-                label: "Provider status",
+                label: "Connection details",
                 type: "navigate",
                 route: providerManagerCapabilityRoute(LLM_CAPABILITY)
               }] as const
@@ -422,8 +430,8 @@ export function createPersonalAgentSetupPageV010(
       },
       {
         id: "readiness",
-        title: "Provider readiness",
-        description: "The Host verifies that Provider resolution and runtime readiness are usable.",
+        title: "Check the connection",
+        description: "We’ll verify that Personal Agent can reach the selected service and use it.",
         state: readinessComplete
           ? "complete"
           : readinessError
@@ -434,19 +442,21 @@ export function createPersonalAgentSetupPageV010(
         statusDetail: readinessComplete
           ? "Complete"
           : readinessError
-            ? "Attention required"
-            : "Waiting",
+            ? "Needs attention"
+            : configurationComplete
+              ? "Check now"
+              : "Waiting",
         ...(!readinessComplete
           ? {
               primaryAction: {
                 id: "check-provider-status",
-                label: "Check Provider status",
+                label: "Check connection",
                 type: "navigate",
                 route: providerManagerCapabilityRoute(LLM_CAPABILITY)
               } as const,
               secondaryActions: [{
                 id: "recheck-setup",
-                label: "Recheck setup",
+                label: "Try again",
                 type: "navigate",
                 route: PERSONAL_AGENT_SETUP_ROUTE
               }] as const
@@ -455,53 +465,17 @@ export function createPersonalAgentSetupPageV010(
       },
       {
         id: "ready",
-        title: "Ready",
-        description: "Personal Agent can now use the selected LLM Provider.",
+        title: "Ready to use",
+        description: "Setup is complete. You can start using Personal Agent now.",
         state: readinessComplete ? "complete" : "blocked",
-        statusDetail: readinessComplete ? "Complete" : "Waiting",
-        ...(readinessComplete
-          ? {
-              secondaryActions: [
-                {
-                  id: "review-memory",
-                  label: "Review Memory",
-                  type: "navigate",
-                  route: PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
-                },
-                {
-                  id: "memory-governance",
-                  label: "Memory Governance",
-                  type: "navigate",
-                  route: "/memory"
-                },
-                {
-                  id: "memory-source-health",
-                  label: "Memory Source Health",
-                  type: "navigate",
-                  route: "/memory/sources"
-                },
-                {
-                  id: "agent-quality",
-                  label: "Personal Agent Quality",
-                  type: "navigate",
-                  route: "/enterprise-agent/quality"
-                },
-                {
-                  id: "agent-follow-ups",
-                  label: "Personal Agent Follow-ups",
-                  type: "navigate",
-                  route: PERSONAL_AGENT_FOLLOW_UP_ROUTE
-                }
-              ] as const
-            }
-          : {})
+        statusDetail: readinessComplete ? "Complete" : "Waiting"
       }
     ],
     ...(readinessComplete
       ? {
           completionAction: {
             id: "open-agent",
-            label: "Open Personal Agent",
+            label: "Start using Personal Agent",
             type: "navigate",
             route: PERSONAL_AGENT_ROUTE
           }
@@ -520,207 +494,266 @@ export function createPersonalAgentMemoryReviewPageV010(
   const canonicalizationPending = canonicalizationProposals.filter(
     item => item.state === "PENDING"
   );
+
+  const trustLabel = (trustLevel: "HOST_VERIFIED" | "DECLARED" | "UNVERIFIED"): string =>
+    trustLevel === "HOST_VERIFIED"
+      ? "Verified source"
+      : trustLevel === "DECLARED"
+        ? "Declared source"
+        : "Unverified source";
+
+  const signalPresentation = (kind: string): {
+    localizationKey: string;
+    title: string;
+  } => {
+    if (kind === "POTENTIAL_DUPLICATE") {
+      return { localizationKey: "signal-potential-duplicate", title: "Possible duplicate" };
+    }
+    if (kind === "POTENTIAL_CONTRADICTION") {
+      return { localizationKey: "signal-potential-contradiction", title: "Possible contradiction" };
+    }
+    return { localizationKey: "signal-supersession-candidate", title: "May replace existing Memory" };
+  };
+
   return {
     contractVersion: "0.1.0",
     kind: "review-queue",
     id: "personal-agent.memory-review",
     title: "Memory review",
-    description: "Review proposed durable knowledge and duplicate-to-canonical governance changes before they affect Context Memory.",
+    description: "Decide which proposed knowledge should become durable Memory. Review signals are suggestions only; you remain in control of every decision.",
     emptyMessage: "No Memory proposals need review.",
+    technicalDetailsLabel: "Technical details",
     items: [
       ...pending.map((proposal): ReviewQueueItemV010 => {
-      const revision = proposal.revisions.at(-1)!;
-      const evidenceSources = revision.evidenceSources ?? [];
-      const sourceTrustMetrics = ([
-        ["HOST_VERIFIED", "source-trust-host-verified", "Host-verified sources"],
-        ["DECLARED", "source-trust-declared", "Declared sources"],
-        ["UNVERIFIED", "source-trust-unverified", "Unverified sources"]
-      ] as const).flatMap(([trustLevel, id, label]) => {
-        const count = evidenceSources.filter(source => source.trustLevel === trustLevel).length;
-        return count === 0
-          ? []
-          : [{
-              id,
-              label,
-              value: String(count),
-              tone: trustLevel === "UNVERIFIED" ? "warning" as const : "neutral" as const
-            }];
-      });
-      const attention = revision.reviewSignals.length > 0
-        || revision.evidenceQuality === "UNVERIFIED"
-        || evidenceSources.some(source => source.trustLevel === "UNVERIFIED");
-      return {
-        id: proposal.proposalId,
-        title: revision.summary,
-        state: attention ? "attention" : "pending",
-        statusLabel: attention ? "Needs attention" : "Pending",
-        metrics: [
-          {
-            id: "confidence",
-            label: "Proposed confidence",
-            value: revision.proposedConfidence === undefined
-              ? "—"
-              : `${Math.round(revision.proposedConfidence * 100)}%`,
-            tone: revision.proposedConfidence !== undefined && revision.proposedConfidence < 0.5
-              ? "warning"
-              : "neutral"
-          },
-          {
-            id: "evidence",
-            label: "Evidence refs",
-            value: String(revision.evidenceRefs.length),
-            tone: revision.evidenceRefs.length === 0 ? "warning" : "neutral"
-          },
-          ...sourceTrustMetrics,
-          {
-            id: "conflicts",
-            label: "Review signals",
-            value: String(revision.reviewSignals.length),
-            tone: revision.reviewSignals.length > 0 ? "warning" : "neutral"
-          },
-          {
-            id: "context",
-            label: "Context",
-            value: contextLabels.get(proposal.context.contextId) ?? proposal.context.contextId
-          }
-        ],
-        fields: [
-          {
-            key: "kind",
-            label: "Kind",
-            control: "select",
-            value: revision.kind,
-            options: [
-              { label: "Fact", value: "FACT" },
-              { label: "Claim", value: "CLAIM" },
-              { label: "Experience", value: "EXPERIENCE" },
-              { label: "Practice", value: "PRACTICE" }
-            ]
-          },
-          {
-            key: "summary",
-            label: "Summary",
-            control: "textarea",
-            value: revision.summary
-          }
-        ],
-        evidence: [
-          ...revision.evidenceRefs.map((ref, index) => ({
-            id: `evidence-${index + 1}`,
-            title: ref,
-            source: revision.evidenceQuality
+        const revision = proposal.revisions.at(-1)!;
+        const evidenceSources = revision.evidenceSources ?? [];
+        const sourceTrustMetrics = ([
+          ["HOST_VERIFIED", "source-trust-host-verified", "Host-verified sources"],
+          ["DECLARED", "source-trust-declared", "Declared sources"],
+          ["UNVERIFIED", "source-trust-unverified", "Unverified sources"]
+        ] as const).flatMap(([trustLevel, id, label]) => {
+          const count = evidenceSources.filter(source => source.trustLevel === trustLevel).length;
+          return count === 0
+            ? []
+            : [{
+                id,
+                label,
+                value: String(count),
+                tone: trustLevel === "UNVERIFIED" ? "warning" as const : "neutral" as const
+              }];
+        });
+        const attention = revision.reviewSignals.length > 0
+          || revision.evidenceQuality === "UNVERIFIED"
+          || evidenceSources.some(source => source.trustLevel === "UNVERIFIED");
+
+        const technicalDetails = [
+          { key: "proposalId", label: "Proposal ID", value: proposal.proposalId },
+          { key: "contextId", label: "Context ID", value: proposal.context.contextId },
+          { key: "revisionId", label: "Revision ID", value: revision.revisionId },
+          { key: "evidenceQuality", label: "Evidence quality", value: revision.evidenceQuality },
+          ...revision.evidenceRefs.map(ref => ({
+            key: "evidenceReference",
+            label: "Evidence reference",
+            value: ref
           })),
-          ...evidenceSources.map((source, index) => ({
-            id: `evidence-source-${index + 1}`,
-            title: source.displayName ?? source.sourceId,
-            source: source.sourceType,
-            detail: source.sourceId
-          })),
-          ...revision.reviewSignals.map((signal, index) => ({
-            id: `signal-${index + 1}`,
-            title: signal.summary,
-            source: signal.kind,
-            detail: signal.memoryId
-          }))
-        ],
-        primaryAction: {
-          id: "accept",
-          label: "Accept",
-          type: "command",
-          command: "context.memory.proposal.accept",
-          inputVersion: "0.1.0",
-          primary: true,
-          requiresConfirmation: true
-        },
-        secondaryActions: [
-          {
-            id: "save",
-            label: "Save edit",
-            type: "command",
-            command: "context.memory.proposal.edit",
-            inputVersion: "0.1.0"
-          },
-          {
-            id: "reject",
-            label: "Reject",
-            type: "command",
-            command: "context.memory.proposal.reject",
-            inputVersion: "0.1.0",
-            requiresConfirmation: true
-          }
-        ],
-        metadata: {
-          contextId: proposal.context.contextId,
-          revisionId: revision.revisionId,
-          evidenceQuality: revision.evidenceQuality,
-          evidenceSourceCount: evidenceSources.length
-        }
-      };
-    }),
-      ...canonicalizationPending.map((proposal): ReviewQueueItemV010 => {
-        const duplicateSummary = memorySummaries.get(proposal.duplicateMemoryId)
-          ?? proposal.duplicateMemoryId;
-        const canonicalSummary = memorySummaries.get(proposal.canonicalMemoryId)
-          ?? proposal.canonicalMemoryId;
+          ...evidenceSources.flatMap(source => [
+            { key: "sourceId", label: "Source ID", value: source.sourceId },
+            { key: "sourceType", label: "Source type", value: source.sourceType },
+            { key: "sourceTrust", label: "Source trust", value: source.trustLevel },
+            ...(source.trustPolicyId
+              ? [{ key: "trustPolicyId", label: "Trust policy ID", value: source.trustPolicyId }]
+              : [])
+          ]),
+          ...revision.reviewSignals.flatMap(signal => [
+            { key: "reviewSignal", label: "Review signal", value: signal.kind },
+            { key: "relatedMemoryId", label: "Related Memory ID", value: signal.memoryId },
+            { key: "signalExplanation", label: "Signal explanation", value: signal.summary }
+          ])
+        ];
+
         return {
           id: proposal.proposalId,
-          title: "Canonicalize duplicate Memory",
-          state: "attention" as const,
-          statusLabel: "Needs Human review",
-          summary: `Mark '${duplicateSummary}' as a duplicate of existing canonical Memory '${canonicalSummary}'. No Memory content will be created, edited or deleted.`,
+          title: revision.summary,
+          state: attention ? "attention" : "pending",
+          statusLabel: attention ? "Needs attention" : "Pending",
           metrics: [
             {
-              id: "context",
-              label: "Context",
-              value: contextLabels.get(proposal.context.contextId)
-                ?? proposal.context.contextId
+              id: "confidence",
+              label: "Confidence",
+              value: revision.proposedConfidence === undefined
+                ? "—"
+                : `${Math.round(revision.proposedConfidence * 100)}%`,
+              tone: revision.proposedConfidence !== undefined && revision.proposedConfidence < 0.5
+                ? "warning"
+                : "neutral"
             },
             {
-              id: "effect",
-              label: "Retrieval effect",
-              value: "1 duplicate hidden; canonical remains visible"
-            }
+              id: "evidence",
+              label: "Evidence",
+              value: String(revision.evidenceRefs.length),
+              tone: revision.evidenceRefs.length === 0 ? "warning" : "neutral"
+            },
+            ...sourceTrustMetrics,
+            {
+              id: "conflicts",
+              label: "Review signals",
+              value: String(revision.reviewSignals.length),
+              tone: revision.reviewSignals.length > 0 ? "warning" : "neutral"
+            },
+            ...(contextLabels.get(proposal.context.contextId)
+              ? [{
+                  id: "context",
+                  label: "Context",
+                  value: contextLabels.get(proposal.context.contextId)!
+                }]
+              : [])
           ],
           fields: [
             {
-              key: "duplicateMemoryId",
-              label: "Duplicate Memory",
-              control: "text" as const,
-              value: proposal.duplicateMemoryId,
-              readOnly: true
+              key: "kind",
+              label: "Kind",
+              control: "select",
+              value: revision.kind,
+              options: [
+                { label: "Fact", value: "FACT" },
+                { label: "Claim", value: "CLAIM" },
+                { label: "Experience", value: "EXPERIENCE" },
+                { label: "Practice", value: "PRACTICE" }
+              ]
             },
             {
-              key: "canonicalMemoryId",
-              label: "Canonical Memory",
-              control: "text" as const,
-              value: proposal.canonicalMemoryId,
-              readOnly: true
-            },
-            {
-              key: "reason",
-              label: "Reason",
-              control: "textarea" as const,
-              value: proposal.reason ?? "",
-              readOnly: true
+              key: "summary",
+              label: "Summary",
+              control: "textarea",
+              value: revision.summary
             }
           ],
           evidence: [
+            ...revision.evidenceRefs.map((_, index) => ({
+              id: `evidence-${index + 1}`,
+              localizationKey: revision.evidenceQuality === "UNVERIFIED"
+                ? "reference-unverified"
+                : "reference",
+              title: "Evidence",
+              source: revision.evidenceQuality === "UNVERIFIED"
+                ? "Unverified evidence"
+                : "Referenced evidence"
+            })),
+            ...evidenceSources.map((source, index) => ({
+              id: `evidence-source-${index + 1}`,
+              localizationKey: source.displayName
+                ? source.trustLevel === "HOST_VERIFIED"
+                  ? "source-host-verified"
+                  : source.trustLevel === "DECLARED"
+                    ? "source-declared"
+                    : "source-unverified"
+                : source.trustLevel === "HOST_VERIFIED"
+                  ? "source-host-verified-generic"
+                  : source.trustLevel === "DECLARED"
+                    ? "source-declared-generic"
+                    : "source-unverified-generic",
+              title: source.displayName ?? "Evidence source",
+              source: trustLabel(source.trustLevel)
+            })),
+            ...revision.reviewSignals.map((signal, index) => {
+              const presentation = signalPresentation(signal.kind);
+              return {
+                id: `signal-${index + 1}`,
+                localizationKey: presentation.localizationKey,
+                title: presentation.title,
+                source: "Review signal",
+                ...(memorySummaries.get(signal.memoryId)
+                  ? { detail: memorySummaries.get(signal.memoryId)! }
+                  : {})
+              };
+            })
+          ],
+          technicalDetails,
+          primaryAction: {
+            id: "accept",
+            label: "Accept",
+            type: "command",
+            command: "context.memory.proposal.accept",
+            inputVersion: "0.1.0",
+            primary: true,
+            requiresConfirmation: true
+          },
+          secondaryActions: [
+            {
+              id: "save",
+              label: "Save edit",
+              type: "command",
+              command: "context.memory.proposal.edit",
+              inputVersion: "0.1.0"
+            },
+            {
+              id: "reject",
+              label: "Reject",
+              type: "command",
+              command: "context.memory.proposal.reject",
+              inputVersion: "0.1.0",
+              requiresConfirmation: true
+            }
+          ],
+          metadata: {
+            contextId: proposal.context.contextId,
+            revisionId: revision.revisionId,
+            evidenceQuality: revision.evidenceQuality,
+            evidenceSourceCount: evidenceSources.length
+          }
+        };
+      }),
+      ...canonicalizationPending.map((proposal): ReviewQueueItemV010 => {
+        const duplicateSummary = memorySummaries.get(proposal.duplicateMemoryId)
+          ?? "The suspected duplicate Memory";
+        const canonicalSummary = memorySummaries.get(proposal.canonicalMemoryId)
+          ?? "The Memory to keep";
+        return {
+          id: proposal.proposalId,
+          localizationKey: "canonicalization",
+          title: "Review possible duplicate",
+          state: "attention" as const,
+          statusLabel: "Needs attention",
+          summary: "If accepted, the duplicate will be hidden from normal retrieval while the existing Memory remains available. No Memory text is deleted.",
+          metrics: contextLabels.get(proposal.context.contextId)
+            ? [{
+                id: "context",
+                label: "Context",
+                value: contextLabels.get(proposal.context.contextId)!
+              }]
+            : [],
+          fields: proposal.reason
+            ? [{
+                key: "reason",
+                label: "Why this was suggested",
+                control: "textarea" as const,
+                value: proposal.reason,
+                readOnly: true
+              }]
+            : [],
+          evidence: [
             {
               id: "duplicate",
+              localizationKey: "canonicalization-duplicate",
               title: duplicateSummary,
-              source: "DUPLICATE",
-              detail: proposal.duplicateMemoryId
+              source: "Duplicate to hide"
             },
             {
               id: "canonical",
+              localizationKey: "canonicalization-canonical",
               title: canonicalSummary,
-              source: "CANONICAL",
-              detail: proposal.canonicalMemoryId
+              source: "Memory to keep"
             }
+          ],
+          technicalDetails: [
+            { key: "proposalId", label: "Proposal ID", value: proposal.proposalId },
+            { key: "contextId", label: "Context ID", value: proposal.context.contextId },
+            { key: "duplicateMemoryId", label: "Duplicate Memory ID", value: proposal.duplicateMemoryId },
+            { key: "canonicalMemoryId", label: "Canonical Memory ID", value: proposal.canonicalMemoryId }
           ],
           primaryAction: {
             id: "accept-canonicalization",
-            label: "Accept canonicalization",
+            label: "Confirm duplicate",
             type: "command" as const,
             command: "context.memory.canonicalization.proposal.accept",
             inputVersion: "0.1.0",
@@ -729,7 +762,7 @@ export function createPersonalAgentMemoryReviewPageV010(
           },
           secondaryActions: [{
             id: "reject-canonicalization",
-            label: "Reject",
+            label: "Keep both",
             type: "command" as const,
             command: "context.memory.canonicalization.proposal.reject",
             inputVersion: "0.1.0",

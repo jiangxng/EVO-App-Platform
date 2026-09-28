@@ -48,6 +48,9 @@ test("first-run Setup points Provider discovery back to the real Plugin Store", 
   assert.equal(provider.primaryAction.id, "open-provider-catalog");
   assert.equal(provider.primaryAction.route, "/store");
   assert.equal(setup.completionAction, undefined);
+  assert.match(setup.title, /Set up Personal Agent/);
+  assert.doesNotMatch(setup.description, /llm\.inference|Provider/);
+  assert.doesNotMatch(provider.title + " " + provider.description, /llm\.inference|Provider/);
 });
 
 test("configured Provider step links real Provider Settings and Provider status", () => {
@@ -61,6 +64,10 @@ test("configured Provider step links real Provider Settings and Provider status"
   assert.equal(credentials.state, "current");
   assert.equal(credentials.primaryAction.id, "configure-provider");
   assert.equal(credentials.primaryAction.route, "/settings/openai-llm-provider");
+  assert.deepEqual(credentials.primaryAction.continuation, {
+    onActionId: "settings.save",
+    route: "/enterprise-agent/setup"
+  });
   assert.equal(
     credentials.secondaryActions.find(action => action.id === "provider-status").route,
     "/providers/llm.inference"
@@ -74,10 +81,12 @@ test("Provider selection and degraded/unavailable readiness stay on governed Pro
     installedProviderPackageIds: ["openai-llm-provider", "other-llm-provider"],
     catalogProviderPackageIds: ["openai-llm-provider", "other-llm-provider"]
   }));
-  assert.equal(
-    selection.steps.find(step => step.id === "provider").primaryAction.route,
-    "/providers/llm.inference"
-  );
+  const selectionAction = selection.steps.find(step => step.id === "provider").primaryAction;
+  assert.equal(selectionAction.route, "/providers/llm.inference");
+  assert.deepEqual(selectionAction.continuation, {
+    onActionId: "settings.save",
+    route: "/enterprise-agent/setup"
+  });
 
   const unavailable = createPersonalAgentSetupPageV010(readiness({
     state: "unavailable",
@@ -92,7 +101,7 @@ test("Provider selection and degraded/unavailable readiness stay on governed Pro
   assert.equal(providerReadiness.secondaryActions[0].route, "/enterprise-agent/setup");
 });
 
-test("Ready completes the journey into Agent and governed Memory surfaces", () => {
+test("Ready completes setup with one clear next action instead of unrelated exit links", () => {
   const setup = createPersonalAgentSetupPageV010(readiness({
     state: "ready",
     code: "READY",
@@ -104,18 +113,11 @@ test("Ready completes the journey into Agent and governed Memory surfaces", () =
 
   assert.equal(setup.steps.every(step => step.state === "complete"), true);
   assert.equal(setup.completionAction.route, "/enterprise-agent");
+  assert.equal(setup.completionAction.label, "Start using Personal Agent");
 
   const finalStep = setup.steps.find(step => step.id === "ready");
-  assert.deepEqual(
-    finalStep.secondaryActions.map(action => [action.id, action.route]),
-    [
-      ["review-memory", "/enterprise-agent/memory"],
-      ["memory-governance", "/memory"],
-      ["memory-source-health", "/memory/sources"],
-      ["agent-quality", "/enterprise-agent/quality"],
-      ["agent-follow-ups", "/enterprise-agent/follow-ups"]
-    ]
-  );
+  assert.equal(finalStep.title, "Ready to use");
+  assert.equal(finalStep.secondaryActions, undefined);
 });
 
 test("experience journey actions ship in all four first-class locales", () => {
@@ -133,9 +135,7 @@ test("experience journey actions ship in all four first-class locales", () => {
       "setup.personal-agent.setup.action.provider-status.label",
       "setup.personal-agent.setup.action.check-provider-status.label",
       "setup.personal-agent.setup.action.recheck-setup.label",
-      "setup.personal-agent.setup.action.review-memory.label",
-      "setup.personal-agent.setup.action.memory-governance.label",
-      "setup.personal-agent.setup.action.memory-source-health.label"
+      "setup.personal-agent.setup.action.open-agent.label"
     ]) {
       assert.ok(messages[key], contribution.bundle.locale + " missing " + key);
     }

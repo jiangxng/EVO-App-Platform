@@ -6,6 +6,11 @@ import { createAppManagerService } from "../../dist/manager/service.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createProviderRuntimeRegistry } from "../../dist/providers/runtime-registry.js";
 import { createMemoryProviderBindingStoreV010 } from "../../dist/manager/provider-resolution.js";
+import { appPlatformLocalizationBundles } from "../../dist/manager/localization.js";
+import {
+  createLocalizationRuntime,
+  localizeAppHostPageDefinition
+} from "../../dist/vendor/eidos/src/localization/index.js";
 import {
   createProviderBindingPage,
   createProviderManagerExperienceManifest,
@@ -88,10 +93,24 @@ test("Provider Manager exposes capability page and health-aware summary", () => 
     page.groups.map(group => group.id),
     ["selection", "scope", "runtime-status", "administration"]
   );
+  assert.equal(page.title, "AI service");
+  assert.equal(page.saveLabel, "Save choice");
+  assert.equal(page.notice.title, "Connection status");
+  assert.equal(page.notice.message, "Provider Pack");
+  const selection = page.groups.find(group => group.id === "selection");
+  assert.equal(selection.advanced, undefined);
+  assert.equal(selection.settings[0].label, "Service");
+  assert.deepEqual(
+    selection.settings[0].options.map(option => option.label),
+    ["Provider Pack"]
+  );
   const settings = page.groups.flatMap(group => group.settings);
   assert.ok(settings.some(field => field.key === "scope"));
   assert.ok(settings.some(field => field.key === "providerId"));
+  const scopeGroup = page.groups.find(group => group.id === "scope");
+  assert.equal(scopeGroup.advanced, true);
   const runtimeGroup = page.groups.find(group => group.id === "runtime-status");
+  assert.equal(runtimeGroup.advanced, true);
   assert.ok(runtimeGroup.settings.every(field => field.readOnly === true));
   const administration = page.groups.find(group => group.id === "administration");
   assert.equal(administration.advanced, true);
@@ -99,4 +118,51 @@ test("Provider Manager exposes capability page and health-aware summary", () => 
   assert.equal(adminToken.type, "secret");
   assert.equal(adminToken.value, "");
   assert.equal(page.notice.tone, "success");
+});
+
+
+test("AI service selection localizes novice copy while keeping scope machine values behind Advanced", () => {
+  const { manager, registry, bindings } = setup();
+  const definition = createProviderBindingPage(
+    manager,
+    registry,
+    bindings,
+    "llm.inference"
+  );
+  const page = {
+    experienceId: "evo-provider-manager",
+    packageId: "evo-app-platform",
+    featureId: "evo-provider-manager.system",
+    route: {
+      id: "evo-providers.llm.inference",
+      path: "/providers/llm.inference",
+      pageId: "evo-providers.llm.inference"
+    },
+    page: {
+      id: "evo-providers.llm.inference",
+      source: "app://evo-app-platform/pages/providers/llm.inference"
+    },
+    definition
+  };
+  const expected = new Map([
+    ["en", ["AI service", "System default"]],
+    ["zh-CN", ["AI 服务", "系统默认"]],
+    ["ja", ["AI サービス", "システム既定"]],
+    ["zh-TW", ["AI 服務", "系統預設"]]
+  ]);
+  for (const [locale, [title, systemScope]] of expected) {
+    const localized = localizeAppHostPageDefinition(
+      page,
+      createLocalizationRuntime(appPlatformLocalizationBundles, { locale })
+    );
+    assert.equal(localized.title, title);
+    const scope = localized.groups.find(group => group.id === "scope");
+    assert.equal(scope.advanced, true);
+    assert.equal(
+      scope.settings.find(setting => setting.key === "scope")
+        .options.find(option => option.value === "SYSTEM").label,
+      systemScope
+    );
+    assert.doesNotMatch(localized.description, /llm\.inference/);
+  }
 });

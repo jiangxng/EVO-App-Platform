@@ -148,6 +148,16 @@ export function createProviderBindingPage(
   const providerIds = [...new Set(descriptors.map(provider => provider.providerId))].sort();
   const selectedProviderId = existing?.providerId ?? providerIds[0]!;
   const health = registry.getHealth(selectedProviderId);
+  const packageNameById = new Map(
+    manager.listCatalog().map(pkg => [pkg.packageId, pkg.displayName] as const)
+  );
+  const providerDisplayName = (providerId: string): string => {
+    const descriptor = descriptors.find(item => item.providerId === providerId);
+    return descriptor
+      ? packageNameById.get(descriptor.packageId) ?? descriptor.providerId
+      : providerId;
+  };
+  const humanFacingLlm = capability === "llm.inference";
 
   let resolution = "Unresolved";
   try {
@@ -185,12 +195,16 @@ export function createProviderBindingPage(
     kind: "settings-editor",
     id: `evo-provider-binding.${capability}`,
     namespace: `provider-binding:${capability}`,
-    title: `Provider · ${capability}`,
-    description: "Choose the Provider for this capability and govern where the binding applies. Runtime status remains read-only.",
+    title: humanFacingLlm ? "AI service" : `Provider · ${capability}`,
+    description: humanFacingLlm
+      ? "Choose the installed AI service Personal Agent should use. Advanced scope and runtime details are available when needed."
+      : "Choose the Provider for this capability and govern where the binding applies. Runtime status remains read-only.",
     notice: {
       tone: healthTone,
-      title: "Provider status",
-      message: `${selectedProviderId} · ${health.state.toLowerCase()}${health.message ? ` · ${health.message}` : ""}`
+      title: humanFacingLlm ? "Connection status" : "Provider status",
+      message: humanFacingLlm
+        ? providerDisplayName(selectedProviderId)
+        : `${selectedProviderId} · ${health.state.toLowerCase()}${health.message ? ` · ${health.message}` : ""}`
     },
     command: {
       code: "app-platform.update-provider-binding",
@@ -199,16 +213,22 @@ export function createProviderBindingPage(
     groups: [
       {
         id: "selection",
-        title: "Provider selection",
-        description: "Select the installed Provider that should implement this capability.",
+        title: humanFacingLlm ? "AI service" : "Provider selection",
+        description: humanFacingLlm
+          ? "Choose the service Personal Agent should use."
+          : "Select the installed Provider that should implement this capability.",
         settings: [{
           key: "providerId",
-          label: "Provider",
-          description: "Installed Provider selected for this binding.",
+          label: humanFacingLlm ? "Service" : "Provider",
+          description: humanFacingLlm
+            ? "The AI service Personal Agent will use."
+            : "Installed Provider selected for this binding.",
           type: "select",
           value: selectedProviderId,
           options: providerIds.map(providerId => ({
-            label: `${providerId} · ${registry.getHealth(providerId).state.toLowerCase()}`,
+            label: humanFacingLlm
+              ? providerDisplayName(providerId)
+              : `${providerId} · ${registry.getHealth(providerId).state.toLowerCase()}`,
             value: providerId
           }))
         }]
@@ -216,6 +236,7 @@ export function createProviderBindingPage(
       {
         id: "scope",
         title: "Binding scope",
+        advanced: true,
         description: "More specific scopes override broader scopes. Priority only breaks ties at the same specificity.",
         settings: [
           {
@@ -245,6 +266,7 @@ export function createProviderBindingPage(
       {
         id: "runtime-status",
         title: "Runtime status",
+        advanced: true,
         description: "Host-observed resolution and health for the currently selected Provider.",
         settings: [
           {
@@ -289,6 +311,6 @@ export function createProviderBindingPage(
         }]
       }
     ],
-    saveLabel: "Save binding"
+    saveLabel: humanFacingLlm ? "Save choice" : "Save binding"
   };
 }
