@@ -35,3 +35,27 @@ test("P1.8C archived selection is explicitly read-only in Eidos controller", asy
   assert.match(source, /textarea\.disabled/);
   assert.match(source, /activeThreadState/);
 });
+
+
+test("P1.8C passive durable chat recovery does not publish a global action-result refresh", async () => {
+  const source = await readFile(
+    new URL(
+      "../../dist/vendor/eidos/src/app-host/page-controller.js",
+      import.meta.url
+    ),
+    "utf8"
+  );
+
+  assert.match(
+    source,
+    /appendChatResult\(threadRecovered\.result, false\)/
+  );
+  assert.match(
+    source,
+    /appendChatResult\(recovered\.result, false\)/
+  );
+  assert.doesNotMatch(
+    source,
+    /onActionResult\?\.\(threadRecovered\.result, page\)/
+  );
+});
