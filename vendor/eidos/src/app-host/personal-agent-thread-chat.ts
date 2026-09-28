@@ -28,8 +28,12 @@ export interface ThreadBackedMessageV010 {
 
 export interface ThreadBackedThreadV010 {
   threadId: string;
+  state?: "ACTIVE" | "ARCHIVED";
   sourceInteractionId?: string;
+  title?: string;
+  createdAt?: string;
   updatedAt?: string;
+  archivedAt?: string;
   messages: ThreadBackedMessageV010[];
 }
 
@@ -125,6 +129,148 @@ function threadFromResult(
     return undefined;
   }
   return raw as unknown as ThreadBackedThreadV010;
+}
+
+
+function threadsFromListResult(
+  result: ActionExecutionResult
+): ThreadBackedThreadV010[] | undefined {
+  if (!result.ok) return undefined;
+  const payload = objectValue(result.result);
+  if (!Array.isArray(payload?.threads)) return undefined;
+  const threads: ThreadBackedThreadV010[] = [];
+  for (const rawValue of payload.threads) {
+    const raw = objectValue(rawValue);
+    if (
+      !raw
+      || typeof raw.threadId !== "string"
+      || !Array.isArray(raw.messages)
+    ) {
+      return undefined;
+    }
+    threads.push(raw as unknown as ThreadBackedThreadV010);
+  }
+  return threads;
+}
+
+export async function listConversationThreadsV010(
+  options: ThreadBackedChatOptionsV010 & { includeArchived?: boolean }
+): Promise<{
+  unavailable: boolean;
+  result?: ActionExecutionResult;
+  threads?: ThreadBackedThreadV010[];
+}> {
+  const listed = await options.actionHost.execute(commandRequest(
+    options.request,
+    "enterprise-agent.thread.list",
+    "chat.thread.history",
+    {
+      limit: 100,
+      includeArchived: options.includeArchived === true,
+      ...scopeValues(options.request)
+    }
+  ));
+  if (threadActionsUnavailableV010(listed)) return { unavailable: true };
+  if (!listed.ok) return { unavailable: false, result: listed };
+  const threads = threadsFromListResult(listed);
+  return threads
+    ? { unavailable: false, threads }
+    : {
+        unavailable: false,
+        result: errorResult(
+          "EIDOS_CONVERSATION_THREAD_RESPONSE_INVALID",
+          "Thread list returned invalid durable state."
+        )
+      };
+}
+
+export async function getConversationThreadV010(
+  options: ThreadBackedChatOptionsV010,
+  threadId: string
+): Promise<{
+  unavailable: boolean;
+  result?: ActionExecutionResult;
+  thread?: ThreadBackedThreadV010;
+}> {
+  const got = await options.actionHost.execute(commandRequest(
+    options.request,
+    "enterprise-agent.thread.get",
+    "chat.thread.get",
+    {
+      threadId: threadId.trim(),
+      ...scopeValues(options.request)
+    }
+  ));
+  if (threadActionsUnavailableV010(got)) return { unavailable: true };
+  if (!got.ok) return { unavailable: false, result: got };
+  const thread = threadFromResult(got);
+  return thread
+    ? { unavailable: false, thread }
+    : {
+        unavailable: false,
+        result: errorResult(
+          "EIDOS_CONVERSATION_THREAD_RESPONSE_INVALID",
+          "Thread get returned invalid durable state."
+        )
+      };
+}
+
+export async function createConversationThreadV010(
+  options: ThreadBackedChatOptionsV010
+): Promise<{
+  unavailable: boolean;
+  result?: ActionExecutionResult;
+  thread?: ThreadBackedThreadV010;
+}> {
+  const created = await options.actionHost.execute(commandRequest(
+    options.request,
+    "enterprise-agent.thread.create",
+    "chat.thread.new",
+    scopeValues(options.request)
+  ));
+  if (threadActionsUnavailableV010(created)) return { unavailable: true };
+  if (!created.ok) return { unavailable: false, result: created };
+  const thread = threadFromResult(created);
+  return thread
+    ? { unavailable: false, thread }
+    : {
+        unavailable: false,
+        result: errorResult(
+          "EIDOS_CONVERSATION_THREAD_RESPONSE_INVALID",
+          "Thread create returned invalid durable state."
+        )
+      };
+}
+
+export async function archiveConversationThreadV010(
+  options: ThreadBackedChatOptionsV010,
+  threadId: string
+): Promise<{
+  unavailable: boolean;
+  result?: ActionExecutionResult;
+  thread?: ThreadBackedThreadV010;
+}> {
+  const archived = await options.actionHost.execute(commandRequest(
+    options.request,
+    "enterprise-agent.thread.archive",
+    "chat.thread.archive",
+    {
+      threadId: threadId.trim(),
+      ...scopeValues(options.request)
+    }
+  ));
+  if (threadActionsUnavailableV010(archived)) return { unavailable: true };
+  if (!archived.ok) return { unavailable: false, result: archived };
+  const thread = threadFromResult(archived);
+  return thread
+    ? { unavailable: false, thread }
+    : {
+        unavailable: false,
+        result: errorResult(
+          "EIDOS_CONVERSATION_THREAD_RESPONSE_INVALID",
+          "Thread archive returned invalid durable state."
+        )
+      };
 }
 
 function runFromResult(
@@ -338,72 +484,34 @@ export async function resolveConversationThreadV010(
 }> {
   const requestedId = options.threadId?.trim();
   if (requestedId) {
-    const got = await options.actionHost.execute(commandRequest(
-      options.request,
-      "enterprise-agent.thread.get",
-      "chat.thread.get",
-      {
-        threadId: requestedId,
-        ...scopeValues(options.request)
-      }
-    ));
-    if (threadActionsUnavailableV010(got)) return { unavailable: true };
-    if (got.ok) {
-      const thread = threadFromResult(got);
-      if (thread) return { unavailable: false, thread };
-    } else if (got.error?.code !== "CONVERSATION_THREAD_NOT_FOUND") {
-      return { unavailable: false, result: got };
+    const got = await getConversationThreadV010(options, requestedId);
+    if (got.unavailable) return { unavailable: true };
+    if (got.thread) return { unavailable: false, thread: got.thread };
+    if (got.result?.error?.code !== "CONVERSATION_THREAD_NOT_FOUND") {
+      return { unavailable: false, result: got.result };
     }
   }
 
-  const listed = await options.actionHost.execute(commandRequest(
-    options.request,
-    "enterprise-agent.thread.list",
-    "chat.thread.list",
-    {
-      limit: 100,
-      ...scopeValues(options.request)
-    }
-  ));
-  if (threadActionsUnavailableV010(listed)) return { unavailable: true };
-  if (!listed.ok) return { unavailable: false, result: listed };
-
-  const payload = objectValue(listed.result);
-  const threads = Array.isArray(payload?.threads)
-    ? payload!.threads
-        .map(objectValue)
-        .filter((item): item is Record<string, unknown> => Boolean(item))
-    : [];
-  const matching = threads.filter(item =>
-    typeof item.threadId === "string"
-    && item.sourceInteractionId === options.request.sourceInteractionId
-    && Array.isArray(item.messages)
+  const listed = await listConversationThreadsV010(options);
+  if (listed.unavailable) return { unavailable: true };
+  if (listed.result && !listed.threads) {
+    return { unavailable: false, result: listed.result };
+  }
+  const matching = (listed.threads ?? []).filter(item =>
+    item.sourceInteractionId === options.request.sourceInteractionId
   );
   if (matching.length > 0) {
     return {
       unavailable: false,
-      thread: matching[0] as unknown as ThreadBackedThreadV010
+      thread: matching[0]
     };
   }
 
-  const created = await options.actionHost.execute(commandRequest(
-    options.request,
-    "enterprise-agent.thread.create",
-    "chat.thread.create",
-    scopeValues(options.request)
-  ));
-  if (threadActionsUnavailableV010(created)) return { unavailable: true };
-  if (!created.ok) return { unavailable: false, result: created };
-  const thread = threadFromResult(created);
-  return thread
-    ? { unavailable: false, thread }
-    : {
-        unavailable: false,
-        result: errorResult(
-          "EIDOS_CONVERSATION_THREAD_RESPONSE_INVALID",
-          "Thread create returned no valid thread."
-        )
-      };
+  const created = await createConversationThreadV010(options);
+  if (created.unavailable) return { unavailable: true };
+  return created.thread
+    ? { unavailable: false, thread: created.thread }
+    : { unavailable: false, result: created.result };
 }
 
 function latestPendingRunId(
