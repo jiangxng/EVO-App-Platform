@@ -159,7 +159,7 @@ export function createPersonalAgentThreadActionHandlersV010(
     {
       ...base,
       commandCode: "enterprise-agent.thread.create",
-      execute(request, requestContext) {
+      async execute(request, requestContext) {
         try {
           const { principal, context } = scopeForRequest(
             dependencies,
@@ -190,7 +190,7 @@ export function createPersonalAgentThreadActionHandlersV010(
     {
       ...base,
       commandCode: "enterprise-agent.thread.get",
-      execute(request, requestContext) {
+      async execute(request, requestContext) {
         try {
           const { principal, context } = scopeForRequest(
             dependencies,
@@ -210,7 +210,7 @@ export function createPersonalAgentThreadActionHandlersV010(
     {
       ...base,
       commandCode: "enterprise-agent.thread.list",
-      execute(request, requestContext) {
+      async execute(request, requestContext) {
         try {
           const { principal, context } = scopeForRequest(
             dependencies,
