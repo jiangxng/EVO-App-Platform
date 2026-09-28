@@ -127,6 +127,32 @@ function shouldLegacyFallback(result: ActionExecutionResult): boolean {
   );
 }
 
+function terminalResult(
+  result: ActionExecutionResult,
+  run: RunBackedChatRunV010
+): ActionExecutionResult {
+  if (run.state === "SUCCEEDED") return result;
+  if (run.state === "BLOCKED") {
+    return errorResult(
+      run.blocker?.code ?? "EIDOS_AGENT_RUN_BLOCKED",
+      run.blocker?.reason ?? "The durable Agent Run is blocked by an authority or execution boundary."
+    );
+  }
+  if (run.state === "FAILED") {
+    return errorResult(
+      run.error?.code ?? "EIDOS_AGENT_RUN_FAILED",
+      run.error?.reason ?? "The durable Agent Run failed."
+    );
+  }
+  if (run.state === "CANCELLED") {
+    return errorResult(
+      "EIDOS_AGENT_RUN_CANCELLED",
+      "The durable Agent Run was cancelled."
+    );
+  }
+  return result;
+}
+
 async function progress(
   options: RunBackedChatExecuteOptionsV010,
   run: RunBackedChatRunV010,
@@ -215,7 +241,7 @@ async function drainRun(
 
   return {
     mode: "RUN",
-    result,
+    result: terminalResult(result, run),
     runId: run.runId,
     runState: run.state,
     resumeCount
@@ -345,7 +371,7 @@ export async function recoverRunBackedChatV010(
   if (run.state !== "PAUSED") {
     return {
       mode: "RUN",
-      result: got,
+      result: terminalResult(got, run),
       runId: run.runId,
       runState: run.state,
       resumeCount: 0
