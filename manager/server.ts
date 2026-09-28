@@ -61,6 +61,19 @@ import {
   createJsonlConversationThreadEventStoreV010,
   createMemoryConversationThreadEventStoreV010
 } from "./conversation-thread-store.js";
+import {
+  createFileEnterpriseOperatingGraphStoreV010,
+  createMemoryEnterpriseOperatingGraphStoreV010
+} from "./enterprise-operating-graph-store.js";
+import {
+  createEnterpriseOperatingGraphHostServiceV010
+} from "./enterprise-operating-graph-service.js";
+import {
+  createEnterpriseOperatingGraphActionHandlersV010
+} from "./enterprise-operating-graph-actions.js";
+import {
+  createEnterpriseOperatingGraphAgentToolRegistrationsV010
+} from "./enterprise-operating-graph-agent-tools.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -474,6 +487,21 @@ const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.tri
 const contextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const enterpriseOperatingGraphStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-operating-graphs.json")
+    : undefined);
+const enterpriseOperatingGraphStore = enterpriseOperatingGraphStateFile
+  ? createFileEnterpriseOperatingGraphStoreV010(
+      enterpriseOperatingGraphStateFile
+    )
+  : createMemoryEnterpriseOperatingGraphStoreV010();
+const enterpriseOperatingGraphService =
+  createEnterpriseOperatingGraphHostServiceV010({
+    store: enterpriseOperatingGraphStore,
+    id: randomUUID
+  });
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile
@@ -2038,7 +2066,11 @@ function createPersonalAgentToolCatalogV010(
             message: "Material WRITE denied by '" + decision.policyProviderId + "': " + decision.reasonCodes.join(", ")
           };
     }
-  });
+  }, createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service: enterpriseOperatingGraphService,
+    principal,
+    context
+  }));
 }
 
 const agentRunExecutor = createResumableAgentRunExecutorV010({
@@ -2061,6 +2093,10 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
 
 const actionRouter = createAppActionRouter(
   [
+    ...createEnterpriseOperatingGraphActionHandlersV010({
+      service: enterpriseOperatingGraphService,
+      resolveAuthorizationProvider
+    }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
