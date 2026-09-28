@@ -24,16 +24,23 @@ import {
   type RunBackedChatProgressV010
 } from "./personal-agent-run-chat.js";
 import {
+  archiveConversationThreadV010,
+  createConversationThreadV010,
   executeThreadBackedChatV010,
+  getConversationThreadV010,
+  listConversationThreadsV010,
   recoverThreadBackedChatV010,
   threadBackedChatStorageKeyV010,
-  type ThreadBackedChatExecutionV010
+  transcriptFromThreadV010,
+  type ThreadBackedChatExecutionV010,
+  type ThreadBackedThreadV010
 } from "./personal-agent-thread-chat.js";
 
 export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
   activeRunId?: string;
   activeThreadId?: string;
+  activeThreadState?: "ACTIVE" | "ARCHIVED";
 }
 
 
@@ -474,6 +481,37 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const threadStorageKey = threadBacked
       ? threadBackedChatStorageKeyV010(definition.id)
       : undefined;
+    const chatHeader = container.querySelector<HTMLElement>("[data-eidos-chat-header]");
+    const threadControls = threadBacked && chatHeader
+      ? document.createElement("div")
+      : undefined;
+    const threadSelect = threadControls
+      ? document.createElement("select")
+      : undefined;
+    const newThreadButton = threadControls
+      ? document.createElement("button")
+      : undefined;
+    const archiveThreadButton = threadControls
+      ? document.createElement("button")
+      : undefined;
+
+    if (threadControls && threadSelect && newThreadButton && archiveThreadButton) {
+      threadControls.setAttribute("data-eidos-chat-thread-controls", "");
+      threadSelect.setAttribute("data-eidos-chat-thread-selector", "");
+      threadSelect.setAttribute(
+        "aria-label",
+        hostText("shell.chatHistory", "Conversation history")
+      );
+      newThreadButton.type = "button";
+      newThreadButton.setAttribute("data-eidos-chat-new-thread", "");
+      newThreadButton.textContent = hostText("shell.chatNew", "New chat");
+      archiveThreadButton.type = "button";
+      archiveThreadButton.setAttribute("data-eidos-chat-archive-thread", "");
+      archiveThreadButton.textContent = hostText("shell.chatArchive", "Archive");
+      threadControls.append(threadSelect, newThreadButton, archiveThreadButton);
+      chatHeader.appendChild(threadControls);
+    }
+
     let runProgressMessageId: string | undefined;
     let runTransportInFlight = false;
 
@@ -519,9 +557,42 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       }
     };
 
+    const applyThread = (
+      thread: ThreadBackedThreadV010
+    ): void => {
+      persistThreadId(thread.threadId);
+      state.activeThreadState = thread.state;
+      state.messages = transcriptFromThreadV010(thread)
+        .map(message => structuredClone(message));
+      renderTranscript();
+      if (threadSelect) threadSelect.value = thread.threadId;
+      if (archiveThreadButton) {
+        archiveThreadButton.disabled = thread.state === "ARCHIVED";
+      }
+      if (textarea instanceof HTMLTextAreaElement) {
+        const baseDisabled = definition.contractVersion === "0.2.0"
+          && (
+            definition.composer.disabled === true
+            || (
+              definition.readiness !== undefined
+              && definition.readiness.state !== "ready"
+            )
+          );
+        textarea.disabled = baseDisabled || thread.state === "ARCHIVED";
+        const submitButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (submitButton && !runTransportInFlight) {
+          submitButton.disabled = baseDisabled || thread.state === "ARCHIVED";
+        }
+      }
+    };
+
     const applyThreadExecution = (
       execution: ThreadBackedChatExecutionV010
     ): void => {
+      if (execution.thread) {
+        applyThread(execution.thread);
+        return;
+      }
       if (execution.threadId) persistThreadId(execution.threadId);
       state.messages = execution.transcript.map(message => structuredClone(message));
       renderTranscript();
@@ -588,6 +659,151 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     renderTranscript();
 
     if (form && textarea instanceof HTMLTextAreaElement) {
+      const threadOptions = (): Parameters<typeof recoverThreadBackedChatV010>[0] => ({
+        actionHost: options.actionHost!,
+        request: baseChatRequest(contextValues(), "chat.thread.manage")
+      });
+
+      const threadLabel = (thread: ThreadBackedThreadV010): string => {
+        const firstUser = thread.messages.find(message => message.role === "USER");
+        const base = thread.title?.trim()
+          || firstUser?.content.trim().slice(0, 42)
+          || hostText("shell.chatUntitled", "New chat");
+        return thread.state === "ARCHIVED"
+          ? hostText("shell.chatArchivedLabel", "[Archived] {title}", { title: base })
+          : base;
+      };
+
+      const refreshThreadHistory = async (): Promise<void> => {
+        if (!threadBacked || !options.actionHost || !threadSelect) return;
+        const listed = await listConversationThreadsV010({
+          ...threadOptions(),
+          includeArchived: true
+        });
+        if (listed.unavailable || !listed.threads) return;
+
+        const currentId = storedThreadId();
+        threadSelect.replaceChildren();
+        for (const thread of listed.threads) {
+          const option = document.createElement("option");
+          option.value = thread.threadId;
+          option.textContent = threadLabel(thread);
+          option.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
+          option.selected = thread.threadId === currentId;
+          threadSelect.appendChild(option);
+        }
+        if (
+          currentId
+          && !listed.threads.some(thread => thread.threadId === currentId)
+        ) {
+          persistThreadId(undefined);
+        }
+      };
+
+      const openThread = async (threadId: string): Promise<void> => {
+        if (!threadBacked || !options.actionHost || runTransportInFlight) return;
+        const got = await getConversationThreadV010(threadOptions(), threadId);
+        if (got.unavailable || !got.thread) {
+          if (got.result && !got.result.ok) await appendChatResult(got.result);
+          return;
+        }
+
+        if (got.thread.state === "ARCHIVED") {
+          applyThread(got.thread);
+          await refreshThreadHistory();
+          return;
+        }
+
+        const recovered = await recoverThreadBackedChatV010({
+          ...threadOptions(),
+          threadId: got.thread.threadId,
+          onProgress: async progress => {
+            if (progress.runId && progress.state) {
+              await onRunProgress({
+                runId: progress.runId,
+                state: progress.state,
+                resumeCount: progress.resumeCount
+              });
+            }
+          }
+        });
+        if (recovered) {
+          persistRunId(undefined);
+          applyThreadExecution(recovered);
+          if (!recovered.result.ok) await appendChatResult(recovered.result);
+        } else {
+          applyThread(got.thread);
+        }
+        await refreshThreadHistory();
+      };
+
+      if (threadSelect) {
+        const handler = () => {
+          const threadId = threadSelect.value.trim();
+          if (threadId) void openThread(threadId);
+        };
+        threadSelect.addEventListener("change", handler);
+        listeners.push(() => threadSelect.removeEventListener("change", handler));
+      }
+
+      if (newThreadButton) {
+        const handler = () => {
+          void (async () => {
+            if (!options.actionHost || runTransportInFlight) return;
+            runTransportInFlight = true;
+            newThreadButton.disabled = true;
+            try {
+              const created = await createConversationThreadV010(threadOptions());
+              if (created.unavailable) return;
+              if (!created.thread) {
+                if (created.result) await appendChatResult(created.result);
+                return;
+              }
+              persistRunId(undefined);
+              applyThread(created.thread);
+              await refreshThreadHistory();
+              textarea.focus();
+            } finally {
+              runTransportInFlight = false;
+              newThreadButton.disabled = false;
+            }
+          })();
+        };
+        newThreadButton.addEventListener("click", handler);
+        listeners.push(() => newThreadButton.removeEventListener("click", handler));
+      }
+
+      if (archiveThreadButton) {
+        const handler = () => {
+          void (async () => {
+            const threadId = storedThreadId();
+            if (!options.actionHost || !threadId || runTransportInFlight) return;
+            runTransportInFlight = true;
+            archiveThreadButton.disabled = true;
+            try {
+              const archived = await archiveConversationThreadV010(
+                threadOptions(),
+                threadId
+              );
+              if (archived.unavailable) return;
+              if (!archived.thread) {
+                if (archived.result) await appendChatResult(archived.result);
+                return;
+              }
+              applyThread(archived.thread);
+              await refreshThreadHistory();
+            } finally {
+              runTransportInFlight = false;
+              archiveThreadButton.disabled =
+                state.activeThreadState === "ARCHIVED";
+            }
+          })();
+        };
+        archiveThreadButton.addEventListener("click", handler);
+        listeners.push(() => archiveThreadButton.removeEventListener("click", handler));
+      }
+
+      if (threadBacked) void refreshThreadHistory();
       const submit = async () => {
         const message = textarea.value.trim();
         if (!message) return;
@@ -717,7 +933,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           renderTranscript();
         } finally {
           runTransportInFlight = false;
-          if (button) button.disabled = false;
+          if (button) {
+            button.disabled = state.activeThreadState === "ARCHIVED";
+          }
           textarea.focus();
         }
       };
@@ -750,6 +968,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           if (threadRecovered) {
             persistRunId(undefined);
             applyThreadExecution(threadRecovered);
+            await refreshThreadHistory();
             if (!threadRecovered.result.ok) {
               await appendChatResult(threadRecovered.result);
             } else {
