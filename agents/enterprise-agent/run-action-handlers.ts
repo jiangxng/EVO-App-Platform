@@ -15,7 +15,11 @@ import type {
 import {
   parsePersonalAgentConversationHistoryV010
 } from "./chat-action-handler.js";
-import type { AgentToolCatalogV010 } from "./contracts.js";
+import type {
+  AgentToolCatalogV010,
+  PersonalAgentReplyV010
+} from "./contracts.js";
+import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
 import type { ResumableAgentRunExecutorV010 } from "./run-runtime.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
@@ -149,6 +153,51 @@ function runIdFromRequest(request: AppActionRequestV010): string {
   return runId.trim();
 }
 
+async function presentedRunResult(
+  dependencies: PersonalAgentRunActionDependenciesV010,
+  request: AppActionRequestV010,
+  run: NonNullable<ReturnType<AgentRunStoreV010["get"]>>,
+  principal: PlatformPrincipalV010,
+  context: ResolvedContextSetV010,
+  requestContext?: PlatformRequestContextV010
+): Promise<Record<string, unknown>> {
+  const result: Record<string, unknown> = { run };
+  if (run.state !== "SUCCEEDED" || typeof run.finalMessage !== "string") {
+    return result;
+  }
+
+  const catalog = dependencies.createToolCatalog(
+    run.input.locale,
+    context,
+    principal,
+    requestContext,
+    {
+      sourceInteractionId: run.runId,
+      sourceActionId: request.actionId
+    }
+  );
+  const tools = await catalog.list();
+  const reply: PersonalAgentReplyV010 = {
+    contractVersion: "0.1.0",
+    agentId: "enterprise-agent",
+    message: run.finalMessage,
+    context: structuredClone(context),
+    tools: tools.map(tool => ({
+      id: tool.id,
+      title: tool.title,
+      effect: tool.effect,
+      ownerPackageId: tool.ownerPackageId,
+      ...(tool.capability ? { capability: tool.capability } : {})
+    })),
+    observations: structuredClone(run.observations)
+  };
+  return {
+    run,
+    message: run.finalMessage,
+    messageParts: presentPersonalAgentReplyV020(reply, run.input.locale)
+  };
+}
+
 function success(
   request: AppActionRequestV010,
   value: unknown
@@ -230,7 +279,17 @@ export function createPersonalAgentRunActionHandlersV010(
             context,
             requestContext
           });
-          return success(request, resumed);
+          return success(
+            request,
+            await presentedRunResult(
+              dependencies,
+              request,
+              resumed.run,
+              principal,
+              context,
+              requestContext
+            )
+          );
         } catch (error) {
           return failure(request, error);
         }
@@ -252,7 +311,17 @@ export function createPersonalAgentRunActionHandlersV010(
             context,
             requestContext
           });
-          return success(request, result);
+          return success(
+            request,
+            await presentedRunResult(
+              dependencies,
+              request,
+              result.run,
+              principal,
+              context,
+              requestContext
+            )
+          );
         } catch (error) {
           return failure(request, error);
         }
@@ -272,7 +341,17 @@ export function createPersonalAgentRunActionHandlersV010(
           if (!run || !sameScope(run, principal, context)) {
             throw new Error("AGENT_RUN_NOT_FOUND");
           }
-          return success(request, { run });
+          return success(
+            request,
+            await presentedRunResult(
+              dependencies,
+              request,
+              run,
+              principal,
+              context,
+              requestContext
+            )
+          );
         } catch (error) {
           return failure(request, error);
         }
