@@ -312,6 +312,20 @@ Install
 "Installation details" may expose the plan for inspection, diagnostics and audit, but ordinary installation MUST NOT require a separate "generate/review plan" click.
 
 
+## Enterprise migration Agent learning authority
+
+Before designing enterprise onboarding/migration, source-system discovery, metadata/fact classification, Best Data Provider generation, migration curriculum/evaluation, or customer migration chat flows, read:
+
+`docs/architecture/ENTERPRISE-MIGRATION-AGENT-LEARNING-ROADMAP-v0.1.md`
+
+and the canonical EVO architecture:
+
+`docs/architecture/EVO-14-ENTERPRISE-DATA-ABSTRACTION-AND-MIGRATION-LEARNING-v0.1.md` in the EVO repository.
+
+Do not jump to model fine-tuning. Default order is contracts → tools/context → curriculum → evaluation → shadow real-enterprise use → EC learning → parameter training only when evidence justifies it.
+
+The migration Chat is a control surface, not the durable migration system of record. Persist structured Migration Workspace state and Human decisions.
+
 ## Personal Agent / Experience Compiler convergence
 
 The current `enterprise-agent` Package is the compatibility implementation of the product-facing **Personal Agent**.
