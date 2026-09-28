@@ -293,7 +293,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
 }
 
 export function projectMissingEnterpriseOperatingGraphEditorStateV010(
-  resourceId = EOG_EDITOR_RESOURCE_ID,
+  resourceId: string = EOG_EDITOR_RESOURCE_ID,
   locale?: string
 ): DiagramEditorStateV010 {
   const text = localizedText(locale);
