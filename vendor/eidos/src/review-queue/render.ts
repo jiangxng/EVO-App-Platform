@@ -15,7 +15,7 @@ function esc(value: unknown): string {
 }
 
 function attr(name: string, value: unknown): string {
-  return " " + name + "=\"" + esc(value) + "\"";
+  return ` ${name}="${esc(value)}"`;
 }
 
 function encodedValue(value: unknown): string {
@@ -26,7 +26,7 @@ function encodedValue(value: unknown): string {
 
 function renderAction(action: ReviewQueueActionV010, itemId: string): string {
   const enabled = action.enabled !== false;
-  return "<button type=\"button\""
+  return `<button type="button"`
     + attr("data-eidos-review-action", action.id)
     + attr("data-eidos-item-id", itemId)
     + attr("data-eidos-action-type", action.type)
@@ -48,8 +48,8 @@ function renderField(field: ReviewQueueFieldV010): string {
     + (field.readOnly ? " disabled" : "");
 
   if (field.control === "textarea") {
-    return "<label data-eidos-review-field-wrap><span>" + esc(field.label) + "</span>"
-      + "<textarea rows=\"3\"" + common + ">"
+    return `<label data-eidos-review-field-wrap><span>${esc(field.label)}</span>`
+      + `<textarea rows="3"${common}>`
       + esc(encodedValue(field.value)) + "</textarea></label>";
   }
 
@@ -63,15 +63,15 @@ function renderField(field: ReviewQueueFieldV010): string {
         + (value === current ? " selected" : "")
         + ">" + esc(option.label) + "</option>";
     }).join("");
-    return "<label data-eidos-review-field-wrap><span>" + esc(field.label) + "</span>"
+    return `<label data-eidos-review-field-wrap><span>${esc(field.label)}</span>`
       + "<select" + common + ">" + options + "</select></label>";
   }
 
-  return "<label data-eidos-review-field-wrap><span>" + esc(field.label) + "</span>"
-    + "<input type=\"text\"" + common + attr("value", encodedValue(field.value)) + "></label>";
+  return `<label data-eidos-review-field-wrap><span>${esc(field.label)}</span>`
+    + `<input type="text"${common}${attr("value", encodedValue(field.value))}></label>`;
 }
 
-function renderItem(item: ReviewQueueItemV010): string {
+function renderItem(item: ReviewQueueItemV010, technicalDetailsLabel: string): string {
   const metrics = (item.metrics ?? []).map(metric =>
     "<span data-eidos-review-metric"
       + attr("data-metric-id", metric.id)
@@ -89,9 +89,18 @@ function renderItem(item: ReviewQueueItemV010): string {
   ).join("");
 
   const fields = (item.fields ?? []).map(renderField).join("");
+  const technical = (item.technicalDetails ?? []).length
+    ? "<details data-eidos-review-technical><summary>" + esc(technicalDetailsLabel) + "</summary><dl>"
+      + (item.technicalDetails ?? []).map(detail =>
+        "<div data-eidos-review-technical-row"
+          + attr("data-detail-key", detail.key)
+          + "><dt>" + esc(detail.label) + "</dt><dd>" + esc(detail.value) + "</dd></div>"
+      ).join("")
+      + "</dl></details>"
+    : "";
   const actions = [
-    ...(item.primaryAction ? [renderAction({ ...item.primaryAction, primary: true }, item.id)] : []),
-    ...(item.secondaryActions ?? []).map(action => renderAction(action, item.id))
+    ...(item.secondaryActions ?? []).map(action => renderAction(action, item.id)),
+    ...(item.primaryAction ? [renderAction({ ...item.primaryAction, primary: true }, item.id)] : [])
   ].join("");
 
   return "<li data-eidos-review-item"
@@ -104,6 +113,7 @@ function renderItem(item: ReviewQueueItemV010): string {
     + (metrics ? "<div data-eidos-review-metrics>" + metrics + "</div>" : "")
     + (fields ? "<div data-eidos-review-fields>" + fields + "</div>" : "")
     + (evidence ? "<section data-eidos-review-evidence-list>" + evidence + "</section>" : "")
+    + technical
     + (actions ? "<footer data-eidos-review-actions>" + actions + "</footer>" : "")
     + "</form></li>";
 }
@@ -115,7 +125,8 @@ export function renderReviewQueueToHtml(document: ReviewQueueV010): string {
     ids.add(item.id);
   }
 
-  const items = document.items.map(renderItem).join("");
+  const technicalDetailsLabel = document.technicalDetailsLabel ?? "Technical details";
+  const items = document.items.map(item => renderItem(item, technicalDetailsLabel)).join("");
   const empty = document.items.length === 0
     ? "<div data-eidos-review-empty>" + esc(document.emptyMessage ?? "Nothing to review.") + "</div>"
     : "";
