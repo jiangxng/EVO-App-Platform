@@ -203,7 +203,7 @@ export function createProviderBindingPage(
       tone: healthTone,
       title: humanFacingLlm ? "Connection status" : "Provider status",
       message: humanFacingLlm
-        ? `${providerDisplayName(selectedProviderId)} · ${health.state === "HEALTHY" ? "Available" : health.state === "DEGRADED" ? "Needs attention" : "Unavailable"}`
+        ? providerDisplayName(selectedProviderId)
         : `${selectedProviderId} · ${health.state.toLowerCase()}${health.message ? ` · ${health.message}` : ""}`
     },
     command: {
@@ -225,15 +225,12 @@ export function createProviderBindingPage(
             : "Installed Provider selected for this binding.",
           type: "select",
           value: selectedProviderId,
-          options: providerIds.map(providerId => {
-            const state = registry.getHealth(providerId).state;
-            return {
-              label: humanFacingLlm
-                ? `${providerDisplayName(providerId)} · ${state === "HEALTHY" ? "Available" : state === "DEGRADED" ? "Needs attention" : "Unavailable"}`
-                : `${providerId} · ${state.toLowerCase()}`,
-              value: providerId
-            };
-          })
+          options: providerIds.map(providerId => ({
+            label: humanFacingLlm
+              ? providerDisplayName(providerId)
+              : `${providerId} · ${registry.getHealth(providerId).state.toLowerCase()}`,
+            value: providerId
+          }))
         }]
       },
       {
