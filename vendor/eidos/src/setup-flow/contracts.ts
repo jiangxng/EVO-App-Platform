@@ -19,6 +19,7 @@ export interface SetupFlowActionV010 {
   continuation?: {
     onActionId: string;
     route: string;
+    onItemIds?: string[];
   };
 }
 
