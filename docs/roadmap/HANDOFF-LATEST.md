@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `BUSINESSDATA-2026-09-28-01`  
-**Snapshot time:** `2026-09-28T09:50:00+08:00`  
+**Snapshot:** `EOG-2026-09-28-01`  
+**Snapshot time:** `2026-09-28T19:39:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Primary Integration — Host-owned EVO BusinessData Adapter
+Enterprise Operating Graph — Contract & Editor v0.1
 ACTIVE
 ```
 
@@ -41,21 +41,20 @@ Evidence:
 
 ## Current open live gate
 
-**host-owned-evo-businessdata-adapter: IMPLEMENTATION_READY**
+**enterprise-operating-graph-contract-v0-1: DESIGN_READY**
 
-Implement the previously approved Proof C continuation: a Host-owned generic adapter from App Platform actions to EVO BusinessData submission, then the first stable read/query projection back into Eidos, while retaining the current /commands compatibility path until the replacement is proven.
+Freeze the smallest executable Enterprise Operating Graph contract before UI implementation: reuse canonical Process / Transaction Type / Application / Business Fact / Metadata / PostingRule / Ledger definitions; distinguish guidance topology from Human-confirmed enterprise topology; and define one semantic operation model shared by Personal Agent and direct graphical editing.
 
 Acceptance:
 
-- adapter is Host-owned and business-semantic neutral
-- EVO private tables/modules are never imported
-- target submission preserves scopeKey/applicationId/businessDataType/businessObjectKey/effectiveAt/payload/correlation/idempotency identity
-- applicationId is stable routing anchor and not an EVO-private ApplicationInstance id
-- Host derives actor/Principal authority rather than trusting App payload identity
-- retry uses deterministic idempotency and does not duplicate BusinessData
-- Trading Lite becomes a consumer of the generic adapter, not a Host special case
-- first public query/result projection is returned through a stable Host contract and rendered in Eidos
-- existing compatibility /commands path remains until new path passes database and browser proof
+- no parallel Application, Metadata, PostingRule or Ledger ontology is created for the graph
+- graph nodes use stable references to canonical definitions plus separate layout/presentation state
+- guidance topology is explicitly distinct from published enterprise topology
+- bookkeeping and Asloop semantic genealogy is preserved as design evidence
+- natural-language Agent edits and Human direct graphical edits converge on the same declared model operations
+- APQC/accounting guidance can propose or validate structure but cannot silently become enterprise truth
+- v0.1 contract is small enough to support one end-to-end Human + LLM + Agent + graph vertical slice
+- legacy-data projection, Best Data Provider work and model training remain deferred until the target operating model is usable
 
 ## Current production preview
 
@@ -125,6 +124,8 @@ Not proved:
 - PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
 - PR #122 — MERGED_DEPLOYED: Apply Human-selected 90-day archived Conversation Thread retention policy; 27/27 CI PASS; destructive purge remains disabled.
 - PR #123 — MERGED_DEPLOYED: Add Eidos durable Conversation Thread management (New Chat/history/switch/archive/read-only); 32/32 CI PASS and Railway SUCCESS.
+- PR #133 — MERGED: Record enterprise migration Agent learning as a supporting roadmap and repository-native knowledge asset.
+- PR #134 — MERGED: Prioritize Enterprise Operating Graph: Personal Agent + LLM + Human direct editing converge on one structured target enterprise model; migration/training deferred.
 
 ## DO NOT repeat stale actions
 
@@ -156,6 +157,10 @@ Not proved:
 - Do not replace the current Trading Lite /commands compatibility path before the generic BusinessData adapter is database- and browser-proven.
 - Do not move Trading Lite business-specific mapping into Host Core; the Host adapter must remain generic.
 - Do not pass EVO-private ApplicationInstance IDs as the target application routing contract; use stable applicationId.
+- Do not resume the Host-owned EVO BusinessData Adapter as the active mainline until the Enterprise Operating Graph v0.1 target-model gate is completed; it is deferred, not cancelled.
+- Do not start legacy-data projection, Best Data Provider implementation or model fine-tuning before the target Enterprise Operating Model is usable.
+- Do not build a generic ProcessOn clone; graph UI exists to edit and confirm EVO enterprise semantics.
+- Do not let accounting/APQC/legacy templates become published enterprise truth without Human confirmation.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -177,10 +182,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 
 - state Personal Agent P1.8 as verified and production-closed
 - state archived Conversation Thread retention as 90 days from archivedAt and destructive purge as disabled
-- state current mainline as Host-owned EVO BusinessData Adapter
-- state the target EVO routing tuple scopeKey/applicationId/businessDataType/businessObjectKey/effectiveAt/payload/correlation-idempotency
-- state current compatibility /capabilities + /commands path must remain until replacement proof passes
-- state current deployed App Platform revision d5e4748900f3682d50d6cf3014c98c1251f8d155
+- state current product/engineering priority as Enterprise Operating Graph — Contract & Editor v0.1
+- state the Enterprise Operating Graph reuses canonical Process / Transaction Type / Application / Business Fact / Metadata / PostingRule / Ledger definitions rather than creating a parallel ontology
+- state guidance topology (bookkeeping/Asloop/accounting/APQC/templates) is advisory and published enterprise topology requires Human confirmation
+- state the Host-owned EVO BusinessData Adapter mainline is deferred, not cancelled, until the target operating model is usable
+- state legacy-data projection / Best Data Provider / training are downstream of the target Enterprise Operating Model
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
