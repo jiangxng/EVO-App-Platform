@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   consumeJourneyContinuationV010,
   journeyContinuationStorageKeyV010,
+  peekJourneyContinuationV010,
   persistJourneyContinuationV010
 } from "../../dist/vendor/eidos/src/app-host/page-controller.js";
 
@@ -146,6 +147,32 @@ test("item-scoped continuation does not consume when destination item is missing
   assert.equal(
     consumeJourneyContinuationV010("/store", "install", state, 1_100),
     undefined
+  );
+  assert.equal(state.size(), 1);
+});
+
+
+test("Settings can inspect a pending save continuation without consuming it", () => {
+  const state = storage();
+  persistJourneyContinuationV010(
+    "/settings/openai-llm-provider",
+    "settings.save",
+    "/enterprise-agent/setup",
+    state,
+    1_000
+  );
+  assert.deepEqual(
+    peekJourneyContinuationV010(
+      "/settings/openai-llm-provider",
+      state,
+      1_100
+    ),
+    {
+      targetRoute: "/settings/openai-llm-provider",
+      onActionId: "settings.save",
+      returnRoute: "/enterprise-agent/setup",
+      createdAt: 1_000
+    }
   );
   assert.equal(state.size(), 1);
 });

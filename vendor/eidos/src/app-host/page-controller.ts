@@ -271,6 +271,35 @@ export function persistJourneyContinuationV010(
   storage.setItem(journeyContinuationStorageKeyV010(targetRoute), JSON.stringify(value));
 }
 
+export function peekJourneyContinuationV010(
+  targetRoute: string,
+  storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
+  now = Date.now()
+): AppHostJourneyContinuationV010 | undefined {
+  if (!storage) return undefined;
+  const key = journeyContinuationStorageKeyV010(targetRoute);
+  const raw = storage.getItem(key);
+  if (!raw) return undefined;
+  try {
+    const value = JSON.parse(raw) as Partial<AppHostJourneyContinuationV010>;
+    const createdAt = value.createdAt;
+    const valid = value.targetRoute === targetRoute
+      && typeof value.onActionId === "string"
+      && typeof value.returnRoute === "string"
+      && value.returnRoute.startsWith("/")
+      && typeof createdAt === "number"
+      && Number.isFinite(createdAt);
+    if (!valid || typeof createdAt !== "number" || now - createdAt > JOURNEY_CONTINUATION_TTL_MS) {
+      storage.removeItem(key);
+      return undefined;
+    }
+    return value as AppHostJourneyContinuationV010;
+  } catch {
+    storage.removeItem(key);
+    return undefined;
+  }
+}
+
 export function consumeJourneyContinuationV010(
   targetRoute: string,
   completedActionId: string,
@@ -1174,6 +1203,37 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     container.appendChild(status);
 
     if (form) {
+      const pendingSettingsContinuation = peekJourneyContinuationV010(page.route.path);
+      const submitButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (pendingSettingsContinuation?.onActionId === "settings.save") {
+        if (submitButton) {
+          submitButton.textContent = hostText(
+            "shell.settingsSaveAndContinue",
+            "Save and continue"
+          );
+        }
+        const footer = form.querySelector<HTMLElement>("[data-eidos-settings-footer]");
+        if (footer && options.onNavigate) {
+          const returnButton = document.createElement("button");
+          returnButton.type = "button";
+          returnButton.setAttribute("data-eidos-settings-return", "");
+          returnButton.textContent = hostText(
+            "shell.settingsReturnWithoutSaving",
+            "Return without saving"
+          );
+          const returnHandler = () => {
+            const continuation = consumeJourneyContinuationV010(
+              page.route.path,
+              "settings.save"
+            );
+            if (continuation) void options.onNavigate?.(continuation.returnRoute);
+          };
+          returnButton.addEventListener("click", returnHandler);
+          listeners.push(() => returnButton.removeEventListener("click", returnHandler));
+          footer.prepend(returnButton);
+        }
+      }
+
       const submitHandler = (event: SubmitEvent) => {
         event.preventDefault();
         void (async () => {
