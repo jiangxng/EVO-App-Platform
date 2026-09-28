@@ -39,6 +39,7 @@ export interface ReviewQueueEvidenceV010 {
   source?: string;
   detail?: string;
   route?: string;
+  localizationKey?: string;
 }
 
 export interface ReviewQueueMetricV010 {
@@ -48,15 +49,23 @@ export interface ReviewQueueMetricV010 {
   tone?: "neutral" | "positive" | "warning" | "danger";
 }
 
+export interface ReviewQueueTechnicalDetailV010 {
+  key: string;
+  label: string;
+  value: string;
+}
+
 export interface ReviewQueueItemV010 {
   id: string;
   title: string;
   summary?: string;
   state: ReviewQueueItemStateV010;
   statusLabel: string;
+  localizationKey?: string;
   fields?: ReviewQueueFieldV010[];
   evidence?: ReviewQueueEvidenceV010[];
   metrics?: ReviewQueueMetricV010[];
+  technicalDetails?: ReviewQueueTechnicalDetailV010[];
   primaryAction?: ReviewQueueActionV010;
   secondaryActions?: ReviewQueueActionV010[];
   metadata?: Record<string, JsonValue>;
@@ -69,6 +78,7 @@ export interface ReviewQueueV010 {
   title: string;
   description?: string;
   emptyMessage?: string;
+  technicalDetailsLabel?: string;
   items: ReviewQueueItemV010[];
   metadata?: Record<string, JsonValue>;
 }
