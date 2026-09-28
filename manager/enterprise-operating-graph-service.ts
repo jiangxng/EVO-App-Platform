@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
   EogNodeBindingV010,
-  EogNodePositionV010,
   EogApplicationLedgerGuidanceRelationV010,
   EnterpriseOperatingGraphOperationV010,
   EnterpriseOperatingGraphV010
@@ -42,10 +41,6 @@ export type EnterpriseOperatingGraphMutationV010 =
   | {
       type: "ENTERPRISE_RELATION_REMOVE";
       relationId: string;
-    }
-  | {
-      type: "NODE_MOVE";
-      position: EogNodePositionV010;
     }
   | {
       type: "PUBLISH";
