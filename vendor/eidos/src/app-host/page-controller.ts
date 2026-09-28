@@ -21,9 +21,93 @@ import {
 } from "../diagram/surface.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
+import {
+  executeRunBackedChatV010,
+  recoverRunBackedChatV010,
+  runBackedChatStorageKeyV010,
+  type RunBackedChatProgressV010
+} from "./personal-agent-run-chat.js";
+import {
+  archiveConversationThreadV010,
+  createConversationThreadV010,
+  executeThreadBackedChatV010,
+  getConversationThreadV010,
+  listConversationThreadsV010,
+  recoverThreadBackedChatV010,
+  threadBackedChatStorageKeyV010,
+  transcriptFromThreadV010,
+  type ThreadBackedChatExecutionV010,
+  type ThreadBackedThreadV010
+} from "./personal-agent-thread-chat.js";
 
 export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
+  activeRunId?: string;
+  activeThreadId?: string;
+  activeThreadState?: "ACTIVE" | "ARCHIVED";
+}
+
+
+export interface ChatConversationHistoryItemV010 {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function chatMessageContentForHistory(
+  message: ChatMessageV010 | ChatMessageV020
+): string {
+  if ("text" in message) return message.text.trim();
+
+  return message.parts
+    .flatMap(part => {
+      if (part.type === "text") return [part.text];
+      if (part.type === "notice") {
+        return [[part.title, part.text].filter(Boolean).join(": ")];
+      }
+      if (part.type === "proposal") {
+        return [[
+          part.title,
+          part.summary,
+          ...(part.reasons ?? [])
+        ].filter(Boolean).join("\n")];
+      }
+      return [];
+    })
+    .join("\n\n")
+    .trim();
+}
+
+export function createChatConversationHistoryV010(
+  messages: readonly (ChatMessageV010 | ChatMessageV020)[],
+  options: {
+    maxMessages?: number;
+    maxTotalCharacters?: number;
+    maxCharactersPerMessage?: number;
+  } = {}
+): ChatConversationHistoryItemV010[] {
+  const maxMessages = options.maxMessages ?? 16;
+  const maxTotalCharacters = options.maxTotalCharacters ?? 24_000;
+  const maxCharactersPerMessage = options.maxCharactersPerMessage ?? 8_000;
+
+  const candidates = messages
+    .filter(message => message.role === "user" || message.role === "assistant")
+    .map(message => ({
+      role: message.role as "user" | "assistant",
+      content: chatMessageContentForHistory(message).slice(0, maxCharactersPerMessage)
+    }))
+    .filter(message => message.content.length > 0)
+    .slice(-maxMessages);
+
+  const selected: ChatConversationHistoryItemV010[] = [];
+  let characters = 0;
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const item = candidates[index];
+    if (characters + item.content.length > maxTotalCharacters) break;
+    selected.push(item);
+    characters += item.content.length;
+  }
+
+  return selected.reverse();
 }
 
 export interface MountAppHostPageOptions {
@@ -39,6 +123,25 @@ export interface MountAppHostPageOptions {
 
 export interface MountedAppHostPage {
   dispose(): void;
+}
+
+
+export const APP_HOST_ACTION_SELECTOR =
+  "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]";
+
+export function bindDelegatedAppHostActionsV010(
+  container: HTMLElement,
+  onAction: (button: HTMLButtonElement) => void | Promise<void>
+): () => void {
+  const handler = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>(APP_HOST_ACTION_SELECTOR);
+    if (!button || !container.contains(button)) return;
+    void onAction(button);
+  };
+  container.addEventListener("click", handler);
+  return () => container.removeEventListener("click", handler);
 }
 
 function collectFormValues(
@@ -119,6 +222,16 @@ function resultMessageV020(
   };
 }
 
+function browserSessionStorage(): Storage | undefined {
+  try {
+    return typeof globalThis.sessionStorage === "undefined"
+      ? undefined
+      : globalThis.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface AppHostJourneyContinuationV010 {
   targetRoute: string;
   onActionId: string;
@@ -136,16 +249,6 @@ export interface JourneyContinuationStorageV010 {
 const JOURNEY_CONTINUATION_PREFIX = "eidos.journey.continuation:";
 const JOURNEY_CONTINUATION_TTL_MS = 30 * 60 * 1000;
 
-function browserJourneyStorage(): JourneyContinuationStorageV010 | undefined {
-  try {
-    return typeof globalThis.sessionStorage === "undefined"
-      ? undefined
-      : globalThis.sessionStorage;
-  } catch {
-    return undefined;
-  }
-}
-
 export function journeyContinuationStorageKeyV010(targetRoute: string): string {
   return JOURNEY_CONTINUATION_PREFIX + targetRoute;
 }
@@ -154,7 +257,7 @@ export function persistJourneyContinuationV010(
   targetRoute: string,
   onActionId: string,
   returnRoute: string,
-  storage: JourneyContinuationStorageV010 | undefined = browserJourneyStorage(),
+  storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
   now = Date.now(),
   onItemIds?: readonly string[]
 ): void {
@@ -174,7 +277,7 @@ export function persistJourneyContinuationV010(
 
 export function peekJourneyContinuationV010(
   targetRoute: string,
-  storage: JourneyContinuationStorageV010 | undefined = browserJourneyStorage(),
+  storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
   now = Date.now()
 ): AppHostJourneyContinuationV010 | undefined {
   if (!storage) return undefined;
@@ -204,21 +307,69 @@ export function peekJourneyContinuationV010(
 export function consumeJourneyContinuationV010(
   targetRoute: string,
   completedActionId: string,
-  storage: JourneyContinuationStorageV010 | undefined = browserJourneyStorage(),
+  storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
   now = Date.now(),
   completedItemId?: string
 ): AppHostJourneyContinuationV010 | undefined {
   if (!storage) return undefined;
-  const value = peekJourneyContinuationV010(targetRoute, storage, now);
-  if (!value) return undefined;
-  if (value.onActionId !== completedActionId) return undefined;
-  if (
-    Array.isArray(value.onItemIds)
-    && value.onItemIds.length > 0
-    && (!completedItemId || !value.onItemIds.includes(completedItemId))
-  ) return undefined;
-  storage.removeItem(journeyContinuationStorageKeyV010(targetRoute));
-  return value;
+  const key = journeyContinuationStorageKeyV010(targetRoute);
+  const raw = storage.getItem(key);
+  if (!raw) return undefined;
+  try {
+    const value = JSON.parse(raw) as Partial<AppHostJourneyContinuationV010>;
+    const createdAt = value.createdAt;
+    const valid = value.targetRoute === targetRoute
+      && typeof value.onActionId === "string"
+      && typeof value.returnRoute === "string"
+      && value.returnRoute.startsWith("/")
+      && typeof createdAt === "number"
+      && Number.isFinite(createdAt);
+    if (!valid || typeof createdAt !== "number" || now - createdAt > JOURNEY_CONTINUATION_TTL_MS) {
+      storage.removeItem(key);
+      return undefined;
+    }
+    if (value.onActionId !== completedActionId) return undefined;
+    if (
+      Array.isArray(value.onItemIds)
+      && value.onItemIds.length > 0
+      && (!completedItemId || !value.onItemIds.includes(completedItemId))
+    ) return undefined;
+    storage.removeItem(key);
+    return value as AppHostJourneyContinuationV010;
+  } catch {
+    storage.removeItem(key);
+    return undefined;
+  }
+}
+
+function runProgressMessageV020(
+  id: string,
+  progress: RunBackedChatProgressV010
+): ChatMessageV020 {
+  const terminalError = ["BLOCKED", "FAILED", "CANCELLED"].includes(progress.state);
+  return {
+    id,
+    contractVersion: "0.2.0",
+    role: "system",
+    parts: [{
+      type: "activity",
+      label: "Personal Agent",
+      state: progress.state === "SUCCEEDED"
+        ? "complete"
+        : terminalError
+          ? "error"
+          : "pending",
+      detail: [
+        progress.state,
+        typeof progress.sliceCount === "number"
+          ? "slice " + progress.sliceCount
+          : undefined,
+        progress.resumeCount > 0
+          ? "resume " + progress.resumeCount
+          : undefined
+      ].filter(Boolean).join(" · ")
+    }]
+  };
 }
 
 export function mountAppHostLoadedPage(options: MountAppHostPageOptions): MountedAppHostPage {
@@ -280,181 +431,197 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
 
-  const hostActionButtons = container.querySelectorAll<HTMLButtonElement>(
-    "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]"
-  );
-  if (hostActionButtons.length > 0) {
-    const actionStatus = document.createElement("pre");
+  let actionStatus: HTMLPreElement | undefined;
+
+  const ensureActionStatus = (): HTMLPreElement => {
+    if (actionStatus) return actionStatus;
+    actionStatus = document.createElement("pre");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");
     actionStatus.style.marginTop = "12px";
     container.appendChild(actionStatus);
+    return actionStatus;
+  };
 
-    for (const button of Array.from(hostActionButtons)) {
-      const handler = () => {
-        void (async () => {
-          if (button.disabled) {
-            actionStatus.textContent = button.dataset.eidosDisabledReason
-              ?? hostText("shell.actionUnavailable", "This action is not available yet.");
-            return;
+  const executeHostAction = async (button: HTMLButtonElement): Promise<void> => {
+    try {
+      const status = () => ensureActionStatus();
+
+      if (button.disabled) {
+        status().textContent = button.dataset.eidosDisabledReason
+          ?? hostText("shell.actionUnavailable", "This action is not available yet.");
+        return;
+      }
+
+      const actionType = button.dataset.eidosActionType;
+      const route = button.dataset.eidosRoute;
+
+      if (actionType === "navigate") {
+        if (!route) throw new Error("EIDOS_CATALOG_NAVIGATE_ROUTE_REQUIRED");
+        const continuationActionId = button.dataset.eidosContinuationActionId;
+        const continuationRoute = button.dataset.eidosContinuationRoute;
+        const continuationItemIds = button.dataset.eidosContinuationItemIds
+          ? JSON.parse(button.dataset.eidosContinuationItemIds) as string[]
+          : undefined;
+        if (continuationActionId || continuationRoute) {
+          if (!continuationActionId || !continuationRoute) {
+            throw new Error("EIDOS_JOURNEY_CONTINUATION_INCOMPLETE");
           }
+          persistJourneyContinuationV010(
+            route,
+            continuationActionId,
+            continuationRoute,
+            undefined,
+            Date.now(),
+            continuationItemIds
+          );
+        }
+        await options.onNavigate?.(route);
+        return;
+      }
 
-          const actionType = button.dataset.eidosActionType;
-          const route = button.dataset.eidosRoute;
-          if (actionType === "navigate") {
-            if (!route) throw new Error("EIDOS_CATALOG_NAVIGATE_ROUTE_REQUIRED");
-            const continuationActionId = button.dataset.eidosContinuationActionId;
-            const continuationRoute = button.dataset.eidosContinuationRoute;
-            const continuationItemIds = button.dataset.eidosContinuationItemIds
-              ? JSON.parse(button.dataset.eidosContinuationItemIds) as string[]
-              : undefined;
-            if (continuationActionId || continuationRoute) {
-              if (!continuationActionId || !continuationRoute) {
-                throw new Error("EIDOS_JOURNEY_CONTINUATION_INCOMPLETE");
-              }
-              persistJourneyContinuationV010(
-                route,
-                continuationActionId,
-                continuationRoute,
-                undefined,
-                Date.now(),
-                continuationItemIds
-              );
-            }
-            await options.onNavigate?.(route);
-            return;
-          }
-          if (actionType !== "command") return;
+      if (actionType === "prompt") {
+        const prompt = button.dataset.eidosChatPrompt;
+        const composer = container.querySelector<HTMLTextAreaElement>(
+          "[data-eidos-chat-composer] textarea"
+        );
+        if (!prompt || !composer) {
+          throw new Error("EIDOS_CHAT_PROMPT_TARGET_REQUIRED");
+        }
+        composer.value = prompt;
+        composer.focus();
+        return;
+      }
 
-          if (!options.actionHost) {
-            actionStatus.textContent = hostText(
-              "shell.noActionHost",
-              "No App Host ActionHost is configured."
-            );
-            return;
-          }
+      if (actionType !== "command") return;
 
-          const command = button.dataset.eidosCommand;
-          const itemId = button.dataset.eidosItemId;
-          if (!command) {
-            actionStatus.textContent = hostText(
-              "shell.actionIncomplete",
-              "Command action is incomplete."
-            );
-            return;
-          }
+      if (!options.actionHost) {
+        status().textContent = hostText(
+          "shell.noActionHost",
+          "No App Host ActionHost is configured."
+        );
+        return;
+      }
 
-          if (
-            button.dataset.eidosConfirm === "true"
-            && !window.confirm(button.textContent ?? hostText("shell.confirm", "Confirm action?"))
-          ) {
-            return;
-          }
+      const command = button.dataset.eidosCommand;
+      const itemId = button.dataset.eidosItemId;
+      if (!command) {
+        status().textContent = hostText(
+          "shell.actionIncomplete",
+          "Command action is incomplete."
+        );
+        return;
+      }
 
-          button.disabled = true;
-          actionStatus.textContent = hostText("shell.executing", "Executing…");
+      if (
+        button.dataset.eidosConfirm === "true"
+        && !window.confirm(button.textContent ?? hostText("shell.confirm", "Confirm action?"))
+      ) {
+        return;
+      }
 
-          try {
-            const request: ActionRequestV010 = {
-              contractVersion: "0.1.0",
-              type: "command",
-              command: {
-                code: command,
-                inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
-              },
-              values: (() => {
-                const values: Record<string, JsonValue> = {
-                  ...(itemId ? { itemId } : {}),
-                  confirmed: button.dataset.eidosConfirm === "true"
-                };
-                if (button.dataset.eidosReviewAction) {
-                  const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
-                  if (form) {
-                    const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-                      "[data-eidos-review-field]"
-                    );
-                    for (const control of Array.from(controls)) {
-                      if (control.disabled) continue;
-                      const key = control.dataset.eidosReviewField;
-                      if (!key) continue;
-                      if (control instanceof HTMLSelectElement) {
-                        const encoded = control.selectedOptions[0]?.dataset.valueJson;
-                        if (encoded !== undefined) {
-                          values[key] = JSON.parse(encoded) as JsonValue;
-                          continue;
-                        }
-                      }
-                      values[key] = control.value;
+      button.disabled = true;
+      status().textContent = hostText("shell.executing", "Executing…");
+
+      try {
+        const request: ActionRequestV010 = {
+          contractVersion: "0.1.0",
+          type: "command",
+          command: {
+            code: command,
+            inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
+          },
+          values: (() => {
+            const values: Record<string, JsonValue> = {
+              ...(itemId ? { itemId } : {}),
+              confirmed: button.dataset.eidosConfirm === "true"
+            };
+            if (button.dataset.eidosReviewAction) {
+              const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
+              if (form) {
+                const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+                  "[data-eidos-review-field]"
+                );
+                for (const control of Array.from(controls)) {
+                  if (control.disabled) continue;
+                  const key = control.dataset.eidosReviewField;
+                  if (!key) continue;
+                  if (control instanceof HTMLSelectElement) {
+                    const encoded = control.selectedOptions[0]?.dataset.valueJson;
+                    if (encoded !== undefined) {
+                      values[key] = JSON.parse(encoded) as JsonValue;
+                      continue;
                     }
                   }
+                  values[key] = control.value;
                 }
-                return values;
-              })(),
-              sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
-              actionId: button.dataset.eidosCatalogAction
-                ?? button.dataset.eidosExtensionAction
-                ?? button.dataset.eidosSetupAction
-                ?? button.dataset.eidosChatAction
-                ?? button.dataset.eidosReviewAction
-                ?? command,
-              requiresConfirmation: button.dataset.eidosConfirm === "true"
-            };
-
-            const result = await options.actionHost.execute(request);
-            if (result.ok) {
-              const payload = result.result;
-              if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
-                const message = (payload as { message?: unknown }).message;
-                const nextAction = (payload as { nextAction?: unknown }).nextAction;
-                const details = JSON.stringify(payload, null, 2);
-                actionStatus.textContent = [
-                  typeof message === "string"
-                    ? message
-                    : hostText("shell.completed", "Completed."),
-                  typeof nextAction === "string"
-                    ? hostText("shell.next", "Next: {next}", { next: nextAction })
-                    : "",
-                  details
-                ].filter(Boolean).join("\n\n");
-              } else {
-                actionStatus.textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
               }
-            } else {
-              actionStatus.textContent = hostText(
-                "shell.actionFailed",
-                "Action failed: {message}",
-                { message: result.error?.message ?? "Unknown action error" }
-              );
             }
+            return values;
+          })(),
+          sourceInteractionId: (page.definition as { id?: string }).id ?? page.page.id,
+          actionId: button.dataset.eidosCatalogAction
+            ?? button.dataset.eidosExtensionAction
+            ?? button.dataset.eidosSetupAction
+            ?? button.dataset.eidosChatAction
+            ?? button.dataset.eidosReviewAction
+            ?? command,
+          requiresConfirmation: button.dataset.eidosConfirm === "true"
+        };
 
-            const continuation = result.ok && options.onNavigate
-              ? consumeJourneyContinuationV010(
-                  page.route.path,
-                  request.actionId,
-                  undefined,
-                  Date.now(),
-                  itemId
-                )
-              : undefined;
-            if (continuation) {
-              await options.onNavigate?.(continuation.returnRoute);
-            }
-            await options.onActionResult?.(result, page);
-          } catch (error) {
-            actionStatus.textContent = hostText(
-              "shell.actionFailed",
-              "Action failed: {message}",
-              { message: error instanceof Error ? error.message : String(error) }
-            );
-          } finally {
-            button.disabled = false;
+        const result = await options.actionHost.execute(request);
+        if (result.ok) {
+          const payload = result.result;
+          if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+            const message = (payload as { message?: unknown }).message;
+            const nextAction = (payload as { nextAction?: unknown }).nextAction;
+            const details = JSON.stringify(payload, null, 2);
+            status().textContent = [
+              typeof message === "string"
+                ? message
+                : hostText("shell.completed", "Completed."),
+              typeof nextAction === "string"
+                ? hostText("shell.next", "Next: {next}", { next: nextAction })
+                : "",
+              details
+            ].filter(Boolean).join("\n\n");
+          } else {
+            status().textContent = JSON.stringify(payload ?? { ok: true }, null, 2);
           }
-        })();
-      };
-      button.addEventListener("click", handler);
-      listeners.push(() => button.removeEventListener("click", handler));
+        } else {
+          status().textContent = hostText(
+            "shell.actionFailed",
+            "Action failed: {message}",
+            { message: result.error?.message ?? "Unknown action error" }
+          );
+        }
+
+        const continuation = result.ok && options.onNavigate
+          ? consumeJourneyContinuationV010(
+              page.route.path,
+              request.actionId,
+              undefined,
+              Date.now(),
+              itemId
+            )
+          : undefined;
+        if (continuation) {
+          await options.onNavigate?.(continuation.returnRoute);
+        }
+        await options.onActionResult?.(result, page);
+      } finally {
+        button.disabled = false;
+      }
+    } catch (error) {
+      ensureActionStatus().textContent = hostText(
+        "shell.actionFailed",
+        "Action failed: {message}",
+        { message: error instanceof Error ? error.message : String(error) }
+      );
     }
-  }
+  };
+
+  listeners.push(bindDelegatedAppHostActionsV010(container, executeHostAction));
 
   const definition = page.definition;
   if (isChatExperienceV010(definition) || isChatExperienceV020(definition)) {
@@ -469,12 +636,354 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       transcript.scrollTop = transcript.scrollHeight;
     };
 
+    const runBacked = definition.command.code === "enterprise-agent.chat";
+    const threadBacked = runBacked && definition.contractVersion === "0.2.0";
+    const runStorage = browserSessionStorage();
+    const runStorageKey = runBacked
+      ? runBackedChatStorageKeyV010(definition.id)
+      : undefined;
+    const threadStorageKey = threadBacked
+      ? threadBackedChatStorageKeyV010(definition.id)
+      : undefined;
+    const chatHeader = container.querySelector<HTMLElement>("[data-eidos-chat-header]");
+    const threadControls = threadBacked && chatHeader
+      ? document.createElement("div")
+      : undefined;
+    const threadSelect = threadControls
+      ? document.createElement("select")
+      : undefined;
+    const newThreadButton = threadControls
+      ? document.createElement("button")
+      : undefined;
+    const archiveThreadButton = threadControls
+      ? document.createElement("button")
+      : undefined;
+
+    if (
+      chatHeader
+      && threadControls
+      && threadSelect
+      && newThreadButton
+      && archiveThreadButton
+    ) {
+      threadControls.setAttribute("data-eidos-chat-thread-controls", "");
+      threadSelect.setAttribute("data-eidos-chat-thread-selector", "");
+      threadSelect.setAttribute(
+        "aria-label",
+        hostText("shell.chatHistory", "Conversation history")
+      );
+      newThreadButton.type = "button";
+      newThreadButton.setAttribute("data-eidos-chat-new-thread", "");
+      newThreadButton.textContent = hostText("shell.chatNew", "New chat");
+      archiveThreadButton.type = "button";
+      archiveThreadButton.setAttribute("data-eidos-chat-archive-thread", "");
+      archiveThreadButton.textContent = hostText("shell.chatArchive", "Archive");
+      threadControls.append(threadSelect, newThreadButton, archiveThreadButton);
+      chatHeader.appendChild(threadControls);
+    }
+
+    let runProgressMessageId: string | undefined;
+    let runTransportInFlight = false;
+
+    const persistRunId = (runId: string | undefined): void => {
+      state.activeRunId = runId;
+      if (!runStorage || !runStorageKey) return;
+      try {
+        if (runId) runStorage.setItem(runStorageKey, runId);
+        else runStorage.removeItem(runStorageKey);
+      } catch {
+        // Session storage is an experience convenience only. Host run state remains authoritative.
+      }
+    };
+
+    const storedRunId = (): string | undefined => {
+      if (state.activeRunId) return state.activeRunId;
+      if (!runStorage || !runStorageKey) return undefined;
+      try {
+        return runStorage.getItem(runStorageKey) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const persistThreadId = (threadId: string | undefined): void => {
+      state.activeThreadId = threadId;
+      if (!runStorage || !threadStorageKey) return;
+      try {
+        if (threadId) runStorage.setItem(threadStorageKey, threadId);
+        else runStorage.removeItem(threadStorageKey);
+      } catch {
+        // Host thread state is authoritative; session storage is only a fast recovery hint.
+      }
+    };
+
+    const storedThreadId = (): string | undefined => {
+      if (state.activeThreadId) return state.activeThreadId;
+      if (!runStorage || !threadStorageKey) return undefined;
+      try {
+        return runStorage.getItem(threadStorageKey) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const applyThread = (
+      thread: ThreadBackedThreadV010
+    ): void => {
+      persistThreadId(thread.threadId);
+      state.activeThreadState = thread.state;
+      state.messages = transcriptFromThreadV010(thread)
+        .map(message => structuredClone(message));
+      renderTranscript();
+      if (threadSelect) threadSelect.value = thread.threadId;
+      if (archiveThreadButton) {
+        archiveThreadButton.disabled = thread.state === "ARCHIVED";
+      }
+      if (textarea instanceof HTMLTextAreaElement) {
+        const baseDisabled = definition.contractVersion === "0.2.0"
+          && (
+            definition.composer.disabled === true
+            || (
+              definition.readiness !== undefined
+              && definition.readiness.state !== "ready"
+            )
+          );
+        textarea.disabled = baseDisabled || thread.state === "ARCHIVED";
+        const submitButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (submitButton && !runTransportInFlight) {
+          submitButton.disabled = baseDisabled || thread.state === "ARCHIVED";
+        }
+      }
+    };
+
+    const applyThreadExecution = (
+      execution: ThreadBackedChatExecutionV010
+    ): void => {
+      if (execution.thread) {
+        applyThread(execution.thread);
+        return;
+      }
+      if (execution.threadId) persistThreadId(execution.threadId);
+      state.messages = execution.transcript.map(message => structuredClone(message));
+      renderTranscript();
+    };
+
+    const onRunProgress = async (progress: RunBackedChatProgressV010): Promise<void> => {
+      persistRunId(progress.runId);
+      if (definition.contractVersion !== "0.2.0") return;
+      runProgressMessageId ??= "run-" + progress.runId;
+      const next = runProgressMessageV020(runProgressMessageId, progress);
+      const index = state.messages.findIndex(message => message.id === runProgressMessageId);
+      if (index >= 0) state.messages[index] = next;
+      else state.messages.push(next);
+      renderTranscript();
+    };
+
+    const contextValues = (): Record<string, JsonValue> => {
+      const values: Record<string, JsonValue> = {};
+      if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
+        const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
+        const selected = selector?.selectedOptions[0]?.dataset.eidosChatContextValue;
+        if (selected) {
+          values[definition.context.selector.key] = JSON.parse(selected) as JsonValue;
+        }
+      }
+      return values;
+    };
+
+    const baseChatRequest = (
+      values: Record<string, JsonValue>,
+      actionId = "chat.send"
+    ): ActionRequestV010 => ({
+      contractVersion: "0.1.0",
+      type: "command",
+      command: { ...definition.command },
+      values,
+      sourceInteractionId: definition.id,
+      actionId,
+      requiresConfirmation: false
+    });
+
+    const appendChatResult = async (
+      result: Awaited<ReturnType<ActionHost["execute"]>>,
+      notifyActionResult = true
+    ): Promise<void> => {
+      const resultId = `${result.ok ? "assistant" : "error"}-${Date.now()}-${state.messages.length}`;
+      state.messages.push(definition.contractVersion === "0.2.0"
+        ? resultMessageV020(
+            result.result,
+            resultId,
+            result.ok,
+            result.error?.message ?? "Unknown action error"
+          )
+        : {
+            id: resultId,
+            role: result.ok ? "assistant" : "error",
+            text: result.ok
+              ? resultMessage(result.result)
+              : result.error?.message ?? "Unknown action error"
+          });
+      renderTranscript();
+      if (notifyActionResult) {
+        await options.onActionResult?.(result, page);
+      }
+    };
+
     renderTranscript();
 
     if (form && textarea instanceof HTMLTextAreaElement) {
+      const threadOptions = (): Parameters<typeof recoverThreadBackedChatV010>[0] => ({
+        actionHost: options.actionHost!,
+        request: baseChatRequest(contextValues(), "chat.thread.manage")
+      });
+
+      const threadLabel = (thread: ThreadBackedThreadV010): string => {
+        const firstUser = thread.messages.find(message => message.role === "USER");
+        const base = thread.title?.trim()
+          || firstUser?.content.trim().slice(0, 42)
+          || hostText("shell.chatUntitled", "New chat");
+        return thread.state === "ARCHIVED"
+          ? hostText("shell.chatArchivedLabel", "[Archived] {title}", { title: base })
+          : base;
+      };
+
+      const refreshThreadHistory = async (): Promise<void> => {
+        if (!threadBacked || !options.actionHost || !threadSelect) return;
+        const listed = await listConversationThreadsV010({
+          ...threadOptions(),
+          includeArchived: true
+        });
+        if (listed.unavailable || !listed.threads) return;
+
+        const currentId = storedThreadId();
+        threadSelect.replaceChildren();
+        for (const thread of listed.threads) {
+          const option = document.createElement("option");
+          option.value = thread.threadId;
+          option.textContent = threadLabel(thread);
+          option.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
+          option.selected = thread.threadId === currentId;
+          threadSelect.appendChild(option);
+        }
+        if (
+          currentId
+          && !listed.threads.some(thread => thread.threadId === currentId)
+        ) {
+          persistThreadId(undefined);
+        }
+      };
+
+      const openThread = async (threadId: string): Promise<void> => {
+        if (!threadBacked || !options.actionHost || runTransportInFlight) return;
+        const got = await getConversationThreadV010(threadOptions(), threadId);
+        if (got.unavailable || !got.thread) {
+          if (got.result && !got.result.ok) await appendChatResult(got.result);
+          return;
+        }
+
+        if (got.thread.state === "ARCHIVED") {
+          applyThread(got.thread);
+          await refreshThreadHistory();
+          return;
+        }
+
+        const recovered = await recoverThreadBackedChatV010({
+          ...threadOptions(),
+          threadId: got.thread.threadId,
+          onProgress: async progress => {
+            if (progress.runId && progress.state) {
+              await onRunProgress({
+                runId: progress.runId,
+                state: progress.state,
+                resumeCount: progress.resumeCount
+              });
+            }
+          }
+        });
+        if (recovered) {
+          persistRunId(undefined);
+          applyThreadExecution(recovered);
+          if (!recovered.result.ok) await appendChatResult(recovered.result);
+        } else {
+          applyThread(got.thread);
+        }
+        await refreshThreadHistory();
+      };
+
+      if (threadSelect) {
+        const handler = () => {
+          const threadId = threadSelect.value.trim();
+          if (threadId) void openThread(threadId);
+        };
+        threadSelect.addEventListener("change", handler);
+        listeners.push(() => threadSelect.removeEventListener("change", handler));
+      }
+
+      if (newThreadButton) {
+        const handler = () => {
+          void (async () => {
+            if (!options.actionHost || runTransportInFlight) return;
+            runTransportInFlight = true;
+            newThreadButton.disabled = true;
+            try {
+              const created = await createConversationThreadV010(threadOptions());
+              if (created.unavailable) return;
+              if (!created.thread) {
+                if (created.result) await appendChatResult(created.result);
+                return;
+              }
+              persistRunId(undefined);
+              applyThread(created.thread);
+              await refreshThreadHistory();
+              textarea.focus();
+            } finally {
+              runTransportInFlight = false;
+              newThreadButton.disabled = false;
+            }
+          })();
+        };
+        newThreadButton.addEventListener("click", handler);
+        listeners.push(() => newThreadButton.removeEventListener("click", handler));
+      }
+
+      if (archiveThreadButton) {
+        const handler = () => {
+          void (async () => {
+            const threadId = storedThreadId();
+            if (!options.actionHost || !threadId || runTransportInFlight) return;
+            runTransportInFlight = true;
+            archiveThreadButton.disabled = true;
+            try {
+              const archived = await archiveConversationThreadV010(
+                threadOptions(),
+                threadId
+              );
+              if (archived.unavailable) return;
+              if (!archived.thread) {
+                if (archived.result) await appendChatResult(archived.result);
+                return;
+              }
+              applyThread(archived.thread);
+              await refreshThreadHistory();
+            } finally {
+              runTransportInFlight = false;
+              archiveThreadButton.disabled =
+                state.activeThreadState === "ARCHIVED";
+            }
+          })();
+        };
+        archiveThreadButton.addEventListener("click", handler);
+        listeners.push(() => archiveThreadButton.removeEventListener("click", handler));
+      }
+
+      if (threadBacked) void refreshThreadHistory();
       const submit = async () => {
         const message = textarea.value.trim();
         if (!message) return;
+
+        const conversationHistory = definition.contractVersion === "0.2.0"
+          ? createChatConversationHistoryV010(state.messages)
+          : [];
 
         state.messages.push(definition.contractVersion === "0.2.0"
           ? {
@@ -517,44 +1026,69 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
         try {
           const values: Record<string, JsonValue> = {
-            [definition.composer.key]: message
+            [definition.composer.key]: message,
+            message,
+            ...(definition.contractVersion === "0.2.0" && conversationHistory.length
+              ? {
+                  conversationHistory: conversationHistory.map(item => ({
+                    role: item.role,
+                    content: item.content
+                  }))
+                }
+              : {}),
+            ...contextValues()
           };
-          if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
-            const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
-            const selected = selector?.selectedOptions[0]?.dataset.eidosChatContextValue;
-            if (selected) {
-              values[definition.context.selector.key] = JSON.parse(selected) as JsonValue;
+
+          const request = baseChatRequest(values);
+          runTransportInFlight = true;
+
+          const threadExecution = threadBacked
+            ? await executeThreadBackedChatV010({
+                actionHost: options.actionHost,
+                request,
+                threadId: storedThreadId(),
+                onProgress: async progress => {
+                  if (progress.runId && progress.state) {
+                    await onRunProgress({
+                      runId: progress.runId,
+                      state: progress.state,
+                      resumeCount: progress.resumeCount
+                    });
+                  }
+                }
+              })
+            : undefined;
+
+          if (threadExecution) {
+            persistRunId(undefined);
+            applyThreadExecution(threadExecution);
+            if (!threadExecution.result.ok) {
+              await appendChatResult(threadExecution.result);
+            } else {
+              await options.onActionResult?.(threadExecution.result, page);
             }
+          } else {
+            const execution = runBacked
+              ? await executeRunBackedChatV010({
+                  actionHost: options.actionHost,
+                  request,
+                  onProgress: onRunProgress
+                })
+              : {
+                  mode: "LEGACY" as const,
+                  result: await options.actionHost.execute(request),
+                  resumeCount: 0
+                };
+            if (execution.mode === "LEGACY") persistRunId(undefined);
+            if (
+              execution.mode === "RUN"
+              && execution.runState
+              && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(execution.runState)
+            ) {
+              persistRunId(undefined);
+            }
+            await appendChatResult(execution.result);
           }
-
-          const request: ActionRequestV010 = {
-            contractVersion: "0.1.0",
-            type: "command",
-            command: { ...definition.command },
-            values,
-            sourceInteractionId: definition.id,
-            actionId: "chat.send",
-            requiresConfirmation: false
-          };
-
-          const result = await options.actionHost.execute(request);
-          const resultId = `${result.ok ? "assistant" : "error"}-${Date.now()}-${state.messages.length}`;
-          state.messages.push(definition.contractVersion === "0.2.0"
-            ? resultMessageV020(
-                result.result,
-                resultId,
-                result.ok,
-                result.error?.message ?? "Unknown action error"
-              )
-            : {
-                id: resultId,
-                role: result.ok ? "assistant" : "error",
-                text: result.ok
-                  ? resultMessage(result.result)
-                  : result.error?.message ?? "Unknown action error"
-              });
-          renderTranscript();
-          await options.onActionResult?.(result, page);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           state.messages.push(definition.contractVersion === "0.2.0"
@@ -571,10 +1105,86 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               });
           renderTranscript();
         } finally {
-          if (button) button.disabled = false;
+          runTransportInFlight = false;
+          if (button) {
+            button.disabled = state.activeThreadState === "ARCHIVED";
+          }
           textarea.focus();
         }
       };
+
+      const recoverDurableRun = async (): Promise<void> => {
+        if (!runBacked || !options.actionHost || runTransportInFlight) return;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        runTransportInFlight = true;
+        if (button) button.disabled = true;
+        try {
+          const request = baseChatRequest(contextValues(), "chat.recover");
+
+          const threadRecovered = threadBacked
+            ? await recoverThreadBackedChatV010({
+                actionHost: options.actionHost,
+                request,
+                threadId: storedThreadId(),
+                onProgress: async progress => {
+                  if (progress.runId && progress.state) {
+                    await onRunProgress({
+                      runId: progress.runId,
+                      state: progress.state,
+                      resumeCount: progress.resumeCount
+                    });
+                  }
+                }
+              })
+            : undefined;
+
+          if (threadRecovered) {
+            persistRunId(undefined);
+            applyThreadExecution(threadRecovered);
+            await refreshThreadHistory();
+            if (!threadRecovered.result.ok) {
+              await appendChatResult(threadRecovered.result, false);
+            }
+            return;
+          }
+
+          const recovered = await recoverRunBackedChatV010({
+            actionHost: options.actionHost,
+            request,
+            runId: storedRunId(),
+            onProgress: onRunProgress
+          });
+          if (!recovered) {
+            persistRunId(undefined);
+            return;
+          }
+          if (
+            recovered.runState
+            && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(recovered.runState)
+          ) {
+            persistRunId(undefined);
+          }
+          if (recovered.result.ok || recovered.result.error) {
+            await appendChatResult(recovered.result, false);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await appendChatResult({
+            ok: false,
+            error: {
+              code: "EIDOS_AGENT_RUN_RECOVERY_FAILED",
+              message
+            }
+          }, false);
+        } finally {
+          runTransportInFlight = false;
+          if (button) button.disabled = false;
+        }
+      };
+
+      if (runBacked) {
+        void recoverDurableRun();
+      }
 
       const submitHandler = (event: SubmitEvent) => {
         event.preventDefault();
@@ -706,7 +1316,6 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               ? consumeJourneyContinuationV010(page.route.path, "settings.save")
               : undefined;
             if (continuation) {
-              status.textContent = hostText("shell.settingsSaved", "Settings saved.");
               await options.onNavigate?.(continuation.returnRoute);
             }
             await options.onActionResult?.(result, page);
