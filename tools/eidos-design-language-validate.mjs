@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { resolveEidosIconName } from "../dist/vendor/eidos/src/design-language/icons/icon-system.js";
+import { eidosProductiveWorkbenchCss } from "../dist/vendor/eidos/src/design-language/productive-workbench-css.js";
 import {
   createHelpIndexPageV010,
   loadHelpCorpusV010,
@@ -51,6 +52,16 @@ function findCssFiles(path) {
   }
   return result;
 }
+for (const selector of [
+  "data-eidos-review-queue",
+  "data-eidos-review-technical",
+  "data-eidos-review-actions"
+]) {
+  if (!eidosProductiveWorkbenchCss.includes(selector)) {
+    problems.push("Vendored Eidos must provide first-class Review / Decision styling: " + selector);
+  }
+}
+
 const managerCss = findCssFiles(join(root, "manager"));
 if (managerCss.length) {
   problems.push("App Platform manager owns CSS files instead of delegating visual realization to Eidos: " + managerCss.join(", "));
@@ -83,5 +94,6 @@ console.log(JSON.stringify({
   helpNavigator: index.kind,
   helpArticle: document.kind,
   rawHostControls: false,
+  reviewDecisionPattern: true,
   managerCssFiles: 0
 }, null, 2));
