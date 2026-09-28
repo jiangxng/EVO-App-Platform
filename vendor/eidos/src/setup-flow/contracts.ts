@@ -16,6 +16,10 @@ export interface SetupFlowActionV010 {
   requiresConfirmation?: boolean;
   enabled?: boolean;
   disabledReason?: string;
+  continuation?: {
+    onActionId: string;
+    route: string;
+  };
 }
 
 export interface SetupFlowStepV010 {
