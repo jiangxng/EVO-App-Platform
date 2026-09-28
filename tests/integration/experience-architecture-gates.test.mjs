@@ -33,6 +33,10 @@ test("critical App Platform Experiences are registered under pinned Eidos experi
     APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosSettingsJourneyCommit,
     "c6fb8bb99541dbda5d5e4957fdebac069299e573"
   );
+  assert.equal(
+    APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosChatMarkdownCommit,
+    "2b0fc5aa80d1cacf6277535e715a3b9e6efb0e3f"
+  );
   for (const id of [
     "personal-agent.chat",
     "personal-agent.setup",
