@@ -28,12 +28,6 @@ export interface EogNodeBindingV010 {
   semanticRef: EogCanonicalRefV010;
 }
 
-export interface EogNodePositionV010 {
-  nodeId: string;
-  x: number;
-  y: number;
-}
-
 export type EogGuidanceSourceKindV010 =
   | "LEGACY_POSTING_RULE_TEMPLATE"
   | "ACCOUNTING_GUIDANCE"
@@ -73,7 +67,6 @@ export interface EnterpriseOperatingGraphV010 {
   nodes: EogNodeBindingV010[];
   guidanceRelations: EogApplicationLedgerGuidanceRelationV010[];
   enterpriseRelations: EogApplicationLedgerEnterpriseRelationV010[];
-  positions: EogNodePositionV010[];
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
@@ -124,10 +117,6 @@ export type EnterpriseOperatingGraphOperationV010 =
   | (EogOperationBaseV010 & {
       type: "ENTERPRISE_RELATION_REMOVE";
       relationId: string;
-    })
-  | (EogOperationBaseV010 & {
-      type: "NODE_MOVE";
-      position: EogNodePositionV010;
     })
   | (EogOperationBaseV010 & {
       type: "PUBLISH";

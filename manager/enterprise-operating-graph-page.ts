@@ -17,6 +17,10 @@ import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010,
   type EnterpriseOperatingGraphV010
 } from "../contracts/enterprise-operating-graph.js";
+import {
+  PRIMARY_EOG_DIAGRAM_VIEW_ID_V010,
+  type EnterpriseOperatingGraphViewStateV010
+} from "../contracts/enterprise-operating-graph-view.js";
 import type {
   DiagramEditorPageV010,
   DiagramEditorStateV010
@@ -29,6 +33,12 @@ import {
 import type {
   EnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
+import type {
+  EnterpriseOperatingGraphViewHostServiceV010
+} from "./enterprise-operating-graph-view-service.js";
+import {
+  authorizeMaterialWriteV010
+} from "./material-write-authorization.js";
 
 export const EOG_EDITOR_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/editor";
@@ -85,7 +95,7 @@ function localizedText(locale: string | undefined) {
       guidance: "指导关系",
       confirmed: "企业确认关系",
       missing: "当前企业还没有运行图。",
-      ready: "来自 Host 权威 EOG 的可编辑视图。"
+      ready: "来自 Host 权威 EOG 的可编辑视图。布局属于 View State，不改变企业语义。"
     };
   }
   if (normalized.startsWith("ja")) {
@@ -98,7 +108,7 @@ function localizedText(locale: string | undefined) {
       guidance: "Guidance",
       confirmed: "Confirmed",
       missing: "No operating graph exists for this enterprise yet.",
-      ready: "Editable projection of the Host-authoritative EOG."
+      ready: "Editable projection of the Host-authoritative EOG. Layout is independent View State."
     };
   }
   return {
@@ -110,7 +120,7 @@ function localizedText(locale: string | undefined) {
     guidance: "Guidance",
     confirmed: "Enterprise confirmed",
     missing: "No operating graph exists for this enterprise yet.",
-    ready: "Editable projection of the Host-authoritative EOG."
+    ready: "Editable projection of the Host-authoritative EOG. Layout is independent View State."
   };
 }
 
@@ -148,10 +158,11 @@ function semanticLabel(refId: string): string {
 }
 
 function positions(
-  graph: EnterpriseOperatingGraphV010
+  graph: EnterpriseOperatingGraphV010,
+  view: EnterpriseOperatingGraphViewStateV010
 ): Map<string, { x: number; y: number }> {
   const explicit = new Map(
-    graph.positions.map(item => [
+    view.placements.map(item => [
       item.nodeId,
       { x: item.x, y: item.y }
     ])
@@ -179,10 +190,19 @@ function positions(
 
 export function projectEnterpriseOperatingGraphEditorStateV010(
   graph: EnterpriseOperatingGraphV010,
+  view: EnterpriseOperatingGraphViewStateV010,
   locale?: string
 ): DiagramEditorStateV010 {
+  if (
+    view.graphId !== graph.graphId
+    || view.enterpriseId !== graph.enterpriseId
+    || view.kind !== "DIAGRAM_2D"
+  ) {
+    throw new Error("EOG_VIEW_PROJECTION_IDENTITY_MISMATCH");
+  }
+
   const text = localizedText(locale);
-  const nodePositions = positions(graph);
+  const nodePositions = positions(graph, view);
   const confirmedPairs = new Set(
     graph.enterpriseRelations.map(relation =>
       relation.applicationNodeId + "->" + relation.ledgerNodeId
@@ -202,7 +222,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       y: position.y,
       width: 168,
       height: 68,
-      readOnly: graph.state === "PUBLISHED",
+      readOnly: false,
       detail: [
         node.kind,
         node.semanticRef.authority,
@@ -256,6 +276,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
             label: text.confirm,
             operation: {
               type: "CONFIRM_GUIDANCE_RELATION",
+              semanticRevision: graph.revision,
               guidanceRelationId: relation.relationId
             } as JsonValue,
             requiresConfirmation: true,
@@ -269,7 +290,8 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
               id: "publish",
               label: text.publish,
               operation: {
-                type: "PUBLISH"
+                type: "PUBLISH",
+                semanticRevision: graph.revision
               } as JsonValue,
               requiresConfirmation: true,
               target: {
@@ -283,8 +305,10 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
   return {
     contractVersion: "0.1.0",
     resourceId: graph.graphId,
-    revision: graph.revision,
-    lifecycleState: graph.state,
+    revision: view.revision,
+    lifecycleState: graph.state === "PUBLISHED"
+      ? "SEMANTIC_PUBLISHED"
+      : "DRAFT",
     nodes,
     edges: [...guidanceEdges, ...confirmedEdges],
     actions,
@@ -377,18 +401,33 @@ function stringValue(
   return value.trim();
 }
 
-function expectedRevision(
-  values: Record<string, JsonValue>
-): number {
-  const value = values.expectedRevision;
+function revisionValue(value: unknown, code: string): number {
   if (
     typeof value !== "number"
     || !Number.isInteger(value)
     || value < 0
   ) {
-    throw new Error("EOG_VIEW_REVISION_INVALID");
+    throw new Error(code);
   }
   return value;
+}
+
+function expectedViewRevision(
+  values: Record<string, JsonValue>
+): number {
+  return revisionValue(
+    values.expectedRevision,
+    "EOG_VIEW_REVISION_INVALID"
+  );
+}
+
+function semanticRevision(
+  operation: Record<string, JsonValue>
+): number {
+  return revisionValue(
+    operation.semanticRevision,
+    "EOG_SEMANTIC_REVISION_INVALID"
+  );
 }
 
 function operationValue(
@@ -417,6 +456,7 @@ function semanticHandler(
 export function createEnterpriseOperatingGraphViewActionHandlersV010(
   dependencies: {
     service: EnterpriseOperatingGraphHostServiceV010;
+    viewService: EnterpriseOperatingGraphViewHostServiceV010;
     resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
   }
@@ -445,6 +485,57 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
         return undefined;
       }
       throw error;
+    }
+  };
+
+  const diagramView = (
+    context: PlatformRequestContextV010,
+    graph: EnterpriseOperatingGraphV010
+  ): EnterpriseOperatingGraphViewStateV010 => {
+    const scope = enterpriseScope(context);
+    return dependencies.viewService.ensure({
+      enterpriseId: scope.enterpriseId,
+      graphId: graph.graphId,
+      viewId: PRIMARY_EOG_DIAGRAM_VIEW_ID_V010,
+      kind: "DIAGRAM_2D"
+    });
+  };
+
+  const project = (
+    context: PlatformRequestContextV010,
+    graph: EnterpriseOperatingGraphV010
+  ): DiagramEditorStateV010 => projectEnterpriseOperatingGraphEditorStateV010(
+    graph,
+    diagramView(context, graph),
+    dependencies.locale?.(context)
+  );
+
+  const authorizeViewWrite = async (
+    context: PlatformRequestContextV010,
+    graphId: string,
+    mutationType: string
+  ): Promise<void> => {
+    const decision = await authorizeMaterialWriteV010(
+      dependencies.resolveAuthorizationProvider(),
+      context,
+      {
+        action: "enterprise.operating-graph.view.edit",
+        resource: {
+          type: "enterprise.operating-graph.view",
+          id: PRIMARY_EOG_DIAGRAM_VIEW_ID_V010,
+          attributes: {
+            graphId,
+            mutationType
+          }
+        }
+      }
+    );
+    if (!decision.allowed) {
+      throw new Error(
+        (decision.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED")
+        + ": denied by '" + decision.policyProviderId + "' "
+        + decision.reasonCodes.join(", ")
+      );
     }
   };
 
@@ -477,10 +568,7 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
       return success(
         request,
         graph
-          ? projectEnterpriseOperatingGraphEditorStateV010(
-              graph,
-              dependencies.locale?.(context)
-            )
+          ? project(context, graph)
           : projectMissingEnterpriseOperatingGraphEditorStateV010(
               resourceId,
               dependencies.locale?.(context)
@@ -496,9 +584,8 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
         throw new Error("EOG_VIEW_OPERATION_INVALID");
       }
 
-      let semanticResult: AppActionExecutionResultV010;
       if (type === "CREATE_GRAPH") {
-        semanticResult = await semanticHandler(
+        const semanticResult = await semanticHandler(
           semanticHandlers,
           EOG_CREATE_ACTION
         ).execute(
@@ -514,7 +601,20 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
           },
           context
         );
-      } else if (type === "MOVE_NODE") {
+        if (!semanticResult.ok) return semanticResult;
+        return success(
+          request,
+          project(
+            context,
+            semanticResult.result as unknown as EnterpriseOperatingGraphV010
+          )
+        );
+      }
+
+      const currentGraph = getGraph(context, resourceId);
+      if (!currentGraph) throw new Error("EOG_GRAPH_NOT_FOUND");
+
+      if (type === "MOVE_NODE") {
         const nodeId = operation.nodeId;
         const x = operation.x;
         const y = operation.y;
@@ -525,36 +625,34 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
           || !Number.isFinite(x)
           || typeof y !== "number"
           || !Number.isFinite(y)
+          || !currentGraph.nodes.some(node => node.nodeId === nodeId.trim())
         ) {
           throw new Error("EOG_VIEW_MOVE_NODE_INVALID");
         }
-        semanticResult = await semanticHandler(
-          semanticHandlers,
-          EOG_APPLY_OPERATION_ACTION
-        ).execute(
-          {
-            ...request,
-            command: {
-              code: EOG_APPLY_OPERATION_ACTION,
-              inputVersion: "0.1.0"
-            },
-            values: {
-              graphId: resourceId,
-              expectedRevision: expectedRevision(request.values),
-              mutation: {
-                type: "NODE_MOVE",
-                position: {
-                  nodeId: nodeId.trim(),
-                  x,
-                  y
-                }
-              }
-            },
-            requiresConfirmation: false
-          },
-          context
+
+        await authorizeViewWrite(context, resourceId, "NODE_POSITION_SET");
+        const view = diagramView(context, currentGraph);
+        dependencies.viewService.apply({
+          enterpriseId: currentGraph.enterpriseId,
+          graphId: currentGraph.graphId,
+          viewId: view.viewId,
+          expectedRevision: expectedViewRevision(request.values),
+          mutation: {
+            type: "NODE_POSITION_SET",
+            placement: {
+              nodeId: nodeId.trim(),
+              x,
+              y
+            }
+          }
+        });
+        return success(
+          request,
+          project(context, currentGraph)
         );
-      } else if (type === "CONFIRM_GUIDANCE_RELATION") {
+      }
+
+      if (type === "CONFIRM_GUIDANCE_RELATION") {
         if (request.requiresConfirmation !== true) {
           throw new Error("EOG_RELATION_CONFIRMATION_REQUIRED");
         }
@@ -565,14 +663,12 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
         ) {
           throw new Error("EOG_VIEW_GUIDANCE_RELATION_REQUIRED");
         }
-        const graph = getGraph(context, resourceId);
-        if (!graph) throw new Error("EOG_GRAPH_NOT_FOUND");
-        const relation = graph.guidanceRelations.find(
+        const relation = currentGraph.guidanceRelations.find(
           item => item.relationId === guidanceRelationId.trim()
         );
         if (!relation) throw new Error("EOG_GUIDANCE_RELATION_NOT_FOUND");
 
-        semanticResult = await semanticHandler(
+        const semanticResult = await semanticHandler(
           semanticHandlers,
           EOG_APPLY_OPERATION_ACTION
         ).execute(
@@ -584,7 +680,7 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
             },
             values: {
               graphId: resourceId,
-              expectedRevision: expectedRevision(request.values),
+              expectedRevision: semanticRevision(operation),
               mutation: {
                 type: "ENTERPRISE_RELATION_CONFIRM",
                 enterpriseRelationId:
@@ -598,11 +694,21 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
           },
           context
         );
-      } else if (type === "PUBLISH") {
+        if (!semanticResult.ok) return semanticResult;
+        return success(
+          request,
+          project(
+            context,
+            semanticResult.result as unknown as EnterpriseOperatingGraphV010
+          )
+        );
+      }
+
+      if (type === "PUBLISH") {
         if (request.requiresConfirmation !== true) {
           throw new Error("EOG_PUBLISH_CONFIRMATION_REQUIRED");
         }
-        semanticResult = await semanticHandler(
+        const semanticResult = await semanticHandler(
           semanticHandlers,
           EOG_APPLY_OPERATION_ACTION
         ).execute(
@@ -614,7 +720,7 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
             },
             values: {
               graphId: resourceId,
-              expectedRevision: expectedRevision(request.values),
+              expectedRevision: semanticRevision(operation),
               mutation: {
                 type: "PUBLISH"
               }
@@ -623,19 +729,17 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
           },
           context
         );
-      } else {
-        throw new Error("EOG_VIEW_OPERATION_UNSUPPORTED");
+        if (!semanticResult.ok) return semanticResult;
+        return success(
+          request,
+          project(
+            context,
+            semanticResult.result as unknown as EnterpriseOperatingGraphV010
+          )
+        );
       }
 
-      if (!semanticResult.ok) return semanticResult;
-      const graph = semanticResult.result as unknown as EnterpriseOperatingGraphV010;
-      return success(
-        request,
-        projectEnterpriseOperatingGraphEditorStateV010(
-          graph,
-          dependencies.locale?.(context)
-        )
-      );
+      throw new Error("EOG_VIEW_OPERATION_UNSUPPORTED");
     })
   ];
 }
