@@ -1,7 +1,7 @@
 import type { AppManagerService } from "./service.js";
 import type { SettingsStore } from "./settings-store.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
-import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.js";
+import type { SettingsEditorV020 } from "../vendor/eidos/src/settings/contracts.js";
 import type {
   EidosSettingsContributionV010,
   PackageManifestV010,
@@ -55,7 +55,14 @@ const settingsUiMessages = {
     adminLabel: "Administrator authorization",
     adminDescription: "Bootstrap-phase administrator authentication used only when changing Secrets. It is never persisted.",
     save: "Save",
-    empty: "This plugin has no editable configuration."
+    empty: "This plugin has no editable configuration.",
+    runtimeGroup: "Runtime",
+    runtimeGroupDescription: "Model and endpoint settings used by this Provider or plugin.",
+    credentialsGroup: "Credentials",
+    credentialsGroupDescription: "Host-managed secrets. Stored values are never displayed again.",
+    administrationGroup: "Administration",
+    administrationGroupDescription: "Low-frequency authorization controls for protected configuration changes.",
+    credentialNotice: "Credentials stay inside the Host Secrets boundary and are never returned to the browser after save."
   },
   "zh-CN": {
     scopeUnavailable: "当前作用域上下文不可用",
@@ -72,7 +79,14 @@ const settingsUiMessages = {
     adminLabel: "管理员授权",
     adminDescription: "仅在修改 Secret 时用于 bootstrap 阶段管理员认证，不会被持久化。",
     save: "保存",
-    empty: "此插件没有可编辑配置。"
+    empty: "此插件没有可编辑配置。",
+    runtimeGroup: "运行设置",
+    runtimeGroupDescription: "此 Provider 或插件使用的模型、端点及普通运行参数。",
+    credentialsGroup: "凭据",
+    credentialsGroupDescription: "由 Host 管理的 Secret。已保存明文不会再次显示。",
+    administrationGroup: "管理授权",
+    administrationGroupDescription: "用于受保护配置变更的低频授权项。",
+    credentialNotice: "凭据始终保留在 Host Secrets 边界内，保存后不会返回到浏览器。"
   },
   ja: {
     scopeUnavailable: "現在のスコープコンテキストは利用できません",
@@ -89,7 +103,14 @@ const settingsUiMessages = {
     adminLabel: "管理者認証",
     adminDescription: "Secret を変更する場合の bootstrap 管理者認証にのみ使用され、保存されません。",
     save: "保存",
-    empty: "このプラグインには編集可能な設定がありません。"
+    empty: "このプラグインには編集可能な設定がありません。",
+    runtimeGroup: "ランタイム",
+    runtimeGroupDescription: "この Provider またはプラグインが使用するモデル、エンドポイント、通常の実行設定です。",
+    credentialsGroup: "認証情報",
+    credentialsGroupDescription: "Host 管理の Secret。保存済みの値は再表示されません。",
+    administrationGroup: "管理",
+    administrationGroupDescription: "保護された設定変更に使用する低頻度の認証項目です。",
+    credentialNotice: "認証情報は Host Secrets 境界内に保持され、保存後にブラウザへ返されません。"
   },
   "zh-TW": {
     scopeUnavailable: "目前作用域內容環境無法使用",
@@ -106,7 +127,14 @@ const settingsUiMessages = {
     adminLabel: "管理員授權",
     adminDescription: "僅在修改 Secret 時用於 bootstrap 階段管理員驗證，不會被持久化。",
     save: "儲存",
-    empty: "此插件沒有可編輯設定。"
+    empty: "此插件沒有可編輯設定。",
+    runtimeGroup: "執行設定",
+    runtimeGroupDescription: "此 Provider 或插件使用的模型、端點與一般執行參數。",
+    credentialsGroup: "憑證",
+    credentialsGroupDescription: "由 Host 管理的 Secret。已儲存明文不會再次顯示。",
+    administrationGroup: "管理授權",
+    administrationGroupDescription: "用於受保護設定變更的低頻授權項。",
+    credentialNotice: "憑證始終保留在 Host Secrets 邊界內，儲存後不會回傳到瀏覽器。"
   }
 } as const;
 
@@ -290,7 +318,7 @@ export async function createSettingsPage(
   describeSecret?: DescribeSecretV010,
   secretContext: SettingsSecretScopeContextV010 = { installationId: "default" },
   locale = "en"
-): Promise<SettingsEditorV010 | undefined> {
+): Promise<SettingsEditorV020 | undefined> {
   const pkg = manager.listCatalog().find(item => item.packageId === packageId);
   const installed = manager.getSnapshot().installedPackages.some(item => item.packageId === packageId);
   if (!pkg || !installed || !packageHasConfiguration(pkg)) return undefined;
@@ -311,16 +339,16 @@ export async function createSettingsPage(
     readOnly: property.readOnly
   }));
 
-  const secretSettings = (
+  const credentialSettings = (
     await Promise.all((pkg.secrets ?? []).map(async declaration => {
       const reference = secretReferenceForPackageV010(pkg.packageId, declaration, secretContext);
       const status = reference && describeSecret ? await describeSecret(reference) : undefined;
       const configured = status?.configured === true;
       const unavailable = !reference;
-      const statusValue = unavailable
+      const statusLabel = unavailable
         ? ui.scopeUnavailable
         : configured
-          ? `${ui.configured}${status?.updatedAt ? ` · ${ui.updated} ${status.updatedAt}` : ""} · ${ui.neverDisplayed}`
+          ? `${ui.configured}${status?.updatedAt ? ` · ${ui.updated} ${status.updatedAt}` : ""}`
           : ui.notConfigured;
 
       return [
@@ -330,14 +358,15 @@ export async function createSettingsPage(
           description: unavailable ? ui.secretScopeUnavailable : declaration.description,
           type: "secret" as const,
           value: "",
-          readOnly: unavailable
-        },
-        {
-          key: `secret-status:${declaration.key}`,
-          label: `${declaration.label} ${ui.status}`,
-          type: "string" as const,
-          value: statusValue,
-          readOnly: true
+          readOnly: unavailable,
+          status: {
+            label: statusLabel,
+            tone: unavailable
+              ? "warning" as const
+              : configured
+                ? "positive" as const
+                : "neutral" as const
+          }
         },
         ...(configured && !unavailable
           ? [{
@@ -354,31 +383,60 @@ export async function createSettingsPage(
   ).flat();
 
   const hasSecrets = (pkg.secrets?.length ?? 0) > 0;
-
-  return {
-    contractVersion: "0.1.0",
-    kind: "settings-editor",
-    id: `evo-settings.${packageId}`,
-    namespace,
-    title: merged?.title ?? pkg.displayName,
-    description: merged?.description ?? ui.hostCredentials,
-    command: {
-      code: "app-platform.update-settings",
-      inputVersion: "0.1.0"
-    },
-    settings: [
-      ...ordinarySettings,
-      ...secretSettings,
-      ...(hasSecrets
-        ? [{
+  const groups: SettingsEditorV020["groups"] = [
+    ...(ordinarySettings.length
+      ? [{
+          id: "runtime",
+          title: ui.runtimeGroup,
+          description: ui.runtimeGroupDescription,
+          settings: ordinarySettings
+        }]
+      : []),
+    ...(credentialSettings.length
+      ? [{
+          id: "credentials",
+          title: ui.credentialsGroup,
+          description: ui.credentialsGroupDescription,
+          settings: credentialSettings
+        }]
+      : []),
+    ...(hasSecrets
+      ? [{
+          id: "administration",
+          title: ui.administrationGroup,
+          description: ui.administrationGroupDescription,
+          advanced: true,
+          settings: [{
             key: "adminToken",
             label: ui.adminLabel,
             description: ui.adminDescription,
             type: "secret" as const,
             value: ""
           }]
-        : [])
-    ],
+        }]
+      : [])
+  ];
+
+  return {
+    contractVersion: "0.2.0",
+    kind: "settings-editor",
+    id: `evo-settings.${packageId}`,
+    namespace,
+    title: merged?.title ?? pkg.displayName,
+    description: merged?.description ?? ui.hostCredentials,
+    ...(hasSecrets
+      ? {
+          notice: {
+            tone: "info" as const,
+            message: ui.credentialNotice
+          }
+        }
+      : {}),
+    command: {
+      code: "app-platform.update-settings",
+      inputVersion: "0.1.0"
+    },
+    groups,
     saveLabel: ui.save,
     emptyMessage: ui.empty
   };
