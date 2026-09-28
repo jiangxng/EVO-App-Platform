@@ -1,0 +1,45 @@
+name: Experience CI - Durable Conversation Threads P1.7C
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "agents/enterprise-agent/thread-turn-action-handlers.ts"
+      - "vendor/eidos/src/app-host/personal-agent-thread-chat.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-conversation-thread-p1-7c.yml"
+  pull_request:
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "agents/enterprise-agent/thread-turn-action-handlers.ts"
+      - "vendor/eidos/src/app-host/personal-agent-thread-chat.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-conversation-thread-p1-7c.yml"
+
+concurrency:
+  group: experience-conversation-thread-p1-7c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:experience:p1-7c
