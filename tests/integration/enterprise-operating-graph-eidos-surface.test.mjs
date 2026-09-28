@@ -7,19 +7,30 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "../../dist/manager/enterprise-operating-graph-service.js";
 import {
+  createMemoryEnterpriseOperatingGraphViewStoreV010
+} from "../../dist/manager/enterprise-operating-graph-view-store.js";
+import {
+  createEnterpriseOperatingGraphViewHostServiceV010
+} from "../../dist/manager/enterprise-operating-graph-view-service.js";
+import {
   createEnterpriseOperatingGraphViewActionHandlersV010,
   EOG_VIEW_GET_ACTION,
   EOG_VIEW_OPERATION_ACTION,
   projectEnterpriseOperatingGraphEditorStateV010
 } from "../../dist/manager/enterprise-operating-graph-page.js";
 
-function service() {
+function services() {
   let serial = 0;
-  return createEnterpriseOperatingGraphHostServiceV010({
+  const service = createEnterpriseOperatingGraphHostServiceV010({
     store: createMemoryEnterpriseOperatingGraphStoreV010(),
     id: () => String(++serial),
     now: () => new Date("2026-09-28T15:00:00.000Z")
   });
+  const viewService = createEnterpriseOperatingGraphViewHostServiceV010({
+    store: createMemoryEnterpriseOperatingGraphViewStoreV010(),
+    now: () => new Date("2026-09-28T15:00:00.000Z")
+  });
+  return { service, viewService };
 }
 
 const allowAuthorization = {
@@ -91,118 +102,16 @@ function request(command, values, requiresConfirmation = false) {
   };
 }
 
-test("EOG view projection preserves rectangle Application and rounded Ledger convention", () => {
-  const host = service();
-  let graph = host.create({
-    enterpriseId: "enterprise:demo",
-    graphId: "eog:primary"
-  });
-  graph = host.apply({
-    enterpriseId: graph.enterpriseId,
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    actor: { type: "AGENT", subjectId: "agent:personal" },
-    mutation: {
-      type: "NODE_BIND",
-      node: {
-        nodeId: "app:sales",
-        kind: "APPLICATION",
-        semanticRef: {
-          kind: "APPLICATION",
-          authority: "HOST",
-          refId: "application:sales-order"
-        }
-      }
-    }
-  });
-  graph = host.apply({
-    enterpriseId: graph.enterpriseId,
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    actor: { type: "AGENT", subjectId: "agent:personal" },
-    mutation: {
-      type: "NODE_BIND",
-      node: {
-        nodeId: "ledger:receivable",
-        kind: "LEDGER",
-        semanticRef: {
-          kind: "LEDGER_DEFINITION",
-          authority: "EVO",
-          refId: "ledger:receivable"
-        }
-      }
-    }
-  });
-  graph = host.apply({
-    enterpriseId: graph.enterpriseId,
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    actor: { type: "AGENT", subjectId: "agent:personal" },
-    mutation: {
-      type: "GUIDANCE_RELATION_PUT",
-      relation: {
-        relationId: "guidance:receivable",
-        kind: "APPLICATION_LEDGER",
-        applicationNodeId: "app:sales",
-        ledgerNodeId: "ledger:receivable",
-        source: {
-          kind: "ACCOUNTING_GUIDANCE",
-          sourceRef: "prc-accounting-guidance"
-        }
-      }
-    }
-  });
-
-  const view = projectEnterpriseOperatingGraphEditorStateV010(graph, "zh-CN");
-  assert.equal(view.nodes.find(node => node.id === "app:sales").shape, "rectangle");
-  assert.equal(
-    view.nodes.find(node => node.id === "ledger:receivable").shape,
-    "rounded-rectangle"
-  );
-  assert.equal(view.edges[0].style, "dashed");
-  assert.equal(view.actions.some(action => action.id === "confirm:guidance:receivable"), true);
-});
-
-test("EOG view starts as explicit NOT_CREATED projection and creates Host graph through semantic action", async () => {
-  const host = service();
-  const handlers = createEnterpriseOperatingGraphViewActionHandlersV010({
-    service: host,
+function handlers(service, viewService) {
+  return createEnterpriseOperatingGraphViewActionHandlersV010({
+    service,
+    viewService,
     resolveAuthorizationProvider: () => allowAuthorization
   });
-  const read = handlers.find(item => item.commandCode === EOG_VIEW_GET_ACTION);
-  const operate = handlers.find(item => item.commandCode === EOG_VIEW_OPERATION_ACTION);
-  assert.ok(read);
-  assert.ok(operate);
+}
 
-  const before = await read.execute(
-    request(EOG_VIEW_GET_ACTION, { resourceId: "eog:primary" }),
-    context()
-  );
-  assert.equal(before.ok, true);
-  assert.equal(before.result.lifecycleState, "NOT_CREATED");
-
-  const created = await operate.execute(
-    request(EOG_VIEW_OPERATION_ACTION, {
-      resourceId: "eog:primary",
-      expectedRevision: 0,
-      operation: { type: "CREATE_GRAPH" }
-    }),
-    context()
-  );
-  assert.equal(created.ok, true);
-  assert.equal(created.result.lifecycleState, "DRAFT");
-  assert.equal(
-    host.get({
-      enterpriseId: "enterprise:demo",
-      graphId: "eog:primary"
-    }).graphId,
-    "eog:primary"
-  );
-});
-
-test("Human graph confirmation uses the same Host EOG revision and becomes a solid relation", async () => {
-  const host = service();
-  let graph = host.create({
+function bindDemoGraph(service) {
+  let graph = service.create({
     enterpriseId: "enterprise:demo",
     graphId: "eog:primary"
   });
@@ -245,7 +154,7 @@ test("Human graph confirmation uses the same Host EOG revision and becomes a sol
       }
     }
   ]) {
-    graph = host.apply({
+    graph = service.apply({
       enterpriseId: graph.enterpriseId,
       graphId: graph.graphId,
       expectedRevision: graph.revision,
@@ -253,11 +162,81 @@ test("Human graph confirmation uses the same Host EOG revision and becomes a sol
       mutation
     });
   }
+  return graph;
+}
 
-  const operate = createEnterpriseOperatingGraphViewActionHandlersV010({
-    service: host,
-    resolveAuthorizationProvider: () => allowAuthorization
-  }).find(item => item.commandCode === EOG_VIEW_OPERATION_ACTION);
+test("EOG view projection preserves rectangle Application and rounded Ledger convention", () => {
+  const { service, viewService } = services();
+  const graph = bindDemoGraph(service);
+  const viewState = viewService.ensure({
+    enterpriseId: graph.enterpriseId,
+    graphId: graph.graphId,
+    kind: "DIAGRAM_2D"
+  });
+
+  const view = projectEnterpriseOperatingGraphEditorStateV010(
+    graph,
+    viewState,
+    "zh-CN"
+  );
+  assert.equal(view.nodes.find(node => node.id === "app:sales").shape, "rectangle");
+  assert.equal(
+    view.nodes.find(node => node.id === "ledger:receivable").shape,
+    "rounded-rectangle"
+  );
+  assert.equal(view.edges[0].style, "dashed");
+  assert.equal(view.actions.some(action => action.id === "confirm:guidance:receivable"), true);
+  assert.equal(view.revision, 0);
+});
+
+test("EOG view starts as explicit NOT_CREATED projection and creates semantic graph plus empty 2D View State", async () => {
+  const { service, viewService } = services();
+  const list = handlers(service, viewService);
+  const read = list.find(item => item.commandCode === EOG_VIEW_GET_ACTION);
+  const operate = list.find(item => item.commandCode === EOG_VIEW_OPERATION_ACTION);
+  assert.ok(read);
+  assert.ok(operate);
+
+  const before = await read.execute(
+    request(EOG_VIEW_GET_ACTION, { resourceId: "eog:primary" }),
+    context()
+  );
+  assert.equal(before.ok, true);
+  assert.equal(before.result.lifecycleState, "NOT_CREATED");
+
+  const created = await operate.execute(
+    request(EOG_VIEW_OPERATION_ACTION, {
+      resourceId: "eog:primary",
+      expectedRevision: 0,
+      operation: { type: "CREATE_GRAPH" }
+    }),
+    context()
+  );
+  assert.equal(created.ok, true);
+  assert.equal(created.result.lifecycleState, "DRAFT");
+  assert.equal(created.result.revision, 0);
+  assert.equal(
+    service.get({
+      enterpriseId: "enterprise:demo",
+      graphId: "eog:primary"
+    }).graphId,
+    "eog:primary"
+  );
+  assert.equal(
+    viewService.list({
+      enterpriseId: "enterprise:demo",
+      graphId: "eog:primary"
+    }).length,
+    1
+  );
+});
+
+test("Human confirmation advances semantic revision but does not consume View revision", async () => {
+  const { service, viewService } = services();
+  const graph = bindDemoGraph(service);
+  const operate = handlers(service, viewService).find(
+    item => item.commandCode === EOG_VIEW_OPERATION_ACTION
+  );
   assert.ok(operate);
 
   const confirmed = await operate.execute(
@@ -265,9 +244,10 @@ test("Human graph confirmation uses the same Host EOG revision and becomes a sol
       EOG_VIEW_OPERATION_ACTION,
       {
         resourceId: graph.graphId,
-        expectedRevision: graph.revision,
+        expectedRevision: 0,
         operation: {
           type: "CONFIRM_GUIDANCE_RELATION",
+          semanticRevision: graph.revision,
           guidanceRelationId: "guidance:receivable"
         }
       },
@@ -280,26 +260,23 @@ test("Human graph confirmation uses the same Host EOG revision and becomes a sol
   assert.equal(confirmed.result.edges.length, 1);
   assert.equal(confirmed.result.edges[0].style, "solid");
   assert.equal(confirmed.result.edges[0].kind, "enterprise-confirmed");
+  assert.equal(confirmed.result.revision, 0);
 
-  const stored = host.get({
+  const stored = service.get({
     enterpriseId: "enterprise:demo",
     graphId: graph.graphId
   });
-  assert.equal(stored.guidanceRelations.length, 1);
   assert.equal(stored.enterpriseRelations.length, 1);
-  assert.equal(
-    stored.enterpriseRelations[0].confirmedFromGuidanceRelationId,
-    "guidance:receivable"
-  );
+  assert.equal(stored.revision, graph.revision + 1);
 });
 
-test("direct node move persists Position through the Host rather than browser state", async () => {
-  const host = service();
-  let graph = host.create({
+test("direct node move advances only View revision and survives a fresh projection", async () => {
+  const { service, viewService } = services();
+  let graph = service.create({
     enterpriseId: "enterprise:demo",
     graphId: "eog:primary"
   });
-  graph = host.apply({
+  graph = service.apply({
     enterpriseId: graph.enterpriseId,
     graphId: graph.graphId,
     expectedRevision: graph.revision,
@@ -317,17 +294,16 @@ test("direct node move persists Position through the Host rather than browser st
       }
     }
   });
-
-  const operate = createEnterpriseOperatingGraphViewActionHandlersV010({
-    service: host,
-    resolveAuthorizationProvider: () => allowAuthorization
-  }).find(item => item.commandCode === EOG_VIEW_OPERATION_ACTION);
+  const semanticRevision = graph.revision;
+  const operate = handlers(service, viewService).find(
+    item => item.commandCode === EOG_VIEW_OPERATION_ACTION
+  );
   assert.ok(operate);
 
   const moved = await operate.execute(
     request(EOG_VIEW_OPERATION_ACTION, {
       resourceId: graph.graphId,
-      expectedRevision: graph.revision,
+      expectedRevision: 0,
       operation: {
         type: "MOVE_NODE",
         nodeId: "app:sales",
@@ -339,11 +315,91 @@ test("direct node move persists Position through the Host rather than browser st
   );
 
   assert.equal(moved.ok, true);
-  assert.deepEqual(
-    host.get({
-      enterpriseId: "enterprise:demo",
+  assert.equal(moved.result.revision, 1);
+  assert.equal(
+    service.get({
+      enterpriseId: graph.enterpriseId,
       graphId: graph.graphId
-    }).positions,
-    [{ nodeId: "app:sales", x: 222, y: 144 }]
+    }).revision,
+    semanticRevision
+  );
+
+  const persistedView = viewService.list({
+    enterpriseId: graph.enterpriseId,
+    graphId: graph.graphId
+  })[0];
+  assert.deepEqual(persistedView.placements, [
+    { nodeId: "app:sales", x: 222, y: 144 }
+  ]);
+
+  const fresh = projectEnterpriseOperatingGraphEditorStateV010(
+    service.get({
+      enterpriseId: graph.enterpriseId,
+      graphId: graph.graphId
+    }),
+    persistedView
+  );
+  assert.equal(fresh.nodes[0].x, 222);
+  assert.equal(fresh.nodes[0].y, 144);
+});
+
+test("published semantic graph still permits non-semantic layout changes", async () => {
+  const { service, viewService } = services();
+  let graph = service.create({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary"
+  });
+  graph = service.apply({
+    enterpriseId: graph.enterpriseId,
+    graphId: graph.graphId,
+    expectedRevision: graph.revision,
+    actor: { type: "AGENT", subjectId: "agent:personal" },
+    mutation: {
+      type: "NODE_BIND",
+      node: {
+        nodeId: "app:sales",
+        kind: "APPLICATION",
+        semanticRef: {
+          kind: "APPLICATION",
+          authority: "HOST",
+          refId: "application:sales-order"
+        }
+      }
+    }
+  });
+  graph = service.apply({
+    enterpriseId: graph.enterpriseId,
+    graphId: graph.graphId,
+    expectedRevision: graph.revision,
+    actor: { type: "HUMAN", subjectId: "human:owner" },
+    mutation: { type: "PUBLISH" }
+  });
+
+  const operate = handlers(service, viewService).find(
+    item => item.commandCode === EOG_VIEW_OPERATION_ACTION
+  );
+  const moved = await operate.execute(
+    request(EOG_VIEW_OPERATION_ACTION, {
+      resourceId: graph.graphId,
+      expectedRevision: 0,
+      operation: {
+        type: "MOVE_NODE",
+        nodeId: "app:sales",
+        x: 300,
+        y: 200
+      }
+    }),
+    context()
+  );
+
+  assert.equal(moved.ok, true);
+  assert.equal(moved.result.lifecycleState, "SEMANTIC_PUBLISHED");
+  assert.equal(moved.result.nodes[0].readOnly, false);
+  assert.equal(
+    service.get({
+      enterpriseId: graph.enterpriseId,
+      graphId: graph.graphId
+    }).state,
+    "PUBLISHED"
   );
 });
