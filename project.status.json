@@ -328,7 +328,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "P1.8A Thread Lifecycle Foundation is verified, merged and deployed: PR #119 passed 31/31 triggered CI and Railway is SUCCESS at 17a0878fccfca53689ed7d505da7a7e9906100b1 / 94d7334a-4076-4b13-ace3-9a646f87e172. P1.8B non-destructive Conversation Retention preview is also merged and deployed: PR #120 passed 32/32 CI and Railway is SUCCESS at e0b1307b09823b9253cf737edf5e472b9fce52c3 / e0165b11-4bad-485e-b2c0-ee349af14a86. Retention preview applies only to ARCHIVED threads, starts the clock at archivedAt, never marks ACTIVE threads purge-eligible, and executes no destructive action. The next gate is a genuine Human policy decision: choose retainArchivedForDays before any durable retention policy or Human-authorized purge workflow is implemented/activated.",
+  "currentStep": "Human retention policy decision received: retainArchivedForDays = 90 days for archived Conversation Threads, measured from archivedAt. P1.8B implementation is active to make this explicit policy readable and the default for retention preview while keeping destructive purge disabled. ACTIVE threads remain ineligible. The decision does not authorize deletion; any irreversible purge remains a separate Human authority boundary.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1573,8 +1573,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.8-2026-09-28-02",
-    "snapshotAt": "2026-09-28T09:24:00+08:00",
+    "snapshotId": "P1.8-2026-09-28-03",
+    "snapshotAt": "2026-09-28T09:03:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1610,55 +1610,19 @@
         }
       },
       "openGate": {
-        "id": "p1.8b-conversation-retention-policy",
-        "status": "HUMAN_POLICY_DECISION_REQUIRED",
-        "summary": "The non-destructive retention preview is deployed and verified. Before durable policy commit or purge governance is added, the Human must choose how many days an ARCHIVED thread is retained from archivedAt.",
+        "id": "p1.8b-conversation-retention-policy-90-day",
+        "status": "IMPLEMENTATION_IN_PROGRESS",
+        "summary": "Human selected retainArchivedForDays=90. Make the 90-day archived-thread policy explicit/readable and use it as the default retention preview. Do not enable destructive purge from this decision.",
         "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
-        "decisionRequired": {
-          "field": "retainArchivedForDays",
-          "type": "INTEGER_DAYS",
-          "minimum": 1,
-          "maximum": 36500,
-          "appliesOnlyTo": "ARCHIVED_THREADS",
-          "clockStartsAt": "archivedAt",
-          "activeThreadsNeverEligible": true,
-          "destructiveActionCurrentlyEnabled": false
-        },
-        "recommendedStartingOptions": [
-          {
-            "days": 30,
-            "tradeoff": "privacy/storage aggressive; short recovery window"
-          },
-          {
-            "days": 90,
-            "tradeoff": "balanced MVP default; useful recovery window without very long archived retention"
-          },
-          {
-            "days": 180,
-            "tradeoff": "longer operational history; more retained sensitive discourse"
-          },
-          {
-            "days": 365,
-            "tradeoff": "maximum convenience among common defaults; largest retention/privacy footprint"
-          }
-        ],
-        "acceptanceAfterDecision": [
-          "chosen retention duration is recorded as explicit Human policy",
-          "policy is separate from Context Memory retention",
-          "preview shows deterministic eligibility before any purge",
-          "ACTIVE threads remain ineligible",
-          "irreversible purge requires separate Human authorization",
-          "purge/tombstone evidence is auditable",
-          "Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup"
-        ],
         "acceptance": [
-          "chosen retention duration is recorded as explicit Human policy",
-          "policy is separate from Context Memory retention",
-          "preview shows deterministic eligibility before any purge",
+          "effective retention policy reads as 90 days",
+          "default preview uses 90 days without requiring the caller to resupply it",
+          "retention clock begins at archivedAt",
           "ACTIVE threads remain ineligible",
-          "irreversible purge requires separate Human authorization",
-          "purge/tombstone evidence is auditable",
-          "Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup"
+          "explicit preview overrides remain simulation-only",
+          "destructivePurgeEnabled remains false",
+          "no Conversation Thread, Context Memory, Agent Run or Action Receipt is deleted",
+          "production config records 90 days explicitly"
         ]
       },
       "productionPreview": {
@@ -1854,12 +1818,10 @@
     "freshSessionAcceptance": [
       "state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention",
       "state P1.7 and P1.8A as verified and closed",
-      "state P1.8B retention preview as deployed and non-destructive",
-      "state retainArchivedForDays Human policy decision as the current open gate",
-      "state current deployed runtime revision e0b1307b09823b9253cf737edf5e472b9fce52c3",
-      "explain ACTIVE threads are never purge-eligible and archived retention clock starts at archivedAt",
-      "explain no destructive purge is currently enabled",
-      "do not infer or invent a retention duration without Human decision",
+      "state the Human-selected archived Conversation Thread retention policy as 90 days from archivedAt",
+      "state P1.8B implementation is making that policy explicit/readable while destructive purge remains disabled",
+      "state ACTIVE threads are never purge-eligible",
+      "do not interpret the 90-day decision as authorization to delete anything",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -2168,7 +2130,7 @@
     }
   },
   "conversationLifecycleP1_8": {
-    "status": "ACTIVE_P1_8B_HUMAN_POLICY_DECISION_REQUIRED",
+    "status": "ACTIVE_P1_8B_90_DAY_POLICY_IMPLEMENTATION",
     "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
     "invariant": "DURABLE_CONVERSATION_REQUIRES_EXPLICIT_LIFECYCLE_AND_RETENTION_SEPARATE_FROM_CONTEXT_MEMORY",
     "slices": [
@@ -2195,7 +2157,7 @@
       {
         "id": "P1.8B",
         "title": "Conversation retention policy",
-        "status": "PREVIEW_DEPLOYED_HUMAN_POLICY_DECISION_REQUIRED",
+        "status": "IMPLEMENTING_HUMAN_SELECTED_90_DAY_POLICY",
         "target": [
           "thread-specific retention policy independent from Context Memory retention",
           "retention preview before destructive purge",
@@ -2213,6 +2175,15 @@
           "activeThreadsEligible": false,
           "archivedClock": "archivedAt",
           "scope": "READER_VISIBLE_CURRENT_CONTEXT"
+        },
+        "humanPolicyDecision": {
+          "retainArchivedForDays": 90,
+          "decidedBy": "HUMAN_PRODUCT_OWNER",
+          "decidedAt": "2026-09-28T09:03:00+08:00",
+          "appliesOnlyTo": "ARCHIVED_THREADS",
+          "clockStartsAt": "archivedAt",
+          "activeThreadsNeverEligible": true,
+          "destructivePurgeAuthorized": false
         }
       },
       {
@@ -2228,6 +2199,15 @@
           "no accidental carry-over between threads"
         ]
       }
-    ]
+    ],
+    "humanRetentionPolicyDecision": {
+      "retainArchivedForDays": 90,
+      "decidedBy": "HUMAN_PRODUCT_OWNER",
+      "decidedAt": "2026-09-28T09:03:00+08:00",
+      "appliesOnlyTo": "ARCHIVED_THREADS",
+      "clockStartsAt": "archivedAt",
+      "activeThreadsNeverEligible": true,
+      "destructivePurgeAuthorized": false
+    }
   }
 }
