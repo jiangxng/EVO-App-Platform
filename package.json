@@ -52,7 +52,8 @@
     "test:conversation-thread:p1-7a": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/app-host/chat-conversation-history.test.mjs",
     "test:conversation-thread:p1-7b": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs tests/agent/resumable-agent-run.test.mjs tests/protocol/agent-action-receipt.test.mjs",
     "test:experience:p1-7c": "npm run build && node --test tests/app-host/durable-thread-chat.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs tests/protocol/conversation-thread-p1-7a.test.mjs tests/app-host/run-backed-chat.test.mjs tests/app-host/chat-conversation-history.test.mjs tests/app-host/dynamic-chat-actions.test.mjs",
-    "test:conversation-thread:p1-8a": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs tests/app-host/durable-thread-chat.test.mjs"
+    "test:conversation-thread:p1-8a": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs tests/app-host/durable-thread-chat.test.mjs",
+    "test:conversation-retention:p1-8b": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/protocol/conversation-retention-p1-8b.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
