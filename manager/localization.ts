@@ -242,7 +242,17 @@ export const appPlatformLocalizationBundles = [
       "settings.adminToken.label": "Administrator authorization",
       "settings.adminToken.description": "Used only to authenticate the administrator. It is never persisted in Provider binding state.",
       "settings.currentResolution.label": "Current resolution",
-      "settings.selectedHealth.label": "Selected runtime health"
+      "settings.selectedHealth.label": "Selected runtime health",
+      "settings.notice.title": "Provider status",
+      "settings.notice.message": "Selected Provider health is shown from Host-observed runtime state.",
+      "settings.group.selection.title": "Provider selection",
+      "settings.group.selection.description": "Select the installed Provider that should implement this capability.",
+      "settings.group.scope.title": "Binding scope",
+      "settings.group.scope.description": "More specific scopes override broader scopes. Priority only breaks ties at the same specificity.",
+      "settings.group.runtime-status.title": "Runtime status",
+      "settings.group.runtime-status.description": "Host-observed resolution and health for the selected Provider.",
+      "settings.group.administration.title": "Administration",
+      "settings.group.administration.description": "Authorization used only when changing a protected Provider binding."
     }
   },
   {
@@ -264,7 +274,17 @@ export const appPlatformLocalizationBundles = [
       "settings.adminToken.label": "管理员授权",
       "settings.adminToken.description": "仅用于验证管理员身份，不会持久化到 Provider 绑定状态。",
       "settings.currentResolution.label": "当前解析结果",
-      "settings.selectedHealth.label": "已选择运行时健康状态"
+      "settings.selectedHealth.label": "已选择运行时健康状态",
+      "settings.notice.title": "Provider 状态",
+      "settings.notice.message": "所选 Provider 的健康状态来自 Host 实际观测的运行状态。",
+      "settings.group.selection.title": "Provider 选择",
+      "settings.group.selection.description": "选择实现此 Capability 的已安装 Provider。",
+      "settings.group.scope.title": "绑定作用域",
+      "settings.group.scope.description": "更具体的作用域覆盖更宽泛的作用域；优先级仅用于相同作用域层级的并列判定。",
+      "settings.group.runtime-status.title": "运行状态",
+      "settings.group.runtime-status.description": "Host 实际观测的 Provider 解析结果与健康状态。",
+      "settings.group.administration.title": "管理授权",
+      "settings.group.administration.description": "仅在修改受保护的 Provider 绑定时使用的授权。"
     }
   },
   {
@@ -286,7 +306,17 @@ export const appPlatformLocalizationBundles = [
       "settings.adminToken.label": "管理者認証",
       "settings.adminToken.description": "管理者の認証にのみ使用され、Provider バインディング状態には保存されません。",
       "settings.currentResolution.label": "現在の解決結果",
-      "settings.selectedHealth.label": "選択したランタイムの状態"
+      "settings.selectedHealth.label": "選択したランタイムの状態",
+      "settings.notice.title": "Provider の状態",
+      "settings.notice.message": "選択した Provider の状態は Host が観測した実行状態から表示されます。",
+      "settings.group.selection.title": "Provider の選択",
+      "settings.group.selection.description": "この Capability を実装するインストール済み Provider を選択します。",
+      "settings.group.scope.title": "バインディングのスコープ",
+      "settings.group.scope.description": "より具体的なスコープが優先され、優先度は同じ詳細度でのみ使用されます。",
+      "settings.group.runtime-status.title": "ランタイム状態",
+      "settings.group.runtime-status.description": "Host が観測した Provider の解決結果とヘルス状態です。",
+      "settings.group.administration.title": "管理",
+      "settings.group.administration.description": "保護された Provider バインディングを変更する場合にのみ使用する認証です。"
     }
   },
   {
@@ -308,7 +338,17 @@ export const appPlatformLocalizationBundles = [
       "settings.adminToken.label": "管理員授權",
       "settings.adminToken.description": "僅用於驗證管理員身分，不會持久化到 Provider 綁定狀態。",
       "settings.currentResolution.label": "目前解析結果",
-      "settings.selectedHealth.label": "已選擇執行階段健康狀態"
+      "settings.selectedHealth.label": "已選擇執行階段健康狀態",
+      "settings.notice.title": "Provider 狀態",
+      "settings.notice.message": "所選 Provider 的健康狀態來自 Host 實際觀測的執行狀態。",
+      "settings.group.selection.title": "Provider 選擇",
+      "settings.group.selection.description": "選擇實作此 Capability 的已安裝 Provider。",
+      "settings.group.scope.title": "綁定作用域",
+      "settings.group.scope.description": "較具體的作用域會覆蓋較寬泛的作用域；優先順序僅用於相同作用域層級。",
+      "settings.group.runtime-status.title": "執行狀態",
+      "settings.group.runtime-status.description": "Host 實際觀測的 Provider 解析結果與健康狀態。",
+      "settings.group.administration.title": "管理授權",
+      "settings.group.administration.description": "僅在修改受保護的 Provider 綁定時使用的授權。"
     }
   }
 ];
