@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `P1.8-2026-09-28-03`  
-**Snapshot time:** `2026-09-28T09:03:00+08:00`  
+**Snapshot:** `P1.8-2026-09-28-04`  
+**Snapshot time:** `2026-09-28T09:40:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**p1.8a-thread-lifecycle-foundation: VERIFIED_PASS**
+**p1.8b-conversation-retention-policy: VERIFIED_LIVE_PASS**
 
-Conversation Threads now have append-only ACTIVE→ARCHIVED lifecycle. Archive preserves all messages, exact read remains available, default list hides archived threads, and new Agent turns are rejected before run creation.
+Human selected a 90-day archived-thread retention policy. The effective policy is readable, default preview uses 90 days, production config explicitly records 90 days, ACTIVE threads remain ineligible, and destructive purge is disabled.
 
 Authority: `docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md`
 
@@ -26,30 +26,35 @@ Evidence:
 
 ```json
 {
-  "pr": 119,
-  "ci": "31/31 PASS",
-  "productionCommit": "17a0878fccfca53689ed7d505da7a7e9906100b1",
-  "deploymentId": "94d7334a-4076-4b13-ace3-9a646f87e172",
-  "deploymentStatus": "SUCCESS"
+  "pr": 122,
+  "ci": "27/27 PASS",
+  "productionCommit": "33301b49ddf4bdd36fec57097ea989326d28038a",
+  "deploymentId": "b82e8c29-df24-498d-ac1d-94504760d34a",
+  "deploymentStatus": "SUCCESS",
+  "retainArchivedForDays": 90,
+  "productionConfig": "APP_PLATFORM_CONVERSATION_RETENTION_DAYS=90",
+  "destructivePurgeEnabled": false
 }
 ```
 
 ## Current open live gate
 
-**p1.8b-conversation-retention-policy-90-day: IMPLEMENTATION_IN_PROGRESS**
+**p1.8c-eidos-thread-management: IMPLEMENTATION_READY**
 
-Human selected retainArchivedForDays=90. Make the 90-day archived-thread policy explicit/readable and use it as the default retention preview. Do not enable destructive purge from this decision.
+Expose durable Conversation Thread lifecycle in Eidos without changing authority boundaries: explicit New Chat, scoped history, switch/reopen, archive, selected-thread refresh continuity, and no discourse carry-over between thread IDs.
 
 Acceptance:
 
-- effective retention policy reads as 90 days
-- default preview uses 90 days without requiring the caller to resupply it
-- retention clock begins at archivedAt
-- ACTIVE threads remain ineligible
-- explicit preview overrides remain simulation-only
-- destructivePurgeEnabled remains false
-- no Conversation Thread, Context Memory, Agent Run or Action Receipt is deleted
-- production config records 90 days explicitly
+- New Chat creates a fresh durable threadId
+- New Chat does not reuse prior thread Host history
+- thread history is loaded from Host thread.list
+- switching thread loads that thread's Host transcript
+- archived threads remain reopenable read-only
+- archive action uses Host scoped thread.archive
+- selected thread survives refresh/re-mount
+- no browser conversationHistory becomes authority
+- no Context Memory side effect
+- legacy run-backed fallback occurs only before durable thread authority exists
 
 ## Current production preview
 
@@ -58,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `e0b1307b09823b9253cf737edf5e472b9fce52c3`
-- Deployment: `e0165b11-4bad-485e-b2c0-ee349af14a86`
+- Commit: `33301b49ddf4bdd36fec57097ea989326d28038a`
+- Deployment: `b82e8c29-df24-498d-ac1d-94504760d34a`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -117,6 +122,7 @@ Not proved:
 - PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
 - PR #119 — MERGED_DEPLOYED: Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS.
 - PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
+- PR #122 — MERGED_DEPLOYED: Apply Human-selected 90-day archived Conversation Thread retention policy; 27/27 CI PASS; destructive purge remains disabled.
 
 ## DO NOT repeat stale actions
 
@@ -164,11 +170,12 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention
-- state P1.7 and P1.8A as verified and closed
-- state the Human-selected archived Conversation Thread retention policy as 90 days from archivedAt
-- state P1.8B implementation is making that policy explicit/readable while destructive purge remains disabled
-- state ACTIVE threads are never purge-eligible
-- do not interpret the 90-day decision as authorization to delete anything
+- state P1.8A and P1.8B as verified and production-live
+- state archived Conversation Thread retention as 90 days from archivedAt
+- state destructive purge remains disabled and was not authorized by the 90-day decision
+- state P1.8C Eidos thread management as the current open gate
+- state current deployed runtime revision 33301b49ddf4bdd36fec57097ea989326d28038a
+- explain true irreversible erasure is a separate future security boundary, not a logical tombstone
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
