@@ -328,7 +328,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Human retention policy decision received: retainArchivedForDays = 90 days for archived Conversation Threads, measured from archivedAt. P1.8B implementation is active to make this explicit policy readable and the default for retention preview while keeping destructive purge disabled. ACTIVE threads remain ineligible. The decision does not authorize deletion; any irreversible purge remains a separate Human authority boundary.",
+  "currentStep": "P1.8B Human-selected Conversation Retention policy is production-live: retainArchivedForDays=90, measured from archivedAt, applies only to ARCHIVED threads, ACTIVE threads are never purge-eligible, and destructive purge remains disabled. PR #122 passed 27/27 triggered CI and deployed successfully to Railway at 33301b49ddf4bdd36fec57097ea989326d28038a / b82e8c29-df24-498d-ac1d-94504760d34a with APP_PLATFORM_CONVERSATION_RETENTION_DAYS=90. P1.8C now starts: Eidos must expose explicit New Chat, durable thread history, switch/reopen, archive, selected-thread refresh continuity, and strict no-carry-over between thread identities. True irreversible erasure remains a separate later security boundary; do not fake physical deletion with a logical tombstone.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1573,8 +1573,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "P1.8-2026-09-28-03",
-    "snapshotAt": "2026-09-28T09:03:00+08:00",
+    "snapshotId": "P1.8-2026-09-28-04",
+    "snapshotAt": "2026-09-28T09:40:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1597,32 +1597,37 @@
       "milestone": "Personal Agent P1.8 — Conversation Lifecycle & Retention",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "p1.8a-thread-lifecycle-foundation",
-        "status": "VERIFIED_PASS",
-        "summary": "Conversation Threads now have append-only ACTIVE→ARCHIVED lifecycle. Archive preserves all messages, exact read remains available, default list hides archived threads, and new Agent turns are rejected before run creation.",
+        "id": "p1.8b-conversation-retention-policy",
+        "status": "VERIFIED_LIVE_PASS",
+        "summary": "Human selected a 90-day archived-thread retention policy. The effective policy is readable, default preview uses 90 days, production config explicitly records 90 days, ACTIVE threads remain ineligible, and destructive purge is disabled.",
         "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
         "evidence": {
-          "pr": 119,
-          "ci": "31/31 PASS",
-          "productionCommit": "17a0878fccfca53689ed7d505da7a7e9906100b1",
-          "deploymentId": "94d7334a-4076-4b13-ace3-9a646f87e172",
-          "deploymentStatus": "SUCCESS"
+          "pr": 122,
+          "ci": "27/27 PASS",
+          "productionCommit": "33301b49ddf4bdd36fec57097ea989326d28038a",
+          "deploymentId": "b82e8c29-df24-498d-ac1d-94504760d34a",
+          "deploymentStatus": "SUCCESS",
+          "retainArchivedForDays": 90,
+          "productionConfig": "APP_PLATFORM_CONVERSATION_RETENTION_DAYS=90",
+          "destructivePurgeEnabled": false
         }
       },
       "openGate": {
-        "id": "p1.8b-conversation-retention-policy-90-day",
-        "status": "IMPLEMENTATION_IN_PROGRESS",
-        "summary": "Human selected retainArchivedForDays=90. Make the 90-day archived-thread policy explicit/readable and use it as the default retention preview. Do not enable destructive purge from this decision.",
+        "id": "p1.8c-eidos-thread-management",
+        "status": "IMPLEMENTATION_READY",
+        "summary": "Expose durable Conversation Thread lifecycle in Eidos without changing authority boundaries: explicit New Chat, scoped history, switch/reopen, archive, selected-thread refresh continuity, and no discourse carry-over between thread IDs.",
         "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
         "acceptance": [
-          "effective retention policy reads as 90 days",
-          "default preview uses 90 days without requiring the caller to resupply it",
-          "retention clock begins at archivedAt",
-          "ACTIVE threads remain ineligible",
-          "explicit preview overrides remain simulation-only",
-          "destructivePurgeEnabled remains false",
-          "no Conversation Thread, Context Memory, Agent Run or Action Receipt is deleted",
-          "production config records 90 days explicitly"
+          "New Chat creates a fresh durable threadId",
+          "New Chat does not reuse prior thread Host history",
+          "thread history is loaded from Host thread.list",
+          "switching thread loads that thread's Host transcript",
+          "archived threads remain reopenable read-only",
+          "archive action uses Host scoped thread.archive",
+          "selected thread survives refresh/re-mount",
+          "no browser conversationHistory becomes authority",
+          "no Context Memory side effect",
+          "legacy run-backed fallback occurs only before durable thread authority exists"
         ]
       },
       "productionPreview": {
@@ -1631,8 +1636,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "e0b1307b09823b9253cf737edf5e472b9fce52c3",
-        "deploymentId": "e0165b11-4bad-485e-b2c0-ee349af14a86",
+        "commit": "33301b49ddf4bdd36fec57097ea989326d28038a",
+        "deploymentId": "b82e8c29-df24-498d-ac1d-94504760d34a",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1787,6 +1792,11 @@
         "pr": 120,
         "status": "MERGED_DEPLOYED",
         "summary": "Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled."
+      },
+      {
+        "pr": 122,
+        "status": "MERGED_DEPLOYED",
+        "summary": "Apply Human-selected 90-day archived Conversation Thread retention policy; 27/27 CI PASS; destructive purge remains disabled."
       }
     ],
     "doNotRepeat": [
@@ -1817,11 +1827,12 @@
     ],
     "freshSessionAcceptance": [
       "state current milestone as Personal Agent P1.8 — Conversation Lifecycle & Retention",
-      "state P1.7 and P1.8A as verified and closed",
-      "state the Human-selected archived Conversation Thread retention policy as 90 days from archivedAt",
-      "state P1.8B implementation is making that policy explicit/readable while destructive purge remains disabled",
-      "state ACTIVE threads are never purge-eligible",
-      "do not interpret the 90-day decision as authorization to delete anything",
+      "state P1.8A and P1.8B as verified and production-live",
+      "state archived Conversation Thread retention as 90 days from archivedAt",
+      "state destructive purge remains disabled and was not authorized by the 90-day decision",
+      "state P1.8C Eidos thread management as the current open gate",
+      "state current deployed runtime revision 33301b49ddf4bdd36fec57097ea989326d28038a",
+      "explain true irreversible erasure is a separate future security boundary, not a logical tombstone",
       "do not require the previous ChatGPT transcript to continue"
     ],
     "liveValidation": {
@@ -2130,7 +2141,7 @@
     }
   },
   "conversationLifecycleP1_8": {
-    "status": "ACTIVE_P1_8B_90_DAY_POLICY_IMPLEMENTATION",
+    "status": "ACTIVE_P1_8C_THREAD_MANAGEMENT",
     "authority": "docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md",
     "invariant": "DURABLE_CONVERSATION_REQUIRES_EXPLICIT_LIFECYCLE_AND_RETENTION_SEPARATE_FROM_CONTEXT_MEMORY",
     "slices": [
@@ -2157,7 +2168,7 @@
       {
         "id": "P1.8B",
         "title": "Conversation retention policy",
-        "status": "IMPLEMENTING_HUMAN_SELECTED_90_DAY_POLICY",
+        "status": "VERIFIED_POLICY_LIVE_PASS",
         "target": [
           "thread-specific retention policy independent from Context Memory retention",
           "retention preview before destructive purge",
@@ -2184,12 +2195,23 @@
           "clockStartsAt": "archivedAt",
           "activeThreadsNeverEligible": true,
           "destructivePurgeAuthorized": false
+        },
+        "liveEvidence": {
+          "pr": 122,
+          "ci": "27/27 PASS",
+          "deployedCommit": "33301b49ddf4bdd36fec57097ea989326d28038a",
+          "deploymentId": "b82e8c29-df24-498d-ac1d-94504760d34a",
+          "deploymentStatus": "SUCCESS",
+          "productionConfig": {
+            "APP_PLATFORM_CONVERSATION_RETENTION_DAYS": "90"
+          },
+          "destructivePurgeEnabled": false
         }
       },
       {
         "id": "P1.8C",
         "title": "Eidos thread management",
-        "status": "PLANNED",
+        "status": "IMPLEMENTATION_READY",
         "target": [
           "explicit New Chat creates a new durable thread",
           "thread history list",
@@ -2208,6 +2230,17 @@
       "clockStartsAt": "archivedAt",
       "activeThreadsNeverEligible": true,
       "destructivePurgeAuthorized": false
+    },
+    "secureErasureFuture": {
+      "status": "DEFERRED_SEPARATE_SECURITY_BOUNDARY",
+      "rationale": "Current append-only JSONL embeds message content. A logical tombstone would not physically erase sensitive bytes, so irreversible erasure must not be falsely claimed.",
+      "requirements": [
+        "separate Human authorization",
+        "preview/eligibility evidence",
+        "physical or cryptographic erasure semantics",
+        "audit evidence without retaining erased message content",
+        "must not silently delete Context Memory, Agent Runs or Action Receipts"
+      ]
     }
   }
 }
