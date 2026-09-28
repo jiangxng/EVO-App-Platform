@@ -448,7 +448,7 @@ export async function recoverThreadBackedChatV010(
       mode: "THREAD",
       result: {
         ok: true,
-        result: { thread }
+        result: JSON.parse(JSON.stringify({ thread })) as JsonValue
       },
       thread,
       threadId: thread.threadId,
