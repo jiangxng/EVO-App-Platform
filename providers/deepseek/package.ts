@@ -45,8 +45,12 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
                 key: "model",
                 label: "Model",
                 description: "DeepSeek model id used for inference.",
-                type: "string",
+                type: "select",
                 defaultValue: "deepseek-flash",
+                options: [
+                  { label: "DeepSeek Flash", value: "deepseek-flash" },
+                  { label: "DeepSeek V4 Pro", value: "deepseek-v4-pro" }
+                ],
                 scope: "INSTALLATION"
               },
               {
@@ -71,7 +75,9 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.description": "Runtime settings for the DeepSeek Responses API provider. API credentials remain in the secure Host Secrets boundary.",
               "settings.saveLabel": "Save",
               "settings.model.label": "Model",
-              "settings.model.description": "DeepSeek model id used for inference. Current official choices include deepseek-flash and deepseek-v4-pro.",
+              "settings.model.description": "Choose the DeepSeek model used for inference.",
+              "settings.model.option.deepseek-flash": "DeepSeek Flash",
+              "settings.model.option.deepseek-v4-pro": "DeepSeek V4 Pro",
               "settings.baseUrl.label": "API Base URL",
               "settings.baseUrl.description": "DeepSeek OpenAI-compatible API base URL.",
               "settings.secret:apiKey.label": "API Key",
@@ -79,8 +85,8 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-status:apiKey.label": "API Key status",
               "settings.secret-remove:apiKey.label": "Remove API Key",
               "settings.secret-remove:apiKey.description": "Remove the stored credential when saving.",
-              "settings.adminToken.label": "Administrator authorization",
-              "settings.adminToken.description": "Required only when changing Secret values during the bootstrap administration phase."
+              "settings.adminToken.label": "Bootstrap administrator verification",
+              "settings.adminToken.description": "Temporary verification used only when changing credentials before sign-in/session authorization is available."
             }
           }
         },
@@ -95,7 +101,9 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.description": "DeepSeek Responses API Provider 的运行设置。API Key 由安全的 Host Secrets 边界管理。",
               "settings.saveLabel": "保存",
               "settings.model.label": "模型",
-              "settings.model.description": "推理时使用的 DeepSeek 模型 ID。当前官方模型包括 deepseek-flash 和 deepseek-v4-pro。",
+              "settings.model.description": "选择推理时使用的 DeepSeek 模型。",
+              "settings.model.option.deepseek-flash": "DeepSeek Flash",
+              "settings.model.option.deepseek-v4-pro": "DeepSeek V4 Pro",
               "settings.baseUrl.label": "API Base URL",
               "settings.baseUrl.description": "DeepSeek 的 OpenAI 兼容 API 基础地址。",
               "settings.secret:apiKey.label": "API Key",
@@ -103,8 +111,8 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-status:apiKey.label": "API Key 状态",
               "settings.secret-remove:apiKey.label": "删除 API Key",
               "settings.secret-remove:apiKey.description": "保存时删除当前已存储的凭据。",
-              "settings.adminToken.label": "管理员授权",
-              "settings.adminToken.description": "在 bootstrap 管理阶段，修改 Secret 时需要提供管理员认证。"
+              "settings.adminToken.label": "引导阶段管理员验证",
+              "settings.adminToken.description": "仅在尚未接入正式登录/会话授权时，修改凭据需要此临时 bootstrap 验证。"
             }
           }
         },
@@ -119,7 +127,9 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.description": "DeepSeek Responses API Provider のランタイム設定です。API Key は安全な Host Secrets 境界で管理されます。",
               "settings.saveLabel": "保存",
               "settings.model.label": "モデル",
-              "settings.model.description": "推論に使用する DeepSeek モデル ID。現在の公式モデルには deepseek-flash と deepseek-v4-pro があります。",
+              "settings.model.description": "推論に使用する DeepSeek モデルを選択します。",
+              "settings.model.option.deepseek-flash": "DeepSeek Flash",
+              "settings.model.option.deepseek-v4-pro": "DeepSeek V4 Pro",
               "settings.baseUrl.label": "API Base URL",
               "settings.baseUrl.description": "DeepSeek の OpenAI 互換 API ベース URL。",
               "settings.secret:apiKey.label": "API Key",
@@ -127,8 +137,8 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-status:apiKey.label": "API Key の状態",
               "settings.secret-remove:apiKey.label": "API Key を削除",
               "settings.secret-remove:apiKey.description": "保存時に現在の認証情報を削除します。",
-              "settings.adminToken.label": "管理者認証",
-              "settings.adminToken.description": "bootstrap 管理フェーズで Secret を変更する場合にのみ必要です。"
+              "settings.adminToken.label": "ブートストラップ管理者確認",
+              "settings.adminToken.description": "正式なサインイン／セッション認可が利用可能になる前に、認証情報を変更する場合だけ使う一時的な確認です。"
             }
           }
         },
@@ -143,7 +153,9 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.description": "DeepSeek Responses API Provider 的執行設定。API Key 由安全的 Host Secrets 邊界管理。",
               "settings.saveLabel": "儲存",
               "settings.model.label": "模型",
-              "settings.model.description": "推論時使用的 DeepSeek 模型 ID。目前官方模型包括 deepseek-flash 與 deepseek-v4-pro。",
+              "settings.model.description": "選擇推論時使用的 DeepSeek 模型。",
+              "settings.model.option.deepseek-flash": "DeepSeek Flash",
+              "settings.model.option.deepseek-v4-pro": "DeepSeek V4 Pro",
               "settings.baseUrl.label": "API Base URL",
               "settings.baseUrl.description": "DeepSeek 的 OpenAI 相容 API 基礎網址。",
               "settings.secret:apiKey.label": "API Key",
@@ -151,8 +163,8 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
               "settings.secret-status:apiKey.label": "API Key 狀態",
               "settings.secret-remove:apiKey.label": "刪除 API Key",
               "settings.secret-remove:apiKey.description": "儲存時刪除目前已儲存的憑證。",
-              "settings.adminToken.label": "管理員授權",
-              "settings.adminToken.description": "僅在 bootstrap 管理階段修改 Secret 時需要。"
+              "settings.adminToken.label": "引導階段管理員驗證",
+              "settings.adminToken.description": "僅在尚未接入正式登入／工作階段授權時，修改憑證需要此臨時 bootstrap 驗證。"
             }
           }
         },
