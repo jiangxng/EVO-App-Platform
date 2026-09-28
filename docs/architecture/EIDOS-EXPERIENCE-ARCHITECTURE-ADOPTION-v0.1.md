@@ -2,7 +2,9 @@
 
 **Status:** Active App Platform gate  
 **Date:** 2026-09-28  
-**Eidos authority commit:** `9440d8c32b9f23eab2c55b0f58a8be711573da33`
+**Eidos Experience Architecture authority:** `9440d8c32b9f23eab2c55b0f58a8be711573da33`  
+**Eidos Review / Decision pattern:** `82dcea59abf14518394fd605faf5b741e57a7ef0`  
+**Eidos Journey Continuation:** `b937d45e6149dc16bdd2f0f6141df468f9014bda`
 
 ## Purpose
 
@@ -35,9 +37,9 @@ The Platform CI runs this gate.
 | Experience | Maturity | Archetype | Current posture |
 |---|---|---|---|
 | Personal Agent Chat | candidate | conversation | direct composer + Agent channel |
-| Personal Agent Setup | candidate | setup | guided journey exists; internal capability wording still leaks into Human copy |
-| Personal Agent Memory Review | candidate | review | direct actions exist; machine/debug values and visual pattern still need cleanup |
-| LLM Provider Binding | candidate | editor | grouped Eidos settings; internal scope/runtime values need Human-layer treatment |
+| Personal Agent Setup | candidate | setup | novice task language; provider selection/settings save resume the Setup journey through Eidos Journey Continuation |
+| Personal Agent Memory Review | candidate | review | Eidos Review/Decision pattern; Human decision layer separated from collapsed machine/diagnostic detail |
+| LLM Provider Binding | candidate | editor | AI-service-first default path; scope/runtime/administrator controls progressively disclosed as Advanced |
 | LLM Provider Settings | candidate | editor | grouped runtime/credentials/administration |
 | Personal Agent Quality | experimental | overview | engineering evidence surface, not yet product-certified |
 | Personal Agent Quality Review | experimental | review | engineering evidence surface, not yet product-certified |
@@ -45,7 +47,7 @@ The Platform CI runs this gate.
 
 ## Ratchet rule
 
-The file records known Experience Architecture diagnostics for current candidate pages.
+The file records known Experience Architecture diagnostics for current candidate pages. The current machine-validator baseline is empty after Foundation UX Pass 1; new diagnostics therefore fail closed instead of being normalized as existing debt.
 
 **The baseline may shrink without Human approval when an issue is fixed.**
 
@@ -79,9 +81,15 @@ Pixel-level Human review remains the final visual check, not the only source of 
 
 Current known debt should be removed through Eidos public capabilities/patterns, not App Platform private CSS.
 
-The first product migrations are:
+Foundation UX Pass 1 closes the first three candidate-surface debts through public Eidos patterns:
 
-1. Personal Agent Memory Review — Human labels for machine review signals/IDs, Eidos Review visual hierarchy and action closure.
-2. Personal Agent Setup / LLM Provider — remove internal capability language from the novice path and make the setup journey continue automatically/directly.
-3. Provider Binding — keep advanced scope/runtime values behind progressive disclosure while preserving expert control.
-4. Quality / Follow-up surfaces — migrate from experimental to candidate only after localization, interaction closure and direct-action review.
+1. Personal Agent Memory Review — Human labels for review signals, machine identifiers under Technical details, first-class Review/Decision hierarchy.
+2. Personal Agent Setup / LLM Provider — novice task language plus Journey Continuation for provider binding/settings save.
+3. Provider Binding — AI-service-first default path with scope/runtime/administrator controls under progressive disclosure.
+
+Remaining work is not hidden:
+
+- first-run Provider discovery/install from the general Plugin Store still needs a precise install-completion continuation that cannot accidentally trigger on an unrelated plugin install;
+- Quality / Quality Review / Follow-up surfaces remain explicitly `experimental` until localization, journey/action closure and direct-operation review are complete.
+
+Do not promote these items by changing maturity labels alone.
