@@ -376,7 +376,11 @@ export function createPersonalAgentSetupPageV010(
                     id: "choose-provider",
                     label: "Choose AI service",
                     type: "navigate",
-                    route: providerManagerCapabilityRoute(LLM_CAPABILITY)
+                    route: providerManagerCapabilityRoute(LLM_CAPABILITY),
+                    continuation: {
+                      onActionId: "settings.save",
+                      route: PERSONAL_AGENT_SETUP_ROUTE
+                    }
                   } as const
                 : {
                     id: "open-provider-catalog",
@@ -409,7 +413,11 @@ export function createPersonalAgentSetupPageV010(
                 id: "configure-provider",
                 label: "Connect service",
                 type: "navigate",
-                route: settingsPackageRoute(selectedPackageId)
+                route: settingsPackageRoute(selectedPackageId),
+                continuation: {
+                  onActionId: "settings.save",
+                  route: PERSONAL_AGENT_SETUP_ROUTE
+                }
               } as const,
               secondaryActions: [{
                 id: "provider-status",
