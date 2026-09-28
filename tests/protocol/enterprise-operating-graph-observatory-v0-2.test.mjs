@@ -401,3 +401,100 @@ test("Fact identity is unique across primary and comparison windows", async () =
     /EOG_RUNTIME_FACT_ID_DUPLICATE/
   );
 });
+
+
+test("Runtime Provider receives Host-resolved canonical semantic targets", async () => {
+  const service = graphService();
+  const seen = [];
+  const runtimeProvider = {
+    contractVersion: "0.2.0",
+    providerId: "test.runtime",
+    async query(request) {
+      seen.push(structuredClone(request));
+      return [runtimeFact(request)];
+    }
+  };
+  const observatory = createEnterpriseOperatingGraphObservatoryServiceV020({
+    graphService: service,
+    runtimeProvider
+  });
+
+  await observatory.observe({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    timeLens: {
+      contractVersion: "0.2.0",
+      primary: lens.primary
+    },
+    targets: [{ kind: "NODE", nodeId: "ledger:wip" }],
+    metricCodes: ["flow.wip"]
+  });
+
+  assert.equal(seen.length, 1);
+  assert.deepEqual(seen[0].semanticTargets, [{
+    target: {
+      kind: "NODE",
+      nodeId: "ledger:wip"
+    },
+    node: {
+      nodeId: "ledger:wip",
+      kind: "LEDGER",
+      semanticRef: {
+        kind: "LEDGER_DEFINITION",
+        authority: "EVO",
+        refId: "ledger:pending-production"
+      }
+    }
+  }]);
+});
+
+test("graph-wide Runtime Provider query receives canonical nodes and semantic relation endpoints", async () => {
+  const service = graphService();
+  const seen = [];
+  const runtimeProvider = {
+    contractVersion: "0.2.0",
+    providerId: "test.runtime",
+    async query(request) {
+      seen.push(structuredClone(request));
+      return [];
+    }
+  };
+  const observatory = createEnterpriseOperatingGraphObservatoryServiceV020({
+    graphService: service,
+    runtimeProvider
+  });
+
+  await observatory.observe({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    timeLens: {
+      contractVersion: "0.2.0",
+      primary: lens.primary
+    }
+  });
+
+  assert.equal(seen.length, 1);
+  const semanticTargets = seen[0].semanticTargets;
+  assert.equal(semanticTargets.length, 3);
+
+  const application = semanticTargets.find(
+    item => item.target.kind === "NODE"
+      && item.target.nodeId === "app:production"
+  );
+  assert.equal(application.node.semanticRef.kind, "APPLICATION");
+  assert.equal(application.node.semanticRef.refId, "application:production");
+
+  const guidance = semanticTargets.find(
+    item => item.target.kind === "RELATION"
+      && item.target.authority === "GUIDANCE"
+  );
+  assert.equal(guidance.relation.kind, "APPLICATION_LEDGER");
+  assert.equal(
+    guidance.relation.application.semanticRef.refId,
+    "application:production"
+  );
+  assert.equal(
+    guidance.relation.ledger.semanticRef.refId,
+    "ledger:pending-production"
+  );
+});
