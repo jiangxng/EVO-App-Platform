@@ -571,7 +571,7 @@ export function createPersonalAgentMemoryReviewPageV010(
           metrics: [
             {
               id: "confidence",
-              label: "Proposed confidence",
+              label: "Confidence",
               value: revision.proposedConfidence === undefined
                 ? "—"
                 : `${Math.round(revision.proposedConfidence * 100)}%`,
@@ -581,7 +581,7 @@ export function createPersonalAgentMemoryReviewPageV010(
             },
             {
               id: "evidence",
-              label: "Evidence refs",
+              label: "Evidence",
               value: String(revision.evidenceRefs.length),
               tone: revision.evidenceRefs.length === 0 ? "warning" : "neutral"
             },
