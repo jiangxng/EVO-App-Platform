@@ -228,11 +228,46 @@ export function createPersonalAgentThreadActionHandlersV010(
           ) {
             throw new Error("CONVERSATION_THREAD_LIMIT_INVALID");
           }
+          const includeArchived = request.values.includeArchived;
+          if (
+            includeArchived !== undefined
+            && typeof includeArchived !== "boolean"
+          ) {
+            throw new Error("CONVERSATION_THREAD_INCLUDE_ARCHIVED_INVALID");
+          }
           return success(request, {
             threads: dependencies.threadStore.list({
               principalSubjectId: principal.subjectId,
               context: context.activeContext,
-              limit
+              limit,
+              ...(includeArchived !== undefined ? { includeArchived } : {})
+            })
+          });
+        } catch (error) {
+          return failure(request, error);
+        }
+      }
+    },
+    {
+      ...base,
+      commandCode: "enterprise-agent.thread.archive",
+      async execute(request, requestContext) {
+        try {
+          const { principal, context } = scopeForRequest(
+            dependencies,
+            request,
+            requestContext
+          );
+          const thread = dependencies.threadStore.get(threadIdFromRequest(request));
+          if (!thread || !sameScope(thread, principal, context)) {
+            throw new Error("CONVERSATION_THREAD_NOT_FOUND");
+          }
+          const archivedAt = (dependencies.now?.() ?? new Date()).toISOString();
+          return success(request, {
+            thread: dependencies.threadStore.archive({
+              threadId: thread.threadId,
+              archivedAt,
+              archivedBySubjectId: principal.subjectId
             })
           });
         } catch (error) {
