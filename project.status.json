@@ -1650,6 +1650,15 @@
           "irreversible purge requires separate Human authorization",
           "purge/tombstone evidence is auditable",
           "Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup"
+        ],
+        "acceptance": [
+          "chosen retention duration is recorded as explicit Human policy",
+          "policy is separate from Context Memory retention",
+          "preview shows deterministic eligibility before any purge",
+          "ACTIVE threads remain ineligible",
+          "irreversible purge requires separate Human authorization",
+          "purge/tombstone evidence is auditable",
+          "Context Memory, Agent Runs and Action Receipts are not silently deleted with conversation thread cleanup"
         ]
       },
       "productionPreview": {
