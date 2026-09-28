@@ -232,6 +232,7 @@ export interface AppHostJourneyContinuationV010 {
   targetRoute: string;
   onActionId: string;
   returnRoute: string;
+  onItemIds?: string[];
   createdAt: number;
 }
 
@@ -253,7 +254,8 @@ export function persistJourneyContinuationV010(
   onActionId: string,
   returnRoute: string,
   storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
-  now = Date.now()
+  now = Date.now(),
+  onItemIds?: readonly string[]
 ): void {
   if (!storage) return;
   if (!targetRoute.startsWith("/") || !returnRoute.startsWith("/") || !onActionId.trim()) {
@@ -263,6 +265,7 @@ export function persistJourneyContinuationV010(
     targetRoute,
     onActionId,
     returnRoute,
+    ...(onItemIds?.length ? { onItemIds: [...new Set(onItemIds)].sort() } : {}),
     createdAt: now
   };
   storage.setItem(journeyContinuationStorageKeyV010(targetRoute), JSON.stringify(value));
@@ -272,7 +275,8 @@ export function consumeJourneyContinuationV010(
   targetRoute: string,
   completedActionId: string,
   storage: JourneyContinuationStorageV010 | undefined = browserSessionStorage(),
-  now = Date.now()
+  now = Date.now(),
+  completedItemId?: string
 ): AppHostJourneyContinuationV010 | undefined {
   if (!storage) return undefined;
   const key = journeyContinuationStorageKeyV010(targetRoute);
@@ -292,6 +296,11 @@ export function consumeJourneyContinuationV010(
       return undefined;
     }
     if (value.onActionId !== completedActionId) return undefined;
+    if (
+      Array.isArray(value.onItemIds)
+      && value.onItemIds.length > 0
+      && (!completedItemId || !value.onItemIds.includes(completedItemId))
+    ) return undefined;
     storage.removeItem(key);
     return value as AppHostJourneyContinuationV010;
   } catch {
@@ -398,6 +407,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (!route) throw new Error("EIDOS_CATALOG_NAVIGATE_ROUTE_REQUIRED");
         const continuationActionId = button.dataset.eidosContinuationActionId;
         const continuationRoute = button.dataset.eidosContinuationRoute;
+        const continuationItemIds = button.dataset.eidosContinuationItemIds
+          ? JSON.parse(button.dataset.eidosContinuationItemIds) as string[]
+          : undefined;
         if (continuationActionId || continuationRoute) {
           if (!continuationActionId || !continuationRoute) {
             throw new Error("EIDOS_JOURNEY_CONTINUATION_INCOMPLETE");
@@ -405,7 +417,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           persistJourneyContinuationV010(
             route,
             continuationActionId,
-            continuationRoute
+            continuationRoute,
+            undefined,
+            Date.now(),
+            continuationItemIds
           );
         }
         await options.onNavigate?.(route);
@@ -528,6 +543,18 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           );
         }
 
+        const continuation = result.ok && options.onNavigate
+          ? consumeJourneyContinuationV010(
+              page.route.path,
+              request.actionId,
+              undefined,
+              Date.now(),
+              itemId
+            )
+          : undefined;
+        if (continuation) {
+          await options.onNavigate?.(continuation.returnRoute);
+        }
         await options.onActionResult?.(result, page);
       } finally {
         button.disabled = false;
