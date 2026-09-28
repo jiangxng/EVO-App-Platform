@@ -981,13 +981,6 @@ const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.tr
 const providerBindings = providerBindingsFile
   ? createFileProviderBindingStoreV010(providerBindingsFile)
   : createMemoryProviderBindingStoreV010();
-const enterpriseOperatingGraphObservatoryProviders =
-  createEnterpriseOperatingGraphObservatoryProviderResolverV020({
-    manager,
-    registry: providerRuntimeRegistry,
-    bindings: providerBindings,
-    installationId: "default"
-  });
 const bootstrapAdminToken = process.env.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
   || process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
 const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
@@ -1103,6 +1096,14 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+const enterpriseOperatingGraphObservatoryProviders =
+  createEnterpriseOperatingGraphObservatoryProviderResolverV020({
+    manager,
+    registry: providerRuntimeRegistry,
+    bindings: providerBindings,
+    installationId: "default"
+  });
+
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
   hostBearerSessions
