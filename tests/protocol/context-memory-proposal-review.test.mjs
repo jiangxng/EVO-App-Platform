@@ -354,6 +354,74 @@ test("Proposal review signals are assistance, not automatic truth decisions", as
   assert.equal(proposal.state, "PENDING");
 });
 
+test("Memory Review turns machine review signals into Human labels and keeps raw enums in Technical details", async () => {
+  const h = harness({ ids: ["r-signal", "p-signal"] });
+  const writer = createHostContextMemoryWriterV010(h.memoryStore);
+  await writer.write({
+    contractVersion: "0.1.0",
+    item: {
+      contractVersion: "0.1.0",
+      memoryId: "memory:existing",
+      context: personalRef,
+      kind: "FACT",
+      summary: "Existing fact",
+      provenance: {
+        contractVersion: "0.1.0",
+        origin: "DIRECT",
+        sourceContext: personalRef,
+        evidenceRefs: []
+      },
+      attribution: {
+        contractVersion: "0.1.0",
+        recordedBySubjectId: "alice",
+        recordedByActorType: "HUMAN",
+        recordedAt: "2026-09-27T00:00:00.000Z"
+      }
+    }
+  });
+  const proposal = await h.service.create({
+    principal: alice,
+    context: personalRef,
+    draft: {
+      kind: "FACT",
+      summary: "Existing fact",
+      supersedesMemoryId: "memory:existing",
+      potentialContradictionMemoryIds: ["memory:existing"]
+    }
+  });
+  const definition = createPersonalAgentMemoryReviewPageV010(
+    [proposal],
+    new Map([["personal:alice", "Alice"]]),
+    [],
+    new Map([["memory:existing", "Existing fact"]])
+  );
+  const signalTitles = definition.items[0].evidence
+    .filter(item => item.id.startsWith("signal-"))
+    .map(item => item.title);
+  assert.deepEqual(
+    new Set(signalTitles),
+    new Set(["Possible contradiction", "May replace existing Memory"])
+  );
+  assert.equal(
+    definition.items[0].evidence.some(item =>
+      /POTENTIAL_CONTRADICTION|SUPERSESSION_CANDIDATE/.test(item.title + " " + item.source)
+    ),
+    false
+  );
+  assert.equal(
+    definition.items[0].technicalDetails.some(detail =>
+      detail.key === "reviewSignal" && detail.value === "POTENTIAL_CONTRADICTION"
+    ),
+    true
+  );
+  assert.equal(
+    definition.items[0].technicalDetails.some(detail =>
+      detail.key === "reviewSignal" && detail.value === "SUPERSESSION_CANDIDATE"
+    ),
+    true
+  );
+});
+
 test("AUDITOR can read Enterprise Context but cannot accept Enterprise Memory proposal", async () => {
   const h = harness({ role: "AUDITOR", ids: ["r1", "p1"] });
   const proposal = await h.service.create({
@@ -399,6 +467,13 @@ test("Memory Review page uses Eidos Review Queue and has all four locale bundles
   assert.equal(definition.kind, "review-queue");
   assert.equal(definition.items[0].state, "attention");
   assert.equal(definition.items[0].primaryAction.command, "context.memory.proposal.accept");
+  assert.equal(definition.technicalDetailsLabel, "Technical details");
+  assert.equal(
+    definition.items[0].technicalDetails.some(detail =>
+      detail.key === "proposalId" && detail.value === proposal.proposalId
+    ),
+    true
+  );
 
   const experience = enterpriseAgentPackage.features[0].contributions.find(
     item => item.kind === "eidos.experience"
@@ -439,6 +514,11 @@ test("Memory Review page uses Eidos Review Queue and has all four locale bundles
   assert.equal(ja.title, "メモリーレビュー");
   assert.equal(ja.items[0].primaryAction.label, "承認");
   assert.equal(ja.items[0].fields[0].options[3].value, "PRACTICE");
+  assert.equal(ja.technicalDetailsLabel, "技術情報");
+  assert.equal(
+    ja.items[0].technicalDetails.find(detail => detail.key === "proposalId").label,
+    "提案 ID"
+  );
 
   const tw = localizeAppHostPageDefinition(
     page,
@@ -480,8 +560,18 @@ test("Memory Review localizes evidence source trust in all four product locales"
   );
   assert.equal(trustMetric.value, "1");
   assert.equal(definition.items[0].evidence.some(
-    item => item.title === "Manufacturing EC" && item.source === "EXPERIENCE_COMPILER"
+    item => item.title === "Manufacturing EC" && item.source === "Verified source"
   ), true);
+  assert.equal(
+    definition.items[0].technicalDetails.some(detail =>
+      detail.key === "sourceType" && detail.value === "EXPERIENCE_COMPILER"
+    ),
+    true
+  );
+  assert.equal(
+    definition.items[0].evidence.some(item => item.source === "EXPERIENCE_COMPILER"),
+    false
+  );
 
   const experience = enterpriseAgentPackage.features[0].contributions.find(
     item => item.kind === "eidos.experience"
@@ -505,12 +595,12 @@ test("Memory Review localizes evidence source trust in all four product locales"
     .map(item => item.bundle);
 
   const expected = new Map([
-    ["en", "Host-verified sources"],
-    ["zh-CN", "Host 已验证来源"],
-    ["ja", "Host 検証済みソース"],
-    ["zh-TW", "Host 已驗證來源"]
+    ["en", ["Host-verified sources", "Verified source", "Technical details"]],
+    ["zh-CN", ["Host 已验证来源", "已验证来源", "技术详情"]],
+    ["ja", ["Host 検証済みソース", "検証済みソース", "技術情報"]],
+    ["zh-TW", ["Host 已驗證來源", "已驗證來源", "技術詳情"]]
   ]);
-  for (const [locale, label] of expected) {
+  for (const [locale, [label, sourceLabel, technicalLabel]] of expected) {
     const localized = localizeAppHostPageDefinition(
       page,
       createLocalizationRuntime(bundles, { locale })
@@ -519,5 +609,16 @@ test("Memory Review localizes evidence source trust in all four product locales"
       item => item.id === "source-trust-host-verified"
     );
     assert.equal(metric.label, label);
+    assert.equal(
+      localized.items[0].evidence.find(item => item.title === "Manufacturing EC").source,
+      sourceLabel
+    );
+    assert.equal(localized.technicalDetailsLabel, technicalLabel);
+    assert.equal(
+      localized.items[0].technicalDetails.some(detail =>
+        detail.key === "sourceType" && detail.value === "EXPERIENCE_COMPILER"
+      ),
+      true
+    );
   }
 });
