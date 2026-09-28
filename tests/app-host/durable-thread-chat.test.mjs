@@ -2,7 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  archiveConversationThreadV010,
+  createConversationThreadV010,
   executeThreadBackedChatV010,
+  getConversationThreadV010,
+  listConversationThreadsV010,
   recoverThreadBackedChatV010,
   transcriptFromThreadV010
 } from "../../dist/vendor/eidos/src/app-host/personal-agent-thread-chat.js";
@@ -287,4 +291,160 @@ test("thread-backed adapter yields undefined only when thread actions are unavai
 
   assert.equal(execution, undefined);
   assert.equal(recovery, undefined);
+});
+
+
+test("P1.8C thread management lists active+archived, creates a truly fresh thread, switches by exact get and archives through Host", async () => {
+  const calls = [];
+  const active = {
+    ...thread([message("u-active", "USER", "active discourse")]),
+    threadId: "conversation-thread:active",
+    state: "ACTIVE",
+    title: "Active"
+  };
+  const archived = {
+    ...thread([message("u-archived", "USER", "archived discourse")]),
+    threadId: "conversation-thread:archived",
+    state: "ARCHIVED",
+    title: "Archived",
+    archivedAt: "2026-09-20T00:00:00.000Z"
+  };
+  const fresh = {
+    ...thread([]),
+    threadId: "conversation-thread:fresh",
+    state: "ACTIVE"
+  };
+  const archivedActive = {
+    ...active,
+    state: "ARCHIVED",
+    archivedAt: "2026-09-28T04:00:00.000Z"
+  };
+
+  const actionHost = {
+    async execute(value) {
+      calls.push(structuredClone(value));
+      switch (value.command.code) {
+        case "enterprise-agent.thread.list":
+          assert.equal(value.values.includeArchived, true);
+          return { ok: true, result: { threads: [active, archived] } };
+        case "enterprise-agent.thread.create":
+          return { ok: true, result: { thread: fresh } };
+        case "enterprise-agent.thread.get":
+          assert.equal(value.values.threadId, "conversation-thread:archived");
+          return { ok: true, result: { thread: archived } };
+        case "enterprise-agent.thread.archive":
+          assert.equal(value.values.threadId, "conversation-thread:active");
+          return { ok: true, result: { thread: archivedActive } };
+        default:
+          throw new Error("unexpected command " + value.command.code);
+      }
+    }
+  };
+
+  const options = {
+    actionHost,
+    request: request("")
+  };
+
+  const listed = await listConversationThreadsV010({
+    ...options,
+    includeArchived: true
+  });
+  assert.equal(listed.unavailable, false);
+  assert.deepEqual(
+    listed.threads.map(item => [item.threadId, item.state]),
+    [
+      ["conversation-thread:active", "ACTIVE"],
+      ["conversation-thread:archived", "ARCHIVED"]
+    ]
+  );
+
+  const created = await createConversationThreadV010(options);
+  assert.equal(created.thread.threadId, "conversation-thread:fresh");
+  assert.equal(created.thread.messages.length, 0);
+
+  const got = await getConversationThreadV010(
+    options,
+    "conversation-thread:archived"
+  );
+  assert.equal(got.thread.state, "ARCHIVED");
+  assert.equal(got.thread.messages[0].content, "archived discourse");
+
+  const archivedResult = await archiveConversationThreadV010(
+    options,
+    "conversation-thread:active"
+  );
+  assert.equal(archivedResult.thread.state, "ARCHIVED");
+
+  assert.deepEqual(
+    calls.map(call => call.command.code),
+    [
+      "enterprise-agent.thread.list",
+      "enterprise-agent.thread.create",
+      "enterprise-agent.thread.get",
+      "enterprise-agent.thread.archive"
+    ]
+  );
+});
+
+test("P1.8C explicit New Chat never lists or reuses an earlier sourceInteraction thread", async () => {
+  const calls = [];
+  const fresh = {
+    ...thread([]),
+    threadId: "conversation-thread:new-chat",
+    state: "ACTIVE"
+  };
+  const actionHost = {
+    async execute(value) {
+      calls.push(structuredClone(value));
+      assert.equal(value.command.code, "enterprise-agent.thread.create");
+      return { ok: true, result: { thread: fresh } };
+    }
+  };
+
+  const created = await createConversationThreadV010({
+    actionHost,
+    request: request("")
+  });
+
+  assert.equal(created.thread.threadId, "conversation-thread:new-chat");
+  assert.deepEqual(
+    calls.map(call => call.command.code),
+    ["enterprise-agent.thread.create"]
+  );
+});
+
+
+test("P1.8C archived thread recovery is read-only and never resumes an unanswered run", async () => {
+  const calls = [];
+  const archivedPending = {
+    ...thread([
+      message("u1", "USER", "unanswered before archive", "agent-run:1")
+    ]),
+    state: "ARCHIVED",
+    archivedAt: "2026-09-28T04:30:00.000Z"
+  };
+  const actionHost = {
+    async execute(value) {
+      calls.push(structuredClone(value));
+      if (value.command.code === "enterprise-agent.thread.get") {
+        return { ok: true, result: { thread: archivedPending } };
+      }
+      throw new Error("archived recovery must not resume");
+    }
+  };
+
+  const recovered = await recoverThreadBackedChatV010({
+    actionHost,
+    request: request(""),
+    threadId: "conversation-thread:1"
+  });
+
+  assert.equal(recovered.thread.state, "ARCHIVED");
+  assert.equal(recovered.runId, undefined);
+  assert.deepEqual(
+    calls.map(call => call.command.code),
+    ["enterprise-agent.thread.get"]
+  );
+  assert.equal(recovered.transcript.length, 1);
 });

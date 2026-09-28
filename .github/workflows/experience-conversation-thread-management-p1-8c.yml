@@ -1,0 +1,39 @@
+name: Experience CI - Conversation Thread Management P1.8C
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vendor/eidos/src/app-host/personal-agent-thread-chat.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/app-host/conversation-thread-management.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-conversation-thread-management-p1-8c.yml"
+  pull_request:
+    paths:
+      - "vendor/eidos/src/app-host/personal-agent-thread-chat.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/app-host/conversation-thread-management.test.mjs"
+      - "tests/app-host/durable-thread-chat.test.mjs"
+      - "tests/protocol/conversation-thread-p1-8a.test.mjs"
+      - "tests/integration/p1-7b-thread-backed-turn.test.mjs"
+      - "package.json"
+      - ".github/workflows/experience-conversation-thread-management-p1-8c.yml"
+
+concurrency:
+  group: experience-conversation-thread-management-p1-8c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:experience:p1-8c
