@@ -386,7 +386,12 @@ export function createPersonalAgentSetupPageV010(
                     id: "open-provider-catalog",
                     label: "Browse AI services",
                     type: "navigate",
-                    route: "/store"
+                    route: "/store",
+                    continuation: {
+                      onActionId: "install",
+                      route: PERSONAL_AGENT_SETUP_ROUTE,
+                      onItemIds: readiness.catalogProviderPackageIds
+                    }
                   } as const
             }
           : {})
