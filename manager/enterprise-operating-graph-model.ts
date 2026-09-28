@@ -87,7 +87,6 @@ export function createEnterpriseOperatingGraphV010(input: {
     nodes: [],
     guidanceRelations: [],
     enterpriseRelations: [],
-    positions: [],
     createdAt: input.createdAt,
     updatedAt: input.createdAt
   };
@@ -261,30 +260,6 @@ export function validateEnterpriseOperatingGraphV010(
     }
   });
 
-  const positionIds = new Set<string>();
-  graph.positions.forEach((position, index) => {
-    const path = `$.positions[${index}]`;
-    if (
-      !nodeIds.has(position.nodeId)
-      || !Number.isFinite(position.x)
-      || !Number.isFinite(position.y)
-    ) {
-      issue(
-        "EOG_POSITION_INVALID",
-        path,
-        "Position must point to an existing node and contain finite x/y coordinates."
-      );
-    }
-    if (positionIds.has(position.nodeId)) {
-      issue(
-        "EOG_POSITION_DUPLICATE",
-        path + ".nodeId",
-        "A node can have only one stored position."
-      );
-    }
-    positionIds.add(position.nodeId);
-  });
-
   return {
     contractVersion: "0.1.0",
     publishable: issues.length === 0,
@@ -363,9 +338,6 @@ export function applyEnterpriseOperatingGraphOperationV010(
       throw new Error("EOG_NODE_NOT_FOUND");
     }
     graph.nodes = graph.nodes.filter(node => node.nodeId !== operation.nodeId);
-    graph.positions = graph.positions.filter(
-      position => position.nodeId !== operation.nodeId
-    );
     graph.guidanceRelations = graph.guidanceRelations.filter(relation =>
       relation.applicationNodeId !== operation.nodeId
       && relation.ledgerNodeId !== operation.nodeId
@@ -471,18 +443,6 @@ export function applyEnterpriseOperatingGraphOperationV010(
     graph.enterpriseRelations = graph.enterpriseRelations.filter(
       relation => relation.relationId !== operation.relationId
     );
-  } else if (operation.type === "NODE_MOVE") {
-    if (
-      !nodeById(graph, operation.position.nodeId)
-      || !Number.isFinite(operation.position.x)
-      || !Number.isFinite(operation.position.y)
-    ) {
-      throw new Error("EOG_POSITION_INVALID");
-    }
-    graph.positions = graph.positions.filter(
-      position => position.nodeId !== operation.position.nodeId
-    );
-    graph.positions.push(clone(operation.position));
   } else if (operation.type === "PUBLISH") {
     const validation = validateEnterpriseOperatingGraphV010(graph);
     if (!validation.publishable) {
