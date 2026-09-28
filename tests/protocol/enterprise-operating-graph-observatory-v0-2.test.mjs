@@ -340,3 +340,64 @@ test("Analysis Overlay cannot invent evidence references", async () => {
     /EOG_ANALYSIS_EVIDENCE_NOT_FOUND/
   );
 });
+
+
+test("Runtime provider cannot widen requested target or metric scope", async () => {
+  const service = graphService();
+  const runtimeProvider = {
+    contractVersion: "0.2.0",
+    providerId: "test.runtime",
+    async query(request) {
+      return [runtimeFact(request, {
+        target: { kind: "NODE", nodeId: "app:production" },
+        metric: {
+          code: "event.count",
+          kind: "COUNT",
+          unit: "events"
+        }
+      })];
+    }
+  };
+  const observatory = createEnterpriseOperatingGraphObservatoryServiceV020({
+    graphService: service,
+    runtimeProvider
+  });
+
+  await assert.rejects(
+    observatory.observe({
+      enterpriseId: "enterprise:demo",
+      graphId: "eog:primary",
+      timeLens: {
+        contractVersion: "0.2.0",
+        primary: lens.primary
+      },
+      targets: [{ kind: "NODE", nodeId: "ledger:wip" }],
+      metricCodes: ["flow.wip"]
+    }),
+    /EOG_RUNTIME_PROVIDER_SCOPE_VIOLATION/
+  );
+});
+
+test("Fact identity is unique across primary and comparison windows", async () => {
+  const service = graphService();
+  const runtimeProvider = {
+    contractVersion: "0.2.0",
+    providerId: "test.runtime",
+    async query(request) {
+      return [runtimeFact(request, { factId: "fact:stable-id" })];
+    }
+  };
+  const observatory = createEnterpriseOperatingGraphObservatoryServiceV020({
+    graphService: service,
+    runtimeProvider
+  });
+
+  await assert.rejects(
+    observatory.observe({
+      enterpriseId: "enterprise:demo",
+      graphId: "eog:primary",
+      timeLens: lens
+    }),
+    /EOG_RUNTIME_FACT_ID_DUPLICATE/
+  );
+});
