@@ -25,6 +25,7 @@ export interface DiagramEditorPageV010 {
   resourceId: string;
   readCommand: DiagramEditorCommandV010;
   operationCommand: DiagramEditorCommandV010;
+  requestValues?: Record<string, JsonValue>;
   emptyMessage?: string;
 }
 
@@ -118,7 +119,15 @@ export function isDiagramEditorPageV010(
     && nonEmpty(page.readCommand?.inputVersion)
     && page.operationCommand !== undefined
     && nonEmpty(page.operationCommand?.code)
-    && nonEmpty(page.operationCommand?.inputVersion);
+    && nonEmpty(page.operationCommand?.inputVersion)
+    && (
+      page.requestValues === undefined
+      || (
+        page.requestValues !== null
+        && typeof page.requestValues === "object"
+        && !Array.isArray(page.requestValues)
+      )
+    );
 }
 
 export function validateDiagramEditorStateV010(
@@ -237,6 +246,7 @@ export function diagramEditorReadRequestV010(
     type: "command",
     command: { ...page.readCommand },
     values: {
+      ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId
     },
     sourceInteractionId: page.id,
@@ -257,6 +267,7 @@ export function diagramEditorOperationRequestV010(
     type: "command",
     command: { ...page.operationCommand },
     values: {
+      ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
       expectedRevision: state.revision,
       operation: jsonClone(operation)
