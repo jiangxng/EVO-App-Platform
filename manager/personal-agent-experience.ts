@@ -512,7 +512,7 @@ export function createPersonalAgentMemoryReviewPageV010(
     if (kind === "POTENTIAL_CONTRADICTION") {
       return { localizationKey: "signal-potential-contradiction", title: "Possible contradiction" };
     }
-    return { localizationKey: "signal-supersession-candidate", title: "May replace existing memory" };
+    return { localizationKey: "signal-supersession-candidate", title: "May replace existing Memory" };
   };
 
   return {
