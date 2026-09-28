@@ -1,0 +1,37 @@
+name: Agent CI - Durable Conversation Threads P1.7A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "manager/server.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-thread-p1-7a.yml"
+  pull_request:
+    paths:
+      - "contracts/conversation-thread.ts"
+      - "manager/conversation-thread-store.ts"
+      - "agents/enterprise-agent/thread-action-handlers.ts"
+      - "manager/server.ts"
+      - "tests/protocol/conversation-thread-p1-7a.test.mjs"
+      - "package.json"
+      - ".github/workflows/agent-conversation-thread-p1-7a.yml"
+
+concurrency:
+  group: agent-conversation-thread-p1-7a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:conversation-thread:p1-7a
