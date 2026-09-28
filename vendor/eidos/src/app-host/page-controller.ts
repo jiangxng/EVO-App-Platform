@@ -1205,7 +1205,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               ? consumeJourneyContinuationV010(page.route.path, "settings.save")
               : undefined;
             if (continuation) {
-              await options.onNavigate(continuation.returnRoute);
+              await options.onNavigate?.(continuation.returnRoute);
             }
             await options.onActionResult?.(result, page);
           } catch (error) {
