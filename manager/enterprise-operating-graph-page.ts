@@ -13,8 +13,9 @@ import type {
   AuthorizationProviderV010,
   PlatformRequestContextV010
 } from "../contracts/platform-services.js";
-import type {
-  EnterpriseOperatingGraphV010
+import {
+  PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010,
+  type EnterpriseOperatingGraphV010
 } from "../contracts/enterprise-operating-graph.js";
 import type {
   DiagramEditorPageV010,
@@ -32,7 +33,8 @@ import type {
 export const EOG_EDITOR_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/editor";
 export const EOG_EDITOR_ROUTE = "/operating-graph";
-export const EOG_EDITOR_RESOURCE_ID = "eog:primary";
+export const EOG_EDITOR_RESOURCE_ID =
+  PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010;
 
 export const EOG_VIEW_GET_ACTION =
   "enterprise-operating-graph.view.get";
