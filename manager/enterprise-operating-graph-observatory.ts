@@ -152,6 +152,20 @@ function validateFact(
     || !Number.isFinite(Date.parse(fact.observedAt))
     || !nonEmpty(fact.source?.providerId)
     || fact.source.providerId !== providerId
+    || ![
+      "EVO_RUNTIME",
+      "HOST_RUNTIME",
+      "EXTERNAL_PROVIDER",
+      "REFERENCE"
+    ].includes(fact.source.sourceKind)
+    || (
+      fact.source.sourceRef !== undefined
+      && !nonEmpty(fact.source.sourceRef)
+    )
+    || (
+      fact.source.queryDigest !== undefined
+      && !nonEmpty(fact.source.queryDigest)
+    )
   ) {
     throw new Error("EOG_RUNTIME_FACT_INVALID");
   }
@@ -239,6 +253,14 @@ function validateOverlay(
     || !Array.isArray(overlay.evidenceFactIds)
     || !Number.isFinite(Date.parse(overlay.derivedAt))
     || overlay.source?.providerId !== providerId
+    || (
+      overlay.source.analyzerRef !== undefined
+      && !nonEmpty(overlay.source.analyzerRef)
+    )
+    || (
+      overlay.source.modelRef !== undefined
+      && !nonEmpty(overlay.source.modelRef)
+    )
   ) {
     throw new Error("EOG_ANALYSIS_OVERLAY_INVALID");
   }
@@ -259,6 +281,22 @@ function validateOverlay(
     && overlay.evidenceFactIds.length === 0
   ) {
     throw new Error("EOG_ANALYSIS_EVIDENCE_REQUIRED");
+  }
+
+  if (overlay.details !== undefined) {
+    for (const [key, value] of Object.entries(overlay.details)) {
+      if (
+        !nonEmpty(key)
+        || (
+          value !== null
+          && typeof value !== "string"
+          && typeof value !== "number"
+          && typeof value !== "boolean"
+        )
+      ) {
+        throw new Error("EOG_ANALYSIS_DETAILS_INVALID");
+      }
+    }
   }
 
   return structuredClone(overlay);
@@ -335,16 +373,40 @@ export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
     if (!Array.isArray(facts)) {
       throw new Error("EOG_RUNTIME_PROVIDER_RESULT_INVALID");
     }
-    return facts
-      .map(fact => validateFact(
-        graph,
-        window,
-        fact,
-        input.runtimeProvider.providerId
-      ))
-      .sort((a, b) =>
-        factSortKey(a).localeCompare(factSortKey(b))
-      );
+    const requestedTargets = targets?.length
+      ? new Set(targets.map(targetKey))
+      : undefined;
+    const requestedMetrics = metricCodes?.length
+      ? new Set(metricCodes)
+      : undefined;
+
+    const validated = facts.map(fact => validateFact(
+      graph,
+      window,
+      fact,
+      input.runtimeProvider.providerId
+    ));
+
+    for (const fact of validated) {
+      if (
+        (requestedTargets && !requestedTargets.has(targetKey(fact.target)))
+        || (requestedMetrics && !requestedMetrics.has(fact.metric.code))
+      ) {
+        throw new Error("EOG_RUNTIME_PROVIDER_SCOPE_VIOLATION");
+      }
+    }
+
+    const ids = new Set<string>();
+    for (const fact of validated) {
+      if (ids.has(fact.factId)) {
+        throw new Error("EOG_RUNTIME_FACT_ID_DUPLICATE");
+      }
+      ids.add(fact.factId);
+    }
+
+    return validated.sort((a, b) =>
+      factSortKey(a).localeCompare(factSortKey(b))
+    );
   };
 
   const observe = async (request: {
@@ -373,6 +435,14 @@ export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
           request.metricCodes
         )
       : [];
+
+    const allFactIds = new Set<string>();
+    for (const fact of [...primaryFacts, ...comparisonFacts]) {
+      if (allFactIds.has(fact.factId)) {
+        throw new Error("EOG_RUNTIME_FACT_ID_DUPLICATE");
+      }
+      allFactIds.add(fact.factId);
+    }
 
     return {
       contractVersion: "0.2.0",
