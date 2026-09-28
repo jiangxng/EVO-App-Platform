@@ -1,8 +1,10 @@
 # Enterprise Migration Agent Learning Roadmap v0.1
 
-**Status:** Active product/agent roadmap  
+**Status:** DEFERRED SUPPORTING ROADMAP  
 **Date:** 2026-09-28  
 **Depends on:** EVO Enterprise Data Abstraction & Migration Learning Architecture v0.1
+
+> **Sequencing correction (2026-09-28):** This roadmap is intentionally deferred. The current product priority is the Enterprise Operating Graph: first let the enterprise owner + LLM + Agent + visual editor establish the target Process / Transaction Type / Application / Metadata / Posting / Ledger model. Legacy-data migration, Best Data Provider work and training resume only after that target model is usable.
 
 ## 1. Product position
 
