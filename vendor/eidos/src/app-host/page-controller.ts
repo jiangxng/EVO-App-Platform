@@ -17,9 +17,16 @@ import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
+import {
+  executeRunBackedChatV010,
+  recoverRunBackedChatV010,
+  runBackedChatStorageKeyV010,
+  type RunBackedChatProgressV010
+} from "./personal-agent-run-chat.js";
 
 export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
+  activeRunId?: string;
 }
 
 
@@ -194,6 +201,46 @@ function resultMessageV020(
     parts: ok
       ? [{ type: "text", text: resultMessage(result) }]
       : [{ type: "notice", tone: "danger", text: fallbackError ?? "Unknown action error" }]
+  };
+}
+
+function browserSessionStorage(): Storage | undefined {
+  try {
+    return typeof globalThis.sessionStorage === "undefined"
+      ? undefined
+      : globalThis.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+function runProgressMessageV020(
+  id: string,
+  progress: RunBackedChatProgressV010
+): ChatMessageV020 {
+  const terminalError = ["BLOCKED", "FAILED", "CANCELLED"].includes(progress.state);
+  return {
+    id,
+    contractVersion: "0.2.0",
+    role: "system",
+    parts: [{
+      type: "activity",
+      label: "Personal Agent",
+      state: progress.state === "SUCCEEDED"
+        ? "complete"
+        : terminalError
+          ? "error"
+          : "pending",
+      detail: [
+        progress.state,
+        typeof progress.sliceCount === "number"
+          ? "slice " + progress.sliceCount
+          : undefined,
+        progress.resumeCount > 0
+          ? "resume " + progress.resumeCount
+          : undefined
+      ].filter(Boolean).join(" · ")
+    }]
   };
 }
 
@@ -411,6 +458,93 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       transcript.scrollTop = transcript.scrollHeight;
     };
 
+    const runBacked = definition.command.code === "enterprise-agent.chat";
+    const runStorage = browserSessionStorage();
+    const runStorageKey = runBacked
+      ? runBackedChatStorageKeyV010(definition.id)
+      : undefined;
+    let runProgressMessageId: string | undefined;
+    let runTransportInFlight = false;
+
+    const persistRunId = (runId: string | undefined): void => {
+      state.activeRunId = runId;
+      if (!runStorage || !runStorageKey) return;
+      try {
+        if (runId) runStorage.setItem(runStorageKey, runId);
+        else runStorage.removeItem(runStorageKey);
+      } catch {
+        // Session storage is an experience convenience only. Host run state remains authoritative.
+      }
+    };
+
+    const storedRunId = (): string | undefined => {
+      if (state.activeRunId) return state.activeRunId;
+      if (!runStorage || !runStorageKey) return undefined;
+      try {
+        return runStorage.getItem(runStorageKey) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const onRunProgress = async (progress: RunBackedChatProgressV010): Promise<void> => {
+      persistRunId(progress.runId);
+      if (definition.contractVersion !== "0.2.0") return;
+      runProgressMessageId ??= "run-" + progress.runId;
+      const next = runProgressMessageV020(runProgressMessageId, progress);
+      const index = state.messages.findIndex(message => message.id === runProgressMessageId);
+      if (index >= 0) state.messages[index] = next;
+      else state.messages.push(next);
+      renderTranscript();
+    };
+
+    const contextValues = (): Record<string, JsonValue> => {
+      const values: Record<string, JsonValue> = {};
+      if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
+        const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
+        const selected = selector?.selectedOptions[0]?.dataset.eidosChatContextValue;
+        if (selected) {
+          values[definition.context.selector.key] = JSON.parse(selected) as JsonValue;
+        }
+      }
+      return values;
+    };
+
+    const baseChatRequest = (
+      values: Record<string, JsonValue>,
+      actionId = "chat.send"
+    ): ActionRequestV010 => ({
+      contractVersion: "0.1.0",
+      type: "command",
+      command: { ...definition.command },
+      values,
+      sourceInteractionId: definition.id,
+      actionId,
+      requiresConfirmation: false
+    });
+
+    const appendChatResult = async (
+      result: Awaited<ReturnType<ActionHost["execute"]>>
+    ): Promise<void> => {
+      const resultId = `${result.ok ? "assistant" : "error"}-${Date.now()}-${state.messages.length}`;
+      state.messages.push(definition.contractVersion === "0.2.0"
+        ? resultMessageV020(
+            result.result,
+            resultId,
+            result.ok,
+            result.error?.message ?? "Unknown action error"
+          )
+        : {
+            id: resultId,
+            role: result.ok ? "assistant" : "error",
+            text: result.ok
+              ? resultMessage(result.result)
+              : result.error?.message ?? "Unknown action error"
+          });
+      renderTranscript();
+      await options.onActionResult?.(result, page);
+    };
+
     renderTranscript();
 
     if (form && textarea instanceof HTMLTextAreaElement) {
@@ -464,6 +598,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         try {
           const values: Record<string, JsonValue> = {
             [definition.composer.key]: message,
+            message,
             ...(definition.contractVersion === "0.2.0" && conversationHistory.length
               ? {
                   conversationHistory: conversationHistory.map(item => ({
@@ -471,44 +606,32 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                     content: item.content
                   }))
                 }
-              : {})
-          };
-          if (definition.contractVersion === "0.2.0" && definition.context?.selector) {
-            const selector = container.querySelector<HTMLSelectElement>("[data-eidos-chat-context-selector]");
-            const selected = selector?.selectedOptions[0]?.dataset.eidosChatContextValue;
-            if (selected) {
-              values[definition.context.selector.key] = JSON.parse(selected) as JsonValue;
-            }
-          }
-
-          const request: ActionRequestV010 = {
-            contractVersion: "0.1.0",
-            type: "command",
-            command: { ...definition.command },
-            values,
-            sourceInteractionId: definition.id,
-            actionId: "chat.send",
-            requiresConfirmation: false
+              : {}),
+            ...contextValues()
           };
 
-          const result = await options.actionHost.execute(request);
-          const resultId = `${result.ok ? "assistant" : "error"}-${Date.now()}-${state.messages.length}`;
-          state.messages.push(definition.contractVersion === "0.2.0"
-            ? resultMessageV020(
-                result.result,
-                resultId,
-                result.ok,
-                result.error?.message ?? "Unknown action error"
-              )
+          const request = baseChatRequest(values);
+          runTransportInFlight = true;
+          const execution = runBacked
+            ? await executeRunBackedChatV010({
+                actionHost: options.actionHost,
+                request,
+                onProgress: onRunProgress
+              })
             : {
-                id: resultId,
-                role: result.ok ? "assistant" : "error",
-                text: result.ok
-                  ? resultMessage(result.result)
-                  : result.error?.message ?? "Unknown action error"
-              });
-          renderTranscript();
-          await options.onActionResult?.(result, page);
+                mode: "LEGACY" as const,
+                result: await options.actionHost.execute(request),
+                resumeCount: 0
+              };
+          if (execution.mode === "LEGACY") persistRunId(undefined);
+          if (
+            execution.mode === "RUN"
+            && execution.runState
+            && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(execution.runState)
+          ) {
+            persistRunId(undefined);
+          }
+          await appendChatResult(execution.result);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           state.messages.push(definition.contractVersion === "0.2.0"
@@ -525,10 +648,56 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               });
           renderTranscript();
         } finally {
+          runTransportInFlight = false;
           if (button) button.disabled = false;
           textarea.focus();
         }
       };
+
+      const recoverDurableRun = async (): Promise<void> => {
+        if (!runBacked || !options.actionHost || runTransportInFlight) return;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        runTransportInFlight = true;
+        if (button) button.disabled = true;
+        try {
+          const request = baseChatRequest(contextValues(), "chat.run.recover");
+          const recovered = await recoverRunBackedChatV010({
+            actionHost: options.actionHost,
+            request,
+            runId: storedRunId(),
+            onProgress: onRunProgress
+          });
+          if (!recovered) {
+            persistRunId(undefined);
+            return;
+          }
+          if (
+            recovered.runState
+            && ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(recovered.runState)
+          ) {
+            persistRunId(undefined);
+          }
+          if (recovered.result.ok || recovered.result.error) {
+            await appendChatResult(recovered.result);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await appendChatResult({
+            ok: false,
+            error: {
+              code: "EIDOS_AGENT_RUN_RECOVERY_FAILED",
+              message
+            }
+          });
+        } finally {
+          runTransportInFlight = false;
+          if (button) button.disabled = false;
+        }
+      };
+
+      if (runBacked) {
+        void recoverDurableRun();
+      }
 
       const submitHandler = (event: SubmitEvent) => {
         event.preventDefault();
