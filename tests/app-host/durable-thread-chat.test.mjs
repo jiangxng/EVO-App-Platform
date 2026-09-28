@@ -413,3 +413,38 @@ test("P1.8C explicit New Chat never lists or reuses an earlier sourceInteraction
     ["enterprise-agent.thread.create"]
   );
 });
+
+
+test("P1.8C archived thread recovery is read-only and never resumes an unanswered run", async () => {
+  const calls = [];
+  const archivedPending = {
+    ...thread([
+      message("u1", "USER", "unanswered before archive", "agent-run:1")
+    ]),
+    state: "ARCHIVED",
+    archivedAt: "2026-09-28T04:30:00.000Z"
+  };
+  const actionHost = {
+    async execute(value) {
+      calls.push(structuredClone(value));
+      if (value.command.code === "enterprise-agent.thread.get") {
+        return { ok: true, result: { thread: archivedPending } };
+      }
+      throw new Error("archived recovery must not resume");
+    }
+  };
+
+  const recovered = await recoverThreadBackedChatV010({
+    actionHost,
+    request: request(""),
+    threadId: "conversation-thread:1"
+  });
+
+  assert.equal(recovered.thread.state, "ARCHIVED");
+  assert.equal(recovered.runId, undefined);
+  assert.deepEqual(
+    calls.map(call => call.command.code),
+    ["enterprise-agent.thread.get"]
+  );
+  assert.equal(recovered.transcript.length, 1);
+});
