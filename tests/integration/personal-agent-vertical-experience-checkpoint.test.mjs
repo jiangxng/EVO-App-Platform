@@ -45,6 +45,16 @@ async function freePort() {
   return port;
 }
 
+function settingsFields(definition) {
+  if (Array.isArray(definition.settings)) return definition.settings;
+  if (Array.isArray(definition.groups)) {
+    return definition.groups.flatMap(group =>
+      Array.isArray(group?.settings) ? group.settings : []
+    );
+  }
+  return [];
+}
+
 async function waitForJson(url, options) {
   let lastError;
   for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -297,11 +307,13 @@ test("vertical experience boots one Host and reaches real Provider configuration
     );
     const settings = await waitForJson(settingsUrl.toString());
     assert.equal(settings.body.kind, "settings-editor");
+    assert.equal(settings.body.contractVersion, "0.2.0");
+    const fields = settingsFields(settings.body);
     assert.ok(
-      settings.body.settings.some(setting => setting.key === "secret:apiKey")
+      fields.some(setting => setting.key === "secret:apiKey")
     );
     assert.ok(
-      settings.body.settings.some(setting => setting.key === "adminToken")
+      fields.some(setting => setting.key === "adminToken")
     );
 
     const root = await fetch(baseUrl + "/");
