@@ -2554,12 +2554,12 @@ const server = createServer(async (request, response) => {
         createProviderManagerExperienceManifest(manager),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
+        ...manager.listEffectiveExperiences(),
         ...(manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
         )
           ? [createEnterpriseOperatingGraphExperienceManifestV010()]
-          : []),
-        ...manager.listEffectiveExperiences()
+          : [])
       ]);
     }
 
