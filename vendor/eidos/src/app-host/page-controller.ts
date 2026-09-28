@@ -495,7 +495,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       ? document.createElement("button")
       : undefined;
 
-    if (threadControls && threadSelect && newThreadButton && archiveThreadButton) {
+    if (
+      chatHeader
+      && threadControls
+      && threadSelect
+      && newThreadButton
+      && archiveThreadButton
+    ) {
       threadControls.setAttribute("data-eidos-chat-thread-controls", "");
       threadSelect.setAttribute("data-eidos-chat-thread-selector", "");
       threadSelect.setAttribute(
