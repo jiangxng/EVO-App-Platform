@@ -82,10 +82,21 @@ test("Provider Manager exposes capability page and health-aware summary", () => 
     bindings,
     "llm.inference"
   );
+  assert.equal(page.contractVersion, "0.2.0");
   assert.equal(page.command.code, "app-platform.update-provider-binding");
-  assert.ok(page.settings.some(field => field.key === "scope"));
-  assert.ok(page.settings.some(field => field.key === "providerId"));
-  const adminToken = page.settings.find(field => field.key === "adminToken");
+  assert.deepEqual(
+    page.groups.map(group => group.id),
+    ["selection", "scope", "runtime-status", "administration"]
+  );
+  const settings = page.groups.flatMap(group => group.settings);
+  assert.ok(settings.some(field => field.key === "scope"));
+  assert.ok(settings.some(field => field.key === "providerId"));
+  const runtimeGroup = page.groups.find(group => group.id === "runtime-status");
+  assert.ok(runtimeGroup.settings.every(field => field.readOnly === true));
+  const administration = page.groups.find(group => group.id === "administration");
+  assert.equal(administration.advanced, true);
+  const adminToken = settings.find(field => field.key === "adminToken");
   assert.equal(adminToken.type, "secret");
   assert.equal(adminToken.value, "");
+  assert.equal(page.notice.tone, "success");
 });
