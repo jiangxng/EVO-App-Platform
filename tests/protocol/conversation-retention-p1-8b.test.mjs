@@ -9,6 +9,7 @@ import {
   previewConversationRetentionV010
 } from "../../dist/manager/conversation-thread-retention.js";
 import {
+  createConversationRetentionPolicyGetActionHandlerV010,
   createConversationRetentionPreviewActionHandlerV010
 } from "../../dist/agents/enterprise-agent/thread-retention-action-handler.js";
 
@@ -136,6 +137,8 @@ test("retention preview action is scoped and remains READ-only simulation", asyn
       return { contractVersion: "0.1.0", principal };
     },
     resolveContext() { return context; },
+    retainArchivedForDays: 90,
+    policySource: "HUMAN_PLATFORM_DEFAULT",
     now: () => new Date("2026-09-28T00:00:00.000Z")
   });
 
@@ -182,4 +185,84 @@ test("retention preview rejects invalid candidate days", () => {
       /CONVERSATION_RETENTION_POLICY_INVALID/
     );
   }
+});
+
+
+test("Human-selected 90-day policy is the default preview and is readable without enabling purge", async () => {
+  const store = threadStore();
+  createThread(store, "thread:policy", "2026-01-01T00:00:00.000Z");
+  store.archive({
+    threadId: "thread:policy",
+    archivedAt: "2026-06-01T00:00:00.000Z",
+    archivedBySubjectId: principal.subjectId
+  });
+
+  const dependencies = {
+    threadStore: store,
+    resolveIdentitySession() {
+      return { contractVersion: "0.1.0", principal };
+    },
+    resolveContext() { return context; },
+    retainArchivedForDays: 90,
+    policySource: "HUMAN_PLATFORM_DEFAULT",
+    now: () => new Date("2026-09-28T00:00:00.000Z")
+  };
+
+  const previewHandler = createConversationRetentionPreviewActionHandlerV010(
+    dependencies
+  );
+  const preview = await previewHandler.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "enterprise-agent.thread.retention.preview",
+      inputVersion: "0.1.0"
+    },
+    values: {},
+    sourceInteractionId: "retention:default",
+    actionId: "preview",
+    requiresConfirmation: false
+  }, {
+    contractVersion: "0.1.0",
+    principal,
+    context
+  });
+
+  assert.equal(preview.ok, true);
+  assert.equal(preview.result.candidatePolicy.retainArchivedForDays, 90);
+  assert.equal(preview.result.policySource, "HUMAN_PLATFORM_DEFAULT");
+  assert.equal(preview.result.destructiveActionExecuted, false);
+  assert.equal(preview.result.items[0].deadline, "2026-08-30T00:00:00.000Z");
+  assert.equal(preview.result.items[0].outcome, "ARCHIVED_WOULD_PURGE");
+
+  const getHandler = createConversationRetentionPolicyGetActionHandlerV010(
+    dependencies
+  );
+  const got = await getHandler.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "enterprise-agent.thread.retention.policy.get",
+      inputVersion: "0.1.0"
+    },
+    values: {},
+    sourceInteractionId: "retention:policy:get",
+    actionId: "policy.get",
+    requiresConfirmation: false
+  }, {
+    contractVersion: "0.1.0",
+    principal,
+    context
+  });
+
+  assert.equal(got.ok, true);
+  assert.deepEqual(got.result.policy, {
+    contractVersion: "0.1.0",
+    retainArchivedForDays: 90,
+    source: "HUMAN_PLATFORM_DEFAULT",
+    appliesOnlyTo: "ARCHIVED_THREADS",
+    clockStartsAt: "archivedAt",
+    activeThreadsNeverEligible: true,
+    destructivePurgeEnabled: false
+  });
 });
