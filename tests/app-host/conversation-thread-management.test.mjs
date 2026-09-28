@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { eidosProductiveWorkbenchCss } from "../../dist/vendor/eidos/src/design-language/index.js";
 
 test("P1.8C Eidos Personal Agent exposes durable thread management controls", async () => {
   const source = await readFile(
@@ -58,4 +59,14 @@ test("P1.8C passive durable chat recovery does not publish a global action-resul
     source,
     /onActionResult\?\.\(threadRecovered\.result, page\)/
   );
+});
+
+
+test("P1.8C durable thread controls inherit the modern Eidos agent chat visual pattern", () => {
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-thread-controls/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-thread-selector/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-new-thread/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-archive-thread/);
+  assert.match(eidosProductiveWorkbenchCss, /scrollbar-gutter:stable/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-composer\]:focus-within/);
 });

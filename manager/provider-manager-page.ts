@@ -6,7 +6,7 @@ import type {
 } from "./provider-resolution.js";
 import { resolveProviderRuntimeV010 } from "./provider-resolution.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
-import type { SettingsEditorV010 } from "../vendor/eidos/src/settings/contracts.js";
+import type { SettingsEditorV020 } from "../vendor/eidos/src/settings/contracts.js";
 import type { ActivationScope } from "../contracts/package.js";
 
 export const providerManagerIndexPageSource = "app://evo-app-platform/pages/providers";
@@ -140,7 +140,7 @@ export function createProviderBindingPage(
   bindings: ProviderBindingStoreV010,
   capability: string,
   context: ProviderResolutionContextV010 = { installationId: "default" }
-): SettingsEditorV010 | undefined {
+): SettingsEditorV020 | undefined {
   const descriptors = manager.listEffectiveServiceProviders(capability);
   if (descriptors.length === 0) return undefined;
 
@@ -174,71 +174,119 @@ export function createProviderBindingPage(
     "USER"
   ];
 
+  const healthTone = health.state === "HEALTHY"
+    ? "success" as const
+    : health.state === "DEGRADED"
+      ? "warning" as const
+      : "danger" as const;
+
   return {
-    contractVersion: "0.1.0",
+    contractVersion: "0.2.0",
     kind: "settings-editor",
     id: `evo-provider-binding.${capability}`,
     namespace: `provider-binding:${capability}`,
     title: `Provider · ${capability}`,
-    description: "Save an explicit binding for this capability. More specific scopes override broader scopes. Empty SYSTEM scopeId is valid; other scopes require an id.",
+    description: "Choose the Provider for this capability and govern where the binding applies. Runtime status remains read-only.",
+    notice: {
+      tone: healthTone,
+      title: "Provider status",
+      message: `${selectedProviderId} · ${health.state.toLowerCase()}${health.message ? ` · ${health.message}` : ""}`
+    },
     command: {
       code: "app-platform.update-provider-binding",
       inputVersion: "0.1.0"
     },
-    settings: [
+    groups: [
       {
-        key: "providerId",
-        label: "Provider",
-        description: "Installed Provider selected for this binding.",
-        type: "select",
-        value: selectedProviderId,
-        options: providerIds.map(providerId => ({
-          label: `${providerId} · ${registry.getHealth(providerId).state.toLowerCase()}`,
-          value: providerId
-        }))
+        id: "selection",
+        title: "Provider selection",
+        description: "Select the installed Provider that should implement this capability.",
+        settings: [{
+          key: "providerId",
+          label: "Provider",
+          description: "Installed Provider selected for this binding.",
+          type: "select",
+          value: selectedProviderId,
+          options: providerIds.map(providerId => ({
+            label: `${providerId} · ${registry.getHealth(providerId).state.toLowerCase()}`,
+            value: providerId
+          }))
+        }]
       },
       {
-        key: "scope",
-        label: "Scope",
-        description: "Binding scope. More specific scopes override broader scopes.",
-        type: "select",
-        value: existing?.scope ?? "SYSTEM",
-        options: scopes.map(scope => ({ label: scope, value: scope }))
+        id: "scope",
+        title: "Binding scope",
+        description: "More specific scopes override broader scopes. Priority only breaks ties at the same specificity.",
+        settings: [
+          {
+            key: "scope",
+            label: "Scope",
+            description: "Binding scope. More specific scopes override broader scopes.",
+            type: "select",
+            value: existing?.scope ?? "SYSTEM",
+            options: scopes.map(scope => ({ label: scope, value: scope }))
+          },
+          {
+            key: "scopeId",
+            label: "Scope ID",
+            description: "Required for INSTALLATION, ENTERPRISE, COMPANY, WORKSPACE and USER. Leave blank for SYSTEM.",
+            type: "string",
+            value: existing?.scopeId ?? ""
+          },
+          {
+            key: "priority",
+            label: "Priority",
+            description: "Tie-breaker only within the same scope specificity.",
+            type: "number",
+            value: existing?.priority ?? 0
+          }
+        ]
       },
       {
-        key: "scopeId",
-        label: "Scope ID",
-        description: "Required for INSTALLATION, ENTERPRISE, COMPANY, WORKSPACE and USER. Leave blank for SYSTEM.",
-        type: "string",
-        value: existing?.scopeId ?? ""
+        id: "runtime-status",
+        title: "Runtime status",
+        description: "Host-observed resolution and health for the currently selected Provider.",
+        settings: [
+          {
+            key: "currentResolution",
+            label: "Current resolution",
+            type: "string",
+            value: resolution,
+            readOnly: true,
+            status: {
+              label: resolution === "Unresolved" ? "Unresolved" : "Resolved",
+              tone: resolution === "Unresolved" ? "warning" as const : "positive" as const
+            }
+          },
+          {
+            key: "selectedHealth",
+            label: "Selected runtime health",
+            type: "string",
+            value: `${health.state}${health.message ? ` · ${health.message}` : ""}${health.checkedAt ? ` · checked ${health.checkedAt}` : ""}`,
+            readOnly: true,
+            status: {
+              label: health.state,
+              tone: health.state === "HEALTHY"
+                ? "positive" as const
+                : health.state === "DEGRADED"
+                  ? "warning" as const
+                  : "danger" as const
+            }
+          }
+        ]
       },
       {
-        key: "priority",
-        label: "Priority",
-        description: "Tie-breaker only within the same scope specificity.",
-        type: "number",
-        value: existing?.priority ?? 0
-      },
-      {
-        key: "adminToken",
-        label: "Administrator authorization",
-        description: "Host bootstrap credential used only to authenticate the administrator principal. Authorization is decided by the active authorization.check Provider. The credential is never persisted in Provider binding state or audit history.",
-        type: "secret",
-        value: ""
-      },
-      {
-        key: "currentResolution",
-        label: "Current resolution",
-        type: "string",
-        value: resolution,
-        readOnly: true
-      },
-      {
-        key: "selectedHealth",
-        label: "Selected runtime health",
-        type: "string",
-        value: `${health.state}${health.message ? ` · ${health.message}` : ""}${health.checkedAt ? ` · checked ${health.checkedAt}` : ""}`,
-        readOnly: true
+        id: "administration",
+        title: "Administration",
+        description: "Authorization used only when changing a protected Provider binding.",
+        advanced: true,
+        settings: [{
+          key: "adminToken",
+          label: "Administrator authorization",
+          description: "Host bootstrap credential used only to authenticate the administrator principal. Authorization is decided by the active authorization.check Provider. The credential is never persisted in Provider binding state or audit history.",
+          type: "secret",
+          value: ""
+        }]
       }
     ],
     saveLabel: "Save binding"
