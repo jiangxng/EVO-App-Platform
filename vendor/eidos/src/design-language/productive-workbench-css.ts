@@ -546,6 +546,96 @@ form[data-eidos-id] button,
 [data-eidos-chat-proposal-risk]{margin-top:var(--eidos-space-sm);color:var(--eidos-warning)}
 [data-eidos-chat-proposal-actions]{display:flex;flex-wrap:wrap;gap:var(--eidos-space-sm);margin-top:var(--eidos-space-md)}
 
+/* Safe Markdown inside assistant/system prose.
+   Rich text stays subordinate to conversation semantics and inherits Eidos tokens. */
+[data-eidos-chat-markdown]{
+  min-width:0;
+  color:inherit;
+  font:inherit;
+  line-height:1.62;
+  overflow-wrap:anywhere;
+}
+[data-eidos-chat-markdown]>:first-child{margin-top:0}
+[data-eidos-chat-markdown]>:last-child{margin-bottom:0}
+[data-eidos-chat-markdown-paragraph]{margin:0 0 var(--eidos-space-md)}
+[data-eidos-chat-markdown-heading]{
+  margin:var(--eidos-space-xl) 0 var(--eidos-space-sm);
+  color:var(--eidos-fg);
+  font-weight:700;
+  line-height:1.35;
+  letter-spacing:-.01em;
+}
+h2[data-eidos-chat-markdown-heading]{font-size:var(--eidos-font-section)}
+h3[data-eidos-chat-markdown-heading],
+h4[data-eidos-chat-markdown-heading],
+h5[data-eidos-chat-markdown-heading]{font-size:var(--eidos-font-supporting)}
+[data-eidos-chat-markdown-list]{
+  margin:0 0 var(--eidos-space-md);
+  padding-left:1.45rem;
+}
+[data-eidos-chat-markdown-list] li{margin:var(--eidos-space-xs) 0}
+[data-eidos-chat-markdown-inline-code]{
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-sm);
+  padding:1px 5px;
+  background:var(--eidos-bg-subtle);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.92em;
+}
+[data-eidos-chat-markdown-code]{
+  max-width:100%;
+  margin:var(--eidos-space-md) 0;
+  overflow:auto;
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  background:var(--eidos-bg-subtle);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:var(--eidos-font-meta);
+  line-height:1.55;
+  white-space:pre;
+}
+[data-eidos-chat-markdown-quote]{
+  margin:var(--eidos-space-md) 0;
+  border-left:3px solid var(--eidos-border-strong);
+  padding:var(--eidos-space-xs) 0 var(--eidos-space-xs) var(--eidos-space-lg);
+  color:var(--eidos-fg-muted);
+}
+[data-eidos-chat-markdown-table-scroll]{
+  max-width:100%;
+  margin:var(--eidos-space-md) 0;
+  overflow:auto;
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);
+}
+[data-eidos-chat-markdown-table]{
+  width:100%;
+  min-width:420px;
+  border-collapse:collapse;
+  background:var(--eidos-bg);
+  font-size:var(--eidos-font-compact);
+}
+[data-eidos-chat-markdown-table] th,
+[data-eidos-chat-markdown-table] td{
+  padding:var(--eidos-space-sm) var(--eidos-space-md);
+  border-bottom:1px solid var(--eidos-border);
+  text-align:left;
+  vertical-align:top;
+}
+[data-eidos-chat-markdown-table] th{
+  background:var(--eidos-bg-subtle);
+  font-weight:700;
+}
+[data-eidos-chat-markdown-table] tbody tr:last-child td{border-bottom:0}
+[data-eidos-chat-markdown-link]{color:var(--eidos-primary);text-decoration:none}
+[data-eidos-chat-markdown-link]:hover{text-decoration:underline}
+[data-eidos-chat-markdown-rule]{
+  margin:var(--eidos-space-lg) 0;
+  border:0;
+  border-top:1px solid var(--eidos-border);
+}
+[data-eidos-chat-markdown-unsafe-link]{color:var(--eidos-fg-muted)}
+
 [data-eidos-setup-flow]{
   width:min(880px,100%);margin:0 auto;background:var(--eidos-bg);
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-xl);
