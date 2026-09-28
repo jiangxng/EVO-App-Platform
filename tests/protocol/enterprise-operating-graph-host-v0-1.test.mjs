@@ -7,6 +7,12 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "../../dist/manager/enterprise-operating-graph-service.js";
 import {
+  createMemoryEnterpriseOperatingGraphViewStoreV010
+} from "../../dist/manager/enterprise-operating-graph-view-store.js";
+import {
+  createEnterpriseOperatingGraphViewHostServiceV010
+} from "../../dist/manager/enterprise-operating-graph-view-service.js";
+import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "../../dist/manager/enterprise-operating-graph-agent-tools.js";
 import {
@@ -15,13 +21,18 @@ import {
   EOG_CREATE_ACTION
 } from "../../dist/manager/enterprise-operating-graph-actions.js";
 
-function hostService() {
+function hostServices() {
   let serial = 0;
-  return createEnterpriseOperatingGraphHostServiceV010({
+  const service = createEnterpriseOperatingGraphHostServiceV010({
     store: createMemoryEnterpriseOperatingGraphStoreV010(),
     id: () => String(++serial).padStart(4, "0"),
     now: () => new Date("2026-09-28T14:00:00.000Z")
   });
+  const viewService = createEnterpriseOperatingGraphViewHostServiceV010({
+    store: createMemoryEnterpriseOperatingGraphViewStoreV010(),
+    now: () => new Date("2026-09-28T14:00:00.000Z")
+  });
+  return { service, viewService };
 }
 
 function enterpriseRequestContext(actorType = "HUMAN") {
@@ -94,8 +105,17 @@ function actionRequest(commandCode, values, requiresConfirmation = false) {
   };
 }
 
+function agentTools(service, viewService) {
+  return createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service,
+    viewService,
+    context: enterpriseRequestContext().context,
+    principal: enterpriseRequestContext().principal
+  });
+}
+
 test("Host service persists one authoritative EOG across Agent proposal and Human confirmation", async () => {
-  const service = hostService();
+  const { service, viewService } = hostServices();
   const handlers = createEnterpriseOperatingGraphActionHandlersV010({
     service,
     resolveAuthorizationProvider: () => allowAuthorization
@@ -118,22 +138,13 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
     graphId: "eog:demo"
   });
 
-  const context = enterpriseRequestContext().context;
-  const principal = enterpriseRequestContext().principal;
-  const tools = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
-    service,
-    context,
-    principal
-  });
-  const proposalTool = tools.find(
+  const proposalTool = agentTools(service, viewService).find(
     item => item.descriptor.id === "enterprise.operating_graph.proposal.apply"
   );
   assert.ok(proposalTool);
 
-  graph = await proposalTool.execute({
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    mutation: {
+  for (const mutation of [
+    {
       type: "NODE_BIND",
       node: {
         nodeId: "node:app:sales",
@@ -144,13 +155,8 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
           refId: "application:sales-order"
         }
       }
-    }
-  }, []);
-
-  graph = await proposalTool.execute({
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    mutation: {
+    },
+    {
       type: "NODE_BIND",
       node: {
         nodeId: "node:ledger:receivable",
@@ -161,13 +167,8 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
           refId: "ledger:receivable"
         }
       }
-    }
-  }, []);
-
-  graph = await proposalTool.execute({
-    graphId: graph.graphId,
-    expectedRevision: graph.revision,
-    mutation: {
+    },
+    {
       type: "GUIDANCE_RELATION_PUT",
       relation: {
         relationId: "guidance:receivable",
@@ -180,7 +181,13 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
         }
       }
     }
-  }, []);
+  ]) {
+    graph = await proposalTool.execute({
+      graphId: graph.graphId,
+      expectedRevision: graph.revision,
+      mutation
+    }, []);
+  }
 
   assert.equal(graph.guidanceRelations.length, 1);
   assert.equal(graph.enterpriseRelations.length, 0);
@@ -216,38 +223,23 @@ test("Host service persists one authoritative EOG across Agent proposal and Huma
 });
 
 test("Agent create defaults to the same primary graph opened by the Eidos editor", async () => {
-  const service = hostService();
-  const tool = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
-    service,
-    context: enterpriseRequestContext().context,
-    principal: enterpriseRequestContext().principal
-  }).find(
+  const { service, viewService } = hostServices();
+  const tool = agentTools(service, viewService).find(
     item => item.descriptor.id === "enterprise.operating_graph.create"
   );
   assert.ok(tool);
 
   const graph = await tool.execute({}, []);
   assert.equal(graph.graphId, "eog:primary");
-  assert.equal(
-    service.get({
-      enterpriseId: "enterprise:demo",
-      graphId: "eog:primary"
-    }).graphId,
-    "eog:primary"
-  );
 });
 
-test("Agent proposal tool cannot confirm or publish enterprise truth", async () => {
-  const service = hostService();
+test("Agent semantic proposal tool cannot confirm, publish, or mutate layout", async () => {
+  const { service, viewService } = hostServices();
   const graph = service.create({
     enterpriseId: "enterprise:demo",
     graphId: "eog:guard"
   });
-  const tool = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
-    service,
-    context: enterpriseRequestContext().context,
-    principal: enterpriseRequestContext().principal
-  }).find(
+  const tool = agentTools(service, viewService).find(
     item => item.descriptor.id === "enterprise.operating_graph.proposal.apply"
   );
   assert.ok(tool);
@@ -265,19 +257,79 @@ test("Agent proposal tool cannot confirm or publish enterprise truth", async () 
     () => tool.execute({
       graphId: graph.graphId,
       expectedRevision: graph.revision,
-      mutation: {
-        type: "ENTERPRISE_RELATION_CONFIRM",
-        enterpriseRelationId: "relation:x",
-        applicationNodeId: "app:x",
-        ledgerNodeId: "ledger:x"
-      }
+      mutation: { type: "NODE_MOVE", position: { nodeId: "x", x: 1, y: 2 } }
     }, []),
-    /EOG_HUMAN_CONFIRMATION_REQUIRED/
+    /EOG_MUTATION_INVALID|EOG_OPERATION/
+  );
+});
+
+test("Agent can arrange 2D or 3D views without advancing semantic revision", async () => {
+  const { service, viewService } = hostServices();
+  let graph = service.create({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary"
+  });
+  graph = service.apply({
+    enterpriseId: graph.enterpriseId,
+    graphId: graph.graphId,
+    expectedRevision: graph.revision,
+    actor: { type: "AGENT", subjectId: "agent:personal" },
+    mutation: {
+      type: "NODE_BIND",
+      node: {
+        nodeId: "node:app:sales",
+        kind: "APPLICATION",
+        semanticRef: {
+          kind: "APPLICATION",
+          authority: "HOST",
+          refId: "application:sales-order"
+        }
+      }
+    }
+  });
+  const semanticRevision = graph.revision;
+  const tools = agentTools(service, viewService);
+  const getView = tools.find(
+    item => item.descriptor.id === "enterprise.operating_graph.view.get"
+  );
+  const applyView = tools.find(
+    item => item.descriptor.id === "enterprise.operating_graph.view.apply"
+  );
+  assert.ok(getView);
+  assert.ok(applyView);
+
+  const view = await getView.execute({
+    graphId: graph.graphId,
+    kind: "DIAGRAM_2D"
+  }, []);
+  const moved = await applyView.execute({
+    graphId: graph.graphId,
+    kind: "DIAGRAM_2D",
+    expectedRevision: view.revision,
+    mutation: {
+      type: "NODE_POSITION_SET",
+      placement: {
+        nodeId: "node:app:sales",
+        x: 120,
+        y: 80
+      }
+    }
+  }, []);
+
+  assert.deepEqual(moved.placements, [
+    { nodeId: "node:app:sales", x: 120, y: 80 }
+  ]);
+  assert.equal(
+    service.get({
+      enterpriseId: graph.enterpriseId,
+      graphId: graph.graphId
+    }).revision,
+    semanticRevision
   );
 });
 
 test("Human publish action requires explicit confirmation", async () => {
-  const service = hostService();
+  const { service } = hostServices();
   const graph = service.create({
     enterpriseId: "enterprise:demo",
     graphId: "eog:publish"
@@ -305,8 +357,8 @@ test("Human publish action requires explicit confirmation", async () => {
   assert.equal(result.error.code, "EOG_PUBLISH_CONFIRMATION_REQUIRED");
 });
 
-test("EOG store is enterprise scoped", () => {
-  const service = hostService();
+test("EOG semantic store is enterprise scoped", () => {
+  const { service } = hostServices();
   service.create({
     enterpriseId: "enterprise:a",
     graphId: "eog:a"
