@@ -78,6 +78,47 @@ The Agent performs only declared model actions.
 
 A Human graphical edit and a Human natural-language instruction must modify the same semantic model.
 
+## 4.1 Guidance topology vs enterprise topology
+
+The editor must support two different semantic layers.
+
+**Guidance topology** is reusable expert knowledge. It may come from:
+
+- previously converged `bookkeeping` / `Asloop-Backend` semantics;
+- posting-rule templates;
+- accounting guidance used by the legacy system;
+- APQC/process references;
+- future industry templates.
+
+Guidance topology can recommend Application ↔ Business Fact ↔ PostingRule ↔ Ledger relationships and expected upstream/downstream business structure.
+
+It is not enterprise truth.
+
+**Published enterprise topology** is the Human-confirmed model for one enterprise.
+
+The expected loop is:
+
+```text
+Guidance Template
+→ LLM proposal
+→ Personal Agent materializes proposal
+→ Human edits/confirms
+→ validate
+→ publish Enterprise Operating Model
+```
+
+The product must make recommended/template-derived relationships distinguishable from enterprise-confirmed relationships.
+
+Legacy semantic genealogy is authoritative evidence, not a requirement to reproduce legacy implementation:
+
+```text
+bookkeeping / Asloop
+App → Transdata → Policy → Account → TransdataAccount → Balance
+                 ↓
+EVO
+Application → BusinessData → PostingRule → LedgerEntry → LedgerBalance
+```
+
 ## 5. First implementation target
 
 Enterprise Operating Graph Editor v0.1 should prove only this vertical slice:
