@@ -1,0 +1,32 @@
+name: Web Version Skew and RUM Production Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous_revision:
+        description: Previous production Web revision to verify from archive
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/web-version-skew-rum-production-proof.yml"
+      - "tools/web-version-skew-rum-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  version-skew-rum-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify production version skew, archived assets and RUM
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+          PREVIOUS_REVISION: ${{ inputs.previous_revision }}
+        run: |
+          set -euo pipefail
+          node tools/web-version-skew-rum-production-proof.mjs | tee /tmp/web-version-skew-rum-proof.log
+          grep -q "WEB_VERSION_SKEW_RUM_PROOF=" /tmp/web-version-skew-rum-proof.log
