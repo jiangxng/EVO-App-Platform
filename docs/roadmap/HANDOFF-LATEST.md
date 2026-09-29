@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-01`  
-**Snapshot time:** `2026-09-29T08:55:00+08:00`  
+**Snapshot:** `EOG-2026-09-29-02`  
+**Snapshot time:** `2026-09-29T09:15:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -41,23 +41,22 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-spatial-observatory-bottleneck-v0-3: IMPLEMENTATION_READY**
+**enterprise-operating-graph-sop-conformance-application-runtime-v0-3: IMPLEMENTATION_READY**
 
-Project the existing Host-authoritative EOG Observatory Snapshot into the first Eidos SPATIAL_3D view and add the first deterministic evidence-backed bottleneck Analysis Provider. 3D is an operational God’s-eye observatory, not a decorative graph: it must reuse the same semantic graph, Runtime Facts, Time Lens and canonical targets as the 2D Observatory. Keep stable enterprise spatial memory in View State; dynamic frequency, balance, flow and future analysis drive visual channels without moving semantic identity. Three.js is a replaceable renderer behind Eidos spatial-core.
+Add the first stable Host Application ↔ EVO applicationId runtime mapping and the first evidence-backed SOP expected-vs-actual Analysis Provider. Expected SOP semantics must remain Human-confirmed enterprise model data; actual paths and frequencies come from authorized Runtime Facts/event evidence. The same Time Lens, canonical targets and Analysis Overlay contracts must drive both 2D and SPATIAL_3D Observatory views.
 
 Acceptance:
 
-- SPATIAL_3D consumes the same eog:primary Semantic Graph and the same Host Observatory Snapshot used by the 2D Observatory; no parallel 3D semantic graph or runtime store is introduced
-- durable x/y/z placement and camera remain SPATIAL_3D View State with an independent revision and never mutate semantic truth
-- Three.js or another WebGL/WebGPU implementation is hidden behind the Eidos spatial renderer/adapter boundary and can be replaced without changing EOG contracts
-- 3D selection resolves back to the same stable EOG node/relation target identities used by Human, Agent and 2D surfaces
-- Time Lens windows and comparison facts are identical across 2D and 3D projections
-- event frequency, balances and other raw Runtime Facts may drive neutral visual channels, but raw numeric values alone must not be labeled as bottleneck/severity conclusions
-- the first bottleneck Analysis Provider emits Analysis Overlay results only from explicit evidenceFactIds and preserves source/analyzer provenance
-- balance.quantity is not silently renamed WIP/backlog unless the canonical Ledger semantics or an explicit template establishes that business interpretation
-- mixed quantity units and currencies remain fail-closed or dimensioned; incompatible values are never visually aggregated
-- Application event-frequency support waits for a stable Host Application to EVO applicationId mapping rather than guessing from node labels or IDs
-- SOP expected-vs-actual analysis remains the next analysis expansion after the first bottleneck provider and 3D projection prove the shared observatory contract
+- define an explicit stable Host Application ↔ EVO applicationId mapping contract; never infer mappings from labels, node IDs or layout
+- enable Application-target Runtime Facts only through Host-resolved canonical application mappings
+- represent expected SOP/path semantics as governed Human-confirmed enterprise model data rather than renderer state or hidden Agent memory
+- represent actual execution paths from time-scoped runtime/event evidence with provenance and stable target identities
+- emit SOP_CONFORMANCE and SOP_DEVIATION only as evidence-backed Analysis Overlays with evidenceFactIds and analyzer provenance
+- return INSUFFICIENT_EVIDENCE when event/path evidence is incomplete instead of inventing compliance conclusions
+- reuse identical Time Lens windows and canonical targets across 2D and SPATIAL_3D projections
+- preserve raw Runtime Facts separately from derived conformance/deviation scores
+- do not make 3D position, heat, animation or renderer state influence SOP truth or analysis
+- keep the existing bottleneck Provider replaceable and independent from SOP analysis
 
 ## Current production preview
 
@@ -141,6 +140,7 @@ Not proved:
 - PR #144 — MERGED_CI_PASS: Resolve EOG node/relation targets to canonical semantic bindings in the Host before Provider queries.
 - PR #145 — MERGED_CI_PASS: Connect the EOG Observatory to a real EVO Runtime Fact Provider over canonical EVO LedgerDefinition targets.
 - PR #146 — MERGED_CI_PASS: Add the first Human operational Observatory surface with Time Lens presets and real Runtime Fact overlays over the same 2D EOG view.
+- PR #149 — MERGED_CI_PASS: Add the first Host-backed SPATIAL_3D Enterprise Observatory and a conservative evidence-backed Bottleneck Analysis Provider; preserve spatial View State and fact-vs-analysis boundaries.
 
 ## DO NOT repeat stale actions
 
@@ -189,6 +189,9 @@ Not proved:
 - Do not infer bottleneck, severity, WIP or backlog merely from a raw balance/frequency number; derived operational conclusions require explicit evidence-backed Analysis Overlay logic.
 - Do not aggregate incompatible quantity units or currencies into one observation; EVO PR #71 makes this fail closed.
 - Do not guess Host Application to EVO applicationId mappings from labels, node IDs or layout; define a stable canonical mapping before Application Runtime Facts are enabled.
+- Do not reopen the first SPATIAL_3D Observatory or evidence-backed Bottleneck Provider as unresolved foundation work; PR #149 is merged and Platform CI passed.
+- Do not let a Three.js/WebGL/WebGPU renderer own EOG semantic truth, Runtime Facts, Analysis Overlays or durable View State.
+- Do not infer Application runtime identity from presentation labels or EOG node IDs; the next gate requires an explicit Host Application ↔ EVO applicationId mapping.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -215,13 +218,16 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EVO PR #70 as the merged generic time-scoped Ledger Runtime observation boundary and EVO PR #71 as the merged unit/currency integrity correction
 - state PR #145 as the merged real EVO Runtime Fact Provider using Host-resolved canonical EVO LedgerDefinition targets
 - state PR #146 as the merged first read-only 2D Operational Observatory with 1h/4h/24h/7d Time Lens presets over the same eog:primary
-- state the current open gate as first SPATIAL_3D Observatory projection plus evidence-backed bottleneck Analysis Provider
 - state 3D as an operational God’s-eye observatory for enterprise activity, not a decorative renderer or separate enterprise model
 - state raw Runtime Facts as distinct from derived bottleneck/SOP/anomaly conclusions
 - state the Host-owned EVO BusinessData Adapter as no longer blocked by the Runtime Fact boundary but still deferred by current EOG Observatory priority
 - state Application Runtime Facts as pending an explicit Host Application ↔ EVO applicationId mapping; do not infer it
-- state SOP expected-vs-actual analysis as downstream of the first 3D/bottleneck slice
 - do not require the previous ChatGPT transcript to continue
+- state PR #149 as merged with the first Host-backed SPATIAL_3D Observatory and evidence-backed Bottleneck Analysis Provider
+- state 3D as a projection over the same eog:primary Semantic Graph, Time Lens, Runtime Facts and Analysis Overlays as 2D; spatial placement/camera remain View State
+- state bottleneck conclusions as Provider-derived and evidence-backed, with INSUFFICIENT_EVIDENCE used instead of guessing
+- state the current open gate as stable Host Application ↔ EVO applicationId runtime mapping plus SOP expected-vs-actual conformance/deviation analysis
+- state Application Runtime Facts as requiring explicit canonical mapping rather than inference from labels or node IDs
 
 No previous ChatGPT transcript is required.
 
