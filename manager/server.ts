@@ -2623,6 +2623,26 @@ function representationEtag(serialized: string): string {
   return "\"" + createHash("sha256").update(serialized).digest("base64url") + "\"";
 }
 
+function weakEntityTagValue(value: string): string {
+  const trimmed = value.trim();
+  return trimmed.startsWith("W/") ? trimmed.slice(2).trim() : trimmed;
+}
+
+function ifNoneMatchSatisfied(
+  header: string | string[] | undefined,
+  etag: string
+): boolean {
+  if (header === undefined) return false;
+  const values = Array.isArray(header) ? header : [header];
+  return values
+    .flatMap(value => value.split(","))
+    .map(value => value.trim())
+    .some(value =>
+      value === "*"
+      || weakEntityTagValue(value) === weakEntityTagValue(etag)
+    );
+}
+
 function jsonVersioned(
   request: IncomingMessage,
   response: ServerResponse,
@@ -2634,7 +2654,7 @@ function jsonVersioned(
   applyCors(response);
   response.setHeader("etag", etag);
   response.setHeader("cache-control", "private, max-age=0, must-revalidate");
-  if (request.headers["if-none-match"] === etag) {
+  if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
     response.statusCode = 304;
     response.end();
     return;
