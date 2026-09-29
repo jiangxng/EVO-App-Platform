@@ -22,11 +22,23 @@ export function createAppManagerActionHost(
 
   return {
     async execute(request: ActionRequestV010): Promise<ActionExecutionResult> {
+      const activeContext = request.values.activeContext;
+      const contextId = (
+        activeContext !== null
+        && typeof activeContext === "object"
+        && !Array.isArray(activeContext)
+        && typeof activeContext.contextId === "string"
+        && activeContext.contextId.trim()
+      )
+        ? activeContext.contextId.trim()
+        : undefined;
+
       const response = await fetchImpl(`${baseUrl}/v1/actions`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          accept: "application/json"
+          accept: "application/json",
+          ...(contextId ? { "x-evo-context-id": contextId } : {})
         },
         body: JSON.stringify(request)
       });
