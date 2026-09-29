@@ -102,6 +102,12 @@ import {
   createEnterpriseOperatingGraphObservatoryViewActionHandlerV020,
   EOG_OBSERVATORY_PAGE_SOURCE
 } from "./enterprise-operating-graph-observatory-page.js";
+import {
+  createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020,
+  createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020,
+  createEnterpriseOperatingGraphSpatialObservatoryPageV020,
+  EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE
+} from "./enterprise-operating-graph-spatial-observatory-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -322,6 +328,14 @@ import {
   evoRuntimeObservatoryProviderPackage
 } from "../providers/evo-runtime-observatory/package.js";
 import {
+  EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID,
+  EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+  eogBottleneckAnalysisProviderPackage
+} from "../providers/eog-bottleneck-analysis/package.js";
+import {
+  createEogBottleneckAnalysisProviderV020
+} from "../providers/eog-bottleneck-analysis/runtime.js";
+import {
   createEvoRuntimeObservatoryHealthProbeV010,
   createEvoRuntimeObservatoryProviderV020
 } from "../providers/evo-runtime-observatory/runtime.js";
@@ -512,6 +526,7 @@ const catalog = createPackageCatalog([
   remoteContextMemoryDlpProviderPackage,
   experienceCompilerMemoryIntakeProviderPackage,
   evoRuntimeObservatoryProviderPackage,
+  eogBottleneckAnalysisProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -1121,6 +1136,16 @@ const enterpriseOperatingGraphObservatoryProviders =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
+if (!installedAtStartup.some(
+  item => item.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID
+)) {
+  try {
+    manager.install(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
+    console.log("Activated EOG Bottleneck Analysis Provider.");
+  } catch (error) {
+    console.error("Failed to activate EOG Bottleneck Analysis Provider.", error);
+  }
+}
 const evoObservatoryEnabled =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
   === "true";
@@ -1869,6 +1894,19 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
 await refreshP12MemoryProviderRuntimes();
 
+providerRuntimeRegistry.replace(
+  EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+  createEogBottleneckAnalysisProviderV020()
+);
+providerRuntimeRegistry.setHealth(
+  EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Evidence-backed bottleneck analysis is available.",
+    checkedAt: new Date().toISOString()
+  }
+);
+
 if (evoObservatoryEnabled) {
   const options = {
     baseUrl: evoBaseUrl,
@@ -2250,6 +2288,11 @@ const actionRouter = createAppActionRouter(
       locale(context) {
         return context.locale;
       }
+    }),
+    createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
+      graphService: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService,
+      providers: enterpriseOperatingGraphObservatoryProviders
     }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
@@ -2700,7 +2743,8 @@ const server = createServer(async (request, response) => {
         )
           ? [
               createEnterpriseOperatingGraphExperienceManifestV010(),
-              createEnterpriseOperatingGraphObservatoryExperienceManifestV020()
+              createEnterpriseOperatingGraphObservatoryExperienceManifestV020(),
+              createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020()
             ]
           : [])
       ]);
@@ -2758,6 +2802,33 @@ const server = createServer(async (request, response) => {
           response,
           200,
           createEnterpriseOperatingGraphObservatoryPageV020({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+      if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraphSpatialObservatoryPageV020({
             activeContext,
             locale: requestedLocale(url)
           })
