@@ -184,16 +184,15 @@ export async function mountAgentWorkspaceShell(
       actionHost: options.actionHost,
       localization,
       chatState,
-      async onActionResult(result, page) {
-        await options.onActionResult?.(result, page);
+      async onActionResult(result, page, renderHint) {
+        await options.onActionResult?.(result, page, renderHint);
         if (
           result !== null
           && typeof result === "object"
           && !Array.isArray(result)
           && (result as { ok?: unknown }).ok === true
         ) {
-          await host.refresh();
-          renderNavigation(host.getSnapshot());
+          await refreshChrome();
         }
       }
     });
@@ -238,15 +237,19 @@ export async function mountAgentWorkspaceShell(
       actionHost: options.actionHost,
       localization,
       onNavigate: navigateWorkspace,
-      async onActionResult(result, page) {
-        await options.onActionResult?.(result, page);
+      async onActionResult(result, page, renderHint) {
+        await options.onActionResult?.(result, page, renderHint);
         if (
           result !== null
           && typeof result === "object"
           && !Array.isArray(result)
           && (result as { ok?: unknown }).ok === true
         ) {
-          await refresh();
+          if (renderHint?.preserveMountedPage === true) {
+            await refreshChrome();
+          } else {
+            await refresh();
+          }
         }
       }
     });
@@ -361,6 +364,12 @@ export async function mountAgentWorkspaceShell(
     }
   };
   window.addEventListener("hashchange", hashHandler);
+
+  async function refreshChrome(): Promise<AppHostSnapshotV010> {
+    const snapshot = await host.refresh();
+    renderNavigation(snapshot);
+    return snapshot;
+  }
 
   async function refresh(): Promise<AppHostSnapshotV010> {
     const snapshot = await host.refresh();
