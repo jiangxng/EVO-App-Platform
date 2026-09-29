@@ -168,6 +168,17 @@ function preset(
   };
 }
 
+export function createEnterpriseOperatingGraphObservatoryReadPresetsV020(
+  now: Date = new Date()
+) {
+  return [
+    preset("4h", "4h", 4, now),
+    preset("24h", "24h", 24, now),
+    preset("7d", "7d", 24 * 7, now),
+    preset("1h", "1h", 1, now)
+  ];
+}
+
 export function createEnterpriseOperatingGraphObservatoryPageV020(input: {
   activeContext: ActiveContextRefV010;
   locale?: string;
@@ -192,12 +203,7 @@ export function createEnterpriseOperatingGraphObservatoryPageV020(input: {
     requestValues: {
       activeContext: structuredClone(input.activeContext) as unknown as JsonValue
     },
-    readPresets: [
-      preset("4h", "4h", 4, now),
-      preset("24h", "24h", 24, now),
-      preset("7d", "7d", 24 * 7, now),
-      preset("1h", "1h", 1, now)
-    ],
+    readPresets: createEnterpriseOperatingGraphObservatoryReadPresetsV020(now),
     emptyMessage: text.empty
   };
 }
@@ -272,7 +278,7 @@ function oneFact(
   return values?.length === 1 ? values[0] : undefined;
 }
 
-function observationBadges(
+export function createEnterpriseOperatingGraphObservationBadgesV020(
   target: string,
   snapshot: EogObservationSnapshotV020,
   locale?: string
@@ -340,7 +346,7 @@ export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
     lifecycleState: "OBSERVATORY",
     nodes: input.base.nodes.map(node => {
       const observations = snapshot
-        ? observationBadges(
+        ? createEnterpriseOperatingGraphObservationBadgesV020(
             "NODE:" + node.id,
             snapshot,
             input.locale
@@ -369,7 +375,7 @@ export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
             }
           : undefined;
       const observations = snapshot && relation
-        ? observationBadges(
+        ? createEnterpriseOperatingGraphObservationBadgesV020(
             "RELATION:"
               + relation.authority
               + ":"
