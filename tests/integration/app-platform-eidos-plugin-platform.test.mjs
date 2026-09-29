@@ -106,16 +106,24 @@ test("App Platform Workbench consumes Eidos semantic icon system", async () => {
     new URL("../../manager/app-host-client.ts", import.meta.url),
     "utf8"
   );
-  assert.match(client, /icon: "dashboard"/);
-  assert.match(client, /icon: "plugins"/);
-  assert.match(client, /icon: "workspace"/);
-  assert.match(client, /icon: "help"/);
-  assert.match(client, /id: "help"/);
-  assert.match(client, /kind: "side-route"/);
-  assert.match(client, /route: "\/help"/);
-  assert.match(client, /placement: "secondary"/);
-  assert.match(client, /icon: "settings"/);
-  assert.doesNotMatch(client, /icon: "[▦◇▣⚙]"/);
+  const desktopRuntime = await readFile(
+    new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(client, /icon: "dashboard"/);
+  assert.match(client, /import\(\s*"\.\/desktop-workbench-runtime\.js"\s*\)/);
+
+  assert.match(desktopRuntime, /icon: "dashboard"/);
+  assert.match(desktopRuntime, /icon: "plugins"/);
+  assert.match(desktopRuntime, /icon: "workspace"/);
+  assert.match(desktopRuntime, /icon: "help"/);
+  assert.match(desktopRuntime, /id: "help"/);
+  assert.match(desktopRuntime, /kind: "side-route"/);
+  assert.match(desktopRuntime, /route: "\/help"/);
+  assert.match(desktopRuntime, /placement: "secondary"/);
+  assert.match(desktopRuntime, /icon: "settings"/);
+  assert.doesNotMatch(desktopRuntime, /icon: "[▦◇▣⚙]"/);
 });
 
 
