@@ -2636,7 +2636,8 @@ function jsonVersioned(
   response.setHeader("cache-control", "private, max-age=0, must-revalidate");
   if (request.headers["if-none-match"] === etag) {
     response.statusCode = 304;
-    return response.end();
+    response.end();
+    return;
   }
   response.statusCode = status;
   response.setHeader("content-type", "application/json; charset=utf-8");
