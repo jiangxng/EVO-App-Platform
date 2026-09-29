@@ -110,7 +110,7 @@ export function createHostRealtimeEventBusV010(input?: {
         const cursor = visible.at(-1);
         return {
           events: [],
-          resetRequired: ring.length > 0,
+          resetRequired: visible.length > 0,
           ...(cursor
             ? {
                 cursorEventId: cursor.eventId,
