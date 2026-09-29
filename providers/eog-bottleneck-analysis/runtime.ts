@@ -9,6 +9,9 @@ import {
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID
 } from "./package.js";
 import type {
+  EogExpectedSopTransitionV010
+} from "../../contracts/enterprise-operating-graph-sop.js";
+import type {
   EogExpectedSopServiceV010
 } from "../../manager/enterprise-operating-graph-sop-service.js";
 
@@ -192,7 +195,8 @@ export function createEogBottleneckAnalysisProviderV020(
       );
 
       for (const sop of expectedSops) {
-        const transitions = sop.transitions ?? sop.steps
+        const transitions: EogExpectedSopTransitionV010[] =
+          sop.transitions ?? sop.steps
           .slice(0, -1)
           .map((step, index) => ({
             transitionId: "legacy-transition:" + (index + 1),
