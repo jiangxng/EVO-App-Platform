@@ -16,6 +16,7 @@ import {
   type ExperienceSurfaceHandoffResolutionV010
 } from "../app-host/surface.js";
 import type { RealtimeEventV010 } from "../realtime/contracts.js";
+import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.js";
 import {
   mountAppHostLoadedPage,
   type AppHostChatState,
@@ -164,6 +165,8 @@ export async function mountWorkbenchShell(
   const pendingResourceRefreshes = new Set<string>();
   let resourceRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   let resourceRefreshInFlight = false;
+  const sideReadGate = createSupersedingRequestGateV010();
+  const workspaceReadGate = createSupersedingRequestGateV010();
 
   const hostText = (
     key: string,
@@ -453,6 +456,7 @@ export async function mountWorkbenchShell(
   }
 
   async function renderSidePanel(): Promise<void> {
+    const read = sideReadGate.begin();
     sideMount?.dispose();
     sideMount = undefined;
     sideContent.replaceChildren();
@@ -490,7 +494,16 @@ export async function mountWorkbenchShell(
       );
     }
 
-    const loaded = await host.loadRoute(resolvedRoute);
+    let loaded;
+    try {
+      loaded = await host.loadRoute(resolvedRoute, { signal: read.signal });
+    } catch (error) {
+      if (!read.isCurrent() || (error instanceof DOMException && error.name === "AbortError")) {
+        return;
+      }
+      throw error;
+    }
+    if (!read.isCurrent()) return;
     if (!loaded) {
       const empty = document.createElement("p");
       empty.textContent = hostText(
@@ -531,6 +544,7 @@ export async function mountWorkbenchShell(
   }
 
   function renderWeb(url: string): void {
+    workspaceReadGate.cancel();
     workspaceMount?.dispose();
     workspaceMount = undefined;
     workspaceContent.replaceChildren();
@@ -549,6 +563,7 @@ export async function mountWorkbenchShell(
   }
 
   async function renderInternalWorkspace(path: string): Promise<void> {
+    const read = workspaceReadGate.begin();
     workspaceMount?.dispose();
     workspaceMount = undefined;
     workspaceContent.replaceChildren();
@@ -572,7 +587,16 @@ export async function mountWorkbenchShell(
       );
     }
 
-    const loaded = await host.loadRoute(resolvedPath);
+    let loaded;
+    try {
+      loaded = await host.loadRoute(resolvedPath, { signal: read.signal });
+    } catch (error) {
+      if (!read.isCurrent() || (error instanceof DOMException && error.name === "AbortError")) {
+        return;
+      }
+      throw error;
+    }
+    if (!read.isCurrent()) return;
     if (!loaded) {
       const empty = document.createElement("p");
       empty.textContent = hostText(
@@ -1017,6 +1041,8 @@ export async function mountWorkbenchShell(
       resourceRefreshTimer = undefined;
     }
     pendingResourceRefreshes.clear();
+    sideReadGate.dispose();
+    workspaceReadGate.dispose();
     sideMount?.dispose();
     workspaceMount?.dispose();
     unsubscribeHost();
