@@ -19,6 +19,10 @@ import {
   isDiagramEditorPageV010,
   mountDiagramEditorPageV010
 } from "../diagram/surface.js";
+import {
+  isSpatialObservatoryPageV010,
+  mountSpatialObservatoryPageV010
+} from "../spatial/surface.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
 import {
@@ -403,6 +407,26 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     return {
       dispose() {
         mountedDiagram.dispose();
+        for (const dispose of listeners) dispose();
+      }
+    };
+  }
+
+  if (isSpatialObservatoryPageV010(page.definition)) {
+    if (!options.actionHost) {
+      throw new Error("EIDOS_SPATIAL_OBSERVATORY_ACTION_HOST_REQUIRED");
+    }
+    const mountedSpatial = mountSpatialObservatoryPageV010({
+      definition: page.definition,
+      container,
+      actionHost: options.actionHost,
+      onActionResult(result) {
+        return options.onActionResult?.(result, page);
+      }
+    });
+    return {
+      dispose() {
+        mountedSpatial.dispose();
         for (const dispose of listeners) dispose();
       }
     };
