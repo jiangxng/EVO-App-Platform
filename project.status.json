@@ -361,7 +361,11 @@
     "personal-agent-mobile-task-independent-runtime-v0-1",
     "desktop-workbench-lazy-runtime-v0-1",
     "mobile-no-desktop-heavy-module-live-pass-v0-1",
-    "surface-cold-warm-js-byte-budget-live-pass-v0-1"
+    "surface-cold-warm-js-byte-budget-live-pass-v0-1",
+    "personal-agent-mobile-memory-review-task-surface-v0-1",
+    "mobile-review-action-authority-parity-v0-1",
+    "mobile-review-no-desktop-heavy-module-live-pass-v0-1",
+    "mobile-review-cold-warm-byte-budget-live-pass-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -387,7 +391,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Web Delivery P3 Browser Lifecycle + Resilience is now production-verified. Eidos PR #59 established bfcache/offline-aware SSE, browser lifecycle states, abortable Experience reads, and superseding request generation gates. App Platform PR #182 synced those foundations, made Workbench/App Host route reads abort superseded requests, stopped treating persisted pagehide as real disposal, preserved mounted Surface state across bfcache, and added an explicit offline freshness notice stating that displayed information may be stale and material writes require connectivity. Production commit 61bf923466a118b4fb6b2ed938c2b41dc9302b52 / Railway deployment f2340000-460a-4c23-b173-652aac3f0138 is SUCCESS. PR #183 added a real Chrome production proof: Workbench DOM survived history back via bfcache, pagehide/pageshow both reported persisted=true, /v1/actions delta was 0 during restore, SSE connections moved from 1 before away to 2 after restore, offline notice became visible with networkState=offline, and online recovery succeeded. P3 is closed. Web Delivery next moves to P4 Mobile Verticals; Personal Agent MOBILE_TASK is already proven, so the next vertical is Review Queue / approval decisions. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
+  "currentStep": "Web Delivery P4 first additional mobile vertical is now production-proven. PR #185 added a dedicated MOBILE_TASK Memory Review route /m/enterprise-agent/memory over the same semantic route enterprise-agent.memory-review and the same Host review authority/actions as desktop, while using the independent mobile runtime. Railway production deployment 69f58d70-74a0-4f95-92a8-84379560db1 at commit 6cf1061983e08a3c07652b5e08c994890e4c6861 is SUCCESS. The corrected Chrome proof in PR #188 passed: compact/mobile resolves to the real Review Queue, explicit desktop override retains Workbench, mobile cold JS transferred 36,881 bytes versus desktop 90,637 bytes, warm JS transferred 0 bytes, and mobile loaded mobile-task-runtime but no desktop-workbench-runtime, Workbench, Diagram or Spatial modules. Material accept/reject confirmation remains Human-authoritative. The next P4 vertical is notifications / exceptions / assigned tasks, beginning with Eidos Task Inbox and the existing Personal Agent Follow-up planning state as the first governed task source. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1633,8 +1637,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-13",
-    "snapshotAt": "2026-09-29T20:18:00.000+08:00",
+    "snapshotId": "EOG-2026-09-29-14",
+    "snapshotAt": "2026-09-29T21:28:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1697,8 +1701,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "61bf923466a118b4fb6b2ed938c2b41dc9302b52",
-        "deploymentId": "f2340000-460a-4c23-b173-652aac3f0138",
+        "commit": "6cf1061983e08a3c07652b5e08c994890e4c6861",
+        "deploymentId": "69f58d70-74a0-4f95-92a8-84379560db1",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -2053,6 +2057,16 @@
         "pr": 183,
         "status": "MERGED_PRODUCTION_PROOF_PASS",
         "summary": "Certify real Chrome bfcache restore, zero action replay, SSE reconnect and offline/online freshness behavior against production."
+      },
+      {
+        "pr": 185,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Add dedicated MOBILE_TASK Memory Review over the same semantic review route and Host Human authority as desktop."
+      },
+      {
+        "pr": 188,
+        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
+        "summary": "Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies."
       }
     ],
     "doNotRepeat": [
@@ -2148,7 +2162,11 @@
       "Do not allow an older route/data request to overwrite a newer navigation; abort superseded requests and reject stale generations.",
       "Do not silently label last-known offline data as current; freshness/connectivity state must be explicit.",
       "Do not reconnect background realtime by fixed polling; SSE resumes from cursor/version when the page becomes active again.",
-      "Do not rebuild Personal Agent as the next mobile vertical; it is already production-proven. P4 starts with Review Queue / approval decisions."
+      "Do not rebuild Personal Agent as the next mobile vertical; it is already production-proven. P4 starts with Review Queue / approval decisions.",
+      "Do not reopen MOBILE_TASK Memory Review as pending; PR #185 is production deployed and PR #188 real-Chrome proof passed.",
+      "Do not implement mobile Review Queue by shrinking desktop Workbench; the independent mobile runtime and byte budget are already proven.",
+      "Do not weaken Human confirmation for material Memory accept/reject just because the action is presented on mobile.",
+      "Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2213,7 +2231,11 @@
       "state App Platform PR #182 as merged, CI-passed and production-deployed at 61bf923466a118b4fb6b2ed938c2b41dc9302b52 / Railway f2340000-460a-4c23-b173-652aac3f0138",
       "state the real Chrome P3 proof exactly: bfcache DOM preserved, pagehide.persisted=true, pageshow.persisted=true, actionDelta=0, SSE 1->2 across restore, offline notice visible, online recovery true",
       "state superseded route/data reads as AbortController + generation guarded; stale completions must not win",
-      "state P4 Web Delivery as Mobile Verticals, with Review Queue / approval decisions next because Personal Agent MOBILE_TASK is already complete"
+      "state P4 Web Delivery as Mobile Verticals, with Review Queue / approval decisions next because Personal Agent MOBILE_TASK is already complete",
+      "state P4 MOBILE_TASK Memory Review as production PASS: implementation PR #185 / deployment 69f58d70-74a0-4f95-92a8-84379560db1 and corrected production proof PR #188",
+      "state mobile Review cold JS as 36,881 bytes, desktop as 90,637 bytes, both warm JS transfer 0, and mobile as loading no Workbench/Diagram/Spatial/desktop runtime",
+      "state Review Queue desktop/mobile as the same semantic route and Host authority with Surface-specific rendering",
+      "state the next Web P4 slice as Task Inbox for notifications/exceptions/assigned work, beginning with real Personal Agent Follow-up planning state rather than demo data"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -2235,7 +2257,7 @@
       ]
     },
     "webDelivery": {
-      "status": "P3_BROWSER_LIFECYCLE_RESILIENCE_VERIFIED_PRODUCTION_PASS",
+      "status": "P4_MOBILE_REVIEW_QUEUE_VERIFIED_PRODUCTION_PASS",
       "upstreamAuthority": {
         "repository": "jiangxng/eidos",
         "pr": 50,
@@ -2300,15 +2322,16 @@
         ]
       },
       "nextPhase": {
-        "id": "P4_MOBILE_VERTICALS_REVIEW_QUEUE",
+        "id": "P4_MOBILE_VERTICALS_TASK_INBOX",
         "acceptance": [
-          "keep Personal Agent as the already-proven first MOBILE_TASK vertical; do not rebuild it",
-          "add a dedicated Review Queue / approval MOBILE_TASK Surface using the same Host resources/actions and authority as desktop",
-          "optimize the mobile queue for decision context, evidence summary, approve/reject/escalate actions and minimal transfer rather than shrinking the desktop page",
-          "declare dense desktop-only review/configuration operations as READ_ONLY or UNSUPPORTED on mobile when appropriate",
-          "prove mobile Review Queue does not download Workbench/Diagram/Spatial or unrelated desktop modules",
-          "preserve explicit confirmation and Human authority for material approval/rejection actions",
-          "add real Chrome production proof for compact auto-resolution, explicit desktop override, network bytes and warm-cache behavior"
+          "complete Eidos Task Inbox ActionHost delegation so task commands/navigation use the same Host authority boundary",
+          "project a real governed Host task source into MOBILE_TASK; begin with current-Principal/current-Context Personal Agent Follow-ups rather than demo data",
+          "preserve desktop follow-up experience while mapping the same semantic route to a mobile Task Inbox",
+          "keep planning-state complete/dismiss actions self-scoped Human actions and do not turn Task Inbox into business truth",
+          "represent exception/blocked/assigned states explicitly; do not infer business completion from presentation state",
+          "prove compact auto-resolution and explicit desktop override in real Chrome",
+          "prove mobile Task Inbox does not download Workbench/Diagram/Spatial or unrelated desktop modules and warm immutable JS transfer remains zero",
+          "measure mobile cold JS/data bytes separately from desktop"
         ]
       },
       "surfaceFoundation": {
@@ -2453,6 +2476,44 @@
           "offline state is explicit; displayed last-known information is not silently presented as current",
           "material writes remain fail-closed when connectivity/current authority cannot be established"
         ]
+      },
+      "p4": {
+        "reviewQueue": {
+          "implementation": {
+            "pr": 185,
+            "commit": "6cf1061983e08a3c07652b5e08c994890e4c6861",
+            "deploymentId": "69f58d70-74a0-4f95-92a8-84379560db1"
+          },
+          "productionProof": {
+            "pr": 188,
+            "workflow": "Mobile Review Production Proof",
+            "status": "SUCCESS",
+            "observed": {
+              "mobile": {
+                "route": "/m/enterprise-agent/memory",
+                "coldJsBytes": 36881,
+                "warmJsBytes": 0,
+                "requestedMobileRuntime": true,
+                "requestedDesktopRuntime": false,
+                "requestedWorkbench": false,
+                "requestedDiagram": false,
+                "requestedSpatial": false
+              },
+              "desktop": {
+                "route": "/enterprise-agent/memory",
+                "coldJsBytes": 90637,
+                "warmJsBytes": 0,
+                "workbench": true
+              }
+            }
+          },
+          "invariants": [
+            "desktop and mobile share semantic route enterprise-agent.memory-review and Host review authority",
+            "mobile uses a dedicated MOBILE_TASK presentation/runtime rather than responsive desktop Workbench",
+            "material accept/reject actions retain explicit Human confirmation",
+            "mobile Review Queue does not load Workbench/Diagram/Spatial or desktop runtime"
+          ]
+        }
       }
     }
   },
@@ -2890,7 +2951,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "Web Delivery P0 cache, P1 Surface resolution, P2 Surface-scoped loading and P3 browser lifecycle/resilience are all production-verified. The next Web slice is a second genuine mobile vertical—Review Queue / approval decisions—using shared Host semantics without importing desktop Workbench. In parallel, EOG still awaits a legitimate governed runtime flow/trace source.",
+    "rationale": "Web P0-P3 and the first P4 Review Queue vertical are production-proven. Continue P4 with Task Inbox using a real governed Host task source and the same Surface-specific loading/network budgets. The EOG semantic trace gate remains independently blocked on a legitimate runtime flow source and must not be bypassed.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
