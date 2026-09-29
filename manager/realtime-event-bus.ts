@@ -12,6 +12,8 @@ export interface HostRealtimeEventFilterV010 {
 export interface HostRealtimeReplayV010 {
   events: HostRealtimeEventV010[];
   resetRequired: boolean;
+  cursorEventId?: string;
+  cursorSequence?: number;
 }
 
 export interface HostRealtimeEventBusV010 {
@@ -104,9 +106,17 @@ export function createHostRealtimeEventBusV010(input?: {
       }
       const index = ring.findIndex(event => event.eventId === eventId);
       if (index < 0) {
+        const visible = ring.filter(event => visibleTo(event, filter));
+        const cursor = visible.at(-1);
         return {
           events: [],
-          resetRequired: ring.length > 0
+          resetRequired: ring.length > 0,
+          ...(cursor
+            ? {
+                cursorEventId: cursor.eventId,
+                cursorSequence: cursor.sequence
+              }
+            : {})
         };
       }
       return {
