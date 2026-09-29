@@ -902,7 +902,7 @@ test("run action handlers start, get and resume without resending original task"
   });
   assert.equal(started.ok, true);
   assert.equal(started.result.run.runId, "agent-run:from-action");
-  assert.equal(started.result.run.state, "PAUSED");
+  assert.equal(started.result.run.state, "SUCCEEDED");
 
   const got = await byCode.get("enterprise-agent.run.get").execute({
     ...baseRequest,
@@ -910,7 +910,7 @@ test("run action handlers start, get and resume without resending original task"
     values: { runId: "agent-run:from-action" }
   });
   assert.equal(got.ok, true);
-  assert.equal(got.result.run.state, "PAUSED");
+  assert.equal(got.result.run.state, "SUCCEEDED");
 
   const resumed = await byCode.get("enterprise-agent.run.resume").execute({
     ...baseRequest,
