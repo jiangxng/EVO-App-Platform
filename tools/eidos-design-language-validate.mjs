@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { resolveEidosIconName } from "../dist/vendor/eidos/src/design-language/icons/icon-system.js";
 import { eidosProductiveWorkbenchCss } from "../dist/vendor/eidos/src/design-language/productive-workbench-css.js";
+import { appHostShellCss } from "../dist/manager/app-host-shell.js";
 import {
   createHelpIndexPageV010,
   loadHelpCorpusV010,
@@ -23,12 +24,14 @@ const help = readFileSync(helpPath, "utf8");
 if (!shell.includes('eidosProductiveWorkbenchCss')) {
   problems.push("App Host shell must consume eidosProductiveWorkbenchCss.");
 }
-if (!shell.includes('<style>${eidosProductiveWorkbenchCss}</style>')) {
-  problems.push("App Host shell style surface must be the Eidos Productive Workbench stylesheet.");
+if (!shell.includes("/manager/app-host-shell.css")) {
+  problems.push("App Host shell must reference the revisioned shell stylesheet asset.");
 }
-const shellWithoutEidosStyle = shell.replace('<style>${eidosProductiveWorkbenchCss}</style>', "");
-if (/<style\b/i.test(shellWithoutEidosStyle) || /\sstyle\s*=/.test(shellWithoutEidosStyle)) {
-  problems.push("App Platform must not add parallel shell CSS or inline style attributes.");
+if (appHostShellCss !== eidosProductiveWorkbenchCss) {
+  problems.push("App Host shell CSS asset must remain exactly the Eidos Productive Workbench stylesheet.");
+}
+if (/<style\b/i.test(shell) || /\sstyle\s*=/.test(shell)) {
+  problems.push("App Platform shell must not embed parallel CSS or inline style attributes.");
 }
 
 for (const source of [client, desktopRuntime, help]) {
