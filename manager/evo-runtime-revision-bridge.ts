@@ -17,6 +17,17 @@ export interface EvoRuntimeRevisionBridgeEventV010 {
 export interface EvoRuntimeRevisionBridgeV010 {
   register(interests: readonly EvoRuntimeRevisionInterestV010[]): () => void;
   pollNow(): Promise<void>;
+  diagnostics(): {
+    interestCount: number;
+    uniqueRuntimeEnterpriseCount: number;
+    timerActive: boolean;
+    checks: number;
+    notModified: number;
+    changed: number;
+    errors: number;
+    lastCheckAt?: string;
+    lastChangeAt?: string;
+  };
   dispose(): void;
 }
 
@@ -39,6 +50,12 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
   let timer: ReturnType<typeof setInterval> | undefined;
   let disposed = false;
   let polling: Promise<void> | undefined;
+  let checks = 0;
+  let notModified = 0;
+  let changed = 0;
+  let errors = 0;
+  let lastCheckAt: string | undefined;
+  let lastChangeAt: string | undefined;
 
   const activeCodes = (): string[] => [
     ...new Set([...interests.values()].map(item => item.evoEnterpriseCode))
@@ -53,6 +70,8 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
   const pollCode = async (code: string): Promise<void> => {
     const previous = etags.get(code);
     try {
+      checks += 1;
+      lastCheckAt = new Date().toISOString();
       const response = await fetchImpl(
         options.baseUrl.replace(/\/$/u, "")
           + "/api/v1/enterprises/"
@@ -66,7 +85,10 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
         }
       );
 
-      if (response.status === 304) return;
+      if (response.status === 304) {
+        notModified += 1;
+        return;
+      }
       if (!response.ok) {
         throw new Error(
           "EVO_RUNTIME_REVISION_HTTP_"
@@ -99,6 +121,8 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
       }
       if (previous === etag) return;
 
+      changed += 1;
+      lastChangeAt = new Date().toISOString();
       for (const item of interests.values()) {
         if (item.evoEnterpriseCode !== code) continue;
         options.onChanged({
@@ -110,6 +134,7 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
         });
       }
     } catch (error) {
+      errors += 1;
       options.onError?.({ evoEnterpriseCode: code, error });
     }
   };
@@ -161,6 +186,19 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
       };
     },
     pollNow,
+    diagnostics() {
+      return {
+        interestCount: interests.size,
+        uniqueRuntimeEnterpriseCount: activeCodes().length,
+        timerActive: timer !== undefined,
+        checks,
+        notModified,
+        changed,
+        errors,
+        ...(lastCheckAt ? { lastCheckAt } : {}),
+        ...(lastChangeAt ? { lastChangeAt } : {})
+      };
+    },
     dispose() {
       disposed = true;
       interests.clear();

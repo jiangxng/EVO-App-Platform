@@ -2990,6 +2990,14 @@ const server = createServer(async (request, response) => {
       response.once("close", close);
       return;
     }
+    if (request.method === "GET" && url.pathname === "/v1/realtime/diagnostics") {
+      resolveRequestIdentitySession(request);
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        eventBus: realtimeEvents.diagnostics(),
+        evoRuntimeRevisionBridge: evoRuntimeRevisionBridge?.diagnostics() ?? null
+      });
+    }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);

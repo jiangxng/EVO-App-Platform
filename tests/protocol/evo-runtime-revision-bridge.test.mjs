@@ -70,12 +70,32 @@ test("EVO runtime revision bridge shares one conditional read per runtime enterp
     ["a", "b"]
   );
   assert.ok(changed.every(item => item.etag === '"rev-2"'));
+  const active = bridge.diagnostics();
+  assert.equal(active.interestCount, 2);
+  assert.equal(active.uniqueRuntimeEnterpriseCount, 1);
+  assert.equal(active.timerActive, true);
+  assert.equal(active.changed, 1);
+  assert.ok(active.checks >= 3);
+  assert.ok(active.notModified >= 1);
+  assert.equal(active.errors, 0);
 
   closeA();
   closeB();
   requests.length = 0;
   await bridge.pollNow();
   assert.equal(requests.length, 0);
+  assert.deepEqual(
+    {
+      interestCount: bridge.diagnostics().interestCount,
+      uniqueRuntimeEnterpriseCount: bridge.diagnostics().uniqueRuntimeEnterpriseCount,
+      timerActive: bridge.diagnostics().timerActive
+    },
+    {
+      interestCount: 0,
+      uniqueRuntimeEnterpriseCount: 0,
+      timerActive: false
+    }
+  );
 
   bridge.dispose();
 });
