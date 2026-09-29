@@ -1926,9 +1926,9 @@
         "summary": "Add Host-owned Expected SOP authority, EVO trace-derived sop.transition.count Runtime Facts, proposal-only Agent SOP tools, Human-confirmed publish, and shared 2D/3D SOP conformance/deviation overlays."
       },
       {
-        "pr": "EVO-73",
+        "pr": 73,
         "status": "MERGED_CI_PASS",
-        "summary": "Add EVO time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors."
+        "summary": "EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors."
       }
     ],
     "doNotRepeat": [
