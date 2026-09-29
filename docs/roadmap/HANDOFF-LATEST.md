@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-11`  
-**Snapshot time:** `2026-09-29T17:36:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-12`  
+**Snapshot time:** `2026-09-29T17:53:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `af7bdf6bcbc2521dd5f0b518acde2fb6d4b81b36`
-- Deployment: `e36166e4-f63d-483e-a0fe-12e58550e948`
+- Commit: `ba7a4fcdf66646d072b63e3594d99acb3d0e317d`
+- Deployment: `21f1797b-f08d-472b-8f2f-d3a4856a4ec2`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -163,6 +163,8 @@ Not proved:
 - PR #174 — MERGED_CI_PASS: Adopt Eidos Surface resolver and declare Personal Agent DESKTOP_WORKBENCH + MOBILE_TASK as separate routes over one semantic Agent capability.
 - PR #175 — MERGED_DEPLOYED_CI_PASS: Activate Browser Surface Gateway before Workbench mount, preserving explicit URL target precedence and rendering network-quiet Surface handoff.
 - PR #176 — MERGED_PRODUCTION_BROWSER_PROOF_PASS: Certify Surface routing in real headless Chrome: automatic mobile task routing, explicit desktop override, desktop-only setup handoff, and no SSE on handoff.
+- PR #179 — MERGED_DEPLOYED_CI_PASS: Split browser runtime by Surface: minimal gateway, dedicated MOBILE_TASK Personal Agent runtime and lazy desktop Workbench runtime; preserve semantic Action boundary.
+- PR #180 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Use real Chrome CDP to certify Surface-specific dependency graphs and cold/warm JS transfer budgets in production.
 
 ## DO NOT repeat stale actions
 
@@ -250,6 +252,10 @@ Not proved:
 - Do not verify Surface routing by localized UI copy; use stable structural DOM identity, Surface/page ids and network evidence.
 - Do not force desktop-only Agent setup/quality/memory pages into MOBILE_TASK; unsupported semantic routes must hand off deterministically.
 - Do not duplicate business semantics for mobile: desktop/mobile Personal Agent surfaces share the same Host Action and semantic route identity.
+- Do not statically import the full Workbench from the minimal browser bootstrap; desktop/tablet Workbench is a post-Surface-resolution lazy runtime.
+- Do not load Diagram/Spatial/desktop Workbench modules into the Personal Agent MOBILE_TASK dependency graph.
+- Do not judge code splitting only from source imports; production acceptance requires real browser network evidence.
+- Do not claim warm-cache efficiency from request count alone; encoded transfer bytes are the relevant proof and are currently 0 for the measured immutable JS graph.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -322,6 +328,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the production Chrome proof: compact auto -> mobile-home; compact + ?surface=desktop -> desktop home; compact setup -> handoff; handoff -> no /v1/events
 - state unsupported mobile pages as deliberate handoff rather than responsive desktop squeeze
 - state the next Web foundation slice as P2 Surface-scoped loading with independently measured mobile/desktop JS transfer budgets
+- state Web Delivery P2 Surface-scoped loading as production PASS through App Platform #179/#180
+- state the production Chrome transfer evidence exactly: MOBILE_TASK 30,685 cold JS bytes / 19 requests; DESKTOP_WORKBENCH 87,880 / 55; HANDOFF 12,089 / 7; all measured warm JS encoded bytes 0
+- state MOBILE_TASK as not requesting desktop-workbench-runtime, Eidos Workbench, Diagram or Spatial modules
+- state HANDOFF as requesting neither mobile nor desktop Surface runtime
+- state the next Web foundation slice as P3 Browser Lifecycle + Resilience, not a broad mobile page port
 
 No previous ChatGPT transcript is required.
 
