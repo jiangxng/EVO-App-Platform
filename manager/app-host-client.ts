@@ -100,6 +100,22 @@ if (surfaceGateway.kind === "HANDOFF") {
     mounted.dispose();
     connectivity.dispose();
   });
+} else if (activeTarget === "MOBILE_READ") {
+  const { mountMobileReadRuntimeV010 } = await import(
+    "./mobile-read-runtime.js"
+  );
+  const mounted = await mountMobileReadRuntimeV010({
+    container: "#app",
+    source,
+    bootstrapManifests,
+    path: activePath,
+    baseUrl: window.location.origin
+  });
+
+  disposeOnRealPageExitV010(() => {
+    mounted.dispose();
+    connectivity.dispose();
+  });
 } else {
   const { mountDesktopWorkbenchRuntimeV010 } = await import(
     "./desktop-workbench-runtime.js"
