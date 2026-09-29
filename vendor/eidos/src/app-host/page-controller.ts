@@ -114,6 +114,15 @@ export function createChatConversationHistoryV010(
   return selected.reverse();
 }
 
+export interface AppHostActionRenderHintV010 {
+  /**
+   * The mounted surface has already applied the action result locally.
+   * Shells may refresh navigation/provider chrome, but must not tear down
+   * and remount the current page.
+   */
+  preserveMountedPage?: boolean;
+}
+
 export interface MountAppHostPageOptions {
   page: AppHostLoadedPageV010;
   container: HTMLElement;
@@ -121,7 +130,11 @@ export interface MountAppHostPageOptions {
   actionHost?: ActionHost;
   localization?: LocalizationRuntime;
   onNavigate?: (route: string) => void | Promise<void>;
-  onActionResult?: (result: unknown, page: AppHostLoadedPageV010) => void | Promise<void>;
+  onActionResult?: (
+    result: unknown,
+    page: AppHostLoadedPageV010,
+    renderHint?: AppHostActionRenderHintV010
+  ) => void | Promise<void>;
   chatState?: AppHostChatState;
 }
 
@@ -401,7 +414,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       container,
       actionHost: options.actionHost,
       onActionResult(result) {
-        return options.onActionResult?.(result, page);
+        return options.onActionResult?.(
+          result,
+          page,
+          { preserveMountedPage: true }
+        );
       }
     });
     return {
@@ -421,7 +438,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       container,
       actionHost: options.actionHost,
       onActionResult(result) {
-        return options.onActionResult?.(result, page);
+        return options.onActionResult?.(
+          result,
+          page,
+          { preserveMountedPage: true }
+        );
       }
     });
     return {
@@ -654,10 +675,83 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const form = container.querySelector<HTMLFormElement>("[data-eidos-chat-composer]");
     const textarea = form?.elements.namedItem(definition.composer.key);
 
-    const renderTranscript = () => {
+    const initialEmptyState = transcript
+      ?.querySelector<HTMLElement>("[data-eidos-chat-empty]")
+      ?.cloneNode(true) as HTMLElement | undefined;
+    const renderedMessages = new Map<string, {
+      html: string;
+      element: HTMLElement;
+    }>();
+    let transcriptFrame: number | undefined;
+
+    const patchTranscript = () => {
       if (!transcript) return;
-      transcript.innerHTML = state.messages.map(renderChatMessageToHtml).join("");
-      transcript.scrollTop = transcript.scrollHeight;
+
+      const distanceFromBottom =
+        transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight;
+      const keepPinnedToBottom = distanceFromBottom <= 72;
+      const desiredIds = new Set(state.messages.map(message => message.id));
+
+      for (const [id, rendered] of renderedMessages) {
+        if (desiredIds.has(id)) continue;
+        rendered.element.remove();
+        renderedMessages.delete(id);
+      }
+
+      if (state.messages.length > 0) {
+        transcript.querySelector("[data-eidos-chat-empty]")?.remove();
+      }
+
+      let previous: ChildNode | null = null;
+      for (const message of state.messages) {
+        const html = renderChatMessageToHtml(message);
+        let rendered = renderedMessages.get(message.id);
+
+        if (!rendered || rendered.html !== html) {
+          const template = document.createElement("template");
+          template.innerHTML = html.trim();
+          const next = template.content.firstElementChild;
+          if (!(next instanceof HTMLElement)) {
+            throw new Error("EIDOS_CHAT_MESSAGE_RENDER_INVALID");
+          }
+          next.setAttribute("data-eidos-chat-message-id", message.id);
+
+          if (rendered?.element.isConnected) {
+            rendered.element.replaceWith(next);
+          }
+          rendered = { html, element: next };
+          renderedMessages.set(message.id, rendered);
+        }
+
+        const desiredPosition: ChildNode | null = previous
+          ? previous.nextSibling
+          : transcript.firstChild;
+        if (rendered.element !== desiredPosition) {
+          transcript.insertBefore(rendered.element, desiredPosition);
+        }
+        previous = rendered.element;
+      }
+
+      if (state.messages.length === 0 && initialEmptyState) {
+        const currentEmpty = transcript.querySelector("[data-eidos-chat-empty]");
+        if (!currentEmpty) transcript.appendChild(initialEmptyState.cloneNode(true));
+      }
+
+      if (keepPinnedToBottom) {
+        transcript.scrollTop = transcript.scrollHeight;
+      }
+    };
+
+    const renderTranscript = () => {
+      if (!transcript || transcriptFrame !== undefined) return;
+      if (typeof globalThis.requestAnimationFrame !== "function") {
+        patchTranscript();
+        return;
+      }
+      transcriptFrame = globalThis.requestAnimationFrame(() => {
+        transcriptFrame = undefined;
+        patchTranscript();
+      });
     };
 
     const runBacked = definition.command.code === "enterprise-agent.chat";
@@ -849,7 +943,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           });
       renderTranscript();
       if (notifyActionResult) {
-        await options.onActionResult?.(result, page);
+        await options.onActionResult?.(
+          result,
+          page,
+          { preserveMountedPage: true }
+        );
       }
     };
 
@@ -1089,7 +1187,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             if (!threadExecution.result.ok) {
               await appendChatResult(threadExecution.result);
             } else {
-              await options.onActionResult?.(threadExecution.result, page);
+              await options.onActionResult?.(
+                threadExecution.result,
+                page,
+                { preserveMountedPage: true }
+              );
             }
           } else {
             const execution = runBacked
@@ -1238,6 +1340,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
     return {
       dispose() {
+        if (
+          transcriptFrame !== undefined
+          && typeof globalThis.cancelAnimationFrame === "function"
+        ) {
+          globalThis.cancelAnimationFrame(transcriptFrame);
+          transcriptFrame = undefined;
+        }
         for (const dispose of listeners) dispose();
       }
     };

@@ -168,6 +168,7 @@ function renderPart(part: ChatMessagePartV020, richText: boolean): string {
 export function renderChatMessageToHtml(message: ChatMessageV010 | ChatMessageV020): string {
   if ("text" in message) {
     return "<article data-eidos-chat-message"
+      + attr("data-eidos-chat-message-id", message.id)
       + attr("data-role", message.role)
       + attr("data-message-version", "0.1.0")
       + "><div data-eidos-chat-message-role>" + esc(message.role) + "</div>"
@@ -178,6 +179,7 @@ export function renderChatMessageToHtml(message: ChatMessageV010 | ChatMessageV0
       + "</div></article>";
   }
   return "<article data-eidos-chat-message"
+    + attr("data-eidos-chat-message-id", message.id)
     + attr("data-role", message.role)
     + attr("data-message-version", "0.2.0")
     + "><div data-eidos-chat-message-role>" + esc(message.role) + "</div>"
