@@ -347,7 +347,10 @@
     "enterprise-operating-graph-real-evo-application-anchor-binding-live-pass-v0-4",
     "enterprise-operating-graph-2d-3d-runtime-fact-projection-live-pass-v0-4",
     "enterprise-operating-graph-expected-sop-human-publish-live-pass-v0-4",
-    "enterprise-operating-graph-no-trace-conformance-fail-closed-2d-3d-live-pass-v0-4"
+    "enterprise-operating-graph-no-trace-conformance-fail-closed-2d-3d-live-pass-v0-4",
+    "eidos-self-updating-surface-preserve-mounted-page-v0-1",
+    "eidos-chat-keyed-incremental-transcript-rendering-v0-1",
+    "eidos-spatial-retained-dom-raf-rendering-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -373,7 +376,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Human-confirmed Expected SOP publish is complete. sop:o2c-evo-configurator-v1 is PUBLISHED at revision 2 by preview-user. The published Expected Path remains Product Sales Order -> Sales Shipment -> Invoice -> Customer Receipt. Production EVO_CONFIG_MVP still has no legitimate flow_definition/flow_trace evidence. Post-publish live proof passed in both DIAGRAM_2D and SPATIAL_3D: the same sop-conformance fact is projected on app:o2c-order with value INSUFFICIENT_EVIDENCE and analyzer provenance sop-path-conformance-v0.2, while the same four ApplicationAnchors retain real September event.count=0/event.frequency=0 Runtime Facts. Therefore the no-trace case fails closed instead of being misclassified as compliant. The next gate is to create or observe a legitimate governed EVO runtime flow source and traced workload through public/governed boundaries; do not insert private flow rows or seed EVO_DEMO to manufacture evidence.",
+  "currentStep": "Expected SOP publication and no-trace fail-closed proof remain complete. UI stability regression reported on Operating Graph / Observe / Observe 3D and Personal Agent has now been fixed in PR #160 and deployed to Railway production at b2b5c55c1e1ff55c11dd28d5c966e2676697dec8 (deployment 1db82c17-b6c8-4766-bfe0-80ba4e2dccf0, SUCCESS). The fix introduces explicit preserveMountedPage render hints for self-updating Diagram/Spatial/Chat surfaces, prevents Browser/Workspace shells from remounting those pages after successful local READ/update actions, replaces full chat transcript innerHTML rebuilds with stable message-id keyed incremental DOM patching plus requestAnimationFrame batching and scroll anchoring, and changes SPATIAL_3D to retained object/link DOM with frame-batched geometry updates. Upstream Eidos PR #45 is also merged at 6e4256194781957d90402dd359021fa68c997c26. Automated Platform, run-backed chat, durable thread and thread-management CI all pass. Human visual retest of flicker is still pending. The semantic v0.4 open gate remains a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1619,8 +1622,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-07",
-    "snapshotAt": "2026-09-29T11:49:00.000+08:00",
+    "snapshotId": "EOG-2026-09-29-08",
+    "snapshotAt": "2026-09-29T12:18:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1683,8 +1686,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "4c5ed7a67de891f82477168b92f683bafcb90227",
-        "deploymentId": "e009631b-e9ef-4d12-a1e3-7aab33084ed2",
+        "commit": "b2b5c55c1e1ff55c11dd28d5c966e2676697dec8",
+        "deploymentId": "1db82c17-b6c8-4766-bfe0-80ba4e2dccf0",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1954,6 +1957,11 @@
         "pr": 158,
         "status": "MERGED",
         "summary": "Record the Human-owned Enterprise Context, explicit EVO_CONFIG_MVP stable ApplicationAnchor mappings, live 2D/3D Runtime Facts, genuine absence of production traces, and the Expected SOP publish gate."
+      },
+      {
+        "pr": 160,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Eliminate App Host remount loops and high-frequency DOM replacement: preserve self-updating EOG/Chat surfaces, keyed incremental Personal Agent transcript rendering, and retained-DOM rAF-batched SPATIAL_3D rendering."
       }
     ],
     "doNotRepeat": [
@@ -2017,9 +2025,11 @@
       "Do not map Observatory applications to EVO application_instance UUIDs; runtime observation resolves exact application_instance.config.sourceApplicationId stable anchors.",
       "Do not report event.count=0 as missing mapping; all four real ApplicationAnchors resolve successfully and zero is the observed September value.",
       "Do not manufacture SOP live evidence by inserting flow_definition/flow_trace rows or seeding EVO_DEMO into production; production EVO_CONFIG_MVP currently has no legitimate trace evidence.",
-      "Do not reopen Expected SOP publication as pending; sop:o2c-evo-configurator-v1 was Human-confirmed and is PUBLISHED revision 2 by preview-user.",
       "Do not interpret the published SOP as proof of Actual Path compliance; production EVO_CONFIG_MVP still has no legitimate flow trace evidence and both 2D/3D correctly show SOP=INSUFFICIENT_EVIDENCE.",
-      "Do not manufacture the remaining trace proof with direct flow_definition/flow_trace inserts or by seeding EVO_DEMO into production."
+      "Do not manufacture the remaining trace proof with direct flow_definition/flow_trace inserts or by seeding EVO_DEMO into production.",
+      "Do not restore shell-wide refresh/remount after successful Diagram/Spatial/Chat actions; self-updating surfaces own their local result rendering and only Host chrome should refresh.",
+      "Do not rebuild the entire Personal Agent transcript with transcript.innerHTML on progress/thread updates; stable message-id keyed DOM patching is the rendering contract.",
+      "Do not rebuild SPATIAL_3D object/link DOM on every pointer/wheel/resize event; retain scene elements and update geometry on requestAnimationFrame."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2053,7 +2063,11 @@
       "state production EVO as currently containing no flow_definition and no flow_trace evidence; do not claim Actual Path live proof",
       "state Expected SOP sop:o2c-evo-configurator-v1 as Human-confirmed PUBLISHED revision 2 by preview-user",
       "state the published no-trace proof as production PASS: both DIAGRAM_2D and SPATIAL_3D project SOP=INSUFFICIENT_EVIDENCE from analyzer sop-path-conformance-v0.2 for the September 2026 Time Lens",
-      "state the next EOG v0.4 gate as a legitimate governed EVO runtime flow/trace source; do not claim full Actual Path proof until sop.trace.transition and sop.trace.coverage exist from real runtime evidence"
+      "state PR #160 as merged, CI-passed and Railway production-deployed at commit b2b5c55c1e1ff55c11dd28d5c966e2676697dec8; EOG self-updating pages no longer require shell remount after local read/update results",
+      "state Personal Agent transcript rendering as stable message-id keyed incremental DOM patching with requestAnimationFrame batching and near-bottom scroll anchoring rather than full transcript replacement",
+      "state SPATIAL_3D as retained object/link DOM with requestAnimationFrame-batched geometry updates; Selection is not rewritten per frame",
+      "state upstream Eidos PR #45 as merged at 6e4256194781957d90402dd359021fa68c997c26",
+      "state the next EOG v0.4 semantic gate as a legitimate governed EVO runtime flow/trace source; visual flicker retest is a UI verification follow-up, not a reason to reopen semantic foundations"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -2507,7 +2521,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "Human Expected-SOP publish and no-trace fail-closed parity are now production-proven. Priority is no longer SOP authority setup; it is establishing a legitimate governed EVO runtime flow source so trace-backed conformance/deviation can be proven without synthetic database manipulation.",
+    "rationale": "SOP authority and no-trace semantics are production-proven. The reported UI remount/flicker regression is implementation-fixed and deployed through PR #160 / upstream Eidos #45; after Human visual retest, priority remains establishing a legitimate governed EVO runtime flow source for trace-backed conformance.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
