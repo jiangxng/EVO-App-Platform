@@ -62,8 +62,8 @@ export function createBrowserPerformanceReporterV010(options: {
     if (!selected || sent || disposed) return;
     sent = true;
 
-    const navigation = performance.getEntriesByType("navigation")[0]
-      as PerformanceNavigationTiming | undefined;
+    const navigation = performance.getEntriesByType("navigation")[0] as
+      PerformanceNavigationTiming | undefined;
     const paints = performance.getEntriesByType("paint");
     const fcp = paints.find(entry => entry.name === "first-contentful-paint");
 
@@ -72,8 +72,8 @@ export function createBrowserPerformanceReporterV010(options: {
     let cssTransferBytes = 0;
     let apiTransferBytes = 0;
     let cachedResourceCount = 0;
-    const resources = performance.getEntriesByType("resource")
-      as PerformanceResourceTiming[];
+    const resources = performance.getEntriesByType("resource") as
+      PerformanceResourceTiming[];
 
     for (const resource of resources) {
       const bytes = Math.max(0, resource.transferSize || 0);
