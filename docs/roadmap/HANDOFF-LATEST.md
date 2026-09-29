@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-08`  
-**Snapshot time:** `2026-09-29T12:18:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-09`  
+**Snapshot time:** `2026-09-29T14:28:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,31 +64,35 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `b2b5c55c1e1ff55c11dd28d5c966e2676697dec8`
-- Deployment: `1db82c17-b6c8-4766-bfe0-80ba4e2dccf0`
+- Commit: `f154450b4cefd1c763573f9584f257083fcd2202`
+- Deployment: `554c9f93-caab-40c9-a147-f63bf8b8f666`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
 ## Project continuity live validation
 
-**Status:** `LIVE_PASS`
+**Status:** `VERIFIED_PRODUCTION_PASS`
 
-**Scenario:** `FRESH_CHATGPT_CONVERSATION_COLD_START`
+**Scenario:** `LLM-native realtime transport idle-network and mounted-refresh proof`
 
-USER_CONFIRMED_CURRENT_PROJECT_PROGRESS_WAS_RECOVERED
+A read-only validator opened one production SSE connection and remained idle for 32 seconds. During the window POST /v1/actions increased by 0; no business SSE event was emitted; only two heartbeat frames totaling 26 bytes crossed the SSE connection. The shared EVO runtime revision bridge executed 3 conditional checks, 2 returned Not Modified, with 0 runtime changes and 0 errors. PR #168 also moved ordinary multi-slice Agent continuation into a bounded Host-side drain; all 30 triggered CI workflows passed, including Platform, Resumable Runs, Run-backed Chat, Thread-backed Turns, Conversation Lifecycle and Durable Threads.
 
-Authority: `docs/roadmap/PROJECT-CONTINUITY-LIVE-CERTIFICATION.md`
+Authority: `docs/architecture/LLM-NATIVE-REALTIME-TRANSPORT-ADOPTION-v0.1.md`
 
 Proved:
 
-- fresh ChatGPT conversation can recover current project progress from repository-native bootstrap state
-- previous ChatGPT transcript is not required for basic continuation
-- stale dated handoff no longer determines current project state when bootstrap protocol is followed
+- idle browser transport no longer generates repeated /v1/actions application traffic
+- SSE is an event-waiting connection with bounded heartbeat traffic when nothing changes
+- EVO runtime change detection uses shared conditional revision checks and does not retransmit runtime snapshots when unchanged
+- resource invalidation can refresh mounted Diagram/Spatial resources without Workbench shell remount
+- ordinary durable multi-slice Agent execution completes inside one Host action boundary without client-driven resume round trips
+- transport request/SSE/byte counters are exposed for ongoing SLO verification
 
 Not proved:
 
-- every future model will obey bootstrap without being instructed
-- all project details can be reconstructed without task-specific authority documents
+- LLM token-level streamed Fetch output; current Host-side drain returns the ordinary turn result at action completion
+- WebSocket collaborative editing/presence; this is intentionally outside the current vertical slice
+- EOG trace-backed SOP conformance; production EVO_CONFIG_MVP still lacks legitimate flow trace evidence
 
 
 ## Recent mainline changes
@@ -147,6 +151,13 @@ Not proved:
 - PR #157 — MERGED_DEPLOYED_CI_PASS: Propagate Host-resolved active Enterprise Context through Eidos AppManager actions so EOG reads and writes execute in the selected Enterprise Context.
 - PR #158 — MERGED: Record the Human-owned Enterprise Context, explicit EVO_CONFIG_MVP stable ApplicationAnchor mappings, live 2D/3D Runtime Facts, genuine absence of production traces, and the Expected SOP publish gate.
 - PR #160 — MERGED_DEPLOYED_CI_PASS: Eliminate App Host remount loops and high-frequency DOM replacement: preserve self-updating EOG/Chat surfaces, keyed incremental Personal Agent transcript rendering, and retained-DOM rAF-batched SPATIAL_3D rendering.
+- PR #162 — MERGED_DEPLOYED_CI_PASS: Stop the remaining Workbench action-success full refresh loop so side-panel/workspace self-updating surfaces remain mounted.
+- PR #163 — MERGED_CI_PASS: Strengthen the thin-breadth/deep-vertical MVP engineering rule; required in-scope foundations are not dismissed as over-design.
+- PR #164 — MERGED_DEPLOYED: Adopt Eidos realtime SSE/event delivery, resource-scoped mounted-page refresh and conditional query foundation.
+- PR #165 — MERGED_DEPLOYED: Honor weak ETag validators for conditional Host queries.
+- PR #166 — MERGED_DEPLOYED: Bridge EVO runtime revision changes into Host resource events with shared conditional reads.
+- PR #167 — MERGED_DEPLOYED: Expose realtime event-bus and EVO revision-bridge diagnostics.
+- PR #168 — MERGED_DEPLOYED_CI_PASS: Add Host-side durable Agent drain, transport route/action/JSON/SSE traffic counters, restore durable Agent chat after vendor sync, and production-certify idle action traffic at zero.
 
 ## DO NOT repeat stale actions
 
@@ -215,6 +226,12 @@ Not proved:
 - Do not restore shell-wide refresh/remount after successful Diagram/Spatial/Chat actions; self-updating surfaces own their local result rendering and only Host chrome should refresh.
 - Do not rebuild the entire Personal Agent transcript with transcript.innerHTML on progress/thread updates; stable message-id keyed DOM patching is the rendering contract.
 - Do not rebuild SPATIAL_3D object/link DOM on every pointer/wheel/resize event; retain scene elements and update geometry on requestAnimationFrame.
+- Do not reintroduce action-success -> Workbench full refresh -> remount -> automatic read as a synchronization mechanism.
+- Do not use POST /v1/actions to poll for unchanged state; commands are explicit intent only.
+- Do not replace SSE/resource-version reconciliation with fixed-interval browser polling for EOG or Agent state.
+- Do not reintroduce browser-driven one-resume-per-slice Agent continuation as the normal path; ordinary multi-slice runs drain inside the Host with bounded recovery semantics.
+- Do not overwrite App Platform durable Personal Agent chat extensions when syncing the Eidos vendor snapshot; preserve conversation history, dynamic delegated actions, run/thread durability and realtime resource refresh together.
+- Do not treat network efficiency as optional polish: idle /v1/actions delta=0 is a production transport SLO.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -270,6 +287,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state SPATIAL_3D as retained object/link DOM with requestAnimationFrame-batched geometry updates; Selection is not rewritten per frame
 - state upstream Eidos PR #45 as merged at 6e4256194781957d90402dd359021fa68c997c26
 - state the next EOG v0.4 semantic gate as a legitimate governed EVO runtime flow/trace source; visual flicker retest is a UI verification follow-up, not a reason to reopen semantic foundations
+- state the LLM-native realtime transport baseline as production PASS at commit f154450b4cefd1c763573f9584f257083fcd2202 / Railway deployment 554c9f93-caab-40c9-a147-f63bf8b8f666
+- state the 32-second idle proof exactly: actionRequests delta 0, SSE business events 0, two heartbeat frames / 26 bytes, EVO bridge checks 3 with 2 Not Modified, changes 0, errors 0
+- state normal durable Agent multi-slice continuation as Host-drained rather than browser-resume-driven, with bounded PAUSED recovery for exceptional long runs
+- state SSE + Last-Event-ID replay + visibility-aware pause/reconnect + ETag/304 + resource-scoped mounted refresh as the accepted communication model
+- state idle action traffic zero as a product SLO, not an optimization suggestion
 
 No previous ChatGPT transcript is required.
 
