@@ -103,6 +103,7 @@ export interface MountDiagramEditorPageOptionsV010 {
 }
 
 export interface MountedDiagramEditorPageV010 {
+  refresh(): Promise<void>;
   dispose(): void;
 }
 
@@ -447,7 +448,8 @@ export function mountDiagramEditorPageV010(
     );
 
   const load = async (
-    preset?: DiagramEditorReadPresetV010
+    preset?: DiagramEditorReadPresetV010,
+    preserveViewState = false
   ): Promise<void> => {
     if (disposed) return;
     report("Loading…");
@@ -460,8 +462,15 @@ export function mountDiagramEditorPageV010(
       report(result.error?.message ?? "Failed to load diagram.");
       return;
     }
+    const previousSelection = selected;
     state = stateFromResult(result.result);
-    selected = undefined;
+    selected = preserveViewState && previousSelection && (
+      previousSelection.kind === "node"
+        ? state.nodes.some(item => item.id === previousSelection.id)
+        : state.edges.some(item => item.id === previousSelection.id)
+    )
+      ? previousSelection
+      : undefined;
     render();
     report("Ready.");
   };
@@ -773,6 +782,14 @@ export function mountDiagramEditorPageV010(
   });
 
   return {
+    refresh() {
+      return load(
+        page.readPresets?.find(preset =>
+          preset.id === activeReadPresetId
+        ),
+        true
+      );
+    },
     dispose() {
       disposed = true;
       for (const listener of listeners) listener();
