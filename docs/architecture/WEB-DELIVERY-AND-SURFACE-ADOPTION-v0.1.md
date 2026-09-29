@@ -245,3 +245,56 @@ A Web foundation improvement is complete only when it has both:
 2. browser/production evidence where the behavior depends on real HTTP/browser semantics.
 
 Visual fit alone is not acceptance for mobile, and a local unit test alone is not acceptance for cache delivery.
+
+
+## 12. P1 Surface Contract / Resolver adoption
+
+Upstream Eidos authority:
+
+- `docs/architecture/SURFACE-CONTRACT-AND-RESOLVER-v0.1.md`;
+- Eidos App Host `surface.ts`.
+
+App Platform vendors and adopts the same public contracts.
+
+The first real Experience adoption is Personal Agent:
+
+```text
+semantic route: enterprise-agent.home
+
+DESKTOP_WORKBENCH
+  Surface: enterprise-agent.desktop
+  Route: /enterprise-agent
+  Page: enterprise-agent.home
+  Source: app://enterprise-agent/pages/home
+  Support: FULL
+
+MOBILE_TASK
+  Surface: enterprise-agent.mobile-task
+  Route: /m/enterprise-agent
+  Page: enterprise-agent.mobile-home
+  Source: app://enterprise-agent/pages/mobile-home
+  Support: TASK_FOCUSED
+
+MOBILE_READ
+  Surface: enterprise-agent.mobile-read
+  Support: UNSUPPORTED
+  Fallback: enterprise-agent.desktop
+```
+
+Desktop and mobile page definitions are deliberately different assets while both bind to the same `enterprise-agent.chat` command semantics.
+
+Desktop-only secondary Agent routes such as setup/quality/memory review do not silently map to the mobile home page. They return a semantic handoff when requested on the mobile task Surface.
+
+This proves the intended boundary:
+
+```text
+shared Principal / Context / Actions / durable Agent truth
+                     |
+          semantic route identity
+                     |
+       +-------------+-------------+
+       |                           |
+desktop page asset          mobile page asset
+```
+
+Browser entry integration and rendered handoff UX are the next P1 slice. The contract must be proven before mobile-shell specialization.
