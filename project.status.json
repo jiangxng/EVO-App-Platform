@@ -368,7 +368,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "PR #154 is merged and CI-passed: Expected SOP now has explicit EXPECTED / ALLOWED_ALTERNATIVE / ALLOWED_EXCEPTION transition semantics; legacy linear SOPs normalize compatibly; EVO runtime traces are preserved as per-flow-instance sop.trace.transition plus sop.trace.coverage Runtime Facts while sop.transition.count remains aggregate observability; SOP_EXCEPTION is distinct from SOP_DEVIATION; incomplete or non-completed trace coverage and unproven conditional transitions fail closed to INSUFFICIENT_EVIDENCE. Agent remains Draft-only and Human publish authority is unchanged. The active gate is now deployment + real EVO-backed browser proof showing one Host Analysis Snapshot projects the same SOP conclusions into DIAGRAM_2D and SPATIAL_3D. Conditional evidence evaluation, parallel/loop semantics and role responsibility remain behind explicit evidence-model gates.",
+  "currentStep": "PR #154/#155 are merged and production preview is deployed. EVO Runtime is on 2ec947c5b1f70ecd772679981d6846680f6cab05 (deployment ba33ae46-9390-4aac-8728-c57e3dfb7397, SUCCESS) and Ledger Configurator is on 6a75566d0c1bf31ebf491a9673a5672641f06eb2 (deployment b8dfe3aa-664c-4056-a084-051955e06f79, SUCCESS). Railway-environment read-only proof returned HTTP 200 for both health endpoints and for the effective 2D/3D EOG Experience pages. The current static Human preview session resolves only PERSONAL context and has zero available ENTERPRISE contexts, so both EOG Observatory read actions correctly fail closed with EOG_ENTERPRISE_CONTEXT_REQUIRED. The next gate is explicitly Human: create or select an Enterprise Context through enterprise.context.create (requires requiresConfirmation=true and Human Principal), then bind that Host enterprise to the real EVO enterprise/application anchors and run the SOP Actual Path proof. Do not forge confirmation or bypass enterprise context authority.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1614,8 +1614,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-04",
-    "snapshotAt": "2026-09-29T10:30:52.597+08:00",
+    "snapshotId": "EOG-2026-09-29-05",
+    "snapshotAt": "2026-09-29T10:47:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1657,11 +1657,12 @@
       },
       "openGate": {
         "id": "enterprise-operating-graph-sop-live-proof-v0-4",
-        "status": "IMPLEMENTED_CI_PASS_LIVE_PROOF_PENDING",
-        "summary": "PR #154 has implemented explicit allowed/alternative/exception SOP transition semantics and per-instance Actual Path evidence with fail-closed coverage. The remaining gate is to deploy that mainline and prove the behavior against real EVO runtime traces in the browser, with identical conclusions projected into 2D and 3D from one Host Analysis Snapshot. Conditional evidence evaluation, parallel/loop and role responsibility remain deferred until their evidence models are explicit.",
+        "status": "DEPLOYED_HUMAN_ENTERPRISE_CONTEXT_GATE",
+        "summary": "The v0.4 SOP implementation is deployed. EVO Runtime 2ec947c (PR #73) and Ledger Configurator 6a75566 (#154/#155) are both SUCCESS. Railway-environment read-only validation proved Host/EVO health and both EOG 2D/3D Experience pages are live. The preview Human session currently has no Enterprise Context, and both Observatory actions fail closed with EOG_ENTERPRISE_CONTEXT_REQUIRED. A Human-confirmed Enterprise Context creation/selection is therefore the next legitimate gate before real EVO trace-backed SOP proof.",
         "authority": "docs/architecture/EOG-VIEW-STATE-AND-OBSERVATORY-v0.1.md",
         "acceptance": [
-          "deploy main containing PR #154 to the production preview without regressing the current Personal Agent / EOG surfaces",
+          "Human explicitly confirms creation of a preview Enterprise Context, or selects an existing authorized Enterprise Context; enterprise.context.create must retain requiresConfirmation=true and Human Principal authority",
+          "bind the selected Host Enterprise Context to the real EVO enterprise code and explicit Host Application ↔ EVO applicationId anchors without label/node-id inference",
           "run a real EVO-backed flow through /api/v1/runtime-traces/query and show sop.trace.transition plus sop.trace.coverage facts in the Host analysis input",
           "prove SOP_CONFORMANCE, SOP_EXCEPTION and SOP_DEVIATION conclusions retain evidenceFactIds, analyzer provenance and the selected Time Lens",
           "prove DIAGRAM_2D and SPATIAL_3D project the same Host Analysis Snapshot conclusions rather than recomputing renderer-specific SOP state",
@@ -1676,8 +1677,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "d5e4748900f3682d50d6cf3014c98c1251f8d155",
-        "deploymentId": "75fd7061-f471-423a-bbb8-b8160361095e",
+        "commit": "6a75566d0c1bf31ebf491a9673a5672641f06eb2",
+        "deploymentId": "b8dfe3aa-664c-4056-a084-051955e06f79",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1993,7 +1994,10 @@
       "Do not reopen Host Application ↔ EVO applicationId identity mapping or the first linear SOP conformance foundation as unresolved work; PR #151, EVO PR #73 and PR #152 are merged and CI-passed.",
       "Do not reopen explicit allowed-alternative/allowed-exception SOP transitions or per-flow Actual Path evidence as unresolved foundation work; PR #154 is merged and Platform CI passed.",
       "Do not collapse sop.trace.transition / sop.trace.coverage back into aggregate frequency when judging SOP conformance; aggregate counts are observability, per-instance path facts are evidence.",
-      "Do not treat conditionRef metadata as proof that a condition was satisfied; until condition evidence exists, observed conditional transitions remain INSUFFICIENT_EVIDENCE."
+      "Do not treat conditionRef metadata as proof that a condition was satisfied; until condition evidence exists, observed conditional transitions remain INSUFFICIENT_EVIDENCE.",
+      "Do not redeploy PR #154/#155 as if deployment were pending; EVO Runtime and Ledger Configurator production previews are already SUCCESS on the recorded commits.",
+      "Do not treat empty 2D/3D badge sets from a failed request as projection parity; both actions must succeed in an authorized Enterprise Context before comparing conclusions.",
+      "Do not bypass EOG_ENTERPRISE_CONTEXT_REQUIRED or synthesize Human confirmation; enterprise.context.create intentionally requires a Human Principal and requiresConfirmation=true."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2018,7 +2022,10 @@
       "state sop.transition.count as aggregate Observatory data while sop.trace.transition and sop.trace.coverage preserve per-flow-instance Actual Path evidence for SOP analysis",
       "state SOP_EXCEPTION as distinct from SOP_DEVIATION so Human-published known business exceptions are not mislabeled as violations",
       "state incomplete/non-completed Actual Path coverage and unproven conditionRef transitions as INSUFFICIENT_EVIDENCE rather than compliance",
-      "state the current open gate as production deployment plus real EVO-backed 2D/3D browser proof for PR #154; conditional evidence, parallel/loop and role responsibility remain deferred"
+      "state EVO Runtime production preview as deployment ba33ae46-9390-4aac-8728-c57e3dfb7397 on commit 2ec947c5b1f70ecd772679981d6846680f6cab05 (PR #73), SUCCESS",
+      "state Ledger Configurator production preview as deployment b8dfe3aa-664c-4056-a084-051955e06f79 on commit 6a75566d0c1bf31ebf491a9673a5672641f06eb2, SUCCESS",
+      "state Railway-environment read-only proof as Host/EVO health 200 and 2D/3D EOG Experience pages 200, while the current Human preview session has no Enterprise Context and Observatory actions correctly fail closed with EOG_ENTERPRISE_CONTEXT_REQUIRED",
+      "state the next gate as explicit Human confirmation to create/select an Enterprise Context; do not forge requiresConfirmation=true on the Human's behalf"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
