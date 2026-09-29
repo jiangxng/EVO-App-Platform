@@ -5,6 +5,8 @@ function safeAssetRevision(value: string): string {
   return normalized || "dev";
 }
 
+export const appHostShellCss = eidosProductiveWorkbenchCss;
+
 export function createAppHostShellHtmlV010(assetRevision: string): string {
   const revision = safeAssetRevision(assetRevision);
   return `<!doctype html>
@@ -13,7 +15,7 @@ export function createAppHostShellHtmlV010(assetRevision: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>EVO</title>
-<style>${eidosProductiveWorkbenchCss}</style>
+<link rel="stylesheet" href="/assets/${revision}/manager/app-host-shell.css">
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
@@ -21,7 +23,6 @@ export function createAppHostShellHtmlV010(assetRevision: string): string {
 </body>
 </html>`;
 }
-
 
 /**
  * Backward-compatible unversioned shell for tests/legacy consumers.
