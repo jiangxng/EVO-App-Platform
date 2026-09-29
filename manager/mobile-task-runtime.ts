@@ -385,6 +385,7 @@ export async function mountMobileTaskRuntimeV010(options: {
   path: string;
   locale: string;
   baseUrl: string;
+  fetchImpl?: typeof fetch;
 }): Promise<MobileTaskRuntimeV010> {
   const container = typeof options.container === "string"
     ? document.querySelector<HTMLElement>(options.container)
