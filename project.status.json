@@ -376,7 +376,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "LLM-native communication/refresh foundation is now production-certified. The original Workbench action-success remount loop was closed in PR #162. PRs #164-#167 added Eidos SSE realtime delivery, versioned/ETag conditional queries, resource-scoped mounted-page refresh, visibility-aware reconnect, Host event replay, shared EVO runtime-revision bridging and realtime diagnostics. PR #168 added bounded Host-side durable Agent draining so ordinary multi-slice turns do not require browser resume round trips, restored the App Platform durable Agent chat controller accidentally overwritten during the #164 vendor sync while retaining resource refresh contracts, and added route/action/JSON/SSE traffic counters. Production commit f154450b4cefd1c763573f9584f257083fcd2202 (Railway deployment 554c9f93-caab-40c9-a147-f63bf8b8f666, SUCCESS) passed a 32-second idle transport proof: /v1/actions delta 0, SSE business events 0, two heartbeat frames totaling 26 bytes, EVO runtime revision checks 3 with 2 Not Modified, changes 0 and errors 0. All 30 triggered CI workflows for #168 passed. Realtime transport is now a platform foundation with idle-action=0 as a product SLO. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
+  "currentStep": "Web Delivery P0 cache correctness is now production-certified in parallel with the existing realtime foundation. Eidos PR #50 established the upstream Web Delivery and Surface architecture: browser cache classes, bfcache/lifecycle guidance, explicit Surface Targets, and the rule that desktop/mobile may share semantic truth and Host Actions without sharing one responsive page implementation. EVO App Platform PR #170 implemented revisioned immutable ESM assets, App Shell ETag revalidation, legacy asset validators, and replaced the old narrow-width=mobile assumption with explicit Surface adoption. Production commit ac1b35a60229ce978a795a97588205e3aef8cbe4 (Railway deployment afaa6b9f-8bad-4e5a-9089-434b7a459e31, SUCCESS) passed the production Web Delivery proof added by PR #171: root Cache-Control=no-cache + conditional 304; versioned /assets/ac1b35a.../manager/app-host-client.js Cache-Control=public,max-age=31536000,immutable + conditional 304; legacy /assets/manager/app-host-client.js max-age=0,must-revalidate + conditional 304. The next Web foundation slice is P1 Surface Contract + Resolver with explicit FULL/TASK_FOCUSED/READ_ONLY/UNSUPPORTED support and deterministic desktop/mobile handoff. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1622,8 +1622,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-09",
-    "snapshotAt": "2026-09-29T14:28:00.000+08:00",
+    "snapshotId": "EOG-2026-09-29-10",
+    "snapshotAt": "2026-09-29T15:16:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1686,8 +1686,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "f154450b4cefd1c763573f9584f257083fcd2202",
-        "deploymentId": "554c9f93-caab-40c9-a147-f63bf8b8f666",
+        "commit": "ac1b35a60229ce978a795a97588205e3aef8cbe4",
+        "deploymentId": "afaa6b9f-8bad-4e5a-9089-434b7a459e31",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -1997,6 +1997,16 @@
         "pr": 168,
         "status": "MERGED_DEPLOYED_CI_PASS",
         "summary": "Add Host-side durable Agent drain, transport route/action/JSON/SSE traffic counters, restore durable Agent chat after vendor sync, and production-certify idle action traffic at zero."
+      },
+      {
+        "pr": 170,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Establish browser cache P0: revisioned immutable ESM module graph, App Shell ETag revalidation, legacy asset validators, and App Platform adoption of explicit desktop/mobile Surface architecture."
+      },
+      {
+        "pr": 171,
+        "status": "MERGED_PRODUCTION_PROOF_PASS",
+        "summary": "Add reusable production Web Delivery proof; certify root 304, immutable revisioned asset caching, and legacy ETag revalidation against Railway production."
       }
     ],
     "doNotRepeat": [
@@ -2070,7 +2080,14 @@
       "Do not replace SSE/resource-version reconciliation with fixed-interval browser polling for EOG or Agent state.",
       "Do not reintroduce browser-driven one-resume-per-slice Agent continuation as the normal path; ordinary multi-slice runs drain inside the Host with bounded recovery semantics.",
       "Do not overwrite App Platform durable Personal Agent chat extensions when syncing the Eidos vendor snapshot; preserve conversation history, dynamic delegated actions, run/thread durability and realtime resource refresh together.",
-      "Do not treat network efficiency as optional polish: idle /v1/actions delta=0 is a production transport SLO."
+      "Do not treat network efficiency as optional polish: idle /v1/actions delta=0 is a production transport SLO.",
+      "Do not serve normal static JavaScript with Cache-Control: no-store; versioned static assets are immutable and legacy mutable URLs revalidate with ETag.",
+      "Do not mark a URL immutable unless its bytes are version-pinned/content-addressed; mutable URLs must revalidate.",
+      "Do not cache Principal/Context-specific enterprise snapshots as public shared-cache content.",
+      "Do not make browser local/session/IndexedDB state authoritative for enterprise truth, authorization, material write status or durable business state.",
+      "Do not assume mobile means squeezing the desktop Workbench through CSS breakpoints; mobile support is an explicit Experience Surface contract and may be TASK_FOCUSED, READ_ONLY or UNSUPPORTED.",
+      "Do not require every Experience to support mobile; unsupported mobile operations must resolve to a useful deterministic handoff.",
+      "Do not introduce a global Service Worker/PWA cache before a concrete accepted vertical needs offline/installability; ordinary HTTP cache semantics are the baseline."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2113,7 +2130,13 @@
       "state the 32-second idle proof exactly: actionRequests delta 0, SSE business events 0, two heartbeat frames / 26 bytes, EVO bridge checks 3 with 2 Not Modified, changes 0, errors 0",
       "state normal durable Agent multi-slice continuation as Host-drained rather than browser-resume-driven, with bounded PAUSED recovery for exceptional long runs",
       "state SSE + Last-Event-ID replay + visibility-aware pause/reconnect + ETag/304 + resource-scoped mounted refresh as the accepted communication model",
-      "state idle action traffic zero as a product SLO, not an optimization suggestion"
+      "state idle action traffic zero as a product SLO, not an optimization suggestion",
+      "state Eidos PR #50 / merge 5c0c6c44a8efeb5c2b3393f76b8e39e54f540ddc as the upstream Web Delivery and Surface architecture authority",
+      "state Web Delivery P0 as production PASS at App Platform commit ac1b35a60229ce978a795a97588205e3aef8cbe4 / Railway deployment afaa6b9f-8bad-4e5a-9089-434b7a459e31",
+      "state the production cache proof exactly: root no-cache + 304; versioned app-host-client asset public max-age=31536000 immutable + 304; legacy asset public max-age=0 must-revalidate + 304",
+      "state desktop/mobile architecture as same semantic truth and Host Actions but potentially different Experience Surfaces; one responsive page is not required",
+      "state mobile support as explicit FULL / TASK_FOCUSED / READ_ONLY / UNSUPPORTED metadata rather than inferred CSS fit",
+      "state the next Web foundation slice as P1 Surface Contract + Resolver; do not jump to global PWA/offline or port every desktop page to mobile"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -2133,6 +2156,83 @@
         "WebSocket collaborative editing/presence; this is intentionally outside the current vertical slice",
         "EOG trace-backed SOP conformance; production EVO_CONFIG_MVP still lacks legitimate flow trace evidence"
       ]
+    },
+    "webDelivery": {
+      "status": "P0_CACHE_CORRECTNESS_VERIFIED_PRODUCTION_PASS",
+      "upstreamAuthority": {
+        "repository": "jiangxng/eidos",
+        "pr": 50,
+        "mergeCommit": "5c0c6c44a8efeb5c2b3393f76b8e39e54f540ddc",
+        "document": "docs/architecture/WEB-DELIVERY-AND-SURFACE-ARCHITECTURE-v0.1.md"
+      },
+      "appPlatformAuthority": "docs/architecture/WEB-DELIVERY-AND-SURFACE-ADOPTION-v0.1.md",
+      "implementation": {
+        "pr": 170,
+        "commit": "ac1b35a60229ce978a795a97588205e3aef8cbe4",
+        "deploymentId": "afaa6b9f-8bad-4e5a-9089-434b7a459e31"
+      },
+      "liveProof": {
+        "pr": 171,
+        "workflow": "Web Delivery Production Proof",
+        "status": "SUCCESS",
+        "observed": {
+          "root": {
+            "cacheControl": "no-cache",
+            "conditionalStatus": 304,
+            "firstBodyBytes": 57550
+          },
+          "versionedAsset": {
+            "path": "/assets/ac1b35a60229ce978a795a97588205e3aef8cbe4/manager/app-host-client.js",
+            "cacheControl": "public, max-age=31536000, immutable",
+            "conditionalStatus": 304,
+            "firstBodyBytes": 8262
+          },
+          "legacyAsset": {
+            "path": "/assets/manager/app-host-client.js",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "conditionalStatus": 304,
+            "firstBodyBytes": 8262
+          }
+        }
+      },
+      "mobileDirection": {
+        "rule": "Same enterprise truth and Actions; surface-specific Experience. One responsive page is not required across desktop and mobile.",
+        "initialTargets": [
+          "DESKTOP_WORKBENCH",
+          "MOBILE_TASK",
+          "MOBILE_READ",
+          "TABLET_WORKBENCH"
+        ],
+        "supportLevels": [
+          "FULL",
+          "TASK_FOCUSED",
+          "READ_ONLY",
+          "UNSUPPORTED"
+        ],
+        "firstMobileVerticals": [
+          "Personal / Enterprise Agent",
+          "approval / Review Queue",
+          "notifications / exceptions / assigned tasks",
+          "KPI / entity inspection"
+        ],
+        "desktopFirstOrUnsupportedInitially": [
+          "full EOG graph authoring",
+          "full 3D Observatory",
+          "dense Ledger/Posting configuration",
+          "bulk enterprise administration"
+        ]
+      },
+      "nextPhase": {
+        "id": "P1_SURFACE_CONTRACT_AND_RESOLVER",
+        "acceptance": [
+          "freeze versioned Eidos Experience Surface metadata contract",
+          "derive a capability profile from browser capabilities rather than User-Agent alone",
+          "resolve explicit URL Surface target before user override, declared support, capability profile, then deterministic default",
+          "preserve semantic deep-link target across Surface changes",
+          "render a deterministic handoff when the requested mobile operation is unsupported",
+          "keep Surface identity presentation-only; never use it as authorization or enterprise truth"
+        ]
+      }
     }
   },
   "contextMemoryInventoryP1_5A": {
@@ -2569,7 +2669,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "The communication/rendering foundation is now production-certified: no idle action polling, event-driven SSE delivery, conditional/versioned reads, retained mounted surfaces, measurable traffic budgets and Host-side Agent continuation are in place. The next semantic EOG priority remains a legitimate governed runtime flow/trace source; transport foundations must not be weakened while pursuing it.",
+    "rationale": "Realtime transport and browser cache P0 are now production-certified platform foundations. Web delivery next proceeds as a separate P1 Surface Contract/Resolver slice so desktop/mobile can diverge at the Experience layer without duplicating business semantics. In parallel, the EOG semantic priority remains a legitimate governed runtime flow/trace source; neither Surface work nor cache work should fabricate or bypass that evidence gate.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
