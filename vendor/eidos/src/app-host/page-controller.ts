@@ -146,7 +146,7 @@ export interface MountedAppHostPage {
 
 
 export const APP_HOST_ACTION_SELECTOR =
-  "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action]";
+  "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action],[data-eidos-task-action]";
 
 export function bindDelegatedAppHostActionsV010(
   container: HTMLElement,
