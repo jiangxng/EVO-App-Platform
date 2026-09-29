@@ -42,6 +42,8 @@ export interface RealtimeConnectionStateV010 {
     | "CONNECTING"
     | "CONNECTED"
     | "PAUSED_HIDDEN"
+    | "PAUSED_BFCACHE"
+    | "PAUSED_OFFLINE"
     | "RECONNECTING"
     | "DISPOSED";
   lastEventId?: string;
