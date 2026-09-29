@@ -22,6 +22,7 @@ import {
   type PluginEventV010
 } from "./plugin-host-services.js";
 import { createHostRealtimeEventBusV010 } from "./realtime-event-bus.js";
+import { createEvoRuntimeRevisionBridgeV010 } from "./evo-runtime-revision-bridge.js";
 import type { HostRealtimeEventV010 } from "../contracts/realtime-events.js";
 import {
   createProcessPluginRuntimeHostV010,
@@ -1688,6 +1689,49 @@ for (const mapping of evoObservatoryApplicationMap) {
     runtimeApplicationId: mapping.runtimeApplicationId
   });
 }
+const evoRuntimeRevisionIntervalMs = Number(
+  process.env.APP_PLATFORM_EVO_RUNTIME_REVISION_INTERVAL_MS?.trim() || "15000"
+);
+if (
+  !Number.isFinite(evoRuntimeRevisionIntervalMs)
+  || evoRuntimeRevisionIntervalMs < 1000
+) {
+  throw new Error("EVO_RUNTIME_REVISION_INTERVAL_INVALID");
+}
+const evoRuntimeRevisionBridge = evoObservatoryEnabled
+  ? createEvoRuntimeRevisionBridgeV010({
+      baseUrl: evoBaseUrl,
+      intervalMs: evoRuntimeRevisionIntervalMs,
+      onChanged(event) {
+        realtimeEvents.publish({
+          topic: "resource.evo-runtime-observatory",
+          type: "RESOURCE_INVALIDATED",
+          scope: {
+            contextId: event.contextId,
+            enterpriseId: event.enterpriseId
+          },
+          resource: {
+            kind: "enterprise-operating-graph",
+            resourceId: event.resourceId,
+            version: event.etag
+          },
+          payload: {
+            source: "EVO_RUNTIME_REVISION",
+            evoEnterpriseCode: event.evoEnterpriseCode
+          }
+        });
+      },
+      onError({ evoEnterpriseCode, error }) {
+        console.error(
+          "EVO Runtime revision bridge check failed for "
+            + evoEnterpriseCode
+            + ".",
+          error
+        );
+      }
+    })
+  : undefined;
+
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
@@ -2878,6 +2922,23 @@ const server = createServer(async (request, response) => {
         ? rawLastEventId[0]
         : rawLastEventId;
       const replay = realtimeEvents.replayAfter(lastEventId, filter);
+      const connectionId = "sse:" + randomUUID();
+      const unregisterEvoRuntimeRevision = evoRuntimeRevisionBridge?.register(
+        contextRegistry.list().flatMap(item => {
+          if (item.kind !== "ENTERPRISE") return [];
+          const evoEnterpriseCode =
+            evoObservatoryEnterpriseMap.get(item.enterpriseId)
+            ?? evoObservatoryDefaultEnterpriseCode;
+          if (!evoEnterpriseCode) return [];
+          return [{
+            connectionId,
+            contextId: item.contextId,
+            enterpriseId: item.enterpriseId,
+            evoEnterpriseCode,
+            resourceId: "eog:primary"
+          }];
+        })
+      );
 
       response.statusCode = 200;
       applyCors(response);
@@ -2923,6 +2984,7 @@ const server = createServer(async (request, response) => {
       const close = () => {
         clearInterval(heartbeat);
         unsubscribe();
+        unregisterEvoRuntimeRevision?.();
       };
       request.once("close", close);
       response.once("close", close);
@@ -4304,6 +4366,7 @@ async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
+  evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
   await processRuntimeHost.shutdown();
