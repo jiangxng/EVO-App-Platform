@@ -65,7 +65,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   const localization = createLocalizationRuntime(
     [...eidosAppHostLocalizationBundles, ...initialBundles],
     {
-      locale: initialLocale,
+      locale: options.initialLocale,
       fallbackLocales: ["en"]
     }
   );
