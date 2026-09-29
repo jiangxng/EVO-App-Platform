@@ -666,11 +666,23 @@ export function createAppHost(source: ExperienceSource): AppHost {
     };
   };
 
-  const loadRoute = async (path: string): Promise<AppHostLoadedPageV010 | undefined> => {
+  const loadRoute = async (
+    path: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<AppHostLoadedPageV010 | undefined> => {
     if (disposed) throw new Error("EIDOS_APP_HOST_DISPOSED");
+    if (options?.signal?.aborted) {
+      throw new DOMException("Route load aborted", "AbortError");
+    }
     const resolved = resolveRoute(path);
     if (!resolved) return undefined;
-    const definition = await source.loadPage(clonePage(resolved.page));
+    const definition = await source.loadPage(
+      clonePage(resolved.page),
+      options
+    );
+    if (options?.signal?.aborted) {
+      throw new DOMException("Route load aborted", "AbortError");
+    }
     return { ...resolved, definition };
   };
 
