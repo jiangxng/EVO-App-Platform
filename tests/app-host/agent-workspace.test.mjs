@@ -1,20 +1,36 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { appHostShellHtml } from "../../dist/manager/app-host-shell.js";
+import {
+  appHostShellCss,
+  appHostShellHtml
+} from "../../dist/manager/app-host-shell.js";
 import { enterpriseAgentExperienceAssets } from "../../dist/agents/enterprise-agent/package.js";
 
-test("EVO App Host uses a Workbench with narrow Activity Bar, resizable Side Panel and mobile surface switching", () => {
-  assert.match(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
-  assert.match(appHostShellHtml, /--eidos-activity-width:48px/);
-  assert.match(appHostShellHtml, /data-eidos-activity-bar/);
-  assert.match(appHostShellHtml, /data-eidos-side-panel/);
-  assert.match(appHostShellHtml, /data-eidos-workbench-splitter/);
-  assert.match(appHostShellHtml, /data-eidos-workspace/);
-  assert.match(appHostShellHtml, /data-eidos-status-bar/);
-  assert.match(appHostShellHtml, /@media\(max-width:700px\)/);
-  assert.match(appHostShellHtml, /data-mobile-surface="panel"/);
-  assert.match(appHostShellHtml, /data-mobile-surface="workspace"/);
+test("EVO bootstrap stays minimal while the lazy desktop runtime owns Workbench semantics", async () => {
+  assert.match(
+    appHostShellHtml,
+    /href="\/assets\/dev\/manager\/app-host-shell\.css"/
+  );
+  assert.match(
+    appHostShellHtml,
+    /src="\/assets\/dev\/manager\/app-host-client\.js"/
+  );
+  assert.doesNotMatch(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
+
+  assert.match(appHostShellCss, /--eidos-activity-width:48px/);
+  assert.match(appHostShellCss, /data-eidos-activity-bar/);
+  assert.match(appHostShellCss, /data-eidos-side-panel/);
+  assert.match(appHostShellCss, /data-eidos-workbench-splitter/);
+  assert.match(appHostShellCss, /data-eidos-workspace/);
+  assert.match(appHostShellCss, /data-eidos-status-bar/);
+
+  const { readFile } = await import("node:fs/promises");
+  const desktop = await readFile(
+    new URL("../../dist/manager/desktop-workbench-runtime.js", import.meta.url),
+    "utf8"
+  );
+  assert.match(desktop, /mountAgentWorkspaceShell|mountWorkbench/i);
 });
 
 test("Personal Agent remains a zero-config Chat Experience inside the Workbench", () => {

@@ -11,7 +11,10 @@ import {
   pluginStorePageSource
 } from "../../dist/manager/plugin-store-page.js";
 import { renderAppHostPageToHtml } from "../../dist/vendor/eidos/src/app-host/index.js";
-import { appHostShellHtml } from "../../dist/manager/app-host-shell.js";
+import {
+  appHostShellCss,
+  appHostShellHtml
+} from "../../dist/manager/app-host-shell.js";
 import {
   eidosDesignPolicyV010,
   eidosDesignTokensV010,
@@ -81,18 +84,23 @@ test("App Platform lifecycle is reflected by Eidos Extension Manager", () => {
 });
 
 
-test("App Platform consumes Eidos design language instead of owning Workbench CSS", async () => {
+test("App Platform consumes Eidos design language without duplicating Workbench CSS", async () => {
   assert.equal(eidosDesignTokensV010.spacing.xs, 4);
   assert.equal(eidosDesignPolicyV010.actions.maxPrimaryPerScope, 1);
-  assert.match(appHostShellHtml, /--eidos-space-xs:4px/);
-  assert.match(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
+  assert.match(appHostShellCss, /--eidos-space-xs:4px/);
+  assert.match(appHostShellCss, /data-eidos-app-host-layout="workbench"/);
+  assert.match(
+    appHostShellHtml,
+    /href="\/assets\/dev\/manager\/app-host-shell\.css"/
+  );
+  assert.doesNotMatch(appHostShellHtml, /<style\b/i);
 
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(
     new URL("../../manager/app-host-shell.ts", import.meta.url),
     "utf8"
   );
-  assert.match(source, /eidosProductiveWorkbenchCss/);
+  assert.match(source, /appHostShellCss = eidosProductiveWorkbenchCss/);
   assert.doesNotMatch(source, /\[data-eidos-activity-bar\]\s*\{/);
 });
 

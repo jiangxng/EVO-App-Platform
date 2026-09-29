@@ -457,11 +457,15 @@ import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-c
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
-import { createAppHostShellHtmlV010 } from "./app-host-shell.js";
+import {
+  appHostShellCss,
+  createAppHostShellHtmlV010
+} from "./app-host-shell.js";
 import {
   normalizeAssetRevisionV010,
   resolveBrowserAssetRequestV010
 } from "./web-delivery-cache.js";
+import { webSecurityHeadersV010 } from "./web-security-headers.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createSettingsExperienceManifest,
@@ -2670,6 +2674,12 @@ function ledgerConfiguratorActive(): boolean {
   return manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ledgerConfiguratorFeatureId);
 }
 
+function applyWebSecurityHeaders(response: ServerResponse): void {
+  for (const [name, value] of Object.entries(webSecurityHeadersV010())) {
+    response.setHeader(name, value);
+  }
+}
+
 function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-origin", corsOrigin);
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
@@ -2912,6 +2922,7 @@ function publishActionRealtimeEvents(
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
+    applyWebSecurityHeaders(response);
     transportTraffic.recordRequest(
       request.method ?? "UNKNOWN",
       url.pathname,
@@ -2948,18 +2959,22 @@ const server = createServer(async (request, response) => {
         return json(response, 404, { code: "ASSET_NOT_FOUND" });
       }
 
-      const assetUrl = new URL(`../${asset.assetPath}`, import.meta.url);
       let bytes: Buffer;
-      try {
-        bytes = await readFile(fileURLToPath(assetUrl));
-      } catch {
-        return json(response, 404, { code: "ASSET_NOT_FOUND" });
+      if (asset.assetPath === "manager/app-host-shell.css") {
+        bytes = Buffer.from(appHostShellCss, "utf8");
+      } else {
+        const assetUrl = new URL(`../${asset.assetPath}`, import.meta.url);
+        try {
+          bytes = await readFile(fileURLToPath(assetUrl));
+        } catch {
+          return json(response, 404, { code: "ASSET_NOT_FOUND" });
+        }
       }
 
       const etag = "\"" + createHash("sha256").update(bytes).digest("base64url") + "\"";
       response.setHeader("etag", etag);
       response.setHeader("cache-control", asset.cacheControl);
-      response.setHeader("content-type", "text/javascript; charset=utf-8");
+      response.setHeader("content-type", asset.contentType);
       if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
         transportTraffic.recordNotModified();
         response.statusCode = 304;
