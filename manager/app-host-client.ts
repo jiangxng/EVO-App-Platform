@@ -1,4 +1,13 @@
 import {
+  createRevisionAwareBrowserTransportV010
+} from "./browser-transport.js";
+import {
+  createBrowserPerformanceReporterV010
+} from "./browser-performance.js";
+import {
+  mountBrowserVersionNoticeV010
+} from "./browser-version-notice.js";
+import {
   createAppManagerExperienceSource
 } from "../vendor/eidos/src/app-host/app-manager-source.js";
 import {
@@ -25,8 +34,17 @@ const persistedLocale = window.localStorage.getItem("evo.locale")?.trim();
 const browserLocale = window.navigator.language?.trim();
 const initialLocale = persistedLocale || browserLocale || "en";
 
+const versionNotice = mountBrowserVersionNoticeV010();
+const transport = createRevisionAwareBrowserTransportV010({
+  importUrl: import.meta.url,
+  onUpdateAvailable(hostRevision) {
+    versionNotice.show(hostRevision);
+  }
+});
+
 const source = createAppManagerExperienceSource({
   baseUrl: window.location.origin,
+  fetchImpl: transport.fetch,
   locale: () =>
     window.localStorage.getItem("evo.locale")?.trim()
     || initialLocale
@@ -67,6 +85,16 @@ if (surfaceGateway.kind === "REDIRECT") {
   activeTarget = surfaceGateway.target;
 }
 
+const rum = createBrowserPerformanceReporterV010({
+  fetchImpl: transport.fetch,
+  clientRevision: transport.clientRevision,
+  hostRevision: transport.hostRevision,
+  surfaceTarget: surfaceGateway.kind === "HANDOFF"
+    ? "HANDOFF"
+    : activeTarget ?? "UNKNOWN",
+  force: new URL(window.location.href).searchParams.get("rum") === "1"
+});
+
 if (surfaceGateway.kind === "HANDOFF") {
   const mountedHandoff = mountSurfaceHandoffV010({
     container: "#app",
@@ -82,6 +110,8 @@ if (surfaceGateway.kind === "HANDOFF") {
   disposeOnRealPageExitV010(() => {
     mountedHandoff.dispose();
     connectivity.dispose();
+    rum.dispose();
+    versionNotice.dispose();
   });
 } else if (activeTarget === "MOBILE_TASK") {
   const { mountMobileTaskRuntimeV010 } = await import(
@@ -93,12 +123,19 @@ if (surfaceGateway.kind === "HANDOFF") {
     bootstrapManifests,
     path: activePath,
     locale: initialLocale,
-    baseUrl: window.location.origin
+    baseUrl: window.location.origin,
+    fetchImpl: transport.fetch
   });
 
   disposeOnRealPageExitV010(() => {
     mounted.dispose();
     connectivity.dispose();
+    rum.dispose();
+    versionNotice.dispose();
+    rum.dispose();
+    versionNotice.dispose();
+    rum.dispose();
+    versionNotice.dispose();
   });
 } else if (activeTarget === "MOBILE_READ") {
   const { mountMobileReadRuntimeV010 } = await import(
@@ -109,7 +146,8 @@ if (surfaceGateway.kind === "HANDOFF") {
     source,
     bootstrapManifests,
     path: activePath,
-    baseUrl: window.location.origin
+    baseUrl: window.location.origin,
+    fetchImpl: transport.fetch
   });
 
   disposeOnRealPageExitV010(() => {
@@ -125,7 +163,8 @@ if (surfaceGateway.kind === "HANDOFF") {
     bootstrapManifests,
     initialLocale,
     activeSurfaceId,
-    baseUrl: window.location.origin
+    baseUrl: window.location.origin,
+    fetchImpl: transport.fetch
   });
   disposeOnRealPageExitV010(() => {
     mounted.dispose();
