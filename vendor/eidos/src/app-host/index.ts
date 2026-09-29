@@ -8,3 +8,5 @@ export * from "./app-manager-action-host.js";
 export * from "./agent-workspace-shell.js";
 export * from "./page-controller.js";
 export * from "./page-renderer.js";
+
+export * from "./surface.js";

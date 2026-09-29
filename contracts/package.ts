@@ -130,8 +130,36 @@ export interface ExperienceContributionV010 {
     featureId: string;
     defaultRoute?: string;
     pages: Array<{ id: string; title?: string; source: string }>;
-    routes: Array<{ id: string; path: string; pageId: string }>;
-    navigation?: Array<{ id: string; label: string; route: string; order?: number; parentId?: string }>;
+    routes: Array<{
+      id: string;
+      path: string;
+      pageId: string;
+      semanticId?: string;
+      surfaceId?: string;
+    }>;
+    navigation?: Array<{
+      id: string;
+      label: string;
+      route: string;
+      order?: number;
+      parentId?: string;
+      surfaceIds?: string[];
+    }>;
+    surfaces?: Array<{
+      id: string;
+      target:
+        | "DESKTOP_WORKBENCH"
+        | "MOBILE_TASK"
+        | "MOBILE_READ"
+        | "TABLET_WORKBENCH";
+      support:
+        | "FULL"
+        | "TASK_FOCUSED"
+        | "READ_ONLY"
+        | "UNSUPPORTED";
+      entryRoute?: string;
+      fallbackSurfaceId?: string;
+    }>;
   };
 }
 

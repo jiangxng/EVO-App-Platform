@@ -3,6 +3,7 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 export const ENTERPRISE_AGENT_PACKAGE_ID = "enterprise-agent";
 export const ENTERPRISE_AGENT_FEATURE_ID = "enterprise-agent.default";
 export const ENTERPRISE_AGENT_PAGE_SOURCE = "app://enterprise-agent/pages/home";
+export const ENTERPRISE_AGENT_MOBILE_PAGE_SOURCE = "app://enterprise-agent/pages/mobile-home";
 export const ENTERPRISE_AGENT_SETUP_PAGE_SOURCE = "app://enterprise-agent/pages/setup";
 export const ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/memory-review";
 export const ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE = "app://enterprise-agent/pages/quality";
@@ -542,6 +543,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 source: ENTERPRISE_AGENT_PAGE_SOURCE
               },
               {
+                id: "enterprise-agent.mobile-home",
+                title: "Personal Agent",
+                source: ENTERPRISE_AGENT_MOBILE_PAGE_SOURCE
+              },
+              {
                 id: "enterprise-agent.setup",
                 title: "Personal Agent setup",
                 source: ENTERPRISE_AGENT_SETUP_PAGE_SOURCE
@@ -570,31 +576,50 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             routes: [
               {
                 id: "enterprise-agent.home",
+                semanticId: "enterprise-agent.home",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent",
                 pageId: "enterprise-agent.home"
               },
               {
+                id: "enterprise-agent.mobile-home",
+                semanticId: "enterprise-agent.home",
+                surfaceId: "enterprise-agent.mobile-task",
+                path: "/m/enterprise-agent",
+                pageId: "enterprise-agent.mobile-home"
+              },
+              {
                 id: "enterprise-agent.setup",
+                semanticId: "enterprise-agent.setup",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/setup",
                 pageId: "enterprise-agent.setup"
               },
               {
                 id: "enterprise-agent.memory-review",
+                semanticId: "enterprise-agent.memory-review",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/memory",
                 pageId: "enterprise-agent.memory-review"
               },
               {
                 id: "enterprise-agent.quality",
+                semanticId: "enterprise-agent.quality",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/quality",
                 pageId: "enterprise-agent.quality"
               },
               {
                 id: "enterprise-agent.quality-review",
+                semanticId: "enterprise-agent.quality-review",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/quality/review",
                 pageId: "enterprise-agent.quality-review"
               },
               {
                 id: "enterprise-agent.follow-ups",
+                semanticId: "enterprise-agent.follow-ups",
+                surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/follow-ups",
                 pageId: "enterprise-agent.follow-ups"
               }
@@ -604,7 +629,29 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.nav",
                 label: "Personal Agent",
                 route: "/enterprise-agent",
-                order: 10
+                order: 10,
+                surfaceIds: ["enterprise-agent.desktop"]
+              }
+            ],
+            surfaces: [
+              {
+                id: "enterprise-agent.desktop",
+                target: "DESKTOP_WORKBENCH",
+                support: "FULL",
+                entryRoute: "/enterprise-agent"
+              },
+              {
+                id: "enterprise-agent.mobile-task",
+                target: "MOBILE_TASK",
+                support: "TASK_FOCUSED",
+                entryRoute: "/m/enterprise-agent",
+                fallbackSurfaceId: "enterprise-agent.desktop"
+              },
+              {
+                id: "enterprise-agent.mobile-read",
+                target: "MOBILE_READ",
+                support: "UNSUPPORTED",
+                fallbackSurfaceId: "enterprise-agent.desktop"
               }
             ]
           }
@@ -645,6 +692,34 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
 };
 
 export const enterpriseAgentExperienceAssets = new Map<string, unknown>([
+  [ENTERPRISE_AGENT_MOBILE_PAGE_SOURCE, {
+    contractVersion: "0.1.0",
+    kind: "chat",
+    id: "enterprise-agent.mobile-home",
+    title: "Personal Agent",
+    command: {
+      code: "enterprise-agent.chat",
+      inputVersion: "0.1.0"
+    },
+    composer: {
+      key: "message",
+      placeholder: "Ask or describe a task",
+      sendLabel: "Send"
+    },
+    emptyState: "Ask Personal Agent what needs your attention or what you want to accomplish.",
+    metadata: {
+      packageId: ENTERPRISE_AGENT_PACKAGE_ID,
+      featureId: ENTERPRISE_AGENT_FEATURE_ID,
+      surface: {
+        target: "MOBILE_TASK",
+        interaction: "TASK_FOCUSED"
+      },
+      llm: {
+        requiredCapability: "llm.inference",
+        integrationStatus: "PROVIDER_RESOLVED_AT_RUNTIME"
+      }
+    }
+  }],
   [ENTERPRISE_AGENT_PAGE_SOURCE, {
     contractVersion: "0.1.0",
     kind: "chat",

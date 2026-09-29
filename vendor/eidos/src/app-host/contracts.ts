@@ -8,10 +8,42 @@ export interface AppHostPageReferenceV010 {
   source: string;
 }
 
+export type AppHostSurfaceTargetV010 =
+  | "DESKTOP_WORKBENCH"
+  | "MOBILE_TASK"
+  | "MOBILE_READ"
+  | "TABLET_WORKBENCH";
+
+export type AppHostSurfaceSupportV010 =
+  | "FULL"
+  | "TASK_FOCUSED"
+  | "READ_ONLY"
+  | "UNSUPPORTED";
+
+export interface AppHostSurfaceDeclarationV010 {
+  id: string;
+  target: AppHostSurfaceTargetV010;
+  support: AppHostSurfaceSupportV010;
+  entryRoute?: string;
+  fallbackSurfaceId?: string;
+}
+
+export interface ClientSurfaceProfileV010 {
+  contractVersion: "0.1.0";
+  viewportClass: "COMPACT" | "MEDIUM" | "EXPANDED";
+  primaryPointer: "COARSE" | "FINE" | "NONE";
+  hover: boolean;
+  touch: boolean;
+  reducedMotion: boolean;
+  standalone: boolean;
+}
+
 export interface AppHostRouteV010 {
   id: string;
   path: string;
   pageId: string;
+  semanticId?: string;
+  surfaceId?: string;
 }
 
 export interface AppHostNavigationItemV010 {
@@ -20,6 +52,7 @@ export interface AppHostNavigationItemV010 {
   route: string;
   order?: number;
   parentId?: string;
+  surfaceIds?: string[];
 }
 
 export interface EffectiveExperienceManifestV010 {
@@ -31,6 +64,7 @@ export interface EffectiveExperienceManifestV010 {
   pages: AppHostPageReferenceV010[];
   routes: AppHostRouteV010[];
   navigation?: AppHostNavigationItemV010[];
+  surfaces?: AppHostSurfaceDeclarationV010[];
 }
 
 export interface AppHostResolvedRouteV010 {
