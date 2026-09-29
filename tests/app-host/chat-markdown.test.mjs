@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   renderChatMarkdownToHtml,
@@ -29,6 +30,7 @@ test("Personal Agent assistant prose renders common Markdown through Eidos", () 
     }]
   });
 
+  assert.match(html, /data-eidos-chat-message-id="assistant-markdown"/);
   assert.match(html, /data-eidos-chat-markdown/);
   assert.match(html, /<h3[^>]*>平台概览<\/h3>/);
   assert.match(html, /<strong>已安装 Package（2 个）<\/strong>/);
@@ -63,4 +65,27 @@ test("Personal Agent Markdown styling remains owned by Eidos Productive Design L
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-markdown/);
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-markdown-table/);
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-chat-markdown-code/);
+});
+
+
+test("Eidos high-frequency surfaces preserve mounted DOM instead of full replacement", async () => {
+  const pageController = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
+  );
+  const browserShell = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/browser-shell.js", import.meta.url),
+    "utf8"
+  );
+  const spatial = await readFile(
+    new URL("../../dist/vendor/eidos/src/spatial/surface.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(pageController, /transcript\.innerHTML\s*=/);
+  assert.match(pageController, /preserveMountedPage/);
+  assert.match(browserShell, /preserveMountedPage/);
+  assert.doesNotMatch(spatial, /objectLayer\.replaceChildren\(/);
+  assert.doesNotMatch(spatial, /svg\.replaceChildren\(/);
+  assert.match(spatial, /requestAnimationFrame/);
 });
