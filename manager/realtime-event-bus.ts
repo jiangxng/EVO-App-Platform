@@ -26,6 +26,12 @@ export interface HostRealtimeEventBusV010 {
     eventId: string | undefined,
     filter: HostRealtimeEventFilterV010
   ): HostRealtimeReplayV010;
+  diagnostics(): {
+    subscriberCount: number;
+    bufferedEventCount: number;
+    currentSequence: number;
+    capacity: number;
+  };
 }
 
 function visibleTo(
@@ -125,6 +131,15 @@ export function createHostRealtimeEventBusV010(input?: {
           .filter(event => visibleTo(event, filter))
           .map(event => structuredClone(event)),
         resetRequired: false
+      };
+    },
+
+    diagnostics() {
+      return {
+        subscriberCount: subscribers.size,
+        bufferedEventCount: ring.length,
+        currentSequence: sequence,
+        capacity
       };
     }
   };
