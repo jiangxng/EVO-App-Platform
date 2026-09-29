@@ -466,6 +466,7 @@ import {
   resolveBrowserAssetRequestV010
 } from "./web-delivery-cache.js";
 import { webSecurityHeadersV010 } from "./web-security-headers.js";
+import { createWebAssetArchiveV010 } from "./web-asset-archive.js";
 import {
   applyWebRevisionHeadersV010,
   normalizeClientRevisionV010
@@ -819,6 +820,21 @@ const appHostAssetRevision = normalizeAssetRevisionV010(
   ?? process.env.APP_PLATFORM_DEPLOY_REVISION
 );
 const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
+const webAssetArchive = createWebAssetArchiveV010({
+  currentRevision: appHostAssetRevision,
+  sourceRoot: fileURLToPath(new URL("../", import.meta.url)),
+  archiveRoot:
+    process.env.APP_PLATFORM_WEB_ASSET_ARCHIVE_DIR?.trim()
+    || (lifecycleStateFile
+      ? join(dirname(lifecycleStateFile), "web-assets")
+      : undefined),
+  shellCss: appHostShellCss,
+  retention: Number.parseInt(
+    process.env.APP_PLATFORM_WEB_ASSET_RETENTION ?? "5",
+    10
+  )
+});
+let webAssetArchiveError: string | undefined;
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -2983,6 +2999,48 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname.startsWith("/assets/")) {
+      const rawAssetPath = url.pathname.slice("/assets/".length);
+      const firstSlash = rawAssetPath.indexOf("/");
+      if (firstSlash > 0) {
+        const requestedRevision = rawAssetPath.slice(0, firstSlash);
+        const archivedAssetPath = rawAssetPath.slice(firstSlash + 1);
+        if (
+          requestedRevision !== appHostAssetRevision
+          && archivedAssetPath
+        ) {
+          const archivedBytes = await webAssetArchive.readArchived(
+            requestedRevision,
+            archivedAssetPath
+          );
+          if (archivedBytes) {
+            const contentType = archivedAssetPath.endsWith(".js")
+              ? "text/javascript; charset=utf-8"
+              : archivedAssetPath.endsWith(".css")
+                ? "text/css; charset=utf-8"
+                : undefined;
+            if (!contentType) {
+              return json(response, 404, { code: "ASSET_NOT_FOUND" });
+            }
+            const etag = "\"" + createHash("sha256")
+              .update(archivedBytes)
+              .digest("base64url") + "\"";
+            response.setHeader("etag", etag);
+            response.setHeader(
+              "cache-control",
+              "public, max-age=31536000, immutable"
+            );
+            response.setHeader("content-type", contentType);
+            if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+              transportTraffic.recordNotModified();
+              response.statusCode = 304;
+              return response.end();
+            }
+            response.statusCode = 200;
+            return response.end(archivedBytes);
+          }
+        }
+      }
+
       const asset = resolveBrowserAssetRequestV010(
         url.pathname,
         appHostAssetRevision
@@ -3018,6 +3076,18 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/web-delivery/diagnostics") {
+      resolveRequestIdentitySession(request);
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        currentRevision: appHostAssetRevision,
+        archivedRevisions: await webAssetArchive.revisions(),
+        archiveEnabled: Boolean(webAssetArchive.archiveRoot),
+        archiveError: webAssetArchiveError ?? null,
+        performance: webPerformance.diagnostics()
+      });
     }
 
     if (request.method === "POST" && url.pathname === "/v1/web-performance") {
@@ -4533,6 +4603,13 @@ const server = createServer(async (request, response) => {
     });
   }
 });
+
+try {
+  await webAssetArchive.ensureCurrent();
+} catch (error) {
+  webAssetArchiveError = error instanceof Error ? error.message : String(error);
+  console.error("Web asset archive initialization failed.", error);
+}
 
 const port = Number(process.env.PORT ?? 4100);
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
