@@ -723,7 +723,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           renderedMessages.set(message.id, rendered);
         }
 
-        const desiredPosition = previous
+        const desiredPosition: ChildNode | null = previous
           ? previous.nextSibling
           : transcript.firstChild;
         if (rendered.element !== desiredPosition) {
