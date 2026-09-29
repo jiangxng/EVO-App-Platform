@@ -259,6 +259,40 @@ export function resolveExperienceSurfaceV010(
   }
 
   if (surface.support === "UNSUPPORTED") {
+    if (
+      choice.selectedBy === "CAPABILITY"
+      && surface.fallbackSurfaceId
+    ) {
+      const fallback = surfaces.find(
+        candidate => candidate.id === surface.fallbackSurfaceId
+      );
+      if (fallback && fallback.support !== "UNSUPPORTED") {
+        const fallbackRoute = semantic
+          ? routeForSurface(manifest, fallback.id, semantic)
+          : fallback.entryRoute
+            ? manifest.routes.find(candidate =>
+                candidate.path === fallback.entryRoute
+                && (
+                  candidate.surfaceId === fallback.id
+                  || candidate.surfaceId === undefined
+                )
+              )
+            : undefined;
+
+        if (fallbackRoute) {
+          return {
+            kind: "ROUTE",
+            target: fallback.target,
+            support: fallback.support,
+            surfaceId: fallback.id,
+            route: fallbackRoute,
+            semanticRouteId: semantic ?? semanticId(fallbackRoute),
+            selectedBy: "CAPABILITY"
+          };
+        }
+      }
+    }
+
     return {
       kind: "HANDOFF",
       target: choice.target,

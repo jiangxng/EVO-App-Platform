@@ -45,6 +45,10 @@ import {
   parseEogMetricCodesV020,
   parseEogTimeLensInputV020
 } from "./enterprise-operating-graph-observatory-input.js";
+import {
+  EOG_MOBILE_READ_PAGE_SOURCE,
+  EOG_MOBILE_READ_ROUTE
+} from "./enterprise-operating-graph-mobile-read-page.js";
 
 export const EOG_OBSERVATORY_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/observatory";
@@ -54,6 +58,11 @@ export const EOG_OBSERVATORY_VIEW_GET_ACTION =
   "enterprise-operating-graph.observatory.view.get";
 
 export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020() {
+  const semanticId = "evo-enterprise-operating-graph.observatory";
+  const desktopSurfaceId = "evo-eog-observatory.desktop";
+  const mobileTaskSurfaceId = "evo-eog-observatory.mobile-task";
+  const mobileReadSurfaceId = "evo-eog-observatory.mobile-read";
+
   return {
     contractVersion: "0.1.0" as const,
     experienceId: "evo-enterprise-operating-graph-observatory",
@@ -65,13 +74,27 @@ export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020(
         id: "evo-enterprise-operating-graph.observatory",
         title: "Enterprise Observatory",
         source: EOG_OBSERVATORY_PAGE_SOURCE
+      },
+      {
+        id: "evo-enterprise-operating-graph.observatory.mobile-read",
+        title: "Enterprise Observatory",
+        source: EOG_MOBILE_READ_PAGE_SOURCE
       }
     ],
     routes: [
       {
         id: "evo-enterprise-operating-graph.observatory",
+        semanticId,
+        surfaceId: desktopSurfaceId,
         path: EOG_OBSERVATORY_ROUTE,
         pageId: "evo-enterprise-operating-graph.observatory"
+      },
+      {
+        id: "evo-enterprise-operating-graph.observatory.mobile-read",
+        semanticId,
+        surfaceId: mobileReadSurfaceId,
+        path: EOG_MOBILE_READ_ROUTE,
+        pageId: "evo-enterprise-operating-graph.observatory.mobile-read"
       }
     ],
     navigation: [
@@ -79,7 +102,28 @@ export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020(
         id: "evo-enterprise-operating-graph.observatory.nav",
         label: "Observe",
         route: EOG_OBSERVATORY_ROUTE,
-        order: 16
+        order: 16,
+        surfaceIds: [desktopSurfaceId]
+      }
+    ],
+    surfaces: [
+      {
+        id: desktopSurfaceId,
+        target: "DESKTOP_WORKBENCH" as const,
+        support: "FULL" as const,
+        entryRoute: EOG_OBSERVATORY_ROUTE
+      },
+      {
+        id: mobileTaskSurfaceId,
+        target: "MOBILE_TASK" as const,
+        support: "UNSUPPORTED" as const,
+        fallbackSurfaceId: mobileReadSurfaceId
+      },
+      {
+        id: mobileReadSurfaceId,
+        target: "MOBILE_READ" as const,
+        support: "READ_ONLY" as const,
+        entryRoute: EOG_MOBILE_READ_ROUTE
       }
     ]
   };
