@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-03`  
-**Snapshot time:** `2026-09-29T10:15:00+08:00`  
+**Snapshot:** `EOG-2026-09-29-04`  
+**Snapshot time:** `2026-09-29T10:30:52.597+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Enterprise Operating Graph — Operational Observatory v0.3
+Enterprise Operating Graph — SOP Semantics & Live Proof v0.4
 ACTIVE
 ```
 
@@ -41,22 +41,19 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-sop-semantics-live-proof-v0-4: IMPLEMENTATION_READY**
+**enterprise-operating-graph-sop-live-proof-v0-4: IMPLEMENTED_CI_PASS_LIVE_PROOF_PENDING**
 
-Expand the now-proven linear Expected SOP / Actual Trace foundation into practical enterprise SOP semantics and prove it with a real EVO-backed browser run. Add conditional/allowed branches and exception semantics first, then parallel/role responsibility only where runtime evidence can support them. Preserve Human publication authority, raw-trace provenance, and identical 2D/3D analysis results.
+PR #154 has implemented explicit allowed/alternative/exception SOP transition semantics and per-instance Actual Path evidence with fail-closed coverage. The remaining gate is to deploy that mainline and prove the behavior against real EVO runtime traces in the browser, with identical conclusions projected into 2D and 3D from one Host Analysis Snapshot. Conditional evidence evaluation, parallel/loop and role responsibility remain deferred until their evidence models are explicit.
 
 Acceptance:
 
-- run a real EVO-backed flow through the runtime trace endpoint and show the resulting Application transition facts in the EOG Observatory
-- prove the same SOP_CONFORMANCE and SOP_DEVIATION conclusions appear from one Host Analysis Snapshot in both DIAGRAM_2D and SPATIAL_3D projections
-- extend Expected SOP beyond one strict linear path with explicit conditional or allowed-alternative transitions; do not infer branches from observed frequency
-- represent allowed exceptions separately from deviations so known business exceptions are not mislabeled as SOP violations
-- keep Expected SOP Drafts non-authoritative and Human publish explicitly confirmed; Personal Agent remains proposal-only
-- preserve every conformance/deviation conclusion with evidenceFactIds, source/analyzer provenance and the selected Time Lens
-- do not treat missing trace coverage as compliance; incomplete path evidence must remain INSUFFICIENT_EVIDENCE
-- do not introduce renderer-specific SOP state or a separate 3D SOP model
-- only add parallel/loop/role-responsibility semantics when there is an explicit evidence model capable of validating them
-- keep EVO responsible for raw execution traces and App Platform responsible for canonical mapping, enterprise SOP authority and analysis
+- deploy main containing PR #154 to the production preview without regressing the current Personal Agent / EOG surfaces
+- run a real EVO-backed flow through /api/v1/runtime-traces/query and show sop.trace.transition plus sop.trace.coverage facts in the Host analysis input
+- prove SOP_CONFORMANCE, SOP_EXCEPTION and SOP_DEVIATION conclusions retain evidenceFactIds, analyzer provenance and the selected Time Lens
+- prove DIAGRAM_2D and SPATIAL_3D project the same Host Analysis Snapshot conclusions rather than recomputing renderer-specific SOP state
+- verify an incomplete or ACTIVE trace remains INSUFFICIENT_EVIDENCE rather than compliance
+- do not treat conditionRef as satisfied until a runtime evidence model can prove the condition
+- do not add parallel, loop or role-responsibility semantics until an explicit evidence model can validate them
 
 ## Current production preview
 
@@ -144,6 +141,7 @@ Not proved:
 - PR #151 — MERGED_CI_PASS: Add explicit durable Host Application ↔ EVO applicationId runtime identity mapping and fail-closed Application Runtime Fact resolution.
 - PR #152 — MERGED_CI_PASS: Add Host-owned Expected SOP authority, EVO trace-derived sop.transition.count Runtime Facts, proposal-only Agent SOP tools, Human-confirmed publish, and shared 2D/3D SOP conformance/deviation overlays.
 - PR #73 — MERGED_CI_PASS: EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors.
+- PR #154 — MERGED_CI_PASS: Add explicit Expected/Allowed Alternative/Allowed Exception SOP transitions, preserve per-flow Actual Path and coverage facts from EVO traces, emit SOP_EXCEPTION separately from deviations, and fail closed when trace or conditional evidence is insufficient.
 
 ## DO NOT repeat stale actions
 
@@ -194,11 +192,13 @@ Not proved:
 - Do not guess Host Application to EVO applicationId mappings from labels, node IDs or layout; define a stable canonical mapping before Application Runtime Facts are enabled.
 - Do not reopen the first SPATIAL_3D Observatory or evidence-backed Bottleneck Provider as unresolved foundation work; PR #149 is merged and Platform CI passed.
 - Do not let a Three.js/WebGL/WebGPU renderer own EOG semantic truth, Runtime Facts, Analysis Overlays or durable View State.
-- Do not infer Application runtime identity from presentation labels or EOG node IDs; the next gate requires an explicit Host Application ↔ EVO applicationId mapping.
 - Do not reconstruct Actual SOP paths from aggregate event frequency or counts; EVO PR #73 provides explicit time-scoped flow_trace evidence.
 - Do not let an Expected SOP Draft participate in conformance analysis; only Human-published SOPs are enterprise truth.
 - Do not give Personal Agent a SOP publish capability; Agent may create/revise Drafts only.
 - Do not reopen Host Application ↔ EVO applicationId identity mapping or the first linear SOP conformance foundation as unresolved work; PR #151, EVO PR #73 and PR #152 are merged and CI-passed.
+- Do not reopen explicit allowed-alternative/allowed-exception SOP transitions or per-flow Actual Path evidence as unresolved foundation work; PR #154 is merged and Platform CI passed.
+- Do not collapse sop.trace.transition / sop.trace.coverage back into aggregate frequency when judging SOP conformance; aggregate counts are observability, per-instance path facts are evidence.
+- Do not treat conditionRef metadata as proof that a condition was satisfied; until condition evidence exists, observed conditional transitions remain INSUFFICIENT_EVIDENCE.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -228,7 +228,6 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state 3D as an operational God’s-eye observatory for enterprise activity, not a decorative renderer or separate enterprise model
 - state raw Runtime Facts as distinct from derived bottleneck/SOP/anomaly conclusions
 - state the Host-owned EVO BusinessData Adapter as no longer blocked by the Runtime Fact boundary but still deferred by current EOG Observatory priority
-- state Application Runtime Facts as pending an explicit Host Application ↔ EVO applicationId mapping; do not infer it
 - do not require the previous ChatGPT transcript to continue
 - state PR #149 as merged with the first Host-backed SPATIAL_3D Observatory and evidence-backed Bottleneck Analysis Provider
 - state 3D as a projection over the same eog:primary Semantic Graph, Time Lens, Runtime Facts and Analysis Overlays as 2D; spatial placement/camera remain View State
@@ -237,7 +236,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EVO PR #73 as merged: Actual execution paths now have a time-scoped runtime trace read boundary over flow_trace evidence
 - state PR #152 as merged: Expected SOP is Host-owned Draft/Published truth, Agent is proposal-only, Human publish is explicit, and SOP_CONFORMANCE/SOP_DEVIATION are evidence-backed overlays
 - state sop.transition.count as a raw Runtime Fact derived from adjacent EVO trace steps, distinct from the derived SOP analysis conclusion
-- state the current open gate as richer SOP branch/allowed-exception semantics plus a real EVO-backed browser trace/conformance proof
+- state PR #154 as merged and CI-passed: explicit EXPECTED / ALLOWED_ALTERNATIVE / ALLOWED_EXCEPTION SOP transitions are implemented and legacy linear SOPs remain compatible
+- state sop.transition.count as aggregate Observatory data while sop.trace.transition and sop.trace.coverage preserve per-flow-instance Actual Path evidence for SOP analysis
+- state SOP_EXCEPTION as distinct from SOP_DEVIATION so Human-published known business exceptions are not mislabeled as violations
+- state incomplete/non-completed Actual Path coverage and unproven conditionRef transitions as INSUFFICIENT_EVIDENCE rather than compliance
+- state the current open gate as production deployment plus real EVO-backed 2D/3D browser proof for PR #154; conditional evidence, parallel/loop and role responsibility remain deferred
 
 No previous ChatGPT transcript is required.
 
