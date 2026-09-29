@@ -164,7 +164,9 @@ function preset(
         "business.amount",
         "balance.quantity",
         "balance.amount",
-        "sop.transition.count"
+        "sop.transition.count",
+        "sop.trace.transition",
+        "sop.trace.coverage"
       ]
     } as Record<string, JsonValue>
   };
@@ -350,9 +352,11 @@ function analysisBadges(
         ? "Bottleneck"
         : overlay.analysisKind === "SOP_CONFORMANCE"
           ? "SOP"
-          : overlay.analysisKind === "SOP_DEVIATION"
-            ? "SOP deviation"
-            : overlay.analysisKind;
+          : overlay.analysisKind === "SOP_EXCEPTION"
+            ? "SOP exception"
+            : overlay.analysisKind === "SOP_DEVIATION"
+              ? "SOP deviation"
+              : overlay.analysisKind;
       const value = overlay.analysisKind === "SOP_CONFORMANCE"
         && typeof overlay.score === "number"
         ? numberText(overlay.score * 100, locale) + "%"
