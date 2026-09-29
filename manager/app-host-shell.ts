@@ -1,6 +1,13 @@
 import { eidosProductiveWorkbenchCss } from "../vendor/eidos/src/design-language/index.js";
 
-export const appHostShellHtml = `<!doctype html>
+function safeAssetRevision(value: string): string {
+  const normalized = value.trim().replace(/[^a-zA-Z0-9._-]/gu, "-");
+  return normalized || "dev";
+}
+
+export function createAppHostShellHtmlV010(assetRevision: string): string {
+  const revision = safeAssetRevision(assetRevision);
+  return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -10,6 +17,7 @@ export const appHostShellHtml = `<!doctype html>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
-<script type="module" src="/assets/manager/app-host-client.js"></script>
+<script type="module" src="/assets/${revision}/manager/app-host-client.js"></script>
 </body>
 </html>`;
+}
