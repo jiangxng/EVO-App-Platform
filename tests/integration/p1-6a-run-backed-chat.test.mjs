@@ -194,7 +194,7 @@ test("P1.6A primary chat path runs start/resume to a rich terminal reply", async
 
   assert.equal(execution.mode, "RUN");
   assert.equal(execution.runState, "SUCCEEDED");
-  assert.equal(execution.resumeCount, 1);
+  assert.equal(execution.resumeCount, 0);
   assert.equal(calls.length, 1);
   assert.equal(execution.result.result.message, "durable final answer");
   assert.equal(
@@ -225,7 +225,7 @@ test("P1.6A primary chat path runs start/resume to a rich terminal reply", async
   assert.equal(runs[0].sliceCount, 2);
 });
 
-test("P1.6A reconnect resumes the same post-WRITE run and Action Receipt prevents duplicate WRITE", async () => {
+test("P1.6A Host drain completes a WRITE turn in one client request and reconnect stays exactly-once", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([]),
     createMemoryLifecycleStore()
@@ -325,9 +325,10 @@ test("P1.6A reconnect resumes the same post-WRITE run and Action Receipt prevent
   });
 
   assert.equal(first.mode, "RUN");
-  assert.equal(first.runState, "PAUSED");
-  assert.equal(first.result.ok, false);
-  assert.equal(first.result.error.code, "EIDOS_AGENT_RUN_RESUME_LIMIT_REACHED");
+  assert.equal(first.runState, "SUCCEEDED");
+  assert.equal(first.resumeCount, 0);
+  assert.equal(first.result.ok, true);
+  assert.equal(first.result.result.message, "write completed and recovered");
   assert.equal(writes, 1);
 
   const receiptsAfterWrite = receiptService.list({
