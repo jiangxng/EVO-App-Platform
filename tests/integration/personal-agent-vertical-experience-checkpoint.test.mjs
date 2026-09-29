@@ -319,8 +319,13 @@ test("vertical experience boots one Host and reaches real Provider configuration
     const root = await fetch(baseUrl + "/");
     const html = await root.text();
     assert.equal(root.status, 200);
+    assert.equal(root.headers.get("cache-control"), "no-cache");
+    assert.ok(root.headers.get("etag"));
     assert.match(html, /EVO/);
-    assert.match(html, /\/assets\/manager\/app-host-client\.js/);
+    assert.match(
+      html,
+      /\/assets\/[a-zA-Z0-9._-]+\/manager\/app-host-client\.js/
+    );
   } catch (error) {
     throw new Error(
       (error instanceof Error ? error.message : String(error))
