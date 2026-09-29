@@ -172,7 +172,7 @@ export function createEogExpectedSopActionHandlersV010(input: {
       const scope = enterpriseScope(context);
       return result(
         request,
-        input.service.listPublished({
+        input.service.list({
           enterpriseId: scope.enterpriseId,
           graphId: textValue(request.values, "graphId")
         })
