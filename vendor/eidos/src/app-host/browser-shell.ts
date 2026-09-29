@@ -20,6 +20,7 @@ import {
   type MountedAppHostPage
 } from "./page-controller.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
+import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.js";
 
 export interface BrowserAppHostShellOptions {
   host: AppHost;
@@ -93,6 +94,7 @@ export async function mountBrowserAppHostShell(
   let disposed = false;
   let activePath = currentPath();
   let mountedPage: MountedAppHostPage | undefined;
+  const routeReadGate = createSupersedingRequestGateV010();
   let activeSurfaceId: string | undefined;
 
   const root = document.createElement("div");
@@ -408,6 +410,7 @@ export async function mountBrowserAppHostShell(
 
   function dispose(): void {
     disposed = true;
+    routeReadGate.dispose();
     mountedPage?.dispose();
     unsubscribe();
     unsubscribeLocale?.();
