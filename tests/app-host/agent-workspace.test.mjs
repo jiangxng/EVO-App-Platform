@@ -40,12 +40,21 @@ test("Personal Agent owns its Activity contribution instead of App Host owning A
 });
 
 
-test("App Host client has no hard-coded Personal Agent route or Activity", async () => {
+test("minimal App Host client stays product-neutral and Workbench activity discovery stays desktop-scoped", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../../dist/manager/app-host-client.js", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /\/enterprise-agent/);
-  assert.doesNotMatch(source, /id:\s*["']agent["']/);
-  assert.match(source, /\/v1\/workbench\/activities/);
+  const bootstrap = await readFile(
+    new URL("../../dist/manager/app-host-client.js", import.meta.url),
+    "utf8"
+  );
+  const desktop = await readFile(
+    new URL("../../dist/manager/desktop-workbench-runtime.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(bootstrap, /\/enterprise-agent/);
+  assert.doesNotMatch(bootstrap, /id:\s*["']agent["']/);
+  assert.doesNotMatch(bootstrap, /\/v1\/workbench\/activities/);
+  assert.match(desktop, /\/v1\/workbench\/activities/);
 });
 
 
