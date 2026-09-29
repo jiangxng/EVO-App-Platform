@@ -1,0 +1,52 @@
+name: Real Browser RUM Budget Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/real-browser-rum-budget-proof.yml"
+      - "tools/real-browser-rum-budget-proof.mjs"
+      - "manager/browser-performance.ts"
+      - "manager/web-performance.ts"
+      - "manager/web-performance-budgets.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/real-browser-rum-budget-proof.yml"
+      - "tools/real-browser-rum-budget-proof.mjs"
+      - "manager/browser-performance.ts"
+      - "manager/web-performance.ts"
+      - "manager/web-performance-budgets.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  real-browser-rum-budget-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Verify real browser RUM and Surface budgets
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/real-browser-rum-budget-proof.mjs | tee /tmp/real-browser-rum-budget-proof.log
+          grep -q "REAL_BROWSER_RUM_BUDGET_PROOF=" /tmp/real-browser-rum-budget-proof.log
