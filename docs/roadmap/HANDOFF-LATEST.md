@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-07`  
-**Snapshot time:** `2026-09-29T11:49:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-08`  
+**Snapshot time:** `2026-09-29T12:18:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `4c5ed7a67de891f82477168b92f683bafcb90227`
-- Deployment: `e009631b-e9ef-4d12-a1e3-7aab33084ed2`
+- Commit: `b2b5c55c1e1ff55c11dd28d5c966e2676697dec8`
+- Deployment: `1db82c17-b6c8-4766-bfe0-80ba4e2dccf0`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -146,6 +146,7 @@ Not proved:
 - PR #154 — MERGED_CI_PASS: Add explicit Expected/Allowed Alternative/Allowed Exception SOP transitions, preserve per-flow Actual Path and coverage facts from EVO traces, emit SOP_EXCEPTION separately from deviations, and fail closed when trace or conditional evidence is insufficient.
 - PR #157 — MERGED_DEPLOYED_CI_PASS: Propagate Host-resolved active Enterprise Context through Eidos AppManager actions so EOG reads and writes execute in the selected Enterprise Context.
 - PR #158 — MERGED: Record the Human-owned Enterprise Context, explicit EVO_CONFIG_MVP stable ApplicationAnchor mappings, live 2D/3D Runtime Facts, genuine absence of production traces, and the Expected SOP publish gate.
+- PR #160 — MERGED_DEPLOYED_CI_PASS: Eliminate App Host remount loops and high-frequency DOM replacement: preserve self-updating EOG/Chat surfaces, keyed incremental Personal Agent transcript rendering, and retained-DOM rAF-batched SPATIAL_3D rendering.
 
 ## DO NOT repeat stale actions
 
@@ -209,9 +210,11 @@ Not proved:
 - Do not map Observatory applications to EVO application_instance UUIDs; runtime observation resolves exact application_instance.config.sourceApplicationId stable anchors.
 - Do not report event.count=0 as missing mapping; all four real ApplicationAnchors resolve successfully and zero is the observed September value.
 - Do not manufacture SOP live evidence by inserting flow_definition/flow_trace rows or seeding EVO_DEMO into production; production EVO_CONFIG_MVP currently has no legitimate trace evidence.
-- Do not reopen Expected SOP publication as pending; sop:o2c-evo-configurator-v1 was Human-confirmed and is PUBLISHED revision 2 by preview-user.
 - Do not interpret the published SOP as proof of Actual Path compliance; production EVO_CONFIG_MVP still has no legitimate flow trace evidence and both 2D/3D correctly show SOP=INSUFFICIENT_EVIDENCE.
 - Do not manufacture the remaining trace proof with direct flow_definition/flow_trace inserts or by seeding EVO_DEMO into production.
+- Do not restore shell-wide refresh/remount after successful Diagram/Spatial/Chat actions; self-updating surfaces own their local result rendering and only Host chrome should refresh.
+- Do not rebuild the entire Personal Agent transcript with transcript.innerHTML on progress/thread updates; stable message-id keyed DOM patching is the rendering contract.
+- Do not rebuild SPATIAL_3D object/link DOM on every pointer/wheel/resize event; retain scene elements and update geometry on requestAnimationFrame.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -262,7 +265,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state production EVO as currently containing no flow_definition and no flow_trace evidence; do not claim Actual Path live proof
 - state Expected SOP sop:o2c-evo-configurator-v1 as Human-confirmed PUBLISHED revision 2 by preview-user
 - state the published no-trace proof as production PASS: both DIAGRAM_2D and SPATIAL_3D project SOP=INSUFFICIENT_EVIDENCE from analyzer sop-path-conformance-v0.2 for the September 2026 Time Lens
-- state the next EOG v0.4 gate as a legitimate governed EVO runtime flow/trace source; do not claim full Actual Path proof until sop.trace.transition and sop.trace.coverage exist from real runtime evidence
+- state PR #160 as merged, CI-passed and Railway production-deployed at commit b2b5c55c1e1ff55c11dd28d5c966e2676697dec8; EOG self-updating pages no longer require shell remount after local read/update results
+- state Personal Agent transcript rendering as stable message-id keyed incremental DOM patching with requestAnimationFrame batching and near-bottom scroll anchoring rather than full transcript replacement
+- state SPATIAL_3D as retained object/link DOM with requestAnimationFrame-batched geometry updates; Selection is not rewritten per frame
+- state upstream Eidos PR #45 as merged at 6e4256194781957d90402dd359021fa68c997c26
+- state the next EOG v0.4 semantic gate as a legitimate governed EVO runtime flow/trace source; visual flicker retest is a UI verification follow-up, not a reason to reopen semantic foundations
 
 No previous ChatGPT transcript is required.
 
