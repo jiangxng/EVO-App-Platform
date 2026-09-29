@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-10`  
-**Snapshot time:** `2026-09-29T15:16:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-11`  
+**Snapshot time:** `2026-09-29T17:36:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `ac1b35a60229ce978a795a97588205e3aef8cbe4`
-- Deployment: `afaa6b9f-8bad-4e5a-9089-434b7a459e31`
+- Commit: `af7bdf6bcbc2521dd5f0b518acde2fb6d4b81b36`
+- Deployment: `e36166e4-f63d-483e-a0fe-12e58550e948`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -160,6 +160,9 @@ Not proved:
 - PR #168 — MERGED_DEPLOYED_CI_PASS: Add Host-side durable Agent drain, transport route/action/JSON/SSE traffic counters, restore durable Agent chat after vendor sync, and production-certify idle action traffic at zero.
 - PR #170 — MERGED_DEPLOYED_CI_PASS: Establish browser cache P0: revisioned immutable ESM module graph, App Shell ETag revalidation, legacy asset validators, and App Platform adoption of explicit desktop/mobile Surface architecture.
 - PR #171 — MERGED_PRODUCTION_PROOF_PASS: Add reusable production Web Delivery proof; certify root 304, immutable revisioned asset caching, and legacy ETag revalidation against Railway production.
+- PR #174 — MERGED_CI_PASS: Adopt Eidos Surface resolver and declare Personal Agent DESKTOP_WORKBENCH + MOBILE_TASK as separate routes over one semantic Agent capability.
+- PR #175 — MERGED_DEPLOYED_CI_PASS: Activate Browser Surface Gateway before Workbench mount, preserving explicit URL target precedence and rendering network-quiet Surface handoff.
+- PR #176 — MERGED_PRODUCTION_BROWSER_PROOF_PASS: Certify Surface routing in real headless Chrome: automatic mobile task routing, explicit desktop override, desktop-only setup handoff, and no SSE on handoff.
 
 ## DO NOT repeat stale actions
 
@@ -241,6 +244,12 @@ Not proved:
 - Do not assume mobile means squeezing the desktop Workbench through CSS breakpoints; mobile support is an explicit Experience Surface contract and may be TASK_FOCUSED, READ_ONLY or UNSUPPORTED.
 - Do not require every Experience to support mobile; unsupported mobile operations must resolve to a useful deterministic handoff.
 - Do not introduce a global Service Worker/PWA cache before a concrete accepted vertical needs offline/installability; ordinary HTTP cache semantics are the baseline.
+- Do not infer Surface support from viewport/CSS alone; Surface support is explicit Experience metadata.
+- Do not let persisted Workbench layout override an explicit semantic deep link or ?surface= selection.
+- Do not mount Workbench, activities or realtime SSE when Browser Surface Gateway resolves HANDOFF.
+- Do not verify Surface routing by localized UI copy; use stable structural DOM identity, Surface/page ids and network evidence.
+- Do not force desktop-only Agent setup/quality/memory pages into MOBILE_TASK; unsupported semantic routes must hand off deterministically.
+- Do not duplicate business semantics for mobile: desktop/mobile Personal Agent surfaces share the same Host Action and semantic route identity.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -307,6 +316,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state desktop/mobile architecture as same semantic truth and Host Actions but potentially different Experience Surfaces; one responsive page is not required
 - state mobile support as explicit FULL / TASK_FOCUSED / READ_ONLY / UNSUPPORTED metadata rather than inferred CSS fit
 - state the next Web foundation slice as P1 Surface Contract + Resolver; do not jump to global PWA/offline or port every desktop page to mobile
+- state Web Delivery P1 Surface Contract + Resolver as production PASS through Eidos #51-#54 and App Platform #174/#175/#176
+- state Personal Agent as the first real dual-Surface vertical: /enterprise-agent DESKTOP_WORKBENCH and /m/enterprise-agent MOBILE_TASK share semanticRouteId enterprise-agent.home
+- state Surface resolution precedence as explicit URL target > stored user target > browser capability profile > deterministic default
+- state the production Chrome proof: compact auto -> mobile-home; compact + ?surface=desktop -> desktop home; compact setup -> handoff; handoff -> no /v1/events
+- state unsupported mobile pages as deliberate handoff rather than responsive desktop squeeze
+- state the next Web foundation slice as P2 Surface-scoped loading with independently measured mobile/desktop JS transfer budgets
 
 No previous ChatGPT transcript is required.
 
