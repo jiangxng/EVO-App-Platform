@@ -2940,7 +2940,7 @@ const server = createServer(async (request, response) => {
         return json(response, 404, { code: "ASSET_NOT_FOUND" });
       }
 
-      const etag = """ + createHash("sha256").update(bytes).digest("base64url") + """;
+      const etag = "\"" + createHash("sha256").update(bytes).digest("base64url") + "\"";
       response.setHeader("etag", etag);
       response.setHeader("cache-control", asset.cacheControl);
       response.setHeader("content-type", "text/javascript; charset=utf-8");
