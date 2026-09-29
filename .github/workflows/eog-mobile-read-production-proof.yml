@@ -1,0 +1,38 @@
+name: EOG Mobile Read Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/eog-mobile-read-production-proof.yml"
+      - "tools/eog-mobile-read-production-proof.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/eog-mobile-read-production-proof.yml"
+      - "tools/eog-mobile-read-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  eog-mobile-read-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify EOG MOBILE_READ in production Chrome
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/eog-mobile-read-production-proof.mjs | tee /tmp/eog-mobile-read-proof.log
+          grep -q "EOG_MOBILE_READ_PROOF=" /tmp/eog-mobile-read-proof.log
