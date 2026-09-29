@@ -23,7 +23,7 @@ jobs:
           header() {
             local file="$1"
             local name="$2"
-            grep -i "^\${name}:" "$file" | tail -1 | cut -d':' -f2- | sed 's/^ *//' | tr -d '\r'
+            grep -i "^${name}:" "$file" | tail -1 | cut -d':' -f2- | sed 's/^ *//' | tr -d '\r'
           }
 
           curl -sS -D /tmp/root.headers -o /tmp/root.html "$HOST/"
