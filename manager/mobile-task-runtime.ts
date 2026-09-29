@@ -20,6 +20,11 @@ import {
   type ChatMessageV010
 } from "../vendor/eidos/src/chat/index.js";
 import {
+  isReviewQueueV010,
+  renderReviewQueueToHtml,
+  type ReviewQueueV010
+} from "../vendor/eidos/src/review-queue/index.js";
+import {
   executeRunBackedChatV010,
   recoverRunBackedChatV010,
   runBackedChatStorageKeyV010,
@@ -124,6 +129,142 @@ function appendResult(
   });
 }
 
+
+function reviewFieldValues(
+  form: HTMLFormElement
+): Record<string, JsonValue> {
+  const values: Record<string, JsonValue> = {};
+  const controls = form.querySelectorAll<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >("[data-eidos-review-field]");
+  for (const control of Array.from(controls)) {
+    if (control.disabled) continue;
+    const key = control.dataset.eidosReviewField;
+    if (!key) continue;
+    if (control instanceof HTMLSelectElement) {
+      const encoded = control.selectedOptions[0]?.dataset.valueJson;
+      if (encoded !== undefined) {
+        values[key] = JSON.parse(encoded) as JsonValue;
+        continue;
+      }
+    }
+    values[key] = control.value;
+  }
+  return values;
+}
+
+function mountMobileReviewQueueV010(input: {
+  root: HTMLElement;
+  definition: ReviewQueueV010;
+  actionHost: ActionHost;
+  sourceInteractionId: string;
+  onReload: () => Promise<ReviewQueueV010>;
+}): { dispose(): void } {
+  let disposed = false;
+  let definition = input.definition;
+
+  const status = document.createElement("div");
+  status.setAttribute("data-evo-mobile-review-status", "");
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+
+  const content = document.createElement("div");
+  content.setAttribute("data-evo-mobile-review-content", "");
+  input.root.replaceChildren(status, content);
+
+  const render = () => {
+    if (disposed) return;
+    content.innerHTML = renderReviewQueueToHtml(definition);
+  };
+
+  const onClick = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const routeLink = target.closest<HTMLElement>("[data-eidos-route]");
+    if (
+      routeLink
+      && !target.closest("[data-eidos-review-action]")
+      && routeLink.dataset.eidosRoute
+    ) {
+      event.preventDefault();
+      window.location.hash = routeLink.dataset.eidosRoute;
+      return;
+    }
+
+    const button = target.closest<HTMLButtonElement>(
+      "[data-eidos-review-action]"
+    );
+    if (!button || !content.contains(button)) return;
+
+    void (async () => {
+      const command = button.dataset.eidosCommand;
+      if (!command) return;
+
+      const requiresConfirmation = button.dataset.eidosConfirm === "true";
+      if (
+        requiresConfirmation
+        && !window.confirm(button.textContent?.trim() || "Confirm action?")
+      ) {
+        return;
+      }
+
+      const itemId = button.dataset.eidosItemId;
+      const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
+      const values: Record<string, JsonValue> = {
+        ...(itemId ? { itemId } : {}),
+        confirmed: requiresConfirmation,
+        ...(form ? reviewFieldValues(form) : {})
+      };
+
+      button.disabled = true;
+      status.textContent = "Executing…";
+
+      try {
+        const request: ActionRequestV010 = {
+          contractVersion: "0.1.0",
+          type: "command",
+          command: {
+            code: command,
+            inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
+          },
+          values,
+          sourceInteractionId: input.sourceInteractionId,
+          actionId: button.dataset.eidosReviewAction ?? command,
+          requiresConfirmation
+        };
+        const result = await input.actionHost.execute(request);
+        if (!result.ok) {
+          status.textContent =
+            result.error?.message ?? "Review action failed.";
+          return;
+        }
+
+        status.textContent = "Completed.";
+        definition = await input.onReload();
+        render();
+      } catch (error) {
+        status.textContent = error instanceof Error
+          ? error.message
+          : String(error);
+      } finally {
+        if (button.isConnected) button.disabled = false;
+      }
+    })();
+  };
+
+  content.addEventListener("click", onClick);
+  render();
+
+  return {
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      content.removeEventListener("click", onClick);
+    }
+  };
+}
+
 export async function mountMobileTaskRuntimeV010(options: {
   container: HTMLElement | string;
   source: MobileExperienceSource;
@@ -171,17 +312,51 @@ export async function mountMobileTaskRuntimeV010(options: {
     localization
   );
 
+  const actionHost: ActionHost = createAppManagerActionHost({
+    baseUrl: options.baseUrl
+  });
+  const root = document.createElement("main");
+  root.setAttribute("data-evo-mobile-task-runtime", "0.1.0");
+  root.setAttribute("data-surface-target", "MOBILE_TASK");
+
+  if (isReviewQueueV010(localized)) {
+    root.setAttribute("data-evo-mobile-review-queue", localized.id);
+    container.replaceChildren(root);
+
+    const mountedReview = mountMobileReviewQueueV010({
+      root,
+      definition: localized,
+      actionHost,
+      sourceInteractionId: localized.id,
+      async onReload() {
+        const nextDefinition = await options.source.loadPage(page);
+        const nextLocalized = localizeAppHostPageDefinition(
+          {
+            ...loaded,
+            definition: nextDefinition
+          },
+          localization
+        );
+        if (!isReviewQueueV010(nextLocalized)) {
+          throw new Error("EVO_MOBILE_TASK_REVIEW_RELOAD_INVALID");
+        }
+        return nextLocalized;
+      }
+    });
+
+    return {
+      dispose() {
+        mountedReview.dispose();
+        root.remove();
+      }
+    };
+  }
+
   if (!isChatExperienceV010(localized)) {
     throw new Error("EVO_MOBILE_TASK_UNSUPPORTED_PAGE_KIND");
   }
 
-  const actionHost: ActionHost = createAppManagerActionHost({
-    baseUrl: options.baseUrl
-  });
   const messages: ChatMessageV010[] = [];
-  const root = document.createElement("main");
-  root.setAttribute("data-evo-mobile-task-runtime", "0.1.0");
-  root.setAttribute("data-surface-target", "MOBILE_TASK");
   root.innerHTML = renderChatExperienceToHtml(localized);
 
   const status = document.createElement("div");
