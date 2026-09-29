@@ -75,6 +75,7 @@ export async function mountMobileReadRuntimeV010(options: {
   bootstrapManifests: unknown[];
   path: string;
   baseUrl: string;
+  fetchImpl?: typeof fetch;
 }): Promise<MobileReadRuntimeV010> {
   const container = typeof options.container === "string"
     ? document.querySelector<HTMLElement>(options.container)
@@ -113,7 +114,8 @@ export async function mountMobileReadRuntimeV010(options: {
   let disposed = false;
   const controller = new AbortController();
   const actionHost = createAppManagerActionHost({
-    baseUrl: options.baseUrl
+    baseUrl: options.baseUrl,
+    fetchImpl: options.fetchImpl
   });
 
   const request: ActionRequestV010 = {
