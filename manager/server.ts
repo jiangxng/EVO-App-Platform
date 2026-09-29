@@ -2605,6 +2605,7 @@ function applyCors(response: ServerResponse): void {
     "access-control-allow-headers",
     "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id"
   );
+  response.setHeader("access-control-expose-headers", "etag");
 }
 
 function requestedLocale(url: URL): string {
