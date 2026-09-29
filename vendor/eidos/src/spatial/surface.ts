@@ -440,88 +440,56 @@ export function mountSpatialObservatoryPageV010(
     toolbar.appendChild(reset);
   };
 
-  const renderScene = (): void => {
+  const objectElements = new Map<string, HTMLButtonElement>();
+  const linkElements = new Map<string, {
+    hit: SVGLineElement;
+    line: SVGLineElement;
+  }>();
+  let sceneFrame: number | undefined;
+
+  const syncSceneDom = (): void => {
     if (!state || disposed) return;
-    const width = Math.max(320, canvas.clientWidth || 900);
-    const height = Math.max(420, canvas.clientHeight || 520);
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.replaceChildren();
-    objectLayer.replaceChildren();
 
-    const projected = new Map(
-      state.objects.map(object => [
-        object.id,
-        project(object.position, { width, height }, orbit)
-      ])
-    );
-
-    for (const link of state.links) {
-      const a = projected.get(link.source);
-      const b = projected.get(link.target);
-      if (!a?.visible || !b?.visible) continue;
-
-      const hit = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      hit.setAttribute("x1", String(a.x));
-      hit.setAttribute("y1", String(a.y));
-      hit.setAttribute("x2", String(b.x));
-      hit.setAttribute("y2", String(b.y));
-      hit.setAttribute("stroke", "transparent");
-      hit.setAttribute("stroke-width", "18");
-      hit.style.pointerEvents = "stroke";
-      hit.style.cursor = "pointer";
-      hit.addEventListener("click", () => {
-        selected = { kind: "link", id: link.id };
-        renderSelection();
-      });
-      svg.appendChild(hit);
-
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", String(a.x));
-      line.setAttribute("y1", String(a.y));
-      line.setAttribute("x2", String(b.x));
-      line.setAttribute("y2", String(b.y));
-      line.setAttribute("stroke", "currentColor");
-      line.setAttribute("stroke-opacity", "0.48");
-      line.setAttribute(
-        "stroke-width",
-        selected?.kind === "link" && selected.id === link.id ? "3" : "1.5"
-      );
-      line.style.pointerEvents = "none";
-      svg.appendChild(line);
+    const objectIds = new Set(state.objects.map(object => object.id));
+    for (const [id, element] of objectElements) {
+      if (objectIds.has(id)) continue;
+      element.remove();
+      objectElements.delete(id);
     }
 
-    const ordered = [...state.objects]
-      .map(object => ({ object, p: projected.get(object.id)! }))
-      .filter(item => item.p.visible)
-      .sort((a, b) => b.p.depth - a.p.depth);
+    for (const object of state.objects) {
+      let button = objectElements.get(object.id);
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.setAttribute("data-eidos-spatial-object", object.id);
+        button.style.position = "absolute";
+        button.style.transformOrigin = "center";
+        button.style.minWidth = "118px";
+        button.style.maxWidth = "176px";
+        button.style.padding = "8px 10px";
+        button.style.border = "1.5px solid currentColor";
+        button.style.background = "Canvas";
+        button.style.color = "CanvasText";
+        button.style.cursor = "pointer";
+        button.onclick = event => {
+          event.stopPropagation();
+          selected = { kind: "object", id: object.id };
+          renderSelection();
+          renderScene();
+        };
+        objectLayer.appendChild(button);
+        objectElements.set(object.id, button);
+      }
 
-    for (const { object, p } of ordered) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.setAttribute("data-eidos-spatial-object", object.id);
-      button.style.position = "absolute";
-      button.style.left = p.x + "px";
-      button.style.top = p.y + "px";
-      button.style.transform = `translate(-50%,-50%) scale(${p.scale})`;
-      button.style.transformOrigin = "center";
-      button.style.minWidth = "118px";
-      button.style.maxWidth = "176px";
-      button.style.padding = "8px 10px";
-      button.style.border = "1.5px solid currentColor";
       button.style.borderRadius = object.kind.toLowerCase().includes("ledger")
         ? "14px"
         : "4px";
-      button.style.background = "Canvas";
-      button.style.color = "CanvasText";
-      button.style.zIndex = String(
-        Math.max(1, Math.round(100000 - p.depth))
-      );
-      button.style.cursor = "pointer";
 
       const label = document.createElement("strong");
       label.textContent = object.label;
       label.style.display = "block";
-      button.appendChild(label);
+      const children: Node[] = [label];
 
       for (const observation of object.observations ?? []) {
         const badge = document.createElement("small");
@@ -531,19 +499,118 @@ export function mountSpatialObservatoryPageV010(
         badge.style.marginTop = "3px";
         badge.style.fontSize = "10px";
         badge.style.fontWeight = "400";
-        button.appendChild(badge);
+        children.push(badge);
       }
+      button.replaceChildren(...children);
+    }
 
-      button.onclick = event => {
-        event.stopPropagation();
-        selected = { kind: "object", id: object.id };
+    const linkIds = new Set(state.links.map(link => link.id));
+    for (const [id, elements] of linkElements) {
+      if (linkIds.has(id)) continue;
+      elements.hit.remove();
+      elements.line.remove();
+      linkElements.delete(id);
+    }
+
+    for (const link of state.links) {
+      if (linkElements.has(link.id)) continue;
+
+      const hit = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line"
+      );
+      hit.setAttribute("stroke", "transparent");
+      hit.setAttribute("stroke-width", "18");
+      hit.style.pointerEvents = "stroke";
+      hit.style.cursor = "pointer";
+      hit.addEventListener("click", () => {
+        selected = { kind: "link", id: link.id };
         renderSelection();
-      };
-      objectLayer.appendChild(button);
+        renderScene();
+      });
+
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line"
+      );
+      line.setAttribute("stroke", "currentColor");
+      line.setAttribute("stroke-opacity", "0.48");
+      line.style.pointerEvents = "none";
+
+      svg.append(hit, line);
+      linkElements.set(link.id, { hit, line });
+    }
+  };
+
+  const renderSceneNow = (): void => {
+    if (!state || disposed) return;
+
+    const width = Math.max(320, canvas.clientWidth || 900);
+    const height = Math.max(420, canvas.clientHeight || 520);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const projected = new Map(
+      state.objects.map(object => [
+        object.id,
+        project(object.position, { width, height }, orbit)
+      ])
+    );
+
+    for (const link of state.links) {
+      const elements = linkElements.get(link.id);
+      if (!elements) continue;
+      const a = projected.get(link.source);
+      const b = projected.get(link.target);
+      const visible = Boolean(a?.visible && b?.visible);
+      elements.hit.style.display = visible ? "" : "none";
+      elements.line.style.display = visible ? "" : "none";
+      if (!visible || !a || !b) continue;
+
+      for (const element of [elements.hit, elements.line]) {
+        element.setAttribute("x1", String(a.x));
+        element.setAttribute("y1", String(a.y));
+        element.setAttribute("x2", String(b.x));
+        element.setAttribute("y2", String(b.y));
+      }
+      elements.line.setAttribute(
+        "stroke-width",
+        selected?.kind === "link" && selected.id === link.id ? "3" : "1.5"
+      );
+    }
+
+    for (const object of state.objects) {
+      const button = objectElements.get(object.id);
+      const p = projected.get(object.id);
+      if (!button || !p) continue;
+      button.hidden = !p.visible;
+      if (!p.visible) continue;
+
+      button.style.left = p.x + "px";
+      button.style.top = p.y + "px";
+      button.style.transform =
+        `translate(-50%,-50%) scale(${p.scale})`;
+      button.style.zIndex = String(
+        Math.max(1, Math.round(100000 - p.depth))
+      );
+      button.setAttribute(
+        "aria-pressed",
+        String(selected?.kind === "object" && selected.id === object.id)
+      );
     }
 
     revision.textContent = "View revision: " + state.revision;
-    renderSelection();
+  };
+
+  const renderScene = (): void => {
+    if (disposed || sceneFrame !== undefined) return;
+    if (typeof globalThis.requestAnimationFrame !== "function") {
+      renderSceneNow();
+      return;
+    }
+    sceneFrame = globalThis.requestAnimationFrame(() => {
+      sceneFrame = undefined;
+      renderSceneNow();
+    });
   };
 
   const load = async (
@@ -564,6 +631,8 @@ export function mountSpatialObservatoryPageV010(
     orbit = initialOrbit(state.camera);
     selected = undefined;
     renderToolbar();
+    syncSceneDom();
+    renderSelection();
     renderScene();
     report(state.notice ?? "Ready.");
   };
@@ -611,6 +680,7 @@ export function mountSpatialObservatoryPageV010(
     if ((event.target as Element | null)?.closest("button")) return;
     selected = undefined;
     renderSelection();
+    renderScene();
   };
 
   canvas.addEventListener("pointerdown", pointerDown);
@@ -643,6 +713,13 @@ export function mountSpatialObservatoryPageV010(
   return {
     dispose() {
       disposed = true;
+      if (
+        sceneFrame !== undefined
+        && typeof globalThis.cancelAnimationFrame === "function"
+      ) {
+        globalThis.cancelAnimationFrame(sceneFrame);
+        sceneFrame = undefined;
+      }
       for (const dispose of disposers) dispose();
     }
   };
