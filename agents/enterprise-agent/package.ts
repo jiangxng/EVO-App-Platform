@@ -9,6 +9,7 @@ export const ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE = "app://enterprise-agen
 export const ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE = "app://enterprise-agent/pages/quality";
 export const ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE = "app://enterprise-agent/pages/quality-review";
 export const ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE = "app://enterprise-agent/pages/follow-ups";
+export const ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE = "app://enterprise-agent/pages/mobile-follow-ups";
 
 const enMessages = {
   "workbench.activity.label": "Personal Agent",
@@ -571,6 +572,11 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 id: "enterprise-agent.follow-ups",
                 title: "Personal Agent follow-ups",
                 source: ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
+              },
+              {
+                id: "enterprise-agent.mobile-follow-ups",
+                title: "My follow-ups",
+                source: ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE
               }
             ],
             routes: [
@@ -629,6 +635,13 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 surfaceId: "enterprise-agent.desktop",
                 path: "/enterprise-agent/follow-ups",
                 pageId: "enterprise-agent.follow-ups"
+              },
+              {
+                id: "enterprise-agent.mobile-follow-ups",
+                semanticId: "enterprise-agent.follow-ups",
+                surfaceId: "enterprise-agent.mobile-task",
+                path: "/m/enterprise-agent/follow-ups",
+                pageId: "enterprise-agent.mobile-follow-ups"
               }
             ],
             navigation: [

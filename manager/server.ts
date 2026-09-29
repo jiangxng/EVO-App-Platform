@@ -139,7 +139,10 @@ import {
   createConversationRetentionPreviewActionHandlerV010
 } from "../agents/enterprise-agent/thread-retention-action-handler.js";
 import { createPersonalAgentFollowUpActionHandlersV010 } from "./personal-agent-follow-up-actions.js";
-import { createPersonalAgentFollowUpPageV010 } from "./personal-agent-follow-up-page.js";
+import {
+  createPersonalAgentFollowUpPageV010,
+  createPersonalAgentFollowUpTaskInboxV010
+} from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import { createPersonalAgentQualityPageV010, createPersonalAgentQualityReviewPageV010 } from "./personal-agent-quality-page.js";
@@ -155,7 +158,8 @@ import {
   ENTERPRISE_AGENT_MEMORY_REVIEW_PAGE_SOURCE,
   ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE,
   ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE,
-  ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
+  ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE,
+  ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE
 } from "../agents/enterprise-agent/package.js";
 import {
   createPersonalAgentChatPageV020,
@@ -3362,6 +3366,7 @@ const server = createServer(async (request, response) => {
         || source === ENTERPRISE_AGENT_QUALITY_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_QUALITY_REVIEW_PAGE_SOURCE
         || source === ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE
+        || source === ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE
       ) {
         const effective = manager.listEffectiveExperiences().some(value => {
           const manifest = value as { pages?: Array<{ source?: string }> };
@@ -3442,6 +3447,13 @@ const server = createServer(async (request, response) => {
         }
         if (source === ENTERPRISE_AGENT_FOLLOW_UP_PAGE_SOURCE) {
           return json(response, 200, createPersonalAgentFollowUpPageV010({
+            principal: session.principal,
+            context: context.activeContext,
+            store: personalAgentFollowUpStore
+          }));
+        }
+        if (source === ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE) {
+          return json(response, 200, createPersonalAgentFollowUpTaskInboxV010({
             principal: session.principal,
             context: context.activeContext,
             store: personalAgentFollowUpStore

@@ -25,6 +25,11 @@ import {
   type ReviewQueueV010
 } from "../vendor/eidos/src/review-queue/index.js";
 import {
+  isTaskInboxV010,
+  renderTaskInboxToHtml,
+  type TaskInboxV010
+} from "../vendor/eidos/src/task-inbox/index.js";
+import {
   executeRunBackedChatV010,
   recoverRunBackedChatV010,
   runBackedChatStorageKeyV010,
@@ -44,6 +49,10 @@ import {
   createMobileReviewActionRequestV010,
   resolveMobileReviewActionV010
 } from "./mobile-review-queue-action.js";
+import {
+  createMobileTaskActionRequestV010,
+  resolveMobileTaskActionV010
+} from "./mobile-task-inbox-action.js";
 import {
   validateEffectiveExperienceManifest
 } from "../vendor/eidos/src/app-host/host.js";
@@ -271,6 +280,104 @@ function mountMobileReviewQueueV010(input: {
   };
 }
 
+function mountMobileTaskInboxV010(input: {
+  root: HTMLElement;
+  definition: TaskInboxV010;
+  actionHost: ActionHost;
+  onReload: () => Promise<TaskInboxV010>;
+}): { dispose(): void } {
+  let disposed = false;
+  let definition = input.definition;
+
+  const status = document.createElement("div");
+  status.setAttribute("data-evo-mobile-task-inbox-status", "");
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+
+  const content = document.createElement("div");
+  content.setAttribute("data-evo-mobile-task-inbox-content", "");
+  input.root.replaceChildren(status, content);
+
+  const render = () => {
+    if (disposed) return;
+    content.innerHTML = renderTaskInboxToHtml(definition);
+  };
+
+  const onClick = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const button = target.closest<HTMLButtonElement>("[data-eidos-task-action]");
+    if (!button || !content.contains(button)) return;
+
+    void (async () => {
+      const itemId = button.dataset.eidosItemId;
+      const actionId = button.dataset.eidosTaskAction;
+      if (!itemId || !actionId) return;
+
+      let selection;
+      try {
+        selection = resolveMobileTaskActionV010(definition, itemId, actionId);
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : String(error);
+        return;
+      }
+
+      if (selection.action.type === "navigate") {
+        const route = selection.action.route?.trim();
+        if (!route) {
+          status.textContent = "Task navigation route is unavailable.";
+          return;
+        }
+        window.location.hash = route;
+        return;
+      }
+
+      if (
+        selection.action.requiresConfirmation === true
+        && !window.confirm(button.textContent?.trim() || "Confirm action?")
+      ) {
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Executing…";
+
+      try {
+        const request = createMobileTaskActionRequestV010({
+          definition,
+          itemId,
+          actionId
+        });
+        const result = await input.actionHost.execute(request);
+        if (!result.ok) {
+          status.textContent = result.error?.message ?? "Task action failed.";
+          return;
+        }
+
+        status.textContent = "Updated.";
+        definition = await input.onReload();
+        render();
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : String(error);
+      } finally {
+        if (button.isConnected) button.disabled = false;
+      }
+    })();
+  };
+
+  content.addEventListener("click", onClick);
+  render();
+
+  return {
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      content.removeEventListener("click", onClick);
+    }
+  };
+}
+
 export async function mountMobileTaskRuntimeV010(options: {
   container: HTMLElement | string;
   source: MobileExperienceSource;
@@ -352,6 +459,38 @@ export async function mountMobileTaskRuntimeV010(options: {
     return {
       dispose() {
         mountedReview.dispose();
+        root.remove();
+      }
+    };
+  }
+
+  if (isTaskInboxV010(localized)) {
+    root.setAttribute("data-evo-mobile-task-inbox", localized.id);
+    container.replaceChildren(root);
+
+    const mountedInbox = mountMobileTaskInboxV010({
+      root,
+      definition: localized,
+      actionHost,
+      async onReload() {
+        const nextDefinition = await options.source.loadPage(page);
+        const nextLocalized = localizeAppHostPageDefinition(
+          {
+            ...loaded,
+            definition: nextDefinition
+          },
+          localization
+        );
+        if (!isTaskInboxV010(nextLocalized)) {
+          throw new Error("EVO_MOBILE_TASK_INBOX_RELOAD_INVALID");
+        }
+        return nextLocalized;
+      }
+    });
+
+    return {
+      dispose() {
+        mountedInbox.dispose();
         root.remove();
       }
     };
