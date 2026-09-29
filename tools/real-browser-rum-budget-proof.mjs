@@ -93,13 +93,23 @@ async function diagnostics() {
 async function waitForProductionRevision(timeoutMs = 240000) {
   if (!expectedRevision) return diagnostics();
   const started = Date.now();
+  let lastError;
+  let lastRevision;
   while (Date.now() - started < timeoutMs) {
-    const current = await diagnostics();
-    if (current.currentRevision === expectedRevision) return current;
+    try {
+      const current = await diagnostics();
+      lastRevision = current.currentRevision;
+      if (current.currentRevision === expectedRevision) return current;
+    } catch (error) {
+      lastError = error;
+    }
     await delay(3000);
   }
   throw new Error(
-    "Production did not reach expected revision " + expectedRevision
+    "Production did not reach expected revision "
+    + expectedRevision
+    + (lastRevision ? "; lastRevision=" + lastRevision : "")
+    + (lastError instanceof Error ? "; lastError=" + lastError.message : "")
   );
 }
 
