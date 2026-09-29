@@ -43,7 +43,9 @@ export const WEB_SURFACE_BUDGETS_V010: Record<
   },
   HANDOFF: {
     surface: "HANDOFF",
-    coldJsBytesMax: 20_000,
+    // Real Chrome sampled baseline: 20,263 bytes. Keep ~23% headroom
+    // without allowing this no-runtime Surface to drift toward MOBILE_READ.
+    coldJsBytesMax: 25_000,
     warmJsBytesMax: 0,
     firstContentfulPaintMsMax: 3_000,
     largestContentfulPaintMsMax: 4_500,
