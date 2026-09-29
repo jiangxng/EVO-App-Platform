@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "da0fd99c527d0b6c4995771e3764d10b33e19284",
+  "sourceCommit": "4210d993be2bfa169bf3ce92533fc9261fed1b4e",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
@@ -53,6 +53,8 @@
     "src/setup-flow/contracts.ts",
     "src/setup-flow/index.ts",
     "src/setup-flow/render.ts",
+    "src/spatial/index.ts",
+    "src/spatial/surface.ts",
     "src/workbench/contracts.ts",
     "src/workbench/index.ts",
     "src/workbench/shell.ts"
