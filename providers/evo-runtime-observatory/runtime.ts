@@ -203,9 +203,7 @@ export function createEvoRuntimeObservatoryProviderV020(
             "business.amount",
             "balance.quantity",
             "balance.amount",
-            "sop.transition.count",
-            "sop.trace.transition",
-            "sop.trace.coverage"
+            "sop.transition.count"
           ];
       const requestedMetricMappings = requestedCodes
         .map(supportedMetric)
