@@ -20,7 +20,10 @@ import type {
   PersonalAgentReplyV010
 } from "./contracts.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
-import type { ResumableAgentRunExecutorV010 } from "./run-runtime.js";
+import {
+  drainResumableAgentRunV010,
+  type ResumableAgentRunExecutorV010
+} from "./run-runtime.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID
@@ -273,12 +276,15 @@ export function createPersonalAgentRunActionHandlersV010(
             },
             createdAt
           });
-          const resumed = await dependencies.runExecutor.resume({
-            runId: run.runId,
-            principal,
-            context,
-            requestContext
-          });
+          const resumed = await drainResumableAgentRunV010(
+            dependencies.runExecutor,
+            {
+              runId: run.runId,
+              principal,
+              context,
+              requestContext
+            }
+          );
           return success(
             request,
             await presentedRunResult(
@@ -305,12 +311,15 @@ export function createPersonalAgentRunActionHandlersV010(
             request,
             requestContext
           );
-          const result = await dependencies.runExecutor.resume({
-            runId: runIdFromRequest(request),
-            principal,
-            context,
-            requestContext
-          });
+          const result = await drainResumableAgentRunV010(
+            dependencies.runExecutor,
+            {
+              runId: runIdFromRequest(request),
+              principal,
+              context,
+              requestContext
+            }
+          );
           return success(
             request,
             await presentedRunResult(

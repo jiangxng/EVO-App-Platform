@@ -13,7 +13,8 @@ import {
   createMemoryAgentRunEventStoreV010
 } from "../../dist/manager/agent-run-store.js";
 import {
-  createResumableAgentRunExecutorV010
+  createResumableAgentRunExecutorV010,
+  drainResumableAgentRunV010
 } from "../../dist/agents/enterprise-agent/run-runtime.js";
 import {
   createPersonalAgentRunActionHandlersV010
@@ -901,7 +902,7 @@ test("run action handlers start, get and resume without resending original task"
   });
   assert.equal(started.ok, true);
   assert.equal(started.result.run.runId, "agent-run:from-action");
-  assert.equal(started.result.run.state, "PAUSED");
+  assert.equal(started.result.run.state, "SUCCEEDED");
 
   const got = await byCode.get("enterprise-agent.run.get").execute({
     ...baseRequest,
@@ -909,7 +910,7 @@ test("run action handlers start, get and resume without resending original task"
     values: { runId: "agent-run:from-action" }
   });
   assert.equal(got.ok, true);
-  assert.equal(got.result.run.state, "PAUSED");
+  assert.equal(got.result.run.state, "SUCCEEDED");
 
   const resumed = await byCode.get("enterprise-agent.run.resume").execute({
     ...baseRequest,
@@ -924,4 +925,60 @@ test("run action handlers start, get and resume without resending original task"
     resumed.result.run.finalMessage,
     "done from durable observation"
   );
+});
+
+
+test("Host drain completes an ordinary multi-slice run without client round trips", async () => {
+  const store = memoryStore();
+  createRun(store);
+  const runExecutor = executor(store);
+
+  const result = await drainResumableAgentRunV010(runExecutor, {
+    runId: "agent-run:test",
+    principal,
+    context
+  });
+
+  assert.equal(result.run.state, "SUCCEEDED");
+  assert.equal(result.run.finalMessage, "done from durable observation");
+  assert.equal(result.advanceCount, 2);
+  assert.equal(result.exhaustedBudget, false);
+});
+
+test("Host drain remains bounded and leaves a durable PAUSED run for recovery", async () => {
+  const states = [
+    { state: "PAUSED", advanced: true },
+    { state: "PAUSED", advanced: true },
+    { state: "SUCCEEDED", advanced: true }
+  ];
+  let calls = 0;
+  const fakeExecutor = {
+    async resume() {
+      const next = states[Math.min(calls, states.length - 1)];
+      calls += 1;
+      return {
+        contractVersion: "0.1.0",
+        advanced: next.advanced,
+        run: {
+          runId: "agent-run:bounded",
+          state: next.state
+        }
+      };
+    }
+  };
+
+  const result = await drainResumableAgentRunV010(
+    fakeExecutor,
+    {
+      runId: "agent-run:bounded",
+      principal,
+      context
+    },
+    { maxAdvances: 2, maxElapsedMs: 60_000 }
+  );
+
+  assert.equal(calls, 2);
+  assert.equal(result.run.state, "PAUSED");
+  assert.equal(result.advanceCount, 2);
+  assert.equal(result.exhaustedBudget, true);
 });

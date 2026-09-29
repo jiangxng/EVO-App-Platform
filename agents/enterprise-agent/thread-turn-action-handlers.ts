@@ -18,7 +18,10 @@ import type {
   PersonalAgentReplyV010
 } from "./contracts.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
-import type { ResumableAgentRunExecutorV010 } from "./run-runtime.js";
+import {
+  drainResumableAgentRunV010,
+  type ResumableAgentRunExecutorV010
+} from "./run-runtime.js";
 import {
   ENTERPRISE_AGENT_FEATURE_ID,
   ENTERPRISE_AGENT_PACKAGE_ID
@@ -402,12 +405,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             });
           }
 
-          const resumed = await dependencies.runExecutor.resume({
-            runId,
-            principal,
-            context,
-            requestContext
-          });
+          const resumed = await drainResumableAgentRunV010(
+            dependencies.runExecutor,
+            {
+              runId,
+              principal,
+              context,
+              requestContext
+            }
+          );
           run = resumed.run;
           const thread = await ensureAssistantMessage(
             dependencies,
@@ -470,12 +476,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             throw new Error("CONVERSATION_THREAD_RUN_USER_MESSAGE_REQUIRED");
           }
 
-          const resumed = await dependencies.runExecutor.resume({
-            runId,
-            principal,
-            context,
-            requestContext
-          });
+          const resumed = await drainResumableAgentRunV010(
+            dependencies.runExecutor,
+            {
+              runId,
+              principal,
+              context,
+              requestContext
+            }
+          );
           const nextThread = await ensureAssistantMessage(
             dependencies,
             threadId,
