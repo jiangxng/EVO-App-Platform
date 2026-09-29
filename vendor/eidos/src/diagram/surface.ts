@@ -17,6 +17,19 @@ export interface DiagramEditorCommandV010 {
   inputVersion: string;
 }
 
+export interface DiagramObservationBadgeV010 {
+  id: string;
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export interface DiagramEditorReadPresetV010 {
+  id: string;
+  label: string;
+  values: Record<string, JsonValue>;
+}
+
 export interface DiagramEditorPageV010 {
   contractVersion: "0.1.0";
   kind: "diagram-editor";
@@ -26,6 +39,7 @@ export interface DiagramEditorPageV010 {
   readCommand: DiagramEditorCommandV010;
   operationCommand: DiagramEditorCommandV010;
   requestValues?: Record<string, JsonValue>;
+  readPresets?: DiagramEditorReadPresetV010[];
   emptyMessage?: string;
 }
 
@@ -40,6 +54,7 @@ export interface DiagramEditorNodeV010 {
   height: number;
   readOnly?: boolean;
   detail?: string;
+  observations?: DiagramObservationBadgeV010[];
 }
 
 export interface DiagramEditorEdgeV010 {
@@ -50,6 +65,7 @@ export interface DiagramEditorEdgeV010 {
   label?: string;
   style?: DiagramEditorEdgeStyleV010;
   detail?: string;
+  observations?: DiagramObservationBadgeV010[];
 }
 
 export interface DiagramEditorActionV010 {
@@ -127,6 +143,19 @@ export function isDiagramEditorPageV010(
         && typeof page.requestValues === "object"
         && !Array.isArray(page.requestValues)
       )
+    )
+    && (
+      page.readPresets === undefined
+      || (
+        Array.isArray(page.readPresets)
+        && page.readPresets.every(preset =>
+          nonEmpty(preset?.id)
+          && nonEmpty(preset?.label)
+          && preset.values !== null
+          && typeof preset.values === "object"
+          && !Array.isArray(preset.values)
+        )
+      )
     );
 }
 
@@ -179,6 +208,19 @@ export function validateDiagramEditorStateV010(
     if (nodeIds.has(node.id)) {
       issues.push(`Duplicate node id '${node.id}'.`);
     }
+    if (
+      node.observations !== undefined
+      && (
+        !Array.isArray(node.observations)
+        || node.observations.some(item =>
+          !nonEmpty(item?.id)
+          || !nonEmpty(item?.label)
+          || !nonEmpty(item?.value)
+        )
+      )
+    ) {
+      issues.push(`nodes[${index}].observations is invalid.`);
+    }
     nodeIds.add(node.id);
   }
 
@@ -200,6 +242,19 @@ export function validateDiagramEditorStateV010(
     }
     if (edgeIds.has(edge.id)) {
       issues.push(`Duplicate edge id '${edge.id}'.`);
+    }
+    if (
+      edge.observations !== undefined
+      && (
+        !Array.isArray(edge.observations)
+        || edge.observations.some(item =>
+          !nonEmpty(item?.id)
+          || !nonEmpty(item?.label)
+          || !nonEmpty(item?.value)
+        )
+      )
+    ) {
+      issues.push(`edges[${index}].observations is invalid.`);
     }
     edgeIds.add(edge.id);
   }
@@ -239,7 +294,8 @@ export function validateDiagramEditorStateV010(
 }
 
 export function diagramEditorReadRequestV010(
-  page: DiagramEditorPageV010
+  page: DiagramEditorPageV010,
+  values: Record<string, JsonValue> = {}
 ): ActionRequestV010 {
   return {
     contractVersion: "0.1.0",
@@ -247,6 +303,7 @@ export function diagramEditorReadRequestV010(
     command: { ...page.readCommand },
     values: {
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
+      ...jsonClone(values),
       resourceId: page.resourceId
     },
     sourceInteractionId: page.id,
@@ -375,10 +432,38 @@ export function mountDiagramEditorPageV010(
   let disposed = false;
   let state: DiagramEditorStateV010 | undefined;
   let selected: { kind: "node" | "edge"; id: string } | undefined;
+  let activeReadPresetId = page.readPresets?.[0]?.id;
   const listeners: Array<() => void> = [];
 
   const report = (message: string): void => {
     if (!disposed) status.textContent = message;
+  };
+
+  const observationText = (
+    observations: DiagramObservationBadgeV010[] | undefined
+  ): string[] =>
+    (observations ?? []).map(item =>
+      item.label + ": " + item.value
+    );
+
+  const load = async (
+    preset?: DiagramEditorReadPresetV010
+  ): Promise<void> => {
+    if (disposed) return;
+    report("Loading…");
+    const result = await actionHost.execute(
+      diagramEditorReadRequestV010(page, preset?.values ?? {})
+    );
+    await options.onActionResult?.(result);
+    if (disposed) return;
+    if (!result.ok) {
+      report(result.error?.message ?? "Failed to load diagram.");
+      return;
+    }
+    state = stateFromResult(result.result);
+    selected = undefined;
+    render();
+    report("Ready.");
   };
 
   const matchingActions = (): DiagramEditorActionV010[] => {
@@ -429,6 +514,22 @@ export function mountDiagramEditorPageV010(
     selectionActions.replaceChildren();
     if (!state) return;
 
+    for (const preset of page.readPresets ?? []) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = preset.label;
+      button.setAttribute("data-eidos-diagram-read-preset", preset.id);
+      button.setAttribute(
+        "aria-pressed",
+        String(activeReadPresetId === preset.id)
+      );
+      button.onclick = () => {
+        activeReadPresetId = preset.id;
+        void load(preset);
+      };
+      toolbar.appendChild(button);
+    }
+
     for (const action of state.actions ?? []) {
       const isGraphAction = !action.target || action.target.kind === "graph";
       if (!isGraphAction) continue;
@@ -473,7 +574,12 @@ export function mountDiagramEditorPageV010(
       ? state.nodes.find(node => node.id === selected!.id)
       : state.edges.find(edge => edge.id === selected!.id);
     selectionText.textContent = item
-      ? [item.label, item.kind, item.detail].filter(Boolean).join("\n")
+      ? [
+          item.label,
+          item.kind,
+          item.detail,
+          ...observationText(item.observations)
+        ].filter(Boolean).join("\n")
       : page.emptyMessage ?? "Select a node or relation.";
     renderActions();
   };
@@ -543,13 +649,19 @@ export function mountDiagramEditorPageV010(
       line.style.pointerEvents = "none";
       svg.appendChild(line);
 
-      if (edge.label) {
+      const edgeCaption = [
+        edge.label,
+        ...(edge.observations ?? []).map(item =>
+          item.label + " " + item.value
+        )
+      ].filter(Boolean).join(" · ");
+      if (edgeCaption) {
         const label = svgElement("text");
         label.setAttribute("x", String((a.x + b.x) / 2));
         label.setAttribute("y", String((a.y + b.y) / 2 - 8));
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "12");
-        label.textContent = edge.label;
+        label.textContent = edgeCaption;
         label.style.pointerEvents = "none";
         svg.appendChild(label);
       }
@@ -561,8 +673,25 @@ export function mountDiagramEditorPageV010(
       const element = document.createElement("button");
       element.type = "button";
       element.setAttribute("data-eidos-diagram-node", node.id);
-      element.textContent = node.label;
-      element.title = node.detail ?? node.kind;
+      const label = document.createElement("strong");
+      label.textContent = node.label;
+      label.style.display = "block";
+      element.appendChild(label);
+      for (const observation of node.observations ?? []) {
+        const badge = document.createElement("small");
+        badge.setAttribute("data-eidos-diagram-observation", observation.id);
+        badge.textContent = observation.label + " " + observation.value;
+        badge.title = observation.detail ?? "";
+        badge.style.display = "block";
+        badge.style.marginTop = "3px";
+        badge.style.fontSize = "10px";
+        badge.style.fontWeight = "400";
+        element.appendChild(badge);
+      }
+      element.title = [
+        node.detail ?? node.kind,
+        ...observationText(node.observations)
+      ].filter(Boolean).join("\n");
       element.style.position = "absolute";
       element.style.left = node.x + "px";
       element.style.top = node.y + "px";
@@ -635,21 +764,11 @@ export function mountDiagramEditorPageV010(
     renderSelection();
   };
 
-  void (async () => {
-    report("Loading…");
-    const result = await actionHost.execute(
-      diagramEditorReadRequestV010(page)
-    );
-    await options.onActionResult?.(result);
-    if (disposed) return;
-    if (!result.ok) {
-      report(result.error?.message ?? "Failed to load diagram.");
-      return;
-    }
-    state = stateFromResult(result.result);
-    render();
-    report("Ready.");
-  })().catch(error => {
+  void load(
+    page.readPresets?.find(preset =>
+      preset.id === activeReadPresetId
+    )
+  ).catch(error => {
     report(error instanceof Error ? error.message : String(error));
   });
 

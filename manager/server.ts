@@ -96,6 +96,12 @@ import {
 import {
   createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020
 } from "./enterprise-operating-graph-observatory-agent-tools.js";
+import {
+  createEnterpriseOperatingGraphObservatoryExperienceManifestV020,
+  createEnterpriseOperatingGraphObservatoryPageV020,
+  createEnterpriseOperatingGraphObservatoryViewActionHandlerV020,
+  EOG_OBSERVATORY_PAGE_SOURCE
+} from "./enterprise-operating-graph-observatory-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -2237,6 +2243,14 @@ const actionRouter = createAppActionRouter(
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders
     }),
+    createEnterpriseOperatingGraphObservatoryViewActionHandlerV020({
+      graphService: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService,
+      providers: enterpriseOperatingGraphObservatoryProviders,
+      locale(context) {
+        return context.locale;
+      }
+    }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
@@ -2684,7 +2698,10 @@ const server = createServer(async (request, response) => {
         ...(manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
         )
-          ? [createEnterpriseOperatingGraphExperienceManifestV010()]
+          ? [
+              createEnterpriseOperatingGraphExperienceManifestV010(),
+              createEnterpriseOperatingGraphObservatoryExperienceManifestV020()
+            ]
           : [])
       ]);
     }
@@ -2714,6 +2731,33 @@ const server = createServer(async (request, response) => {
           response,
           200,
           createEnterpriseOperatingGraphEditorPageV010({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+      if (source === EOG_OBSERVATORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraphObservatoryPageV020({
             activeContext,
             locale: requestedLocale(url)
           })
