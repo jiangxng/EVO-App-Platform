@@ -16,6 +16,9 @@ import {
   authorizeMaterialWriteV010
 } from "./material-write-authorization.js";
 import type {
+  EogExpectedSopTransitionInputV010
+} from "../contracts/enterprise-operating-graph-sop.js";
+import type {
   EogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
 
@@ -51,6 +54,63 @@ function stringArray(
     throw new Error("EOG_SOP_FIELD_INVALID:" + key);
   }
   return value.map(item => String(item).trim());
+}
+
+function transitionDefinitions(
+  values: Record<string, JsonValue>,
+  key: string
+): EogExpectedSopTransitionInputV010[] {
+  const value = values[key];
+  if (!Array.isArray(value)) {
+    throw new Error("EOG_SOP_FIELD_INVALID:" + key);
+  }
+  return value.map(item => {
+    if (
+      item === null
+      || Array.isArray(item)
+      || typeof item !== "object"
+    ) {
+      throw new Error("EOG_SOP_FIELD_INVALID:" + key);
+    }
+    const from = item.fromApplicationNodeId;
+    const to = item.toApplicationNodeId;
+    const kind = item.kind;
+    const conditionRef = item.conditionRef;
+    const exceptionCode = item.exceptionCode;
+    if (
+      typeof from !== "string"
+      || !from.trim()
+      || typeof to !== "string"
+      || !to.trim()
+      || (
+        kind !== undefined
+        && kind !== "EXPECTED"
+        && kind !== "ALLOWED_ALTERNATIVE"
+        && kind !== "ALLOWED_EXCEPTION"
+      )
+      || (
+        conditionRef !== undefined
+        && (typeof conditionRef !== "string" || !conditionRef.trim())
+      )
+      || (
+        exceptionCode !== undefined
+        && (typeof exceptionCode !== "string" || !exceptionCode.trim())
+      )
+    ) {
+      throw new Error("EOG_SOP_FIELD_INVALID:" + key);
+    }
+    return {
+      fromApplicationNodeId: from.trim(),
+      toApplicationNodeId: to.trim(),
+      ...(kind === undefined ? {} : { kind }),
+      ...(conditionRef === undefined
+        ? {}
+        : { conditionRef: conditionRef.trim() }),
+      ...(exceptionCode === undefined
+        ? {}
+        : { exceptionCode: exceptionCode.trim() })
+    };
+  });
 }
 
 function revision(
@@ -199,7 +259,15 @@ export function createEogExpectedSopActionHandlersV010(input: {
           applicationNodeIds: stringArray(
             request.values,
             "applicationNodeIds"
-          )
+          ),
+          ...(Array.isArray(request.values.transitions)
+            ? {
+                transitions: transitionDefinitions(
+                  request.values,
+                  "transitions"
+                )
+              }
+            : {})
         })
       );
     }),
@@ -216,6 +284,7 @@ export function createEogExpectedSopActionHandlersV010(input: {
       );
       const title = request.values.title;
       const applicationNodeIds = request.values.applicationNodeIds;
+      const transitions = request.values.transitions;
       return result(
         request,
         input.service.revise({
@@ -231,6 +300,14 @@ export function createEogExpectedSopActionHandlersV010(input: {
                 applicationNodeIds: stringArray(
                   request.values,
                   "applicationNodeIds"
+                )
+              }
+            : {}),
+          ...(Array.isArray(transitions)
+            ? {
+                transitions: transitionDefinitions(
+                  request.values,
+                  "transitions"
                 )
               }
             : {})
