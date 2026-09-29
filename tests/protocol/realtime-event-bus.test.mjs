@@ -44,6 +44,12 @@ test("Host realtime bus scopes events and replays after cursor", () => {
   assert.equal(replay.resetRequired, false);
   assert.deepEqual(replay.events.map(x=>x.eventId), [personal.eventId]);
   assert.ok(personal.sequence > visible.sequence);
+  assert.deepEqual(bus.diagnostics(), {
+    subscriberCount: 1,
+    bufferedEventCount: 3,
+    currentSequence: 3,
+    capacity: 64
+  });
 });
 
 test("Host realtime replay fails closed when visible cursor expired", () => {
