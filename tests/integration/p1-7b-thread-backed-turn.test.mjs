@@ -240,39 +240,22 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
   );
 
   assert.equal(started.ok, true);
-  assert.equal(started.result.run.state, "PAUSED");
-  assert.equal(started.result.thread.messages.length, 1);
+  assert.equal(started.result.run.state, "SUCCEEDED");
+  assert.equal(started.result.message, "first final");
+  assert.equal(started.result.thread.messages.length, 2);
   assert.equal(started.result.thread.messages[0].role, "USER");
   assert.equal(started.result.thread.messages[0].content, "first question");
   assert.equal(started.result.thread.messages[0].runId, "agent-run:1");
+  assert.equal(started.result.thread.messages[1].role, "ASSISTANT");
+  assert.equal(started.result.thread.messages[1].runId, "agent-run:1");
+  assert.equal(
+    started.result.thread.messages[1].replyToMessageId,
+    started.result.thread.messages[0].messageId
+  );
   assert.deepEqual(started.result.run.input.conversationHistory, []);
   assert.equal(
     JSON.stringify(started.result.run.input).includes("FORGED BROWSER HISTORY"),
     false
-  );
-
-  const finished = await h.byCode.get("enterprise-agent.thread.resume").execute(
-    request("enterprise-agent.thread.resume", {
-      threadId: "conversation-thread:1",
-      runId: "agent-run:1"
-    }),
-    h.requestContext
-  );
-
-  assert.equal(finished.ok, true);
-  assert.equal(finished.result.run.state, "SUCCEEDED");
-  assert.equal(finished.result.message, "first final");
-  assert.equal(finished.result.thread.messages.length, 2);
-  assert.deepEqual(
-    finished.result.thread.messages.map(item => [item.role, item.runId]),
-    [
-      ["USER", "agent-run:1"],
-      ["ASSISTANT", "agent-run:1"]
-    ]
-  );
-  assert.equal(
-    finished.result.thread.messages[1].replyToMessageId,
-    finished.result.thread.messages[0].messageId
   );
 
   const resumedTerminal = await h.byCode.get("enterprise-agent.thread.resume").execute(
@@ -303,13 +286,7 @@ test("next thread turn uses Host-built durable history and excludes current USER
     }),
     h.requestContext
   );
-  await h.byCode.get("enterprise-agent.thread.resume").execute(
-    request("enterprise-agent.thread.resume", {
-      threadId: "conversation-thread:1",
-      runId: first.result.run.runId
-    }),
-    h.requestContext
-  );
+  assert.equal(first.result.run.state, "SUCCEEDED");
 
   const second = await h.byCode.get("enterprise-agent.thread.send").execute(
     request("enterprise-agent.thread.send", {
@@ -337,8 +314,9 @@ test("next thread turn uses Host-built durable history and excludes current USER
   );
 
   const thread = h.threadStore.get("conversation-thread:1");
-  assert.equal(thread.messages.length, 3);
+  assert.equal(thread.messages.length, 4);
   assert.equal(thread.messages[2].content, "second question");
+  assert.equal(thread.messages[3].content, "second final");
 });
 
 test("thread resume fails closed if a run belongs to another thread", async () => {
