@@ -365,7 +365,11 @@
     "personal-agent-mobile-memory-review-task-surface-v0-1",
     "mobile-review-action-authority-parity-v0-1",
     "mobile-review-no-desktop-heavy-module-live-pass-v0-1",
-    "mobile-review-cold-warm-byte-budget-live-pass-v0-1"
+    "mobile-review-cold-warm-byte-budget-live-pass-v0-1",
+    "eog-mobile-read-entity-inspector-v0-1",
+    "eog-mobile-read-governed-runtime-facts-v0-1",
+    "eog-mobile-read-production-browser-proof-v0-1",
+    "mobile-read-route-data-byte-budget-live-pass-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -391,7 +395,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Web Delivery P4 governed Task Inbox vertical is production-proven. PR #190 added a dedicated MOBILE_TASK Personal Agent Follow-up Task Inbox at /m/enterprise-agent/follow-ups over the same semantic route enterprise-agent.follow-ups and the same Host follow-up authority as desktop, using Eidos Task Inbox contracts/rendering and the independent mobile runtime. Railway production deployment 5aad75b5-1e10-4887-8e8a-119e2873f795 at commit 9373efd9d77a1b25805ded240956bf40ad65625d is SUCCESS. PR #191 real-Chrome production proof passed without mutating business state: compact/mobile resolved to #/m/enterprise-agent/follow-ups, rendered the real personal-agent.follow-ups.mobile Task Inbox over the current Principal/Context governed source, current production inbox was legitimately empty (itemCount=0), mobile cold JS transferred 39,653 bytes versus desktop 92,537 bytes, warm JS transferred 0 bytes, and mobile loaded mobile-task-runtime but no desktop-workbench-runtime, Workbench, Diagram or Spatial modules. Task Inbox remains presentation/planning state, not business truth; complete/dismiss remain Host-governed self-scoped actions. The next Web Delivery vertical is MOBILE_READ KPI/entity inspection over real governed read models, while security headers, compression/version-skew, RUM/performance budgets and remaining Web foundation items continue as separate deep slices. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
+  "currentStep": "Web Delivery P4 MOBILE_READ is now production-proven. PR #193 added a dedicated EOG MOBILE_READ Entity Inspector at /m/operating-graph/observe over the same semantic capability evo-enterprise-operating-graph.observatory and the same Host-authoritative EOG Runtime Facts/Analysis as desktop. Railway production deployment 7074e0d0-c02a-45b3-83d4-fa7f9d258624 at commit 0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a is SUCCESS. PR #194 real-Chrome proof passed read-only: compact routing resolved to #/m/operating-graph/observe, resourceId=eog:primary, freshness stale=false, 4 real entities, 13 metrics and 13 evidence entries, zero buttons/forms, mobile cold JS 18,243 bytes vs desktop 92,690 bytes, warm JS 0 bytes, mobile cold API/data 5,007 bytes vs desktop 19,244 bytes, and the mobile runtime loaded no Workbench/Diagram/Spatial/desktop/mobile-task modules. MOBILE_READ is therefore a separate read-only Experience Surface over shared enterprise truth, not responsive desktop reuse. The next Web foundation slice is security/delivery hardening: extract cacheable shell CSS, establish security headers/CSP without breaking current generated UI, verify compression/version-skew behavior, then add RUM/performance budgets. The EOG semantic v0.4 trace gate remains unchanged and must not be fabricated.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1637,8 +1641,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-15",
-    "snapshotAt": "2026-09-29T23:58:00.000+08:00",
+    "snapshotId": "EOG-2026-09-30-16",
+    "snapshotAt": "2026-09-30T06:17:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1701,8 +1705,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "9373efd9d77a1b25805ded240956bf40ad65625d",
-        "deploymentId": "5aad75b5-1e10-4887-8e8a-119e2873f795",
+        "commit": "0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a",
+        "deploymentId": "7074e0d0-c02a-45b3-83d4-fa7f9d258624",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -2077,6 +2081,16 @@
         "pr": 191,
         "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
         "summary": "Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies."
+      },
+      {
+        "pr": 193,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Add dedicated EOG MOBILE_READ Entity Inspector over real governed Runtime Facts/Analysis with independent mobile-read runtime."
+      },
+      {
+        "pr": 194,
+        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
+        "summary": "Certify EOG MOBILE_READ in real Chrome: 4 entities, 13 metrics/evidence, strict read-only controls, 18,243-byte mobile cold JS, 5,007-byte cold API/data, zero warm JS and no desktop-heavy dependency leakage."
       }
     ],
     "doNotRepeat": [
@@ -2179,7 +2193,10 @@
       "Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary.",
       "Do not seed or fabricate Follow-up tasks merely to make MOBILE_TASK Task Inbox production proof non-empty; an authoritative empty inbox is valid evidence.",
       "Do not treat Task Inbox presentation state as enterprise business truth or infer domain completion from READY/BLOCKED/EXCEPTION UI state.",
-      "Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority."
+      "Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority.",
+      "Do not rebuild EOG MOBILE_READ as a responsive Diagram/Workbench page; it is an independent read-only Entity Inspector over shared EOG truth.",
+      "Do not add write controls to MOBILE_READ merely for feature parity; material interaction belongs on an explicitly admitted MOBILE_TASK or desktop Surface.",
+      "Do not evaluate mobile performance using JS bytes alone; route/API data bytes are now part of the Surface budget."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2252,7 +2269,11 @@
       "state PR #190 / production commit 9373efd9d77a1b25805ded240956bf40ad65625d / Railway deployment 5aad75b5-1e10-4887-8e8a-119e2873f795 as the MOBILE_TASK Follow-up Task Inbox implementation",
       "state PR #191 production proof exactly: mobile route /m/enterprise-agent/follow-ups, inbox personal-agent.follow-ups.mobile, current real inbox empty with itemCount=0, mobile cold JS 39,653 bytes, desktop cold JS 92,537 bytes, both warm JS 0, and no mobile desktop-runtime/Workbench/Diagram/Spatial loading",
       "state the empty production Task Inbox as valid governed evidence rather than a reason to create synthetic tasks",
-      "state the next Web Delivery vertical as MOBILE_READ KPI/entity inspection over a real governed read model"
+      "state the next Web Delivery vertical as MOBILE_READ KPI/entity inspection over a real governed read model",
+      "state EOG MOBILE_READ as production PASS at commit 0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a / deployment 7074e0d0-c02a-45b3-83d4-fa7f9d258624",
+      "state the real Chrome proof exactly: /m/operating-graph/observe, eog:primary, stale=false, 4 entities, 13 metrics, 13 evidence entries, 0 buttons/forms, mobile cold JS 18,243 bytes, warm JS 0, cold API/data 5,007 bytes",
+      "state desktop comparison as 92,690 cold JS bytes and 19,244 cold API/data bytes with explicit desktop override",
+      "state the next Web foundation slice as security/delivery hardening: immutable shell CSS, security headers/CSP, compression/version-skew and RUM/performance budgets"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -2274,7 +2295,7 @@
       ]
     },
     "webDelivery": {
-      "status": "P4_MOBILE_TASK_INBOX_VERIFIED_PRODUCTION_PASS",
+      "status": "P4_MOBILE_READ_VERIFIED_PRODUCTION_PASS",
       "upstreamAuthority": {
         "repository": "jiangxng/eidos",
         "pr": 50,
@@ -2339,16 +2360,14 @@
         ]
       },
       "nextPhase": {
-        "id": "P4_MOBILE_READ_KPI_ENTITY_INSPECTION",
+        "id": "WEB_SECURITY_DELIVERY_HARDENING",
         "acceptance": [
-          "select a real governed read model with stable entity identity and evidence provenance rather than demo-only data",
-          "publish the same semantic capability to DESKTOP_WORKBENCH and MOBILE_READ with independent presentation/runtime composition",
-          "keep MOBILE_READ strictly read-only unless a separate MOBILE_TASK action surface is explicitly declared",
-          "preserve Principal/Context authorization and do not copy domain truth into browser-local state",
-          "prove compact MOBILE_READ resolution and explicit desktop override in real Chrome",
-          "prove mobile read runtime does not download Workbench/Diagram/Spatial or unrelated desktop modules",
-          "measure cold/warm JS and route-data bytes separately from desktop",
-          "show freshness/evidence metadata where the read model can become stale"
+          "extract large App Shell CSS from HTML into the revisioned immutable asset graph so shell revalidation stays small",
+          "add deterministic security headers including CSP/frame protection/referrer/content-type policy without breaking current generated UI",
+          "verify first-load and warm-load shell/CSS/JS transfer behavior in real Chrome",
+          "verify compression behavior at the deployed edge/origin and record what is handled by Railway versus Host",
+          "define bounded frontend/backend version-skew behavior for already-open immutable frontend tabs",
+          "add RUM/performance telemetry and explicit desktop/mobile budgets without making browser telemetry authoritative business state"
         ]
       },
       "surfaceFoundation": {
@@ -2572,6 +2591,61 @@
             "production proof must not fabricate follow-up tasks merely to produce non-empty UI evidence",
             "MOBILE_TASK uses an independent runtime and does not load Workbench/Diagram/Spatial or desktop runtime",
             "complete/dismiss commands remain self-scoped Host actions and presentation state does not infer domain completion"
+          ]
+        },
+        "mobileRead": {
+          "implementation": {
+            "pr": 193,
+            "commit": "0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a",
+            "deploymentId": "7074e0d0-c02a-45b3-83d4-fa7f9d258624"
+          },
+          "productionProof": {
+            "pr": 194,
+            "workflow": "EOG Mobile Read Production Proof",
+            "status": "SUCCESS",
+            "observed": {
+              "mobile": {
+                "route": "/m/operating-graph/observe",
+                "inspectorId": "evo-enterprise-operating-graph.observatory.mobile-read",
+                "resourceId": "eog:primary",
+                "freshnessStale": false,
+                "itemCount": 4,
+                "metricCount": 13,
+                "evidenceCount": 13,
+                "buttonCount": 0,
+                "formCount": 0,
+                "coldJsBytes": 18243,
+                "coldJsRequests": 14,
+                "warmJsBytes": 0,
+                "coldApiBytes": 5007,
+                "coldActionRequests": 1,
+                "coldActionBytes": 1843,
+                "warmApiBytes": 2407,
+                "requestedMobileReadRuntime": true,
+                "requestedMobileTaskRuntime": false,
+                "requestedDesktopRuntime": false,
+                "requestedWorkbench": false,
+                "requestedDiagram": false,
+                "requestedSpatial": false
+              },
+              "desktop": {
+                "route": "/operating-graph/observe",
+                "coldJsBytes": 92690,
+                "coldJsRequests": 60,
+                "warmJsBytes": 0,
+                "coldApiBytes": 19244,
+                "coldActionRequests": 1,
+                "coldActionBytes": 1504,
+                "workbench": true
+              }
+            }
+          },
+          "invariants": [
+            "MOBILE_READ and desktop share the same semantic EOG Observatory capability and Host-authoritative EOG truth",
+            "MOBILE_READ is strictly read-only and exposes no write controls",
+            "freshness and evidence provenance are rendered from governed Runtime Facts/Analysis rather than browser-local inference",
+            "MOBILE_READ uses an independent runtime and does not load Workbench/Diagram/Spatial/desktop/mobile-task runtimes",
+            "mobile and desktop JS and route-data byte budgets are measured separately"
           ]
         }
       }
@@ -3011,7 +3085,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "Realtime transport, browser cache, Surface routing/scoped loading, browser lifecycle, Mobile Review Queue and Mobile Task Inbox are production-proven platform foundations. The next Web vertical is MOBILE_READ KPI/entity inspection over a real governed read model, while remaining Web security/performance foundations proceed as separate deep slices. The independent EOG semantic priority remains obtaining legitimate runtime flow/trace evidence.",
+    "rationale": "P0 cache, P1 Surface routing, P2 scoped loading, P3 lifecycle resilience, and P4 MOBILE_TASK/MOBILE_READ verticals are production-proven. The next Web depth is security/delivery hardening and measurable browser performance, while the independent EOG semantic trace gate remains blocked on a legitimate governed runtime flow source.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
