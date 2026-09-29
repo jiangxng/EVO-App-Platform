@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-09`  
-**Snapshot time:** `2026-09-29T14:28:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-10`  
+**Snapshot time:** `2026-09-29T15:16:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `f154450b4cefd1c763573f9584f257083fcd2202`
-- Deployment: `554c9f93-caab-40c9-a147-f63bf8b8f666`
+- Commit: `ac1b35a60229ce978a795a97588205e3aef8cbe4`
+- Deployment: `afaa6b9f-8bad-4e5a-9089-434b7a459e31`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -158,6 +158,8 @@ Not proved:
 - PR #166 — MERGED_DEPLOYED: Bridge EVO runtime revision changes into Host resource events with shared conditional reads.
 - PR #167 — MERGED_DEPLOYED: Expose realtime event-bus and EVO revision-bridge diagnostics.
 - PR #168 — MERGED_DEPLOYED_CI_PASS: Add Host-side durable Agent drain, transport route/action/JSON/SSE traffic counters, restore durable Agent chat after vendor sync, and production-certify idle action traffic at zero.
+- PR #170 — MERGED_DEPLOYED_CI_PASS: Establish browser cache P0: revisioned immutable ESM module graph, App Shell ETag revalidation, legacy asset validators, and App Platform adoption of explicit desktop/mobile Surface architecture.
+- PR #171 — MERGED_PRODUCTION_PROOF_PASS: Add reusable production Web Delivery proof; certify root 304, immutable revisioned asset caching, and legacy ETag revalidation against Railway production.
 
 ## DO NOT repeat stale actions
 
@@ -232,6 +234,13 @@ Not proved:
 - Do not reintroduce browser-driven one-resume-per-slice Agent continuation as the normal path; ordinary multi-slice runs drain inside the Host with bounded recovery semantics.
 - Do not overwrite App Platform durable Personal Agent chat extensions when syncing the Eidos vendor snapshot; preserve conversation history, dynamic delegated actions, run/thread durability and realtime resource refresh together.
 - Do not treat network efficiency as optional polish: idle /v1/actions delta=0 is a production transport SLO.
+- Do not serve normal static JavaScript with Cache-Control: no-store; versioned static assets are immutable and legacy mutable URLs revalidate with ETag.
+- Do not mark a URL immutable unless its bytes are version-pinned/content-addressed; mutable URLs must revalidate.
+- Do not cache Principal/Context-specific enterprise snapshots as public shared-cache content.
+- Do not make browser local/session/IndexedDB state authoritative for enterprise truth, authorization, material write status or durable business state.
+- Do not assume mobile means squeezing the desktop Workbench through CSS breakpoints; mobile support is an explicit Experience Surface contract and may be TASK_FOCUSED, READ_ONLY or UNSUPPORTED.
+- Do not require every Experience to support mobile; unsupported mobile operations must resolve to a useful deterministic handoff.
+- Do not introduce a global Service Worker/PWA cache before a concrete accepted vertical needs offline/installability; ordinary HTTP cache semantics are the baseline.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -292,6 +301,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state normal durable Agent multi-slice continuation as Host-drained rather than browser-resume-driven, with bounded PAUSED recovery for exceptional long runs
 - state SSE + Last-Event-ID replay + visibility-aware pause/reconnect + ETag/304 + resource-scoped mounted refresh as the accepted communication model
 - state idle action traffic zero as a product SLO, not an optimization suggestion
+- state Eidos PR #50 / merge 5c0c6c44a8efeb5c2b3393f76b8e39e54f540ddc as the upstream Web Delivery and Surface architecture authority
+- state Web Delivery P0 as production PASS at App Platform commit ac1b35a60229ce978a795a97588205e3aef8cbe4 / Railway deployment afaa6b9f-8bad-4e5a-9089-434b7a459e31
+- state the production cache proof exactly: root no-cache + 304; versioned app-host-client asset public max-age=31536000 immutable + 304; legacy asset public max-age=0 must-revalidate + 304
+- state desktop/mobile architecture as same semantic truth and Host Actions but potentially different Experience Surfaces; one responsive page is not required
+- state mobile support as explicit FULL / TASK_FOCUSED / READ_ONLY / UNSUPPORTED metadata rather than inferred CSS fit
+- state the next Web foundation slice as P1 Surface Contract + Resolver; do not jump to global PWA/offline or port every desktop page to mobile
 
 No previous ChatGPT transcript is required.
 
