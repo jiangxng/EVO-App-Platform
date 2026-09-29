@@ -17,7 +17,9 @@ export const EOG_RUNTIME_METRIC_CODES_V020 = {
   AMOUNT: "business.amount",
   BALANCE_QUANTITY: "balance.quantity",
   BALANCE_AMOUNT: "balance.amount",
-  SOP_TRANSITION_COUNT: "sop.transition.count"
+  SOP_TRANSITION_COUNT: "sop.transition.count",
+  SOP_TRACE_TRANSITION: "sop.trace.transition",
+  SOP_TRACE_COVERAGE: "sop.trace.coverage"
 } as const;
 
 export type EogObservatoryTargetV020 =
@@ -141,6 +143,7 @@ export interface EogRuntimeFactV020 {
 export type EogAnalysisKindV020 =
   | "BOTTLENECK"
   | "SOP_CONFORMANCE"
+  | "SOP_EXCEPTION"
   | "SOP_DEVIATION"
   | "ANOMALY";
 
