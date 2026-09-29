@@ -391,7 +391,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Web Delivery P4 first additional mobile vertical is now production-proven. PR #185 added a dedicated MOBILE_TASK Memory Review route /m/enterprise-agent/memory over the same semantic route enterprise-agent.memory-review and the same Host review authority/actions as desktop, while using the independent mobile runtime. Railway production deployment 69f58d70-74a0-4f95-92a8-84379560db1 at commit 6cf1061983e08a3c07652b5e08c994890e4c6861 is SUCCESS. The corrected Chrome proof in PR #188 passed: compact/mobile resolves to the real Review Queue, explicit desktop override retains Workbench, mobile cold JS transferred 36,881 bytes versus desktop 90,637 bytes, warm JS transferred 0 bytes, and mobile loaded mobile-task-runtime but no desktop-workbench-runtime, Workbench, Diagram or Spatial modules. Material accept/reject confirmation remains Human-authoritative. The next P4 vertical is notifications / exceptions / assigned tasks, beginning with Eidos Task Inbox and the existing Personal Agent Follow-up planning state as the first governed task source. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
+  "currentStep": "Web Delivery P4 governed Task Inbox vertical is production-proven. PR #190 added a dedicated MOBILE_TASK Personal Agent Follow-up Task Inbox at /m/enterprise-agent/follow-ups over the same semantic route enterprise-agent.follow-ups and the same Host follow-up authority as desktop, using Eidos Task Inbox contracts/rendering and the independent mobile runtime. Railway production deployment 5aad75b5-1e10-4887-8e8a-119e2873f795 at commit 9373efd9d77a1b25805ded240956bf40ad65625d is SUCCESS. PR #191 real-Chrome production proof passed without mutating business state: compact/mobile resolved to #/m/enterprise-agent/follow-ups, rendered the real personal-agent.follow-ups.mobile Task Inbox over the current Principal/Context governed source, current production inbox was legitimately empty (itemCount=0), mobile cold JS transferred 39,653 bytes versus desktop 92,537 bytes, warm JS transferred 0 bytes, and mobile loaded mobile-task-runtime but no desktop-workbench-runtime, Workbench, Diagram or Spatial modules. Task Inbox remains presentation/planning state, not business truth; complete/dismiss remain Host-governed self-scoped actions. The next Web Delivery vertical is MOBILE_READ KPI/entity inspection over real governed read models, while security headers, compression/version-skew, RUM/performance budgets and remaining Web foundation items continue as separate deep slices. The EOG semantic v0.4 gate remains unchanged: obtain a legitimate governed EVO runtime flow/trace source; do not manufacture traces.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1637,8 +1637,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-14",
-    "snapshotAt": "2026-09-29T21:28:00.000+08:00",
+    "snapshotId": "EOG-2026-09-29-15",
+    "snapshotAt": "2026-09-29T23:58:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1701,8 +1701,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "6cf1061983e08a3c07652b5e08c994890e4c6861",
-        "deploymentId": "69f58d70-74a0-4f95-92a8-84379560db1",
+        "commit": "9373efd9d77a1b25805ded240956bf40ad65625d",
+        "deploymentId": "5aad75b5-1e10-4887-8e8a-119e2873f795",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -2067,6 +2067,16 @@
         "pr": 188,
         "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
         "summary": "Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies."
+      },
+      {
+        "pr": 190,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Add dedicated MOBILE_TASK Follow-up Task Inbox over real governed Personal Agent planning state using Eidos Task Inbox and Host action authority."
+      },
+      {
+        "pr": 191,
+        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
+        "summary": "Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies."
       }
     ],
     "doNotRepeat": [
@@ -2166,7 +2176,10 @@
       "Do not reopen MOBILE_TASK Memory Review as pending; PR #185 is production deployed and PR #188 real-Chrome proof passed.",
       "Do not implement mobile Review Queue by shrinking desktop Workbench; the independent mobile runtime and byte budget are already proven.",
       "Do not weaken Human confirmation for material Memory accept/reject just because the action is presented on mobile.",
-      "Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary."
+      "Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary.",
+      "Do not seed or fabricate Follow-up tasks merely to make MOBILE_TASK Task Inbox production proof non-empty; an authoritative empty inbox is valid evidence.",
+      "Do not treat Task Inbox presentation state as enterprise business truth or infer domain completion from READY/BLOCKED/EXCEPTION UI state.",
+      "Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2235,7 +2248,11 @@
       "state P4 MOBILE_TASK Memory Review as production PASS: implementation PR #185 / deployment 69f58d70-74a0-4f95-92a8-84379560db1 and corrected production proof PR #188",
       "state mobile Review cold JS as 36,881 bytes, desktop as 90,637 bytes, both warm JS transfer 0, and mobile as loading no Workbench/Diagram/Spatial/desktop runtime",
       "state Review Queue desktop/mobile as the same semantic route and Host authority with Surface-specific rendering",
-      "state the next Web P4 slice as Task Inbox for notifications/exceptions/assigned work, beginning with real Personal Agent Follow-up planning state rather than demo data"
+      "state the next Web P4 slice as Task Inbox for notifications/exceptions/assigned work, beginning with real Personal Agent Follow-up planning state rather than demo data",
+      "state PR #190 / production commit 9373efd9d77a1b25805ded240956bf40ad65625d / Railway deployment 5aad75b5-1e10-4887-8e8a-119e2873f795 as the MOBILE_TASK Follow-up Task Inbox implementation",
+      "state PR #191 production proof exactly: mobile route /m/enterprise-agent/follow-ups, inbox personal-agent.follow-ups.mobile, current real inbox empty with itemCount=0, mobile cold JS 39,653 bytes, desktop cold JS 92,537 bytes, both warm JS 0, and no mobile desktop-runtime/Workbench/Diagram/Spatial loading",
+      "state the empty production Task Inbox as valid governed evidence rather than a reason to create synthetic tasks",
+      "state the next Web Delivery vertical as MOBILE_READ KPI/entity inspection over a real governed read model"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -2257,7 +2274,7 @@
       ]
     },
     "webDelivery": {
-      "status": "P4_MOBILE_REVIEW_QUEUE_VERIFIED_PRODUCTION_PASS",
+      "status": "P4_MOBILE_TASK_INBOX_VERIFIED_PRODUCTION_PASS",
       "upstreamAuthority": {
         "repository": "jiangxng/eidos",
         "pr": 50,
@@ -2322,16 +2339,16 @@
         ]
       },
       "nextPhase": {
-        "id": "P4_MOBILE_VERTICALS_TASK_INBOX",
+        "id": "P4_MOBILE_READ_KPI_ENTITY_INSPECTION",
         "acceptance": [
-          "complete Eidos Task Inbox ActionHost delegation so task commands/navigation use the same Host authority boundary",
-          "project a real governed Host task source into MOBILE_TASK; begin with current-Principal/current-Context Personal Agent Follow-ups rather than demo data",
-          "preserve desktop follow-up experience while mapping the same semantic route to a mobile Task Inbox",
-          "keep planning-state complete/dismiss actions self-scoped Human actions and do not turn Task Inbox into business truth",
-          "represent exception/blocked/assigned states explicitly; do not infer business completion from presentation state",
-          "prove compact auto-resolution and explicit desktop override in real Chrome",
-          "prove mobile Task Inbox does not download Workbench/Diagram/Spatial or unrelated desktop modules and warm immutable JS transfer remains zero",
-          "measure mobile cold JS/data bytes separately from desktop"
+          "select a real governed read model with stable entity identity and evidence provenance rather than demo-only data",
+          "publish the same semantic capability to DESKTOP_WORKBENCH and MOBILE_READ with independent presentation/runtime composition",
+          "keep MOBILE_READ strictly read-only unless a separate MOBILE_TASK action surface is explicitly declared",
+          "preserve Principal/Context authorization and do not copy domain truth into browser-local state",
+          "prove compact MOBILE_READ resolution and explicit desktop override in real Chrome",
+          "prove mobile read runtime does not download Workbench/Diagram/Spatial or unrelated desktop modules",
+          "measure cold/warm JS and route-data bytes separately from desktop",
+          "show freshness/evidence metadata where the read model can become stale"
         ]
       },
       "surfaceFoundation": {
@@ -2512,6 +2529,49 @@
             "mobile uses a dedicated MOBILE_TASK presentation/runtime rather than responsive desktop Workbench",
             "material accept/reject actions retain explicit Human confirmation",
             "mobile Review Queue does not load Workbench/Diagram/Spatial or desktop runtime"
+          ]
+        },
+        "taskInbox": {
+          "implementation": {
+            "pr": 190,
+            "commit": "9373efd9d77a1b25805ded240956bf40ad65625d",
+            "deploymentId": "5aad75b5-1e10-4887-8e8a-119e2873f795"
+          },
+          "productionProof": {
+            "pr": 191,
+            "workflow": "Mobile Task Inbox Production Proof",
+            "status": "SUCCESS",
+            "observed": {
+              "mobile": {
+                "route": "/m/enterprise-agent/follow-ups",
+                "inboxId": "personal-agent.follow-ups.mobile",
+                "emptyInbox": true,
+                "itemCount": 0,
+                "states": [],
+                "coldJsBytes": 39653,
+                "coldJsRequests": 29,
+                "warmJsBytes": 0,
+                "requestedMobileRuntime": true,
+                "requestedDesktopRuntime": false,
+                "requestedWorkbench": false,
+                "requestedDiagram": false,
+                "requestedSpatial": false
+              },
+              "desktop": {
+                "route": "/enterprise-agent/follow-ups",
+                "coldJsBytes": 92537,
+                "coldJsRequests": 60,
+                "warmJsBytes": 0,
+                "workbench": true
+              }
+            }
+          },
+          "invariants": [
+            "desktop and mobile share semantic route enterprise-agent.follow-ups and the same Host follow-up authority",
+            "mobile Task Inbox is derived from current-Principal/current-Context governed Follow-up planning state and does not become business truth",
+            "production proof must not fabricate follow-up tasks merely to produce non-empty UI evidence",
+            "MOBILE_TASK uses an independent runtime and does not load Workbench/Diagram/Spatial or desktop runtime",
+            "complete/dismiss commands remain self-scoped Host actions and presentation state does not infer domain completion"
           ]
         }
       }
@@ -2951,7 +3011,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "Web P0-P3 and the first P4 Review Queue vertical are production-proven. Continue P4 with Task Inbox using a real governed Host task source and the same Surface-specific loading/network budgets. The EOG semantic trace gate remains independently blocked on a legitimate runtime flow source and must not be bypassed.",
+    "rationale": "Realtime transport, browser cache, Surface routing/scoped loading, browser lifecycle, Mobile Review Queue and Mobile Task Inbox are production-proven platform foundations. The next Web vertical is MOBILE_READ KPI/entity inspection over a real governed read model, while remaining Web security/performance foundations proceed as separate deep slices. The independent EOG semantic priority remains obtaining legitimate runtime flow/trace evidence.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
