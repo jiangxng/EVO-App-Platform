@@ -448,7 +448,11 @@ import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-c
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
-import { appHostShellHtml } from "./app-host-shell.js";
+import { createAppHostShellHtmlV010 } from "./app-host-shell.js";
+import {
+  normalizeAssetRevisionV010,
+  resolveBrowserAssetRequestV010
+} from "./web-delivery-cache.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createSettingsExperienceManifest,
@@ -788,6 +792,12 @@ const realtimeEvents = createHostRealtimeEventBusV010({
   capacity: 4096
 });
 const transportTraffic = createTransportTrafficDiagnosticsV010();
+const appHostAssetRevision = normalizeAssetRevisionV010(
+  process.env.APP_PLATFORM_ASSET_REVISION
+  ?? process.env.APP_PLATFORM_DEPLOY_REVISION
+  ?? process.env.RAILWAY_GIT_COMMIT_SHA
+);
+const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -2899,22 +2909,47 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/") {
-      response.statusCode = 200;
+      const etag = representationEtag(appHostShellHtml);
       applyCors(response);
+      response.setHeader("etag", etag);
+      response.setHeader("cache-control", "no-cache");
+      if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+        transportTraffic.recordNotModified();
+        response.statusCode = 304;
+        return response.end();
+      }
+      response.statusCode = 200;
       response.setHeader("content-type", "text/html; charset=utf-8");
       return response.end(appHostShellHtml);
     }
 
     if (request.method === "GET" && url.pathname.startsWith("/assets/")) {
-      const assetPath = url.pathname.slice("/assets/".length);
-      if (!assetPath.endsWith(".js") || assetPath.includes("..")) {
+      const asset = resolveBrowserAssetRequestV010(
+        url.pathname,
+        appHostAssetRevision
+      );
+      if (!asset) {
         return json(response, 404, { code: "ASSET_NOT_FOUND" });
       }
-      const assetUrl = new URL(`../${assetPath}`, import.meta.url);
-      const bytes = await readFile(fileURLToPath(assetUrl));
-      response.statusCode = 200;
+
+      const assetUrl = new URL(`../${asset.assetPath}`, import.meta.url);
+      let bytes: Buffer;
+      try {
+        bytes = await readFile(fileURLToPath(assetUrl));
+      } catch {
+        return json(response, 404, { code: "ASSET_NOT_FOUND" });
+      }
+
+      const etag = "\"" + createHash("sha256").update(bytes).digest("base64url") + "\"";
+      response.setHeader("etag", etag);
+      response.setHeader("cache-control", asset.cacheControl);
       response.setHeader("content-type", "text/javascript; charset=utf-8");
-      response.setHeader("cache-control", "no-store");
+      if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+        transportTraffic.recordNotModified();
+        response.statusCode = 304;
+        return response.end();
+      }
+      response.statusCode = 200;
       return response.end(bytes);
     }
 
