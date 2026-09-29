@@ -6,11 +6,15 @@ import type {
 } from "../vendor/eidos/src/app-host/contracts.js";
 import {
   createSurfaceHandoffViewModelV010,
+  type SurfaceHandoffViewModelV010
+} from "../vendor/eidos/src/app-host/surface-handoff.js";
+import {
   resolveExperienceSurfaceV010,
-  surfaceTargetFromUrlV010,
-  type SurfaceHandoffViewModelV010,
+  surfaceTargetFromUrlV010
+} from "../vendor/eidos/src/app-host/surface.js";
+import {
   validateEffectiveExperienceManifest
-} from "../vendor/eidos/src/app-host/index.js";
+} from "../vendor/eidos/src/app-host/host.js";
 
 export type BrowserSurfaceGatewayResultV010 =
   | {

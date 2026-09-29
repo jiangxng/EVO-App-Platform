@@ -13,9 +13,11 @@ const problems = [];
 const root = process.cwd();
 const shellPath = join(root, "manager", "app-host-shell.ts");
 const clientPath = join(root, "manager", "app-host-client.ts");
+const desktopRuntimePath = join(root, "manager", "desktop-workbench-runtime.ts");
 const helpPath = join(root, "manager", "help-system.ts");
 const shell = readFileSync(shellPath, "utf8");
 const client = readFileSync(clientPath, "utf8");
+const desktopRuntime = readFileSync(desktopRuntimePath, "utf8");
 const help = readFileSync(helpPath, "utf8");
 
 if (!shell.includes('eidosProductiveWorkbenchCss')) {
@@ -29,14 +31,17 @@ if (/<style\b/i.test(shellWithoutEidosStyle) || /\sstyle\s*=/.test(shellWithoutE
   problems.push("App Platform must not add parallel shell CSS or inline style attributes.");
 }
 
-for (const source of [client, help]) {
+for (const source of [client, desktopRuntime, help]) {
   if (/<svg\b|<button\b|<input\b|\sstyle\s*=/i.test(source)) {
     problems.push("App Platform Help/Workbench code must declare Eidos semantics instead of raw visual controls.");
     break;
   }
 }
 
-const iconNames = [...client.matchAll(/\bicon:\s*"([^"]+)"/g)].map(match => match[1]);
+const iconNames = [
+  ...client.matchAll(/\bicon:\s*"([^"]+)"/g),
+  ...desktopRuntime.matchAll(/\bicon:\s*"([^"]+)"/g)
+].map(match => match[1]);
 for (const icon of iconNames) {
   if (!resolveEidosIconName(icon)) {
     problems.push("Workbench Activity uses non-Eidos semantic icon: " + icon);
@@ -76,7 +81,11 @@ const document = materializeHelpDocumentV010(corpus, "evo.workbench.overview", "
 if (!document || document.kind !== "help-document") {
   problems.push("Help articles must materialize as Eidos help-document.");
 }
-if (!client.includes('id: "help"') || !client.includes('icon: "help"') || !client.includes('kind: "side-route"')) {
+if (
+  !desktopRuntime.includes('id: "help"')
+  || !desktopRuntime.includes('icon: "help"')
+  || !desktopRuntime.includes('kind: "side-route"')
+) {
   problems.push("Workbench Help must remain an Eidos secondary side-route Activity with semantic help icon.");
 }
 
