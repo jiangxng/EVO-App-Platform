@@ -1,0 +1,78 @@
+name: Web Delivery Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/web-delivery-production-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cache-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production browser cache semantics
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+
+          header() {
+            local file="$1"
+            local name="$2"
+            grep -i "^\${name}:" "$file" | tail -1 | cut -d':' -f2- | sed 's/^ *//' | tr -d '\r'
+          }
+
+          curl -sS -D /tmp/root.headers -o /tmp/root.html "$HOST/"
+          ROOT_CACHE="$(header /tmp/root.headers cache-control)"
+          ROOT_ETAG="$(header /tmp/root.headers etag)"
+          test "$ROOT_CACHE" = "no-cache"
+          test -n "$ROOT_ETAG"
+
+          ASSET_PATH="$(grep -oE 'src="/assets/[^"]+/manager/app-host-client\.js"' /tmp/root.html | head -1 | sed 's/^src="//;s/"$//')"
+          test -n "$ASSET_PATH"
+
+          ROOT_304="$(curl -sS -D /tmp/root304.headers -o /tmp/root304.body -w '%{http_code}' -H "If-None-Match: $ROOT_ETAG" "$HOST/")"
+          test "$ROOT_304" = "304"
+          test "$(wc -c < /tmp/root304.body)" -eq 0
+
+          curl -sS -D /tmp/asset.headers -o /tmp/asset.js "$HOST$ASSET_PATH"
+          ASSET_CACHE="$(header /tmp/asset.headers cache-control)"
+          ASSET_ETAG="$(header /tmp/asset.headers etag)"
+          test "$ASSET_CACHE" = "public, max-age=31536000, immutable"
+          test -n "$ASSET_ETAG"
+
+          ASSET_304="$(curl -sS -D /tmp/asset304.headers -o /tmp/asset304.body -w '%{http_code}' -H "If-None-Match: $ASSET_ETAG" "$HOST$ASSET_PATH")"
+          test "$ASSET_304" = "304"
+          test "$(wc -c < /tmp/asset304.body)" -eq 0
+
+          LEGACY_PATH="/assets/manager/app-host-client.js"
+          curl -sS -D /tmp/legacy.headers -o /tmp/legacy.js "$HOST$LEGACY_PATH"
+          LEGACY_CACHE="$(header /tmp/legacy.headers cache-control)"
+          LEGACY_ETAG="$(header /tmp/legacy.headers etag)"
+          test "$LEGACY_CACHE" = "public, max-age=0, must-revalidate"
+          test -n "$LEGACY_ETAG"
+
+          LEGACY_304="$(curl -sS -D /tmp/legacy304.headers -o /tmp/legacy304.body -w '%{http_code}' -H "If-None-Match: $LEGACY_ETAG" "$HOST$LEGACY_PATH")"
+          test "$LEGACY_304" = "304"
+          test "$(wc -c < /tmp/legacy304.body)" -eq 0
+
+          ROOT_BYTES="$(wc -c < /tmp/root.html)"
+          ASSET_BYTES="$(wc -c < /tmp/asset.js)"
+          LEGACY_BYTES="$(wc -c < /tmp/legacy.js)"
+
+          echo "CACHE_LIVE_PROOF root_cache=$ROOT_CACHE root_304=$ROOT_304 root_bytes=$ROOT_BYTES"
+          echo "CACHE_LIVE_PROOF versioned_asset=$ASSET_PATH asset_cache=$ASSET_CACHE asset_304=$ASSET_304 asset_bytes=$ASSET_BYTES"
+          echo "CACHE_LIVE_PROOF legacy_cache=$LEGACY_CACHE legacy_304=$LEGACY_304 legacy_bytes=$LEGACY_BYTES"
+
+          {
+            echo "## Web Delivery Production Proof"
+            echo
+            echo "- Root: `$ROOT_CACHE`, conditional status `$ROOT_304`, first body `$ROOT_BYTES bytes`"
+            echo "- Versioned asset: `$ASSET_PATH`"
+            echo "- Versioned asset cache: `$ASSET_CACHE`, conditional status `$ASSET_304`, first body `$ASSET_BYTES bytes`"
+            echo "- Legacy asset cache: `$LEGACY_CACHE`, conditional status `$LEGACY_304`, first body `$LEGACY_BYTES bytes`"
+          } >> "$GITHUB_STEP_SUMMARY"
