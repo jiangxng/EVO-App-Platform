@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-28-03`  
-**Snapshot time:** `2026-09-28T23:29:00+08:00`  
+**Snapshot:** `EOG-2026-09-29-01`  
+**Snapshot time:** `2026-09-29T08:55:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Enterprise Operating Graph — Runtime & Observatory Foundation v0.2
+Enterprise Operating Graph — Operational Observatory v0.3
 ACTIVE
 ```
 
@@ -41,22 +41,23 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-runtime-analysis-overlay-v0-2: IMPLEMENTATION_READY**
+**enterprise-operating-graph-spatial-observatory-bottleneck-v0-3: IMPLEMENTATION_READY**
 
-Define the first Host-authoritative Runtime Fact, derived Analysis Overlay and Time Lens contracts over the existing EOG semantic graph. Runtime observations and derived diagnostics must target stable EOG semantic identities while remaining separate from semantic truth and View State. Keep this slice renderer-independent: the future 3D Observatory will consume these contracts through Eidos spatial-core, but Three.js is not the current implementation gate.
+Project the existing Host-authoritative EOG Observatory Snapshot into the first Eidos SPATIAL_3D view and add the first deterministic evidence-backed bottleneck Analysis Provider. 3D is an operational God’s-eye observatory, not a decorative graph: it must reuse the same semantic graph, Runtime Facts, Time Lens and canonical targets as the 2D Observatory. Keep stable enterprise spatial memory in View State; dynamic frequency, balance, flow and future analysis drive visual channels without moving semantic identity. Three.js is a replaceable renderer behind Eidos spatial-core.
 
 Acceptance:
 
-- Runtime Facts are time-bounded observations with explicit source/provenance and can target an EOG node or relation without mutating the Semantic Graph
-- raw Runtime Facts remain distinguishable from derived Analysis Overlay results
-- Time Lens selects a deterministic observation window and comparison window without rewriting source facts
-- event frequency, throughput, WIP/backlog, wait/lead time and amount/quantity can be represented as typed measurements without hard-coding a single business domain
-- Analysis Overlay can represent bottleneck, SOP-conformance/deviation and anomaly evidence as derived observations with provenance and confidence/status metadata
-- dynamic metrics never change semantic node identity or force semantic revision changes
-- 2D DIAGRAM_2D and future SPATIAL_3D views can consume the same runtime/analysis overlay contracts
-- no Three.js/WebGL object, Eidos scene object, renderer XML or client cache becomes runtime or enterprise truth
-- the existing Application/Ledger semantic scope remains stable while the runtime/analysis contract is proven; broader semantic node kinds are not added merely to support visualization
-- define the minimum provider/source boundary needed to connect future EVO BusinessData/Ledger runtime observations without resuming business-specific Host mappings
+- SPATIAL_3D consumes the same eog:primary Semantic Graph and the same Host Observatory Snapshot used by the 2D Observatory; no parallel 3D semantic graph or runtime store is introduced
+- durable x/y/z placement and camera remain SPATIAL_3D View State with an independent revision and never mutate semantic truth
+- Three.js or another WebGL/WebGPU implementation is hidden behind the Eidos spatial renderer/adapter boundary and can be replaced without changing EOG contracts
+- 3D selection resolves back to the same stable EOG node/relation target identities used by Human, Agent and 2D surfaces
+- Time Lens windows and comparison facts are identical across 2D and 3D projections
+- event frequency, balances and other raw Runtime Facts may drive neutral visual channels, but raw numeric values alone must not be labeled as bottleneck/severity conclusions
+- the first bottleneck Analysis Provider emits Analysis Overlay results only from explicit evidenceFactIds and preserves source/analyzer provenance
+- balance.quantity is not silently renamed WIP/backlog unless the canonical Ledger semantics or an explicit template establishes that business interpretation
+- mixed quantity units and currencies remain fail-closed or dimensioned; incompatible values are never visually aggregated
+- Application event-frequency support waits for a stable Host Application to EVO applicationId mapping rather than guessing from node labels or IDs
+- SOP expected-vs-actual analysis remains the next analysis expansion after the first bottleneck provider and 3D projection prove the shared observatory contract
 
 ## Current production preview
 
@@ -134,6 +135,12 @@ Not proved:
 - PR #138 — MERGED_CI_PASS: Advance repository continuity from EOG contract design to the first Eidos graph-surface implementation gate.
 - PR #139 — MERGED_CI_PASS: Bind the first Eidos Diagram Editor vertical slice to Host-authoritative EOG state; Human drag/confirm/publish and Agent proposals converge on eog:primary without an Eidos-owned semantic model.
 - PR #140 — MERGED_CI_PASS: Separate EOG semantic truth from durable DIAGRAM_2D/SPATIAL_3D View State, introduce independent revisions and Agent view tools, and record the Enterprise Observatory architecture.
+- PR #141 — MERGED_CI_PASS: Advance EOG continuity from semantic/View-State separation to Runtime & Observatory Foundation v0.2.
+- PR #142 — MERGED_CI_PASS: Add renderer-independent Runtime Fact, Time Lens and evidence-backed Analysis Overlay contracts and Host observatory service.
+- PR #143 — MERGED_CI_PASS: Integrate EOG Runtime Fact and Analysis Provider contracts with the generic Platform Provider system.
+- PR #144 — MERGED_CI_PASS: Resolve EOG node/relation targets to canonical semantic bindings in the Host before Provider queries.
+- PR #145 — MERGED_CI_PASS: Connect the EOG Observatory to a real EVO Runtime Fact Provider over canonical EVO LedgerDefinition targets.
+- PR #146 — MERGED_CI_PASS: Add the first Human operational Observatory surface with Time Lens presets and real Runtime Fact overlays over the same 2D EOG view.
 
 ## DO NOT repeat stale actions
 
@@ -177,6 +184,11 @@ Not proved:
 - Do not make Three.js, maxGraph, SVG, WebGL, Eidos scene objects or renderer serialization authoritative EOG state.
 - Do not let event frequency, heat, bottleneck scores, SOP conformance or other runtime/analysis metrics mutate stable semantic node identity or layout automatically.
 - Do not overwrite raw Runtime Facts with derived Analysis Overlay conclusions; preserve provenance and the fact-vs-analysis boundary.
+- Do not reopen Runtime Fact, Time Lens, Analysis Overlay or Observatory Provider foundation as unresolved design work; PRs #142-#144 are merged and CI-passed.
+- Do not create a separate 3D semantic graph, 3D runtime store or Three.js-owned enterprise state; SPATIAL_3D is a View State and projection over the same EOG and Observatory Snapshot.
+- Do not infer bottleneck, severity, WIP or backlog merely from a raw balance/frequency number; derived operational conclusions require explicit evidence-backed Analysis Overlay logic.
+- Do not aggregate incompatible quantity units or currencies into one observation; EVO PR #71 makes this fail closed.
+- Do not guess Host Application to EVO applicationId mappings from labels, node IDs or layout; define a stable canonical mapping before Application Runtime Facts are enabled.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -197,16 +209,18 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state Personal Agent P1.8 as verified and production-closed
-- state archived Conversation Thread retention as 90 days from archivedAt and destructive purge as disabled
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
-- state PR #139 as the merged Host-backed Eidos 2D editor vertical slice over the shared eog:primary graph
-- state PR #140 as the merged semantic/View-State separation: Semantic Graph has no coordinates; DIAGRAM_2D and SPATIAL_3D View State have independent revisions
-- state Guidance topology as advisory and Human-confirmed Enterprise relations/publish as Human authority
-- state Personal Agent semantic tools as proposal-only for enterprise truth while separate Agent View tools may arrange 2D/3D presentation state
-- state the current open gate as Runtime Facts + Analysis Overlay + Time Lens foundation, renderer-independent
-- state the 3D Enterprise Observatory as a formal future Eidos spatial view for operational observation/diagnosis rather than visual decoration
-- state the Host-owned EVO BusinessData Adapter as deferred pending the Runtime Fact source boundary, not cancelled
-- state legacy-data projection / Best Data Provider / training as downstream of a usable target Enterprise Operating Model
+- state Semantic Graph as coordinate-free and DIAGRAM_2D/SPATIAL_3D View State as durable presentation state with independent revisions
+- state Runtime Facts + Time Lens + Analysis Overlay + Provider foundation as implementation-closed through PR #142/#143/#144
+- state EVO PR #70 as the merged generic time-scoped Ledger Runtime observation boundary and EVO PR #71 as the merged unit/currency integrity correction
+- state PR #145 as the merged real EVO Runtime Fact Provider using Host-resolved canonical EVO LedgerDefinition targets
+- state PR #146 as the merged first read-only 2D Operational Observatory with 1h/4h/24h/7d Time Lens presets over the same eog:primary
+- state the current open gate as first SPATIAL_3D Observatory projection plus evidence-backed bottleneck Analysis Provider
+- state 3D as an operational God’s-eye observatory for enterprise activity, not a decorative renderer or separate enterprise model
+- state raw Runtime Facts as distinct from derived bottleneck/SOP/anomaly conclusions
+- state the Host-owned EVO BusinessData Adapter as no longer blocked by the Runtime Fact boundary but still deferred by current EOG Observatory priority
+- state Application Runtime Facts as pending an explicit Host Application ↔ EVO applicationId mapping; do not infer it
+- state SOP expected-vs-actual analysis as downstream of the first 3D/bottleneck slice
 - do not require the previous ChatGPT transcript to continue
 
 No previous ChatGPT transcript is required.
