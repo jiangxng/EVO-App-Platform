@@ -1,0 +1,49 @@
+name: Web Security Delivery Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/web-security-delivery-production-proof.yml"
+      - "tools/web-security-delivery-production-proof.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web-security-delivery-production-proof.yml"
+      - "tools/web-security-delivery-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  web-security-delivery-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify production shell caching, security headers and CSP runtime
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+
+          node tools/web-security-delivery-production-proof.mjs | tee /tmp/web-security-delivery-proof.log
+          grep -q "WEB_SECURITY_DELIVERY_PROOF=" /tmp/web-security-delivery-proof.log
+
+          curl -sS -D /tmp/compression.headers \
+            -H 'Accept-Encoding: br, gzip' \
+            -o /tmp/compression.body \
+            "$HOST/"
+
+          ENCODING="$(grep -i '^content-encoding:' /tmp/compression.headers | tail -1 | cut -d':' -f2- | tr -d '\r ' || true)"
+          TRANSFER_BYTES="$(wc -c < /tmp/compression.body)"
+          if [ -z "$ENCODING" ]; then ENCODING="identity"; fi
+          echo "WEB_COMPRESSION_PROOF encoding=$ENCODING transfer_bytes=$TRANSFER_BYTES"
