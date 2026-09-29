@@ -37,12 +37,12 @@ jobs:
 
           # 1. Compact browser: desktop semantic URL must resolve to MOBILE_TASK.
           run_browser mobile-auto "$HOST/#/enterprise-agent" 390
-          grep -q "Ask or describe a task" /tmp/mobile-auto.dom
+          grep -q 'data-eidos-chat="enterprise-agent.mobile-home"' /tmp/mobile-auto.dom
           grep -q "/v1/events" /tmp/mobile-auto.netlog
 
           # 2. Explicit URL target outranks compact capability inference.
           run_browser desktop-explicit "$HOST/?surface=desktop#/enterprise-agent" 390
-          grep -q "Tell Personal Agent what you want to accomplish" /tmp/desktop-explicit.dom
+          grep -q 'data-eidos-chat="enterprise-agent.home"' /tmp/desktop-explicit.dom
 
           # 3. Desktop-only semantic route on compact Surface must hand off.
           run_browser setup-handoff "$HOST/#/enterprise-agent/setup" 390
@@ -62,8 +62,8 @@ jobs:
           {
             echo "## Surface Production Browser Proof"
             echo
-            echo "- Compact 390px /#/enterprise-agent rendered the dedicated MOBILE_TASK Personal Agent page."
-            echo "- Compact 390px with ?surface=desktop rendered the desktop Personal Agent page."
+            echo "- Compact 390px /#/enterprise-agent rendered data-eidos-chat=enterprise-agent.mobile-home."
+            echo "- Compact 390px with ?surface=desktop rendered data-eidos-chat=enterprise-agent.home."
             echo "- Compact 390px /#/enterprise-agent/setup rendered Eidos Surface Handoff."
             echo "- Handoff Chrome netlog contained no /v1/events request."
           } >> "$GITHUB_STEP_SUMMARY"
