@@ -1,8 +1,15 @@
 import {
   createAppHost,
   createAppManagerExperienceSource,
-  createAppManagerActionHost
+  createAppManagerActionHost,
+  mountSurfaceHandoffV010,
+  readBrowserSurfaceProfileV010,
+  surfaceQueryValueV010
 } from "../vendor/eidos/src/app-host/index.js";
+import {
+  replaceBrowserSurfaceRouteV010,
+  resolveBrowserSurfaceGatewayV010
+} from "./browser-surface-gateway.js";
 import {
   mountWorkbenchShell,
   type WorkbenchActivityV010,
@@ -33,8 +40,47 @@ const source = createAppManagerExperienceSource({
 const actionHost = createAppManagerActionHost({
   baseUrl: window.location.origin
 });
-const host = createAppHost(source);
-const initialBundles = await source.listEffectiveLocalizationBundles();
+
+const [bootstrapManifests, initialBundles] = await Promise.all([
+  source.listEffectiveExperienceManifests(),
+  source.listEffectiveLocalizationBundles()
+]);
+
+let pendingBootstrapManifests: unknown[] | undefined = bootstrapManifests;
+const host = createAppHost({
+  async listEffectiveExperienceManifests() {
+    if (pendingBootstrapManifests) {
+      const manifests = pendingBootstrapManifests;
+      pendingBootstrapManifests = undefined;
+      return manifests.map(item => structuredClone(item));
+    }
+    return source.listEffectiveExperienceManifests();
+  },
+  loadPage(page) {
+    return source.loadPage(page);
+  }
+});
+
+const currentSurfacePath = window.location.hash.startsWith("#")
+  ? window.location.hash.slice(1)
+  : window.location.hash;
+const surfaceGateway = resolveBrowserSurfaceGatewayV010({
+  manifests: bootstrapManifests,
+  path: currentSurfacePath || "/store",
+  url: new URL(window.location.href),
+  profile: readBrowserSurfaceProfileV010(),
+  storedUserTarget:
+    window.localStorage.getItem("evo.surface.target") ?? undefined
+});
+
+let activeSurfaceId: string | undefined;
+if (surfaceGateway.kind === "REDIRECT") {
+  activeSurfaceId = surfaceGateway.surfaceId;
+  replaceBrowserSurfaceRouteV010(surfaceGateway.toPath);
+} else if (surfaceGateway.kind === "UNCHANGED") {
+  activeSurfaceId = surfaceGateway.surfaceId;
+}
+
 let activeBundleDigest = JSON.stringify(initialBundles);
 
 const localization = createLocalizationRuntime(
@@ -198,7 +244,6 @@ async function loadEffectiveWorkbenchActivities(): Promise<{
 }
 
 let workbench: WorkbenchShell | undefined;
-const initialActivities = await loadEffectiveWorkbenchActivities();
 
 let topologyRefresh: Promise<void> | undefined;
 async function refreshHostTopology(): Promise<void> {
@@ -252,59 +297,80 @@ function isLocalEcho(event: RealtimeEventV010): boolean {
   return true;
 }
 
-workbench = await mountWorkbenchShell({
-  host,
-  container: "#app",
-  title: "EVO",
-  defaultActivityId: "plugins",
-  initialWorkspaceRoute: "/store",
-  activities: initialActivities.activities,
-  actionHost,
-  localization,
-  minSidePanelWidth: 260,
-  maxSidePanelWidth: 720,
-  async onActionResult(result, _page, renderHint) {
-    if (renderHint?.preserveMountedPage === true) {
-      rememberLocallyAppliedCorrelation(result);
-    }
-  }
-});
-
-const realtime = createFetchSseRealtimeSourceV010({
-  url: () => window.location.origin + "/v1/events"
-});
-
 let topologyEventTimer: ReturnType<typeof setTimeout> | undefined;
-const scheduleTopologyRefresh = () => {
-  if (topologyEventTimer !== undefined) return;
-  topologyEventTimer = setTimeout(() => {
-    topologyEventTimer = undefined;
-    void refreshHostTopology();
-  }, 50);
-};
 
-const unsubscribeRealtime = realtime.subscribe(event => {
-  if (isLocalEcho(event)) return;
+if (surfaceGateway.kind === "HANDOFF") {
+  const mountedHandoff = mountSurfaceHandoffV010({
+    container: "#app",
+    model: surfaceGateway.model,
+    onNavigate(route, target) {
+      const next = new URL(window.location.href);
+      next.searchParams.set("surface", surfaceQueryValueV010(target));
+      next.hash = route;
+      window.location.replace(next.toString());
+    }
+  });
 
-  if (event.type === "HOST_TOPOLOGY_CHANGED") {
-    scheduleTopologyRefresh();
-    return;
-  }
+  window.addEventListener("pagehide", () => {
+    mountedHandoff.dispose();
+  }, { once: true });
+} else {
+  const initialActivities = await loadEffectiveWorkbenchActivities();
 
-  if (event.type === "RESET_REQUIRED") {
-    scheduleTopologyRefresh();
-  }
+  workbench = await mountWorkbenchShell({
+    host,
+    container: "#app",
+    title: "EVO",
+    defaultActivityId: "plugins",
+    initialWorkspaceRoute: "/store",
+    surfaceId: activeSurfaceId,
+    activities: initialActivities.activities,
+    actionHost,
+    localization,
+    minSidePanelWidth: 260,
+    maxSidePanelWidth: 720,
+    async onActionResult(result, _page, renderHint) {
+      if (renderHint?.preserveMountedPage === true) {
+        rememberLocallyAppliedCorrelation(result);
+      }
+    }
+  });
 
-  workbench?.notifyRealtimeEvent(event);
-});
+  const realtime = createFetchSseRealtimeSourceV010({
+    url: () => window.location.origin + "/v1/events"
+  });
 
-realtime.connect();
+  const scheduleTopologyRefresh = () => {
+    if (topologyEventTimer !== undefined) return;
+    topologyEventTimer = setTimeout(() => {
+      topologyEventTimer = undefined;
+      void refreshHostTopology();
+    }, 50);
+  };
 
-window.addEventListener("pagehide", () => {
-  if (topologyEventTimer !== undefined) {
-    clearTimeout(topologyEventTimer);
-    topologyEventTimer = undefined;
-  }
-  unsubscribeRealtime();
-  realtime.dispose();
-}, { once: true });
+  const unsubscribeRealtime = realtime.subscribe(event => {
+    if (isLocalEcho(event)) return;
+
+    if (event.type === "HOST_TOPOLOGY_CHANGED") {
+      scheduleTopologyRefresh();
+      return;
+    }
+
+    if (event.type === "RESET_REQUIRED") {
+      scheduleTopologyRefresh();
+    }
+
+    workbench?.notifyRealtimeEvent(event);
+  });
+
+  realtime.connect();
+
+  window.addEventListener("pagehide", () => {
+    if (topologyEventTimer !== undefined) {
+      clearTimeout(topologyEventTimer);
+      topologyEventTimer = undefined;
+    }
+    unsubscribeRealtime();
+    realtime.dispose();
+  }, { once: true });
+}
