@@ -8,6 +8,9 @@ import type {
 import {
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID
 } from "./package.js";
+import type {
+  EogExpectedSopServiceV010
+} from "../../manager/enterprise-operating-graph-sop-service.js";
 
 function digest(value: unknown): string {
   return createHash("sha256")
@@ -74,8 +77,11 @@ function overlay(input: {
   };
 }
 
-export function createEogBottleneckAnalysisProviderV020():
-EnterpriseOperatingGraphAnalysisProviderV020 {
+export function createEogBottleneckAnalysisProviderV020(
+  dependencies: {
+    expectedSopService?: EogExpectedSopServiceV010;
+  } = {}
+): EnterpriseOperatingGraphAnalysisProviderV020 {
   return {
     contractVersion: "0.2.0",
     providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
@@ -157,6 +163,152 @@ EnterpriseOperatingGraphAnalysisProviderV020 {
             rule: "pressure grows materially faster than observed activity"
           }
         }));
+      }
+
+
+      const expectedSops = dependencies.expectedSopService?.listPublished({
+        enterpriseId: request.enterpriseId,
+        graphId: request.graphId
+      }) ?? [];
+
+      const transitionFacts = request.primaryFacts.filter(
+        fact =>
+          fact.target.kind === "NODE"
+          && fact.metric.code === "sop.transition.count"
+          && typeof fact.dimensions?.toApplicationNodeId === "string"
+      );
+
+      for (const sop of expectedSops) {
+        const expectedPairs = new Set<string>();
+        for (let index = 0; index + 1 < sop.steps.length; index += 1) {
+          expectedPairs.add(
+            sop.steps[index]!.applicationNodeId
+            + "->"
+            + sop.steps[index + 1]!.applicationNodeId
+          );
+        }
+        const sopNodes = new Set(sop.steps.map(step => step.applicationNodeId));
+        const relevant = transitionFacts.filter(fact => {
+          if (fact.target.kind !== "NODE") return false;
+          const to = fact.dimensions?.toApplicationNodeId;
+          return typeof to === "string"
+            && (sopNodes.has(fact.target.nodeId) || sopNodes.has(to));
+        });
+
+        const anchor = sop.steps[0]?.applicationNodeId;
+        if (!anchor) continue;
+
+        if (relevant.length === 0) {
+          overlays.push({
+            contractVersion: "0.2.0",
+            overlayId: "sop-conformance:" + digest({
+              sopId: sop.sopId,
+              window: request.timeLens.primary
+            }),
+            enterpriseId: request.enterpriseId,
+            graphId: request.graphId,
+            target: { kind: "NODE", nodeId: anchor },
+            analysisKind: "SOP_CONFORMANCE",
+            status: "INSUFFICIENT_EVIDENCE",
+            severity: "INFO",
+            window: structuredClone(request.timeLens.primary),
+            evidenceFactIds: [],
+            derivedAt: request.timeLens.primary.endAt,
+            source: {
+              providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+              analyzerRef: "sop-transition-conformance-v0.1"
+            },
+            details: {
+              sopId: sop.sopId,
+              sopTitle: sop.title,
+              reason: "No transition evidence was observed in the selected Time Lens."
+            }
+          });
+          continue;
+        }
+
+        let total = 0;
+        let conforming = 0;
+        for (const fact of relevant) {
+          if (fact.target.kind !== "NODE") continue;
+          const to = fact.dimensions?.toApplicationNodeId;
+          if (typeof to !== "string") continue;
+          total += fact.value;
+          const pair = fact.target.nodeId + "->" + to;
+          if (expectedPairs.has(pair)) {
+            conforming += fact.value;
+            continue;
+          }
+
+          overlays.push({
+            contractVersion: "0.2.0",
+            overlayId: "sop-deviation:" + digest({
+              sopId: sop.sopId,
+              factId: fact.factId
+            }),
+            enterpriseId: request.enterpriseId,
+            graphId: request.graphId,
+            target: structuredClone(fact.target),
+            analysisKind: "SOP_DEVIATION",
+            status: "OBSERVED",
+            severity: fact.value >= 10 ? "WARNING" : "WATCH",
+            score: fact.value,
+            confidence: 1,
+            window: structuredClone(request.timeLens.primary),
+            evidenceFactIds: [fact.factId],
+            derivedAt: request.timeLens.primary.endAt,
+            source: {
+              providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+              analyzerRef: "sop-transition-conformance-v0.1"
+            },
+            details: {
+              sopId: sop.sopId,
+              sopTitle: sop.title,
+              fromApplicationNodeId: fact.target.nodeId,
+              toApplicationNodeId: to,
+              transitionCount: fact.value,
+              expected: false
+            }
+          });
+        }
+
+        const ratio = total > 0 ? conforming / total : 0;
+        overlays.push({
+          contractVersion: "0.2.0",
+          overlayId: "sop-conformance:" + digest({
+            sopId: sop.sopId,
+            window: request.timeLens.primary,
+            facts: relevant.map(fact => fact.factId).sort()
+          }),
+          enterpriseId: request.enterpriseId,
+          graphId: request.graphId,
+          target: { kind: "NODE", nodeId: anchor },
+          analysisKind: "SOP_CONFORMANCE",
+          status: "OBSERVED",
+          severity: ratio >= 0.98
+            ? "INFO"
+            : ratio >= 0.9
+              ? "WATCH"
+              : ratio >= 0.75
+                ? "WARNING"
+                : "CRITICAL",
+          score: ratio,
+          confidence: 1,
+          window: structuredClone(request.timeLens.primary),
+          evidenceFactIds: relevant.map(fact => fact.factId),
+          derivedAt: request.timeLens.primary.endAt,
+          source: {
+            providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+            analyzerRef: "sop-transition-conformance-v0.1"
+          },
+          details: {
+            sopId: sop.sopId,
+            sopTitle: sop.title,
+            conformanceRatio: ratio,
+            conformingTransitionCount: conforming,
+            observedTransitionCount: total
+          }
+        });
       }
 
       return overlays;

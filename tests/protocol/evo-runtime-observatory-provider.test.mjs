@@ -312,3 +312,117 @@ test("EVO Runtime Observatory does not guess non-EVO or non-Ledger semantic bind
   assert.equal(calls, 1);
   assert.deepEqual(facts, []);
 });
+
+
+test("EVO Runtime Observatory projects execution traces into canonical SOP transition facts", async () => {
+  const provider = createEvoRuntimeObservatoryProviderV020({
+    baseUrl: "http://evo.test",
+    resolveEnterpriseCode: () => "EVO_DEMO",
+    resolveApplicationId: (_enterpriseId, refId) => ({
+      "application:sales-order": "sales-order",
+      "application:approval": "approval",
+      "application:shipping": "shipping"
+    })[refId],
+    async fetchImpl(url, init) {
+      const value = String(url);
+      if (value.includes("/api/v1/enterprises/")) {
+        return response(200, { id: "uuid-enterprise" });
+      }
+      if (value.endsWith("/api/v1/runtime-traces/query")) {
+        const body = JSON.parse(String(init.body));
+        assert.deepEqual(body.applicationIds, [
+          "approval",
+          "sales-order",
+          "shipping"
+        ]);
+        return response(200, {
+          contractVersion: "0.1.0",
+          traces: [
+            {
+              contractVersion: "0.1.0",
+              enterpriseId: "uuid-enterprise",
+              flowDefinitionId: "flow:o2c",
+              flowInstanceId: "flow-instance:1",
+              flowInstanceKey: "SO-1",
+              status: "ACTIVE",
+              startedAt: "2026-09-28T08:00:00.000Z",
+              steps: [
+                {
+                  applicationId: "sales-order",
+                  stepCode: "sales-approved",
+                  businessDataId: "bd:1",
+                  commandExecutionId: "cmd:1",
+                  occurredAt: "2026-09-28T08:10:00.000Z"
+                },
+                {
+                  applicationId: "approval",
+                  stepCode: "approved",
+                  businessDataId: "bd:2",
+                  commandExecutionId: "cmd:2",
+                  occurredAt: "2026-09-28T08:20:00.000Z"
+                },
+                {
+                  applicationId: "shipping",
+                  stepCode: "shipped",
+                  businessDataId: "bd:3",
+                  commandExecutionId: "cmd:3",
+                  occurredAt: "2026-09-28T09:00:00.000Z"
+                }
+              ]
+            }
+          ]
+        });
+      }
+      throw new Error("unexpected URL " + value);
+    }
+  });
+
+  const semanticTargets = [
+    ["app:sales", "application:sales-order"],
+    ["app:approval", "application:approval"],
+    ["app:shipping", "application:shipping"]
+  ].map(([nodeId, refId]) => ({
+    target: { kind: "NODE", nodeId },
+    node: {
+      nodeId,
+      kind: "APPLICATION",
+      semanticRef: {
+        kind: "APPLICATION",
+        authority: "HOST",
+        refId
+      }
+    }
+  }));
+
+  const facts = await provider.query({
+    contractVersion: "0.2.0",
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    window: {
+      startAt: "2026-09-28T08:00:00.000Z",
+      endAt: "2026-09-28T12:00:00.000Z"
+    },
+    semanticTargets,
+    metricCodes: ["sop.transition.count"]
+  });
+
+  assert.equal(facts.length, 2);
+  assert.deepEqual(
+    facts.map(fact => [
+      fact.target.nodeId,
+      fact.dimensions.toApplicationNodeId,
+      fact.value
+    ]),
+    [
+      ["app:approval", "app:shipping", 1],
+      ["app:sales", "app:approval", 1]
+    ]
+  );
+  assert.equal(
+    facts.every(fact =>
+      fact.metric.code === "sop.transition.count"
+      && fact.source.sourceRef === "runtime-traces"
+    ),
+    true
+  );
+});

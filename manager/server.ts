@@ -83,6 +83,19 @@ import {
   createEogApplicationRuntimeBindingServiceV010
 } from "./enterprise-operating-graph-application-runtime-service.js";
 import {
+  createFileEogExpectedSopStoreV010,
+  createMemoryEogExpectedSopStoreV010
+} from "./enterprise-operating-graph-sop-store.js";
+import {
+  createEogExpectedSopServiceV010
+} from "./enterprise-operating-graph-sop-service.js";
+import {
+  createEogExpectedSopActionHandlersV010
+} from "./enterprise-operating-graph-sop-actions.js";
+import {
+  createEogExpectedSopAgentToolRegistrationsV010
+} from "./enterprise-operating-graph-sop-agent-tools.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010
 } from "./enterprise-operating-graph-actions.js";
 import {
@@ -590,6 +603,19 @@ const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
 const eogApplicationRuntimeBindingService =
   createEogApplicationRuntimeBindingServiceV010({
     store: eogApplicationRuntimeBindingStore
+  });
+const eogExpectedSopStateFile =
+  process.env.APP_PLATFORM_EOG_EXPECTED_SOP_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "eog-expected-sops.json")
+    : undefined);
+const eogExpectedSopStore = eogExpectedSopStateFile
+  ? createFileEogExpectedSopStoreV010(eogExpectedSopStateFile)
+  : createMemoryEogExpectedSopStoreV010();
+const eogExpectedSopService =
+  createEogExpectedSopServiceV010({
+    store: eogExpectedSopStore,
+    graphService: enterpriseOperatingGraphService
   });
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
@@ -1969,7 +1995,9 @@ await refreshP12MemoryProviderRuntimes();
 
 providerRuntimeRegistry.replace(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
-  createEogBottleneckAnalysisProviderV020()
+  createEogBottleneckAnalysisProviderV020({
+    expectedSopService: eogExpectedSopService
+  })
 );
 providerRuntimeRegistry.setHealth(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
@@ -2320,6 +2348,11 @@ function createPersonalAgentToolCatalogV010(
       principal,
       context
     }),
+    ...createEogExpectedSopAgentToolRegistrationsV010({
+      service: eogExpectedSopService,
+      principal,
+      context
+    }),
     ...createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
@@ -2351,6 +2384,10 @@ const actionRouter = createAppActionRouter(
   [
     ...createEnterpriseOperatingGraphActionHandlersV010({
       service: enterpriseOperatingGraphService,
+      resolveAuthorizationProvider
+    }),
+    ...createEogExpectedSopActionHandlersV010({
+      service: eogExpectedSopService,
       resolveAuthorizationProvider
     }),
     ...createEnterpriseOperatingGraphViewActionHandlersV010({

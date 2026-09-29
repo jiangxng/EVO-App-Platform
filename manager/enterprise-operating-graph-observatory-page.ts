@@ -13,6 +13,7 @@ import type {
   PlatformRequestContextV010
 } from "../contracts/platform-services.js";
 import type {
+  EogAnalysisSnapshotV020,
   EogObservationSnapshotV020,
   EogRuntimeFactV020,
   EogTimeLensV020
@@ -162,7 +163,8 @@ function preset(
         "business.quantity",
         "business.amount",
         "balance.quantity",
-        "balance.amount"
+        "balance.amount",
+        "sop.transition.count"
       ]
     } as Record<string, JsonValue>
   };
@@ -326,9 +328,54 @@ function observationBadges(
   return result;
 }
 
+
+function overlayTargetKey(
+  target: EogAnalysisSnapshotV020["overlays"][number]["target"]
+): string {
+  return target.kind === "NODE"
+    ? "NODE:" + target.nodeId
+    : "RELATION:" + target.authority + ":" + target.relationId;
+}
+
+function analysisBadges(
+  target: string,
+  snapshot: EogObservationSnapshotV020 | EogAnalysisSnapshotV020,
+  locale?: string
+): DiagramObservationBadgeV010[] {
+  if (!("overlays" in snapshot)) return [];
+  return snapshot.overlays
+    .filter(overlay => overlayTargetKey(overlay.target) === target)
+    .map(overlay => {
+      const label = overlay.analysisKind === "BOTTLENECK"
+        ? "Bottleneck"
+        : overlay.analysisKind === "SOP_CONFORMANCE"
+          ? "SOP"
+          : overlay.analysisKind === "SOP_DEVIATION"
+            ? "SOP deviation"
+            : overlay.analysisKind;
+      const value = overlay.analysisKind === "SOP_CONFORMANCE"
+        && typeof overlay.score === "number"
+        ? numberText(overlay.score * 100, locale) + "%"
+        : overlay.status === "OBSERVED"
+          ? overlay.severity
+          : overlay.status;
+      return {
+        id: overlay.overlayId,
+        label,
+        value,
+        detail: [
+          overlay.source.analyzerRef,
+          overlay.evidenceFactIds.length
+            ? overlay.evidenceFactIds.length + " evidence facts"
+            : undefined
+        ].filter(Boolean).join(" · ")
+      };
+    });
+}
+
 export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
   base: DiagramEditorStateV010;
-  snapshot?: EogObservationSnapshotV020;
+  snapshot?: EogObservationSnapshotV020 | EogAnalysisSnapshotV020;
   locale?: string;
   providerAvailable: boolean;
 }): DiagramEditorStateV010 {
@@ -340,11 +387,18 @@ export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
     lifecycleState: "OBSERVATORY",
     nodes: input.base.nodes.map(node => {
       const observations = snapshot
-        ? observationBadges(
-            "NODE:" + node.id,
-            snapshot,
-            input.locale
-          )
+        ? [
+            ...observationBadges(
+              "NODE:" + node.id,
+              snapshot,
+              input.locale
+            ),
+            ...analysisBadges(
+              "NODE:" + node.id,
+              snapshot,
+              input.locale
+            )
+          ]
         : [];
       return {
         ...structuredClone(node),
@@ -369,14 +423,24 @@ export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
             }
           : undefined;
       const observations = snapshot && relation
-        ? observationBadges(
-            "RELATION:"
-              + relation.authority
-              + ":"
-              + relation.relationId,
-            snapshot,
-            input.locale
-          )
+        ? [
+            ...observationBadges(
+              "RELATION:"
+                + relation.authority
+                + ":"
+                + relation.relationId,
+              snapshot,
+              input.locale
+            ),
+            ...analysisBadges(
+              "RELATION:"
+                + relation.authority
+                + ":"
+                + relation.relationId,
+              snapshot,
+              input.locale
+            )
+          ]
         : [];
       return {
         ...structuredClone(edge),
@@ -524,16 +588,26 @@ export function createEnterpriseOperatingGraphObservatoryViewActionHandlerV020(
         const metricCodes = parseEogMetricCodesV020(
           request.values.metricCodes
         );
+        const analysisAvailable =
+          input.providers.hasAnalysisCandidate();
         const service = input.providers.createService({
           graphService: input.graphService,
-          enterpriseId: scopedEnterpriseId
-        });
-        const snapshot = await service.observe({
           enterpriseId: scopedEnterpriseId,
-          graphId,
-          timeLens,
-          ...(metricCodes?.length ? { metricCodes } : {})
+          requireAnalysis: analysisAvailable
         });
+        const snapshot = analysisAvailable
+          ? await service.analyze({
+              enterpriseId: scopedEnterpriseId,
+              graphId,
+              timeLens,
+              ...(metricCodes?.length ? { metricCodes } : {})
+            })
+          : await service.observe({
+              enterpriseId: scopedEnterpriseId,
+              graphId,
+              timeLens,
+              ...(metricCodes?.length ? { metricCodes } : {})
+            });
 
         return success(
           request,
