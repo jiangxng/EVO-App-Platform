@@ -1,0 +1,32 @@
+name: Mobile Review Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/mobile-review-production-proof.yml"
+      - "tools/mobile-review-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-review-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify MOBILE_TASK Memory Review in production Chrome
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/mobile-review-production-proof.mjs | tee /tmp/mobile-review-proof.log
+          grep -q "MOBILE_REVIEW_PROOF=" /tmp/mobile-review-proof.log
