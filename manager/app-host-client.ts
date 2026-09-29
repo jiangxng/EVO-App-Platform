@@ -132,10 +132,6 @@ if (surfaceGateway.kind === "HANDOFF") {
     connectivity.dispose();
     rum.dispose();
     versionNotice.dispose();
-    rum.dispose();
-    versionNotice.dispose();
-    rum.dispose();
-    versionNotice.dispose();
   });
 } else if (activeTarget === "MOBILE_READ") {
   const { mountMobileReadRuntimeV010 } = await import(
@@ -153,6 +149,8 @@ if (surfaceGateway.kind === "HANDOFF") {
   disposeOnRealPageExitV010(() => {
     mounted.dispose();
     connectivity.dispose();
+    rum.dispose();
+    versionNotice.dispose();
   });
 } else {
   const { mountDesktopWorkbenchRuntimeV010 } = await import(
@@ -169,5 +167,7 @@ if (surfaceGateway.kind === "HANDOFF") {
   disposeOnRealPageExitV010(() => {
     mounted.dispose();
     connectivity.dispose();
+    rum.dispose();
+    versionNotice.dispose();
   });
 }
