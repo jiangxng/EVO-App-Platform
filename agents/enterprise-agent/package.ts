@@ -603,6 +603,13 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
                 pageId: "enterprise-agent.memory-review"
               },
               {
+                id: "enterprise-agent.mobile-memory-review",
+                semanticId: "enterprise-agent.memory-review",
+                surfaceId: "enterprise-agent.mobile-task",
+                path: "/m/enterprise-agent/memory",
+                pageId: "enterprise-agent.memory-review"
+              },
+              {
                 id: "enterprise-agent.quality",
                 semanticId: "enterprise-agent.quality",
                 surfaceId: "enterprise-agent.desktop",
