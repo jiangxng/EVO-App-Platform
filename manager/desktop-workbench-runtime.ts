@@ -28,13 +28,17 @@ type WorkbenchExperienceSource =
   ExperienceSource
   & LocalizationBundleSource;
 
+export interface DesktopWorkbenchRuntimeV010 {
+  dispose(): void;
+}
+
 export async function mountDesktopWorkbenchRuntimeV010(options: {
   source: WorkbenchExperienceSource;
   bootstrapManifests: unknown[];
   initialLocale: string;
   activeSurfaceId?: string;
   baseUrl: string;
-}): Promise<void> {
+}): Promise<DesktopWorkbenchRuntimeV010> {
   const source = options.source;
   const actionHost = createAppManagerActionHost({
     baseUrl: options.baseUrl
@@ -328,14 +332,20 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     });
   
     realtime.connect();
-  
-    window.addEventListener("pagehide", () => {
-      if (topologyEventTimer !== undefined) {
-        clearTimeout(topologyEventTimer);
-        topologyEventTimer = undefined;
+
+    let disposed = false;
+    return {
+      dispose() {
+        if (disposed) return;
+        disposed = true;
+        if (topologyEventTimer !== undefined) {
+          clearTimeout(topologyEventTimer);
+          topologyEventTimer = undefined;
+        }
+        unsubscribeRealtime();
+        realtime.dispose();
+        workbench?.dispose();
+        host.dispose();
       }
-      unsubscribeRealtime();
-      realtime.dispose();
-    }, { once: true });
-  
+    };
 }
