@@ -311,6 +311,15 @@ import {
   parseExperienceCompilerMemoryIntakeConfigV010
 } from "../providers/experience-compiler-memory/runtime.js";
 import {
+  EVO_RUNTIME_OBSERVATORY_PACKAGE_ID,
+  EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+  evoRuntimeObservatoryProviderPackage
+} from "../providers/evo-runtime-observatory/package.js";
+import {
+  createEvoRuntimeObservatoryHealthProbeV010,
+  createEvoRuntimeObservatoryProviderV020
+} from "../providers/evo-runtime-observatory/runtime.js";
+import {
   CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY,
   CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY,
   HOST_MEMORY_EVIDENCE_SOURCE_PROVIDER_ID,
@@ -496,6 +505,7 @@ const catalog = createPackageCatalog([
   remoteContextMemorySemanticProviderPackage,
   remoteContextMemoryDlpProviderPackage,
   experienceCompilerMemoryIntakeProviderPackage,
+  evoRuntimeObservatoryProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -1105,6 +1115,22 @@ const enterpriseOperatingGraphObservatoryProviders =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
+const evoObservatoryEnabled =
+  process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
+  === "true";
+if (
+  evoObservatoryEnabled
+  && !installedAtStartup.some(
+    item => item.packageId === EVO_RUNTIME_OBSERVATORY_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
+    console.log("Activated EVO Runtime Observatory Provider.");
+  } catch (error) {
+    console.error("Failed to activate EVO Runtime Observatory Provider.", error);
+  }
+}
 if (
   hostBearerSessions
   && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
@@ -1491,6 +1517,28 @@ const runtimeDispatcher = createPluginRuntimeDispatcherV010({
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
+const evoObservatoryEnterpriseMap = (() => {
+  const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_ENTERPRISE_MAP_JSON?.trim();
+  if (!raw) return new Map<string, string>();
+  const parsed = JSON.parse(raw) as unknown;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("EVO_OBSERVATORY_ENTERPRISE_MAP_INVALID");
+  }
+  const result = new Map<string, string>();
+  for (const [hostEnterpriseId, value] of Object.entries(parsed)) {
+    if (
+      !hostEnterpriseId.trim()
+      || typeof value !== "string"
+      || !value.trim()
+    ) {
+      throw new Error("EVO_OBSERVATORY_ENTERPRISE_MAP_INVALID");
+    }
+    result.set(hostEnterpriseId.trim(), value.trim());
+  }
+  return result;
+})();
+const evoObservatoryDefaultEnterpriseCode =
+  process.env.APP_PLATFORM_EVO_OBSERVATORY_DEFAULT_ENTERPRISE_CODE?.trim();
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
@@ -1814,6 +1862,32 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 }
 
 await refreshP12MemoryProviderRuntimes();
+
+if (evoObservatoryEnabled) {
+  const options = {
+    baseUrl: evoBaseUrl,
+    resolveEnterpriseCode(hostEnterpriseId: string) {
+      return evoObservatoryEnterpriseMap.get(hostEnterpriseId)
+        ?? evoObservatoryDefaultEnterpriseCode;
+    }
+  };
+  providerRuntimeRegistry.replace(
+    EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+    createEvoRuntimeObservatoryProviderV020(options)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+    createEvoRuntimeObservatoryHealthProbeV010(options)
+  );
+  providerRuntimeRegistry.setHealth(
+    EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+    {
+      state: "UNKNOWN",
+      message: "EVO Runtime Observatory Provider is configured; runtime health has not been actively probed.",
+      checkedAt: new Date().toISOString()
+    }
+  );
+}
 
 function resolveLlmProvider(): {
   installedProviderIds: string[];

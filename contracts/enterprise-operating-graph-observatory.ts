@@ -14,7 +14,9 @@ export const EOG_RUNTIME_METRIC_CODES_V020 = {
   WAIT_TIME: "time.wait",
   LEAD_TIME: "time.lead",
   QUANTITY: "business.quantity",
-  AMOUNT: "business.amount"
+  AMOUNT: "business.amount",
+  BALANCE_QUANTITY: "balance.quantity",
+  BALANCE_AMOUNT: "balance.amount"
 } as const;
 
 export type EogObservatoryTargetV020 =
