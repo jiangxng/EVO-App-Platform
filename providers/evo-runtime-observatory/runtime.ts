@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type {
   EogRuntimeFactQueryV020,
   EogRuntimeFactV020,
+  EogResolvedNodeTargetV020,
   EnterpriseOperatingGraphRuntimeFactProviderV020
 } from "../../contracts/enterprise-operating-graph-observatory.js";
 import {
@@ -14,6 +15,7 @@ interface EvoObservation {
   target?: {
     kind?: string;
     code?: string;
+    applicationId?: string;
   };
   metricCode?: string;
   kind?: "COUNT" | "QUANTITY" | "AMOUNT" | "RATE";
@@ -43,7 +45,16 @@ interface EvoObservationResponse {
 export interface EvoRuntimeObservatoryProviderOptions {
   baseUrl: string;
   resolveEnterpriseCode(hostEnterpriseId: string): string | undefined;
+  resolveApplicationId?(
+    hostEnterpriseId: string,
+    hostApplicationRefId: string
+  ): string | undefined;
   fetchImpl?: typeof fetch;
+}
+
+interface MetricMapping {
+  evoCode: string;
+  eogCode: string;
 }
 
 function digest(value: unknown): string {
@@ -59,12 +70,7 @@ function ledgerCode(refId: string): string | undefined {
   return code || undefined;
 }
 
-function supportedMetric(
-  code: string
-): {
-  evoCode: string;
-  eogCode: string;
-} | undefined {
+function supportedMetric(code: string): MetricMapping | undefined {
   switch (code) {
     case "event.count":
     case "event.frequency":
@@ -86,6 +92,11 @@ function supportedMetric(
   }
 }
 
+function applicationMetric(mapping: MetricMapping): boolean {
+  return mapping.eogCode === "event.count"
+    || mapping.eogCode === "event.frequency";
+}
+
 function factKind(
   kind: EvoObservation["kind"]
 ): EogRuntimeFactV020["metric"]["kind"] {
@@ -98,6 +109,15 @@ function factKind(
     return kind;
   }
   throw new Error("EVO_OBSERVATORY_OBSERVATION_KIND_INVALID");
+}
+
+function explicitNodeRequested(
+  request: EogRuntimeFactQueryV020,
+  nodeId: string
+): boolean {
+  return request.targets?.some(
+    target => target.kind === "NODE" && target.nodeId === nodeId
+  ) === true;
 }
 
 export function createEvoRuntimeObservatoryProviderV020(
@@ -158,27 +178,21 @@ export function createEvoRuntimeObservatoryProviderV020(
             ]
       )
         .map(supportedMetric)
-        .filter((item): item is {
-          evoCode: string;
-          eogCode: string;
-        } => item !== undefined);
+        .filter((item): item is MetricMapping => item !== undefined);
 
       if (requestedMetricMappings.length === 0) return [];
 
       const facts: EogRuntimeFactV020[] = [];
-      for (const resolved of request.semanticTargets) {
-        if (
-          resolved.target.kind !== "NODE"
-          || !("node" in resolved)
-          || resolved.node.kind !== "LEDGER"
-          || resolved.node.semanticRef.authority !== "EVO"
-          || resolved.node.semanticRef.kind !== "LEDGER_DEFINITION"
-        ) {
-          continue;
-        }
 
-        const code = ledgerCode(resolved.node.semanticRef.refId);
-        if (!code) continue;
+      const queryRuntime = async (input: {
+        resolved: EogResolvedNodeTargetV020;
+        target:
+          | { kind: "LEDGER_DEFINITION"; code: string }
+          | { kind: "APPLICATION_ANCHOR"; applicationId: string };
+        metricMappings: MetricMapping[];
+        fallbackSourceRef: string;
+      }): Promise<void> => {
+        if (input.metricMappings.length === 0) return;
 
         const response = await fetchImpl(
           baseUrl + "/api/v1/runtime-observations/query",
@@ -191,12 +205,9 @@ export function createEvoRuntimeObservatoryProviderV020(
             body: JSON.stringify({
               contractVersion: "0.1.0",
               enterpriseId: evoEnterpriseId,
-              target: {
-                kind: "LEDGER_DEFINITION",
-                code
-              },
+              target: input.target,
               window: request.window,
-              metricCodes: requestedMetricMappings.map(
+              metricCodes: input.metricMappings.map(
                 item => item.evoCode
               )
             })
@@ -212,15 +223,19 @@ export function createEvoRuntimeObservatoryProviderV020(
         }
 
         for (const observation of body.observations) {
-          const mapping = requestedMetricMappings.find(
+          const mapping = input.metricMappings.find(
             item => item.evoCode === observation.metricCode
           );
+          const targetMatches = input.target.kind === "LEDGER_DEFINITION"
+            ? observation.target?.kind === "LEDGER_DEFINITION"
+              && observation.target.code === input.target.code
+            : observation.target?.kind === "APPLICATION_ANCHOR"
+              && observation.target.applicationId === input.target.applicationId;
           if (
             !mapping
             || observation.contractVersion !== "0.1.0"
             || observation.enterpriseId !== evoEnterpriseId
-            || observation.target?.kind !== "LEDGER_DEFINITION"
-            || observation.target.code !== code
+            || !targetMatches
             || typeof observation.value !== "number"
             || !Number.isFinite(observation.value)
             || typeof observation.unit !== "string"
@@ -238,14 +253,14 @@ export function createEvoRuntimeObservatoryProviderV020(
             factId: "evo-fact:" + digest({
               enterpriseId: request.enterpriseId,
               graphId: request.graphId,
-              target: resolved.target,
+              target: input.resolved.target,
               metric: mapping.eogCode,
               window: request.window,
-              source: observation.source?.ref ?? code
+              source: observation.source?.ref ?? input.fallbackSourceRef
             }),
             enterpriseId: request.enterpriseId,
             graphId: request.graphId,
-            target: structuredClone(resolved.target),
+            target: structuredClone(input.resolved.target),
             metric: {
               code: mapping.eogCode,
               kind: factKind(observation.kind),
@@ -260,17 +275,69 @@ export function createEvoRuntimeObservatoryProviderV020(
             source: {
               providerId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
               sourceKind: "EVO_RUNTIME",
-              sourceRef: observation.source?.ref ?? "ledger:" + code,
+              sourceRef: observation.source?.ref ?? input.fallbackSourceRef,
               queryDigest: digest({
                 evoEnterpriseId,
-                target: {
-                  kind: "LEDGER_DEFINITION",
-                  code
-                },
+                target: input.target,
                 window: request.window,
                 metricCode: observation.metricCode
               })
             }
+          });
+        }
+      };
+
+      for (const resolved of request.semanticTargets) {
+        if (resolved.target.kind !== "NODE" || !("node" in resolved)) {
+          continue;
+        }
+
+        if (
+          resolved.node.kind === "LEDGER"
+          && resolved.node.semanticRef.authority === "EVO"
+          && resolved.node.semanticRef.kind === "LEDGER_DEFINITION"
+        ) {
+          const code = ledgerCode(resolved.node.semanticRef.refId);
+          if (!code) continue;
+          await queryRuntime({
+            resolved,
+            target: {
+              kind: "LEDGER_DEFINITION",
+              code
+            },
+            metricMappings: requestedMetricMappings,
+            fallbackSourceRef: "ledger:" + code
+          });
+          continue;
+        }
+
+        if (
+          resolved.node.kind === "APPLICATION"
+          && resolved.node.semanticRef.authority === "HOST"
+          && resolved.node.semanticRef.kind === "APPLICATION"
+        ) {
+          const applicationId = options.resolveApplicationId?.(
+            request.enterpriseId,
+            resolved.node.semanticRef.refId
+          )?.trim();
+          if (!applicationId) {
+            if (explicitNodeRequested(request, resolved.node.nodeId)) {
+              throw new Error(
+                "EVO_OBSERVATORY_APPLICATION_MAPPING_REQUIRED"
+              );
+            }
+            continue;
+          }
+          await queryRuntime({
+            resolved,
+            target: {
+              kind: "APPLICATION_ANCHOR",
+              applicationId
+            },
+            metricMappings: requestedMetricMappings.filter(
+              applicationMetric
+            ),
+            fallbackSourceRef: "application:" + applicationId
           });
         }
       }
