@@ -2714,6 +2714,71 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
     }
+
+    if (request.method === "GET" && url.pathname === "/v1/events") {
+      const session = resolveRequestIdentitySession(request);
+      const contextRegistry = createContextRegistryForSession(session);
+      const filter = {
+        principalSubjectId: session.principal.subjectId,
+        accessibleContextIds: new Set(
+          contextRegistry.list().map(item => item.contextId)
+        )
+      };
+      const rawLastEventId = request.headers["last-event-id"];
+      const lastEventId = Array.isArray(rawLastEventId)
+        ? rawLastEventId[0]
+        : rawLastEventId;
+      const replay = realtimeEvents.replayAfter(lastEventId, filter);
+
+      response.statusCode = 200;
+      applyCors(response);
+      response.setHeader("content-type", "text/event-stream; charset=utf-8");
+      response.setHeader("cache-control", "no-cache, no-transform");
+      response.setHeader("connection", "keep-alive");
+      response.setHeader("x-accel-buffering", "no");
+      response.flushHeaders?.();
+      response.write(": connected\n\n");
+
+      if (
+        replay.resetRequired
+        && replay.cursorEventId
+        && replay.cursorSequence !== undefined
+      ) {
+        writeSseEvent(response, {
+          contractVersion: "0.1.0",
+          eventId: replay.cursorEventId,
+          sequence: replay.cursorSequence,
+          topic: "host.realtime",
+          type: "RESET_REQUIRED",
+          occurredAt: new Date().toISOString(),
+          payload: {
+            reason: "EVENT_REPLAY_WINDOW_EXPIRED"
+          }
+        });
+      } else {
+        for (const event of replay.events) writeSseEvent(response, event);
+      }
+
+      const unsubscribe = realtimeEvents.subscribe(filter, event => {
+        if (!response.destroyed && !response.writableEnded) {
+          writeSseEvent(response, event);
+        }
+      });
+      const heartbeat = setInterval(() => {
+        if (!response.destroyed && !response.writableEnded) {
+          response.write(": heartbeat\n\n");
+        }
+      }, 25000);
+      heartbeat.unref?.();
+
+      const close = () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+      };
+      request.once("close", close);
+      response.once("close", close);
+      return;
+    }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
