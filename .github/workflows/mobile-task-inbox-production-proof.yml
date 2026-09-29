@@ -1,0 +1,38 @@
+name: Mobile Task Inbox Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/mobile-task-inbox-production-proof.yml"
+      - "tools/mobile-task-inbox-production-proof.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/mobile-task-inbox-production-proof.yml"
+      - "tools/mobile-task-inbox-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-task-inbox-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify MOBILE_TASK Follow-up Task Inbox in production Chrome
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/mobile-task-inbox-production-proof.mjs | tee /tmp/mobile-task-inbox-proof.log
+          grep -q "MOBILE_TASK_INBOX_PROOF=" /tmp/mobile-task-inbox-proof.log
