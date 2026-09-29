@@ -403,12 +403,26 @@ test("EVO Runtime Observatory projects execution traces into canonical SOP trans
       endAt: "2026-09-28T12:00:00.000Z"
     },
     semanticTargets,
-    metricCodes: ["sop.transition.count"]
+    metricCodes: [
+      "sop.transition.count",
+      "sop.trace.transition",
+      "sop.trace.coverage"
+    ]
   });
 
-  assert.equal(facts.length, 2);
+  const aggregate = facts.filter(
+    fact => fact.metric.code === "sop.transition.count"
+  );
+  const path = facts.filter(
+    fact => fact.metric.code === "sop.trace.transition"
+  );
+  const coverage = facts.filter(
+    fact => fact.metric.code === "sop.trace.coverage"
+  );
+
+  assert.equal(aggregate.length, 2);
   assert.deepEqual(
-    facts.map(fact => [
+    aggregate.map(fact => [
       fact.target.nodeId,
       fact.dimensions.toApplicationNodeId,
       fact.value
@@ -418,10 +432,30 @@ test("EVO Runtime Observatory projects execution traces into canonical SOP trans
       ["app:sales", "app:approval", 1]
     ]
   );
+
+  assert.equal(path.length, 2);
+  assert.deepEqual(
+    path.map(fact => [
+      fact.dimensions.flowInstanceId,
+      fact.dimensions.transitionIndex,
+      fact.target.nodeId,
+      fact.dimensions.toApplicationNodeId
+    ]),
+    [
+      ["flow-instance:1", 0, "app:sales", "app:approval"],
+      ["flow-instance:1", 1, "app:approval", "app:shipping"]
+    ]
+  );
+
+  assert.equal(coverage.length, 1);
+  assert.equal(coverage[0].value, 1);
+  assert.equal(
+    coverage[0].dimensions.completeMapping,
+    true
+  );
   assert.equal(
     facts.every(fact =>
-      fact.metric.code === "sop.transition.count"
-      && fact.source.sourceRef === "runtime-traces"
+      fact.source.sourceRef === "runtime-traces"
     ),
     true
   );

@@ -30,7 +30,8 @@ function graphService() {
   for (const [nodeId, refId] of [
     ["app:sales", "application:sales"],
     ["app:approval", "application:approval"],
-    ["app:shipping", "application:shipping"]
+    ["app:shipping", "application:shipping"],
+    ["app:risk", "application:risk"]
   ]) {
     graph = service.apply({
       enterpriseId: graph.enterpriseId,
@@ -77,6 +78,73 @@ function transitionFact(id, fromNodeId, toNodeId, value = 1) {
       toApplicationNodeId: toNodeId,
       fromStepCode: "from",
       toStepCode: "to"
+    },
+    observedAt: window.endAt,
+    source: {
+      providerId: "evo.runtime-observatory",
+      sourceKind: "EVO_RUNTIME",
+      sourceRef: "runtime-traces"
+    }
+  };
+}
+
+function traceTransitionFact(
+  id,
+  flowInstanceId,
+  index,
+  fromNodeId,
+  toNodeId
+) {
+  const fact = transitionFact(id, fromNodeId, toNodeId, 1);
+  return {
+    ...fact,
+    metric: {
+      code: "sop.trace.transition",
+      kind: "COUNT",
+      unit: "transitions"
+    },
+    dimensions: {
+      ...fact.dimensions,
+      flowDefinitionId: "flow:o2c",
+      flowInstanceId,
+      flowInstanceKey: "SO-" + flowInstanceId,
+      traceStatus: "COMPLETED",
+      transitionIndex: index
+    }
+  };
+}
+
+function coverageFact(
+  id,
+  flowInstanceId,
+  targetNodeId,
+  value = 1,
+  traceStatus = "COMPLETED"
+) {
+  const window = {
+    startAt: "2026-09-29T00:00:00.000Z",
+    endAt: "2026-09-29T04:00:00.000Z"
+  };
+  return {
+    contractVersion: "0.2.0",
+    factId: id,
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    target: { kind: "NODE", nodeId: targetNodeId },
+    metric: {
+      code: "sop.trace.coverage",
+      kind: "RATIO",
+      unit: "ratio"
+    },
+    window,
+    value,
+    sampleCount: 3,
+    dimensions: {
+      flowDefinitionId: "flow:o2c",
+      flowInstanceId,
+      flowInstanceKey: "SO-" + flowInstanceId,
+      traceStatus,
+      completeMapping: value === 1
     },
     observedAt: window.endAt,
     source: {
@@ -266,4 +334,222 @@ test("Published SOP returns insufficient evidence when the Time Lens has no tran
   );
   assert.equal(conformance.status, "INSUFFICIENT_EVIDENCE");
   assert.deepEqual(conformance.evidenceFactIds, []);
+});
+
+
+test("Explicit alternative and allowed exception paths are not deviations", async () => {
+  const graphs = graphService();
+  let tick = 0;
+  const sops = createEogExpectedSopServiceV010({
+    store: createMemoryEogExpectedSopStoreV010(),
+    graphService: graphs,
+    now: () => new Date(
+      tick++ === 0
+        ? "2026-09-29T01:00:00.000Z"
+        : "2026-09-29T02:00:00.000Z"
+    )
+  });
+  const draft = sops.create({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    sopId: "sop:o2c-branch",
+    title: "Order to cash with review alternatives",
+    applicationNodeIds: [
+      "app:sales",
+      "app:approval",
+      "app:risk",
+      "app:shipping"
+    ],
+    transitions: [
+      {
+        fromApplicationNodeId: "app:sales",
+        toApplicationNodeId: "app:approval",
+        kind: "EXPECTED"
+      },
+      {
+        fromApplicationNodeId: "app:approval",
+        toApplicationNodeId: "app:shipping",
+        kind: "EXPECTED"
+      },
+      {
+        fromApplicationNodeId: "app:sales",
+        toApplicationNodeId: "app:risk",
+        kind: "ALLOWED_ALTERNATIVE"
+      },
+      {
+        fromApplicationNodeId: "app:risk",
+        toApplicationNodeId: "app:shipping",
+        kind: "ALLOWED_ALTERNATIVE"
+      },
+      {
+        fromApplicationNodeId: "app:sales",
+        toApplicationNodeId: "app:shipping",
+        kind: "ALLOWED_EXCEPTION",
+        exceptionCode: "FAST_TRACK"
+      }
+    ]
+  });
+  sops.publish({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    sopId: draft.sopId,
+    expectedRevision: draft.revision,
+    subjectId: "human:owner"
+  });
+
+  const provider = createEogBottleneckAnalysisProviderV020({
+    expectedSopService: sops
+  });
+
+  const alternativeFacts = [
+    traceTransitionFact(
+      "path:alt:1",
+      "flow-alt",
+      0,
+      "app:sales",
+      "app:risk"
+    ),
+    traceTransitionFact(
+      "path:alt:2",
+      "flow-alt",
+      1,
+      "app:risk",
+      "app:shipping"
+    ),
+    coverageFact(
+      "coverage:alt",
+      "flow-alt",
+      "app:sales"
+    )
+  ];
+  const alternative = await provider.analyze({
+    contractVersion: "0.2.0",
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    timeLens: {
+      contractVersion: "0.2.0",
+      primary: alternativeFacts[0].window
+    },
+    primaryFacts: alternativeFacts,
+    comparisonFacts: []
+  });
+  assert.equal(
+    alternative.some(item => item.analysisKind === "SOP_DEVIATION"),
+    false
+  );
+  const altConformance = alternative.find(
+    item => item.analysisKind === "SOP_CONFORMANCE"
+  );
+  assert.equal(altConformance.status, "OBSERVED");
+  assert.equal(altConformance.score, 1);
+  assert.equal(
+    altConformance.details.evidenceMode,
+    "ACTUAL_INSTANCE_PATH"
+  );
+
+  const exceptionFacts = [
+    traceTransitionFact(
+      "path:exception",
+      "flow-exception",
+      0,
+      "app:sales",
+      "app:shipping"
+    ),
+    coverageFact(
+      "coverage:exception",
+      "flow-exception",
+      "app:sales"
+    )
+  ];
+  const exception = await provider.analyze({
+    contractVersion: "0.2.0",
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    timeLens: {
+      contractVersion: "0.2.0",
+      primary: exceptionFacts[0].window
+    },
+    primaryFacts: exceptionFacts,
+    comparisonFacts: []
+  });
+  assert.equal(
+    exception.some(item => item.analysisKind === "SOP_DEVIATION"),
+    false
+  );
+  const allowedException = exception.find(
+    item => item.analysisKind === "SOP_EXCEPTION"
+  );
+  assert.ok(allowedException);
+  assert.equal(
+    allowedException.details.exceptionCode,
+    "FAST_TRACK"
+  );
+  const exceptionConformance = exception.find(
+    item => item.analysisKind === "SOP_CONFORMANCE"
+  );
+  assert.equal(exceptionConformance.status, "OBSERVED");
+  assert.equal(exceptionConformance.score, 1);
+});
+
+test("Incomplete actual-path coverage remains insufficient evidence", async () => {
+  const graphs = graphService();
+  const sops = createEogExpectedSopServiceV010({
+    store: createMemoryEogExpectedSopStoreV010(),
+    graphService: graphs,
+    now: () => new Date("2026-09-29T01:00:00.000Z")
+  });
+  const draft = sops.create({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    sopId: "sop:coverage",
+    title: "Coverage gate",
+    applicationNodeIds: [
+      "app:sales",
+      "app:approval",
+      "app:shipping"
+    ]
+  });
+  sops.publish({
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    sopId: draft.sopId,
+    expectedRevision: draft.revision,
+    subjectId: "human:owner"
+  });
+
+  const path = traceTransitionFact(
+    "path:partial",
+    "flow-partial",
+    0,
+    "app:sales",
+    "app:approval"
+  );
+  const coverage = coverageFact(
+    "coverage:partial",
+    "flow-partial",
+    "app:sales",
+    0.67,
+    "ACTIVE"
+  );
+  const provider = createEogBottleneckAnalysisProviderV020({
+    expectedSopService: sops
+  });
+  const overlays = await provider.analyze({
+    contractVersion: "0.2.0",
+    enterpriseId: "enterprise:demo",
+    graphId: "eog:primary",
+    timeLens: {
+      contractVersion: "0.2.0",
+      primary: path.window
+    },
+    primaryFacts: [path, coverage],
+    comparisonFacts: []
+  });
+
+  const conformance = overlays.find(
+    item => item.analysisKind === "SOP_CONFORMANCE"
+  );
+  assert.equal(conformance.status, "INSUFFICIENT_EVIDENCE");
+  assert.equal(conformance.score, undefined);
+  assert.equal(conformance.details.incompleteTraceCount, 1);
 });
