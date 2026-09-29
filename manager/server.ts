@@ -22,6 +22,7 @@ import {
   type PluginEventV010
 } from "./plugin-host-services.js";
 import { createHostRealtimeEventBusV010 } from "./realtime-event-bus.js";
+import { createTransportTrafficDiagnosticsV010 } from "./transport-traffic-diagnostics.js";
 import { createEvoRuntimeRevisionBridgeV010 } from "./evo-runtime-revision-bridge.js";
 import type { HostRealtimeEventV010 } from "../contracts/realtime-events.js";
 import {
@@ -786,6 +787,7 @@ const pluginEvents = createPluginEventBus();
 const realtimeEvents = createHostRealtimeEventBusV010({
   capacity: 4096
 });
+const transportTraffic = createTransportTrafficDiagnosticsV010();
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -2657,10 +2659,12 @@ function requestedLocale(url: URL): string {
 }
 
 function json(response: ServerResponse, status: number, body: unknown): void {
+  const serialized = JSON.stringify(body);
   response.statusCode = status;
   applyCors(response);
   response.setHeader("content-type", "application/json; charset=utf-8");
-  response.end(JSON.stringify(body));
+  transportTraffic.recordJson(Buffer.byteLength(serialized));
+  response.end(serialized);
 }
 
 function representationEtag(serialized: string): string {
@@ -2699,12 +2703,14 @@ function jsonVersioned(
   response.setHeader("etag", etag);
   response.setHeader("cache-control", "private, max-age=0, must-revalidate");
   if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+    transportTraffic.recordNotModified();
     response.statusCode = 304;
     response.end();
     return;
   }
   response.statusCode = status;
   response.setHeader("content-type", "application/json; charset=utf-8");
+  transportTraffic.recordJson(Buffer.byteLength(serialized));
   response.end(serialized);
 }
 
@@ -2712,9 +2718,12 @@ function writeSseEvent(
   response: ServerResponse,
   event: HostRealtimeEventV010
 ): void {
-  response.write("id: " + event.eventId + "\n");
-  response.write("event: " + event.type.toLowerCase() + "\n");
-  response.write("data: " + JSON.stringify(event) + "\n\n");
+  const frame =
+    "id: " + event.eventId + "\n"
+    + "event: " + event.type.toLowerCase() + "\n"
+    + "data: " + JSON.stringify(event) + "\n\n";
+  transportTraffic.recordSseEvent(Buffer.byteLength(frame));
+  response.write(frame);
 }
 
 async function readJson(request: IncomingMessage): Promise<unknown> {
@@ -2877,6 +2886,11 @@ function publishActionRealtimeEvents(
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
+    transportTraffic.recordRequest(
+      request.method ?? "UNKNOWN",
+      url.pathname,
+      request.headers["if-none-match"] !== undefined
+    );
 
     if (request.method === "OPTIONS") {
       response.statusCode = 204;
@@ -2947,7 +2961,10 @@ const server = createServer(async (request, response) => {
       response.setHeader("connection", "keep-alive");
       response.setHeader("x-accel-buffering", "no");
       response.flushHeaders?.();
-      response.write(": connected\n\n");
+      transportTraffic.openSse();
+      const connectedFrame = ": connected\n\n";
+      transportTraffic.recordSseHeartbeat(Buffer.byteLength(connectedFrame));
+      response.write(connectedFrame);
 
       if (
         replay.resetRequired
@@ -2976,15 +2993,21 @@ const server = createServer(async (request, response) => {
       });
       const heartbeat = setInterval(() => {
         if (!response.destroyed && !response.writableEnded) {
-          response.write(": heartbeat\n\n");
+          const frame = ": heartbeat\n\n";
+          transportTraffic.recordSseHeartbeat(Buffer.byteLength(frame));
+          response.write(frame);
         }
       }, 25000);
       heartbeat.unref?.();
 
+      let closed = false;
       const close = () => {
+        if (closed) return;
+        closed = true;
         clearInterval(heartbeat);
         unsubscribe();
         unregisterEvoRuntimeRevision?.();
+        transportTraffic.closeSse();
       };
       request.once("close", close);
       response.once("close", close);
@@ -2994,6 +3017,7 @@ const server = createServer(async (request, response) => {
       resolveRequestIdentitySession(request);
       return json(response, 200, {
         contractVersion: "0.1.0",
+        traffic: transportTraffic.snapshot(),
         eventBus: realtimeEvents.diagnostics(),
         evoRuntimeRevisionBridge: evoRuntimeRevisionBridge?.diagnostics() ?? null
       });
