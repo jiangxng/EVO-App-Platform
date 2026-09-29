@@ -321,6 +321,25 @@ export function validateEffectiveExperienceManifest(
     }
   });
 
+  const semanticRouteKeys = new Set<string>();
+  routes.forEach((route, routeIndex) => {
+    if (!isPlainObject(route)) return;
+    if (!isNonEmptyString(route.semanticId)) return;
+    const scope = isNonEmptyString(route.surfaceId)
+      ? route.surfaceId
+      : "shared";
+    const key = scope + "\u0000" + route.semanticId;
+    if (semanticRouteKeys.has(key)) {
+      diagnostics.push(diagnostic(
+        "EIDOS_APP_HOST_ROUTE_SEMANTIC_DUPLICATE",
+        `${root}.routes[${routeIndex}].semanticId`,
+        `semanticId '${route.semanticId}' is ambiguous within surface scope '${scope}'`
+      ));
+    } else {
+      semanticRouteKeys.add(key);
+    }
+  });
+
   const navigationIds = new Set<string>();
   navigation.forEach((item, navIndex) => {
     const path = `${root}.navigation[${navIndex}]`;
