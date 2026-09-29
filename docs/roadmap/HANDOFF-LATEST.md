@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-30-16`  
-**Snapshot time:** `2026-09-30T06:17:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-30-17`  
+**Snapshot time:** `2026-09-30T07:22:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a`
-- Deployment: `7074e0d0-c02a-45b3-83d4-fa7f9d258624`
+- Commit: `db61089df709a23eba60daa0e3cc8aa80c2fef03`
+- Deployment: `9675e20d-798d-4e55-ad71-1452776d3995`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -173,6 +173,10 @@ Not proved:
 - PR #191 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies.
 - PR #193 — MERGED_DEPLOYED_CI_PASS: Add dedicated EOG MOBILE_READ Entity Inspector over real governed Runtime Facts/Analysis with independent mobile-read runtime.
 - PR #194 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify EOG MOBILE_READ in real Chrome: 4 entities, 13 metrics/evidence, strict read-only controls, 18,243-byte mobile cold JS, 5,007-byte cold API/data, zero warm JS and no desktop-heavy dependency leakage.
+- PR #196 — MERGED_DEPLOYED_PRODUCTION_PASS: Extract cacheable shell CSS and establish browser security/CSP delivery baseline.
+- PR #197 — MERGED_PRODUCTION_PROOF_PASS: Certify shell CSS caching, security headers/CSP runtime and deployed compression behavior.
+- PR #198 — MERGED_DEPLOYED_CI_PASS: Add frontend/Host revision contract, stale-client update notice, sampled bounded RUM and persistent bounded old-revision immutable asset archive.
+- PR #199 — MERGED_DEPLOYED_PRODUCTION_PROOF_PASS: Create the second production revision and prove old-tab lazy module loading, stale-client headers and RUM ingestion across deployments.
 
 ## DO NOT repeat stale actions
 
@@ -279,6 +283,11 @@ Not proved:
 - Do not rebuild EOG MOBILE_READ as a responsive Diagram/Workbench page; it is an independent read-only Entity Inspector over shared EOG truth.
 - Do not add write controls to MOBILE_READ merely for feature parity; material interaction belongs on an explicitly admitted MOBILE_TASK or desktop Surface.
 - Do not evaluate mobile performance using JS bytes alone; route/API data bytes are now part of the Surface budget.
+- Do not use a manually persisted deploy-trigger variable as the preferred immutable asset revision when the actual deployment Git commit is available.
+- Do not claim immutable caching is safe if an already-open old tab can no longer lazy-load modules from its own revision after a new deployment.
+- Do not serve current bytes under an old immutable revision URL; retain exact old revision bytes or fail explicitly.
+- Do not force-reload compatible stale tabs merely because a newer frontend exists; expose update availability and preserve bounded frontend/backend contract skew.
+- Do not turn RUM into high-frequency request telemetry or authoritative enterprise state; it is sampled, bounded browser delivery evidence only.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -373,6 +382,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the real Chrome proof exactly: /m/operating-graph/observe, eog:primary, stale=false, 4 entities, 13 metrics, 13 evidence entries, 0 buttons/forms, mobile cold JS 18,243 bytes, warm JS 0, cold API/data 5,007 bytes
 - state desktop comparison as 92,690 cold JS bytes and 19,244 cold API/data bytes with explicit desktop override
 - state the next Web foundation slice as security/delivery hardening: immutable shell CSS, security headers/CSP, compression/version-skew and RUM/performance budgets
+- state Web security/delivery hardening PR #196 and production proof #197 as complete before discussing version-skew/RUM work
+- state PR #198 as merged/deployed at d66c37f9d19552fcbb93a24cb7acd3d1fd51269f with explicit Web revision headers, bounded sampled RUM and persistent old-revision asset archive
+- state PR #199 / production db61089df709a23eba60daa0e3cc8aa80c2fef03 as the first true cross-deployment immutable-asset proof
+- state the old-revision proof exactly: old d66c37f app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned 200 from the new deployment with immutable cache and ETag
+- state stale compatible client behavior exactly: x-evo-host-revision points to db61089d, x-evo-web-contract=0.1.0 and x-evo-client-update=available; no forced reload is required
+- state RUM as bounded non-authoritative evidence and the next Web slice as real-browser RUM/performance budget governance
 
 No previous ChatGPT transcript is required.
 
