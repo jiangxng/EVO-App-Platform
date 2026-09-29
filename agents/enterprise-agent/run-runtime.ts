@@ -219,6 +219,67 @@ export interface ResumableAgentRunExecutorV010 {
   }): Promise<AgentRunResumeResultV010>;
 }
 
+
+export interface DrainResumableAgentRunOptionsV010 {
+  maxAdvances?: number;
+  maxElapsedMs?: number;
+}
+
+export interface DrainResumableAgentRunResultV010
+  extends AgentRunResumeResultV010 {
+  advanceCount: number;
+  exhaustedBudget: boolean;
+}
+
+/**
+ * Advance a durable run inside the Host request boundary so normal multi-slice
+ * execution does not require one browser round trip per slice.
+ *
+ * Every individual slice is still persisted by the underlying executor, so a
+ * dropped request remains recoverable. The budget is deliberately bounded:
+ * authority-blocked/terminal runs stop immediately, while exceptionally long
+ * runs may return PAUSED and be resumed through the durable recovery path.
+ */
+export async function drainResumableAgentRunV010(
+  executor: ResumableAgentRunExecutorV010,
+  input: {
+    runId: string;
+    principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010;
+    requestContext?: PlatformRequestContextV010;
+  },
+  options: DrainResumableAgentRunOptionsV010 = {}
+): Promise<DrainResumableAgentRunResultV010> {
+  const maxAdvances = Math.max(1, Math.trunc(options.maxAdvances ?? 12));
+  const maxElapsedMs = Math.max(1_000, options.maxElapsedMs ?? 90_000);
+  const startedAt = Date.now();
+
+  let advanceCount = 0;
+  let result = await executor.resume(input);
+  advanceCount += result.advanced ? 1 : 0;
+
+  while (
+    result.run.state === "PAUSED"
+    && advanceCount < maxAdvances
+    && Date.now() - startedAt < maxElapsedMs
+  ) {
+    const next = await executor.resume(input);
+    result = next;
+    advanceCount += next.advanced ? 1 : 0;
+    if (!next.advanced && next.run.state === "PAUSED") break;
+  }
+
+  return {
+    ...result,
+    advanceCount,
+    exhaustedBudget: result.run.state === "PAUSED"
+      && (
+        advanceCount >= maxAdvances
+        || Date.now() - startedAt >= maxElapsedMs
+      )
+  };
+}
+
 export function createResumableAgentRunExecutorV010(
   dependencies: ResumableAgentRunExecutorDependenciesV010
 ): ResumableAgentRunExecutorV010 {
