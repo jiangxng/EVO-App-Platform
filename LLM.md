@@ -122,6 +122,14 @@ Do not spend conversation length explaining an obvious next engineering step whe
 
 MVP limits **horizontal feature expansion**, not vertical depth, representative data volume, compatibility coverage, or evidence quality inside an already accepted capability boundary.
 
+The governing principle is:
+
+> **Thin breadth, deep vertical slice.**
+
+Once a capability is accepted into the MVP boundary, its required technical foundation must be implemented deeply enough to become a durable platform layer rather than a disposable prototype. Do not use a generic concern about "over-design" as a reason to omit foundations that are necessary for correctness, performance, operability, security, deterministic LLM work, or future-compatible evolution of that in-scope vertical slice.
+
+This does **not** authorize speculative horizontal expansion. The test is whether the foundation is required to make the accepted vertical slice real, robust, observable, and long-lived.
+
 For a capability that is already in scope:
 
 - use the full representative dataset when it is available;
