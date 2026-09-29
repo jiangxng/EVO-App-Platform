@@ -127,15 +127,19 @@ export async function mountBrowserAppHostShell(
         actionHost: options.actionHost,
         localization,
         onNavigate: navigate,
-        async onActionResult(result, page) {
-          await options.onActionResult?.(result, page);
+        async onActionResult(result, page, renderHint) {
+          await options.onActionResult?.(result, page, renderHint);
           if (
             result !== null
             && typeof result === "object"
             && !Array.isArray(result)
             && (result as { ok?: unknown }).ok === true
           ) {
-            await refresh();
+            if (renderHint?.preserveMountedPage === true) {
+              await refreshChrome();
+            } else {
+              await refresh();
+            }
           }
         }
       });
@@ -212,6 +216,12 @@ export async function mountBrowserAppHostShell(
 
   const onHashChange = () => { void renderRoute(currentPath()); };
   window.addEventListener("hashchange", onHashChange);
+
+  async function refreshChrome(): Promise<AppHostSnapshotV010> {
+    const snapshot = await host.refresh();
+    renderNavigation(snapshot);
+    return snapshot;
+  }
 
   async function refresh(): Promise<AppHostSnapshotV010> {
     const snapshot = await host.refresh();
