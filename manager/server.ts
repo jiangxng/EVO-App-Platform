@@ -93,6 +93,9 @@ import {
   createEogExpectedSopActionHandlersV010
 } from "./enterprise-operating-graph-sop-actions.js";
 import {
+  createEogExpectedSopAgentToolRegistrationsV010
+} from "./enterprise-operating-graph-sop-agent-tools.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010
 } from "./enterprise-operating-graph-actions.js";
 import {
@@ -2342,6 +2345,11 @@ function createPersonalAgentToolCatalogV010(
     ...createEnterpriseOperatingGraphAgentToolRegistrationsV010({
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
+      principal,
+      context
+    }),
+    ...createEogExpectedSopAgentToolRegistrationsV010({
+      service: eogExpectedSopService,
       principal,
       context
     }),
