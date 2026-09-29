@@ -41,6 +41,10 @@ import {
   localizeAppHostPageDefinition
 } from "../vendor/eidos/src/localization/localize.js";
 import {
+  createMobileReviewActionRequestV010,
+  resolveMobileReviewActionV010
+} from "./mobile-review-queue-action.js";
+import {
   validateEffectiveExperienceManifest
 } from "../vendor/eidos/src/app-host/host.js";
 
@@ -157,7 +161,6 @@ function mountMobileReviewQueueV010(input: {
   root: HTMLElement;
   definition: ReviewQueueV010;
   actionHost: ActionHost;
-  sourceInteractionId: string;
   onReload: () => Promise<ReviewQueueV010>;
 }): { dispose(): void } {
   let disposed = false;
@@ -198,41 +201,44 @@ function mountMobileReviewQueueV010(input: {
     if (!button || !content.contains(button)) return;
 
     void (async () => {
-      const command = button.dataset.eidosCommand;
-      if (!command) return;
+      const itemId = button.dataset.eidosItemId;
+      const actionId = button.dataset.eidosReviewAction;
+      if (!itemId || !actionId) return;
 
-      const requiresConfirmation = button.dataset.eidosConfirm === "true";
+      let selection;
+      try {
+        selection = resolveMobileReviewActionV010(
+          definition,
+          itemId,
+          actionId
+        );
+      } catch (error) {
+        status.textContent = error instanceof Error
+          ? error.message
+          : String(error);
+        return;
+      }
+
       if (
-        requiresConfirmation
+        selection.action.requiresConfirmation === true
         && !window.confirm(button.textContent?.trim() || "Confirm action?")
       ) {
         return;
       }
 
-      const itemId = button.dataset.eidosItemId;
       const form = button.closest<HTMLFormElement>("[data-eidos-review-form]");
-      const values: Record<string, JsonValue> = {
-        ...(itemId ? { itemId } : {}),
-        confirmed: requiresConfirmation,
-        ...(form ? reviewFieldValues(form) : {})
-      };
+      const fields = form ? reviewFieldValues(form) : {};
 
       button.disabled = true;
       status.textContent = "Executing…";
 
       try {
-        const request: ActionRequestV010 = {
-          contractVersion: "0.1.0",
-          type: "command",
-          command: {
-            code: command,
-            inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
-          },
-          values,
-          sourceInteractionId: input.sourceInteractionId,
-          actionId: button.dataset.eidosReviewAction ?? command,
-          requiresConfirmation
-        };
+        const request = createMobileReviewActionRequestV010({
+          definition,
+          itemId,
+          actionId,
+          fieldValues: fields
+        });
         const result = await input.actionHost.execute(request);
         if (!result.ok) {
           status.textContent =
@@ -327,7 +333,6 @@ export async function mountMobileTaskRuntimeV010(options: {
       root,
       definition: localized,
       actionHost,
-      sourceInteractionId: localized.id,
       async onReload() {
         const nextDefinition = await options.source.loadPage(page);
         const nextLocalized = localizeAppHostPageDefinition(
