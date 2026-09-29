@@ -127,6 +127,11 @@ import {
   EOG_OBSERVATORY_PAGE_SOURCE
 } from "./enterprise-operating-graph-observatory-page.js";
 import {
+  createEnterpriseOperatingGraphMobileReadActionHandlerV010,
+  createEnterpriseOperatingGraphMobileReadPageV010,
+  EOG_MOBILE_READ_PAGE_SOURCE
+} from "./enterprise-operating-graph-mobile-read-page.js";
+import {
   createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020,
   createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020,
   createEnterpriseOperatingGraphSpatialObservatoryPageV020,
@@ -2489,6 +2494,13 @@ const actionRouter = createAppActionRouter(
         return context.locale;
       }
     }),
+    createEnterpriseOperatingGraphMobileReadActionHandlerV010({
+      graphService: enterpriseOperatingGraphService,
+      providers: enterpriseOperatingGraphObservatoryProviders,
+      locale(context) {
+        return context.locale;
+      }
+    }),
     createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
       graphService: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
@@ -3305,7 +3317,10 @@ const server = createServer(async (request, response) => {
           })
         );
       }
-      if (source === EOG_OBSERVATORY_PAGE_SOURCE) {
+      if (
+        source === EOG_OBSERVATORY_PAGE_SOURCE
+        || source === EOG_MOBILE_READ_PAGE_SOURCE
+      ) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
         );
@@ -3326,10 +3341,14 @@ const server = createServer(async (request, response) => {
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphObservatoryPageV020({
-            activeContext,
-            locale: requestedLocale(url)
-          })
+          source === EOG_MOBILE_READ_PAGE_SOURCE
+            ? createEnterpriseOperatingGraphMobileReadPageV010({
+                activeContext
+              })
+            : createEnterpriseOperatingGraphObservatoryPageV020({
+                activeContext,
+                locale: requestedLocale(url)
+              })
         );
       }
       if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
