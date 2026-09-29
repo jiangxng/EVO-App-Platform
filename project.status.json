@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Operating Graph — Operational Observatory v0.3",
+  "currentMilestone": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -337,7 +337,12 @@
     "enterprise-operating-graph-sop-expected-vs-actual-analysis",
     "enterprise-operating-graph-expected-sop-human-authority-v0-1",
     "enterprise-operating-graph-sop-transition-runtime-facts-v0-1",
-    "enterprise-operating-graph-sop-conformance-deviation-overlays-v0-1"
+    "enterprise-operating-graph-sop-conformance-deviation-overlays-v0-1",
+    "enterprise-operating-graph-sop-explicit-transition-semantics-v0-4",
+    "enterprise-operating-graph-sop-allowed-alternative-semantics-v0-4",
+    "enterprise-operating-graph-sop-allowed-exception-overlay-v0-4",
+    "enterprise-operating-graph-sop-actual-instance-path-runtime-facts-v0-4",
+    "enterprise-operating-graph-sop-trace-coverage-fail-closed-v0-4"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -351,9 +356,10 @@
     "trading-lite-stable-evo-application-id",
     "ledger-runtime-bookkeeping-aviator-compatible-expression-runtime",
     "ledger-runtime-configurator-ledger-runtime-burn-adapter",
-    "enterprise-operating-graph-sop-branch-parallel-exception-semantics-v0-4",
     "enterprise-operating-graph-sop-live-browser-trace-proof-v0-4",
-    "enterprise-operating-graph-role-responsibility-conformance-v0-4"
+    "enterprise-operating-graph-role-responsibility-conformance-v0-4",
+    "enterprise-operating-graph-sop-conditional-evidence-evaluation-v0-4",
+    "enterprise-operating-graph-sop-parallel-loop-evidence-model-v0-4"
   ],
   "firstReferenceApp": "trading-lite",
   "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C is now user-confirmed PASS. A public read/query result rendered back in Eidos remains. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract. The previously prepared local Proof C has now been user-confirmed PASS as a compatibility proof. The target EVO Ledger Runtime ingestion boundary is still generic BusinessDataSubmission rather than platform-owned /commands/capability orchestration. Architecture refinement: EVO does retain one minimal ApplicationAnchor/applicationId. BusinessData and current PostingRules must carry the same applicationId so EVO can route to the correct candidate rule set before condition evaluation. Rich Application lifecycle remains App Platform-owned. User-local Proof C evidence on 2026-09-24: Trading Lite Create Order returned ok=true with a real EVO commandExecutionId, businessDataId, postingInputId, postingSequence=4 and postingStatus=QUEUED. QUEUED is accepted as EVO-owned asynchronous posting continuation; no caller-side posting trigger was required.",
@@ -362,7 +368,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG Operational Observatory v0.3 now includes explicit Host Application ↔ EVO applicationId runtime identity through PR #151, EVO time-scoped execution trace readout through EVO PR #73, and Host-owned Expected SOP plus evidence-backed SOP_CONFORMANCE/SOP_DEVIATION analysis through PR #152. Actual paths are reconstructed from EVO flow_trace evidence and projected as sop.transition.count Runtime Facts; they are not inferred from event frequency. Expected SOPs are Draft/Published Host assets: Personal Agent may prepare Drafts, while only explicit Human confirmation can publish enterprise SOP truth. Both 2D and SPATIAL_3D Observatory views consume the same transition facts and analysis overlays. The active gate is now richer SOP semantics (conditional branches, allowed exceptions, parallelism and later role responsibility) plus a real browser/runtime trace proof over EVO data.",
+  "currentStep": "PR #154 is merged and CI-passed: Expected SOP now has explicit EXPECTED / ALLOWED_ALTERNATIVE / ALLOWED_EXCEPTION transition semantics; legacy linear SOPs normalize compatibly; EVO runtime traces are preserved as per-flow-instance sop.trace.transition plus sop.trace.coverage Runtime Facts while sop.transition.count remains aggregate observability; SOP_EXCEPTION is distinct from SOP_DEVIATION; incomplete or non-completed trace coverage and unproven conditional transitions fail closed to INSUFFICIENT_EVIDENCE. Agent remains Draft-only and Human publish authority is unchanged. The active gate is now deployment + real EVO-backed browser proof showing one Host Analysis Snapshot projects the same SOP conclusions into DIAGRAM_2D and SPATIAL_3D. Conditional evidence evaluation, parallel/loop semantics and role responsibility remain behind explicit evidence-model gates.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1608,8 +1614,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-29-03",
-    "snapshotAt": "2026-09-29T10:15:00+08:00",
+    "snapshotId": "EOG-2026-09-29-04",
+    "snapshotAt": "2026-09-29T10:30:52.597+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1629,7 +1635,7 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Enterprise Operating Graph — Operational Observatory v0.3",
+      "milestone": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
         "id": "p1.8-durable-conversation-lifecycle-retention",
@@ -1650,21 +1656,18 @@
         }
       },
       "openGate": {
-        "id": "enterprise-operating-graph-sop-semantics-live-proof-v0-4",
-        "status": "IMPLEMENTATION_READY",
-        "summary": "Expand the now-proven linear Expected SOP / Actual Trace foundation into practical enterprise SOP semantics and prove it with a real EVO-backed browser run. Add conditional/allowed branches and exception semantics first, then parallel/role responsibility only where runtime evidence can support them. Preserve Human publication authority, raw-trace provenance, and identical 2D/3D analysis results.",
+        "id": "enterprise-operating-graph-sop-live-proof-v0-4",
+        "status": "IMPLEMENTED_CI_PASS_LIVE_PROOF_PENDING",
+        "summary": "PR #154 has implemented explicit allowed/alternative/exception SOP transition semantics and per-instance Actual Path evidence with fail-closed coverage. The remaining gate is to deploy that mainline and prove the behavior against real EVO runtime traces in the browser, with identical conclusions projected into 2D and 3D from one Host Analysis Snapshot. Conditional evidence evaluation, parallel/loop and role responsibility remain deferred until their evidence models are explicit.",
         "authority": "docs/architecture/EOG-VIEW-STATE-AND-OBSERVATORY-v0.1.md",
         "acceptance": [
-          "run a real EVO-backed flow through the runtime trace endpoint and show the resulting Application transition facts in the EOG Observatory",
-          "prove the same SOP_CONFORMANCE and SOP_DEVIATION conclusions appear from one Host Analysis Snapshot in both DIAGRAM_2D and SPATIAL_3D projections",
-          "extend Expected SOP beyond one strict linear path with explicit conditional or allowed-alternative transitions; do not infer branches from observed frequency",
-          "represent allowed exceptions separately from deviations so known business exceptions are not mislabeled as SOP violations",
-          "keep Expected SOP Drafts non-authoritative and Human publish explicitly confirmed; Personal Agent remains proposal-only",
-          "preserve every conformance/deviation conclusion with evidenceFactIds, source/analyzer provenance and the selected Time Lens",
-          "do not treat missing trace coverage as compliance; incomplete path evidence must remain INSUFFICIENT_EVIDENCE",
-          "do not introduce renderer-specific SOP state or a separate 3D SOP model",
-          "only add parallel/loop/role-responsibility semantics when there is an explicit evidence model capable of validating them",
-          "keep EVO responsible for raw execution traces and App Platform responsible for canonical mapping, enterprise SOP authority and analysis"
+          "deploy main containing PR #154 to the production preview without regressing the current Personal Agent / EOG surfaces",
+          "run a real EVO-backed flow through /api/v1/runtime-traces/query and show sop.trace.transition plus sop.trace.coverage facts in the Host analysis input",
+          "prove SOP_CONFORMANCE, SOP_EXCEPTION and SOP_DEVIATION conclusions retain evidenceFactIds, analyzer provenance and the selected Time Lens",
+          "prove DIAGRAM_2D and SPATIAL_3D project the same Host Analysis Snapshot conclusions rather than recomputing renderer-specific SOP state",
+          "verify an incomplete or ACTIVE trace remains INSUFFICIENT_EVIDENCE rather than compliance",
+          "do not treat conditionRef as satisfied until a runtime evidence model can prove the condition",
+          "do not add parallel, loop or role-responsibility semantics until an explicit evidence model can validate them"
         ]
       },
       "productionPreview": {
@@ -1929,6 +1932,11 @@
         "pr": 73,
         "status": "MERGED_CI_PASS",
         "summary": "EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors."
+      },
+      {
+        "pr": 154,
+        "status": "MERGED_CI_PASS",
+        "summary": "Add explicit Expected/Allowed Alternative/Allowed Exception SOP transitions, preserve per-flow Actual Path and coverage facts from EVO traces, emit SOP_EXCEPTION separately from deviations, and fail closed when trace or conditional evidence is insufficient."
       }
     ],
     "doNotRepeat": [
@@ -1979,11 +1987,13 @@
       "Do not guess Host Application to EVO applicationId mappings from labels, node IDs or layout; define a stable canonical mapping before Application Runtime Facts are enabled.",
       "Do not reopen the first SPATIAL_3D Observatory or evidence-backed Bottleneck Provider as unresolved foundation work; PR #149 is merged and Platform CI passed.",
       "Do not let a Three.js/WebGL/WebGPU renderer own EOG semantic truth, Runtime Facts, Analysis Overlays or durable View State.",
-      "Do not infer Application runtime identity from presentation labels or EOG node IDs; the next gate requires an explicit Host Application ↔ EVO applicationId mapping.",
       "Do not reconstruct Actual SOP paths from aggregate event frequency or counts; EVO PR #73 provides explicit time-scoped flow_trace evidence.",
       "Do not let an Expected SOP Draft participate in conformance analysis; only Human-published SOPs are enterprise truth.",
       "Do not give Personal Agent a SOP publish capability; Agent may create/revise Drafts only.",
-      "Do not reopen Host Application ↔ EVO applicationId identity mapping or the first linear SOP conformance foundation as unresolved work; PR #151, EVO PR #73 and PR #152 are merged and CI-passed."
+      "Do not reopen Host Application ↔ EVO applicationId identity mapping or the first linear SOP conformance foundation as unresolved work; PR #151, EVO PR #73 and PR #152 are merged and CI-passed.",
+      "Do not reopen explicit allowed-alternative/allowed-exception SOP transitions or per-flow Actual Path evidence as unresolved foundation work; PR #154 is merged and Platform CI passed.",
+      "Do not collapse sop.trace.transition / sop.trace.coverage back into aggregate frequency when judging SOP conformance; aggregate counts are observability, per-instance path facts are evidence.",
+      "Do not treat conditionRef metadata as proof that a condition was satisfied; until condition evidence exists, observed conditional transitions remain INSUFFICIENT_EVIDENCE."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -1996,7 +2006,6 @@
       "state 3D as an operational God’s-eye observatory for enterprise activity, not a decorative renderer or separate enterprise model",
       "state raw Runtime Facts as distinct from derived bottleneck/SOP/anomaly conclusions",
       "state the Host-owned EVO BusinessData Adapter as no longer blocked by the Runtime Fact boundary but still deferred by current EOG Observatory priority",
-      "state Application Runtime Facts as pending an explicit Host Application ↔ EVO applicationId mapping; do not infer it",
       "do not require the previous ChatGPT transcript to continue",
       "state PR #149 as merged with the first Host-backed SPATIAL_3D Observatory and evidence-backed Bottleneck Analysis Provider",
       "state 3D as a projection over the same eog:primary Semantic Graph, Time Lens, Runtime Facts and Analysis Overlays as 2D; spatial placement/camera remain View State",
@@ -2005,7 +2014,11 @@
       "state EVO PR #73 as merged: Actual execution paths now have a time-scoped runtime trace read boundary over flow_trace evidence",
       "state PR #152 as merged: Expected SOP is Host-owned Draft/Published truth, Agent is proposal-only, Human publish is explicit, and SOP_CONFORMANCE/SOP_DEVIATION are evidence-backed overlays",
       "state sop.transition.count as a raw Runtime Fact derived from adjacent EVO trace steps, distinct from the derived SOP analysis conclusion",
-      "state the current open gate as richer SOP branch/allowed-exception semantics plus a real EVO-backed browser trace/conformance proof"
+      "state PR #154 as merged and CI-passed: explicit EXPECTED / ALLOWED_ALTERNATIVE / ALLOWED_EXCEPTION SOP transitions are implemented and legacy linear SOPs remain compatible",
+      "state sop.transition.count as aggregate Observatory data while sop.trace.transition and sop.trace.coverage preserve per-flow-instance Actual Path evidence for SOP analysis",
+      "state SOP_EXCEPTION as distinct from SOP_DEVIATION so Human-published known business exceptions are not mislabeled as violations",
+      "state incomplete/non-completed Actual Path coverage and unproven conditionRef transitions as INSUFFICIENT_EVIDENCE rather than compliance",
+      "state the current open gate as production deployment plus real EVO-backed 2D/3D browser proof for PR #154; conditional evidence, parallel/loop and role responsibility remain deferred"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -2458,8 +2471,8 @@
     ]
   },
   "prioritySequencing": {
-    "current": "Enterprise Operating Graph — Operational Observatory v0.3",
-    "rationale": "Human-confirmed priority: make EOG a real enterprise-operating observatory. The Runtime Fact source/provider boundary and first 2D Observatory are now implemented; proceed to the first 3D spatial projection and evidence-backed bottleneck analysis before broadening semantic node kinds or resuming downstream migration/training.",
+    "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
+    "rationale": "PR #154 closes the first practical SOP branch/allowed-exception and Actual Path evidence implementation slice. Priority now moves to real EVO-backed deployment/browser proof before adding conditional evidence evaluation, parallel/loop semantics or role responsibility. 3D remains an operational God’s-eye projection over the same Host-authoritative graph and Analysis Snapshot as 2D.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
