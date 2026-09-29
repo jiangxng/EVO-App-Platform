@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-02`  
-**Snapshot time:** `2026-09-29T09:15:00+08:00`  
+**Snapshot:** `EOG-2026-09-29-03`  
+**Snapshot time:** `2026-09-29T10:15:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -41,22 +41,22 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-sop-conformance-application-runtime-v0-3: IMPLEMENTATION_READY**
+**enterprise-operating-graph-sop-semantics-live-proof-v0-4: IMPLEMENTATION_READY**
 
-Add the first stable Host Application ↔ EVO applicationId runtime mapping and the first evidence-backed SOP expected-vs-actual Analysis Provider. Expected SOP semantics must remain Human-confirmed enterprise model data; actual paths and frequencies come from authorized Runtime Facts/event evidence. The same Time Lens, canonical targets and Analysis Overlay contracts must drive both 2D and SPATIAL_3D Observatory views.
+Expand the now-proven linear Expected SOP / Actual Trace foundation into practical enterprise SOP semantics and prove it with a real EVO-backed browser run. Add conditional/allowed branches and exception semantics first, then parallel/role responsibility only where runtime evidence can support them. Preserve Human publication authority, raw-trace provenance, and identical 2D/3D analysis results.
 
 Acceptance:
 
-- define an explicit stable Host Application ↔ EVO applicationId mapping contract; never infer mappings from labels, node IDs or layout
-- enable Application-target Runtime Facts only through Host-resolved canonical application mappings
-- represent expected SOP/path semantics as governed Human-confirmed enterprise model data rather than renderer state or hidden Agent memory
-- represent actual execution paths from time-scoped runtime/event evidence with provenance and stable target identities
-- emit SOP_CONFORMANCE and SOP_DEVIATION only as evidence-backed Analysis Overlays with evidenceFactIds and analyzer provenance
-- return INSUFFICIENT_EVIDENCE when event/path evidence is incomplete instead of inventing compliance conclusions
-- reuse identical Time Lens windows and canonical targets across 2D and SPATIAL_3D projections
-- preserve raw Runtime Facts separately from derived conformance/deviation scores
-- do not make 3D position, heat, animation or renderer state influence SOP truth or analysis
-- keep the existing bottleneck Provider replaceable and independent from SOP analysis
+- run a real EVO-backed flow through the runtime trace endpoint and show the resulting Application transition facts in the EOG Observatory
+- prove the same SOP_CONFORMANCE and SOP_DEVIATION conclusions appear from one Host Analysis Snapshot in both DIAGRAM_2D and SPATIAL_3D projections
+- extend Expected SOP beyond one strict linear path with explicit conditional or allowed-alternative transitions; do not infer branches from observed frequency
+- represent allowed exceptions separately from deviations so known business exceptions are not mislabeled as SOP violations
+- keep Expected SOP Drafts non-authoritative and Human publish explicitly confirmed; Personal Agent remains proposal-only
+- preserve every conformance/deviation conclusion with evidenceFactIds, source/analyzer provenance and the selected Time Lens
+- do not treat missing trace coverage as compliance; incomplete path evidence must remain INSUFFICIENT_EVIDENCE
+- do not introduce renderer-specific SOP state or a separate 3D SOP model
+- only add parallel/loop/role-responsibility semantics when there is an explicit evidence model capable of validating them
+- keep EVO responsible for raw execution traces and App Platform responsible for canonical mapping, enterprise SOP authority and analysis
 
 ## Current production preview
 
@@ -141,6 +141,9 @@ Not proved:
 - PR #145 — MERGED_CI_PASS: Connect the EOG Observatory to a real EVO Runtime Fact Provider over canonical EVO LedgerDefinition targets.
 - PR #146 — MERGED_CI_PASS: Add the first Human operational Observatory surface with Time Lens presets and real Runtime Fact overlays over the same 2D EOG view.
 - PR #149 — MERGED_CI_PASS: Add the first Host-backed SPATIAL_3D Enterprise Observatory and a conservative evidence-backed Bottleneck Analysis Provider; preserve spatial View State and fact-vs-analysis boundaries.
+- PR #151 — MERGED_CI_PASS: Add explicit durable Host Application ↔ EVO applicationId runtime identity mapping and fail-closed Application Runtime Fact resolution.
+- PR #152 — MERGED_CI_PASS: Add Host-owned Expected SOP authority, EVO trace-derived sop.transition.count Runtime Facts, proposal-only Agent SOP tools, Human-confirmed publish, and shared 2D/3D SOP conformance/deviation overlays.
+- PR #73 — MERGED_CI_PASS: EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors.
 
 ## DO NOT repeat stale actions
 
@@ -192,6 +195,10 @@ Not proved:
 - Do not reopen the first SPATIAL_3D Observatory or evidence-backed Bottleneck Provider as unresolved foundation work; PR #149 is merged and Platform CI passed.
 - Do not let a Three.js/WebGL/WebGPU renderer own EOG semantic truth, Runtime Facts, Analysis Overlays or durable View State.
 - Do not infer Application runtime identity from presentation labels or EOG node IDs; the next gate requires an explicit Host Application ↔ EVO applicationId mapping.
+- Do not reconstruct Actual SOP paths from aggregate event frequency or counts; EVO PR #73 provides explicit time-scoped flow_trace evidence.
+- Do not let an Expected SOP Draft participate in conformance analysis; only Human-published SOPs are enterprise truth.
+- Do not give Personal Agent a SOP publish capability; Agent may create/revise Drafts only.
+- Do not reopen Host Application ↔ EVO applicationId identity mapping or the first linear SOP conformance foundation as unresolved work; PR #151, EVO PR #73 and PR #152 are merged and CI-passed.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -226,8 +233,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state PR #149 as merged with the first Host-backed SPATIAL_3D Observatory and evidence-backed Bottleneck Analysis Provider
 - state 3D as a projection over the same eog:primary Semantic Graph, Time Lens, Runtime Facts and Analysis Overlays as 2D; spatial placement/camera remain View State
 - state bottleneck conclusions as Provider-derived and evidence-backed, with INSUFFICIENT_EVIDENCE used instead of guessing
-- state the current open gate as stable Host Application ↔ EVO applicationId runtime mapping plus SOP expected-vs-actual conformance/deviation analysis
-- state Application Runtime Facts as requiring explicit canonical mapping rather than inference from labels or node IDs
+- state PR #151 as merged: Host Application ↔ EVO applicationId runtime identity is explicit, durable and never inferred from labels/node IDs
+- state EVO PR #73 as merged: Actual execution paths now have a time-scoped runtime trace read boundary over flow_trace evidence
+- state PR #152 as merged: Expected SOP is Host-owned Draft/Published truth, Agent is proposal-only, Human publish is explicit, and SOP_CONFORMANCE/SOP_DEVIATION are evidence-backed overlays
+- state sop.transition.count as a raw Runtime Fact derived from adjacent EVO trace steps, distinct from the derived SOP analysis conclusion
+- state the current open gate as richer SOP branch/allowed-exception semantics plus a real EVO-backed browser trace/conformance proof
 
 No previous ChatGPT transcript is required.
 
