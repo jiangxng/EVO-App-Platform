@@ -181,7 +181,7 @@ async function runScenario(id, url, width, port) {
     });
 
     const cold = await navigateAndMeasure(client, url, false);
-    const dom = await evaluate(client, "(() => ({hash:location.hash,mobile:Boolean(document.querySelector('[data-evo-mobile-review-queue]')),workbench:Boolean(document.querySelector('[data-eidos-workbench]')),reviewId:document.querySelector('[data-eidos-review-queue]')?.getAttribute('data-review-id')??null,empty:Boolean(document.querySelector('[data-eidos-review-empty]'))}))()");
+    const dom = await evaluate(client, "(() => ({hash:location.hash,mobile:Boolean(document.querySelector('[data-evo-mobile-review-queue]')),workbench:Boolean(document.querySelector('[data-eidos-app-host-layout=workbench]')),reviewId:document.querySelector('[data-eidos-review-queue]')?.getAttribute('data-review-id')??null,empty:Boolean(document.querySelector('[data-eidos-review-empty]'))}))()");
     const warm = await navigateAndMeasure(client, url, true);
     client.close();
 
