@@ -366,7 +366,7 @@ export async function mountAgentWorkspaceShell(
   window.addEventListener("hashchange", hashHandler);
 
   async function refreshChrome(): Promise<AppHostSnapshotV010> {
-    const snapshot = await host.refresh();
+    const snapshot = host.getSnapshot();
     renderNavigation(snapshot);
     return snapshot;
   }

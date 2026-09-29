@@ -78,6 +78,7 @@ export interface MountSpatialObservatoryPageOptionsV010 {
 }
 
 export interface MountedSpatialObservatoryPageV010 {
+  refresh(): Promise<void>;
   dispose(): void;
 }
 
@@ -614,7 +615,8 @@ export function mountSpatialObservatoryPageV010(
   };
 
   const load = async (
-    preset?: SpatialObservatoryReadPresetV010
+    preset?: SpatialObservatoryReadPresetV010,
+    preserveViewState = false
   ): Promise<void> => {
     if (disposed) return;
     report("Loading…");
@@ -627,9 +629,18 @@ export function mountSpatialObservatoryPageV010(
       report(result.error?.message ?? "Failed to load spatial observatory.");
       return;
     }
+    const previousSelection = selected;
     state = stateFromResult(result.result);
-    orbit = initialOrbit(state.camera);
-    selected = undefined;
+    if (!preserveViewState) {
+      orbit = initialOrbit(state.camera);
+    }
+    selected = preserveViewState && previousSelection && (
+      previousSelection.kind === "object"
+        ? state.objects.some(item => item.id === previousSelection.id)
+        : state.links.some(item => item.id === previousSelection.id)
+    )
+      ? previousSelection
+      : undefined;
     renderToolbar();
     syncSceneDom();
     renderSelection();
@@ -711,6 +722,14 @@ export function mountSpatialObservatoryPageV010(
   });
 
   return {
+    refresh() {
+      return load(
+        page.readPresets?.find(preset =>
+          preset.id === activePresetId
+        ),
+        true
+      );
+    },
     dispose() {
       disposed = true;
       if (

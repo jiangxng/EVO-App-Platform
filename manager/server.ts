@@ -21,6 +21,8 @@ import {
   createPluginEventBus,
   type PluginEventV010
 } from "./plugin-host-services.js";
+import { createHostRealtimeEventBusV010 } from "./realtime-event-bus.js";
+import type { HostRealtimeEventV010 } from "../contracts/realtime-events.js";
 import {
   createProcessPluginRuntimeHostV010,
   inspectPluginRuntimeV010
@@ -780,6 +782,9 @@ const pluginStorage = pluginStorageStateFile
   ? createFilePluginStorageService(pluginStorageStateFile)
   : createMemoryPluginStorageService();
 const pluginEvents = createPluginEventBus();
+const realtimeEvents = createHostRealtimeEventBusV010({
+  capacity: 4096
+});
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -1166,6 +1171,20 @@ const manager = createAppManagerService(
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
     if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
+
+    realtimeEvents.publish({
+      topic: "host.topology",
+      type: "HOST_TOPOLOGY_CHANGED",
+      resource: {
+        kind: "host-topology",
+        resourceId: "host:topology"
+      },
+      payload: {
+        lifecycleType: event.type,
+        packageId: event.packageId,
+        ...(event.featureId ? { featureId: event.featureId } : {})
+      }
+    });
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
@@ -2584,8 +2603,9 @@ function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
   response.setHeader(
     "access-control-allow-headers",
-    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id"
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id"
   );
+  response.setHeader("access-control-expose-headers", "etag");
 }
 
 function requestedLocale(url: URL): string {
@@ -2597,6 +2617,40 @@ function json(response: ServerResponse, status: number, body: unknown): void {
   applyCors(response);
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.end(JSON.stringify(body));
+}
+
+function representationEtag(serialized: string): string {
+  return "\"" + createHash("sha256").update(serialized).digest("base64url") + "\"";
+}
+
+function jsonVersioned(
+  request: IncomingMessage,
+  response: ServerResponse,
+  status: number,
+  body: unknown
+): void {
+  const serialized = JSON.stringify(body);
+  const etag = representationEtag(serialized);
+  applyCors(response);
+  response.setHeader("etag", etag);
+  response.setHeader("cache-control", "private, max-age=0, must-revalidate");
+  if (request.headers["if-none-match"] === etag) {
+    response.statusCode = 304;
+    response.end();
+    return;
+  }
+  response.statusCode = status;
+  response.setHeader("content-type", "application/json; charset=utf-8");
+  response.end(serialized);
+}
+
+function writeSseEvent(
+  response: ServerResponse,
+  event: HostRealtimeEventV010
+): void {
+  response.write("id: " + event.eventId + "\n");
+  response.write("event: " + event.type.toLowerCase() + "\n");
+  response.write("data: " + JSON.stringify(event) + "\n\n");
 }
 
 async function readJson(request: IncomingMessage): Promise<unknown> {
@@ -2627,6 +2681,133 @@ function installPlanWithDigest(packageId: string) {
     .update(JSON.stringify({ plan, snapshot }))
     .digest("hex");
   return { ...plan, planDigest };
+}
+
+const EOG_REALTIME_WRITE_COMMANDS = new Set([
+  "enterprise-operating-graph.create",
+  "enterprise-operating-graph.operation.apply",
+  "enterprise-operating-graph.view.operation",
+  "enterprise-operating-graph.sop.create",
+  "enterprise-operating-graph.sop.revise",
+  "enterprise-operating-graph.sop.publish"
+]);
+
+const AGENT_RUN_REALTIME_WRITE_SUFFIXES = [
+  ".start",
+  ".resume",
+  ".cancel"
+];
+
+function publishActionRealtimeEvents(
+  action: AppActionRequestV010,
+  result: unknown,
+  requestContext: ReturnType<typeof createPlatformRequestContextV010>
+): void {
+  if (
+    result === null
+    || typeof result !== "object"
+    || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true
+  ) {
+    return;
+  }
+
+  const activeContext = requestContext.context?.activeContext;
+  const scope = {
+    principalSubjectId: requestContext.principal.subjectId,
+    ...(activeContext?.contextId
+      ? { contextId: activeContext.contextId }
+      : {}),
+    ...(activeContext?.kind === "ENTERPRISE"
+      ? { enterpriseId: activeContext.enterpriseId }
+      : {})
+  };
+  const resultValue = (result as { result?: unknown }).result;
+
+  if (EOG_REALTIME_WRITE_COMMANDS.has(action.command.code)) {
+    const resourceId = typeof action.values.resourceId === "string"
+      ? action.values.resourceId.trim()
+      : typeof action.values.graphId === "string"
+        ? action.values.graphId.trim()
+        : "";
+    if (resourceId) {
+      const revision = (
+        resultValue !== null
+        && typeof resultValue === "object"
+        && !Array.isArray(resultValue)
+        && typeof (resultValue as { revision?: unknown }).revision === "number"
+      )
+        ? (resultValue as { revision: number }).revision
+        : undefined;
+      realtimeEvents.publish({
+        topic: "resource.enterprise-operating-graph",
+        type: "RESOURCE_INVALIDATED",
+        scope: activeContext?.kind === "ENTERPRISE"
+          ? {
+              contextId: activeContext.contextId,
+              enterpriseId: activeContext.enterpriseId
+            }
+          : scope,
+        resource: {
+          kind: "enterprise-operating-graph",
+          resourceId,
+          ...(revision === undefined ? {} : { version: revision })
+        },
+        correlationId: action.sourceInteractionId,
+        payload: {
+          commandCode: action.command.code
+        }
+      });
+    }
+  }
+
+  const run = (
+    resultValue !== null
+    && typeof resultValue === "object"
+    && !Array.isArray(resultValue)
+    && (resultValue as { run?: unknown }).run !== null
+    && typeof (resultValue as { run?: unknown }).run === "object"
+    && !Array.isArray((resultValue as { run?: unknown }).run)
+  )
+    ? (resultValue as {
+        run: {
+          runId?: unknown;
+          state?: unknown;
+          lastEventId?: unknown;
+          sliceCount?: unknown;
+        };
+      }).run
+    : undefined;
+  const advancesRun = AGENT_RUN_REALTIME_WRITE_SUFFIXES.some(suffix =>
+    action.command.code.endsWith(suffix)
+  );
+  if (
+    advancesRun
+    && run
+    && typeof run.runId === "string"
+    && run.runId.trim()
+    && typeof run.state === "string"
+  ) {
+    realtimeEvents.publish({
+      topic: "agent.run",
+      type: "RUN_STATE_CHANGED",
+      scope,
+      resource: {
+        kind: "agent-run",
+        resourceId: run.runId.trim(),
+        ...(typeof run.lastEventId === "string"
+          ? { version: run.lastEventId }
+          : {})
+      },
+      correlationId: action.sourceInteractionId,
+      payload: {
+        state: run.state,
+        ...(typeof run.sliceCount === "number"
+          ? { sliceCount: run.sliceCount }
+          : {})
+      }
+    });
+  }
 }
 
 const server = createServer(async (request, response) => {
@@ -2662,6 +2843,71 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
     }
+
+    if (request.method === "GET" && url.pathname === "/v1/events") {
+      const session = resolveRequestIdentitySession(request);
+      const contextRegistry = createContextRegistryForSession(session);
+      const filter = {
+        principalSubjectId: session.principal.subjectId,
+        accessibleContextIds: new Set(
+          contextRegistry.list().map(item => item.contextId)
+        )
+      };
+      const rawLastEventId = request.headers["last-event-id"];
+      const lastEventId = Array.isArray(rawLastEventId)
+        ? rawLastEventId[0]
+        : rawLastEventId;
+      const replay = realtimeEvents.replayAfter(lastEventId, filter);
+
+      response.statusCode = 200;
+      applyCors(response);
+      response.setHeader("content-type", "text/event-stream; charset=utf-8");
+      response.setHeader("cache-control", "no-cache, no-transform");
+      response.setHeader("connection", "keep-alive");
+      response.setHeader("x-accel-buffering", "no");
+      response.flushHeaders?.();
+      response.write(": connected\n\n");
+
+      if (
+        replay.resetRequired
+        && replay.cursorEventId
+        && replay.cursorSequence !== undefined
+      ) {
+        writeSseEvent(response, {
+          contractVersion: "0.1.0",
+          eventId: replay.cursorEventId,
+          sequence: replay.cursorSequence,
+          topic: "host.realtime",
+          type: "RESET_REQUIRED",
+          occurredAt: new Date().toISOString(),
+          payload: {
+            reason: "EVENT_REPLAY_WINDOW_EXPIRED"
+          }
+        });
+      } else {
+        for (const event of replay.events) writeSseEvent(response, event);
+      }
+
+      const unsubscribe = realtimeEvents.subscribe(filter, event => {
+        if (!response.destroyed && !response.writableEnded) {
+          writeSseEvent(response, event);
+        }
+      });
+      const heartbeat = setInterval(() => {
+        if (!response.destroyed && !response.writableEnded) {
+          response.write(": heartbeat\n\n");
+        }
+      }, 25000);
+      heartbeat.unref?.();
+
+      const close = () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+      };
+      request.once("close", close);
+      response.once("close", close);
+      return;
+    }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
@@ -2694,7 +2940,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, manager.listCatalog());
     }
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
-      return json(response, 200, manager.getSnapshot());
+      return jsonVersioned(request, response, 200, manager.getSnapshot());
     }
     if (request.method === "GET" && url.pathname === "/v1/runtime/diagnostics") {
       const packageId = url.searchParams.get("packageId")?.trim();
@@ -2806,7 +3052,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { ok: true, providerId, health });
     }
     if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
-      return json(response, 200, [
+      return jsonVersioned(request, response, 200, [
         ...appPlatformLocalizationBundles,
         ...manager.listEffectiveLocalizationBundles()
       ]);
@@ -2843,7 +3089,12 @@ const server = createServer(async (request, response) => {
       return json(response, 200, searchHelpV010(helpCorpus, query, locale, context));
     }
     if (request.method === "GET" && url.pathname === "/v1/workbench/activities") {
-      return json(response, 200, manager.listEffectiveWorkbenchActivities());
+      return jsonVersioned(
+        request,
+        response,
+        200,
+        manager.listEffectiveWorkbenchActivities()
+      );
     }
     if (request.method === "GET" && url.pathname === "/v1/settings/effective") {
       return json(response, 200, {
@@ -2852,7 +3103,7 @@ const server = createServer(async (request, response) => {
       });
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
-      return json(response, 200, [
+      return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
@@ -3910,10 +4161,12 @@ const server = createServer(async (request, response) => {
           request.headers,
           requestedLocale(url)
         );
+        const result = await actionRouter.execute(action, requestContext);
+        publishActionRealtimeEvents(action, result, requestContext);
         return json(
           response,
           200,
-          await actionRouter.execute(action, requestContext)
+          result
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

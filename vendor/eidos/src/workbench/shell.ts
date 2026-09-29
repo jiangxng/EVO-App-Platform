@@ -2,6 +2,7 @@ import type { ActionHost } from "../adapters/ports.js";
 import { createEidosIconElement } from "../design-language/icons/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHost, AppHostSnapshotV010 } from "../app-host/contracts.js";
+import type { RealtimeEventV010 } from "../realtime/contracts.js";
 import {
   mountAppHostLoadedPage,
   type AppHostChatState,
@@ -37,6 +38,7 @@ export interface WorkbenchShell {
   setActivity(activityId: string): Promise<void>;
   toggleSidePanel(): Promise<void>;
   navigateWorkspace(target: string): Promise<void>;
+  notifyRealtimeEvent(event: RealtimeEventV010): boolean;
   dispose(): void;
 }
 
@@ -104,6 +106,9 @@ export async function mountWorkbenchShell(
   let workspaceMount: MountedAppHostPage | undefined;
   let workspaceMode: "app" | "web" = state.workspaceTarget.startsWith("/") ? "app" : "web";
   const chatStates = new Map<string, AppHostChatState>();
+  const pendingResourceRefreshes = new Set<string>();
+  let resourceRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+  let resourceRefreshInFlight = false;
 
   const hostText = (
     key: string,
@@ -470,8 +475,13 @@ export async function mountWorkbenchShell(
   async function setActivities(nextActivities: WorkbenchActivityV010[]): Promise<void> {
     if (disposed) throw new Error("EIDOS_WORKBENCH_DISPOSED");
 
+    const normalized = normalizeWorkbenchActivities(nextActivities);
+    if (JSON.stringify(normalized) === JSON.stringify(activities)) {
+      return;
+    }
+
     const previousActivity = activityById(state.activeActivityId);
-    activities = normalizeWorkbenchActivities(nextActivities);
+    activities = normalized;
 
     let active = activityById(state.activeActivityId);
     const activeWasRemoved = !active;
@@ -656,7 +666,7 @@ export async function mountWorkbenchShell(
   window.addEventListener("hashchange", hashHandler);
 
   async function refreshChrome(): Promise<AppHostSnapshotV010> {
-    const snapshot = await host.refresh();
+    const snapshot = host.getSnapshot();
     renderActivities();
     return snapshot;
   }
@@ -682,8 +692,74 @@ export async function mountWorkbenchShell(
     return snapshot;
   }
 
+  const mountHandlesResource = (
+    mount: MountedAppHostPage | undefined,
+    resourceId: string
+  ): boolean =>
+    Boolean(
+      mount?.refresh
+      && mount.resourceIds?.includes(resourceId)
+    );
+
+  const flushResourceRefreshes = async (): Promise<void> => {
+    if (disposed || resourceRefreshInFlight) return;
+    resourceRefreshInFlight = true;
+    try {
+      while (pendingResourceRefreshes.size > 0 && !disposed) {
+        const batch = [...pendingResourceRefreshes];
+        pendingResourceRefreshes.clear();
+
+        const sideNeedsRefresh = batch.some(resourceId =>
+          mountHandlesResource(sideMount, resourceId)
+        );
+        const workspaceNeedsRefresh = batch.some(resourceId =>
+          mountHandlesResource(workspaceMount, resourceId)
+        );
+
+        await Promise.all([
+          sideNeedsRefresh ? sideMount?.refresh?.() : undefined,
+          workspaceNeedsRefresh ? workspaceMount?.refresh?.() : undefined
+        ]);
+      }
+    } finally {
+      resourceRefreshInFlight = false;
+    }
+  };
+
+  const scheduleResourceRefresh = (): void => {
+    if (resourceRefreshTimer !== undefined || disposed) return;
+    resourceRefreshTimer = setTimeout(() => {
+      resourceRefreshTimer = undefined;
+      void flushResourceRefreshes();
+    }, 50);
+  };
+
+  function notifyRealtimeEvent(event: RealtimeEventV010): boolean {
+    if (disposed) return false;
+    if (event.type === "RESET_REQUIRED") {
+      void refresh();
+      return true;
+    }
+    const resourceId = event.resource?.resourceId;
+    if (!resourceId) return false;
+
+    const handled =
+      mountHandlesResource(sideMount, resourceId)
+      || mountHandlesResource(workspaceMount, resourceId);
+    if (!handled) return false;
+
+    pendingResourceRefreshes.add(resourceId);
+    scheduleResourceRefresh();
+    return true;
+  }
+
   function dispose(): void {
     disposed = true;
+    if (resourceRefreshTimer !== undefined) {
+      clearTimeout(resourceRefreshTimer);
+      resourceRefreshTimer = undefined;
+    }
+    pendingResourceRefreshes.clear();
     sideMount?.dispose();
     workspaceMount?.dispose();
     unsubscribeHost();
@@ -717,6 +793,7 @@ export async function mountWorkbenchShell(
     setActivity,
     toggleSidePanel,
     navigateWorkspace,
+    notifyRealtimeEvent,
     dispose
   };
 }

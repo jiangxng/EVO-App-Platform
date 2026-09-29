@@ -218,7 +218,7 @@ export async function mountBrowserAppHostShell(
   window.addEventListener("hashchange", onHashChange);
 
   async function refreshChrome(): Promise<AppHostSnapshotV010> {
-    const snapshot = await host.refresh();
+    const snapshot = host.getSnapshot();
     renderNavigation(snapshot);
     return snapshot;
   }
