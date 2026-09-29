@@ -53,8 +53,11 @@
     "src/setup-flow/contracts.ts",
     "src/setup-flow/index.ts",
     "src/setup-flow/render.ts",
+    "src/spatial/contracts.ts",
+    "src/spatial/engine.ts",
     "src/spatial/index.ts",
     "src/spatial/surface.ts",
+    "src/spatial/three-adapter.ts",
     "src/workbench/contracts.ts",
     "src/workbench/index.ts",
     "src/workbench/shell.ts"
