@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-12`  
-**Snapshot time:** `2026-09-29T17:53:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-13`  
+**Snapshot time:** `2026-09-29T20:18:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `ba7a4fcdf66646d072b63e3594d99acb3d0e317d`
-- Deployment: `21f1797b-f08d-472b-8f2f-d3a4856a4ec2`
+- Commit: `61bf923466a118b4fb6b2ed938c2b41dc9302b52`
+- Deployment: `f2340000-460a-4c23-b173-652aac3f0138`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -165,6 +165,8 @@ Not proved:
 - PR #176 — MERGED_PRODUCTION_BROWSER_PROOF_PASS: Certify Surface routing in real headless Chrome: automatic mobile task routing, explicit desktop override, desktop-only setup handoff, and no SSE on handoff.
 - PR #179 — MERGED_DEPLOYED_CI_PASS: Split browser runtime by Surface: minimal gateway, dedicated MOBILE_TASK Personal Agent runtime and lazy desktop Workbench runtime; preserve semantic Action boundary.
 - PR #180 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Use real Chrome CDP to certify Surface-specific dependency graphs and cold/warm JS transfer budgets in production.
+- PR #182 — MERGED_DEPLOYED_CI_PASS: Adopt Eidos P3 lifecycle resilience: bfcache-safe disposal, abortable/superseding route reads, offline freshness notice and SSE lifecycle recovery.
+- PR #183 — MERGED_PRODUCTION_PROOF_PASS: Certify real Chrome bfcache restore, zero action replay, SSE reconnect and offline/online freshness behavior against production.
 
 ## DO NOT repeat stale actions
 
@@ -256,6 +258,11 @@ Not proved:
 - Do not load Diagram/Spatial/desktop Workbench modules into the Personal Agent MOBILE_TASK dependency graph.
 - Do not judge code splitting only from source imports; production acceptance requires real browser network evidence.
 - Do not claim warm-cache efficiency from request count alone; encoded transfer bytes are the relevant proof and are currently 0 for the measured immutable JS graph.
+- Do not treat every pagehide as a real unload; pagehide.persisted=true is a bfcache freeze and mounted Surface state must be preserved.
+- Do not allow an older route/data request to overwrite a newer navigation; abort superseded requests and reject stale generations.
+- Do not silently label last-known offline data as current; freshness/connectivity state must be explicit.
+- Do not reconnect background realtime by fixed polling; SSE resumes from cursor/version when the page becomes active again.
+- Do not rebuild Personal Agent as the next mobile vertical; it is already production-proven. P4 starts with Review Queue / approval decisions.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -333,6 +340,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state MOBILE_TASK as not requesting desktop-workbench-runtime, Eidos Workbench, Diagram or Spatial modules
 - state HANDOFF as requesting neither mobile nor desktop Surface runtime
 - state the next Web foundation slice as P3 Browser Lifecycle + Resilience, not a broad mobile page port
+- state Eidos PR #59 / merge 31a81c92562025d5a2d571e443e4bb8156990010 as the upstream P3 Browser Lifecycle + Resilience foundation
+- state App Platform PR #182 as merged, CI-passed and production-deployed at 61bf923466a118b4fb6b2ed938c2b41dc9302b52 / Railway f2340000-460a-4c23-b173-652aac3f0138
+- state the real Chrome P3 proof exactly: bfcache DOM preserved, pagehide.persisted=true, pageshow.persisted=true, actionDelta=0, SSE 1->2 across restore, offline notice visible, online recovery true
+- state superseded route/data reads as AbortController + generation guarded; stale completions must not win
+- state P4 Web Delivery as Mobile Verticals, with Review Queue / approval decisions next because Personal Agent MOBILE_TASK is already complete
 
 No previous ChatGPT transcript is required.
 
