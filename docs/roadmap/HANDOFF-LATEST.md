@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-15`  
-**Snapshot time:** `2026-09-29T23:58:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-30-16`  
+**Snapshot time:** `2026-09-30T06:17:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `9373efd9d77a1b25805ded240956bf40ad65625d`
-- Deployment: `5aad75b5-1e10-4887-8e8a-119e2873f795`
+- Commit: `0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a`
+- Deployment: `7074e0d0-c02a-45b3-83d4-fa7f9d258624`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -171,6 +171,8 @@ Not proved:
 - PR #188 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies.
 - PR #190 — MERGED_DEPLOYED_CI_PASS: Add dedicated MOBILE_TASK Follow-up Task Inbox over real governed Personal Agent planning state using Eidos Task Inbox and Host action authority.
 - PR #191 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies.
+- PR #193 — MERGED_DEPLOYED_CI_PASS: Add dedicated EOG MOBILE_READ Entity Inspector over real governed Runtime Facts/Analysis with independent mobile-read runtime.
+- PR #194 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify EOG MOBILE_READ in real Chrome: 4 entities, 13 metrics/evidence, strict read-only controls, 18,243-byte mobile cold JS, 5,007-byte cold API/data, zero warm JS and no desktop-heavy dependency leakage.
 
 ## DO NOT repeat stale actions
 
@@ -274,6 +276,9 @@ Not proved:
 - Do not seed or fabricate Follow-up tasks merely to make MOBILE_TASK Task Inbox production proof non-empty; an authoritative empty inbox is valid evidence.
 - Do not treat Task Inbox presentation state as enterprise business truth or infer domain completion from READY/BLOCKED/EXCEPTION UI state.
 - Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority.
+- Do not rebuild EOG MOBILE_READ as a responsive Diagram/Workbench page; it is an independent read-only Entity Inspector over shared EOG truth.
+- Do not add write controls to MOBILE_READ merely for feature parity; material interaction belongs on an explicitly admitted MOBILE_TASK or desktop Surface.
+- Do not evaluate mobile performance using JS bytes alone; route/API data bytes are now part of the Surface budget.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -364,6 +369,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state PR #191 production proof exactly: mobile route /m/enterprise-agent/follow-ups, inbox personal-agent.follow-ups.mobile, current real inbox empty with itemCount=0, mobile cold JS 39,653 bytes, desktop cold JS 92,537 bytes, both warm JS 0, and no mobile desktop-runtime/Workbench/Diagram/Spatial loading
 - state the empty production Task Inbox as valid governed evidence rather than a reason to create synthetic tasks
 - state the next Web Delivery vertical as MOBILE_READ KPI/entity inspection over a real governed read model
+- state EOG MOBILE_READ as production PASS at commit 0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a / deployment 7074e0d0-c02a-45b3-83d4-fa7f9d258624
+- state the real Chrome proof exactly: /m/operating-graph/observe, eog:primary, stale=false, 4 entities, 13 metrics, 13 evidence entries, 0 buttons/forms, mobile cold JS 18,243 bytes, warm JS 0, cold API/data 5,007 bytes
+- state desktop comparison as 92,690 cold JS bytes and 19,244 cold API/data bytes with explicit desktop override
+- state the next Web foundation slice as security/delivery hardening: immutable shell CSS, security headers/CSP, compression/version-skew and RUM/performance budgets
 
 No previous ChatGPT transcript is required.
 
