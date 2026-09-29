@@ -101,7 +101,12 @@ function ownJs(url) {
   }
 }
 
-async function navigateAndMeasure(client, url, reload = false) {
+async function navigateAndMeasure(
+  client,
+  url,
+  readyExpression,
+  reload = false
+) {
   const responses = new Map();
   const finished = new Map();
   const offResponse = client.on("Network.responseReceived", params => {
@@ -122,11 +127,7 @@ async function navigateAndMeasure(client, url, reload = false) {
     loaded,
     delay(12000).then(() => { throw new Error("Page load timeout"); })
   ]);
-  await waitFor(
-    client,
-    "Boolean(document.querySelector('[data-eidos-task-inbox]'))",
-    12000
-  );
+  await waitFor(client, readyExpression, 12000);
   await delay(700);
 
   offResponse();
@@ -151,7 +152,7 @@ async function navigateAndMeasure(client, url, reload = false) {
   return { assets, encodedJsBytes };
 }
 
-async function runScenario(id, url, width, port) {
+async function runScenario(id, url, width, port, readyExpression) {
   const profile = "/tmp/evo-mobile-task-inbox-" + id + "-" + process.pid;
   const proc = spawn(chrome, [
     "--headless=new",
@@ -180,9 +181,30 @@ async function runScenario(id, url, width, port) {
       mobile: width < 768
     });
 
-    const cold = await navigateAndMeasure(client, url, false);
-    const dom = await evaluate(client, "(() => ({hash:location.hash,mobile:Boolean(document.querySelector('[data-evo-mobile-task-inbox-queue]')),workbench:Boolean(document.querySelector('[data-eidos-app-host-layout=workbench]')),reviewId:document.querySelector('[data-eidos-review-queue]')?.getAttribute('data-review-id')??null,empty:Boolean(document.querySelector('[data-eidos-review-empty]'))}))()");
-    const warm = await navigateAndMeasure(client, url, true);
+    const cold = await navigateAndMeasure(
+      client,
+      url,
+      readyExpression,
+      false
+    );
+    const dom = await evaluate(
+      client,
+      "(() => ({"
+        + "hash:location.hash,"
+        + "mobile:Boolean(document.querySelector('[data-evo-mobile-task-inbox]')),"
+        + "workbench:Boolean(document.querySelector('[data-eidos-app-host-layout=workbench]')),"
+        + "inboxId:document.querySelector('[data-eidos-task-inbox]')?.getAttribute('data-task-inbox-id')??null,"
+        + "empty:Boolean(document.querySelector('[data-eidos-task-empty]')),"
+        + "itemCount:document.querySelectorAll('[data-eidos-task-item]').length,"
+        + "states:Array.from(document.querySelectorAll('[data-eidos-task-item]')).map(x=>x.getAttribute('data-state'))"
+        + "}))()"
+    );
+    const warm = await navigateAndMeasure(
+      client,
+      url,
+      readyExpression,
+      true
+    );
     client.close();
 
     return {
@@ -202,13 +224,15 @@ const mobile = await runScenario(
   "mobile",
   host + "/#/enterprise-agent/follow-ups",
   390,
-  9251
+  9251,
+  "Boolean(document.querySelector('[data-eidos-task-inbox]'))"
 );
 const desktop = await runScenario(
   "desktop",
   host + "/?surface=desktop#/enterprise-agent/follow-ups",
   390,
-  9252
+  9252,
+  "Boolean(document.querySelector('[data-eidos-app-host-layout=workbench]'))"
 );
 
 if (mobile.dom.hash !== "#/m/enterprise-agent/follow-ups") {
