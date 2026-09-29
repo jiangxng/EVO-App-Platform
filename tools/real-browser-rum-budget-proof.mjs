@@ -12,7 +12,7 @@ const expectedRevision = process.env.EXPECTED_REVISION?.trim();
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function waitJson(url, timeoutMs = 10000) {
+async function waitJson(url, timeoutMs = 30000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     try {
