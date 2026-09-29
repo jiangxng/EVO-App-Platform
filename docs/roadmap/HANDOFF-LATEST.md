@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-13`  
-**Snapshot time:** `2026-09-29T20:18:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-14`  
+**Snapshot time:** `2026-09-29T21:28:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `61bf923466a118b4fb6b2ed938c2b41dc9302b52`
-- Deployment: `f2340000-460a-4c23-b173-652aac3f0138`
+- Commit: `6cf1061983e08a3c07652b5e08c994890e4c6861`
+- Deployment: `69f58d70-74a0-4f95-92a8-84379560db1`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -167,6 +167,8 @@ Not proved:
 - PR #180 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Use real Chrome CDP to certify Surface-specific dependency graphs and cold/warm JS transfer budgets in production.
 - PR #182 — MERGED_DEPLOYED_CI_PASS: Adopt Eidos P3 lifecycle resilience: bfcache-safe disposal, abortable/superseding route reads, offline freshness notice and SSE lifecycle recovery.
 - PR #183 — MERGED_PRODUCTION_PROOF_PASS: Certify real Chrome bfcache restore, zero action replay, SSE reconnect and offline/online freshness behavior against production.
+- PR #185 — MERGED_DEPLOYED_CI_PASS: Add dedicated MOBILE_TASK Memory Review over the same semantic review route and Host Human authority as desktop.
+- PR #188 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies.
 
 ## DO NOT repeat stale actions
 
@@ -263,6 +265,10 @@ Not proved:
 - Do not silently label last-known offline data as current; freshness/connectivity state must be explicit.
 - Do not reconnect background realtime by fixed polling; SSE resumes from cursor/version when the page becomes active again.
 - Do not rebuild Personal Agent as the next mobile vertical; it is already production-proven. P4 starts with Review Queue / approval decisions.
+- Do not reopen MOBILE_TASK Memory Review as pending; PR #185 is production deployed and PR #188 real-Chrome proof passed.
+- Do not implement mobile Review Queue by shrinking desktop Workbench; the independent mobile runtime and byte budget are already proven.
+- Do not weaken Human confirmation for material Memory accept/reject just because the action is presented on mobile.
+- Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -345,6 +351,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the real Chrome P3 proof exactly: bfcache DOM preserved, pagehide.persisted=true, pageshow.persisted=true, actionDelta=0, SSE 1->2 across restore, offline notice visible, online recovery true
 - state superseded route/data reads as AbortController + generation guarded; stale completions must not win
 - state P4 Web Delivery as Mobile Verticals, with Review Queue / approval decisions next because Personal Agent MOBILE_TASK is already complete
+- state P4 MOBILE_TASK Memory Review as production PASS: implementation PR #185 / deployment 69f58d70-74a0-4f95-92a8-84379560db1 and corrected production proof PR #188
+- state mobile Review cold JS as 36,881 bytes, desktop as 90,637 bytes, both warm JS transfer 0, and mobile as loading no Workbench/Diagram/Spatial/desktop runtime
+- state Review Queue desktop/mobile as the same semantic route and Host authority with Surface-specific rendering
+- state the next Web P4 slice as Task Inbox for notifications/exceptions/assigned work, beginning with real Personal Agent Follow-up planning state rather than demo data
 
 No previous ChatGPT transcript is required.
 
