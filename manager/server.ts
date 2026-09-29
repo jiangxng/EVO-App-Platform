@@ -466,6 +466,12 @@ import {
   resolveBrowserAssetRequestV010
 } from "./web-delivery-cache.js";
 import { webSecurityHeadersV010 } from "./web-security-headers.js";
+import { createWebAssetArchiveV010 } from "./web-asset-archive.js";
+import {
+  applyWebRevisionHeadersV010,
+  normalizeClientRevisionV010
+} from "./web-version-skew.js";
+import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createSettingsExperienceManifest,
@@ -805,12 +811,30 @@ const realtimeEvents = createHostRealtimeEventBusV010({
   capacity: 4096
 });
 const transportTraffic = createTransportTrafficDiagnosticsV010();
+const webPerformance = createWebPerformanceStoreV010(
+  Number.parseInt(process.env.APP_PLATFORM_WEB_PERFORMANCE_CAPACITY ?? "500", 10)
+);
 const appHostAssetRevision = normalizeAssetRevisionV010(
   process.env.APP_PLATFORM_ASSET_REVISION
-  ?? process.env.APP_PLATFORM_DEPLOY_REVISION
   ?? process.env.RAILWAY_GIT_COMMIT_SHA
+  ?? process.env.APP_PLATFORM_DEPLOY_REVISION
 );
 const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
+const webAssetArchive = createWebAssetArchiveV010({
+  currentRevision: appHostAssetRevision,
+  sourceRoot: fileURLToPath(new URL("../", import.meta.url)),
+  archiveRoot:
+    process.env.APP_PLATFORM_WEB_ASSET_ARCHIVE_DIR?.trim()
+    || (lifecycleStateFile
+      ? join(dirname(lifecycleStateFile), "web-assets")
+      : undefined),
+  shellCss: appHostShellCss,
+  retention: Number.parseInt(
+    process.env.APP_PLATFORM_WEB_ASSET_RETENTION ?? "5",
+    10
+  )
+});
+let webAssetArchiveError: string | undefined;
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -2685,9 +2709,12 @@ function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
   response.setHeader(
     "access-control-allow-headers",
-    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id"
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id,x-evo-client-revision"
   );
-  response.setHeader("access-control-expose-headers", "etag");
+  response.setHeader(
+    "access-control-expose-headers",
+    "etag,x-evo-host-revision,x-evo-web-contract,x-evo-client-update"
+  );
 }
 
 function requestedLocale(url: URL): string {
@@ -2766,6 +2793,22 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+async function readJsonLimited(
+  request: IncomingMessage,
+  maxBytes: number
+): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += bytes.length;
+    if (total > maxBytes) throw new Error("REQUEST_BODY_TOO_LARGE");
+    chunks.push(bytes);
   }
   if (chunks.length === 0) return {};
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2923,6 +2966,11 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
+    applyWebRevisionHeadersV010(
+      (name, value) => response.setHeader(name, value),
+      appHostAssetRevision,
+      normalizeClientRevisionV010(request.headers["x-evo-client-revision"])
+    );
     transportTraffic.recordRequest(
       request.method ?? "UNKNOWN",
       url.pathname,
@@ -2951,6 +2999,48 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname.startsWith("/assets/")) {
+      const rawAssetPath = url.pathname.slice("/assets/".length);
+      const firstSlash = rawAssetPath.indexOf("/");
+      if (firstSlash > 0) {
+        const requestedRevision = rawAssetPath.slice(0, firstSlash);
+        const archivedAssetPath = rawAssetPath.slice(firstSlash + 1);
+        if (
+          requestedRevision !== appHostAssetRevision
+          && archivedAssetPath
+        ) {
+          const archivedBytes = await webAssetArchive.readArchived(
+            requestedRevision,
+            archivedAssetPath
+          );
+          if (archivedBytes) {
+            const contentType = archivedAssetPath.endsWith(".js")
+              ? "text/javascript; charset=utf-8"
+              : archivedAssetPath.endsWith(".css")
+                ? "text/css; charset=utf-8"
+                : undefined;
+            if (!contentType) {
+              return json(response, 404, { code: "ASSET_NOT_FOUND" });
+            }
+            const etag = "\"" + createHash("sha256")
+              .update(archivedBytes)
+              .digest("base64url") + "\"";
+            response.setHeader("etag", etag);
+            response.setHeader(
+              "cache-control",
+              "public, max-age=31536000, immutable"
+            );
+            response.setHeader("content-type", contentType);
+            if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+              transportTraffic.recordNotModified();
+              response.statusCode = 304;
+              return response.end();
+            }
+            response.statusCode = 200;
+            return response.end(archivedBytes);
+          }
+        }
+      }
+
       const asset = resolveBrowserAssetRequestV010(
         url.pathname,
         appHostAssetRevision
@@ -2986,6 +3076,49 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/web-delivery/diagnostics") {
+      resolveRequestIdentitySession(request);
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        currentRevision: appHostAssetRevision,
+        archivedRevisions: await webAssetArchive.revisions(),
+        archiveEnabled: Boolean(webAssetArchive.archiveRoot),
+        archiveError: webAssetArchiveError ?? null,
+        performance: webPerformance.diagnostics()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/web-performance") {
+      resolveRequestIdentitySession(request);
+      let body: unknown;
+      try {
+        body = await readJsonLimited(request, 32 * 1024);
+      } catch (error) {
+        return json(response, 413, {
+          ok: false,
+          error: {
+            code: "WEB_PERFORMANCE_PAYLOAD_REJECTED",
+            message: error instanceof Error ? error.message : String(error)
+          }
+        });
+      }
+      if (!webPerformance.record(body)) {
+        return json(response, 422, {
+          ok: false,
+          error: {
+            code: "WEB_PERFORMANCE_SAMPLE_INVALID",
+            message: "Invalid Web performance sample."
+          }
+        });
+      }
+      return json(response, 202, { ok: true });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/web-performance/diagnostics") {
+      resolveRequestIdentitySession(request);
+      return json(response, 200, webPerformance.diagnostics());
     }
 
     if (request.method === "GET" && url.pathname === "/v1/events") {
@@ -4470,6 +4603,13 @@ const server = createServer(async (request, response) => {
     });
   }
 });
+
+try {
+  await webAssetArchive.ensureCurrent();
+} catch (error) {
+  webAssetArchiveError = error instanceof Error ? error.message : String(error);
+  console.error("Web asset archive initialization failed.", error);
+}
 
 const port = Number(process.env.PORT ?? 4100);
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
