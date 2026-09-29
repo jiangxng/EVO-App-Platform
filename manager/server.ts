@@ -2811,7 +2811,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, manager.listCatalog());
     }
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
-      return json(response, 200, manager.getSnapshot());
+      return jsonVersioned(request, response, 200, manager.getSnapshot());
     }
     if (request.method === "GET" && url.pathname === "/v1/runtime/diagnostics") {
       const packageId = url.searchParams.get("packageId")?.trim();
@@ -2923,7 +2923,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { ok: true, providerId, health });
     }
     if (request.method === "GET" && url.pathname === "/v1/localization/bundles") {
-      return json(response, 200, [
+      return jsonVersioned(request, response, 200, [
         ...appPlatformLocalizationBundles,
         ...manager.listEffectiveLocalizationBundles()
       ]);
@@ -2960,7 +2960,12 @@ const server = createServer(async (request, response) => {
       return json(response, 200, searchHelpV010(helpCorpus, query, locale, context));
     }
     if (request.method === "GET" && url.pathname === "/v1/workbench/activities") {
-      return json(response, 200, manager.listEffectiveWorkbenchActivities());
+      return jsonVersioned(
+        request,
+        response,
+        200,
+        manager.listEffectiveWorkbenchActivities()
+      );
     }
     if (request.method === "GET" && url.pathname === "/v1/settings/effective") {
       return json(response, 200, {
@@ -2969,7 +2974,7 @@ const server = createServer(async (request, response) => {
       });
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
-      return json(response, 200, [
+      return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
