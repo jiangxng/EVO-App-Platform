@@ -9,6 +9,7 @@ export type WebPerformanceSurfaceTargetV010 =
 export interface WebPerformanceSampleV010 {
   contractVersion: "0.1.0";
   observedAt: string;
+  pageViewId?: string;
   clientRevision?: string;
   hostRevision?: string;
   surfaceTarget: WebPerformanceSurfaceTargetV010;
@@ -31,6 +32,7 @@ export interface WebPerformanceDiagnosticsV010 {
   capacity: number;
   sampleCount: number;
   droppedInvalidSamples: number;
+  duplicateSamples: number;
   bySurface: Record<string, number>;
   recent: WebPerformanceSampleV010[];
 }
@@ -89,6 +91,9 @@ export function validateWebPerformanceSampleV010(
     surfaceTarget: sample.surfaceTarget as WebPerformanceSurfaceTargetV010
   };
 
+  const pageViewId = optionalString(sample.pageViewId, 128);
+  if (pageViewId) result.pageViewId = pageViewId;
+
   const clientRevision = optionalString(sample.clientRevision);
   const hostRevision = optionalString(sample.hostRevision);
   const navigationType = optionalString(sample.navigationType, 64);
@@ -126,6 +131,8 @@ export function createWebPerformanceStoreV010(
   const boundedCapacity = Math.max(10, Math.min(10_000, Math.trunc(capacity)));
   const recent: WebPerformanceSampleV010[] = [];
   let droppedInvalidSamples = 0;
+  let duplicateSamples = 0;
+  const pageViews = new Set<string>();
 
   return {
     record(value) {
@@ -134,9 +141,17 @@ export function createWebPerformanceStoreV010(
         droppedInvalidSamples += 1;
         return false;
       }
+      if (sample.pageViewId && pageViews.has(sample.pageViewId)) {
+        duplicateSamples += 1;
+        return true;
+      }
       recent.push(sample);
+      if (sample.pageViewId) pageViews.add(sample.pageViewId);
       if (recent.length > boundedCapacity) {
-        recent.splice(0, recent.length - boundedCapacity);
+        const removed = recent.splice(0, recent.length - boundedCapacity);
+        for (const item of removed) {
+          if (item.pageViewId) pageViews.delete(item.pageViewId);
+        }
       }
       return true;
     },
@@ -151,6 +166,7 @@ export function createWebPerformanceStoreV010(
         capacity: boundedCapacity,
         sampleCount: recent.length,
         droppedInvalidSamples,
+        duplicateSamples,
         bySurface,
         recent: recent.map(item => ({ ...item }))
       };
