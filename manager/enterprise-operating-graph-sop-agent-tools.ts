@@ -5,6 +5,9 @@ import type {
   EnterpriseAgentToolRegistrationV010
 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import type {
+  EogExpectedSopTransitionInputV010
+} from "../contracts/enterprise-operating-graph-sop.js";
+import type {
   PlatformPrincipalV010,
   ResolvedContextSetV010
 } from "../contracts/platform-services.js";
@@ -77,6 +80,71 @@ function applicationNodeIdsArg(
   return value.map(item => String(item).trim());
 }
 
+function transitionsArg(
+  args: Record<string, unknown>,
+  required = true
+): EogExpectedSopTransitionInputV010[] | undefined {
+  const value = args.transitions;
+  if (value === undefined && !required) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(
+      "EOG_SOP_AGENT_ARGUMENT_INVALID:transitions"
+    );
+  }
+  return value.map(item => {
+    if (
+      item === null
+      || Array.isArray(item)
+      || typeof item !== "object"
+    ) {
+      throw new Error(
+        "EOG_SOP_AGENT_ARGUMENT_INVALID:transitions"
+      );
+    }
+    const input = item as Record<string, unknown>;
+    const from = input.fromApplicationNodeId;
+    const to = input.toApplicationNodeId;
+    const kind = input.kind;
+    const conditionRef = input.conditionRef;
+    const exceptionCode = input.exceptionCode;
+    if (
+      typeof from !== "string"
+      || !from.trim()
+      || typeof to !== "string"
+      || !to.trim()
+      || (
+        kind !== undefined
+        && kind !== "EXPECTED"
+        && kind !== "ALLOWED_ALTERNATIVE"
+        && kind !== "ALLOWED_EXCEPTION"
+      )
+      || (
+        conditionRef !== undefined
+        && (typeof conditionRef !== "string" || !conditionRef.trim())
+      )
+      || (
+        exceptionCode !== undefined
+        && (typeof exceptionCode !== "string" || !exceptionCode.trim())
+      )
+    ) {
+      throw new Error(
+        "EOG_SOP_AGENT_ARGUMENT_INVALID:transitions"
+      );
+    }
+    return {
+      fromApplicationNodeId: from.trim(),
+      toApplicationNodeId: to.trim(),
+      ...(kind === undefined ? {} : { kind }),
+      ...(conditionRef === undefined
+        ? {}
+        : { conditionRef: conditionRef.trim() }),
+      ...(exceptionCode === undefined
+        ? {}
+        : { exceptionCode: exceptionCode.trim() })
+    };
+  });
+}
+
 export function createEogExpectedSopAgentToolRegistrationsV010(
   input: {
     service: EogExpectedSopServiceV010;
@@ -134,6 +202,31 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
               type: "array",
               items: { type: "string" },
               minItems: 1
+            },
+            transitions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  fromApplicationNodeId: { type: "string" },
+                  toApplicationNodeId: { type: "string" },
+                  kind: {
+                    type: "string",
+                    enum: [
+                      "EXPECTED",
+                      "ALLOWED_ALTERNATIVE",
+                      "ALLOWED_EXCEPTION"
+                    ]
+                  },
+                  conditionRef: { type: "string" },
+                  exceptionCode: { type: "string" }
+                },
+                required: [
+                  "fromApplicationNodeId",
+                  "toApplicationNodeId"
+                ],
+                additionalProperties: false
+              }
             }
           },
           required: [
@@ -156,7 +249,10 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
           sopId: textArg(args, "sopId")!,
           title: textArg(args, "title")!,
           applicationNodeIds:
-            applicationNodeIdsArg(args)!
+            applicationNodeIdsArg(args)!,
+          ...(Array.isArray(args.transitions)
+            ? { transitions: transitionsArg(args)! }
+            : {})
         });
       }
     },
@@ -177,6 +273,31 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
             applicationNodeIds: {
               type: "array",
               items: { type: "string" }
+            },
+            transitions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  fromApplicationNodeId: { type: "string" },
+                  toApplicationNodeId: { type: "string" },
+                  kind: {
+                    type: "string",
+                    enum: [
+                      "EXPECTED",
+                      "ALLOWED_ALTERNATIVE",
+                      "ALLOWED_EXCEPTION"
+                    ]
+                  },
+                  conditionRef: { type: "string" },
+                  exceptionCode: { type: "string" }
+                },
+                required: [
+                  "fromApplicationNodeId",
+                  "toApplicationNodeId"
+                ],
+                additionalProperties: false
+              }
             }
           },
           required: [
@@ -195,6 +316,7 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
         const title = textArg(args, "title", false);
         const applicationNodeIds =
           applicationNodeIdsArg(args, false);
+        const transitions = transitionsArg(args, false);
         return input.service.revise({
           enterpriseId: currentEnterpriseId(),
           graphId: textArg(args, "graphId")!,
@@ -203,7 +325,8 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
           ...(title ? { title } : {}),
           ...(applicationNodeIds
             ? { applicationNodeIds }
-            : {})
+            : {}),
+          ...(transitions ? { transitions } : {})
         });
       }
     }
