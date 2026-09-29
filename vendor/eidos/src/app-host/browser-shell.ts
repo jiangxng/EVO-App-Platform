@@ -1,6 +1,20 @@
 import type { ActionHost } from "../adapters/ports.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
-import type { AppHost, AppHostSnapshotV010 } from "./contracts.js";
+import type {
+  AppHost,
+  AppHostSnapshotV010,
+  AppHostSurfaceTargetV010,
+  ClientSurfaceProfileV010,
+  EffectiveExperienceManifestV010
+} from "./contracts.js";
+import {
+  readBrowserSurfaceProfileV010,
+  resolveExperienceSurfaceV010,
+  surfaceQueryValueV010,
+  surfaceTargetFromUrlV010,
+  type ExperienceSurfaceHandoffResolutionV010,
+  type ExperienceSurfaceRouteResolutionV010
+} from "./surface.js";
 import {
   mountAppHostLoadedPage,
   type MountedAppHostPage
@@ -15,6 +29,12 @@ export interface BrowserAppHostShellOptions {
   actionHost?: ActionHost;
   onActionResult?: Parameters<typeof mountAppHostLoadedPage>[0]["onActionResult"];
   localization?: LocalizationRuntime;
+  /**
+   * Explicit user preference supplied by the embedding product.
+   * A URL ?surface=... selector still has higher precedence.
+   */
+  surfaceTarget?: AppHostSurfaceTargetV010;
+  surfaceProfile?: ClientSurfaceProfileV010 | (() => ClientSurfaceProfileV010);
 }
 
 export interface BrowserAppHostShell {
@@ -36,6 +56,29 @@ function currentPath(): string {
   return hash.startsWith("#") ? hash.slice(1) : hash;
 }
 
+function browserProfile(
+  value: BrowserAppHostShellOptions["surfaceProfile"]
+): ClientSurfaceProfileV010 {
+  if (typeof value === "function") return value();
+  return value ?? readBrowserSurfaceProfileV010();
+}
+
+function ownerManifest(
+  snapshot: AppHostSnapshotV010,
+  path: string
+): EffectiveExperienceManifestV010 | undefined {
+  const direct = snapshot.manifests.find(manifest =>
+    manifest.routes.some(route => route.path === path)
+  );
+  if (direct) return direct;
+
+  if (path === "/") {
+    return snapshot.manifests.find(manifest => manifest.defaultRoute)
+      ?? snapshot.manifests[0];
+  }
+  return undefined;
+}
+
 export async function mountBrowserAppHostShell(
   options: BrowserAppHostShellOptions
 ): Promise<BrowserAppHostShell> {
@@ -50,6 +93,7 @@ export async function mountBrowserAppHostShell(
   let disposed = false;
   let activePath = currentPath();
   let mountedPage: MountedAppHostPage | undefined;
+  let activeSurfaceId: string | undefined;
 
   const root = document.createElement("div");
   root.setAttribute("data-eidos-app-host", "0.1.0");
@@ -100,21 +144,118 @@ export async function mountBrowserAppHostShell(
   root.append(sidebar, main);
   container.replaceChildren(root);
 
+  function surfaceRequest(path: string) {
+    const snapshot = host.getSnapshot();
+    const manifest = ownerManifest(snapshot, path);
+    if (!manifest) return undefined;
+
+    return {
+      manifest,
+      resolution: resolveExperienceSurfaceV010(manifest, {
+        path,
+        explicitTarget: surfaceTargetFromUrlV010(new URL(window.location.href)),
+        userTarget: options.surfaceTarget,
+        profile: browserProfile(options.surfaceProfile)
+      })
+    };
+  }
+
+  function surfaceUrl(
+    target: AppHostSurfaceTargetV010,
+    routePath: string
+  ): string {
+    const url = new URL(window.location.href);
+    url.searchParams.set("surface", surfaceQueryValueV010(target));
+    url.hash = routePath;
+    return url.toString();
+  }
+
+  function renderSurfaceHandoff(
+    manifest: EffectiveExperienceManifestV010,
+    handoff: ExperienceSurfaceHandoffResolutionV010
+  ): void {
+    pageContainer.setAttribute("data-eidos-page", "surface-handoff");
+    pageContainer.setAttribute("data-eidos-surface-handoff", handoff.reason);
+
+    const article = document.createElement("article");
+    const title = document.createElement("h2");
+    title.textContent = hostText(
+      "surface.handoff.title",
+      "This experience is not available on this surface."
+    );
+    const detail = document.createElement("p");
+    detail.textContent = hostText(
+      "surface.handoff.detail",
+      "Choose an available experience surface to continue."
+    );
+    article.append(title, detail);
+
+    for (const target of handoff.availableTargets) {
+      const surface = manifest.surfaces?.find(candidate =>
+        candidate.target === target && candidate.support !== "UNSUPPORTED"
+      );
+      const mapped = resolveExperienceSurfaceV010(manifest, {
+        ...(handoff.semanticRouteId
+          ? { semanticRouteId: handoff.semanticRouteId }
+          : handoff.requestedPath
+            ? { path: handoff.requestedPath }
+            : {}),
+        explicitTarget: target
+      });
+      if (!surface || mapped.kind !== "ROUTE") continue;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = hostText(
+        "surface.handoff.openTarget",
+        "Open {target}",
+        { target }
+      );
+      button.setAttribute("data-eidos-surface-target", target);
+      button.onclick = () => {
+        window.location.href = surfaceUrl(target, mapped.route.path);
+      };
+      article.appendChild(button);
+    }
+
+    pageContainer.appendChild(article);
+  }
+
   async function renderRoute(path: string): Promise<void> {
     if (disposed) return;
-    activePath = path;
     mountedPage?.dispose();
     mountedPage = undefined;
     pageContainer.replaceChildren();
 
-    const loaded = await host.loadRoute(path);
+    const surface = surfaceRequest(path);
+    let resolvedPath = path;
+    if (surface) {
+      if (surface.resolution.kind === "HANDOFF") {
+        activePath = path;
+        activeSurfaceId = undefined;
+        renderSurfaceHandoff(surface.manifest, surface.resolution);
+        return;
+      }
+      if (surface.resolution.kind === "NOT_FOUND") {
+        activeSurfaceId = undefined;
+      } else {
+        const routeResolution = surface.resolution as ExperienceSurfaceRouteResolutionV010;
+        activeSurfaceId = routeResolution.surfaceId;
+        resolvedPath = routeResolution.route.path;
+      }
+    }
+
+    activePath = resolvedPath;
+    const loaded = await host.loadRoute(resolvedPath);
     pageContainer.setAttribute("data-eidos-page", loaded?.page.id ?? "not-found");
 
     if (!loaded) {
       const message = document.createElement("p");
-      message.textContent = path === "/"
+      message.textContent = resolvedPath === "/"
         ? hostText("shell.noActivePage", "No active application page.")
-        : hostText("shell.noRoute", "No active route for '{path}'.", { path });
+        : hostText("shell.noRoute", "No active route for '{path}'.", {
+            path: resolvedPath
+          });
       pageContainer.appendChild(message);
       return;
     }
@@ -154,6 +295,13 @@ export async function mountBrowserAppHostShell(
     navigation.replaceChildren();
 
     for (const item of snapshot.navigation) {
+      if (
+        activeSurfaceId
+        && item.surfaceIds
+        && !item.surfaceIds.includes(activeSurfaceId)
+      ) {
+        continue;
+      }
       const button = document.createElement("button");
       button.type = "button";
       const owner = snapshot.manifests.find(manifest =>
@@ -228,7 +376,7 @@ export async function mountBrowserAppHostShell(
     renderNavigation(snapshot);
 
     let path = currentPath();
-    if (!host.resolveRoute(path)) {
+    if (!ownerManifest(snapshot, path)) {
       const defaultRoute = snapshot.manifests.find(item => item.defaultRoute)?.defaultRoute;
       path = defaultRoute ?? snapshot.routes[0]?.path ?? "/";
       if (path !== "/" && currentPath() !== path) window.location.hash = path;
@@ -240,11 +388,21 @@ export async function mountBrowserAppHostShell(
 
   async function navigate(path: string): Promise<void> {
     if (disposed) throw new Error("EIDOS_APP_HOST_SHELL_DISPOSED");
-    if (!host.resolveRoute(path)) throw new Error(`EIDOS_APP_HOST_ROUTE_NOT_FOUND: ${path}`);
-    if (currentPath() !== path) {
-      window.location.hash = path;
-    } else {
+    const surface = surfaceRequest(path);
+    const resolvedPath = surface?.resolution.kind === "ROUTE"
+      ? surface.resolution.route.path
+      : path;
+
+    if (!host.resolveRoute(resolvedPath) && surface?.resolution.kind !== "HANDOFF") {
+      throw new Error(`EIDOS_APP_HOST_ROUTE_NOT_FOUND: ${resolvedPath}`);
+    }
+
+    if (surface?.resolution.kind === "HANDOFF") {
       await renderRoute(path);
+    } else if (currentPath() !== resolvedPath) {
+      window.location.hash = resolvedPath;
+    } else {
+      await renderRoute(resolvedPath);
     }
   }
 

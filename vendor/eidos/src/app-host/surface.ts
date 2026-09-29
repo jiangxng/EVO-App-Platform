@@ -184,7 +184,10 @@ function routeForSurface(
 ): AppHostRouteV010 | undefined {
   return manifest.routes.find(route =>
     semanticId(route) === semanticRouteId
-    && (route.surfaceId === surfaceId || route.surfaceId === undefined)
+    && route.surfaceId === surfaceId
+  ) ?? manifest.routes.find(route =>
+    semanticId(route) === semanticRouteId
+    && route.surfaceId === undefined
   );
 }
 

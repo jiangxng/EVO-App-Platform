@@ -1,7 +1,20 @@
 import type { ActionHost } from "../adapters/ports.js";
 import { createEidosIconElement } from "../design-language/icons/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
-import type { AppHost, AppHostSnapshotV010 } from "../app-host/contracts.js";
+import type {
+  AppHost,
+  AppHostSnapshotV010,
+  AppHostSurfaceTargetV010,
+  ClientSurfaceProfileV010,
+  EffectiveExperienceManifestV010
+} from "../app-host/contracts.js";
+import {
+  readBrowserSurfaceProfileV010,
+  resolveExperienceSurfaceV010,
+  surfaceQueryValueV010,
+  surfaceTargetFromUrlV010,
+  type ExperienceSurfaceHandoffResolutionV010
+} from "../app-host/surface.js";
 import type { RealtimeEventV010 } from "../realtime/contracts.js";
 import {
   mountAppHostLoadedPage,
@@ -16,6 +29,7 @@ import {
   type WorkbenchLayoutStateStore,
   type WorkbenchLayoutStateV010
 } from "./contracts.js";
+import { resolveWorkbenchSurfaceRouteV010 } from "./surface-routing.js";
 
 export interface WorkbenchShellOptions {
   host: AppHost;
@@ -26,7 +40,21 @@ export interface WorkbenchShellOptions {
   actionHost?: ActionHost;
   localization?: LocalizationRuntime;
   initialWorkspaceRoute?: string;
+  /**
+   * Legacy explicit Surface id used by existing Workbench embedders.
+   * When declared by the owning Experience it is resolved to that Surface target.
+   */
   surfaceId?: string;
+  /**
+   * Explicit user Surface preference. URL ?surface=... has higher precedence.
+   */
+  surfaceTarget?: AppHostSurfaceTargetV010;
+  /**
+   * Optional capability profile. Omit to retain desktop-compatible behavior.
+   * Set autoSurfaceProfile=true to derive it from browser capabilities.
+   */
+  surfaceProfile?: ClientSurfaceProfileV010 | (() => ClientSurfaceProfileV010);
+  autoSurfaceProfile?: boolean;
   layoutStateStore?: WorkbenchLayoutStateStore;
   minSidePanelWidth?: number;
   maxSidePanelWidth?: number;
@@ -67,6 +95,18 @@ function isExternalUrl(value: string): boolean {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function configuredSurfaceProfile(
+  options: WorkbenchShellOptions
+): ClientSurfaceProfileV010 | undefined {
+  if (typeof options.surfaceProfile === "function") {
+    return options.surfaceProfile();
+  }
+  if (options.surfaceProfile) return options.surfaceProfile;
+  return options.autoSurfaceProfile
+    ? readBrowserSurfaceProfileV010()
+    : undefined;
 }
 
 export function resolveWorkbenchInitialTargetV010(input: {
@@ -117,6 +157,8 @@ export async function mountWorkbenchShell(
   let disposed = false;
   let sideMount: MountedAppHostPage | undefined;
   let workspaceMount: MountedAppHostPage | undefined;
+  let activeSurfaceId: string | undefined = options.surfaceId;
+  let activeSurfaceTarget: AppHostSurfaceTargetV010 = "DESKTOP_WORKBENCH";
   let workspaceMode: "app" | "web" = state.workspaceTarget.startsWith("/") ? "app" : "web";
   const chatStates = new Map<string, AppHostChatState>();
   const pendingResourceRefreshes = new Set<string>();
@@ -128,6 +170,95 @@ export async function mountWorkbenchShell(
     fallback: string,
     params?: Record<string, string | number | boolean | null>
   ) => localization?.resolve("eidos.app-host", key, fallback, params) ?? fallback;
+
+  function resolveSurface(path: string) {
+    return resolveWorkbenchSurfaceRouteV010(host.getSnapshot(), {
+      path,
+      explicitTarget: surfaceTargetFromUrlV010(new URL(window.location.href)),
+      userTarget: options.surfaceTarget,
+      configuredSurfaceId: options.surfaceId,
+      profile: configuredSurfaceProfile(options)
+    });
+  }
+
+  function surfaceUrl(
+    target: AppHostSurfaceTargetV010,
+    routePath: string
+  ): string {
+    const url = new URL(window.location.href);
+    url.searchParams.set("surface", surfaceQueryValueV010(target));
+    url.hash = routePath;
+    return url.toString();
+  }
+
+  function renderSurfaceHandoff(
+    target: HTMLElement,
+    manifest: EffectiveExperienceManifestV010,
+    handoff: ExperienceSurfaceHandoffResolutionV010
+  ): void {
+    target.replaceChildren();
+    target.setAttribute("data-eidos-surface-handoff", handoff.reason);
+
+    const article = document.createElement("article");
+    const title = document.createElement("h2");
+    title.textContent = hostText(
+      "surface.handoff.title",
+      "This experience is not available on this surface."
+    );
+    const detail = document.createElement("p");
+    detail.textContent = hostText(
+      "surface.handoff.detail",
+      "Choose an available experience surface to continue."
+    );
+    article.append(title, detail);
+
+    for (const targetSurface of handoff.availableTargets) {
+      const mapped = resolveExperienceSurfaceV010(manifest, {
+        ...(handoff.semanticRouteId
+          ? { semanticRouteId: handoff.semanticRouteId }
+          : handoff.requestedPath
+            ? { path: handoff.requestedPath }
+            : {}),
+        explicitTarget: targetSurface
+      });
+      if (mapped.kind !== "ROUTE") continue;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = hostText(
+        "surface.handoff.openTarget",
+        "Open {target}",
+        { target: targetSurface }
+      );
+      button.setAttribute("data-eidos-surface-target", targetSurface);
+      button.addEventListener("click", () => {
+        window.location.href = surfaceUrl(targetSurface, mapped.route.path);
+      });
+      article.appendChild(button);
+    }
+
+    target.appendChild(article);
+  }
+
+  function applyActiveSurface(
+    surfaceId: string,
+    target: AppHostSurfaceTargetV010
+  ): void {
+    const changed =
+      activeSurfaceId !== surfaceId
+      || activeSurfaceTarget !== target;
+    activeSurfaceId = surfaceId;
+    activeSurfaceTarget = target;
+    root.setAttribute("data-eidos-surface-id", surfaceId);
+    root.setAttribute("data-eidos-surface-target", target);
+
+    if (changed) {
+      const current = activityById(state.activeActivityId);
+      if (current?.kind === "navigation" && state.sidePanelVisible) {
+        renderNavigationList(host.getSnapshot());
+      }
+    }
+  }
 
   function setIconContent(
     element: HTMLElement,
@@ -258,6 +389,12 @@ export async function mountWorkbenchShell(
       : hostText("workbench.showSidePanel", "Show side panel");
     setIconButton(sideToggle, "sidebar", toggleLabel, 18);
     root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
+    root.setAttribute("data-eidos-surface-target", activeSurfaceTarget);
+    if (activeSurfaceId) {
+      root.setAttribute("data-eidos-surface-id", activeSurfaceId);
+    } else {
+      root.removeAttribute("data-eidos-surface-id");
+    }
     splitter.setAttribute("aria-valuenow", String(state.sidePanelWidth));
     splitter.setAttribute("aria-valuemin", String(minWidth));
     splitter.setAttribute("aria-valuemax", String(maxWidth));
@@ -284,21 +421,25 @@ export async function mountWorkbenchShell(
     list.setAttribute("aria-label", hostText("shell.applications", "Applications"));
 
     for (const item of snapshot.navigation) {
-      if (
-        item.surfaceIds
-        && (
-          !options.surfaceId
-          || !item.surfaceIds.includes(options.surfaceId)
-        )
-      ) {
-        continue;
+      const owner = snapshot.manifests.find(manifest =>
+        (manifest.navigation ?? []).some(candidate => candidate.id === item.id)
+      );
+      if (item.surfaceIds) {
+        const ownerSurfaceId = owner?.surfaces?.find(surface =>
+          surface.target === activeSurfaceTarget
+          && surface.support !== "UNSUPPORTED"
+        )?.id ?? (
+          owner?.surfaces?.some(surface => surface.id === options.surfaceId)
+            ? options.surfaceId
+            : undefined
+        );
+        if (!ownerSurfaceId || !item.surfaceIds.includes(ownerSurfaceId)) {
+          continue;
+        }
       }
 
       const button = document.createElement("button");
       button.type = "button";
-      const owner = snapshot.manifests.find(manifest =>
-        (manifest.navigation ?? []).some(candidate => candidate.id === item.id)
-      );
       button.textContent = owner && localization
         ? localization.resolve(owner.packageId, `navigation.${item.id}.label`, item.label)
         : item.label;
@@ -334,18 +475,37 @@ export async function mountWorkbenchShell(
 
     const route = activity.route;
     if (!route) return;
-    const loaded = await host.loadRoute(route);
+
+    const surface = resolveSurface(route);
+    let resolvedRoute = route;
+    if (surface?.resolution.kind === "HANDOFF") {
+      renderSurfaceHandoff(sideContent, surface.manifest, surface.resolution);
+      return;
+    }
+    if (surface?.resolution.kind === "ROUTE") {
+      resolvedRoute = surface.resolution.route.path;
+      applyActiveSurface(
+        surface.resolution.surfaceId,
+        surface.resolution.target
+      );
+    }
+
+    const loaded = await host.loadRoute(resolvedRoute);
     if (!loaded) {
       const empty = document.createElement("p");
-      empty.textContent = hostText("shell.noRoute", "No active route for '{path}'.", { path: route });
+      empty.textContent = hostText(
+        "shell.noRoute",
+        "No active route for '{path}'.",
+        { path: resolvedRoute }
+      );
       sideContent.appendChild(empty);
       return;
     }
 
-    let chatState = chatStates.get(route);
+    let chatState = chatStates.get(resolvedRoute);
     if (!chatState) {
       chatState = { messages: [] };
-      chatStates.set(route, chatState);
+      chatStates.set(resolvedRoute, chatState);
     }
 
     sideMount = mountAppHostLoadedPage({
@@ -393,12 +553,35 @@ export async function mountWorkbenchShell(
     workspaceMount = undefined;
     workspaceContent.replaceChildren();
 
-    const loaded = await host.loadRoute(path);
+    const surface = resolveSurface(path);
+    let resolvedPath = path;
+    if (surface?.resolution.kind === "HANDOFF") {
+      renderSurfaceHandoff(
+        workspaceContent,
+        surface.manifest,
+        surface.resolution
+      );
+      statusRight.textContent = surface.resolution.reason;
+      return;
+    }
+    if (surface?.resolution.kind === "ROUTE") {
+      resolvedPath = surface.resolution.route.path;
+      applyActiveSurface(
+        surface.resolution.surfaceId,
+        surface.resolution.target
+      );
+    }
+
+    const loaded = await host.loadRoute(resolvedPath);
     if (!loaded) {
       const empty = document.createElement("p");
-      empty.textContent = hostText("shell.noRoute", "No active route for '{path}'.", { path });
+      empty.textContent = hostText(
+        "shell.noRoute",
+        "No active route for '{path}'.",
+        { path: resolvedPath }
+      );
       workspaceContent.appendChild(empty);
-      statusRight.textContent = path;
+      statusRight.textContent = resolvedPath;
       return;
     }
 
@@ -425,7 +608,7 @@ export async function mountWorkbenchShell(
         }
       }
     });
-    statusRight.textContent = loaded.page.title ?? path;
+    statusRight.textContent = loaded.page.title ?? resolvedPath;
   }
 
   async function navigateWorkspace(target: string): Promise<void> {
@@ -435,11 +618,37 @@ export async function mountWorkbenchShell(
 
     if (normalized.startsWith("/")) {
       workspaceMode = "app";
-      state.workspaceTarget = normalized;
-      browserAddress.value = normalized;
-      if (currentHashPath() !== normalized) window.location.hash = normalized;
+      const surface = resolveSurface(normalized);
+      let resolvedTarget = normalized;
+
+      if (surface?.resolution.kind === "ROUTE") {
+        resolvedTarget = surface.resolution.route.path;
+        applyActiveSurface(
+          surface.resolution.surfaceId,
+          surface.resolution.target
+        );
+      }
+
+      state.workspaceTarget = resolvedTarget;
+      browserAddress.value = resolvedTarget;
+      if (
+        surface?.resolution.kind !== "HANDOFF"
+        && currentHashPath() !== resolvedTarget
+      ) {
+        window.location.hash = resolvedTarget;
+      }
       persist();
-      await renderInternalWorkspace(normalized);
+
+      if (surface?.resolution.kind === "HANDOFF") {
+        renderSurfaceHandoff(
+          workspaceContent,
+          surface.manifest,
+          surface.resolution
+        );
+        statusRight.textContent = surface.resolution.reason;
+      } else {
+        await renderInternalWorkspace(resolvedTarget);
+      }
       root.setAttribute("data-mobile-surface", "workspace");
       return;
     }
@@ -698,19 +907,44 @@ export async function mountWorkbenchShell(
     const snapshot = await host.refresh();
     renderActivities();
 
-    if (
-      workspaceMode === "app"
-      && (!state.workspaceTarget.startsWith("/") || !host.resolveRoute(state.workspaceTarget))
-    ) {
-      const fallback = snapshot.routes[0]?.path ?? "/";
-      state.workspaceTarget = fallback;
-      persist();
+    if (workspaceMode === "app") {
+      const routed = resolveSurface(state.workspaceTarget);
+      if (routed?.resolution.kind === "ROUTE") {
+        const resolvedPath = routed.resolution.route.path;
+        applyActiveSurface(
+          routed.resolution.surfaceId,
+          routed.resolution.target
+        );
+        if (state.workspaceTarget !== resolvedPath) {
+          state.workspaceTarget = resolvedPath;
+          if (currentHashPath() !== resolvedPath) {
+            window.location.hash = resolvedPath;
+          }
+          persist();
+        }
+      } else if (
+        routed?.resolution.kind !== "HANDOFF"
+        && (
+          !state.workspaceTarget.startsWith("/")
+          || !host.resolveRoute(state.workspaceTarget)
+        )
+      ) {
+        const fallback =
+          snapshot.manifests.find(item => item.defaultRoute)?.defaultRoute
+          ?? snapshot.routes[0]?.path
+          ?? "/";
+        state.workspaceTarget = fallback;
+        persist();
+      }
     }
 
     browserAddress.value = state.workspaceTarget;
     await renderSidePanel();
-    if (workspaceMode === "app") await renderInternalWorkspace(state.workspaceTarget);
-    else if (isExternalUrl(state.workspaceTarget)) renderWeb(state.workspaceTarget);
+    if (workspaceMode === "app") {
+      await renderInternalWorkspace(state.workspaceTarget);
+    } else if (isExternalUrl(state.workspaceTarget)) {
+      renderWeb(state.workspaceTarget);
+    }
 
     return snapshot;
   }
