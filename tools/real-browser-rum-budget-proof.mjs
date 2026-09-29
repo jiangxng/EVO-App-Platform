@@ -8,6 +8,7 @@ const host = process.env.HOST
   ?? "https://ledger-configurator-production.up.railway.app";
 const chrome = process.env.CHROME;
 if (!chrome) throw new Error("CHROME is required");
+const expectedRevision = process.env.EXPECTED_REVISION?.trim();
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -87,6 +88,19 @@ async function diagnostics() {
     throw new Error("WEB_DELIVERY_DIAGNOSTICS_HTTP_" + response.status);
   }
   return response.json();
+}
+
+async function waitForProductionRevision(timeoutMs = 240000) {
+  if (!expectedRevision) return diagnostics();
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const current = await diagnostics();
+    if (current.currentRevision === expectedRevision) return current;
+    await delay(3000);
+  }
+  throw new Error(
+    "Production did not reach expected revision " + expectedRevision
+  );
 }
 
 async function runScenario(scenario, port) {
@@ -195,6 +209,8 @@ async function runScenario(scenario, port) {
     if (!proc.killed) proc.kill("SIGKILL");
   }
 }
+
+await waitForProductionRevision();
 
 const scenarios = [
   {
