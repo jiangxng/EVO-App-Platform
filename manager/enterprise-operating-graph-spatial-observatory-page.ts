@@ -93,7 +93,7 @@ function preset(id:string,label:string,hours:number,now:Date) {
       },
       metricCodes:[
         "event.count","event.frequency","flow.throughput","flow.wip","flow.backlog",
-        "balance.quantity","business.quantity"
+        "balance.quantity","business.quantity","sop.transition.count"
       ]
     } as Record<string,JsonValue>
   };
@@ -161,12 +161,22 @@ function factBadges(target:string,snapshot:EogObservationSnapshotV020):SpatialOb
   if("overlays" in snapshot){
     for(const o of (snapshot as EogAnalysisSnapshotV020).overlays.filter(o=>{
       const k=o.target.kind==="NODE"?"NODE:"+o.target.nodeId:"RELATION:"+o.target.authority+":"+o.target.relationId;
-      return k===target&&o.analysisKind==="BOTTLENECK";
+      return k===target;
     })){
+      const label=o.analysisKind==="BOTTLENECK"
+        ?"Bottleneck"
+        :o.analysisKind==="SOP_CONFORMANCE"
+          ?"SOP"
+          :o.analysisKind==="SOP_DEVIATION"
+            ?"SOP deviation"
+            :o.analysisKind;
+      const value=o.analysisKind==="SOP_CONFORMANCE"&&typeof o.score==="number"
+        ?num(o.score*100)+"%"
+        :o.status==="OBSERVED"?o.severity:o.status;
       result.push({
         id:o.overlayId,
-        label:"Bottleneck",
-        value:o.status==="OBSERVED"?o.severity:o.status,
+        label,
+        value,
         detail:[
           o.score===undefined?undefined:"score "+num(o.score),
           o.confidence===undefined?undefined:"confidence "+num(o.confidence*100)+"%",
