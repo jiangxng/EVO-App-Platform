@@ -466,6 +466,11 @@ import {
   resolveBrowserAssetRequestV010
 } from "./web-delivery-cache.js";
 import { webSecurityHeadersV010 } from "./web-security-headers.js";
+import {
+  applyWebRevisionHeadersV010,
+  normalizeClientRevisionV010
+} from "./web-version-skew.js";
+import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createSettingsExperienceManifest,
@@ -805,10 +810,13 @@ const realtimeEvents = createHostRealtimeEventBusV010({
   capacity: 4096
 });
 const transportTraffic = createTransportTrafficDiagnosticsV010();
+const webPerformance = createWebPerformanceStoreV010(
+  Number.parseInt(process.env.APP_PLATFORM_WEB_PERFORMANCE_CAPACITY ?? "500", 10)
+);
 const appHostAssetRevision = normalizeAssetRevisionV010(
   process.env.APP_PLATFORM_ASSET_REVISION
-  ?? process.env.APP_PLATFORM_DEPLOY_REVISION
   ?? process.env.RAILWAY_GIT_COMMIT_SHA
+  ?? process.env.APP_PLATFORM_DEPLOY_REVISION
 );
 const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
@@ -2685,9 +2693,12 @@ function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
   response.setHeader(
     "access-control-allow-headers",
-    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id"
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id,x-evo-client-revision"
   );
-  response.setHeader("access-control-expose-headers", "etag");
+  response.setHeader(
+    "access-control-expose-headers",
+    "etag,x-evo-host-revision,x-evo-web-contract,x-evo-client-update"
+  );
 }
 
 function requestedLocale(url: URL): string {
@@ -2766,6 +2777,22 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+async function readJsonLimited(
+  request: IncomingMessage,
+  maxBytes: number
+): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += bytes.length;
+    if (total > maxBytes) throw new Error("REQUEST_BODY_TOO_LARGE");
+    chunks.push(bytes);
   }
   if (chunks.length === 0) return {};
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2923,6 +2950,11 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
+    applyWebRevisionHeadersV010(
+      (name, value) => response.setHeader(name, value),
+      appHostAssetRevision,
+      normalizeClientRevisionV010(request.headers["x-evo-client-revision"])
+    );
     transportTraffic.recordRequest(
       request.method ?? "UNKNOWN",
       url.pathname,
@@ -2986,6 +3018,37 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/health") {
       return json(response, 200, { ok: true, service: "evo-app-manager" });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/web-performance") {
+      resolveRequestIdentitySession(request);
+      let body: unknown;
+      try {
+        body = await readJsonLimited(request, 32 * 1024);
+      } catch (error) {
+        return json(response, 413, {
+          ok: false,
+          error: {
+            code: "WEB_PERFORMANCE_PAYLOAD_REJECTED",
+            message: error instanceof Error ? error.message : String(error)
+          }
+        });
+      }
+      if (!webPerformance.record(body)) {
+        return json(response, 422, {
+          ok: false,
+          error: {
+            code: "WEB_PERFORMANCE_SAMPLE_INVALID",
+            message: "Invalid Web performance sample."
+          }
+        });
+      }
+      return json(response, 202, { ok: true });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/web-performance/diagnostics") {
+      resolveRequestIdentitySession(request);
+      return json(response, 200, webPerformance.diagnostics());
     }
 
     if (request.method === "GET" && url.pathname === "/v1/events") {
