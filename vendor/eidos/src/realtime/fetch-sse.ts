@@ -155,7 +155,8 @@ export function createFetchSseRealtimeSourceV010(
   async function pump(): Promise<void> {
     if (disposed || !desiredConnected || hidden() || controller) return;
     clearReconnect();
-    controller = new AbortController();
+    const currentController = new AbortController();
+    controller = currentController;
     emitState(state.retryCount > 0 ? "RECONNECTING" : "CONNECTING");
 
     try {
@@ -169,17 +170,19 @@ export function createFetchSseRealtimeSourceV010(
         method: "GET",
         headers,
         cache: "no-store",
-        signal: controller.signal
+        signal: currentController.signal
       });
-      await consume(response, controller.signal);
-      if (!controller.signal.aborted) scheduleReconnect();
+      await consume(response, currentController.signal);
+      if (!currentController.signal.aborted) scheduleReconnect();
     } catch (error) {
-      if (!controller.signal.aborted) {
+      if (!currentController.signal.aborted) {
         console.warn("Eidos realtime stream disconnected.", error);
         scheduleReconnect();
       }
     } finally {
-      controller = undefined;
+      if (controller === currentController) {
+        controller = undefined;
+      }
     }
   }
 
