@@ -31,6 +31,7 @@ test("web performance samples are bounded, non-authoritative diagnostics", () =>
   const sample = validateWebPerformanceSampleV010({
     contractVersion: "0.1.0",
     observedAt: "2026-09-30T00:00:00.000Z",
+    pageViewId: "page-view-1",
     clientRevision: "client-1",
     hostRevision: "host-1",
     surfaceTarget: "MOBILE_READ",
@@ -59,10 +60,12 @@ test("web performance samples are bounded, non-authoritative diagnostics", () =>
 
   const store = createWebPerformanceStoreV010(10);
   assert.equal(store.record(sample), true);
+  assert.equal(store.record(sample), true);
   assert.equal(store.record({ bad: true }), false);
   const diagnostics = store.diagnostics();
   assert.equal(diagnostics.sampleCount, 1);
   assert.equal(diagnostics.droppedInvalidSamples, 1);
+  assert.equal(diagnostics.duplicateSamples, 1);
   assert.equal(diagnostics.bySurface.MOBILE_READ, 1);
   assert.equal(diagnostics.recent[0].clientRevision, "client-1");
 });

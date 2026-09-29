@@ -23,6 +23,10 @@ export function createBrowserPerformanceReporterV010(options: {
 }): BrowserPerformanceReporterV010 {
   const sampleRate = Math.max(0, Math.min(1, options.sampleRate ?? 0.1));
   const selected = options.force === true || Math.random() < sampleRate;
+  const pageViewId = typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : "page-view-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  document.documentElement.dataset.evoPageViewId = pageViewId;
   let disposed = false;
   let sent = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -96,6 +100,7 @@ export function createBrowserPerformanceReporterV010(options: {
     const body = {
       contractVersion: "0.1.0",
       observedAt: new Date().toISOString(),
+      pageViewId,
       clientRevision: options.clientRevision,
       ...(options.hostRevision()
         ? { hostRevision: options.hostRevision() }
