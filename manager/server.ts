@@ -2681,6 +2681,133 @@ function installPlanWithDigest(packageId: string) {
   return { ...plan, planDigest };
 }
 
+const EOG_REALTIME_WRITE_COMMANDS = new Set([
+  "enterprise-operating-graph.create",
+  "enterprise-operating-graph.operation.apply",
+  "enterprise-operating-graph.view.operation",
+  "enterprise-operating-graph.sop.create",
+  "enterprise-operating-graph.sop.revise",
+  "enterprise-operating-graph.sop.publish"
+]);
+
+const AGENT_RUN_REALTIME_WRITE_SUFFIXES = [
+  ".start",
+  ".resume",
+  ".cancel"
+];
+
+function publishActionRealtimeEvents(
+  action: AppActionRequestV010,
+  result: unknown,
+  requestContext: ReturnType<typeof createPlatformRequestContextV010>
+): void {
+  if (
+    result === null
+    || typeof result !== "object"
+    || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true
+  ) {
+    return;
+  }
+
+  const activeContext = requestContext.context?.activeContext;
+  const scope = {
+    principalSubjectId: requestContext.principal.subjectId,
+    ...(activeContext?.contextId
+      ? { contextId: activeContext.contextId }
+      : {}),
+    ...(activeContext?.kind === "ENTERPRISE"
+      ? { enterpriseId: activeContext.enterpriseId }
+      : {})
+  };
+  const resultValue = (result as { result?: unknown }).result;
+
+  if (EOG_REALTIME_WRITE_COMMANDS.has(action.command.code)) {
+    const resourceId = typeof action.values.resourceId === "string"
+      ? action.values.resourceId.trim()
+      : typeof action.values.graphId === "string"
+        ? action.values.graphId.trim()
+        : "";
+    if (resourceId) {
+      const revision = (
+        resultValue !== null
+        && typeof resultValue === "object"
+        && !Array.isArray(resultValue)
+        && typeof (resultValue as { revision?: unknown }).revision === "number"
+      )
+        ? (resultValue as { revision: number }).revision
+        : undefined;
+      realtimeEvents.publish({
+        topic: "resource.enterprise-operating-graph",
+        type: "RESOURCE_INVALIDATED",
+        scope: activeContext?.kind === "ENTERPRISE"
+          ? {
+              contextId: activeContext.contextId,
+              enterpriseId: activeContext.enterpriseId
+            }
+          : scope,
+        resource: {
+          kind: "enterprise-operating-graph",
+          resourceId,
+          ...(revision === undefined ? {} : { version: revision })
+        },
+        correlationId: action.sourceInteractionId,
+        payload: {
+          commandCode: action.command.code
+        }
+      });
+    }
+  }
+
+  const run = (
+    resultValue !== null
+    && typeof resultValue === "object"
+    && !Array.isArray(resultValue)
+    && (resultValue as { run?: unknown }).run !== null
+    && typeof (resultValue as { run?: unknown }).run === "object"
+    && !Array.isArray((resultValue as { run?: unknown }).run)
+  )
+    ? (resultValue as {
+        run: {
+          runId?: unknown;
+          state?: unknown;
+          lastEventId?: unknown;
+          sliceCount?: unknown;
+        };
+      }).run
+    : undefined;
+  const advancesRun = AGENT_RUN_REALTIME_WRITE_SUFFIXES.some(suffix =>
+    action.command.code.endsWith(suffix)
+  );
+  if (
+    advancesRun
+    && run
+    && typeof run.runId === "string"
+    && run.runId.trim()
+    && typeof run.state === "string"
+  ) {
+    realtimeEvents.publish({
+      topic: "agent.run",
+      type: "RUN_STATE_CHANGED",
+      scope,
+      resource: {
+        kind: "agent-run",
+        resourceId: run.runId.trim(),
+        ...(typeof run.lastEventId === "string"
+          ? { version: run.lastEventId }
+          : {})
+      },
+      correlationId: action.sourceInteractionId,
+      payload: {
+        state: run.state,
+        ...(typeof run.sliceCount === "number"
+          ? { sliceCount: run.sliceCount }
+          : {})
+      }
+    });
+  }
+}
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -4032,10 +4159,12 @@ const server = createServer(async (request, response) => {
           request.headers,
           requestedLocale(url)
         );
+        const result = await actionRouter.execute(action, requestContext);
+        publishActionRealtimeEvents(action, result, requestContext);
         return json(
           response,
           200,
-          await actionRouter.execute(action, requestContext)
+          result
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
