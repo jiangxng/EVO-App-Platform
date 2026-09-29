@@ -6,6 +6,7 @@ import { isExtensionManagerV010, renderExtensionManagerToHtml } from "../extensi
 import { isHelpDocumentV010, renderHelpDocumentToHtml } from "../help/index.js";
 import { isSetupFlowV010, renderSetupFlowToHtml } from "../setup-flow/index.js";
 import { isReviewQueueV010, renderReviewQueueToHtml } from "../review-queue/index.js";
+import { isTaskInboxV010, renderTaskInboxToHtml } from "../task-inbox/index.js";
 import { isDiagramEditorPageV010, renderDiagramEditorPageShellToHtmlV010 } from "../diagram/surface.js";
 import { isSpatialObservatoryPageV010, renderSpatialObservatoryPageShellToHtmlV010 } from "../spatial/surface.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
@@ -43,6 +44,10 @@ export function renderAppHostPageToHtml(
 
   if (isReviewQueueV010(localizedDefinition)) {
     return renderReviewQueueToHtml(localizedDefinition);
+  }
+
+  if (isTaskInboxV010(localizedDefinition)) {
+    return renderTaskInboxToHtml(localizedDefinition);
   }
 
   if (isDiagramEditorPageV010(localizedDefinition)) {
