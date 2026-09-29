@@ -1,0 +1,69 @@
+name: Surface Production Browser Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/surface-production-browser-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  surface-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production Surface routing and handoff in headless Chrome
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+
+          run_browser() {
+            local name="$1"
+            local url="$2"
+            local width="$3"
+            local profile="/tmp/evo-surface-$name-profile"
+            rm -rf "$profile" "/tmp/$name.dom" "/tmp/$name.netlog"
+            "$CHROME"               --headless=new               --no-sandbox               --disable-gpu               --disable-dev-shm-usage               --user-data-dir="$profile"               --window-size="$width,844"               --virtual-time-budget=8000               --log-net-log="/tmp/$name.netlog"               --dump-dom "$url" > "/tmp/$name.dom"
+          }
+
+          # 1. Compact browser: desktop semantic URL must resolve to MOBILE_TASK.
+          run_browser mobile-auto "$HOST/#/enterprise-agent" 390
+          grep -q "Ask or describe a task" /tmp/mobile-auto.dom
+          grep -q "/v1/events" /tmp/mobile-auto.netlog
+
+          # 2. Explicit URL target outranks compact capability inference.
+          run_browser desktop-explicit "$HOST/?surface=desktop#/enterprise-agent" 390
+          grep -q "Tell Personal Agent what you want to accomplish" /tmp/desktop-explicit.dom
+
+          # 3. Desktop-only semantic route on compact Surface must hand off.
+          run_browser setup-handoff "$HOST/#/enterprise-agent/setup" 390
+          grep -q 'data-eidos-surface-handoff="0.1.0"' /tmp/setup-handoff.dom
+          grep -q "Open desktop" /tmp/setup-handoff.dom
+
+          # Handoff must remain network-quiet: no Workbench realtime connection.
+          if grep -q "/v1/events" /tmp/setup-handoff.netlog; then
+            echo "Handoff unexpectedly opened /v1/events" >&2
+            exit 1
+          fi
+
+          echo "SURFACE_LIVE_PROOF mobile_auto=MOBILE_TASK"
+          echo "SURFACE_LIVE_PROOF explicit_desktop=DESKTOP_WORKBENCH"
+          echo "SURFACE_LIVE_PROOF setup=HANDOFF no_sse=true"
+
+          {
+            echo "## Surface Production Browser Proof"
+            echo
+            echo "- Compact 390px /#/enterprise-agent rendered the dedicated MOBILE_TASK Personal Agent page."
+            echo "- Compact 390px with ?surface=desktop rendered the desktop Personal Agent page."
+            echo "- Compact 390px /#/enterprise-agent/setup rendered Eidos Surface Handoff."
+            echo "- Handoff Chrome netlog contained no /v1/events request."
+          } >> "$GITHUB_STEP_SUMMARY"
