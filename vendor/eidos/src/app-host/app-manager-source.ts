@@ -7,20 +7,22 @@ export interface AppManagerExperienceSourceOptions {
   locale?: () => string | undefined;
 }
 
+interface HttpCacheEntryV010 {
+  etag?: string;
+  body: unknown;
+}
+
 function normalizeBaseUrl(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
-async function readJsonResponse(response: Response, operation: string): Promise<unknown> {
-  if (!response.ok) {
-    let detail = "";
-    try {
-      const body = await response.text();
-      detail = body ? `: ${body}` : "";
-    } catch {}
-    throw new Error(`${operation} failed with HTTP ${response.status}${detail}`);
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const body = await response.text();
+    return body ? `: ${body}` : "";
+  } catch {
+    return "";
   }
-  return response.json();
 }
 
 export function createAppManagerExperienceSource(
@@ -28,6 +30,7 @@ export function createAppManagerExperienceSource(
 ): ExperienceSource & LocalizationBundleSource {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const cache = new Map<string, HttpCacheEntryV010>();
 
   if (!fetchImpl) {
     throw new Error("EIDOS_APP_MANAGER_SOURCE_FETCH_UNAVAILABLE");
@@ -40,13 +43,49 @@ export function createAppManagerExperienceSource(
     return url;
   };
 
+  const readCachedJson = async (
+    input: string | URL,
+    operation: string
+  ): Promise<unknown> => {
+    const url = String(input);
+    const cached = cache.get(url);
+    const headers: Record<string, string> = { accept: "application/json" };
+    if (cached?.etag) headers["if-none-match"] = cached.etag;
+
+    const response = await fetchImpl(url, {
+      method: "GET",
+      headers
+    });
+
+    if (response.status === 304) {
+      if (!cached) {
+        throw new Error(`${operation} returned 304 without a cached representation`);
+      }
+      return structuredClone(cached.body);
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        `${operation} failed with HTTP ${response.status}${await errorDetail(response)}`
+      );
+    }
+
+    const body = await response.json();
+    cache.set(url, {
+      ...(response.headers.get("etag")
+        ? { etag: response.headers.get("etag")! }
+        : {}),
+      body: structuredClone(body)
+    });
+    return body;
+  };
+
   return {
     async listEffectiveExperienceManifests(): Promise<unknown[]> {
-      const response = await fetchImpl(withLocale("/v1/experiences/effective"), {
-        method: "GET",
-        headers: { accept: "application/json" }
-      });
-      const body = await readJsonResponse(response, "Experience discovery");
+      const body = await readCachedJson(
+        withLocale("/v1/experiences/effective"),
+        "Experience discovery"
+      );
       if (!Array.isArray(body)) {
         throw new Error("EIDOS_APP_MANAGER_SOURCE_INVALID_MANIFEST_LIST");
       }
@@ -54,11 +93,10 @@ export function createAppManagerExperienceSource(
     },
 
     async listEffectiveLocalizationBundles(): Promise<LocalizationBundleV010[]> {
-      const response = await fetchImpl(`${baseUrl}/v1/localization/bundles`, {
-        method: "GET",
-        headers: { accept: "application/json" }
-      });
-      const body = await readJsonResponse(response, "Localization bundle discovery");
+      const body = await readCachedJson(
+        `${baseUrl}/v1/localization/bundles`,
+        "Localization bundle discovery"
+      );
       if (!Array.isArray(body)) {
         throw new Error("EIDOS_APP_MANAGER_SOURCE_INVALID_LOCALIZATION_BUNDLE_LIST");
       }
@@ -68,12 +106,7 @@ export function createAppManagerExperienceSource(
     async loadPage(page): Promise<unknown> {
       const url = withLocale("/v1/experience-pages");
       url.searchParams.set("source", page.source);
-
-      const response = await fetchImpl(url, {
-        method: "GET",
-        headers: { accept: "application/json" }
-      });
-      return readJsonResponse(response, `Page load '${page.source}'`);
+      return readCachedJson(url, `Page load '${page.source}'`);
     }
   };
 }
