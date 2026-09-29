@@ -1,30 +1,253 @@
 import type { EnterpriseOperatingGraphHostServiceV010 } from "./enterprise-operating-graph-service.js";
-import type { EogExpectedSopV010 } from "../contracts/enterprise-operating-graph-sop.js";
+import type {
+  EogExpectedSopTransitionInputV010,
+  EogExpectedSopTransitionV010,
+  EogExpectedSopV010
+} from "../contracts/enterprise-operating-graph-sop.js";
 import type { EogExpectedSopStoreV010 } from "./enterprise-operating-graph-sop-store.js";
 
-function req(v:string,c:string){if(typeof v!=="string"||!v.trim())throw new Error(c);return v.trim();}
+function required(value: string, code: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(code);
+  }
+  return value.trim();
+}
+
+function normalizeOptional(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+}
 
 export interface EogExpectedSopServiceV010 {
-  create(input:{enterpriseId:string;graphId:string;sopId:string;title:string;applicationNodeIds:string[]}):EogExpectedSopV010;
-  revise(input:{enterpriseId:string;graphId:string;sopId:string;expectedRevision:number;title?:string;applicationNodeIds?:string[]}):EogExpectedSopV010;
-  publish(input:{enterpriseId:string;graphId:string;sopId:string;expectedRevision:number;subjectId:string}):EogExpectedSopV010;
-  list(input:{enterpriseId:string;graphId:string}):EogExpectedSopV010[];
-  listPublished(input:{enterpriseId:string;graphId:string}):EogExpectedSopV010[];
+  create(input: {
+    enterpriseId: string;
+    graphId: string;
+    sopId: string;
+    title: string;
+    applicationNodeIds: string[];
+    transitions?: EogExpectedSopTransitionInputV010[];
+  }): EogExpectedSopV010;
+  revise(input: {
+    enterpriseId: string;
+    graphId: string;
+    sopId: string;
+    expectedRevision: number;
+    title?: string;
+    applicationNodeIds?: string[];
+    transitions?: EogExpectedSopTransitionInputV010[];
+  }): EogExpectedSopV010;
+  publish(input: {
+    enterpriseId: string;
+    graphId: string;
+    sopId: string;
+    expectedRevision: number;
+    subjectId: string;
+  }): EogExpectedSopV010;
+  list(input: {
+    enterpriseId: string;
+    graphId: string;
+  }): EogExpectedSopV010[];
+  listPublished(input: {
+    enterpriseId: string;
+    graphId: string;
+  }): EogExpectedSopV010[];
 }
-export function createEogExpectedSopServiceV010(input:{store:EogExpectedSopStoreV010;graphService:EnterpriseOperatingGraphHostServiceV010;now?:()=>Date;}):EogExpectedSopServiceV010{
- const now=input.now??(()=>new Date());
- const apps=(enterpriseId:string,graphId:string,ids:string[])=>{
-   const graph=input.graphService.get({enterpriseId,graphId});
-   const uniq=[...new Set(ids.map(x=>req(x,"EOG_EXPECTED_SOP_APPLICATION_REQUIRED")))];
-   if(uniq.length!==ids.length)throw new Error("EOG_EXPECTED_SOP_APPLICATION_DUPLICATE");
-   for(const id of uniq){const n=graph.nodes.find(x=>x.nodeId===id);if(!n||n.kind!=="APPLICATION")throw new Error("EOG_EXPECTED_SOP_APPLICATION_NODE_REQUIRED");}
-   return uniq;
- };
- return {
-  create(r){const ts=now().toISOString();const ids=apps(r.enterpriseId,r.graphId,r.applicationNodeIds);return input.store.create({contractVersion:"0.1.0",sopId:req(r.sopId,"EOG_EXPECTED_SOP_ID_REQUIRED"),enterpriseId:req(r.enterpriseId,"EOG_ENTERPRISE_ID_REQUIRED"),graphId:req(r.graphId,"EOG_GRAPH_ID_REQUIRED"),title:req(r.title,"EOG_EXPECTED_SOP_TITLE_REQUIRED"),state:"DRAFT",revision:0,steps:ids.map((applicationNodeId,i)=>({stepId:"step:"+(i+1),applicationNodeId})),createdAt:ts,updatedAt:ts});},
-  revise(r){const cur=input.store.get(r.sopId);if(!cur||cur.enterpriseId!==r.enterpriseId||cur.graphId!==r.graphId)throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");if(cur.state!=="DRAFT")throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");if(cur.revision!==r.expectedRevision)throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");const ids=r.applicationNodeIds?apps(r.enterpriseId,r.graphId,r.applicationNodeIds):cur.steps.map(s=>s.applicationNodeId);return input.store.replace({...cur,revision:cur.revision+1,title:r.title===undefined?cur.title:req(r.title,"EOG_EXPECTED_SOP_TITLE_REQUIRED"),steps:ids.map((applicationNodeId,i)=>({stepId:"step:"+(i+1),applicationNodeId})),updatedAt:now().toISOString()});},
-  publish(r){const cur=input.store.get(r.sopId);if(!cur||cur.enterpriseId!==r.enterpriseId||cur.graphId!==r.graphId)throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");if(cur.state!=="DRAFT")throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");if(cur.revision!==r.expectedRevision)throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");if(cur.steps.length<2)throw new Error("EOG_EXPECTED_SOP_MINIMUM_PATH_REQUIRED");const ts=now().toISOString();return input.store.replace({...cur,state:"PUBLISHED",revision:cur.revision+1,publishedAt:ts,publishedBySubjectId:req(r.subjectId,"EOG_EXPECTED_SOP_PUBLISHER_REQUIRED"),updatedAt:ts});},
-  list(r){return input.store.listByGraph(r);},
-  listPublished(r){return input.store.listByGraph(r).filter(s=>s.state==="PUBLISHED");}
- };
+
+export function createEogExpectedSopServiceV010(input: {
+  store: EogExpectedSopStoreV010;
+  graphService: EnterpriseOperatingGraphHostServiceV010;
+  now?: () => Date;
+}): EogExpectedSopServiceV010 {
+  const now = input.now ?? (() => new Date());
+
+  const applications = (
+    enterpriseId: string,
+    graphId: string,
+    ids: string[]
+  ): string[] => {
+    const graph = input.graphService.get({ enterpriseId, graphId });
+    const unique = [...new Set(
+      ids.map(id =>
+        required(id, "EOG_EXPECTED_SOP_APPLICATION_REQUIRED")
+      )
+    )];
+    if (unique.length !== ids.length) {
+      throw new Error("EOG_EXPECTED_SOP_APPLICATION_DUPLICATE");
+    }
+    for (const id of unique) {
+      const node = graph.nodes.find(item => item.nodeId === id);
+      if (!node || node.kind !== "APPLICATION") {
+        throw new Error("EOG_EXPECTED_SOP_APPLICATION_NODE_REQUIRED");
+      }
+    }
+    return unique;
+  };
+
+  const transitions = (
+    ids: string[],
+    definitions?: EogExpectedSopTransitionInputV010[]
+  ): EogExpectedSopTransitionV010[] => {
+    if (definitions === undefined) {
+      const linear: EogExpectedSopTransitionV010[] = [];
+      for (let index = 0; index + 1 < ids.length; index += 1) {
+        linear.push({
+          transitionId: "transition:" + (index + 1),
+          fromApplicationNodeId: ids[index]!,
+          toApplicationNodeId: ids[index + 1]!,
+          kind: "EXPECTED"
+        });
+      }
+      return linear;
+    }
+
+    return definitions.map((definition, index) => ({
+      transitionId: "transition:" + (index + 1),
+      fromApplicationNodeId: required(
+        definition.fromApplicationNodeId,
+        "EOG_EXPECTED_SOP_TRANSITION_FROM_REQUIRED"
+      ),
+      toApplicationNodeId: required(
+        definition.toApplicationNodeId,
+        "EOG_EXPECTED_SOP_TRANSITION_TO_REQUIRED"
+      ),
+      kind: definition.kind ?? "EXPECTED",
+      ...(normalizeOptional(definition.conditionRef) !== undefined
+        ? { conditionRef: normalizeOptional(definition.conditionRef) }
+        : {}),
+      ...(normalizeOptional(definition.exceptionCode) !== undefined
+        ? { exceptionCode: normalizeOptional(definition.exceptionCode) }
+        : {})
+    }));
+  };
+
+  return {
+    create(request) {
+      const timestamp = now().toISOString();
+      const ids = applications(
+        request.enterpriseId,
+        request.graphId,
+        request.applicationNodeIds
+      );
+      return input.store.create({
+        contractVersion: "0.1.0",
+        sopId: required(request.sopId, "EOG_EXPECTED_SOP_ID_REQUIRED"),
+        enterpriseId: required(
+          request.enterpriseId,
+          "EOG_ENTERPRISE_ID_REQUIRED"
+        ),
+        graphId: required(request.graphId, "EOG_GRAPH_ID_REQUIRED"),
+        title: required(
+          request.title,
+          "EOG_EXPECTED_SOP_TITLE_REQUIRED"
+        ),
+        state: "DRAFT",
+        revision: 0,
+        steps: ids.map((applicationNodeId, index) => ({
+          stepId: "step:" + (index + 1),
+          applicationNodeId
+        })),
+        transitions: transitions(ids, request.transitions),
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+    },
+
+    revise(request) {
+      const current = input.store.get(request.sopId);
+      if (
+        !current
+        || current.enterpriseId !== request.enterpriseId
+        || current.graphId !== request.graphId
+      ) {
+        throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
+      }
+      if (current.state !== "DRAFT") {
+        throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");
+      }
+      if (current.revision !== request.expectedRevision) {
+        throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");
+      }
+
+      const ids = request.applicationNodeIds
+        ? applications(
+            request.enterpriseId,
+            request.graphId,
+            request.applicationNodeIds
+          )
+        : current.steps.map(step => step.applicationNodeId);
+
+      const nextTransitions = request.transitions !== undefined
+        ? transitions(ids, request.transitions)
+        : request.applicationNodeIds !== undefined
+          ? transitions(ids)
+          : current.transitions;
+
+      return input.store.replace({
+        ...current,
+        revision: current.revision + 1,
+        title: request.title === undefined
+          ? current.title
+          : required(
+              request.title,
+              "EOG_EXPECTED_SOP_TITLE_REQUIRED"
+            ),
+        steps: ids.map((applicationNodeId, index) => ({
+          stepId: "step:" + (index + 1),
+          applicationNodeId
+        })),
+        ...(nextTransitions === undefined
+          ? {}
+          : { transitions: nextTransitions }),
+        updatedAt: now().toISOString()
+      });
+    },
+
+    publish(request) {
+      const current = input.store.get(request.sopId);
+      if (
+        !current
+        || current.enterpriseId !== request.enterpriseId
+        || current.graphId !== request.graphId
+      ) {
+        throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
+      }
+      if (current.state !== "DRAFT") {
+        throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");
+      }
+      if (current.revision !== request.expectedRevision) {
+        throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");
+      }
+      if (
+        current.steps.length < 2
+        || !current.transitions
+        || current.transitions.length < 1
+      ) {
+        throw new Error("EOG_EXPECTED_SOP_MINIMUM_PATH_REQUIRED");
+      }
+
+      const timestamp = now().toISOString();
+      return input.store.replace({
+        ...current,
+        state: "PUBLISHED",
+        revision: current.revision + 1,
+        publishedAt: timestamp,
+        publishedBySubjectId: required(
+          request.subjectId,
+          "EOG_EXPECTED_SOP_PUBLISHER_REQUIRED"
+        ),
+        updatedAt: timestamp
+      });
+    },
+
+    list(request) {
+      return input.store.listByGraph(request);
+    },
+
+    listPublished(request) {
+      return input.store
+        .listByGraph(request)
+        .filter(sop => sop.state === "PUBLISHED");
+    }
+  };
 }
