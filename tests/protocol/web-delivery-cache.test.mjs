@@ -21,7 +21,8 @@ test("versioned browser assets are immutable while legacy URLs revalidate", () =
     {
       assetPath: "manager/app-host-client.js",
       revisioned: true,
-      cacheControl: "public, max-age=31536000, immutable"
+      cacheControl: "public, max-age=31536000, immutable",
+      contentType: "text/javascript; charset=utf-8"
     }
   );
 
@@ -33,12 +34,28 @@ test("versioned browser assets are immutable while legacy URLs revalidate", () =
     {
       assetPath: "manager/app-host-client.js",
       revisioned: false,
-      cacheControl: "public, max-age=0, must-revalidate"
+      cacheControl: "public, max-age=0, must-revalidate",
+      contentType: "text/javascript; charset=utf-8"
     }
   );
 });
 
-test("asset resolution fails closed for traversal and non-JavaScript paths", () => {
+test("versioned CSS shares the immutable asset namespace", () => {
+  assert.deepEqual(
+    resolveBrowserAssetRequestV010(
+      "/assets/rev/manager/app-host-shell.css",
+      "rev"
+    ),
+    {
+      assetPath: "manager/app-host-shell.css",
+      revisioned: true,
+      cacheControl: "public, max-age=31536000, immutable",
+      contentType: "text/css; charset=utf-8"
+    }
+  );
+});
+
+test("asset resolution fails closed for traversal and unsupported paths", () => {
   assert.equal(
     resolveBrowserAssetRequestV010(
       "/assets/rev/../manager/app-host-client.js",
@@ -46,8 +63,17 @@ test("asset resolution fails closed for traversal and non-JavaScript paths", () 
     ),
     undefined
   );
-  assert.equal(
+  assert.deepEqual(
     resolveBrowserAssetRequestV010("/assets/rev/app.css", "rev"),
+    {
+      assetPath: "app.css",
+      revisioned: true,
+      cacheControl: "public, max-age=31536000, immutable",
+      contentType: "text/css; charset=utf-8"
+    }
+  );
+  assert.equal(
+    resolveBrowserAssetRequestV010("/assets/rev/app.png", "rev"),
     undefined
   );
   assert.equal(resolveBrowserAssetRequestV010("/other/app.js", "rev"), undefined);
@@ -57,8 +83,13 @@ test("App Host shell points at the current immutable module graph", () => {
   const html = createAppHostShellHtmlV010("deploy:revision/1");
   assert.match(
     html,
+    /href="\/assets\/deploy-revision-1\/manager\/app-host-shell\.css"/
+  );
+  assert.match(
+    html,
     /src="\/assets\/deploy-revision-1\/manager\/app-host-client\.js"/
   );
+  assert.equal(html.includes("<style>"), false);
   assert.equal(
     html.includes('src="/assets/manager/app-host-client.js"'),
     false
