@@ -76,6 +76,13 @@ import {
   createEnterpriseOperatingGraphViewHostServiceV010
 } from "./enterprise-operating-graph-view-service.js";
 import {
+  createFileEogApplicationRuntimeBindingStoreV010,
+  createMemoryEogApplicationRuntimeBindingStoreV010
+} from "./enterprise-operating-graph-application-runtime-store.js";
+import {
+  createEogApplicationRuntimeBindingServiceV010
+} from "./enterprise-operating-graph-application-runtime-service.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010
 } from "./enterprise-operating-graph-actions.js";
 import {
@@ -569,6 +576,20 @@ const enterpriseOperatingGraphViewStore = enterpriseOperatingGraphViewStateFile
 const enterpriseOperatingGraphViewService =
   createEnterpriseOperatingGraphViewHostServiceV010({
     store: enterpriseOperatingGraphViewStore
+  });
+const eogApplicationRuntimeBindingStateFile =
+  process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "eog-application-runtime-bindings.json")
+    : undefined);
+const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
+  ? createFileEogApplicationRuntimeBindingStoreV010(
+      eogApplicationRuntimeBindingStateFile
+    )
+  : createMemoryEogApplicationRuntimeBindingStoreV010();
+const eogApplicationRuntimeBindingService =
+  createEogApplicationRuntimeBindingServiceV010({
+    store: eogApplicationRuntimeBindingStore
   });
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
@@ -1570,6 +1591,58 @@ const evoObservatoryEnterpriseMap = (() => {
 })();
 const evoObservatoryDefaultEnterpriseCode =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_DEFAULT_ENTERPRISE_CODE?.trim();
+const evoObservatoryApplicationMap = (() => {
+  const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_APPLICATION_MAP_JSON?.trim();
+  if (!raw) return [] as Array<{
+    enterpriseId: string;
+    hostApplicationRefId: string;
+    runtimeApplicationId: string;
+  }>;
+  const parsed = JSON.parse(raw) as unknown;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("EVO_OBSERVATORY_APPLICATION_MAP_INVALID");
+  }
+  const result: Array<{
+    enterpriseId: string;
+    hostApplicationRefId: string;
+    runtimeApplicationId: string;
+  }> = [];
+  for (const [enterpriseId, applications] of Object.entries(parsed)) {
+    if (
+      !enterpriseId.trim()
+      || applications === null
+      || typeof applications !== "object"
+      || Array.isArray(applications)
+    ) {
+      throw new Error("EVO_OBSERVATORY_APPLICATION_MAP_INVALID");
+    }
+    for (const [hostApplicationRefId, runtimeApplicationId] of Object.entries(
+      applications
+    )) {
+      if (
+        !hostApplicationRefId.trim()
+        || typeof runtimeApplicationId !== "string"
+        || !runtimeApplicationId.trim()
+      ) {
+        throw new Error("EVO_OBSERVATORY_APPLICATION_MAP_INVALID");
+      }
+      result.push({
+        enterpriseId: enterpriseId.trim(),
+        hostApplicationRefId: hostApplicationRefId.trim(),
+        runtimeApplicationId: runtimeApplicationId.trim()
+      });
+    }
+  }
+  return result;
+})();
+for (const mapping of evoObservatoryApplicationMap) {
+  eogApplicationRuntimeBindingService.bind({
+    enterpriseId: mapping.enterpriseId,
+    hostApplicationRefId: mapping.hostApplicationRefId,
+    runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+    runtimeApplicationId: mapping.runtimeApplicationId
+  });
+}
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
@@ -1913,6 +1986,17 @@ if (evoObservatoryEnabled) {
     resolveEnterpriseCode(hostEnterpriseId: string) {
       return evoObservatoryEnterpriseMap.get(hostEnterpriseId)
         ?? evoObservatoryDefaultEnterpriseCode;
+    }
+    ,
+    resolveApplicationId(
+      hostEnterpriseId: string,
+      hostApplicationRefId: string
+    ) {
+      return eogApplicationRuntimeBindingService.resolve({
+        enterpriseId: hostEnterpriseId,
+        hostApplicationRefId,
+        runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID
+      })?.runtimeApplicationId;
     }
   };
   providerRuntimeRegistry.replace(
