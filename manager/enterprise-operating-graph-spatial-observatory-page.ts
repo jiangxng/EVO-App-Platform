@@ -93,7 +93,7 @@ function preset(id:string,label:string,hours:number,now:Date) {
       },
       metricCodes:[
         "event.count","event.frequency","flow.throughput","flow.wip","flow.backlog",
-        "balance.quantity","business.quantity","sop.transition.count"
+        "balance.quantity","business.quantity","sop.transition.count","sop.trace.transition","sop.trace.coverage"
       ]
     } as Record<string,JsonValue>
   };
@@ -167,9 +167,11 @@ function factBadges(target:string,snapshot:EogObservationSnapshotV020):SpatialOb
         ?"Bottleneck"
         :o.analysisKind==="SOP_CONFORMANCE"
           ?"SOP"
-          :o.analysisKind==="SOP_DEVIATION"
-            ?"SOP deviation"
-            :o.analysisKind;
+          :o.analysisKind==="SOP_EXCEPTION"
+            ?"SOP exception"
+            :o.analysisKind==="SOP_DEVIATION"
+              ?"SOP deviation"
+              :o.analysisKind;
       const value=o.analysisKind==="SOP_CONFORMANCE"&&typeof o.score==="number"
         ?num(o.score*100)+"%"
         :o.status==="OBSERVED"?o.severity:o.status;
