@@ -89,3 +89,22 @@ test("Eidos high-frequency surfaces preserve mounted DOM instead of full replace
   assert.doesNotMatch(spatial, /svg\.replaceChildren\(/);
   assert.match(spatial, /requestAnimationFrame/);
 });
+
+test("Workbench honors preserveMountedPage and does not convert local reads into remount loops", async () => {
+  const workbench = await readFile(
+    new URL("../../dist/vendor/eidos/src/workbench/shell.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(workbench, /renderHint\?\.preserveMountedPage/);
+  assert.match(workbench, /await refreshChrome\(\)/);
+  assert.match(workbench, /async function refreshChrome/);
+
+  const workspaceCallback = workbench.slice(
+    workbench.indexOf("async function renderInternalWorkspace"),
+    workbench.indexOf("async function navigateWorkspace")
+  );
+  assert.match(workspaceCallback, /preserveMountedPage/);
+  assert.match(workspaceCallback, /refreshChrome/);
+});
+

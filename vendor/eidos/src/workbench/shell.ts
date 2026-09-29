@@ -328,16 +328,15 @@ export async function mountWorkbenchShell(
       localization,
       chatState,
       onNavigate: navigateWorkspace,
-      async onActionResult(result, page) {
-        await options.onActionResult?.(result, page);
+      async onActionResult(result, page, renderHint) {
+        await options.onActionResult?.(result, page, renderHint);
         if (
           result !== null
           && typeof result === "object"
           && !Array.isArray(result)
           && (result as { ok?: unknown }).ok === true
         ) {
-          await host.refresh();
-          renderActivities();
+          await refreshChrome();
         }
       }
     });
@@ -382,15 +381,19 @@ export async function mountWorkbenchShell(
       actionHost: options.actionHost,
       localization,
       onNavigate: navigateWorkspace,
-      async onActionResult(result, page) {
-        await options.onActionResult?.(result, page);
+      async onActionResult(result, page, renderHint) {
+        await options.onActionResult?.(result, page, renderHint);
         if (
           result !== null
           && typeof result === "object"
           && !Array.isArray(result)
           && (result as { ok?: unknown }).ok === true
         ) {
-          await refresh();
+          if (renderHint?.preserveMountedPage === true) {
+            await refreshChrome();
+          } else {
+            await refresh();
+          }
         }
       }
     });
@@ -651,6 +654,12 @@ export async function mountWorkbenchShell(
   };
   window.addEventListener("keydown", keyboardHandler);
   window.addEventListener("hashchange", hashHandler);
+
+  async function refreshChrome(): Promise<AppHostSnapshotV010> {
+    const snapshot = await host.refresh();
+    renderActivities();
+    return snapshot;
+  }
 
   async function refresh(): Promise<AppHostSnapshotV010> {
     const snapshot = await host.refresh();
