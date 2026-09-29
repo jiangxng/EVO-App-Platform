@@ -12,6 +12,10 @@ import {
   replaceBrowserSurfaceRouteV010,
   resolveBrowserSurfaceGatewayV010
 } from "./browser-surface-gateway.js";
+import {
+  disposeOnRealPageExitV010,
+  mountBrowserConnectivityNoticeV010
+} from "./browser-lifecycle.js";
 
 if (!window.location.hash || window.location.hash === "#") {
   window.location.hash = "/store";
@@ -28,6 +32,7 @@ const source = createAppManagerExperienceSource({
     || initialLocale
 });
 
+const connectivity = mountBrowserConnectivityNoticeV010();
 const bootstrapManifests = await source.listEffectiveExperienceManifests();
 
 const currentSurfacePath = window.location.hash.startsWith("#")
@@ -74,9 +79,10 @@ if (surfaceGateway.kind === "HANDOFF") {
     }
   });
 
-  window.addEventListener("pagehide", () => {
+  disposeOnRealPageExitV010(() => {
     mountedHandoff.dispose();
-  }, { once: true });
+    connectivity.dispose();
+  });
 } else if (activeTarget === "MOBILE_TASK") {
   const { mountMobileTaskRuntimeV010 } = await import(
     "./mobile-task-runtime.js"
@@ -90,18 +96,23 @@ if (surfaceGateway.kind === "HANDOFF") {
     baseUrl: window.location.origin
   });
 
-  window.addEventListener("pagehide", () => {
+  disposeOnRealPageExitV010(() => {
     mounted.dispose();
-  }, { once: true });
+    connectivity.dispose();
+  });
 } else {
   const { mountDesktopWorkbenchRuntimeV010 } = await import(
     "./desktop-workbench-runtime.js"
   );
-  await mountDesktopWorkbenchRuntimeV010({
+  const mounted = await mountDesktopWorkbenchRuntimeV010({
     source,
     bootstrapManifests,
     initialLocale,
     activeSurfaceId,
     baseUrl: window.location.origin
+  });
+  disposeOnRealPageExitV010(() => {
+    mounted.dispose();
+    connectivity.dispose();
   });
 }

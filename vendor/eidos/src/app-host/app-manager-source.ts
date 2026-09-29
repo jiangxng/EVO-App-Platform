@@ -45,7 +45,8 @@ export function createAppManagerExperienceSource(
 
   const readCachedJson = async (
     input: string | URL,
-    operation: string
+    operation: string,
+    signal?: AbortSignal
   ): Promise<unknown> => {
     const url = String(input);
     const cached = cache.get(url);
@@ -54,7 +55,8 @@ export function createAppManagerExperienceSource(
 
     const response = await fetchImpl(url, {
       method: "GET",
-      headers
+      headers,
+      ...(signal ? { signal } : {})
     });
 
     if (response.status === 304) {
@@ -81,10 +83,11 @@ export function createAppManagerExperienceSource(
   };
 
   return {
-    async listEffectiveExperienceManifests(): Promise<unknown[]> {
+    async listEffectiveExperienceManifests(options): Promise<unknown[]> {
       const body = await readCachedJson(
         withLocale("/v1/experiences/effective"),
-        "Experience discovery"
+        "Experience discovery",
+        options?.signal
       );
       if (!Array.isArray(body)) {
         throw new Error("EIDOS_APP_MANAGER_SOURCE_INVALID_MANIFEST_LIST");
@@ -103,10 +106,14 @@ export function createAppManagerExperienceSource(
       return body as LocalizationBundleV010[];
     },
 
-    async loadPage(page): Promise<unknown> {
+    async loadPage(page, options): Promise<unknown> {
       const url = withLocale("/v1/experience-pages");
       url.searchParams.set("source", page.source);
-      return readCachedJson(url, `Page load '${page.source}'`);
+      return readCachedJson(
+        url,
+        `Page load '${page.source}'`,
+        options?.signal
+      );
     }
   };
 }

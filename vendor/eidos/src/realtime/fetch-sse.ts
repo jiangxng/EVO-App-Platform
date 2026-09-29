@@ -9,6 +9,8 @@ export interface FetchSseRealtimeSourceOptionsV010 {
   fetchImpl?: typeof fetch;
   headers?: () => Record<string, string>;
   documentRef?: Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">;
+  windowRef?: Pick<Window, "addEventListener" | "removeEventListener">;
+  navigatorRef?: Pick<Navigator, "onLine">;
   reconnectDelaysMs?: readonly number[];
 }
 
@@ -45,6 +47,10 @@ export function createFetchSseRealtimeSourceV010(
 
   const documentRef = options.documentRef
     ?? (typeof document === "undefined" ? undefined : document);
+  const windowRef = options.windowRef
+    ?? (typeof window === "undefined" ? undefined : window);
+  const navigatorRef = options.navigatorRef
+    ?? (typeof navigator === "undefined" ? undefined : navigator);
   const reconnectDelays = options.reconnectDelaysMs?.length
     ? [...options.reconnectDelaysMs]
     : [1000, 2000, 5000, 10000, 30000];
@@ -54,6 +60,7 @@ export function createFetchSseRealtimeSourceV010(
   let controller: AbortController | undefined;
   let disposed = false;
   let desiredConnected = false;
+  let bfcacheFrozen = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   let state: RealtimeConnectionStateV010 = {
     state: "IDLE",
@@ -80,9 +87,27 @@ export function createFetchSseRealtimeSourceV010(
   };
 
   const hidden = () => documentRef?.visibilityState === "hidden";
+  const offline = () => navigatorRef?.onLine === false;
+  const pauseState = (): RealtimeConnectionStateV010["state"] | undefined =>
+    bfcacheFrozen
+      ? "PAUSED_BFCACHE"
+      : offline()
+        ? "PAUSED_OFFLINE"
+        : hidden()
+          ? "PAUSED_HIDDEN"
+          : undefined;
+
+  const pauseTransport = (
+    next: RealtimeConnectionStateV010["state"]
+  ) => {
+    clearReconnect();
+    controller?.abort();
+    controller = undefined;
+    emitState(next, state.retryCount);
+  };
 
   const scheduleReconnect = () => {
-    if (disposed || !desiredConnected || hidden()) return;
+    if (disposed || !desiredConnected || pauseState()) return;
     const nextRetry = state.retryCount + 1;
     const delay = reconnectDelays[
       Math.min(nextRetry - 1, reconnectDelays.length - 1)
@@ -153,7 +178,7 @@ export function createFetchSseRealtimeSourceV010(
   };
 
   async function pump(): Promise<void> {
-    if (disposed || !desiredConnected || hidden() || controller) return;
+    if (disposed || !desiredConnected || pauseState() || controller) return;
     clearReconnect();
     const currentController = new AbortController();
     controller = currentController;
@@ -188,16 +213,56 @@ export function createFetchSseRealtimeSourceV010(
 
   const onVisibilityChange = () => {
     if (disposed || !desiredConnected) return;
-    if (hidden()) {
-      clearReconnect();
-      controller?.abort();
-      controller = undefined;
-      emitState("PAUSED_HIDDEN", state.retryCount);
+    const paused = pauseState();
+    if (paused) {
+      pauseTransport(paused);
       return;
     }
     void pump();
   };
+
+  const onPageHide = (event: Event) => {
+    if (disposed || !desiredConnected) return;
+    const persisted = Boolean((event as PageTransitionEvent).persisted);
+    if (persisted) {
+      bfcacheFrozen = true;
+      pauseTransport("PAUSED_BFCACHE");
+      return;
+    }
+    pauseTransport("IDLE");
+  };
+
+  const onPageShow = () => {
+    if (disposed || !desiredConnected) return;
+    bfcacheFrozen = false;
+    const paused = pauseState();
+    if (paused) {
+      emitState(paused, state.retryCount);
+      return;
+    }
+    void pump();
+  };
+
+  const onOffline = () => {
+    if (disposed || !desiredConnected) return;
+    pauseTransport("PAUSED_OFFLINE");
+  };
+
+  const onOnline = () => {
+    if (disposed || !desiredConnected) return;
+    const paused = pauseState();
+    if (paused) {
+      emitState(paused, state.retryCount);
+      return;
+    }
+    void pump();
+  };
+
   documentRef?.addEventListener("visibilitychange", onVisibilityChange);
+  windowRef?.addEventListener("pagehide", onPageHide);
+  windowRef?.addEventListener("pageshow", onPageShow);
+  windowRef?.addEventListener("offline", onOffline);
+  windowRef?.addEventListener("online", onOnline);
 
   return {
     subscribe(handler) {
@@ -212,8 +277,9 @@ export function createFetchSseRealtimeSourceV010(
     connect() {
       if (disposed) throw new Error("EIDOS_REALTIME_SOURCE_DISPOSED");
       desiredConnected = true;
-      if (hidden()) {
-        emitState("PAUSED_HIDDEN");
+      const paused = pauseState();
+      if (paused) {
+        emitState(paused);
         return;
       }
       void pump();
@@ -233,6 +299,10 @@ export function createFetchSseRealtimeSourceV010(
       controller?.abort();
       controller = undefined;
       documentRef?.removeEventListener("visibilitychange", onVisibilityChange);
+      windowRef?.removeEventListener("pagehide", onPageHide);
+      windowRef?.removeEventListener("pageshow", onPageShow);
+      windowRef?.removeEventListener("offline", onOffline);
+      windowRef?.removeEventListener("online", onOnline);
       listeners.clear();
       stateListeners.clear();
       emitState("DISPOSED", 0);
