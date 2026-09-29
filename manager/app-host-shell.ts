@@ -21,3 +21,10 @@ export function createAppHostShellHtmlV010(assetRevision: string): string {
 </body>
 </html>`;
 }
+
+
+/**
+ * Backward-compatible unversioned shell for tests/legacy consumers.
+ * Production Host should call createAppHostShellHtmlV010 with its build revision.
+ */
+export const appHostShellHtml = createAppHostShellHtmlV010("dev");
