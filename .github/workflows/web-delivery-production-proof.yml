@@ -35,6 +35,7 @@ jobs:
           ASSET_PATH="$(grep -oE 'src="/assets/[^"]+/manager/app-host-client\.js"' /tmp/root.html | head -1 | sed 's/^src="//;s/"$//')"
           test -n "$ASSET_PATH"
 
+          : > /tmp/root304.body
           ROOT_304="$(curl -sS -D /tmp/root304.headers -o /tmp/root304.body -w '%{http_code}' -H "If-None-Match: $ROOT_ETAG" "$HOST/")"
           test "$ROOT_304" = "304"
           test "$(wc -c < /tmp/root304.body)" -eq 0
@@ -45,6 +46,7 @@ jobs:
           test "$ASSET_CACHE" = "public, max-age=31536000, immutable"
           test -n "$ASSET_ETAG"
 
+          : > /tmp/asset304.body
           ASSET_304="$(curl -sS -D /tmp/asset304.headers -o /tmp/asset304.body -w '%{http_code}' -H "If-None-Match: $ASSET_ETAG" "$HOST$ASSET_PATH")"
           test "$ASSET_304" = "304"
           test "$(wc -c < /tmp/asset304.body)" -eq 0
@@ -56,6 +58,7 @@ jobs:
           test "$LEGACY_CACHE" = "public, max-age=0, must-revalidate"
           test -n "$LEGACY_ETAG"
 
+          : > /tmp/legacy304.body
           LEGACY_304="$(curl -sS -D /tmp/legacy304.headers -o /tmp/legacy304.body -w '%{http_code}' -H "If-None-Match: $LEGACY_ETAG" "$HOST$LEGACY_PATH")"
           test "$LEGACY_304" = "304"
           test "$(wc -c < /tmp/legacy304.body)" -eq 0
@@ -71,8 +74,8 @@ jobs:
           {
             echo "## Web Delivery Production Proof"
             echo
-            echo "- Root: `$ROOT_CACHE`, conditional status `$ROOT_304`, first body `$ROOT_BYTES bytes`"
-            echo "- Versioned asset: `$ASSET_PATH`"
-            echo "- Versioned asset cache: `$ASSET_CACHE`, conditional status `$ASSET_304`, first body `$ASSET_BYTES bytes`"
-            echo "- Legacy asset cache: `$LEGACY_CACHE`, conditional status `$LEGACY_304`, first body `$LEGACY_BYTES bytes`"
+            echo "- Root: $ROOT_CACHE; conditional status $ROOT_304; first body $ROOT_BYTES bytes"
+            echo "- Versioned asset: $ASSET_PATH"
+            echo "- Versioned asset cache: $ASSET_CACHE; conditional status $ASSET_304; first body $ASSET_BYTES bytes"
+            echo "- Legacy asset cache: $LEGACY_CACHE; conditional status $LEGACY_304; first body $LEGACY_BYTES bytes"
           } >> "$GITHUB_STEP_SUMMARY"
