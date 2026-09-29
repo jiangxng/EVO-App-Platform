@@ -337,6 +337,50 @@ export const appPlatformExperienceArchitectureV010: ExperienceArchitectureDescri
       machineValuesSeparatedFromHumanCopy: true,
       designLanguageCompliant: true
     }
+  },
+  {
+    contractVersion: "0.1.0",
+    experienceId: "enterprise-operating-graph.spatial-observatory",
+    maturity: "candidate",
+    archetype: "explorer",
+    taskMode: "exploration",
+    goal: "Observe the same Enterprise Operating Graph and Runtime Facts through a stable three-dimensional enterprise spatial view",
+    subject: "enterprise-operating-graph-runtime",
+    actions: [
+      {
+        id: "change-time-lens",
+        label: "Change Time Lens",
+        determinism: "deterministic",
+        frequency: "frequent",
+        surface: "direct",
+        primary: true
+      },
+      {
+        id: "orbit-scene",
+        label: "Orbit scene",
+        determinism: "deterministic",
+        frequency: "frequent",
+        surface: "direct"
+      },
+      {
+        id: "inspect-runtime-fact",
+        label: "Inspect runtime fact",
+        determinism: "deterministic",
+        frequency: "frequent",
+        surface: "direct"
+      }
+    ],
+    agent: {
+      enabled: true,
+      mayRecommendDeclaredActions: true,
+      mayPrepareDeclaredActionInputs: true,
+      mayExecuteOnlyDeclaredActions: true
+    },
+    quality: {
+      systemStringsLocalized: true,
+      machineValuesSeparatedFromHumanCopy: true,
+      designLanguageCompliant: true
+    }
   }
 ];
 
