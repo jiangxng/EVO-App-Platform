@@ -6,6 +6,12 @@ on:
     paths:
       - ".github/workflows/mobile-review-production-proof.yml"
       - "tools/mobile-review-production-proof.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/mobile-review-production-proof.yml"
+      - "tools/mobile-review-production-proof.mjs"
 
 permissions:
   contents: read
