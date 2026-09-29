@@ -38,10 +38,12 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   initialLocale: string;
   activeSurfaceId?: string;
   baseUrl: string;
+  fetchImpl?: typeof fetch;
 }): Promise<DesktopWorkbenchRuntimeV010> {
   const source = options.source;
   const actionHost = createAppManagerActionHost({
-    baseUrl: options.baseUrl
+    baseUrl: options.baseUrl,
+    fetchImpl: options.fetchImpl
   });
   let activeLocale = options.initialLocale;
   const initialBundles = await source.listEffectiveLocalizationBundles();
@@ -180,7 +182,10 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       if (workbenchActivitiesEtag) {
         headers["if-none-match"] = workbenchActivitiesEtag;
       }
-      const response = await fetch("/v1/workbench/activities", { headers });
+      const response = await (options.fetchImpl ?? fetch)(
+        "/v1/workbench/activities",
+        { headers }
+      );
       if (response.status === 304) {
         return {
           activities: [...lastEffectiveActivities],
@@ -305,7 +310,8 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     });
   
     const realtime = createFetchSseRealtimeSourceV010({
-      url: () => window.location.origin + "/v1/events"
+      url: () => window.location.origin + "/v1/events",
+      fetchImpl: options.fetchImpl
     });
   
     const scheduleTopologyRefresh = () => {
