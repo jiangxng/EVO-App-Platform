@@ -21,6 +21,8 @@ import {
   createPluginEventBus,
   type PluginEventV010
 } from "./plugin-host-services.js";
+import { createHostRealtimeEventBusV010 } from "./realtime-event-bus.js";
+import type { HostRealtimeEventV010 } from "../contracts/realtime-events.js";
 import {
   createProcessPluginRuntimeHostV010,
   inspectPluginRuntimeV010
@@ -780,6 +782,9 @@ const pluginStorage = pluginStorageStateFile
   ? createFilePluginStorageService(pluginStorageStateFile)
   : createMemoryPluginStorageService();
 const pluginEvents = createPluginEventBus();
+const realtimeEvents = createHostRealtimeEventBusV010({
+  capacity: 4096
+});
 const pluginTrustStoreFile = process.env.APP_PLATFORM_PLUGIN_TRUST_STORE_FILE?.trim();
 const pluginIntegrityTrustStore = pluginTrustStoreFile
   ? createFilePluginIntegrityTrustStoreV010(pluginTrustStoreFile)
@@ -1166,6 +1171,20 @@ const manager = createAppManagerService(
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
     if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
+
+    realtimeEvents.publish({
+      topic: "host.topology",
+      type: "HOST_TOPOLOGY_CHANGED",
+      resource: {
+        kind: "host-topology",
+        resourceId: "host:topology"
+      },
+      payload: {
+        lifecycleType: event.type,
+        packageId: event.packageId,
+        ...(event.featureId ? { featureId: event.featureId } : {})
+      }
+    });
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
@@ -2584,7 +2603,7 @@ function applyCors(response: ServerResponse): void {
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
   response.setHeader(
     "access-control-allow-headers",
-    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id"
+    "content-type,accept,authorization,x-evo-session-id,x-evo-context-id,if-none-match,last-event-id"
   );
 }
 
@@ -2597,6 +2616,39 @@ function json(response: ServerResponse, status: number, body: unknown): void {
   applyCors(response);
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.end(JSON.stringify(body));
+}
+
+function representationEtag(serialized: string): string {
+  return "\"" + createHash("sha256").update(serialized).digest("base64url") + "\"";
+}
+
+function jsonVersioned(
+  request: IncomingMessage,
+  response: ServerResponse,
+  status: number,
+  body: unknown
+): void {
+  const serialized = JSON.stringify(body);
+  const etag = representationEtag(serialized);
+  applyCors(response);
+  response.setHeader("etag", etag);
+  response.setHeader("cache-control", "private, max-age=0, must-revalidate");
+  if (request.headers["if-none-match"] === etag) {
+    response.statusCode = 304;
+    return response.end();
+  }
+  response.statusCode = status;
+  response.setHeader("content-type", "application/json; charset=utf-8");
+  response.end(serialized);
+}
+
+function writeSseEvent(
+  response: ServerResponse,
+  event: HostRealtimeEventV010
+): void {
+  response.write("id: " + event.eventId + "\n");
+  response.write("event: " + event.type.toLowerCase() + "\n");
+  response.write("data: " + JSON.stringify(event) + "\n\n");
 }
 
 async function readJson(request: IncomingMessage): Promise<unknown> {
