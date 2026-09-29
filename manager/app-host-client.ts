@@ -12,6 +12,10 @@ import {
   createLocalizationRuntime,
   eidosAppHostLocalizationBundles
 } from "../vendor/eidos/src/localization/index.js";
+import {
+  createFetchSseRealtimeSourceV010,
+  type RealtimeEventV010
+} from "../vendor/eidos/src/realtime/index.js";
 
 if (!window.location.hash || window.location.hash === "#") {
   window.location.hash = "/store";
@@ -26,9 +30,12 @@ const source = createAppManagerExperienceSource({
   baseUrl: window.location.origin,
   locale: () => activeLocale
 });
-const actionHost = createAppManagerActionHost({ baseUrl: window.location.origin });
+const actionHost = createAppManagerActionHost({
+  baseUrl: window.location.origin
+});
 const host = createAppHost(source);
 const initialBundles = await source.listEffectiveLocalizationBundles();
+let activeBundleDigest = JSON.stringify(initialBundles);
 
 const localization = createLocalizationRuntime(
   [...eidosAppHostLocalizationBundles, ...initialBundles],
@@ -43,12 +50,16 @@ localization.subscribe(context => {
   window.localStorage.setItem("evo.locale", context.locale);
 });
 
-async function refreshLocalizationBundles(): Promise<void> {
+async function refreshLocalizationBundles(): Promise<boolean> {
   const activeBundles = await source.listEffectiveLocalizationBundles();
+  const digest = JSON.stringify(activeBundles);
+  if (digest === activeBundleDigest) return false;
+  activeBundleDigest = digest;
   localization.replaceBundles([
     ...eidosAppHostLocalizationBundles,
     ...activeBundles
   ]);
+  return true;
 }
 
 const platformActivities: WorkbenchActivityV010[] = [
@@ -127,15 +138,31 @@ const platformActivities: WorkbenchActivityV010[] = [
 ];
 
 let lastEffectiveActivities = [...platformActivities];
+let workbenchActivitiesEtag: string | undefined;
 
-async function loadEffectiveWorkbenchActivities(): Promise<WorkbenchActivityV010[]> {
+async function loadEffectiveWorkbenchActivities(): Promise<{
+  activities: WorkbenchActivityV010[];
+  changed: boolean;
+}> {
   try {
-    const response = await fetch("/v1/workbench/activities", {
-      headers: { accept: "application/json" }
-    });
+    const headers: Record<string, string> = {
+      accept: "application/json"
+    };
+    if (workbenchActivitiesEtag) {
+      headers["if-none-match"] = workbenchActivitiesEtag;
+    }
+    const response = await fetch("/v1/workbench/activities", { headers });
+    if (response.status === 304) {
+      return {
+        activities: [...lastEffectiveActivities],
+        changed: false
+      };
+    }
     if (!response.ok) {
       throw new Error(`WORKBENCH_ACTIVITIES_HTTP_${response.status}`);
     }
+    workbenchActivitiesEtag =
+      response.headers.get("etag") ?? workbenchActivitiesEtag;
     const contributions = await response.json() as Array<
       WorkbenchActivityV010 & {
         contractVersion?: string;
@@ -143,18 +170,87 @@ async function loadEffectiveWorkbenchActivities(): Promise<WorkbenchActivityV010
         featureId?: string;
       }
     >;
-    lastEffectiveActivities = [
+    const next = [
       ...platformActivities,
-      ...contributions.map(({ contractVersion: _contractVersion, packageId: _packageId, featureId: _featureId, ...activity }) => activity)
+      ...contributions.map(({
+        contractVersion: _contractVersion,
+        packageId: _packageId,
+        featureId: _featureId,
+        ...activity
+      }) => activity)
     ];
+    const changed = JSON.stringify(next) !== JSON.stringify(lastEffectiveActivities);
+    lastEffectiveActivities = next;
+    return {
+      activities: [...lastEffectiveActivities],
+      changed
+    };
   } catch (error) {
-    console.error("Failed to refresh Workbench activities; keeping last known effective set.", error);
+    console.error(
+      "Failed to refresh Workbench activities; keeping last known effective set.",
+      error
+    );
+    return {
+      activities: [...lastEffectiveActivities],
+      changed: false
+    };
   }
-  return [...lastEffectiveActivities];
 }
 
 let workbench: WorkbenchShell | undefined;
 const initialActivities = await loadEffectiveWorkbenchActivities();
+
+let topologyRefresh: Promise<void> | undefined;
+async function refreshHostTopology(): Promise<void> {
+  if (topologyRefresh) return topologyRefresh;
+  topologyRefresh = (async () => {
+    await host.refresh();
+    await refreshLocalizationBundles();
+    const activities = await loadEffectiveWorkbenchActivities();
+    if (activities.changed) {
+      await workbench?.setActivities(activities.activities);
+    }
+  })();
+  try {
+    await topologyRefresh;
+  } finally {
+    topologyRefresh = undefined;
+  }
+}
+
+const locallyAppliedCorrelations = new Map<string, number>();
+const LOCAL_CORRELATION_TTL_MS = 30_000;
+
+function pruneLocalCorrelations(now = Date.now()): void {
+  for (const [correlationId, recordedAt] of locallyAppliedCorrelations) {
+    if (now - recordedAt > LOCAL_CORRELATION_TTL_MS) {
+      locallyAppliedCorrelations.delete(correlationId);
+    }
+  }
+}
+
+function rememberLocallyAppliedCorrelation(result: unknown): void {
+  if (
+    result === null
+    || typeof result !== "object"
+    || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true
+  ) {
+    return;
+  }
+  const correlationId = (result as { correlationId?: unknown }).correlationId;
+  if (typeof correlationId !== "string" || !correlationId.trim()) return;
+  pruneLocalCorrelations();
+  locallyAppliedCorrelations.set(correlationId.trim(), Date.now());
+}
+
+function isLocalEcho(event: RealtimeEventV010): boolean {
+  if (!event.correlationId) return false;
+  pruneLocalCorrelations();
+  if (!locallyAppliedCorrelations.has(event.correlationId)) return false;
+  locallyAppliedCorrelations.delete(event.correlationId);
+  return true;
+}
 
 workbench = await mountWorkbenchShell({
   host,
@@ -162,14 +258,53 @@ workbench = await mountWorkbenchShell({
   title: "EVO",
   defaultActivityId: "plugins",
   initialWorkspaceRoute: "/store",
-  activities: initialActivities,
+  activities: initialActivities.activities,
   actionHost,
   localization,
   minSidePanelWidth: 260,
   maxSidePanelWidth: 720,
-  async onActionResult() {
-    await refreshLocalizationBundles();
-    const activities = await loadEffectiveWorkbenchActivities();
-    await workbench?.setActivities(activities);
+  async onActionResult(result, _page, renderHint) {
+    if (renderHint?.preserveMountedPage === true) {
+      rememberLocallyAppliedCorrelation(result);
+    }
   }
 });
+
+const realtime = createFetchSseRealtimeSourceV010({
+  url: () => window.location.origin + "/v1/events"
+});
+
+let topologyEventTimer: ReturnType<typeof setTimeout> | undefined;
+const scheduleTopologyRefresh = () => {
+  if (topologyEventTimer !== undefined) return;
+  topologyEventTimer = setTimeout(() => {
+    topologyEventTimer = undefined;
+    void refreshHostTopology();
+  }, 50);
+};
+
+const unsubscribeRealtime = realtime.subscribe(event => {
+  if (isLocalEcho(event)) return;
+
+  if (event.type === "HOST_TOPOLOGY_CHANGED") {
+    scheduleTopologyRefresh();
+    return;
+  }
+
+  if (event.type === "RESET_REQUIRED") {
+    scheduleTopologyRefresh();
+  }
+
+  workbench?.notifyRealtimeEvent(event);
+});
+
+realtime.connect();
+
+window.addEventListener("pagehide", () => {
+  if (topologyEventTimer !== undefined) {
+    clearTimeout(topologyEventTimer);
+    topologyEventTimer = undefined;
+  }
+  unsubscribeRealtime();
+  realtime.dispose();
+}, { once: true });
