@@ -26,6 +26,7 @@ export interface WorkbenchShellOptions {
   actionHost?: ActionHost;
   localization?: LocalizationRuntime;
   initialWorkspaceRoute?: string;
+  surfaceId?: string;
   layoutStateStore?: WorkbenchLayoutStateStore;
   minSidePanelWidth?: number;
   maxSidePanelWidth?: number;
@@ -68,6 +69,17 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+export function resolveWorkbenchInitialTargetV010(input: {
+  urlPath?: string;
+  initialWorkspaceRoute?: string;
+  persistedWorkspaceTarget?: string;
+}): string {
+  return input.urlPath?.trim()
+    || input.initialWorkspaceRoute?.trim()
+    || input.persistedWorkspaceTarget?.trim()
+    || "/";
+}
+
 export async function mountWorkbenchShell(
   options: WorkbenchShellOptions
 ): Promise<WorkbenchShell> {
@@ -95,10 +107,11 @@ export async function mountWorkbenchShell(
     activeActivityId: persistedActivity?.id ?? defaultActivity.id,
     sidePanelVisible: persisted?.sidePanelVisible ?? true,
     sidePanelWidth: clamp(persisted?.sidePanelWidth ?? 360, minWidth, maxWidth),
-    workspaceTarget: persisted?.workspaceTarget
-      || options.initialWorkspaceRoute
-      || currentHashPath()
-      || "/"
+    workspaceTarget: resolveWorkbenchInitialTargetV010({
+      urlPath: currentHashPath(),
+      initialWorkspaceRoute: options.initialWorkspaceRoute,
+      persistedWorkspaceTarget: persisted?.workspaceTarget
+    })
   };
 
   let disposed = false;
@@ -271,6 +284,16 @@ export async function mountWorkbenchShell(
     list.setAttribute("aria-label", hostText("shell.applications", "Applications"));
 
     for (const item of snapshot.navigation) {
+      if (
+        item.surfaceIds
+        && (
+          !options.surfaceId
+          || !item.surfaceIds.includes(options.surfaceId)
+        )
+      ) {
+        continue;
+      }
+
       const button = document.createElement("button");
       button.type = "button";
       const owner = snapshot.manifests.find(manifest =>

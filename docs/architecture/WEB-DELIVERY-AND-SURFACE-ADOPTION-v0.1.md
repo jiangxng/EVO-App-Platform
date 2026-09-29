@@ -298,3 +298,65 @@ desktop page asset          mobile page asset
 ```
 
 Browser entry integration and rendered handoff UX are the next P1 slice. The contract must be proven before mobile-shell specialization.
+
+
+## 13. Browser Surface Gateway
+
+The App Host browser bootstrap now evaluates Surface routing before mounting Workbench.
+
+Resolution inputs:
+
+- current semantic route from the URL hash;
+- explicit `?surface=` presentation target;
+- optional persisted user Surface target;
+- Eidos browser capability profile;
+- effective Experience manifests.
+
+The Gateway only intervenes for Experiences that explicitly declare `surfaces[]`.
+
+Legacy Experiences remain unchanged until they are explicitly classified. This avoids silently redefining existing responsive behavior as supported mobile product behavior.
+
+### Bootstrap sequence
+
+```text
+browser URL
+  -> fetch effective manifests once
+  -> resolve Surface
+     -> ROUTE same path: continue
+     -> ROUTE mapped path: replace hash without new history entry
+     -> HANDOFF: mount Eidos Surface Handoff only
+  -> bootstrap manifests are consumed by first App Host refresh
+  -> no duplicate manifest body fetch
+```
+
+When HANDOFF is active:
+
+- Workbench is not mounted;
+- Workbench activities are not fetched;
+- realtime SSE is not connected;
+- the page exposes explicit alternative Surface actions.
+
+Choosing an alternative Surface is an explicit Human navigation action. The browser URL is updated with the selected `surface` target and semantic route, then the page reloads through the normal immutable browser cache path.
+
+### Deep-link authority
+
+Workbench startup now follows:
+
+```text
+explicit URL/hash route
+  > Host initial route
+  > persisted workspace layout
+  > /
+```
+
+Persisted UI state cannot override a deliberate deep link.
+
+### Personal Agent first live target
+
+For `enterprise-agent.home`:
+
+- compact/coarse-pointer profile -> `MOBILE_TASK` -> `/m/enterprise-agent`;
+- explicit `?surface=desktop` -> `DESKTOP_WORKBENCH` -> `/enterprise-agent`;
+- `/enterprise-agent/setup` on mobile task -> HANDOFF rather than mobile-home substitution.
+
+The Surface Gateway is presentation routing only and does not change Principal, Context, authorization or Agent command semantics.
