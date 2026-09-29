@@ -395,7 +395,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Web Delivery P4 MOBILE_READ is now production-proven. PR #193 added a dedicated EOG MOBILE_READ Entity Inspector at /m/operating-graph/observe over the same semantic capability evo-enterprise-operating-graph.observatory and the same Host-authoritative EOG Runtime Facts/Analysis as desktop. Railway production deployment 7074e0d0-c02a-45b3-83d4-fa7f9d258624 at commit 0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a is SUCCESS. PR #194 real-Chrome proof passed read-only: compact routing resolved to #/m/operating-graph/observe, resourceId=eog:primary, freshness stale=false, 4 real entities, 13 metrics and 13 evidence entries, zero buttons/forms, mobile cold JS 18,243 bytes vs desktop 92,690 bytes, warm JS 0 bytes, mobile cold API/data 5,007 bytes vs desktop 19,244 bytes, and the mobile runtime loaded no Workbench/Diagram/Spatial/desktop/mobile-task modules. MOBILE_READ is therefore a separate read-only Experience Surface over shared enterprise truth, not responsive desktop reuse. The next Web foundation slice is security/delivery hardening: extract cacheable shell CSS, establish security headers/CSP without breaking current generated UI, verify compression/version-skew behavior, then add RUM/performance budgets. The EOG semantic v0.4 trace gate remains unchanged and must not be fabricated.",
+  "currentStep": "Web Delivery version-skew safety and RUM foundation are now production-proven. PR #198 merged commit d66c37f9d19552fcbb93a24cb7acd3d1fd51269f and deployed successfully as Railway deployment 44deea06-e848-487d-9911-6e8e9b81f212. It added explicit client/Host Web revision headers, non-blocking update notice, bounded sampled RUM, current Railway Git commit precedence for immutable asset revision, and a persistent bounded old-revision JS/CSS archive under Host durable state. PR #199 merged commit db61089df709a23eba60daa0e3cc8aa80c2fef03 and deployed as 9675e20d-798d-4e55-ad71-1452776d3995 to create the first true cross-deployment proof. New production diagnostics reported currentRevision=db61089d..., archived revisions d66c37f... and db61089d..., archiveEnabled=true, archiveError=null. From the new deployment, old d66c37f... app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned HTTP 200 with immutable one-year caching and ETag. A request identifying itself as the old revision returned x-evo-host-revision=db61089d..., x-evo-web-contract=0.1.0 and x-evo-client-update=available. RUM ingestion returned 202 and the bounded diagnostics store observed the sample. This closes the immutable-asset version-skew foundation: already-open old tabs can continue lazy-loading retained old modules while being informed that a newer compatible frontend exists. Next Web depth is real-browser RUM/performance budget governance and then selective remaining hardening; the independent EOG trace gate remains blocked on legitimate runtime trace evidence.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1641,8 +1641,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-30-16",
-    "snapshotAt": "2026-09-30T06:17:00.000+08:00",
+    "snapshotId": "EOG-2026-09-30-17",
+    "snapshotAt": "2026-09-30T07:22:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1705,8 +1705,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a",
-        "deploymentId": "7074e0d0-c02a-45b3-83d4-fa7f9d258624",
+        "commit": "db61089df709a23eba60daa0e3cc8aa80c2fef03",
+        "deploymentId": "9675e20d-798d-4e55-ad71-1452776d3995",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -2091,6 +2091,26 @@
         "pr": 194,
         "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
         "summary": "Certify EOG MOBILE_READ in real Chrome: 4 entities, 13 metrics/evidence, strict read-only controls, 18,243-byte mobile cold JS, 5,007-byte cold API/data, zero warm JS and no desktop-heavy dependency leakage."
+      },
+      {
+        "pr": 196,
+        "status": "MERGED_DEPLOYED_PRODUCTION_PASS",
+        "summary": "Extract cacheable shell CSS and establish browser security/CSP delivery baseline."
+      },
+      {
+        "pr": 197,
+        "status": "MERGED_PRODUCTION_PROOF_PASS",
+        "summary": "Certify shell CSS caching, security headers/CSP runtime and deployed compression behavior."
+      },
+      {
+        "pr": 198,
+        "status": "MERGED_DEPLOYED_CI_PASS",
+        "summary": "Add frontend/Host revision contract, stale-client update notice, sampled bounded RUM and persistent bounded old-revision immutable asset archive."
+      },
+      {
+        "pr": 199,
+        "status": "MERGED_DEPLOYED_PRODUCTION_PROOF_PASS",
+        "summary": "Create the second production revision and prove old-tab lazy module loading, stale-client headers and RUM ingestion across deployments."
       }
     ],
     "doNotRepeat": [
@@ -2196,7 +2216,12 @@
       "Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority.",
       "Do not rebuild EOG MOBILE_READ as a responsive Diagram/Workbench page; it is an independent read-only Entity Inspector over shared EOG truth.",
       "Do not add write controls to MOBILE_READ merely for feature parity; material interaction belongs on an explicitly admitted MOBILE_TASK or desktop Surface.",
-      "Do not evaluate mobile performance using JS bytes alone; route/API data bytes are now part of the Surface budget."
+      "Do not evaluate mobile performance using JS bytes alone; route/API data bytes are now part of the Surface budget.",
+      "Do not use a manually persisted deploy-trigger variable as the preferred immutable asset revision when the actual deployment Git commit is available.",
+      "Do not claim immutable caching is safe if an already-open old tab can no longer lazy-load modules from its own revision after a new deployment.",
+      "Do not serve current bytes under an old immutable revision URL; retain exact old revision bytes or fail explicitly.",
+      "Do not force-reload compatible stale tabs merely because a newer frontend exists; expose update availability and preserve bounded frontend/backend contract skew.",
+      "Do not turn RUM into high-frequency request telemetry or authoritative enterprise state; it is sampled, bounded browser delivery evidence only."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2273,7 +2298,13 @@
       "state EOG MOBILE_READ as production PASS at commit 0b0c30e6b83ade0b7afd96d4612bbc3a0a232c0a / deployment 7074e0d0-c02a-45b3-83d4-fa7f9d258624",
       "state the real Chrome proof exactly: /m/operating-graph/observe, eog:primary, stale=false, 4 entities, 13 metrics, 13 evidence entries, 0 buttons/forms, mobile cold JS 18,243 bytes, warm JS 0, cold API/data 5,007 bytes",
       "state desktop comparison as 92,690 cold JS bytes and 19,244 cold API/data bytes with explicit desktop override",
-      "state the next Web foundation slice as security/delivery hardening: immutable shell CSS, security headers/CSP, compression/version-skew and RUM/performance budgets"
+      "state the next Web foundation slice as security/delivery hardening: immutable shell CSS, security headers/CSP, compression/version-skew and RUM/performance budgets",
+      "state Web security/delivery hardening PR #196 and production proof #197 as complete before discussing version-skew/RUM work",
+      "state PR #198 as merged/deployed at d66c37f9d19552fcbb93a24cb7acd3d1fd51269f with explicit Web revision headers, bounded sampled RUM and persistent old-revision asset archive",
+      "state PR #199 / production db61089df709a23eba60daa0e3cc8aa80c2fef03 as the first true cross-deployment immutable-asset proof",
+      "state the old-revision proof exactly: old d66c37f app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned 200 from the new deployment with immutable cache and ETag",
+      "state stale compatible client behavior exactly: x-evo-host-revision points to db61089d, x-evo-web-contract=0.1.0 and x-evo-client-update=available; no forced reload is required",
+      "state RUM as bounded non-authoritative evidence and the next Web slice as real-browser RUM/performance budget governance"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -2295,7 +2326,7 @@
       ]
     },
     "webDelivery": {
-      "status": "P4_MOBILE_READ_VERIFIED_PRODUCTION_PASS",
+      "status": "VERSION_SKEW_ARCHIVE_AND_RUM_FOUNDATION_VERIFIED_PRODUCTION_PASS",
       "upstreamAuthority": {
         "repository": "jiangxng/eidos",
         "pr": 50,
@@ -2646,6 +2677,88 @@
             "freshness and evidence provenance are rendered from governed Runtime Facts/Analysis rather than browser-local inference",
             "MOBILE_READ uses an independent runtime and does not load Workbench/Diagram/Spatial/desktop/mobile-task runtimes",
             "mobile and desktop JS and route-data byte budgets are measured separately"
+          ]
+        }
+      },
+      "securityDelivery": {
+        "status": "VERIFIED_PRODUCTION_PASS",
+        "implementationPr": 196,
+        "implementationCommit": "67dcbe2f6e7b7501db2a79b38b18efc594a7f5ff",
+        "implementationDeploymentId": "d5a2869b-5c97-4bb2-96fc-1e0962923966",
+        "productionProofPr": 197,
+        "capabilities": [
+          "revisioned immutable shell CSS outside HTML",
+          "same-origin script CSP with explicit browser security headers",
+          "frame/object/base/form restrictions",
+          "content-type/referrer/permissions/CORP policies",
+          "production compression observation"
+        ]
+      },
+      "versionSkewAndRum": {
+        "status": "VERIFIED_PRODUCTION_PASS",
+        "implementation": {
+          "pr": 198,
+          "mergeCommit": "d66c37f9d19552fcbb93a24cb7acd3d1fd51269f",
+          "deploymentId": "44deea06-e848-487d-9911-6e8e9b81f212"
+        },
+        "proof": {
+          "pr": 199,
+          "secondRevision": "db61089df709a23eba60daa0e3cc8aa80c2fef03",
+          "secondDeploymentId": "9675e20d-798d-4e55-ad71-1452776d3995",
+          "archivedRevisions": [
+            "d66c37f9d19552fcbb93a24cb7acd3d1fd51269f",
+            "db61089df709a23eba60daa0e3cc8aa80c2fef03"
+          ],
+          "oldRevisionAssets": [
+            {
+              "path": "manager/app-host-client.js",
+              "status": 200,
+              "bytes": 5093,
+              "cacheControl": "public, max-age=31536000, immutable",
+              "etag": true
+            },
+            {
+              "path": "manager/mobile-read-runtime.js",
+              "status": 200,
+              "bytes": 4152,
+              "cacheControl": "public, max-age=31536000, immutable",
+              "etag": true
+            },
+            {
+              "path": "manager/desktop-workbench-runtime.js",
+              "status": 200,
+              "bytes": 9842,
+              "cacheControl": "public, max-age=31536000, immutable",
+              "etag": true
+            }
+          ],
+          "staleClientHeaders": {
+            "hostRevision": "db61089df709a23eba60daa0e3cc8aa80c2fef03",
+            "webContract": "0.1.0",
+            "clientUpdate": "available"
+          },
+          "rum": {
+            "postStatus": 202,
+            "sampleObserved": true,
+            "boundedCapacity": 500
+          }
+        },
+        "invariants": [
+          "immutable asset URL revision defaults to the actual deployed Railway Git commit before any legacy deploy-trigger variable",
+          "old immutable JS/CSS bytes are retained in a bounded persistent archive so an already-open compatible tab can lazy-load its own revision after a new deployment",
+          "a stale compatible client is informed of a newer Host revision but is not forcibly reloaded",
+          "browser RUM is sampled, bounded and non-authoritative; telemetry failure cannot block product behavior",
+          "RUM is page-level rather than per-event/per-request high-frequency telemetry"
+        ],
+        "nextPhase": {
+          "id": "REAL_BROWSER_RUM_AND_PERFORMANCE_BUDGET_GOVERNANCE",
+          "acceptance": [
+            "prove the actual browser reporter emits at most one sampled page-level report for a forced proof session",
+            "record real Chrome navigation/FCP/LCP/resource/transfer observations per Surface where APIs are available",
+            "define separate desktop, MOBILE_TASK and MOBILE_READ transfer/long-task budgets from existing production baselines",
+            "make production proof fail only on durable budget regressions with explicit headroom rather than fragile microbenchmarks",
+            "keep RUM diagnostic-only and never feed authorization, business truth or write decisions",
+            "preserve zero idle application-action traffic while telemetry is enabled"
           ]
         }
       }
@@ -3085,7 +3198,7 @@
   },
   "prioritySequencing": {
     "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "P0 cache, P1 Surface routing, P2 scoped loading, P3 lifecycle resilience, and P4 MOBILE_TASK/MOBILE_READ verticals are production-proven. The next Web depth is security/delivery hardening and measurable browser performance, while the independent EOG semantic trace gate remains blocked on a legitimate governed runtime flow source.",
+    "rationale": "Realtime transport, browser cache, explicit Surface architecture, lifecycle resilience, initial mobile verticals, security delivery hardening and cross-deployment immutable version-skew safety are now production-proven. Web depth now moves to real-browser RUM and enforceable Surface-specific performance budgets. The independent EOG SOP trace gate remains blocked on legitimate governed runtime trace evidence and must not be fabricated.",
     "deferred": [
       {
         "id": "host-owned-evo-businessdata-adapter",
