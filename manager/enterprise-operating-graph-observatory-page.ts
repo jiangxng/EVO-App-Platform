@@ -52,6 +52,38 @@ export const EOG_OBSERVATORY_ROUTE =
 export const EOG_OBSERVATORY_VIEW_GET_ACTION =
   "enterprise-operating-graph.observatory.view.get";
 
+export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020() {
+  return {
+    contractVersion: "0.1.0" as const,
+    experienceId: "evo-enterprise-operating-graph-observatory",
+    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
+    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    defaultRoute: EOG_OBSERVATORY_ROUTE,
+    pages: [
+      {
+        id: "evo-enterprise-operating-graph.observatory",
+        title: "Enterprise Observatory",
+        source: EOG_OBSERVATORY_PAGE_SOURCE
+      }
+    ],
+    routes: [
+      {
+        id: "evo-enterprise-operating-graph.observatory",
+        path: EOG_OBSERVATORY_ROUTE,
+        pageId: "evo-enterprise-operating-graph.observatory"
+      }
+    ],
+    navigation: [
+      {
+        id: "evo-enterprise-operating-graph.observatory.nav",
+        label: "Observe",
+        route: EOG_OBSERVATORY_ROUTE,
+        order: 16
+      }
+    ]
+  };
+}
+
 function localizedText(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";
   if (normalized.startsWith("zh")) {
