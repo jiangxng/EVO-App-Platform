@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-06`  
-**Snapshot time:** `2026-09-29T12:33:00.000+09:00`  
+**Snapshot:** `EOG-2026-09-29-07`  
+**Snapshot time:** `2026-09-29T11:49:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,45 +16,46 @@ ACTIVE
 
 ## Latest closed live slice
 
-**p1.8-durable-conversation-lifecycle-retention: VERIFIED_PRODUCTION_PASS**
+**enterprise-operating-graph-published-sop-no-trace-proof-v0-4: VERIFIED_PRODUCTION_PASS**
 
-Personal Agent durable conversation lifecycle is complete: durable Host threads, run-bound turns, Eidos transcript recovery, append-only archive lifecycle, Human-selected 90-day archived retention policy, and Eidos New Chat/history/switch/archive/read-only management are production-deployed.
+Human-confirmed Expected SOP publication and the real no-trace fail-closed proof are complete. sop:o2c-evo-configurator-v1 is PUBLISHED revision 2 by preview-user. Both DIAGRAM_2D and SPATIAL_3D project the same Host-derived SOP=INSUFFICIENT_EVIDENCE conclusion for the selected September 2026 Time Lens because production EVO_CONFIG_MVP has no legitimate runtime trace evidence.
 
-Authority: `docs/roadmap/P1.8-CONVERSATION-LIFECYCLE-RETENTION.md`
+Authority: `docs/architecture/EOG-VIEW-STATE-AND-OBSERVATORY-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "p18aPr": 119,
-  "p18bPreviewPr": 120,
-  "p18bPolicyPr": 122,
-  "p18cPr": 123,
-  "p18cCi": "32/32 PASS",
-  "productionCommit": "d5e4748900f3682d50d6cf3014c98c1251f8d155",
-  "deploymentId": "75fd7061-f471-423a-bbb8-b8160361095e",
-  "deploymentStatus": "SUCCESS",
-  "archivedRetentionDays": 90,
-  "destructivePurgeEnabled": false
+  "humanConfirmedPublish": true,
+  "sopId": "sop:o2c-evo-configurator-v1",
+  "sopRevision": 2,
+  "sopState": "PUBLISHED",
+  "publishedBySubjectId": "preview-user",
+  "publishDeploymentId": "2ecb5ae1-b6fd-41e6-8904-16da89e1fd75",
+  "twoDProofDeploymentId": "b8a8ce09-1441-4b71-a5f9-4d89f940e579",
+  "threeDProofDeploymentId": "6a78f6d4-cc8b-4e59-b807-2ce7aa5eab44",
+  "sopAnalysisValue": "INSUFFICIENT_EVIDENCE",
+  "analyzer": "sop-path-conformance-v0.2",
+  "runtimeFlowDefinitions": 0,
+  "runtimeFlowTraces": 0
 }
 ```
 
 ## Current open live gate
 
-**enterprise-operating-graph-sop-live-proof-v0-4: REAL_RUNTIME_FACTS_PASS_SOP_PUBLISH_HUMAN_GATE**
+**enterprise-operating-graph-sop-real-trace-live-proof-v0-4: BLOCKED_ON_LEGITIMATE_RUNTIME_FLOW_SOURCE**
 
-The Human Enterprise Context gate, Context transport, explicit EVO enterprise/application binding, Provider activation and real 2D/3D Runtime Fact projection are now live-passed. The production EVO enterprise is EVO_CONFIG_MVP. Four explicit stable ApplicationAnchors resolve in both DIAGRAM_2D and SPATIAL_3D, with real event.count/event.frequency facts and identical evidence-backed INSUFFICIENT_EVIDENCE bottleneck conclusions. Production EVO has no flow definitions or flow traces, so Actual Path evidence is genuinely absent. A Draft Expected SOP exists at revision 1; Human confirmation to publish it is the next authority gate. After publish, absence of trace evidence must remain SOP_CONFORMANCE=INSUFFICIENT_EVIDENCE. Full trace-backed conformance/deviation proof remains blocked on a legitimate runtime flow source, not synthetic private-table inserts.
+Expected SOP publication and the no-trace fail-closed proof are complete. The remaining v0.4 proof requires a legitimate EVO runtime flow definition and traced workload produced through governed/public EVO boundaries. Production EVO_CONFIG_MVP currently has no flow_definition or flow_trace evidence, so sop.trace.transition and sop.trace.coverage cannot yet be honestly produced. Synthetic private-table inserts and EVO_DEMO seeding are explicitly out of bounds.
 
 Acceptance:
 
-- Human explicitly confirms publish of sop:o2c-evo-configurator-v1 revision 1; publishing must retain requiresConfirmation=true and Human Principal authority
-- after publish, prove real production no-trace evidence yields SOP_CONFORMANCE=INSUFFICIENT_EVIDENCE in both DIAGRAM_2D and SPATIAL_3D rather than compliance
-- retain the explicit Host Enterprise -> EVO_CONFIG_MVP mapping and stable sourceApplicationId mappings; do not regress to application_instance UUIDs or label inference
-- provision or observe a legitimate runtime flow definition and traced workload through EVO public/governed boundaries before claiming sop.trace.transition or sop.trace.coverage live proof
-- once real traces exist, prove SOP_CONFORMANCE, SOP_EXCEPTION and SOP_DEVIATION retain evidenceFactIds, analyzer provenance and the selected Time Lens
+- provision or observe a legitimate runtime flow definition and traced workload through EVO public/governed boundaries; do not insert flow_definition/flow_trace rows directly and do not seed EVO_DEMO into production
+- prove /api/v1/runtime-traces/query returns real flow-instance steps resolved to the four stable ApplicationAnchors under the selected Enterprise Context
+- prove Host Observatory emits sop.trace.transition and sop.trace.coverage facts with evidence provenance for the selected Time Lens
+- prove a completed expected path yields evidence-backed SOP_CONFORMANCE while allowed alternatives/exceptions remain semantically distinct
+- prove a real disallowed path yields SOP_DEVIATION with evidenceFactIds and analyzer provenance
 - verify incomplete or ACTIVE traces remain INSUFFICIENT_EVIDENCE rather than compliance
 - do not treat conditionRef as satisfied until a runtime evidence model can prove the condition
-- do not add parallel, loop or role-responsibility semantics until an explicit evidence model can validate them
 
 ## Current production preview
 
@@ -144,6 +145,7 @@ Not proved:
 - PR #73 — MERGED_CI_PASS: EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors.
 - PR #154 — MERGED_CI_PASS: Add explicit Expected/Allowed Alternative/Allowed Exception SOP transitions, preserve per-flow Actual Path and coverage facts from EVO traces, emit SOP_EXCEPTION separately from deviations, and fail closed when trace or conditional evidence is insufficient.
 - PR #157 — MERGED_DEPLOYED_CI_PASS: Propagate Host-resolved active Enterprise Context through Eidos AppManager actions so EOG reads and writes execute in the selected Enterprise Context.
+- PR #158 — MERGED: Record the Human-owned Enterprise Context, explicit EVO_CONFIG_MVP stable ApplicationAnchor mappings, live 2D/3D Runtime Facts, genuine absence of production traces, and the Expected SOP publish gate.
 
 ## DO NOT repeat stale actions
 
@@ -207,7 +209,9 @@ Not proved:
 - Do not map Observatory applications to EVO application_instance UUIDs; runtime observation resolves exact application_instance.config.sourceApplicationId stable anchors.
 - Do not report event.count=0 as missing mapping; all four real ApplicationAnchors resolve successfully and zero is the observed September value.
 - Do not manufacture SOP live evidence by inserting flow_definition/flow_trace rows or seeding EVO_DEMO into production; production EVO_CONFIG_MVP currently has no legitimate trace evidence.
-- Do not publish sop:o2c-evo-configurator-v1 without a fresh explicit Human confirmation; it is currently DRAFT revision 1.
+- Do not reopen Expected SOP publication as pending; sop:o2c-evo-configurator-v1 was Human-confirmed and is PUBLISHED revision 2 by preview-user.
+- Do not interpret the published SOP as proof of Actual Path compliance; production EVO_CONFIG_MVP still has no legitimate flow trace evidence and both 2D/3D correctly show SOP=INSUFFICIENT_EVIDENCE.
+- Do not manufacture the remaining trace proof with direct flow_definition/flow_trace inserts or by seeding EVO_DEMO into production.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -256,7 +260,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the real EVO enterprise as EVO_CONFIG_MVP and the four O2C Host nodes as explicitly mapped to stable EVO sourceApplicationId anchors, not application_instance UUIDs
 - state real September Runtime Facts as live-passed in both 2D and 3D with event.count=0/event.frequency=0 and identical Bottleneck=INSUFFICIENT_EVIDENCE overlays
 - state production EVO as currently containing no flow_definition and no flow_trace evidence; do not claim Actual Path live proof
-- state Expected SOP sop:o2c-evo-configurator-v1 as DRAFT revision 1; the next gate is explicit Human confirmation to publish it
+- state Expected SOP sop:o2c-evo-configurator-v1 as Human-confirmed PUBLISHED revision 2 by preview-user
+- state the published no-trace proof as production PASS: both DIAGRAM_2D and SPATIAL_3D project SOP=INSUFFICIENT_EVIDENCE from analyzer sop-path-conformance-v0.2 for the September 2026 Time Lens
+- state the next EOG v0.4 gate as a legitimate governed EVO runtime flow/trace source; do not claim full Actual Path proof until sop.trace.transition and sop.trace.coverage exist from real runtime evidence
 
 No previous ChatGPT transcript is required.
 
