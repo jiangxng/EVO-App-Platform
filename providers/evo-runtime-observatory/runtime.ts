@@ -42,6 +42,35 @@ interface EvoObservationResponse {
   };
 }
 
+interface EvoRuntimeTraceStep {
+  applicationId?: string;
+  stepCode?: string;
+  businessDataId?: string;
+  commandExecutionId?: string;
+  occurredAt?: string;
+}
+
+interface EvoRuntimeTrace {
+  contractVersion?: string;
+  enterpriseId?: string;
+  flowDefinitionId?: string;
+  flowInstanceId?: string;
+  flowInstanceKey?: string;
+  status?: "ACTIVE" | "COMPLETED" | "CANCELLED";
+  steps?: EvoRuntimeTraceStep[];
+  startedAt?: string;
+  completedAt?: string;
+}
+
+interface EvoRuntimeTraceResponse {
+  contractVersion?: string;
+  traces?: EvoRuntimeTrace[];
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
+
 export interface EvoRuntimeObservatoryProviderOptions {
   baseUrl: string;
   resolveEnterpriseCode(hostEnterpriseId: string): string | undefined;
@@ -165,22 +194,27 @@ export function createEvoRuntimeObservatoryProviderV020(
       }
       const evoEnterpriseId = enterpriseBody.id.trim();
 
-      const requestedMetricMappings = (
-        request.metricCodes?.length
-          ? request.metricCodes
-          : [
-              "event.count",
-              "event.frequency",
-              "business.quantity",
-              "business.amount",
-              "balance.quantity",
-              "balance.amount"
-            ]
-      )
+      const requestedCodes = request.metricCodes?.length
+        ? request.metricCodes
+        : [
+            "event.count",
+            "event.frequency",
+            "business.quantity",
+            "business.amount",
+            "balance.quantity",
+            "balance.amount",
+            "sop.transition.count"
+          ];
+      const requestedMetricMappings = requestedCodes
         .map(supportedMetric)
         .filter((item): item is MetricMapping => item !== undefined);
+      const transitionRequested = requestedCodes.includes(
+        "sop.transition.count"
+      );
 
-      if (requestedMetricMappings.length === 0) return [];
+      if (requestedMetricMappings.length === 0 && !transitionRequested) {
+        return [];
+      }
 
       const facts: EogRuntimeFactV020[] = [];
 
@@ -339,6 +373,189 @@ export function createEvoRuntimeObservatoryProviderV020(
             ),
             fallbackSourceRef: "application:" + applicationId
           });
+        }
+      }
+
+
+      if (transitionRequested) {
+        const runtimeToNode = new Map<string, string>();
+        for (const resolved of request.semanticTargets) {
+          if (
+            resolved.target.kind !== "NODE"
+            || !("node" in resolved)
+            || resolved.node.kind !== "APPLICATION"
+            || resolved.node.semanticRef.authority !== "HOST"
+            || resolved.node.semanticRef.kind !== "APPLICATION"
+          ) {
+            continue;
+          }
+          const applicationId = options.resolveApplicationId?.(
+            request.enterpriseId,
+            resolved.node.semanticRef.refId
+          )?.trim();
+          if (!applicationId) continue;
+          if (runtimeToNode.has(applicationId)) {
+            throw new Error(
+              "EVO_OBSERVATORY_APPLICATION_RUNTIME_IDENTITY_AMBIGUOUS"
+            );
+          }
+          runtimeToNode.set(applicationId, resolved.node.nodeId);
+        }
+
+        if (runtimeToNode.size > 0) {
+          const traceResponse = await fetchImpl(
+            baseUrl + "/api/v1/runtime-traces/query",
+            {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                accept: "application/json"
+              },
+              body: JSON.stringify({
+                contractVersion: "0.1.0",
+                enterpriseId: evoEnterpriseId,
+                window: request.window,
+                applicationIds: [...runtimeToNode.keys()].sort()
+              })
+            }
+          );
+          const traceBody =
+            await traceResponse.json() as EvoRuntimeTraceResponse;
+          if (!traceResponse.ok || !Array.isArray(traceBody.traces)) {
+            throw new Error(
+              traceBody.error?.code
+              ?? "EVO_OBSERVATORY_RUNTIME_TRACE_QUERY_FAILED"
+            );
+          }
+
+          const counts = new Map<string, {
+            fromNodeId: string;
+            toNodeId: string;
+            fromStepCode: string;
+            toStepCode: string;
+            value: number;
+            evidenceRefs: string[];
+          }>();
+
+          for (const trace of traceBody.traces) {
+            if (
+              trace.contractVersion !== "0.1.0"
+              || trace.enterpriseId !== evoEnterpriseId
+              || !Array.isArray(trace.steps)
+            ) {
+              throw new Error("EVO_OBSERVATORY_RUNTIME_TRACE_INVALID");
+            }
+            for (let index = 0; index + 1 < trace.steps.length; index += 1) {
+              const from = trace.steps[index];
+              const to = trace.steps[index + 1];
+              if (
+                typeof from?.applicationId !== "string"
+                || typeof to?.applicationId !== "string"
+                || typeof from.stepCode !== "string"
+                || typeof to.stepCode !== "string"
+                || typeof from.businessDataId !== "string"
+                || typeof to.businessDataId !== "string"
+              ) {
+                throw new Error("EVO_OBSERVATORY_RUNTIME_TRACE_INVALID");
+              }
+              const fromNodeId = runtimeToNode.get(from.applicationId);
+              const toNodeId = runtimeToNode.get(to.applicationId);
+              if (!fromNodeId || !toNodeId) continue;
+
+              const explicitTargets = request.targets?.filter(
+                target => target.kind === "NODE"
+              );
+              if (
+                explicitTargets?.length
+                && !explicitTargets.some(target =>
+                  target.kind === "NODE"
+                  && target.nodeId === fromNodeId
+                )
+              ) {
+                continue;
+              }
+
+              const key = [
+                fromNodeId,
+                toNodeId,
+                from.stepCode,
+                to.stepCode
+              ].join("|");
+              const aggregate = counts.get(key) ?? {
+                fromNodeId,
+                toNodeId,
+                fromStepCode: from.stepCode,
+                toStepCode: to.stepCode,
+                value: 0,
+                evidenceRefs: []
+              };
+              aggregate.value += 1;
+              aggregate.evidenceRefs.push(
+                from.businessDataId + "->" + to.businessDataId
+              );
+              counts.set(key, aggregate);
+            }
+          }
+
+          for (const aggregate of [...counts.values()].sort((a, b) =>
+            [
+              a.fromNodeId,
+              a.toNodeId,
+              a.fromStepCode,
+              a.toStepCode
+            ].join("|").localeCompare([
+              b.fromNodeId,
+              b.toNodeId,
+              b.fromStepCode,
+              b.toStepCode
+            ].join("|"))
+          )) {
+            facts.push({
+              contractVersion: "0.2.0",
+              factId: "evo-trace-fact:" + digest({
+                enterpriseId: request.enterpriseId,
+                graphId: request.graphId,
+                window: request.window,
+                fromNodeId: aggregate.fromNodeId,
+                toNodeId: aggregate.toNodeId,
+                fromStepCode: aggregate.fromStepCode,
+                toStepCode: aggregate.toStepCode
+              }),
+              enterpriseId: request.enterpriseId,
+              graphId: request.graphId,
+              target: {
+                kind: "NODE",
+                nodeId: aggregate.fromNodeId
+              },
+              metric: {
+                code: "sop.transition.count",
+                kind: "COUNT",
+                unit: "transitions"
+              },
+              window: structuredClone(request.window),
+              value: aggregate.value,
+              sampleCount: aggregate.value,
+              dimensions: {
+                toApplicationNodeId: aggregate.toNodeId,
+                fromStepCode: aggregate.fromStepCode,
+                toStepCode: aggregate.toStepCode,
+                evidenceDigest: digest(
+                  aggregate.evidenceRefs.sort()
+                )
+              },
+              observedAt: request.window.endAt,
+              source: {
+                providerId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
+                sourceKind: "EVO_RUNTIME",
+                sourceRef: "runtime-traces",
+                queryDigest: digest({
+                  evoEnterpriseId,
+                  window: request.window,
+                  applicationIds: [...runtimeToNode.keys()].sort()
+                })
+              }
+            });
+          }
         }
       }
 
