@@ -53,9 +53,15 @@ External pages never bypass App Platform identity/authorization and never become
 
 Status Bar is lightweight context only. Initial responsibilities are App Host/workbench state and current workspace/page title. Future contributions require a versioned contract; arbitrary DOM injection is not allowed.
 
-## 6. Mobile
+## 6. Mobile and Surface Targets
 
-At narrow widths the model becomes Activity Bar + one visible working surface. Apps/Agent Activities open Side Panel; selecting an App/Plugins/Settings opens Workspace. State is preserved and no desktop pointer-only step may be required for a normal workflow.
+The desktop Workbench is a `DESKTOP_WORKBENCH` Surface. It is no longer assumed that narrowing the same Workbench page is the platform-wide mobile strategy.
+
+Cross-device behavior follows `docs/architecture/WEB-DELIVERY-AND-SURFACE-ADOPTION-v0.1.md` and the upstream Eidos Web Delivery / Surface architecture.
+
+An Experience may provide a separate `MOBILE_TASK` or `MOBILE_READ` Surface using the same Host Actions/resources while using a different route and page composition. Mobile support is explicit per Experience and may be `FULL`, `TASK_FOCUSED`, `READ_ONLY` or `UNSUPPORTED`.
+
+Responsive Workbench behavior may still be used where it is genuinely appropriate, but it is not required for dense desktop-only Experiences such as full graph authoring or complex enterprise configuration. Unsupported mobile operations must resolve to a deterministic handoff rather than a broken compressed desktop UI.
 
 ## 7. Workbench state persistence
 
