@@ -1,0 +1,32 @@
+name: Browser Lifecycle Production Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/browser-lifecycle-production-proof.yml"
+      - "tools/browser-lifecycle-production-proof.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify production bfcache, realtime recovery and offline freshness
+        shell: bash
+        env:
+          HOST: https://ledger-configurator-production.up.railway.app
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/browser-lifecycle-production-proof.mjs | tee /tmp/browser-lifecycle-proof.log
+          grep -q "BROWSER_LIFECYCLE_PROOF=" /tmp/browser-lifecycle-proof.log
