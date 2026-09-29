@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-29-14`  
-**Snapshot time:** `2026-09-29T21:28:00.000+08:00`  
+**Snapshot:** `EOG-2026-09-29-15`  
+**Snapshot time:** `2026-09-29T23:58:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -64,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `6cf1061983e08a3c07652b5e08c994890e4c6861`
-- Deployment: `69f58d70-74a0-4f95-92a8-84379560db1`
+- Commit: `9373efd9d77a1b25805ded240956bf40ad65625d`
+- Deployment: `5aad75b5-1e10-4887-8e8a-119e2873f795`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -169,6 +169,8 @@ Not proved:
 - PR #183 — MERGED_PRODUCTION_PROOF_PASS: Certify real Chrome bfcache restore, zero action replay, SSE reconnect and offline/online freshness behavior against production.
 - PR #185 — MERGED_DEPLOYED_CI_PASS: Add dedicated MOBILE_TASK Memory Review over the same semantic review route and Host Human authority as desktop.
 - PR #188 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies.
+- PR #190 — MERGED_DEPLOYED_CI_PASS: Add dedicated MOBILE_TASK Follow-up Task Inbox over real governed Personal Agent planning state using Eidos Task Inbox and Host action authority.
+- PR #191 — MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS: Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies.
 
 ## DO NOT repeat stale actions
 
@@ -269,6 +271,9 @@ Not proved:
 - Do not implement mobile Review Queue by shrinking desktop Workbench; the independent mobile runtime and byte budget are already proven.
 - Do not weaken Human confirmation for material Memory accept/reject just because the action is presented on mobile.
 - Do not invent a second mobile task execution authority; Task Inbox actions must use the same App Host ActionHost / Host command boundary.
+- Do not seed or fabricate Follow-up tasks merely to make MOBILE_TASK Task Inbox production proof non-empty; an authoritative empty inbox is valid evidence.
+- Do not treat Task Inbox presentation state as enterprise business truth or infer domain completion from READY/BLOCKED/EXCEPTION UI state.
+- Do not port the desktop Follow-up Catalog Browser wholesale into mobile; MOBILE_TASK uses semantic Task Inbox composition over the same Host authority.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -355,6 +360,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state mobile Review cold JS as 36,881 bytes, desktop as 90,637 bytes, both warm JS transfer 0, and mobile as loading no Workbench/Diagram/Spatial/desktop runtime
 - state Review Queue desktop/mobile as the same semantic route and Host authority with Surface-specific rendering
 - state the next Web P4 slice as Task Inbox for notifications/exceptions/assigned work, beginning with real Personal Agent Follow-up planning state rather than demo data
+- state PR #190 / production commit 9373efd9d77a1b25805ded240956bf40ad65625d / Railway deployment 5aad75b5-1e10-4887-8e8a-119e2873f795 as the MOBILE_TASK Follow-up Task Inbox implementation
+- state PR #191 production proof exactly: mobile route /m/enterprise-agent/follow-ups, inbox personal-agent.follow-ups.mobile, current real inbox empty with itemCount=0, mobile cold JS 39,653 bytes, desktop cold JS 92,537 bytes, both warm JS 0, and no mobile desktop-runtime/Workbench/Diagram/Spatial loading
+- state the empty production Task Inbox as valid governed evidence rather than a reason to create synthetic tasks
+- state the next Web Delivery vertical as MOBILE_READ KPI/entity inspection over a real governed read model
 
 No previous ChatGPT transcript is required.
 
