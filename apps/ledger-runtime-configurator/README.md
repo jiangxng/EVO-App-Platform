@@ -156,3 +156,132 @@ requires the platform identity, delegation, authorization and protocol layers.
 
 See:
 `docs/architecture/LEDGER-RUNTIME-CONFIGURATION-CAPABILITY-OPERATIONS-EA2B-v0.1.md`.
+
+
+## Agent-neutral Capability Operations
+
+The Configurator publishes its machine-callable business semantics through Plugin Protocol `platform.capability-operation` Contributions.
+
+These are not ChatGPT-, Claude-, MCP- or Personal-Agent-specific APIs.
+
+### Describe current configuration
+
+```text
+evo.ledger-runtime.configurator.describe
+```
+
+Effect:
+
+```text
+READ
+```
+
+Returns a bounded semantic overview:
+
+- template/configuration identity;
+- display name;
+- semantic digest;
+- expression language;
+- account/application/dictionary/posting-rule counts;
+- burn readiness;
+- required runtime capabilities;
+- source libraries;
+- available detailed sections.
+
+It deliberately does **not** inline all accounts, applications, dictionaries or 912 posting rules.
+
+### Read a configuration section
+
+```text
+evo.ledger-runtime.configurator.section.read
+```
+
+Effect:
+
+```text
+READ
+```
+
+Sections:
+
+```text
+accounts
+applications
+dictionaries
+postingRules
+```
+
+Input:
+
+```text
+section
+cursor?   opaque
+limit?    1..100, default 50
+```
+
+The result includes:
+
+```text
+semanticDigest
+items[]
+page:
+  offset
+  limit
+  returned
+  total
+  nextCursor
+```
+
+The cursor is opaque to clients and is bound to:
+
+```text
+section
++ offset
++ current semanticDigest
+```
+
+If the configuration changes while a client is paging, the old cursor fails with:
+
+```text
+LEDGER_CONFIGURATION_CURSOR_STALE
+```
+
+The client must restart reading that section.
+
+This prevents an Agent from silently assembling one logical template from multiple configuration revisions.
+
+### Why bounded reads
+
+Agent-native does not mean dumping the whole domain object into a model context.
+
+The canonical pattern is:
+
+```text
+describe
+→ understand shape/size/version
+→ select relevant section
+→ page only what is required
+```
+
+This supports:
+
+- smaller context;
+- deterministic pagination;
+- cache/revalidation;
+- future authorization/redaction;
+- large future templates;
+- protocol-neutral projection.
+
+### Execution path
+
+Both operations bind to ordinary Host Actions:
+
+```text
+Capability Operation
+→ ACTION_HOST
+→ Ledger Configurator service
+```
+
+No External-Agent-specific business execution path exists.
+
+Future MCP/OpenAPI/Product Adapters project these same operations after Principal/Context/Grant authorization.
