@@ -1,5 +1,5 @@
 import type {
-  IdentityUserDirectoryEntryV010,
+  IdentityUserDirectoryRecordV010,
   IdentityUserDirectoryProviderV010,
   PlatformPrincipalV010
 } from "../../contracts/platform-services.js";
@@ -17,8 +17,8 @@ function clonePrincipal(principal: PlatformPrincipalV010): PlatformPrincipalV010
 
 export interface HostIdentityUserDirectoryServiceV010 {
   provider: IdentityUserDirectoryProviderV010;
-  recordAuthenticatedPrincipal(principal: PlatformPrincipalV010): IdentityUserDirectoryEntryV010;
-  revoke(subjectId: string, actorSubjectId: string): IdentityUserDirectoryEntryV010;
+  recordAuthenticatedPrincipal(principal: PlatformPrincipalV010): IdentityUserDirectoryRecordV010;
+  disable(subjectId: string, actorSubjectId: string): IdentityUserDirectoryRecordV010;
 }
 
 export function createHostIdentityUserDirectoryServiceV010(input: {
@@ -27,13 +27,13 @@ export function createHostIdentityUserDirectoryServiceV010(input: {
 }): HostIdentityUserDirectoryServiceV010 {
   const now = input.now ?? (() => new Date());
 
-  function get(subjectId: string): IdentityUserDirectoryEntryV010 | undefined {
+  function get(subjectId: string): IdentityUserDirectoryRecordV010 | undefined {
     return input.store.snapshot().entries.find(
       item => item.principal.subjectId === subjectId
     );
   }
 
-  function saveEntry(next: IdentityUserDirectoryEntryV010): void {
+  function saveEntry(next: IdentityUserDirectoryRecordV010): void {
     const snapshot = input.store.snapshot();
     const entries = snapshot.entries.filter(
       item => item.principal.subjectId !== next.principal.subjectId
@@ -71,8 +71,8 @@ export function createHostIdentityUserDirectoryServiceV010(input: {
       }
       const timestamp = now().toISOString();
       const existing = get(principal.subjectId);
-      if (existing?.state === "REVOKED") {
-        throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED");
+      if (existing?.state === "DISABLED") {
+        throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED");
       }
       if (
         existing
@@ -80,18 +80,19 @@ export function createHostIdentityUserDirectoryServiceV010(input: {
       ) {
         throw new Error("IDENTITY_USER_DIRECTORY_PROVIDER_MISMATCH");
       }
-      const next: IdentityUserDirectoryEntryV010 = {
+      const next: IdentityUserDirectoryRecordV010 = {
         contractVersion: "0.1.0",
         principal: clonePrincipal(principal),
         state: "ACTIVE",
-        firstAuthenticatedAt: existing?.firstAuthenticatedAt ?? timestamp,
-        lastAuthenticatedAt: timestamp
+        firstSeenAt: existing?.firstSeenAt ?? timestamp,
+        lastAuthenticatedAt: timestamp,
+        updatedAt: timestamp
       };
       saveEntry(next);
       return structuredClone(next);
     },
 
-    revoke(subjectId, actorSubjectId) {
+    disable(subjectId, actorSubjectId) {
       const normalized = subjectId.trim();
       const actor = actorSubjectId.trim();
       if (!normalized || !actor) {
@@ -101,12 +102,13 @@ export function createHostIdentityUserDirectoryServiceV010(input: {
       if (!existing) {
         throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_NOT_FOUND");
       }
-      if (existing.state === "REVOKED") return structuredClone(existing);
-      const next: IdentityUserDirectoryEntryV010 = {
+      if (existing.state === "DISABLED") return structuredClone(existing);
+      const next: IdentityUserDirectoryRecordV010 = {
         ...structuredClone(existing),
-        state: "REVOKED",
-        revokedAt: now().toISOString(),
-        revokedBySubjectId: actor
+        state: "DISABLED",
+        updatedAt: now().toISOString(),
+        disabledAt: now().toISOString(),
+        disabledBySubjectId: actor
       };
       saveEntry(next);
       return structuredClone(next);
