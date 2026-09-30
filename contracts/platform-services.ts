@@ -151,6 +151,11 @@ export interface IdentitySessionProviderV010 {
 export interface IdentitySessionRequestV010 {
   contractVersion: "0.1.0";
   bearerToken?: string;
+  /**
+   * Opaque Host-managed browser Session credential, normally transported
+   * through an HttpOnly cookie. This is not the public sessionId.
+   */
+  sessionToken?: string;
   sessionId?: string;
 }
 
