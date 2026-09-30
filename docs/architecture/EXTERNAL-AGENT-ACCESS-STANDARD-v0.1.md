@@ -4,7 +4,7 @@
 **Date:** 2026-09-30  
 **Scope:** External Agent access, plugin capability exposure, identity/login dependencies, delegated authority, protocol adapters, product adapters, execution governance and conformance  
 **Current runtime status:** ARCHITECTURE_RESERVED / NOT YET EXTERNALLY EXPOSED  
-**Current mainline:** Enterprise Context — Business Definitions & EOG Core Convergence v0.1 remains active  
+**Near-term sequencing:** Close the current atomic Enterprise Context Business Definition authority gate, then make External-Agent-first platform validation the next primary foundation track  
 **First target validation:** external Agent blind discovery of the current Ledger Runtime template without developer knowledge
 
 > This document defines how EVO becomes safely usable by external Agents such as ChatGPT, Claude, customer-built Agents and future Agent platforms. It does not create a ChatGPT-specific EVO. Product-specific adapters are allowed only as convenience/integration layers over one stable EVO authority and capability model.
@@ -1310,13 +1310,25 @@ Changing the external Agent's model/vendor does not change EVO authorization tru
 
 ## 40. Development sequencing
 
-External Agent Access must not interrupt the current active Enterprise Context/EOG convergence gate.
+External Agent Access becomes the next primary platform-validation track after the current atomic Enterprise Context Business Definition authority gate is safely closed.
 
-The implementation sequence after the current gate should be:
+This is a strategic sequencing change:
+
+- do not continue EOG upper-layer feature expansion after that atomic gate merely because EOG has more possible product scope;
+- preserve existing EOG/SOP/Observatory assets and boundaries;
+- pause major Personal Agent feature expansion while External Agent access validates plugin contracts independently;
+- keep Personal Agent regression/security/compatibility work active;
+- return to Personal Agent after the shared plugin capability boundary has been proven by mature external clients.
+
+Authority for this sequencing decision:
+
+`docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md`
+
+The implementation sequence should be:
 
 ### Phase EA-0 — Standard freeze — NOW
 
-Documentation only.
+Documentation and sequencing authority.
 
 Freeze:
 
@@ -1329,6 +1341,12 @@ Freeze:
 - protocol direction.
 
 No public External Agent endpoint.
+
+### Phase EA-0.5 — Close current atomic definition-authority gate
+
+Finish only the in-flight Enterprise Context Business Definition authority convergence needed to avoid leaving a split source of truth.
+
+Then freeze new EOG upper-layer expansion while the External Agent foundation is built.
 
 ### Phase EA-1 — Production Human Identity / Login
 
