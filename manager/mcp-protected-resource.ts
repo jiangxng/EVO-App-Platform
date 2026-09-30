@@ -85,33 +85,70 @@ export function createMcpProtectedResourceV010(
     "MCP_RESOURCE_METADATA_URL_INVALID"
   );
 
+  async function authorize(input: {
+    headers: Record<string, string | string[] | undefined>;
+    correlationId: string;
+  }): Promise<
+    | { authorized: true; access: EffectiveExternalAgentOAuthAccessV010 }
+    | { authorized: false; response: McpProtectedResourceHttpResponseV010 }
+  > {
+    const token = bearerToken(input.headers);
+    if (!token) {
+      return {
+        authorized: false,
+        response: challenge(resourceMetadataUrl)
+      };
+    }
+
+    let access: EffectiveExternalAgentOAuthAccessV010;
+    try {
+      access = await options.oauth.resolveAccessToken(
+        token,
+        resourceIdentifier,
+        input.correlationId
+      );
+    } catch {
+      return {
+        authorized: false,
+        response: challenge(resourceMetadataUrl, true)
+      };
+    }
+
+    if (access.resource !== resourceIdentifier) {
+      return {
+        authorized: false,
+        response: challenge(resourceMetadataUrl, true)
+      };
+    }
+
+    return {
+      authorized: true,
+      access
+    };
+  }
+
+  async function handleAuthorized(input: {
+    access: EffectiveExternalAgentOAuthAccessV010;
+    request: McpModernHttpRequestV010;
+    correlationId: string;
+  }): Promise<McpProtectedResourceHttpResponseV010> {
+    return options.handleAuthorized(input);
+  }
+
   return {
+    authorize,
+    handleAuthorized,
     async handle(input: {
       request: McpModernHttpRequestV010;
       correlationId: string;
     }): Promise<McpProtectedResourceHttpResponseV010> {
-      const token = bearerToken(input.request.headers);
-      if (!token) {
-        return challenge(resourceMetadataUrl);
-      }
-
-      let access: EffectiveExternalAgentOAuthAccessV010;
-      try {
-        access = await options.oauth.resolveAccessToken(
-          token,
-          resourceIdentifier,
-          input.correlationId
-        );
-      } catch {
-        return challenge(resourceMetadataUrl, true);
-      }
-
-      if (access.resource !== resourceIdentifier) {
-        return challenge(resourceMetadataUrl, true);
-      }
-
-      return options.handleAuthorized({
-        access,
+      const authorization = await authorize({
+        headers: input.request.headers,
+        correlationId: input.correlationId
+      });
+      if (!authorization.authorized) return authorization.response;
+      return handleAuthorized({
+        access: authorization.access,
         request: input.request,
         correlationId: input.correlationId
       });
