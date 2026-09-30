@@ -6,6 +6,8 @@
 
 > **Experience Architecture authority (2026-09-28):** Before creating or changing any Human-facing product Experience, read `docs/architecture/EIDOS-EXPERIENCE-ARCHITECTURE-ADOPTION-v0.1.md` and the pinned Eidos Experience Architecture policy under `vendor/eidos/src/experience-architecture`. Run `npm run experience:validate`. A page that renders is not product-complete by itself. Candidate/production work must preserve page archetype, Human goal, state-aware direct actions, journey continuity, completion/recovery, Human-facing localization and Agent declared-action boundaries. Frequent deterministic actions must not be chat-only. The current known-debt baseline may shrink as issues are fixed; expanding it requires explicit Human approval and MUST NOT be used merely to make CI green. Experimental pages must remain explicitly experimental until they satisfy candidate gates.
 
+> **Enterprise definition / EOG authority (2026-09-30):** Before changing Enterprise Context, Business Definitions, EOG, SOP, EC ownership, Observatory/analysis ownership or EVO Ledger Runtime definition boundaries, read `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md` and `docs/architecture/eog-asset-boundary.v0.1.json`. Enterprise Context is the headless Business Definition authority; Experience Compiler owns enterprise/industry knowledge and learning; EOG Core is CI-gated graph design/navigation/aggregation; SOP and existing Observatory/analysis implementations are preserved non-gating assets pending peer-plugin extraction; EVO Ledger Runtime does not own definition-version lifecycle. Do not recreate a standalone BDR product/plugin or treat EOG as the parent of SOP/reporting/analysis plugins.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
@@ -30,7 +32,7 @@ Default rules:
 - Prefer existing App and public contract composition over creating new platform code.
 - EVO is a lightweight runtime plugin, not the enterprise platform Core.
 - Do not solve an App requirement by expanding EVO runtime unless generic BusinessData → PostingRule → Ledger → Balance genuinely requires it.
-- Identity, permissions, rich Application/Package lifecycle, capability discovery and PostingRule lifecycle belong to App Platform/Host or other plugins. EVO runtime still owns a minimal ApplicationAnchor/applicationId used to route BusinessData to current PostingRules.
+- Identity, permissions, Package lifecycle and capability discovery belong to App Platform/Host or peer plugins. Business Definition lifecycle, including PostingRule Draft/Published/history semantics, belongs to Enterprise Context. EVO runtime still owns only the minimal deterministic runtime anchors/contracts needed to execute the current effective definition.
 - Do not import private EVO/Eidos implementation.
 - Do not let App Manager know app-specific business semantics.
 - Record confirmed architectural decisions in repository artifacts.
