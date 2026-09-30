@@ -181,6 +181,65 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
           }
         },
         {
+          kind: "platform.capability-operation",
+          operation: {
+            contractVersion: "0.1.0",
+            operationId: "evo.ledger-runtime.configurator.describe",
+            capability: "evo.ledger-runtime.configurator",
+            operationVersion: "1.0.0",
+            title: "Describe Ledger Runtime Configuration",
+            description: "Returns a bounded semantic description of the current Ledger Runtime configuration template, including digest, counts, burn compatibility and available sections.",
+            effect: "READ",
+            inputSchema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {}
+            },
+            outputSchema: {
+              type: "object",
+              additionalProperties: true
+            },
+            binding: {
+              type: "ACTION_HOST",
+              commandCode: "evo-ledger-runtime-configurator.describe",
+              inputVersion: "0.1.0"
+            },
+            exposure: ["HUMAN", "PERSONAL_AGENT", "EXTERNAL_AGENT", "AUTOMATION"]
+          }
+        },
+        {
+          kind: "platform.capability-operation",
+          operation: {
+            contractVersion: "0.1.0",
+            operationId: "evo.ledger-runtime.configurator.section.read",
+            capability: "evo.ledger-runtime.configurator",
+            operationVersion: "1.0.0",
+            title: "Read Ledger Runtime Configuration Section",
+            description: "Reads one bounded page from accounts, applications, dictionaries or postingRules. Cursor is bound to the configuration semantic digest and fails closed after configuration changes.",
+            effect: "READ",
+            inputSchema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["section"],
+              properties: {
+                section: { enum: ["accounts", "applications", "dictionaries", "postingRules"] },
+                cursor: { type: "string" },
+                limit: { type: "integer", minimum: 1, maximum: 100 }
+              }
+            },
+            outputSchema: {
+              type: "object",
+              additionalProperties: true
+            },
+            binding: {
+              type: "ACTION_HOST",
+              commandCode: "evo-ledger-runtime-configurator.section.read",
+              inputVersion: "0.1.0"
+            },
+            exposure: ["HUMAN", "PERSONAL_AGENT", "EXTERNAL_AGENT", "AUTOMATION"]
+          }
+        },
+        {
           kind: "eidos.localization-bundle",
           bundle: {
             contractVersion: "0.1.0",
