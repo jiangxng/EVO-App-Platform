@@ -10,6 +10,13 @@ import {
   normalizeAuthenticationReturnToV010,
   normalizePublicBaseUrlV010
 } from "../../dist/manager/authentication-flow.js";
+import {
+  requireSameOriginForCookieMutationV010,
+  requestSecurityHttpFailureV010
+} from "../../dist/manager/request-security.js";
+import {
+  requestAuthenticationHttpFailureV010
+} from "../../dist/manager/request-authentication.js";
 
 function sessionService() {
   let tokenIndex = 0;
@@ -183,4 +190,63 @@ test("logout revokes current managed Session and clears cookie", async () => {
   assert.equal(logout.returnTo, "/signed-out");
   assert.match(logout.setCookie, /Max-Age=0/);
   assert.equal(sessions.resolveToken("session-token-1"), undefined);
+});
+
+test("cookie-authenticated mutations require configured same-origin Origin", () => {
+  const base = "https://evo.example";
+  assert.doesNotThrow(() => requireSameOriginForCookieMutationV010({
+    method: "POST",
+    headers: {
+      cookie: "__Host-evo_session=opaque",
+      origin: "https://evo.example"
+    },
+    publicBaseUrl: base
+  }));
+
+  assert.throws(() => requireSameOriginForCookieMutationV010({
+    method: "POST",
+    headers: {
+      cookie: "__Host-evo_session=opaque"
+    },
+    publicBaseUrl: base
+  }), /CSRF_ORIGIN_REQUIRED/);
+
+  assert.throws(() => requireSameOriginForCookieMutationV010({
+    method: "DELETE",
+    headers: {
+      cookie: "__Host-evo_session=opaque",
+      origin: "https://evil.example"
+    },
+    publicBaseUrl: base
+  }), /CSRF_ORIGIN_MISMATCH/);
+
+  assert.doesNotThrow(() => requireSameOriginForCookieMutationV010({
+    method: "POST",
+    headers: {
+      authorization: "Bearer external-agent-token",
+      origin: "https://evil.example"
+    },
+    publicBaseUrl: base
+  }));
+});
+
+test("authentication and CSRF failures expose stable HTTP semantics", () => {
+  assert.deepEqual(
+    requestAuthenticationHttpFailureV010(
+      new Error("IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE")
+    ),
+    {
+      status: 503,
+      code: "AUTHENTICATION_UNAVAILABLE",
+      message: "The configured authentication service is unavailable."
+    }
+  );
+  assert.deepEqual(
+    requestSecurityHttpFailureV010(new Error("CSRF_ORIGIN_MISMATCH")),
+    {
+      status: 403,
+      code: "CSRF_REJECTED",
+      message: "Cookie-authenticated state changes require the configured same-origin browser origin."
+    }
+  );
 });
