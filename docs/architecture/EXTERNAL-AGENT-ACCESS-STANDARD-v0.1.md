@@ -660,7 +660,7 @@ delegationAllowed
 delegationConstraints
 
 createdBy
-disabledBy
+revokedBy
 provenance
 ```
 
@@ -703,7 +703,7 @@ active
 WRITE delegation remains blocked in EA-3A.
 
 Every Grant has an explicit `validUntil`, is bound to the Host-resolved active
-Context, and becomes effectively unusable when the Agent/Client is disabled or
+Context, and becomes effectively unusable when the Agent/Client is revoked or
 the Grant expires.
 
 Grant creation-time validation is not sufficient for runtime use. EA-3B must
@@ -729,14 +729,14 @@ Final execution must remain able to apply current Host authority.
 
 This allows:
 
-- immediate grant disablement;
+- immediate grant revocation;
 - emergency disable;
 - context removal;
 - Feature deactivation;
 - policy changes;
 - account/session termination.
 
-A still-unexpired token must not resurrect disabled platform authority.
+A still-unexpired token must not resurrect revoked platform authority.
 
 ## 18. Human login is a prerequisite for delegated Human Agent access
 
@@ -761,7 +761,7 @@ The next production identity foundation should provide:
 - login;
 - logout;
 - session expiration;
-- session disablement;
+- session revocation;
 - session rotation;
 - CSRF protection where browser cookies are used;
 - current Principal;
@@ -804,7 +804,7 @@ Target responsibilities:
 - Authorization Server Metadata;
 - short-lived access tokens;
 - refresh/re-authorization policy;
-- disablement;
+- revocation;
 - explicit grant binding;
 - fine-grained authorization request mapping;
 - audit.
@@ -832,7 +832,7 @@ metadata
 trustLevel
 status
 createdAt
-disabledAt?
+revokedAt?
 ```
 
 Possible trust levels:
@@ -1321,7 +1321,7 @@ Expected:
 
 Material WRITE returns durable execution evidence scoped to Principal/Context/Agent.
 
-### EA-008 — Grant Disablement
+### EA-008 — Grant Revocation
 
 Revoke Grant while a transport credential remains otherwise unexpired.
 
@@ -1402,7 +1402,7 @@ Deliver:
 - generic request-bound Session contract usage;
 - login/logout;
 - secure session transport;
-- session expiration/disablement/rotation;
+- session expiration/revocation/rotation;
 - Eidos login Experience;
 - generic OIDC Identity Provider Package as first production provider;
 - retain static Session Provider for tests/dev only.
@@ -1445,7 +1445,7 @@ Delivered:
 - trust metadata with Human-created registrations defaulting to REGISTERED;
 - durable ExternalAgentAuthorityGrant;
 - explicit validity windows;
-- disablement;
+- revocation;
 - creation-time attenuation checks;
 - append-only governance events;
 - effective Agent/Client/Grant status.
@@ -1464,7 +1464,8 @@ EA-3B1 provides:
 identity.user-directory
 ```
 
-so delegated authority can reconstruct the current authorizing Human Principal without requiring a live browser Session or persisting an old OIDC token.
+so delegated authority can reconstruct the current authorizing Human Principal
+without requiring a live browser Session or persisting an old OIDC token.
 
 Authentication ordering is:
 
@@ -1474,7 +1475,8 @@ identity.authenticate
 → managed Session issuance
 ```
 
-Disabled directory entries cannot self-reactivate through a later successful login.
+A Human directory entry in `DISABLED` state cannot self-reactivate through a
+later successful login.
 
 #### EA-3B — current-authority delegation resolution — next
 
@@ -1500,7 +1502,7 @@ Deliver:
 - authorization-code + PKCE for interactive public clients;
 - short-lived access tokens;
 - grant binding;
-- disablement;
+- revocation;
 - scopes;
 - RAR mapping where fine-grained requests are required.
 
@@ -1569,7 +1571,7 @@ Add non-Human workload/service Principal patterns:
 
 - machine credentials;
 - enterprise-admin governed grants;
-- rotation/disablement;
+- rotation/revocation;
 - no fake Human session.
 
 ### Phase EA-10 — A2A
@@ -1658,7 +1660,7 @@ Do not make external vendors ordinary dependencies of every plugin PR.
 Before the first public External Agent endpoint is considered production-ready, require evidence for:
 
 - request-bound Human identity;
-- session disablement;
+- session revocation;
 - explicit Agent/client identity;
 - Enterprise Context isolation;
 - Grant attenuation;
@@ -1798,7 +1800,7 @@ Material External Agent WRITE MUST produce durable Host-owned execution evidence
 
 ### EAA-13 — Token is not the source of truth
 
-Disabled/grant-ineligible authority remains denied even if a transport token has not naturally expired.
+Revoked/grant-ineligible authority remains denied even if a transport token has not naturally expired.
 
 ### EAA-14 — Secrets never become Agent context by default
 
