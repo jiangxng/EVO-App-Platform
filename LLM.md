@@ -8,6 +8,8 @@
 
 > **Enterprise definition / EOG authority (2026-09-30):** Before changing Enterprise Context, Business Definitions, EOG, SOP, EC ownership, Observatory/analysis ownership or EVO Ledger Runtime definition boundaries, read `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md` and `docs/architecture/eog-asset-boundary.v0.1.json`. Enterprise Context is the headless Business Definition authority; Experience Compiler owns enterprise/industry knowledge and learning; EOG Core is CI-gated graph design/navigation/aggregation; SOP and existing Observatory/analysis implementations are preserved non-gating assets pending peer-plugin extraction; EVO Ledger Runtime does not own definition-version lifecycle. Do not recreate a standalone BDR product/plugin or treat EOG as the parent of SOP/reporting/analysis plugins.
 
+> **External Agent Access authority (2026-09-30):** Before designing external Agent access, MCP/OpenAPI/A2A exposure, plugin callable capabilities, delegated Agent authority, Agent-specific adapters, or the production login sequence, read `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`. Plugins define semantic capability operations once; App Platform governs lifecycle, Principal/Context, delegation, authorization, protocol projection, receipts and audit. Product adapters such as ChatGPT/Claude may reduce integration friction but MUST NOT own business semantics or authority. Production Human-delegated external access MUST wait for request-bound production login/session; the static Session Provider remains development/reference evidence only.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
