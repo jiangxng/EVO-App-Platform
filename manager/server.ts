@@ -3396,7 +3396,7 @@ const server = createServer(async (request, response) => {
 
     if (
       request.method === "GET"
-      && url.pathname === "/.well-known/oauth-protected-resource"
+      && url.pathname === "/.well-known/oauth-protected-resource/mcp"
     ) {
       if (!externalAgentOAuthEnabled) {
         return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
