@@ -12,9 +12,19 @@ export interface AppActionRouter {
   ): Promise<AppActionExecutionResultV010>;
 }
 
+export type AppActionPreExecuteV010 = (input: {
+  handler: AppActionHandler;
+  request: AppActionRequestV010;
+  context?: PlatformRequestContextV010;
+}) =>
+  | Promise<AppActionExecutionResultV010 | undefined>
+  | AppActionExecutionResultV010
+  | undefined;
+
 export function createAppActionRouter(
   handlers: readonly AppActionHandler[],
-  isFeatureActive: (featureId: string) => boolean
+  isFeatureActive: (featureId: string) => boolean,
+  preExecute?: AppActionPreExecuteV010
 ): AppActionRouter {
   const byCommand = new Map<string, AppActionHandler>();
 
@@ -57,6 +67,9 @@ export function createAppActionRouter(
           }
         };
       }
+
+      const blocked = await preExecute?.({ handler, request, context });
+      if (blocked) return blocked;
 
       return handler.execute(request, context);
     }
