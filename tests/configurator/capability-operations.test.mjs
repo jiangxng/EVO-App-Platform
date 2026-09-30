@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import {
+  evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage
 } from "../../dist/catalog/seed.js";
 import {
@@ -209,7 +210,10 @@ test("Ledger plugin publishes exactly the two EA-001 READ operations and binding
 
 test("Ledger capability operations follow plugin lifecycle automatically", () => {
   const manager = createAppManagerService(
-    createPackageCatalog([ledgerRuntimeConfiguratorPackage]),
+    createPackageCatalog([
+      evoFoundationPackage,
+      ledgerRuntimeConfiguratorPackage
+    ]),
     createMemoryLifecycleStore(),
     () => new Date("2026-09-30T10:45:00.000Z")
   );
