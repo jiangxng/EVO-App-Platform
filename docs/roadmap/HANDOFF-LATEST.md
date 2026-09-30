@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-2026-09-30-17`  
-**Snapshot time:** `2026-09-30T07:22:00.000+08:00`  
+**Snapshot:** `CTX-EOG-2026-09-30-18`  
+**Snapshot time:** `2026-09-30T12:20:00.000+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Enterprise Operating Graph — SOP Semantics & Live Proof v0.4
+Enterprise Context — Business Definitions & EOG Core Convergence v0.1
 ACTIVE
 ```
 
@@ -43,19 +43,20 @@ Evidence:
 
 ## Current open live gate
 
-**enterprise-operating-graph-sop-real-trace-live-proof-v0-4: BLOCKED_ON_LEGITIMATE_RUNTIME_FLOW_SOURCE**
+**enterprise-context-business-definitions-sop-authority-migration-v0-1: ACTIVE**
 
-Expected SOP publication and the no-trace fail-closed proof are complete. The remaining v0.4 proof requires a legitimate EVO runtime flow definition and traced workload produced through governed/public EVO boundaries. Production EVO_CONFIG_MVP currently has no flow_definition or flow_trace evidence, so sop.trace.transition and sop.trace.coverage cannot yet be honestly produced. Synthetic private-table inserts and EVO_DEMO seeding are explicitly out of bounds.
+Establish Enterprise Context as the headless authoritative Business Definition repository and migrate existing SOP definition data away from EOG-owned persistence without deleting the already implemented SOP/EOG analysis assets. EOG Core remains CI-gated; SOP definition/edit/publish and Observatory/analysis assets are explicitly non-gating until extracted into their own peer plugins.
 
 Acceptance:
 
-- provision or observe a legitimate runtime flow definition and traced workload through EVO public/governed boundaries; do not insert flow_definition/flow_trace rows directly and do not seed EVO_DEMO into production
-- prove /api/v1/runtime-traces/query returns real flow-instance steps resolved to the four stable ApplicationAnchors under the selected Enterprise Context
-- prove Host Observatory emits sop.trace.transition and sop.trace.coverage facts with evidence provenance for the selected Time Lens
-- prove a completed expected path yields evidence-backed SOP_CONFORMANCE while allowed alternatives/exceptions remain semantically distinct
-- prove a real disallowed path yields SOP_DEVIATION with evidenceFactIds and analyzer provenance
-- verify incomplete or ACTIVE traces remain INSUFFICIENT_EVIDENCE rather than compliance
-- do not treat conditionRef as satisfied until a runtime evidence model can prove the condition
+- Business Definition repository is owned by the Enterprise Context plugin and no standalone BDR product/plugin remains
+- definition storage supports enterprise scope, immutable revision history, Draft, Published and Effective semantics, attribution and governed publication
+- an already Published definition can retain its effective revision while a later Draft is being prepared
+- existing EOG SOP definition data has an explicit migration path into Enterprise Context definitions without silent loss of legacy state
+- EOG Core remains CI-gated as graph semantics, graph designer/navigation, renderer-independent View State, graph actions and aggregation extension points
+- existing SOP definition/edit/publish and SOP/EOG Observatory/analysis implementations are preserved but classified NON_GATING_FOR_CURRENT_EOG_CORE_CI pending peer-plugin extraction
+- fresh LLM startup documents state that Experience Compiler owns enterprise knowledge and that project SOP means APQC process structure plus time dimension
+- the previous EOG SOP real-trace live proof remains historical implementation evidence and is not treated as the current blocking gate
 
 ## Current production preview
 
@@ -288,6 +289,13 @@ Not proved:
 - Do not serve current bytes under an old immutable revision URL; retain exact old revision bytes or fail explicitly.
 - Do not force-reload compatible stale tabs merely because a newer frontend exists; expose update availability and preserve bounded frontend/backend contract skew.
 - Do not turn RUM into high-frequency request telemetry or authoritative enterprise state; it is sampled, bounded browser delivery evidence only.
+- Do not recreate a standalone Business Definition Repository product/plugin; Business Definition Repository is a capability inside Enterprise Context.
+- Do not treat Enterprise Context as the target enterprise knowledge/learning store; Experience Compiler owns enterprise and industry knowledge, learning and experience.
+- Do not treat SOP Designer, Definition Comparison, Observatory, Bottleneck or report/analysis capabilities as child modules that EOG must own.
+- Do not delete existing SOP/Observatory/analysis implementations while correcting ownership; preserve them for future peer-plugin extraction.
+- Do not put SOP definition/edit/publish or EOG/SOP analysis into the current EOG Core CI gate before their owning plugins are formalized.
+- Do not interpret project SOP as a conventional step-by-step Standard Operating Procedure; its target semantics are APQC process structure plus time dimension.
+- Do not resume the historical SOP real-trace live proof as the active mainline unless the future report/analysis/SOP plugin plan explicitly reactivates it.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -388,6 +396,14 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the old-revision proof exactly: old d66c37f app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned 200 from the new deployment with immutable cache and ETag
 - state stale compatible client behavior exactly: x-evo-host-revision points to db61089d, x-evo-web-contract=0.1.0 and x-evo-client-update=available; no forced reload is required
 - state RUM as bounded non-authoritative evidence and the next Web slice as real-browser RUM/performance budget governance
+- state Enterprise Context as the headless authoritative Business Definition space and BDR as an internal/public capability rather than a standalone plugin
+- state Experience Compiler as the authority for enterprise/industry knowledge, learning, research and experience
+- state EOG Core as CI-gated graph design/navigation/aggregation, not the parent of SOP/reporting/analysis plugins
+- state existing SOP definition/edit/publish and EOG/SOP Observatory/analysis code as preserved non-gating assets pending future plugin extraction
+- state project SOP semantics as APQC process structure plus time dimension rather than conventional work-instruction SOP
+- state the report/analysis plugin portfolio as intentionally not yet planned
+- state EVO Ledger Runtime as deterministic BusinessData/posting/reconciliation/calculation/replay without Business Definition version-lifecycle ownership
+- state App Platform as control plane while peer components exchange ordinary data through stable contract-bound interfaces after binding
 
 No previous ChatGPT transcript is required.
 
