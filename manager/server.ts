@@ -289,6 +289,20 @@ import {
   parseHostBearerSessionsV010
 } from "../providers/request-session/runtime.js";
 import {
+  HOST_MANAGED_SESSION_PACKAGE_ID,
+  HOST_MANAGED_SESSION_PROVIDER_ID,
+  hostManagedSessionProviderPackage
+} from "../providers/managed-session/package.js";
+import {
+  createHostManagedSessionHealthProbeV010,
+  createHostManagedSessionProviderV010
+} from "../providers/managed-session/runtime.js";
+import {
+  createJsonlManagedIdentitySessionEventStoreV010,
+  createManagedIdentitySessionServiceV010,
+  createMemoryManagedIdentitySessionEventStoreV010
+} from "./identity-session-store.js";
+import {
   ENTERPRISE_MEMBERSHIP_CAPABILITY,
   HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_GRANT_PROVIDER_ID,
@@ -459,6 +473,7 @@ import {
   createPlatformRequestContextV010,
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
+import { requestAuthenticationHttpFailureV010 } from "./request-authentication.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
@@ -572,6 +587,7 @@ const catalog = createPackageCatalog([
   hostEnterpriseContextProviderPackage,
   hostStaticSessionProviderPackage,
   hostBearerSessionProviderPackage,
+  hostManagedSessionProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
   hostEnterpriseRelationshipProviderPackage,
   hostContextMemoryProviderPackage,
@@ -585,6 +601,24 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const managedSessionEnabled =
+  process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
+const managedSessionStateFile =
+  process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
+  || (managedSessionEnabled && lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl")
+    : undefined);
+if (managedSessionEnabled && !managedSessionStateFile) {
+  throw new Error(
+    "IDENTITY_SESSION_DURABLE_STORE_REQUIRED: configure APP_PLATFORM_MANAGED_SESSION_FILE or APP_PLATFORM_STATE_FILE"
+  );
+}
+const managedSessionEventStore = managedSessionStateFile
+  ? createJsonlManagedIdentitySessionEventStoreV010(managedSessionStateFile)
+  : createMemoryManagedIdentitySessionEventStoreV010();
+const managedSessionService = createManagedIdentitySessionServiceV010({
+  store: managedSessionEventStore
+});
 const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "enterprise-governance.json") : undefined);
 const enterpriseGovernanceStore = enterpriseGovernanceStateFile
@@ -894,6 +928,22 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+
+if (managedSessionEnabled) {
+  providerRuntimeRegistry.replace<RequestIdentitySessionProviderV010>(
+    HOST_MANAGED_SESSION_PROVIDER_ID,
+    createHostManagedSessionProviderV010(managedSessionService)
+  );
+  providerRuntimeRegistry.setHealthProbe(
+    HOST_MANAGED_SESSION_PROVIDER_ID,
+    createHostManagedSessionHealthProbeV010(managedSessionService)
+  );
+  providerRuntimeRegistry.setHealth(HOST_MANAGED_SESSION_PROVIDER_ID, {
+    state: "HEALTHY",
+    message: "Host-managed durable request Session Provider is active.",
+    checkedAt: new Date().toISOString()
+  });
+}
 
 const hostBearerSessions = parseHostBearerSessionsV010(
   process.env.APP_PLATFORM_BEARER_SESSIONS_JSON
@@ -1312,6 +1362,17 @@ if (
     console.log("Activated EVO Runtime Observatory Provider.");
   } catch (error) {
     console.error("Failed to activate EVO Runtime Observatory Provider.", error);
+  }
+}
+if (
+  managedSessionEnabled
+  && !installedAtStartup.some(item => item.packageId === HOST_MANAGED_SESSION_PACKAGE_ID)
+) {
+  try {
+    manager.install(HOST_MANAGED_SESSION_PACKAGE_ID);
+    console.log("Activated Host Managed Session Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Managed Session Provider.", error);
   }
 }
 if (
@@ -4633,6 +4694,13 @@ const server = createServer(async (request, response) => {
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
+    const authenticationFailure = requestAuthenticationHttpFailureV010(error);
+    if (authenticationFailure) {
+      return json(response, authenticationFailure.status, {
+        code: authenticationFailure.code,
+        message: authenticationFailure.message
+      });
+    }
     return json(response, 500, {
       code: "APP_MANAGER_ERROR",
       message: error instanceof Error ? error.message : String(error)
