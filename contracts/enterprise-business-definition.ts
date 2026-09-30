@@ -65,6 +65,16 @@ export interface BusinessDefinitionRepositoryV010 {
     recordedAt?: string;
   }): BusinessDefinitionRevisionV010;
 
+  beginDraft(input: {
+    enterpriseId: string;
+    definitionId: string;
+    expectedRevision: number;
+    title: string;
+    payload: Record<string, unknown>;
+    actor: BusinessDefinitionAttributionV010;
+    recordedAt?: string;
+  }): BusinessDefinitionRevisionV010;
+
   publish(input: {
     enterpriseId: string;
     definitionId: string;
@@ -78,7 +88,17 @@ export interface BusinessDefinitionRepositoryV010 {
     definitionId: string;
   }): BusinessDefinitionRevisionV010 | undefined;
 
+  getEffective(input: {
+    enterpriseId: string;
+    definitionId: string;
+  }): BusinessDefinitionRevisionV010 | undefined;
+
   listLatest(input: {
+    enterpriseId: string;
+    kind?: string;
+  }): BusinessDefinitionRevisionV010[];
+
+  listEffective(input: {
     enterpriseId: string;
     kind?: string;
   }): BusinessDefinitionRevisionV010[];
