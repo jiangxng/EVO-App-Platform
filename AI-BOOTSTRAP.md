@@ -52,7 +52,7 @@ If these cannot be answered, inspect the referenced authority documents before a
 
 ## Current product model
 
-The Person-first world model remains authoritative:
+The Person-first root remains authoritative, with the 2026-09-30 enterprise-definition correction:
 
 ```text
 Human
@@ -60,12 +60,25 @@ Human
         ├── Personal Context
         │     └── Personal Context Memory
         └── authorized Enterprise Context(s)
-              └── Enterprise Context Memory
+              └── authoritative Business Definitions
+
+Experience Compiler
+  └── enterprise/industry knowledge + learning + experience
 ```
 
 The product-facing Agent is Personal Agent. The machine/package name `enterprise-agent` remains compatibility debt.
 
-EVO executes. Eidos interacts. Durable Context Memory / EC-style knowledge persists beyond any one LLM.
+Read `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md` before Enterprise Context, EOG, SOP, EC or Ledger Runtime ownership work.
+
+Target ownership:
+
+- EC knows, learns and proposes;
+- Enterprise Context defines and governs;
+- EOG designs/navigates the enterprise graph and aggregates peer-plugin views;
+- EVO Ledger Runtime executes deterministic business effects;
+- Eidos realizes deterministic human interaction.
+
+Existing Enterprise Context Memory / SOP / Observatory implementations are preserved compatibility assets where noted; do not mistake historical implementation location for target ownership.
 
 ## Human authority rule
 

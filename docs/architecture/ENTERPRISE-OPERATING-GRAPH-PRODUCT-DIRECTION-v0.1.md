@@ -1,162 +1,218 @@
 # Enterprise Operating Graph Product Direction v0.1
 
-**Status:** ACTIVE PRODUCT DIRECTION  
-**Date:** 2026-09-28  
-**Canonical semantic authority:** EVO-15 — Enterprise Operating Graph v0.1
+**Status:** ACTIVE PRODUCT DIRECTION — REBASED 2026-09-30  
+**Date:** 2026-09-30  
+**Authority:** `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
 
 ## 1. Product purpose
 
-The immediate goal is not a generic diagramming product and not legacy-data migration.
+Enterprise Operating Graph (EOG) is the visual enterprise-definition graph and an enterprise-wide aggregation/navigation surface.
 
-The product goal is a Human-confirmable enterprise operating model built through Personal Agent + visual direct manipulation.
+It is not:
 
-The intended loop is:
+- the enterprise definition repository;
+- the parent of every enterprise designer;
+- the owner of SOP semantics;
+- the owner of report/analysis calculations;
+- a workflow runtime;
+- a second Ledger Runtime.
 
-Natural language from enterprise owner
-→ LLM extracts/proposes enterprise semantics
-→ Personal Agent executes declared model actions
-→ visual graph is rendered
-→ Human directly edits/confirms the graph
-→ the same structured model is updated
-→ publish a versioned Enterprise Operating Model
-
-## 2. Reuse, do not duplicate
-
-Graph nodes must bind to existing canonical concepts rather than create App-Platform-specific copies:
-
-- Process
-- Transaction Type
-- Application
-- Command / business action
-- Business Fact type
-- Metadata
-- PostingRule
-- LedgerDefinition
-- Capability/APQC reference
-
-The graph may store view/layout metadata, but it must not become a second source of Application, Metadata or Ledger truth.
-
-## 3. Product ownership
-
-EVO owns the canonical enterprise/runtime semantics.
-
-App Platform owns:
-
-- installable product/package lifecycle;
-- Personal Agent tool/action exposure;
-- governed persistence/version workflow for the editing product;
-- bindings to Host-owned Applications and providers;
-- authorization for model changes.
-
-Eidos should own reusable graph/canvas interaction primitives when implementation begins:
-
-- nodes;
-- semantic edges;
-- selection;
-- pan/zoom;
-- direct manipulation;
-- property inspection;
-- grouping/swimlanes where required;
-- keyboard/accessibility behavior.
-
-Eidos must not own EVO business semantics.
-
-## 4. Personal Agent behavior
-
-The Personal Agent is the conversational entry.
-
-The LLM may propose changes such as:
-
-- add a missing process step;
-- bind an existing Application;
-- identify a missing Transaction Type;
-- ask when a fact is recognized;
-- identify which Metadata a fact requires;
-- highlight a missing ledger consequence.
-
-The Agent performs only declared model actions.
-
-A Human graphical edit and a Human natural-language instruction must modify the same semantic model.
-
-## 4.1 Guidance topology vs enterprise topology
-
-The editor must support two different semantic layers.
-
-**Guidance topology** is reusable expert knowledge. It may come from:
-
-- previously converged `bookkeeping` / `Asloop-Backend` semantics;
-- posting-rule templates;
-- accounting guidance used by the legacy system;
-- APQC/process references;
-- future industry templates.
-
-Guidance topology can recommend Application ↔ Business Fact ↔ PostingRule ↔ Ledger relationships and expected upstream/downstream business structure.
-
-It is not enterprise truth.
-
-**Published enterprise topology** is the Human-confirmed model for one enterprise.
-
-The expected loop is:
+The long-term experience is:
 
 ```text
-Guidance Template
-→ LLM proposal
-→ Personal Agent materializes proposal
-→ Human edits/confirms
-→ validate
-→ publish Enterprise Operating Model
+Enterprise Context definitions
+          ↕
+         EOG
+   design / navigate
+          +
+peer plugin contributions
+          ↓
+enterprise-wide aggregated view
 ```
 
-The product must make recommended/template-derived relationships distinguishable from enterprise-confirmed relationships.
+## 2. Enterprise Context is the definition authority
 
-Legacy semantic genealogy is authoritative evidence, not a requirement to reproduce legacy implementation:
+EOG reads and writes enterprise definitions through public Enterprise Context definition contracts.
+
+Enterprise Context owns:
+
+- Draft / Published / Effective lifecycle;
+- immutable revision history;
+- provenance / attribution;
+- publication governance;
+- authoritative enterprise definition persistence.
+
+EOG MUST NOT become a second definition repository.
+
+The existing EOG-local semantic stores are migration assets where their data has not yet converged to Enterprise Context.
+
+## 3. EOG Core
+
+EOG Core consists of:
+
+- Enterprise Graph semantic model;
+- canonical semantic bindings;
+- Guidance and Human-confirmed enterprise relationships;
+- Enterprise Graph Designer;
+- 2D / 3D renderer-independent View State;
+- graph actions;
+- Human and Personal Agent graph interaction;
+- enterprise-definition navigation;
+- aggregation/extension points for peer plugins.
+
+EOG Core is an active first-class plugin boundary and remains **CI-gated**.
+
+## 4. Peer plugins, not EOG children
+
+The following are conceptually peer plugins, not EOG submodules:
 
 ```text
-bookkeeping / Asloop
-App → Transdata → Policy → Account → TransdataAccount → Balance
-                 ↓
-EVO
-Application → BusinessData → PostingRule → LedgerEntry → LedgerBalance
+Enterprise Context
+SOP Designer
+Enterprise Graph / EOG
+Definition Comparison
+Posting Rule Designer
+Metric Designer
+future report/analysis plugins
+runtime adapter plugins
 ```
 
-## 5. First implementation target
+They communicate through stable public interfaces after App Platform discovery/binding.
 
-Enterprise Operating Graph Editor v0.1 should prove only this vertical slice:
+App Platform manages the relationship; it should not become the mandatory business-data hop.
 
-1. Human describes a small end-to-end process in Personal Agent.
-2. LLM returns a structured proposal.
-3. Agent creates/updates semantic graph nodes and edges.
-4. Eidos renders the graph.
-5. Human can directly change structure/bindings.
-6. changes persist and are re-openable.
-7. Transaction Type, Application and Ledger nodes reference existing definitions.
-8. draft and published versions are distinct.
-9. a validation step catches unresolved semantic edges/bindings.
+## 5. EOG aggregation / "God view"
 
-No legacy-data projection is required for this first slice.
+The EOG "God view" means aggregation, not ownership of all analytics.
 
-## 6. Sequencing
+Future report/analysis plugins may contribute overlays, indicators, warnings, drill-downs or other views. EOG can aggregate and spatially locate those contributions on the enterprise graph.
+
+The report/analysis plugin portfolio has not yet been designed. Do not invent a mandatory monolithic Reporting Layer or fixed report taxonomy.
+
+## 6. Existing Observatory and analysis assets
+
+The repository already contains working assets for:
+
+- Runtime Facts;
+- Time Lens;
+- Analysis Overlay;
+- EOG Observatory;
+- EVO Runtime Observatory adapter;
+- Bottleneck analysis;
+- SOP Conformance / Deviation;
+- trace/path coverage;
+- 2D/3D operational projection;
+- mobile read proof.
+
+These are valuable implementation assets and MUST be preserved.
+
+They are currently classified:
+
+```text
+PRESERVED_ASSET
+FUTURE_PLUGIN_EXTRACTION
+NON_GATING_FOR_CURRENT_EOG_CORE_CI
+```
+
+Future report/analysis/runtime-adapter design will determine their final plugin ownership.
+
+## 7. SOP is not EOG Core
+
+Existing SOP definition/edit/publish and SOP analysis were implemented inside the earlier EOG path. They are preserved, but they are not part of the target EOG Core ownership.
+
+Target:
+
+```text
+SOP definition data
+      ↓
+Enterprise Context
+
+SOP semantic/editor behavior
+      ↓
+future SOP Plugin
+
+SOP runtime analysis
+      ↓
+future report/analysis plugin(s), ownership TBD
+```
+
+SOP definition/edit/publish and SOP analysis are **not part of the current EOG Core CI gate**. They should gain owning-plugin CI when extraction is formalized.
+
+## 8. Project-specific SOP meaning
+
+"SOP" in this project is not the ordinary step-by-step Standard Operating Procedure definition.
+
+Its intended semantics are:
+
+```text
+APQC process reference structure
+          +
+      time dimension
+          ↓
+enterprise temporal process definition
+```
+
+The model may include:
+
+- process/activity reference;
+- sequence/dependency;
+- expected start/end;
+- duration;
+- waiting time;
+- deadlines;
+- cadence/cycle;
+- business calendar;
+- trigger;
+- condition;
+- allowed alternative;
+- exception path.
+
+Traditional work instructions/checklists are a separate possible Definition Kind.
+
+The existing machine term `SOP` remains a compatibility name until a deliberate naming migration is justified.
+
+## 9. Visual state
+
+Semantic definition and visual arrangement remain separate.
+
+```text
+Enterprise definition
+!=
+2D/3D View State
+```
+
+View State may contain coordinates, camera and renderer-independent presentation state. View changes MUST NOT manufacture enterprise-definition revisions.
+
+Eidos owns reusable rendering/interaction primitives. EOG owns domain composition and graph-definition interaction, not Eidos rendering internals.
+
+## 10. Personal Agent
+
+Personal Agent may help a Human:
+
+- inspect the graph;
+- navigate definitions;
+- propose definition changes;
+- invoke declared editor actions;
+- explain contributions from peer plugins.
+
+Personal Agent does not become definition authority.
+
+Material publication remains governed by the owning definition/plugin policy.
+
+## 11. Current sequencing
 
 Current order:
 
-Enterprise Operating Graph semantics
-→ Graph Editor vertical slice
-→ Human + LLM + Agent round-trip
-→ reusable graph capability maturation
-→ target enterprise model usable
-→ only then resume migration projection / Best Data Provider work
+```text
+Enterprise Context Business Definition foundation
+→ migrate SOP definition authority away from EOG-local storage
+→ keep EOG Core CI-gated
+→ preserve SOP/analysis assets outside current EOG Core CI
+→ continue Web Runtime foundation
+→ later plan report/analysis plugin portfolio
+→ later extract preserved assets into owning plugins
+```
 
-## 7. Non-goals
+## 12. One-line target
 
-Do not build:
-
-- a ProcessOn clone;
-- general-purpose diagram categories;
-- a parallel workflow runtime;
-- a parallel Application model;
-- a parallel Ledger model;
-- customer-data migration before the target model is established.
-
-## 8. One-line target
-
-> Personal Agent should let an enterprise owner describe how the business should run, let the LLM structure it, let the Agent materialize it, and let the Human correct the same model visually until EVO has a publishable operating definition.
+> EOG visually designs and navigates the enterprise definition graph and aggregates peer-plugin views; it does not own every enterprise definition, process model or analytical calculation.

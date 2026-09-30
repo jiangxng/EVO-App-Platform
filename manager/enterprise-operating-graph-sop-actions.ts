@@ -267,7 +267,11 @@ export function createEogExpectedSopActionHandlersV010(input: {
                   "transitions"
                 )
               }
-            : {})
+            : {}),
+          actor: {
+            actorType: "HUMAN",
+            subjectId: scope.subjectId
+          }
         })
       );
     }),
@@ -310,7 +314,11 @@ export function createEogExpectedSopActionHandlersV010(input: {
                   "transitions"
                 )
               }
-            : {})
+            : {}),
+          actor: {
+            actorType: "HUMAN",
+            subjectId: scope.subjectId
+          }
         })
       );
     }),

@@ -8,7 +8,7 @@
 
 Product ontology is now frozen by `docs/architecture/PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`.
 
-There is one MVP Agent: **Personal Agent**. Enterprise Context is governed data/knowledge/memory available to that Agent; this document no longer implies a distinct Enterprise Agent persona.
+There is one MVP Agent: **Personal Agent**. Enterprise Context is governed enterprise identity/definition context available to that Agent; this document no longer implies a distinct Enterprise Agent persona. Durable enterprise knowledge and learning belong to Experience Compiler.
 
 The historical filename and `enterprise-agent` implementation identifiers remain for compatibility until a versioned migration is justified.
 
@@ -78,17 +78,32 @@ No repository replacement is authorized by this convergence.
 - Agent Experience contribution to App Host;
 - Agent tool authorization boundary;
 - LLM Provider resolution;
-- enterprise scope/context passed into the Agent.
+- enterprise scope/context and governed Business Definition access passed into the Agent.
 
 ### Experience-Compiler owns
 
-- durable enterprise intelligence semantics;
-- knowledge/memory/learning/context/research;
+- enterprise knowledge;
+- industry knowledge;
+- durable learning and experience semantics;
+- cases / decisions / outcomes / learned patterns;
+- research acquisition;
 - reasoning bootstrap assets;
-- provenance/lineage;
+- knowledge provenance/lineage;
 - industry packs;
-- advisory methods;
-- durable Agent identity assets that must survive model replacement.
+- advisory methods and definition-improvement proposals;
+- durable intelligence assets that must survive model replacement.
+
+Experience Compiler may propose or help compile Business Definition Drafts, but published/effective enterprise definitions remain authoritative Enterprise Context assets.
+
+### Enterprise Context owns
+
+- enterprise identity/governance context;
+- authoritative Business Definitions;
+- Draft / Published / Effective lifecycle;
+- immutable definition revision history;
+- definition provenance/attribution and publication governance.
+
+Enterprise Context is not a parallel enterprise knowledge store.
 
 ### Eidos owns
 
@@ -197,3 +212,27 @@ The Host now supplies the effective tool catalog and the Agent model consumes it
 This is the required convergence boundary for future EC tools: EC context/knowledge/provenance functions must enter as registered tools/adapters rather than being embedded into Personal Agent prompt logic.
 
 The next convergence slice is Principal/Scope-aware tool visibility and authorization for privileged WRITE tools, followed by the first EC Context/Knowledge/Provenance adapters.
+
+## 11. Definition improvement loop
+
+The target convergence loop is:
+
+```text
+EC enterprise/industry knowledge
++ runtime outcomes
++ definition history
+        ↓
+learning / reasoning / proposal
+        ↓
+Business Definition Draft / recommendation
+        ↓
+Enterprise Context
+        ↓
+governed publication
+```
+
+EC and Enterprise Context are therefore complementary rather than duplicate stores:
+
+- EC knows, learns and proposes;
+- Enterprise Context defines and governs the current enterprise model.
+

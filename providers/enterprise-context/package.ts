@@ -1,9 +1,15 @@
 import type { PackageManifestV010 } from "../../contracts/package.js";
+import {
+  ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
+  ENTERPRISE_BUSINESS_DEFINITION_CONTRACT_V010
+} from "../../contracts/enterprise-business-definition.js";
 
 export const HOST_ENTERPRISE_CONTEXT_PACKAGE_ID = "host-enterprise-context-provider";
 export const HOST_ENTERPRISE_CONTEXT_FEATURE_ID = "host-enterprise-context-provider.default";
 export const HOST_ENTERPRISE_CONTEXT_PROVIDER_ID = "host.enterprise-context";
 export const ENTERPRISE_CONTEXT_CAPABILITY = "enterprise.directory";
+export const HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID =
+  "host.enterprise-context.business-definitions";
 
 export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -29,24 +35,50 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
     version: "0.1.0",
     activationScope: "INSTALLATION",
     defaultActivation: true,
-    providesCapabilities: [ENTERPRISE_CONTEXT_CAPABILITY],
-    contributions: [{
-      kind: "platform.service-provider",
-      provider: {
-        contractVersion: "0.1.0",
-        providerId: HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
-        capability: ENTERPRISE_CONTEXT_CAPABILITY,
-        providerContract: "evo.enterprise.context-directory",
-        providerContractVersion: "0.1.0",
-        binding: {
-          type: "IN_PROCESS",
-          ref: "runtime://host.enterprise-context"
-        },
-        metadata: {
-          configurationBoundary: "APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON",
-          purpose: "Host-owned Enterprise Context directory"
+    providesCapabilities: [
+      ENTERPRISE_CONTEXT_CAPABILITY,
+      ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
+    ],
+    contributions: [
+      {
+        kind: "platform.service-provider",
+        provider: {
+          contractVersion: "0.1.0",
+          providerId: HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+          capability: ENTERPRISE_CONTEXT_CAPABILITY,
+          providerContract: "evo.enterprise.context-directory",
+          providerContractVersion: "0.1.0",
+          binding: {
+            type: "IN_PROCESS",
+            ref: "runtime://host.enterprise-context"
+          },
+          metadata: {
+            configurationBoundary: "APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON",
+            purpose: "Host-owned Enterprise Context directory"
+          }
+        }
+      },
+      {
+        kind: "platform.service-provider",
+        provider: {
+          contractVersion: "0.1.0",
+          providerId: HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
+          capability: ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
+          providerContract:
+            ENTERPRISE_BUSINESS_DEFINITION_CONTRACT_V010,
+          providerContractVersion: "0.1.0",
+          binding: {
+            type: "IN_PROCESS",
+            ref: "runtime://host.enterprise-context.business-definitions"
+          },
+          metadata: {
+            purpose:
+              "Enterprise-scoped business definitions, immutable revisions and publication history",
+            revisionModel: "IMMUTABLE_APPEND_ONLY",
+            knowledgeBoundary: "EXPERIENCE_COMPILER"
+          }
         }
       }
-    }]
+    ]
   }]
 };

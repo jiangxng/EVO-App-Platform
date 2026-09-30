@@ -87,10 +87,6 @@ import {
   createEogApplicationRuntimeBindingServiceV010
 } from "./enterprise-operating-graph-application-runtime-service.js";
 import {
-  createFileEogExpectedSopStoreV010,
-  createMemoryEogExpectedSopStoreV010
-} from "./enterprise-operating-graph-sop-store.js";
-import {
   createEogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
 import {
@@ -178,6 +174,9 @@ import {
 } from "./personal-agent-experience.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
+  BusinessDefinitionRepositoryV010
+} from "../contracts/enterprise-business-definition.js";
+import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
   ContextMemoryDlpClassifierV010,
@@ -252,6 +251,7 @@ import {
   ENTERPRISE_CONTEXT_CAPABILITY,
   HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
+  HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
   hostEnterpriseContextProviderPackage
 } from "../providers/enterprise-context/package.js";
 import {
@@ -259,6 +259,13 @@ import {
   createHostEnterpriseContextProviderV010,
   parseHostEnterpriseContextsV010
 } from "../providers/enterprise-context/runtime.js";
+import {
+  createFileBusinessDefinitionRepositoryV010,
+  createMemoryBusinessDefinitionRepositoryV010
+} from "../providers/enterprise-context/business-definitions.js";
+import {
+  migrateLegacyEogSopsV010
+} from "../providers/enterprise-context/eog-sop-migration.js";
 import {
   HOST_STATIC_SESSION_PACKAGE_ID,
   HOST_STATIC_SESSION_PROVIDER_ID,
@@ -631,17 +638,34 @@ const eogApplicationRuntimeBindingService =
   createEogApplicationRuntimeBindingServiceV010({
     store: eogApplicationRuntimeBindingStore
   });
-const eogExpectedSopStateFile =
+const legacyEogExpectedSopStateFile =
   process.env.APP_PLATFORM_EOG_EXPECTED_SOP_FILE?.trim()
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "eog-expected-sops.json")
     : undefined);
-const eogExpectedSopStore = eogExpectedSopStateFile
-  ? createFileEogExpectedSopStoreV010(eogExpectedSopStateFile)
-  : createMemoryEogExpectedSopStoreV010();
+const enterpriseBusinessDefinitionStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_BUSINESS_DEFINITIONS_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-business-definitions.json")
+    : undefined);
+const enterpriseBusinessDefinitionRepository =
+  enterpriseBusinessDefinitionStateFile
+    ? createFileBusinessDefinitionRepositoryV010(
+        enterpriseBusinessDefinitionStateFile
+      )
+    : createMemoryBusinessDefinitionRepositoryV010();
+const legacySopMigration = migrateLegacyEogSopsV010({
+  path: legacyEogExpectedSopStateFile,
+  repository: enterpriseBusinessDefinitionRepository
+});
+if (legacySopMigration.sourcePresent && legacySopMigration.imported > 0) {
+  console.log(
+    `Migrated ${legacySopMigration.imported} legacy EOG SOP definition(s) into Enterprise Context.`
+  );
+}
 const eogExpectedSopService =
   createEogExpectedSopServiceV010({
-    store: eogExpectedSopStore,
+    repository: enterpriseBusinessDefinitionRepository,
     graphService: enterpriseOperatingGraphService
   });
 const contextMemoryGovernanceStateFile =
@@ -976,6 +1000,18 @@ providerRuntimeRegistry.setHealth(HOST_ENTERPRISE_CONTEXT_PROVIDER_ID, {
   message: "Host Enterprise Context Provider is active.",
   checkedAt: new Date().toISOString()
 });
+providerRuntimeRegistry.replace<BusinessDefinitionRepositoryV010>(
+  HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
+  enterpriseBusinessDefinitionRepository
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Business Definitions are active.",
+    checkedAt: new Date().toISOString()
+  }
+);
 const contextMemoryGovernanceProvider =
   createHostContextMemoryGovernanceProviderV010(
     contextMemoryGovernanceStore,

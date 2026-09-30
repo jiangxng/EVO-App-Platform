@@ -1,5 +1,9 @@
 # EOG Observatory Provider Protocol v0.2
 
+> **Ownership/CI correction — 2026-09-30:** The Observatory, Runtime Fact, Analysis Overlay, Bottleneck and SOP-analysis implementations documented here are **preserved assets**. They are no longer assumed to be intrinsic EOG Core ownership. Their future ownership will be decided when report/analysis/runtime-adapter plugins are planned. They are **NON_GATING_FOR_CURRENT_EOG_CORE_CI** and MUST be preserved for future plugin extraction. EOG Core itself remains CI-gated. See `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md` and `eog-asset-boundary.v0.1.json`.
+>
+> This correction changes ownership and CI classification, not the historical validity of the implemented/proven capabilities below.
+
 **Status:** IMPLEMENTATION FOUNDATION  
 **Date:** 2026-09-28
 

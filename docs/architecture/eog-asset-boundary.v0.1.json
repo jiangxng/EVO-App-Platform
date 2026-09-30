@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
+  "updatedAt": "2026-09-30",
+  "eogCore": {
+    "lifecycle": "ACTIVE",
+    "ci": "GATING",
+    "assets": [
+      "contracts/enterprise-operating-graph.ts",
+      "contracts/enterprise-operating-graph-view.ts",
+      "manager/enterprise-operating-graph-model.ts",
+      "manager/enterprise-operating-graph-store.ts",
+      "manager/enterprise-operating-graph-service.ts",
+      "manager/enterprise-operating-graph-actions.ts",
+      "manager/enterprise-operating-graph-agent-tools.ts",
+      "manager/enterprise-operating-graph-view-store.ts",
+      "manager/enterprise-operating-graph-view-service.ts",
+      "manager/enterprise-operating-graph-page.ts"
+    ]
+  },
+  "preservedForFutureExtraction": {
+    "ci": "NON_GATING_FOR_CURRENT_EOG_CORE",
+    "deletionPolicy": "PRESERVE",
+    "categories": {
+      "sopDefinitionAndPublication": {
+        "targetOwnership": "FUTURE_SOP_PLUGIN",
+        "assets": [
+          "contracts/enterprise-operating-graph-sop.ts",
+          "manager/enterprise-operating-graph-sop-service.ts",
+          "manager/enterprise-operating-graph-sop-actions.ts",
+          "manager/enterprise-operating-graph-sop-agent-tools.ts",
+          "manager/enterprise-operating-graph-sop-store.ts"
+        ]
+      },
+      "observatoryAndAnalysis": {
+        "targetOwnership": "FUTURE_REPORT_ANALYSIS_RUNTIME_ADAPTER_PLUGINS_TBD",
+        "assets": [
+          "contracts/enterprise-operating-graph-observatory.ts",
+          "manager/enterprise-operating-graph-observatory.ts",
+          "manager/enterprise-operating-graph-observatory-provider.ts",
+          "manager/enterprise-operating-graph-observatory-actions.ts",
+          "manager/enterprise-operating-graph-observatory-agent-tools.ts",
+          "manager/enterprise-operating-graph-observatory-page.ts",
+          "manager/enterprise-operating-graph-spatial-observatory-page.ts",
+          "providers/eog-bottleneck-analysis",
+          "providers/evo-runtime-observatory"
+        ]
+      },
+      "runtimeBinding": {
+        "targetOwnership": "FUTURE_RUNTIME_ADAPTER_PLUGIN_TBD",
+        "assets": [
+          "contracts/enterprise-operating-graph-application-runtime.ts",
+          "manager/enterprise-operating-graph-application-runtime-service.ts",
+          "manager/enterprise-operating-graph-application-runtime-store.ts"
+        ]
+      }
+    },
+    "testAssets": [
+      "tests/preserved/enterprise-operating-graph-sop-authority.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-sop-conformance.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-v0-2.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-provider-v0-2.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-surface.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-spatial-observatory.preserved.mjs",
+      "tests/preserved/evo-runtime-observatory-provider.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-application-runtime-binding.preserved.mjs",
+      "tests/preserved/eog-mobile-read-surface.preserved.mjs"
+    ]
+  },
+  "enterpriseContext": {
+    "lifecycle": "ACTIVE",
+    "ci": "GATING",
+    "role": "HEADLESS_DEFINITION_FIRST",
+    "owns": [
+      "enterprise-definition-scope",
+      "draft-published-effective-lifecycle",
+      "immutable-revision-history",
+      "provenance-attribution",
+      "publication-governance",
+      "business-definition-repository-capability"
+    ],
+    "doesNotOwn": [
+      "enterprise-knowledge",
+      "specialized-definition-editors",
+      "sop-domain-semantics",
+      "report-analysis-logic"
+    ]
+  },
+  "experienceCompiler": {
+    "role": "ENTERPRISE_KNOWLEDGE_AND_LEARNING",
+    "owns": [
+      "enterprise-knowledge",
+      "industry-knowledge",
+      "experience",
+      "learning",
+      "research",
+      "cases",
+      "knowledge-provenance"
+    ]
+  },
+  "ledgerRuntime": {
+    "role": "DETERMINISTIC_EXECUTION",
+    "owns": [
+      "business-data-execution",
+      "posting",
+      "ledger-effects",
+      "reconciliation",
+      "deterministic-calculation",
+      "replay-recalculation"
+    ],
+    "doesNotOwn": [
+      "definition-draft-lifecycle",
+      "definition-publish-lifecycle",
+      "definition-history",
+      "definition-version-management"
+    ]
+  },
+  "sopSemantic": {
+    "compatibilityName": "SOP",
+    "targetMeaning": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
+    "notMeaning": "CONVENTIONAL_STEP_BY_STEP_STANDARD_OPERATING_PROCEDURE"
+  },
+  "ciPolicy": {
+    "eogCore": "GATING",
+    "preservedAssets": "NON_GATING_FOR_CURRENT_EOG_CORE_CI",
+    "preservedTestCorpus": "tests/preserved/*.preserved.mjs",
+    "manualRegressionCommand": "npm run test:preserved:eog-assets",
+    "eogCoreIntegrationGate": "tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
+    "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates."
+  }
+}

@@ -279,7 +279,11 @@
     "humanDecisionAuthority": true,
     "crossContextMemoryPromotion": "DENY_BY_DEFAULT",
     "modelIndependentMemory": true,
-    "continuation": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md"
+    "continuation": "docs/roadmap/HANDOFF-2026-09-26-PERSON-FIRST-PERSONAL-AGENT.md",
+    "enterpriseKnowledgeAuthority": "EXPERIENCE_COMPILER",
+    "enterpriseContextRole": "IDENTITY_GOVERNANCE_AND_BUSINESS_DEFINITIONS",
+    "enterpriseContextMemoryTargetStatus": "PRESERVED_COMPATIBILITY_ASSET_NOT_TARGET_ENTERPRISE_KNOWLEDGE_AUTHORITY",
+    "definitionArchitectureAuthority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md"
   },
   "personalAgent": {
     "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
@@ -520,5 +524,42 @@
     "ci": ".github/workflows/project-continuity.yml",
     "staleDatedHandoffs": "HISTORICAL_EVIDENCE_ONLY",
     "repositoryStateWinsOverChatMemory": true
+  },
+  "enterpriseDefinitionArchitecture": {
+    "status": "AUTHORITATIVE_V0_1",
+    "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
+    "assetBoundary": "docs/architecture/eog-asset-boundary.v0.1.json",
+    "enterpriseContext": {
+      "role": "HEADLESS_DEFINITION_FIRST",
+      "bdr": "MERGED_CAPABILITY_NOT_STANDALONE_PLUGIN",
+      "owns": [
+        "BUSINESS_DEFINITION_LIFECYCLE",
+        "IMMUTABLE_REVISION_HISTORY",
+        "DRAFT_PUBLISHED_EFFECTIVE",
+        "PROVENANCE_ATTRIBUTION",
+        "PUBLICATION_GOVERNANCE"
+      ]
+    },
+    "experienceCompiler": {
+      "role": "ENTERPRISE_KNOWLEDGE_AND_LEARNING"
+    },
+    "eog": {
+      "role": "ENTERPRISE_GRAPH_DESIGN_NAVIGATION_AND_AGGREGATION",
+      "coreCi": "GATING",
+      "sopCi": "NON_GATING_PENDING_PLUGIN_EXTRACTION",
+      "observatoryAnalysisCi": "NON_GATING_PENDING_PLUGIN_EXTRACTION"
+    },
+    "sop": {
+      "targetMeaning": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
+      "compatibilityName": "SOP"
+    },
+    "ledgerRuntime": {
+      "role": "DETERMINISTIC_EXECUTION",
+      "definitionVersionLifecycle": "NOT_OWNED"
+    },
+    "componentModel": {
+      "platform": "CONTROL_PLANE",
+      "components": "DIRECT_CONTRACT_BOUND_DATA_PLANE"
+    }
   }
 }

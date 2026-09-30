@@ -7,8 +7,8 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "../../dist/manager/enterprise-operating-graph-service.js";
 import {
-  createMemoryEogExpectedSopStoreV010
-} from "../../dist/manager/enterprise-operating-graph-sop-store.js";
+  createMemoryBusinessDefinitionRepositoryV010
+} from "../../dist/providers/enterprise-context/business-definitions.js";
 import {
   createEogExpectedSopServiceV010
 } from "../../dist/manager/enterprise-operating-graph-sop-service.js";
@@ -158,7 +158,7 @@ function coverageFact(
 test("Draft expected SOP does not become analysis truth", async () => {
   const graphs = graphService();
   const sops = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService: graphs,
     now: () => new Date("2026-09-29T01:00:00.000Z")
   });
@@ -171,7 +171,8 @@ test("Draft expected SOP does not become analysis truth", async () => {
       "app:sales",
       "app:approval",
       "app:shipping"
-    ]
+    ],
+    actor: { actorType: "HUMAN", subjectId: "human:owner" }
   });
 
   const provider = createEogBottleneckAnalysisProviderV020({
@@ -207,7 +208,7 @@ test("Human-published SOP emits evidence-backed conformance and deviation", asyn
   const graphs = graphService();
   let tick = 0;
   const sops = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService: graphs,
     now: () => new Date(
       tick++ === 0
@@ -224,7 +225,8 @@ test("Human-published SOP emits evidence-backed conformance and deviation", asyn
       "app:sales",
       "app:approval",
       "app:shipping"
-    ]
+    ],
+    actor: { actorType: "HUMAN", subjectId: "human:owner" }
   });
   sops.publish({
     enterpriseId: "enterprise:demo",
@@ -292,7 +294,7 @@ test("Human-published SOP emits evidence-backed conformance and deviation", asyn
 test("Published SOP returns insufficient evidence when the Time Lens has no transitions", async () => {
   const graphs = graphService();
   const sops = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService: graphs,
     now: () => new Date("2026-09-29T01:00:00.000Z")
   });
@@ -301,7 +303,8 @@ test("Published SOP returns insufficient evidence when the Time Lens has no tran
     graphId: "eog:primary",
     sopId: "sop:o2c",
     title: "Order to cash",
-    applicationNodeIds: ["app:sales", "app:approval"]
+    applicationNodeIds: ["app:sales", "app:approval"],
+    actor: { actorType: "HUMAN", subjectId: "human:owner" }
   });
   sops.publish({
     enterpriseId: "enterprise:demo",
@@ -341,7 +344,7 @@ test("Explicit alternative and allowed exception paths are not deviations", asyn
   const graphs = graphService();
   let tick = 0;
   const sops = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService: graphs,
     now: () => new Date(
       tick++ === 0
@@ -387,7 +390,8 @@ test("Explicit alternative and allowed exception paths are not deviations", asyn
         kind: "ALLOWED_EXCEPTION",
         exceptionCode: "FAST_TRACK"
       }
-    ]
+    ],
+    actor: { actorType: "HUMAN", subjectId: "human:owner" }
   });
   sops.publish({
     enterpriseId: "enterprise:demo",
@@ -494,7 +498,7 @@ test("Explicit alternative and allowed exception paths are not deviations", asyn
 test("Incomplete actual-path coverage remains insufficient evidence", async () => {
   const graphs = graphService();
   const sops = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService: graphs,
     now: () => new Date("2026-09-29T01:00:00.000Z")
   });
@@ -507,7 +511,8 @@ test("Incomplete actual-path coverage remains insufficient evidence", async () =
       "app:sales",
       "app:approval",
       "app:shipping"
-    ]
+    ],
+    actor: { actorType: "HUMAN", subjectId: "human:owner" }
   });
   sops.publish({
     enterpriseId: "enterprise:demo",

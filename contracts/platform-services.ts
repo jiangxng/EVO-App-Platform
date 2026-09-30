@@ -308,6 +308,7 @@ export const RESERVED_PLATFORM_CAPABILITIES = [
   "enterprise.membership",
   "enterprise.relationship",
   "enterprise.scope",
+  "enterprise.business-definition.repository",
   "context.memory.read",
   "context.memory.write",
   "context.memory.governance",

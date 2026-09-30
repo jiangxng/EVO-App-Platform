@@ -13,3 +13,10 @@
 10. **One semantic truth.** Human-readable configuration may compile to machine contracts, but the platform must not maintain a separate hidden meaning for humans and machines.
 
 Authority: `docs/architecture/HUMAN-LLM-OPERABILITY-v0.1.md`.
+
+11. **Definitions are durable; editors are replaceable.** Enterprise Context is the headless authority for enterprise Business Definitions. Specialized designers remain peer plugins.
+12. **Knowledge and definition are different assets.** Experience Compiler owns enterprise/industry knowledge and learning; Enterprise Context owns governed enterprise definitions.
+13. **EOG aggregates; it does not absorb every domain.** EOG Core owns the enterprise graph/design/navigation surface. SOP, reporting and analysis capabilities may integrate with EOG without becoming its children.
+14. **Platform is control plane; components form the data plane.** App Platform discovers, binds, authorizes and governs components; ordinary component data exchange should use stable direct interfaces after binding.
+15. **Preserve before extraction.** Existing SOP/Observatory/analysis implementations are assets. Correcting ownership must not destroy working capability before the target plugin boundary exists.
+
