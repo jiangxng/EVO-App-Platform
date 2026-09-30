@@ -1,0 +1,45 @@
+name: Plugin CI - Host Managed Session Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/managed-session/**"
+      - "manager/identity-session-store.ts"
+      - "manager/session-cookie.ts"
+      - "contracts/platform-services.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "tests/protocol/managed-request-session.test.mjs"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-managed-session-provider.yml"
+  pull_request:
+    paths:
+      - "providers/managed-session/**"
+      - "manager/identity-session-store.ts"
+      - "manager/session-cookie.ts"
+      - "contracts/platform-services.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "tests/protocol/managed-request-session.test.mjs"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "tests/protocol/person-first-context.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-managed-session-provider.yml"
+
+concurrency:
+  group: plugin-host-managed-session-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-managed-session-provider
