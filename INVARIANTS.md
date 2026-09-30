@@ -248,3 +248,12 @@
 - **APP-200** Durable identity directory state MUST NOT persist browser Session credentials, OIDC ID/access/refresh tokens, authorization codes or client secrets.
 - **APP-201** A Human subject already bound to one identity Provider MUST NOT be silently seized or merged by another Provider. Account linking requires a separate explicit governed contract.
 - **APP-202** Identity directory DISABLED state is terminal in v0.1. A later successful login MUST NOT silently reactivate a disabled Human subject.
+
+
+## Effective Delegated Authority Constitution
+
+- **APP-203** A durable External Agent Authority Grant is historical delegation evidence, not permanent executable authority. Every delegated discovery and invocation decision MUST recompute current effective authority.
+- **APP-204** Effective delegated authority MUST intersect current ACTIVE Human identity, current Context membership, current plugin/Feature lifecycle, current Capability Operation contract, current `authorization.check`, Grant operation ids and Grant effect constraints.
+- **APP-205** Human disablement, Context membership removal, policy DENY, Feature disablement, Agent/Client revocation or Grant expiration MUST take effect without rewriting the historical Grant creation fact.
+- **APP-206** Delegated capability discovery and direct invocation MUST use the same current-authority derivation. Knowing or guessing an operation id MUST NOT bypass the delegated catalog boundary.
+- **APP-207** Missing current identity, Context membership, authorization or other required authority sources MUST fail closed. Protocol/token layers may further restrict current authority but MUST NOT upgrade a failed EA-3B2 derivation.
