@@ -295,6 +295,14 @@ import {
   hostManagedSessionProviderPackage
 } from "../providers/managed-session/package.js";
 import {
+  GENERIC_OIDC_PACKAGE_ID,
+  GENERIC_OIDC_PROVIDER_ID,
+  genericOidcIdentityProviderPackage
+} from "../providers/oidc/package.js";
+import {
+  configureGenericOidcProviderRuntimeV010
+} from "../providers/oidc/host-runtime.js";
+import {
   createHostManagedSessionHealthProbeV010,
   createHostManagedSessionProviderV010
 } from "../providers/managed-session/runtime.js";
@@ -596,6 +604,7 @@ const catalog = createPackageCatalog([
   hostStaticSessionProviderPackage,
   hostBearerSessionProviderPackage,
   hostManagedSessionProviderPackage,
+  genericOidcIdentityProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
   hostEnterpriseRelationshipProviderPackage,
   hostContextMemoryProviderPackage,
@@ -2098,6 +2107,26 @@ async function refreshDeepSeekProviderRuntime(): Promise<void> {
 }
 
 await refreshDeepSeekProviderRuntime();
+
+async function refreshGenericOidcProviderRuntime(): Promise<void> {
+  try {
+    const result = await configureGenericOidcProviderRuntimeV010({
+      settings: settingsStore.getNamespace(GENERIC_OIDC_PACKAGE_ID),
+      secrets: resolveManagedSecretsProvider(),
+      registry: providerRuntimeRegistry
+    });
+    if (!result.configured) {
+      console.log(
+        "Generic OIDC Identity Provider runtime is not active: " + result.reason + "."
+      );
+    }
+  } catch (error) {
+    providerRuntimeRegistry.remove(GENERIC_OIDC_PROVIDER_ID);
+    console.error("Generic OIDC Identity Provider failed closed.", error);
+  }
+}
+
+await refreshGenericOidcProviderRuntime();
 
 async function refreshP12MemoryProviderRuntimes(): Promise<void> {
   let semanticRetriever: ContextMemorySemanticRetrieverV010 | undefined;
@@ -4473,6 +4502,9 @@ const server = createServer(async (request, response) => {
           }
           if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
             await refreshDeepSeekProviderRuntime();
+          }
+          if (namespace === GENERIC_OIDC_PACKAGE_ID) {
+            await refreshGenericOidcProviderRuntime();
           }
           if (
             namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
