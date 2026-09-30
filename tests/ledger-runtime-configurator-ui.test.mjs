@@ -51,8 +51,8 @@ test("Plugin Store is an Eidos Extension Manager Experience with lifecycle actio
   };
   const page = createPluginStorePage(packages, emptySnapshot);
   assert.equal(page.kind, "extension-manager");
-  assert.equal(page.items[0].primaryAction.command, "app-platform.plan-install");
-  assert.equal(page.items[0].secondaryActions[0].command, "app-platform.install-package");
+  assert.equal(page.items[0].primaryAction.command, "app-platform.install-package");
+  assert.equal(page.items[0].secondaryActions[0].command, "app-platform.plan-install");
 
   const html = renderAppHostPageToHtml({
     experienceId: "evo-plugin-store",
