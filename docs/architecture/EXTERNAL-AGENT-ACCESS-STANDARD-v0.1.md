@@ -3,7 +3,7 @@
 **Status:** Architecture baseline / implementation sequencing authority  
 **Date:** 2026-09-30  
 **Scope:** External Agent access, plugin capability exposure, identity/login dependencies, delegated authority, protocol adapters, product adapters, execution governance and conformance  
-**Current runtime status:** ARCHITECTURE_RESERVED / NOT YET EXTERNALLY EXPOSED  
+**Current runtime status:** INTERNAL FOUNDATIONS IMPLEMENTED THROUGH EA-3A / EXTERNAL NETWORK ACCESS STILL CLOSED  
 **Near-term sequencing:** Close the current atomic Enterprise Context Business Definition authority gate, then make External-Agent-first platform validation the next primary foundation track  
 **First target validation:** external Agent blind discovery of the current Ledger Runtime template without developer knowledge
 
@@ -262,13 +262,20 @@ A Feature's current `providesCapabilities` remains the dependency/availability d
 
 That is not sufficient by itself to describe a callable operation.
 
-The standard therefore reserves a future generic callable contribution concept:
+The standard now uses the implemented generic callable Contribution:
 
 ```text
 platform.capability-operation
 ```
 
-The exact Plugin Protocol schema is NOT added by this documentation slice. It should be frozen one layer before implementation to avoid speculative protocol churn.
+EA-2A froze its portable Plugin Protocol contract; EA-2C added mandatory
+data-scope and authorization semantics plus authorization-aware discovery and
+direct invocation enforcement.
+
+Authorities:
+
+- `PLATFORM-CAPABILITY-OPERATION-EA2A-v0.1.md`
+- `AUTHORIZED-CAPABILITY-OPERATION-CATALOG-EA2C-v0.1.md`
 
 ## 8. Capability Operation Descriptor
 
@@ -609,6 +616,22 @@ It MUST NOT be conflated with Enterprise Context membership.
 
 ## 16. Authority Grant
 
+EA-3A now implements the minimum durable registration/client/delegation
+contracts. Authority:
+
+`docs/architecture/EXTERNAL-AGENT-DELEGATED-AUTHORITY-EA3A-v0.1.md`
+
+Current durable objects are:
+
+```text
+ExternalAgentRegistrationV010
+ExternalAgentClientRegistrationV010
+ExternalAgentAuthorityGrantV010
+```
+
+The broader target remains extensible for later policy/approval/resource
+constraints.
+
 Target conceptual object:
 
 ```text
@@ -664,6 +687,28 @@ Human authority
 ```
 
 No downstream delegation may regain removed authority.
+
+### EA-3A executable attenuation
+
+EA-3A grant creation currently permits only operations that are simultaneously:
+
+```text
+active
++ HUMAN eligible
++ currently allowed to the authorizing Human
++ EXTERNAL_AGENT eligible
++ explicitly requested
+```
+
+WRITE delegation remains blocked in EA-3A.
+
+Every Grant has an explicit `validUntil`, is bound to the Host-resolved active
+Context, and becomes effectively unusable when the Agent/Client is revoked or
+the Grant expires.
+
+Grant creation-time validation is not sufficient for runtime use. EA-3B must
+re-evaluate the authorizing Principal's current identity/context/authorization
+on every delegated discovery/invocation decision.
 
 ## 17. Token is not the authority database
 
@@ -1391,17 +1436,35 @@ This phase remains internal/no public external invocation until authorization is
 
 ### Phase EA-3 — External Agent Identity + Delegation Grants
 
-Deliver:
+#### EA-3A — durable governance facts — implemented internally
 
-- External Agent/client registration;
-- trust metadata;
-- ExternalAgentAuthorityGrant;
-- Human grant management Experience;
+Delivered:
+
+- External Agent registration;
+- External Agent Client registration;
+- trust metadata with Human-created registrations defaulting to REGISTERED;
+- durable ExternalAgentAuthorityGrant;
+- explicit validity windows;
 - revocation;
-- attenuation checks;
-- audit.
+- creation-time attenuation checks;
+- append-only governance events;
+- effective Agent/Client/Grant status.
+
+No public network endpoint is opened.
+
+#### EA-3B — current-authority delegation resolution — next
+
+Must add:
+
+- current authorizing Principal identity/status resolution without requiring a live browser Session;
+- current Enterprise Context membership/grant resolution;
+- current Capability Operation lifecycle/policy intersection;
+- effective delegated catalog/invocation checks.
 
 Reuse `authorization.check`; do not replace it.
+
+Human grant-management Experience may be added when the OAuth consent/product
+flow needs it; EA-3A does not add speculative UI.
 
 ### Phase EA-4 — OAuth Protected Resource / Authorization Profile
 
