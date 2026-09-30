@@ -1,0 +1,37 @@
+name: Plugin CI - Generic OIDC Identity Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/oidc/**"
+      - "providers/authentication/**"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/generic-oidc-provider.test.mjs"
+      - "tsconfig.json"
+      - "package.json"
+      - ".github/workflows/plugin-generic-oidc-provider.yml"
+  pull_request:
+    paths:
+      - "providers/oidc/**"
+      - "providers/authentication/**"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/generic-oidc-provider.test.mjs"
+      - "tsconfig.json"
+      - "package.json"
+      - ".github/workflows/plugin-generic-oidc-provider.yml"
+
+concurrency:
+  group: plugin-generic-oidc-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:generic-oidc-provider

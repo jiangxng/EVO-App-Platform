@@ -18,6 +18,7 @@
     "catalog/**/*.ts",
     "agents/**/*.ts",
     "apps/**/*.ts",
+    "providers/**/*.ts",
     "vendor/**/*.ts"
   ]
 }
