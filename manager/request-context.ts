@@ -8,6 +8,7 @@ import type {
 } from "../contracts/platform-services.js";
 import type { HostContextRegistryV010 } from "./context-registry.js";
 import { legacyScopeFromRequestContextV010 } from "./material-write-authorization.js";
+import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 
 export function identitySessionRequestFromHeadersV010(
   headers: IncomingHttpHeaders
@@ -17,6 +18,7 @@ export function identitySessionRequestFromHeadersV010(
     && authorization.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length).trim()
     : undefined;
+  const sessionToken = sessionTokenFromCookieHeaderV010(headers);
   const sessionIdHeader = headers["x-evo-session-id"];
   const sessionId = typeof sessionIdHeader === "string"
     ? sessionIdHeader.trim()
@@ -27,6 +29,7 @@ export function identitySessionRequestFromHeadersV010(
   return {
     contractVersion: "0.1.0",
     ...(bearerToken ? { bearerToken } : {}),
+    ...(sessionToken ? { sessionToken } : {}),
     ...(sessionId ? { sessionId } : {})
   };
 }
