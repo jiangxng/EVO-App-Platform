@@ -15,3 +15,5 @@ Cleanup is fail-safe:
 - preserve open, closed-but-unmerged and otherwise uncertain branches for explicit reconciliation.
 
 Interrupted LLM work must inspect repository state before continuing and must reuse existing durable checkpoints rather than recreate completed work.
+
+Explicit residual-branch retirement is also allowed after reconciliation. Such branches must be listed in `repository-hygiene/retired-branches.json` with a recorded reason and an authority document. The workflow may delete those named refs after the manifest reaches `main`.
