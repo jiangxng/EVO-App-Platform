@@ -8,8 +8,6 @@ export const HOST_ENTERPRISE_CONTEXT_PACKAGE_ID = "host-enterprise-context-provi
 export const HOST_ENTERPRISE_CONTEXT_FEATURE_ID = "host-enterprise-context-provider.default";
 export const HOST_ENTERPRISE_CONTEXT_PROVIDER_ID = "host.enterprise-context";
 export const ENTERPRISE_CONTEXT_CAPABILITY = "enterprise.directory";
-export const HOST_ENTERPRISE_BUSINESS_DEFINITION_FEATURE_ID =
-  "host-enterprise-context-provider.business-definitions";
 export const HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID =
   "host.enterprise-context.business-definitions";
 
@@ -30,16 +28,19 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
     eidos: "^1.3.0",
     pluginProtocol: "0.1.0"
   },
-  features: [
-    {
-      contractVersion: "0.1.0",
-      featureId: HOST_ENTERPRISE_CONTEXT_FEATURE_ID,
-      packageId: HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
-      version: "0.1.0",
-      activationScope: "INSTALLATION",
-      defaultActivation: true,
-      providesCapabilities: [ENTERPRISE_CONTEXT_CAPABILITY],
-      contributions: [{
+  features: [{
+    contractVersion: "0.1.0",
+    featureId: HOST_ENTERPRISE_CONTEXT_FEATURE_ID,
+    packageId: HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
+    version: "0.1.0",
+    activationScope: "INSTALLATION",
+    defaultActivation: true,
+    providesCapabilities: [
+      ENTERPRISE_CONTEXT_CAPABILITY,
+      ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
+    ],
+    contributions: [
+      {
         kind: "platform.service-provider",
         provider: {
           contractVersion: "0.1.0",
@@ -56,19 +57,8 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
             purpose: "Host-owned Enterprise Context directory"
           }
         }
-      }]
-    },
-    {
-      contractVersion: "0.1.0",
-      featureId: HOST_ENTERPRISE_BUSINESS_DEFINITION_FEATURE_ID,
-      packageId: HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
-      version: "0.1.0",
-      activationScope: "INSTALLATION",
-      defaultActivation: true,
-      providesCapabilities: [
-        ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
-      ],
-      contributions: [{
+      },
+      {
         kind: "platform.service-provider",
         provider: {
           contractVersion: "0.1.0",
@@ -88,7 +78,7 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
             knowledgeBoundary: "EXPERIENCE_COMPILER"
           }
         }
-      }]
-    }
-  ]
+      }
+    ]
+  }]
 };
