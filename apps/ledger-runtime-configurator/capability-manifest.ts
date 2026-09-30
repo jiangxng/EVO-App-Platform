@@ -11,6 +11,12 @@ export const LEDGER_RUNTIME_CONFIGURATION_DESCRIBE_OPERATION =
 export const LEDGER_RUNTIME_CONFIGURATION_SECTION_READ_OPERATION =
   "ledger.runtime.configuration.section.read";
 
+export const LEDGER_RUNTIME_CONFIGURATION_READ_ACTION =
+  "ledger.runtime.configuration.read";
+
+export const LEDGER_RUNTIME_CONFIGURATION_RESOURCE_TYPE =
+  "ledger.runtime.configuration";
+
 export const ledgerRuntimeConfigurationCapabilityContributionsV010:
   PlatformCapabilityOperationContributionV010[] = [
     {
@@ -24,6 +30,14 @@ export const ledgerRuntimeConfigurationCapabilityContributionsV010:
         description:
           "Returns the current Ledger Runtime template identity, semantic digest, configuration counts, source libraries, burn compatibility and readable sections without returning the entire configuration.",
         effect: "READ",
+        dataScope: "INSTALLATION",
+        authorization: {
+          action: LEDGER_RUNTIME_CONFIGURATION_READ_ACTION,
+          resource: {
+            type: LEDGER_RUNTIME_CONFIGURATION_RESOURCE_TYPE,
+            idSource: "NONE"
+          }
+        },
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -77,6 +91,14 @@ export const ledgerRuntimeConfigurationCapabilityContributionsV010:
         description:
           "Reads one bounded page from the current Ledger Runtime configuration. Supported sections are accounts, applications, dictionaries and postingRules. Pagination cursors are bound to the current semantic digest.",
         effect: "READ",
+        dataScope: "INSTALLATION",
+        authorization: {
+          action: LEDGER_RUNTIME_CONFIGURATION_READ_ACTION,
+          resource: {
+            type: LEDGER_RUNTIME_CONFIGURATION_RESOURCE_TYPE,
+            idSource: "NONE"
+          }
+        },
         inputSchema: {
           type: "object",
           additionalProperties: false,
