@@ -1,0 +1,34 @@
+name: Platform CI - External Agent MCP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "manager/mcp-modern-core.ts"
+      - "manager/mcp-modern-http.ts"
+      - "tests/external-agent/mcp-modern-core.test.mjs"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-mcp.yml"
+  pull_request:
+    paths:
+      - "manager/mcp-modern-core.ts"
+      - "manager/mcp-modern-http.ts"
+      - "tests/external-agent/mcp-modern-core.test.mjs"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-mcp.yml"
+
+concurrency:
+  group: platform-external-agent-mcp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run test:external-agent:mcp
