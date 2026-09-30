@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/governance/RESIDUAL-BRANCH-RECONCILIATION-20260930.md",
+  "retiredBranches": [
+    {
+      "name": "ci/eog-mobile-read-production-proof",
+      "reason": "superseded by the merged EOG MOBILE_READ P4 production-proof and continuity mainline"
+    },
+    {
+      "name": "ci/mobile-review-production-proof-fix",
+      "reason": "superseded by merged MOBILE_TASK Review proof/selector fixes and continuity certification"
+    },
+    {
+      "name": "eog/sop-expected-model-v0.3",
+      "reason": "absorbed by later merged SOP expected-vs-actual, conformance, explicit path and v0.4 evidence semantics"
+    },
+    {
+      "name": "eog/spatial-observatory-v0.1",
+      "reason": "superseded by merged EOG spatial/view-state/runtime-analysis mainline; PR #148 closed"
+    },
+    {
+      "name": "feat/plugin-release-tooling-v0.1",
+      "reason": "old platform-local release CLI retired; package integrity/SLSA/Sigstore remain authoritative while release signing belongs the plugin-owning delivery boundary"
+    },
+    {
+      "name": "feat/standalone-plugin-ci-contract-v0.1",
+      "reason": "old standalone distribution experiment retired; current authority is portable schemas, semantic validator and plugin-local CI contract"
+    },
+    {
+      "name": "p1.5-complete-p1.6-run-experience",
+      "reason": "superseded by merged P1.5C through P1.8 durable run/conversation mainline; PR #108 closed"
+    },
+    {
+      "name": "p1.5c-production-live-smoke",
+      "reason": "superseded by the certified P1.5C production-live-pass and later P1.6/P1.7/P1.8 gates"
+    },
+    {
+      "name": "personal-agent-eidos-native-p0-4b",
+      "reason": "superseded by later Personal Agent setup/readiness and P1.x product mainline; PR #57 closed"
+    },
+    {
+      "name": "personal-agent-p0-4-chat-structured",
+      "reason": "superseded by current structured Chat/Personal Agent experience contracts"
+    },
+    {
+      "name": "personal-agent-p0-4-eidos-p0-4a",
+      "reason": "superseded by later Eidos synchronization and Personal Agent mainline"
+    },
+    {
+      "name": "personal-agent-p0-4-readiness-setup",
+      "reason": "superseded by later merged setup/readiness/product journey mainline"
+    },
+    {
+      "name": "personal-agent-p0-4b",
+      "reason": "superseded by later Personal Agent onboarding/setup and P1.x evolution; PR #58 closed"
+    },
+    {
+      "name": "personal-agent-p0-4b-onboarding",
+      "reason": "superseded by later Personal Agent onboarding/setup and P1.x evolution; PR #56 closed"
+    },
+    {
+      "name": "web/browser-asset-archive-v0.1",
+      "reason": "absorbed by the current manager/web-asset-archive.ts implementation and version-skew delivery architecture"
+    },
+    {
+      "name": "web/browser-lifecycle-resilience-v0.1",
+      "reason": "superseded by merged Browser Lifecycle P3 adoption, production proof and current Eidos runtime lifecycle baseline"
+    },
+    {
+      "name": "web/mobile-my-work-v0.1",
+      "reason": "exploratory My Work implementation retired; product intent may be reintroduced only from current main contracts"
+    },
+    {
+      "name": "web/mobile-task-inbox-p4",
+      "reason": "superseded by merged web/mobile-task-inbox-p4-mainline plus production proof and continuity certification"
+    }
+  ]
+}
