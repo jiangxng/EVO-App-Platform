@@ -356,6 +356,11 @@ test("OAuth metadata is resource-bound and CIMD-first", () => {
       .client_id_metadata_document_supported,
     true
   );
+  assert.equal(
+    f.service.authorizationServerMetadata()
+      .authorization_response_iss_parameter_supported,
+    true
+  );
   assert.deepEqual(
     f.service.authorizationServerMetadata().protected_resources,
     [resource]
