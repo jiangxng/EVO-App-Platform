@@ -20,9 +20,13 @@ export interface AuthenticationFlowCompleteResultV010 {
   returnTo: string;
 }
 
-export interface AuthenticationFlowLogoutResultV010 {
+export interface AuthenticationFlowRevokeResultV010 {
   revoked: boolean;
   setCookie: string;
+}
+
+export interface AuthenticationFlowLogoutResultV010
+  extends AuthenticationFlowRevokeResultV010 {
   returnTo: string;
 }
 
@@ -68,6 +72,25 @@ export function createAuthenticationFlowV010(input: {
     throw new Error("AUTHENTICATION_SESSION_TTL_INVALID");
   }
   const callbackUrl = publicBaseUrl + "/auth/callback";
+
+  function revokeManagedSession(
+    sessionToken: string | undefined,
+    reason: string
+  ): AuthenticationFlowRevokeResultV010 {
+    let revoked = false;
+    if (sessionToken?.trim()) {
+      const current = input.sessions.resolveToken(sessionToken.trim());
+      if (current) {
+        revoked = input.sessions.revoke(current.sessionId, reason);
+      }
+    }
+    return {
+      revoked,
+      setCookie: clearIdentitySessionCookieV010({
+        secure: input.secureCookie ?? true
+      })
+    };
+  }
 
   return {
     async start(request: {
@@ -121,22 +144,18 @@ export function createAuthenticationFlowV010(input: {
       };
     },
 
+    revokeCurrent(
+      sessionToken: string | undefined
+    ): AuthenticationFlowRevokeResultV010 {
+      return revokeManagedSession(sessionToken, "EXPLICIT_REVOCATION");
+    },
+
     logout(
       sessionToken: string | undefined,
       returnTo?: string
     ): AuthenticationFlowLogoutResultV010 {
-      let revoked = false;
-      if (sessionToken?.trim()) {
-        const current = input.sessions.resolveToken(sessionToken.trim());
-        if (current) {
-          revoked = input.sessions.revoke(current.sessionId, "LOGOUT");
-        }
-      }
       return {
-        revoked,
-        setCookie: clearIdentitySessionCookieV010({
-          secure: input.secureCookie ?? true
-        }),
+        ...revokeManagedSession(sessionToken, "LOGOUT"),
         returnTo: normalizeAuthenticationReturnToV010(returnTo)
       };
     }
