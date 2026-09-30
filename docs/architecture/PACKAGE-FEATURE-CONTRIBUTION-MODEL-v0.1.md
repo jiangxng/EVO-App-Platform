@@ -428,6 +428,49 @@ requiresFeatures:
 
 unless exact feature identity is materially required.
 
+## 13.1 Callable Capability Operations
+
+Feature `providesCapabilities` remains the dependency/availability contract. It does not by itself describe a stable callable operation for Humans, Personal Agent, External Agents or automation.
+
+External Agent architecture therefore reserves a future generic Contribution concept:
+
+```text
+platform.capability-operation
+```
+
+or a semantically equivalent final name when the Plugin Protocol schema is frozen.
+
+The owning plugin defines the operation once:
+
+```text
+stable operation id
++ capability id
++ READ / PLAN / WRITE
++ input/output schemas
++ domain meaning
++ execution binding
++ version
++ Help/evidence semantics
+```
+
+App Platform then filters the operation by Package/Feature lifecycle, Principal, Enterprise Context, authorization and delegation before projecting it to:
+
+```text
+Personal Agent Tool
+MCP Tool
+OpenAPI operation
+future A2A Skill
+Human Action where appropriate
+```
+
+Canonical rule:
+
+> **One semantic capability operation, many protocol/product projections.**
+
+Do not add the Contribution to Plugin Protocol merely from this documentation decision. Freeze its exact portable schema and semantic validation immediately before the first implementation slice, together with focused Plugin Protocol compatibility tests.
+
+See `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
+
 ## 14. App Manager responsibilities
 
 App Manager must eventually be able to:
