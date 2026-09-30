@@ -80,3 +80,49 @@ For internal plugin development, load EVO Plugin Protocol + the plugin + directl
 For external integration work, additionally load only the relevant interoperability specification/adapter context such as MCP/OAuth.
 
 Do not load MCP/OAuth material for ordinary native plugin work.
+
+
+## External Agent access profile
+
+External Agent access is a specialized external-integration profile governed by:
+
+`docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`
+
+It preserves the internal/external separation in this document.
+
+```text
+native Plugin
+→ Package / Feature / Capability / Contribution
+→ App Platform effective capability registry
+
+external Agent
+→ OAuth/OIDC + MCP/OpenAPI/future A2A
+→ Agent Access Core
+→ authorized projection of those effective plugin capabilities
+```
+
+A native plugin does not implement ChatGPT, Claude, MCP or OAuth merely because its capability may be externally exposed.
+
+The owning plugin defines one platform-neutral callable semantic operation. App Platform decides whether that operation is currently effective and authorized. Protocol/Product adapters project the same operation externally.
+
+This prevents the anti-pattern:
+
+```text
+plugin
+├── ChatGPT API
+├── Claude API
+├── MCP-specific business logic
+└── OpenAPI-specific business logic
+```
+
+and replaces it with:
+
+```text
+plugin semantic operation
+        ↓
+App Platform governance
+        ↓
+MCP / OpenAPI / product adapters
+```
+
+Production Human-delegated external Agent access requires a real request-bound Identity/Session/login boundary first. The current static Session Provider is not production delegated-authority evidence.
