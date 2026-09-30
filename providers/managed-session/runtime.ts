@@ -13,7 +13,12 @@ export function createHostManagedSessionProviderV010(
   return {
     providerId: HOST_MANAGED_SESSION_PROVIDER_ID,
     resolve(input: IdentitySessionRequestV010) {
-      const token = input.sessionToken?.trim() || input.bearerToken?.trim();
+      const sessionToken = input.sessionToken?.trim();
+      const bearerToken = input.bearerToken?.trim();
+      if (sessionToken && bearerToken && sessionToken !== bearerToken) {
+        return undefined;
+      }
+      const token = sessionToken || bearerToken;
       return token ? service.resolveToken(token) : undefined;
     }
   };
