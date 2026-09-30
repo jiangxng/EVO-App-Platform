@@ -236,3 +236,22 @@ EC and Enterprise Context are therefore complementary rather than duplicate stor
 - EC knows, learns and proposes;
 - Enterprise Context defines and governs the current enterprise model.
 
+
+## 12. Enterprise–Personal Learning Loop
+
+The detailed long-term relationship between Personal Context Memory, Personal Agent, EC, Enterprise Context, EVO Runtime, external knowledge and replaceable LLM Providers is defined in:
+
+`docs/architecture/ENTERPRISE-PERSONAL-LEARNING-LOOP-LONG-TERM-v0.1.md`
+
+That target is intentionally not the current implementation mainline.
+
+Current architectural reservation:
+
+- Personal Context Memory may retain permitted personal working experience;
+- EC remains the enterprise/industry knowledge and learning authority;
+- personal experience may later become governed EC learning evidence, but never by automatic synchronization;
+- EC may later project task-relevant enterprise experience back to the Personal Agent;
+- final LLM calls should eventually be assembled from minimum-sufficient authorized context rather than full memory dumps;
+- model replacement must not erase either personal or enterprise accumulated experience;
+- no speculative learning-loop infrastructure enters current CI without an accepted vertical use case.
+
