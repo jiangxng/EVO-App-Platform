@@ -38,7 +38,7 @@ test("identity user directory records and refreshes bounded current Human Princi
     principal({ sessionId: "browser-session-1" })
   );
   assert.equal(first.state, "ACTIVE");
-  assert.equal(first.firstAuthenticatedAt, "2026-09-30T10:00:00.000Z");
+  assert.equal(first.firstSeenAt, "2026-09-30T10:00:00.000Z");
   assert.equal(first.lastAuthenticatedAt, "2026-09-30T10:00:00.000Z");
   assert.equal("sessionId" in first.principal && first.principal.sessionId, undefined);
 
@@ -46,7 +46,7 @@ test("identity user directory records and refreshes bounded current Human Princi
   const refreshed = service.recordAuthenticatedPrincipal(
     principal({ displayName: "Alice Updated", sessionId: "browser-session-2" })
   );
-  assert.equal(refreshed.firstAuthenticatedAt, first.firstAuthenticatedAt);
+  assert.equal(refreshed.firstSeenAt, first.firstSeenAt);
   assert.equal(refreshed.lastAuthenticatedAt, "2026-09-30T11:00:00.000Z");
   assert.equal(refreshed.principal.displayName, "Alice Updated");
   assert.equal(service.provider.get("alice")?.principal.displayName, "Alice Updated");
@@ -67,7 +67,7 @@ test("identity user directory does not allow another IdP to seize an existing su
   );
 });
 
-test("revocation is terminal and successful re-authentication cannot self-reactivate", () => {
+test("disablement is terminal and successful re-authentication cannot self-reactivate", () => {
   let now = new Date("2026-09-30T10:00:00.000Z");
   const service = createHostIdentityUserDirectoryServiceV010({
     store: createMemoryIdentityUserDirectoryStoreV010(),
@@ -76,17 +76,17 @@ test("revocation is terminal and successful re-authentication cannot self-reacti
   service.recordAuthenticatedPrincipal(principal());
 
   now = new Date("2026-09-30T10:30:00.000Z");
-  const revoked = service.revoke("alice", "admin-1");
-  assert.equal(revoked.state, "REVOKED");
-  assert.equal(revoked.revokedAt, "2026-09-30T10:30:00.000Z");
-  assert.equal(revoked.revokedBySubjectId, "admin-1");
+  const disabled = service.disable("alice", "admin-1");
+  assert.equal(disabled.state, "DISABLED");
+  assert.equal(disabled.disabledAt, "2026-09-30T10:30:00.000Z");
+  assert.equal(disabled.disabledBySubjectId, "admin-1");
 
   now = new Date("2026-09-30T11:00:00.000Z");
   assert.throws(
     () => service.recordAuthenticatedPrincipal(principal()),
-    /IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED/
+    /IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED/
   );
-  assert.equal(service.provider.get("alice")?.state, "REVOKED");
+  assert.equal(service.provider.get("alice")?.state, "DISABLED");
 });
 
 test("file identity directory survives restart without persisting browser Session credentials", () => {
