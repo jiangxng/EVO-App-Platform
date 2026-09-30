@@ -29,5 +29,18 @@ export function requestAuthenticationHttpFailureV010(
       message: "The configured identity Session Provider is unavailable."
     };
   }
+  if (
+    message === "IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE"
+    || message === "AUTHENTICATION_PUBLIC_BASE_URL_REQUIRED"
+    || message === "AUTHENTICATION_PUBLIC_BASE_URL_HTTPS_REQUIRED"
+    || message === "AUTHENTICATION_REDIRECT_HTTPS_REQUIRED"
+    || message === "MANAGED_IDENTITY_SESSION_NOT_ENABLED"
+  ) {
+    return {
+      status: 503,
+      code: "AUTHENTICATION_UNAVAILABLE",
+      message: "The configured authentication service is unavailable."
+    };
+  }
   return undefined;
 }

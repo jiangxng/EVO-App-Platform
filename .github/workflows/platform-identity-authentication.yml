@@ -1,0 +1,51 @@
+name: Platform CI - Identity Authentication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/authentication/**"
+      - "providers/managed-session/**"
+      - "manager/authentication-flow.ts"
+      - "manager/identity-session-store.ts"
+      - "manager/session-cookie.ts"
+      - "manager/request-authentication.ts"
+      - "manager/request-security.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/authentication-flow.test.mjs"
+      - "tests/protocol/managed-request-session.test.mjs"
+      - "package.json"
+      - ".github/workflows/platform-identity-authentication.yml"
+  pull_request:
+    paths:
+      - "providers/authentication/**"
+      - "providers/managed-session/**"
+      - "manager/authentication-flow.ts"
+      - "manager/identity-session-store.ts"
+      - "manager/session-cookie.ts"
+      - "manager/request-authentication.ts"
+      - "manager/request-security.ts"
+      - "manager/request-context.ts"
+      - "manager/server.ts"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/authentication-flow.test.mjs"
+      - "tests/protocol/managed-request-session.test.mjs"
+      - "package.json"
+      - ".github/workflows/platform-identity-authentication.yml"
+
+concurrency:
+  group: platform-identity-authentication-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:platform:identity-authentication

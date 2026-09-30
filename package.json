@@ -57,7 +57,8 @@
     "test:experience:p1-8c": "npm run build && node --test tests/app-host/conversation-thread-management.test.mjs tests/app-host/durable-thread-chat.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs",
     "experience:validate": "npm run build --silent && node tools/eidos-experience-architecture-validate.mjs",
     "test:preserved:eog-assets": "npm run build && node --test tests/preserved/*.preserved.mjs",
-    "test:plugin:host-managed-session-provider": "npm run build && node --test tests/protocol/managed-request-session.test.mjs tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs"
+    "test:plugin:host-managed-session-provider": "npm run build && node --test tests/protocol/managed-request-session.test.mjs tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs",
+    "test:platform:identity-authentication": "npm run build && node --test tests/protocol/authentication-flow.test.mjs tests/protocol/managed-request-session.test.mjs tests/protocol/enterprise-context-creation.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
