@@ -3,6 +3,10 @@ import {
   enterpriseAgentExperienceAssets,
   enterpriseAgentPackage
 } from "../agents/enterprise-agent/package.js";
+import {
+  LEDGER_RUNTIME_CONFIGURATION_CAPABILITY,
+  ledgerRuntimeConfigurationCapabilityContributionsV010
+} from "../apps/ledger-runtime-configurator/capability-manifest.js";
 
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 
@@ -138,8 +142,12 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
       activationScope: "INSTALLATION",
       defaultActivation: true,
       requiresCapabilities: ["evo.posting", "evo.ledger"],
-      providesCapabilities: ["evo.ledger-runtime.configurator"],
+      providesCapabilities: [
+        "evo.ledger-runtime.configurator",
+        LEDGER_RUNTIME_CONFIGURATION_CAPABILITY
+      ],
       contributions: [
+        ...ledgerRuntimeConfigurationCapabilityContributionsV010,
         {
           kind: "eidos.experience",
           manifest: {

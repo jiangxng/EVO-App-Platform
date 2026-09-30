@@ -112,3 +112,47 @@ The original bookkeeping engine declares server-side formula symbols including:
 ```
 
 These names may appear inside configurable amount expressions, but their implementation is a Ledger Runtime calculation capability. Configurator preserves and validates the expression reference; it does not configure the algorithm behind the symbol.
+
+
+## Agent-neutral capability operations
+
+The Configurator now owns one semantic callable Capability:
+
+~~~text
+ledger.runtime.configuration
+~~~
+
+with two READ operations:
+
+~~~text
+ledger.runtime.configuration.describe
+ledger.runtime.configuration.section.read
+~~~
+
+The first returns template identity, digest, counts, source libraries, burn
+compatibility and section metadata without dumping the full configuration.
+
+The second reads bounded pages from:
+
+~~~text
+accounts
+applications
+dictionaries
+postingRules
+~~~
+
+Default page size is 50 and maximum page size is 100.
+
+Paging cursors are bound to the current configuration semantic digest. If the
+configuration changes, an old cursor fails with
+`LEDGER_CONFIGURATION_CURSOR_STALE` instead of mixing revisions.
+
+These operations are defined under the Ledger plugin and projected through the
+generic `platform.capability-operation` contract. They are not ChatGPT- or
+MCP-specific APIs.
+
+EA-2B does not expose them publicly yet. External discovery/invocation still
+requires the platform identity, delegation, authorization and protocol layers.
+
+See:
+`docs/architecture/LEDGER-RUNTIME-CONFIGURATION-CAPABILITY-OPERATIONS-EA2B-v0.1.md`.

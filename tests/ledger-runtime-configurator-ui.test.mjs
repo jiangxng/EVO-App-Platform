@@ -10,12 +10,12 @@ import { renderAppHostPageToHtml } from "../dist/vendor/eidos/src/app-host/brows
 
 test("EVO product entry boots the canonical Eidos App Host", () => {
   assert.match(appHostShellHtml, /id="app"/);
-  assert.match(appHostShellHtml, /\/assets\/manager\/app-host-client\.js/);
+  assert.match(appHostShellHtml, /\/assets\/dev\/manager\/app-host-client\.js/);
   assert.equal(pluginStoreExperienceManifest.defaultRoute, "/store");
   assert.equal(pluginStoreExperienceManifest.pages[0].source, pluginStorePageSource);
 });
 
-test("Plugin Store is an Eidos Catalog Browser Experience with lifecycle actions", () => {
+test("Plugin Store is an Eidos Extension Manager Experience with lifecycle actions", () => {
   const packages = [{
     contractVersion: "0.1.0",
     packageId: "demo-app",
@@ -50,9 +50,9 @@ test("Plugin Store is an Eidos Catalog Browser Experience with lifecycle actions
     effectiveCapabilities: []
   };
   const page = createPluginStorePage(packages, emptySnapshot);
-  assert.equal(page.kind, "catalog-browser");
-  assert.equal(page.items[0].primaryAction.command, "app-platform.plan-install");
-  assert.equal(page.items[0].secondaryActions[0].command, "app-platform.install-package");
+  assert.equal(page.kind, "extension-manager");
+  assert.equal(page.items[0].primaryAction.command, "app-platform.install-package");
+  assert.equal(page.items[0].secondaryActions[0].command, "app-platform.plan-install");
 
   const html = renderAppHostPageToHtml({
     experienceId: "evo-plugin-store",
@@ -62,7 +62,7 @@ test("Plugin Store is an Eidos Catalog Browser Experience with lifecycle actions
     page: { id: "store", source: pluginStorePageSource },
     definition: page
   });
-  assert.match(html, /data-eidos-capability="catalog-browser"/);
+  assert.match(html, /data-eidos-capability="extension-manager"/);
   assert.match(html, /data-eidos-command="app-platform\.plan-install"/);
 });
 
@@ -184,7 +184,7 @@ test("Plugin Store exposes disable enable and uninstall states", () => {
     activeFeatures: [{ featureId: "demo-app.default", packageId: "demo-app", version: "1.0.0", activatedAt: "2026-09-24T00:00:00Z" }],
     effectiveCapabilities: []
   });
-  assert.equal(enabled.items[0].status.label, "已启用");
+  assert.equal(enabled.items[0].status.label, "Enabled");
   assert.equal(enabled.items[0].primaryAction.id, "open");
   assert.ok(enabled.items[0].secondaryActions.some(x => x.command === "app-platform.disable-package"));
   assert.ok(enabled.items[0].secondaryActions.some(x => x.command === "app-platform.uninstall-package"));
@@ -195,7 +195,7 @@ test("Plugin Store exposes disable enable and uninstall states", () => {
     activeFeatures: [],
     effectiveCapabilities: []
   });
-  assert.equal(disabled.items[0].status.label, "已禁用");
+  assert.equal(disabled.items[0].status.label, "Disabled");
   assert.equal(disabled.items[0].primaryAction.command, "app-platform.enable-package");
   assert.ok(disabled.items[0].secondaryActions.some(x => x.command === "app-platform.uninstall-package"));
 });
