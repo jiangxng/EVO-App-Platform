@@ -475,6 +475,10 @@ import {
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
 import { requestAuthenticationHttpFailureV010 } from "./request-authentication.js";
+import {
+  requestSecurityHttpFailureV010,
+  requireSameOriginForCookieMutationV010
+} from "./request-security.js";
 import { createAuthenticationFlowV010 } from "./authentication-flow.js";
 import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
@@ -3126,6 +3130,14 @@ const server = createServer(async (request, response) => {
       return response.end();
     }
 
+    if (managedSessionEnabled && authenticationPublicBaseUrl) {
+      requireSameOriginForCookieMutationV010({
+        method: request.method,
+        headers: request.headers,
+        publicBaseUrl: authenticationPublicBaseUrl
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/auth/login") {
       if (!managedSessionEnabled) {
         return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
@@ -4827,6 +4839,13 @@ const server = createServer(async (request, response) => {
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
+    const securityFailure = requestSecurityHttpFailureV010(error);
+    if (securityFailure) {
+      return json(response, securityFailure.status, {
+        code: securityFailure.code,
+        message: securityFailure.message
+      });
+    }
     const authenticationFailure = requestAuthenticationHttpFailureV010(error);
     if (authenticationFailure) {
       return json(response, authenticationFailure.status, {
