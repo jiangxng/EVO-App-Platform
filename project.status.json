@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
+  "currentMilestone": "Enterprise Context — Business Definitions & EOG Core Convergence v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -395,7 +395,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Web Delivery version-skew safety and RUM foundation are now production-proven. PR #198 merged commit d66c37f9d19552fcbb93a24cb7acd3d1fd51269f and deployed successfully as Railway deployment 44deea06-e848-487d-9911-6e8e9b81f212. It added explicit client/Host Web revision headers, non-blocking update notice, bounded sampled RUM, current Railway Git commit precedence for immutable asset revision, and a persistent bounded old-revision JS/CSS archive under Host durable state. PR #199 merged commit db61089df709a23eba60daa0e3cc8aa80c2fef03 and deployed as 9675e20d-798d-4e55-ad71-1452776d3995 to create the first true cross-deployment proof. New production diagnostics reported currentRevision=db61089d..., archived revisions d66c37f... and db61089d..., archiveEnabled=true, archiveError=null. From the new deployment, old d66c37f... app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned HTTP 200 with immutable one-year caching and ETag. A request identifying itself as the old revision returned x-evo-host-revision=db61089d..., x-evo-web-contract=0.1.0 and x-evo-client-update=available. RUM ingestion returned 202 and the bounded diagnostics store observed the sample. This closes the immutable-asset version-skew foundation: already-open old tabs can continue lazy-loading retained old modules while being informed that a newer compatible frontend exists. Next Web depth is real-browser RUM/performance budget governance and then selective remaining hardening; the independent EOG trace gate remains blocked on legitimate runtime trace evidence.",
+  "currentStep": "Architecture was rebased on 2026-09-30: Enterprise Context is now the headless authority for enterprise Business Definitions; the standalone BDR product/plugin concept is merged into Enterprise Context. Experience Compiler owns enterprise/industry knowledge and learning. EOG Core remains CI-gated as enterprise graph design/navigation/aggregation, while existing SOP definition/edit/publish and EOG/SOP Observatory/analysis capabilities are preserved as NON_GATING assets pending extraction into peer plugins. Project SOP semantics are APQC process structure plus a time dimension, not conventional step-by-step Standard Operating Procedure semantics. Immediate implementation is the generic Enterprise Context definition repository plus migration of existing SOP definition data away from EOG-local authority; Web Runtime work continues independently. The previous SOP real-trace live proof is preserved historical evidence but is no longer the active gate.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -474,7 +474,15 @@
   "handoff": "docs/roadmap/HANDOFF-LATEST.md",
   "architectureCorrections": [
     "evo-is-lightweight-runtime-plugin-not-enterprise-platform-core",
-    "enterprise-operating-graph-target-model-precedes-legacy-data-projection"
+    "enterprise-operating-graph-target-model-precedes-legacy-data-projection",
+    "enterprise-context-is-headless-business-definition-authority",
+    "business-definition-repository-is-enterprise-context-capability-not-standalone-plugin",
+    "experience-compiler-owns-enterprise-knowledge-and-learning",
+    "eog-core-is-ci-gated-graph-design-navigation-aggregation",
+    "sop-and-eog-analysis-assets-preserved-non-gating-pending-plugin-extraction",
+    "project-sop-semantics-apqc-plus-time-dimension",
+    "app-platform-control-plane-components-use-contract-bound-data-plane",
+    "ledger-runtime-does-not-own-definition-version-lifecycle"
   ],
   "compatibilityProofC": {
     "status": "PASS",
@@ -827,7 +835,7 @@
     "firstPerspective": "HUMAN",
     "agent": "PERSONAL_AGENT_ONLY",
     "personalContext": "LONG_LIVED_HUMAN_CONTEXT",
-    "enterpriseContext": "GOVERNED_WORKING_AND_LEARNING_MATERIAL",
+    "enterpriseContext": "GOVERNED_IDENTITY_AND_BUSINESS_DEFINITION_CONTEXT",
     "memories": [
       "PERSONAL_CONTEXT_MEMORY",
       "ENTERPRISE_CONTEXT_MEMORY"
@@ -836,7 +844,9 @@
     "crossContextMemoryPromotion": "DENY_BY_DEFAULT_UNTIL_ATTRIBUTION_GOVERNANCE",
     "agentOutput": "ANALYSIS_OPINION_PROPOSAL",
     "decisionAuthority": "HUMAN",
-    "modelMemory": "NOT_AUTHORITATIVE_CONTEXT_MEMORY"
+    "modelMemory": "NOT_AUTHORITATIVE_CONTEXT_MEMORY",
+    "enterpriseKnowledgeAuthority": "EXPERIENCE_COMPILER",
+    "enterpriseContextMemoryTargetStatus": "PRESERVED_COMPATIBILITY_ASSET_PENDING_EC_KNOWLEDGE_CONVERGENCE"
   },
   "personalAgent": {
     "status": "PRODUCT_IDENTITY_FROZEN_COMPAT_IMPLEMENTATION",
@@ -1641,8 +1651,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-2026-09-30-17",
-    "snapshotAt": "2026-09-30T07:22:00.000+08:00",
+    "snapshotId": "CTX-EOG-2026-09-30-18",
+    "snapshotAt": "2026-09-30T12:20:00.000+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1662,7 +1672,7 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
+      "milestone": "Enterprise Context — Business Definitions & EOG Core Convergence v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
         "id": "enterprise-operating-graph-published-sop-no-trace-proof-v0-4",
@@ -1685,18 +1695,19 @@
         }
       },
       "openGate": {
-        "id": "enterprise-operating-graph-sop-real-trace-live-proof-v0-4",
-        "status": "BLOCKED_ON_LEGITIMATE_RUNTIME_FLOW_SOURCE",
-        "summary": "Expected SOP publication and the no-trace fail-closed proof are complete. The remaining v0.4 proof requires a legitimate EVO runtime flow definition and traced workload produced through governed/public EVO boundaries. Production EVO_CONFIG_MVP currently has no flow_definition or flow_trace evidence, so sop.trace.transition and sop.trace.coverage cannot yet be honestly produced. Synthetic private-table inserts and EVO_DEMO seeding are explicitly out of bounds.",
-        "authority": "docs/architecture/EOG-VIEW-STATE-AND-OBSERVATORY-v0.1.md",
+        "id": "enterprise-context-business-definitions-sop-authority-migration-v0-1",
+        "status": "ACTIVE",
+        "summary": "Establish Enterprise Context as the headless authoritative Business Definition repository and migrate existing SOP definition data away from EOG-owned persistence without deleting the already implemented SOP/EOG analysis assets. EOG Core remains CI-gated; SOP definition/edit/publish and Observatory/analysis assets are explicitly non-gating until extracted into their own peer plugins.",
+        "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
         "acceptance": [
-          "provision or observe a legitimate runtime flow definition and traced workload through EVO public/governed boundaries; do not insert flow_definition/flow_trace rows directly and do not seed EVO_DEMO into production",
-          "prove /api/v1/runtime-traces/query returns real flow-instance steps resolved to the four stable ApplicationAnchors under the selected Enterprise Context",
-          "prove Host Observatory emits sop.trace.transition and sop.trace.coverage facts with evidence provenance for the selected Time Lens",
-          "prove a completed expected path yields evidence-backed SOP_CONFORMANCE while allowed alternatives/exceptions remain semantically distinct",
-          "prove a real disallowed path yields SOP_DEVIATION with evidenceFactIds and analyzer provenance",
-          "verify incomplete or ACTIVE traces remain INSUFFICIENT_EVIDENCE rather than compliance",
-          "do not treat conditionRef as satisfied until a runtime evidence model can prove the condition"
+          "Business Definition repository is owned by the Enterprise Context plugin and no standalone BDR product/plugin remains",
+          "definition storage supports enterprise scope, immutable revision history, Draft, Published and Effective semantics, attribution and governed publication",
+          "an already Published definition can retain its effective revision while a later Draft is being prepared",
+          "existing EOG SOP definition data has an explicit migration path into Enterprise Context definitions without silent loss of legacy state",
+          "EOG Core remains CI-gated as graph semantics, graph designer/navigation, renderer-independent View State, graph actions and aggregation extension points",
+          "existing SOP definition/edit/publish and SOP/EOG Observatory/analysis implementations are preserved but classified NON_GATING_FOR_CURRENT_EOG_CORE_CI pending peer-plugin extraction",
+          "fresh LLM startup documents state that Experience Compiler owns enterprise knowledge and that project SOP means APQC process structure plus time dimension",
+          "the previous EOG SOP real-trace live proof remains historical implementation evidence and is not treated as the current blocking gate"
         ]
       },
       "productionPreview": {
@@ -2221,7 +2232,14 @@
       "Do not claim immutable caching is safe if an already-open old tab can no longer lazy-load modules from its own revision after a new deployment.",
       "Do not serve current bytes under an old immutable revision URL; retain exact old revision bytes or fail explicitly.",
       "Do not force-reload compatible stale tabs merely because a newer frontend exists; expose update availability and preserve bounded frontend/backend contract skew.",
-      "Do not turn RUM into high-frequency request telemetry or authoritative enterprise state; it is sampled, bounded browser delivery evidence only."
+      "Do not turn RUM into high-frequency request telemetry or authoritative enterprise state; it is sampled, bounded browser delivery evidence only.",
+      "Do not recreate a standalone Business Definition Repository product/plugin; Business Definition Repository is a capability inside Enterprise Context.",
+      "Do not treat Enterprise Context as the target enterprise knowledge/learning store; Experience Compiler owns enterprise and industry knowledge, learning and experience.",
+      "Do not treat SOP Designer, Definition Comparison, Observatory, Bottleneck or report/analysis capabilities as child modules that EOG must own.",
+      "Do not delete existing SOP/Observatory/analysis implementations while correcting ownership; preserve them for future peer-plugin extraction.",
+      "Do not put SOP definition/edit/publish or EOG/SOP analysis into the current EOG Core CI gate before their owning plugins are formalized.",
+      "Do not interpret project SOP as a conventional step-by-step Standard Operating Procedure; its target semantics are APQC process structure plus time dimension.",
+      "Do not resume the historical SOP real-trace live proof as the active mainline unless the future report/analysis/SOP plugin plan explicitly reactivates it."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2304,7 +2322,15 @@
       "state PR #199 / production db61089df709a23eba60daa0e3cc8aa80c2fef03 as the first true cross-deployment immutable-asset proof",
       "state the old-revision proof exactly: old d66c37f app-host-client.js, mobile-read-runtime.js and desktop-workbench-runtime.js each returned 200 from the new deployment with immutable cache and ETag",
       "state stale compatible client behavior exactly: x-evo-host-revision points to db61089d, x-evo-web-contract=0.1.0 and x-evo-client-update=available; no forced reload is required",
-      "state RUM as bounded non-authoritative evidence and the next Web slice as real-browser RUM/performance budget governance"
+      "state RUM as bounded non-authoritative evidence and the next Web slice as real-browser RUM/performance budget governance",
+      "state Enterprise Context as the headless authoritative Business Definition space and BDR as an internal/public capability rather than a standalone plugin",
+      "state Experience Compiler as the authority for enterprise/industry knowledge, learning, research and experience",
+      "state EOG Core as CI-gated graph design/navigation/aggregation, not the parent of SOP/reporting/analysis plugins",
+      "state existing SOP definition/edit/publish and EOG/SOP Observatory/analysis code as preserved non-gating assets pending future plugin extraction",
+      "state project SOP semantics as APQC process structure plus time dimension rather than conventional work-instruction SOP",
+      "state the report/analysis plugin portfolio as intentionally not yet planned",
+      "state EVO Ledger Runtime as deterministic BusinessData/posting/reconciliation/calculation/replay without Business Definition version-lifecycle ownership",
+      "state App Platform as control plane while peer components exchange ordinary data through stable contract-bound interfaces after binding"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
@@ -3215,5 +3241,20 @@
         "authority": "docs/architecture/ENTERPRISE-MIGRATION-AGENT-LEARNING-ROADMAP-v0.1.md"
       }
     ]
+  },
+  "enterpriseDefinitionArchitecture": {
+    "status": "AUTHORITATIVE_V0_1",
+    "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
+    "assetBoundary": "docs/architecture/eog-asset-boundary.v0.1.json",
+    "enterpriseContext": "HEADLESS_BUSINESS_DEFINITION_AUTHORITY",
+    "businessDefinitionRepository": "CAPABILITY_INSIDE_ENTERPRISE_CONTEXT",
+    "experienceCompiler": "ENTERPRISE_KNOWLEDGE_AND_LEARNING_AUTHORITY",
+    "eogCore": "CI_GATED_GRAPH_DESIGN_NAVIGATION_AGGREGATION",
+    "sop": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
+    "sopCurrentOwnership": "PRESERVED_NON_GATING_PENDING_PEER_PLUGIN_EXTRACTION",
+    "observatoryAnalysis": "PRESERVED_NON_GATING_PENDING_REPORT_ANALYSIS_PLUGIN_PLANNING",
+    "reportPluginPortfolio": "NOT_YET_PLANNED",
+    "ledgerRuntime": "DETERMINISTIC_EXECUTION_NO_DEFINITION_VERSION_LIFECYCLE",
+    "componentCommunication": "CONTROL_PLANE_PLUS_CONTRACT_BOUND_DIRECT_DATA_PLANE"
   }
 }
