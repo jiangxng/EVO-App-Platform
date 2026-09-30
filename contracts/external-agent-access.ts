@@ -46,6 +46,12 @@ export interface ExternalAgentClientRegistrationV010 {
   displayName: string;
   kind: ExternalAgentClientKindV010;
   protocols: ExternalAgentProtocolV010[];
+  /**
+   * OAuth client identifier used on the wire.
+   * For MCP 2026-07-28 CIMD clients this is the HTTPS metadata-document URL.
+   * It is distinct from EVO's internal clientId governance identity.
+   */
+  oauthClientId?: string;
   state: ExternalAgentClientStateV010;
   createdAt: string;
   createdBySubjectId: string;
