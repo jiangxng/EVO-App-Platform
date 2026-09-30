@@ -80,10 +80,10 @@ export function createMemoryManagedIdentitySessionEventStoreV010(
 export function createJsonlManagedIdentitySessionEventStoreV010(
   path: string
 ): ManagedIdentitySessionEventStoreV010 {
-  function list(): ManagedIdentitySessionEventV010[] {
-    if (!existsSync(path)) return [];
+  const events = (() => {
+    if (!existsSync(path)) return [] as ManagedIdentitySessionEventV010[];
     const raw = readFileSync(path, "utf8").trim();
-    if (!raw) return [];
+    if (!raw) return [] as ManagedIdentitySessionEventV010[];
     return raw.split("\n").map((line, index) => {
       try {
         return JSON.parse(line) as ManagedIdentitySessionEventV010;
@@ -91,7 +91,8 @@ export function createJsonlManagedIdentitySessionEventStoreV010(
         throw new Error(`IDENTITY_SESSION_EVENT_INVALID: line ${index + 1}`);
       }
     });
-  }
+  })();
+
   return {
     append(event) {
       mkdirSync(dirname(path), { recursive: true });
@@ -99,8 +100,11 @@ export function createJsonlManagedIdentitySessionEventStoreV010(
         encoding: "utf8",
         mode: 0o600
       });
+      events.push(structuredClone(event));
     },
-    list
+    list() {
+      return events.map(event => structuredClone(event));
+    }
   };
 }
 
@@ -143,9 +147,13 @@ export function createManagedIdentitySessionServiceV010(input: {
   const now = input.now ?? (() => new Date());
   const token = input.token ?? (() => randomBytes(32).toString("base64url"));
   const id = input.id ?? (() => randomUUID());
-
-  function snapshot() {
-    return materialize(input.store.list());
+  const records = materialize(input.store.list());
+  const sessionIdByTokenHash = new Map<string, string>();
+  for (const [sessionId, record] of records) {
+    if (sessionIdByTokenHash.has(record.tokenHash)) {
+      throw new Error("IDENTITY_SESSION_TOKEN_HASH_DUPLICATE");
+    }
+    sessionIdByTokenHash.set(record.tokenHash, sessionId);
   }
 
   function active(record: ManagedIdentitySessionRecordV010): boolean {
@@ -154,6 +162,32 @@ export function createManagedIdentitySessionServiceV010(input: {
       ? Date.parse(record.session.expiresAt)
       : Number.NaN;
     return Number.isFinite(expiresAt) && now().getTime() < expiresAt;
+  }
+
+  function resolveToken(rawToken: string): IdentitySessionV010 | undefined {
+    if (!rawToken.trim()) return undefined;
+    const digest = hashIdentitySessionTokenV010(rawToken.trim());
+    const sessionId = sessionIdByTokenHash.get(digest);
+    const record = sessionId ? records.get(sessionId) : undefined;
+    if (!record || !active(record)) return undefined;
+    return structuredClone(record.session);
+  }
+
+  function revoke(sessionId: string, reason?: string): boolean {
+    const record = records.get(sessionId);
+    if (!record || record.revokedAt) return false;
+    const occurredAt = now().toISOString();
+    input.store.append({
+      contractVersion: "0.1.0",
+      eventId: `identity-session-event:${id()}`,
+      type: "REVOKED",
+      occurredAt,
+      sessionId,
+      ...(reason?.trim() ? { reason: reason.trim() } : {})
+    });
+    record.revokedAt = occurredAt;
+    record.revokeReason = reason?.trim() || undefined;
+    return true;
   }
 
   function issue(request: {
@@ -168,7 +202,7 @@ export function createManagedIdentitySessionServiceV010(input: {
     const rawToken = token();
     if (!rawToken) throw new Error("IDENTITY_SESSION_TOKEN_EMPTY");
     const tokenHash = hashIdentitySessionTokenV010(rawToken);
-    if ([...snapshot().values()].some(item => item.tokenHash === tokenHash)) {
+    if (sessionIdByTokenHash.has(tokenHash)) {
       throw new Error("IDENTITY_SESSION_TOKEN_COLLISION");
     }
     const session: IdentitySessionV010 = {
@@ -183,49 +217,35 @@ export function createManagedIdentitySessionServiceV010(input: {
         ? { assurance: [...request.assurance] }
         : {})
     };
-    input.store.append({
+    const event: ManagedIdentitySessionEventV010 = {
       contractVersion: "0.1.0",
       eventId: `identity-session-event:${id()}`,
       type: "ISSUED",
       occurredAt: issuedAt.toISOString(),
       tokenHash,
       session
+    };
+    input.store.append(event);
+    records.set(session.sessionId, {
+      tokenHash,
+      session: structuredClone(session)
     });
+    sessionIdByTokenHash.set(tokenHash, session.sessionId);
     return { token: rawToken, session: structuredClone(session) };
   }
 
   return {
     issue,
-    resolveToken(rawToken) {
-      if (!rawToken.trim()) return undefined;
-      const digest = hashIdentitySessionTokenV010(rawToken.trim());
-      const record = [...snapshot().values()].find(
-        candidate => candidate.tokenHash === digest
-      );
-      if (!record || !active(record)) return undefined;
-      return structuredClone(record.session);
-    },
-    revoke(sessionId, reason) {
-      const record = snapshot().get(sessionId);
-      if (!record || record.revokedAt) return false;
-      input.store.append({
-        contractVersion: "0.1.0",
-        eventId: `identity-session-event:${id()}`,
-        type: "REVOKED",
-        occurredAt: now().toISOString(),
-        sessionId,
-        ...(reason?.trim() ? { reason: reason.trim() } : {})
-      });
-      return true;
-    },
+    resolveToken,
+    revoke,
     rotate(rawToken, ttlSeconds) {
-      const current = this.resolveToken(rawToken);
+      const current = resolveToken(rawToken);
       if (!current) return undefined;
       const expiresAt = Date.parse(current.expiresAt ?? "");
       const remainingSeconds = Number.isFinite(expiresAt)
         ? Math.max(1, Math.ceil((expiresAt - now().getTime()) / 1000))
         : 1;
-      if (!this.revoke(current.sessionId, "ROTATED")) return undefined;
+      if (!revoke(current.sessionId, "ROTATED")) return undefined;
       return issue({
         principal: current.principal,
         ttlSeconds: ttlSeconds ?? remainingSeconds,
@@ -233,11 +253,11 @@ export function createManagedIdentitySessionServiceV010(input: {
       });
     },
     get(sessionId) {
-      const record = snapshot().get(sessionId);
+      const record = records.get(sessionId);
       return record ? structuredClone(record) : undefined;
     },
     list() {
-      return [...snapshot().values()].map(record => structuredClone(record));
+      return [...records.values()].map(record => structuredClone(record));
     }
   };
 }
