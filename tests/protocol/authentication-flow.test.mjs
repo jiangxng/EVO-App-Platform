@@ -192,6 +192,25 @@ test("logout revokes current managed Session and clears cookie", async () => {
   assert.equal(sessions.resolveToken("session-token-1"), undefined);
 });
 
+test("explicit current Session revocation invalidates managed Session without logout redirect", async () => {
+  const sessions = sessionService();
+  const flow = createAuthenticationFlowV010({
+    provider: humanProvider(),
+    sessions,
+    publicBaseUrl: "https://evo.example",
+    sessionTtlSeconds: 3600
+  });
+  await flow.complete("https://evo.example/auth/callback?code=abc");
+  assert.ok(sessions.resolveToken("session-token-1"));
+
+  const revoked = flow.revokeCurrent("session-token-1");
+  assert.equal(revoked.revoked, true);
+  assert.match(revoked.setCookie, /Max-Age=0/);
+  assert.equal(sessions.resolveToken("session-token-1"), undefined);
+
+  assert.equal(flow.revokeCurrent("session-token-1").revoked, false);
+});
+
 test("cookie-authenticated mutations require configured same-origin Origin", () => {
   const base = "https://evo.example";
   assert.doesNotThrow(() => requireSameOriginForCookieMutationV010({

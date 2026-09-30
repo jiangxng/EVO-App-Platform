@@ -3687,6 +3687,24 @@ const server = createServer(async (request, response) => {
       return response.end();
     }
 
+    if (request.method === "POST" && url.pathname === "/auth/session/revoke") {
+      if (!managedSessionEnabled) {
+        return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      const revoked = authenticationFlow().revokeCurrent(
+        sessionTokenFromCookieHeaderV010(request.headers)
+      );
+      if (!revoked.revoked) {
+        throw new Error("REQUEST_IDENTITY_SESSION_REQUIRED");
+      }
+      response.setHeader("set-cookie", revoked.setCookie);
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        revoked: true
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/auth/session") {
       if (!managedSessionEnabled) {
         return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
