@@ -63,3 +63,27 @@ Current semantics:
 - page assets are not served through the effective page API until their Experience Contribution is active.
 
 These endpoints are MVP contracts, not yet frozen public v1 compatibility promises.
+
+
+## External Agent Access — Reserved
+
+Authority: `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
+
+This is a reserved public-contract family, not a currently exposed unauthenticated API.
+
+Future public families include:
+
+- protected-resource / authorization discovery;
+- authenticated External Agent/client identity;
+- delegated Authority Grant management;
+- authorization-aware effective capability-operation discovery;
+- generic capability invocation;
+- approval status;
+- durable action receipt/audit reads;
+- MCP projection;
+- OpenAPI projection;
+- future A2A task projection where justified.
+
+Plugins do not publish product-specific ChatGPT/Claude APIs. Plugins publish one stable semantic Capability Operation through Plugin Protocol/App Platform public contracts. App Platform projects effective authorized operations into external protocols.
+
+Production external Human-delegated access is blocked until request-bound production Identity/Session/login is available.
