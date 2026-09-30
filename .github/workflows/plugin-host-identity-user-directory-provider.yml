@@ -1,0 +1,41 @@
+name: Plugin CI - Host Identity User Directory Provider
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/identity-directory/**"
+      - "manager/identity-user-directory-store.ts"
+      - "manager/authentication-flow.ts"
+      - "manager/request-authentication.ts"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/identity-user-directory.test.mjs"
+      - "tests/protocol/authentication-flow.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-identity-user-directory-provider.yml"
+  pull_request:
+    paths:
+      - "providers/identity-directory/**"
+      - "manager/identity-user-directory-store.ts"
+      - "manager/authentication-flow.ts"
+      - "manager/request-authentication.ts"
+      - "contracts/platform-services.ts"
+      - "tests/protocol/identity-user-directory.test.mjs"
+      - "tests/protocol/authentication-flow.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-host-identity-user-directory-provider.yml"
+
+concurrency:
+  group: plugin-host-identity-user-directory-provider-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:host-identity-user-directory-provider
