@@ -19,8 +19,8 @@ It does **not** own EVO Core and does **not** own Eidos Core.
 ## System relationship
 
 ```text
-                 Enterprise Agent
-               (Agent Package)
+                  Personal Agent
+                 (Agent Package)
                       │
           public tools / contracts
                       │
@@ -31,7 +31,7 @@ It does **not** own EVO Core and does **not** own Eidos Core.
                    framework      lifecycle
 ```
 
-The former EC / Experience Compiler concept is being transitioned into the Enterprise Agent model. The package-model authority is `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`.
+Experience Compiler (EC) remains the separate enterprise/industry knowledge, learning and research authority. The current `enterprise-agent` implementation is compatibility capital for the product-facing **Personal Agent**; EC is not absorbed into the Agent. See `docs/architecture/ENTERPRISE-AGENT-EC-CONVERGENCE-v0.1.md` and the long-term `docs/architecture/ENTERPRISE-PERSONAL-LEARNING-LOOP-LONG-TERM-v0.1.md`. The package-model authority remains `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`.
 
 ## Installable package model
 
