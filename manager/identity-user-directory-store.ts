@@ -1,13 +1,13 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
-  IdentityUserDirectoryEntryV010,
+  IdentityUserDirectoryRecordV010,
   PlatformPrincipalV010
 } from "../contracts/platform-services.js";
 
 export interface IdentityUserDirectorySnapshotV010 {
   contractVersion: "0.1.0";
-  entries: IdentityUserDirectoryEntryV010[];
+  entries: IdentityUserDirectoryRecordV010[];
 }
 
 export interface IdentityUserDirectoryStoreV010 {
@@ -55,15 +55,16 @@ function validateSnapshot(snapshot: IdentityUserDirectorySnapshotV010): void {
     }
     seen.add(entry.principal.subjectId);
     if (
-      (entry.state !== "ACTIVE" && entry.state !== "REVOKED")
-      || !Number.isFinite(Date.parse(entry.firstAuthenticatedAt))
+      (entry.state !== "ACTIVE" && entry.state !== "DISABLED")
+      || !Number.isFinite(Date.parse(entry.firstSeenAt))
       || !Number.isFinite(Date.parse(entry.lastAuthenticatedAt))
+      || !Number.isFinite(Date.parse(entry.updatedAt))
     ) {
       throw new Error("IDENTITY_USER_DIRECTORY_ENTRY_INVALID");
     }
     if (
-      entry.state === "REVOKED"
-      && (!entry.revokedAt || !entry.revokedBySubjectId)
+      entry.state === "DISABLED"
+      && (!entry.disabledAt || !entry.disabledBySubjectId)
     ) {
       throw new Error("IDENTITY_USER_DIRECTORY_REVOCATION_INVALID");
     }
