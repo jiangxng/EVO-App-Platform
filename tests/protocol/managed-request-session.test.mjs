@@ -157,6 +157,12 @@ test("Host managed provider accepts opaque Cookie credential and ordinary bearer
     contractVersion: "0.1.0",
     sessionToken: "wrong"
   }), undefined);
+
+  assert.equal(provider.resolve({
+    contractVersion: "0.1.0",
+    sessionToken: "browser-token",
+    bearerToken: "different-bearer"
+  }), undefined);
 });
 
 test("request context extracts __Host cookie without exposing it as public sessionId", () => {
