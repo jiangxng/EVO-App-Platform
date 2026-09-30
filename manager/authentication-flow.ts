@@ -59,6 +59,9 @@ export function createAuthenticationFlowV010(input: {
   publicBaseUrl: string;
   sessionTtlSeconds: number;
   secureCookie?: boolean;
+  onAuthenticatedPrincipal?: (
+    principal: import("../contracts/platform-services.js").PlatformPrincipalV010
+  ) => Promise<void> | void;
 }) {
   const publicBaseUrl = normalizePublicBaseUrlV010(input.publicBaseUrl);
   if (!Number.isFinite(input.sessionTtlSeconds) || input.sessionTtlSeconds <= 0) {
@@ -102,6 +105,7 @@ export function createAuthenticationFlowV010(input: {
       if (authenticated.principal.actorType !== "HUMAN") {
         throw new Error("AUTHENTICATION_HUMAN_PRINCIPAL_REQUIRED");
       }
+      await input.onAuthenticatedPrincipal?.(authenticated.principal);
       const issued = input.sessions.issue({
         principal: authenticated.principal,
         ttlSeconds: input.sessionTtlSeconds,
