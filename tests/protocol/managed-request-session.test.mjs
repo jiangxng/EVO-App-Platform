@@ -168,12 +168,11 @@ test("request context extracts __Host cookie without exposing it as public sessi
   assert.equal(input.sessionId, "display-session-id");
   assert.equal(input.bearerToken, undefined);
 
-  assert.equal(
-    sessionTokenFromCookieHeaderV010({
+  assert.throws(
+    () => sessionTokenFromCookieHeaderV010({
       cookie: "__Host-evo_session=a; __Host-evo_session=b"
     }),
-    undefined,
-    "duplicate cookie check should throw before returning"
+    /IDENTITY_SESSION_COOKIE_AMBIGUOUS/
   );
 });
 
