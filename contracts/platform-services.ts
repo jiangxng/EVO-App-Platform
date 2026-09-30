@@ -32,6 +32,7 @@ export interface IdentityUserDirectoryRecordV010 {
 export interface IdentityUserDirectoryProviderV010 {
   providerId: string;
   get(subjectId: string): IdentityUserDirectoryRecordV010 | undefined;
+  list(): IdentityUserDirectoryRecordV010[];
 }
 
 /**
@@ -186,24 +187,6 @@ export interface IdentityAuthenticationProviderV010 {
   complete(
     input: IdentityAuthenticationCallbackV010
   ): Promise<IdentityAuthenticationResultV010> | IdentityAuthenticationResultV010;
-}
-
-export type IdentityUserDirectoryStateV010 = "ACTIVE" | "REVOKED";
-
-export interface IdentityUserDirectoryEntryV010 {
-  contractVersion: "0.1.0";
-  principal: PlatformPrincipalV010;
-  state: IdentityUserDirectoryStateV010;
-  firstAuthenticatedAt: string;
-  lastAuthenticatedAt: string;
-  revokedAt?: string;
-  revokedBySubjectId?: string;
-}
-
-export interface IdentityUserDirectoryProviderV010 {
-  providerId: string;
-  get(subjectId: string): IdentityUserDirectoryEntryV010 | undefined;
-  list(): IdentityUserDirectoryEntryV010[];
 }
 
 export interface IdentitySessionV010 {
