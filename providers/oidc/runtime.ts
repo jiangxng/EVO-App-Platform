@@ -1,4 +1,5 @@
 import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
+import type { JsonWebKey as NodeJsonWebKey } from "node:crypto";
 import type {
   IdentityAuthenticationProviderV010,
   IdentityAuthenticationResultV010,
@@ -305,7 +306,7 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
     let publicKey;
     try {
       publicKey = createPublicKey({
-        key: jwk as JsonWebKey,
+        key: jwk as NodeJsonWebKey,
         format: "jwk"
       });
     } catch {
