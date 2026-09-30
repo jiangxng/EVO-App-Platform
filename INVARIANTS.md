@@ -82,7 +82,7 @@
 
 - **APP-73** Package publisher identity is not self-authenticating. Signed Package admission MUST verify against a Host-owned trusted publisher key store; a Package-provided key cannot establish its own trust.
 - **APP-74** PROCESS runtime execution requires a trusted cryptographic Package signature and a signed PROCESS_ENTRYPOINT digest. The Host MUST re-hash the actual entrypoint bytes before execution.
-- **APP-75** Invalid, tampered, unknown-key or disabled-key signed Packages fail closed. Unsigned declarative Packages are only a pre-1.0 compatibility allowance and MUST NOT be inferred as the long-term distribution trust model.
+- **APP-75** Invalid, tampered, unknown-key or revoked-key signed Packages fail closed. Unsigned declarative Packages are only a pre-1.0 compatibility allowance and MUST NOT be inferred as the long-term distribution trust model.
 - **APP-76** Provenance metadata is signed evidence metadata, not proof by itself. External OIDC/Sigstore provenance is considered verified only after its own verification procedure is implemented.
 - **APP-77** Plugin Runtime observability is structured Host data, not console-log parsing. Runtime lifecycle/invocation events and aggregate health are owned by App Platform; Eidos only renders supplied diagnostics.
 - **APP-78** Runtime observability storage is bounded by default. P0 in-memory diagnostics MUST NOT be represented as durable audit history, distributed tracing or an SLO system.
@@ -197,7 +197,7 @@
 - **APP-163** Protocol and Product Adapters are translation/convenience boundaries, not authority boundaries. ChatGPT-, Claude-, MCP-, OpenAPI- or A2A-specific code MUST NOT grant enterprise permission or own domain truth.
 - **APP-164** External Agent WRITE MUST converge on the same governed Host Action/domain Command path as other clients. External protocols MUST NOT create a second authoritative mutation path.
 - **APP-165** Material External Agent WRITE MUST produce durable Host-owned execution evidence with Principal, Agent/client, Context, Grant, operation, outcome and correlation sufficient for audit/recovery; receipts remain evidence rather than domain source of truth.
-- **APP-166** Access tokens are not the canonical authority database. Disabled Grants, removed Context access, deactivated Features or current policy DENY MUST remain effective even while a transport credential would otherwise be unexpired.
+- **APP-166** Access tokens are not the canonical authority database. Revoked Grants, removed Context access, deactivated Features or current policy DENY MUST remain effective even while a transport credential would otherwise be unexpired.
 - **APP-167** Stored Secret plaintext MUST NOT be exposed through external capability discovery, Agent schemas, prompts, observations, receipts, examples or Package manifests.
 - **APP-168** Generic standards support is primary; Agent-specific adapters are optional convenience. Absence of a ChatGPT/Claude adapter MUST NOT prevent a conforming generic MCP/OpenAPI client from using supported capabilities.
 - **APP-169** External Agent product use MUST NOT require GitHub, source code, database access, private endpoint knowledge or other developer-only implementation knowledge.
@@ -234,8 +234,17 @@
 - **APP-190** Grant creation MUST attenuate to the authorizing Human's current allowed Capability Operations and MUST additionally require explicit EXTERNAL_AGENT exposure eligibility. A Grant MUST NOT contain an operation unavailable to the Human at creation time.
 - **APP-191** External Agent WRITE delegation remains denied until the governed WRITE phase explicitly activates approval, idempotency, durable receipt and ambiguous-outcome handling. A Human ALLOW alone MUST NOT enable External Agent WRITE early.
 - **APP-192** External Agent Authority Grants MUST have explicit bounded validity. The first delegated-authority contract MUST NOT create implicit permanent grants.
-- **APP-193** Agent, Client and Grant creation facts are immutable; disablement is terminal; governance events are append-only. New authority relationships require new durable records rather than reactivating disabled objects.
+- **APP-193** Agent, Client and Grant creation facts are immutable; revocation is terminal; governance events are append-only. New authority relationships require new durable records rather than reactivating revoked objects.
 - **APP-194** Revoking an Agent or Client, or expiration of a Grant, MUST immediately make delegated authority ineffective without rewriting the historical Grant creation fact.
 - **APP-195** Grant creation-time authorization is insufficient for runtime use. Every delegated discovery/invocation decision MUST intersect the Grant with current plugin lifecycle, current Context authority and the authorizing Principal's current authorization.
 - **APP-196** Delegated authority MUST NOT depend on a live Human browser Session as the only way to know current Human authority, and MUST NOT freeze stale Session/token claims into a Grant as permanent Principal truth. A governed current-identity resolution boundary is required before EA-4 network authorization is opened.
 - **APP-197** EA-3A governance state MUST NOT store OAuth client secrets, bearer/access/refresh tokens or authorization codes. Credential transport/authentication belongs to the later OAuth/client-authentication layer.
+
+
+## Current Human Identity Constitution
+
+- **APP-198** Browser Session, OIDC authentication and current Human identity directory are separate authorities. Delegated Agent authorization MUST NOT require or reuse an old Human browser Session as the durable Principal source.
+- **APP-199** Successful Human authentication MUST update/confirm the current identity directory before Host-managed Session issuance. Directory failure MUST fail closed with no newly issued Session.
+- **APP-200** Durable identity directory state MUST NOT persist browser Session credentials, OIDC ID/access/refresh tokens, authorization codes or client secrets.
+- **APP-201** A Human subject already bound to one identity Provider MUST NOT be silently seized or merged by another Provider. Account linking requires a separate explicit governed contract.
+- **APP-202** Identity directory DISABLED state is terminal in v0.1. A later successful login MUST NOT silently reactivate a disabled Human subject.
