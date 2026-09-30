@@ -204,3 +204,13 @@
 - **APP-170** Production Human-delegated External Agent authorization MUST use request-bound production Identity/Session. The static/dev Session fallback MUST NOT satisfy the production login gate.
 - **APP-171** External Agent support preserves owner-scoped CI. Plugin CI validates the plugin's semantic operations; adapter/vendor certification remains separate and MUST NOT become a dependency of every plugin PR.
 - **APP-172** External Agent authorization does not imply Personal Context Memory, EC knowledge or unrelated Enterprise Context access. Intelligence/memory/data capabilities remain separately authorized and least-disclosed.
+
+
+## Capability Operation Constitution
+
+- **APP-173** Feature `providesCapabilities` declares dependency/availability semantics; `platform.capability-operation` declares stable callable operations. These concepts MUST NOT be collapsed.
+- **APP-174** A Capability Operation MUST be owned by a Capability the same Feature explicitly provides, and its operation id MUST remain capability-namespaced.
+- **APP-175** Capability Operation exposure metadata is eligibility only, never authorization. EXTERNAL_AGENT exposure MUST NOT make an operation externally visible without current Principal/Context/delegated-authority filtering.
+- **APP-176** App Manager derives effective Capability Operations only from active Features. Disabling or uninstalling a Feature MUST remove its operations without ghost API compatibility paths.
+- **APP-177** Duplicate operation ids among active Features fail closed. App Platform MUST NOT choose an owner by install order, lexical order, version, repository or adapter preference.
+- **APP-178** A Capability Operation classified WRITE MUST declare Host-owned idempotency and durable receipt requirements before it can enter Plugin Protocol; protocol/product adapters MUST NOT weaken those requirements.
