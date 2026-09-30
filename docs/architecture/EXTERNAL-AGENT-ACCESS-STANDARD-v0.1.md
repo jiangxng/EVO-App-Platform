@@ -1478,19 +1478,33 @@ identity.authenticate
 A Human directory entry in `DISABLED` state cannot self-reactivate through a
 later successful login.
 
-#### EA-3B — current-authority delegation resolution — next
+#### EA-3B2 — current-authority delegation resolution — implemented internally
 
-Must add:
+Authority:
 
-- current authorizing Principal identity/status resolution without requiring a live browser Session;
-- current Enterprise Context membership/grant resolution;
-- current Capability Operation lifecycle/policy intersection;
-- effective delegated catalog/invocation checks.
+`docs/architecture/EFFECTIVE-DELEGATED-AUTHORITY-EA3B2-v0.1.md`
 
-Reuse `authorization.check`; do not replace it.
+EA-3B2 recomputes delegated authority on every discovery/invocation decision:
+
+```text
+active Agent/Client/Grant
+∩ current ACTIVE authorizing Human
+∩ current Enterprise Context membership
+∩ current Capability Operation lifecycle
+∩ current authorization.check
+∩ stored Grant operation/effect limits
+=
+current effective delegated operations
+```
+
+It reuses `authorization.check`; it does not introduce a second policy engine.
+
+Historical Grants remain immutable evidence. Human disablement, membership removal,
+policy DENY, Feature disablement, Client/Agent revocation or Grant expiration
+take effect on the next decision without rewriting Grant history.
 
 Human grant-management Experience may be added when the OAuth consent/product
-flow needs it; EA-3A does not add speculative UI.
+flow needs it; EA-3A/EA-3B do not add speculative UI.
 
 ### Phase EA-4 — OAuth Protected Resource / Authorization Profile
 
