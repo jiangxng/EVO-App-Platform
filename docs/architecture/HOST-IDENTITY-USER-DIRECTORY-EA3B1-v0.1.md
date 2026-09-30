@@ -92,7 +92,7 @@ state:
   ACTIVE
   DISABLED
 
-firstAuthenticatedAt
+firstSeenAt
 lastAuthenticatedAt
 
 disabledAt?
@@ -267,7 +267,7 @@ EA-3B1 must prove:
 
 1. first Human authentication records ACTIVE current Principal;
 2. repeat authentication refreshes bounded Principal + lastAuthenticatedAt;
-3. firstAuthenticatedAt remains stable;
+3. firstSeenAt remains stable;
 4. browser sessionId is not persisted as durable identity;
 5. different identity Provider cannot seize an existing subject;
 6. non-Human Principal is rejected;
