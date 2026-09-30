@@ -96,6 +96,7 @@ Not proved:
 - Agent-neutral Capability Operation Registry; it is the next platform layer after login
 - EOG report/analysis/SOP peer-plugin extraction; those assets remain preserved and deferred
 
+
 ## Recent mainline changes
 
 - PR #210 — MERGED_CI_PASS_DEPLOYED: Record the Enterprise–Personal Learning Loop as a long-term architecture target while keeping it outside current MVP/CI.
