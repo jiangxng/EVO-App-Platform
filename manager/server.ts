@@ -190,6 +190,7 @@ import type {
   EnterpriseContextGrantProviderV010,
   EnterpriseContextProviderV010,
   EnterpriseContextRelationshipProviderV010,
+  IdentityAuthenticationProviderV010,
   IdentitySessionProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
@@ -474,6 +475,9 @@ import {
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
 import { requestAuthenticationHttpFailureV010 } from "./request-authentication.js";
+import { createAuthenticationFlowV010 } from "./authentication-flow.js";
+import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
+import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
@@ -603,6 +607,18 @@ const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
+const authenticationPublicBaseUrl =
+  process.env.APP_PLATFORM_PUBLIC_BASE_URL?.trim();
+const authenticationSessionTtlSeconds = Number.parseInt(
+  process.env.APP_PLATFORM_SESSION_TTL_SECONDS ?? "28800",
+  10
+);
+if (
+  !Number.isFinite(authenticationSessionTtlSeconds)
+  || authenticationSessionTtlSeconds <= 0
+) {
+  throw new Error("AUTHENTICATION_SESSION_TTL_INVALID");
+}
 const managedSessionStateFile =
   process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
   || (managedSessionEnabled && lifecycleStateFile
@@ -1532,6 +1548,36 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
     AUTHORIZATION_CHECK_CAPABILITY,
     { installationId: "default" }
   )?.runtime;
+}
+
+function resolveIdentityAuthenticationProvider(): IdentityAuthenticationProviderV010 | undefined {
+  return resolveProviderRuntimeV010<IdentityAuthenticationProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(IDENTITY_AUTHENTICATION_CAPABILITY),
+    providerBindings,
+    IDENTITY_AUTHENTICATION_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
+function authenticationFlow() {
+  if (!managedSessionEnabled) {
+    throw new Error("MANAGED_IDENTITY_SESSION_NOT_ENABLED");
+  }
+  if (!authenticationPublicBaseUrl) {
+    throw new Error("AUTHENTICATION_PUBLIC_BASE_URL_REQUIRED");
+  }
+  const provider = resolveIdentityAuthenticationProvider();
+  if (!provider) {
+    throw new Error("IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE");
+  }
+  return createAuthenticationFlowV010({
+    provider,
+    sessions: managedSessionService,
+    publicBaseUrl: authenticationPublicBaseUrl,
+    sessionTtlSeconds: authenticationSessionTtlSeconds,
+    secureCookie: !authenticationPublicBaseUrl.startsWith("http://localhost")
+  });
 }
 
 function resolveEnterpriseContextProvider(): EnterpriseContextProviderV010 | undefined {
@@ -3080,7 +3126,94 @@ const server = createServer(async (request, response) => {
       return response.end();
     }
 
+    if (request.method === "GET" && url.pathname === "/auth/login") {
+      if (!managedSessionEnabled) {
+        return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      const flow = authenticationFlow();
+      const start = await flow.start({
+        returnTo: url.searchParams.get("returnTo") ?? "/",
+        locale: url.searchParams.get("locale") ?? undefined
+      });
+      response.statusCode = 302;
+      response.setHeader("location", start.redirectUrl);
+      return response.end();
+    }
+
+    if (request.method === "GET" && url.pathname === "/auth/callback") {
+      if (!managedSessionEnabled) {
+        return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
+      }
+      if (!authenticationPublicBaseUrl) {
+        throw new Error("AUTHENTICATION_PUBLIC_BASE_URL_REQUIRED");
+      }
+      response.setHeader("cache-control", "no-store");
+      const callbackUrl = new URL(
+        (request.url ?? "/auth/callback"),
+        authenticationPublicBaseUrl
+      ).toString();
+      const completed = await authenticationFlow().complete(callbackUrl);
+      response.statusCode = 303;
+      response.setHeader("set-cookie", completed.setCookie);
+      response.setHeader("location", completed.returnTo);
+      return response.end();
+    }
+
+    if (request.method === "POST" && url.pathname === "/auth/logout") {
+      if (!managedSessionEnabled) {
+        return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      const logout = authenticationFlow().logout(
+        sessionTokenFromCookieHeaderV010(request.headers),
+        url.searchParams.get("returnTo") ?? "/"
+      );
+      response.statusCode = 303;
+      response.setHeader("set-cookie", logout.setCookie);
+      response.setHeader("location", logout.returnTo);
+      return response.end();
+    }
+
+    if (request.method === "GET" && url.pathname === "/auth/session") {
+      if (!managedSessionEnabled) {
+        return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      const session = resolveRequestIdentitySession(request);
+      return json(response, 200, {
+        contractVersion: "0.1.0",
+        sessionId: session.sessionId,
+        principal: {
+          subjectId: session.principal.subjectId,
+          actorType: session.principal.actorType,
+          identityProviderId: session.principal.identityProviderId,
+          displayName: session.principal.displayName ?? null
+        },
+        issuedAt: session.issuedAt,
+        expiresAt: session.expiresAt ?? null,
+        assurance: session.assurance ?? []
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/") {
+      if (managedSessionEnabled) {
+        try {
+          resolveRequestIdentitySession(request);
+        } catch (error) {
+          const failure = requestAuthenticationHttpFailureV010(error);
+          if (failure?.status === 401) {
+            response.statusCode = 303;
+            response.setHeader("cache-control", "no-store");
+            response.setHeader(
+              "location",
+              "/auth/login?returnTo=" + encodeURIComponent("/")
+            );
+            return response.end();
+          }
+          throw error;
+        }
+      }
       const etag = representationEtag(appHostShellHtml);
       applyCors(response);
       response.setHeader("etag", etag);
