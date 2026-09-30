@@ -237,12 +237,18 @@ export function createMcpModernCoreV010(
           );
         }
         try {
-          const result = await options.callTool({
+          const result = structuredClone(await options.callTool({
             name,
             arguments: structuredClone(args)
-          });
+          }));
           return success(request.id, {
-            ...structuredClone(result) as Record<string, unknown>,
+            content: result.content,
+            ...(result.structuredContent === undefined
+              ? {}
+              : { structuredContent: result.structuredContent }),
+            ...(result.isError === undefined
+              ? {}
+              : { isError: result.isError }),
             _meta: serverMeta(options.serverInfo)
           });
         } catch (error) {
