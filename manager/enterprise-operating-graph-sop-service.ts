@@ -1,10 +1,24 @@
+import type {
+  BusinessDefinitionAttributionV010,
+  BusinessDefinitionRepositoryV010,
+  BusinessDefinitionRevisionV010
+} from "../contracts/business-definition-repository.js";
+import {
+  BUSINESS_DEFINITION_KIND_SOP_V010
+} from "../contracts/business-definition-repository.js";
 import type { EnterpriseOperatingGraphHostServiceV010 } from "./enterprise-operating-graph-service.js";
 import type {
+  EogExpectedSopStepV010,
   EogExpectedSopTransitionInputV010,
   EogExpectedSopTransitionV010,
   EogExpectedSopV010
 } from "../contracts/enterprise-operating-graph-sop.js";
-import type { EogExpectedSopStoreV010 } from "./enterprise-operating-graph-sop-store.js";
+
+interface SopDefinitionPayloadV010 {
+  graphId: string;
+  steps: EogExpectedSopStepV010[];
+  transitions: EogExpectedSopTransitionV010[];
+}
 
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -19,6 +33,64 @@ function normalizeOptional(value: string | undefined): string | undefined {
   return normalized || undefined;
 }
 
+function payload(value: BusinessDefinitionRevisionV010): SopDefinitionPayloadV010 {
+  if (value.kind !== BUSINESS_DEFINITION_KIND_SOP_V010) {
+    throw new Error("EOG_EXPECTED_SOP_DEFINITION_KIND_INVALID");
+  }
+  const raw = value.payload;
+  if (
+    typeof raw.graphId !== "string"
+    || !raw.graphId.trim()
+    || !Array.isArray(raw.steps)
+    || !Array.isArray(raw.transitions)
+  ) {
+    throw new Error("EOG_EXPECTED_SOP_DEFINITION_PAYLOAD_INVALID");
+  }
+  return {
+    graphId: raw.graphId.trim(),
+    steps: structuredClone(raw.steps) as EogExpectedSopStepV010[],
+    transitions:
+      structuredClone(raw.transitions) as EogExpectedSopTransitionV010[]
+  };
+}
+
+function toSop(
+  value: BusinessDefinitionRevisionV010
+): EogExpectedSopV010 {
+  const definition = payload(value);
+  return {
+    contractVersion: "0.1.0",
+    sopId: value.definitionId,
+    enterpriseId: value.enterpriseId,
+    graphId: definition.graphId,
+    title: value.title,
+    state: value.state,
+    revision: value.revision,
+    steps: definition.steps,
+    transitions: definition.transitions,
+    createdAt: value.definitionCreatedAt,
+    updatedAt: value.recordedAt,
+    ...(value.publishedAt === undefined
+      ? {}
+      : { publishedAt: value.publishedAt }),
+    ...(value.publishedBySubjectId === undefined
+      ? {}
+      : { publishedBySubjectId: value.publishedBySubjectId })
+  };
+}
+
+function actor(
+  value: BusinessDefinitionAttributionV010
+): BusinessDefinitionAttributionV010 {
+  return {
+    actorType: value.actorType,
+    subjectId: required(
+      value.subjectId,
+      "EOG_EXPECTED_SOP_ACTOR_REQUIRED"
+    )
+  };
+}
+
 export interface EogExpectedSopServiceV010 {
   create(input: {
     enterpriseId: string;
@@ -27,6 +99,7 @@ export interface EogExpectedSopServiceV010 {
     title: string;
     applicationNodeIds: string[];
     transitions?: EogExpectedSopTransitionInputV010[];
+    actor: BusinessDefinitionAttributionV010;
   }): EogExpectedSopV010;
   revise(input: {
     enterpriseId: string;
@@ -36,6 +109,7 @@ export interface EogExpectedSopServiceV010 {
     title?: string;
     applicationNodeIds?: string[];
     transitions?: EogExpectedSopTransitionInputV010[];
+    actor: BusinessDefinitionAttributionV010;
   }): EogExpectedSopV010;
   publish(input: {
     enterpriseId: string;
@@ -52,10 +126,15 @@ export interface EogExpectedSopServiceV010 {
     enterpriseId: string;
     graphId: string;
   }): EogExpectedSopV010[];
+  history(input: {
+    enterpriseId: string;
+    graphId: string;
+    sopId: string;
+  }): EogExpectedSopV010[];
 }
 
 export function createEogExpectedSopServiceV010(input: {
-  store: EogExpectedSopStoreV010;
+  repository: BusinessDefinitionRepositoryV010;
   graphService: EnterpriseOperatingGraphHostServiceV010;
   now?: () => Date;
 }): EogExpectedSopServiceV010 {
@@ -121,51 +200,70 @@ export function createEogExpectedSopServiceV010(input: {
     }));
   };
 
+  const current = (
+    enterpriseId: string,
+    graphId: string,
+    sopId: string
+  ): EogExpectedSopV010 => {
+    const found = input.repository.getLatest({
+      enterpriseId,
+      definitionId: sopId
+    });
+    if (!found) throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
+    const sop = toSop(found);
+    if (sop.graphId !== graphId) {
+      throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
+    }
+    return sop;
+  };
+
   return {
     create(request) {
-      const timestamp = now().toISOString();
-      const ids = applications(
+      const enterpriseId = required(
         request.enterpriseId,
-        request.graphId,
+        "EOG_ENTERPRISE_ID_REQUIRED"
+      );
+      const graphId = required(request.graphId, "EOG_GRAPH_ID_REQUIRED");
+      const ids = applications(
+        enterpriseId,
+        graphId,
         request.applicationNodeIds
       );
-      return input.store.create({
-        contractVersion: "0.1.0",
-        sopId: required(request.sopId, "EOG_EXPECTED_SOP_ID_REQUIRED"),
-        enterpriseId: required(
-          request.enterpriseId,
-          "EOG_ENTERPRISE_ID_REQUIRED"
+      const recordedAt = now().toISOString();
+      return toSop(input.repository.createDraft({
+        enterpriseId,
+        definitionId: required(
+          request.sopId,
+          "EOG_EXPECTED_SOP_ID_REQUIRED"
         ),
-        graphId: required(request.graphId, "EOG_GRAPH_ID_REQUIRED"),
+        kind: BUSINESS_DEFINITION_KIND_SOP_V010,
         title: required(
           request.title,
           "EOG_EXPECTED_SOP_TITLE_REQUIRED"
         ),
-        state: "DRAFT",
-        revision: 0,
-        steps: ids.map((applicationNodeId, index) => ({
-          stepId: "step:" + (index + 1),
-          applicationNodeId
-        })),
-        transitions: transitions(ids, request.transitions),
-        createdAt: timestamp,
-        updatedAt: timestamp
-      });
+        payload: {
+          graphId,
+          steps: ids.map((applicationNodeId, index) => ({
+            stepId: "step:" + (index + 1),
+            applicationNodeId
+          })),
+          transitions: transitions(ids, request.transitions)
+        },
+        actor: actor(request.actor),
+        recordedAt
+      }));
     },
 
     revise(request) {
-      const current = input.store.get(request.sopId);
-      if (
-        !current
-        || current.enterpriseId !== request.enterpriseId
-        || current.graphId !== request.graphId
-      ) {
-        throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
-      }
-      if (current.state !== "DRAFT") {
+      const existing = current(
+        request.enterpriseId,
+        request.graphId,
+        request.sopId
+      );
+      if (existing.state !== "DRAFT") {
         throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");
       }
-      if (current.revision !== request.expectedRevision) {
+      if (existing.revision !== request.expectedRevision) {
         throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");
       }
 
@@ -175,79 +273,101 @@ export function createEogExpectedSopServiceV010(input: {
             request.graphId,
             request.applicationNodeIds
           )
-        : current.steps.map(step => step.applicationNodeId);
+        : existing.steps.map(step => step.applicationNodeId);
 
       const nextTransitions = request.transitions !== undefined
         ? transitions(ids, request.transitions)
         : request.applicationNodeIds !== undefined
           ? transitions(ids)
-          : current.transitions;
+          : existing.transitions ?? transitions(ids);
 
-      return input.store.replace({
-        ...current,
-        revision: current.revision + 1,
+      return toSop(input.repository.reviseDraft({
+        enterpriseId: request.enterpriseId,
+        definitionId: request.sopId,
+        expectedRevision: request.expectedRevision,
         title: request.title === undefined
-          ? current.title
+          ? existing.title
           : required(
               request.title,
               "EOG_EXPECTED_SOP_TITLE_REQUIRED"
             ),
-        steps: ids.map((applicationNodeId, index) => ({
-          stepId: "step:" + (index + 1),
-          applicationNodeId
-        })),
-        ...(nextTransitions === undefined
-          ? {}
-          : { transitions: nextTransitions }),
-        updatedAt: now().toISOString()
-      });
+        payload: {
+          graphId: existing.graphId,
+          steps: ids.map((applicationNodeId, index) => ({
+            stepId: "step:" + (index + 1),
+            applicationNodeId
+          })),
+          transitions: nextTransitions
+        },
+        actor: actor(request.actor),
+        recordedAt: now().toISOString()
+      }));
     },
 
     publish(request) {
-      const current = input.store.get(request.sopId);
-      if (
-        !current
-        || current.enterpriseId !== request.enterpriseId
-        || current.graphId !== request.graphId
-      ) {
-        throw new Error("EOG_EXPECTED_SOP_NOT_FOUND");
-      }
-      if (current.state !== "DRAFT") {
+      const existing = current(
+        request.enterpriseId,
+        request.graphId,
+        request.sopId
+      );
+      if (existing.state !== "DRAFT") {
         throw new Error("EOG_EXPECTED_SOP_PUBLISHED_IMMUTABLE");
       }
-      if (current.revision !== request.expectedRevision) {
+      if (existing.revision !== request.expectedRevision) {
         throw new Error("EOG_EXPECTED_SOP_REVISION_CONFLICT");
       }
       if (
-        current.steps.length < 2
-        || !current.transitions
-        || current.transitions.length < 1
+        existing.steps.length < 2
+        || !existing.transitions
+        || existing.transitions.length < 1
       ) {
         throw new Error("EOG_EXPECTED_SOP_MINIMUM_PATH_REQUIRED");
       }
 
-      const timestamp = now().toISOString();
-      return input.store.replace({
-        ...current,
-        state: "PUBLISHED",
-        revision: current.revision + 1,
-        publishedAt: timestamp,
-        publishedBySubjectId: required(
-          request.subjectId,
-          "EOG_EXPECTED_SOP_PUBLISHER_REQUIRED"
-        ),
-        updatedAt: timestamp
-      });
+      return toSop(input.repository.publish({
+        enterpriseId: request.enterpriseId,
+        definitionId: request.sopId,
+        expectedRevision: request.expectedRevision,
+        actor: {
+          actorType: "HUMAN",
+          subjectId: required(
+            request.subjectId,
+            "EOG_EXPECTED_SOP_PUBLISHER_REQUIRED"
+          )
+        },
+        recordedAt: now().toISOString()
+      }));
     },
 
     list(request) {
-      return input.store.listByGraph(request);
+      return input.repository
+        .listLatest({
+          enterpriseId: request.enterpriseId,
+          kind: BUSINESS_DEFINITION_KIND_SOP_V010
+        })
+        .map(toSop)
+        .filter(sop => sop.graphId === request.graphId);
     },
 
     listPublished(request) {
-      return input.store
-        .listByGraph(request)
-        .filter(sop => sop.state === "PUBLISHED");
+      return input.repository
+        .listLatest({
+          enterpriseId: request.enterpriseId,
+          kind: BUSINESS_DEFINITION_KIND_SOP_V010
+        })
+        .filter(item => item.state === "PUBLISHED")
+        .map(toSop)
+        .filter(sop => sop.graphId === request.graphId);
+    },
+
+    history(request) {
+      return input.repository
+        .listHistory({
+          enterpriseId: request.enterpriseId,
+          definitionId: request.sopId
+        })
+        .map(toSop)
+        .filter(sop => sop.graphId === request.graphId);
     }
   };
 }
