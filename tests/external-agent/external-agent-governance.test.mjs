@@ -437,3 +437,63 @@ test("governance listing includes registrations created by the current Human bef
   );
   assert.deepEqual(listing.grants, []);
 });
+
+
+test("OAuth client identity binding is unique, HTTPS and immutable", async () => {
+  const store = createMemoryExternalAgentGovernanceStoreV010();
+  const manager = createManager([operation()]);
+  const auth = authorizationProvider();
+  const service = createExternalAgentGovernanceServiceV010({
+    store,
+    manager,
+    resolveAuthorizationProvider: () => auth.provider,
+    now: () => new Date("2026-09-30T10:00:00.000Z"),
+    id: sequentialIds()
+  });
+  const context = humanContext();
+  const agent = await service.registerAgent(context, {
+    displayName: "OAuth Agent"
+  });
+
+  const first = await service.registerClient(context, {
+    agentId: agent.agentId,
+    displayName: "OAuth MCP Client",
+    kind: "PUBLIC",
+    protocols: ["MCP"],
+    oauthClientId: "https://client.example/mcp-client.json"
+  });
+  assert.equal(
+    first.oauthClientId,
+    "https://client.example/mcp-client.json"
+  );
+
+  await assert.rejects(
+    () => service.registerClient(context, {
+      agentId: agent.agentId,
+      displayName: "Duplicate OAuth Client",
+      kind: "PUBLIC",
+      protocols: ["MCP"],
+      oauthClientId: "https://client.example/mcp-client.json"
+    }),
+    /EXTERNAL_AGENT_OAUTH_CLIENT_ID_DUPLICATE/
+  );
+
+  await assert.rejects(
+    () => service.registerClient(context, {
+      agentId: agent.agentId,
+      displayName: "Invalid OAuth Client",
+      kind: "PUBLIC",
+      protocols: ["MCP"],
+      oauthClientId: "http://client.example/mcp-client.json"
+    }),
+    /EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID/
+  );
+
+  const snapshot = store.snapshot();
+  const tampered = structuredClone(snapshot);
+  tampered.clients[0].oauthClientId = "https://other.example/client.json";
+  assert.throws(
+    () => store.save(tampered),
+    /EXTERNAL_AGENT_CLIENT_CREATION_FACT_IMMUTABLE/
+  );
+});
