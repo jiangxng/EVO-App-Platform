@@ -226,6 +226,70 @@ export function externalAgentGrantTimeActiveV010(
     && epoch < Date.parse(grant.validUntil);
 }
 
+export type ExternalAgentGrantEffectiveReasonV010 =
+  | "ACTIVE"
+  | "GRANT_NOT_FOUND"
+  | "GRANT_AGENT_MISMATCH"
+  | "GRANT_CLIENT_MISMATCH"
+  | "AGENT_NOT_ACTIVE"
+  | "CLIENT_NOT_ACTIVE"
+  | "CLIENT_AGENT_MISMATCH"
+  | "GRANT_REVOKED"
+  | "GRANT_NOT_YET_VALID"
+  | "GRANT_EXPIRED";
+
+export interface ExternalAgentGrantEffectiveStatusV010 {
+  active: boolean;
+  reason: ExternalAgentGrantEffectiveReasonV010;
+  grant?: ExternalAgentAuthorityGrantV010;
+}
+
+export function resolveExternalAgentGrantEffectiveStatusV010(input: {
+  store: ExternalAgentGovernanceStoreV010;
+  grantId: string;
+  agentId: string;
+  clientId: string;
+  at: Date;
+}): ExternalAgentGrantEffectiveStatusV010 {
+  const snapshot = input.store.snapshot();
+  const grant = snapshot.grants.find(item => item.grantId === input.grantId);
+  if (!grant) return { active: false, reason: "GRANT_NOT_FOUND" };
+  if (grant.agentId !== input.agentId) {
+    return { active: false, reason: "GRANT_AGENT_MISMATCH" };
+  }
+  if (grant.clientId !== input.clientId) {
+    return { active: false, reason: "GRANT_CLIENT_MISMATCH" };
+  }
+
+  const agent = snapshot.agents.find(item => item.agentId === input.agentId);
+  if (!agent || agent.state !== "ACTIVE") {
+    return { active: false, reason: "AGENT_NOT_ACTIVE" };
+  }
+  const client = snapshot.clients.find(item => item.clientId === input.clientId);
+  if (!client || client.state !== "ACTIVE") {
+    return { active: false, reason: "CLIENT_NOT_ACTIVE" };
+  }
+  if (client.agentId !== input.agentId) {
+    return { active: false, reason: "CLIENT_AGENT_MISMATCH" };
+  }
+  if (grant.state !== "ACTIVE") {
+    return { active: false, reason: "GRANT_REVOKED" };
+  }
+
+  const epoch = input.at.getTime();
+  if (epoch < Date.parse(grant.validFrom)) {
+    return { active: false, reason: "GRANT_NOT_YET_VALID" };
+  }
+  if (epoch >= Date.parse(grant.validUntil)) {
+    return { active: false, reason: "GRANT_EXPIRED" };
+  }
+  return {
+    active: true,
+    reason: "ACTIVE",
+    grant: structuredClone(grant)
+  };
+}
+
 export function createExternalAgentGovernanceServiceV010(
   dependencies: ExternalAgentGovernanceDependenciesV010
 ): ExternalAgentGovernanceServiceV010 {
@@ -655,10 +719,16 @@ export function createExternalAgentGovernanceServiceV010(
       const clientIds = new Set(grants.map(item => item.clientId));
       return {
         agents: snapshot.agents
-          .filter(item => agentIds.has(item.agentId))
+          .filter(item =>
+            item.createdBySubjectId === context.principal.subjectId
+            || agentIds.has(item.agentId)
+          )
           .map(item => structuredClone(item)),
         clients: snapshot.clients
-          .filter(item => clientIds.has(item.clientId))
+          .filter(item =>
+            item.createdBySubjectId === context.principal.subjectId
+            || clientIds.has(item.clientId)
+          )
           .map(item => structuredClone(item)),
         grants: grants.map(item => structuredClone(item))
       };
