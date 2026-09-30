@@ -2,6 +2,10 @@ export const MCP_PROTOCOL_VERSION_2026_07_28 = "2026-07-28" as const;
 
 export type McpJsonRpcIdV010 = string | number;
 
+export type McpModernToolSecuritySchemeV010 =
+  | { type: "noauth" }
+  | { type: "oauth2"; scopes: string[] };
+
 export interface McpModernToolV010 {
   name: string;
   title?: string;
@@ -9,6 +13,8 @@ export interface McpModernToolV010 {
   inputSchema: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
   annotations?: Record<string, unknown>;
+  securitySchemes?: McpModernToolSecuritySchemeV010[];
+  _meta?: Record<string, unknown>;
 }
 
 export interface McpModernCallToolResultV010 {

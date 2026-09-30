@@ -117,6 +117,7 @@ export interface ExternalAgentAuthorizationServerMetadataV010 {
   code_challenge_methods_supported: ["S256"];
   scopes_supported: string[];
   client_id_metadata_document_supported: true;
+  authorization_response_iss_parameter_supported: true;
   protected_resources: string[];
 }
 

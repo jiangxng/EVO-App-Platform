@@ -102,6 +102,7 @@ Current baseline:
 | OAuth security posture | OAuth 2.0 family + RFC 9700 Security BCP |
 | Human federated identity | OpenID Connect |
 | Authorization Server metadata | RFC 8414 |
+| Authorization response issuer identification | RFC 9207 |
 | Protected Resource discovery | RFC 9728 |
 | Resource/audience binding | RFC 8707 |
 | Fine-grained authorization requests | RFC 9396 Rich Authorization Requests |
@@ -115,6 +116,7 @@ References:
 - MCP specification: https://modelcontextprotocol.io/specification/
 - A2A specification: https://a2a-protocol.org/latest/specification/
 - RFC 9700: https://www.rfc-editor.org/rfc/rfc9700.html
+- RFC 9207: https://www.rfc-editor.org/rfc/rfc9207.html
 - RFC 9728: https://www.rfc-editor.org/rfc/rfc9728.html
 - RFC 8707: https://www.rfc-editor.org/rfc/rfc8707.html
 - RFC 9396: https://www.rfc-editor.org/rfc/rfc9396.html
@@ -1545,6 +1547,10 @@ Run EA-001 against production-like EVO without GitHub/source knowledge.
 
 ### Phase EA-6 — ChatGPT Product Adapter
 
+Implementation authority:
+
+`docs/architecture/CHATGPT-MCP-PRODUCT-ADAPTER-EA6A-v0.1.md`
+
 Build only the product-specific convenience needed to make ChatGPT connection simple.
 
 It reuses:
@@ -1554,6 +1560,10 @@ It reuses:
 - same Capability Registry;
 - same Grant;
 - same invocation path.
+
+The first adapter may add ChatGPT-required OAuth Tool metadata and accurate read-only annotations only when validated OAuth CIMD client identity identifies ChatGPT. It MUST NOT alter plugin business operation ids, schemas or authority.
+
+Shared OAuth also supports RFC 9207 `iss` authorization responses so stable ChatGPT CIMD/callback mode can be used where supported.
 
 Run EA-001 through ChatGPT.
 

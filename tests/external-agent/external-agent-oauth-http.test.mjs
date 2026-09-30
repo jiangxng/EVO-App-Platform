@@ -11,6 +11,7 @@ import {
 const oauthClientId = "https://client.example/mcp-client.json";
 const redirectUri = "https://client.example/callback";
 const resource = "https://evo.example/mcp";
+const issuer = "https://evo.example";
 
 function operation() {
   return {
@@ -252,7 +253,7 @@ function fixture({ grantCount = 1, policyAllowed = true } = {}) {
       return {};
     },
     authorizationServerMetadata() {
-      return {};
+      return { issuer };
     },
     async resolveClientMetadata(clientId) {
       assert.equal(clientId, oauthClientId);
@@ -328,6 +329,7 @@ test("authorize binds the unique current Human Grant and preserves OAuth state",
   assert.equal(target.origin + target.pathname, redirectUri);
   assert.equal(target.searchParams.get("code"), "evo_code_fixture");
   assert.equal(target.searchParams.get("state"), "state-1");
+  assert.equal(target.searchParams.get("iss"), issuer);
   assert.equal(f.calls.issue.length, 1);
   assert.equal(f.calls.issue[0].grantId, "grant-1");
   assert.equal(
@@ -347,6 +349,7 @@ test("authorize never guesses when multiple effective Grants exist", async () =>
   const target = new URL(result.location);
   assert.equal(target.searchParams.get("error"), "interaction_required");
   assert.equal(target.searchParams.get("state"), "state-1");
+  assert.equal(target.searchParams.get("iss"), issuer);
   assert.equal(f.calls.issue.length, 0);
 });
 
@@ -360,6 +363,7 @@ test("authorize denies when current policy removes delegated authority", async (
 
   const target = new URL(result.location);
   assert.equal(target.searchParams.get("error"), "access_denied");
+  assert.equal(target.searchParams.get("iss"), issuer);
   assert.equal(f.calls.issue.length, 0);
 });
 

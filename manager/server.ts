@@ -506,6 +506,10 @@ import { createMcpModernHttpAdapterV010 } from "./mcp-modern-http.js";
 import { createMcpProtectedResourceV010 } from "./mcp-protected-resource.js";
 import { createMcpCapabilityProjectionV010 } from "./mcp-capability-projection.js";
 import {
+  createChatGptMcpProductAdapterV010,
+  createCompositeMcpProductAdapterV010
+} from "./mcp-product-adapter.js";
+import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
@@ -1991,7 +1995,10 @@ function externalAgentMcpHttpAdapterFor(
 ) {
   const projection = createMcpCapabilityProjectionV010({
     delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
-    actionRouter
+    actionRouter,
+    productAdapter: createCompositeMcpProductAdapterV010([
+      createChatGptMcpProductAdapterV010()
+    ])
   });
   const core = createMcpModernCoreV010({
     serverInfo: {
