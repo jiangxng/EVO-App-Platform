@@ -11,7 +11,7 @@
     "test": "npm run test:all",
     "start": "node dist/manager/server.js",
     "start:agent": "node dist/agents/enterprise-agent/server.js",
-    "test:platform": "npm run build && npm run continuity:validate && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node tools/eidos-experience-architecture-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs tests/integration/provider-manager-page.test.mjs tests/integration/experience-architecture-gates.test.mjs tests/app-host/journey-continuation.test.mjs tests/app-host/runtime-localization.test.mjs tests/app-host/chat-markdown.test.mjs tests/integration/personal-agent-experience-journey.test.mjs",
+    "test:platform": "npm run build && npm run continuity:validate && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node tools/eidos-experience-architecture-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs tests/integration/provider-manager-page.test.mjs tests/integration/experience-architecture-gates.test.mjs tests/app-host/journey-continuation.test.mjs tests/app-host/runtime-localization.test.mjs tests/app-host/chat-markdown.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
     "test:all": "npm run build && node --test tests/**/*.test.mjs",
     "test:plugin:enterprise-agent": "npm run build && node --test tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs",
     "test:plugin:openai-provider": "npm run build && node --test tests/llm/provider.test.mjs tests/agent/openai-responses-model.test.mjs",
@@ -55,7 +55,8 @@
     "test:conversation-thread:p1-8a": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs tests/app-host/durable-thread-chat.test.mjs",
     "test:conversation-retention:p1-8b": "npm run build && node --test tests/protocol/conversation-thread-p1-7a.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/protocol/conversation-retention-p1-8b.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs",
     "test:experience:p1-8c": "npm run build && node --test tests/app-host/conversation-thread-management.test.mjs tests/app-host/durable-thread-chat.test.mjs tests/protocol/conversation-thread-p1-8a.test.mjs tests/integration/p1-7b-thread-backed-turn.test.mjs",
-    "experience:validate": "npm run build --silent && node tools/eidos-experience-architecture-validate.mjs"
+    "experience:validate": "npm run build --silent && node tools/eidos-experience-architecture-validate.mjs",
+    "test:preserved:eog-assets": "npm run build && node --test tests/preserved/*.preserved.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
