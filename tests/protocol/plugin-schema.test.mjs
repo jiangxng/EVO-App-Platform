@@ -46,4 +46,18 @@ test("portable schema includes current runtime, integrity and Eidos contribution
     featureSchema.$defs.providerContribution.properties.kind.const,
     "platform.service-provider"
   );
+  assert.equal(
+    featureSchema.$defs.capabilityOperationContribution.properties.kind.const,
+    "platform.capability-operation"
+  );
+  assert.deepEqual(
+    featureSchema.$defs.capabilityOperationContribution
+      .properties.operation.properties.effect.enum,
+    ["READ", "PLAN", "WRITE"]
+  );
+  assert.equal(
+    featureSchema.$defs.capabilityOperationContribution
+      .properties.operation.properties.binding.properties.type.const,
+    "ACTION_HOST"
+  );
 });
