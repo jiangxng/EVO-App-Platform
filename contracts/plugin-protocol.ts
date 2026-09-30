@@ -606,6 +606,53 @@ export function validatePluginManifestV010(
             "operationVersion, title and description are required."
           );
         }
+        if (!idPattern.test(operation.authorization.action)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_AUTH_ACTION_INVALID",
+            `${contributionPath}.operation.authorization.action`,
+            "Capability Operation authorization action must be a stable lowercase identifier."
+          );
+        }
+        if (!idPattern.test(operation.authorization.resource.type)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_AUTH_RESOURCE_INVALID",
+            `${contributionPath}.operation.authorization.resource.type`,
+            "Capability Operation authorization resource type must be a stable lowercase identifier."
+          );
+        }
+        if (
+          operation.authorization.resource.idSource === "INPUT"
+          && !operation.authorization.resource.inputKey?.trim()
+        ) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_AUTH_INPUT_KEY_REQUIRED",
+            `${contributionPath}.operation.authorization.resource.inputKey`,
+            "INPUT resource idSource requires inputKey."
+          );
+        }
+        if (
+          operation.authorization.resource.idSource !== "INPUT"
+          && operation.authorization.resource.inputKey !== undefined
+        ) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_AUTH_INPUT_KEY_FORBIDDEN",
+            `${contributionPath}.operation.authorization.resource.inputKey`,
+            "inputKey is valid only when resource idSource is INPUT."
+          );
+        }
+        if (
+          operation.authorization.resource.idSource === "DATA_SCOPE"
+          && (
+            operation.dataScope === "SYSTEM"
+            || operation.dataScope === "INSTALLATION"
+          )
+        ) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_AUTH_DATA_SCOPE_ID_UNAVAILABLE",
+            `${contributionPath}.operation.authorization.resource.idSource`,
+            "SYSTEM/INSTALLATION operations do not have a request-scoped data id; use NONE or INPUT."
+          );
+        }
         if (!operation.binding.commandCode.trim() || !operation.binding.inputVersion.trim()) {
           add(
             "PLUGIN_CAPABILITY_OPERATION_BINDING_REQUIRED",
