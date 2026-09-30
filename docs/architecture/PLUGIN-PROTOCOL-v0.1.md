@@ -228,3 +228,45 @@ A Package declaring one or more Secrets MUST explicitly require the `secrets.res
 The Host owns collection, authorization, storage, audit and resolution. Packages consume the public Secret reference/resolver contracts and must not depend on Railway variables, filesystem paths or a specific Vault/KMS implementation.
 
 See `PLATFORM-SECRETS-v0.1.md`.
+
+
+## Callable Capability Operations
+
+Plugin Protocol v0.1 includes the declarative Contribution:
+
+```text
+kind: platform.capability-operation
+```
+
+Authority:
+
+`docs/architecture/PLATFORM-CAPABILITY-OPERATION-EA2A-v0.1.md`
+
+This Contribution is distinct from `providesCapabilities`:
+
+```text
+providesCapabilities
+= dependency / availability declaration
+
+platform.capability-operation
+= stable callable semantic operation
+```
+
+The operation declares:
+
+- stable operation id + version;
+- owning Capability;
+- title/description;
+- READ / PLAN / WRITE effect;
+- JSON Schema input/output;
+- ACTION_HOST execution binding;
+- explicit eligible consumer classes;
+- mandatory Host idempotency + receipt requirement for WRITE.
+
+The owning Feature MUST provide the declared Capability.
+
+Operation ids are capability-namespaced and globally unique among effective active Features. Active collisions fail closed.
+
+App Manager exposes only operations contributed by currently active Features. Disable/uninstall therefore removes the operation from the effective registry automatically.
+
+This Contribution does not itself grant authorization and does not create an external endpoint. Principal/Context/delegated authority and protocol projection remain later governed layers.

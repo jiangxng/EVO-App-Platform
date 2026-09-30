@@ -214,6 +214,39 @@ export interface EidosSettingsContributionV010 {
   };
 }
 
+export type CapabilityOperationEffectV010 = "READ" | "PLAN" | "WRITE";
+
+export type CapabilityOperationExposureV010 =
+  | "HUMAN"
+  | "PERSONAL_AGENT"
+  | "EXTERNAL_AGENT"
+  | "AUTOMATION";
+
+export interface PlatformCapabilityOperationContributionV010 {
+  kind: "platform.capability-operation";
+  operation: {
+    contractVersion: "0.1.0";
+    operationId: string;
+    capability: string;
+    operationVersion: string;
+    title: string;
+    description: string;
+    effect: CapabilityOperationEffectV010;
+    inputSchema: Record<string, unknown>;
+    outputSchema: Record<string, unknown>;
+    binding: {
+      type: "ACTION_HOST";
+      commandCode: string;
+      inputVersion: string;
+    };
+    exposure: CapabilityOperationExposureV010[];
+    writeSafety?: {
+      idempotency: "HOST_REQUIRED";
+      receipt: "HOST_REQUIRED";
+    };
+  };
+}
+
 export interface PlatformServiceProviderContributionV010 {
   kind: "platform.service-provider";
   provider: {
@@ -239,7 +272,8 @@ export type FeatureContributionV010 =
   | EidosLocalizationBundleContributionV010
   | EidosWorkbenchActivityContributionV010
   | EidosSettingsContributionV010
-  | PlatformServiceProviderContributionV010;
+  | PlatformServiceProviderContributionV010
+  | PlatformCapabilityOperationContributionV010;
 
 export interface FeatureManifestV010 {
   contractVersion: "0.1.0";

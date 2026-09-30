@@ -4,6 +4,7 @@ import type {
   EidosWorkbenchActivityContributionV010,
   ExperienceContributionV010,
   PackageManifestV010,
+  PlatformCapabilityOperationContributionV010,
   PlatformServiceProviderContributionV010
 } from "./package.js";
 
@@ -40,6 +41,7 @@ function contributionContractVersion(
     | EidosWorkbenchActivityContributionV010
     | EidosSettingsContributionV010
     | PlatformServiceProviderContributionV010
+    | PlatformCapabilityOperationContributionV010
 ): string {
   switch (contribution.kind) {
     case "eidos.experience":
@@ -52,6 +54,8 @@ function contributionContractVersion(
       return contribution.settings.contractVersion;
     case "platform.service-provider":
       return contribution.provider.contractVersion;
+    case "platform.capability-operation":
+      return contribution.operation.contractVersion;
   }
 }
 
@@ -360,6 +364,21 @@ export function validatePluginManifestV010(
     );
   }
 
+  const packageOperationIds = pkg.features.flatMap(feature =>
+    (feature.contributions ?? [])
+      .filter((item): item is PlatformCapabilityOperationContributionV010 =>
+        item.kind === "platform.capability-operation"
+      )
+      .map(item => item.operation.operationId)
+  );
+  for (const duplicate of duplicateValues(packageOperationIds)) {
+    add(
+      "PLUGIN_CAPABILITY_OPERATION_ID_DUPLICATE",
+      "features[].contributions",
+      `Duplicate Capability Operation id '${duplicate}' within Package.`
+    );
+  }
+
   for (const [featureIndex, feature] of pkg.features.entries()) {
     const featurePath = `features[${featureIndex}]`;
 
@@ -539,6 +558,87 @@ export function validatePluginManifestV010(
             "PLUGIN_PROVIDER_CONTRACT_REQUIRED",
             `${contributionPath}.provider`,
             "Provider contract id and version are required."
+          );
+        }
+      }
+
+      if (contribution.kind === "platform.capability-operation") {
+        const operation = contribution.operation;
+        if (!idPattern.test(operation.operationId)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_ID_INVALID",
+            `${contributionPath}.operation.operationId`,
+            "operationId must be a stable lowercase identifier using letters, digits, '.', '_' or '-'."
+          );
+        }
+        if (!idPattern.test(operation.capability)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_CAPABILITY_INVALID",
+            `${contributionPath}.operation.capability`,
+            "Capability Operation capability must be a stable lowercase capability identifier."
+          );
+        }
+        if (!(feature.providesCapabilities ?? []).includes(operation.capability)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_CAPABILITY_NOT_PROVIDED",
+            `${contributionPath}.operation.capability`,
+            `Feature must provide Capability '${operation.capability}' before contributing operations for it.`
+          );
+        }
+        if (
+          operation.operationId !== operation.capability
+          && !operation.operationId.startsWith(operation.capability + ".")
+        ) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH",
+            `${contributionPath}.operation.operationId`,
+            "operationId must equal the Capability id or begin with '<capability>.' so public operation identity remains semantically owned."
+          );
+        }
+        if (
+          !operation.operationVersion.trim()
+          || !operation.title.trim()
+          || !operation.description.trim()
+        ) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_METADATA_REQUIRED",
+            `${contributionPath}.operation`,
+            "operationVersion, title and description are required."
+          );
+        }
+        if (!operation.binding.commandCode.trim() || !operation.binding.inputVersion.trim()) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_BINDING_REQUIRED",
+            `${contributionPath}.operation.binding`,
+            "ACTION_HOST binding requires commandCode and inputVersion."
+          );
+        }
+        if (operation.exposure.length === 0) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_EXPOSURE_REQUIRED",
+            `${contributionPath}.operation.exposure`,
+            "At least one explicit exposure audience is required."
+          );
+        }
+        for (const duplicate of duplicateValues(operation.exposure)) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_EXPOSURE_DUPLICATE",
+            `${contributionPath}.operation.exposure`,
+            `Duplicate exposure audience '${duplicate}'.`
+          );
+        }
+        if (operation.effect === "WRITE" && !operation.writeSafety) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_WRITE_SAFETY_REQUIRED",
+            `${contributionPath}.operation.writeSafety`,
+            "WRITE operations require Host-owned idempotency and durable receipt semantics."
+          );
+        }
+        if (operation.effect !== "WRITE" && operation.writeSafety) {
+          add(
+            "PLUGIN_CAPABILITY_OPERATION_WRITE_SAFETY_FORBIDDEN",
+            `${contributionPath}.operation.writeSafety`,
+            "READ/PLAN operations must not declare WRITE safety metadata."
           );
         }
       }

@@ -432,13 +432,13 @@ unless exact feature identity is materially required.
 
 Feature `providesCapabilities` remains the dependency/availability contract. It does not by itself describe a stable callable operation for Humans, Personal Agent, External Agents or automation.
 
-External Agent architecture therefore reserves a future generic Contribution concept:
+External Agent architecture now defines the generic callable Contribution:
 
 ```text
 platform.capability-operation
 ```
 
-or a semantically equivalent final name when the Plugin Protocol schema is frozen.
+The exact v0.1 contract is authoritative in `docs/architecture/PLATFORM-CAPABILITY-OPERATION-EA2A-v0.1.md` and the portable Plugin Protocol schema.
 
 The owning plugin defines the operation once:
 
@@ -467,9 +467,12 @@ Canonical rule:
 
 > **One semantic capability operation, many protocol/product projections.**
 
-Do not add the Contribution to Plugin Protocol merely from this documentation decision. Freeze its exact portable schema and semantic validation immediately before the first implementation slice, together with focused Plugin Protocol compatibility tests.
+The Contribution is now part of Plugin Protocol v0.1. Its semantic validator, portable JSON Schema and lifecycle-effective App Manager aggregation MUST evolve together.
 
-See `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
+See:
+
+- `docs/architecture/PLATFORM-CAPABILITY-OPERATION-EA2A-v0.1.md`
+- `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
 
 ## 14. App Manager responsibilities
 

@@ -612,8 +612,171 @@
         },
         {
           "$ref": "#/$defs/providerContribution"
+        },
+        {
+          "$ref": "#/$defs/capabilityOperationContribution"
         }
       ]
+    },
+    "capabilityOperationContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation"
+      ],
+      "properties": {
+        "kind": {
+          "const": "platform.capability-operation"
+        },
+        "operation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "operationId",
+            "capability",
+            "operationVersion",
+            "title",
+            "description",
+            "effect",
+            "inputSchema",
+            "outputSchema",
+            "binding",
+            "exposure"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "0.1.0"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            "capability": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            "operationVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "effect": {
+              "enum": [
+                "READ",
+                "PLAN",
+                "WRITE"
+              ]
+            },
+            "inputSchema": {
+              "type": "object"
+            },
+            "outputSchema": {
+              "type": "object"
+            },
+            "binding": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "commandCode",
+                "inputVersion"
+              ],
+              "properties": {
+                "type": {
+                  "const": "ACTION_HOST"
+                },
+                "commandCode": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "inputVersion": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "exposure": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "HUMAN",
+                  "PERSONAL_AGENT",
+                  "EXTERNAL_AGENT",
+                  "AUTOMATION"
+                ]
+              }
+            },
+            "writeSafety": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "idempotency",
+                "receipt"
+              ],
+              "properties": {
+                "idempotency": {
+                  "const": "HOST_REQUIRED"
+                },
+                "receipt": {
+                  "const": "HOST_REQUIRED"
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "effect": {
+                    "const": "WRITE"
+                  }
+                },
+                "required": [
+                  "effect"
+                ]
+              },
+              "then": {
+                "required": [
+                  "writeSafety"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "effect": {
+                    "enum": [
+                      "READ",
+                      "PLAN"
+                    ]
+                  }
+                },
+                "required": [
+                  "effect"
+                ]
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "writeSafety"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
     }
   }
 }

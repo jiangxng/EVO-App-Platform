@@ -4,6 +4,7 @@ import type {
   PackageLifecyclePlanV010,
   PackageManifestV010,
   PlatformSnapshotV010,
+  PlatformCapabilityOperationContributionV010,
   PlatformServiceProviderContributionV010,
   EidosLocalizationBundleContributionV010,
   EidosWorkbenchActivityContributionV010,
@@ -48,6 +49,7 @@ export interface AppManagerService {
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
+  listEffectiveCapabilityOperations(capability?: string): Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
   listEffectiveWorkbenchActivities(): Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }>;
   listInstalledSettings(packageId?: string): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }>;
@@ -625,6 +627,47 @@ export function createAppManagerService(
     );
   }
 
+  function listEffectiveCapabilityOperations(
+    capability?: string
+  ): Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const all: Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }> = [];
+    const owners = new Map<string, { packageId: string; featureId: string }>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "platform.capability-operation") continue;
+        const operation = structuredClone(contribution.operation);
+        const previous = owners.get(operation.operationId);
+        if (previous) {
+          throw new Error(
+            `CAPABILITY_OPERATION_ID_CONFLICT: ${operation.operationId} is contributed by `
+            + `${previous.packageId}/${previous.featureId} and ${item.packageId}/${item.featureId}`
+          );
+        }
+        owners.set(operation.operationId, {
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+        all.push({
+          ...operation,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return all
+      .filter(operation => capability === undefined || operation.capability === capability)
+      .sort((a, b) =>
+        a.operationId.localeCompare(b.operationId)
+        || a.packageId.localeCompare(b.packageId)
+        || a.featureId.localeCompare(b.featureId)
+      );
+  }
+
   function listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }> {
     const active = store.snapshot().activeFeatures;
     const result: Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }> = [];
@@ -751,6 +794,7 @@ export function createAppManagerService(
     getSnapshot,
     listEffectiveExperiences,
     listEffectiveServiceProviders,
+    listEffectiveCapabilityOperations,
     listEffectiveLocalizationBundles,
     listEffectiveWorkbenchActivities,
     listInstalledSettings,
