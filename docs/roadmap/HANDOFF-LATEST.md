@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EXT-AGENT-2026-09-30-01`  
-**Snapshot time:** `2026-09-30T16:25:49.696+08:00`  
+**Snapshot:** `EXT-AGENT-2026-09-30-02`  
+**Snapshot time:** `2026-09-30T20:14:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -45,19 +45,20 @@ Evidence:
 
 **production-human-login-request-bound-session-v0-1: ACTIVE**
 
-Build the first production-grade Human authentication/session boundary required before delegated External Agent access. Replace deployment-scoped static identity for production requests with request-bound, revocable Session resolution while preserving the replaceable identity Provider model. The preferred first production provider is generic OIDC; the existing static Session Provider remains development/test evidence only.
+Complete the remaining production-live Human authentication proof and then run the first real External Agent validation. The machine foundation for request-bound Host authentication, generic OIDC, Capability Operations, delegated Agent authority, OAuth and MCP READ/PLAN projection is merged and CI-proven through EA-5C. Production still uses the compatibility static Session path; managed Human login and External Agent OAuth/MCP flags remain disabled until a real OIDC IdP is registered/configured and browser login/logout/revocation is proven.
 
 Acceptance:
 
-- Human can complete a real Eidos-hosted login and logout journey without developer configuration or forged request identity
-- each protected request resolves an authoritative request-bound Session and Principal rather than trusting browser-supplied subject/context values
-- session expiration, logout/revocation and rotation semantics are explicit and fail closed
-- production login uses a replaceable identity Provider contract; the first implementation is generic OIDC unless implementation evidence requires a narrower intermediate adapter
-- authorization.check receives the authoritative Principal and authentication success is never converted directly into authorization
-- Enterprise Context availability remains the intersection of authoritative Principal membership/grants and the Host directory
-- the static Session Provider remains available for development/tests but cannot satisfy the production External Agent login gate
-- login/session secrets, tokens and identity-provider credentials do not enter Package manifests, ordinary Settings, logs or Agent context
-- the resulting Session boundary is reusable by Human UI, Personal Agent and future External Agent delegated authorization
+- Human can complete a real Eidos-hosted OIDC login and logout journey without forged request identity
+- each protected request resolves an authoritative request-bound managed Session and Human Principal
+- session expiration, logout/revocation and rotation fail closed
+- the configured generic OIDC Provider passes issuer/discovery/JWKS/token validation and Host health checks
+- production keeps External Agent OAuth and MCP disabled until the Human login proof passes
+- after login proof, one explicit External Agent + MCP Client + Ledger READ Grant is created through governed platform state
+- the OAuth access token remains bound to <public-base>/mcp and current delegated authority
+- Generic MCP tools/list exposes only the granted Ledger READ tools
+- EA-001 answers the current Ledger Runtime configuration question without GitHub, source code, database access or private endpoint knowledge
+- revoking the Grant or current Human authority removes MCP access immediately
 
 ## Current production preview
 
@@ -91,49 +92,35 @@ Proved:
 
 Not proved:
 
-- production Human login/request-bound Session; this is the new active gate
-- External Agent OAuth/MCP connectivity; it remains blocked on production identity/session and delegated authority
-- Agent-neutral Capability Operation Registry; it is the next platform layer after login
+- production Human OIDC login/request-bound managed Session; the machine implementation exists but real browser evidence is still open
+- production External Agent OAuth/MCP connectivity; EA-4/EA-5 machine code is merged and CI-proven but Railway flags remain intentionally disabled
+- EA-001 blind Ledger Runtime discovery through a real external Agent
+- ChatGPT Product Adapter or second mature Agent portability validation
 - EOG report/analysis/SOP peer-plugin extraction; those assets remain preserved and deferred
 
 
 ## Recent mainline changes
 
-- PR #210 — MERGED_CI_PASS_DEPLOYED: Record the Enterprise–Personal Learning Loop as a long-term architecture target while keeping it outside current MVP/CI.
-- PR #209 — MERGED_CI_PASS_DEPLOYED: Converge Enterprise Context Business Definition authority, migrate legacy EOG SOP persistence and preserve EOG/SOP analysis assets as non-gating.
-- PR #84 — MERGED: Preserve distinct Host tools after repeated READ suppression and add Memory Proposal readback.
-- PR #85 — MERGED: Make supersedesMemoryId effective in ordinary retrieval while preserving exact-ID history.
-- PR #86 — MERGED: Add append-only Human-reviewed existing-Memory canonicalization.
-- PR #88 — MERGED: Converge paraphrased Context Memory READ loops by authoritative evidence.
-- PR #89 — MERGED: Add exact-ID historical Context Memory audit.
-- PR #90 — MERGED: Add one-shot effective-vs-history audit to reduce sequential LLM/tool latency.
-- PR #91 — MERGED: Strengthen deterministic multi-token lexical retrieval.
-- PR #92 — MERGED: Record Memory canonicalization LIVE PASS.
-- PR #93 — MERGED_DEPLOYED: Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses.
-- PR #94 — MERGED_HUMAN_LIVE_PASS: Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS.
-- PR #95 — MERGED: Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery.
-- PR #96 — MERGED_DEPLOYED: Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false.
-- PR #97 — MERGED: Record fresh-session recall functional pass and PR #96 epistemic retest gate.
-- PR #98 — MERGED: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
-- PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
-- PR #100 — MERGED: Record deployed P1.5A inventory Human gate and advance continuity validation beyond closed P1.4X.
-- PR #101 — MERGED_DEPLOYED: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
-- PR #103 — MERGED: Record P1.5B Human WRITE PASS and readback-only gate.
-- PR #104 — MERGED: Close P1.5B LIVE PASS and start P1.5C resumable Agent Runs.
-- PR #105 — MERGED_DEPLOYED: Add append-only durable resumable Personal Agent Runs with bounded slices and Action Receipt replay safety.
-- PR #107 — MERGED_DEPLOYED: Resume a pre-decision crash in the original durable slice instead of inflating slice count.
-- PR #109 — MERGED_DEPLOYED: Persist READ convergence across resumable slices after production smoke exposed repeated complete inventory reads.
-- PR #110 — MERGED_DEPLOYED: Make Personal Agent recommendations governance-state aware and inventory completeness filter-bounded.
-- PR #112 — MERGED_DEPLOYED: Make Eidos Personal Agent chat run-backed by default with automatic resume, reconnect recovery, rich terminal presentation and bounded legacy fallback.
-- PR #114 — MERGED_CI_PASS: Add clean Host+Eidos integration proof for multi-slice READ and post-WRITE reconnect with no duplicate WRITE.
-- PR #116 — MERGED: Add durable Conversation Thread foundation.
-- PR #117 — MERGED: Bind durable Conversation Threads to Agent Runs and Host-built history.
-- PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
-- PR #119 — MERGED_DEPLOYED: Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS.
-- PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
+- PR #228 — MERGED_CI_PASS: Project current delegated Capability Operations into MCP tools/call, preserve Human Principal plus External Agent delegated actor, keep WRITE closed.
+- PR #227 — MERGED_CI_PASS: Bind /mcp to current OAuth Bearer authority with RFC 9728 discovery challenge, exact resource binding and an independent disabled-by-default MCP rollout flag.
+- PR #226 — MERGED_CI_PASS: Add stateless MCP 2026-07-28 server/discover + tools/list + tools/call protocol core with strict modern HTTP header/body agreement.
+- PR #224 — MERGED_CI_PASS: Project delegated External Agent OAuth onto Host metadata/authorize/token/revoke HTTP routes behind a disabled-by-default production flag.
+- PR #223 — MERGED_CI_PASS: Add CIMD-first OAuth Authorization Code + PKCE S256 token core with opaque resource-bound rotating credentials and current-authority recomputation.
+- PR #222 — MERGED_CI_PASS: Recompute External Agent delegated authority at runtime from current Human, membership, plugin lifecycle, policy and Grant constraints.
+- PR #221 — MERGED_CI_PASS: Add current Human identity user directory required for delegated authority.
+- PR #220 — MERGED_CI_PASS: Add durable External Agent, Client and Authority Grant governance.
+- PR #219 — MERGED_CI_PASS: Make Capability Operation discovery/invocation authorization-aware and hide internal bindings from public metadata.
+- PR #218 — MERGED_CI_PASS: Expose Agent-neutral bounded Ledger Runtime configuration describe/section READ operations with digest-bound pagination.
+- PR #217 — MERGED_CI_PASS: Add lifecycle-effective platform.capability-operation to Plugin Protocol with fail-closed ownership/conflict semantics.
+- PR #216 — MERGED_CI_PASS: Wire generic OIDC Provider into Host Settings, Secrets and Provider Runtime Registry while keeping production login disabled.
+- PR #215 — MERGED_CI_PASS: Add generic OIDC Authorization Code + PKCE S256 + discovery/JWKS/RS256 identity Provider core.
+- PR #214 — MERGED_CI_PASS: Add provider-neutral Host authentication orchestration and managed Session issuance/logout boundary.
+- PR #210 — MERGED_CI_PASS_DEPLOYED: Record Enterprise–Personal Learning Loop as long-term architecture target outside current MVP/CI.
+- PR #209 — MERGED_CI_PASS_DEPLOYED: Converge Enterprise Context Business Definition authority and migrate legacy EOG SOP persistence.
 
 ## DO NOT repeat stale actions
 
+- Do not reimplement EA-1B1 through EA-5C: Host authentication, generic OIDC, platform.capability-operation, Ledger READ operations, delegated Agent authority, OAuth and modern MCP projection are already merged and CI-proven; the next gap is live OIDC/EA-001 evidence.
 - Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.
 - Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and currently PENDING.
 - Do not accept the P1.5C smoke-test Proposal memory-proposal:974893e1-6a91-4473-8de8-e3e395342f62 as formal Memory; it is test-only and currently PENDING.
