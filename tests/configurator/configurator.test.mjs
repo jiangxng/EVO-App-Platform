@@ -8,6 +8,8 @@ import {
   bookkeepingDefaultConfiguration,
   bookkeepingReferenceLegacyPostingRules
 } from "../../dist/apps/ledger-runtime-configurator/default-library.js";
+import { ledgerRuntimeConfiguratorPackage } from "../../dist/catalog/seed.js";
+import { validatePluginManifestV010 } from "../../dist/contracts/plugin-protocol.js";
 
 test("bookkeeping default library is complete at the imported baseline", () => {
   assert.equal(bookkeepingDefaultConfiguration.accounts.length, 141);
@@ -229,4 +231,24 @@ test("Ledger Runtime section read validates section, page size and cursor sectio
     mismatch.error.code,
     "LEDGER_CONFIGURATION_CURSOR_SECTION_MISMATCH"
   );
+});
+
+
+test("Ledger Configurator package publishes valid lifecycle-owned Capability Operations", () => {
+  const validation = validatePluginManifestV010(ledgerRuntimeConfiguratorPackage);
+  assert.equal(validation.ok, true, JSON.stringify(validation.issues));
+
+  const operations = ledgerRuntimeConfiguratorPackage.features[0].contributions
+    .filter(item => item.kind === "platform.capability-operation")
+    .map(item => item.operation);
+
+  assert.deepEqual(
+    operations.map(item => item.operationId),
+    [
+      "evo.ledger-runtime.configurator.describe",
+      "evo.ledger-runtime.configurator.section.read"
+    ]
+  );
+  assert.ok(operations.every(item => item.effect === "READ"));
+  assert.ok(operations.every(item => item.exposure.includes("EXTERNAL_AGENT")));
 });
