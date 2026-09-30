@@ -265,3 +265,42 @@ P0.6 does not implement:
 The next slice should replace deployment-scoped Session identity with request-bound identity/session transport and apply Principal + Active Context to authorization of material WRITE actions.
 
 After that boundary is executable and observable, Context Memory Providers and Memory Attribution/Governance can advance without conflating identity, access and learning.
+
+
+## 12. External Agent sequencing consequence
+
+The Principal/Session/Enterprise Context Grant foundation in this document is also a prerequisite for future External Agent access, but it does not by itself authorize an External Agent.
+
+Authority:
+
+`docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`
+
+Required distinction:
+
+```text
+Identity Session
+→ Who is the Human/workload Principal?
+
+Enterprise Context Grant
+→ Which Enterprise Context may that Principal receive?
+
+authorization.check
+→ May the Principal perform an action?
+
+External Agent Authority Grant
+→ What subset of that authority has been delegated to a specific external Agent/client?
+```
+
+The final layer is intentionally separate from P0.6 Enterprise Context membership.
+
+Production ordering is frozen as:
+
+```text
+request-bound Human login/session
+→ External Agent identity/client registration
+→ delegated Authority Grant
+→ OAuth protected-resource authorization
+→ externally discoverable plugin capabilities
+```
+
+The existing `host-static-session-provider` remains useful for development, fixtures and internal contract proofs. It MUST NOT satisfy the production Human-delegated External Agent login gate.

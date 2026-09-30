@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Enterprise Context — Business Definitions & EOG Core Convergence v0.1",
+  "currentMilestone": "External-Agent-First Platform Validation v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -395,7 +395,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Architecture was rebased on 2026-09-30: Enterprise Context is now the headless authority for enterprise Business Definitions; the standalone BDR product/plugin concept is merged into Enterprise Context. Experience Compiler owns enterprise/industry knowledge and learning. EOG Core remains CI-gated as enterprise graph design/navigation/aggregation, while existing SOP definition/edit/publish and EOG/SOP Observatory/analysis capabilities are preserved as NON_GATING assets pending extraction into peer plugins. Project SOP semantics are APQC process structure plus a time dimension, not conventional step-by-step Standard Operating Procedure semantics. Immediate implementation is the generic Enterprise Context definition repository plus migration of existing SOP definition data away from EOG-local authority; Web Runtime work continues independently. The previous SOP real-trace live proof is preserved historical evidence but is no longer the active gate.",
+  "currentStep": "Close-out of the Enterprise Context Business Definition authority migration is production-verified. The next primary foundation is production Human login/request-bound Session, followed by generic plugin Capability Operations, delegated External Agent authority, Generic MCP READ/PLAN, and Ledger Runtime EA-001 blind discovery. EOG upper-layer expansion and major Personal Agent feature expansion are paused; existing assets remain preserved and regression-protected.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1651,8 +1651,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "CTX-EOG-2026-09-30-18",
-    "snapshotAt": "2026-09-30T12:20:00.000+08:00",
+    "snapshotId": "EXT-AGENT-2026-09-30-01",
+    "snapshotAt": "2026-09-30T16:25:49.696+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1672,42 +1672,43 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Enterprise Context — Business Definitions & EOG Core Convergence v0.1",
+      "milestone": "External-Agent-First Platform Validation v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "enterprise-operating-graph-published-sop-no-trace-proof-v0-4",
+        "id": "enterprise-context-business-definitions-sop-authority-migration-v0-1",
         "status": "VERIFIED_PRODUCTION_PASS",
-        "summary": "Human-confirmed Expected SOP publication and the real no-trace fail-closed proof are complete. sop:o2c-evo-configurator-v1 is PUBLISHED revision 2 by preview-user. Both DIAGRAM_2D and SPATIAL_3D project the same Host-derived SOP=INSUFFICIENT_EVIDENCE conclusion for the selected September 2026 Time Lens because production EVO_CONFIG_MVP has no legitimate runtime trace evidence.",
-        "authority": "docs/architecture/EOG-VIEW-STATE-AND-OBSERVATORY-v0.1.md",
+        "summary": "Enterprise Context is now the headless Business Definition authority in production. PR #209 introduced the generic enterprise-scoped immutable Definition Repository and migrated the legacy EOG SOP authority path. The production Ledger Configurator deployment started successfully and reported migration of one legacy EOG SOP definition into Enterprise Context persistent state. Existing EOG/SOP analysis assets remain preserved and non-gating; no EOG upper-layer expansion is required before the External-Agent-first foundation track.",
+        "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
         "evidence": {
-          "humanConfirmedPublish": true,
-          "sopId": "sop:o2c-evo-configurator-v1",
-          "sopRevision": 2,
-          "sopState": "PUBLISHED",
-          "publishedBySubjectId": "preview-user",
-          "publishDeploymentId": "2ecb5ae1-b6fd-41e6-8904-16da89e1fd75",
-          "twoDProofDeploymentId": "b8a8ce09-1441-4b71-a5f9-4d89f940e579",
-          "threeDProofDeploymentId": "6a78f6d4-cc8b-4e59-b807-2ce7aa5eab44",
-          "sopAnalysisValue": "INSUFFICIENT_EVIDENCE",
-          "analyzer": "sop-path-conformance-v0.2",
-          "runtimeFlowDefinitions": 0,
-          "runtimeFlowTraces": 0
+          "architecturePr": 209,
+          "definitionAuthorityCommit": "9102a0c043e84fe423ed27a4335161dbc1d8f212",
+          "productionCommit": "65356abbf93870bd6b048ab415574b16d3582403",
+          "productionDeploymentId": "8f31d73c-d211-48a4-a377-4894c2181dfc",
+          "productionStatus": "SUCCESS",
+          "persistentStateMount": "/data",
+          "migratedLegacySopDefinitions": 1,
+          "observedMigrationLog": "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
+          "businessDefinitionRepositoryOwner": "Enterprise Context plugin",
+          "eogCoreCiGated": true,
+          "preservedSopAnalysisNonGating": true,
+          "experienceCompilerKnowledgeAuthority": true
         }
       },
       "openGate": {
-        "id": "enterprise-context-business-definitions-sop-authority-migration-v0-1",
+        "id": "production-human-login-request-bound-session-v0-1",
         "status": "ACTIVE",
-        "summary": "Establish Enterprise Context as the headless authoritative Business Definition repository and migrate existing SOP definition data away from EOG-owned persistence without deleting the already implemented SOP/EOG analysis assets. EOG Core remains CI-gated; SOP definition/edit/publish and Observatory/analysis assets are explicitly non-gating until extracted into their own peer plugins.",
-        "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
+        "summary": "Build the first production-grade Human authentication/session boundary required before delegated External Agent access. Replace deployment-scoped static identity for production requests with request-bound, revocable Session resolution while preserving the replaceable identity Provider model. The preferred first production provider is generic OIDC; the existing static Session Provider remains development/test evidence only.",
+        "authority": "docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md",
         "acceptance": [
-          "Business Definition repository is owned by the Enterprise Context plugin and no standalone BDR product/plugin remains",
-          "definition storage supports enterprise scope, immutable revision history, Draft, Published and Effective semantics, attribution and governed publication",
-          "an already Published definition can retain its effective revision while a later Draft is being prepared",
-          "existing EOG SOP definition data has an explicit migration path into Enterprise Context definitions without silent loss of legacy state",
-          "EOG Core remains CI-gated as graph semantics, graph designer/navigation, renderer-independent View State, graph actions and aggregation extension points",
-          "existing SOP definition/edit/publish and SOP/EOG Observatory/analysis implementations are preserved but classified NON_GATING_FOR_CURRENT_EOG_CORE_CI pending peer-plugin extraction",
-          "fresh LLM startup documents state that Experience Compiler owns enterprise knowledge and that project SOP means APQC process structure plus time dimension",
-          "the previous EOG SOP real-trace live proof remains historical implementation evidence and is not treated as the current blocking gate"
+          "Human can complete a real Eidos-hosted login and logout journey without developer configuration or forged request identity",
+          "each protected request resolves an authoritative request-bound Session and Principal rather than trusting browser-supplied subject/context values",
+          "session expiration, logout/revocation and rotation semantics are explicit and fail closed",
+          "production login uses a replaceable identity Provider contract; the first implementation is generic OIDC unless implementation evidence requires a narrower intermediate adapter",
+          "authorization.check receives the authoritative Principal and authentication success is never converted directly into authorization",
+          "Enterprise Context availability remains the intersection of authoritative Principal membership/grants and the Host directory",
+          "the static Session Provider remains available for development/tests but cannot satisfy the production External Agent login gate",
+          "login/session secrets, tokens and identity-provider credentials do not enter Package manifests, ordinary Settings, logs or Agent context",
+          "the resulting Session boundary is reusable by Human UI, Personal Agent and future External Agent delegated authorization"
         ]
       },
       "productionPreview": {
@@ -1716,13 +1717,23 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "db61089df709a23eba60daa0e3cc8aa80c2fef03",
-        "deploymentId": "9675e20d-798d-4e55-ad71-1452776d3995",
+        "commit": "65356abbf93870bd6b048ab415574b16d3582403",
+        "deploymentId": "8f31d73c-d211-48a4-a377-4894c2181dfc",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 210,
+        "status": "MERGED_CI_PASS_DEPLOYED",
+        "summary": "Record the Enterprise–Personal Learning Loop as a long-term architecture target while keeping it outside current MVP/CI."
+      },
+      {
+        "pr": 209,
+        "status": "MERGED_CI_PASS_DEPLOYED",
+        "summary": "Converge Enterprise Context Business Definition authority, migrate legacy EOG SOP persistence and preserve EOG/SOP analysis assets as non-gating."
+      },
       {
         "pr": 84,
         "status": "MERGED",
@@ -1872,256 +1883,6 @@
         "pr": 120,
         "status": "MERGED_DEPLOYED",
         "summary": "Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled."
-      },
-      {
-        "pr": 122,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Apply Human-selected 90-day archived Conversation Thread retention policy; 27/27 CI PASS; destructive purge remains disabled."
-      },
-      {
-        "pr": 123,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Add Eidos durable Conversation Thread management (New Chat/history/switch/archive/read-only); 32/32 CI PASS and Railway SUCCESS."
-      },
-      {
-        "pr": 133,
-        "status": "MERGED",
-        "summary": "Record enterprise migration Agent learning as a supporting roadmap and repository-native knowledge asset."
-      },
-      {
-        "pr": 134,
-        "status": "MERGED",
-        "summary": "Prioritize Enterprise Operating Graph: Personal Agent + LLM + Human direct editing converge on one structured target enterprise model; migration/training deferred."
-      },
-      {
-        "pr": 135,
-        "status": "MERGED",
-        "summary": "Converge repository continuity on Enterprise Operating Graph — Contract & Editor v0.1 and defer the Host-owned EVO BusinessData Adapter without cancelling it."
-      },
-      {
-        "pr": 136,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add the first executable EOG Application/Ledger contract foundation, legacy designer archaeology, separate Guidance/Enterprise relations, Position, shared Human/Agent operations, revision protection and publish immutability."
-      },
-      {
-        "pr": 137,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add enterprise-scoped EOG Host persistence, Human AppActions and proposal-only Personal Agent tools over one graph service; keep Enterprise confirmation and publish Human-only."
-      },
-      {
-        "pr": 138,
-        "status": "MERGED_CI_PASS",
-        "summary": "Advance repository continuity from EOG contract design to the first Eidos graph-surface implementation gate."
-      },
-      {
-        "pr": 139,
-        "status": "MERGED_CI_PASS",
-        "summary": "Bind the first Eidos Diagram Editor vertical slice to Host-authoritative EOG state; Human drag/confirm/publish and Agent proposals converge on eog:primary without an Eidos-owned semantic model."
-      },
-      {
-        "pr": 140,
-        "status": "MERGED_CI_PASS",
-        "summary": "Separate EOG semantic truth from durable DIAGRAM_2D/SPATIAL_3D View State, introduce independent revisions and Agent view tools, and record the Enterprise Observatory architecture."
-      },
-      {
-        "pr": 141,
-        "status": "MERGED_CI_PASS",
-        "summary": "Advance EOG continuity from semantic/View-State separation to Runtime & Observatory Foundation v0.2."
-      },
-      {
-        "pr": 142,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add renderer-independent Runtime Fact, Time Lens and evidence-backed Analysis Overlay contracts and Host observatory service."
-      },
-      {
-        "pr": 143,
-        "status": "MERGED_CI_PASS",
-        "summary": "Integrate EOG Runtime Fact and Analysis Provider contracts with the generic Platform Provider system."
-      },
-      {
-        "pr": 144,
-        "status": "MERGED_CI_PASS",
-        "summary": "Resolve EOG node/relation targets to canonical semantic bindings in the Host before Provider queries."
-      },
-      {
-        "pr": 145,
-        "status": "MERGED_CI_PASS",
-        "summary": "Connect the EOG Observatory to a real EVO Runtime Fact Provider over canonical EVO LedgerDefinition targets."
-      },
-      {
-        "pr": 146,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add the first Human operational Observatory surface with Time Lens presets and real Runtime Fact overlays over the same 2D EOG view."
-      },
-      {
-        "pr": 149,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add the first Host-backed SPATIAL_3D Enterprise Observatory and a conservative evidence-backed Bottleneck Analysis Provider; preserve spatial View State and fact-vs-analysis boundaries."
-      },
-      {
-        "pr": 151,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add explicit durable Host Application ↔ EVO applicationId runtime identity mapping and fail-closed Application Runtime Fact resolution."
-      },
-      {
-        "pr": 152,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add Host-owned Expected SOP authority, EVO trace-derived sop.transition.count Runtime Facts, proposal-only Agent SOP tools, Human-confirmed publish, and shared 2D/3D SOP conformance/deviation overlays."
-      },
-      {
-        "pr": 73,
-        "status": "MERGED_CI_PASS",
-        "summary": "EVO repository: add time-scoped runtime execution trace query over flow_trace/flow_instance evidence resolved to stable Application Anchors."
-      },
-      {
-        "pr": 154,
-        "status": "MERGED_CI_PASS",
-        "summary": "Add explicit Expected/Allowed Alternative/Allowed Exception SOP transitions, preserve per-flow Actual Path and coverage facts from EVO traces, emit SOP_EXCEPTION separately from deviations, and fail closed when trace or conditional evidence is insufficient."
-      },
-      {
-        "pr": 157,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Propagate Host-resolved active Enterprise Context through Eidos AppManager actions so EOG reads and writes execute in the selected Enterprise Context."
-      },
-      {
-        "pr": 158,
-        "status": "MERGED",
-        "summary": "Record the Human-owned Enterprise Context, explicit EVO_CONFIG_MVP stable ApplicationAnchor mappings, live 2D/3D Runtime Facts, genuine absence of production traces, and the Expected SOP publish gate."
-      },
-      {
-        "pr": 160,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Eliminate App Host remount loops and high-frequency DOM replacement: preserve self-updating EOG/Chat surfaces, keyed incremental Personal Agent transcript rendering, and retained-DOM rAF-batched SPATIAL_3D rendering."
-      },
-      {
-        "pr": 162,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Stop the remaining Workbench action-success full refresh loop so side-panel/workspace self-updating surfaces remain mounted."
-      },
-      {
-        "pr": 163,
-        "status": "MERGED_CI_PASS",
-        "summary": "Strengthen the thin-breadth/deep-vertical MVP engineering rule; required in-scope foundations are not dismissed as over-design."
-      },
-      {
-        "pr": 164,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Adopt Eidos realtime SSE/event delivery, resource-scoped mounted-page refresh and conditional query foundation."
-      },
-      {
-        "pr": 165,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Honor weak ETag validators for conditional Host queries."
-      },
-      {
-        "pr": 166,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Bridge EVO runtime revision changes into Host resource events with shared conditional reads."
-      },
-      {
-        "pr": 167,
-        "status": "MERGED_DEPLOYED",
-        "summary": "Expose realtime event-bus and EVO revision-bridge diagnostics."
-      },
-      {
-        "pr": 168,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Add Host-side durable Agent drain, transport route/action/JSON/SSE traffic counters, restore durable Agent chat after vendor sync, and production-certify idle action traffic at zero."
-      },
-      {
-        "pr": 170,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Establish browser cache P0: revisioned immutable ESM module graph, App Shell ETag revalidation, legacy asset validators, and App Platform adoption of explicit desktop/mobile Surface architecture."
-      },
-      {
-        "pr": 171,
-        "status": "MERGED_PRODUCTION_PROOF_PASS",
-        "summary": "Add reusable production Web Delivery proof; certify root 304, immutable revisioned asset caching, and legacy ETag revalidation against Railway production."
-      },
-      {
-        "pr": 174,
-        "status": "MERGED_CI_PASS",
-        "summary": "Adopt Eidos Surface resolver and declare Personal Agent DESKTOP_WORKBENCH + MOBILE_TASK as separate routes over one semantic Agent capability."
-      },
-      {
-        "pr": 175,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Activate Browser Surface Gateway before Workbench mount, preserving explicit URL target precedence and rendering network-quiet Surface handoff."
-      },
-      {
-        "pr": 176,
-        "status": "MERGED_PRODUCTION_BROWSER_PROOF_PASS",
-        "summary": "Certify Surface routing in real headless Chrome: automatic mobile task routing, explicit desktop override, desktop-only setup handoff, and no SSE on handoff."
-      },
-      {
-        "pr": 179,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Split browser runtime by Surface: minimal gateway, dedicated MOBILE_TASK Personal Agent runtime and lazy desktop Workbench runtime; preserve semantic Action boundary."
-      },
-      {
-        "pr": 180,
-        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
-        "summary": "Use real Chrome CDP to certify Surface-specific dependency graphs and cold/warm JS transfer budgets in production."
-      },
-      {
-        "pr": 182,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Adopt Eidos P3 lifecycle resilience: bfcache-safe disposal, abortable/superseding route reads, offline freshness notice and SSE lifecycle recovery."
-      },
-      {
-        "pr": 183,
-        "status": "MERGED_PRODUCTION_PROOF_PASS",
-        "summary": "Certify real Chrome bfcache restore, zero action replay, SSE reconnect and offline/online freshness behavior against production."
-      },
-      {
-        "pr": 185,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Add dedicated MOBILE_TASK Memory Review over the same semantic review route and Host Human authority as desktop."
-      },
-      {
-        "pr": 188,
-        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
-        "summary": "Certify mobile Memory Review in real Chrome: dedicated mobile runtime, explicit desktop override, 36,881-byte mobile cold JS, zero warm JS transfer, and no Workbench/Diagram/Spatial dependencies."
-      },
-      {
-        "pr": 190,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Add dedicated MOBILE_TASK Follow-up Task Inbox over real governed Personal Agent planning state using Eidos Task Inbox and Host action authority."
-      },
-      {
-        "pr": 191,
-        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
-        "summary": "Certify MOBILE_TASK Follow-up Task Inbox in real Chrome: real empty governed source, compact routing, desktop override, 39,653-byte mobile cold JS, zero warm JS transfer, and no desktop runtime/Workbench/Diagram/Spatial dependencies."
-      },
-      {
-        "pr": 193,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Add dedicated EOG MOBILE_READ Entity Inspector over real governed Runtime Facts/Analysis with independent mobile-read runtime."
-      },
-      {
-        "pr": 194,
-        "status": "MERGED_PRODUCTION_BROWSER_NETWORK_PROOF_PASS",
-        "summary": "Certify EOG MOBILE_READ in real Chrome: 4 entities, 13 metrics/evidence, strict read-only controls, 18,243-byte mobile cold JS, 5,007-byte cold API/data, zero warm JS and no desktop-heavy dependency leakage."
-      },
-      {
-        "pr": 196,
-        "status": "MERGED_DEPLOYED_PRODUCTION_PASS",
-        "summary": "Extract cacheable shell CSS and establish browser security/CSP delivery baseline."
-      },
-      {
-        "pr": 197,
-        "status": "MERGED_PRODUCTION_PROOF_PASS",
-        "summary": "Certify shell CSS caching, security headers/CSP runtime and deployed compression behavior."
-      },
-      {
-        "pr": 198,
-        "status": "MERGED_DEPLOYED_CI_PASS",
-        "summary": "Add frontend/Host revision contract, stale-client update notice, sampled bounded RUM and persistent bounded old-revision immutable asset archive."
-      },
-      {
-        "pr": 199,
-        "status": "MERGED_DEPLOYED_PRODUCTION_PROOF_PASS",
-        "summary": "Create the second production revision and prove old-tab lazy module loading, stale-client headers and RUM ingestion across deployments."
       }
     ],
     "doNotRepeat": [
@@ -2239,7 +2000,11 @@
       "Do not delete existing SOP/Observatory/analysis implementations while correcting ownership; preserve them for future peer-plugin extraction.",
       "Do not put SOP definition/edit/publish or EOG/SOP analysis into the current EOG Core CI gate before their owning plugins are formalized.",
       "Do not interpret project SOP as a conventional step-by-step Standard Operating Procedure; its target semantics are APQC process structure plus time dimension.",
-      "Do not resume the historical SOP real-trace live proof as the active mainline unless the future report/analysis/SOP plugin plan explicitly reactivates it."
+      "Do not resume the historical SOP real-trace live proof as the active mainline unless the future report/analysis/SOP plugin plan explicitly reactivates it.",
+      "Do not continue EOG upper-layer feature expansion while External-Agent-first Platform Validation is the current mainline unless a concrete dependency is accepted.",
+      "Do not resume major Personal Agent feature expansion while External-Agent-first Platform Validation is active; preserve regression, security and shared-contract compatibility only.",
+      "Do not treat host-static-session-provider or deployment-scoped static identity as production Human login for External Agent delegation.",
+      "Do not expose production Human-delegated MCP/OAuth External Agent access before request-bound production Session/Principal resolution is live and revocable."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2330,25 +2095,30 @@
       "state project SOP semantics as APQC process structure plus time dimension rather than conventional work-instruction SOP",
       "state the report/analysis plugin portfolio as intentionally not yet planned",
       "state EVO Ledger Runtime as deterministic BusinessData/posting/reconciliation/calculation/replay without Business Definition version-lifecycle ownership",
-      "state App Platform as control plane while peer components exchange ordinary data through stable contract-bound interfaces after binding"
+      "state App Platform as control plane while peer components exchange ordinary data through stable contract-bound interfaces after binding",
+      "state enterprise-context-business-definitions-sop-authority-migration-v0-1 as VERIFIED_PRODUCTION_PASS with one legacy SOP migrated into Enterprise Context on Railway deployment 8f31d73c-d211-48a4-a377-4894c2181dfc",
+      "state External-Agent-First Platform Validation v0.1 as the current milestone",
+      "state production-human-login-request-bound-session-v0-1 as the active gate before public delegated External Agent access",
+      "state EOG upper-layer expansion and major Personal Agent feature expansion as deferred while their existing assets remain preserved/regression-protected",
+      "state EA-001 Blind Enterprise Discovery over Ledger Runtime as the first external Agent conformance target after login, delegation and Generic MCP READ/PLAN exist"
     ],
     "liveValidation": {
       "status": "VERIFIED_PRODUCTION_PASS",
-      "scenario": "LLM-native realtime transport idle-network and mounted-refresh proof",
-      "observed": "A read-only validator opened one production SSE connection and remained idle for 32 seconds. During the window POST /v1/actions increased by 0; no business SSE event was emitted; only two heartbeat frames totaling 26 bytes crossed the SSE connection. The shared EVO runtime revision bridge executed 3 conditional checks, 2 returned Not Modified, with 0 runtime changes and 0 errors. PR #168 also moved ordinary multi-slice Agent continuation into a bounded Host-side drain; all 30 triggered CI workflows passed, including Platform, Resumable Runs, Run-backed Chat, Thread-backed Turns, Conversation Lifecycle and Durable Threads.",
-      "authority": "docs/architecture/LLM-NATIVE-REALTIME-TRANSPORT-ADOPTION-v0.1.md",
+      "scenario": "Enterprise Context Business Definition authority migration and External-Agent-first handoff",
+      "observed": "Production Ledger Configurator deployed commit 65356abbf93870bd6b048ab415574b16d3582403, which contains the PR #209 Enterprise Context Business Definition authority implementation. Startup reported 'Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.' and then 'EVO App Manager listening on http://localhost:8080'. The service reached SUCCESS with persistent state mounted at /data.",
+      "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
       "proves": [
-        "idle browser transport no longer generates repeated /v1/actions application traffic",
-        "SSE is an event-waiting connection with bounded heartbeat traffic when nothing changes",
-        "EVO runtime change detection uses shared conditional revision checks and does not retransmit runtime snapshots when unchanged",
-        "resource invalidation can refresh mounted Diagram/Spatial resources without Workbench shell remount",
-        "ordinary durable multi-slice Agent execution completes inside one Host action boundary without client-driven resume round trips",
-        "transport request/SSE/byte counters are exposed for ongoing SLO verification"
+        "Enterprise Context Business Definition Repository code is running in the production Ledger Configurator service",
+        "the legacy EOG SOP persistence source was discovered during production startup",
+        "one existing legacy SOP definition was imported into Enterprise Context persistent Business Definition state",
+        "the application started successfully after migration instead of retaining an EOG-local-only authority path",
+        "the project may close the atomic definition-authority migration gate and freeze EOG upper-layer expansion while External-Agent-first foundations proceed"
       ],
       "doesNotProve": [
-        "LLM token-level streamed Fetch output; current Host-side drain returns the ordinary turn result at action completion",
-        "WebSocket collaborative editing/presence; this is intentionally outside the current vertical slice",
-        "EOG trace-backed SOP conformance; production EVO_CONFIG_MVP still lacks legitimate flow trace evidence"
+        "production Human login/request-bound Session; this is the new active gate",
+        "External Agent OAuth/MCP connectivity; it remains blocked on production identity/session and delegated authority",
+        "Agent-neutral Capability Operation Registry; it is the next platform layer after login",
+        "EOG report/analysis/SOP peer-plugin extraction; those assets remain preserved and deferred"
       ]
     },
     "webDelivery": {
@@ -3223,14 +2993,28 @@
     ]
   },
   "prioritySequencing": {
-    "current": "Enterprise Operating Graph — SOP Semantics & Live Proof v0.4",
-    "rationale": "Realtime transport, browser cache, explicit Surface architecture, lifecycle resilience, initial mobile verticals, security delivery hardening and cross-deployment immutable version-skew safety are now production-proven. Web depth now moves to real-browser RUM and enforceable Surface-specific performance budgets. The independent EOG SOP trace gate remains blocked on legitimate governed runtime trace evidence and must not be fabricated.",
+    "current": "External-Agent-first Platform Validation — Production Human Login / Request-bound Session",
+    "rationale": "Enterprise Context Business Definition authority migration is now production-verified. Mature external Agents will be used as independent clients to harden plugin capability semantics, identity, authorization and discovery before further expensive Personal Agent refinement. EOG upper-layer expansion is paused after the atomic definition-authority boundary was closed.",
     "deferred": [
+      {
+        "id": "eog-upper-layer-expansion",
+        "name": "EOG upper-layer analysis/report/SOP expansion",
+        "status": "DEFERRED_BY_EXTERNAL_AGENT_FOUNDATION",
+        "resumeAfter": "external Agent foundation proves shared plugin Capability Operations and a later product need selects the owning peer plugins",
+        "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md"
+      },
+      {
+        "id": "personal-agent-major-feature-expansion",
+        "name": "Personal Agent major feature expansion",
+        "status": "PRESERVED_REGRESSION_PROTECTED_DEFERRED",
+        "resumeAfter": "Generic MCP + ChatGPT + second mature Agent validate shared plugin contracts and at least one non-Ledger plugin",
+        "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md"
+      },
       {
         "id": "host-owned-evo-businessdata-adapter",
         "name": "Primary Integration — Host-owned EVO BusinessData Adapter",
-        "status": "DEFERRED_BY_EOG_OBSERVATORY_PRIORITY",
-        "resumeAfter": "first SPATIAL_3D Observatory + evidence-backed bottleneck slice is proven, unless a concrete integration dependency requires the adapter sooner",
+        "status": "DEFERRED_BY_EXTERNAL_AGENT_FOUNDATION",
+        "resumeAfter": "resume when required by an accepted external Agent plugin vertical or the next integration mainline",
         "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md"
       },
       {
@@ -3243,7 +3027,7 @@
     ]
   },
   "enterpriseDefinitionArchitecture": {
-    "status": "AUTHORITATIVE_V0_1",
+    "status": "AUTHORITATIVE_V0_1_PRODUCTION_MIGRATION_PASS",
     "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
     "assetBoundary": "docs/architecture/eog-asset-boundary.v0.1.json",
     "enterpriseContext": "HEADLESS_BUSINESS_DEFINITION_AUTHORITY",
@@ -3255,6 +3039,44 @@
     "observatoryAnalysis": "PRESERVED_NON_GATING_PENDING_REPORT_ANALYSIS_PLUGIN_PLANNING",
     "reportPluginPortfolio": "NOT_YET_PLANNED",
     "ledgerRuntime": "DETERMINISTIC_EXECUTION_NO_DEFINITION_VERSION_LIFECYCLE",
-    "componentCommunication": "CONTROL_PLANE_PLUS_CONTRACT_BOUND_DIRECT_DATA_PLANE"
+    "componentCommunication": "CONTROL_PLANE_PLUS_CONTRACT_BOUND_DIRECT_DATA_PLANE",
+    "productionMigration": {
+      "status": "VERIFIED_PRODUCTION_PASS",
+      "source": "legacy EOG expected SOP persistence",
+      "target": "Enterprise Context Business Definition Repository",
+      "migratedDefinitionCount": 1,
+      "railwayProject": "EVO Ledger Runtime MVP",
+      "railwayService": "Ledger Configurator",
+      "deploymentId": "8f31d73c-d211-48a4-a377-4894c2181dfc",
+      "deployedCommit": "65356abbf93870bd6b048ab415574b16d3582403",
+      "definitionAuthorityCommit": "9102a0c043e84fe423ed27a4335161dbc1d8f212",
+      "observedLog": "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
+      "persistentStateMount": "/data"
+    }
+  },
+  "externalAgentFirstValidation": {
+    "status": "ACTIVE",
+    "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md",
+    "standard": "docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md",
+    "strategy": "USE_MATURE_EXTERNAL_AGENTS_AS_INDEPENDENT_PLUGIN_PLATFORM_VALIDATION_CLIENTS_BEFORE_MAJOR_PERSONAL_AGENT_REFINEMENT",
+    "personalAgent": "PRESERVED_REGRESSION_PROTECTED_NOT_PRIMARY_EXPANSION_TARGET",
+    "eogUpperLayers": "DEFERRED_AFTER_DEFINITION_AUTHORITY_CLOSE",
+    "currentGate": "production-human-login-request-bound-session-v0-1",
+    "firstExternalProtocol": "MCP",
+    "firstReferencePlugin": "Ledger Runtime / Ledger Configurator",
+    "firstConformanceCase": "EA-001 Blind Enterprise Discovery",
+    "sequence": [
+      "production Human login/request-bound Session",
+      "generic plugin Capability Operation contract + effective registry",
+      "External Agent/client identity + delegated Authority Grant",
+      "OAuth protected-resource authorization profile",
+      "Generic MCP READ/PLAN",
+      "Ledger Runtime EA-001",
+      "ChatGPT Product Adapter",
+      "second mature Agent portability validation",
+      "additional stable plugin READ validation",
+      "governed WRITE + approval + receipt",
+      "resume major Personal Agent refinement"
+    ]
   }
 }
