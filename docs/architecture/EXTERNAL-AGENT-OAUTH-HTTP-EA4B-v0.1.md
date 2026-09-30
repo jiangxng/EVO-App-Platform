@@ -356,3 +356,19 @@ Ledger Runtime blind discovery through a real external Agent
 ```
 
 The MCP implementation should target protocol revision `2026-07-28`, which is stateless at the protocol layer.
+
+
+## 18. EA-5 protected-resource challenge
+
+EA-4B publishes metadata but does not open `/mcp`.
+
+When EA-5 opens the protected resource, an unauthenticated/invalid-token request should use the RFC 9728 / Bearer discovery path:
+
+```text
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="<base>/.well-known/oauth-protected-resource/mcp"
+```
+
+This enables a client that knows only the MCP server URL to discover the authoritative resource metadata and then the authorization server.
+
+The challenge MUST reference metadata for the exact protected Resource Identifier and MUST NOT expose private EVO implementation routes.
