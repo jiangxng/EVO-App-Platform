@@ -488,6 +488,20 @@ import {
   createMemoryEnterpriseContextGovernanceStoreV010
 } from "./enterprise-context-governance-store.js";
 import {
+  createFileExternalAgentGovernanceStoreV010,
+  createMemoryExternalAgentGovernanceStoreV010
+} from "./external-agent-governance-store.js";
+import {
+  createFileExternalAgentOAuthStoreV010,
+  createMemoryExternalAgentOAuthStoreV010
+} from "./external-agent-oauth-store.js";
+import {
+  createExternalAgentOAuthServiceV010
+} from "./external-agent-oauth-service.js";
+import {
+  createExternalAgentOAuthHttpAdapterV010
+} from "./external-agent-oauth-http.js";
+import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
@@ -505,7 +519,10 @@ import {
 import { createAuthenticationFlowV010 } from "./authentication-flow.js";
 import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
-import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
+import {
+  authorizeMaterialWriteV010,
+  legacyScopeFromRequestContextV010
+} from "./material-write-authorization.js";
 import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
@@ -642,6 +659,23 @@ const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
   process.env.APP_PLATFORM_PUBLIC_BASE_URL?.trim();
+const externalAgentOAuthEnabled =
+  process.env.APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED?.trim().toLowerCase()
+  === "true";
+if (externalAgentOAuthEnabled && !managedSessionEnabled) {
+  throw new Error(
+    "EXTERNAL_AGENT_OAUTH_REQUIRES_MANAGED_HUMAN_SESSION"
+  );
+}
+if (externalAgentOAuthEnabled && !authenticationPublicBaseUrl) {
+  throw new Error(
+    "EXTERNAL_AGENT_OAUTH_REQUIRES_PUBLIC_BASE_URL"
+  );
+}
+const externalAgentOAuthIssuer = authenticationPublicBaseUrl?.replace(/\/$/, "");
+const externalAgentOAuthResource = externalAgentOAuthIssuer
+  ? externalAgentOAuthIssuer + "/mcp"
+  : undefined;
 const authenticationSessionTtlSeconds = Number.parseInt(
   process.env.APP_PLATFORM_SESSION_TTL_SECONDS ?? "28800",
   10
@@ -680,6 +714,30 @@ const identityUserDirectoryService =
   createHostIdentityUserDirectoryServiceV010({
     store: identityUserDirectoryStore
   });
+const externalAgentGovernanceStateFile =
+  process.env.APP_PLATFORM_EXTERNAL_AGENT_GOVERNANCE_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "external-agent-governance.json")
+    : undefined);
+const externalAgentGovernanceStore = externalAgentGovernanceStateFile
+  ? createFileExternalAgentGovernanceStoreV010(
+      externalAgentGovernanceStateFile
+    )
+  : createMemoryExternalAgentGovernanceStoreV010();
+const externalAgentOAuthStateFile =
+  process.env.APP_PLATFORM_EXTERNAL_AGENT_OAUTH_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "external-agent-oauth.json")
+    : undefined);
+if (externalAgentOAuthEnabled && !externalAgentGovernanceStateFile) {
+  throw new Error("EXTERNAL_AGENT_GOVERNANCE_DURABLE_STORE_REQUIRED");
+}
+if (externalAgentOAuthEnabled && !externalAgentOAuthStateFile) {
+  throw new Error("EXTERNAL_AGENT_OAUTH_DURABLE_STORE_REQUIRED");
+}
+const externalAgentOAuthStore = externalAgentOAuthStateFile
+  ? createFileExternalAgentOAuthStoreV010(externalAgentOAuthStateFile)
+  : createMemoryExternalAgentOAuthStoreV010();
 const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "enterprise-governance.json") : undefined);
 const enterpriseGovernanceStore = enterpriseGovernanceStateFile
@@ -1846,6 +1904,73 @@ function principalContextSources() {
 
 function createContextRegistryForSession(session: IdentitySessionV010) {
   return createSessionContextRegistryV010(session, principalContextSources());
+}
+
+function externalAgentDelegatedAuthorityDependencies() {
+  return {
+    store: externalAgentGovernanceStore,
+    manager,
+    identityDirectory: resolveIdentityUserDirectoryProvider(),
+    enterpriseDirectory: resolveEnterpriseContextProvider(),
+    enterpriseGrants: resolveEnterpriseContextGrantProvider(),
+    authorizationProvider: resolveAuthorizationProvider()
+  };
+}
+
+function externalAgentOAuthService() {
+  if (
+    !externalAgentOAuthEnabled
+    || !externalAgentOAuthIssuer
+    || !externalAgentOAuthResource
+  ) {
+    throw new Error("EXTERNAL_AGENT_OAUTH_NOT_ENABLED");
+  }
+  return createExternalAgentOAuthServiceV010({
+    store: externalAgentOAuthStore,
+    governanceStore: externalAgentGovernanceStore,
+    delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
+    resourceIdentifier: externalAgentOAuthResource,
+    authorizationServerIssuer: externalAgentOAuthIssuer,
+    resourceName: "EVO External Agent Access"
+  });
+}
+
+function buildExternalAgentHumanRequestContext(
+  session: IdentitySessionV010,
+  contextId: string,
+  correlationId: string
+): PlatformRequestContextV010 {
+  const registry = createContextRegistryForSession(session);
+  const selected = registry.list().find(item => item.contextId === contextId);
+  if (!selected) throw new Error("EXTERNAL_AGENT_GRANT_CONTEXT_NOT_AVAILABLE");
+  const context = registry.resolve(selected);
+  const principal = {
+    ...structuredClone(session.principal),
+    sessionId: session.sessionId
+  };
+  const partial: PlatformRequestContextV010 = {
+    contractVersion: "0.1.0",
+    principal,
+    scope: {
+      contractVersion: "0.1.0",
+      userId: principal.subjectId
+    },
+    context,
+    correlationId
+  };
+  return {
+    ...partial,
+    scope: legacyScopeFromRequestContextV010(partial)
+  };
+}
+
+function externalAgentOAuthHttpAdapter() {
+  return createExternalAgentOAuthHttpAdapterV010({
+    oauth: externalAgentOAuthService(),
+    governanceStore: externalAgentGovernanceStore,
+    delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
+    buildHumanRequestContext: buildExternalAgentHumanRequestContext
+  });
 }
 
 async function authorizeHostAdministration(
@@ -3057,6 +3182,25 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+async function readFormUrlEncodedLimited(
+  request: IncomingMessage,
+  maxBytes = 32 * 1024
+): Promise<URLSearchParams> {
+  const contentType = request.headers["content-type"]?.split(";")[0]?.trim();
+  if (contentType !== "application/x-www-form-urlencoded") {
+    throw new Error("OAUTH_FORM_CONTENT_TYPE_REQUIRED");
+  }
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += bytes.length;
+    if (total > maxBytes) throw new Error("OAUTH_FORM_TOO_LARGE");
+    chunks.push(bytes);
+  }
+  return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+}
+
 async function readJsonLimited(
   request: IncomingMessage,
   maxBytes: number
@@ -3248,6 +3392,110 @@ const server = createServer(async (request, response) => {
         headers: request.headers,
         publicBaseUrl: authenticationPublicBaseUrl
       });
+    }
+
+    if (
+      request.method === "GET"
+      && url.pathname === "/.well-known/oauth-protected-resource/mcp"
+    ) {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "public, max-age=300");
+      return json(
+        response,
+        200,
+        externalAgentOAuthService().protectedResourceMetadata()
+      );
+    }
+
+    if (
+      request.method === "GET"
+      && url.pathname === "/.well-known/oauth-authorization-server"
+    ) {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "public, max-age=300");
+      return json(
+        response,
+        200,
+        externalAgentOAuthService().authorizationServerMetadata()
+      );
+    }
+
+    if (request.method === "GET" && url.pathname === "/oauth/authorize") {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+
+      let session: IdentitySessionV010;
+      try {
+        session = resolveRequestIdentitySession(request);
+      } catch (error) {
+        const failure = requestAuthenticationHttpFailureV010(error);
+        if (failure?.status === 401) {
+          const returnTo = url.pathname + url.search;
+          response.statusCode = 303;
+          response.setHeader(
+            "location",
+            "/auth/login?returnTo=" + encodeURIComponent(returnTo)
+          );
+          return response.end();
+        }
+        throw error;
+      }
+
+      const result = await externalAgentOAuthHttpAdapter().authorize({
+        url: new URL(url.pathname + url.search, externalAgentOAuthIssuer),
+        session,
+        correlationId: randomUUID()
+      });
+      response.statusCode = result.status;
+      response.setHeader("location", result.location);
+      return response.end();
+    }
+
+    if (request.method === "POST" && url.pathname === "/oauth/token") {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      let form: URLSearchParams;
+      try {
+        form = await readFormUrlEncodedLimited(request);
+      } catch (error) {
+        return json(response, 400, {
+          error: "invalid_request",
+          error_description:
+            error instanceof Error ? error.message : String(error)
+        });
+      }
+      const result = await externalAgentOAuthHttpAdapter().token({
+        form,
+        correlationId: randomUUID()
+      });
+      return json(response, result.status, result.body);
+    }
+
+    if (request.method === "POST" && url.pathname === "/oauth/revoke") {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+      let form: URLSearchParams;
+      try {
+        form = await readFormUrlEncodedLimited(request);
+      } catch (error) {
+        return json(response, 400, {
+          error: "invalid_request",
+          error_description:
+            error instanceof Error ? error.message : String(error)
+        });
+      }
+      const result = externalAgentOAuthHttpAdapter().revoke({ form });
+      return json(response, result.status, result.body);
     }
 
     if (request.method === "GET" && url.pathname === "/auth/login") {
