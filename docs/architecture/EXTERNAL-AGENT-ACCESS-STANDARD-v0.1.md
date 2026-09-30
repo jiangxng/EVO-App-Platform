@@ -1452,6 +1452,30 @@ Delivered:
 
 No public network endpoint is opened.
 
+#### EA-3B1 — current Human identity directory — implemented foundation
+
+Authority:
+
+`docs/architecture/HOST-IDENTITY-USER-DIRECTORY-EA3B1-v0.1.md`
+
+EA-3B1 provides:
+
+```text
+identity.user-directory
+```
+
+so delegated authority can reconstruct the current authorizing Human Principal without requiring a live browser Session or persisting an old OIDC token.
+
+Authentication ordering is:
+
+```text
+identity.authenticate
+→ identity.user-directory record/refresh
+→ managed Session issuance
+```
+
+Revoked directory entries cannot self-reactivate through a later successful login.
+
 #### EA-3B — current-authority delegation resolution — next
 
 Must add:
