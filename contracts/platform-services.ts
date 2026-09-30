@@ -134,6 +134,40 @@ export interface AuthorizationProviderV010 {
   ): Promise<AuthorizationDecisionV010> | AuthorizationDecisionV010;
 }
 
+export interface IdentityAuthenticationStartV010 {
+  contractVersion: "0.1.0";
+  callbackUrl: string;
+  returnTo: string;
+  locale?: string;
+}
+
+export interface IdentityAuthenticationStartResultV010 {
+  contractVersion: "0.1.0";
+  redirectUrl: string;
+}
+
+export interface IdentityAuthenticationCallbackV010 {
+  contractVersion: "0.1.0";
+  callbackUrl: string;
+}
+
+export interface IdentityAuthenticationResultV010 {
+  contractVersion: "0.1.0";
+  principal: PlatformPrincipalV010;
+  assurance?: string[];
+  returnTo?: string;
+}
+
+export interface IdentityAuthenticationProviderV010 {
+  providerId: string;
+  begin(
+    input: IdentityAuthenticationStartV010
+  ): Promise<IdentityAuthenticationStartResultV010> | IdentityAuthenticationStartResultV010;
+  complete(
+    input: IdentityAuthenticationCallbackV010
+  ): Promise<IdentityAuthenticationResultV010> | IdentityAuthenticationResultV010;
+}
+
 export interface IdentitySessionV010 {
   contractVersion: "0.1.0";
   sessionId: string;
