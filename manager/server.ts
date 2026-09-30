@@ -492,6 +492,16 @@ import {
   createMemoryExternalAgentGovernanceStoreV010
 } from "./external-agent-governance-store.js";
 import {
+  createExternalAgentGovernanceServiceV010
+} from "./external-agent-governance-service.js";
+import {
+  createExternalAgentGovernanceActionHandlersV010
+} from "./external-agent-governance-actions.js";
+import {
+  EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID,
+  externalAgentGovernancePackage
+} from "./external-agent-governance-package.js";
+import {
   createFileExternalAgentOAuthStoreV010,
   createMemoryExternalAgentOAuthStoreV010
 } from "./external-agent-oauth-store.js";
@@ -638,6 +648,7 @@ const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
   evoFoundationPackage,
+  externalAgentGovernancePackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
@@ -1488,6 +1499,16 @@ const enterpriseOperatingGraphObservatoryProviders =
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (!installedAtStartup.some(
+  item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
+)) {
+  try {
+    manager.install(EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID);
+    console.log("Activated EVO External Agent Governance foundation.");
+  } catch (error) {
+    console.error("Failed to activate EVO External Agent Governance foundation.", error);
+  }
+}
+if (!installedAtStartup.some(
   item => item.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID
 )) {
   try {
@@ -1695,6 +1716,13 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
     { installationId: "default" }
   )?.runtime;
 }
+
+const externalAgentGovernanceService =
+  createExternalAgentGovernanceServiceV010({
+    store: externalAgentGovernanceStore,
+    manager,
+    resolveAuthorizationProvider
+  });
 
 function resolveIdentityUserDirectoryProvider(): IdentityUserDirectoryProviderV010 | undefined {
   return resolveProviderRuntimeV010<IdentityUserDirectoryProviderV010>(
@@ -2998,6 +3026,9 @@ const actionRouter = createAppActionRouter(
     ...createEnterpriseRelationshipActionHandlersV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
+    }),
+    ...createExternalAgentGovernanceActionHandlersV010({
+      service: externalAgentGovernanceService
     }),
     ...createContextMemoryActionHandlersV010({
       resolveAuthorizationProvider,

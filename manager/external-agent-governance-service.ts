@@ -108,8 +108,8 @@ function requireHuman(context: PlatformRequestContextV010): void {
 
 function activeContextId(context: PlatformRequestContextV010): string {
   const active = context.context?.activeContext;
-  if (!active?.contextId) {
-    throw new Error("EXTERNAL_AGENT_ACTIVE_CONTEXT_REQUIRED");
+  if (!active?.contextId || active.kind !== "ENTERPRISE") {
+    throw new Error("EXTERNAL_AGENT_ENTERPRISE_CONTEXT_REQUIRED");
   }
   return active.contextId;
 }
