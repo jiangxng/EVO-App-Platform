@@ -51,6 +51,7 @@ export interface EffectiveDelegatedCapabilityCatalogV010 {
   reason: EffectiveDelegatedAuthorityReasonV010;
   grant?: ExternalAgentAuthorityGrantV010;
   context?: ResolvedContextSetV010;
+  requestContext?: PlatformRequestContextV010;
   operations: EffectiveCapabilityOperationV010[];
   evaluations: CapabilityOperationAccessEvaluationV010[];
 }
@@ -64,6 +65,7 @@ export interface EffectiveDelegatedOperationResolutionV010 {
     | "OPERATION_NOT_CURRENTLY_AUTHORIZED";
   grant?: ExternalAgentAuthorityGrantV010;
   context?: ResolvedContextSetV010;
+  requestContext?: PlatformRequestContextV010;
   operation?: EffectiveCapabilityOperationV010;
 }
 
@@ -223,6 +225,7 @@ export async function listEffectiveDelegatedCapabilityOperationsV010(input: {
     reason: "ACTIVE",
     grant: structuredClone(grant),
     context: structuredClone(context),
+    requestContext: structuredClone(requestContext),
     operations: operations.map(operation => structuredClone(operation)),
     evaluations: humanCatalog.evaluations.map(item => structuredClone(item))
   };
@@ -262,7 +265,10 @@ export async function resolveEffectiveDelegatedCapabilityOperationV010(input: {
       allowed: false,
       reason: "OPERATION_NOT_GRANTED",
       grant: structuredClone(grant),
-      ...(catalog.context ? { context: structuredClone(catalog.context) } : {})
+      ...(catalog.context ? { context: structuredClone(catalog.context) } : {}),
+      ...(catalog.requestContext
+        ? { requestContext: structuredClone(catalog.requestContext) }
+        : {})
     };
   }
 
@@ -275,7 +281,10 @@ export async function resolveEffectiveDelegatedCapabilityOperationV010(input: {
       allowed: false,
       reason: "OPERATION_NOT_CURRENTLY_AUTHORIZED",
       grant: structuredClone(grant),
-      ...(catalog.context ? { context: structuredClone(catalog.context) } : {})
+      ...(catalog.context ? { context: structuredClone(catalog.context) } : {}),
+      ...(catalog.requestContext
+        ? { requestContext: structuredClone(catalog.requestContext) }
+        : {})
     };
   }
 
@@ -285,6 +294,7 @@ export async function resolveEffectiveDelegatedCapabilityOperationV010(input: {
     reason: "ACTIVE",
     grant: structuredClone(grant),
     context: structuredClone(catalog.context!),
+    requestContext: structuredClone(catalog.requestContext!),
     operation: structuredClone(operation)
   };
 }

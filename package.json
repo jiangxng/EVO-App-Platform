@@ -63,7 +63,7 @@
     "test:external-agent:governance": "npm run build && node --test tests/external-agent/external-agent-governance.test.mjs tests/external-agent/effective-delegated-authority.test.mjs",
     "test:plugin:host-identity-user-directory-provider": "npm run build && node --test tests/protocol/identity-user-directory.test.mjs tests/protocol/authentication-flow.test.mjs",
     "test:external-agent:oauth": "npm run build && node --test tests/external-agent/external-agent-oauth.test.mjs tests/external-agent/external-agent-oauth-http.test.mjs tests/external-agent/external-agent-governance.test.mjs tests/external-agent/effective-delegated-authority.test.mjs",
-    "test:external-agent:mcp": "npm run build && node --test tests/external-agent/mcp-modern-core.test.mjs tests/external-agent/mcp-protected-resource.test.mjs"
+    "test:external-agent:mcp": "npm run build && node --test tests/external-agent/mcp-modern-core.test.mjs tests/external-agent/mcp-protected-resource.test.mjs tests/external-agent/mcp-capability-projection.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

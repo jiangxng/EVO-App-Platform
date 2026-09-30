@@ -504,6 +504,7 @@ import {
 import { createMcpModernCoreV010 } from "./mcp-modern-core.js";
 import { createMcpModernHttpAdapterV010 } from "./mcp-modern-http.js";
 import { createMcpProtectedResourceV010 } from "./mcp-protected-resource.js";
+import { createMcpCapabilityProjectionV010 } from "./mcp-capability-projection.js";
 import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
@@ -1982,28 +1983,43 @@ function externalAgentOAuthHttpAdapter() {
   });
 }
 
-const externalAgentMcpCore = createMcpModernCoreV010({
-  serverInfo: {
-    name: "evo-app-platform",
-    title: "EVO App Platform",
-    version: "0.1.0",
-    description: "Governed External Agent access to authorized EVO plugin capabilities."
-  },
-  instructions:
-    "Use only tools returned by the current authorized EVO capability catalog.",
-  listTools() {
-    // EA-5C replaces this empty projection with the authorized Capability
-    // Operation catalog. Keeping this empty prevents protocol exposure from
-    // creating accidental business authority.
-    return [];
-  },
-  callTool() {
-    throw new Error("MCP_CAPABILITY_PROJECTION_NOT_READY");
-  }
-});
-
-const externalAgentMcpHttp =
-  createMcpModernHttpAdapterV010(externalAgentMcpCore);
+function externalAgentMcpHttpAdapterFor(
+  access: Awaited<ReturnType<
+    ReturnType<typeof externalAgentOAuthService>["resolveAccessToken"]
+  >>,
+  correlationId: string
+) {
+  const projection = createMcpCapabilityProjectionV010({
+    delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
+    actionRouter
+  });
+  const core = createMcpModernCoreV010({
+    serverInfo: {
+      name: "evo-app-platform",
+      title: "EVO App Platform",
+      version: "0.1.0",
+      description:
+        "Governed External Agent access to authorized EVO plugin capabilities."
+    },
+    instructions:
+      "Use only tools returned by the current authorized EVO capability catalog.",
+    listTools() {
+      return projection.listTools({
+        access,
+        correlationId
+      });
+    },
+    callTool({ name, arguments: args }) {
+      return projection.callTool({
+        access,
+        correlationId,
+        name,
+        arguments: args
+      });
+    }
+  });
+  return createMcpModernHttpAdapterV010(core);
+}
 
 function externalAgentMcpProtectedResource() {
   if (
@@ -2019,8 +2035,11 @@ function externalAgentMcpProtectedResource() {
     resourceMetadataUrl:
       externalAgentOAuthIssuer
       + "/.well-known/oauth-protected-resource/mcp",
-    handleAuthorized({ request }) {
-      return externalAgentMcpHttp.handle(request);
+    handleAuthorized({ access, request, correlationId }) {
+      return externalAgentMcpHttpAdapterFor(
+        access,
+        correlationId
+      ).handle(request);
     }
   });
 }
