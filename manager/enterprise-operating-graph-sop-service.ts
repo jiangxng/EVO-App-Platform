@@ -2,10 +2,10 @@ import type {
   BusinessDefinitionAttributionV010,
   BusinessDefinitionRepositoryV010,
   BusinessDefinitionRevisionV010
-} from "../contracts/business-definition-repository.js";
+} from "../contracts/enterprise-business-definition.js";
 import {
   BUSINESS_DEFINITION_KIND_SOP_V010
-} from "../contracts/business-definition-repository.js";
+} from "../contracts/enterprise-business-definition.js";
 import type { EnterpriseOperatingGraphHostServiceV010 } from "./enterprise-operating-graph-service.js";
 import type {
   EogExpectedSopStepV010,
