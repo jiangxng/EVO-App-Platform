@@ -473,6 +473,7 @@ import {
   createPlatformRequestContextV010,
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
+import { requestAuthenticationHttpFailureV010 } from "./request-authentication.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
@@ -4688,6 +4689,13 @@ const server = createServer(async (request, response) => {
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
+    const authenticationFailure = requestAuthenticationHttpFailureV010(error);
+    if (authenticationFailure) {
+      return json(response, authenticationFailure.status, {
+        code: authenticationFailure.code,
+        message: authenticationFailure.message
+      });
+    }
     return json(response, 500, {
       code: "APP_MANAGER_ERROR",
       message: error instanceof Error ? error.message : String(error)
