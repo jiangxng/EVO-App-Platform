@@ -54,7 +54,18 @@
           "manager/enterprise-operating-graph-application-runtime-store.ts"
         ]
       }
-    }
+    },
+    "testAssets": [
+      "tests/preserved/enterprise-operating-graph-sop-authority.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-sop-conformance.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-v0-2.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-provider-v0-2.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-observatory-surface.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-spatial-observatory.preserved.mjs",
+      "tests/preserved/evo-runtime-observatory-provider.preserved.mjs",
+      "tests/preserved/enterprise-operating-graph-application-runtime-binding.preserved.mjs",
+      "tests/preserved/eog-mobile-read-surface.preserved.mjs"
+    ]
   },
   "enterpriseContext": {
     "lifecycle": "ACTIVE",
@@ -108,5 +119,13 @@
     "compatibilityName": "SOP",
     "targetMeaning": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
     "notMeaning": "CONVENTIONAL_STEP_BY_STEP_STANDARD_OPERATING_PROCEDURE"
+  },
+  "ciPolicy": {
+    "eogCore": "GATING",
+    "preservedAssets": "NON_GATING_FOR_CURRENT_EOG_CORE_CI",
+    "preservedTestCorpus": "tests/preserved/*.preserved.mjs",
+    "manualRegressionCommand": "npm run test:preserved:eog-assets",
+    "eogCoreIntegrationGate": "tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
+    "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates."
   }
 }
