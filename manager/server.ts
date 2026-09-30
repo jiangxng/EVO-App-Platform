@@ -501,6 +501,9 @@ import {
 import {
   createExternalAgentOAuthHttpAdapterV010
 } from "./external-agent-oauth-http.js";
+import { createMcpModernCoreV010 } from "./mcp-modern-core.js";
+import { createMcpModernHttpAdapterV010 } from "./mcp-modern-http.js";
+import { createMcpProtectedResourceV010 } from "./mcp-protected-resource.js";
 import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
@@ -662,6 +665,12 @@ const authenticationPublicBaseUrl =
 const externalAgentOAuthEnabled =
   process.env.APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED?.trim().toLowerCase()
   === "true";
+const externalAgentMcpEnabled =
+  process.env.APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED?.trim().toLowerCase()
+  === "true";
+if (externalAgentMcpEnabled && !externalAgentOAuthEnabled) {
+  throw new Error("EXTERNAL_AGENT_MCP_REQUIRES_OAUTH");
+}
 if (externalAgentOAuthEnabled && !managedSessionEnabled) {
   throw new Error(
     "EXTERNAL_AGENT_OAUTH_REQUIRES_MANAGED_HUMAN_SESSION"
@@ -1970,6 +1979,49 @@ function externalAgentOAuthHttpAdapter() {
     governanceStore: externalAgentGovernanceStore,
     delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
     buildHumanRequestContext: buildExternalAgentHumanRequestContext
+  });
+}
+
+const externalAgentMcpCore = createMcpModernCoreV010({
+  serverInfo: {
+    name: "evo-app-platform",
+    title: "EVO App Platform",
+    version: "0.1.0",
+    description: "Governed External Agent access to authorized EVO plugin capabilities."
+  },
+  instructions:
+    "Use only tools returned by the current authorized EVO capability catalog.",
+  listTools() {
+    // EA-5C replaces this empty projection with the authorized Capability
+    // Operation catalog. Keeping this empty prevents protocol exposure from
+    // creating accidental business authority.
+    return [];
+  },
+  callTool() {
+    throw new Error("MCP_CAPABILITY_PROJECTION_NOT_READY");
+  }
+});
+
+const externalAgentMcpHttp =
+  createMcpModernHttpAdapterV010(externalAgentMcpCore);
+
+function externalAgentMcpProtectedResource() {
+  if (
+    !externalAgentMcpEnabled
+    || !externalAgentOAuthIssuer
+    || !externalAgentOAuthResource
+  ) {
+    throw new Error("EXTERNAL_AGENT_MCP_NOT_ENABLED");
+  }
+  return createMcpProtectedResourceV010({
+    oauth: externalAgentOAuthService(),
+    resourceIdentifier: externalAgentOAuthResource,
+    resourceMetadataUrl:
+      externalAgentOAuthIssuer
+      + "/.well-known/oauth-protected-resource/mcp",
+    handleAuthorized({ request }) {
+      return externalAgentMcpHttp.handle(request);
+    }
   });
 }
 
@@ -3392,6 +3444,68 @@ const server = createServer(async (request, response) => {
         headers: request.headers,
         publicBaseUrl: authenticationPublicBaseUrl
       });
+    }
+
+    if (url.pathname === "/mcp") {
+      if (!externalAgentMcpEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_MCP_NOT_ENABLED" });
+      }
+      if (request.method !== "POST") {
+        response.statusCode = 405;
+        response.setHeader("allow", "POST");
+        response.setHeader("cache-control", "no-store");
+        return response.end();
+      }
+
+      const protectedResource = externalAgentMcpProtectedResource();
+      const correlationId = randomUUID();
+      const authorization = await protectedResource.authorize({
+        headers: request.headers,
+        correlationId
+      });
+      if (!authorization.authorized) {
+        response.statusCode = authorization.response.status;
+        for (const [name, value] of Object.entries(
+          authorization.response.headers
+        )) {
+          response.setHeader(name, value);
+        }
+        return response.end();
+      }
+
+      let body: unknown;
+      try {
+        body = await readJsonLimited(request, 1024 * 1024);
+      } catch (error) {
+        return json(response, 400, {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32700,
+            message: "Parse error",
+            data: {
+              code: "MCP_REQUEST_BODY_INVALID",
+              message: error instanceof Error ? error.message : String(error)
+            }
+          }
+        });
+      }
+
+      const result = await protectedResource.handleAuthorized({
+        access: authorization.access,
+        correlationId,
+        request: {
+          method: request.method,
+          headers: request.headers,
+          body
+        }
+      });
+      response.statusCode = result.status;
+      for (const [name, value] of Object.entries(result.headers)) {
+        response.setHeader(name, value);
+      }
+      if (result.body === undefined) return response.end();
+      return response.end(JSON.stringify(result.body));
     }
 
     if (
