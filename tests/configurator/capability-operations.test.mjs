@@ -232,3 +232,43 @@ test("Ledger capability operations follow plugin lifecycle automatically", () =>
     []
   );
 });
+
+test("Ledger capability Actions fail closed on malformed input and unsupported input version", async () => {
+  const service = createLedgerRuntimeConfiguratorService();
+  const handlers =
+    createLedgerRuntimeConfiguratorCapabilityActionHandlers(service);
+  const byCommand = new Map(
+    handlers.map(handler => [handler.commandCode, handler])
+  );
+
+  const read = byCommand.get(
+    LEDGER_RUNTIME_CONFIGURATION_SECTION_READ_COMMAND
+  );
+
+  const badPageSize = await read.execute(actionRequest(
+    LEDGER_RUNTIME_CONFIGURATION_SECTION_READ_COMMAND,
+    {
+      section: "accounts",
+      pageSize: "5"
+    }
+  ));
+  assert.equal(badPageSize.ok, false);
+  assert.equal(
+    badPageSize.error.code,
+    "LEDGER_CONFIGURATION_PAGE_SIZE_INVALID"
+  );
+
+  const unsupported = actionRequest(
+    LEDGER_RUNTIME_CONFIGURATION_DESCRIBE_COMMAND
+  );
+  unsupported.command.inputVersion = "9.9.9";
+  const describe = byCommand.get(
+    LEDGER_RUNTIME_CONFIGURATION_DESCRIBE_COMMAND
+  );
+  const unsupportedResult = await describe.execute(unsupported);
+  assert.equal(unsupportedResult.ok, false);
+  assert.equal(
+    unsupportedResult.error.code,
+    "LEDGER_RUNTIME_CONFIGURATION_INPUT_VERSION_UNSUPPORTED"
+  );
+});
