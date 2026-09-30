@@ -11,6 +11,9 @@ function operation({
   capability = "ledger.runtime",
   effect = "READ",
   exposure = ["EXTERNAL_AGENT"],
+  dataScope = "INSTALLATION",
+  authorization,
+  commandCode,
   writeSafety
 } = {}) {
   return {
@@ -24,6 +27,14 @@ function operation({
       description:
         "Returns the effective Ledger Runtime configuration for the current authorized enterprise context.",
       effect,
+      dataScope,
+      authorization: authorization ?? {
+        action: capability + ".read",
+        resource: {
+          type: capability,
+          idSource: "NONE"
+        }
+      },
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -35,7 +46,7 @@ function operation({
       },
       binding: {
         type: "ACTION_HOST",
-        commandCode: "ledger-runtime.describe",
+        commandCode: commandCode ?? operationId,
         inputVersion: "1.0.0"
       },
       exposure,
@@ -229,5 +240,78 @@ test("App Manager fails closed when active plugins claim one global operation id
   assert.throws(
     () => manager.listEffectiveCapabilityOperations(),
     /CAPABILITY_OPERATION_ID_CONFLICT: ledger.runtime.describe/
+  );
+});
+
+test("Capability Operation requires explicit authorization and valid scoped resource semantics", () => {
+  const missingAuthorization = operation();
+  delete missingAuthorization.operation.authorization;
+  const missing = validatePluginManifestV010(pkg({
+    contribution: missingAuthorization
+  }));
+  assert.equal(missing.ok, false);
+  assert.ok(missing.issues.some(
+    issue => issue.code === "PLUGIN_CAPABILITY_OPERATION_AUTHORIZATION_REQUIRED"
+  ));
+
+  const invalidScopedId = validatePluginManifestV010(pkg({
+    contribution: operation({
+      dataScope: "INSTALLATION",
+      authorization: {
+        action: "ledger.runtime.read",
+        resource: {
+          type: "ledger.runtime",
+          idSource: "DATA_SCOPE"
+        }
+      }
+    })
+  }));
+  assert.equal(invalidScopedId.ok, false);
+  assert.ok(invalidScopedId.issues.some(
+    issue => issue.code === "PLUGIN_CAPABILITY_OPERATION_AUTH_DATA_SCOPE_ID_UNAVAILABLE"
+  ));
+
+  const inputResource = validatePluginManifestV010(pkg({
+    contribution: operation({
+      dataScope: "ENTERPRISE",
+      authorization: {
+        action: "ledger.runtime.item.read",
+        resource: {
+          type: "ledger.runtime.item",
+          idSource: "INPUT",
+          inputKey: "itemId"
+        }
+      }
+    })
+  }));
+  assert.equal(inputResource.ok, true, JSON.stringify(inputResource.issues));
+});
+
+test("App Manager fails closed when active operations claim one Host Action binding", () => {
+  const first = pkg({
+    packageId: "ledger-a",
+    contribution: operation({
+      operationId: "ledger.runtime.describe",
+      commandCode: "shared.command"
+    })
+  });
+  const second = pkg({
+    packageId: "ledger-b",
+    contribution: operation({
+      operationId: "ledger.runtime.summary",
+      commandCode: "shared.command"
+    })
+  });
+  const manager = createAppManagerService(
+    createPackageCatalog([first, second]),
+    createMemoryLifecycleStore()
+  );
+
+  manager.install("ledger-a");
+  manager.install("ledger-b");
+
+  assert.throws(
+    () => manager.listEffectiveCapabilityOperations(),
+    /CAPABILITY_OPERATION_BINDING_CONFLICT: shared.command/
   );
 });
