@@ -109,9 +109,18 @@ export interface EnterpriseContextProviderV010 {
   list(): EnterpriseContextV010[];
 }
 
+export interface PlatformDelegatedActorV010 {
+  contractVersion: "0.1.0";
+  kind: "EXTERNAL_AGENT";
+  agentId: string;
+  clientId: string;
+  grantId: string;
+}
+
 export interface PlatformRequestContextV010 {
   contractVersion: "0.1.0";
   principal: PlatformPrincipalV010;
+  delegatedActor?: PlatformDelegatedActorV010;
   /**
    * Legacy compatibility projection. New Person-first code should use context.
    */
