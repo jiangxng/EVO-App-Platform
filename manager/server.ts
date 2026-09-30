@@ -3457,6 +3457,22 @@ const server = createServer(async (request, response) => {
         return response.end();
       }
 
+      const protectedResource = externalAgentMcpProtectedResource();
+      const correlationId = randomUUID();
+      const authorization = await protectedResource.authorize({
+        headers: request.headers,
+        correlationId
+      });
+      if (!authorization.authorized) {
+        response.statusCode = authorization.response.status;
+        for (const [name, value] of Object.entries(
+          authorization.response.headers
+        )) {
+          response.setHeader(name, value);
+        }
+        return response.end();
+      }
+
       let body: unknown;
       try {
         body = await readJsonLimited(request, 1024 * 1024);
@@ -3475,8 +3491,9 @@ const server = createServer(async (request, response) => {
         });
       }
 
-      const result = await externalAgentMcpProtectedResource().handle({
-        correlationId: randomUUID(),
+      const result = await protectedResource.handleAuthorized({
+        access: authorization.access,
+        correlationId,
         request: {
           method: request.method,
           headers: request.headers,
