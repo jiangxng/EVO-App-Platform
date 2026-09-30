@@ -1,0 +1,41 @@
+name: Platform CI - External Agent Governance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/external-agent-access.ts"
+      - "manager/external-agent-governance-store.ts"
+      - "manager/external-agent-governance-service.ts"
+      - "manager/capability-operation-access.ts"
+      - "manager/service.ts"
+      - "contracts/package.ts"
+      - "tests/external-agent/**"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-governance.yml"
+  pull_request:
+    paths:
+      - "contracts/external-agent-access.ts"
+      - "manager/external-agent-governance-store.ts"
+      - "manager/external-agent-governance-service.ts"
+      - "manager/capability-operation-access.ts"
+      - "manager/service.ts"
+      - "contracts/package.ts"
+      - "tests/external-agent/**"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-governance.yml"
+
+concurrency:
+  group: platform-external-agent-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:external-agent:governance
