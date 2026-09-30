@@ -316,3 +316,60 @@ Then External Agent delegated authority and MCP can project that catalog.
 
 The production Human OIDC live-login gate remains open until a real IdP and
 browser flow are proven.
+
+
+## 15. EA-2C authorization refinement
+
+EA-2C makes the two Ledger operations explicit about data ownership and
+authorization:
+
+~~~text
+dataScope:
+INSTALLATION
+
+authorization action:
+ledger.runtime.configuration.read
+
+resource type:
+ledger.runtime.configuration
+
+resource id source:
+NONE
+~~~
+
+This reflects the current implementation truth: the Configurator currently
+maintains the App Host installation's current Ledger configuration. It does not
+yet maintain an explicit per-Enterprise Context template binding.
+
+The Host now enforces this authorization metadata before direct ACTION_HOST
+execution as well as during authorized capability discovery. Knowing or guessing
+the underlying Host command does not bypass authorization.check.
+
+### Enterprise-specific answer remains a separate domain gap
+
+The EA-001 wording asks:
+
+> What Ledger Runtime template is this enterprise using?
+
+Today these operations can accurately answer:
+
+> What Ledger Runtime configuration is current for this App Host installation?
+
+A later Ledger/domain slice must make the enterprise relation explicit, for
+example:
+
+~~~text
+Enterprise Context
+→ explicit Ledger Template binding
+
+or
+
+Enterprise Context
+→ explicit inheritance of installation default
+~~~
+
+That binding/inheritance must be queryable and auditable. An Agent adapter must
+not infer it from deployment variables or hidden implementation knowledge.
+
+See:
+`docs/architecture/AUTHORIZED-CAPABILITY-OPERATION-CATALOG-EA2C-v0.1.md`.
