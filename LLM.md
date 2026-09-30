@@ -18,6 +18,8 @@
 
 > **External-Agent-first sequencing authority (2026-09-30):** Read `docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md` before extending Personal Agent, EOG upper layers, or external Agent integration. Close only the current atomic Enterprise Context Business Definition authority gate, then prioritize production login/session, generic plugin Capability Operations, delegated External Agent authority, Generic MCP READ/PLAN and Ledger Runtime EA-001. Personal Agent remains preserved and regression-protected but is not the primary feature-expansion target until shared plugin contracts have been validated by mature external Agents.
 
+> **External-Agent-first machine-foundation status (2026-09-30):** EA-1B1 through EA-5C are merged and CI-proven: Host authentication orchestration, Generic OIDC, `platform.capability-operation`, Ledger Runtime bounded READ operations, authorization-aware capability catalog, durable External Agent/Client/Grant governance, current delegated-authority recomputation, CIMD-first OAuth, protected `/mcp`, and MCP Capability Operation projection through ordinary `ACTION_HOST`. Do NOT reimplement these layers. Production Human OIDC browser proof is still the active live gate; Railway managed-session/OAuth/MCP flags remain intentionally disabled. After live login, create an explicit Ledger READ Grant and run EA-001 through Generic MCP before ChatGPT/second-Agent product-adapter validation. Read `project.status.json.externalAgentFirstValidation`, `docs/architecture/MCP-CAPABILITY-OPERATION-PROJECTION-EA5C-v0.1.md`, and `docs/roadmap/HANDOFF-LATEST.md` before continuing.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
