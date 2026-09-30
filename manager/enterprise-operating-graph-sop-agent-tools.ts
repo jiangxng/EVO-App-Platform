@@ -252,7 +252,11 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
             applicationNodeIdsArg(args)!,
           ...(Array.isArray(args.transitions)
             ? { transitions: transitionsArg(args)! }
-            : {})
+            : {}),
+          actor: {
+            actorType: input.principal.actorType,
+            subjectId: input.principal.subjectId
+          }
         });
       }
     },
@@ -326,7 +330,11 @@ export function createEogExpectedSopAgentToolRegistrationsV010(
           ...(applicationNodeIds
             ? { applicationNodeIds }
             : {}),
-          ...(transitions ? { transitions } : {})
+          ...(transitions ? { transitions } : {}),
+          actor: {
+            actorType: input.principal.actorType,
+            subjectId: input.principal.subjectId
+          }
         });
       }
     }
