@@ -638,6 +638,7 @@ import {
 import {
   companyNotesPackage,
   enterpriseAgentPackage,
+  enterpriseContextGovernanceAppPackage,
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
@@ -647,6 +648,7 @@ import {
 const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
+  enterpriseContextGovernanceAppPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
   ledgerRuntimeConfiguratorPackage,
