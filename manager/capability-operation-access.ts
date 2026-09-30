@@ -220,10 +220,13 @@ async function evaluateAuthorization(
   }
 }
 
-function audienceForActor(
-  actorType: PlatformActorType
+function audienceForContext(
+  context: PlatformRequestContextV010
 ): CapabilityOperationExposureV010 {
-  switch (actorType) {
+  if (context.delegatedActor?.kind === "EXTERNAL_AGENT") {
+    return "EXTERNAL_AGENT";
+  }
+  switch (context.principal.actorType) {
     case "HUMAN":
       return "HUMAN";
     case "AI":
@@ -333,7 +336,7 @@ export function createCapabilityOperationActionPreExecuteV010(input: {
       );
     }
 
-    const audience = audienceForActor(context.principal.actorType);
+    const audience = audienceForContext(context);
     if (!operation.exposure.includes(audience)) {
       return actionError(
         context,
