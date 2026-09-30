@@ -1,0 +1,96 @@
+export const BUSINESS_DEFINITION_REPOSITORY_CAPABILITY_V010 =
+  "business-definition.repository" as const;
+
+export const BUSINESS_DEFINITION_REPOSITORY_CONTRACT_V010 =
+  "evo.business-definition.repository" as const;
+
+export const BUSINESS_DEFINITION_KIND_SOP_V010 = "SOP" as const;
+
+export type BusinessDefinitionStateV010 = "DRAFT" | "PUBLISHED";
+
+export type BusinessDefinitionActorTypeV010 =
+  | "HUMAN"
+  | "AI"
+  | "AUTOMATION"
+  | "SERVICE";
+
+export interface BusinessDefinitionAttributionV010 {
+  actorType: BusinessDefinitionActorTypeV010;
+  subjectId: string;
+}
+
+export interface BusinessDefinitionOriginV010 {
+  type: "NATIVE" | "MIGRATED";
+  sourceRef?: string;
+  historyComplete: boolean;
+}
+
+export interface BusinessDefinitionRevisionV010 {
+  contractVersion: "0.1.0";
+  definitionId: string;
+  enterpriseId: string;
+  kind: string;
+  revision: number;
+  state: BusinessDefinitionStateV010;
+  title: string;
+  payload: Record<string, unknown>;
+  definitionCreatedAt: string;
+  recordedAt: string;
+  recordedBy: BusinessDefinitionAttributionV010;
+  publishedAt?: string;
+  publishedBySubjectId?: string;
+  origin: BusinessDefinitionOriginV010;
+}
+
+export interface BusinessDefinitionRepositoryV010 {
+  providerId: string;
+
+  createDraft(input: {
+    enterpriseId: string;
+    definitionId: string;
+    kind: string;
+    title: string;
+    payload: Record<string, unknown>;
+    actor: BusinessDefinitionAttributionV010;
+    recordedAt?: string;
+  }): BusinessDefinitionRevisionV010;
+
+  reviseDraft(input: {
+    enterpriseId: string;
+    definitionId: string;
+    expectedRevision: number;
+    title: string;
+    payload: Record<string, unknown>;
+    actor: BusinessDefinitionAttributionV010;
+    recordedAt?: string;
+  }): BusinessDefinitionRevisionV010;
+
+  publish(input: {
+    enterpriseId: string;
+    definitionId: string;
+    expectedRevision: number;
+    actor: BusinessDefinitionAttributionV010;
+    recordedAt?: string;
+  }): BusinessDefinitionRevisionV010;
+
+  getLatest(input: {
+    enterpriseId: string;
+    definitionId: string;
+  }): BusinessDefinitionRevisionV010 | undefined;
+
+  listLatest(input: {
+    enterpriseId: string;
+    kind?: string;
+  }): BusinessDefinitionRevisionV010[];
+
+  listHistory(input: {
+    enterpriseId: string;
+    definitionId: string;
+  }): BusinessDefinitionRevisionV010[];
+}
+
+export interface BusinessDefinitionRepositoryMigrationV010 {
+  importRevision(
+    revision: BusinessDefinitionRevisionV010
+  ): BusinessDefinitionRevisionV010;
+}
