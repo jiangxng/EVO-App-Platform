@@ -10,6 +10,8 @@
 
 > **External Agent Access authority (2026-09-30):** Before designing external Agent access, MCP/OpenAPI/A2A exposure, plugin callable capabilities, delegated Agent authority, Agent-specific adapters, or the production login sequence, read `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`. Plugins define semantic capability operations once; App Platform governs lifecycle, Principal/Context, delegation, authorization, protocol projection, receipts and audit. Product adapters such as ChatGPT/Claude may reduce integration friction but MUST NOT own business semantics or authority. Production Human-delegated external access MUST wait for request-bound production login/session; the static Session Provider remains development/reference evidence only.
 
+> **External-Agent-first sequencing authority (2026-09-30):** Read `docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md` before extending Personal Agent, EOG upper layers, or external Agent integration. Close only the current atomic Enterprise Context Business Definition authority gate, then prioritize production login/session, generic plugin Capability Operations, delegated External Agent authority, Generic MCP READ/PLAN and Ledger Runtime EA-001. Personal Agent remains preserved and regression-protected but is not the primary feature-expansion target until shared plugin contracts have been validated by mature external Agents.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
