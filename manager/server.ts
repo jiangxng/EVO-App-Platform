@@ -525,7 +525,10 @@ import {
 } from "./material-write-authorization.js";
 import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
-import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
+import {
+  createLedgerRuntimeConfiguratorActionHandler,
+  createLedgerRuntimeConfiguratorCapabilityActionHandlers
+} from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
   createLedgerRuntimeConfiguratorCapabilityActionHandlers
 } from "../apps/ledger-runtime-configurator/capability-action-handlers.js";
@@ -3062,6 +3065,7 @@ const actionRouter = createAppActionRouter(
       createToolCatalog: createPersonalAgentToolCatalogV010
     }),
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
+    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
     ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
       baseUrl: evoBaseUrl,
