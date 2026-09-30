@@ -83,6 +83,22 @@ function validateClient(
     throw new Error("EXTERNAL_AGENT_CLIENT_AGENT_NOT_FOUND: " + client.agentId);
   }
   unique(client.protocols, "EXTERNAL_AGENT_CLIENT_PROTOCOL_DUPLICATE");
+  if (client.oauthClientId !== undefined) {
+    let parsed: URL;
+    try {
+      parsed = new URL(client.oauthClientId);
+    } catch {
+      throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+    }
+    if (
+      parsed.protocol !== "https:"
+      || parsed.pathname === "/"
+      || parsed.search
+      || parsed.hash
+    ) {
+      throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+    }
+  }
   requireIso(client.createdAt, "EXTERNAL_AGENT_CLIENT_CREATED_AT_INVALID");
   if (client.state === "REVOKED") {
     if (!client.revokedAt || !client.revokedBySubjectId?.trim()) {
@@ -175,6 +191,12 @@ function validate(
   }
   unique(snapshot.agents.map(item => item.agentId), "EXTERNAL_AGENT_ID_DUPLICATE");
   unique(snapshot.clients.map(item => item.clientId), "EXTERNAL_AGENT_CLIENT_ID_DUPLICATE");
+  unique(
+    snapshot.clients
+      .map(item => item.oauthClientId)
+      .filter((value): value is string => value !== undefined),
+    "EXTERNAL_AGENT_OAUTH_CLIENT_ID_DUPLICATE"
+  );
   unique(snapshot.grants.map(item => item.grantId), "EXTERNAL_AGENT_GRANT_ID_DUPLICATE");
   unique(snapshot.events.map(item => item.eventId), "EXTERNAL_AGENT_EVENT_ID_DUPLICATE");
 
@@ -262,6 +284,7 @@ function validateTransition(
         "displayName",
         "kind",
         "protocols",
+        "oauthClientId",
         "createdAt",
         "createdBySubjectId",
         "metadata"
