@@ -1,0 +1,43 @@
+name: Platform CI - External Agent OAuth
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/external-agent-access.ts"
+      - "contracts/external-agent-oauth.ts"
+      - "manager/external-agent-delegated-access.ts"
+      - "manager/external-agent-governance-service.ts"
+      - "manager/external-agent-governance-store.ts"
+      - "manager/external-agent-oauth-service.ts"
+      - "manager/external-agent-oauth-store.ts"
+      - "tests/external-agent/**"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-oauth.yml"
+  pull_request:
+    paths:
+      - "contracts/external-agent-access.ts"
+      - "contracts/external-agent-oauth.ts"
+      - "manager/external-agent-delegated-access.ts"
+      - "manager/external-agent-governance-service.ts"
+      - "manager/external-agent-governance-store.ts"
+      - "manager/external-agent-oauth-service.ts"
+      - "manager/external-agent-oauth-store.ts"
+      - "tests/external-agent/**"
+      - "package.json"
+      - ".github/workflows/platform-external-agent-oauth.yml"
+
+concurrency:
+  group: platform-external-agent-oauth-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:external-agent:oauth

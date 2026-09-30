@@ -54,6 +54,7 @@ export interface RegisterExternalAgentClientInputV010 {
   displayName: string;
   kind: ExternalAgentClientKindV010;
   protocols: ExternalAgentProtocolV010[];
+  oauthClientId?: string;
   metadata?: Record<string, string | number | boolean | null>;
 }
 
@@ -418,7 +419,31 @@ export function createExternalAgentGovernanceServiceV010(
         throw new Error("EXTERNAL_AGENT_CLIENT_PROTOCOL_INVALID");
       }
 
+      const oauthClientId = normalizeOptionalText(input.oauthClientId);
+      if (oauthClientId) {
+        let parsed: URL;
+        try {
+          parsed = new URL(oauthClientId);
+        } catch {
+          throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+        }
+        if (
+          parsed.protocol !== "https:"
+          || parsed.pathname === "/"
+          || parsed.search
+          || parsed.hash
+        ) {
+          throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+        }
+      }
+
       const snapshot = dependencies.store.snapshot();
+      if (
+        oauthClientId
+        && snapshot.clients.some(item => item.oauthClientId === oauthClientId)
+      ) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_DUPLICATE");
+      }
       const agent = snapshot.agents.find(item => item.agentId === agentId);
       if (!agent) throw new Error("EXTERNAL_AGENT_NOT_FOUND");
       if (agent.state !== "ACTIVE") throw new Error("EXTERNAL_AGENT_NOT_ACTIVE");
@@ -446,6 +471,7 @@ export function createExternalAgentGovernanceServiceV010(
         displayName,
         kind: input.kind,
         protocols,
+        ...(oauthClientId ? { oauthClientId } : {}),
         state: "ACTIVE",
         createdAt: occurredAt,
         createdBySubjectId: context.principal.subjectId,
