@@ -47,7 +47,7 @@ export function requestAuthenticationHttpFailureV010(
     };
   }
   if (
-    message === "IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED"
+    message === "IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED"
     || message === "IDENTITY_USER_DIRECTORY_PROVIDER_MISMATCH"
   ) {
     return {
