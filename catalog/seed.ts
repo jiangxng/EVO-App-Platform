@@ -7,8 +7,17 @@ import {
   LEDGER_RUNTIME_CONFIGURATION_CAPABILITY,
   ledgerRuntimeConfigurationCapabilityContributionsV010
 } from "../apps/ledger-runtime-configurator/capability-manifest.js";
+import {
+  enterpriseContextGovernanceAppPackage
+} from "../apps/enterprise-context-governance/package.js";
+import {
+  enterpriseContextGovernanceExperienceAssets
+} from "../apps/enterprise-context-governance/experience-assets.js";
 
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
+export {
+  enterpriseContextGovernanceAppPackage
+} from "../apps/enterprise-context-governance/package.js";
 
 
 export const companyNotesPackage: PackageManifestV010 = {
@@ -370,6 +379,7 @@ export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown
 
 export const referenceExperienceAssets = new Map<string, unknown>([
   ...enterpriseAgentExperienceAssets,
+  ...enterpriseContextGovernanceExperienceAssets,
   ...companyNotesExperienceAssets,
   ...tradingLiteExperienceAssets,
   ...ledgerRuntimeConfiguratorExperienceAssets
