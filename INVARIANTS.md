@@ -224,3 +224,18 @@
 - **APP-184** Effective ACTION_HOST bindings for Capability Operations MUST be unique. Two active operations claiming the same command code MUST fail closed; install order or adapter preference MUST NOT select semantics.
 - **APP-185** External/public Capability Operation metadata MUST expose semantic contracts rather than Host routing or policy internals. ACTION_HOST command codes, internal authorization wiring and policy implementation details MUST NOT become protocol authority.
 - **APP-186** Installation-scoped and Enterprise-scoped business semantics MUST NOT be silently conflated. An enterprise-specific Ledger Runtime template answer requires an explicit, queryable and auditable Enterprise Context → Ledger Template binding or inheritance contract.
+
+
+## External Agent Delegation Constitution
+
+- **APP-187** External Agent registration, External Agent Client registration and delegated Authority Grant are distinct Host-owned facts. Registering or trusting an Agent/client MUST NOT itself grant business capability authority.
+- **APP-188** Human-created External Agent registrations MUST NOT self-assert elevated trust such as VERIFIED, ENTERPRISE_APPROVED or FIRST_PARTY. Trust posture and delegated business authority remain separate.
+- **APP-189** A delegated External Agent Grant MUST bind to a Host-resolved active Context. Caller-supplied enterprise/context identifiers MUST NOT create the Grant's authority scope.
+- **APP-190** Grant creation MUST attenuate to the authorizing Human's current allowed Capability Operations and MUST additionally require explicit EXTERNAL_AGENT exposure eligibility. A Grant MUST NOT contain an operation unavailable to the Human at creation time.
+- **APP-191** External Agent WRITE delegation remains denied until the governed WRITE phase explicitly activates approval, idempotency, durable receipt and ambiguous-outcome handling. A Human ALLOW alone MUST NOT enable External Agent WRITE early.
+- **APP-192** External Agent Authority Grants MUST have explicit bounded validity. The first delegated-authority contract MUST NOT create implicit permanent grants.
+- **APP-193** Agent, Client and Grant creation facts are immutable; revocation is terminal; governance events are append-only. New authority relationships require new durable records rather than reactivating revoked objects.
+- **APP-194** Revoking an Agent or Client, or expiration of a Grant, MUST immediately make delegated authority ineffective without rewriting the historical Grant creation fact.
+- **APP-195** Grant creation-time authorization is insufficient for runtime use. Every delegated discovery/invocation decision MUST intersect the Grant with current plugin lifecycle, current Context authority and the authorizing Principal's current authorization.
+- **APP-196** Delegated authority MUST NOT depend on a live Human browser Session as the only way to know current Human authority, and MUST NOT freeze stale Session/token claims into a Grant as permanent Principal truth. A governed current-identity resolution boundary is required before EA-4 network authorization is opened.
+- **APP-197** EA-3A governance state MUST NOT store OAuth client secrets, bearer/access/refresh tokens or authorization codes. Credential transport/authentication belongs to the later OAuth/client-authentication layer.

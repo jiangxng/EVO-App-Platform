@@ -69,9 +69,22 @@ These endpoints are MVP contracts, not yet frozen public v1 compatibility promis
 
 Authority: `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
 
-This is a reserved public-contract family, not a currently exposed unauthenticated API.
+This remains a reserved **network** API family; no External Agent public endpoint
+is exposed yet.
 
-Future public families include:
+Internal public semantic contracts now exist for:
+
+- plugin `platform.capability-operation` declarations;
+- authorization-aware effective operation selection;
+- External Agent registration;
+- External Agent Client registration;
+- delegated External Agent Authority Grants;
+- bounded validity/revocation/effective-status semantics.
+
+These internal contracts are not OAuth credentials and are not evidence that an
+external caller can already connect.
+
+Future network/public families include:
 
 - protected-resource / authorization discovery;
 - authenticated External Agent/client identity;
@@ -86,4 +99,11 @@ Future public families include:
 
 Plugins do not publish product-specific ChatGPT/Claude APIs. Plugins publish one stable semantic Capability Operation through Plugin Protocol/App Platform public contracts. App Platform projects effective authorized operations into external protocols.
 
-Production external Human-delegated access is blocked until request-bound production Identity/Session/login is available.
+Production external Human-delegated access remains blocked until:
+
+1. real production Human OIDC browser login is live-proven;
+2. EA-3B can re-resolve the authorizing Human's current identity/context/authority without relying on a live browser Session;
+3. OAuth protected-resource/client authorization is implemented;
+4. delegated discovery/invocation is machine-proven fail-closed.
+
+See `docs/architecture/EXTERNAL-AGENT-DELEGATED-AUTHORITY-EA3A-v0.1.md`.
