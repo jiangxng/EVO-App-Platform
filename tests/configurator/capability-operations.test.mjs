@@ -196,6 +196,14 @@ test("Ledger plugin publishes exactly the two EA-001 READ operations and binding
   assert.ok(operations.every(
     item => item.exposure.includes("EXTERNAL_AGENT")
   ));
+  assert.ok(operations.every(item => item.dataScope === "INSTALLATION"));
+  assert.ok(operations.every(
+    item => item.authorization.action === "ledger.runtime.configuration.read"
+  ));
+  assert.ok(operations.every(
+    item => item.authorization.resource.type === "ledger.runtime.configuration"
+    && item.authorization.resource.idSource === "NONE"
+  ));
 
   const commandCodes = new Set(
     createLedgerRuntimeConfiguratorCapabilityActionHandlers(

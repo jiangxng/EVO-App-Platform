@@ -640,6 +640,8 @@
             "title",
             "description",
             "effect",
+            "dataScope",
+            "authorization",
             "inputSchema",
             "outputSchema",
             "binding",
@@ -730,6 +732,96 @@
                 },
                 "receipt": {
                   "const": "HOST_REQUIRED"
+                }
+              }
+            },
+            "dataScope": {
+              "enum": [
+                "SYSTEM",
+                "INSTALLATION",
+                "ENTERPRISE",
+                "COMPANY",
+                "WORKSPACE",
+                "USER"
+              ]
+            },
+            "authorization": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "resource"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                },
+                "resource": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "idSource"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                    },
+                    "idSource": {
+                      "enum": [
+                        "NONE",
+                        "DATA_SCOPE",
+                        "INPUT"
+                      ]
+                    },
+                    "inputKey": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "idSource": {
+                            "const": "INPUT"
+                          }
+                        },
+                        "required": [
+                          "idSource"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "inputKey"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "idSource": {
+                            "enum": [
+                              "NONE",
+                              "DATA_SCOPE"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "idSource"
+                        ]
+                      },
+                      "then": {
+                        "not": {
+                          "required": [
+                            "inputKey"
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }

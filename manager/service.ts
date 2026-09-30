@@ -633,6 +633,11 @@ export function createAppManagerService(
     const active = store.snapshot().activeFeatures;
     const all: Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }> = [];
     const owners = new Map<string, { packageId: string; featureId: string }>();
+    const actionBindings = new Map<string, {
+      operationId: string;
+      packageId: string;
+      featureId: string;
+    }>();
 
     for (const item of active) {
       const pkg = catalog.get(item.packageId);
@@ -651,6 +656,25 @@ export function createAppManagerService(
           packageId: item.packageId,
           featureId: item.featureId
         });
+
+        if (operation.binding.type === "ACTION_HOST") {
+          const previousBinding = actionBindings.get(
+            operation.binding.commandCode
+          );
+          if (previousBinding) {
+            throw new Error(
+              `CAPABILITY_OPERATION_BINDING_CONFLICT: ${operation.binding.commandCode} is claimed by `
+              + `${previousBinding.operationId} (${previousBinding.packageId}/${previousBinding.featureId}) and `
+              + `${operation.operationId} (${item.packageId}/${item.featureId})`
+            );
+          }
+          actionBindings.set(operation.binding.commandCode, {
+            operationId: operation.operationId,
+            packageId: item.packageId,
+            featureId: item.featureId
+          });
+        }
+
         all.push({
           ...operation,
           packageId: item.packageId,

@@ -60,4 +60,20 @@ test("portable schema includes current runtime, integrity and Eidos contribution
       .properties.operation.properties.binding.properties.type.const,
     "ACTION_HOST"
   );
+  assert.deepEqual(
+    featureSchema.$defs.capabilityOperationContribution
+      .properties.operation.properties.dataScope.enum,
+    ["SYSTEM", "INSTALLATION", "ENTERPRISE", "COMPANY", "WORKSPACE", "USER"]
+  );
+  assert.deepEqual(
+    featureSchema.$defs.capabilityOperationContribution
+      .properties.operation.properties.authorization
+      .properties.resource.properties.idSource.enum,
+    ["NONE", "DATA_SCOPE", "INPUT"]
+  );
+  assert.equal(
+    featureSchema.$defs.capabilityOperationContribution
+      .properties.operation.required.includes("authorization"),
+    true
+  );
 });

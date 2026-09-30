@@ -258,6 +258,8 @@ The operation declares:
 - owning Capability;
 - title/description;
 - READ / PLAN / WRITE effect;
+- explicit data ownership scope: SYSTEM / INSTALLATION / ENTERPRISE / COMPANY / WORKSPACE / USER;
+- authorization action + resource semantics;
 - JSON Schema input/output;
 - ACTION_HOST execution binding;
 - explicit eligible consumer classes;
@@ -269,4 +271,16 @@ Operation ids are capability-namespaced and globally unique among effective acti
 
 App Manager exposes only operations contributed by currently active Features. Disable/uninstall therefore removes the operation from the effective registry automatically.
 
-This Contribution does not itself grant authorization and does not create an external endpoint. Principal/Context/delegated authority and protocol projection remain later governed layers.
+This Contribution does not itself grant authorization and does not create an external endpoint.
+
+EA-2C uses the declared `dataScope` and `authorization` metadata with the
+Host-resolved Principal/Context and the existing `authorization.check`
+Provider to derive an authorized catalog and to guard direct ACTION_HOST
+invocation. Missing/errored authorization or unavailable required scope fails
+closed.
+
+`EXTERNAL_AGENT` remains only exposure eligibility until explicit delegated
+Agent authority is introduced in EA-3.
+
+Authority:
+`docs/architecture/AUTHORIZED-CAPABILITY-OPERATION-CATALOG-EA2C-v0.1.md`.

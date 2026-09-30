@@ -66,6 +66,14 @@ Canonical shape:
     "title": "Describe Ledger Runtime",
     "description": "Returns the effective Ledger Runtime configuration for the current authorized enterprise context.",
     "effect": "READ",
+    "dataScope": "INSTALLATION",
+    "authorization": {
+      "action": "ledger.runtime.configuration.read",
+      "resource": {
+        "type": "ledger.runtime.configuration",
+        "idSource": "NONE"
+      }
+    },
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
@@ -205,7 +213,49 @@ It freezes the rule that future protocol projection cannot create a write path l
 
 READ/PLAN operations must not declare WRITE safety metadata.
 
-## 9. Input/output schemas
+## 9. Data scope and authorization
+
+As of EA-2C, every Capability Operation also declares:
+
+```text
+dataScope
+authorization.action
+authorization.resource.type
+authorization.resource.idSource
+authorization.resource.inputKey?
+```
+
+`dataScope` records where the underlying data semantically lives:
+
+```text
+SYSTEM
+INSTALLATION
+ENTERPRISE
+COMPANY
+WORKSPACE
+USER
+```
+
+This is not caller authority. Scope is still resolved by the Host.
+
+Authorization metadata defines how the operation is checked through the existing
+`authorization.check` Provider. It does not embed a concrete policy or grant
+permission by itself.
+
+Resource id sources are:
+
+- `NONE` — type-only resource;
+- `DATA_SCOPE` — id derived from Host-resolved Enterprise/Company/Workspace/User scope;
+- `INPUT` — id taken from one declared operation input field at invocation time.
+
+Discovery and invocation are both authorization-controlled in EA-2C. Directly
+guessing an ACTION_HOST command cannot bypass the operation's authorization
+metadata.
+
+Authority:
+`docs/architecture/AUTHORIZED-CAPABILITY-OPERATION-CATALOG-EA2C-v0.1.md`.
+
+## 10. Input/output schemas
 
 `inputSchema` and `outputSchema` are machine-readable JSON Schema objects.
 
@@ -217,7 +267,7 @@ A schema saying a field exists does not imply the caller may read/write that fie
 
 Future authorization/result filtering may further restrict effective input/output.
 
-## 10. Binding
+## 11. Binding
 
 EA-2A intentionally supports one execution binding:
 
@@ -240,7 +290,7 @@ The binding is internal execution metadata.
 
 External protocols should project semantic operation identity, not expose private routing mechanics as authority.
 
-## 11. Exposure eligibility
+## 12. Exposure eligibility
 
 Each operation explicitly lists one or more candidate audiences:
 
@@ -272,9 +322,14 @@ operation exposure eligibility
 effective visible operation
 ```
 
-EA-2A does not yet perform this authorization filtering.
+EA-2A itself introduced only lifecycle-effective aggregation. EA-2C now adds
+Principal/Context-aware authorization filtering and invocation-time enforcement.
 
-## 12. Lifecycle-effective registry
+`EXTERNAL_AGENT` eligibility still does not create External Agent visibility:
+until EA-3 adds explicit Agent/client identity and delegated Authority Grants,
+External Agent discovery remains fail-closed.
+
+## 13. Lifecycle-effective registry
 
 App Manager now derives operations only from currently active Features.
 
@@ -304,7 +359,7 @@ Feature disabled/uninstalled
 
 No ghost API remains after Feature deactivation.
 
-## 13. Global collision behavior
+## 14. Global collision behavior
 
 If two active Features contribute the same `operationId`:
 
@@ -324,7 +379,7 @@ It does not:
 
 Public semantic ownership must be explicit.
 
-## 14. Plugin ownership
+## 15. Plugin ownership
 
 The owning plugin owns:
 
@@ -341,13 +396,13 @@ App Platform owns:
 
 - lifecycle-effective aggregation;
 - conflict detection;
-- future Principal/Context filtering;
-- future delegated authority filtering;
+- Principal/Context-aware filtering through EA-2C;
+- delegated External Agent authority filtering beginning in EA-3;
 - protocol projection;
 - invocation governance;
 - audit/receipts.
 
-## 15. What EA-2A does not implement
+## 16. What EA-2A does not implement
 
 EA-2A does NOT yet implement:
 
@@ -366,7 +421,7 @@ This is deliberate.
 
 The contract is made executable internally before network exposure.
 
-## 16. Machine acceptance
+## 17. Machine acceptance
 
 EA-2A is complete when:
 
@@ -384,15 +439,16 @@ EA-2A is complete when:
 12. active cross-plugin operation collision fails closed;
 13. existing Plugin Protocol and Platform CI remain green.
 
-## 17. First real consumer
+## 18. First real consumer
 
-After the production login live gate and delegated External Agent authorization foundation, the first real business operation should be Ledger Runtime READ:
+The first real business-plugin operations are now implemented by the Ledger Runtime Configurator:
 
 ```text
-ledger.runtime.describe
+ledger.runtime.configuration.describe
+ledger.runtime.configuration.section.read
 ```
 
-or a semantically equivalent final Ledger-owned id.
+They intentionally describe/read the Configurator-owned Ledger Runtime configuration rather than claiming broad runtime execution ownership.
 
 It will be used for EA-001:
 
@@ -400,14 +456,17 @@ It will be used for EA-001:
 
 That plugin contribution must live with the Ledger Runtime / Configurator business owner, not in External Agent adapter code.
 
-## 18. Next slices
+## 19. Next slices
 
 ```text
 EA-2A
 Capability Operation declaration + effective registry
         ↓
 EA-2B
-Principal/Context-aware effective operation selection
+Ledger Runtime reference business operations
+        ↓
+EA-2C
+Principal/Context-aware authorized catalog + invocation gate
         ↓
 EA-3
 External Agent identity + delegated Authority Grant

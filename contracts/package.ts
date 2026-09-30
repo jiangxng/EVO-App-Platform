@@ -232,6 +232,15 @@ export interface PlatformCapabilityOperationContributionV010 {
     title: string;
     description: string;
     effect: CapabilityOperationEffectV010;
+    dataScope: ActivationScope;
+    authorization: {
+      action: string;
+      resource: {
+        type: string;
+        idSource: "NONE" | "DATA_SCOPE" | "INPUT";
+        inputKey?: string;
+      };
+    };
     inputSchema: Record<string, unknown>;
     outputSchema: Record<string, unknown>;
     binding: {

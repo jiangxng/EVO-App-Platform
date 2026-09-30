@@ -491,6 +491,7 @@ import { createAuthenticationFlowV010 } from "./authentication-flow.js";
 import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
+import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
@@ -2869,7 +2870,11 @@ const actionRouter = createAppActionRouter(
       actor: { type: evoActorType, id: evoActorId }
     })
   ],
-  featureId => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === featureId)
+  featureId => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === featureId),
+  createCapabilityOperationActionPreExecuteV010({
+    manager,
+    resolveAuthorizationProvider
+  })
 );
 
 const corsOrigin = process.env.CORS_ORIGIN ?? "*";

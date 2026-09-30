@@ -214,3 +214,13 @@
 - **APP-176** App Manager derives effective Capability Operations only from active Features. Disabling or uninstalling a Feature MUST remove its operations without ghost API compatibility paths.
 - **APP-177** Duplicate operation ids among active Features fail closed. App Platform MUST NOT choose an owner by install order, lexical order, version, repository or adapter preference.
 - **APP-178** A Capability Operation classified WRITE MUST declare Host-owned idempotency and durable receipt requirements before it can enter Plugin Protocol; protocol/product adapters MUST NOT weaken those requirements.
+
+
+- **APP-179** Every Capability Operation MUST declare its semantic data scope and authorization action/resource contract. Exposure eligibility, data scope and authorization are distinct concepts and MUST NOT be collapsed.
+- **APP-180** Capability Operation data scope is Host-resolved. Caller-, browser-, model- or adapter-supplied identifiers MUST NOT manufacture ENTERPRISE, COMPANY, WORKSPACE or USER authority.
+- **APP-181** Capability Operation authorization MUST protect both discovery and invocation. Hiding an operation from discovery is not sufficient; guessing an operation id or ACTION_HOST command MUST NOT bypass `authorization.check`.
+- **APP-182** Missing, ambiguous, unavailable, errored or denying authorization, or an unavailable required data scope, MUST fail closed for Capability Operation discovery and execution. App Platform may restrict a Provider ALLOW but MUST NOT upgrade DENY.
+- **APP-183** `EXTERNAL_AGENT` exposure is semantic eligibility only. Until a specific External Agent/client has explicit attenuated delegated authority, External Agent discovery MUST remain empty even when the authorizing Human could perform the operation.
+- **APP-184** Effective ACTION_HOST bindings for Capability Operations MUST be unique. Two active operations claiming the same command code MUST fail closed; install order or adapter preference MUST NOT select semantics.
+- **APP-185** External/public Capability Operation metadata MUST expose semantic contracts rather than Host routing or policy internals. ACTION_HOST command codes, internal authorization wiring and policy implementation details MUST NOT become protocol authority.
+- **APP-186** Installation-scoped and Enterprise-scoped business semantics MUST NOT be silently conflated. An enterprise-specific Ledger Runtime template answer requires an explicit, queryable and auditable Enterprise Context → Ledger Template binding or inheritance contract.
