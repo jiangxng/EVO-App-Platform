@@ -493,6 +493,9 @@ import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/
 import { authorizeMaterialWriteV010 } from "./material-write-authorization.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
+import {
+  createLedgerRuntimeConfiguratorCapabilityActionHandlers
+} from "../apps/ledger-runtime-configurator/capability-action-handlers.js";
 import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
@@ -2859,6 +2862,7 @@ const actionRouter = createAppActionRouter(
       createToolCatalog: createPersonalAgentToolCatalogV010
     }),
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
+    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
       baseUrl: evoBaseUrl,
       enterpriseCode: evoEnterpriseCode,
