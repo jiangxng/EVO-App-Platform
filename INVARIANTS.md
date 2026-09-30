@@ -161,9 +161,9 @@
 
 - **APP-135** EVO is Person-first in the frozen MVP world model. Human identity is not a child object owned by Enterprise; Enterprise is an accessible governed Context, not the root of the person.
 - **APP-136** The MVP has exactly one Agent ontology: Personal Agent. Enterprise Context MUST NOT be represented as a second Enterprise Agent merely to provide data, memory, policy or tools.
-- **APP-137** Personal Context Memory and Enterprise Context Memory are distinct long-lived assets. Access to Enterprise Context for reasoning MUST NOT imply permission to persist enterprise-confidential facts into Personal Context Memory.
+- **APP-137** Personal Context Memory remains a distinct long-lived personal asset. Existing Enterprise Context Memory records are preserved compatibility/governance assets pending EC knowledge convergence; they MUST NOT be treated as the target enterprise knowledge authority. Access to Enterprise Context for reasoning MUST NOT imply permission to persist enterprise-confidential facts into Personal Context Memory.
 - **APP-138** Personal Agent output is analysis/opinion/proposal, not the final material decision. Material decisions remain with the human unless an explicit future delegation contract grants bounded authority.
-- **APP-139** Context Memory is durable platform data independent of any LLM Provider or model hidden state. Replacing the model MUST NOT erase Personal or Enterprise Context Memory.
+- **APP-139** Durable memory/evidence assets are independent of any LLM Provider or model hidden state. Replacing the model MUST NOT erase Personal Context Memory or preserved Enterprise Context Memory evidence; target enterprise knowledge authority is Experience Compiler under APP-146.
 - **APP-140** The `enterprise-agent` Package/Feature/Experience/route/command identifiers are compatibility identifiers for the Personal Agent implementation. Product-facing naming is Personal Agent; machine identifier migration requires an explicit versioned compatibility plan.
 
 - **APP-141** Active Context is Host-resolved state. Browser/request/model input may select only among Context references offered by a Host-owned source; arbitrary client-supplied enterprise/context identifiers MUST NOT create or authorize an Enterprise Context.
