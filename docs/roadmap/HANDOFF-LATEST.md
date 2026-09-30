@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EXT-AGENT-2026-09-30-01`  
-**Snapshot time:** `2026-09-30T16:25:49.696+08:00`  
+**Snapshot:** `EXT-AGENT-2026-09-30-02`  
+**Snapshot time:** `2026-09-30T21:16:34.930+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,28 +16,42 @@ ACTIVE
 
 ## Latest closed live slice
 
-**enterprise-context-business-definitions-sop-authority-migration-v0-1: VERIFIED_PRODUCTION_PASS**
+**external-agent-foundation-production-shape-default-off-v0-1: VERIFIED_PRODUCTION_PASS**
 
-Enterprise Context is now the headless Business Definition authority in production. PR #209 introduced the generic enterprise-scoped immutable Definition Repository and migrated the legacy EOG SOP authority path. The production Ledger Configurator deployment started successfully and reported migration of one legacy EOG SOP definition into Enterprise Context persistent state. Existing EOG/SOP analysis assets remain preserved and non-gating; no EOG upper-layer expansion is required before the External-Agent-first foundation track.
+The External-Agent-first foundation is now implemented through delegated Capability Operations, CIMD-first OAuth, MCP 2026-07-28 Tool projection and the first ChatGPT Product Adapter. Railway production successfully deployed commit 74796311df71e16a8f25f1caf21e203324aae4a4. Startup preserved the Enterprise Context migration, kept the generic OIDC runtime inactive because no issuer is configured, and started the Host normally. External Agent OAuth/MCP remain intentionally disabled, so this proves safe production-shape deployment rather than public External Agent availability.
 
-Authority: `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
+Authority: `docs/architecture/CHATGPT-MCP-PRODUCT-ADAPTER-EA6A-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "architecturePr": 209,
-  "definitionAuthorityCommit": "9102a0c043e84fe423ed27a4335161dbc1d8f212",
-  "productionCommit": "65356abbf93870bd6b048ab415574b16d3582403",
-  "productionDeploymentId": "8f31d73c-d211-48a4-a377-4894c2181dfc",
+  "capabilityOperationPr": 217,
+  "ledgerCapabilityPr": 218,
+  "capabilityAuthorizationPr": 219,
+  "delegatedGovernancePr": 220,
+  "identityDirectoryPr": 221,
+  "currentAuthorityPr": 222,
+  "oauthCorePr": 223,
+  "oauthHttpPr": 224,
+  "mcpCorePr": 226,
+  "mcpProtectedResourcePr": 227,
+  "mcpProjectionPr": 228,
+  "chatgptAdapterPr": 229,
+  "productionCommit": "74796311df71e16a8f25f1caf21e203324aae4a4",
+  "productionDeploymentId": "41ae4d9e-8d96-44fa-bf85-e6b853405c6e",
   "productionStatus": "SUCCESS",
   "persistentStateMount": "/data",
-  "migratedLegacySopDefinitions": 1,
-  "observedMigrationLog": "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
-  "businessDefinitionRepositoryOwner": "Enterprise Context plugin",
-  "eogCoreCiGated": true,
-  "preservedSopAnalysisNonGating": true,
-  "experienceCompilerKnowledgeAuthority": true
+  "observedStartupLogs": [
+    "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
+    "Generic OIDC Identity Provider runtime is not active: ISSUER_REQUIRED.",
+    "EVO App Manager listening on http://localhost:8080"
+  ],
+  "externalAgentOAuthProductionEnabled": false,
+  "externalAgentMcpProductionEnabled": false,
+  "humanOidcProductionConfigured": false,
+  "chatgptAdapterIncluded": true,
+  "rfc9207IssuerIdentificationIncluded": true
 }
 ```
 
@@ -45,19 +59,20 @@ Evidence:
 
 **production-human-login-request-bound-session-v0-1: ACTIVE**
 
-Build the first production-grade Human authentication/session boundary required before delegated External Agent access. Replace deployment-scoped static identity for production requests with request-bound, revocable Session resolution while preserving the replaceable identity Provider model. The preferred first production provider is generic OIDC; the existing static Session Provider remains development/test evidence only.
+Complete the live production proof for the already-implemented generic OIDC + Host managed Session chain. Register one real external OIDC client for the production Ledger Configurator callback, configure issuer/clientId/(optional clientSecret), then prove browser login, request-bound Principal, /auth/session, logout/revocation and fail-closed behavior. Do not enable public External Agent OAuth/MCP until this gate passes.
 
 Acceptance:
 
-- Human can complete a real Eidos-hosted login and logout journey without developer configuration or forged request identity
-- each protected request resolves an authoritative request-bound Session and Principal rather than trusting browser-supplied subject/context values
-- session expiration, logout/revocation and rotation semantics are explicit and fail closed
-- production login uses a replaceable identity Provider contract; the first implementation is generic OIDC unless implementation evidence requires a narrower intermediate adapter
-- authorization.check receives the authoritative Principal and authentication success is never converted directly into authorization
-- Enterprise Context availability remains the intersection of authoritative Principal membership/grants and the Host directory
-- the static Session Provider remains available for development/tests but cannot satisfy the production External Agent login gate
-- login/session secrets, tokens and identity-provider credentials do not enter Package manifests, ordinary Settings, logs or Agent context
-- the resulting Session boundary is reusable by Human UI, Personal Agent and future External Agent delegated authorization
+- a real Human completes https://ledger-configurator-production.up.railway.app/auth/login through a real OIDC Provider and returns through /auth/callback
+- the Host issues its own revocable managed Session rather than using the external IdP token as the EVO request Session
+- a protected request resolves the authoritative request-bound Human Principal from that Session
+- /auth/session proves the current signed-in Human without trusting browser-supplied subject/context values
+- logout/revocation makes the prior managed Session unusable
+- session expiration/rotation remains fail closed and durable on /data
+- authorization.check receives the authoritative Principal; authentication alone never becomes business authorization
+- OIDC client secret, provider tokens and Session secrets remain behind Host Secrets/session boundaries and never enter Agent context
+- static/deployment-scoped identity remains development/reference compatibility only and does not satisfy this production gate
+- External Agent OAuth and MCP flags remain OFF until all prior acceptance evidence is recorded
 
 ## Current production preview
 
@@ -66,39 +81,57 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `65356abbf93870bd6b048ab415574b16d3582403`
-- Deployment: `8f31d73c-d211-48a4-a377-4894c2181dfc`
+- Commit: `74796311df71e16a8f25f1caf21e203324aae4a4`
+- Deployment: `41ae4d9e-8d96-44fa-bf85-e6b853405c6e`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
 ## Project continuity live validation
 
-**Status:** `VERIFIED_PRODUCTION_PASS`
+**Status:** `LIVE_PASS`
 
-**Scenario:** `Enterprise Context Business Definition authority migration and External-Agent-first handoff`
+**Scenario:** `External-Agent-first foundation production-shape deployment with public access intentionally disabled`
 
-Production Ledger Configurator deployed commit 65356abbf93870bd6b048ab415574b16d3582403, which contains the PR #209 Enterprise Context Business Definition authority implementation. Startup reported 'Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.' and then 'EVO App Manager listening on http://localhost:8080'. The service reached SUCCESS with persistent state mounted at /data.
+Railway production deployment 41ae4d9e-8d96-44fa-bf85-e6b853405c6e built GitHub main commit 74796311df71e16a8f25f1caf21e203324aae4a4 (PR #229) and reached SUCCESS. Startup logged the existing Enterprise Context legacy SOP migration, then 'Generic OIDC Identity Provider runtime is not active: ISSUER_REQUIRED.', then 'EVO App Manager listening on http://localhost:8080'. No production variables enable managed OIDC login, External Agent OAuth or External Agent MCP yet, so the new foundation is deployed safely but remains inaccessible as a delegated public Agent surface.
 
-Authority: `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
+Authority: `docs/architecture/CHATGPT-MCP-PRODUCT-ADAPTER-EA6A-v0.1.md`
 
 Proved:
 
-- Enterprise Context Business Definition Repository code is running in the production Ledger Configurator service
-- the legacy EOG SOP persistence source was discovered during production startup
-- one existing legacy SOP definition was imported into Enterprise Context persistent Business Definition state
-- the application started successfully after migration instead of retaining an EOG-local-only authority path
-- the project may close the atomic definition-authority migration gate and freeze EOG upper-layer expansion while External-Agent-first foundations proceed
+- the merged External-Agent-first code through PR #229 builds and starts in the real Railway production service
+- the production build uses exact Git commit 74796311df71e16a8f25f1caf21e203324aae4a4 rather than the previous PR #210 snapshot
+- Enterprise Context migration behavior survives the External Agent foundation changes
+- unconfigured Generic OIDC fails closed by remaining inactive instead of fabricating Human identity
+- the Host remains healthy while External Agent OAuth/MCP are default OFF
+- ChatGPT adapter and RFC 9207 code are present in the production-shape binary without creating a public Agent access path
 
 Not proved:
 
-- production Human login/request-bound Session; this is the new active gate
-- External Agent OAuth/MCP connectivity; it remains blocked on production identity/session and delegated authority
-- Agent-neutral Capability Operation Registry; it is the next platform layer after login
-- EOG report/analysis/SOP peer-plugin extraction; those assets remain preserved and deferred
+- real Human OIDC login, callback, managed Session, logout or revocation
+- public External Agent OAuth authorization
+- public /mcp connectivity from ChatGPT
+- EA-001 Blind Enterprise Discovery through a real external Agent
+- second mature Agent portability
+- governed External Agent WRITE
 
 
 ## Recent mainline changes
 
+- PR #229 — MERGED_CI_PASS_DEPLOYED: Add the first ChatGPT MCP Product Adapter without changing plugin business semantics; add RFC 9207 issuer identification and deploy safely with External Agent access still OFF.
+- PR #228 — MERGED_CI_PASS_DEPLOYED: Project currently delegated READ/PLAN Capability Operations into MCP tools/list and tools/call through the ordinary ActionHost path.
+- PR #227 — MERGED_CI_PASS_DEPLOYED: Bind /mcp to the OAuth Bearer protected-resource resolver behind a default-OFF production flag.
+- PR #226 — MERGED_CI_PASS_DEPLOYED: Add the stateless MCP 2026-07-28 protocol core.
+- PR #224 — MERGED_CI_PASS_DEPLOYED: Project External Agent OAuth onto Host HTTP discovery/authorize/token/revoke routes behind a default-OFF production flag.
+- PR #223 — MERGED_CI_PASS_DEPLOYED: Add CIMD-first PKCE S256 resource-bound OAuth authorization/access/refresh token core with current-authority revalidation.
+- PR #222 — MERGED_CI_PASS_DEPLOYED: Recompute effective delegated External Agent authority from current Human, membership, plugin lifecycle and authorization policy.
+- PR #221 — MERGED_CI_PASS_DEPLOYED: Add the current Human identity user directory used by delegated authority resolution.
+- PR #220 — MERGED_CI_PASS_DEPLOYED: Add durable External Agent, Client and attenuated Authority Grant governance.
+- PR #219 — MERGED_CI_PASS_DEPLOYED: Make Capability Operation discovery and invocation authorization-aware at the Host boundary.
+- PR #218 — MERGED_CI_PASS_DEPLOYED: Expose Ledger Runtime configuration describe and bounded digest-bound section READ as Agent-neutral Capability Operations.
+- PR #217 — MERGED_CI_PASS_DEPLOYED: Add platform.capability-operation to Plugin Protocol with lifecycle-effective aggregation and fail-closed operation-id conflicts.
+- PR #216 — MERGED_CI_PASS_DEPLOYED: Wire the generic OIDC Provider into Host Settings, Secrets and Provider Runtime Registry while keeping production login disabled until live proof.
+- PR #215 — MERGED_CI_PASS_DEPLOYED: Add generic OIDC Authorization Code + PKCE S256 + JWKS/RS256 Provider core.
+- PR #214 — MERGED_CI_PASS_DEPLOYED: Add Provider-neutral Host authentication orchestration and managed Session issuance/logout boundary.
 - PR #210 — MERGED_CI_PASS_DEPLOYED: Record the Enterprise–Personal Learning Loop as a long-term architecture target while keeping it outside current MVP/CI.
 - PR #209 — MERGED_CI_PASS_DEPLOYED: Converge Enterprise Context Business Definition authority, migrate legacy EOG SOP persistence and preserve EOG/SOP analysis assets as non-gating.
 - PR #84 — MERGED: Preserve distinct Host tools after repeated READ suppression and add Memory Proposal readback.
@@ -129,8 +162,6 @@ Not proved:
 - PR #116 — MERGED: Add durable Conversation Thread foundation.
 - PR #117 — MERGED: Bind durable Conversation Threads to Agent Runs and Host-built history.
 - PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
-- PR #119 — MERGED_DEPLOYED: Add append-only ACTIVE→ARCHIVED Conversation Thread lifecycle; 31/31 CI PASS.
-- PR #120 — MERGED_DEPLOYED: Add non-destructive archived-thread retention preview; 32/32 CI PASS; no destructive action enabled.
 
 ## DO NOT repeat stale actions
 
@@ -253,6 +284,13 @@ Not proved:
 - Do not resume major Personal Agent feature expansion while External-Agent-first Platform Validation is active; preserve regression, security and shared-contract compatibility only.
 - Do not treat host-static-session-provider or deployment-scoped static identity as production Human login for External Agent delegation.
 - Do not expose production Human-delegated MCP/OAuth External Agent access before request-bound production Session/Principal resolution is live and revocable.
+- Do not rebuild Capability Operation, delegated External Agent authority, OAuth, Generic MCP or the ChatGPT Product Adapter as pending foundations; PRs #217-#229 have already merged and the resulting mainline is production-shape deployed at 74796311df71e16a8f25f1caf21e203324aae4a4.
+- Do not claim public External Agent production availability from deployment 41ae4d9e-8d96-44fa-bf85-e6b853405c6e; External Agent OAuth/MCP remain intentionally disabled and real Human OIDC login is still the active live gate.
+- Do not use host-static-session-provider or APP_PLATFORM_STATIC_SESSION_JSON to bypass the real Human OIDC live gate for delegated External Agent access.
+- Do not enable APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED or APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED before the real browser OIDC login/logout/revocation proof passes.
+- Do not redefine Ledger Agent access in an adapter: the plugin-owned operations are ledger.runtime.configuration.describe and ledger.runtime.configuration.section.read.
+- Do not identify ChatGPT from MCP clientInfo/model text; ChatGPT Product Adapter selection is based only on validated OAuth CIMD client identity.
+- Do not hand-edit HANDOFF-LATEST.md; update project.status.json and regenerate it through the continuity renderer.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -366,6 +404,14 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state production-human-login-request-bound-session-v0-1 as the active gate before public delegated External Agent access
 - state EOG upper-layer expansion and major Personal Agent feature expansion as deferred while their existing assets remain preserved/regression-protected
 - state EA-001 Blind Enterprise Discovery over Ledger Runtime as the first external Agent conformance target after login, delegation and Generic MCP READ/PLAN exist
+- state PRs #217-#229 as merged foundations: Capability Operations, Ledger READ operations, current-authority delegation, OAuth, MCP and ChatGPT Product Adapter are implemented rather than future work
+- state production Ledger Configurator as commit 74796311df71e16a8f25f1caf21e203324aae4a4 / Railway deployment 41ae4d9e-8d96-44fa-bf85-e6b853405c6e SUCCESS
+- state the production startup evidence exactly: Enterprise Context legacy SOP migration still reports one imported definition; Generic OIDC reports ISSUER_REQUIRED/inactive; Host listens normally
+- state External Agent OAuth and MCP as default-OFF in production and therefore not yet a public External Agent live pass
+- state the active gate as real production Human OIDC login/logout/revocation, not Capability Registry/OAuth/MCP implementation
+- state EA-001 as ready in code but still awaiting live Human OIDC, explicit ChatGPT client registration/Grant and intentional OAuth/MCP activation
+- state ChatGPT integration as a Product Adapter over Generic MCP, selected only by validated CIMD identity and never by model text/clientInfo
+- state ledger.runtime.configuration.describe and ledger.runtime.configuration.section.read as the plugin-owned first EA-001 READ operations
 
 No previous ChatGPT transcript is required.
 
