@@ -4,6 +4,10 @@
 **Date:** 2026-09-26  
 **Scope:** EVO identity, Personal Agent, Personal Context and Enterprise Context
 
+> **Architecture ownership correction — 2026-09-30:** The Person-first identity decision in this document remains authoritative: Human is the root, Personal Agent is the single product Agent, and Enterprise Context is not an Agent. However, the target ownership of **enterprise knowledge** has changed. Enterprise/industry knowledge and learning now belong to Experience Compiler. Enterprise Context becomes a definition-first governed enterprise space whose primary durable product assets are Business Definitions. Existing Enterprise Context Memory implementation is preserved compatibility/migration evidence, not the target enterprise knowledge authority. See `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`.
+>
+> Where this historical MVP document says Enterprise Context accumulates institutional knowledge, the 2026-09-30 ownership baseline supersedes that statement without invalidating the implemented memory-governance evidence.
+
 ## 1. Frozen MVP decision
 
 EVO's first point of view is the human.
