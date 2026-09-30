@@ -1,6 +1,9 @@
 export interface RequestAuthenticationHttpFailureV010 {
-  status: 401 | 503;
-  code: "AUTHENTICATION_REQUIRED" | "AUTHENTICATION_UNAVAILABLE";
+  status: 401 | 403 | 503;
+  code:
+    | "AUTHENTICATION_REQUIRED"
+    | "AUTHENTICATION_FORBIDDEN"
+    | "AUTHENTICATION_UNAVAILABLE";
   message: string;
 }
 
@@ -35,11 +38,23 @@ export function requestAuthenticationHttpFailureV010(
     || message === "AUTHENTICATION_PUBLIC_BASE_URL_HTTPS_REQUIRED"
     || message === "AUTHENTICATION_REDIRECT_HTTPS_REQUIRED"
     || message === "MANAGED_IDENTITY_SESSION_NOT_ENABLED"
+    || message === "IDENTITY_USER_DIRECTORY_PROVIDER_UNAVAILABLE"
   ) {
     return {
       status: 503,
       code: "AUTHENTICATION_UNAVAILABLE",
       message: "The configured authentication service is unavailable."
+    };
+  }
+  if (
+    message === "IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED"
+    || message === "IDENTITY_USER_DIRECTORY_PROVIDER_MISMATCH"
+  ) {
+    return {
+      status: 403,
+      code: "AUTHENTICATION_FORBIDDEN",
+      message:
+        "The authenticated Principal is not active for this EVO installation."
     };
   }
   return undefined;

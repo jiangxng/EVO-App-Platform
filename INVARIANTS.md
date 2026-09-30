@@ -239,3 +239,12 @@
 - **APP-195** Grant creation-time authorization is insufficient for runtime use. Every delegated discovery/invocation decision MUST intersect the Grant with current plugin lifecycle, current Context authority and the authorizing Principal's current authorization.
 - **APP-196** Delegated authority MUST NOT depend on a live Human browser Session as the only way to know current Human authority, and MUST NOT freeze stale Session/token claims into a Grant as permanent Principal truth. A governed current-identity resolution boundary is required before EA-4 network authorization is opened.
 - **APP-197** EA-3A governance state MUST NOT store OAuth client secrets, bearer/access/refresh tokens or authorization codes. Credential transport/authentication belongs to the later OAuth/client-authentication layer.
+
+
+## Current Human Identity Constitution
+
+- **APP-198** Browser Session, OIDC authentication and current Human identity directory are separate authorities. Delegated Agent authorization MUST NOT require or reuse an old Human browser Session as the durable Principal source.
+- **APP-199** Successful Human authentication MUST update/confirm the current identity directory before Host-managed Session issuance. Directory failure MUST fail closed with no newly issued Session.
+- **APP-200** Durable identity directory state MUST NOT persist browser Session credentials, OIDC ID/access/refresh tokens, authorization codes or client secrets.
+- **APP-201** A Human subject already bound to one identity Provider MUST NOT be silently seized or merged by another Provider. Account linking requires a separate explicit governed contract.
+- **APP-202** Identity directory DISABLED state is terminal in v0.1. A later successful login MUST NOT silently reactivate a disabled Human subject.

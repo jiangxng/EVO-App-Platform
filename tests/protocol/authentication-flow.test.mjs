@@ -250,3 +250,69 @@ test("authentication and CSRF failures expose stable HTTP semantics", () => {
     }
   );
 });
+
+
+test("authentication flow records current Human before issuing Session", async () => {
+  const sessions = sessionService();
+  const events = [];
+  const flow = createAuthenticationFlowV010({
+    provider: humanProvider(),
+    sessions,
+    publicBaseUrl: "https://evo.example",
+    sessionTtlSeconds: 3600,
+    onAuthenticatedPrincipal(principal) {
+      events.push("directory:" + principal.subjectId);
+      assert.equal(sessions.list().length, 0);
+    }
+  });
+
+  const completed = await flow.complete(
+    "https://evo.example/auth/callback?code=abc"
+  );
+  assert.deepEqual(events, ["directory:alice"]);
+  assert.equal(completed.session.principal.subjectId, "alice");
+  assert.equal(sessions.list().length, 1);
+});
+
+test("authentication flow fails closed before Session issuance when current identity directory rejects Principal", async () => {
+  const sessions = sessionService();
+  const flow = createAuthenticationFlowV010({
+    provider: humanProvider(),
+    sessions,
+    publicBaseUrl: "https://evo.example",
+    sessionTtlSeconds: 3600,
+    onAuthenticatedPrincipal() {
+      throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED");
+    }
+  });
+
+  await assert.rejects(
+    () => flow.complete("https://evo.example/auth/callback?code=abc"),
+    /IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED/
+  );
+  assert.equal(sessions.list().length, 0);
+});
+
+test("identity-directory authentication failures have stable HTTP semantics", () => {
+  assert.deepEqual(
+    requestAuthenticationHttpFailureV010(
+      new Error("IDENTITY_USER_DIRECTORY_PROVIDER_UNAVAILABLE")
+    ),
+    {
+      status: 503,
+      code: "AUTHENTICATION_UNAVAILABLE",
+      message: "The configured authentication service is unavailable."
+    }
+  );
+  assert.deepEqual(
+    requestAuthenticationHttpFailureV010(
+      new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED")
+    ),
+    {
+      status: 403,
+      code: "AUTHENTICATION_FORBIDDEN",
+      message:
+        "The authenticated Principal is not active for this EVO installation."
+    }
+  );
+});

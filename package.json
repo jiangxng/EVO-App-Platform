@@ -60,7 +60,8 @@
     "test:plugin:host-managed-session-provider": "npm run build && node --test tests/protocol/managed-request-session.test.mjs tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:platform:identity-authentication": "npm run build && node --test tests/protocol/authentication-flow.test.mjs tests/protocol/managed-request-session.test.mjs tests/protocol/enterprise-context-creation.test.mjs",
     "test:plugin:generic-oidc-provider": "npm run build && node --test tests/protocol/generic-oidc-provider.test.mjs tests/protocol/generic-oidc-host-runtime.test.mjs",
-    "test:external-agent:governance": "npm run build && node --test tests/external-agent/external-agent-governance.test.mjs"
+    "test:external-agent:governance": "npm run build && node --test tests/external-agent/external-agent-governance.test.mjs",
+    "test:plugin:host-identity-user-directory-provider": "npm run build && node --test tests/protocol/identity-user-directory.test.mjs tests/protocol/authentication-flow.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
