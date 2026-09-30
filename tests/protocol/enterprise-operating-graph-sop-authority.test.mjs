@@ -7,8 +7,8 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "../../dist/manager/enterprise-operating-graph-service.js";
 import {
-  createMemoryEogExpectedSopStoreV010
-} from "../../dist/manager/enterprise-operating-graph-sop-store.js";
+  createMemoryBusinessDefinitionRepositoryV010
+} from "../../dist/providers/enterprise-context/business-definitions.js";
 import {
   createEogExpectedSopServiceV010
 } from "../../dist/manager/enterprise-operating-graph-sop-service.js";
@@ -57,7 +57,7 @@ function setup() {
   }
 
   const sopService = createEogExpectedSopServiceV010({
-    store: createMemoryEogExpectedSopStoreV010(),
+    repository: createMemoryBusinessDefinitionRepositoryV010(),
     graphService,
     now: () => new Date("2026-09-29T01:00:00.000Z")
   });
