@@ -608,6 +608,11 @@ const managedSessionStateFile =
   || (managedSessionEnabled && lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl")
     : undefined);
+if (managedSessionEnabled && !managedSessionStateFile) {
+  throw new Error(
+    "IDENTITY_SESSION_DURABLE_STORE_REQUIRED: configure APP_PLATFORM_MANAGED_SESSION_FILE or APP_PLATFORM_STATE_FILE"
+  );
+}
 const managedSessionEventStore = managedSessionStateFile
   ? createJsonlManagedIdentitySessionEventStoreV010(managedSessionStateFile)
   : createMemoryManagedIdentitySessionEventStoreV010();
