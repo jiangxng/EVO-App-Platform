@@ -446,6 +446,8 @@ The owning plugin defines the operation once:
 stable operation id
 + capability id
 + READ / PLAN / WRITE
++ data ownership scope
++ authorization action/resource semantics
 + input/output schemas
 + domain meaning
 + execution binding
@@ -472,6 +474,7 @@ The Contribution is now part of Plugin Protocol v0.1. Its semantic validator, po
 See:
 
 - `docs/architecture/PLATFORM-CAPABILITY-OPERATION-EA2A-v0.1.md`
+- `docs/architecture/AUTHORIZED-CAPABILITY-OPERATION-CATALOG-EA2C-v0.1.md`
 - `docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md`.
 
 ## 14. App Manager responsibilities
