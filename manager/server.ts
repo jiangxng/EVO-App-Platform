@@ -192,6 +192,7 @@ import type {
   EnterpriseContextRelationshipProviderV010,
   IdentityAuthenticationProviderV010,
   IdentitySessionProviderV010,
+  IdentityUserDirectoryProviderV010,
   IdentitySessionV010,
   ManagedSecretsProviderV010,
   PlatformPrincipalV010,
@@ -306,6 +307,20 @@ import {
   createHostManagedSessionHealthProbeV010,
   createHostManagedSessionProviderV010
 } from "../providers/managed-session/runtime.js";
+import {
+  HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID,
+  HOST_IDENTITY_USER_DIRECTORY_PROVIDER_ID,
+  IDENTITY_USER_DIRECTORY_CAPABILITY,
+  hostIdentityUserDirectoryProviderPackage
+} from "../providers/identity-directory/package.js";
+import {
+  createHostIdentityUserDirectoryHealthProbeV010,
+  createHostIdentityUserDirectoryServiceV010
+} from "../providers/identity-directory/runtime.js";
+import {
+  createFileIdentityUserDirectoryStoreV010,
+  createMemoryIdentityUserDirectoryStoreV010
+} from "./identity-user-directory-store.js";
 import {
   createJsonlManagedIdentitySessionEventStoreV010,
   createManagedIdentitySessionServiceV010,
@@ -608,6 +623,7 @@ const catalog = createPackageCatalog([
   hostStaticSessionProviderPackage,
   hostBearerSessionProviderPackage,
   hostManagedSessionProviderPackage,
+  hostIdentityUserDirectoryProviderPackage,
   genericOidcIdentityProviderPackage,
   hostEnterpriseContextGrantProviderPackage,
   hostEnterpriseRelationshipProviderPackage,
@@ -652,6 +668,18 @@ const managedSessionEventStore = managedSessionStateFile
 const managedSessionService = createManagedIdentitySessionServiceV010({
   store: managedSessionEventStore
 });
+const identityUserDirectoryStateFile =
+  process.env.APP_PLATFORM_IDENTITY_USER_DIRECTORY_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "identity-user-directory.json")
+    : undefined);
+const identityUserDirectoryStore = identityUserDirectoryStateFile
+  ? createFileIdentityUserDirectoryStoreV010(identityUserDirectoryStateFile)
+  : createMemoryIdentityUserDirectoryStoreV010();
+const identityUserDirectoryService =
+  createHostIdentityUserDirectoryServiceV010({
+    store: identityUserDirectoryStore
+  });
 const enterpriseGovernanceStateFile = process.env.APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "enterprise-governance.json") : undefined);
 const enterpriseGovernanceStore = enterpriseGovernanceStateFile
@@ -977,6 +1005,22 @@ if (managedSessionEnabled) {
     checkedAt: new Date().toISOString()
   });
 }
+
+providerRuntimeRegistry.replace<IdentityUserDirectoryProviderV010>(
+  HOST_IDENTITY_USER_DIRECTORY_PROVIDER_ID,
+  identityUserDirectoryService.provider
+);
+providerRuntimeRegistry.setHealthProbe(
+  HOST_IDENTITY_USER_DIRECTORY_PROVIDER_ID,
+  createHostIdentityUserDirectoryHealthProbeV010(
+    identityUserDirectoryService.provider
+  )
+);
+providerRuntimeRegistry.setHealth(HOST_IDENTITY_USER_DIRECTORY_PROVIDER_ID, {
+  state: "HEALTHY",
+  message: "Host Identity User Directory Provider is active.",
+  checkedAt: new Date().toISOString()
+});
 
 const hostBearerSessions = parseHostBearerSessionsV010(
   process.env.APP_PLATFORM_BEARER_SESSIONS_JSON
@@ -1409,6 +1453,19 @@ if (
   }
 }
 if (
+  managedSessionEnabled
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID);
+    console.log("Activated Host Identity User Directory Provider.");
+  } catch (error) {
+    console.error("Failed to activate Host Identity User Directory Provider.", error);
+  }
+}
+if (
   hostBearerSessions
   && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
 ) {
@@ -1567,6 +1624,16 @@ function resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined {
   )?.runtime;
 }
 
+function resolveIdentityUserDirectoryProvider(): IdentityUserDirectoryProviderV010 | undefined {
+  return resolveProviderRuntimeV010<IdentityUserDirectoryProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(IDENTITY_USER_DIRECTORY_CAPABILITY),
+    providerBindings,
+    IDENTITY_USER_DIRECTORY_CAPABILITY,
+    { installationId: "default" }
+  )?.runtime;
+}
+
 function resolveIdentityAuthenticationProvider(): IdentityAuthenticationProviderV010 | undefined {
   return resolveProviderRuntimeV010<IdentityAuthenticationProviderV010>(
     providerRuntimeRegistry,
@@ -1593,7 +1660,14 @@ function authenticationFlow() {
     sessions: managedSessionService,
     publicBaseUrl: authenticationPublicBaseUrl,
     sessionTtlSeconds: authenticationSessionTtlSeconds,
-    secureCookie: !authenticationPublicBaseUrl.startsWith("http://localhost")
+    secureCookie: !authenticationPublicBaseUrl.startsWith("http://localhost"),
+    onAuthenticatedPrincipal(principal) {
+      const directory = resolveIdentityUserDirectoryProvider();
+      if (!directory) {
+        throw new Error("IDENTITY_USER_DIRECTORY_PROVIDER_UNAVAILABLE");
+      }
+      identityUserDirectoryService.recordAuthenticatedPrincipal(principal);
+    }
   });
 }
 
