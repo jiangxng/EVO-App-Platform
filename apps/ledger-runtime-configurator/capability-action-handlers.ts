@@ -31,7 +31,8 @@ function errorResult(
     "LEDGER_CONFIGURATION_CURSOR_INVALID",
     "LEDGER_CONFIGURATION_CURSOR_SECTION_MISMATCH",
     "LEDGER_CONFIGURATION_CURSOR_STALE",
-    "LEDGER_CONFIGURATION_CURSOR_OFFSET_INVALID"
+    "LEDGER_CONFIGURATION_CURSOR_OFFSET_INVALID",
+    "LEDGER_RUNTIME_CONFIGURATION_INPUT_VERSION_UNSUPPORTED"
   ]);
   return {
     ok: false,
@@ -62,6 +63,11 @@ export function createLedgerRuntimeConfiguratorCapabilityActionHandlers(
     commandCode: LEDGER_RUNTIME_CONFIGURATION_DESCRIBE_COMMAND,
     async execute(request) {
       try {
+        if (request.command.inputVersion !== "0.1.0") {
+          throw new Error(
+            "LEDGER_RUNTIME_CONFIGURATION_INPUT_VERSION_UNSUPPORTED"
+          );
+        }
         return {
           ok: true,
           correlationId:
@@ -80,18 +86,31 @@ export function createLedgerRuntimeConfiguratorCapabilityActionHandlers(
     commandCode: LEDGER_RUNTIME_CONFIGURATION_SECTION_READ_COMMAND,
     async execute(request) {
       try {
+        if (request.command.inputVersion !== "0.1.0") {
+          throw new Error(
+            "LEDGER_RUNTIME_CONFIGURATION_INPUT_VERSION_UNSUPPORTED"
+          );
+        }
         const section = sectionValue(request.values.section);
         if (!section) {
           throw new Error("LEDGER_CONFIGURATION_SECTION_INVALID");
         }
         const pageSizeValue = request.values.pageSize;
         const cursorValue = request.values.cursor;
-        const pageSize = typeof pageSizeValue === "number"
-          ? pageSizeValue
-          : undefined;
-        const cursor = typeof cursorValue === "string"
-          ? cursorValue
-          : undefined;
+        if (
+          pageSizeValue !== undefined
+          && typeof pageSizeValue !== "number"
+        ) {
+          throw new Error("LEDGER_CONFIGURATION_PAGE_SIZE_INVALID");
+        }
+        if (
+          cursorValue !== undefined
+          && typeof cursorValue !== "string"
+        ) {
+          throw new Error("LEDGER_CONFIGURATION_CURSOR_INVALID");
+        }
+        const pageSize = pageSizeValue as number | undefined;
+        const cursor = cursorValue as string | undefined;
 
         return {
           ok: true,
