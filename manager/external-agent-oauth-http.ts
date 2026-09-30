@@ -76,12 +76,14 @@ function redirectError(
   redirectUri: string,
   state: string | undefined,
   error: string,
+  issuer: string,
   description?: string
 ): ExternalAgentOAuthAuthorizationHttpResultV010 {
   const target = new URL(redirectUri);
   target.searchParams.set("error", error);
   if (description) target.searchParams.set("error_description", description);
   if (state) target.searchParams.set("state", state);
+  target.searchParams.set("iss", issuer);
   return {
     status: 303,
     location: target.toString()
@@ -139,6 +141,23 @@ function oauthErrorFromCode(code: string): string {
 export function createExternalAgentOAuthHttpAdapterV010(
   options: ExternalAgentOAuthHttpAdapterOptionsV010
 ): ExternalAgentOAuthHttpAdapterV010 {
+  const authorizationServerIssuer =
+    options.oauth.authorizationServerMetadata().issuer;
+
+  const redirectOAuthError = (
+    redirectUri: string,
+    state: string | undefined,
+    error: string,
+    description?: string
+  ): ExternalAgentOAuthAuthorizationHttpResultV010 =>
+    redirectError(
+      redirectUri,
+      state,
+      error,
+      authorizationServerIssuer,
+      description
+    );
+
   return {
     async authorize({ url, session, correlationId }) {
       const clientId = required(
@@ -165,7 +184,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
       }
 
       if (url.searchParams.get("response_type") !== "code") {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "unsupported_response_type"
@@ -179,7 +198,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
       );
       const scopes = requestedScopes(url.searchParams);
       if (!scopes.includes(EXTERNAL_AGENT_OAUTH_SCOPE)) {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "invalid_scope",
@@ -197,7 +216,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
         "EXTERNAL_AGENT_OAUTH_CODE_CHALLENGE_METHOD_REQUIRED"
       );
       if (codeChallengeMethod !== "S256") {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "invalid_request",
@@ -230,7 +249,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
       }
 
       if (effective.length === 0) {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "access_denied",
@@ -238,7 +257,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
         );
       }
       if (effective.length > 1) {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "interaction_required",
@@ -255,7 +274,7 @@ export function createExternalAgentOAuthHttpAdapterV010(
           correlationId
         );
       } catch {
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           "access_denied",
@@ -278,13 +297,14 @@ export function createExternalAgentOAuthHttpAdapterV010(
         const target = new URL(issued.redirectUri);
         target.searchParams.set("code", issued.code);
         if (state) target.searchParams.set("state", state);
+        target.searchParams.set("iss", authorizationServerIssuer);
         return {
           status: 303,
           location: target.toString()
         };
       } catch (error) {
         const code = errorCode(error);
-        return redirectError(
+        return redirectOAuthError(
           redirectUri,
           state,
           oauthErrorFromCode(code)
