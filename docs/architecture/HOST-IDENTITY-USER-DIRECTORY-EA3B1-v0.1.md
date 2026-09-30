@@ -90,13 +90,13 @@ IdentityUserDirectoryEntryV010
 principal
 state:
   ACTIVE
-  REVOKED
+  DISABLED
 
 firstAuthenticatedAt
 lastAuthenticatedAt
 
-revokedAt?
-revokedBySubjectId?
+disabledAt?
+disabledBySubjectId?
 ```
 
 The Principal is bounded and session-independent.
@@ -154,16 +154,16 @@ The directory does not silently merge identities.
 
 Future explicit account-linking requires its own governed contract.
 
-## 7. Revocation
+## 7. Disablement
 
-Revocation is terminal for the directory entry.
+Disablement is terminal for the directory entry.
 
 ```text
 ACTIVE
-→ REVOKED
+→ DISABLED
 ```
 
-A revoked subject cannot self-reactivate merely by successfully authenticating again.
+A disabled subject cannot self-reactivate merely by successfully authenticating again.
 
 This is intentional.
 
@@ -228,7 +228,7 @@ A current directory lookup returning:
 
 ```text
 not found
-REVOKED
+DISABLED
 provider mismatch
 Provider unavailable
 ```
@@ -238,7 +238,7 @@ must not be upgraded into delegated authority.
 Login-time behavior:
 
 - Provider unavailable → authentication unavailable / fail closed;
-- revoked current Principal → authentication forbidden;
+- disabled current Principal → authentication forbidden;
 - Provider mismatch → authentication forbidden.
 
 EA-3B2 will apply the same fail-closed posture to delegated Agent authority resolution.
@@ -271,8 +271,8 @@ EA-3B1 must prove:
 4. browser sessionId is not persisted as durable identity;
 5. different identity Provider cannot seize an existing subject;
 6. non-Human Principal is rejected;
-7. revocation is terminal;
-8. successful authentication after revocation cannot self-reactivate;
+7. disablement is terminal;
+8. successful authentication after disablement cannot self-reactivate;
 9. file-backed directory survives restart;
 10. directory write occurs before managed Session issuance;
 11. directory failure leaves zero newly-issued Session;
