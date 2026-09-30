@@ -351,11 +351,10 @@ export function createEogExpectedSopServiceV010(input: {
 
     listPublished(request) {
       return input.repository
-        .listLatest({
+        .listEffective({
           enterpriseId: request.enterpriseId,
           kind: BUSINESS_DEFINITION_KIND_SOP_V010
         })
-        .filter(item => item.state === "PUBLISHED")
         .map(toSop)
         .filter(sop => sop.graphId === request.graphId);
     },
