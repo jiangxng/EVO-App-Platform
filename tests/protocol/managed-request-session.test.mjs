@@ -91,7 +91,7 @@ test("managed Session rotation invalidates old credential before issuing replace
   const service = createManagedIdentitySessionServiceV010({
     store: createMemoryManagedIdentitySessionEventStoreV010(),
     now: () => new Date("2026-09-30T08:00:00.000Z"),
-    token: () => ["old-token", "new-token"][tokenIndex++]!,
+    token: () => ["old-token", "new-token"][tokenIndex++] ?? "unexpected-token",
     id: () => String(++id)
   });
   const oldCredential = service.issue({
