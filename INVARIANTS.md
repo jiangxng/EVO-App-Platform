@@ -182,3 +182,25 @@
 - **APP-153** App Platform is the control plane for component lifecycle, discovery, binding and governance. After resolution, peer components SHOULD exchange ordinary data through stable public interfaces rather than forcing all business payloads through App Platform.
 - **APP-154** Future report/analysis plugin ownership is intentionally undecided. Current EOG aggregation capability MUST NOT be used to infer a mandatory monolithic Reporting Layer or a fixed report-plugin taxonomy.
 
+
+
+## External Agent Access Constitution
+
+- **APP-155** External Agent identity MUST remain distinguishable from the authorizing Principal, client application and Enterprise Context. External Agents MUST NOT impersonate Human Principals in audit or execution evidence.
+- **APP-156** Callable business/platform operation semantics belong to the owning plugin. App Platform may govern visibility/execution but MUST NOT invent plugin business meaning.
+- **APP-157** One semantic capability operation may be projected into MCP, OpenAPI, Personal Agent tools, Human Actions or future A2A Skills. Product/protocol adapters MUST NOT create divergent business semantics.
+- **APP-158** External capability exposure is lifecycle-derived. An uninstalled Package or inactive Feature MUST NOT remain discoverable or callable through External Agent interfaces.
+- **APP-159** Capability discovery is authorization-aware. Hidden/unauthorized operations SHOULD NOT appear in effective discovery and MUST fail closed if directly invoked by a guessed identifier.
+- **APP-160** External Agent authentication success is not authorization. Final invocation MUST resolve Host authority through current Principal, Context, Grant and authorization policy.
+- **APP-161** Delegated External Agent authority only attenuates. Effective Agent authority MUST be a subset of current authorizing Principal authority and MUST NOT be expanded by sub-delegation, protocol metadata or model output.
+- **APP-162** External Agent Enterprise Context is Host-resolved. Caller-supplied context identifiers are selectors only and MUST NOT manufacture membership or cross-enterprise access.
+- **APP-163** Protocol and Product Adapters are translation/convenience boundaries, not authority boundaries. ChatGPT-, Claude-, MCP-, OpenAPI- or A2A-specific code MUST NOT grant enterprise permission or own domain truth.
+- **APP-164** External Agent WRITE MUST converge on the same governed Host Action/domain Command path as other clients. External protocols MUST NOT create a second authoritative mutation path.
+- **APP-165** Material External Agent WRITE MUST produce durable Host-owned execution evidence with Principal, Agent/client, Context, Grant, operation, outcome and correlation sufficient for audit/recovery; receipts remain evidence rather than domain source of truth.
+- **APP-166** Access tokens are not the canonical authority database. Revoked Grants, removed Context access, deactivated Features or current policy DENY MUST remain effective even while a transport credential would otherwise be unexpired.
+- **APP-167** Stored Secret plaintext MUST NOT be exposed through external capability discovery, Agent schemas, prompts, observations, receipts, examples or Package manifests.
+- **APP-168** Generic standards support is primary; Agent-specific adapters are optional convenience. Absence of a ChatGPT/Claude adapter MUST NOT prevent a conforming generic MCP/OpenAPI client from using supported capabilities.
+- **APP-169** External Agent product use MUST NOT require GitHub, source code, database access, private endpoint knowledge or other developer-only implementation knowledge.
+- **APP-170** Production Human-delegated External Agent authorization MUST use request-bound production Identity/Session. The static/dev Session fallback MUST NOT satisfy the production login gate.
+- **APP-171** External Agent support preserves owner-scoped CI. Plugin CI validates the plugin's semantic operations; adapter/vendor certification remains separate and MUST NOT become a dependency of every plugin PR.
+- **APP-172** External Agent authorization does not imply Personal Context Memory, EC knowledge or unrelated Enterprise Context access. Intelligence/memory/data capabilities remain separately authorized and least-disclosed.
