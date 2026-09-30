@@ -19,6 +19,9 @@ import {
   identitySessionRequestFromHeadersV010
 } from "../../dist/manager/request-context.js";
 import {
+  requestAuthenticationHttpFailureV010
+} from "../../dist/manager/request-authentication.js";
+import {
   createHostManagedSessionProviderV010
 } from "../../dist/providers/managed-session/runtime.js";
 
@@ -196,4 +199,37 @@ test("Session cookie is HttpOnly, host-scoped and SameSite=Lax", () => {
 
   const clear = clearIdentitySessionCookieV010();
   assert.match(clear, /Max-Age=0/);
+});
+
+test("request authentication maps absence/conflict to 401 and provider outage to 503", () => {
+  assert.deepEqual(
+    requestAuthenticationHttpFailureV010(
+      new Error("REQUEST_IDENTITY_SESSION_REQUIRED")
+    ),
+    {
+      status: 401,
+      code: "AUTHENTICATION_REQUIRED",
+      message: "A valid request-bound identity Session is required."
+    }
+  );
+  assert.equal(
+    requestAuthenticationHttpFailureV010(
+      new Error("IDENTITY_SESSION_COOKIE_AMBIGUOUS")
+    )?.status,
+    401
+  );
+  assert.deepEqual(
+    requestAuthenticationHttpFailureV010(
+      new Error("REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE")
+    ),
+    {
+      status: 503,
+      code: "AUTHENTICATION_UNAVAILABLE",
+      message: "The configured identity Session Provider is unavailable."
+    }
+  );
+  assert.equal(
+    requestAuthenticationHttpFailureV010(new Error("UNRELATED")),
+    undefined
+  );
 });
