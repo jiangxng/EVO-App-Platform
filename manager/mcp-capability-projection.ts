@@ -18,6 +18,9 @@ import type {
   McpModernCallToolResultV010,
   McpModernToolV010
 } from "./mcp-modern-core.js";
+import type {
+  McpProductToolAdapterV010
+} from "./mcp-product-adapter.js";
 
 export interface McpCapabilityProjectionV010 {
   listTools(input: {
@@ -35,6 +38,7 @@ export interface McpCapabilityProjectionV010 {
 export interface McpCapabilityProjectionOptionsV010 {
   delegatedAuthority: EffectiveDelegatedAuthorityDependenciesV010;
   actionRouter: AppActionRouter;
+  productAdapter?: McpProductToolAdapterV010;
 }
 
 function supportedEffect(effect: string): boolean {
@@ -160,13 +164,20 @@ export function createMcpCapabilityProjectionV010(
               inputSchema: Record<string, unknown>;
               outputSchema: Record<string, unknown>;
             };
-          return {
+          const tool: McpModernToolV010 = {
             name: publicMetadata.operationId,
             title: publicMetadata.title,
             description: publicMetadata.description,
             inputSchema: structuredClone(publicMetadata.inputSchema),
             outputSchema: structuredClone(publicMetadata.outputSchema)
           };
+          return options.productAdapter
+            ? options.productAdapter.adaptTool({
+                access,
+                effect: operation.effect,
+                tool
+              })
+            : tool;
         })
         .sort((a, b) => a.name.localeCompare(b.name));
     },
