@@ -147,13 +147,13 @@ async function runScenario(scenario, port) {
     await client.send("Page.navigate", { url: scenario.url });
     await waitFor(
       client,
-      "Boolean(document.documentElement.dataset.evoPageViewId)",
+      "Boolean(document.documentElement?.dataset?.evoPageViewId)",
       15000
     );
     await waitFor(client, scenario.ready, 15000);
     const pageViewId = await evaluate(
       client,
-      "document.documentElement.dataset.evoPageViewId"
+      "document.documentElement?.dataset?.evoPageViewId ?? null"
     );
 
     // Reporter flushes once after 5s. Leave headroom for CI scheduling.
