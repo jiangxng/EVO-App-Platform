@@ -282,13 +282,13 @@ test("authentication flow fails closed before Session issuance when current iden
     publicBaseUrl: "https://evo.example",
     sessionTtlSeconds: 3600,
     onAuthenticatedPrincipal() {
-      throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED");
+      throw new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED");
     }
   });
 
   await assert.rejects(
     () => flow.complete("https://evo.example/auth/callback?code=abc"),
-    /IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED/
+    /IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED/
   );
   assert.equal(sessions.list().length, 0);
 });
@@ -306,7 +306,7 @@ test("identity-directory authentication failures have stable HTTP semantics", ()
   );
   assert.deepEqual(
     requestAuthenticationHttpFailureV010(
-      new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_REVOKED")
+      new Error("IDENTITY_USER_DIRECTORY_PRINCIPAL_DISABLED")
     ),
     {
       status: 403,
