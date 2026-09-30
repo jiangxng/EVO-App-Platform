@@ -14,6 +14,26 @@ export interface PlatformPrincipalV010 {
   claims?: Record<string, string | number | boolean | null>;
 }
 
+export type IdentityUserDirectoryStateV010 =
+  | "ACTIVE"
+  | "DISABLED";
+
+export interface IdentityUserDirectoryRecordV010 {
+  contractVersion: "0.1.0";
+  principal: PlatformPrincipalV010;
+  state: IdentityUserDirectoryStateV010;
+  firstSeenAt: string;
+  lastAuthenticatedAt: string;
+  updatedAt: string;
+  disabledAt?: string;
+  disabledBySubjectId?: string;
+}
+
+export interface IdentityUserDirectoryProviderV010 {
+  providerId: string;
+  get(subjectId: string): IdentityUserDirectoryRecordV010 | undefined;
+}
+
 /**
  * Legacy hierarchical scope retained for compatibility while the platform
  * migrates to the Person-first Context model.
