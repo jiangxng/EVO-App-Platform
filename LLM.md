@@ -8,6 +8,8 @@
 
 > **Enterprise definition / EOG authority (2026-09-30):** Before changing Enterprise Context, Business Definitions, EOG, SOP, EC ownership, Observatory/analysis ownership or EVO Ledger Runtime definition boundaries, read `docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md` and `docs/architecture/eog-asset-boundary.v0.1.json`. Enterprise Context is the headless Business Definition authority; Experience Compiler owns enterprise/industry knowledge and learning; EOG Core is CI-gated graph design/navigation/aggregation; SOP and existing Observatory/analysis implementations are preserved non-gating assets pending peer-plugin extraction; EVO Ledger Runtime does not own definition-version lifecycle. Do not recreate a standalone BDR product/plugin or treat EOG as the parent of SOP/reporting/analysis plugins.
 
+> **Enterprise–Personal Learning Loop long-term authority (2026-09-30):** Read `docs/architecture/ENTERPRISE-PERSONAL-LEARNING-LOOP-LONG-TERM-v0.1.md` before designing cross-person learning, EC-to-Personal-Agent guidance, automatic memory promotion, model-call context compilation or external-knowledge learning. The target is long-term and **ARCHITECTURE_RESERVED_ONLY**: Personal Context Memory remains person-scoped; EC remains enterprise/industry learning authority; Enterprise Context remains Business Definition authority; EVO remains deterministic business truth; LLM Providers remain replaceable reasoning engines. Do not prebuild the full learning loop, generic Personal Knowledge Store or automatic personal-to-enterprise synchronization merely because the target is documented.
+
 A fresh LLM must first determine:
 
 1. whether the task belongs to App Manager, Catalog, one specific Plugin, EVO, or Eidos;
