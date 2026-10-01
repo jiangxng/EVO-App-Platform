@@ -86,6 +86,7 @@ test("modern MCP server/discover advertises only 2026-07-28 stateless tools capa
   const result = await core().handle(request("server/discover"));
 
   assert.equal(result.error, undefined);
+  assert.equal(result.result.resultType, "complete");
   assert.deepEqual(result.result.supportedVersions, ["2026-07-28"]);
   assert.deepEqual(result.result.capabilities, {
     tools: { listChanged: false }
@@ -136,6 +137,7 @@ test("tools/list returns deterministic tool order and private zero-TTL cache sem
   const result = await core().handle(request("tools/list"));
 
   assert.equal(result.error, undefined);
+  assert.equal(result.result.resultType, "complete");
   assert.deepEqual(
     result.result.tools.map(item => item.name),
     ["a-tool", "z-tool"]
@@ -151,6 +153,7 @@ test("tools/call returns structured content and tool failure stays a protocol er
   }));
 
   assert.equal(ok.error, undefined);
+  assert.equal(ok.result.resultType, "complete");
   assert.deepEqual(ok.result.structuredContent, {
     name: "a-tool",
     arguments: { value: "hello" }
@@ -268,6 +271,7 @@ test("modern tools/call requires Mcp-Name and exact body/header agreement", asyn
     body
   });
   assert.equal(ok.status, 200);
+  assert.equal(ok.body.result.resultType, "complete");
   assert.deepEqual(ok.body.result.structuredContent, {
     name: "a-tool",
     arguments: { value: "x" }

@@ -80,7 +80,14 @@ function success(
   id: McpJsonRpcIdV010,
   result: Record<string, unknown>
 ): McpModernResponseV010 {
-  return { jsonrpc: "2.0", id, result };
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      resultType: "complete",
+      ...result
+    }
+  };
 }
 
 function failure(
