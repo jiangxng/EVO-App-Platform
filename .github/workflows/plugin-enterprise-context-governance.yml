@@ -1,0 +1,43 @@
+name: Plugin CI - Enterprise Context Governance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/enterprise-context-governance/**"
+      - "catalog/seed.ts"
+      - "manager/server.ts"
+      - "manager/enterprise-context-creation.ts"
+      - "providers/enterprise-context/**"
+      - "providers/authorization/**"
+      - "tests/integration/enterprise-context-governance-plugin.test.mjs"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-enterprise-context-governance.yml"
+  pull_request:
+    paths:
+      - "apps/enterprise-context-governance/**"
+      - "catalog/seed.ts"
+      - "manager/server.ts"
+      - "manager/enterprise-context-creation.ts"
+      - "providers/enterprise-context/**"
+      - "providers/authorization/**"
+      - "tests/integration/enterprise-context-governance-plugin.test.mjs"
+      - "tests/protocol/enterprise-context-creation.test.mjs"
+      - "package.json"
+      - ".github/workflows/plugin-enterprise-context-governance.yml"
+
+concurrency:
+  group: plugin-enterprise-context-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:plugin:enterprise-context-governance

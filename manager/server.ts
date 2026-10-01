@@ -247,6 +247,7 @@ import {
 import {
   createHostStaticAuthorizationHealthProbeV010,
   createHostStaticAuthorizationProviderV010,
+  mergeHostStaticAuthorizationPoliciesV010,
   parseHostStaticAuthorizationPolicyV010
 } from "../providers/authorization/runtime.js";
 import {
@@ -638,6 +639,7 @@ import {
 import {
   companyNotesPackage,
   enterpriseAgentPackage,
+  enterpriseContextGovernanceAppPackage,
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
@@ -647,6 +649,7 @@ import {
 const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
+  enterpriseContextGovernanceAppPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
   ledgerRuntimeConfiguratorPackage,
@@ -1367,8 +1370,13 @@ const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
 const providerAudit = providerAuditFile
   ? createJsonlProviderBindingAuditStoreV010(providerAuditFile)
   : createMemoryProviderBindingAuditStoreV010();
-const authorizationPolicy = parseHostStaticAuthorizationPolicyV010(
-  process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
+const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
+  parseHostStaticAuthorizationPolicyV010(
+    process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
+  ),
+  parseHostStaticAuthorizationPolicyV010(
+    process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON
+  )
 );
 if (authorizationPolicy) {
   providerRuntimeRegistry.replace<AuthorizationProviderV010>(

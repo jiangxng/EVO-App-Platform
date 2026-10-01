@@ -130,6 +130,32 @@ function matchesRule(
     && matchesScope(rule.scope, input.scope);
 }
 
+export function mergeHostStaticAuthorizationPoliciesV010(
+  ...policies: Array<HostStaticAuthorizationPolicyV010 | undefined>
+): HostStaticAuthorizationPolicyV010 | undefined {
+  const active = policies.filter(
+    (policy): policy is HostStaticAuthorizationPolicyV010 => policy !== undefined
+  );
+  if (active.length === 0) return undefined;
+
+  const ids = new Set<string>();
+  const rules: HostStaticAuthorizationRuleV010[] = [];
+  for (const policy of active) {
+    for (const rule of policy.rules) {
+      if (ids.has(rule.id)) {
+        throw new Error(`AUTHORIZATION_POLICY_RULE_DUPLICATE: ${rule.id}`);
+      }
+      ids.add(rule.id);
+      rules.push(structuredClone(rule));
+    }
+  }
+
+  return {
+    contractVersion: "0.1.0",
+    rules
+  };
+}
+
 export function createHostStaticAuthorizationProviderV010(
   policy: HostStaticAuthorizationPolicyV010
 ): AuthorizationProviderV010 {

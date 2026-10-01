@@ -24,6 +24,7 @@
     "design:validate": "npm run build --silent && node tools/eidos-design-language-validate.mjs",
     "test:plugin:host-secrets-provider": "npm run build && node --test tests/protocol/secrets-provider.test.mjs tests/settings/plugin-settings.test.mjs",
     "test:plugin:host-enterprise-context-provider": "npm run build && node --test tests/protocol/enterprise-context-provider.test.mjs tests/protocol/person-first-context.test.mjs tests/protocol/enterprise-business-definition-repository.test.mjs",
+    "test:plugin:enterprise-context-governance": "npm run build && node --test tests/integration/enterprise-context-governance-plugin.test.mjs tests/protocol/enterprise-context-creation.test.mjs",
     "test:plugin:host-static-session-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-enterprise-context-grant-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-bearer-session-provider": "npm run build && node --test tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs",
