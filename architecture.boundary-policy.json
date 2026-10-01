@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md",
+  "classifications": [
+    {
+      "id": "CORE",
+      "owns": [
+        "generic-hosting",
+        "lifecycle",
+        "resolution",
+        "security-boundaries",
+        "composition",
+        "generic-protocol-parsing"
+      ],
+      "mustNotOwn": [
+        "vendor-business-semantics",
+        "domain-truth",
+        "human-product-ui",
+        "provider-credentials"
+      ]
+    },
+    {
+      "id": "PLATFORM_PROVIDER",
+      "triggers": [
+        "independent-supplier",
+        "independent-lifecycle",
+        "replaceable-implementation",
+        "deployment-difference",
+        "implementation-specific-configuration",
+        "implementation-specific-secrets",
+        "implementation-specific-health"
+      ],
+      "consumes": [
+        "public-capability-contracts"
+      ]
+    },
+    {
+      "id": "APPLICATION",
+      "triggers": [
+        "business-domain-composition",
+        "coherent-product-capability"
+      ],
+      "consumes": [
+        "public-platform-contracts"
+      ]
+    },
+    {
+      "id": "INTEGRATION_ADAPTER",
+      "architecturalRoleOnly": true,
+      "triggers": [
+        "external-product-compatibility",
+        "external-protocol-compatibility"
+      ],
+      "mustNotOwn": [
+        "domain-truth",
+        "authorization",
+        "enterprise-membership",
+        "business-semantics"
+      ]
+    },
+    {
+      "id": "EXPERIENCE",
+      "triggers": [
+        "human-ui",
+        "navigation",
+        "forms",
+        "review",
+        "setup",
+        "work-queue",
+        "dashboard",
+        "localization"
+      ],
+      "runtimeOwner": "Eidos",
+      "mustNotOwn": [
+        "authoritative-provider-state",
+        "private-store-mutation"
+      ]
+    }
+  ],
+  "decisionOrder": [
+    "reuse-existing-owner",
+    "provider-if-replaceable-or-independent",
+    "adapter-if-external-compatibility-only",
+    "experience-if-human-facing",
+    "application-if-domain-composition",
+    "core-only-if-generic-host-mechanism"
+  ],
+  "permanentRules": {
+    "dataDesignSeparation": "Designer/Experience -> public contract -> authoritative owner",
+    "coreMinimalism": true,
+    "explicitBoundaryExceptionRequired": true
+  }
+}
