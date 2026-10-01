@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `AGENT-CAP-FABRIC-2026-10-01-02`  
-**Snapshot time:** `2026-10-01T17:05:00+08:00`  
+**Snapshot:** `AGENT-CAP-FABRIC-2026-10-01-03`  
+**Snapshot time:** `2026-10-01T20:12:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Agent Capability Fabric v0.1
+Agent Capability Fabric v0.2
 ACTIVE
 ```
 
@@ -51,22 +51,24 @@ Evidence:
 
 ## Current open live gate
 
-**agent-capability-fabric-human-delegation-consent-v0-1: ACTIVE_IMPLEMENTATION_VALIDATION**
+**agent-capability-level-delegation-v0-2: CI_PASS_PENDING_MERGE_DEPLOY_AND_LIVE_VALIDATION**
 
-Make External Agent delegation usable from normal desktop/mobile OAuth without DevTools. A first-use valid public CIMD client can enter an EVO Human Consent page where the Human explicitly chooses one Enterprise Context, concrete READ/PLAN operations and a short expiry. Approval enrolls the Agent/Client if first use, creates the normal Authority Grant, and then issues the OAuth code. This complements Capability Fabric discovery; it does not broaden Fabric authority or enable WRITE/DCR.
+Scale External Agent delegation beyond operation-by-operation enumeration. v0.2 adds exact Capability + READ/PLAN selectors that dynamically resolve against current Human authorization, Enterprise Context, plugin lifecycle and External Agent exposure. OAuth authorization codes and token families capture an immutable operation ceiling so selector growth can affect a fresh authorization but cannot silently expand an already issued credential family.
 
 Acceptance:
 
-- unregistered valid CIMD is inspectable before internal governance registration
-- first-use OAuth GET produces an authenticated Human Consent page instead of requiring pre-created governance records
-- deny produces no Agent, Client, Grant or authorization code
-- approve revalidates redirect/resource/scope/PKCE, selected Context and current grantable operations
-- first-use approve enrolls one PUBLIC MCP Agent/Client without increasing trust beyond REGISTERED
-- revoked clients are never auto-reactivated by consent
-- Consent v0.1 grants only explicitly selected READ/PLAN operation ids and never WRITE
-- Grant duration is limited to 1h, 4h or 24h and tokens remain bounded by current Grant authority
-- existing unique effective Grant fast path remains compatible with prior Inspector/Cline proofs
-- live mobile validation completes one standards-client OAuth flow without DevTools
+- selector-only Grants can be created without enumerating operation ids
+- selectors use exact Capability ids only and READ/PLAN effects only; wildcard/prefix/WRITE are absent
+- selector creation is validated against current Human-authorized External Agent operations
+- delegated discovery/invocation dynamically resolves matching current operations while policy, Context and plugin lifecycle remain authoritative
+- operations outside explicit ids or selectors remain OPERATION_NOT_GRANTED
+- authorization-code issuance freezes the current effective operation set
+- new access and refresh tokens carry an immutable operation ceiling
+- token use and refresh rotation intersect current authority with that ceiling and therefore can only preserve or shrink authority
+- a fresh authorization can capture newly installed operations covered by the durable selector Grant
+- legacy explicit-operation Grants and legacy persisted token records remain compatible
+- Human Consent UI is later upgraded from concrete-operation selection to optional capability-level selection with clear disclosure
+- live Agent Capability Fabric validation proves capability-level delegation without WRITE
 
 ## Current production preview
 
@@ -75,8 +77,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `c0c85b5fe9fd66c525686eda9f8a867512135afd`
-- Deployment: `e4956536-a401-4dea-851b-c88f9c552ee6`
+- Commit: `0a0641e91c14af0ca1e3c366c38d029697d0d8dd`
+- Deployment: `d9bc1e37-615f-49aa-8189-6e41ef7a7cbe`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -110,6 +112,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #250 — MERGED_CONTINUITY_PASS_DEPLOYED: Add the Grok Web/Mobile public CIMD profile and mobile native MCP validation runbook; production is aligned to the resulting main revision.
+- PR #249 — MERGED_CI_PASS_DEPLOYED: Add OAuth Human Consent and first-use public CIMD enrollment so a normal browser/mobile flow can create bounded External Agent governance without DevTools.
 - PR #248 — MERGED_CI_PASS_DEPLOYED: Introduce Agent Capability Fabric v0.1 with search/describe/invoke and DIRECT/HYBRID/FABRIC MCP projection modes; production currently uses HYBRID.
 - PR #247 — MERGED_CI_PASS: Add a public secret-free Claude Code native CIMD client profile for a later second-Agent Remote MCP proof without DCR or a local MCP protocol adapter.
 - PR #246 — MERGED_CI_PASS_DEPLOYED: Add RFC 8252 native loopback IP ephemeral-port redirect matching while preserving exact matching for ordinary redirects.
@@ -322,6 +326,9 @@ Not proved:
 - Do not require Human users to create External Agent Agent/Client/Grant records through DevTools for first-use standards-client OAuth once the Human Consent flow is available.
 - Do not implement Human Consent as open DCR; CIMD is client identity, Human approval is the authorization decision, and the Authority Grant remains the durable business authority.
 - Do not preselect business operations in the consent UI or infer WRITE authority from OAuth scopes.
+- Do not implement capability delegation scale as wildcard operation ids; use exact Capability selectors with explicit READ/PLAN effects.
+- Do not let a durable capability selector silently expand an already-issued OAuth authorization code, access token, or refresh-token family; token authority must only stay equal or shrink.
+- Do not remove explicit allowedOperationIds; precise operation-level delegation remains a supported authority primitive.
 
 ## Fresh ChatGPT / LLM startup
 
