@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   createHostStaticAuthorizationProviderV010,
+  mergeHostStaticAuthorizationPoliciesV010,
   parseHostStaticAuthorizationPolicyV010
 } from "../../dist/providers/authorization/runtime.js";
 import {
@@ -111,4 +112,98 @@ test("scope constraints are exact and default deny outside scope", async () => {
     scope: { contractVersion: "0.1.0", companyId: "company-a" }
   });
   assert.equal(allowed.allowed, true);
+});
+
+
+test("additive authorization policy overlay extends base policy without replacement", async () => {
+  const base = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "provider-admin",
+      effect: "ALLOW",
+      actions: ["provider.binding.update"],
+      subjectIds: ["bootstrap-admin"]
+    }]
+  }));
+  const overlay = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "allow-human-enterprise-create",
+      effect: "ALLOW",
+      actions: ["enterprise.context.create"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["enterprise.context"]
+    }]
+  }));
+  const policy = mergeHostStaticAuthorizationPoliciesV010(base, overlay);
+  const provider = createHostStaticAuthorizationProviderV010(policy);
+
+  const providerAdmin = await provider.check(check("provider.binding.update"));
+  assert.equal(providerAdmin.allowed, true);
+
+  const enterpriseCreate = await provider.check(
+    check("enterprise.context.create", "enterprise.context")
+  );
+  assert.equal(enterpriseCreate.allowed, true);
+  assert.deepEqual(
+    enterpriseCreate.reasonCodes,
+    ["STATIC_POLICY_ALLOW", "allow-human-enterprise-create"]
+  );
+});
+
+test("base explicit deny still overrides additive overlay allow", async () => {
+  const base = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "deny-enterprise-create",
+      effect: "DENY",
+      actions: ["enterprise.context.create"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["enterprise.context"]
+    }]
+  }));
+  const overlay = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "allow-human-enterprise-create",
+      effect: "ALLOW",
+      actions: ["enterprise.context.create"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["enterprise.context"]
+    }]
+  }));
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(base, overlay)
+  );
+  const decision = await provider.check(
+    check("enterprise.context.create", "enterprise.context")
+  );
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(
+    decision.reasonCodes,
+    ["STATIC_POLICY_EXPLICIT_DENY", "deny-enterprise-create"]
+  );
+});
+
+test("authorization policy overlays reject duplicate rule ids", () => {
+  const base = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "same-rule",
+      effect: "ALLOW",
+      actions: ["provider.binding.update"]
+    }]
+  }));
+  const overlay = parseHostStaticAuthorizationPolicyV010(JSON.stringify({
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "same-rule",
+      effect: "ALLOW",
+      actions: ["enterprise.context.create"]
+    }]
+  }));
+  assert.throws(
+    () => mergeHostStaticAuthorizationPoliciesV010(base, overlay),
+    /AUTHORIZATION_POLICY_RULE_DUPLICATE/
+  );
 });
