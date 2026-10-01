@@ -357,6 +357,7 @@ function fixture({
     },
     async listGrantableOperations(context) {
       calls.listGrantable.push(structuredClone(context));
+      if (!policyAllowed) return [];
       return [{
         operationId: "sample.read",
         capability: "sample",
