@@ -153,12 +153,72 @@ function requireRedirectUri(value: string): string {
   } catch {
     throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_INVALID");
   }
-  const localhost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  if (url.protocol !== "https:" && !(localhost && url.protocol === "http:")) {
+  const loopbackHost =
+    url.hostname === "localhost"
+    || url.hostname === "127.0.0.1"
+    || url.hostname === "[::1]";
+  if (
+    url.protocol !== "https:"
+    && !(loopbackHost && url.protocol === "http:")
+  ) {
     throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_INVALID");
   }
-  if (url.hash) throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_INVALID");
+  if (
+    url.hash
+    || url.username
+    || url.password
+  ) {
+    throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_INVALID");
+  }
   return url.toString();
+}
+
+function isNativeLoopbackIpRedirect(url: URL): boolean {
+  return (
+    url.protocol === "http:"
+    && (
+      url.hostname === "127.0.0.1"
+      || url.hostname === "[::1]"
+    )
+  );
+}
+
+export function redirectUriMatchesRegistrationV010(
+  registeredRedirectUri: string,
+  requestedRedirectUri: string
+): boolean {
+  const registered = new URL(requireRedirectUri(registeredRedirectUri));
+  const requested = new URL(requireRedirectUri(requestedRedirectUri));
+
+  if (registered.toString() === requested.toString()) {
+    return true;
+  }
+
+  if (
+    !isNativeLoopbackIpRedirect(registered)
+    || !isNativeLoopbackIpRedirect(requested)
+  ) {
+    return false;
+  }
+
+  return (
+    registered.protocol === requested.protocol
+    && registered.hostname === requested.hostname
+    && registered.pathname === requested.pathname
+    && registered.search === requested.search
+  );
+}
+
+function redirectUriRegistered(
+  registeredRedirectUris: readonly string[],
+  requestedRedirectUri: string
+): boolean {
+  return registeredRedirectUris.some(registered =>
+    redirectUriMatchesRegistrationV010(
+      registered,
+      requestedRedirectUri
+    )
+  );
 }
 
 function normalizeScopes(scopes: readonly string[]): string[] {
@@ -546,7 +606,10 @@ export function createExternalAgentOAuthServiceV010(
       const scopes = normalizeScopes(input.scopes);
       const redirectUri = requireRedirectUri(input.redirectUri);
       const resolvedClient = await clientMetadata(input.oauthClientId);
-      if (!resolvedClient.metadata.redirect_uris.includes(redirectUri)) {
+      if (!redirectUriRegistered(
+        resolvedClient.metadata.redirect_uris,
+        redirectUri
+      )) {
         throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_NOT_REGISTERED");
       }
 
