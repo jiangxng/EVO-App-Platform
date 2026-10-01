@@ -32,8 +32,10 @@
     "docs/architecture/PLATFORM-SECRETS-v0.1.md",
     "docs/architecture/ENTERPRISE-CONTEXT-GOVERNANCE-EXPERIENCE-PLUGIN-v0.1.md",
     "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md",
-    "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md"
+    "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md",
+    "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md"
   ],
   "boundaryPolicy": "architecture.boundary-policy.json",
-  "documentationPolicy": "documentation.policy.json"
+  "documentationPolicy": "documentation.policy.json",
+  "ecosystemBoundary": "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md"
 }
