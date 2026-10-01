@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EXT-AGENT-2026-10-01-02`  
-**Snapshot time:** `2026-10-01T11:20:00+08:00`  
+**Snapshot:** `EXT-AGENT-2026-10-01-03`  
+**Snapshot time:** `2026-10-01T12:28:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,67 +16,55 @@ ACTIVE
 
 ## Latest closed live slice
 
-**external-agent-mcp-inspector-e2e-security-v0-1: VERIFIED_PRODUCTION_PASS**
+**cline-deepseek-real-ai-agent-portability-v0-1: VERIFIED_PRODUCTION_PASS**
 
-The official MCP Inspector completed a real production CIMD-first OAuth Authorization Code + PKCE flow to EVO, connected over Streamable HTTP using MCP 2026-07-28, saw only the two delegated Ledger READ operations, called the real Ledger Runtime describe operation, performed bounded accounts section reads with digest-bound cursor continuation, and then immediately lost access when its delegated Grant was revoked while its OAuth client state remained present. This proves the EVO External Agent OAuth/MCP/governed-capability security chain with a standards client, but MCP Inspector is not an AI Agent and does not substitute for a real external AI-Agent portability proof.
+Cline 4.1.22 using DeepSeek API completed a real AI-Agent production portability proof against EVO. From a natural-language request that did not disclose operation IDs and explicitly prohibited source/GitHub/database/private-endpoint access, the Agent autonomously selected the delegated Ledger Runtime describe tool, then independently chose a bounded accounts section read with pageSize 5 to illustrate configuration structure. The final answer stayed installation-scoped and did not claim Enterprise-specific Ledger Template binding. Cline's native remote OAuth attempted DCR, so a local Integration Adapter translated Cline STDIO MCP to EVO CIMD + PKCE + modern MCP 2026-07-28 without changing EVO Core or authorization.
 
-Authority: `docs/runbooks/EA-1B2C-GOOGLE-OIDC-PRODUCTION-LIVE-CUTOVER.md`
+Authority: `docs/integration-clients/CLINE-DEEPSEEK-LOCAL-MCP-ADAPTER.md`
 
 Evidence:
 
 ```json
 {
-  "productionCommit": "9c3c1399ecc2c9d42598004e39b5add49d7015ae",
-  "productionDeploymentId": "9b44fd96-df50-48c4-bc66-c7bea7428b64",
-  "productionStatus": "SUCCESS",
-  "mcpInspectorCimd": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/mcp-inspector-web-v3-client.json",
-  "oauthAuthorizationCodePkce": true,
-  "bearerProtectedMcp": true,
-  "protocolVersion": "2026-07-28",
-  "toolsList": [
+  "clineVersion": "4.1.22",
+  "modelProvider": "DeepSeek API",
+  "nativeRemoteOauthFailure": "Incompatible auth server: does not support dynamic client registration",
+  "evoDcrEnabled": false,
+  "adapterType": "INTEGRATION_ADAPTER",
+  "adapterMainlinePr": 244,
+  "adapterMainlineCommit": "4ccd6f1d5be9b6c555c818e3bf10e52b828dbeb5",
+  "autonomousDescribe": true,
+  "autonomousBoundedSectionRead": true,
+  "boundedSection": "accounts",
+  "boundedPageSize": 5,
+  "visibleOperations": [
     "ledger.runtime.configuration.describe",
     "ledger.runtime.configuration.section.read"
   ],
-  "describeTemplateId": "bookkeeping-default",
-  "describeSemanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
-  "describeCounts": {
-    "accounts": 141,
-    "applications": 143,
-    "dictionaries": 106,
-    "postingRules": 912,
-    "referenceLegacyPostingRules": 587
-  },
-  "burnReady": true,
-  "boundedAccountsRead": {
-    "firstOffset": 0,
-    "secondOffset": 3,
-    "pageSize": 3,
-    "total": 141,
-    "semanticDigestStable": true
-  },
-  "grantRevocationImmediateCutoff": true,
-  "postRevokeObservedErrorPrefix": "EXTERNAL_AGENT_OAUTH_DELEGATED_AUTHORITY_INACTIVE",
-  "inspectorOAuthStateClearedBeforeCutoffProof": false,
-  "accessTokenExplicitlyRevokedBeforeCutoffProof": false
+  "templateId": "bookkeeping-default",
+  "semanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
+  "answerInstallationScoped": true,
+  "enterpriseSpecificBindingClaimed": false,
+  "prohibitedKnowledgeSourcesUsed": false
 }
 ```
 
 ## Current open live gate
 
-**real-external-ai-agent-portability-v0-1: ACTIVE_FREE_CLIENT_VALIDATION**
+**second-mature-external-ai-agent-portability-v0-1: ACTIVE**
 
-Prove the same generic EVO External Agent contract with a real external AI Agent client that can use remote MCP + OAuth without source/private endpoint knowledge. Prefer a free client path first. ChatGPT-specific validation remains pending product-plan/workspace entitlement and must not block this generic portability proof.
+Prove EVO with a second mature external AI Agent client, preferably one that can consume the CIMD-first remote MCP/OAuth contract natively so portability is not demonstrated only through the Cline Integration Adapter. ChatGPT may satisfy this gate when product entitlement permits; another free standards-compatible AI Agent is equally acceptable.
 
 Acceptance:
 
-- a real external AI Agent client connects to the existing production /mcp endpoint without EVO client-specific runtime changes
-- the client completes the existing CIMD/OAuth or another standards-compatible registered-client flow without weakening EVO security
-- the client discovers only currently delegated Capability Operations
-- the Agent autonomously selects and invokes ledger.runtime.configuration.describe for a natural-language request
-- the Agent uses bounded ledger.runtime.configuration.section.read only when needed rather than requiring source/database/private endpoint knowledge
-- the answer describes the current installation Ledger Runtime configuration and does not claim Enterprise-specific Ledger Template binding
-- current delegated authority remains dynamically revocable
-- record any client-specific compatibility only as Integration Adapter/Product Adapter behavior, not Host Core business logic
+- a second real external AI Agent connects to EVO production through the generic External Agent contract
+- the second client does not require EVO Host Core business logic or vendor-specific authorization branches
+- prefer native remote MCP + CIMD/OAuth interoperability; if an adapter is required, keep it a thin Integration Adapter
+- the Agent autonomously selects only currently delegated Capability Operations from natural-language intent
+- the Agent performs at least one real Ledger Runtime READ without source/database/private endpoint knowledge
+- the answer remains installation-scoped and does not claim unimplemented Enterprise Context → Ledger Template binding
+- no WRITE authority is introduced for the portability proof
+- record client-specific compatibility facts without making them generic Host assumptions
 
 ## Current production preview
 
@@ -94,34 +82,33 @@ Acceptance:
 
 **Status:** `LIVE_PASS`
 
-**Scenario:** `Production Human identity + Enterprise Context delegation + standards-client External Agent OAuth/MCP + dynamic Grant revocation`
+**Scenario:** `Real external AI Agent autonomy over governed EVO Ledger Runtime capabilities`
 
-A real production MCP Inspector Web client used its own CIMD identity, completed the EVO OAuth Authorization Code + PKCE flow, connected to the bearer-protected Streamable HTTP /mcp endpoint in Modern MCP 2026-07-28 mode, discovered only the two delegated Ledger Runtime READ tools, successfully read the current installation Ledger Runtime description and two digest-consistent bounded accounts pages, then immediately lost access after its delegated Grant was revoked without clearing Inspector OAuth state or explicitly revoking the access token.
+Cline 4.1.22 backed by DeepSeek API connected through the local Cline Integration Adapter to EVO's production CIMD/OAuth/MCP protected resource. The Human prompt did not name operation IDs and prohibited source, GitHub, database and private-endpoint access. The Agent first chose the Ledger Runtime describe capability, then decided on its own that five accounts were useful to illustrate structure and invoked the bounded section-read capability with section=accounts and pageSize=5. Its final answer accurately summarized the current installation configuration and explicitly avoided Enterprise-specific template claims.
 
-Authority: `docs/runbooks/EA-1B2C-GOOGLE-OIDC-PRODUCTION-LIVE-CUTOVER.md`
+Authority: `docs/integration-clients/CLINE-DEEPSEEK-LOCAL-MCP-ADAPTER.md`
 
 Proved:
 
-- real production Google OIDC Human authentication and durable/revocable Host managed Session
-- Enterprise Context creation and Human-owned delegated Grant governance
-- CIMD-first OAuth Authorization Code + PKCE interoperability with an independent standards client
-- bearer-protected Streamable HTTP MCP in protocol revision 2026-07-28
-- least-privilege tools/list projection exposes only the two delegated Ledger READ Capability Operations
-- ledger.runtime.configuration.describe returns real current installation configuration through ActionHost
-- bounded ledger.runtime.configuration.section.read supports digest-stable cursor continuation
-- revoking the delegated Grant invalidates effective access immediately even while the previously issued OAuth client state/token remains otherwise present
+- a real third-party AI Agent harness and non-OpenAI model can use EVO through governed MCP capabilities
+- tool choice was Agent-driven from natural-language intent rather than operation IDs supplied in the prompt
+- the Agent selected a bounded follow-up read rather than indiscriminately dumping configuration
+- the final answer can stay within the installation-scoped semantic boundary exposed by the Capability contract
+- Cline-specific DCR incompatibility can be contained in a thin Integration Adapter without weakening EVO CIMD-first OAuth or adding vendor business logic to Host Core
+- the same remote protected-resource path retains current delegated-authority recomputation already proven by the Inspector Grant-revocation live test
 
 Not proved:
 
-- MCP Inspector is an AI Agent or can autonomously decide which business tools to call
+- Cline 4.1.22 natively supports EVO CIMD-first remote OAuth without an adapter
+- a second mature external AI Agent client has completed portability
 - a real ChatGPT custom MCP client has completed OAuth or called EVO tools
-- a second mature external AI Agent client has completed the same portability proof
 - Enterprise Context-specific Ledger Template selection/binding
 - External Agent WRITE
 
 
 ## Recent mainline changes
 
+- PR #244 — MERGED_CI_PASS_LIVE_PASS: Add the thin Cline local MCP Integration Adapter so Cline + DeepSeek can bridge STDIO to EVO CIMD/OAuth PKCE + modern MCP 2026-07-28 without enabling DCR; real AI-Agent autonomous Ledger READ proof passed.
 - PR #242 — MERGED_CI_PASS_DEPLOYED: Align MCP tools/call structuredContent directly with each declared Capability Operation outputSchema; production Ledger describe call passed.
 - PR #241 — MERGED_CI_PASS_DEPLOYED: Stamp resultType=complete on MCP 2026-07-28 successful results; production modern tools/list passed.
 - PR #240 — MERGED_CI_PASS: Add a fresh Inspector Web CIMD identity with supported localhost/127.0.0.1 callbacks only.
@@ -318,6 +305,10 @@ Not proved:
 - Do not recreate or reactivate the revoked Inspector v3 Grant merely to preserve the completed proof; create a new bounded Grant only if another Inspector test is actually needed.
 - Do not reintroduce the MCP 2026-07-28 missing resultType or wrapped structuredContent shapes fixed by PRs #241 and #242.
 - Do not make ChatGPT plan entitlement a blocker for generic External Agent portability validation; use another standards-compatible real AI Agent client while preserving ChatGPT-specific validation as pending.
+- Do not reopen Cline 4.1.22 native DCR as an EVO Core requirement; its DCR-only remote OAuth behavior is a client compatibility concern and the local Integration Adapter is the current bounded solution.
+- Do not repeat the Cline + DeepSeek autonomous Ledger describe/accounts-read proof unless a regression requires it; this real AI-Agent portability slice is VERIFIED_PRODUCTION_PASS.
+- Do not call the Cline Adapter an EVO business provider or Core module; it is an Integration Adapter translating client protocol/OAuth mechanics only.
+- Do not make ChatGPT entitlement the only path to the second mature External Agent proof.
 
 ## Fresh ChatGPT / LLM startup
 
