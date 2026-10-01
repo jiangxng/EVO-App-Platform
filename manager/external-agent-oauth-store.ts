@@ -64,6 +64,15 @@ function validateCode(code: ExternalAgentOAuthAuthorizationCodeV010): void {
     throw new Error("EXTERNAL_AGENT_OAUTH_CODE_INVALID");
   }
   unique(code.scopes, "EXTERNAL_AGENT_OAUTH_SCOPE_DUPLICATE");
+  if (code.operationIds !== undefined) {
+    if (code.operationIds.length === 0) {
+      throw new Error("EXTERNAL_AGENT_OAUTH_CODE_OPERATION_CEILING_INVALID");
+    }
+    unique(
+      code.operationIds,
+      "EXTERNAL_AGENT_OAUTH_CODE_OPERATION_DUPLICATE"
+    );
+  }
   const createdAt = requireIso(
     code.createdAt,
     "EXTERNAL_AGENT_OAUTH_CODE_CREATED_AT_INVALID"
@@ -101,6 +110,15 @@ function validateAccessToken(token: ExternalAgentOAuthAccessTokenV010): void {
     throw new Error("EXTERNAL_AGENT_OAUTH_ACCESS_TOKEN_INVALID");
   }
   unique(token.scopes, "EXTERNAL_AGENT_OAUTH_SCOPE_DUPLICATE");
+  if (token.operationIds !== undefined) {
+    if (token.operationIds.length === 0) {
+      throw new Error("EXTERNAL_AGENT_OAUTH_ACCESS_OPERATION_CEILING_INVALID");
+    }
+    unique(
+      token.operationIds,
+      "EXTERNAL_AGENT_OAUTH_ACCESS_OPERATION_DUPLICATE"
+    );
+  }
   const createdAt = requireIso(
     token.createdAt,
     "EXTERNAL_AGENT_OAUTH_ACCESS_CREATED_AT_INVALID"
@@ -138,6 +156,15 @@ function validateRefreshToken(token: ExternalAgentOAuthRefreshTokenV010): void {
     throw new Error("EXTERNAL_AGENT_OAUTH_REFRESH_TOKEN_INVALID");
   }
   unique(token.scopes, "EXTERNAL_AGENT_OAUTH_SCOPE_DUPLICATE");
+  if (token.operationIds !== undefined) {
+    if (token.operationIds.length === 0) {
+      throw new Error("EXTERNAL_AGENT_OAUTH_REFRESH_OPERATION_CEILING_INVALID");
+    }
+    unique(
+      token.operationIds,
+      "EXTERNAL_AGENT_OAUTH_REFRESH_OPERATION_DUPLICATE"
+    );
+  }
   const createdAt = requireIso(
     token.createdAt,
     "EXTERNAL_AGENT_OAUTH_REFRESH_CREATED_AT_INVALID"
@@ -284,6 +311,7 @@ function validateTransition(
         "resource",
         "redirectUri",
         "scopes",
+        "operationIds",
         "codeChallengeMethod",
         "codeChallenge",
         "createdAt",
@@ -315,6 +343,7 @@ function validateTransition(
         "grantId",
         "resource",
         "scopes",
+        "operationIds",
         "createdAt",
         "expiresAt"
       ]
@@ -344,6 +373,7 @@ function validateTransition(
         "grantId",
         "resource",
         "scopes",
+        "operationIds",
         "createdAt",
         "expiresAt"
       ]
