@@ -475,6 +475,14 @@ test("OAuth metadata is resource-bound and CIMD-first", () => {
   );
 });
 
+test("CIMD can be validated before an internal governance registration exists", async () => {
+  const f = fixture();
+  const metadata = await f.service.inspectClientMetadata(oauthClientId);
+  assert.equal(metadata.client_id, oauthClientId);
+  assert.equal(metadata.client_name, "Reference MCP Client");
+  assert.deepEqual(metadata.redirect_uris, [redirectUri]);
+});
+
 test("CIMD document must match registered OAuth client identity and redirect URI", async () => {
   const f = fixture();
   const resolved = await f.service.resolveClientMetadata(oauthClientId);

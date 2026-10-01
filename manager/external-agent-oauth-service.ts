@@ -85,6 +85,9 @@ export interface ExternalAgentOAuthRefreshInputV010 {
 export interface ExternalAgentOAuthServiceV010 {
   protectedResourceMetadata(): ExternalAgentProtectedResourceMetadataV010;
   authorizationServerMetadata(): ExternalAgentAuthorizationServerMetadataV010;
+  inspectClientMetadata(
+    oauthClientId: string
+  ): Promise<ExternalAgentClientIdMetadataDocumentV010>;
   resolveClientMetadata(
     oauthClientId: string
   ): Promise<{
@@ -395,6 +398,23 @@ export function createExternalAgentOAuthServiceV010(
     if (!Number.isInteger(value) || value <= 0) throw new Error(code);
   }
 
+  async function inspectClientMetadata(
+    oauthClientIdInput: string
+  ): Promise<ExternalAgentClientIdMetadataDocumentV010> {
+    const oauthClientId = requireHttpsUrl(
+      oauthClientIdInput,
+      "EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID"
+    );
+    return validateClientMetadata(
+      oauthClientId,
+      await fetchJson<ExternalAgentClientIdMetadataDocumentV010>(
+        fetchImpl,
+        oauthClientId,
+        "EXTERNAL_AGENT_OAUTH_CLIENT_METADATA"
+      )
+    );
+  }
+
   async function clientMetadata(
     oauthClientIdInput: string
   ): Promise<{
@@ -424,17 +444,9 @@ export function createExternalAgentOAuthServiceV010(
       throw new Error("EXTERNAL_AGENT_OAUTH_AGENT_NOT_ACTIVE");
     }
 
-    const metadata = validateClientMetadata(
-      oauthClientId,
-      await fetchJson<ExternalAgentClientIdMetadataDocumentV010>(
-        fetchImpl,
-        oauthClientId,
-        "EXTERNAL_AGENT_OAUTH_CLIENT_METADATA"
-      )
-    );
     return {
       registration: structuredClone(registration),
-      metadata
+      metadata: await inspectClientMetadata(oauthClientId)
     };
   }
 
@@ -593,6 +605,7 @@ export function createExternalAgentOAuthServiceV010(
       };
     },
 
+    inspectClientMetadata,
     resolveClientMetadata: clientMetadata,
 
     async issueAuthorizationCode(input) {

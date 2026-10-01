@@ -66,6 +66,20 @@ export interface CreateExternalAgentGrantInputV010 {
   description?: string;
 }
 
+export interface ExternalAgentGrantableOperationV010 {
+  operationId: string;
+  capability: string;
+  title: string;
+  description: string;
+  effect: "READ" | "PLAN";
+  dataScope: string;
+}
+
+export interface EnsureExternalAgentConsentClientInputV010 {
+  oauthClientId: string;
+  displayName: string;
+}
+
 export interface ExternalAgentGovernanceServiceV010 {
   registerAgent(
     context: PlatformRequestContextV010,
@@ -83,6 +97,17 @@ export interface ExternalAgentGovernanceServiceV010 {
     context: PlatformRequestContextV010,
     clientId: string
   ): Promise<ExternalAgentClientRegistrationV010>;
+  ensurePublicCimdClient(
+    context: PlatformRequestContextV010,
+    input: EnsureExternalAgentConsentClientInputV010
+  ): Promise<{
+    agent: ExternalAgentRegistrationV010;
+    client: ExternalAgentClientRegistrationV010;
+    created: boolean;
+  }>;
+  listGrantableOperations(
+    context: PlatformRequestContextV010
+  ): Promise<ExternalAgentGrantableOperationV010[]>;
   createGrant(
     context: PlatformRequestContextV010,
     input: CreateExternalAgentGrantInputV010
@@ -538,6 +563,212 @@ export function createExternalAgentGovernanceServiceV010(
         ]
       });
       return structuredClone(revoked);
+    },
+
+    async ensurePublicCimdClient(context, input) {
+      requireHuman(context);
+      const oauthClientId = normalizeText(
+        input.oauthClientId,
+        "EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID"
+      );
+      let parsed: URL;
+      try {
+        parsed = new URL(oauthClientId);
+      } catch {
+        throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+      }
+      if (
+        parsed.protocol !== "https:"
+        || parsed.pathname === "/"
+        || parsed.search
+        || parsed.hash
+      ) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_ID_INVALID");
+      }
+      const displayName = normalizeText(
+        input.displayName,
+        "EXTERNAL_AGENT_CLIENT_DISPLAY_NAME_REQUIRED"
+      );
+
+      const before = dependencies.store.snapshot();
+      const existingClient = before.clients.find(
+        item => item.oauthClientId === oauthClientId
+      );
+      if (existingClient) {
+        if (existingClient.state !== "ACTIVE") {
+          throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_NOT_ACTIVE");
+        }
+        const existingAgent = before.agents.find(
+          item => item.agentId === existingClient.agentId
+        );
+        if (!existingAgent || existingAgent.state !== "ACTIVE") {
+          throw new Error("EXTERNAL_AGENT_OAUTH_AGENT_NOT_ACTIVE");
+        }
+        return {
+          agent: structuredClone(existingAgent),
+          client: structuredClone(existingClient),
+          created: false
+        };
+      }
+
+      await authorize(
+        dependencies,
+        context,
+        EXTERNAL_AGENT_REGISTER_ACTION,
+        {
+          type: "external.agent",
+          attributes: {
+            displayName
+          }
+        }
+      );
+      await authorize(
+        dependencies,
+        context,
+        EXTERNAL_AGENT_CLIENT_REGISTER_ACTION,
+        {
+          type: "external.agent.client",
+          attributes: {
+            kind: "PUBLIC"
+          }
+        }
+      );
+
+      const snapshot = dependencies.store.snapshot();
+      const raced = snapshot.clients.find(
+        item => item.oauthClientId === oauthClientId
+      );
+      if (raced) {
+        if (raced.state !== "ACTIVE") {
+          throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_NOT_ACTIVE");
+        }
+        const racedAgent = snapshot.agents.find(
+          item => item.agentId === raced.agentId
+        );
+        if (!racedAgent || racedAgent.state !== "ACTIVE") {
+          throw new Error("EXTERNAL_AGENT_OAUTH_AGENT_NOT_ACTIVE");
+        }
+        return {
+          agent: structuredClone(racedAgent),
+          client: structuredClone(raced),
+          created: false
+        };
+      }
+
+      const occurredAt = now().toISOString();
+      const usedAgentIds = new Set(snapshot.agents.map(item => item.agentId));
+      const agentId = nextStableId(
+        "external-agent:",
+        usedAgentIds,
+        id
+      );
+      const agent: ExternalAgentRegistrationV010 = {
+        contractVersion: "0.1.0",
+        agentId,
+        displayName,
+        trustLevel: "REGISTERED",
+        state: "ACTIVE",
+        createdAt: occurredAt,
+        createdBySubjectId: context.principal.subjectId,
+        metadata: {
+          onboarding: "OAUTH_HUMAN_CONSENT",
+          oauthClientOrigin: parsed.origin
+        }
+      };
+
+      const usedClientIds = new Set(snapshot.clients.map(item => item.clientId));
+      const clientId = nextStableId(
+        "external-client:",
+        usedClientIds,
+        id
+      );
+      const client: ExternalAgentClientRegistrationV010 = {
+        contractVersion: "0.1.0",
+        clientId,
+        agentId,
+        displayName,
+        kind: "PUBLIC",
+        protocols: ["MCP"],
+        oauthClientId,
+        state: "ACTIVE",
+        createdAt: occurredAt,
+        createdBySubjectId: context.principal.subjectId,
+        metadata: {
+          onboarding: "OAUTH_HUMAN_CONSENT"
+        }
+      };
+
+      dependencies.store.save({
+        ...snapshot,
+        agents: [...snapshot.agents, agent],
+        clients: [...snapshot.clients, client],
+        events: [
+          ...snapshot.events,
+          event("AGENT_REGISTERED", {
+            actorSubjectId: context.principal.subjectId,
+            occurredAt,
+            eventId: "external-agent-event:" + id(),
+            agentId
+          }),
+          event("CLIENT_REGISTERED", {
+            actorSubjectId: context.principal.subjectId,
+            occurredAt,
+            eventId: "external-agent-event:" + id(),
+            agentId,
+            clientId
+          })
+        ]
+      });
+
+      return {
+        agent: structuredClone(agent),
+        client: structuredClone(client),
+        created: true
+      };
+    },
+
+    async listGrantableOperations(context) {
+      requireHuman(context);
+      activeContextId(context);
+      await authorize(
+        dependencies,
+        context,
+        EXTERNAL_AGENT_GRANT_CREATE_ACTION,
+        {
+          type: "external.agent.authority-grant",
+          attributes: {
+            contextId: context.context!.activeContext.contextId,
+            operationCount: 0
+          }
+        }
+      );
+
+      const humanCatalog = await listAuthorizedCapabilityOperationsV010({
+        manager: dependencies.manager,
+        authorizationProvider: dependencies.resolveAuthorizationProvider(),
+        requestContext: context,
+        audience: "HUMAN"
+      });
+
+      return humanCatalog.operations
+        .flatMap(operation => {
+          if (
+            !operation.exposure.includes("EXTERNAL_AGENT")
+            || (operation.effect !== "READ" && operation.effect !== "PLAN")
+          ) {
+            return [];
+          }
+          const item: ExternalAgentGrantableOperationV010 = {
+            operationId: operation.operationId,
+            capability: operation.capability,
+            title: operation.title,
+            description: operation.description,
+            effect: operation.effect,
+            dataScope: operation.dataScope
+          };
+          return [item];
+        })
+        .sort((a, b) => a.operationId.localeCompare(b.operationId));
     },
 
     async createGrant(context, input) {

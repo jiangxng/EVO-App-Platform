@@ -413,7 +413,10 @@
     "agent-capability-fabric-deterministic-authorized-search-v0-1",
     "agent-capability-fabric-public-describe-v0-1",
     "agent-capability-fabric-governed-invoke-v0-1",
-    "mcp-capability-fabric-hybrid-projection-v0-1"
+    "mcp-capability-fabric-hybrid-projection-v0-1",
+    "external-agent-oauth-human-consent-v0-1",
+    "external-agent-first-use-cimd-enrollment-v0-1",
+    "external-agent-mobile-consent-surface-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -1695,8 +1698,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "AGENT-CAP-FABRIC-2026-10-01-01",
-    "snapshotAt": "2026-10-01T15:27:00+08:00",
+    "snapshotId": "AGENT-CAP-FABRIC-2026-10-01-02",
+    "snapshotAt": "2026-10-01T17:05:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1747,21 +1750,21 @@
         }
       },
       "openGate": {
-        "id": "agent-capability-fabric-v0-1",
-        "status": "ACTIVE_IMPLEMENTATION_AND_LIVE_VALIDATION",
-        "summary": "Replace tool-catalog scaling as the primary Agent interface with a small governed capability gateway. v0.1 introduces deterministic authorized search, public contract describe and READ/PLAN invoke over the existing Capability Operation Registry, while preserving current Grant, Human, Context, lifecycle, authorization.check, token-scope and ActionHost boundaries. Production migrates through HYBRID mode before considering FABRIC-only projection.",
-        "authority": "docs/architecture/AGENT-CAPABILITY-FABRIC-v0.1.md",
+        "id": "agent-capability-fabric-human-delegation-consent-v0-1",
+        "status": "ACTIVE_IMPLEMENTATION_VALIDATION",
+        "summary": "Make External Agent delegation usable from normal desktop/mobile OAuth without DevTools. A first-use valid public CIMD client can enter an EVO Human Consent page where the Human explicitly chooses one Enterprise Context, concrete READ/PLAN operations and a short expiry. Approval enrolls the Agent/Client if first use, creates the normal Authority Grant, and then issues the OAuth code. This complements Capability Fabric discovery; it does not broaden Fabric authority or enable WRITE/DCR.",
+        "authority": "docs/architecture/EXTERNAL-AGENT-OAUTH-HUMAN-CONSENT-v0.1.md",
         "acceptance": [
-          "evo.capabilities.search returns only current delegated READ/PLAN operations and is deterministically bounded",
-          "evo.capabilities.describe exposes only public Capability Operation metadata and schemas",
-          "guessed, ungranted, currently denied and WRITE operations are non-disclosing through Fabric describe/invoke",
-          "evo.capabilities.invoke re-evaluates current delegated authority and executes only through ActionHost",
-          "Access Token operationIds remain an upper bound and cannot silently expand",
-          "MCP HYBRID mode exposes the three generic Fabric gateway tools while preserving current direct operation compatibility",
-          "MCP FABRIC mode can expose only the three generic gateway tools without changing business plugin contracts",
-          "a live real AI Agent receives a natural-language goal without operation ids, uses search then describe/invoke, and produces a correct bounded answer",
-          "no wildcard or implicit capability-level Grant expansion is introduced in v0.1",
-          "the deferred second mature native Agent portability test does not block this Fabric milestone"
+          "unregistered valid CIMD is inspectable before internal governance registration",
+          "first-use OAuth GET produces an authenticated Human Consent page instead of requiring pre-created governance records",
+          "deny produces no Agent, Client, Grant or authorization code",
+          "approve revalidates redirect/resource/scope/PKCE, selected Context and current grantable operations",
+          "first-use approve enrolls one PUBLIC MCP Agent/Client without increasing trust beyond REGISTERED",
+          "revoked clients are never auto-reactivated by consent",
+          "Consent v0.1 grants only explicitly selected READ/PLAN operation ids and never WRITE",
+          "Grant duration is limited to 1h, 4h or 24h and tokens remain bounded by current Grant authority",
+          "existing unique effective Grant fast path remains compatible with prior Inspector/Cline proofs",
+          "live mobile validation completes one standards-client OAuth flow without DevTools"
         ]
       },
       "productionPreview": {
@@ -1777,6 +1780,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 248,
+        "status": "MERGED_CI_PASS_DEPLOYED",
+        "summary": "Introduce Agent Capability Fabric v0.1 with search/describe/invoke and DIRECT/HYBRID/FABRIC MCP projection modes; production currently uses HYBRID."
+      },
       {
         "pr": 247,
         "status": "MERGED_CI_PASS",
@@ -2223,7 +2231,10 @@
       "Second mature native Agent / Google Cloud-related validation is intentionally deferred by the Human; do not block Agent Capability Fabric work on that test.",
       "Do not solve capability-catalog scale by adding one bespoke MCP tool per future business function; prefer the Agent Capability Fabric search/describe/invoke boundary.",
       "Do not broaden Grant authority implicitly inside Capability Fabric search. Current allowedOperationIds and token operationIds remain hard upper bounds in v0.1.",
-      "Do not expose WRITE through evo.capabilities.invoke in Fabric v0.1."
+      "Do not expose WRITE through evo.capabilities.invoke in Fabric v0.1.",
+      "Do not require Human users to create External Agent Agent/Client/Grant records through DevTools for first-use standards-client OAuth once the Human Consent flow is available.",
+      "Do not implement Human Consent as open DCR; CIMD is client identity, Human approval is the authorization decision, and the Authority Grant remains the durable business authority.",
+      "Do not preselect business operations in the consent UI or infer WRITE authority from OAuth scopes."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
