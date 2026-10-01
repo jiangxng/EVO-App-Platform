@@ -439,6 +439,112 @@ test("governance listing includes registrations created by the current Human bef
 });
 
 
+test("Human consent enrollment atomically creates one public CIMD Agent and Client", async () => {
+  const store = createMemoryExternalAgentGovernanceStoreV010();
+  const manager = createManager([operation()]);
+  const auth = authorizationProvider();
+  const service = createExternalAgentGovernanceServiceV010({
+    store,
+    manager,
+    resolveAuthorizationProvider: () => auth.provider,
+    now: () => new Date("2026-09-30T10:00:00.000Z"),
+    id: sequentialIds()
+  });
+  const context = humanContext();
+
+  const first = await service.ensurePublicCimdClient(context, {
+    oauthClientId: "https://client.example/mcp-client.json",
+    displayName: "Consent Client"
+  });
+
+  assert.equal(first.created, true);
+  assert.equal(first.agent.trustLevel, "REGISTERED");
+  assert.equal(first.client.kind, "PUBLIC");
+  assert.deepEqual(first.client.protocols, ["MCP"]);
+  assert.equal(
+    first.client.oauthClientId,
+    "https://client.example/mcp-client.json"
+  );
+
+  const snapshot = store.snapshot();
+  assert.equal(snapshot.agents.length, 1);
+  assert.equal(snapshot.clients.length, 1);
+  assert.deepEqual(
+    snapshot.events.map(item => item.type),
+    ["AGENT_REGISTERED", "CLIENT_REGISTERED"]
+  );
+
+  const second = await service.ensurePublicCimdClient(context, {
+    oauthClientId: "https://client.example/mcp-client.json",
+    displayName: "Consent Client"
+  });
+  assert.equal(second.created, false);
+  assert.equal(second.agent.agentId, first.agent.agentId);
+  assert.equal(second.client.clientId, first.client.clientId);
+  assert.equal(store.snapshot().agents.length, 1);
+  assert.equal(store.snapshot().clients.length, 1);
+});
+
+test("Human consent grantable catalog excludes WRITE and non-External-Agent operations", async () => {
+  const store = createMemoryExternalAgentGovernanceStoreV010();
+  const manager = createManager([
+    operation({ operationId: "sample.read" }),
+    operation({ operationId: "sample.plan", effect: "PLAN" }),
+    operation({ operationId: "sample.write", effect: "WRITE" }),
+    operation({
+      operationId: "sample.human-only",
+      exposure: ["HUMAN"]
+    })
+  ]);
+  const auth = authorizationProvider();
+  const service = createExternalAgentGovernanceServiceV010({
+    store,
+    manager,
+    resolveAuthorizationProvider: () => auth.provider,
+    now: () => new Date("2026-09-30T10:00:00.000Z"),
+    id: sequentialIds()
+  });
+
+  const grantable = await service.listGrantableOperations(humanContext());
+  assert.deepEqual(
+    grantable.map(item => item.operationId),
+    ["sample.plan", "sample.read"]
+  );
+  assert.deepEqual(
+    grantable.map(item => item.effect),
+    ["PLAN", "READ"]
+  );
+});
+
+test("Human consent enrollment cannot reactivate a revoked CIMD Client", async () => {
+  const fixture = await registeredFixture();
+  const client = await fixture.service.registerClient(
+    fixture.context,
+    {
+      agentId: fixture.agent.agentId,
+      displayName: "Consent OAuth Client",
+      kind: "PUBLIC",
+      protocols: ["MCP"],
+      oauthClientId: "https://client.example/consent.json"
+    }
+  );
+  await fixture.service.revokeClient(
+    fixture.context,
+    client.clientId
+  );
+
+  await assert.rejects(
+    () => fixture.service.ensurePublicCimdClient(
+      fixture.context,
+      {
+        oauthClientId: "https://client.example/consent.json",
+        displayName: "Consent OAuth Client"
+      }
+    ),
+    /EXTERNAL_AGENT_OAUTH_CLIENT_NOT_ACTIVE/
+  );
+});
+
 test("OAuth client identity binding is unique, HTTPS and immutable", async () => {
   const store = createMemoryExternalAgentGovernanceStoreV010();
   const manager = createManager([operation()]);
