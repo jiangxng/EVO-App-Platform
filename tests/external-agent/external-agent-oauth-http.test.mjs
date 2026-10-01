@@ -227,11 +227,11 @@ function requestContext(currentSession, contextId, correlationId) {
   };
 }
 
-function authorizationUrl() {
+function authorizationUrl(currentRedirectUri = redirectUri) {
   const url = new URL("https://evo.example/oauth/authorize");
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", oauthClientId);
-  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("redirect_uri", currentRedirectUri);
   url.searchParams.set("resource", resource);
   url.searchParams.set("scope", "evo.capabilities offline_access");
   url.searchParams.set("state", "state-1");
@@ -240,7 +240,11 @@ function authorizationUrl() {
   return url;
 }
 
-function fixture({ grantCount = 1, policyAllowed = true } = {}) {
+function fixture({
+  grantCount = 1,
+  policyAllowed = true,
+  registeredRedirectUri = redirectUri
+} = {}) {
   const store = governanceStore({ grantCount });
   const calls = {
     issue: [],
@@ -261,7 +265,7 @@ function fixture({ grantCount = 1, policyAllowed = true } = {}) {
         registration: store.snapshot().clients[0],
         metadata: {
           client_id: oauthClientId,
-          redirect_uris: [redirectUri],
+          redirect_uris: [registeredRedirectUri],
           grant_types: ["authorization_code", "refresh_token"],
           response_types: ["code"],
           token_endpoint_auth_method: "none"
@@ -272,7 +276,7 @@ function fixture({ grantCount = 1, policyAllowed = true } = {}) {
       calls.issue.push(structuredClone(input));
       return {
         code: "evo_code_fixture",
-        redirectUri,
+        redirectUri: input.redirectUri,
         scopes: [...input.scopes],
         expiresAt: "2026-09-30T11:05:00.000Z"
       };
@@ -336,6 +340,30 @@ test("authorize binds the unique current Human Grant and preserves OAuth state",
     f.calls.issue[0].requestContext.context.activeContext.contextId,
     "enterprise:ent-1"
   );
+});
+
+test("authorize accepts an RFC 8252 native loopback ephemeral port", async () => {
+  const f = fixture({
+    registeredRedirectUri: "http://127.0.0.1/callback"
+  });
+  const runtimeRedirect =
+    "http://127.0.0.1:53421/callback";
+
+  const result = await f.adapter.authorize({
+    url: authorizationUrl(runtimeRedirect),
+    session: session(),
+    correlationId: "corr-native-loopback"
+  });
+
+  assert.equal(result.status, 303);
+  const target = new URL(result.location);
+  assert.equal(
+    target.origin + target.pathname,
+    runtimeRedirect
+  );
+  assert.equal(target.searchParams.get("code"), "evo_code_fixture");
+  assert.equal(f.calls.issue.length, 1);
+  assert.equal(f.calls.issue[0].redirectUri, runtimeRedirect);
 });
 
 test("authorize never guesses when multiple effective Grants exist", async () => {
