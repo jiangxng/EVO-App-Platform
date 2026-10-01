@@ -6,6 +6,7 @@ on:
     paths:
       - "apps/enterprise-context-governance/**"
       - "catalog/seed.ts"
+      - "manager/server.ts"
       - "manager/enterprise-context-creation.ts"
       - "providers/enterprise-context/**"
       - "providers/authorization/**"
@@ -17,6 +18,7 @@ on:
     paths:
       - "apps/enterprise-context-governance/**"
       - "catalog/seed.ts"
+      - "manager/server.ts"
       - "manager/enterprise-context-creation.ts"
       - "providers/enterprise-context/**"
       - "providers/authorization/**"
