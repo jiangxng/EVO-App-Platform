@@ -44,6 +44,7 @@ export const hostStaticAuthorizationProviderPackage: PackageManifestV010 = {
         },
         metadata: {
           policyBoundary: "APP_PLATFORM_AUTHORIZATION_POLICY_JSON",
+          policyOverlayBoundary: "APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON",
           defaultDecision: "DENY",
           purpose: "Host authorization policy evaluation"
         }
