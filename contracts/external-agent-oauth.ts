@@ -15,6 +15,11 @@ export interface ExternalAgentOAuthAuthorizationCodeV010 {
   resource: string;
   redirectUri: string;
   scopes: string[];
+  /**
+   * Authority ceiling captured when the authorization code is issued.
+   * Legacy records may omit this field.
+   */
+  operationIds?: string[];
   codeChallengeMethod: ExternalAgentOAuthCodeChallengeMethodV010;
   codeChallenge: string;
   createdAt: string;
@@ -32,6 +37,11 @@ export interface ExternalAgentOAuthAccessTokenV010 {
   grantId: string;
   resource: string;
   scopes: string[];
+  /**
+   * Immutable operation ceiling for this access token.
+   * Runtime authority can shrink below this set but cannot expand above it.
+   */
+  operationIds?: string[];
   createdAt: string;
   expiresAt: string;
   revokedAt?: string;
@@ -47,6 +57,11 @@ export interface ExternalAgentOAuthRefreshTokenV010 {
   grantId: string;
   resource: string;
   scopes: string[];
+  /**
+   * Immutable operation ceiling for the refresh-token family.
+   * Rotation carries forward only the current intersection.
+   */
+  operationIds?: string[];
   createdAt: string;
   expiresAt: string;
   consumedAt?: string;

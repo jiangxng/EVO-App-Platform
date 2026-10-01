@@ -243,6 +243,53 @@ test("External Agent governance Action Host registers ChatGPT client and creates
   assert.equal(listing.result.grants.length, 1);
 });
 
+test("External Agent governance Action Host accepts capability selector Grant without explicit operation ids", async () => {
+  const f = fixture();
+
+  const registered = await f.router.execute(
+    request("external.agent.register", {
+      displayName: "Capability Agent"
+    }, true, 10),
+    context()
+  );
+  assert.equal(registered.ok, true);
+  const agentId = registered.result.agent.agentId;
+
+  const client = await f.router.execute(
+    request("external.agent.client.register", {
+      agentId,
+      displayName: "Capability MCP",
+      kind: "PUBLIC",
+      protocols: ["MCP"]
+    }, true, 11),
+    context()
+  );
+  assert.equal(client.ok, true);
+  const clientId = client.result.client.clientId;
+
+  const grant = await f.router.execute(
+    request("external.agent.grant.create", {
+      agentId,
+      clientId,
+      capabilitySelectors: [{
+        capability: "sample.external",
+        effects: ["READ"]
+      }],
+      validUntil: "2026-10-01T10:00:00.000Z"
+    }, true, 12),
+    context()
+  );
+
+  assert.equal(grant.ok, true);
+  assert.deepEqual(grant.result.grant.allowedOperationIds, []);
+  assert.deepEqual(grant.result.grant.capabilitySelectors, [{
+    contractVersion: "0.1.0",
+    capability: "sample.external",
+    effects: ["READ"]
+  }]);
+  assert.deepEqual(grant.result.grant.effectConstraints, ["READ"]);
+});
+
 test("External Agent governance Action Host requires Human confirmation for mutations", async () => {
   const f = fixture();
   const result = await f.router.execute(

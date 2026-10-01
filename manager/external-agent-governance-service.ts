@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   ExternalAgentAuthorityGrantV010,
+  ExternalAgentCapabilitySelectorV010,
   ExternalAgentClientKindV010,
   ExternalAgentClientRegistrationV010,
   ExternalAgentGovernanceEventV010,
@@ -61,7 +62,8 @@ export interface RegisterExternalAgentClientInputV010 {
 export interface CreateExternalAgentGrantInputV010 {
   agentId: string;
   clientId: string;
-  allowedOperationIds: string[];
+  allowedOperationIds?: string[];
+  capabilitySelectors?: ExternalAgentCapabilitySelectorV010[];
   validUntil: string;
   description?: string;
 }
@@ -156,6 +158,44 @@ function uniqueSorted(values: readonly string[], code: string): string[] {
   const set = new Set(normalized);
   if (set.size !== normalized.length) throw new Error(code);
   return [...set].sort();
+}
+
+
+function normalizedCapabilitySelectors(
+  selectors: readonly ExternalAgentCapabilitySelectorV010[] | undefined
+): ExternalAgentCapabilitySelectorV010[] {
+  if (selectors === undefined) return [];
+  const normalized = selectors.map(selector => {
+    const capability = normalizeText(
+      selector.capability,
+      "EXTERNAL_AGENT_GRANT_SELECTOR_CAPABILITY_REQUIRED"
+    );
+    const effects = uniqueSorted(
+      selector.effects,
+      "EXTERNAL_AGENT_GRANT_SELECTOR_EFFECT_INVALID"
+    );
+    if (
+      effects.length === 0
+      || effects.some(effect => effect !== "READ" && effect !== "PLAN")
+    ) {
+      throw new Error("EXTERNAL_AGENT_GRANT_SELECTOR_EFFECT_INVALID");
+    }
+    return {
+      contractVersion: "0.1.0" as const,
+      capability,
+      effects: effects as Array<"READ" | "PLAN">
+    };
+  });
+  const keys = normalized.map(
+    selector => selector.capability + "::" + selector.effects.join(",")
+  );
+  if (new Set(keys).size !== keys.length) {
+    throw new Error("EXTERNAL_AGENT_GRANT_SELECTOR_DUPLICATE");
+  }
+  return normalized.sort((a, b) =>
+    a.capability.localeCompare(b.capability)
+    || a.effects.join(",").localeCompare(b.effects.join(","))
+  );
 }
 
 function event(
@@ -783,11 +823,17 @@ export function createExternalAgentGovernanceServiceV010(
         "EXTERNAL_AGENT_CLIENT_ID_REQUIRED"
       );
       const requestedOperations = uniqueSorted(
-        input.allowedOperationIds,
+        input.allowedOperationIds ?? [],
         "EXTERNAL_AGENT_GRANT_OPERATION_INVALID"
       );
-      if (requestedOperations.length === 0) {
-        throw new Error("EXTERNAL_AGENT_GRANT_OPERATION_REQUIRED");
+      const capabilitySelectors = normalizedCapabilitySelectors(
+        input.capabilitySelectors
+      );
+      if (
+        requestedOperations.length === 0
+        && capabilitySelectors.length === 0
+      ) {
+        throw new Error("EXTERNAL_AGENT_GRANT_AUTHORITY_REQUIRED");
       }
 
       const validUntilEpoch = Date.parse(input.validUntil);
@@ -821,7 +867,8 @@ export function createExternalAgentGovernanceServiceV010(
             agentId,
             clientId,
             contextId,
-            operationCount: requestedOperations.length
+            operationCount: requestedOperations.length,
+            capabilitySelectorCount: capabilitySelectors.length
           }
         }
       );
@@ -853,8 +900,29 @@ export function createExternalAgentGovernanceServiceV010(
         return operation;
       });
 
+      for (const selector of capabilitySelectors) {
+        for (const effect of selector.effects) {
+          const matches = humanCatalog.operations.filter(operation =>
+            operation.exposure.includes("EXTERNAL_AGENT")
+            && operation.capability === selector.capability
+            && operation.effect === effect
+          );
+          if (matches.length === 0) {
+            throw new Error(
+              "EXTERNAL_AGENT_GRANT_SELECTOR_NOT_AUTHORIZED: "
+              + selector.capability
+              + "::"
+              + effect
+            );
+          }
+        }
+      }
+
       const effectConstraints = [
-        ...new Set(selected.map(operation => operation.effect))
+        ...new Set([
+          ...selected.map(operation => operation.effect),
+          ...capabilitySelectors.flatMap(selector => selector.effects)
+        ])
       ].sort();
 
       const used = new Set(snapshot.grants.map(item => item.grantId));
@@ -868,6 +936,9 @@ export function createExternalAgentGovernanceServiceV010(
         authorizingPrincipalSubjectId: context.principal.subjectId,
         contextId,
         allowedOperationIds: requestedOperations,
+        ...(capabilitySelectors.length > 0
+          ? { capabilitySelectors }
+          : {}),
         effectConstraints,
         state: "ACTIVE",
         validFrom: occurredAt,

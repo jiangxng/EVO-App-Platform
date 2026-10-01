@@ -82,7 +82,8 @@ function governanceStore({
   grantState = "ACTIVE",
   clientState = "ACTIVE",
   agentState = "ACTIVE",
-  validUntil = "2026-10-01T10:00:00.000Z"
+  validUntil = "2026-10-01T10:00:00.000Z",
+  capabilitySelector = false
 } = {}) {
   const revoked = "2026-09-30T10:30:00.000Z";
   return createMemoryExternalAgentGovernanceStoreV010({
@@ -120,7 +121,16 @@ function governanceStore({
       clientId: "client-1",
       authorizingPrincipalSubjectId: "human-1",
       contextId: "enterprise:ent-1",
-      allowedOperationIds: ["sample.read"],
+      allowedOperationIds: capabilitySelector ? [] : ["sample.read"],
+      ...(capabilitySelector
+        ? {
+            capabilitySelectors: [{
+              contractVersion: "0.1.0",
+              capability: "sample",
+              effects: ["READ"]
+            }]
+          }
+        : {}),
       effectConstraints: ["READ"],
       state: grantState,
       validFrom: "2026-09-30T10:00:00.000Z",
@@ -272,6 +282,30 @@ test("effective delegated catalog intersects current Human authority with stored
     fixture.sources.authorizationCalls[0].scope.enterpriseId,
     "ent-1"
   );
+});
+
+test("capability selector dynamically resolves all current READ operations in that capability", async () => {
+  const fixture = dependencies({
+    store: governanceStore({ capabilitySelector: true })
+  });
+
+  const result = await catalog(fixture);
+  assert.equal(result.active, true);
+  assert.deepEqual(
+    result.operations.map(item => item.operationId),
+    ["sample.other", "sample.read"]
+  );
+
+  const direct = await resolveEffectiveDelegatedCapabilityOperationV010({
+    dependencies: fixture.dependencies,
+    grantId: "grant-1",
+    agentId: "agent-1",
+    clientId: "client-1",
+    operationId: "sample.other",
+    correlationId: "corr-selector"
+  });
+  assert.equal(direct.allowed, true);
+  assert.equal(direct.operation.operationId, "sample.other");
 });
 
 test("disabled current Human immediately removes all delegated authority without rewriting Grant", async () => {

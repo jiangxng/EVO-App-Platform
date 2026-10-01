@@ -5,6 +5,7 @@ import type {
   JsonValue
 } from "../actions/contracts.js";
 import type {
+  ExternalAgentCapabilitySelectorV010,
   ExternalAgentClientKindV010,
   ExternalAgentProtocolV010
 } from "../contracts/external-agent-access.js";
@@ -83,6 +84,67 @@ function stringArrayValue(
     throw new Error(`EXTERNAL_AGENT_GOVERNANCE_FIELD_INVALID: ${key}`);
   }
   return normalized;
+}
+
+function optionalStringArrayValue(
+  values: Record<string, JsonValue>,
+  key: string
+): string[] | undefined {
+  if (values[key] === undefined) return undefined;
+  return stringArrayValue(values, key);
+}
+
+function capabilitySelectorsValue(
+  values: Record<string, JsonValue>
+): ExternalAgentCapabilitySelectorV010[] | undefined {
+  const raw = values.capabilitySelectors;
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error(
+      "EXTERNAL_AGENT_GOVERNANCE_FIELD_INVALID: capabilitySelectors"
+    );
+  }
+  return raw.map(item => {
+    if (
+      item === null
+      || typeof item !== "object"
+      || Array.isArray(item)
+    ) {
+      throw new Error(
+        "EXTERNAL_AGENT_GOVERNANCE_FIELD_INVALID: capabilitySelectors"
+      );
+    }
+    const record = item as Record<string, JsonValue>;
+    const capability = record.capability;
+    const effects = record.effects;
+    if (
+      typeof capability !== "string"
+      || !capability.trim()
+      || !Array.isArray(effects)
+      || effects.length === 0
+    ) {
+      throw new Error(
+        "EXTERNAL_AGENT_GOVERNANCE_FIELD_INVALID: capabilitySelectors"
+      );
+    }
+    const normalizedEffects = effects.map(effect =>
+      typeof effect === "string" ? effect.trim() : ""
+    );
+    if (
+      normalizedEffects.some(effect =>
+        effect !== "READ" && effect !== "PLAN"
+      )
+    ) {
+      throw new Error(
+        "EXTERNAL_AGENT_GOVERNANCE_FIELD_INVALID: capabilitySelectors"
+      );
+    }
+    return {
+      contractVersion: "0.1.0" as const,
+      capability: capability.trim(),
+      effects: normalizedEffects as Array<"READ" | "PLAN">
+    };
+  });
 }
 
 function clientKind(
@@ -189,10 +251,24 @@ export function createExternalAgentGovernanceActionHandlersV010(
       const grant = await dependencies.service.createGrant(context, {
         agentId: stringValue(request.values, "agentId")!,
         clientId: stringValue(request.values, "clientId")!,
-        allowedOperationIds: stringArrayValue(
+        ...(optionalStringArrayValue(
           request.values,
           "allowedOperationIds"
-        ),
+        )
+          ? {
+              allowedOperationIds: optionalStringArrayValue(
+                request.values,
+                "allowedOperationIds"
+              )
+            }
+          : {}),
+        ...(capabilitySelectorsValue(request.values)
+          ? {
+              capabilitySelectors: capabilitySelectorsValue(
+                request.values
+              )
+            }
+          : {}),
         validUntil: stringValue(request.values, "validUntil")!,
         ...(stringValue(request.values, "description", false)
           ? { description: stringValue(request.values, "description", false) }

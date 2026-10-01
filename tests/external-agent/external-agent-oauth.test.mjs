@@ -25,12 +25,12 @@ const issuer = "https://evo.example";
 const oauthClientId = "https://client.example/mcp-client.json";
 const redirectUri = "https://client.example/callback";
 
-function capabilityOperation() {
+function capabilityOperation(operationId = "sample.read") {
   return {
     kind: "platform.capability-operation",
     operation: {
       contractVersion: "0.1.0",
-      operationId: "sample.read",
+      operationId,
       capability: "sample",
       operationVersion: "1.0.0",
       title: "Sample read",
@@ -38,7 +38,7 @@ function capabilityOperation() {
       effect: "READ",
       dataScope: "ENTERPRISE",
       authorization: {
-        action: "sample.read",
+        action: operationId,
         resource: {
           type: "sample",
           idSource: "DATA_SCOPE"
@@ -52,7 +52,7 @@ function capabilityOperation() {
       outputSchema: { type: "object" },
       binding: {
         type: "ACTION_HOST",
-        commandCode: "sample.read",
+        commandCode: operationId,
         inputVersion: "0.1.0"
       },
       exposure: ["HUMAN", "EXTERNAL_AGENT"]
@@ -78,15 +78,32 @@ function manager() {
       contributions: [capabilityOperation()]
     }]
   };
+  const extra = {
+    contractVersion: "0.1.0",
+    packageId: "sample-extra-plugin",
+    displayName: "Sample Extra Plugin",
+    version: "0.1.0",
+    type: "APPLICATION",
+    features: [{
+      contractVersion: "0.1.0",
+      featureId: "sample-extra-plugin.default",
+      packageId: "sample-extra-plugin",
+      version: "0.1.0",
+      activationScope: "INSTALLATION",
+      defaultActivation: true,
+      providesCapabilities: ["sample"],
+      contributions: [capabilityOperation("sample.extra")]
+    }]
+  };
   const service = createAppManagerService(
-    createPackageCatalog([pkg]),
+    createPackageCatalog([pkg, extra]),
     createMemoryLifecycleStore()
   );
   service.install(pkg.packageId);
   return service;
 }
 
-function governanceStore() {
+function governanceStore({ capabilitySelector = false } = {}) {
   return createMemoryExternalAgentGovernanceStoreV010({
     contractVersion: "0.1.0",
     agents: [{
@@ -117,7 +134,16 @@ function governanceStore() {
       clientId: "client-1",
       authorizingPrincipalSubjectId: "human-1",
       contextId: "enterprise:ent-1",
-      allowedOperationIds: ["sample.read"],
+      allowedOperationIds: capabilitySelector ? [] : ["sample.read"],
+      ...(capabilitySelector
+        ? {
+            capabilitySelectors: [{
+              contractVersion: "0.1.0",
+              capability: "sample",
+              effects: ["READ"]
+            }]
+          }
+        : {}),
       effectConstraints: ["READ"],
       state: "ACTIVE",
       validFrom: "2026-09-30T10:00:00.000Z",
@@ -262,8 +288,8 @@ function pkceChallenge(verifier) {
     .digest("base64url");
 }
 
-function fixture() {
-  const governance = governanceStore();
+function fixture({ capabilitySelector = false } = {}) {
+  const governance = governanceStore({ capabilitySelector });
   const authorities = mutableAuthorities();
   const oauthStore = createMemoryExternalAgentOAuthStoreV010();
   const appManager = manager();
@@ -495,6 +521,86 @@ test("CIMD document must match registered OAuth client identity and redirect URI
   await assert.rejects(
     () => f.service.resolveClientMetadata(oauthClientId),
     /EXTERNAL_AGENT_OAUTH_CLIENT_METADATA_ID_MISMATCH/
+  );
+});
+
+test("selector Grant can grow for a fresh authorization while an existing token family never silently expands", async () => {
+  const f = fixture({ capabilitySelector: true });
+  const verifier = "z".repeat(64);
+
+  const firstCode = await issueCode(f, { verifier });
+  assert.deepEqual(
+    f.oauthStore.snapshot().authorizationCodes[0].operationIds,
+    ["sample.read"]
+  );
+
+  const firstToken = await f.service.exchangeAuthorizationCode({
+    code: firstCode.code,
+    oauthClientId,
+    redirectUri,
+    resource,
+    codeVerifier: verifier,
+    correlationId: "selector-first-exchange"
+  });
+
+  assert.deepEqual(
+    f.oauthStore.snapshot().accessTokens[0].operationIds,
+    ["sample.read"]
+  );
+  assert.deepEqual(
+    f.oauthStore.snapshot().refreshTokens[0].operationIds,
+    ["sample.read"]
+  );
+
+  f.appManager.install("sample-extra-plugin");
+
+  const oldAccess = await f.service.resolveAccessToken(
+    firstToken.access_token,
+    resource,
+    "selector-old-access"
+  );
+  assert.deepEqual(oldAccess.operationIds, ["sample.read"]);
+
+  const rotated = await f.service.refreshAccessToken({
+    refreshToken: firstToken.refresh_token,
+    oauthClientId,
+    resource,
+    correlationId: "selector-refresh"
+  });
+  const rotatedAccess = await f.service.resolveAccessToken(
+    rotated.access_token,
+    resource,
+    "selector-rotated-access"
+  );
+  assert.deepEqual(rotatedAccess.operationIds, ["sample.read"]);
+
+  const secondVerifier = "y".repeat(64);
+  const secondCode = await issueCode(f, {
+    verifier: secondVerifier,
+    scopes: [EXTERNAL_AGENT_OAUTH_SCOPE]
+  });
+  const secondRecord = f.oauthStore.snapshot().authorizationCodes.at(-1);
+  assert.deepEqual(
+    secondRecord.operationIds,
+    ["sample.extra", "sample.read"]
+  );
+
+  const secondToken = await f.service.exchangeAuthorizationCode({
+    code: secondCode.code,
+    oauthClientId,
+    redirectUri,
+    resource,
+    codeVerifier: secondVerifier,
+    correlationId: "selector-second-exchange"
+  });
+  const secondAccess = await f.service.resolveAccessToken(
+    secondToken.access_token,
+    resource,
+    "selector-second-access"
+  );
+  assert.deepEqual(
+    secondAccess.operationIds,
+    ["sample.extra", "sample.read"]
   );
 });
 

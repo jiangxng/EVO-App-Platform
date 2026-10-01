@@ -210,13 +210,25 @@ export async function listEffectiveDelegatedCapabilityOperationsV010(input: {
   });
 
   const grantedIds = new Set(grant.allowedOperationIds);
+  const selectors = grant.capabilitySelectors ?? [];
   const allowedEffects = new Set(grant.effectConstraints);
   const operations = humanCatalog.operations
-    .filter(operation =>
-      operation.exposure.includes("EXTERNAL_AGENT")
-      && grantedIds.has(operation.operationId)
-      && allowedEffects.has(operation.effect)
-    )
+    .filter(operation => {
+      const selectorGranted = selectors.some(selector =>
+        selector.capability === operation.capability
+        && selector.effects.includes(
+          operation.effect as "READ" | "PLAN"
+        )
+      );
+      return (
+        operation.exposure.includes("EXTERNAL_AGENT")
+        && (
+          grantedIds.has(operation.operationId)
+          || selectorGranted
+        )
+        && allowedEffects.has(operation.effect)
+      );
+    })
     .sort((a, b) => a.operationId.localeCompare(b.operationId));
 
   return {
@@ -259,22 +271,42 @@ export async function resolveEffectiveDelegatedCapabilityOperationV010(input: {
   }
 
   const grant = catalog.grant!;
-  if (!grant.allowedOperationIds.includes(input.operationId)) {
-    return {
-      contractVersion: "0.1.0",
-      allowed: false,
-      reason: "OPERATION_NOT_GRANTED",
-      grant: structuredClone(grant),
-      ...(catalog.context ? { context: structuredClone(catalog.context) } : {}),
-      ...(catalog.requestContext
-        ? { requestContext: structuredClone(catalog.requestContext) }
-        : {})
-    };
-  }
-
   const operation = catalog.operations.find(
     item => item.operationId === input.operationId
   );
+  if (!operation) {
+    const current = input.dependencies.manager
+      .listEffectiveCapabilityOperations()
+      .find(item => item.operationId === input.operationId);
+    const selectorGranted = Boolean(
+      current
+      && (grant.capabilitySelectors ?? []).some(selector =>
+        selector.capability === current.capability
+        && selector.effects.includes(
+          current.effect as "READ" | "PLAN"
+        )
+      )
+    );
+    if (
+      !grant.allowedOperationIds.includes(input.operationId)
+      && !selectorGranted
+    ) {
+      return {
+        contractVersion: "0.1.0",
+        allowed: false,
+        reason: "OPERATION_NOT_GRANTED",
+        grant: structuredClone(grant),
+        ...(catalog.context
+          ? { context: structuredClone(catalog.context) }
+          : {}),
+        ...(catalog.requestContext
+          ? { requestContext: structuredClone(catalog.requestContext) }
+          : {})
+      };
+    }
+  }
+
+
   if (!operation) {
     return {
       contractVersion: "0.1.0",
