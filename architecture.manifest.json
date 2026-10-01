@@ -29,6 +29,7 @@
     "docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md",
     "docs/architecture/PLATFORM-PROVIDER-PLUGIN-MODEL-v0.1.md",
     "docs/architecture/PLATFORM-HELP-SYSTEM-v0.1.md",
-    "docs/architecture/PLATFORM-SECRETS-v0.1.md"
+    "docs/architecture/PLATFORM-SECRETS-v0.1.md",
+    "docs/architecture/ENTERPRISE-CONTEXT-GOVERNANCE-EXPERIENCE-PLUGIN-v0.1.md"
   ]
 }
