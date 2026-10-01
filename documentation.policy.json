@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md",
+  "principle": "historical-evidence-preserved-current-authority-evolves",
+  "classes": {
+    "CURRENT_AUTHORITY": {
+      "editable": true,
+      "semanticHistoryRequiredWhenMaterial": true
+    },
+    "DECISION_RECORD": {
+      "editableSemantics": false,
+      "supersedeWithNewRecord": true
+    },
+    "HISTORICAL_SNAPSHOT": {
+      "editableSemantics": false,
+      "frozenAfterMilestone": true
+    },
+    "VERSIONED_CONTRACT": {
+      "editableSemantics": false,
+      "incompatibleChangeRequiresNewVersion": true
+    },
+    "LIVING_RUNBOOK": {
+      "editable": true,
+      "executionHistorySeparate": true
+    },
+    "GENERATED_CURRENT_VIEW": {
+      "regeneratable": true,
+      "historicalAuthority": false
+    },
+    "CURRENT_STATUS": {
+      "editable": true,
+      "historicalAuthority": false
+    }
+  },
+  "keyDocuments": {
+    "LLM.md": "CURRENT_AUTHORITY",
+    "INVARIANTS.md": "CURRENT_AUTHORITY",
+    "architecture.manifest.json": "CURRENT_AUTHORITY",
+    "architecture.boundary-policy.json": "CURRENT_AUTHORITY",
+    "project.status.json": "CURRENT_STATUS",
+    "docs/roadmap/HANDOFF-LATEST.md": "GENERATED_CURRENT_VIEW"
+  }
+}
