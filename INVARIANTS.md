@@ -257,3 +257,24 @@
 - **APP-205** Human disablement, Context membership removal, policy DENY, Feature disablement, Agent/Client revocation or Grant expiration MUST take effect without rewriting the historical Grant creation fact.
 - **APP-206** Delegated capability discovery and direct invocation MUST use the same current-authority derivation. Knowing or guessing an operation id MUST NOT bypass the delegated catalog boundary.
 - **APP-207** Missing current identity, Context membership, authorization or other required authority sources MUST fail closed. Protocol/token layers may further restrict current authority but MUST NOT upgrade a failed EA-3B2 derivation.
+
+## Extension Boundary Constitution
+
+- **APP-208** Every material new capability MUST be classified before implementation as Core, Platform Provider, Application, Integration Adapter or Experience, with an explicit owner for authoritative facts. Repository architecture authority wins over current-chat convenience.
+- **APP-209** A capability with an independent supplier, independent lifecycle, replaceable implementation, implementation-specific configuration/secrets/health or deployment difference SHOULD default to a PLATFORM_PROVIDER behind a public capability contract rather than enter App Platform Core.
+- **APP-210** Logic that exists only to translate or make an external product/protocol compatible is an Integration Adapter concern. Product/protocol adapters MUST NOT own domain truth, enterprise membership, authorization or divergent business semantics.
+- **APP-211** Human-facing product UI, navigation, setup, review, forms, dashboards, work queues and product vocabulary belong to Eidos Experience ownership. Experience/Designer output MUST reach authoritative data only through public commands, queries or capabilities.
+- **APP-212** Designer/Experience assets MUST NOT directly own or mutate private Provider/Application stores. Replacing, disabling or uninstalling a UI Experience MUST NOT silently delete provider-owned authoritative facts.
+- **APP-213** APPLICATION Packages own coherent business/product composition and MAY contribute Experiences and Capability Operations, but MUST NOT absorb replaceable infrastructure that belongs to Provider Plugins.
+- **APP-214** App Platform Core may grow only for the smallest generic hosting, lifecycle, resolution, security, routing, composition or protocol-parsing mechanism that cannot be owned by a plugin/provider/adapter/Experience.
+- **APP-215** Repeated vendor-specific branches indicate a missing Provider boundary; repeated external-product compatibility branches indicate a missing Integration Adapter boundary; repeated bespoke Human UI indicates a missing Eidos Experience capability or contribution boundary.
+- **APP-216** The active ecosystem owner projects are EVO-App-Platform, EVO, Eidos and Experience-Compiler. Historical convergence repositories MUST NOT become new product authority or receive new product functionality.
+
+## Documentation Lifecycle Constitution
+
+- **APP-217** Project documentation is not globally append-only. Historical evidence MUST be preserved selectively while current authority MUST be allowed to evolve in place.
+- **APP-218** Decision Records, completed Historical Snapshots and released Versioned Contract semantics MUST be preserved and superseded rather than silently rewritten.
+- **APP-219** CURRENT_AUTHORITY, LIVING_RUNBOOK, CURRENT_STATUS and GENERATED_CURRENT_VIEW documents MAY be maintained or regenerated in place according to their purpose.
+- **APP-220** A material change to current architecture SHOULD preserve its rationale in a Decision Record when future engineering will need to know why the rule changed; typo/format/link/current-pointer maintenance does not require permanent historical artifacts.
+- **APP-221** Fresh LLM work MUST load current authority/status first and load historical records only when rationale, migration, compatibility, archaeology or forensic evidence is relevant.
+
