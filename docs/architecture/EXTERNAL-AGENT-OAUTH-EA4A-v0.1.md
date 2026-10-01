@@ -74,6 +74,7 @@ The Host resolves the registered `oauthClientId`, fetches the document with redi
 - exact `client_id` equality;
 - non-empty redirect URI list;
 - secure redirect URI rules;
+- RFC 8252 native loopback-IP redirect matching: exact URI match except that the runtime TCP port may vary for `http://127.0.0.1/... ` and `http://[::1]/...`;
 - Authorization Code support where declared;
 - `code` response support where declared;
 - no confidential-client authentication method in the P0 public-client profile.
@@ -139,7 +140,8 @@ Authorization Code is:
 - bound to internal Agent/Client/Grant;
 - bound to Human authorizer;
 - bound to resource;
-- bound to exact redirect URI;
+- bound to the exact runtime redirect URI used for the issued code;
+- registration matching is exact for ordinary redirects; RFC 8252 loopback IP registrations may vary only the TCP port while scheme, IP literal, path and query remain identical;
 - bound to requested scopes;
 - bound to PKCE S256 challenge.
 
