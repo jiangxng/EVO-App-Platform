@@ -115,6 +115,7 @@ function validateGrant(
   agents: Map<string, ExternalAgentRegistrationV010>,
   clients: Map<string, ExternalAgentClientRegistrationV010>
 ): void {
+  const selectors = grant.capabilitySelectors ?? [];
   if (
     grant.contractVersion !== "0.1.0"
     || !grant.grantId.trim()
@@ -123,7 +124,10 @@ function validateGrant(
     || !grant.authorizingPrincipalSubjectId.trim()
     || !grant.contextId.trim()
     || !grant.createdBySubjectId.trim()
-    || grant.allowedOperationIds.length === 0
+    || (
+      grant.allowedOperationIds.length === 0
+      && selectors.length === 0
+    )
     || grant.effectConstraints.length === 0
   ) {
     throw new Error("EXTERNAL_AGENT_AUTHORITY_GRANT_INVALID");
@@ -150,6 +154,28 @@ function validateGrant(
     grant.effectConstraints,
     "EXTERNAL_AGENT_GRANT_EFFECT_DUPLICATE"
   );
+  unique(
+    selectors.map(selector =>
+      selector.capability + "::" + selector.effects.join(",")
+    ),
+    "EXTERNAL_AGENT_GRANT_SELECTOR_DUPLICATE"
+  );
+  for (const selector of selectors) {
+    if (
+      selector.contractVersion !== "0.1.0"
+      || !selector.capability.trim()
+      || selector.effects.length === 0
+      || selector.effects.some(effect =>
+        effect !== "READ" && effect !== "PLAN"
+      )
+    ) {
+      throw new Error("EXTERNAL_AGENT_GRANT_SELECTOR_INVALID");
+    }
+    unique(
+      selector.effects,
+      "EXTERNAL_AGENT_GRANT_SELECTOR_EFFECT_DUPLICATE"
+    );
+  }
   const validFrom = requireIso(
     grant.validFrom,
     "EXTERNAL_AGENT_GRANT_VALID_FROM_INVALID"
@@ -315,6 +341,7 @@ function validateTransition(
         "authorizingPrincipalSubjectId",
         "contextId",
         "allowedOperationIds",
+        "capabilitySelectors",
         "effectConstraints",
         "validFrom",
         "validUntil",
