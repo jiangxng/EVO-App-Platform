@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `AGENT-CAP-FABRIC-2026-10-01-04`  
-**Snapshot time:** `2026-10-01T20:18:00+08:00`  
+**Snapshot:** `AGENT-CAP-FABRIC-2026-10-01-05`  
+**Snapshot time:** `2026-10-01T20:24:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -51,21 +51,21 @@ Evidence:
 
 ## Current open live gate
 
-**agent-capability-delegation-consent-ui-and-live-mobile-v0-2: ACTIVE_IMPLEMENTATION_AND_LIVE_VALIDATION**
+**agent-capability-fabric-live-mobile-grok-v0-2: READY_FOR_HUMAN_LIVE_VALIDATION**
 
-Capability-level delegation selectors and OAuth token-family non-expansion are merged and deployed. The next slice is to project exact Capability + READ/PLAN selectors into Human Consent so a mobile Human can authorize a capability group rather than enumerate operation ids, while showing the concrete currently covered operations and preserving no-WRITE/no-wildcard boundaries. After UI completion, validate the Grok Web/Mobile native OAuth + MCP path without DevTools.
+Capability-level Human Consent is merged and deployed. The remaining gate is a phone-only Grok Web/Mobile native OAuth + MCP proof with no DevTools: first-use CIMD enrollment, Human selection of one Enterprise Context and exact Ledger Runtime READ capability selector, OAuth return to Grok, Agent Capability Fabric discovery/use, and immediate authority loss after Grant revocation.
 
 Acceptance:
 
-- Human Consent can offer exact Capability-level READ/PLAN delegation in addition to explicit operation selection
-- the UI shows which concrete current operations are covered by each capability selector
-- the UI clearly states that selector growth requires a fresh OAuth authorization before a token family can gain newly available operations
-- WRITE, wildcard, prefix and regex selector authority remain unavailable
-- approval stores a normal immutable Authority Grant with capabilitySelectors
-- OAuth authorization code freezes the current selected operation ceiling
-- mobile Grok flow completes without DevTools using the public Grok CIMD profile
-- Grok receives only the selected current capabilities and can use Agent Capability Fabric
-- revoking the Grant still removes capability immediately
+- Human enters only EVO MCP URL and the public Grok CIMD Client ID; Client Secret remains blank
+- EVO login and consent work in the mobile browser without DevTools
+- Consent page offers exact capability/effect grouping and shows currently covered operations
+- Human selects the Ledger Runtime Configuration READ capability group and a short expiry
+- OAuth returns to Grok and the connector reaches EVO /mcp
+- Grok can discover/use EVO Agent Capability Fabric or delegated Ledger READ operations from a natural-language request
+- no WRITE capability is available
+- the resulting token family remains bounded by the operation ceiling captured at authorization
+- revoking the Grant removes effective capability immediately
 
 ## Current production preview
 
@@ -74,8 +74,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `70d80be4021bc918755ab4c38d9777f858c07f57`
-- Deployment: `5a97468e-8bef-4648-b614-496ed5b40893`
+- Commit: `5bd4a0556a9f3fe4263dcfdadb1d41f9899e1421`
+- Deployment: `6e725991-5fea-46bc-986b-fab00fa2ed07`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -109,6 +109,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #253 — MERGED_CI_PASS_DEPLOYED: Project exact Capability + READ/PLAN selectors into mobile OAuth Human Consent, show current covered operations, revalidate selector form input against current grantable authority, and preserve explicit-operation selection.
 - PR #251 — MERGED_CI_PASS_DEPLOYED: Add exact Capability + READ/PLAN External Agent delegation selectors and freeze OAuth authorization-code/access/refresh token operation ceilings so durable selector growth cannot silently expand an existing credential family.
 - PR #250 — MERGED_CONTINUITY_PASS_DEPLOYED: Add the Grok Web/Mobile public CIMD profile and mobile native MCP validation runbook; production is aligned to the resulting main revision.
 - PR #249 — MERGED_CI_PASS_DEPLOYED: Add OAuth Human Consent and first-use public CIMD enrollment so a normal browser/mobile flow can create bounded External Agent governance without DevTools.
