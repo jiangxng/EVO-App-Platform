@@ -538,6 +538,57 @@ test("MCP token operationIds remain an upper bound even if current Grant/catalog
   assert.equal(plan.structuredContent, undefined);
 });
 
+test("MCP Fabric keeps token operationIds as an upper bound and re-checks policy", async () => {
+  const f = fixture({ mode: "FABRIC" });
+  f.access.operationIds = ["sample.read"];
+
+  const search = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-token-bound",
+    name: "evo.capabilities.search",
+    arguments: {
+      query: "sample",
+      limit: 10
+    }
+  });
+
+  assert.equal(search.isError, undefined);
+  assert.deepEqual(
+    search.structuredContent.items.map(item => item.operationId),
+    ["sample.read"]
+  );
+
+  const plan = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-token-plan",
+    name: "evo.capabilities.invoke",
+    arguments: {
+      operationId: "sample.plan",
+      input: {}
+    }
+  });
+  assert.equal(plan.isError, true);
+  assert.match(
+    plan.content[0].text,
+    /AGENT_CAPABILITY_NOT_AVAILABLE/
+  );
+
+  f.state.policyAllowed = false;
+  const afterPolicy = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-policy-deny",
+    name: "evo.capabilities.describe",
+    arguments: {
+      operationId: "sample.read"
+    }
+  });
+  assert.equal(afterPolicy.isError, true);
+  assert.match(
+    afterPolicy.content[0].text,
+    /AGENT_CAPABILITY_NOT_AVAILABLE/
+  );
+});
+
 test("MCP action failure is bounded and does not expose Host authorization internals", async () => {
   const f = fixture();
   const original = f.projection;
