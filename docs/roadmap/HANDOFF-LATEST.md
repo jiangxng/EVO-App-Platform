@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EXT-AGENT-2026-10-01-03`  
-**Snapshot time:** `2026-10-01T12:28:00+08:00`  
+**Snapshot:** `AGENT-CAP-FABRIC-2026-10-01-01`  
+**Snapshot time:** `2026-10-01T15:27:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-External-Agent-First Platform Validation v0.1
+Agent Capability Fabric v0.1
 ACTIVE
 ```
 
@@ -51,20 +51,22 @@ Evidence:
 
 ## Current open live gate
 
-**second-mature-external-ai-agent-portability-v0-1: ACTIVE**
+**agent-capability-fabric-v0-1: ACTIVE_IMPLEMENTATION_AND_LIVE_VALIDATION**
 
-Prove EVO with a second mature external AI Agent client, preferably one that can consume the CIMD-first remote MCP/OAuth contract natively so portability is not demonstrated only through the Cline Integration Adapter. ChatGPT may satisfy this gate when product entitlement permits; another free standards-compatible AI Agent is equally acceptable.
+Replace tool-catalog scaling as the primary Agent interface with a small governed capability gateway. v0.1 introduces deterministic authorized search, public contract describe and READ/PLAN invoke over the existing Capability Operation Registry, while preserving current Grant, Human, Context, lifecycle, authorization.check, token-scope and ActionHost boundaries. Production migrates through HYBRID mode before considering FABRIC-only projection.
 
 Acceptance:
 
-- a second real external AI Agent connects to EVO production through the generic External Agent contract
-- the second client does not require EVO Host Core business logic or vendor-specific authorization branches
-- prefer native remote MCP + CIMD/OAuth interoperability; if an adapter is required, keep it a thin Integration Adapter
-- the Agent autonomously selects only currently delegated Capability Operations from natural-language intent
-- the Agent performs at least one real Ledger Runtime READ without source/database/private endpoint knowledge
-- the answer remains installation-scoped and does not claim unimplemented Enterprise Context → Ledger Template binding
-- no WRITE authority is introduced for the portability proof
-- record client-specific compatibility facts without making them generic Host assumptions
+- evo.capabilities.search returns only current delegated READ/PLAN operations and is deterministically bounded
+- evo.capabilities.describe exposes only public Capability Operation metadata and schemas
+- guessed, ungranted, currently denied and WRITE operations are non-disclosing through Fabric describe/invoke
+- evo.capabilities.invoke re-evaluates current delegated authority and executes only through ActionHost
+- Access Token operationIds remain an upper bound and cannot silently expand
+- MCP HYBRID mode exposes the three generic Fabric gateway tools while preserving current direct operation compatibility
+- MCP FABRIC mode can expose only the three generic gateway tools without changing business plugin contracts
+- a live real AI Agent receives a natural-language goal without operation ids, uses search then describe/invoke, and produces a correct bounded answer
+- no wildcard or implicit capability-level Grant expansion is introduced in v0.1
+- the deferred second mature native Agent portability test does not block this Fabric milestone
 
 ## Current production preview
 
@@ -73,8 +75,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `9c3c1399ecc2c9d42598004e39b5add49d7015ae`
-- Deployment: `9b44fd96-df50-48c4-bc66-c7bea7428b64`
+- Commit: `c0c85b5fe9fd66c525686eda9f8a867512135afd`
+- Deployment: `e4956536-a401-4dea-851b-c88f9c552ee6`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -108,6 +110,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #247 — MERGED_CI_PASS: Add a public secret-free Claude Code native CIMD client profile for a later second-Agent Remote MCP proof without DCR or a local MCP protocol adapter.
+- PR #246 — MERGED_CI_PASS_DEPLOYED: Add RFC 8252 native loopback IP ephemeral-port redirect matching while preserving exact matching for ordinary redirects.
+- PR #245 — MERGED_CI_PASS: Record the Cline + DeepSeek real AI-Agent production portability pass and move the second-Agent proof out of the critical path.
 - PR #244 — MERGED_CI_PASS_LIVE_PASS: Add the thin Cline local MCP Integration Adapter so Cline + DeepSeek can bridge STDIO to EVO CIMD/OAuth PKCE + modern MCP 2026-07-28 without enabling DCR; real AI-Agent autonomous Ledger READ proof passed.
 - PR #242 — MERGED_CI_PASS_DEPLOYED: Align MCP tools/call structuredContent directly with each declared Capability Operation outputSchema; production Ledger describe call passed.
 - PR #241 — MERGED_CI_PASS_DEPLOYED: Stamp resultType=complete on MCP 2026-07-28 successful results; production modern tools/list passed.
@@ -309,6 +314,10 @@ Not proved:
 - Do not repeat the Cline + DeepSeek autonomous Ledger describe/accounts-read proof unless a regression requires it; this real AI-Agent portability slice is VERIFIED_PRODUCTION_PASS.
 - Do not call the Cline Adapter an EVO business provider or Core module; it is an Integration Adapter translating client protocol/OAuth mechanics only.
 - Do not make ChatGPT entitlement the only path to the second mature External Agent proof.
+- Second mature native Agent / Google Cloud-related validation is intentionally deferred by the Human; do not block Agent Capability Fabric work on that test.
+- Do not solve capability-catalog scale by adding one bespoke MCP tool per future business function; prefer the Agent Capability Fabric search/describe/invoke boundary.
+- Do not broaden Grant authority implicitly inside Capability Fabric search. Current allowedOperationIds and token operationIds remain hard upper bounds in v0.1.
+- Do not expose WRITE through evo.capabilities.invoke in Fabric v0.1.
 
 ## Fresh ChatGPT / LLM startup
 
