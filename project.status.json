@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Agent Capability Fabric v0.1",
+  "currentMilestone": "Agent Capability Fabric v0.2",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
