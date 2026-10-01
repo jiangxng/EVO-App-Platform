@@ -379,7 +379,14 @@ function fixture({
         clientId: input.clientId,
         authorizingPrincipalSubjectId: "human-1",
         contextId: context.context.activeContext.contextId,
-        allowedOperationIds: [...input.allowedOperationIds],
+        allowedOperationIds: [...(input.allowedOperationIds ?? [])],
+        ...(input.capabilitySelectors
+          ? {
+              capabilitySelectors: structuredClone(
+                input.capabilitySelectors
+              )
+            }
+          : {}),
         effectConstraints: ["READ"],
         state: "ACTIVE",
         validFrom: "2026-09-30T11:00:00.000Z",
@@ -494,6 +501,138 @@ test("Human consent can enroll public CIMD client, create bounded Grant and issu
   const target = new URL(result.location);
   assert.equal(target.searchParams.get("code"), "evo_code_fixture");
   assert.equal(target.searchParams.get("state"), "state-1");
+});
+
+test("Human consent can grant an exact capability READ selector without enumerating operations", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "approve");
+  form.set("context_id", "enterprise:ent-1");
+  form.set("duration_minutes", "60");
+  form.append(
+    "capability_selector",
+    JSON.stringify({
+      capability: "sample",
+      effects: ["READ"]
+    })
+  );
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-selector"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  assert.equal(result.status, 303);
+  assert.equal(f.calls.createGrant.length, 1);
+  assert.equal(
+    f.calls.createGrant[0].input.allowedOperationIds,
+    undefined
+  );
+  assert.deepEqual(
+    f.calls.createGrant[0].input.capabilitySelectors,
+    [{
+      contractVersion: "0.1.0",
+      capability: "sample",
+      effects: ["READ"]
+    }]
+  );
+  assert.equal(
+    f.calls.createGrant[0].input.validUntil,
+    "2026-09-30T12:00:00.000Z"
+  );
+  assert.equal(f.calls.issue.length, 1);
+});
+
+test("Human consent rejects a tampered capability selector before enrollment", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "approve");
+  form.set("context_id", "enterprise:ent-1");
+  form.append(
+    "capability_selector",
+    JSON.stringify({
+      capability: "missing",
+      effects: ["READ"]
+    })
+  );
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-selector-tampered"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  const target = new URL(result.location);
+  assert.equal(target.searchParams.get("error"), "access_denied");
+  assert.equal(f.calls.ensureClient.length, 0);
+  assert.equal(f.calls.createGrant.length, 0);
+  assert.equal(f.calls.issue.length, 0);
+});
+
+test("Human consent rejects WRITE selector form tampering", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "approve");
+  form.set("context_id", "enterprise:ent-1");
+  form.append(
+    "capability_selector",
+    JSON.stringify({
+      capability: "sample",
+      effects: ["WRITE"]
+    })
+  );
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-selector-write"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  const target = new URL(result.location);
+  assert.equal(target.searchParams.get("error"), "access_denied");
+  assert.equal(f.calls.ensureClient.length, 0);
+  assert.equal(f.calls.createGrant.length, 0);
+  assert.equal(f.calls.issue.length, 0);
+});
+
+test("Human consent requires at least one operation or capability selector", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "approve");
+  form.set("context_id", "enterprise:ent-1");
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-empty-selection"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  const target = new URL(result.location);
+  assert.equal(target.searchParams.get("error"), "access_denied");
+  assert.equal(f.calls.ensureClient.length, 0);
+  assert.equal(f.calls.createGrant.length, 0);
+  assert.equal(f.calls.issue.length, 0);
 });
 
 test("Human consent denial redirects without enrollment or Grant creation", async () => {
