@@ -1,0 +1,15 @@
+{
+  "client_id": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/claude-code-native-client.json",
+  "client_name": "EVO Claude Code Native MCP Client",
+  "redirect_uris": [
+    "http://localhost:3118/callback"
+  ],
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "none"
+}
