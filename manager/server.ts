@@ -512,6 +512,9 @@ import {
 import {
   createExternalAgentOAuthHttpAdapterV010
 } from "./external-agent-oauth-http.js";
+import {
+  renderExternalAgentOAuthConsentPageV010
+} from "./external-agent-oauth-consent-page.js";
 import { createMcpModernCoreV010 } from "./mcp-modern-core.js";
 import { createMcpModernHttpAdapterV010 } from "./mcp-modern-http.js";
 import { createMcpProtectedResourceV010 } from "./mcp-protected-resource.js";
@@ -2035,8 +2038,25 @@ function externalAgentOAuthHttpAdapter() {
   return createExternalAgentOAuthHttpAdapterV010({
     oauth: externalAgentOAuthService(),
     governanceStore: externalAgentGovernanceStore,
+    governance: externalAgentGovernanceService,
     delegatedAuthority: externalAgentDelegatedAuthorityDependencies(),
-    buildHumanRequestContext: buildExternalAgentHumanRequestContext
+    buildHumanRequestContext: buildExternalAgentHumanRequestContext,
+    listHumanEnterpriseContexts(session) {
+      const registry = createContextRegistryForSession(session);
+      return registry.list().flatMap(ref => {
+        if (ref.kind !== "ENTERPRISE") return [];
+        const resolved = registry.resolve(ref);
+        const enterprise = resolved.enterpriseContext;
+        if (!enterprise) return [];
+        return [{
+          contextId: ref.contextId,
+          enterpriseId: ref.enterpriseId,
+          displayName:
+            enterprise.displayName
+            ?? enterprise.enterpriseId
+        }];
+      });
+    }
   });
 }
 
@@ -3652,8 +3672,59 @@ const server = createServer(async (request, response) => {
         correlationId: randomUUID()
       });
       response.statusCode = result.status;
-      response.setHeader("location", result.location);
-      return response.end();
+      if (result.kind === "REDIRECT") {
+        response.setHeader("location", result.location);
+        return response.end();
+      }
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      return response.end(
+        renderExternalAgentOAuthConsentPageV010(result.consent)
+      );
+    }
+
+    if (request.method === "POST" && url.pathname === "/oauth/authorize") {
+      if (!externalAgentOAuthEnabled) {
+        return json(response, 404, { code: "EXTERNAL_AGENT_OAUTH_NOT_ENABLED" });
+      }
+      response.setHeader("cache-control", "no-store");
+
+      let session: IdentitySessionV010;
+      try {
+        session = resolveRequestIdentitySession(request);
+      } catch (error) {
+        const failure = requestAuthenticationHttpFailureV010(error);
+        if (failure?.status === 401) {
+          return json(response, 401, {
+            code: "EXTERNAL_AGENT_OAUTH_HUMAN_SESSION_REQUIRED"
+          });
+        }
+        throw error;
+      }
+
+      let form: URLSearchParams;
+      try {
+        form = await readFormUrlEncodedLimited(request);
+      } catch (error) {
+        return json(response, 400, {
+          code: "EXTERNAL_AGENT_OAUTH_CONSENT_FORM_INVALID",
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      const result = await externalAgentOAuthHttpAdapter().approve({
+        form,
+        session,
+        correlationId: randomUUID()
+      });
+      response.statusCode = result.status;
+      if (result.kind === "REDIRECT") {
+        response.setHeader("location", result.location);
+        return response.end();
+      }
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      return response.end(
+        renderExternalAgentOAuthConsentPageV010(result.consent)
+      );
     }
 
     if (request.method === "POST" && url.pathname === "/oauth/token") {
