@@ -281,6 +281,25 @@ function tokenValue(
   return prefix + randomBytesImpl(32).toString("base64url");
 }
 
+
+function sortedOperationIds(
+  operations: readonly { operationId: string }[]
+): string[] {
+  return operations
+    .map(item => item.operationId)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function attenuatedOperationIds(
+  currentOperations: readonly { operationId: string }[],
+  ceiling: readonly string[] | undefined
+): string[] {
+  const current = sortedOperationIds(currentOperations);
+  if (ceiling === undefined) return current;
+  const allowed = new Set(ceiling);
+  return current.filter(operationId => allowed.has(operationId));
+}
+
 function oauthEvent(
   type: ExternalAgentOAuthEventV010["type"],
   input: {
@@ -480,6 +499,7 @@ export function createExternalAgentOAuthServiceV010(
     agentId: string;
     resource: string;
     scopes: string[];
+    operationIds: string[];
     at: Date;
     refreshCeiling?: string;
   }): {
@@ -498,6 +518,7 @@ export function createExternalAgentOAuthServiceV010(
       grantId: input.grant.grantId,
       resource: input.resource,
       scopes: [...input.scopes],
+      operationIds: [...input.operationIds],
       createdAt: occurredAt,
       expiresAt: boundedExpiry(
         input.at,
@@ -520,6 +541,7 @@ export function createExternalAgentOAuthServiceV010(
         grantId: input.grant.grantId,
         resource: input.resource,
         scopes: [...input.scopes],
+        operationIds: [...input.operationIds],
         createdAt: occurredAt,
         expiresAt: boundedExpiry(
           input.at,
@@ -649,12 +671,15 @@ export function createExternalAgentOAuthServiceV010(
         throw new Error("EXTERNAL_AGENT_OAUTH_CONTEXT_MISMATCH");
       }
 
-      await requireCurrentDelegatedAuthority({
+      const authorityAtIssue = await requireCurrentDelegatedAuthority({
         grantId: grant.grantId,
         agentId: grant.agentId,
         clientId: grant.clientId,
         correlationId: input.correlationId
       });
+      const operationIds = sortedOperationIds(
+        authorityAtIssue.operations
+      );
 
       const at = now();
       const code = tokenValue("evo_code_", randomBytesImpl);
@@ -670,6 +695,7 @@ export function createExternalAgentOAuthServiceV010(
         resource,
         redirectUri,
         scopes,
+        operationIds,
         codeChallengeMethod: "S256",
         codeChallenge: input.codeChallenge,
         createdAt: at.toISOString(),
@@ -741,6 +767,13 @@ export function createExternalAgentOAuthServiceV010(
         correlationId: input.correlationId
       });
       const grant = catalog.grant!;
+      const operationIds = attenuatedOperationIds(
+        catalog.operations,
+        record.operationIds
+      );
+      if (operationIds.length === 0) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_NO_EFFECTIVE_OPERATIONS");
+      }
 
       const consumed: ExternalAgentOAuthAuthorizationCodeV010 = {
         ...record,
@@ -772,6 +805,7 @@ export function createExternalAgentOAuthServiceV010(
         agentId: record.agentId,
         resource: record.resource,
         scopes: record.scopes,
+        operationIds,
         at
       });
       options.store.save(issued.nextSnapshot);
@@ -812,6 +846,13 @@ export function createExternalAgentOAuthServiceV010(
         correlationId: input.correlationId
       });
       const grant = catalog.grant!;
+      const operationIds = attenuatedOperationIds(
+        catalog.operations,
+        record.operationIds
+      );
+      if (operationIds.length === 0) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_NO_EFFECTIVE_OPERATIONS");
+      }
 
       const issued = createAccessAndRefresh({
         snapshot,
@@ -821,6 +862,7 @@ export function createExternalAgentOAuthServiceV010(
         agentId: record.agentId,
         resource: record.resource,
         scopes: record.scopes,
+        operationIds,
         at,
         refreshCeiling: record.expiresAt
       });
@@ -881,6 +923,13 @@ export function createExternalAgentOAuthServiceV010(
         clientId: record.clientId,
         correlationId
       });
+      const operationIds = attenuatedOperationIds(
+        catalog.operations,
+        record.operationIds
+      );
+      if (operationIds.length === 0) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_NO_EFFECTIVE_OPERATIONS");
+      }
       return {
         contractVersion: "0.1.0",
         token: structuredClone(record),
@@ -888,9 +937,7 @@ export function createExternalAgentOAuthServiceV010(
         agentId: record.agentId,
         clientId: record.clientId,
         resource: record.resource,
-        operationIds: catalog.operations
-          .map(item => item.operationId)
-          .sort((a, b) => a.localeCompare(b))
+        operationIds
       };
     },
 
