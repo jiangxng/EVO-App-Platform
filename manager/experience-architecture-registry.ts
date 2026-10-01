@@ -17,6 +17,46 @@ export const APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010 = {
 export const appPlatformExperienceArchitectureV010: ExperienceArchitectureDescriptorV010[] = [
   {
     contractVersion: "0.1.0",
+    experienceId: "evo-enterprise-context-governance",
+    maturity: "candidate",
+    archetype: "setup",
+    taskMode: "bounded-task",
+    goal: "Create a governed Enterprise Context from the current Human Personal Context",
+    subject: "enterprise-context",
+    journey: {
+      goal: "Create an ACTIVE Enterprise Context with the current Human as initial OWNER",
+      entry: ["/enterprise-contexts/new"],
+      prerequisites: [
+        "Enterprise Context Governance plugin active",
+        "request-bound HUMAN Session",
+        "Personal Context active",
+        "authorization.check allows enterprise.context.create"
+      ],
+      states: ["editing", "created"],
+      currentState: "editing",
+      completionStates: ["created"],
+      nextDestinations: ["/"],
+      resumable: true,
+      recoveryActions: ["fix-validation", "retry-create"]
+    },
+    actions: [{
+      id: "create",
+      label: "Create enterprise",
+      determinism: "deterministic",
+      frequency: "rare",
+      surface: "direct",
+      primary: true,
+      availableInStates: ["editing"]
+    }],
+    agent: { enabled: false },
+    quality: {
+      systemStringsLocalized: true,
+      machineValuesSeparatedFromHumanCopy: true,
+      designLanguageCompliant: true
+    }
+  },
+  {
+    contractVersion: "0.1.0",
     experienceId: "personal-agent.chat",
     maturity: "candidate",
     archetype: "conversation",
