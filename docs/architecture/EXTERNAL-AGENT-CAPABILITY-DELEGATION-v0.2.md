@@ -125,20 +125,29 @@ All newly issued credentials contain an explicit operation ceiling.
 
 No persistent-state migration that rewrites historical Grant/token facts is required.
 
-## 8. Relationship to Human Consent
+## 8. Human Consent projection
 
-OAuth Human Consent v0.1 still grants concrete operation ids.
+OAuth Human Consent now projects capability-level selectors in addition to concrete operation ids.
 
-Capability-level selectors are introduced first as an authority primitive.
+For each Enterprise Context the page groups current grantable operations by:
 
-A later Consent UI slice may let the Human choose:
+    exact Capability id
+    +
+    exact effect (READ or PLAN)
 
-    Entire capability: Ledger Runtime Configuration
-    Allowed effects: READ
+The Human may choose:
 
-while still showing the concrete operations currently covered.
+    Grant entire capability: <exact capability id> <effect>
 
-That UI must clearly disclose that a capability-level Grant can cover future operations of the same exact capability/effect after a fresh authorization.
+or expand the group and select individual operations instead.
+
+No selector or operation is preselected.
+
+Each capability group shows the concrete current operations it covers and states that a future matching operation requires a fresh OAuth authorization before an existing token family can gain it.
+
+Consent POST does not trust the submitted selector. It re-lists the current grantable catalog and requires the exact capability/effect pair to exist there before creating the normal Authority Grant.
+
+WRITE, wildcard, prefix and regex delegation remain absent from the UI and rejected at the Host boundary.
 
 ## 9. Relationship to OAuth Rich Authorization Requests
 
