@@ -515,7 +515,10 @@ import {
 import { createMcpModernCoreV010 } from "./mcp-modern-core.js";
 import { createMcpModernHttpAdapterV010 } from "./mcp-modern-http.js";
 import { createMcpProtectedResourceV010 } from "./mcp-protected-resource.js";
-import { createMcpCapabilityProjectionV010 } from "./mcp-capability-projection.js";
+import {
+  createMcpCapabilityProjectionV010,
+  type McpCapabilityProjectionModeV010
+} from "./mcp-capability-projection.js";
 import {
   createChatGptMcpProductAdapterV010,
   createCompositeMcpProductAdapterV010
@@ -687,6 +690,20 @@ const externalAgentOAuthEnabled =
 const externalAgentMcpEnabled =
   process.env.APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED?.trim().toLowerCase()
   === "true";
+const externalAgentMcpCapabilityModeRaw =
+  process.env.APP_PLATFORM_EXTERNAL_AGENT_MCP_CAPABILITY_MODE
+    ?.trim()
+    .toUpperCase()
+  || "HYBRID";
+if (
+  externalAgentMcpCapabilityModeRaw !== "DIRECT"
+  && externalAgentMcpCapabilityModeRaw !== "HYBRID"
+  && externalAgentMcpCapabilityModeRaw !== "FABRIC"
+) {
+  throw new Error("EXTERNAL_AGENT_MCP_CAPABILITY_MODE_INVALID");
+}
+const externalAgentMcpCapabilityMode =
+  externalAgentMcpCapabilityModeRaw as McpCapabilityProjectionModeV010;
 if (externalAgentMcpEnabled && !externalAgentOAuthEnabled) {
   throw new Error("EXTERNAL_AGENT_MCP_REQUIRES_OAUTH");
 }
@@ -2034,7 +2051,8 @@ function externalAgentMcpHttpAdapterFor(
     actionRouter,
     productAdapter: createCompositeMcpProductAdapterV010([
       createChatGptMcpProductAdapterV010()
-    ])
+    ]),
+    mode: externalAgentMcpCapabilityMode
   });
   const core = createMcpModernCoreV010({
     serverInfo: {
@@ -2045,7 +2063,9 @@ function externalAgentMcpHttpAdapterFor(
         "Governed External Agent access to authorized EVO plugin capabilities."
     },
     instructions:
-      "Use only tools returned by the current authorized EVO capability catalog.",
+      externalAgentMcpCapabilityMode === "DIRECT"
+        ? "Use only tools returned by the current authorized EVO capability catalog."
+        : "Use EVO Capability Fabric to search and understand current authorized capabilities before invocation. Direct capability tools may also be present during HYBRID migration.",
     listTools() {
       return projection.listTools({
         access,

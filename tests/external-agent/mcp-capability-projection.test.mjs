@@ -60,7 +60,7 @@ function operation(id, effect) {
   };
 }
 
-function fixture() {
+function fixture({ mode } = {}) {
   const state = {
     policyAllowed: true,
     calls: []
@@ -250,7 +250,8 @@ function fixture() {
 
   const projection = createMcpCapabilityProjectionV010({
     delegatedAuthority,
-    actionRouter
+    actionRouter,
+    ...(mode ? { mode } : {})
   });
 
   const access = {
@@ -296,6 +297,149 @@ test("MCP tool list projects only current delegated READ/PLAN operations", async
   ]);
   assert.ok(tools.every(item => item.inputSchema.type === "object"));
   assert.equal(tools.some(item => item.name === "sample.write"), false);
+});
+
+test("MCP HYBRID mode exposes Fabric gateway plus direct delegated operations", async () => {
+  const f = fixture({ mode: "HYBRID" });
+  const tools = await f.projection.listTools({
+    access: f.access,
+    correlationId: "corr-hybrid-list"
+  });
+
+  assert.deepEqual(tools.map(item => item.name), [
+    "evo.capabilities.describe",
+    "evo.capabilities.invoke",
+    "evo.capabilities.search",
+    "sample.plan",
+    "sample.read"
+  ]);
+});
+
+test("MCP FABRIC mode exposes only the three generic capability gateway tools", async () => {
+  const f = fixture({ mode: "FABRIC" });
+  const tools = await f.projection.listTools({
+    access: f.access,
+    correlationId: "corr-fabric-list"
+  });
+
+  assert.deepEqual(tools.map(item => item.name), [
+    "evo.capabilities.describe",
+    "evo.capabilities.invoke",
+    "evo.capabilities.search"
+  ]);
+});
+
+test("MCP Fabric search describe invoke resolves delegated operations dynamically", async () => {
+  const f = fixture({ mode: "FABRIC" });
+
+  const search = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-search",
+    name: "evo.capabilities.search",
+    arguments: {
+      query: "sample read",
+      limit: 5
+    }
+  });
+  assert.equal(search.isError, undefined);
+  assert.equal(
+    search.structuredContent.kind,
+    "evo.agent-capability-fabric.search-result"
+  );
+  assert.equal(
+    search.structuredContent.items.some(
+      item => item.operationId === "sample.read"
+    ),
+    true
+  );
+  assert.equal(
+    search.structuredContent.items.some(
+      item => item.operationId === "sample.write"
+    ),
+    false
+  );
+
+  const describe = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-describe",
+    name: "evo.capabilities.describe",
+    arguments: {
+      operationId: "sample.read"
+    }
+  });
+  assert.equal(describe.isError, undefined);
+  assert.equal(
+    describe.structuredContent.operation.operationId,
+    "sample.read"
+  );
+  assert.equal(
+    "binding" in describe.structuredContent.operation,
+    false
+  );
+  assert.equal(
+    "authorization" in describe.structuredContent.operation,
+    false
+  );
+
+  const invoked = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-invoke",
+    name: "evo.capabilities.invoke",
+    arguments: {
+      operationId: "sample.read",
+      input: {
+        value: "fabric"
+      }
+    }
+  });
+  assert.equal(invoked.isError, undefined);
+  assert.equal(
+    invoked.structuredContent.kind,
+    "evo.agent-capability-fabric.invoke-result"
+  );
+  assert.equal(
+    invoked.structuredContent.result.commandCode,
+    "sample.read"
+  );
+  assert.equal(
+    invoked.structuredContent.result.value,
+    "fabric"
+  );
+});
+
+test("MCP Fabric guessed or WRITE operation stays unavailable", async () => {
+  const f = fixture({ mode: "FABRIC" });
+
+  for (const operationId of ["sample.secret", "sample.write"]) {
+    const described = await f.projection.callTool({
+      access: f.access,
+      correlationId: "corr-fabric-denied-describe-" + operationId,
+      name: "evo.capabilities.describe",
+      arguments: { operationId }
+    });
+    assert.equal(described.isError, true);
+    assert.match(
+      described.content[0].text,
+      /AGENT_CAPABILITY_NOT_AVAILABLE/
+    );
+
+    const invoked = await f.projection.callTool({
+      access: f.access,
+      correlationId: "corr-fabric-denied-invoke-" + operationId,
+      name: "evo.capabilities.invoke",
+      arguments: {
+        operationId,
+        input: {}
+      }
+    });
+    assert.equal(invoked.isError, true);
+    assert.match(
+      invoked.content[0].text,
+      /AGENT_CAPABILITY_NOT_AVAILABLE/
+    );
+  }
+
+  assert.equal(f.state.calls.length, 0);
 });
 
 test("MCP tool call executes through ActionHost with Human principal and separate External Agent actor", async () => {
@@ -392,6 +536,57 @@ test("MCP token operationIds remain an upper bound even if current Grant/catalog
   });
   assert.equal(plan.isError, true);
   assert.equal(plan.structuredContent, undefined);
+});
+
+test("MCP Fabric keeps token operationIds as an upper bound and re-checks policy", async () => {
+  const f = fixture({ mode: "FABRIC" });
+  f.access.operationIds = ["sample.read"];
+
+  const search = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-token-bound",
+    name: "evo.capabilities.search",
+    arguments: {
+      query: "sample",
+      limit: 10
+    }
+  });
+
+  assert.equal(search.isError, undefined);
+  assert.deepEqual(
+    search.structuredContent.items.map(item => item.operationId),
+    ["sample.read"]
+  );
+
+  const plan = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-token-plan",
+    name: "evo.capabilities.invoke",
+    arguments: {
+      operationId: "sample.plan",
+      input: {}
+    }
+  });
+  assert.equal(plan.isError, true);
+  assert.match(
+    plan.content[0].text,
+    /AGENT_CAPABILITY_NOT_AVAILABLE/
+  );
+
+  f.state.policyAllowed = false;
+  const afterPolicy = await f.projection.callTool({
+    access: f.access,
+    correlationId: "corr-fabric-policy-deny",
+    name: "evo.capabilities.describe",
+    arguments: {
+      operationId: "sample.read"
+    }
+  });
+  assert.equal(afterPolicy.isError, true);
+  assert.match(
+    afterPolicy.content[0].text,
+    /AGENT_CAPABILITY_NOT_AVAILABLE/
+  );
 });
 
 test("MCP action failure is bounded and does not expose Host authorization internals", async () => {
