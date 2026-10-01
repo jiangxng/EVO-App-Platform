@@ -183,9 +183,13 @@ Before redirecting to any external URI, the Host:
 1. resolves the registered EVO External Agent Client;
 2. fetches/validates CIMD;
 3. requires exact `client_id`;
-4. verifies the requested redirect URI is one of CIMD `redirect_uris`.
+4. verifies the requested redirect URI against CIMD `redirect_uris`.
 
-An unregistered redirect URI causes local failure.
+Matching is exact for ordinary redirects.
+
+For RFC 8252 native-app loopback **IP-literal** redirects only, the Host allows the runtime TCP port to differ from the registered URI while requiring the same HTTP scheme, loopback IP literal, path and query. This applies to `127.0.0.1` and `::1`. Existing `localhost` compatibility remains exact-match and does not gain the dynamic-port exception.
+
+An unregistered or structurally different redirect URI causes local failure.
 
 The Host never redirects an OAuth error to an unvalidated URI.
 
