@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EXT-AGENT-2026-09-30-02`  
-**Snapshot time:** `2026-09-30T21:16:34.930+08:00`  
+**Snapshot:** `EXT-AGENT-2026-10-01-01`  
+**Snapshot time:** `2026-10-01T09:18:26.087+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,63 +16,62 @@ ACTIVE
 
 ## Latest closed live slice
 
-**external-agent-foundation-production-shape-default-off-v0-1: VERIFIED_PRODUCTION_PASS**
+**external-agent-governance-oauth-mcp-public-discovery-v0-1: VERIFIED_PRODUCTION_PASS**
 
-The External-Agent-first foundation is now implemented through delegated Capability Operations, CIMD-first OAuth, MCP 2026-07-28 Tool projection and the first ChatGPT Product Adapter. Railway production successfully deployed commit 74796311df71e16a8f25f1caf21e203324aae4a4. Startup preserved the Enterprise Context migration, kept the generic OIDC runtime inactive because no issuer is configured, and started the Host normally. External Agent OAuth/MCP remain intentionally disabled, so this proves safe production-shape deployment rather than public External Agent availability.
+Production Human Google OIDC and durable Host Session are proven; a Human-created Enterprise Context exists; the registered ChatGPT External Agent/Public MCP Client has one ACTIVE READ-only delegated Grant for the two Ledger Runtime configuration operations; External Agent OAuth and MCP are intentionally enabled in Railway production; RFC 9728 Protected Resource Metadata and OAuth Authorization Server Metadata both return 200; unauthenticated POST /mcp returns 401 with the exact Bearer resource_metadata discovery challenge. This closes the EVO-side governance and public protocol-discovery foundation, but not a real ChatGPT OAuth/tool invocation.
 
-Authority: `docs/architecture/CHATGPT-MCP-PRODUCT-ADAPTER-EA6A-v0.1.md`
+Authority: `docs/runbooks/EA-1B2C-GOOGLE-OIDC-PRODUCTION-LIVE-CUTOVER.md`
 
 Evidence:
 
 ```json
 {
-  "capabilityOperationPr": 217,
-  "ledgerCapabilityPr": 218,
-  "capabilityAuthorizationPr": 219,
-  "delegatedGovernancePr": 220,
-  "identityDirectoryPr": 221,
-  "currentAuthorityPr": 222,
-  "oauthCorePr": 223,
-  "oauthHttpPr": 224,
-  "mcpCorePr": 226,
-  "mcpProtectedResourcePr": 227,
-  "mcpProjectionPr": 228,
-  "chatgptAdapterPr": 229,
-  "productionCommit": "74796311df71e16a8f25f1caf21e203324aae4a4",
-  "productionDeploymentId": "41ae4d9e-8d96-44fa-bf85-e6b853405c6e",
+  "humanOidcGate": "VERIFIED_PRODUCTION_PASS",
+  "managedSessionRestartDurability": true,
+  "explicitSessionRevocation": true,
+  "enterpriseContextCreation": "VERIFIED_PRODUCTION_PASS",
+  "externalAgentGovernanceActionHostPr": 233,
+  "enterpriseContextExperiencePr": 234,
+  "boundaryGovernancePr": 235,
+  "productionCommit": "e5da83b7bacd2cc1fbc5d4d6ad39a25f02f2e2ca",
+  "oauthDeploymentId": "2d809e5e-e22e-4e17-aae0-52fddf399e35",
+  "mcpDeploymentId": "7b488002-8fca-4a33-a731-f7543abac13a",
   "productionStatus": "SUCCESS",
-  "persistentStateMount": "/data",
-  "observedStartupLogs": [
-    "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
-    "Generic OIDC Identity Provider runtime is not active: ISSUER_REQUIRED.",
-    "EVO App Manager listening on http://localhost:8080"
+  "externalAgentOAuthProductionEnabled": true,
+  "externalAgentMcpProductionEnabled": true,
+  "delegatedGrantState": "ACTIVE",
+  "delegatedGrantEffects": [
+    "READ"
   ],
-  "externalAgentOAuthProductionEnabled": false,
-  "externalAgentMcpProductionEnabled": false,
-  "humanOidcProductionConfigured": false,
-  "chatgptAdapterIncluded": true,
-  "rfc9207IssuerIdentificationIncluded": true
+  "delegatedOperationIds": [
+    "ledger.runtime.configuration.describe",
+    "ledger.runtime.configuration.section.read"
+  ],
+  "protectedResourceMetadataStatus": 200,
+  "authorizationServerMetadataStatus": 200,
+  "unauthenticatedMcpStatus": 401,
+  "resource": "https://ledger-configurator-production.up.railway.app/mcp",
+  "issuer": "https://ledger-configurator-production.up.railway.app",
+  "bearerDiscoveryChallenge": "Bearer resource_metadata=\"https://ledger-configurator-production.up.railway.app/.well-known/oauth-protected-resource/mcp\""
 }
 ```
 
 ## Current open live gate
 
-**production-human-login-request-bound-session-v0-1: ACTIVE**
+**ea001-real-chatgpt-mcp-connection-v0-1: ACTIVE_EXTERNAL_CLIENT_ENTITLEMENT_REQUIRED**
 
-Complete the live production proof for the already-implemented generic OIDC + Host managed Session chain. Register one real external OIDC client for the production Ledger Configurator callback, configure issuer/clientId/(optional clientSecret), then prove browser login, request-bound Principal, /auth/session, logout/revocation and fail-closed behavior. Do not enable public External Agent OAuth/MCP until this gate passes.
+Complete EA-001 through a real ChatGPT custom MCP client: OAuth Authorization Code + PKCE, bearer-bound /mcp access, tools/list showing only the delegated Ledger READ tools, actual Ledger Runtime describe/bounded section reads, then revoke the Grant and prove immediate loss of delegated access. Use a ChatGPT plan/workspace that currently exposes custom MCP Developer mode; do not weaken EVO OAuth/MCP or authorization to work around product entitlement.
 
 Acceptance:
 
-- a real Human completes https://ledger-configurator-production.up.railway.app/auth/login through a real OIDC Provider and returns through /auth/callback
-- the Host issues its own revocable managed Session rather than using the external IdP token as the EVO request Session
-- a protected request resolves the authoritative request-bound Human Principal from that Session
-- /auth/session proves the current signed-in Human without trusting browser-supplied subject/context values
-- logout/revocation makes the prior managed Session unusable
-- session expiration/rotation remains fail closed and durable on /data
-- authorization.check receives the authoritative Principal; authentication alone never becomes business authorization
-- OIDC client secret, provider tokens and Session secrets remain behind Host Secrets/session boundaries and never enter Agent context
-- static/deployment-scoped identity remains development/reference compatibility only and does not satisfy this production gate
-- External Agent OAuth and MCP flags remain OFF until all prior acceptance evidence is recorded
+- a real ChatGPT custom MCP client discovers EVO from the production /mcp endpoint
+- ChatGPT completes EVO OAuth Authorization Code + PKCE against the already-registered Public Client identity
+- OAuth access remains bound to the existing Human-created Enterprise Context Grant and /mcp resource
+- tools/list exposes only ledger.runtime.configuration.describe and ledger.runtime.configuration.section.read for the EA-001 Grant
+- ChatGPT answers from the current installation Ledger Runtime configuration using describe and bounded section reads without source/private endpoint knowledge
+- the answer explicitly says installation-scoped Ledger configuration and does not claim unimplemented Enterprise Context → Ledger Template binding
+- revoking the delegated Grant removes effective access immediately even if the OAuth access token has not yet expired
+- after EA-001, run a second mature External Agent portability proof before major Personal Agent/EOG upper-layer expansion
 
 ## Current production preview
 
@@ -81,8 +80,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `74796311df71e16a8f25f1caf21e203324aae4a4`
-- Deployment: `41ae4d9e-8d96-44fa-bf85-e6b853405c6e`
+- Commit: `e5da83b7bacd2cc1fbc5d4d6ad39a25f02f2e2ca`
+- Deployment: `7b488002-8fca-4a33-a731-f7543abac13a`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -90,33 +89,40 @@ Acceptance:
 
 **Status:** `LIVE_PASS`
 
-**Scenario:** `External-Agent-first foundation production-shape deployment with public access intentionally disabled`
+**Scenario:** `Production Human identity + Enterprise Context delegation + public External Agent OAuth/MCP discovery foundation`
 
-Railway production deployment 41ae4d9e-8d96-44fa-bf85-e6b853405c6e built GitHub main commit 74796311df71e16a8f25f1caf21e203324aae4a4 (PR #229) and reached SUCCESS. Startup logged the existing Enterprise Context legacy SOP migration, then 'Generic OIDC Identity Provider runtime is not active: ISSUER_REQUIRED.', then 'EVO App Manager listening on http://localhost:8080'. No production variables enable managed OIDC login, External Agent OAuth or External Agent MCP yet, so the new foundation is deployed safely but remains inaccessible as a delegated public Agent surface.
+The real production Human login/session gate is VERIFIED_PRODUCTION_PASS. The Human created an Enterprise Context through the installable Eidos Experience, registered/reused the ChatGPT External Agent and PUBLIC MCP client, and created one ACTIVE READ-only Grant for the two Ledger Runtime configuration operations. Railway deployed exact main commit e5da83b7bacd2cc1fbc5d4d6ad39a25f02f2e2ca with OAuth deployment 2d809e5e-e22e-4e17-aae0-52fddf399e35 and MCP deployment 7b488002-8fca-4a33-a731-f7543abac13a, both SUCCESS. Browser protocol proof returned 200 from Protected Resource Metadata, 200 from Authorization Server Metadata, and 401 from unauthenticated POST /mcp with the exact RFC 9728 Bearer resource_metadata challenge.
 
-Authority: `docs/architecture/CHATGPT-MCP-PRODUCT-ADAPTER-EA6A-v0.1.md`
+Authority: `docs/runbooks/EA-1B2C-GOOGLE-OIDC-PRODUCTION-LIVE-CUTOVER.md`
 
 Proved:
 
-- the merged External-Agent-first code through PR #229 builds and starts in the real Railway production service
-- the production build uses exact Git commit 74796311df71e16a8f25f1caf21e203324aae4a4 rather than the previous PR #210 snapshot
-- Enterprise Context migration behavior survives the External Agent foundation changes
-- unconfigured Generic OIDC fails closed by remaining inactive instead of fabricating Human identity
-- the Host remains healthy while External Agent OAuth/MCP are default OFF
-- ChatGPT adapter and RFC 9207 code are present in the production-shape binary without creating a public Agent access path
+- real production Google OIDC Human authentication and durable/revocable Host managed Session are already proven
+- Enterprise Context creation is a normal installable Experience over Provider-owned governance data
+- EA-001 ChatGPT Agent/Public Client governance exists with one bounded ACTIVE READ Grant
+- External Agent OAuth and MCP are intentionally enabled in production rather than merely present behind default-OFF code
+- the /mcp protected Resource Identifier and RFC 9728 metadata URL are consistent
+- the OAuth Authorization Server issuer/endpoints are advertised from the same EVO production authority
+- unauthenticated /mcp access fails closed with 401 and an exact resource_metadata discovery challenge
 
 Not proved:
 
-- real Human OIDC login, callback, managed Session, logout or revocation
-- public External Agent OAuth authorization
-- public /mcp connectivity from ChatGPT
-- EA-001 Blind Enterprise Discovery through a real external Agent
-- second mature Agent portability
-- governed External Agent WRITE
+- a real ChatGPT custom MCP client has completed OAuth Authorization Code + PKCE against EVO
+- an EVO Agent access/refresh token has been issued to ChatGPT in production
+- ChatGPT has listed or called the delegated Ledger Runtime tools
+- EA-001 has returned actual Ledger Runtime content through ChatGPT
+- Grant revocation has yet been proven to cut off an already-issued ChatGPT token
+- Enterprise Context-specific Ledger Template selection/binding
+- External Agent WRITE
+- second mature External Agent portability
 
 
 ## Recent mainline changes
 
+- PR #235 — MERGED_CI_PASS_DEPLOYED: Codify Core/Provider/Application/Integration Adapter/Experience ownership boundaries and selective documentation lifecycle governance; deploy the current mainline used by OAuth/MCP production validation.
+- PR #234 — MERGED_CI_PASS_DEPLOYED: Add installable Enterprise Context Governance Experience plugin while preserving Provider-owned Enterprise Context facts; production Human created the first Enterprise Context through the normal page flow.
+- PR #233 — MERGED_CI_PASS_DEPLOYED: Expose External Agent governance through Human Action Host commands with Enterprise Context-only delegated grants and confirmation boundaries.
+- PR #232 — MERGED_CI_PASS_DEPLOYED: Add explicit durable managed Session revocation; production Human proof and restart-after-revoke both passed.
 - PR #229 — MERGED_CI_PASS_DEPLOYED: Add the first ChatGPT MCP Product Adapter without changing plugin business semantics; add RFC 9207 issuer identification and deploy safely with External Agent access still OFF.
 - PR #228 — MERGED_CI_PASS_DEPLOYED: Project currently delegated READ/PLAN Capability Operations into MCP tools/list and tools/call through the ordinary ActionHost path.
 - PR #227 — MERGED_CI_PASS_DEPLOYED: Bind /mcp to the OAuth Bearer protected-resource resolver behind a default-OFF production flag.
@@ -291,6 +297,12 @@ Not proved:
 - Do not redefine Ledger Agent access in an adapter: the plugin-owned operations are ledger.runtime.configuration.describe and ledger.runtime.configuration.section.read.
 - Do not identify ChatGPT from MCP clientInfo/model text; ChatGPT Product Adapter selection is based only on validated OAuth CIMD client identity.
 - Do not hand-edit HANDOFF-LATEST.md; update project.status.json and regenerate it through the continuity renderer.
+- Do not repeat Enterprise Context creation for EA-001; the first Human-created Enterprise Context already exists and is authoritative.
+- Do not recreate the EA-001 ChatGPT Agent, Public MCP Client or READ Grant while the existing active Grant is valid unless governance inspection proves they are missing/revoked.
+- Do not treat External Agent OAuth/MCP production activation or public protocol discovery as pending; both flags are ON and PRM/AS metadata plus unauthenticated 401 discovery are VERIFIED_PRODUCTION_PASS.
+- Do not claim full EA-001 until a real entitled ChatGPT custom MCP client completes OAuth, tools/list, Ledger READ and post-Grant-revoke denial.
+- Do not loosen OAuth, MCP, CIMD, PKCE, Enterprise Context or authorization checks to work around ChatGPT product-plan/workspace entitlement.
+- Do not describe the current Ledger Runtime configuration as enterprise-specific; its Capability Operation dataScope remains INSTALLATION.
 
 ## Fresh ChatGPT / LLM startup
 
