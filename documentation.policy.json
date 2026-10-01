@@ -38,6 +38,9 @@
     "architecture.manifest.json": "CURRENT_AUTHORITY",
     "architecture.boundary-policy.json": "CURRENT_AUTHORITY",
     "project.status.json": "CURRENT_STATUS",
-    "docs/roadmap/HANDOFF-LATEST.md": "GENERATED_CURRENT_VIEW"
+    "docs/roadmap/HANDOFF-LATEST.md": "GENERATED_CURRENT_VIEW",
+    "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md": "CURRENT_AUTHORITY",
+    "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md": "CURRENT_AUTHORITY",
+    "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md": "CURRENT_AUTHORITY"
   }
 }
