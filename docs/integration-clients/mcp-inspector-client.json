@@ -3,6 +3,8 @@
   "client_name": "EVO MCP Inspector Validation",
   "redirect_uris": [
     "http://localhost:6274/oauth/callback",
+    "http://127.0.0.1:6274/oauth/callback",
+    "http://[::1]:6274/oauth/callback",
     "http://127.0.0.1:6276/oauth/callback"
   ],
   "grant_types": [
