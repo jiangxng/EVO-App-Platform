@@ -64,6 +64,16 @@ export type ExternalAgentAuthorityGrantStateV010 =
   | "ACTIVE"
   | "REVOKED";
 
+export type ExternalAgentDelegableEffectV010 =
+  | "READ"
+  | "PLAN";
+
+export interface ExternalAgentCapabilitySelectorV010 {
+  contractVersion: "0.1.0";
+  capability: string;
+  effects: ExternalAgentDelegableEffectV010[];
+}
+
 export interface ExternalAgentAuthorityGrantV010 {
   contractVersion: "0.1.0";
   grantId: string;
@@ -71,7 +81,18 @@ export interface ExternalAgentAuthorityGrantV010 {
   clientId: string;
   authorizingPrincipalSubjectId: string;
   contextId: string;
+  /**
+   * Explicit operation grants remain supported for precise delegation and
+   * backwards compatibility. A Grant may use explicit ids, capability
+   * selectors, or both.
+   */
   allowedOperationIds: string[];
+  /**
+   * Capability-level authority selectors are dynamically resolved against the
+   * current Human authorization, plugin lifecycle and External Agent exposure.
+   * They never authorize WRITE in v0.2.
+   */
+  capabilitySelectors?: ExternalAgentCapabilitySelectorV010[];
   effectConstraints: CapabilityOperationEffectV010[];
   state: ExternalAgentAuthorityGrantStateV010;
   validFrom: string;
