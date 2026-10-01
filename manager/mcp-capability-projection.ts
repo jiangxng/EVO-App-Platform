@@ -87,13 +87,7 @@ function unavailableToolResult(): McpModernCallToolResultV010 {
     content: [{
       type: "text",
       text: "The requested tool is not currently available to this authorized client."
-    }],
-    structuredContent: {
-      ok: false,
-      error: {
-        code: "MCP_TOOL_NOT_AVAILABLE"
-      }
-    }
+    }]
   };
 }
 
@@ -104,15 +98,14 @@ function executionFailure(
     isError: true,
     content: [{
       type: "text",
-      text: "The authorized EVO capability could not be completed."
-    }],
-    structuredContent: {
-      ok: false,
-      error: {
-        code: "MCP_TOOL_EXECUTION_FAILED"
-      },
-      ...(correlationId ? { correlationId } : {})
-    }
+      text: JSON.stringify({
+        ok: false,
+        error: {
+          code: "MCP_TOOL_EXECUTION_FAILED"
+        },
+        ...(correlationId ? { correlationId } : {})
+      })
+    }]
   };
 }
 
@@ -120,7 +113,7 @@ function successfulToolResult(
   result: JsonValue | undefined,
   correlationId: string | undefined
 ): McpModernCallToolResultV010 {
-  const structuredContent = {
+  const content = {
     ok: true,
     ...(result === undefined ? {} : { result }),
     ...(correlationId ? { correlationId } : {})
@@ -128,9 +121,11 @@ function successfulToolResult(
   return {
     content: [{
       type: "text",
-      text: JSON.stringify(structuredContent)
+      text: JSON.stringify(content)
     }],
-    structuredContent
+    ...(result === undefined
+      ? {}
+      : { structuredContent: structuredClone(result) })
   };
 }
 
@@ -227,13 +222,7 @@ export function createMcpCapabilityProjectionV010(
           content: [{
             type: "text",
             text: "Tool arguments must be a JSON object."
-          }],
-          structuredContent: {
-            ok: false,
-            error: {
-              code: "MCP_TOOL_ARGUMENTS_INVALID"
-            }
-          }
+          }]
         };
       }
 

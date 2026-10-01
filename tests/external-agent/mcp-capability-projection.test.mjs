@@ -308,14 +308,13 @@ test("MCP tool call executes through ActionHost with Human principal and separat
   });
 
   assert.equal(result.isError, undefined);
-  assert.equal(result.structuredContent.ok, true);
-  assert.equal(result.structuredContent.result.commandCode, "sample.read");
+  assert.equal(result.structuredContent.commandCode, "sample.read");
   assert.equal(
-    result.structuredContent.result.principalSubjectId,
+    result.structuredContent.principalSubjectId,
     "human-1"
   );
   assert.deepEqual(
-    result.structuredContent.result.delegatedActor,
+    result.structuredContent.delegatedActor,
     {
       contractVersion: "0.1.0",
       kind: "EXTERNAL_AGENT",
@@ -325,7 +324,7 @@ test("MCP tool call executes through ActionHost with Human principal and separat
     }
   );
   assert.equal(
-    result.structuredContent.result.activeContextId,
+    result.structuredContent.activeContextId,
     "enterprise:ent-1"
   );
   assert.equal(f.state.calls.length, 1);
@@ -348,10 +347,7 @@ test("MCP cached tool cannot execute after current policy is revoked", async () 
     arguments: {}
   });
   assert.equal(result.isError, true);
-  assert.equal(
-    result.structuredContent.error.code,
-    "MCP_TOOL_NOT_AVAILABLE"
-  );
+  assert.equal(result.structuredContent, undefined);
   assert.equal(f.state.calls.length, 0);
 });
 
@@ -365,10 +361,7 @@ test("MCP guessed operation and WRITE operation are both unavailable without rev
     arguments: {}
   });
   assert.equal(guessed.isError, true);
-  assert.deepEqual(guessed.structuredContent, {
-    ok: false,
-    error: { code: "MCP_TOOL_NOT_AVAILABLE" }
-  });
+  assert.equal(guessed.structuredContent, undefined);
 
   const write = await f.projection.callTool({
     access: f.access,
@@ -377,10 +370,7 @@ test("MCP guessed operation and WRITE operation are both unavailable without rev
     arguments: {}
   });
   assert.equal(write.isError, true);
-  assert.equal(
-    write.structuredContent.error.code,
-    "MCP_TOOL_NOT_AVAILABLE"
-  );
+  assert.equal(write.structuredContent, undefined);
   assert.equal(f.state.calls.length, 0);
 });
 
@@ -401,10 +391,7 @@ test("MCP token operationIds remain an upper bound even if current Grant/catalog
     arguments: {}
   });
   assert.equal(plan.isError, true);
-  assert.equal(
-    plan.structuredContent.error.code,
-    "MCP_TOOL_NOT_AVAILABLE"
-  );
+  assert.equal(plan.structuredContent, undefined);
 });
 
 test("MCP action failure is bounded and does not expose Host authorization internals", async () => {
