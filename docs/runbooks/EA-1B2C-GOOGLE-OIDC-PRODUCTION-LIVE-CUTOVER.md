@@ -1,9 +1,9 @@
 # EA-1B2C — Google OIDC Production Live Cutover Runbook
 
-**Status:** LIVING RUNBOOK — HUMAN LOGIN PASS / EA-001 PROTOCOL DISCOVERY PASS  
+**Status:** LIVING RUNBOOK — HUMAN LOGIN PASS / INSPECTOR E2E SECURITY PASS  
 **Date:** 2026-09-30  
 **Milestone:** External-Agent-First Platform Validation v0.1  
-**Active gate:** ea001-real-chatgpt-mcp-connection-v0-1  
+**Active gate:** real-external-ai-agent-portability-v0-1  
 **Production service:** Ledger Configurator  
 **Production base URL:** https://ledger-configurator-production.up.railway.app  
 **OIDC Provider:** Generic OIDC Identity Provider  
@@ -580,3 +580,202 @@ dataScope = INSTALLATION
 ~~~
 
 Therefore a successful ChatGPT answer must say **current installation Ledger Runtime configuration/template**, not claim an Enterprise-specific Ledger Template until explicit Enterprise Context → Ledger Template inheritance/binding exists.
+
+
+## 15. MCP Inspector end-to-end production proof — 2026-10-01
+
+The official MCP Inspector was used as an independent standards/debugging client to exercise the real production External Agent path.
+
+### 15.1 Client identity and transport
+
+Client identity:
+
+~~~text
+https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/mcp-inspector-web-v3-client.json
+~~~
+
+Transport:
+
+~~~text
+Streamable HTTP
+~~~
+
+Protocol era:
+
+~~~text
+Modern
+MCP 2026-07-28
+~~~
+
+The Inspector completed the real EVO OAuth Authorization Code + PKCE flow and then accessed the bearer-protected production MCP resource.
+
+### 15.2 Least-privilege tool discovery
+
+The production `tools/list` result exposed exactly:
+
+~~~text
+ledger.runtime.configuration.describe
+ledger.runtime.configuration.section.read
+~~~
+
+No WRITE operation, External Agent governance operation, Enterprise Context governance operation, or unrelated App Platform operation was exposed.
+
+### 15.3 Ledger describe live call
+
+The Inspector invoked:
+
+~~~text
+ledger.runtime.configuration.describe
+~~~
+
+and received the current installation Ledger Runtime configuration:
+
+~~~text
+templateId = bookkeeping-default
+semanticDigest = 8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98
+
+accounts = 141
+applications = 143
+dictionaries = 106
+postingRules = 912
+referenceLegacyPostingRules = 587
+
+burnReady = true
+blockers = []
+~~~
+
+This is an INSTALLATION-scoped configuration read. It is not evidence of Enterprise Context-specific Ledger Template binding.
+
+### 15.4 Bounded section read and cursor continuation
+
+The Inspector invoked:
+
+~~~text
+ledger.runtime.configuration.section.read
+~~~
+
+for:
+
+~~~text
+section = accounts
+pageSize = 3
+~~~
+
+First page:
+
+~~~text
+offset = 0
+total = 141
+items = 3
+nextCursor = present
+~~~
+
+Using the returned cursor produced:
+
+~~~text
+offset = 3
+total = 141
+items = next 3
+nextCursor = present
+~~~
+
+Both pages retained the exact same semantic digest as `describe`.
+
+This proves bounded read and digest-bound cursor continuation rather than unbounded configuration dumping.
+
+### 15.5 Grant revocation immediate-cutoff proof
+
+Without clearing Inspector OAuth state and without explicitly revoking the previously issued access token:
+
+~~~text
+ACTIVE Inspector delegated Grant
+→ REVOKED
+→ Inspector retries MCP connection
+→ EVO rejects current authority
+~~~
+
+Observed client error prefix:
+
+~~~text
+EXTERNAL_AGENT_OAUTH_DELEGATED_AUTHORITY_INACTIVE
+~~~
+
+The OAuth service resolves every access-token request against current delegated authority through:
+
+~~~text
+resolveAccessToken
+→ requireCurrentDelegatedAuthority
+→ listEffectiveDelegatedCapabilityOperations
+~~~
+
+Therefore the access token is not treated as permanently freezing the Grant's authority.
+
+The production proof demonstrates:
+
+~~~text
+token still exists
+∩ Grant is no longer ACTIVE
+=
+no effective External Agent access
+~~~
+
+### 15.6 Protocol interoperability fixes discovered by the live proof
+
+The real Inspector run exposed and verified two MCP 2026-07-28 conformance corrections:
+
+PR #241:
+
+~~~text
+all successful Modern MCP results
+→ resultType = "complete"
+~~~
+
+PR #242:
+
+~~~text
+tools/call structuredContent
+→ actual business result directly
+→ conforms to declared outputSchema
+~~~
+
+Production commit after these corrections:
+
+~~~text
+9c3c1399ecc2c9d42598004e39b5add49d7015ae
+~~~
+
+Railway deployment:
+
+~~~text
+9b44fd96-df50-48c4-bc66-c7bea7428b64
+SUCCESS
+~~~
+
+### 15.7 What this proof does and does not close
+
+Closed:
+
+~~~text
+EVO Human identity
++ Enterprise Context delegation
++ CIMD
++ OAuth Authorization Code / PKCE
++ bearer-protected MCP
++ Modern MCP 2026-07-28
++ least-privilege tools/list
++ real Ledger READ
++ bounded cursor continuation
++ immediate Grant revocation cutoff
+=
+VERIFIED_PRODUCTION_PASS
+~~~
+
+Not closed:
+
+- MCP Inspector is not an AI Agent and therefore does not prove autonomous Agent tool selection;
+- a real ChatGPT custom MCP client remains pending product plan/workspace entitlement;
+- second mature external AI Agent portability remains open;
+- Enterprise Context → Ledger Template selection/binding remains unimplemented;
+- External Agent WRITE remains unproved.
+
+The next live gate is therefore a real external AI Agent client over the same generic contract, preferably through a free standards-compatible client path first.
