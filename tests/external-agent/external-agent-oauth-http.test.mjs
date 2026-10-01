@@ -47,7 +47,7 @@ function operation() {
   };
 }
 
-function governanceStore({ grantCount = 1 } = {}) {
+function governanceStore({ grantCount = 1, includeClient = true } = {}) {
   const grants = Array.from({ length: grantCount }, (_, index) => ({
     contractVersion: "0.1.0",
     grantId: "grant-" + (index + 1),
@@ -74,7 +74,7 @@ function governanceStore({ grantCount = 1 } = {}) {
       createdAt: "2026-09-30T09:00:00.000Z",
       createdBySubjectId: "human-1"
     }],
-    clients: [{
+    clients: includeClient ? [{
       contractVersion: "0.1.0",
       clientId: "client-1",
       agentId: "agent-1",
@@ -85,7 +85,7 @@ function governanceStore({ grantCount = 1 } = {}) {
       state: "ACTIVE",
       createdAt: "2026-09-30T09:05:00.000Z",
       createdBySubjectId: "human-1"
-    }],
+    }] : [],
     grants,
     events: []
   });
@@ -243,33 +243,49 @@ function authorizationUrl(currentRedirectUri = redirectUri) {
 function fixture({
   grantCount = 1,
   policyAllowed = true,
-  registeredRedirectUri = redirectUri
+  registeredRedirectUri = redirectUri,
+  includeClient = true
 } = {}) {
-  const store = governanceStore({ grantCount });
+  const store = governanceStore({ grantCount, includeClient });
   const calls = {
     issue: [],
     exchange: [],
     refresh: [],
-    revoke: []
+    revoke: [],
+    ensureClient: [],
+    createGrant: [],
+    listGrantable: []
   };
   const oauth = {
     protectedResourceMetadata() {
-      return {};
+      return { resource };
     },
     authorizationServerMetadata() {
-      return { issuer };
+      return {
+        issuer,
+        scopes_supported: ["evo.capabilities", "offline_access"]
+      };
+    },
+    async inspectClientMetadata(clientId) {
+      assert.equal(clientId, oauthClientId);
+      return {
+        client_id: oauthClientId,
+        client_name: "Reference MCP Client",
+        redirect_uris: [registeredRedirectUri],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none"
+      };
     },
     async resolveClientMetadata(clientId) {
       assert.equal(clientId, oauthClientId);
+      const registration = store.snapshot().clients[0];
+      if (!registration) {
+        throw new Error("EXTERNAL_AGENT_OAUTH_CLIENT_NOT_REGISTERED");
+      }
       return {
-        registration: store.snapshot().clients[0],
-        metadata: {
-          client_id: oauthClientId,
-          redirect_uris: [registeredRedirectUri],
-          grant_types: ["authorization_code", "refresh_token"],
-          response_types: ["code"],
-          token_endpoint_auth_method: "none"
-        }
+        registration,
+        metadata: await this.inspectClientMetadata(clientId)
       };
     },
     async issueAuthorizationCode(input) {
@@ -308,14 +324,87 @@ function fixture({
     }
   };
   const delegatedAuthority = dependencies(store, { policyAllowed });
+  const governance = {
+    async ensurePublicCimdClient(context, input) {
+      calls.ensureClient.push({
+        context: structuredClone(context),
+        input: structuredClone(input)
+      });
+      return {
+        agent: {
+          contractVersion: "0.1.0",
+          agentId: "agent-consent",
+          displayName: input.displayName,
+          trustLevel: "REGISTERED",
+          state: "ACTIVE",
+          createdAt: "2026-09-30T11:00:00.000Z",
+          createdBySubjectId: "human-1"
+        },
+        client: {
+          contractVersion: "0.1.0",
+          clientId: "client-consent",
+          agentId: "agent-consent",
+          displayName: input.displayName,
+          kind: "PUBLIC",
+          protocols: ["MCP"],
+          oauthClientId: input.oauthClientId,
+          state: "ACTIVE",
+          createdAt: "2026-09-30T11:00:00.000Z",
+          createdBySubjectId: "human-1"
+        },
+        created: true
+      };
+    },
+    async listGrantableOperations(context) {
+      calls.listGrantable.push(structuredClone(context));
+      return [{
+        operationId: "sample.read",
+        capability: "sample",
+        title: "Sample read",
+        description: "HTTP adapter fixture.",
+        effect: "READ",
+        dataScope: "ENTERPRISE"
+      }];
+    },
+    async createGrant(context, input) {
+      calls.createGrant.push({
+        context: structuredClone(context),
+        input: structuredClone(input)
+      });
+      return {
+        contractVersion: "0.1.0",
+        grantId: "grant-consent",
+        agentId: input.agentId,
+        clientId: input.clientId,
+        authorizingPrincipalSubjectId: "human-1",
+        contextId: context.context.activeContext.contextId,
+        allowedOperationIds: [...input.allowedOperationIds],
+        effectConstraints: ["READ"],
+        state: "ACTIVE",
+        validFrom: "2026-09-30T11:00:00.000Z",
+        validUntil: input.validUntil,
+        createdAt: "2026-09-30T11:00:00.000Z",
+        createdBySubjectId: "human-1"
+      };
+    }
+  };
   return {
     calls,
     store,
     adapter: createExternalAgentOAuthHttpAdapterV010({
       oauth,
       governanceStore: store,
+      governance,
       delegatedAuthority,
-      buildHumanRequestContext: requestContext
+      buildHumanRequestContext: requestContext,
+      listHumanEnterpriseContexts() {
+        return [{
+          contextId: "enterprise:ent-1",
+          enterpriseId: "ent-1",
+          displayName: "Enterprise 1"
+        }];
+      },
+      now: () => new Date("2026-09-30T11:00:00.000Z")
     })
   };
 }
@@ -340,6 +429,93 @@ test("authorize binds the unique current Human Grant and preserves OAuth state",
     f.calls.issue[0].requestContext.context.activeContext.contextId,
     "enterprise:ent-1"
   );
+});
+
+test("first-use CIMD client enters Human consent instead of requiring pre-registration", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+
+  const result = await f.adapter.authorize({
+    url: authorizationUrl(),
+    session: session(),
+    correlationId: "corr-consent-preview"
+  });
+
+  assert.equal(result.kind, "CONSENT");
+  assert.equal(result.status, 200);
+  assert.equal(result.consent.client.registered, false);
+  assert.equal(
+    result.consent.client.oauthClientId,
+    oauthClientId
+  );
+  assert.equal(result.consent.contexts.length, 1);
+  assert.deepEqual(
+    result.consent.contexts[0].operations.map(item => item.operationId),
+    ["sample.read"]
+  );
+  assert.equal(f.calls.issue.length, 0);
+});
+
+test("Human consent can enroll public CIMD client, create bounded Grant and issue code", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "approve");
+  form.set("context_id", "enterprise:ent-1");
+  form.set("duration_minutes", "240");
+  form.append("operation_id", "sample.read");
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-approve"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  assert.equal(result.status, 303);
+  assert.equal(f.calls.ensureClient.length, 1);
+  assert.equal(f.calls.createGrant.length, 1);
+  assert.deepEqual(
+    f.calls.createGrant[0].input.allowedOperationIds,
+    ["sample.read"]
+  );
+  assert.equal(
+    f.calls.createGrant[0].input.validUntil,
+    "2026-09-30T15:00:00.000Z"
+  );
+  assert.equal(f.calls.issue.length, 1);
+  assert.equal(f.calls.issue[0].grantId, "grant-consent");
+  const target = new URL(result.location);
+  assert.equal(target.searchParams.get("code"), "evo_code_fixture");
+  assert.equal(target.searchParams.get("state"), "state-1");
+});
+
+test("Human consent denial redirects without enrollment or Grant creation", async () => {
+  const f = fixture({
+    grantCount: 0,
+    includeClient: false
+  });
+  const url = authorizationUrl();
+  const form = new URLSearchParams(url.searchParams);
+  form.set("decision", "deny");
+
+  const result = await f.adapter.approve({
+    form,
+    session: session(),
+    correlationId: "corr-consent-deny"
+  });
+
+  assert.equal(result.kind, "REDIRECT");
+  const target = new URL(result.location);
+  assert.equal(target.searchParams.get("error"), "access_denied");
+  assert.equal(f.calls.ensureClient.length, 0);
+  assert.equal(f.calls.createGrant.length, 0);
+  assert.equal(f.calls.issue.length, 0);
 });
 
 test("authorize accepts an RFC 8252 native loopback ephemeral port", async () => {
