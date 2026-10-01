@@ -14,7 +14,8 @@ import {
   createMemoryExternalAgentOAuthStoreV010
 } from "../../dist/manager/external-agent-oauth-store.js";
 import {
-  createExternalAgentOAuthServiceV010
+  createExternalAgentOAuthServiceV010,
+  redirectUriMatchesRegistrationV010
 } from "../../dist/manager/external-agent-oauth-service.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
@@ -338,6 +339,109 @@ async function issueCode(f, {
     correlationId: "issue-corr"
   });
 }
+
+test("native loopback redirect matching permits only the runtime port to vary", () => {
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://127.0.0.1/callback",
+      "http://127.0.0.1:53421/callback"
+    ),
+    true
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://127.0.0.1:43100/callback?channel=oauth",
+      "http://127.0.0.1:53421/callback?channel=oauth"
+    ),
+    true
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://[::1]/callback",
+      "http://[::1]:53421/callback"
+    ),
+    true
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://127.0.0.1/callback",
+      "http://localhost:53421/callback"
+    ),
+    false
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://127.0.0.1/callback",
+      "http://127.0.0.1:53421/other"
+    ),
+    false
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://127.0.0.1/callback?channel=oauth",
+      "http://127.0.0.1:53421/callback?channel=other"
+    ),
+    false
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "http://localhost:43100/callback",
+      "http://localhost:53421/callback"
+    ),
+    false
+  );
+  assert.equal(
+    redirectUriMatchesRegistrationV010(
+      "https://client.example:43100/callback",
+      "https://client.example:53421/callback"
+    ),
+    false
+  );
+});
+
+test("OAuth service accepts an RFC 8252 ephemeral port for registered loopback IP redirect", async () => {
+  const f = fixture();
+  const verifier = "n".repeat(64);
+  const registered = "http://127.0.0.1/callback";
+  const requested = "http://127.0.0.1:53421/callback";
+
+  f.setClientMetadata(clientMetadataDocument({
+    redirect_uris: [registered]
+  }));
+
+  const issued = await f.service.issueAuthorizationCode({
+    requestContext: requestContext(f.authorities.principal),
+    grantId: "grant-1",
+    oauthClientId,
+    redirectUri: requested,
+    resource,
+    scopes: [EXTERNAL_AGENT_OAUTH_SCOPE],
+    codeChallenge: pkceChallenge(verifier),
+    codeChallengeMethod: "S256",
+    correlationId: "native-loopback"
+  });
+
+  assert.equal(issued.redirectUri, requested);
+  assert.equal(
+    f.oauthStore.snapshot().authorizationCodes[0].redirectUri,
+    requested
+  );
+
+  await assert.rejects(
+    () => f.service.issueAuthorizationCode({
+      requestContext: requestContext(f.authorities.principal),
+      grantId: "grant-1",
+      oauthClientId,
+      redirectUri: "http://127.0.0.1:53421/other",
+      resource,
+      scopes: [EXTERNAL_AGENT_OAUTH_SCOPE],
+      codeChallenge: pkceChallenge(verifier),
+      codeChallengeMethod: "S256",
+      correlationId: "native-loopback-wrong-path"
+    }),
+    /EXTERNAL_AGENT_OAUTH_REDIRECT_URI_NOT_REGISTERED/
+  );
+});
 
 test("OAuth metadata is resource-bound and CIMD-first", () => {
   const f = fixture();
