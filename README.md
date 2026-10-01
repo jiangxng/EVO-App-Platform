@@ -1,5 +1,7 @@
 # EVO App Platform
 
+> **Current ecosystem:** EVO-App-Platform is one of four current owner projects: **EVO-App-Platform / EVO / Eidos / Experience-Compiler**. Ownership and cross-project placement rules: `docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md`. The old `EVO-EC-Eidos-Convergence` repository is historical evidence only.
+
 **Status:** Personal Agent vertical experience checkpoint  
 **Repository role:** Package lifecycle and application ecosystem layer
 

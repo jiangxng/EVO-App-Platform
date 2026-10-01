@@ -35,6 +35,12 @@ on:
       - "docs/architecture/PLUGIN-REMOTE-RUNTIME-v0.1.md"
       - "INVARIANTS.md"
       - "VALIDATION-CONSTITUTION.md"
+      - "architecture.manifest.json"
+      - "architecture.boundary-policy.json"
+      - "documentation.policy.json"
+      - "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md"
+      - "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md"
+      - "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md"
       - "LLM.md"
   pull_request:
     paths:
@@ -62,6 +68,12 @@ on:
       - "docs/architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md"
       - "INVARIANTS.md"
       - "VALIDATION-CONSTITUTION.md"
+      - "architecture.manifest.json"
+      - "architecture.boundary-policy.json"
+      - "documentation.policy.json"
+      - "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md"
+      - "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md"
+      - "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md"
       - "LLM.md"
 
 concurrency:
