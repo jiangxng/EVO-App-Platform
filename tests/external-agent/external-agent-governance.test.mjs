@@ -219,6 +219,55 @@ test("Agent registration, Client registration and Authority Grant are separate d
   );
 });
 
+test("Capability selector Grant delegates a bounded READ capability without enumerating operation ids", async () => {
+  const fixture = await registeredFixture({
+    operations: [
+      operation({ operationId: "sample.read" }),
+      operation({ operationId: "sample.other" })
+    ]
+  });
+
+  const grant = await fixture.service.createGrant(fixture.context, {
+    agentId: fixture.agent.agentId,
+    clientId: fixture.client.clientId,
+    capabilitySelectors: [{
+      contractVersion: "0.1.0",
+      capability: "sample",
+      effects: ["READ"]
+    }],
+    validUntil: "2026-10-01T10:00:00.000Z",
+    description: "Capability-level READ delegation"
+  });
+
+  assert.deepEqual(grant.allowedOperationIds, []);
+  assert.deepEqual(grant.capabilitySelectors, [{
+    contractVersion: "0.1.0",
+    capability: "sample",
+    effects: ["READ"]
+  }]);
+  assert.deepEqual(grant.effectConstraints, ["READ"]);
+});
+
+test("Capability selector Grant rejects a capability/effect outside current Human grantable authority", async () => {
+  const fixture = await registeredFixture();
+
+  await assert.rejects(
+    () => fixture.service.createGrant(fixture.context, {
+      agentId: fixture.agent.agentId,
+      clientId: fixture.client.clientId,
+      capabilitySelectors: [{
+        contractVersion: "0.1.0",
+        capability: "missing.capability",
+        effects: ["READ"]
+      }],
+      validUntil: "2026-10-01T10:00:00.000Z"
+    }),
+    /EXTERNAL_AGENT_GRANT_SELECTOR_NOT_AUTHORIZED: missing\.capability::READ/
+  );
+
+  assert.equal(fixture.store.snapshot().grants.length, 0);
+});
+
 test("Grant creation attenuates to current Human authority and External Agent eligibility", async () => {
   const fixture = await registeredFixture({
     operations: [
