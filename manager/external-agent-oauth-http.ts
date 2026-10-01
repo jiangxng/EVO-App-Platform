@@ -13,8 +13,9 @@ import {
   listEffectiveDelegatedCapabilityOperationsV010,
   type EffectiveDelegatedAuthorityDependenciesV010
 } from "./external-agent-delegated-access.js";
-import type {
-  ExternalAgentOAuthServiceV010
+import {
+  redirectUriMatchesRegistrationV010,
+  type ExternalAgentOAuthServiceV010
 } from "./external-agent-oauth-service.js";
 
 export interface ExternalAgentOAuthAuthorizationHttpResultV010 {
@@ -179,7 +180,12 @@ export function createExternalAgentOAuthHttpAdapterV010(
       } catch (error) {
         throw error;
       }
-      if (!resolvedClient.metadata.redirect_uris.includes(redirectUri)) {
+      if (!resolvedClient.metadata.redirect_uris.some(registered =>
+        redirectUriMatchesRegistrationV010(
+          registered,
+          redirectUri
+        )
+      )) {
         throw new Error("EXTERNAL_AGENT_OAUTH_REDIRECT_URI_NOT_REGISTERED");
       }
 
