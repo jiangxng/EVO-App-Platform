@@ -751,18 +751,23 @@ export function createExternalAgentGovernanceServiceV010(
       });
 
       return humanCatalog.operations
-        .filter(operation =>
-          operation.exposure.includes("EXTERNAL_AGENT")
-          && (operation.effect === "READ" || operation.effect === "PLAN")
-        )
-        .map(operation => ({
-          operationId: operation.operationId,
-          capability: operation.capability,
-          title: operation.title,
-          description: operation.description,
-          effect: operation.effect,
-          dataScope: operation.dataScope
-        }))
+        .flatMap(operation => {
+          if (
+            !operation.exposure.includes("EXTERNAL_AGENT")
+            || (operation.effect !== "READ" && operation.effect !== "PLAN")
+          ) {
+            return [];
+          }
+          const item: ExternalAgentGrantableOperationV010 = {
+            operationId: operation.operationId,
+            capability: operation.capability,
+            title: operation.title,
+            description: operation.description,
+            effect: operation.effect,
+            dataScope: operation.dataScope
+          };
+          return [item];
+        })
         .sort((a, b) => a.operationId.localeCompare(b.operationId));
     },
 
