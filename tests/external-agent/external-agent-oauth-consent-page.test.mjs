@@ -32,9 +32,16 @@ function model() {
       displayName: "Enterprise <One>",
       operations: [{
         operationId: "sample.read",
-        capability: "sample",
+        capability: "sample<&>",
         title: "Sample <read>",
         description: "Read & inspect.",
+        effect: "READ",
+        dataScope: "ENTERPRISE"
+      }, {
+        operationId: "sample.other",
+        capability: "sample<&>",
+        title: "Sample other",
+        description: "Second operation.",
         effect: "READ",
         dataScope: "ENTERPRISE"
       }]
@@ -56,13 +63,30 @@ test("OAuth consent page escapes all client and operation metadata", () => {
   assert.match(html, /name="operation_id"/);
   assert.match(html, /value="sample.read"/);
   assert.match(html, /name="duration_minutes"/);
+  assert.match(html, /name="capability_selector"/);
+  assert.match(html, /Grant entire capability: sample&lt;&amp;&gt;/);
+  assert.match(html, /Currently covers 2 operations/);
+  assert.match(html, /fresh OAuth authorization/);
+  assert.equal(html.includes('sample<&>'), false);
 });
 
-test("OAuth consent page does not preselect capability operations", () => {
+test("OAuth consent page preselects neither capability selectors nor individual operations", () => {
   const html = renderExternalAgentOAuthConsentPageV010(model());
+  const selectorInput = html.match(
+    /<input type="checkbox" name="capability_selector"[^>]+>/
+  )?.[0];
   const operationInput = html.match(
     /<input type="checkbox" name="operation_id"[^>]+>/
   )?.[0];
+  assert.ok(selectorInput);
   assert.ok(operationInput);
+  assert.equal(/checked/.test(selectorInput), false);
   assert.equal(/checked/.test(operationInput), false);
+});
+
+test("OAuth consent page explicitly discloses selector safety boundaries", () => {
+  const html = renderExternalAgentOAuthConsentPageV010(model());
+  assert.match(html, /exact capability\/effect/);
+  assert.match(html, /WRITE, wildcard, prefix and regex delegation are not available/);
+  assert.match(html, /Choose individual operations instead/);
 });

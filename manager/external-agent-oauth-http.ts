@@ -1,4 +1,5 @@
 import type {
+  ExternalAgentCapabilitySelectorV010,
   ExternalAgentGovernanceStoreV010
 } from "../contracts/external-agent-access.js";
 import {
@@ -232,10 +233,66 @@ function selectedOperationIds(form: URLSearchParams): string[] {
     .map(value => value.trim())
     .filter(Boolean);
   const unique = [...new Set(values)].sort();
-  if (unique.length === 0 || unique.length > 200) {
+  if (unique.length > 200) {
     throw new Error("EXTERNAL_AGENT_CONSENT_OPERATION_SELECTION_INVALID");
   }
   return unique;
+}
+
+function selectedCapabilitySelectors(
+  form: URLSearchParams
+): ExternalAgentCapabilitySelectorV010[] {
+  const raw = form.getAll("capability_selector")
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (raw.length > 50) {
+    throw new Error("EXTERNAL_AGENT_CONSENT_SELECTOR_SELECTION_INVALID");
+  }
+
+  const selectors = raw.map(value => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      throw new Error("EXTERNAL_AGENT_CONSENT_SELECTOR_SELECTION_INVALID");
+    }
+    if (
+      parsed === null
+      || typeof parsed !== "object"
+      || Array.isArray(parsed)
+    ) {
+      throw new Error("EXTERNAL_AGENT_CONSENT_SELECTOR_SELECTION_INVALID");
+    }
+    const record = parsed as Record<string, unknown>;
+    if (
+      typeof record.capability !== "string"
+      || !record.capability.trim()
+      || !Array.isArray(record.effects)
+      || record.effects.length !== 1
+      || (
+        record.effects[0] !== "READ"
+        && record.effects[0] !== "PLAN"
+      )
+    ) {
+      throw new Error("EXTERNAL_AGENT_CONSENT_SELECTOR_SELECTION_INVALID");
+    }
+    return {
+      contractVersion: "0.1.0" as const,
+      capability: record.capability.trim(),
+      effects: [record.effects[0]] as Array<"READ" | "PLAN">
+    };
+  });
+
+  const keys = selectors.map(selector =>
+    selector.capability + "::" + selector.effects[0]
+  );
+  if (new Set(keys).size !== keys.length) {
+    throw new Error("EXTERNAL_AGENT_CONSENT_SELECTOR_SELECTION_INVALID");
+  }
+  return selectors.sort((a, b) =>
+    a.capability.localeCompare(b.capability)
+    || a.effects[0]!.localeCompare(b.effects[0]!)
+  );
 }
 
 export function createExternalAgentOAuthHttpAdapterV010(
@@ -609,10 +666,33 @@ export function createExternalAgentOAuthHttpAdapterV010(
         const grantableIds = new Set(
           grantable.map(operation => operation.operationId)
         );
+        const grantableSelectors = new Set(
+          grantable.map(operation =>
+            operation.capability + "::" + operation.effect
+          )
+        );
         const selected = selectedOperationIds(form);
+        const selectors = selectedCapabilitySelectors(form);
+        if (
+          selected.length === 0
+          && selectors.length === 0
+        ) {
+          throw new Error(
+            "EXTERNAL_AGENT_CONSENT_AUTHORITY_SELECTION_REQUIRED"
+          );
+        }
         if (selected.some(operationId => !grantableIds.has(operationId))) {
           throw new Error(
             "EXTERNAL_AGENT_CONSENT_OPERATION_NOT_GRANTABLE"
+          );
+        }
+        if (selectors.some(selector =>
+          !grantableSelectors.has(
+            selector.capability + "::" + selector.effects[0]
+          )
+        )) {
+          throw new Error(
+            "EXTERNAL_AGENT_CONSENT_SELECTOR_NOT_GRANTABLE"
           );
         }
 
@@ -636,7 +716,12 @@ export function createExternalAgentOAuthHttpAdapterV010(
           {
             agentId: enrolled.agent.agentId,
             clientId: enrolled.client.clientId,
-            allowedOperationIds: selected,
+            ...(selected.length > 0
+              ? { allowedOperationIds: selected }
+              : {}),
+            ...(selectors.length > 0
+              ? { capabilitySelectors: selectors }
+              : {}),
             validUntil,
             description:
               "OAuth Human consent for "

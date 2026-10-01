@@ -33,17 +33,60 @@ export function renderExternalAgentOAuthConsentPageV010(
   ].join("\n");
 
   const contexts = model.contexts.map((context, contextIndex) => {
-    const operations = context.operations.map(operation => (
-      '<label><input type="checkbox" name="operation_id" value="'
-      + escapeHtml(operation.operationId)
-      + '"> <strong>'
-      + escapeHtml(operation.title)
-      + '</strong> <code>'
-      + escapeHtml(operation.effect)
-      + '</code><br><small>'
-      + escapeHtml(operation.description)
-      + '</small></label><br>'
-    )).join("\n");
+    const grouped = new Map<
+      string,
+      typeof context.operations
+    >();
+    for (const operation of context.operations) {
+      const key = operation.capability + "::" + operation.effect;
+      const current = grouped.get(key) ?? [];
+      current.push(operation);
+      grouped.set(key, current);
+    }
+
+    const capabilityGroups = [...grouped.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, operations]) => {
+        const first = operations[0]!;
+        const selector = JSON.stringify({
+          capability: first.capability,
+          effects: [first.effect]
+        });
+        const operationRows = operations
+          .sort((a, b) => a.operationId.localeCompare(b.operationId))
+          .map(operation => (
+            '<label><input type="checkbox" name="operation_id" value="'
+            + escapeHtml(operation.operationId)
+            + '"> <strong>'
+            + escapeHtml(operation.title)
+            + '</strong> <code>'
+            + escapeHtml(operation.effect)
+            + '</code><br><small><code>'
+            + escapeHtml(operation.operationId)
+            + '</code> — '
+            + escapeHtml(operation.description)
+            + '</small></label><br>'
+          ))
+          .join("\n");
+
+        return '<section>'
+          + '<p><label><input type="checkbox" name="capability_selector" value="'
+          + escapeHtml(selector)
+          + '"> <strong>Grant entire capability: '
+          + escapeHtml(first.capability)
+          + '</strong> <code>'
+          + escapeHtml(first.effect)
+          + '</code></label></p>'
+          + '<p><small>Currently covers '
+          + String(operations.length)
+          + ' operation'
+          + (operations.length === 1 ? '' : 's')
+          + '. A future matching operation requires a fresh OAuth authorization before an existing token family can gain it.</small></p>'
+          + '<details><summary>Choose individual operations instead</summary>'
+          + operationRows
+          + '</details>'
+          + '</section>';
+      }).join("\n");
 
     return '<fieldset><legend><label><input type="radio" name="context_id" value="'
       + escapeHtml(context.contextId)
@@ -55,7 +98,7 @@ export function renderExternalAgentOAuthConsentPageV010(
       + '<p><small>Enterprise: '
       + escapeHtml(context.enterpriseId)
       + '</small></p>'
-      + operations
+      + capabilityGroups
       + '</fieldset>';
   }).join("\n");
 
@@ -83,7 +126,7 @@ export function renderExternalAgentOAuthConsentPageV010(
     + '<form method="post" action="/oauth/authorize">'
     + hiddenFields
     + '<h2>1. Choose Enterprise Context</h2>'
-    + '<p>Select one enterprise and only the capabilities this Agent should be able to use.</p>'
+    + '<p>Select one enterprise, then grant an exact capability/effect or choose individual operations.</p>'
     + contexts
     + '<h2>2. Choose access duration</h2>'
     + '<label>Grant duration <select name="duration_minutes">'
@@ -91,7 +134,7 @@ export function renderExternalAgentOAuthConsentPageV010(
     + '<option value="240" selected>4 hours</option>'
     + '<option value="1440">24 hours</option>'
     + '</select></label>'
-    + '<p><small>WRITE capabilities are not available in this consent flow.</small></p>'
+    + '<p><small>WRITE, wildcard, prefix and regex delegation are not available. Capability selectors use exact capability ids with READ/PLAN only.</small></p>'
     + '<p>'
     + '<button type="submit" name="decision" value="approve">Allow selected access</button> '
     + '<button type="submit" name="decision" value="deny">Deny</button>'
