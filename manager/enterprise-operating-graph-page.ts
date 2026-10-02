@@ -24,7 +24,7 @@ import {
 import type {
   DiagramEditorPageV010,
   DiagramEditorStateV010
-} from "../vendor/eidos/src/diagram/surface.js";
+} from "../vendor/eidos/src/2d/index.js";
 import {
   createEnterpriseOperatingGraphActionHandlersV010,
   EOG_APPLY_OPERATION_ACTION,
