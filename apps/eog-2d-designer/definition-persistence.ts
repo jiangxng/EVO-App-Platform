@@ -15,7 +15,7 @@ import type {
 } from "../../contracts/enterprise-operating-graph-definition-persistence.js";
 import {
   validateEnterpriseOperatingGraphV010
-} from "../../manager/enterprise-operating-graph-model.js";
+} from "./enterprise-operating-graph-model.js";
 
 interface EnterpriseOperatingGraphDefinitionPayloadV010 {
   graphContractVersion: "0.1.0";

@@ -101,3 +101,10 @@ Their authoritative implementation now lives under `apps/eog-2d-designer/`.
 The previous `manager/` paths remain compatibility re-exports only.
 
 The shared View State service/store remains outside this slice because it is still consumed by both 2D and 3D surfaces. Personal Agent tool implementation is also deferred to a dedicated package split so 2D Designer and 3D Viewer ownership are not recombined in one physical module.
+
+
+## Compatibility import cleanup
+
+Definition persistence and legacy migration now consume the 2D Designer package-owned semantic model/store directly. They no longer route back through the legacy `manager/enterprise-operating-graph-*` compatibility re-exports.
+
+This is dependency cleanup only; Enterprise Context remains authoritative persistence.
