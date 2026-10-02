@@ -9,8 +9,8 @@ import type {
   ResolvedContextSetV010
 } from "../contracts/platform-services.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 import type {
   EnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
@@ -82,7 +82,7 @@ const querySchema = {
 
 export function createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020(
   input: {
-    graphService: EnterpriseOperatingGraphHostServiceV010;
+    graphService: EnterpriseOperatingGraphReadProviderV010;
     providers: EnterpriseOperatingGraphObservatoryProviderResolverV020;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
