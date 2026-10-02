@@ -29,6 +29,10 @@ import {
   projectEnterpriseOperatingGraphDiagramBaseV010
 } from "../../eog/diagram-projection.js";
 import {
+  attachEog2dInspectorEditorsV010,
+  type Eog2dInspectorEditorBindingV010
+} from "../../eog/2d-inspector-editors.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010,
   EOG_APPLY_OPERATION_ACTION,
   EOG_CREATE_ACTION
@@ -156,7 +160,8 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
 export function projectEnterpriseOperatingGraphEditorStateV010(
   graph: EnterpriseOperatingGraphV010,
   view: EnterpriseOperatingGraphViewStateV010,
-  locale?: string
+  locale?: string,
+  editorBindings: readonly Eog2dInspectorEditorBindingV010[] = []
 ): DiagramEditorStateV010 {
   const text = localizedText(locale);
   const base = projectEnterpriseOperatingGraphDiagramBaseV010({
@@ -210,8 +215,12 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       ]
     : [];
 
+  const interactive = editorBindings.length
+    ? attachEog2dInspectorEditorsV010(base, editorBindings)
+    : base;
+
   return {
-    ...base,
+    ...interactive,
     actions,
     notice: text.ready
   };
