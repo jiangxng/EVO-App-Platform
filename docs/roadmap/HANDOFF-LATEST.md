@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-12`  
-**Snapshot time:** `2026-10-02T14:45:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-13`  
+**Snapshot time:** `2026-10-02T14:55:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,38 +16,42 @@ ACTIVE
 
 ## Latest closed live slice
 
-**external-agent-read-plan-foundation-v0-2: VERIFIED_PRODUCTION_PASS**
+**eog-enterprise-context-production-migration-proof-v0-1: VERIFIED_PRODUCTION_PASS**
 
-External Agent READ/PLAN foundation is closed after MCP Inspector, Cline + DeepSeek, Grok Web and Grok Mobile production validation including immediate delegated Grant revocation cutoff.
+EOG semantic persistence is production-proven on Enterprise Context Business Definition Repository. Initial #269 startup non-destructively imported one legacy EOG graph definition; a controlled restart then reached SUCCESS without re-importing or conflicting with the migrated graph revision. The legacy semantic file remains migration evidence only and 2D/3D View State remains separate.
 
-Authority: `docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md`
+Authority: `docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "foundationStatus": "VERIFIED_PRODUCTION_PASS",
-  "grokWeb": true,
-  "grokMobile": true,
-  "grantRevocationCutoff": "PASS_HTTP_401"
+  "productionCommit": "932098f9e2be13e1d0c9cf809831d3f3c5c2297c",
+  "firstMigrationDeploymentId": "36ed9180-da9e-46fe-9900-a6e575e5b314",
+  "firstMigrationImportedGraphCount": 1,
+  "controlledRestartDeploymentId": "f93c06bd-651a-4b86-bb60-e97cab781d6a",
+  "controlledRestartStatus": "SUCCESS",
+  "graphMigrationRestartBehavior": "IDEMPOTENT_NO_REIMPORT_NO_CONFLICT",
+  "legacySourceMutation": "NONE",
+  "semanticAuthority": "enterprise.business-definition.repository",
+  "viewStateAuthority": "SEPARATE_PRESENTATION_STORE"
 }
 ```
 
 ## Current open live gate
 
-**eog-enterprise-context-production-migration-proof-v0-1: READY_AFTER_CI**
+**eidos-2d-3d-public-core-api-v0-1: READY**
 
-Deploy the EOG semantic persistence cutover and verify that production startup safely imports any legacy EOG graph snapshot into Enterprise Context Business Definition Repository without mutating the legacy source, then confirm EOG read/edit paths remain healthy.
+Formalize explicit stable public 2D Core and 3D Core API entrypoints in jiangxng/eidos over the existing src/diagram and src/spatial compatibility assets. Preserve current implementation, avoid rewrites, and keep all product/business semantics outside Eidos.
 
 Acceptance:
 
-- Platform CI and Project Continuity CI pass
-- production deployment reaches SUCCESS on the cutover commit
-- startup migration either reports imported legacy EOG graph definitions or safely reports no legacy source
-- subsequent restart is migration-idempotent and does not conflict with newer repository revisions
-- existing EOG routes and semantic graph reads remain healthy
-- legacy EOG semantic file is not used for new authoritative writes
-- 2D/3D View State remains independent
+- Eidos exposes explicit public 2D Core entrypoint/contracts without breaking existing diagram consumers
+- Eidos exposes explicit public 3D Core entrypoint/contracts without breaking existing spatial consumers
+- 2D/3D public APIs remain product/domain-semantic-free
+- renderer implementation details remain behind replaceable adapters
+- compatibility tests prove existing diagram/spatial imports remain valid
+- App Platform can depend on explicit Eidos 2D/3D public boundaries instead of naming implementation folders
 
 ## Current production preview
 
@@ -56,8 +60,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `5ba3a8193d004c660bd0c4e4b4434bae21f7c959`
-- Deployment: `7e851fd2-47f5-445b-9ef9-ccb07d4d9a09`
+- Commit: `932098f9e2be13e1d0c9cf809831d3f3c5c2297c`
+- Deployment: `f93c06bd-651a-4b86-bb60-e97cab781d6a`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -65,25 +69,31 @@ Acceptance:
 
 **Status:** `LIVE_PASS`
 
-**Scenario:** `External Agent READ/PLAN capability foundation across independent production clients`
+**Scenario:** `EOG semantic authority migration to Enterprise Context Business Definition Repository`
 
-External Agent capability validation is complete and is no longer the active gate. This evidence remains a closed regression baseline while the project returns to EOG responsibility convergence.
+Production #269 startup imported one legacy EOG graph definition into Enterprise Context, while preserving the legacy source. A controlled restart on the same commit reached SUCCESS without a second graph import or migration conflict, proving restart-safe migration and repository-backed semantic authority. 2D/3D View State remained on its independent presentation persistence path.
 
-Authority: `docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md`
+Authority: `docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md`
 
 Proved:
 
-- External Agent READ/PLAN interoperability is production-proven
-- delegated Grant revocation removes effective access immediately
+- production EOG semantic authority can migrate non-destructively into Enterprise Context Business Definition Repository
+- legacy EOG graph migration is restart-safe after repository authority is established
+- new Host semantic runtime no longer requires the legacy EOG semantic store as its write authority
+- EOG-specific persistence adaptation remains owned by EOG 2D Designer while Enterprise Context remains generic
+- 2D/3D View State remains outside Enterprise Business Definition revisions
 
 Not proved:
 
-- External Agent WRITE
-- EOG responsibility convergence
+- future expansion of the Enterprise Graph ontology
+- new EOG upper-layer analytics/report features
+- explicit public Eidos 2D/3D API entrypoints
 
 
 ## Recent mainline changes
 
+- PR #269 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Cut EOG semantic runtime persistence over to Enterprise Context Business Definition Repository; production imported one legacy graph definition and controlled restart proved idempotence.
+- PR #268 — MERGED_CI_PASS: Add ENTERPRISE_OPERATING_GRAPH Business Definition kind, contract-bound persistence adapter foundation and non-destructive legacy semantic migration.
 - PR #266 — MERGED_CI_PASS: Split semantic and Observatory Personal Agent tool ownership between EOG 2D Designer and EOG 2D Viewer while preserving Provider calculation ownership.
 - PR #265 — MERGED_CI_PASS: Cut EOG 3D Viewer Experience and spatial read ActionHost ownership to evo-eog-3d-viewer, completing dedicated ownership for all three EOG application Experiences.
 - PR #264 — MERGED_CI_PASS: Cut EOG 2D Viewer desktop/mobile-read Experience and read/orchestration ownership to evo-eog-2d-viewer while preserving peer-provider analysis ownership.
@@ -332,6 +342,8 @@ Not proved:
 - Do not weaken Human-only EOG authority while splitting Agent tools: Enterprise relation confirmation/removal and publish remain unavailable to Agent.
 - Do not assign the mixed DIAGRAM_2D/SPATIAL_3D generic Agent View tools wholesale to one dedicated EOG plugin; split their visual responsibilities first.
 - Do not move Observatory Runtime Fact or Analysis calculation ownership into EOG 2D Viewer merely because the Personal Agent tool descriptor is Viewer-owned.
+- Do not restore the legacy EOG semantic store as the authority for new writes; it is migration evidence/input only after production #269.
+- Do not move EOG-specific semantic mapping into the generic Enterprise Context provider; the adapter belongs to EOG 2D Designer behind a stable persistence contract.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -477,6 +489,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EOG semantic Host runtime as repository-backed through Enterprise Context Business Definition authority after the cutover
 - state the EOG-specific persistence adapter as owned by evo-eog-2d-designer, not by the generic Enterprise Context provider
 - state the legacy EOG semantic file as migration evidence/input only with no new authoritative writes
+- state EOG Enterprise Context semantic persistence cutover as VERIFIED_PRODUCTION_PASS
+- state production #269 as commit 932098f9e2be13e1d0c9cf809831d3f3c5c2297c / deployment f93c06bd-651a-4b86-bb60-e97cab781d6a SUCCESS after controlled restart
+- state the first production migration as importing exactly 1 legacy EOG graph definition into Enterprise Context and the controlled restart as graph-migration-idempotent
+- state explicit Eidos 2D Core / 3D Core public API convergence as the next gate
 
 No previous ChatGPT transcript is required.
 
