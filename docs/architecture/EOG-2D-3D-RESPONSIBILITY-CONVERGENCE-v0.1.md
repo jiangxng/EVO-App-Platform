@@ -373,3 +373,20 @@ DIAGRAM_2D / SPATIAL_3D View State
 EOG application plugins consume only the public View State provider contract. The provider is presentation infrastructure only: it cannot create semantic graph revisions, confirm Enterprise relations or publish Enterprise Graph Definitions.
 
 Legacy `manager/enterprise-operating-graph-view-*` paths remain compatibility re-exports during convergence.
+
+
+## 17. Public semantic read boundary
+
+Viewer-side plugins do not depend on the 2D Designer's private Host service type.
+
+The stable read seam is:
+
+```text
+EnterpriseOperatingGraphReadProviderV010
+├─ get(enterpriseId, graphId)
+└─ list(enterpriseId)
+```
+
+The 2D Designer Host service structurally implements this contract while retaining its private write/mutation surface. 2D Viewer, 3D Viewer and Observatory code consume only the read contract for semantic graph access.
+
+This keeps write authority and editor implementation out of read-oriented plugins without creating a second graph authority.
