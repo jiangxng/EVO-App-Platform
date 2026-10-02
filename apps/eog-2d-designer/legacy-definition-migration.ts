@@ -12,10 +12,10 @@ import type {
 } from "../../contracts/enterprise-operating-graph.js";
 import type {
   EnterpriseOperatingGraphStoreSnapshotV010
-} from "../../manager/enterprise-operating-graph-store.js";
+} from "./enterprise-operating-graph-store.js";
 import {
   validateEnterpriseOperatingGraphV010
-} from "../../manager/enterprise-operating-graph-model.js";
+} from "./enterprise-operating-graph-model.js";
 
 export interface LegacyEogGraphMigrationResultV010 {
   sourcePresent: boolean;
