@@ -38,6 +38,7 @@ export interface DiagramInspectorSelectOptionV010 {
 export interface DiagramInspectorPropertyEditorV010 {
   kind: "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT";
   actionId: string;
+  command?: DiagramEditorCommandV010;
   valueField: string;
   operation: Record<string, JsonValue>;
   requiresConfirmation?: boolean;
@@ -152,6 +153,13 @@ function validInspectorEditor(
   if (
     !["TEXT", "NUMBER", "BOOLEAN", "SELECT"].includes(value.kind)
     || !nonEmpty(value.actionId)
+    || (
+      value.command !== undefined
+      && (
+        !nonEmpty(value.command.code)
+        || !nonEmpty(value.command.inputVersion)
+      )
+    )
     || !nonEmpty(value.valueField)
     || value.operation === null
     || typeof value.operation !== "object"
@@ -427,12 +435,13 @@ export function diagramEditorOperationRequestV010(
   state: DiagramEditorStateV010,
   operation: JsonValue,
   actionId: string,
-  requiresConfirmation = false
+  requiresConfirmation = false,
+  commandOverride?: DiagramEditorCommandV010
 ): ActionRequestV010 {
   return {
     contractVersion: "0.1.0",
     type: "command",
-    command: { ...page.operationCommand },
+    command: { ...(commandOverride ?? page.operationCommand) },
     values: {
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
@@ -603,7 +612,8 @@ export function mountDiagramEditorPageV010(
   const executeOperation = async (
     operation: JsonValue,
     actionId: string,
-    requiresConfirmation = false
+    requiresConfirmation = false,
+    commandOverride?: DiagramEditorCommandV010
   ): Promise<void> => {
     if (!state || disposed) return;
     if (
@@ -617,7 +627,8 @@ export function mountDiagramEditorPageV010(
       state,
       operation,
       actionId,
-      requiresConfirmation
+      requiresConfirmation,
+      commandOverride
     );
     report("Saving…");
     const result = await actionHost.execute(request);
@@ -780,7 +791,8 @@ export function mountDiagramEditorPageV010(
           void executeOperation(
             operation,
             editor.actionId,
-            editor.requiresConfirmation === true
+            editor.requiresConfirmation === true,
+            editor.command
           );
         } catch (error) {
           report(error instanceof Error ? error.message : String(error));

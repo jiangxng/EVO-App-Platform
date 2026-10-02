@@ -276,3 +276,32 @@ EOG 2D Viewer
 The Viewer package default desktop entry is the generic Workspace. The existing `/operating-graph/observe` route remains available as a compatibility/observability mode.
 
 This prevents Runtime Observatory from becoming the definition of the Viewer product.
+
+
+## Property ownership and peer contribution
+
+The shared Inspector must not copy all business properties into EOG ownership.
+
+Public contribution contract:
+
+`contracts/enterprise-operating-graph-inspector.ts`
+
+A property owner may contribute display data for an EOG node or relation. For example, an Application-definition capability may contribute Application properties for a node whose semantic reference points to that definition.
+
+The 2D adapter applies contributions as follows:
+
+```text
+owner property contribution
+          ↓
+shared Inspector property value
+       ↙                 ↘
+   Viewer              Designer
+   display             display
+   no editor           optional owner editor
+                           ↓
+                  owner ActionHost command
+```
+
+The edit command belongs to the property owner. EOG does not proxy or reinterpret that write.
+
+Built-in EOG structural properties remain produced by the package-neutral EOG projection. Contributed keys may not silently replace built-in keys.
