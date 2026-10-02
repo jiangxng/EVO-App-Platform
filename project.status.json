@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Agent Capability Fabric v0.2",
+  "currentMilestone": "EOG 2D/3D Responsibility Convergence v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -424,7 +424,10 @@
     "mcp-handshake-era-streamable-http-compatibility-v0-1",
     "grok-web-native-oauth-mcp-production-pass-v0-2",
     "grok-mobile-public-client-oauth-mcp-production-pass-v0-2",
-    "external-agent-immediate-grant-revocation-cutoff-production-pass-v0-2"
+    "external-agent-immediate-grant-revocation-cutoff-production-pass-v0-2",
+    "eog-responsibility-convergence-v0-1",
+    "eog-three-plugin-target-model-v0-1",
+    "eidos-2d-3d-core-ownership-target-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -450,7 +453,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "External Agent READ/PLAN capability foundation is VERIFIED_PRODUCTION_PASS across the official MCP Inspector, Cline + DeepSeek, Grok Web and Grok Mobile. The Grok Web/Mobile live gate and immediate Grant-revocation cutoff are closed. Do not repeat generic External Agent portability validation unless a regression or materially new capability class requires it. External Agent WRITE, additional non-Ledger plugin exposure and product-specific ChatGPT entitlement/UX are future expansion scopes, not foundation blockers.",
+  "currentStep": "Responsibility convergence is the active mainline: Enterprise Context remains Enterprise Graph Definition authority; Eidos is being formalized into reusable 2D Core and 3D Core; App Platform will converge EOG into three application plugins—2D Designer, 2D Viewer and 3D Viewer—over one shared semantic definition. Existing EOG/SOP/Observatory assets are preserved and migrated incrementally.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1706,8 +1709,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "AGENT-CAP-FABRIC-2026-10-02-06",
-    "snapshotAt": "2026-10-02T10:57:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-01",
+    "snapshotAt": "2026-10-02T11:20:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1727,70 +1730,33 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Agent Capability Fabric v0.2",
-      "milestoneStatus": "VERIFIED_PRODUCTION_PASS",
+      "milestone": "EOG 2D/3D Responsibility Convergence v0.1",
+      "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "grok-web-mobile-native-mcp-v0-2",
+        "id": "external-agent-read-plan-foundation-v0-2",
         "status": "VERIFIED_PRODUCTION_PASS",
-        "summary": "Grok Web and Grok Mobile completed real production External Agent OAuth + MCP + Ledger Runtime READ validation. Web used Grok's native CIMD identity with URL-only connector setup; Mobile used the EVO-maintained public compatibility Client ID with no secret. Both reached the governed production /mcp path and executed bounded Ledger Runtime reads. Web Grant revocation was then proven immediate: after all effective native Grok Grants were revoked, a fresh Grok request hit /mcp and received HTTP 401 while the connector still existed. PR #255 added handshake-era Streamable HTTP compatibility without weakening the governed core. The first-consent browser-return stall observed on both Web and Mobile is recorded as a Grok callback UX interoperability issue, not an authorization failure.",
+        "summary": "External Agent READ/PLAN foundation is closed after MCP Inspector, Cline + DeepSeek, Grok Web and Grok Mobile production validation including immediate delegated Grant revocation cutoff.",
         "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
         "evidence": {
-          "webClientIdentity": "https://grok.com/oauth/mcp-client.json",
-          "mobileClientIdentity": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/grok-web-mobile-client.json",
-          "clientSecretRequired": false,
-          "webOauthTokenExchange": true,
-          "webMcpRead": true,
-          "mobileOauthTokenExchange": true,
-          "mobileMcpRead": true,
-          "mcpCompatibilityPr": 255,
-          "mcpCompatibilityProtocols": [
-            "2026-07-28",
-            "2025-11-25",
-            "2025-06-18",
-            "2025-03-26"
-          ],
-          "templateId": "bookkeeping-default",
-          "semanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
-          "counts": {
-            "accounts": 141,
-            "applications": 143,
-            "dictionaries": 106,
-            "postingRules": 912,
-            "referenceLegacyPostingRules": 587
-          },
-          "mobileAccounts6To10": [
-            {
-              "id": "1121",
-              "title": "应收票据"
-            },
-            {
-              "id": "1122",
-              "title": "应收账款"
-            },
-            {
-              "id": "1123",
-              "title": "预付账款"
-            },
-            {
-              "id": "1131",
-              "title": "应收股利"
-            },
-            {
-              "id": "1132",
-              "title": "应收利息"
-            }
-          ],
-          "grantRevocationCutoff": "PASS_HTTP_401",
-          "callbackUxIssue": "OBSERVED_WEB_AND_MOBILE_FIRST_CONSENT_BROWSER_RETURN_MAY_STALL",
-          "staleRefreshTokenRetry": "OBSERVED_GROK_CLIENT_CACHE_BEHAVIOR"
+          "foundationStatus": "VERIFIED_PRODUCTION_PASS",
+          "grokWeb": true,
+          "grokMobile": true,
+          "grantRevocationCutoff": "PASS_HTTP_401"
         }
       },
       "openGate": {
-        "id": "external-agent-capability-foundation-v0-2",
-        "status": "CLOSED_VERIFIED_PRODUCTION_PASS",
-        "summary": "No External Agent capability-validation gate remains. READ/PLAN interoperability, natural-language discovery/use, protocol compatibility and immediate delegated-authority revocation have production evidence across independent clients. Select the next product/platform milestone separately.",
-        "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md",
-        "acceptance": []
+        "id": "eog-2d-3d-responsibility-convergence-v0-1",
+        "status": "ACTIVE",
+        "summary": "Converge EOG into one Enterprise Context definition authority, reusable Eidos 2D/3D cores, and three App Platform application plugins: EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer. Preserve all working assets and move ownership incrementally.",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+        "acceptance": [
+          "Eidos 2D Core and 3D Core responsibilities are explicit and business-semantic-free",
+          "EOG 2D Designer, 2D Viewer and 3D Viewer have independent App Platform package identities",
+          "all three consume one shared Enterprise Graph Definition authority from Enterprise Context",
+          "semantic graph state remains separate from 2D/3D View State",
+          "existing Observatory/SOP/analysis assets remain preserved for peer-plugin extraction",
+          "no private cross-plugin implementation imports are introduced"
+        ]
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1805,6 +1771,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 257,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close External Agent READ/PLAN capability validation and record Grok Web/Mobile production proof."
+      },
       {
         "pr": 256,
         "status": "MERGED_CI_PASS_DEPLOYED",
@@ -2301,7 +2272,11 @@
       "Do not treat External Agent READ/PLAN capability as unverified or keep Grok portability as an active gate; Grok Web and Mobile are VERIFIED_PRODUCTION_PASS as of 2026-10-02.",
       "Do not treat docs/integration-clients/grok-web-mobile-client.json as the canonical current Grok Web native identity; Web observed https://grok.com/oauth/mcp-client.json automatically, while the EVO-maintained profile remains the Mobile/manual compatibility client.",
       "Do not interpret the first-consent Grok browser-return stall by itself as failed EVO authorization; both Web and Mobile were observed to receive EVO 303 while the browser could remain open, and a subsequent connector attempt completed token exchange using the already-created effective Grant.",
-      "Do not repeat generic External Agent client portability proof unless a regression or materially new capability class requires it; WRITE and additional plugin exposure are expansion scopes."
+      "Do not repeat generic External Agent client portability proof unless a regression or materially new capability class requires it; WRITE and additional plugin exposure are expansion scopes.",
+      "Do not re-expand mixed EOG Core ownership: Enterprise Context owns Enterprise Graph Definition authority, Eidos owns reusable 2D/3D cores, and App Platform converges EOG into 2D Designer, 2D Viewer and 3D Viewer plugins.",
+      "Do not create separate semantic graph authorities for 2D Designer, 2D Viewer and 3D Viewer; all consume the same Enterprise Graph Definition.",
+      "Do not move Application, Ledger, SOP, Enterprise Relation or publication semantics into Eidos 2D/3D Core.",
+      "Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2402,26 +2377,26 @@
       "state immediate Grant-revocation cutoff as live-proven: a fresh Grok /mcp request returned 401 while the connector remained configured",
       "state the Grok first-consent browser-return stall as a known Web+Mobile client UX interoperability issue, not an unresolved authorization gate",
       "state External Agent WRITE, additional non-Ledger external projections and ChatGPT product-specific entitlement/UX as future expansion rather than foundation blockers",
-      "state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS"
+      "state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS",
+      "state EOG 2D/3D Responsibility Convergence v0.1 as the active milestone",
+      "state Enterprise Context as the authoritative Enterprise Graph Definition lifecycle/persistence owner",
+      "state Eidos 2D Core and 3D Core as reusable business-semantic-free frontend framework capabilities",
+      "state App Platform target EOG package family as EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer",
+      "state all three EOG plugins as consumers of one semantic definition with separate 2D/3D View State",
+      "state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
       "scenario": "External Agent READ/PLAN capability foundation across independent production clients",
-      "observed": "The production protected-resource path was exercised by the official MCP Inspector, Cline 4.1.22 + DeepSeek, Grok Web and Grok Mobile. Grok Web used its native published CIMD identity and Grok Mobile used the EVO-maintained public compatibility Client ID. Natural-language requests caused real bounded Ledger Runtime reads. Handshake-era MCP compatibility was added for native Grok without changing authorization semantics. After revoking all effective native Grok Grants, a fresh Grok request reached /mcp and was rejected with HTTP 401 while the connector still existed, proving immediate current-authority enforcement.",
+      "observed": "External Agent capability validation is complete and is no longer the active gate. This evidence remains a closed regression baseline while the project returns to EOG responsibility convergence.",
       "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
       "proves": [
-        "independent standards and AI-Agent clients can use the same governed EVO External Agent protected-resource path",
-        "External Agent READ/PLAN capability discovery and invocation work from natural-language intent without source-code knowledge",
-        "both native CIMD Web setup and manual public-client Mobile setup can complete OAuth + MCP against EVO",
-        "bounded Ledger Runtime reads preserve installation-scoped semantics",
-        "handshake-era MCP transport compatibility can coexist with the strict 2026-07-28 path without bypassing governance",
-        "delegated Grant revocation removes effective access immediately even when the external connector remains configured"
+        "External Agent READ/PLAN interoperability is production-proven",
+        "delegated Grant revocation removes effective access immediately"
       ],
       "doesNotProve": [
         "External Agent WRITE",
-        "every non-Ledger plugin external projection",
-        "ChatGPT product-specific MCP entitlement or UX",
-        "future Grok callback/UI behavior remains stable"
+        "EOG responsibility convergence"
       ]
     },
     "webDelivery": {
@@ -3296,47 +3271,48 @@
     ]
   },
   "prioritySequencing": {
-    "current": "External-Agent-first Platform Validation — Production Human Login / Request-bound Session",
-    "rationale": "Enterprise Context Business Definition authority migration is now production-verified. Mature external Agents will be used as independent clients to harden plugin capability semantics, identity, authorization and discovery before further expensive Personal Agent refinement. EOG upper-layer expansion is paused after the atomic definition-authority boundary was closed.",
+    "current": "EOG 2D/3D Responsibility Convergence v0.1",
+    "rationale": "External Agent READ/PLAN capability validation is closed. The next mainline converges EOG responsibility boundaries before further upper-layer expansion: Enterprise Context owns Enterprise Graph Definition authority; Eidos owns reusable 2D/3D visual cores; App Platform owns separate EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer plugins.",
+    "active": [
+      {
+        "id": "eog-responsibility-convergence",
+        "name": "EOG 2D/3D responsibility convergence",
+        "status": "ACTIVE",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+      }
+    ],
     "deferred": [
       {
-        "id": "eog-upper-layer-expansion",
-        "name": "EOG upper-layer analysis/report/SOP expansion",
-        "status": "DEFERRED_BY_EXTERNAL_AGENT_FOUNDATION",
-        "resumeAfter": "external Agent foundation proves shared plugin Capability Operations and a later product need selects the owning peer plugins",
+        "id": "eog-upper-layer-analysis-expansion",
+        "name": "new EOG analysis/report/SOP upper-layer features",
+        "status": "DEFERRED_UNTIL_RESPONSIBILITY_SPLIT",
+        "resumeAfter": "three-plugin EOG package boundary and Enterprise Context definition authority path are stable",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+      },
+      {
+        "id": "external-agent-write",
+        "name": "External Agent WRITE",
+        "status": "FUTURE_EXPANSION",
+        "resumeAfter": "selected product need and approval/receipt design",
         "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md"
       },
       {
         "id": "personal-agent-major-feature-expansion",
         "name": "Personal Agent major feature expansion",
         "status": "PRESERVED_REGRESSION_PROTECTED_DEFERRED",
-        "resumeAfter": "Generic MCP + ChatGPT + second mature Agent validate shared plugin contracts and at least one non-Ledger plugin",
+        "resumeAfter": "next product milestone selection after EOG responsibility convergence",
         "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md"
-      },
-      {
-        "id": "host-owned-evo-businessdata-adapter",
-        "name": "Primary Integration — Host-owned EVO BusinessData Adapter",
-        "status": "DEFERRED_BY_EXTERNAL_AGENT_FOUNDATION",
-        "resumeAfter": "resume when required by an accepted external Agent plugin vertical or the next integration mainline",
-        "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md"
-      },
-      {
-        "id": "enterprise-migration-agent-learning",
-        "name": "Enterprise Migration Agent Learning",
-        "status": "DEFERRED_SUPPORTING_ROADMAP",
-        "resumeAfter": "target Enterprise Operating Model exists",
-        "authority": "docs/architecture/ENTERPRISE-MIGRATION-AGENT-LEARNING-ROADMAP-v0.1.md"
       }
     ]
   },
   "enterpriseDefinitionArchitecture": {
-    "status": "AUTHORITATIVE_V0_1_PRODUCTION_MIGRATION_PASS",
+    "status": "AUTHORITATIVE_V0_1_EOG_RESPONSIBILITY_CONVERGENCE_ACTIVE",
     "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
     "assetBoundary": "docs/architecture/eog-asset-boundary.v0.1.json",
-    "enterpriseContext": "HEADLESS_BUSINESS_DEFINITION_AUTHORITY",
+    "enterpriseContext": "ENTERPRISE_GRAPH_DEFINITION_AUTHORITY",
     "businessDefinitionRepository": "CAPABILITY_INSIDE_ENTERPRISE_CONTEXT",
     "experienceCompiler": "ENTERPRISE_KNOWLEDGE_AND_LEARNING_AUTHORITY",
-    "eogCore": "CI_GATED_GRAPH_DESIGN_NAVIGATION_AGGREGATION",
+    "eogCore": "MIGRATING_TO_THREE_APP_PLUGINS",
     "sop": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
     "sopCurrentOwnership": "PRESERVED_NON_GATING_PENDING_PEER_PLUGIN_EXTRACTION",
     "observatoryAnalysis": "PRESERVED_NON_GATING_PENDING_REPORT_ANALYSIS_PLUGIN_PLANNING",
@@ -3355,7 +3331,16 @@
       "definitionAuthorityCommit": "9102a0c043e84fe423ed27a4335161dbc1d8f212",
       "observedLog": "Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.",
       "persistentStateMount": "/data"
-    }
+    },
+    "eogResponsibilityAuthority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+    "eidos2dCore": "REUSABLE_FRONTEND_FRAMEWORK_COMPONENT_TARGET",
+    "eidos3dCore": "REUSABLE_FRONTEND_FRAMEWORK_COMPONENT_TARGET",
+    "eogApplicationPlugins": [
+      "EOG_2D_DESIGNER",
+      "EOG_2D_VIEWER",
+      "EOG_3D_VIEWER"
+    ],
+    "crossPluginModel": "CONTROL_PLANE_DISCOVERY_BINDING_PLUS_STABLE_DIRECT_CONTRACT_DATA_PLANE"
   },
   "externalAgentFirstValidation": {
     "status": "VERIFIED_PRODUCTION_PASS_READ_PLAN_FOUNDATION",
