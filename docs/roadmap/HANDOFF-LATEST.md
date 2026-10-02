@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-03`  
-**Snapshot time:** `2026-10-02T12:05:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-04`  
+**Snapshot time:** `2026-10-02T12:15:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,16 +35,16 @@ Evidence:
 
 ## Current open live gate
 
-**eog-viewer-experience-ownership-v0-1: READY_AFTER_2D_DESIGNER_CI**
+**eog-3d-viewer-experience-ownership-v0-1: READY_AFTER_2D_VIEWER_CI**
 
-Define target Experience ownership for EOG 2D Viewer and EOG 3D Viewer while keeping all three split packages default-OFF. Do not switch production lifecycle/route gating until all target manifests are independently CI-covered.
+Define EOG 3D Viewer target Experience ownership while keeping the package default-OFF and preserving the existing spatial page source/route. After that, all three target Experience owners exist and controlled compatibility cutover can begin.
 
 Acceptance:
 
-- EOG 2D Viewer target Experience manifest belongs to evo-eog-2d-viewer
 - EOG 3D Viewer target Experience manifest belongs to evo-eog-3d-viewer
-- legacy page sources/routes remain stable during compatibility preparation
-- split packages remain default-OFF until explicit cutover
+- legacy spatial page source/route remain stable during compatibility preparation
+- 3D Viewer remains read-oriented and uses the shared Enterprise Graph Definition
+- split package remains default-OFF until explicit cutover
 - no duplicate active Experience is introduced
 
 ## Current production preview
