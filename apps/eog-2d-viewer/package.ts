@@ -6,6 +6,15 @@ import {
 export const EOG_2D_VIEWER_PACKAGE_ID = "evo-eog-2d-viewer";
 export const EOG_2D_VIEWER_FEATURE_ID = "evo-eog-2d-viewer.default";
 export const EOG_2D_VIEWER_CAPABILITY = "enterprise.operating-graph.viewer.2d";
+export const EOG_2D_VIEWER_EXPERIENCE_ID = "evo-eog-2d-viewer";
+export const EOG_2D_VIEWER_PAGE_ID = "evo-eog-2d-viewer.observe";
+export const EOG_2D_VIEWER_MOBILE_PAGE_ID = "evo-eog-2d-viewer.mobile-read";
+export const EOG_2D_VIEWER_PAGE_SOURCE =
+  "app://evo-enterprise-operating-graph/pages/observatory";
+export const EOG_2D_VIEWER_MOBILE_PAGE_SOURCE =
+  "app://evo-enterprise-operating-graph/pages/observatory-mobile-read";
+export const EOG_2D_VIEWER_ROUTE = "/operating-graph/observe";
+export const EOG_2D_VIEWER_MOBILE_ROUTE = "/m/operating-graph/observe";
 
 export const eog2dViewerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -36,6 +45,71 @@ export const eog2dViewerPackage: PackageManifestV010 = {
     ],
     providesCapabilities: [
       EOG_2D_VIEWER_CAPABILITY
-    ]
+    ],
+    contributions: [{
+      kind: "eidos.experience",
+      manifest: {
+        contractVersion: "0.1.0",
+        experienceId: EOG_2D_VIEWER_EXPERIENCE_ID,
+        packageId: EOG_2D_VIEWER_PACKAGE_ID,
+        featureId: EOG_2D_VIEWER_FEATURE_ID,
+        defaultRoute: EOG_2D_VIEWER_ROUTE,
+        pages: [
+          {
+            id: EOG_2D_VIEWER_PAGE_ID,
+            title: "Enterprise Operating Graph Viewer",
+            source: EOG_2D_VIEWER_PAGE_SOURCE
+          },
+          {
+            id: EOG_2D_VIEWER_MOBILE_PAGE_ID,
+            title: "Enterprise Operating Graph Viewer",
+            source: EOG_2D_VIEWER_MOBILE_PAGE_SOURCE
+          }
+        ],
+        routes: [
+          {
+            id: EOG_2D_VIEWER_PAGE_ID,
+            semanticId: "evo-eog-2d-viewer.observe",
+            surfaceId: "evo-eog-2d-viewer.desktop",
+            path: EOG_2D_VIEWER_ROUTE,
+            pageId: EOG_2D_VIEWER_PAGE_ID
+          },
+          {
+            id: EOG_2D_VIEWER_MOBILE_PAGE_ID,
+            semanticId: "evo-eog-2d-viewer.observe",
+            surfaceId: "evo-eog-2d-viewer.mobile-read",
+            path: EOG_2D_VIEWER_MOBILE_ROUTE,
+            pageId: EOG_2D_VIEWER_MOBILE_PAGE_ID
+          }
+        ],
+        navigation: [{
+          id: "evo-eog-2d-viewer.nav",
+          label: "Operating Graph",
+          route: EOG_2D_VIEWER_ROUTE,
+          order: 16,
+          surfaceIds: ["evo-eog-2d-viewer.desktop"]
+        }],
+        surfaces: [
+          {
+            id: "evo-eog-2d-viewer.desktop",
+            target: "DESKTOP_WORKBENCH",
+            support: "FULL",
+            entryRoute: EOG_2D_VIEWER_ROUTE
+          },
+          {
+            id: "evo-eog-2d-viewer.mobile-task",
+            target: "MOBILE_TASK",
+            support: "UNSUPPORTED",
+            fallbackSurfaceId: "evo-eog-2d-viewer.mobile-read"
+          },
+          {
+            id: "evo-eog-2d-viewer.mobile-read",
+            target: "MOBILE_READ",
+            support: "READ_ONLY",
+            entryRoute: EOG_2D_VIEWER_MOBILE_ROUTE
+          }
+        ]
+      }
+    }]
   }]
 };
