@@ -22,9 +22,9 @@ import {
   PRIMARY_EOG_DIAGRAM_VIEW_ID_V010
 } from "../../contracts/enterprise-operating-graph-view.js";
 import type {
-  DiagramEditorPageV010,
-  DiagramEditorStateV010,
-  DiagramObservationBadgeV010
+  DiagramWorkspacePageV010,
+  DiagramWorkspaceStateV010,
+  DiagramWorkspaceObservationBadgeV010
 } from "../../vendor/eidos/src/2d/index.js";
 import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
@@ -222,7 +222,7 @@ export function createEnterpriseOperatingGraphObservatoryPageV020(input: {
   activeContext: ActiveContextRefV010;
   locale?: string;
   now?: Date;
-}): DiagramEditorPageV010 {
+}): DiagramWorkspacePageV010 {
   const text = localizedText(input.locale);
   const now = input.now ?? new Date();
   return {
@@ -326,7 +326,7 @@ function observationBadges(
   target: string,
   snapshot: EogObservationSnapshotV020,
   locale?: string
-): DiagramObservationBadgeV010[] {
+): DiagramWorkspaceObservationBadgeV010[] {
   const primary = factIndex(snapshot.primaryFacts);
   const comparison = factIndex(snapshot.comparisonFacts);
   const order = [
@@ -338,7 +338,7 @@ function observationBadges(
     "business.amount"
   ];
   const text = localizedText(locale);
-  const result: DiagramObservationBadgeV010[] = [];
+  const result: DiagramWorkspaceObservationBadgeV010[] = [];
 
   for (const metricCode of order) {
     const fact = oneFact(primary, target, metricCode);
@@ -389,7 +389,7 @@ function analysisBadges(
   target: string,
   snapshot: EogObservationSnapshotV020 | EogAnalysisSnapshotV020,
   locale?: string
-): DiagramObservationBadgeV010[] {
+): DiagramWorkspaceObservationBadgeV010[] {
   if (!("overlays" in snapshot)) return [];
   return snapshot.overlays
     .filter(overlay => overlayTargetKey(overlay.target) === target)
@@ -424,11 +424,11 @@ function analysisBadges(
 }
 
 export function projectEnterpriseOperatingGraphObservatoryStateV020(input: {
-  base: DiagramEditorStateV010;
+  base: DiagramWorkspaceStateV010;
   snapshot?: EogObservationSnapshotV020 | EogAnalysisSnapshotV020;
   locale?: string;
   providerAvailable: boolean;
-}): DiagramEditorStateV010 {
+}): DiagramWorkspaceStateV010 {
   const text = localizedText(input.locale);
   const snapshot = input.snapshot;
 
