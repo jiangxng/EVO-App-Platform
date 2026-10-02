@@ -112,9 +112,6 @@ import {
   createEnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
 import {
-  createEnterpriseOperatingGraphInspectorPropertyResolverV010
-} from "./enterprise-operating-graph-inspector-provider.js";
-import {
   createEnterpriseOperatingGraphObservatoryActionHandlersV020
 } from "./enterprise-operating-graph-observatory-actions.js";
 import {
@@ -653,6 +650,7 @@ import {
   eog2dDesignerPackage,
   eog2dViewerPackage,
   eog3dViewerPackage,
+  sopDesignerPackage,
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
@@ -667,13 +665,6 @@ import {
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../apps/eog-2d-viewer/package.js";
 import {
-  createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010,
-  createEnterpriseOperatingGraphViewerWorkspacePageV010,
-  createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
-  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
-  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
-} from "../apps/eog-2d-viewer/workspace-page.js";
-import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
@@ -685,6 +676,7 @@ const catalog = createPackageCatalog([
   eog2dDesignerPackage,
   eog2dViewerPackage,
   eog3dViewerPackage,
+  sopDesignerPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
   ledgerRuntimeConfiguratorPackage,
@@ -1596,12 +1588,6 @@ const enterpriseOperatingGraphObservatoryProviders =
     registry: providerRuntimeRegistry,
     bindings: providerBindings,
     installationId: "default"
-  });
-
-const enterpriseOperatingGraphInspectorProperties =
-  createEnterpriseOperatingGraphInspectorPropertyResolverV010({
-    manager,
-    registry: providerRuntimeRegistry
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
@@ -3127,7 +3113,6 @@ const actionRouter = createAppActionRouter(
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
       resolveAuthorizationProvider,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties,
       locale(context) {
         return context.locale;
       }
@@ -3145,18 +3130,6 @@ const actionRouter = createAppActionRouter(
       }
     }),
     createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
-    createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      locale(context) {
-        return context.locale;
-      }
-    }),
-    createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties
-    }),
-    createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010(),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
@@ -4462,34 +4435,6 @@ const server = createServer(async (request, response) => {
           })
         );
       }
-      if (source === EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
-        );
-        if (!effective) {
-          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
-        }
-        const session = resolveRequestIdentitySession(request);
-        const contextRegistry = createContextRegistryForSession(session);
-        const resolved = contextRegistry.resolve();
-        const enterpriseContexts = contextRegistry.list().filter(
-          item => item.kind === "ENTERPRISE"
-        );
-        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
-          ? resolved.activeContext
-          : enterpriseContexts.length === 1
-            ? enterpriseContexts[0]
-            : resolved.activeContext;
-        return json(
-          response,
-          200,
-          createEnterpriseOperatingGraphViewerWorkspacePageV010({
-            activeContext,
-            locale: requestedLocale(url)
-          })
-        );
-      }
-
       if (
         source === EOG_OBSERVATORY_PAGE_SOURCE
         || source === EOG_MOBILE_READ_PAGE_SOURCE
