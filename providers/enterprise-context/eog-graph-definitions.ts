@@ -7,16 +7,12 @@ import {
   BUSINESS_DEFINITION_KIND_ENTERPRISE_OPERATING_GRAPH_V010
 } from "../../contracts/enterprise-business-definition.js";
 import type {
-  EogOperationActorV010,
   EnterpriseOperatingGraphV010
 } from "../../contracts/enterprise-operating-graph.js";
-
-export type EnterpriseOperatingGraphPersistenceActorV010 =
-  | EogOperationActorV010
-  | {
-      type: "SERVICE";
-      subjectId: string;
-    };
+import type {
+  EnterpriseOperatingGraphDefinitionPersistenceV010,
+  EnterpriseOperatingGraphPersistenceActorV010
+} from "../../contracts/enterprise-operating-graph-definition-persistence.js";
 import {
   validateEnterpriseOperatingGraphV010
 } from "../../manager/enterprise-operating-graph-model.js";
@@ -28,24 +24,6 @@ interface EnterpriseOperatingGraphDefinitionPayloadV010 {
   enterpriseRelations: EnterpriseOperatingGraphV010["enterpriseRelations"];
 }
 
-export interface EnterpriseOperatingGraphDefinitionPersistenceV010 {
-  create(input: {
-    graph: EnterpriseOperatingGraphV010;
-    actor: EnterpriseOperatingGraphPersistenceActorV010;
-  }): EnterpriseOperatingGraphV010;
-  replace(input: {
-    current: EnterpriseOperatingGraphV010;
-    next: EnterpriseOperatingGraphV010;
-    actor: EnterpriseOperatingGraphPersistenceActorV010;
-  }): EnterpriseOperatingGraphV010;
-  get(input: {
-    enterpriseId: string;
-    graphId: string;
-  }): EnterpriseOperatingGraphV010 | undefined;
-  listByEnterprise(input: {
-    enterpriseId: string;
-  }): EnterpriseOperatingGraphV010[];
-}
 
 function actor(
   value: EnterpriseOperatingGraphPersistenceActorV010
