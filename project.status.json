@@ -432,7 +432,8 @@
     "eog-2d-viewer-package-identity-v0-1",
     "eog-3d-viewer-package-identity-v0-1",
     "eog-2d-designer-target-experience-ownership-v0-1",
-    "eog-2d-viewer-target-experience-ownership-v0-1"
+    "eog-2d-viewer-target-experience-ownership-v0-1",
+    "eog-3d-viewer-target-experience-ownership-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -458,7 +459,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG 2D Designer and EOG 2D Viewer now each declare target Eidos Experience ownership while remaining default-OFF. Existing production compatibility paths are unchanged. Next define EOG 3D Viewer target Experience ownership, then perform a controlled lifecycle/route/action ownership cutover.",
+  "currentStep": "All three split EOG packages now declare target Eidos Experience ownership while remaining default-OFF: 2D Designer, 2D Viewer and 3D Viewer. No production lifecycle/route gating has been switched yet. The next slice is controlled compatibility cutover: install/activate the three packages, gate pages/actions by their owning features, and remove Enterprise Agent ownership without changing routes, page sources or Enterprise Context definition authority.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1714,8 +1715,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-04",
-    "snapshotAt": "2026-10-02T12:15:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-05",
+    "snapshotAt": "2026-10-02T12:25:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1750,16 +1751,19 @@
         }
       },
       "openGate": {
-        "id": "eog-3d-viewer-experience-ownership-v0-1",
-        "status": "READY_AFTER_2D_VIEWER_CI",
-        "summary": "Define EOG 3D Viewer target Experience ownership while keeping the package default-OFF and preserving the existing spatial page source/route. After that, all three target Experience owners exist and controlled compatibility cutover can begin.",
+        "id": "eog-three-plugin-compatibility-cutover-v0-1",
+        "status": "READY_AFTER_3D_VIEWER_CI",
+        "summary": "Switch EOG production ownership from Enterprise Agent compatibility gating to the three dedicated EOG application packages. Preserve existing routes/page sources, install/activate through controlled lifecycle migration, and keep Enterprise Context as the sole Enterprise Graph Definition authority.",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "EOG 3D Viewer target Experience manifest belongs to evo-eog-3d-viewer",
-          "legacy spatial page source/route remain stable during compatibility preparation",
-          "3D Viewer remains read-oriented and uses the shared Enterprise Graph Definition",
-          "split package remains default-OFF until explicit cutover",
-          "no duplicate active Experience is introduced"
+          "all three dedicated EOG packages are installed/activated through an explicit compatibility migration",
+          "2D Designer pages/actions are gated by evo-eog-2d-designer",
+          "2D Viewer pages/read actions are gated by evo-eog-2d-viewer",
+          "3D Viewer pages/read actions are gated by evo-eog-3d-viewer",
+          "Enterprise Agent package no longer owns EOG Experience manifests",
+          "existing routes and page source identifiers remain compatible",
+          "no duplicate active EOG Experiences exist",
+          "Human confirmation/publish boundaries and Enterprise Context definition authority remain unchanged"
         ]
       },
       "productionPreview": {
@@ -3381,11 +3385,11 @@
       }
     ],
     "eogExperienceOwnershipMigration": {
-      "status": "IN_PROGRESS",
+      "status": "TARGET_OWNERSHIP_DEFINED",
       "twoDDesigner": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
       "twoDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
-      "threeDViewer": "PENDING",
-      "compatibilityCutover": "PENDING"
+      "threeDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
+      "compatibilityCutover": "NEXT"
     }
   },
   "externalAgentFirstValidation": {
