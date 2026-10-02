@@ -352,3 +352,24 @@ Moved implementation owners:
 The previous `manager/enterprise-operating-graph-*.ts` locations remain as compatibility re-exports only.
 
 This does not change semantic authority: authoritative Enterprise Graph Definition persistence remains Enterprise Context Business Definition Repository. The package-local store exists only for compatibility/migration and tests; it is not restored as production authority.
+
+
+## 16. Shared View State provider boundary
+
+2D and 3D View State share a Host-owned persistence/provider boundary rather than importing one another's private implementation.
+
+Authority split:
+
+```text
+Enterprise Graph Definition
+= Enterprise Context authority
+
+DIAGRAM_2D / SPATIAL_3D View State
+= shared presentation-state provider
+  ├─ public contract: contracts/enterprise-operating-graph-view-state.ts
+  └─ Host implementation: providers/eog-view-state/**
+```
+
+EOG application plugins consume only the public View State provider contract. The provider is presentation infrastructure only: it cannot create semantic graph revisions, confirm Enterprise relations or publish Enterprise Graph Definitions.
+
+Legacy `manager/enterprise-operating-graph-view-*` paths remain compatibility re-exports during convergence.
