@@ -21,12 +21,19 @@ import type {
   EnterpriseOperatingGraphViewStateProviderV010
 } from "../../contracts/enterprise-operating-graph-view-state.js";
 import type {
+  EnterpriseOperatingGraphInspectorPropertyResolverV010
+} from "../../contracts/enterprise-operating-graph-inspector.js";
+import type {
   DiagramWorkspacePageV010,
   DiagramWorkspaceStateV010
 } from "../../vendor/eidos/src/2d/index.js";
 import {
   projectEnterpriseOperatingGraphDiagramBaseV010
 } from "../../eog/diagram-projection.js";
+import {
+  inspectEog2dSelectionV010,
+  parseEog2dSelectionTargetV010
+} from "../../eog/2d-selection-inspection.js";
 import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
@@ -43,6 +50,8 @@ export const EOG_2D_VIEWER_WORKSPACE_GET_ACTION =
   "enterprise-operating-graph.viewer.workspace.get";
 export const EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION =
   "enterprise-operating-graph.viewer.workspace.operation";
+export const EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION =
+  "enterprise-operating-graph.viewer.workspace.selection.get";
 
 function localizedText(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";
@@ -79,6 +88,10 @@ export function createEnterpriseOperatingGraphViewerWorkspacePageV010(input: {
     },
     operationCommand: {
       code: EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION,
+      inputVersion: "0.1.0"
+    },
+    selectionReadCommand: {
+      code: EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION,
       inputVersion: "0.1.0"
     },
     requestValues: {
@@ -213,6 +226,49 @@ export function createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010
         request,
         new Error("EOG_2D_VIEWER_OPERATION_UNSUPPORTED")
       );
+    }
+  };
+}
+
+
+export function createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010(
+  input: {
+    graphService: EnterpriseOperatingGraphReadProviderV010;
+    inspectorResolver: EnterpriseOperatingGraphInspectorPropertyResolverV010;
+  }
+): AppActionHandler {
+  return {
+    packageId: EOG_2D_VIEWER_PACKAGE_ID,
+    featureId: EOG_2D_VIEWER_FEATURE_ID,
+    commandCode: EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION,
+    async execute(request, context) {
+      if (!context) {
+        return failure(request, new Error("REQUEST_CONTEXT_REQUIRED"));
+      }
+      try {
+        const scopedEnterpriseId = enterpriseId(context);
+        const graphId = typeof request.values.resourceId === "string"
+          ? request.values.resourceId.trim()
+          : "";
+        if (!graphId) throw new Error("EOG_GRAPH_ID_REQUIRED");
+        const graph = input.graphService.get({
+          enterpriseId: scopedEnterpriseId,
+          graphId
+        });
+        return success(
+          request,
+          await inspectEog2dSelectionV010({
+            graph,
+            target: parseEog2dSelectionTargetV010(
+              request.values.target
+            ),
+            role: "VIEWER",
+            resolver: input.inspectorResolver
+          })
+        );
+      } catch (error) {
+        return failure(request, error);
+      }
     }
   };
 }
