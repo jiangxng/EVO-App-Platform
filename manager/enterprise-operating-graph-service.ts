@@ -13,6 +13,9 @@ import {
 import type {
   EnterpriseOperatingGraphStoreV010
 } from "./enterprise-operating-graph-store.js";
+import type {
+  EnterpriseOperatingGraphDefinitionPersistenceV010
+} from "../providers/enterprise-context/eog-graph-definitions.js";
 
 export type EnterpriseOperatingGraphMutationV010 =
   | {
@@ -50,6 +53,10 @@ export interface EnterpriseOperatingGraphHostServiceV010 {
   create(input: {
     enterpriseId: string;
     graphId?: string;
+    actor?: {
+      type: "HUMAN" | "AGENT";
+      subjectId: string;
+    };
     occurredAt?: string;
   }): EnterpriseOperatingGraphV010;
   get(input: {
@@ -83,10 +90,15 @@ function required(value: string, code: string): string {
 }
 
 export function createEnterpriseOperatingGraphHostServiceV010(input: {
-  store: EnterpriseOperatingGraphStoreV010;
+  store?: EnterpriseOperatingGraphStoreV010;
+  persistence?: EnterpriseOperatingGraphDefinitionPersistenceV010;
   id?: () => string;
   now?: () => Date;
 }): EnterpriseOperatingGraphHostServiceV010 {
+  if ((input.store === undefined) === (input.persistence === undefined)) {
+    throw new Error("EOG_PERSISTENCE_CONFIGURATION_INVALID");
+  }
+
   const id = input.id ?? randomUUID;
   const now = input.now ?? (() => new Date());
 
@@ -94,13 +106,20 @@ export function createEnterpriseOperatingGraphHostServiceV010(input: {
     enterpriseId: string,
     graphId: string
   ): EnterpriseOperatingGraphV010 => {
-    const graph = input.store.get(required(graphId, "EOG_GRAPH_ID_REQUIRED"));
+    const normalizedEnterpriseId = required(
+      enterpriseId,
+      "EOG_ENTERPRISE_ID_REQUIRED"
+    );
+    const normalizedGraphId = required(graphId, "EOG_GRAPH_ID_REQUIRED");
+    const graph = input.persistence
+      ? input.persistence.get({
+          enterpriseId: normalizedEnterpriseId,
+          graphId: normalizedGraphId
+        })
+      : input.store!.get(normalizedGraphId);
     if (
       !graph
-      || graph.enterpriseId !== required(
-        enterpriseId,
-        "EOG_ENTERPRISE_ID_REQUIRED"
-      )
+      || graph.enterpriseId !== normalizedEnterpriseId
     ) {
       throw new Error("EOG_GRAPH_NOT_FOUND");
     }
@@ -119,7 +138,24 @@ export function createEnterpriseOperatingGraphHostServiceV010(input: {
         enterpriseId,
         createdAt: occurredAt
       });
-      return input.store.create(graph);
+      if (input.persistence) {
+        return input.persistence.create({
+          graph,
+          actor: request.actor
+            ? {
+                type: request.actor.type,
+                subjectId: required(
+                  request.actor.subjectId,
+                  "EOG_OPERATION_ACTOR_REQUIRED"
+                )
+              }
+            : {
+                type: "SERVICE",
+                subjectId: "service:eog-host"
+              }
+        });
+      }
+      return input.store!.create(graph);
     },
 
     get(request) {
@@ -127,9 +163,13 @@ export function createEnterpriseOperatingGraphHostServiceV010(input: {
     },
 
     list(request) {
-      return input.store.listByEnterprise(
-        required(request.enterpriseId, "EOG_ENTERPRISE_ID_REQUIRED")
+      const enterpriseId = required(
+        request.enterpriseId,
+        "EOG_ENTERPRISE_ID_REQUIRED"
       );
+      return input.persistence
+        ? input.persistence.listByEnterprise({ enterpriseId })
+        : input.store!.listByEnterprise(enterpriseId);
     },
 
     apply(request) {
@@ -155,7 +195,14 @@ export function createEnterpriseOperatingGraphHostServiceV010(input: {
         graph,
         operation
       );
-      return input.store.replace(next);
+      if (input.persistence) {
+        return input.persistence.replace({
+          current: graph,
+          next,
+          actor: operation.actor
+        });
+      }
+      return input.store!.replace(next);
     },
 
     validate(request) {
