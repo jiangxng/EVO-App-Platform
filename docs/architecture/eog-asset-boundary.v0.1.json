@@ -189,7 +189,15 @@
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
       "targetAssets": [
         "manager/enterprise-operating-graph-spatial-observatory-page.ts"
-      ]
+      ],
+      "lifecycle": "CUT_OVER_ACTIVE",
+      "packageId": "evo-eog-3d-viewer",
+      "featureId": "evo-eog-3d-viewer.default",
+      "experienceOwnership": "ACTIVE",
+      "readActionOwnership": "ACTIVE",
+      "analysisCalculationOwnership": "PEER_PROVIDERS",
+      "agentToolOwnership": "COMPATIBILITY_PENDING_TOOL_SPLIT",
+      "authority": "docs/architecture/EOG-3D-VIEWER-CUTOVER-v0.1.md"
     }
   }
 }
