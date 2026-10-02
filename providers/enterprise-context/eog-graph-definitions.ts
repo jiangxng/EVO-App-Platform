@@ -10,6 +10,13 @@ import type {
   EogOperationActorV010,
   EnterpriseOperatingGraphV010
 } from "../../contracts/enterprise-operating-graph.js";
+
+export type EnterpriseOperatingGraphPersistenceActorV010 =
+  | EogOperationActorV010
+  | {
+      type: "SERVICE";
+      subjectId: string;
+    };
 import {
   validateEnterpriseOperatingGraphV010
 } from "../../manager/enterprise-operating-graph-model.js";
@@ -24,12 +31,12 @@ interface EnterpriseOperatingGraphDefinitionPayloadV010 {
 export interface EnterpriseOperatingGraphDefinitionPersistenceV010 {
   create(input: {
     graph: EnterpriseOperatingGraphV010;
-    actor: EogOperationActorV010;
+    actor: EnterpriseOperatingGraphPersistenceActorV010;
   }): EnterpriseOperatingGraphV010;
   replace(input: {
     current: EnterpriseOperatingGraphV010;
     next: EnterpriseOperatingGraphV010;
-    actor: EogOperationActorV010;
+    actor: EnterpriseOperatingGraphPersistenceActorV010;
   }): EnterpriseOperatingGraphV010;
   get(input: {
     enterpriseId: string;
@@ -41,10 +48,15 @@ export interface EnterpriseOperatingGraphDefinitionPersistenceV010 {
 }
 
 function actor(
-  value: EogOperationActorV010
+  value: EnterpriseOperatingGraphPersistenceActorV010
 ): BusinessDefinitionAttributionV010 {
   return {
-    actorType: value.type === "HUMAN" ? "HUMAN" : "AI",
+    actorType:
+      value.type === "HUMAN"
+        ? "HUMAN"
+        : value.type === "AGENT"
+          ? "AI"
+          : "SERVICE",
     subjectId: value.subjectId
   };
 }
