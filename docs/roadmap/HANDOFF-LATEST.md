@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `AGENT-CAP-FABRIC-2026-10-02-06`  
-**Snapshot time:** `2026-10-02T10:57:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-01`  
+**Snapshot time:** `2026-10-02T11:20:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Agent Capability Fabric v0.2
-VERIFIED_PRODUCTION_PASS
+EOG 2D/3D Responsibility Convergence v0.1
+ACTIVE
 ```
 
 ## Latest closed live slice
 
-**grok-web-mobile-native-mcp-v0-2: VERIFIED_PRODUCTION_PASS**
+**external-agent-read-plan-foundation-v0-2: VERIFIED_PRODUCTION_PASS**
 
-Grok Web and Grok Mobile completed real production External Agent OAuth + MCP + Ledger Runtime READ validation. Web used Grok's native CIMD identity with URL-only connector setup; Mobile used the EVO-maintained public compatibility Client ID with no secret. Both reached the governed production /mcp path and executed bounded Ledger Runtime reads. Web Grant revocation was then proven immediate: after all effective native Grok Grants were revoked, a fresh Grok request hit /mcp and received HTTP 401 while the connector still existed. PR #255 added handshake-era Streamable HTTP compatibility without weakening the governed core. The first-consent browser-return stall observed on both Web and Mobile is recorded as a Grok callback UX interoperability issue, not an authorization failure.
+External Agent READ/PLAN foundation is closed after MCP Inspector, Cline + DeepSeek, Grok Web and Grok Mobile production validation including immediate delegated Grant revocation cutoff.
 
 Authority: `docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md`
 
@@ -26,66 +26,27 @@ Evidence:
 
 ```json
 {
-  "webClientIdentity": "https://grok.com/oauth/mcp-client.json",
-  "mobileClientIdentity": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/grok-web-mobile-client.json",
-  "clientSecretRequired": false,
-  "webOauthTokenExchange": true,
-  "webMcpRead": true,
-  "mobileOauthTokenExchange": true,
-  "mobileMcpRead": true,
-  "mcpCompatibilityPr": 255,
-  "mcpCompatibilityProtocols": [
-    "2026-07-28",
-    "2025-11-25",
-    "2025-06-18",
-    "2025-03-26"
-  ],
-  "templateId": "bookkeeping-default",
-  "semanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
-  "counts": {
-    "accounts": 141,
-    "applications": 143,
-    "dictionaries": 106,
-    "postingRules": 912,
-    "referenceLegacyPostingRules": 587
-  },
-  "mobileAccounts6To10": [
-    {
-      "id": "1121",
-      "title": "应收票据"
-    },
-    {
-      "id": "1122",
-      "title": "应收账款"
-    },
-    {
-      "id": "1123",
-      "title": "预付账款"
-    },
-    {
-      "id": "1131",
-      "title": "应收股利"
-    },
-    {
-      "id": "1132",
-      "title": "应收利息"
-    }
-  ],
-  "grantRevocationCutoff": "PASS_HTTP_401",
-  "callbackUxIssue": "OBSERVED_WEB_AND_MOBILE_FIRST_CONSENT_BROWSER_RETURN_MAY_STALL",
-  "staleRefreshTokenRetry": "OBSERVED_GROK_CLIENT_CACHE_BEHAVIOR"
+  "foundationStatus": "VERIFIED_PRODUCTION_PASS",
+  "grokWeb": true,
+  "grokMobile": true,
+  "grantRevocationCutoff": "PASS_HTTP_401"
 }
 ```
 
 ## Current open live gate
 
-**external-agent-capability-foundation-v0-2: CLOSED_VERIFIED_PRODUCTION_PASS**
+**eog-2d-3d-responsibility-convergence-v0-1: ACTIVE**
 
-No External Agent capability-validation gate remains. READ/PLAN interoperability, natural-language discovery/use, protocol compatibility and immediate delegated-authority revocation have production evidence across independent clients. Select the next product/platform milestone separately.
+Converge EOG into one Enterprise Context definition authority, reusable Eidos 2D/3D cores, and three App Platform application plugins: EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer. Preserve all working assets and move ownership incrementally.
 
 Acceptance:
 
-
+- Eidos 2D Core and 3D Core responsibilities are explicit and business-semantic-free
+- EOG 2D Designer, 2D Viewer and 3D Viewer have independent App Platform package identities
+- all three consume one shared Enterprise Graph Definition authority from Enterprise Context
+- semantic graph state remains separate from 2D/3D View State
+- existing Observatory/SOP/analysis assets remain preserved for peer-plugin extraction
+- no private cross-plugin implementation imports are introduced
 
 ## Current production preview
 
@@ -105,29 +66,24 @@ Acceptance:
 
 **Scenario:** `External Agent READ/PLAN capability foundation across independent production clients`
 
-The production protected-resource path was exercised by the official MCP Inspector, Cline 4.1.22 + DeepSeek, Grok Web and Grok Mobile. Grok Web used its native published CIMD identity and Grok Mobile used the EVO-maintained public compatibility Client ID. Natural-language requests caused real bounded Ledger Runtime reads. Handshake-era MCP compatibility was added for native Grok without changing authorization semantics. After revoking all effective native Grok Grants, a fresh Grok request reached /mcp and was rejected with HTTP 401 while the connector still existed, proving immediate current-authority enforcement.
+External Agent capability validation is complete and is no longer the active gate. This evidence remains a closed regression baseline while the project returns to EOG responsibility convergence.
 
 Authority: `docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md`
 
 Proved:
 
-- independent standards and AI-Agent clients can use the same governed EVO External Agent protected-resource path
-- External Agent READ/PLAN capability discovery and invocation work from natural-language intent without source-code knowledge
-- both native CIMD Web setup and manual public-client Mobile setup can complete OAuth + MCP against EVO
-- bounded Ledger Runtime reads preserve installation-scoped semantics
-- handshake-era MCP transport compatibility can coexist with the strict 2026-07-28 path without bypassing governance
-- delegated Grant revocation removes effective access immediately even when the external connector remains configured
+- External Agent READ/PLAN interoperability is production-proven
+- delegated Grant revocation removes effective access immediately
 
 Not proved:
 
 - External Agent WRITE
-- every non-Ledger plugin external projection
-- ChatGPT product-specific MCP entitlement or UX
-- future Grok callback/UI behavior remains stable
+- EOG responsibility convergence
 
 
 ## Recent mainline changes
 
+- PR #257 — MERGED_CI_PASS: Close External Agent READ/PLAN capability validation and record Grok Web/Mobile production proof.
 - PR #256 — MERGED_CI_PASS_DEPLOYED: Add bounded non-secret OAuth token-failure diagnostics used to prove Grok stale refresh-token behavior without logging authorization codes, PKCE verifiers, refresh tokens or access tokens.
 - PR #255 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Add stateless handshake-era Streamable HTTP MCP compatibility for 2025-11-25, 2025-06-18 and 2025-03-26 while preserving the strict 2026-07-28 path; native Grok Web/Mobile production calls pass through the same governed core.
 - PR #254 — MERGED_CONTINUITY_PASS: Prepare the capability-level Grok Web/Mobile Human live validation gate that is now closed VERIFIED_PRODUCTION_PASS.
@@ -354,6 +310,10 @@ Not proved:
 - Do not treat docs/integration-clients/grok-web-mobile-client.json as the canonical current Grok Web native identity; Web observed https://grok.com/oauth/mcp-client.json automatically, while the EVO-maintained profile remains the Mobile/manual compatibility client.
 - Do not interpret the first-consent Grok browser-return stall by itself as failed EVO authorization; both Web and Mobile were observed to receive EVO 303 while the browser could remain open, and a subsequent connector attempt completed token exchange using the already-created effective Grant.
 - Do not repeat generic External Agent client portability proof unless a regression or materially new capability class requires it; WRITE and additional plugin exposure are expansion scopes.
+- Do not re-expand mixed EOG Core ownership: Enterprise Context owns Enterprise Graph Definition authority, Eidos owns reusable 2D/3D cores, and App Platform converges EOG into 2D Designer, 2D Viewer and 3D Viewer plugins.
+- Do not create separate semantic graph authorities for 2D Designer, 2D Viewer and 3D Viewer; all consume the same Enterprise Graph Definition.
+- Do not move Application, Ledger, SOP, Enterprise Relation or publication semantics into Eidos 2D/3D Core.
+- Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -472,6 +432,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the Grok first-consent browser-return stall as a known Web+Mobile client UX interoperability issue, not an unresolved authorization gate
 - state External Agent WRITE, additional non-Ledger external projections and ChatGPT product-specific entitlement/UX as future expansion rather than foundation blockers
 - state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS
+- state EOG 2D/3D Responsibility Convergence v0.1 as the active milestone
+- state Enterprise Context as the authoritative Enterprise Graph Definition lifecycle/persistence owner
+- state Eidos 2D Core and 3D Core as reusable business-semantic-free frontend framework capabilities
+- state App Platform target EOG package family as EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer
+- state all three EOG plugins as consumers of one semantic definition with separate 2D/3D View State
+- state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership
 
 No previous ChatGPT transcript is required.
 

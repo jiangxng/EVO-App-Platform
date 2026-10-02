@@ -1,21 +1,15 @@
 {
   "schemaVersion": 1,
-  "authority": "docs/architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md",
-  "updatedAt": "2026-09-30",
+  "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+  "updatedAt": "2026-10-02",
   "eogCore": {
-    "lifecycle": "ACTIVE",
-    "ci": "GATING",
-    "assets": [
+    "lifecycle": "MIGRATING_TO_SPLIT_PLUGIN_FAMILY",
+    "ci": "GATING_UNTIL_SPLIT_COMPLETES",
+    "replacementModel": "EOG_2D_DESIGNER_PLUS_EOG_2D_VIEWER_PLUS_EOG_3D_VIEWER",
+    "sharedSemanticAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
+    "sharedDomainContract": [
       "contracts/enterprise-operating-graph.ts",
-      "contracts/enterprise-operating-graph-view.ts",
-      "manager/enterprise-operating-graph-model.ts",
-      "manager/enterprise-operating-graph-store.ts",
-      "manager/enterprise-operating-graph-service.ts",
-      "manager/enterprise-operating-graph-actions.ts",
-      "manager/enterprise-operating-graph-agent-tools.ts",
-      "manager/enterprise-operating-graph-view-store.ts",
-      "manager/enterprise-operating-graph-view-service.ts",
-      "manager/enterprise-operating-graph-page.ts"
+      "manager/enterprise-operating-graph-model.ts"
     ]
   },
   "preservedForFutureExtraction": {
@@ -77,13 +71,18 @@
       "immutable-revision-history",
       "provenance-attribution",
       "publication-governance",
-      "business-definition-repository-capability"
+      "business-definition-repository-capability",
+      "enterprise-graph-definition-authoritative-persistence"
     ],
     "doesNotOwn": [
       "enterprise-knowledge",
       "specialized-definition-editors",
       "sop-domain-semantics",
-      "report-analysis-logic"
+      "report-analysis-logic",
+      "2d-rendering",
+      "3d-rendering",
+      "eog-designer-ux",
+      "eog-viewer-ux"
     ]
   },
   "experienceCompiler": {
@@ -126,6 +125,56 @@
     "preservedTestCorpus": "tests/preserved/*.preserved.mjs",
     "manualRegressionCommand": "npm run test:preserved:eog-assets",
     "eogCoreIntegrationGate": "tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
-    "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates."
+    "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates.",
+    "convergenceGate": "RESPONSIBILITY_SPLIT_BEFORE_UPPER_LAYER_EOG_EXPANSION",
+    "architectureAuthority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+  },
+  "eidosVisualCores": {
+    "twoDCore": {
+      "targetOwner": "jiangxng/eidos",
+      "upstreamAssets": [
+        "src/diagram/**"
+      ],
+      "vendoredCompatibilityAssets": [
+        "vendor/eidos/src/diagram/**"
+      ],
+      "businessSemantics": "PROHIBITED"
+    },
+    "threeDCore": {
+      "targetOwner": "jiangxng/eidos",
+      "upstreamAssets": [
+        "src/spatial/**"
+      ],
+      "vendoredCompatibilityAssets": [
+        "vendor/eidos/src/spatial/**"
+      ],
+      "businessSemantics": "PROHIBITED"
+    }
+  },
+  "eogPluginFamily": {
+    "eog-2d-designer": {
+      "role": "WRITE_GOVERNED_ENTERPRISE_GRAPH_DESIGN",
+      "targetAssets": [
+        "manager/enterprise-operating-graph-actions.ts",
+        "manager/enterprise-operating-graph-agent-tools.ts",
+        "manager/enterprise-operating-graph-page.ts",
+        "manager/enterprise-operating-graph-view-store.ts",
+        "manager/enterprise-operating-graph-view-service.ts"
+      ]
+    },
+    "eog-2d-viewer": {
+      "role": "READ_ONLY_2D_NAVIGATION_AND_CONTRIBUTION_AGGREGATION",
+      "targetAssets": [
+        "manager/enterprise-operating-graph-observatory-page.ts",
+        "manager/enterprise-operating-graph-mobile-read-page.ts"
+      ],
+      "note": "Analysis calculations remain peer-plugin/provider responsibilities."
+    },
+    "eog-3d-viewer": {
+      "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
+      "targetAssets": [
+        "manager/enterprise-operating-graph-spatial-observatory-page.ts"
+      ]
+    }
   }
 }
