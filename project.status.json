@@ -438,7 +438,10 @@
     "eog-2d-viewer-controlled-cutover-v0-1",
     "eog-3d-viewer-controlled-cutover-v0-1",
     "eog-agent-semantic-observatory-ownership-split-v0-1",
-    "eog-agent-view-tool-2d-3d-split-v0-1"
+    "eog-agent-view-tool-2d-3d-split-v0-1",
+    "eog-enterprise-context-definition-kind-v0-1",
+    "eog-business-definition-persistence-adapter-v0-1",
+    "eog-legacy-semantic-store-migration-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -464,7 +467,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG Experience/ActionHost ownership and Personal Agent tool ownership are now split across the three dedicated plugins. Stable generic view.get/apply is DIAGRAM_2D-only under evo-eog-2d-designer; explicit spatial_view.get/apply is SPATIAL_3D under evo-eog-3d-viewer. No EOG Agent tool descriptor remains owned by evo-app-platform. Next gate is Enterprise Graph Definition persistence convergence from the legacy EOG semantic store into Enterprise Context Business Definition authority.",
+  "currentStep": "Enterprise Context EOG definition-persistence foundation is implemented but not yet runtime-cut-over: ENTERPRISE_OPERATING_GRAPH is now a Business Definition kind; a repository adapter preserves the existing EOG semantic contract/revision model; a non-destructive legacy semantic-store migration is available. Next slice wires Host runtime to this adapter and demotes the legacy EOG semantic store to migration-only input.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1720,8 +1723,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-10",
-    "snapshotAt": "2026-10-02T14:05:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-11",
+    "snapshotAt": "2026-10-02T14:25:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1756,17 +1759,18 @@
         }
       },
       "openGate": {
-        "id": "eog-enterprise-context-definition-persistence-convergence-v0-1",
-        "status": "READY",
-        "summary": "Move authoritative Enterprise Graph semantic persistence behind Enterprise Context Business Definition Repository while preserving existing EOG domain contracts, routes, views and Human/Agent authority boundaries. The legacy EOG semantic store becomes migration/compatibility input rather than authority.",
-        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+        "id": "eog-enterprise-context-runtime-persistence-cutover-v0-1",
+        "status": "READY_AFTER_FOUNDATION_CI",
+        "summary": "Wire EnterpriseOperatingGraphHostService to Enterprise Context Business Definition persistence, run non-destructive legacy semantic migration first, and stop the legacy EOG semantic store from receiving new authoritative writes. Preserve graph IDs, semantic revision numbers, routes, Agent/Human authority and separate View State.",
+        "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md",
         "acceptance": [
-          "Enterprise Graph semantic revisions are persisted through enterprise.business-definition.repository",
-          "legacy EOG semantic store is no longer authoritative for new writes",
-          "existing EOG graph IDs and semantic contract remain compatible",
-          "2D/3D View State stays outside Enterprise Context definition revisions",
-          "Human-only confirm/remove/publish authority remains unchanged",
-          "migration preserves existing graph data without destructive rewrite"
+          "new EOG semantic create/revise/publish operations persist through enterprise.business-definition.repository",
+          "legacy EOG semantic file is imported before repository-backed reads/writes",
+          "legacy EOG semantic file remains untouched as migration evidence",
+          "graph IDs and EnterpriseOperatingGraphV010 responses remain compatible",
+          "published graph attribution remains Human for new publications",
+          "2D/3D View State persistence remains outside Enterprise Context Business Definition revisions",
+          "server no longer constructs legacy EOG semantic store as the authority for new runtime operations"
         ]
       },
       "productionPreview": {
@@ -2458,7 +2462,10 @@
       "state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split",
       "state stable enterprise.operating_graph.view.get/apply as DIAGRAM_2D-only compatibility tools owned by evo-eog-2d-designer",
       "state enterprise.operating_graph.spatial_view.get/apply as SPATIAL_3D tools owned and lifecycle-gated by evo-eog-3d-viewer",
-      "state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split"
+      "state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split",
+      "state ENTERPRISE_OPERATING_GRAPH as the Enterprise Context Business Definition kind for EOG semantic truth",
+      "state the repository-backed EOG persistence adapter and non-destructive legacy migration as foundation-ready but not yet runtime-cut-over",
+      "state 2D/3D View State as explicitly excluded from Enterprise Business Definition payloads"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3455,6 +3462,14 @@
       "agentObservatoryTools": "EOG_2D_VIEWER_OWNED",
       "agentGenericViewTools": "DIAGRAM_2D_COMPATIBILITY_OWNED_BY_DESIGNER",
       "agentSpatialViewTools": "SPATIAL_3D_OWNED_BY_3D_VIEWER"
+    },
+    "graphDefinitionPersistence": {
+      "status": "FOUNDATION_READY_RUNTIME_CUTOVER_PENDING",
+      "businessDefinitionKind": "ENTERPRISE_OPERATING_GRAPH",
+      "adapter": "providers/enterprise-context/eog-graph-definitions.ts",
+      "migration": "providers/enterprise-context/eog-graph-migration.ts",
+      "legacySemanticStore": "MIGRATION_SOURCE_NOT_FUTURE_AUTHORITY",
+      "viewState": "SEPARATE_NOT_BUSINESS_DEFINITION"
     }
   },
   "externalAgentFirstValidation": {

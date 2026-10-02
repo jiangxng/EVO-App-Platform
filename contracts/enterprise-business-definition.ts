@@ -5,6 +5,8 @@ export const ENTERPRISE_BUSINESS_DEFINITION_CONTRACT_V010 =
   "evo.enterprise.business-definition.repository" as const;
 
 export const BUSINESS_DEFINITION_KIND_SOP_V010 = "SOP" as const;
+export const BUSINESS_DEFINITION_KIND_ENTERPRISE_OPERATING_GRAPH_V010 =
+  "ENTERPRISE_OPERATING_GRAPH" as const;
 
 export type BusinessDefinitionStateV010 = "DRAFT" | "PUBLISHED";
 
