@@ -88,3 +88,16 @@ This slice is accepted when:
 4. semantic and diagram action handlers are gated by the Designer feature;
 5. Enterprise Agent no longer owns/injects the 2D Designer Experience;
 6. existing semantic/Human confirmation tests remain green.
+
+
+## Physical ownership convergence — actions and editor projection
+
+The second physical extraction slice moves implementation ownership for:
+
+- `enterprise-operating-graph-actions.ts`;
+- `enterprise-operating-graph-page.ts`.
+
+Their authoritative implementation now lives under `apps/eog-2d-designer/`.
+The previous `manager/` paths remain compatibility re-exports only.
+
+The shared View State service/store remains outside this slice because it is still consumed by both 2D and 3D surfaces. Personal Agent tool implementation is also deferred to a dedicated package split so 2D Designer and 3D Viewer ownership are not recombined in one physical module.
