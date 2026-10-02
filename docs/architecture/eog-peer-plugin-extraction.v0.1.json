@@ -81,13 +81,14 @@
       }
     },
     "analysisProviders": {
-      "status": "PRESERVE_EXISTING_PROVIDERS_PORTFOLIO_TBD",
+      "status": "AUDITED_ACTIVE_PROVIDERS_WITH_SOP_BRANCH_DEFERRED",
       "existingConcreteProviders": [
         "providers/evo-runtime-observatory",
         "providers/eog-bottleneck-analysis"
       ],
       "futureReportAnalysisExperiencePortfolio": "TBD_ON_PRODUCT_REQUIREMENT",
-      "sopAnalysisOwnership": "NOT_ASSIGNED_TO_SOP_DESIGNER"
+      "sopAnalysisOwnership": "PRESERVED_FROZEN_UNTIL_SOP_RESUMES",
+      "audit": "docs/architecture/eog-provider-boundary-audit.v0.1.json"
     }
   }
 }
