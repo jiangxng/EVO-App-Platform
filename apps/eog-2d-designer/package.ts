@@ -6,6 +6,11 @@ import {
 export const EOG_2D_DESIGNER_PACKAGE_ID = "evo-eog-2d-designer";
 export const EOG_2D_DESIGNER_FEATURE_ID = "evo-eog-2d-designer.default";
 export const EOG_2D_DESIGNER_CAPABILITY = "enterprise.operating-graph.designer.2d";
+export const EOG_2D_DESIGNER_EXPERIENCE_ID = "evo-eog-2d-designer";
+export const EOG_2D_DESIGNER_PAGE_ID = "evo-eog-2d-designer.editor";
+export const EOG_2D_DESIGNER_PAGE_SOURCE =
+  "app://evo-enterprise-operating-graph/pages/editor";
+export const EOG_2D_DESIGNER_ROUTE = "/operating-graph";
 
 export const eog2dDesignerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -37,6 +42,32 @@ export const eog2dDesignerPackage: PackageManifestV010 = {
     ],
     providesCapabilities: [
       EOG_2D_DESIGNER_CAPABILITY
-    ]
+    ],
+    contributions: [{
+      kind: "eidos.experience",
+      manifest: {
+        contractVersion: "0.1.0",
+        experienceId: EOG_2D_DESIGNER_EXPERIENCE_ID,
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        defaultRoute: EOG_2D_DESIGNER_ROUTE,
+        pages: [{
+          id: EOG_2D_DESIGNER_PAGE_ID,
+          title: "Enterprise Operating Graph Designer",
+          source: EOG_2D_DESIGNER_PAGE_SOURCE
+        }],
+        routes: [{
+          id: EOG_2D_DESIGNER_PAGE_ID,
+          path: EOG_2D_DESIGNER_ROUTE,
+          pageId: EOG_2D_DESIGNER_PAGE_ID
+        }],
+        navigation: [{
+          id: "evo-eog-2d-designer.nav",
+          label: "Operating Graph Designer",
+          route: EOG_2D_DESIGNER_ROUTE,
+          order: 15
+        }]
+      }
+    }]
   }]
 };

@@ -430,7 +430,8 @@
     "eidos-2d-3d-core-ownership-target-v0-1",
     "eog-2d-designer-package-identity-v0-1",
     "eog-2d-viewer-package-identity-v0-1",
-    "eog-3d-viewer-package-identity-v0-1"
+    "eog-3d-viewer-package-identity-v0-1",
+    "eog-2d-designer-target-experience-ownership-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -456,7 +457,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG responsibility baseline is merged in App Platform (#258) and Eidos 2D/3D Core boundary is merged upstream (eidos #75). The active slice creates three independent, catalog-discoverable EOG APPLICATION package identities—2D Designer, 2D Viewer and 3D Viewer—without moving behavior yet. Next, migrate Experience manifests/ownership one plugin at a time while keeping one Enterprise Context definition authority.",
+  "currentStep": "EOG package identities are merged. EOG 2D Designer now declares its target Eidos Experience ownership while remaining default-OFF; no production compatibility path is switched in this slice. Next migrate EOG 2D Viewer target Experience ownership, then EOG 3D Viewer, before the controlled activation/cutover.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1712,8 +1713,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-02",
-    "snapshotAt": "2026-10-02T11:50:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-03",
+    "snapshotAt": "2026-10-02T12:05:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1748,17 +1749,16 @@
         }
       },
       "openGate": {
-        "id": "eog-experience-ownership-migration-v0-1",
-        "status": "READY_AFTER_PACKAGE_IDENTITY_CI",
-        "summary": "Move existing EOG Experience manifests and page ownership from the Enterprise Agent compatibility package into the three dedicated EOG application packages without changing semantic authority or deleting compatibility assets.",
+        "id": "eog-viewer-experience-ownership-v0-1",
+        "status": "READY_AFTER_2D_DESIGNER_CI",
+        "summary": "Define target Experience ownership for EOG 2D Viewer and EOG 3D Viewer while keeping all three split packages default-OFF. Do not switch production lifecycle/route gating until all target manifests are independently CI-covered.",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "EOG 2D Designer Experience is owned by evo-eog-2d-designer",
-          "EOG 2D Viewer Experience is owned by evo-eog-2d-viewer",
-          "EOG 3D Viewer Experience is owned by evo-eog-3d-viewer",
-          "all three continue to consume Enterprise Context Business Definition authority",
-          "no duplicate active routes/experiences exist during compatibility migration",
-          "existing EOG Human/Agent authority invariants remain unchanged"
+          "EOG 2D Viewer target Experience manifest belongs to evo-eog-2d-viewer",
+          "EOG 3D Viewer target Experience manifest belongs to evo-eog-3d-viewer",
+          "legacy page sources/routes remain stable during compatibility preparation",
+          "split packages remain default-OFF until explicit cutover",
+          "no duplicate active Experience is introduced"
         ]
       },
       "productionPreview": {
@@ -3378,7 +3378,14 @@
         "activation": "DEFAULT_OFF",
         "definitionAuthorityDependency": "enterprise.business-definition.repository"
       }
-    ]
+    ],
+    "eogExperienceOwnershipMigration": {
+      "status": "IN_PROGRESS",
+      "twoDDesigner": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
+      "twoDViewer": "PENDING",
+      "threeDViewer": "PENDING",
+      "compatibilityCutover": "PENDING"
+    }
   },
   "externalAgentFirstValidation": {
     "status": "VERIFIED_PRODUCTION_PASS_READ_PLAN_FOUNDATION",

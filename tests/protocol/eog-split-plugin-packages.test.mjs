@@ -7,7 +7,10 @@ import {
 } from "../../dist/contracts/enterprise-business-definition.js";
 import {
   EOG_2D_DESIGNER_CAPABILITY,
+  EOG_2D_DESIGNER_EXPERIENCE_ID,
   EOG_2D_DESIGNER_PACKAGE_ID,
+  EOG_2D_DESIGNER_PAGE_SOURCE,
+  EOG_2D_DESIGNER_ROUTE,
   eog2dDesignerPackage
 } from "../../dist/apps/eog-2d-designer/package.js";
 import {
@@ -100,8 +103,22 @@ test("split package capabilities are distinct and catalog-discoverable", () => {
   );
 });
 
-test("identity scaffold does not claim migrated Experience or service-provider ownership yet", () => {
-  for (const pkg of packages) {
+test("2D Designer declares its target Experience ownership without activating migration", () => {
+  const feature = eog2dDesignerPackage.features[0];
+  const experiences = (feature.contributions ?? []).filter(
+    item => item.kind === "eidos.experience"
+  );
+  assert.equal(feature.defaultActivation, false);
+  assert.equal(experiences.length, 1);
+  const manifest = experiences[0].manifest;
+  assert.equal(manifest.experienceId, EOG_2D_DESIGNER_EXPERIENCE_ID);
+  assert.equal(manifest.packageId, EOG_2D_DESIGNER_PACKAGE_ID);
+  assert.equal(manifest.defaultRoute, EOG_2D_DESIGNER_ROUTE);
+  assert.equal(manifest.pages[0].source, EOG_2D_DESIGNER_PAGE_SOURCE);
+});
+
+test("viewer packages remain identity-only until their own migration slices", () => {
+  for (const pkg of [eog2dViewerPackage, eog3dViewerPackage]) {
     const contributions = pkg.features[0].contributions ?? [];
     assert.equal(contributions.length, 0);
   }
