@@ -7,7 +7,7 @@ The package family is migrating incrementally:
 
 - `evo-eog-2d-designer` — package identity plus target Eidos Experience manifest is defined; activation still remains default-OFF until the compatibility cutover slice.
 - `evo-eog-2d-viewer` — package identity plus target desktop/mobile-read Eidos Experience manifest is defined; activation remains default-OFF until compatibility cutover.
-- `evo-eog-3d-viewer` — identity-only scaffold.
+- `evo-eog-3d-viewer` — package identity plus target spatial Eidos Experience manifest is defined; activation remains default-OFF until compatibility cutover.
 
 All packages are registered in the Package Catalog but are not installed or
 activated by default. Existing EOG production behavior remains owned by the

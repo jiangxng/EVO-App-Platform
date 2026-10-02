@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-04`  
-**Snapshot time:** `2026-10-02T12:15:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-05`  
+**Snapshot time:** `2026-10-02T12:25:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,17 +35,20 @@ Evidence:
 
 ## Current open live gate
 
-**eog-3d-viewer-experience-ownership-v0-1: READY_AFTER_2D_VIEWER_CI**
+**eog-three-plugin-compatibility-cutover-v0-1: READY_AFTER_3D_VIEWER_CI**
 
-Define EOG 3D Viewer target Experience ownership while keeping the package default-OFF and preserving the existing spatial page source/route. After that, all three target Experience owners exist and controlled compatibility cutover can begin.
+Switch EOG production ownership from Enterprise Agent compatibility gating to the three dedicated EOG application packages. Preserve existing routes/page sources, install/activate through controlled lifecycle migration, and keep Enterprise Context as the sole Enterprise Graph Definition authority.
 
 Acceptance:
 
-- EOG 3D Viewer target Experience manifest belongs to evo-eog-3d-viewer
-- legacy spatial page source/route remain stable during compatibility preparation
-- 3D Viewer remains read-oriented and uses the shared Enterprise Graph Definition
-- split package remains default-OFF until explicit cutover
-- no duplicate active Experience is introduced
+- all three dedicated EOG packages are installed/activated through an explicit compatibility migration
+- 2D Designer pages/actions are gated by evo-eog-2d-designer
+- 2D Viewer pages/read actions are gated by evo-eog-2d-viewer
+- 3D Viewer pages/read actions are gated by evo-eog-3d-viewer
+- Enterprise Agent package no longer owns EOG Experience manifests
+- existing routes and page source identifiers remain compatible
+- no duplicate active EOG Experiences exist
+- Human confirmation/publish boundaries and Enterprise Context definition authority remain unchanged
 
 ## Current production preview
 

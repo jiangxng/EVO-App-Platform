@@ -6,6 +6,11 @@ import {
 export const EOG_3D_VIEWER_PACKAGE_ID = "evo-eog-3d-viewer";
 export const EOG_3D_VIEWER_FEATURE_ID = "evo-eog-3d-viewer.default";
 export const EOG_3D_VIEWER_CAPABILITY = "enterprise.operating-graph.viewer.3d";
+export const EOG_3D_VIEWER_EXPERIENCE_ID = "evo-eog-3d-viewer";
+export const EOG_3D_VIEWER_PAGE_ID = "evo-eog-3d-viewer.observe";
+export const EOG_3D_VIEWER_PAGE_SOURCE =
+  "app://evo-enterprise-operating-graph/pages/observatory-spatial";
+export const EOG_3D_VIEWER_ROUTE = "/operating-graph/observe/3d";
 
 export const eog3dViewerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -36,6 +41,32 @@ export const eog3dViewerPackage: PackageManifestV010 = {
     ],
     providesCapabilities: [
       EOG_3D_VIEWER_CAPABILITY
-    ]
+    ],
+    contributions: [{
+      kind: "eidos.experience",
+      manifest: {
+        contractVersion: "0.1.0",
+        experienceId: EOG_3D_VIEWER_EXPERIENCE_ID,
+        packageId: EOG_3D_VIEWER_PACKAGE_ID,
+        featureId: EOG_3D_VIEWER_FEATURE_ID,
+        defaultRoute: EOG_3D_VIEWER_ROUTE,
+        pages: [{
+          id: EOG_3D_VIEWER_PAGE_ID,
+          title: "Enterprise Operating Graph Viewer 3D",
+          source: EOG_3D_VIEWER_PAGE_SOURCE
+        }],
+        routes: [{
+          id: EOG_3D_VIEWER_PAGE_ID,
+          path: EOG_3D_VIEWER_ROUTE,
+          pageId: EOG_3D_VIEWER_PAGE_ID
+        }],
+        navigation: [{
+          id: "evo-eog-3d-viewer.nav",
+          label: "Operating Graph 3D",
+          route: EOG_3D_VIEWER_ROUTE,
+          order: 17
+        }]
+      }
+    }]
   }]
 };

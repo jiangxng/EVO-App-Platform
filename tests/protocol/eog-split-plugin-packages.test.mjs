@@ -25,7 +25,10 @@ import {
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
   EOG_3D_VIEWER_CAPABILITY,
+  EOG_3D_VIEWER_EXPERIENCE_ID,
   EOG_3D_VIEWER_PACKAGE_ID,
+  EOG_3D_VIEWER_PAGE_SOURCE,
+  EOG_3D_VIEWER_ROUTE,
   eog3dViewerPackage
 } from "../../dist/apps/eog-3d-viewer/package.js";
 
@@ -147,7 +150,16 @@ test("2D Viewer declares desktop and mobile read Experience ownership without ac
   );
 });
 
-test("3D Viewer remains identity-only until its own migration slice", () => {
-  const contributions = eog3dViewerPackage.features[0].contributions ?? [];
-  assert.equal(contributions.length, 0);
+test("3D Viewer declares its target spatial Experience ownership without activation", () => {
+  const feature = eog3dViewerPackage.features[0];
+  const experiences = (feature.contributions ?? []).filter(
+    item => item.kind === "eidos.experience"
+  );
+  assert.equal(feature.defaultActivation, false);
+  assert.equal(experiences.length, 1);
+  const manifest = experiences[0].manifest;
+  assert.equal(manifest.experienceId, EOG_3D_VIEWER_EXPERIENCE_ID);
+  assert.equal(manifest.packageId, EOG_3D_VIEWER_PACKAGE_ID);
+  assert.equal(manifest.defaultRoute, EOG_3D_VIEWER_ROUTE);
+  assert.equal(manifest.pages[0].source, EOG_3D_VIEWER_PAGE_SOURCE);
 });
