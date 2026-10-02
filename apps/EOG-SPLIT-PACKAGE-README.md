@@ -6,7 +6,7 @@ This directory-level split starts the physical convergence defined by
 The package family is migrating incrementally:
 
 - `evo-eog-2d-designer` — package identity plus target Eidos Experience manifest is defined; activation still remains default-OFF until the compatibility cutover slice.
-- `evo-eog-2d-viewer` — identity-only scaffold.
+- `evo-eog-2d-viewer` — package identity plus target desktop/mobile-read Eidos Experience manifest is defined; activation remains default-OFF until compatibility cutover.
 - `evo-eog-3d-viewer` — identity-only scaffold.
 
 All packages are registered in the Package Catalog but are not installed or
