@@ -33,6 +33,10 @@ import {
   type Eog2dInspectorEditorBindingV010
 } from "../../eog/2d-inspector-editors.js";
 import {
+  inspectEog2dSelectionV010,
+  parseEog2dSelectionTargetV010
+} from "../../eog/2d-selection-inspection.js";
+import {
   createEnterpriseOperatingGraphActionHandlersV010,
   EOG_APPLY_OPERATION_ACTION,
   EOG_CREATE_ACTION
@@ -43,6 +47,9 @@ import type {
 import type {
   EnterpriseOperatingGraphViewStateProviderV010
 } from "../../contracts/enterprise-operating-graph-view-state.js";
+import type {
+  EnterpriseOperatingGraphInspectorPropertyResolverV010
+} from "../../contracts/enterprise-operating-graph-inspector.js";
 import {
   authorizeMaterialWriteV010
 } from "../../actions/material-write-authorization.js";
@@ -57,6 +64,8 @@ export const EOG_VIEW_GET_ACTION =
   "enterprise-operating-graph.view.get";
 export const EOG_VIEW_OPERATION_ACTION =
   "enterprise-operating-graph.view.operation";
+export const EOG_VIEW_SELECTION_GET_ACTION =
+  "enterprise-operating-graph.view.selection.get";
 
 export function createEnterpriseOperatingGraphExperienceManifestV010() {
   return {
@@ -148,6 +157,10 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
     },
     operationCommand: {
       code: EOG_VIEW_OPERATION_ACTION,
+      inputVersion: "0.1.0"
+    },
+    selectionReadCommand: {
+      code: EOG_VIEW_SELECTION_GET_ACTION,
       inputVersion: "0.1.0"
     },
     requestValues: {
@@ -368,6 +381,7 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
     service: EnterpriseOperatingGraphHostServiceV010;
     viewService: EnterpriseOperatingGraphViewStateProviderV010;
     resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
+    inspectorResolver: EnterpriseOperatingGraphInspectorPropertyResolverV010;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
   }
 ): AppActionHandler[] {
@@ -483,6 +497,24 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
               resourceId,
               dependencies.locale?.(context)
             )
+      );
+    }),
+
+    handler(EOG_VIEW_SELECTION_GET_ACTION, async (request, context) => {
+      const resourceId = stringValue(request.values, "resourceId");
+      const graph = getGraph(context, resourceId);
+      if (!graph) throw new Error("EOG_GRAPH_NOT_FOUND");
+
+      return success(
+        request,
+        await inspectEog2dSelectionV010({
+          graph,
+          target: parseEog2dSelectionTargetV010(
+            request.values.target
+          ),
+          role: "DESIGNER",
+          resolver: dependencies.inspectorResolver
+        })
       );
     }),
 
