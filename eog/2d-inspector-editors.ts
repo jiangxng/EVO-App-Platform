@@ -1,6 +1,6 @@
 import type {
-  DiagramEditorStateV010,
-  DiagramInspectorPropertyEditorV010
+  DiagramWorkspaceStateV010,
+  DiagramWorkspaceInspectorPropertyEditorV010
 } from "../vendor/eidos/src/2d/index.js";
 
 export interface Eog2dInspectorEditorBindingV010 {
@@ -9,13 +9,13 @@ export interface Eog2dInspectorEditorBindingV010 {
     id: string;
   };
   propertyKey: string;
-  editor: DiagramInspectorPropertyEditorV010;
+  editor: DiagramWorkspaceInspectorPropertyEditorV010;
 }
 
 export function attachEog2dInspectorEditorsV010(
-  state: DiagramEditorStateV010,
+  state: DiagramWorkspaceStateV010,
   bindings: readonly Eog2dInspectorEditorBindingV010[]
-): DiagramEditorStateV010 {
+): DiagramWorkspaceStateV010 {
   const next = structuredClone(state);
 
   for (const binding of bindings) {
