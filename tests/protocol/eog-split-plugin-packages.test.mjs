@@ -21,6 +21,8 @@ import {
   EOG_2D_VIEWER_PACKAGE_ID,
   EOG_2D_VIEWER_PAGE_SOURCE,
   EOG_2D_VIEWER_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
   eog2dViewerPackage
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
@@ -134,14 +136,22 @@ test("2D Viewer owns desktop and mobile read Experiences and is active by defaul
   const manifest = experiences[0].manifest;
   assert.equal(manifest.experienceId, EOG_2D_VIEWER_EXPERIENCE_ID);
   assert.equal(manifest.packageId, EOG_2D_VIEWER_PACKAGE_ID);
-  assert.equal(manifest.defaultRoute, EOG_2D_VIEWER_ROUTE);
+  assert.equal(manifest.defaultRoute, EOG_2D_VIEWER_WORKSPACE_ROUTE);
   assert.deepEqual(
     manifest.pages.map(page => page.source),
-    [EOG_2D_VIEWER_PAGE_SOURCE, EOG_2D_VIEWER_MOBILE_PAGE_SOURCE]
+    [
+      EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+      EOG_2D_VIEWER_PAGE_SOURCE,
+      EOG_2D_VIEWER_MOBILE_PAGE_SOURCE
+    ]
   );
   assert.deepEqual(
     manifest.routes.map(route => route.path),
-    [EOG_2D_VIEWER_ROUTE, EOG_2D_VIEWER_MOBILE_ROUTE]
+    [
+      EOG_2D_VIEWER_WORKSPACE_ROUTE,
+      EOG_2D_VIEWER_ROUTE,
+      EOG_2D_VIEWER_MOBILE_ROUTE
+    ]
   );
   assert.equal(
     manifest.surfaces.find(surface => surface.target === "MOBILE_READ")?.support,
