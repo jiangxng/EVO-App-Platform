@@ -115,4 +115,13 @@ Key boundary changes:
 - exposes a Viewer-owned operation command that fails closed as `EOG_2D_VIEWER_READ_ONLY`;
 - old manager page path is a compatibility re-export only.
 
-This makes read-only Viewer behavior an executable boundary rather than a presentation convention.
+This makes semantic read-only behavior an executable boundary. It does not prohibit Viewer interaction such as node/edge selection, property inspection, navigation, drill-down, filters, overlays, pan/zoom/focus, or policy-governed presentation-state behavior.
+
+
+## Interactive Viewer clarification
+
+The Viewer is not a static reader.
+
+It shares the 2D workspace interaction foundation with Designer, including node/edge selection and property inspection. The difference is that semantic editors and semantic mutation actions are absent from Viewer.
+
+The Viewer-owned fail-closed operation command protects the semantic write boundary only. Generic local interaction and future explicitly governed View State commands belong to the shared workspace model.
