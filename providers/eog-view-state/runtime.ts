@@ -2,12 +2,14 @@ import {
   PRIMARY_EOG_DIAGRAM_VIEW_ID_V010,
   PRIMARY_EOG_SPATIAL_VIEW_ID_V010,
   type EnterpriseOperatingGraphViewKindV010,
-  type EnterpriseOperatingGraphViewMutationV010,
   type EnterpriseOperatingGraphViewStateV010
 } from "../../contracts/enterprise-operating-graph-view.js";
 import type {
   EnterpriseOperatingGraphViewStoreV010
 } from "./store.js";
+import type {
+  EnterpriseOperatingGraphViewStateProviderV010
+} from "../../contracts/enterprise-operating-graph-view-state.js";
 
 function required(value: string, code: string): string {
   if (!value?.trim()) throw new Error(code);
@@ -30,10 +32,6 @@ function defaultViewId(
   }
   return graphId + (kind === "DIAGRAM_2D" ? ":view:diagram-2d" : ":view:spatial-3d");
 }
-
-import type {
-  EnterpriseOperatingGraphViewStateProviderV010
-} from "../../contracts/enterprise-operating-graph-view-state.js";
 
 export function createEogViewStateProviderV010(input: {
   store: EnterpriseOperatingGraphViewStoreV010;
