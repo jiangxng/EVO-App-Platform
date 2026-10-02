@@ -305,3 +305,17 @@ shared Inspector property value
 The edit command belongs to the property owner. EOG does not proxy or reinterpret that write.
 
 Built-in EOG structural properties remain produced by the package-neutral EOG projection. Contributed keys may not silently replace built-in keys.
+
+
+## Inspector provider aggregation
+
+Inspector property ownership is additive. The Host therefore resolves all active providers for the public Inspector capability rather than selecting one winner.
+
+The resolver:
+
+- discovers active `enterprise.operating-graph.inspector-properties` providers;
+- resolves registered runtimes in deterministic provider-id order;
+- validates provider identity and target identity;
+- returns contributions without routing property writes through EOG.
+
+Viewer/Designer role filtering remains downstream: Viewer strips edit descriptors; Designer may retain them.
