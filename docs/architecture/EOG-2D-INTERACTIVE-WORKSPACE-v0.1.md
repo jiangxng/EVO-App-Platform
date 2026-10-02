@@ -254,3 +254,25 @@ Eidos 2D Core exposes `DiagramWorkspace*V010` compatibility names over the exist
 The package-neutral EOG projection, Inspector editor-binding seam, 2D Viewer and 2D Designer now consume those neutral Workspace types.
 
 Designer-specific function names may still use `Editor` where the function itself is specifically about editing. The reusable surface type no longer implies that every consumer is an editor.
+
+
+## Viewer shell and Observatory mode
+
+The generic 2D Viewer Workspace is now distinct from the Observatory mode.
+
+```text
+EOG 2D Viewer
+├── Workspace
+│   ├── graph navigation
+│   ├── node / edge selection
+│   └── shared property Inspector
+│
+└── Observatory mode
+    ├── Time Lens
+    ├── Runtime Fact overlays
+    └── Analysis overlays
+```
+
+The Viewer package default desktop entry is the generic Workspace. The existing `/operating-graph/observe` route remains available as a compatibility/observability mode.
+
+This prevents Runtime Observatory from becoming the definition of the Viewer product.
