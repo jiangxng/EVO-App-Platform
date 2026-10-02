@@ -79,3 +79,14 @@ Preserved:
 - `enterprise.operating_graph.spatial_view.get/apply` is the explicit SPATIAL_3D path owned by EOG 3D Viewer;
 - spatial placement/camera remain presentation state and do not change semantic graph revision;
 - no EOG Agent tool descriptor remains generically owned by `evo-app-platform`.
+
+
+## Physical implementation ownership
+
+The tool descriptor ownership above is now mirrored by source ownership:
+
+- `apps/eog-2d-designer/agent-tools.ts` owns semantic and DIAGRAM_2D Agent tool implementations;
+- `apps/eog-3d-viewer/agent-tools.ts` owns SPATIAL_3D Agent tool implementations;
+- `manager/enterprise-operating-graph-agent-tools.ts` is compatibility composition only.
+
+The compatibility composer preserves the existing Host call site and stable tool catalog while preventing 3D tool implementation from living inside the Designer package.
