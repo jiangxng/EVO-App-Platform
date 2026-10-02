@@ -18,7 +18,7 @@ import type {
 } from "./enterprise-operating-graph-service.js";
 import {
   authorizeMaterialWriteV010
-} from "../../manager/material-write-authorization.js";
+} from "../../actions/material-write-authorization.js";
 
 export const EOG_CREATE_ACTION = "enterprise-operating-graph.create";
 export const EOG_GET_ACTION = "enterprise-operating-graph.get";

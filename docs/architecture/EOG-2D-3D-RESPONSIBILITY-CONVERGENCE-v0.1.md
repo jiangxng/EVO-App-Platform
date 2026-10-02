@@ -432,3 +432,25 @@ It defines:
 - provider contract identifiers.
 
 The Host manager keeps provider discovery/binding and concrete service construction. Viewer plugins receive the public resolver/service boundary and remain unaware of manager-private implementation.
+
+
+## 21. EOG plugin dependency closure
+
+All three EOG application packages are now prohibited from importing `manager/**` private implementation.
+
+The final generic dependency that crossed this boundary, material-write authorization, is exposed from the shared ActionHost utility layer:
+
+`actions/material-write-authorization.ts`
+
+The legacy manager path remains a compatibility re-export for Host code.
+
+CI now enforces:
+
+```text
+apps/eog-2d-designer/**
+apps/eog-2d-viewer/**
+apps/eog-3d-viewer/**
+    !-> manager/**
+```
+
+Allowed dependency directions are public contracts, neutral EOG adapters, shared ActionHost utilities and public Eidos Core facades.
