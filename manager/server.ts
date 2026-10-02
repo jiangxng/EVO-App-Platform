@@ -75,12 +75,12 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
 import {
-  createFileEnterpriseOperatingGraphViewStoreV010,
-  createMemoryEnterpriseOperatingGraphViewStoreV010
-} from "./enterprise-operating-graph-view-store.js";
+  createFileEogViewStateStoreV010,
+  createMemoryEogViewStateStoreV010
+} from "../providers/eog-view-state/store.js";
 import {
-  createEnterpriseOperatingGraphViewHostServiceV010
-} from "./enterprise-operating-graph-view-service.js";
+  createEogViewStateProviderV010
+} from "../providers/eog-view-state/runtime.js";
 import {
   createFileEogApplicationRuntimeBindingStoreV010,
   createMemoryEogApplicationRuntimeBindingStoreV010
@@ -861,12 +861,12 @@ const enterpriseOperatingGraphViewStateFile =
     ? join(dirname(lifecycleStateFile), "enterprise-operating-graph-views.json")
     : undefined);
 const enterpriseOperatingGraphViewStore = enterpriseOperatingGraphViewStateFile
-  ? createFileEnterpriseOperatingGraphViewStoreV010(
+  ? createFileEogViewStateStoreV010(
       enterpriseOperatingGraphViewStateFile
     )
-  : createMemoryEnterpriseOperatingGraphViewStoreV010();
+  : createMemoryEogViewStateStoreV010();
 const enterpriseOperatingGraphViewService =
-  createEnterpriseOperatingGraphViewHostServiceV010({
+  createEogViewStateProviderV010({
     store: enterpriseOperatingGraphViewStore
   });
 
