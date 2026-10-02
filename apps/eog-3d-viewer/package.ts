@@ -37,7 +37,8 @@ export const eog3dViewerPackage: PackageManifestV010 = {
     activationScope: "INSTALLATION",
     defaultActivation: true,
     requiresCapabilities: [
-      ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
+      ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
+      "authorization.check"
     ],
     providesCapabilities: [
       EOG_3D_VIEWER_CAPABILITY

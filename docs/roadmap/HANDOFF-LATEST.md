@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-09`  
-**Snapshot time:** `2026-10-02T13:55:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-10`  
+**Snapshot time:** `2026-10-02T14:05:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,19 +35,18 @@ Evidence:
 
 ## Current open live gate
 
-**eog-agent-view-tool-2d-3d-split-v0-1: READY_AFTER_SEMANTIC_OBSERVATORY_TOOL_CI**
+**eog-enterprise-context-definition-persistence-convergence-v0-1: READY**
 
-Split the remaining generic Personal Agent EOG View tools because enterprise.operating_graph.view.get/apply currently mix DIAGRAM_2D and SPATIAL_3D under one generic owner. Preserve the existing generic IDs as the 2D compatibility path where possible and introduce explicit spatial tool ownership for evo-eog-3d-viewer.
+Move authoritative Enterprise Graph semantic persistence behind Enterprise Context Business Definition Repository while preserving existing EOG domain contracts, routes, views and Human/Agent authority boundaries. The legacy EOG semantic store becomes migration/compatibility input rather than authority.
 
 Acceptance:
 
-- enterprise.operating_graph.view.get/apply no longer accept mixed 2D and 3D responsibility under evo-app-platform ownership
-- stable generic view.get/apply IDs and model names remain available for the 2D compatibility path where feasible
-- explicit SPATIAL_3D Agent View tools are owned and lifecycle-gated by evo-eog-3d-viewer
-- 2D View mutation cannot set 3D camera state
-- 3D View mutation remains presentation state and cannot change semantic graph revision
-- no EOG Agent tool descriptor remains owned by evo-app-platform after the split
-- Human-only semantic confirmation/removal/publish authority remains unchanged
+- Enterprise Graph semantic revisions are persisted through enterprise.business-definition.repository
+- legacy EOG semantic store is no longer authoritative for new writes
+- existing EOG graph IDs and semantic contract remain compatible
+- 2D/3D View State stays outside Enterprise Context definition revisions
+- Human-only confirm/remove/publish authority remains unchanged
+- migration preserves existing graph data without destructive rewrite
 
 ## Current production preview
 
@@ -84,6 +83,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #266 — MERGED_CI_PASS: Split semantic and Observatory Personal Agent tool ownership between EOG 2D Designer and EOG 2D Viewer while preserving Provider calculation ownership.
 - PR #265 — MERGED_CI_PASS: Cut EOG 3D Viewer Experience and spatial read ActionHost ownership to evo-eog-3d-viewer, completing dedicated ownership for all three EOG application Experiences.
 - PR #264 — MERGED_CI_PASS: Cut EOG 2D Viewer desktop/mobile-read Experience and read/orchestration ownership to evo-eog-2d-viewer while preserving peer-provider analysis ownership.
 - PR #263 — MERGED_CI_PASS: Cut EOG 2D Designer Experience and Human semantic/2D ActionHost ownership to evo-eog-2d-designer.
@@ -467,6 +467,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EOG semantic Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-designer
 - state EOG Observatory Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-viewer while calculations remain peer-Provider-owned
 - state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split
+- state stable enterprise.operating_graph.view.get/apply as DIAGRAM_2D-only compatibility tools owned by evo-eog-2d-designer
+- state enterprise.operating_graph.spatial_view.get/apply as SPATIAL_3D tools owned and lifecycle-gated by evo-eog-3d-viewer
+- state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split
 
 No previous ChatGPT transcript is required.
 

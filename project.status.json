@@ -437,7 +437,8 @@
     "eog-2d-designer-controlled-cutover-v0-1",
     "eog-2d-viewer-controlled-cutover-v0-1",
     "eog-3d-viewer-controlled-cutover-v0-1",
-    "eog-agent-semantic-observatory-ownership-split-v0-1"
+    "eog-agent-semantic-observatory-ownership-split-v0-1",
+    "eog-agent-view-tool-2d-3d-split-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -463,7 +464,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "All three EOG Experiences/ActionHost surfaces are cut over. Personal Agent EOG semantic tools are now owned/lifecycle-gated by evo-eog-2d-designer, and Observatory read/analyze tools are owned/lifecycle-gated by evo-eog-2d-viewer without moving Provider calculation ownership. The only remaining generic EOG Agent-tool ownership debt is enterprise.operating_graph.view.get/apply because those tools still mix DIAGRAM_2D and SPATIAL_3D.",
+  "currentStep": "EOG Experience/ActionHost ownership and Personal Agent tool ownership are now split across the three dedicated plugins. Stable generic view.get/apply is DIAGRAM_2D-only under evo-eog-2d-designer; explicit spatial_view.get/apply is SPATIAL_3D under evo-eog-3d-viewer. No EOG Agent tool descriptor remains owned by evo-app-platform. Next gate is Enterprise Graph Definition persistence convergence from the legacy EOG semantic store into Enterprise Context Business Definition authority.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1719,8 +1720,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-09",
-    "snapshotAt": "2026-10-02T13:55:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-10",
+    "snapshotAt": "2026-10-02T14:05:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1755,18 +1756,17 @@
         }
       },
       "openGate": {
-        "id": "eog-agent-view-tool-2d-3d-split-v0-1",
-        "status": "READY_AFTER_SEMANTIC_OBSERVATORY_TOOL_CI",
-        "summary": "Split the remaining generic Personal Agent EOG View tools because enterprise.operating_graph.view.get/apply currently mix DIAGRAM_2D and SPATIAL_3D under one generic owner. Preserve the existing generic IDs as the 2D compatibility path where possible and introduce explicit spatial tool ownership for evo-eog-3d-viewer.",
-        "authority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md",
+        "id": "eog-enterprise-context-definition-persistence-convergence-v0-1",
+        "status": "READY",
+        "summary": "Move authoritative Enterprise Graph semantic persistence behind Enterprise Context Business Definition Repository while preserving existing EOG domain contracts, routes, views and Human/Agent authority boundaries. The legacy EOG semantic store becomes migration/compatibility input rather than authority.",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "enterprise.operating_graph.view.get/apply no longer accept mixed 2D and 3D responsibility under evo-app-platform ownership",
-          "stable generic view.get/apply IDs and model names remain available for the 2D compatibility path where feasible",
-          "explicit SPATIAL_3D Agent View tools are owned and lifecycle-gated by evo-eog-3d-viewer",
-          "2D View mutation cannot set 3D camera state",
-          "3D View mutation remains presentation state and cannot change semantic graph revision",
-          "no EOG Agent tool descriptor remains owned by evo-app-platform after the split",
-          "Human-only semantic confirmation/removal/publish authority remains unchanged"
+          "Enterprise Graph semantic revisions are persisted through enterprise.business-definition.repository",
+          "legacy EOG semantic store is no longer authoritative for new writes",
+          "existing EOG graph IDs and semantic contract remain compatible",
+          "2D/3D View State stays outside Enterprise Context definition revisions",
+          "Human-only confirm/remove/publish authority remains unchanged",
+          "migration preserves existing graph data without destructive rewrite"
         ]
       },
       "productionPreview": {
@@ -1782,6 +1782,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 266,
+        "status": "MERGED_CI_PASS",
+        "summary": "Split semantic and Observatory Personal Agent tool ownership between EOG 2D Designer and EOG 2D Viewer while preserving Provider calculation ownership."
+      },
       {
         "pr": 265,
         "status": "MERGED_CI_PASS",
@@ -2450,7 +2455,10 @@
       "state EOG Agent tool ownership split as the next active gate while preserving stable tool IDs and Human-only confirm/publish authority",
       "state EOG semantic Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-designer",
       "state EOG Observatory Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-viewer while calculations remain peer-Provider-owned",
-      "state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split"
+      "state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split",
+      "state stable enterprise.operating_graph.view.get/apply as DIAGRAM_2D-only compatibility tools owned by evo-eog-2d-designer",
+      "state enterprise.operating_graph.spatial_view.get/apply as SPATIAL_3D tools owned and lifecycle-gated by evo-eog-3d-viewer",
+      "state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3437,15 +3445,16 @@
       }
     ],
     "eogExperienceOwnershipMigration": {
-      "status": "EXPERIENCE_ACTION_CUTOVER_COMPLETE_AGENT_TOOL_SPLIT_IN_PROGRESS",
+      "status": "EXPERIENCE_ACTION_AGENT_TOOL_SPLIT_COMPLETE",
       "twoDDesigner": "CUT_OVER_ACTIVE",
       "twoDViewer": "CUT_OVER_ACTIVE",
       "threeDViewer": "CUT_OVER_ACTIVE",
-      "agentToolOwnership": "NEXT_TOOL_SPLIT",
+      "agentToolOwnership": "THREE_PLUGIN_SPLIT_COMPLETE",
       "compatibilityCutover": "THREE_APP_PLUGINS_DONE",
       "agentSemanticTools": "EOG_2D_DESIGNER_OWNED",
       "agentObservatoryTools": "EOG_2D_VIEWER_OWNED",
-      "agentGenericViewTools": "COMPATIBILITY_PENDING_2D_3D_SPLIT"
+      "agentGenericViewTools": "DIAGRAM_2D_COMPATIBILITY_OWNED_BY_DESIGNER",
+      "agentSpatialViewTools": "SPATIAL_3D_OWNED_BY_3D_VIEWER"
     }
   },
   "externalAgentFirstValidation": {
