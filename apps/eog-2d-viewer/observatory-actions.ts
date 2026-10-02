@@ -15,7 +15,7 @@ import type {
 } from "../../contracts/enterprise-operating-graph-read.js";
 import type {
   EnterpriseOperatingGraphObservatoryProviderResolverV020
-} from "../../manager/enterprise-operating-graph-observatory-provider.js";
+} from "../../contracts/enterprise-operating-graph-observatory-runtime.js";
 import {
   parseEogObservatoryRequestInputV020
 } from "../../eog/observatory-input.js";
