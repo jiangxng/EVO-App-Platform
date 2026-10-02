@@ -17,6 +17,29 @@ function required(value: string, code: string): string {
   return value.trim();
 }
 
+function sameTarget(
+  left: EogInspectorTargetV010,
+  right: EogInspectorTargetV010
+): boolean {
+  if (left.kind !== right.kind) return false;
+  if (left.kind === "NODE" && right.kind === "NODE") {
+    return left.nodeId === right.nodeId
+      && left.nodeKind === right.nodeKind
+      && left.semanticRef.authority === right.semanticRef.authority
+      && left.semanticRef.kind === right.semanticRef.kind
+      && left.semanticRef.refId === right.semanticRef.refId
+      && left.semanticRef.versionRef === right.semanticRef.versionRef;
+  }
+  if (left.kind === "RELATION" && right.kind === "RELATION") {
+    return left.authority === right.authority
+      && left.relationId === right.relationId
+      && left.relationKind === right.relationKind
+      && left.applicationNodeId === right.applicationNodeId
+      && left.ledgerNodeId === right.ledgerNodeId;
+  }
+  return false;
+}
+
 export function createEnterpriseOperatingGraphInspectorPropertyResolverV010(
   input: {
     manager: Pick<AppManagerService, "listEffectiveServiceProviders">;
@@ -80,7 +103,7 @@ export function createEnterpriseOperatingGraphInspectorPropertyResolverV010(
         if (
           contribution.contractVersion !== "0.1.0"
           || contribution.providerId !== candidate.providerId
-          || JSON.stringify(contribution.target) !== JSON.stringify(target)
+          || !sameTarget(contribution.target, target)
         ) {
           throw new Error("EOG_INSPECTOR_PROVIDER_CONTRACT_MISMATCH");
         }
