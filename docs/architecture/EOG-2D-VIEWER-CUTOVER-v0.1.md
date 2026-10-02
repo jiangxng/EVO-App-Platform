@@ -86,3 +86,17 @@ Observatory Agent tools remain on the compatibility tool-registration path until
 4. Enterprise Agent no longer injects the 2D Viewer Experience;
 5. analysis computation remains in peer Providers/Plugins;
 6. existing observatory regression tests remain green.
+
+
+## Physical ownership convergence — runtime/read slice
+
+The following implementations now live under `apps/eog-2d-viewer/`:
+
+- Observatory request input parsing;
+- Observatory Human action handlers;
+- Observatory Personal Agent tools;
+- mobile read projection/action handling.
+
+The previous `manager/enterprise-operating-graph-*` locations remain compatibility re-exports only.
+
+The desktop 2D Observatory projection is intentionally deferred to the next slice because it still shares EOG-to-Eidos 2D projection logic with the Designer. That projection dependency will be separated before the desktop page is moved.
