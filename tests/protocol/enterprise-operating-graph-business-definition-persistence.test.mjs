@@ -253,18 +253,35 @@ test("legacy migration remains restart-safe after repository-backed EOG advances
     actor: agent,
     occurredAt: "2026-10-02T03:00:00.000Z",
     mutation: {
-      type: "GUIDANCE_RELATION_PUT",
-      relation: {
-        relationId: "guidance:restart",
-        kind: "APPLICATION_LEDGER",
-        applicationNodeId: "node:app:legacy",
-        ledgerNodeId: "node:ledger:missing",
-        source: {
-          kind: "ACCOUNTING_GUIDANCE",
-          sourceRef: "test"
+      type: "NODE_BIND",
+      node: {
+        nodeId: "node:ledger:restart",
+        kind: "LEDGER",
+        semanticRef: {
+          kind: "LEDGER_DEFINITION",
+          authority: "EVO",
+          refId: "ledger:restart"
         }
       }
     }
   });
-  void advanced;
+  assert.equal(advanced.revision, legacy.revision + 1);
+
+  const restarted = migrateLegacyEnterpriseOperatingGraphSnapshotV010({
+    snapshot,
+    repository
+  });
+  assert.deepEqual(restarted, {
+    sourcePresent: true,
+    examined: 1,
+    imported: 0,
+    alreadyPresent: 1
+  });
+  assert.equal(
+    repository.getLatest({
+      enterpriseId: legacy.enterpriseId,
+      definitionId: legacy.graphId
+    }).revision,
+    advanced.revision
+  );
 });
