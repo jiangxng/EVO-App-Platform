@@ -59,7 +59,7 @@
         "manager/enterprise-operating-graph-application-runtime-service.ts",
         "manager/enterprise-operating-graph-application-runtime-store.ts"
       ],
-      "status": "PHYSICAL_IMPLEMENTATION_PROVIDER_OWNED_HOST_DIRECT_BOOTSTRAP",
+      "status": "PACKAGE_LIFECYCLE_RESOLUTION_ACTIVE",
       "providerId": "evo.application-runtime-binding",
       "capability": "enterprise.application-runtime-binding",
       "publicContract": "contracts/enterprise-application-runtime-binding.ts",
@@ -72,8 +72,12 @@
           "manager/enterprise-operating-graph-application-runtime-store.ts",
           "contracts/enterprise-operating-graph-application-runtime.ts"
         ],
-        "activation": "HOST_DIRECT_BOOTSTRAP_COMPATIBILITY",
-        "next": "PACKAGE_LIFECYCLE_AND_PROVIDER_RUNTIME_REGISTRY_CUTOVER"
+        "activation": "PACKAGE_DESCRIPTOR_GATED_PROVIDER_RESOLUTION",
+        "next": "ANALYSIS_PROVIDER_CONTRACT_AUDIT",
+        "migrationActivation": [
+          "persisted-binding-snapshot-present",
+          "configured-evo-observatory-application-map-present"
+        ]
       }
     },
     "analysisProviders": {

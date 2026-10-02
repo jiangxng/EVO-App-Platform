@@ -180,6 +180,10 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
+import {
+  ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
+  type EnterpriseApplicationRuntimeBindingProviderV010
+} from "../contracts/enterprise-application-runtime-binding.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -416,6 +420,8 @@ import {
   eogBottleneckAnalysisProviderPackage
 } from "../providers/eog-bottleneck-analysis/package.js";
 import {
+  APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
 } from "../providers/application-runtime-binding/package.js";
 import {
@@ -1142,6 +1148,19 @@ const helpCorpus = (() => {
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
 
+providerRuntimeRegistry.replace<EnterpriseApplicationRuntimeBindingProviderV010>(
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
+  applicationRuntimeBindingProvider
+);
+providerRuntimeRegistry.setHealth(
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Application Runtime Binding runtime is ready; package lifecycle controls discoverability.",
+    checkedAt: new Date().toISOString()
+  }
+);
+
 if (managedSessionEnabled) {
   providerRuntimeRegistry.replace<RequestIdentitySessionProviderV010>(
     HOST_MANAGED_SESSION_PROVIDER_ID,
@@ -1610,6 +1629,19 @@ const enterpriseOperatingGraphInspectorProperties =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
+if (
+  applicationRuntimeBindingStore.snapshot().bindings.length > 0
+  && !installedAtStartup.some(
+    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    console.log("Migrated persisted Application Runtime Bindings onto the provider package.");
+  } catch (error) {
+    console.error("Failed to activate Application Runtime Binding Provider.", error);
+  }
+}
 if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
@@ -1807,6 +1839,19 @@ if (
   } catch (error) {
     console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
   }
+}
+
+function resolveApplicationRuntimeBindingProvider():
+  EnterpriseApplicationRuntimeBindingProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseApplicationRuntimeBindingProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(
+      ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010
+    ),
+    providerBindings,
+    ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
+    { installationId: "default" }
+  )?.runtime;
 }
 
 function resolveManagedSecretsProvider(): ManagedSecretsProviderV010 | undefined {
@@ -2327,8 +2372,31 @@ const evoObservatoryApplicationMap = (() => {
   }
   return result;
 })();
+if (
+  evoObservatoryApplicationMap.length > 0
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
+  } catch (error) {
+    console.error("Failed to activate Application Runtime Binding Provider.", error);
+  }
+}
+const configuredApplicationRuntimeBindingProvider =
+  evoObservatoryApplicationMap.length > 0
+    ? resolveApplicationRuntimeBindingProvider()
+    : undefined;
+if (
+  evoObservatoryApplicationMap.length > 0
+  && !configuredApplicationRuntimeBindingProvider
+) {
+  throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+}
 for (const mapping of evoObservatoryApplicationMap) {
-  applicationRuntimeBindingProvider.bind({
+  configuredApplicationRuntimeBindingProvider!.bind({
     enterpriseId: mapping.enterpriseId,
     hostApplicationRefId: mapping.hostApplicationRefId,
     runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
@@ -2749,7 +2817,7 @@ if (evoObservatoryEnabled) {
       hostEnterpriseId: string,
       hostApplicationRefId: string
     ) {
-      return applicationRuntimeBindingProvider.resolve({
+      return resolveApplicationRuntimeBindingProvider()?.resolve({
         enterpriseId: hostEnterpriseId,
         hostApplicationRefId,
         runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID

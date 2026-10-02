@@ -222,3 +222,29 @@ Host bootstrap consumes the provider-owned implementation directly. Existing per
 - new configuration may use `APP_PLATFORM_APPLICATION_RUNTIME_BINDING_FILE`.
 
 Package lifecycle activation is intentionally deferred to the next slice so implementation ownership and lifecycle cutover remain independently verifiable.
+
+
+## Runtime Binding Adapter lifecycle cutover
+
+Provider runtime registration and provider availability are deliberately separate.
+
+The runtime may be present in the Host runtime registry, but consumers resolve it only through effective provider descriptors from installed packages:
+
+```text
+runtime registry presence
+    +
+installed package descriptor
+    ↓
+Provider Resolution
+    ↓
+Application Runtime Binding Provider
+```
+
+Therefore uninstalling/deactivating the provider package removes it from normal resolution without requiring consumers to know implementation details.
+
+Upgrade compatibility:
+
+- a persisted legacy binding snapshot triggers provider-package installation;
+- configured EVO Observatory application mappings trigger provider-package installation;
+- otherwise the package remains default-OFF;
+- runtime consumers resolve the provider through the standard capability resolver rather than directly calling the implementation instance.
