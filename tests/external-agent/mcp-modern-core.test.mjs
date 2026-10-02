@@ -295,3 +295,136 @@ test("Mcp-Name is rejected on methods that do not name an MCP object", async () 
   assert.equal(result.body.error.code, -32020);
   assert.equal(result.body.error.data.code, "MCP_NAME_HEADER_UNEXPECTED");
 });
+
+
+test("handshake-era Streamable HTTP initialize works without 2026 headers", async () => {
+  const adapter = createMcpModernHttpAdapterV010(core());
+  const result = await adapter.handle({
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: {
+      jsonrpc: "2.0",
+      id: 11,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-11-25",
+        capabilities: {},
+        clientInfo: {
+          name: "legacy-fixture",
+          version: "1.0.0"
+        }
+      }
+    }
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.error, undefined);
+  assert.equal(result.body.result.protocolVersion, "2025-11-25");
+  assert.deepEqual(result.body.result.capabilities, {
+    tools: { listChanged: false }
+  });
+  assert.equal(result.body.result.serverInfo.name, "evo-app-platform");
+  assert.equal(result.body.result.resultType, undefined);
+  assert.equal(result.headers["mcp-session-id"], undefined);
+});
+
+test("handshake-era tools/list works without Mcp-Method and modern metadata", async () => {
+  const adapter = createMcpModernHttpAdapterV010(core());
+  const result = await adapter.handle({
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "mcp-protocol-version": "2025-11-25"
+    },
+    body: {
+      jsonrpc: "2.0",
+      id: 12,
+      method: "tools/list",
+      params: {}
+    }
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.error, undefined);
+  assert.deepEqual(
+    result.body.result.tools.map(item => item.name),
+    ["a-tool", "z-tool"]
+  );
+  assert.equal(result.body.result.resultType, undefined);
+  assert.equal(result.body.result.ttlMs, undefined);
+  assert.equal(result.body.result.cacheScope, undefined);
+});
+
+test("handshake-era tools/call preserves 2025-06 structured output", async () => {
+  const adapter = createMcpModernHttpAdapterV010(core());
+  const result = await adapter.handle({
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "mcp-protocol-version": "2025-06-18"
+    },
+    body: {
+      jsonrpc: "2.0",
+      id: 13,
+      method: "tools/call",
+      params: {
+        name: "a-tool",
+        arguments: { value: "legacy" }
+      }
+    }
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.error, undefined);
+  assert.deepEqual(result.body.result.structuredContent, {
+    name: "a-tool",
+    arguments: { value: "legacy" }
+  });
+  assert.equal(result.body.result.resultType, undefined);
+});
+
+test("2025-03-26 compatibility strips later structured-output fields", async () => {
+  const adapter = createMcpModernHttpAdapterV010(core());
+  const result = await adapter.handle({
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "mcp-protocol-version": "2025-03-26"
+    },
+    body: {
+      jsonrpc: "2.0",
+      id: 14,
+      method: "tools/call",
+      params: {
+        name: "a-tool",
+        arguments: { value: "old" }
+      }
+    }
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.error, undefined);
+  assert.equal(result.body.result.structuredContent, undefined);
+  assert.equal(result.body.result.content[0].type, "text");
+});
+
+test("handshake-era initialized notification is accepted without response body", async () => {
+  const adapter = createMcpModernHttpAdapterV010(core());
+  const result = await adapter.handle({
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "mcp-protocol-version": "2025-11-25"
+    },
+    body: {
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+      params: {}
+    }
+  });
+
+  assert.equal(result.status, 202);
+  assert.equal(result.body, undefined);
+});
