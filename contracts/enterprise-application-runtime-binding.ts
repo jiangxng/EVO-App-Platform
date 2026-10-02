@@ -13,6 +13,13 @@ export interface EnterpriseApplicationRuntimeBindingV010 {
   enterpriseId: string;
   hostApplicationRefId: string;
   runtimeProviderId: string;
+  /**
+   * Historical persisted discriminator retained for compatibility.
+   *
+   * It means that runtimeApplicationId is an EVO
+   * ApplicationAnchor/applicationId. The generic binding provider does not
+   * manufacture another application identity.
+   */
   runtimeKind: "EVO_APPLICATION_ANCHOR";
   runtimeApplicationId: string;
   createdAt: string;
