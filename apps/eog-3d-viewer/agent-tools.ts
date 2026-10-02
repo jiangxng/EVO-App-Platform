@@ -22,8 +22,8 @@ import type {
   EnterpriseOperatingGraphHostServiceV010
 } from "../eog-2d-designer/enterprise-operating-graph-service.js";
 import type {
-  EnterpriseOperatingGraphViewHostServiceV010
-} from "../../manager/enterprise-operating-graph-view-service.js";
+  EnterpriseOperatingGraphViewStateProviderV010
+} from "../../contracts/enterprise-operating-graph-view-state.js";
 
 function descriptor(
   input: Omit<AgentToolDescriptorV010, "contractVersion">
@@ -99,7 +99,7 @@ function spatialViewMutation(
 export function createEog3dViewerAgentToolRegistrationsV010(
   input: {
     service: EnterpriseOperatingGraphHostServiceV010;
-    viewService: EnterpriseOperatingGraphViewHostServiceV010;
+    viewService: EnterpriseOperatingGraphViewStateProviderV010;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
     is3dViewerActive?: () => boolean;
