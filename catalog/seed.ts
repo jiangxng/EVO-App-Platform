@@ -13,11 +13,29 @@ import {
 import {
   enterpriseContextGovernanceExperienceAssets
 } from "../apps/enterprise-context-governance/experience-assets.js";
+import {
+  eog2dDesignerPackage
+} from "../apps/eog-2d-designer/package.js";
+import {
+  eog2dViewerPackage
+} from "../apps/eog-2d-viewer/package.js";
+import {
+  eog3dViewerPackage
+} from "../apps/eog-3d-viewer/package.js";
 
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 export {
   enterpriseContextGovernanceAppPackage
 } from "../apps/enterprise-context-governance/package.js";
+export {
+  eog2dDesignerPackage
+} from "../apps/eog-2d-designer/package.js";
+export {
+  eog2dViewerPackage
+} from "../apps/eog-2d-viewer/package.js";
+export {
+  eog3dViewerPackage
+} from "../apps/eog-3d-viewer/package.js";
 
 
 export const companyNotesPackage: PackageManifestV010 = {
