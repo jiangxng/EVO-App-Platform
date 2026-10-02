@@ -144,13 +144,27 @@ enterprise-agent         AGENT
 
 Package role does not determine source repository. A large package may be independently maintained while still participating in the same Package Graph.
 
-## 11. Enterprise Agent
+## 11. Enterprise Agent and Experience Compiler
 
-The former EC / Experience Compiler concept is being redefined as an **Enterprise Agent Package**.
+**Experience Compiler is an independent owner project. It is not being renamed, replaced or collapsed into the Enterprise Agent Package.**
 
-The App Platform owns only the Agent Package lifecycle model and manifest compatibility. It does not own the Agent's enterprise knowledge itself and does not become the Agent runtime.
+The two responsibilities are separate:
 
-The authoritative package-model definition is:
+```text
+Experience Compiler
+= persistent advisory intelligence
+  knowledge / memory / learning / research / reasoning / proposals
+
+Enterprise Agent Package
+= App Platform integration and Human/Agent interaction surface
+  package lifecycle / tools / Eidos Experience / Provider resolution
+```
+
+App Platform owns the Enterprise Agent Package lifecycle and integration boundary. It does not own EC's enterprise knowledge, learning methods or reasoning assets.
+
+The Enterprise Agent may consume versioned EC public contracts and may present or submit governed EC proposals. It must not import EC private implementation, and EC must not become mandatory for deterministic platform/runtime operation.
+
+The authoritative Agent package-model definition is:
 
 `docs/architecture/AGENT-PACKAGE-MODEL-v0.1.md`
 
