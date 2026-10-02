@@ -3039,7 +3039,10 @@ function createPersonalAgentToolCatalogV010(
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
       principal,
-      context
+      context,
+      isDesignerActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+      )
     }),
     ...createEogExpectedSopAgentToolRegistrationsV010({
       service: eogExpectedSopService,
@@ -3050,7 +3053,10 @@ function createPersonalAgentToolCatalogV010(
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
       principal,
-      context
+      context,
+      isViewerActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+      )
     })
   ]);
 }
