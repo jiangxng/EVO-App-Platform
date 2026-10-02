@@ -19,7 +19,7 @@
   "targets": {
     "sopDesigner": {
       "logicalRole": "SOP_DESIGNER",
-      "concretePackageId": "TBD_NEXT_SLICE",
+      "concretePackageId": "evo-sop-designer",
       "semantics": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
       "compatibilityName": "SOP",
       "definitionAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
@@ -45,7 +45,12 @@
       ],
       "legacyCompatibilityAssets": [
         "manager/enterprise-operating-graph-sop-store.ts"
-      ]
+      ],
+      "featureId": "evo-sop-designer.default",
+      "capability": "enterprise.sop.designer",
+      "packageIdentityStatus": "CATALOG_REGISTERED_DEFAULT_OFF",
+      "activation": "DEFAULT_OFF_UNTIL_CONTROLLED_CUTOVER",
+      "next": "PUBLIC_DEPENDENCY_CONTRACT"
     },
     "runtimeBindingAdapter": {
       "logicalRole": "RUNTIME_BINDING_ADAPTER",
