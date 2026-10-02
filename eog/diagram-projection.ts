@@ -5,7 +5,7 @@ import type {
   EnterpriseOperatingGraphViewStateV010
 } from "../contracts/enterprise-operating-graph-view.js";
 import type {
-  DiagramEditorStateV010
+  DiagramWorkspaceStateV010
 } from "../vendor/eidos/src/2d/index.js";
 
 function relationLabels(locale: string | undefined) {
@@ -65,7 +65,7 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
   view: EnterpriseOperatingGraphViewStateV010;
   locale?: string;
   readOnly?: boolean;
-}): DiagramEditorStateV010 {
+}): DiagramWorkspaceStateV010 {
   const { graph, view } = input;
   if (
     view.graphId !== graph.graphId
