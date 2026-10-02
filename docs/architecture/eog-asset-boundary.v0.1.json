@@ -10,7 +10,12 @@
     "sharedDomainContract": [
       "contracts/enterprise-operating-graph.ts",
       "manager/enterprise-operating-graph-model.ts"
-    ]
+    ],
+    "legacySemanticStore": {
+      "status": "PROTECTED_MIGRATION_SOURCE_PENDING_RUNTIME_CUTOVER",
+      "source": "manager/enterprise-operating-graph-store.ts",
+      "futureAuthority": false
+    }
   },
   "preservedForFutureExtraction": {
     "ci": "NON_GATING_FOR_CURRENT_EOG_CORE",
@@ -83,7 +88,14 @@
       "3d-rendering",
       "eog-designer-ux",
       "eog-viewer-ux"
-    ]
+    ],
+    "eogDefinitionPersistence": {
+      "status": "FOUNDATION_READY_RUNTIME_CUTOVER_PENDING",
+      "kind": "ENTERPRISE_OPERATING_GRAPH",
+      "adapter": "providers/enterprise-context/eog-graph-definitions.ts",
+      "migration": "providers/enterprise-context/eog-graph-migration.ts",
+      "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md"
+    }
   },
   "experienceCompiler": {
     "role": "ENTERPRISE_KNOWLEDGE_AND_LEARNING",
