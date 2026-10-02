@@ -263,7 +263,11 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         const graphId = stringArg(args, "graphId", false);
         return input.service.create({
           enterpriseId: currentEnterpriseId(),
-          graphId: graphId ?? PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
+          graphId: graphId ?? PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010,
+          actor: {
+            type: "AGENT",
+            subjectId: input.principal.subjectId
+          }
         });
       }
     },
