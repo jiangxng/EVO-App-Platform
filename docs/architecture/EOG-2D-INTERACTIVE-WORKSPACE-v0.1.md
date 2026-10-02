@@ -212,3 +212,17 @@ The next convergence work is:
 3. make Viewer consume the inspector in non-editable mode;
 4. make Designer consume the same inspector plus explicit field/action editors;
 5. keep semantic mutation commands Designer-owned.
+
+
+## Implementation progress — shared structured Inspector
+
+Upstream Eidos 2D Core PR #77 / merge `747e0968e12da23a45159edd214da879a1981872` adds renderer-independent structured selection properties for both nodes and edges.
+
+App Platform now mirrors that public primitive and projects EOG node/edge properties from the package-neutral `eog/diagram-projection.ts`.
+
+Result:
+
+- Viewer and Designer receive the same node/edge property values;
+- Viewer renders them without semantic editors;
+- Designer receives the same property model and can add governed edit descriptors in a later slice;
+- property semantics remain in EOG, while rendering remains generic in Eidos.
