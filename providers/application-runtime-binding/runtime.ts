@@ -1,4 +1,5 @@
 import type {
+  EnterpriseApplicationRuntimeBindingProviderV010,
   EnterpriseApplicationRuntimeBindingV010
 } from "../../contracts/enterprise-application-runtime-binding.js";
 import type {
@@ -8,21 +9,6 @@ import type {
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
   return value.trim();
-}
-
-export interface EnterpriseApplicationRuntimeBindingProviderV010 {
-  bind(input: {
-    enterpriseId: string;
-    hostApplicationRefId: string;
-    runtimeProviderId: string;
-    runtimeApplicationId: string;
-  }): EnterpriseApplicationRuntimeBindingV010;
-  resolve(input: {
-    enterpriseId: string;
-    hostApplicationRefId: string;
-    runtimeProviderId: string;
-  }): EnterpriseApplicationRuntimeBindingV010 | undefined;
-  list(enterpriseId: string): EnterpriseApplicationRuntimeBindingV010[];
 }
 
 export function createEnterpriseApplicationRuntimeBindingProviderV010(input: {
