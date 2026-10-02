@@ -29,7 +29,7 @@ import type {
   SpatialObservatoryPageV010,
   SpatialObservatoryStateV010,
   SpatialObservationBadgeV010
-} from "../vendor/eidos/src/spatial/surface.js";
+} from "../vendor/eidos/src/3d/index.js";
 import {
   EOG_EDITOR_RESOURCE_ID
 } from "./enterprise-operating-graph-page.js";
