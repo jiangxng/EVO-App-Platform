@@ -605,10 +605,11 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
                 type: "NODE_REBIND",
                 nodeId: node.nodeId,
                 semanticRef: {
-                  ...structuredClone(node.semanticRef),
+                  authority: node.semanticRef.authority,
+                  kind: node.semanticRef.kind,
                   refId: nextRefId,
                   ...(nextVersionRef === undefined
-                    ? { versionRef: undefined }
+                    ? {}
                     : { versionRef: nextVersionRef })
                 }
               }
