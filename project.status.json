@@ -1742,8 +1742,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-12",
-    "snapshotAt": "2026-10-02T17:50:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-13",
+    "snapshotAt": "2026-10-02T21:56:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
