@@ -20,6 +20,26 @@ export type Eog2dSelectionTargetV010 = {
   id: string;
 };
 
+export function parseEog2dSelectionTargetV010(
+  value: unknown
+): Eog2dSelectionTargetV010 {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("EOG_2D_SELECTION_TARGET_INVALID");
+  }
+  const target = value as { kind?: unknown; id?: unknown };
+  if (
+    (target.kind !== "node" && target.kind !== "edge")
+    || typeof target.id !== "string"
+    || !target.id.trim()
+  ) {
+    throw new Error("EOG_2D_SELECTION_TARGET_INVALID");
+  }
+  return {
+    kind: target.kind,
+    id: target.id.trim()
+  };
+}
+
 export function resolveEogInspectorTargetV010(
   graph: EnterpriseOperatingGraphV010,
   target: Eog2dSelectionTargetV010
