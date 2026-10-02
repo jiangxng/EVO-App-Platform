@@ -2,6 +2,9 @@ import type {
   AgentToolDescriptorV010
 } from "../agents/enterprise-agent/contracts.js";
 import {
+  EOG_2D_DESIGNER_PACKAGE_ID
+} from "../apps/eog-2d-designer/package.js";
+import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
 } from "../contracts/enterprise-operating-graph.js";
 import {
@@ -154,9 +157,13 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
     viewService: EnterpriseOperatingGraphViewHostServiceV010;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
+    isDesignerActive?: () => boolean;
   }
 ): EnterpriseAgentToolRegistrationV010[] {
-  const available = () => input.context.activeContext.kind === "ENTERPRISE";
+  const inEnterprise = () => input.context.activeContext.kind === "ENTERPRISE";
+  const designerAvailable = () =>
+    inEnterprise() && (input.isDesignerActive?.() ?? true);
+  const compatibilityViewAvailable = inEnterprise;
   const currentEnterpriseId = () => enterpriseId(input.context);
 
   return [
@@ -172,10 +179,10 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
           additionalProperties: false
         },
         effect: "READ",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.read"
       }),
-      available,
+      available: designerAvailable,
       execute() {
         return {
           graphs: input.service.list({
@@ -200,10 +207,10 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
           additionalProperties: false
         },
         effect: "READ",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.read"
       }),
-      available,
+      available: designerAvailable,
       execute(args) {
         return input.service.get({
           enterpriseId: currentEnterpriseId(),
@@ -229,10 +236,10 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
           additionalProperties: false
         },
         effect: "WRITE",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.write"
       }),
-      available,
+      available: designerAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId", false);
         return input.service.create({
@@ -279,10 +286,10 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
           additionalProperties: false
         },
         effect: "WRITE",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.write"
       }),
-      available,
+      available: designerAvailable,
       execute(args) {
         const operationId = stringArg(args, "operationId", false);
         return input.service.apply({
@@ -322,7 +329,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: "evo-app-platform",
         capability: "enterprise.operating-graph.view.read"
       }),
-      available,
+      available: compatibilityViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const enterpriseId = currentEnterpriseId();
@@ -386,7 +393,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: "evo-app-platform",
         capability: "enterprise.operating-graph.view.write"
       }),
-      available,
+      available: compatibilityViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const graph = input.service.get({

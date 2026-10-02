@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-08`  
-**Snapshot time:** `2026-10-02T13:30:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-09`  
+**Snapshot time:** `2026-10-02T13:55:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,19 +35,19 @@ Evidence:
 
 ## Current open live gate
 
-**eog-agent-tool-ownership-split-v0-1: READY_AFTER_3D_VIEWER_CI**
+**eog-agent-view-tool-2d-3d-split-v0-1: READY_AFTER_SEMANTIC_OBSERVATORY_TOOL_CI**
 
-Split the remaining mixed Personal Agent EOG tool ownership across the three dedicated EOG application plugins without changing tool semantics, stable tool IDs or Human authority boundaries.
+Split the remaining generic Personal Agent EOG View tools because enterprise.operating_graph.view.get/apply currently mix DIAGRAM_2D and SPATIAL_3D under one generic owner. Preserve the existing generic IDs as the 2D compatibility path where possible and introduce explicit spatial tool ownership for evo-eog-3d-viewer.
 
 Acceptance:
 
-- semantic graph create/proposal tools are owned and lifecycle-gated by evo-eog-2d-designer
-- 2D graph/viewer read and 2D View operations have explicit non-3D ownership
-- 3D spatial View/read tooling is owned and lifecycle-gated by evo-eog-3d-viewer
-- observatory read/analysis Agent tooling does not move calculation ownership out of peer Providers/Plugins
-- stable Agent tool IDs and model names are preserved where possible
-- Agent still cannot confirm/remove Human-confirmed Enterprise relations or publish EOG
-- no EOG Agent tool remains generically owned by evo-app-platform or accidentally coupled to Enterprise Agent package lifecycle
+- enterprise.operating_graph.view.get/apply no longer accept mixed 2D and 3D responsibility under evo-app-platform ownership
+- stable generic view.get/apply IDs and model names remain available for the 2D compatibility path where feasible
+- explicit SPATIAL_3D Agent View tools are owned and lifecycle-gated by evo-eog-3d-viewer
+- 2D View mutation cannot set 3D camera state
+- 3D View mutation remains presentation state and cannot change semantic graph revision
+- no EOG Agent tool descriptor remains owned by evo-app-platform after the split
+- Human-only semantic confirmation/removal/publish authority remains unchanged
 
 ## Current production preview
 
@@ -84,6 +84,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #265 — MERGED_CI_PASS: Cut EOG 3D Viewer Experience and spatial read ActionHost ownership to evo-eog-3d-viewer, completing dedicated ownership for all three EOG application Experiences.
 - PR #264 — MERGED_CI_PASS: Cut EOG 2D Viewer desktop/mobile-read Experience and read/orchestration ownership to evo-eog-2d-viewer while preserving peer-provider analysis ownership.
 - PR #263 — MERGED_CI_PASS: Cut EOG 2D Designer Experience and Human semantic/2D ActionHost ownership to evo-eog-2d-designer.
 - PR #262 — MERGED_CI_PASS: Assign EOG 3D Viewer target Experience ownership while keeping the package default-OFF before controlled cutover.
@@ -328,6 +329,8 @@ Not proved:
 - Do not restore any EOG Experience injection under Enterprise Agent; all three EOG Experiences are owned by dedicated EOG application packages after the 3D Viewer cutover.
 - Do not move Runtime Fact or analysis calculation ownership into EOG 3D Viewer; it consumes peer-provider results.
 - Do not weaken Human-only EOG authority while splitting Agent tools: Enterprise relation confirmation/removal and publish remain unavailable to Agent.
+- Do not assign the mixed DIAGRAM_2D/SPATIAL_3D generic Agent View tools wholesale to one dedicated EOG plugin; split their visual responsibilities first.
+- Do not move Observatory Runtime Fact or Analysis calculation ownership into EOG 2D Viewer merely because the Personal Agent tool descriptor is Viewer-owned.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -461,6 +464,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state all three EOG application Experiences as cut over to dedicated packages: evo-eog-2d-designer, evo-eog-2d-viewer and evo-eog-3d-viewer
 - state Enterprise Agent as no longer an EOG Experience owner; the remaining compatibility debt is mixed Personal Agent EOG tool ownership
 - state EOG Agent tool ownership split as the next active gate while preserving stable tool IDs and Human-only confirm/publish authority
+- state EOG semantic Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-designer
+- state EOG Observatory Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-viewer while calculations remain peer-Provider-owned
+- state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split
 
 No previous ChatGPT transcript is required.
 
