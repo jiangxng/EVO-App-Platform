@@ -3,17 +3,21 @@
   "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
   "updatedAt": "2026-10-02",
   "eogCore": {
-    "lifecycle": "MIGRATING_TO_SPLIT_PLUGIN_FAMILY",
-    "ci": "GATING_UNTIL_SPLIT_COMPLETES",
+    "lifecycle": "SPLIT_PLUGIN_FAMILY_ACTIVE",
+    "ci": "GATING_SPLIT_BOUNDARIES",
     "replacementModel": "EOG_2D_DESIGNER_PLUS_EOG_2D_VIEWER_PLUS_EOG_3D_VIEWER",
     "sharedSemanticAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
     "sharedDomainContract": [
       "contracts/enterprise-operating-graph.ts",
-      "manager/enterprise-operating-graph-model.ts"
+      "contracts/enterprise-operating-graph-read.ts",
+      "contracts/enterprise-operating-graph-view-state.ts",
+      "contracts/enterprise-operating-graph-observatory-runtime.ts",
+      "eog/diagram-projection.ts",
+      "eog/observatory-input.ts"
     ],
     "legacySemanticStore": {
       "status": "MIGRATION_SOURCE_ONLY_NO_NEW_AUTHORITATIVE_WRITES",
-      "source": "manager/enterprise-operating-graph-store.ts",
+      "source": "apps/eog-2d-designer/enterprise-operating-graph-store.ts",
       "futureAuthority": false
     }
   },
@@ -139,10 +143,11 @@
     "preservedTestCorpus": "tests/preserved/*.preserved.mjs",
     "manualRegressionCommand": "npm run test:preserved:eog-assets",
     "eogCoreIntegrationGate": "tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
-    "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates.",
-    "convergenceGate": "RESPONSIBILITY_SPLIT_BEFORE_UPPER_LAYER_EOG_EXPANSION",
+    "note": "EOG application packages are physically split and must not import manager-private implementation. Preserved SOP/analysis/runtime-binding assets remain non-gating until peer-plugin extraction.",
+    "convergenceGate": "EOG_PLUGIN_MANAGER_PRIVATE_IMPORTS_PROHIBITED",
     "architectureAuthority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
-    "definitionPersistenceGate": "ENTERPRISE_CONTEXT_REPOSITORY_BACKED_EOG_RUNTIME"
+    "definitionPersistenceGate": "ENTERPRISE_CONTEXT_REPOSITORY_BACKED_EOG_RUNTIME",
+    "pluginPrivateDependencyGate": "tests/protocol/eog-no-manager-private-imports.test.mjs"
   },
   "eidosVisualCores": {
     "twoDCore": {
@@ -170,18 +175,21 @@
     "eog-2d-designer": {
       "role": "WRITE_GOVERNED_ENTERPRISE_GRAPH_DESIGN",
       "targetAssets": [
-        "manager/enterprise-operating-graph-actions.ts",
-        "manager/enterprise-operating-graph-agent-tools.ts",
-        "manager/enterprise-operating-graph-page.ts",
-        "manager/enterprise-operating-graph-view-store.ts",
-        "manager/enterprise-operating-graph-view-service.ts"
+        "apps/eog-2d-designer/enterprise-operating-graph-model.ts",
+        "apps/eog-2d-designer/enterprise-operating-graph-store.ts",
+        "apps/eog-2d-designer/enterprise-operating-graph-service.ts",
+        "apps/eog-2d-designer/enterprise-operating-graph-actions.ts",
+        "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
+        "apps/eog-2d-designer/agent-tools.ts",
+        "apps/eog-2d-designer/definition-persistence.ts",
+        "apps/eog-2d-designer/legacy-definition-migration.ts"
       ],
-      "lifecycle": "CUT_OVER_ACTIVE",
+      "lifecycle": "PHYSICAL_OWNERSHIP_ACTIVE",
       "packageId": "evo-eog-2d-designer",
       "featureId": "evo-eog-2d-designer.default",
       "experienceOwnership": "ACTIVE",
       "humanActionOwnership": "ACTIVE",
-      "agentToolOwnership": "COMPATIBILITY_PENDING_VIEWER_SPLIT",
+      "agentToolOwnership": "ACTIVE_SPLIT",
       "authority": "docs/architecture/EOG-2D-DESIGNER-CUTOVER-v0.1.md",
       "agentSemanticToolOwnership": "ACTIVE",
       "agentSemanticToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
@@ -189,17 +197,19 @@
     "eog-2d-viewer": {
       "role": "READ_ONLY_2D_NAVIGATION_AND_CONTRIBUTION_AGGREGATION",
       "targetAssets": [
-        "manager/enterprise-operating-graph-observatory-page.ts",
-        "manager/enterprise-operating-graph-mobile-read-page.ts"
+        "apps/eog-2d-viewer/observatory-actions.ts",
+        "apps/eog-2d-viewer/agent-tools.ts",
+        "apps/eog-2d-viewer/desktop-page.ts",
+        "apps/eog-2d-viewer/mobile-read-page.ts"
       ],
       "note": "Analysis calculations remain peer-plugin/provider responsibilities.",
-      "lifecycle": "CUT_OVER_ACTIVE",
+      "lifecycle": "PHYSICAL_OWNERSHIP_ACTIVE",
       "packageId": "evo-eog-2d-viewer",
       "featureId": "evo-eog-2d-viewer.default",
       "experienceOwnership": "ACTIVE_DESKTOP_AND_MOBILE_READ",
       "readActionOwnership": "ACTIVE",
       "analysisCalculationOwnership": "PEER_PROVIDERS",
-      "agentToolOwnership": "COMPATIBILITY_PENDING_3D_SPLIT",
+      "agentToolOwnership": "ACTIVE_SPLIT",
       "authority": "docs/architecture/EOG-2D-VIEWER-CUTOVER-v0.1.md",
       "agentObservatoryToolOwnership": "ACTIVE",
       "agentObservatoryToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
@@ -207,25 +217,52 @@
     "eog-3d-viewer": {
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
       "targetAssets": [
-        "manager/enterprise-operating-graph-spatial-observatory-page.ts"
+        "apps/eog-3d-viewer/agent-tools.ts",
+        "apps/eog-3d-viewer/spatial-page.ts"
       ],
-      "lifecycle": "CUT_OVER_ACTIVE",
+      "lifecycle": "PHYSICAL_OWNERSHIP_ACTIVE",
       "packageId": "evo-eog-3d-viewer",
       "featureId": "evo-eog-3d-viewer.default",
       "experienceOwnership": "ACTIVE",
       "readActionOwnership": "ACTIVE",
       "analysisCalculationOwnership": "PEER_PROVIDERS",
-      "agentToolOwnership": "PENDING_SPATIAL_VIEW_TOOL_SPLIT",
+      "agentToolOwnership": "ACTIVE_SPLIT",
       "authority": "docs/architecture/EOG-3D-VIEWER-CUTOVER-v0.1.md"
     }
   },
   "agentToolCompatibilityDebt": {
-    "genericViewTools": [
+    "status": "RESOLVED",
+    "generic2dCompatibilityTools": [
       "enterprise.operating_graph.view.get",
       "enterprise.operating_graph.view.apply"
     ],
-    "currentOwner": "evo-app-platform",
-    "reason": "The existing tool schema mixes DIAGRAM_2D and SPATIAL_3D and cannot truthfully have one dedicated plugin owner.",
-    "next": "Split 2D and 3D View tooling while preserving stable compatibility identifiers where possible."
+    "twoDOwner": "evo-eog-2d-designer",
+    "spatialTools": [
+      "enterprise.operating_graph.spatial_view.get",
+      "enterprise.operating_graph.spatial_view.apply"
+    ],
+    "spatialOwner": "evo-eog-3d-viewer",
+    "resolvedBy": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
+  },
+  "sharedInfrastructure": {
+    "viewState": {
+      "contract": "contracts/enterprise-operating-graph-view-state.ts",
+      "implementation": "providers/eog-view-state",
+      "authority": "PRESENTATION_STATE_ONLY"
+    },
+    "semanticRead": {
+      "contract": "contracts/enterprise-operating-graph-read.ts"
+    },
+    "observatoryRuntime": {
+      "contract": "contracts/enterprise-operating-graph-observatory-runtime.ts",
+      "hostImplementation": [
+        "manager/enterprise-operating-graph-observatory.ts",
+        "manager/enterprise-operating-graph-observatory-provider.ts"
+      ]
+    },
+    "neutralAdapters": [
+      "eog/diagram-projection.ts",
+      "eog/observatory-input.ts"
+    ]
   }
 }
