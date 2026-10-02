@@ -1,6 +1,6 @@
 # Four-Project Contract Boundary Audit v0.1
 
-**Status:** CURRENT CROSS-PROJECT AUDIT  
+**Status:** CLOSED — PASS  
 **Date:** 2026-10-02
 
 ## Project ownership matrix
@@ -122,3 +122,32 @@ This audit does not reopen SOP work.
 ## Canonical four-project statement
 
 > EVO executes deterministically; App Platform governs composition and enterprise definitions; Eidos realizes deterministic Human Experiences; Experience Compiler knows, learns, reasons and proposes.
+
+
+## Closure evidence
+
+The audit is closed.
+
+Cross-repository follow-up completed:
+
+- Experience-Compiler PR #5 clarified that EC remains an independent owner project and `enterprise-agent` is an App Platform package/integration boundary;
+- Experience-Compiler PR #6 corrected ambiguous `EVO Truth` wording and separated Enterprise Context Business Definition authority from deterministic runtime evidence;
+- EVO PR #82 clarified that current compatibility endpoints do not expand the target EVO Ledger Runtime Core boundary.
+
+No SOP work was resumed.
+
+## Next cross-project gate
+
+The next bounded integration proof is:
+
+```text
+Host semantic Application reference
+  ↓
+enterprise.application-runtime-binding
+  ↓
+runtimeProviderId + runtimeApplicationId
+  ↓ when EVO is selected
+EVO applicationId
+```
+
+The proof must use public contracts only. It must not pull rich Application lifecycle back into EVO or bypass provider/package lifecycle in App Platform.

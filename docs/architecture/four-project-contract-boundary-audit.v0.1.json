@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-10-02",
-  "status": "AUDIT_ACTIVE",
+  "status": "CLOSED_PASS",
   "projects": {
     "EVO": {
       "authority": "DETERMINISTIC_RUNTIME",
-      "result": "PASS_ACTIVE_CONVERGENCE",
+      "result": "PASS_TARGET_CORE_COMPATIBILITY_API_CLARIFIED",
       "currentTransition": "APPLICATION_ID_MINIMAL_RUNTIME_CONVERGENCE",
-      "integration": "APPLICATION_RUNTIME_BINDING_PROVIDER"
+      "integration": "APPLICATION_RUNTIME_BINDING_PROVIDER",
+      "compatibilityApiClarification": "EVO PR #82"
     },
     "EVO-App-Platform": {
       "authority": "CONTROL_PLANE_ENTERPRISE_CONTEXT_INTEGRATION",
@@ -19,13 +20,20 @@
     },
     "Experience-Compiler": {
       "authority": "PERSISTENT_ADVISORY_INTELLIGENCE",
-      "result": "PASS_MINOR_WORDING_CLEANUP_PENDING"
+      "result": "PASS_CURRENT_AUTHORITY_CLARIFIED",
+      "cleanup": {
+        "projectIdentity": "Experience-Compiler remains independent advisory-intelligence owner project",
+        "appPlatformPackageBoundary": "enterprise-agent is lifecycle/integration boundary only",
+        "wordingCleanup": [
+          "Experience-Compiler PR #5",
+          "Experience-Compiler PR #6"
+        ]
+      }
     }
   },
   "sop": "DEFERRED_PRESERVED",
   "next": [
-    "PATCH_EC_AMBIGUOUS_EVO_TRUTH_WORDING",
-    "RECHECK_EVO_COMPATIBILITY_PUBLIC_API_VS_TARGET_CORE_BOUNDARY",
-    "CLOSE_CROSS_PROJECT_AUDIT"
+    "PROVE_APP_PLATFORM_RUNTIME_BINDING_TO_EVO_APPLICATION_ID_PUBLIC_CONTRACT",
+    "KEEP_SOP_DEFERRED"
   ]
 }

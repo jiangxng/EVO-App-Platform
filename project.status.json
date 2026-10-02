@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG 2D Viewer/Designer interactive Workspace convergence is closed. SOP remains separate and deferred. Enterprise Application Runtime Binding is now a generic lifecycle-gated PLATFORM_PROVIDER with provider-owned runtime/store and compatibility aliases for historical EOG paths. Existing Runtime Fact / Analysis providers are audited; EVO Runtime Observatory passes the public-contract boundary, while historical SOP conformance/deviation inside Bottleneck Analysis is preserved frozen debt. Next gate is a four-project contract-boundary audit across EVO, EVO App Platform, Eidos and Experience Compiler.",
+  "currentStep": "Four-project contract-boundary audit is closed PASS. Experience Compiler remains an independent advisory-intelligence owner project; enterprise-agent is an App Platform lifecycle/integration package boundary only. EVO target Core versus compatibility API wording is clarified. SOP remains separate and deferred. Next gate is a public-contract proof from Host semantic Application identity through enterprise.application-runtime-binding to EVO applicationId when EVO is the selected runtime provider.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1742,8 +1742,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-13",
-    "snapshotAt": "2026-10-02T21:56:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-14",
+    "snapshotAt": "2026-10-02T22:41:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1783,17 +1783,18 @@
         }
       },
       "openGate": {
-        "id": "four-project-contract-boundary-audit-v0-1",
+        "id": "app-platform-evo-application-id-contract-proof-v0-1",
         "status": "READY",
-        "summary": "Re-verify the public contract and authority boundaries across EVO, EVO App Platform, Eidos and Experience Compiler after the EOG/runtime-binding convergence, without reopening deferred SOP work.",
-        "authority": "project.status.json",
+        "summary": "Prove the public contract path from Host semantic Application identity through the lifecycle-gated Application Runtime Binding Provider to EVO's minimal applicationId routing anchor, without importing private implementation or restoring rich Application lifecycle to EVO.",
+        "authority": "docs/architecture/FOUR-PROJECT-CONTRACT-BOUNDARY-AUDIT-v0.1.md",
         "acceptance": [
-          "EVO remains deterministic runtime/execution authority and is consumed through stable runtime/provider contracts",
-          "EVO App Platform remains lifecycle/control-plane and enterprise-definition Experience integration layer without absorbing EVO or EC private implementation",
-          "Eidos 2D/3D Core remains generic visual-interaction infrastructure with no EOG/EVO/EC business semantics",
-          "Experience Compiler remains enterprise/industry knowledge, learning and proposal authority without taking Enterprise Context definition authority",
-          "cross-project dependencies use public contracts rather than repository-private implementation",
-          "SOP remains separate and deferred during this audit"
+          "Host semantic Application identity resolves through enterprise.application-runtime-binding",
+          "binding result exposes runtimeProviderId and runtimeApplicationId without EOG-private identity",
+          "when EVO is the selected runtime provider runtimeApplicationId maps exactly to EVO applicationId",
+          "App Platform provider/package lifecycle remains authoritative for binding availability",
+          "EVO rich Application lifecycle/capability/authorization remains outside target Ledger Runtime Core",
+          "cross-project integration uses public contracts only and no repository-private imports",
+          "SOP remains separate, preserved and deferred"
         ]
       },
       "productionPreview": {
@@ -1809,6 +1810,16 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 306,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close the four-project ownership audit across EVO, App Platform, Eidos and Experience Compiler and identify bounded cross-repository wording follow-up."
+      },
+      {
+        "pr": 305,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close peer-provider convergence and open the four-project contract-boundary audit."
+      },
       {
         "pr": 304,
         "status": "MERGED_CI_PASS",
@@ -2533,7 +2544,10 @@
       "Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references.",
       "Do not treat Application Runtime Binding as EOG-owned; the generic provider contract/package is authoritative and old EOG paths are compatibility only.",
       "Do not bypass Application Runtime Binding package lifecycle by directly consuming its implementation when normal provider resolution is available.",
-      "Do not resume SOP extraction/product development during the four-project boundary audit."
+      "Do not resume SOP extraction/product development during the four-project boundary audit.",
+      "Do not treat Experience-Compiler as replaced by the App Platform enterprise-agent package; EC remains an independent owner project for durable advisory intelligence.",
+      "Do not read EVO compatibility endpoints as target EVO Ledger Runtime Core ownership; targetCoreBoundary and minimal-runtime decisions are authoritative.",
+      "Do not reopen SOP work while proving the App Platform to EVO applicationId contract path."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2676,7 +2690,11 @@
       "state Runtime Binding Adapter contract/package identity as the active next convergence gate",
       "state Enterprise Application Runtime Binding as a generic lifecycle-gated PLATFORM_PROVIDER rather than EOG-owned infrastructure",
       "state existing Runtime Fact / Analysis Providers as audited with SOP conformance/deviation preserved frozen debt",
-      "state the active next gate as the EVO / App Platform / Eidos / Experience Compiler contract-boundary audit"
+      "state the active next gate as the EVO / App Platform / Eidos / Experience Compiler contract-boundary audit",
+      "state the four-project contract-boundary audit as CLOSED PASS",
+      "state Experience-Compiler as an independent owner project and enterprise-agent as an App Platform integration/package boundary",
+      "state the current open gate as App Platform semantic Application -> Application Runtime Binding -> EVO applicationId public-contract proof",
+      "state SOP as separate and deferred"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
