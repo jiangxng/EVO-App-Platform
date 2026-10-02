@@ -181,13 +181,13 @@ The Designer is not a second definition repository.
 
 ## 7. EOG 2D Viewer Plugin
 
-The EOG 2D Viewer is a separate read-oriented plugin, not merely a disabled Designer mode.
+The EOG 2D Viewer is a separate semantically read-only but fully interactive plugin. It is not a disabled Designer mode, and it is not a static read-only page.
 
 Responsibilities:
 
 - read the same Enterprise Graph Definition;
 - navigate and inspect the graph;
-- render read-only 2D projections;
+- render interactive 2D projections without Enterprise Graph semantic mutation;
 - aggregate peer-plugin contributions;
 - show overlays, indicators, warnings and drill-down destinations;
 - host the future enterprise-wide 2D "God view".
@@ -283,7 +283,7 @@ Target Eidos 3D Core:
 
 ### EOG 2D Viewer target
 
-- read-only graph projection;
+- interactive semantic-read-only graph projection;
 - current 2D Observatory viewing assets where they are EOG projection concerns;
 - contribution aggregation contracts;
 - mobile/desktop read projections where applicable.
@@ -454,3 +454,21 @@ apps/eog-3d-viewer/**
 ```
 
 Allowed dependency directions are public contracts, neutral EOG adapters, shared ActionHost utilities and public Eidos Core facades.
+
+
+## 22. 2D Viewer / Designer interactive workspace correction
+
+The authoritative interaction model is defined in:
+
+`docs/architecture/EOG-2D-INTERACTIVE-WORKSPACE-v0.1.md`
+
+Key correction:
+
+```text
+Viewer = interactive inspect/navigate + no semantic mutation
+Designer = same shared interaction baseline + governed semantic editing
+```
+
+The two packages MUST share Eidos 2D interaction primitives and package-neutral EOG 2D projection/inspector models rather than duplicating canvas and property-inspector behavior.
+
+The Viewer may inspect node and edge properties, navigate, drill down, filter and interact with overlays. Its prohibition is on Enterprise Graph semantic mutation, not on interaction.
