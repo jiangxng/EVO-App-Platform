@@ -59,11 +59,22 @@
         "manager/enterprise-operating-graph-application-runtime-service.ts",
         "manager/enterprise-operating-graph-application-runtime-store.ts"
       ],
-      "status": "PACKAGE_IDENTITY_AND_PUBLIC_CONTRACT_DEFINED",
+      "status": "PHYSICAL_IMPLEMENTATION_PROVIDER_OWNED_HOST_DIRECT_BOOTSTRAP",
       "providerId": "evo.application-runtime-binding",
       "capability": "enterprise.application-runtime-binding",
       "publicContract": "contracts/enterprise-application-runtime-binding.ts",
-      "defaultActivation": false
+      "defaultActivation": false,
+      "implementation": {
+        "runtime": "providers/application-runtime-binding/runtime.ts",
+        "store": "providers/application-runtime-binding/store.ts",
+        "compatibility": [
+          "manager/enterprise-operating-graph-application-runtime-service.ts",
+          "manager/enterprise-operating-graph-application-runtime-store.ts",
+          "contracts/enterprise-operating-graph-application-runtime.ts"
+        ],
+        "activation": "HOST_DIRECT_BOOTSTRAP_COMPATIBILITY",
+        "next": "PACKAGE_LIFECYCLE_AND_PROVIDER_RUNTIME_REGISTRY_CUTOVER"
+      }
     },
     "analysisProviders": {
       "status": "PRESERVE_EXISTING_PROVIDERS_PORTFOLIO_TBD",
