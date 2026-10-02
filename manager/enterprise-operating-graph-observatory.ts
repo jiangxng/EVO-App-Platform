@@ -16,6 +16,9 @@ import type {
   EnterpriseOperatingGraphV010
 } from "../contracts/enterprise-operating-graph.js";
 import type {
+  EnterpriseOperatingGraphObservatoryServiceV020
+} from "../contracts/enterprise-operating-graph-observatory-runtime.js";
+import type {
   EnterpriseOperatingGraphReadProviderV010
 } from "../contracts/enterprise-operating-graph-read.js";
 
@@ -377,23 +380,6 @@ function queryDigest(input: unknown): string {
   return createHash("sha256")
     .update(JSON.stringify(input))
     .digest("hex");
-}
-
-export interface EnterpriseOperatingGraphObservatoryServiceV020 {
-  observe(input: {
-    enterpriseId: string;
-    graphId: string;
-    timeLens: EogTimeLensV020;
-    targets?: EogObservatoryTargetV020[];
-    metricCodes?: string[];
-  }): Promise<EogObservationSnapshotV020>;
-  analyze(input: {
-    enterpriseId: string;
-    graphId: string;
-    timeLens: EogTimeLensV020;
-    targets?: EogObservatoryTargetV020[];
-    metricCodes?: string[];
-  }): Promise<EogAnalysisSnapshotV020>;
 }
 
 export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
