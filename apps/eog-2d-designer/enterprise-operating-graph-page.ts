@@ -22,8 +22,8 @@ import {
   type EnterpriseOperatingGraphViewStateV010
 } from "../../contracts/enterprise-operating-graph-view.js";
 import type {
-  DiagramEditorPageV010,
-  DiagramEditorStateV010
+  DiagramWorkspacePageV010,
+  DiagramWorkspaceStateV010
 } from "../../vendor/eidos/src/2d/index.js";
 import {
   projectEnterpriseOperatingGraphDiagramBaseV010
@@ -134,7 +134,7 @@ function localizedText(locale: string | undefined) {
 export function createEnterpriseOperatingGraphEditorPageV010(input: {
   activeContext: ActiveContextRefV010;
   locale?: string;
-}): DiagramEditorPageV010 {
+}): DiagramWorkspacePageV010 {
   const text = localizedText(input.locale);
   return {
     contractVersion: "0.1.0",
@@ -162,7 +162,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
   view: EnterpriseOperatingGraphViewStateV010,
   locale?: string,
   editorBindings: readonly Eog2dInspectorEditorBindingV010[] = []
-): DiagramEditorStateV010 {
+): DiagramWorkspaceStateV010 {
   const text = localizedText(locale);
   const base = projectEnterpriseOperatingGraphDiagramBaseV010({
     graph,
@@ -229,7 +229,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
 export function projectMissingEnterpriseOperatingGraphEditorStateV010(
   resourceId: string = EOG_EDITOR_RESOURCE_ID,
   locale?: string
-): DiagramEditorStateV010 {
+): DiagramWorkspaceStateV010 {
   const text = localizedText(locale);
   return {
     contractVersion: "0.1.0",
@@ -414,7 +414,7 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
   const project = (
     context: PlatformRequestContextV010,
     graph: EnterpriseOperatingGraphV010
-  ): DiagramEditorStateV010 => projectEnterpriseOperatingGraphEditorStateV010(
+  ): DiagramWorkspaceStateV010 => projectEnterpriseOperatingGraphEditorStateV010(
     graph,
     diagramView(context, graph),
     dependencies.locale?.(context)

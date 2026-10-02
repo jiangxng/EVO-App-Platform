@@ -245,3 +245,12 @@ Therefore:
 - authorization and validation remain in the owning domain/Host action.
 
 At this stage no new EOG semantic property-write operation is invented. The seam is ready for real domain capabilities to opt in.
+
+
+## Implementation progress — neutral Workspace API adoption
+
+Eidos 2D Core exposes `DiagramWorkspace*V010` compatibility names over the existing v0.1 diagram surface.
+
+The package-neutral EOG projection, Inspector editor-binding seam, 2D Viewer and 2D Designer now consume those neutral Workspace types.
+
+Designer-specific function names may still use `Editor` where the function itself is specifically about editing. The reusable surface type no longer implies that every consumer is an editor.
