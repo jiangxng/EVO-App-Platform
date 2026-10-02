@@ -66,9 +66,11 @@ import {
   createMemoryConversationThreadEventStoreV010
 } from "./conversation-thread-store.js";
 import {
-  createFileEnterpriseOperatingGraphStoreV010,
-  createMemoryEnterpriseOperatingGraphStoreV010
-} from "./enterprise-operating-graph-store.js";
+  createEnterpriseOperatingGraphDefinitionPersistenceV010
+} from "../providers/enterprise-context/eog-graph-definitions.js";
+import {
+  migrateLegacyEnterpriseOperatingGraphsV010
+} from "../providers/enterprise-context/eog-graph-migration.js";
 import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
@@ -812,49 +814,11 @@ const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.tri
 const contextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
-const enterpriseOperatingGraphStateFile =
+const legacyEnterpriseOperatingGraphStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_FILE?.trim()
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "enterprise-operating-graphs.json")
     : undefined);
-const enterpriseOperatingGraphStore = enterpriseOperatingGraphStateFile
-  ? createFileEnterpriseOperatingGraphStoreV010(
-      enterpriseOperatingGraphStateFile
-    )
-  : createMemoryEnterpriseOperatingGraphStoreV010();
-const enterpriseOperatingGraphService =
-  createEnterpriseOperatingGraphHostServiceV010({
-    store: enterpriseOperatingGraphStore,
-    id: randomUUID
-  });
-const enterpriseOperatingGraphViewStateFile =
-  process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_VIEW_FILE?.trim()
-  || (lifecycleStateFile
-    ? join(dirname(lifecycleStateFile), "enterprise-operating-graph-views.json")
-    : undefined);
-const enterpriseOperatingGraphViewStore = enterpriseOperatingGraphViewStateFile
-  ? createFileEnterpriseOperatingGraphViewStoreV010(
-      enterpriseOperatingGraphViewStateFile
-    )
-  : createMemoryEnterpriseOperatingGraphViewStoreV010();
-const enterpriseOperatingGraphViewService =
-  createEnterpriseOperatingGraphViewHostServiceV010({
-    store: enterpriseOperatingGraphViewStore
-  });
-const eogApplicationRuntimeBindingStateFile =
-  process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
-  || (lifecycleStateFile
-    ? join(dirname(lifecycleStateFile), "eog-application-runtime-bindings.json")
-    : undefined);
-const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
-  ? createFileEogApplicationRuntimeBindingStoreV010(
-      eogApplicationRuntimeBindingStateFile
-    )
-  : createMemoryEogApplicationRuntimeBindingStoreV010();
-const eogApplicationRuntimeBindingService =
-  createEogApplicationRuntimeBindingServiceV010({
-    store: eogApplicationRuntimeBindingStore
-  });
 const legacyEogExpectedSopStateFile =
   process.env.APP_PLATFORM_EOG_EXPECTED_SOP_FILE?.trim()
   || (lifecycleStateFile
@@ -871,6 +835,56 @@ const enterpriseBusinessDefinitionRepository =
         enterpriseBusinessDefinitionStateFile
       )
     : createMemoryBusinessDefinitionRepositoryV010();
+
+const legacyGraphMigration = migrateLegacyEnterpriseOperatingGraphsV010({
+  path: legacyEnterpriseOperatingGraphStateFile,
+  repository: enterpriseBusinessDefinitionRepository
+});
+if (legacyGraphMigration.sourcePresent && legacyGraphMigration.imported > 0) {
+  console.log(
+    `Migrated ${legacyGraphMigration.imported} legacy EOG graph definition(s) into Enterprise Context.`
+  );
+}
+const enterpriseOperatingGraphDefinitionPersistence =
+  createEnterpriseOperatingGraphDefinitionPersistenceV010(
+    enterpriseBusinessDefinitionRepository
+  );
+const enterpriseOperatingGraphService =
+  createEnterpriseOperatingGraphHostServiceV010({
+    persistence: enterpriseOperatingGraphDefinitionPersistence,
+    id: randomUUID
+  });
+
+const enterpriseOperatingGraphViewStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_VIEW_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-operating-graph-views.json")
+    : undefined);
+const enterpriseOperatingGraphViewStore = enterpriseOperatingGraphViewStateFile
+  ? createFileEnterpriseOperatingGraphViewStoreV010(
+      enterpriseOperatingGraphViewStateFile
+    )
+  : createMemoryEnterpriseOperatingGraphViewStoreV010();
+const enterpriseOperatingGraphViewService =
+  createEnterpriseOperatingGraphViewHostServiceV010({
+    store: enterpriseOperatingGraphViewStore
+  });
+
+const eogApplicationRuntimeBindingStateFile =
+  process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "eog-application-runtime-bindings.json")
+    : undefined);
+const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
+  ? createFileEogApplicationRuntimeBindingStoreV010(
+      eogApplicationRuntimeBindingStateFile
+    )
+  : createMemoryEogApplicationRuntimeBindingStoreV010();
+const eogApplicationRuntimeBindingService =
+  createEogApplicationRuntimeBindingServiceV010({
+    store: eogApplicationRuntimeBindingStore
+  });
+
 const legacySopMigration = migrateLegacyEogSopsV010({
   path: legacyEogExpectedSopStateFile,
   repository: enterpriseBusinessDefinitionRepository
