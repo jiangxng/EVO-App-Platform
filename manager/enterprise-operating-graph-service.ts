@@ -15,7 +15,7 @@ import type {
 } from "./enterprise-operating-graph-store.js";
 import type {
   EnterpriseOperatingGraphDefinitionPersistenceV010
-} from "../providers/enterprise-context/eog-graph-definitions.js";
+} from "../contracts/enterprise-operating-graph-definition-persistence.js";
 
 export type EnterpriseOperatingGraphMutationV010 =
   | {
