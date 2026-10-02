@@ -8,6 +8,9 @@ import {
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
 import {
+  EOG_3D_VIEWER_PACKAGE_ID
+} from "../apps/eog-3d-viewer/package.js";
+import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
 } from "../contracts/enterprise-operating-graph.js";
 import {
@@ -330,15 +333,12 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         id: "enterprise.operating_graph.view.get",
         modelName: "enterprise_operating_graph_view_get",
         title: "Enterprise Operating Graph 2D view",
-        description: "Read or initialize the renderer-independent DIAGRAM_2D EOG View State. This stable tool id is retained as the 2D compatibility path; SPATIAL_3D uses the explicit spatial_view tools. View State is not enterprise truth.",
+        description: "Read or initialize renderer-independent DIAGRAM_2D EOG View State. This compatibility tool is explicitly 2D-owned. View State is presentation state, not enterprise truth.",
         inputSchema: {
           type: "object",
           properties: {
             graphId: { type: "string" },
-            kind: {
-              type: "string",
-              enum: ["DIAGRAM_2D"]
-            },
+            kind: { type: "string", enum: ["DIAGRAM_2D"] },
             viewId: { type: "string" }
           },
           required: ["graphId", "kind"],
@@ -348,27 +348,24 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.read"
       }),
-      available: designerAvailable,
+      available: diagramViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const enterpriseId = currentEnterpriseId();
-        input.service.get({
-          enterpriseId,
-          graphId
-        });
-        const kind = twoDViewKindArg(args);
+        input.service.get({ enterpriseId, graphId });
+        if (viewKindArg(args) !== "DIAGRAM_2D") {
+          throw new Error("EOG_2D_VIEW_KIND_REQUIRED");
+        }
         const suppliedViewId = stringArg(args, "viewId", false);
-        const viewId = suppliedViewId ?? defaultViewId(graphId, kind);
-        const existing = input.viewService.list({
-          enterpriseId,
-          graphId
-        }).find(view => view.viewId === viewId);
+        const viewId = suppliedViewId ?? defaultViewId(graphId, "DIAGRAM_2D");
+        const existing = input.viewService.list({ enterpriseId, graphId })
+          .find(view => view.viewId === viewId && view.kind === "DIAGRAM_2D");
         return existing ?? {
           contractVersion: "0.1.0",
           viewId,
           graphId,
           enterpriseId,
-          kind,
+          kind: "DIAGRAM_2D",
           revision: 0,
           placements: [],
           createdAt: "",
@@ -382,24 +379,18 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         id: "enterprise.operating_graph.view.apply",
         modelName: "enterprise_operating_graph_view_apply",
         title: "Arrange Enterprise Operating Graph 2D view",
-        description: "Change only DIAGRAM_2D EOG presentation state by setting node placement. This stable tool id is retained for the 2D path. It cannot set a 3D camera and does not change semantic graph revision, Guidance, Human-confirmed relations, or publication state.",
+        description: "Change only DIAGRAM_2D node placement. Camera mutation is not accepted by this 2D compatibility tool and semantic graph revision is unchanged.",
         inputSchema: {
           type: "object",
           properties: {
             graphId: { type: "string" },
-            kind: {
-              type: "string",
-              enum: ["DIAGRAM_2D"]
-            },
+            kind: { type: "string", enum: ["DIAGRAM_2D"] },
             viewId: { type: "string" },
             expectedRevision: { type: "number" },
             mutation: {
               type: "object",
               properties: {
-                type: {
-                  type: "string",
-                  enum: ["NODE_POSITION_SET"]
-                }
+                type: { type: "string", enum: ["NODE_POSITION_SET"] }
               },
               required: ["type"],
               additionalProperties: true
@@ -412,29 +403,29 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.write"
       }),
-      available: designerAvailable,
+      available: diagramViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const graph = input.service.get({
           enterpriseId: currentEnterpriseId(),
           graphId
         });
-        const mutation = twoDViewMutation(args);
-        if (
-          mutation.type === "NODE_POSITION_SET"
-          && !graph.nodes.some(node =>
-            node.nodeId === mutation.placement.nodeId
-          )
-        ) {
+        if (viewKindArg(args) !== "DIAGRAM_2D") {
+          throw new Error("EOG_2D_VIEW_KIND_REQUIRED");
+        }
+        const mutation = viewMutation(args);
+        if (mutation.type !== "NODE_POSITION_SET") {
+          throw new Error("EOG_2D_VIEW_MUTATION_INVALID");
+        }
+        if (!graph.nodes.some(node => node.nodeId === mutation.placement.nodeId)) {
           throw new Error("EOG_VIEW_NODE_NOT_FOUND");
         }
+        const suppliedViewId = stringArg(args, "viewId", false);
         const view = input.viewService.ensure({
           enterpriseId: currentEnterpriseId(),
           graphId,
-          kind: twoDViewKindArg(args),
-          ...(stringArg(args, "viewId", false)
-            ? { viewId: stringArg(args, "viewId", false) }
-            : {})
+          kind: "DIAGRAM_2D",
+          ...(suppliedViewId ? { viewId: suppliedViewId } : {})
         });
         return input.viewService.apply({
           enterpriseId: currentEnterpriseId(),
@@ -451,7 +442,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         id: "enterprise.operating_graph.spatial_view.get",
         modelName: "enterprise_operating_graph_spatial_view_get",
         title: "Enterprise Operating Graph 3D view",
-        description: "Read or initialize the renderer-independent SPATIAL_3D EOG View State. Spatial placement and camera are presentation state and never enterprise semantic truth.",
+        description: "Read or initialize renderer-independent SPATIAL_3D EOG View State. Spatial placement and camera are presentation state, not enterprise truth.",
         inputSchema: {
           type: "object",
           properties: {
@@ -465,20 +456,15 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_3D_VIEWER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.read"
       }),
-      available: spatialViewerAvailable,
+      available: spatialViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const enterpriseId = currentEnterpriseId();
-        input.service.get({
-          enterpriseId,
-          graphId
-        });
+        input.service.get({ enterpriseId, graphId });
         const suppliedViewId = stringArg(args, "viewId", false);
         const viewId = suppliedViewId ?? defaultViewId(graphId, "SPATIAL_3D");
-        const existing = input.viewService.list({
-          enterpriseId,
-          graphId
-        }).find(view => view.viewId === viewId);
+        const existing = input.viewService.list({ enterpriseId, graphId })
+          .find(view => view.viewId === viewId && view.kind === "SPATIAL_3D");
         return existing ?? {
           contractVersion: "0.1.0",
           viewId,
@@ -498,7 +484,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         id: "enterprise.operating_graph.spatial_view.apply",
         modelName: "enterprise_operating_graph_spatial_view_apply",
         title: "Arrange Enterprise Operating Graph 3D view",
-        description: "Change only SPATIAL_3D presentation state: node placement or camera. This never changes semantic graph revision, Guidance, Human-confirmed relations, or publication state.",
+        description: "Change only SPATIAL_3D node placement or camera state. This does not change semantic graph revision, relations, or publication state.",
         inputSchema: {
           type: "object",
           properties: {
@@ -508,10 +494,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
             mutation: {
               type: "object",
               properties: {
-                type: {
-                  type: "string",
-                  enum: ["NODE_POSITION_SET", "CAMERA_SET"]
-                }
+                type: { type: "string", enum: ["NODE_POSITION_SET", "CAMERA_SET"] }
               },
               required: ["type"],
               additionalProperties: true
@@ -524,19 +507,17 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_3D_VIEWER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.write"
       }),
-      available: spatialViewerAvailable,
+      available: spatialViewAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const graph = input.service.get({
           enterpriseId: currentEnterpriseId(),
           graphId
         });
-        const mutation = spatialViewMutation(args);
+        const mutation = viewMutation(args);
         if (
           mutation.type === "NODE_POSITION_SET"
-          && !graph.nodes.some(node =>
-            node.nodeId === mutation.placement.nodeId
-          )
+          && !graph.nodes.some(node => node.nodeId === mutation.placement.nodeId)
         ) {
           throw new Error("EOG_VIEW_NODE_NOT_FOUND");
         }
