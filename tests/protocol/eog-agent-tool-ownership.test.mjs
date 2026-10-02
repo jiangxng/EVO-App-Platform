@@ -8,6 +8,9 @@ import {
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
+  EOG_3D_VIEWER_PACKAGE_ID
+} from "../../dist/apps/eog-3d-viewer/package.js";
+import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "../../dist/manager/enterprise-operating-graph-agent-tools.js";
 import {
@@ -77,24 +80,91 @@ test("semantic EOG Agent tools are owned and gated by the 2D Designer package", 
   assert.equal(inactive.every(item => item.available?.() === false), true);
 });
 
-test("generic mixed 2D/3D View Agent tools remain explicit compatibility debt for the next split", () => {
+test("stable generic View tool ids are now the 2D Designer compatibility path only", () => {
   const registrations = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
     service: {},
     viewService: {},
     principal,
     context,
-    isDesignerActive: () => true
+    isDesignerActive: () => true,
+    is3dViewerActive: () => true
   });
 
   const viewIds = new Set([
     "enterprise.operating_graph.view.get",
     "enterprise.operating_graph.view.apply"
   ]);
-  const mixed = registrations.filter(item => viewIds.has(item.descriptor.id));
-  assert.equal(mixed.length, 2);
+  const twoD = registrations.filter(item => viewIds.has(item.descriptor.id));
+  assert.equal(twoD.length, 2);
   assert.equal(
-    mixed.every(item => item.descriptor.ownerPackageId === "evo-app-platform"),
+    twoD.every(item => item.descriptor.ownerPackageId === EOG_2D_DESIGNER_PACKAGE_ID),
     true
+  );
+  assert.equal(
+    twoD.every(item =>
+      item.descriptor.inputSchema.properties.kind.enum.length === 1
+      && item.descriptor.inputSchema.properties.kind.enum[0] === "DIAGRAM_2D"
+    ),
+    true
+  );
+});
+
+test("explicit spatial View tools are owned and lifecycle-gated by the 3D Viewer", () => {
+  const spatialIds = new Set([
+    "enterprise.operating_graph.spatial_view.get",
+    "enterprise.operating_graph.spatial_view.apply"
+  ]);
+  const active = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service: {},
+    viewService: {},
+    principal,
+    context,
+    isDesignerActive: () => true,
+    is3dViewerActive: () => true
+  }).filter(item => spatialIds.has(item.descriptor.id));
+
+  assert.equal(active.length, 2);
+  assert.equal(
+    active.every(item => item.descriptor.ownerPackageId === EOG_3D_VIEWER_PACKAGE_ID),
+    true
+  );
+  assert.equal(active.every(item => item.available?.() === true), true);
+
+  const inactive = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service: {},
+    viewService: {},
+    principal,
+    context,
+    isDesignerActive: () => true,
+    is3dViewerActive: () => false
+  }).filter(item => spatialIds.has(item.descriptor.id));
+  assert.equal(inactive.every(item => item.available?.() === false), true);
+});
+
+test("no EOG Agent tool descriptor remains generically owned by evo-app-platform", () => {
+  const all = [
+    ...createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+      service: {},
+      viewService: {},
+      principal,
+      context,
+      isDesignerActive: () => true,
+      is3dViewerActive: () => true
+    }),
+    ...createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020({
+      graphService: {},
+      providers: {
+        hasRuntimeCandidate: () => true,
+        hasAnalysisCandidate: () => true
+      },
+      principal,
+      context,
+      isViewerActive: () => true
+    })
+  ];
+  assert.equal(
+    all.some(item => item.descriptor.ownerPackageId === "evo-app-platform"),
+    false
   );
 });
 
