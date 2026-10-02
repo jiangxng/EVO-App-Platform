@@ -1,8 +1,8 @@
 # Enterprise Operating Graph Product Direction v0.1
 
-**Status:** ACTIVE PRODUCT DIRECTION — REBASED 2026-09-30  
-**Date:** 2026-09-30  
-**Authority:** `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
+**Status:** ACTIVE PRODUCT DIRECTION — RESPONSIBILITY-CONVERGED 2026-10-02  
+**Date:** 2026-10-02  
+**Authority:** `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md` + `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
 
 ## 1. Product purpose
 
@@ -46,21 +46,32 @@ EOG MUST NOT become a second definition repository.
 
 The existing EOG-local semantic stores are migration assets where their data has not yet converged to Enterprise Context.
 
-## 3. EOG Core
+## 3. EOG application-plugin family
 
-EOG Core consists of:
+The former mixed "EOG Core" ownership is now split by responsibility.
 
-- Enterprise Graph semantic model;
-- canonical semantic bindings;
-- Guidance and Human-confirmed enterprise relationships;
-- Enterprise Graph Designer;
-- 2D / 3D renderer-independent View State;
-- graph actions;
-- Human and Personal Agent graph interaction;
-- enterprise-definition navigation;
-- aggregation/extension points for peer plugins.
+```text
+Enterprise Context
+= Enterprise Graph Definition authority
 
-EOG Core is an active first-class plugin boundary and remains **CI-gated**.
+Eidos
+├── 2D Core
+└── 3D Core
+
+App Platform
+├── EOG 2D Designer Plugin
+├── EOG 2D Viewer Plugin
+└── EOG 3D Viewer Plugin
+```
+
+The Enterprise Graph domain contract stays outside Eidos. The three EOG plugins consume the same authoritative definition and must not create separate semantic graph authorities.
+
+- **EOG 2D Designer** owns graph-domain editing experience and governed proposal/confirmation/publication flows.
+- **EOG 2D Viewer** owns read-only 2D navigation and peer-plugin contribution aggregation.
+- **EOG 3D Viewer** owns read-only spatial projection and peer-plugin contribution aggregation.
+- **Eidos 2D/3D Core** owns reusable visual interaction primitives only.
+
+Detailed ownership and migration rules are authoritative in `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`.
 
 ## 4. Peer plugins, not EOG children
 
@@ -205,12 +216,12 @@ Current order:
 
 ```text
 Enterprise Context Business Definition foundation
-→ migrate SOP definition authority away from EOG-local storage
-→ keep EOG Core CI-gated
-→ preserve SOP/analysis assets outside current EOG Core CI
-→ continue Web Runtime foundation
+→ responsibility convergence: Enterprise Context / Eidos 2D+3D / three EOG plugins
+→ formalize reusable Eidos 2D Core and 3D Core
+→ establish EOG 2D Designer / 2D Viewer / 3D Viewer package identities
+→ move Enterprise Graph Definition persistence behind Enterprise Context authority
+→ preserve SOP/analysis/runtime assets for peer-plugin extraction
 → later plan report/analysis plugin portfolio
-→ later extract preserved assets into owning plugins
 ```
 
 ## 12. One-line target
