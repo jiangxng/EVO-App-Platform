@@ -67,6 +67,7 @@ export interface DiagramEditorPageV010 {
   resourceId: string;
   readCommand: DiagramEditorCommandV010;
   operationCommand: DiagramEditorCommandV010;
+  selectionReadCommand?: DiagramEditorCommandV010;
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
   emptyMessage?: string;
@@ -119,6 +120,15 @@ export interface DiagramEditorStateV010 {
   edges: DiagramEditorEdgeV010[];
   actions?: DiagramEditorActionV010[];
   notice?: string;
+}
+
+export interface DiagramEditorSelectionInspectionV010 {
+  contractVersion: "0.1.0";
+  target: {
+    kind: "node" | "edge";
+    id: string;
+  };
+  properties: DiagramInspectorPropertyV010[];
 }
 
 export interface DiagramEditorStateValidationV010 {
@@ -248,6 +258,13 @@ export function isDiagramEditorPageV010(
     && page.operationCommand !== undefined
     && nonEmpty(page.operationCommand?.code)
     && nonEmpty(page.operationCommand?.inputVersion)
+    && (
+      page.selectionReadCommand === undefined
+      || (
+        nonEmpty(page.selectionReadCommand.code)
+        && nonEmpty(page.selectionReadCommand.inputVersion)
+      )
+    )
     && (
       page.requestValues === undefined
       || (
@@ -430,6 +447,47 @@ export function diagramEditorReadRequestV010(
   };
 }
 
+export function diagramEditorSelectionReadRequestV010(
+  page: DiagramEditorPageV010,
+  target: { kind: "node" | "edge"; id: string }
+): ActionRequestV010 {
+  if (!page.selectionReadCommand) {
+    throw new Error("EIDOS_DIAGRAM_SELECTION_READ_COMMAND_REQUIRED");
+  }
+  return {
+    contractVersion: "0.1.0",
+    type: "command",
+    command: { ...page.selectionReadCommand },
+    values: {
+      ...(page.requestValues ? jsonClone(page.requestValues) : {}),
+      resourceId: page.resourceId,
+      target: jsonClone(target)
+    },
+    sourceInteractionId: page.id,
+    actionId: "diagram.selection.read",
+    requiresConfirmation: false
+  };
+}
+
+function selectionInspectionFromResult(
+  result: unknown,
+  expected: { kind: "node" | "edge"; id: string }
+): DiagramEditorSelectionInspectionV010 {
+  if (result === null || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("EIDOS_DIAGRAM_SELECTION_INSPECTION_INVALID");
+  }
+  const value = result as Partial<DiagramEditorSelectionInspectionV010>;
+  if (
+    value.contractVersion !== "0.1.0"
+    || value.target?.kind !== expected.kind
+    || value.target?.id !== expected.id
+    || !validInspectorProperties(value.properties)
+  ) {
+    throw new Error("EIDOS_DIAGRAM_SELECTION_INSPECTION_INVALID");
+  }
+  return jsonClone(value as DiagramEditorSelectionInspectionV010);
+}
+
 export function diagramEditorOperationRequestV010(
   page: DiagramEditorPageV010,
   state: DiagramEditorStateV010,
@@ -556,6 +614,9 @@ export function mountDiagramEditorPageV010(
   let disposed = false;
   let state: DiagramEditorStateV010 | undefined;
   let selected: { kind: "node" | "edge"; id: string } | undefined;
+  let selectionInspection:
+    DiagramEditorSelectionInspectionV010 | undefined;
+  let selectionReadGeneration = 0;
   let activeReadPresetId = page.readPresets?.[0]?.id;
   const listeners: Array<() => void> = [];
 
@@ -587,6 +648,8 @@ export function mountDiagramEditorPageV010(
     }
     const previousSelection = selected;
     state = stateFromResult(result.result);
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
     selected = preserveViewState && previousSelection && (
       previousSelection.kind === "node"
         ? state.nodes.some(item => item.id === previousSelection.id)
@@ -805,6 +868,59 @@ export function mountDiagramEditorPageV010(
     selectionProperties.appendChild(list);
   };
 
+  const selectedItem = () => {
+    if (!state || !selected) return undefined;
+    return selected.kind === "node"
+      ? state.nodes.find(node => node.id === selected!.id)
+      : state.edges.find(edge => edge.id === selected!.id);
+  };
+
+  const selectionPropertiesMerged = (
+    base: DiagramInspectorPropertyV010[] | undefined
+  ): DiagramInspectorPropertyV010[] | undefined => {
+    if (!selectionInspection) return base;
+    const result = [...(base ?? [])];
+    const keys = new Set(result.map(item => item.key));
+    for (const property of selectionInspection.properties) {
+      if (keys.has(property.key)) {
+        throw new Error("EIDOS_DIAGRAM_SELECTION_PROPERTY_DUPLICATE");
+      }
+      keys.add(property.key);
+      result.push(property);
+    }
+    return result;
+  };
+
+  const inspectSelection = async (): Promise<void> => {
+    if (!state || !selected || !page.selectionReadCommand || disposed) return;
+    const target = { ...selected };
+    const generation = ++selectionReadGeneration;
+    selectionInspection = undefined;
+    renderSelection();
+    const result = await actionHost.execute(
+      diagramEditorSelectionReadRequestV010(page, target)
+    );
+    await options.onActionResult?.(result);
+    if (
+      disposed
+      || generation !== selectionReadGeneration
+      || !selected
+      || selected.kind !== target.kind
+      || selected.id !== target.id
+    ) {
+      return;
+    }
+    if (!result.ok) {
+      report(result.error?.message ?? "Failed to inspect selection.");
+      return;
+    }
+    selectionInspection = selectionInspectionFromResult(
+      result.result,
+      target
+    );
+    renderSelection();
+  };
+
   const renderSelection = (): void => {
     if (!state || !selected) {
       selectionText.textContent = page.emptyMessage ?? "Select a node or relation.";
@@ -812,9 +928,7 @@ export function mountDiagramEditorPageV010(
       renderActions();
       return;
     }
-    const item = selected.kind === "node"
-      ? state.nodes.find(node => node.id === selected!.id)
-      : state.edges.find(edge => edge.id === selected!.id);
+    const item = selectedItem();
     selectionText.textContent = item
       ? [
           item.label,
@@ -823,7 +937,14 @@ export function mountDiagramEditorPageV010(
           ...observationText(item.observations)
         ].filter(Boolean).join("\n")
       : page.emptyMessage ?? "Select a node or relation.";
-    renderSelectionProperties(item?.properties);
+    try {
+      renderSelectionProperties(
+        selectionPropertiesMerged(item?.properties)
+      );
+    } catch (error) {
+      report(error instanceof Error ? error.message : String(error));
+      renderSelectionProperties(item?.properties);
+    }
     renderActions();
   };
 
@@ -875,7 +996,9 @@ export function mountDiagramEditorPageV010(
       hit.style.cursor = "pointer";
       hit.addEventListener("click", () => {
         selected = { kind: "edge", id: edge.id };
+        selectionInspection = undefined;
         renderSelection();
+        void inspectSelection();
       });
       svg.appendChild(hit);
 
@@ -951,7 +1074,9 @@ export function mountDiagramEditorPageV010(
 
       element.addEventListener("click", () => {
         selected = { kind: "node", id: node.id };
+        selectionInspection = undefined;
         renderSelection();
+        void inspectSelection();
       });
 
       if (!node.readOnly && state.lifecycleState !== "PUBLISHED") {

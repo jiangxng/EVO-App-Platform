@@ -319,3 +319,15 @@ The resolver:
 - returns contributions without routing property writes through EOG.
 
 Viewer/Designer role filtering remains downstream: Viewer strips edit descriptors; Designer may retain them.
+
+
+## Lazy selection runtime integration
+
+Eidos 2D Core upstream PR #81 adds target-scoped selection reads.
+
+App Platform integrates this as two package-owned commands over one neutral EOG pipeline:
+
+- Viewer selection read: peer properties are returned without edit descriptors;
+- Designer selection read: the same peer properties retain owner-declared edit descriptors.
+
+Provider discovery is additive and Host-owned. Property write commands continue to target the true owner plugin declared by each provider.

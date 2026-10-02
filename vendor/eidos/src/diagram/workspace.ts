@@ -1,6 +1,7 @@
 import {
   diagramEditorOperationRequestV010,
   diagramEditorReadRequestV010,
+  diagramEditorSelectionReadRequestV010,
   isDiagramEditorPageV010,
   mountDiagramEditorPageV010,
   renderDiagramEditorPageShellToHtmlV010,
@@ -13,6 +14,7 @@ import type {
   DiagramEditorNodeV010,
   DiagramEditorPageV010,
   DiagramEditorReadPresetV010,
+  DiagramEditorSelectionInspectionV010,
   DiagramEditorStateValidationV010,
   DiagramEditorStateV010,
   DiagramInspectorPropertyEditorV010,
@@ -38,6 +40,8 @@ export type DiagramWorkspaceNodeV010 = DiagramEditorNodeV010;
 export type DiagramWorkspaceEdgeV010 = DiagramEditorEdgeV010;
 export type DiagramWorkspaceActionV010 = DiagramEditorActionV010;
 export type DiagramWorkspaceStateV010 = DiagramEditorStateV010;
+export type DiagramWorkspaceSelectionInspectionV010 =
+  DiagramEditorSelectionInspectionV010;
 export type DiagramWorkspaceStateValidationV010 =
   DiagramEditorStateValidationV010;
 export type DiagramWorkspaceObservationBadgeV010 =
@@ -61,6 +65,8 @@ export const validateDiagramWorkspaceStateV010 =
   validateDiagramEditorStateV010;
 export const diagramWorkspaceReadRequestV010 =
   diagramEditorReadRequestV010;
+export const diagramWorkspaceSelectionReadRequestV010 =
+  diagramEditorSelectionReadRequestV010;
 export const diagramWorkspaceOperationRequestV010 =
   diagramEditorOperationRequestV010;
 export const renderDiagramWorkspacePageShellToHtmlV010 =

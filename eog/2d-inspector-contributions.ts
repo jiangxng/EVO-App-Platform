@@ -21,7 +21,7 @@ function edgeId(
     : "enterprise-edge:" + contribution.target.relationId;
 }
 
-function property(
+export function projectEog2dInspectorPropertyV010(
   input: EogInspectorPropertyV010,
   role: Eog2dWorkspaceRoleV010
 ): DiagramWorkspaceInspectorPropertyV010 {
@@ -80,10 +80,31 @@ export function applyEog2dInspectorPropertyContributionsV010(
       existing.add(item.key);
       target.properties = [
         ...(target.properties ?? []),
-        property(item, role)
+        projectEog2dInspectorPropertyV010(item, role)
       ];
     }
   }
 
   return next;
+}
+
+
+export function projectEog2dInspectorPropertiesV010(
+  contributions: readonly EogInspectorPropertyContributionV010[],
+  role: Eog2dWorkspaceRoleV010
+): DiagramWorkspaceInspectorPropertyV010[] {
+  const result: DiagramWorkspaceInspectorPropertyV010[] = [];
+  const keys = new Set<string>();
+
+  for (const contribution of contributions) {
+    for (const item of contribution.properties) {
+      if (keys.has(item.key)) {
+        throw new Error("EOG_2D_INSPECTOR_CONTRIBUTION_PROPERTY_DUPLICATE");
+      }
+      keys.add(item.key);
+      result.push(projectEog2dInspectorPropertyV010(item, role));
+    }
+  }
+
+  return result;
 }
