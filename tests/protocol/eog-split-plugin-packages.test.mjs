@@ -15,7 +15,12 @@ import {
 } from "../../dist/apps/eog-2d-designer/package.js";
 import {
   EOG_2D_VIEWER_CAPABILITY,
+  EOG_2D_VIEWER_EXPERIENCE_ID,
+  EOG_2D_VIEWER_MOBILE_PAGE_SOURCE,
+  EOG_2D_VIEWER_MOBILE_ROUTE,
   EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_PAGE_SOURCE,
+  EOG_2D_VIEWER_ROUTE,
   eog2dViewerPackage
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
@@ -117,9 +122,32 @@ test("2D Designer declares its target Experience ownership without activating mi
   assert.equal(manifest.pages[0].source, EOG_2D_DESIGNER_PAGE_SOURCE);
 });
 
-test("viewer packages remain identity-only until their own migration slices", () => {
-  for (const pkg of [eog2dViewerPackage, eog3dViewerPackage]) {
-    const contributions = pkg.features[0].contributions ?? [];
-    assert.equal(contributions.length, 0);
-  }
+test("2D Viewer declares desktop and mobile read Experience ownership without activation", () => {
+  const feature = eog2dViewerPackage.features[0];
+  const experiences = (feature.contributions ?? []).filter(
+    item => item.kind === "eidos.experience"
+  );
+  assert.equal(feature.defaultActivation, false);
+  assert.equal(experiences.length, 1);
+  const manifest = experiences[0].manifest;
+  assert.equal(manifest.experienceId, EOG_2D_VIEWER_EXPERIENCE_ID);
+  assert.equal(manifest.packageId, EOG_2D_VIEWER_PACKAGE_ID);
+  assert.equal(manifest.defaultRoute, EOG_2D_VIEWER_ROUTE);
+  assert.deepEqual(
+    manifest.pages.map(page => page.source),
+    [EOG_2D_VIEWER_PAGE_SOURCE, EOG_2D_VIEWER_MOBILE_PAGE_SOURCE]
+  );
+  assert.deepEqual(
+    manifest.routes.map(route => route.path),
+    [EOG_2D_VIEWER_ROUTE, EOG_2D_VIEWER_MOBILE_ROUTE]
+  );
+  assert.equal(
+    manifest.surfaces.find(surface => surface.target === "MOBILE_READ")?.support,
+    "READ_ONLY"
+  );
+});
+
+test("3D Viewer remains identity-only until its own migration slice", () => {
+  const contributions = eog3dViewerPackage.features[0].contributions ?? [];
+  assert.equal(contributions.length, 0);
 });
