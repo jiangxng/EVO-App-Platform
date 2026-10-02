@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-02`  
-**Snapshot time:** `2026-10-02T11:50:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-03`  
+**Snapshot time:** `2026-10-02T12:05:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,18 +35,17 @@ Evidence:
 
 ## Current open live gate
 
-**eog-experience-ownership-migration-v0-1: READY_AFTER_PACKAGE_IDENTITY_CI**
+**eog-viewer-experience-ownership-v0-1: READY_AFTER_2D_DESIGNER_CI**
 
-Move existing EOG Experience manifests and page ownership from the Enterprise Agent compatibility package into the three dedicated EOG application packages without changing semantic authority or deleting compatibility assets.
+Define target Experience ownership for EOG 2D Viewer and EOG 3D Viewer while keeping all three split packages default-OFF. Do not switch production lifecycle/route gating until all target manifests are independently CI-covered.
 
 Acceptance:
 
-- EOG 2D Designer Experience is owned by evo-eog-2d-designer
-- EOG 2D Viewer Experience is owned by evo-eog-2d-viewer
-- EOG 3D Viewer Experience is owned by evo-eog-3d-viewer
-- all three continue to consume Enterprise Context Business Definition authority
-- no duplicate active routes/experiences exist during compatibility migration
-- existing EOG Human/Agent authority invariants remain unchanged
+- EOG 2D Viewer target Experience manifest belongs to evo-eog-2d-viewer
+- EOG 3D Viewer target Experience manifest belongs to evo-eog-3d-viewer
+- legacy page sources/routes remain stable during compatibility preparation
+- split packages remain default-OFF until explicit cutover
+- no duplicate active Experience is introduced
 
 ## Current production preview
 
