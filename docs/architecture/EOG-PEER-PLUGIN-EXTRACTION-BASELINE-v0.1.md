@@ -1,0 +1,169 @@
+# EOG Peer-Plugin Extraction Baseline v0.1
+
+**Status:** AUTHORITATIVE EXTRACTION BASELINE  
+**Date:** 2026-10-02  
+**Parent authorities:** `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`, `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`
+
+## Decision
+
+The EOG three-application family is physically converged. The next work is extraction of preserved capabilities that are peers of EOG, not children of it.
+
+This baseline freezes responsibility and extraction order before moving implementation.
+
+```text
+Enterprise Context
+= authoritative Business Definition lifecycle/persistence
+
+SOP Designer
+= SOP/APQC+time domain semantics, validation and governed editing
+
+EOG 2D/3D Viewers
+= graph navigation + aggregation of peer contributions
+
+Runtime Fact / Analysis Providers
+= observations and derived analysis
+
+Runtime Binding Adapter
+= explicit mapping between Host semantic references and runtime identities
+```
+
+## 1. SOP Designer logical identity
+
+The first peer-plugin target is **SOP Designer**.
+
+Logical role:
+
+`SOP_DESIGNER`
+
+A concrete package id is deliberately not frozen in this baseline. Package naming will be chosen in the package-identity slice, without changing the role boundary.
+
+SOP Designer owns:
+
+- the project-specific SOP domain model: APQC-like process structure + time dimension;
+- SOP domain validation;
+- create/revise/publish orchestration through Enterprise Context Business Definition authority;
+- Human editing actions;
+- governed Agent proposal/edit tools;
+- compatibility interpretation of the historical `EogExpectedSop*` contract.
+
+SOP Designer does **not** own:
+
+- authoritative Draft/Published/history persistence;
+- Enterprise Context lifecycle rules;
+- EOG graph authority;
+- runtime fact collection;
+- bottleneck/SOP conformance/deviation calculation;
+- generic report/analysis infrastructure.
+
+The machine term `SOP` remains a compatibility name in v0.1.
+
+## 2. SOP persistence authority
+
+SOP definitions remain Business Definitions in Enterprise Context.
+
+```text
+SOP Designer
+  ↓ domain-valid mutation request
+Enterprise Context Business Definition Repository
+  ↓ immutable revision / publication authority
+SOP definition truth
+```
+
+The existing EOG-named SOP store is a preserved compatibility/migration asset, not future authoritative storage.
+
+## 3. Analysis/provider boundary
+
+The current working assets are preserved:
+
+- EVO Runtime Observatory Provider;
+- EOG Bottleneck Analysis Provider;
+- SOP conformance/deviation analysis;
+- Runtime Facts / Time Lens / Analysis Overlay contracts.
+
+No monolithic Reporting or Analysis plugin is introduced here.
+
+Current target classification:
+
+- existing concrete Provider packages remain peer Providers;
+- common Observatory contracts remain public/shared contracts;
+- future report/analysis Experience/package portfolio remains **TBD**;
+- SOP analysis is not automatically owned by SOP Designer merely because it consumes SOP definitions.
+
+## 4. Runtime Binding Adapter boundary
+
+The existing application-runtime binding assets represent a distinct adapter responsibility.
+
+Logical role:
+
+`RUNTIME_BINDING_ADAPTER`
+
+It owns mapping between Host semantic application references and runtime-provider/runtime-application identities.
+
+It does not own:
+
+- Enterprise Graph definitions;
+- SOP definitions;
+- Ledger Runtime execution;
+- Provider discovery policy;
+- Viewer presentation.
+
+Concrete package id remains TBD until the adapter contract is frozen.
+
+## 5. Extraction order
+
+The controlled order is:
+
+1. freeze this baseline;
+2. establish SOP Designer package identity and public dependency contract;
+3. move SOP definition/editor service/actions/Agent tools behind that package identity;
+4. retire or isolate legacy SOP store compatibility after migration proof;
+5. freeze runtime-binding adapter public contract and package identity;
+6. physically extract runtime-binding implementation;
+7. audit existing Runtime Fact / Analysis Provider packages against public contracts;
+8. design additional report/analysis Experience packages only when a concrete product requirement exists.
+
+## 6. Preserved assets
+
+No preserved implementation is deleted during ownership correction.
+
+SOP definition/editor candidates:
+
+- `contracts/enterprise-operating-graph-sop.ts`;
+- `manager/enterprise-operating-graph-sop-service.ts`;
+- `manager/enterprise-operating-graph-sop-actions.ts`;
+- `manager/enterprise-operating-graph-sop-agent-tools.ts`;
+- `manager/enterprise-operating-graph-sop-store.ts`.
+
+Runtime binding candidates:
+
+- `contracts/enterprise-operating-graph-application-runtime.ts`;
+- `manager/enterprise-operating-graph-application-runtime-service.ts`;
+- `manager/enterprise-operating-graph-application-runtime-store.ts`.
+
+Analysis/provider assets stay preserved in place until their own owner boundary is justified.
+
+## 7. Dependency invariants
+
+Peer plugins must communicate through public contracts.
+
+Forbidden:
+
+```text
+SOP Designer -> apps/eog-*/private implementation
+Runtime Adapter -> apps/eog-*/private implementation
+Analysis Provider -> apps/eog-*/private implementation
+peer plugin -> manager/private implementation after its cutover
+```
+
+Allowed:
+
+```text
+peer plugin -> public contracts
+peer plugin -> Enterprise Context definition capability
+peer plugin -> App Platform provider/capability binding
+EOG Viewer -> declared read-only peer contribution
+```
+
+## Canonical statement
+
+> SOP Designer owns SOP domain semantics and editing; Enterprise Context owns SOP definition truth; runtime and analysis remain separate peer responsibilities; EOG only designs/navigates the graph and aggregates peer contributions.
