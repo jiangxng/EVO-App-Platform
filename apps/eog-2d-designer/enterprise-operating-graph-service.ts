@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
   EogNodeBindingV010,
+  EogCanonicalRefV010,
+  EogGuidanceSourceV010,
   EogApplicationLedgerGuidanceRelationV010,
   EnterpriseOperatingGraphOperationV010,
   EnterpriseOperatingGraphV010
@@ -26,12 +28,22 @@ export type EnterpriseOperatingGraphMutationV010 =
       node: EogNodeBindingV010;
     }
   | {
+      type: "NODE_REBIND";
+      nodeId: string;
+      semanticRef: EogCanonicalRefV010;
+    }
+  | {
       type: "NODE_REMOVE";
       nodeId: string;
     }
   | {
       type: "GUIDANCE_RELATION_PUT";
       relation: EogApplicationLedgerGuidanceRelationV010;
+    }
+  | {
+      type: "GUIDANCE_RELATION_SOURCE_UPDATE";
+      relationId: string;
+      source: EogGuidanceSourceV010;
     }
   | {
       type: "GUIDANCE_RELATION_REMOVE";
