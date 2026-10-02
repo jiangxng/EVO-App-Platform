@@ -203,3 +203,22 @@ Its public contract is:
 The historical `enterprise-operating-graph-application-runtime.ts` path is compatibility-only and MUST NOT be treated as evidence that EOG owns runtime identity binding.
 
 The provider scaffold remains default-OFF until the existing service/store implementation is physically cut over and runtime binding is proven equivalent.
+
+
+## Runtime Binding Adapter physical ownership
+
+Service and store implementation now belong to:
+
+- `providers/application-runtime-binding/runtime.ts`;
+- `providers/application-runtime-binding/store.ts`.
+
+The old `manager/enterprise-operating-graph-application-runtime-*` modules are compatibility re-exports only.
+
+Host bootstrap consumes the provider-owned implementation directly. Existing persisted data remains compatible:
+
+- the binding schema is unchanged;
+- the existing default file name remains readable;
+- `APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE` remains supported;
+- new configuration may use `APP_PLATFORM_APPLICATION_RUNTIME_BINDING_FILE`.
+
+Package lifecycle activation is intentionally deferred to the next slice so implementation ownership and lifecycle cutover remain independently verifiable.
