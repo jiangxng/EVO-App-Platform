@@ -2,7 +2,7 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 import {
   EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020,
   EOG_RUNTIME_FACT_PROVIDER_CONTRACT_V020
-} from "../../manager/enterprise-operating-graph-observatory-provider.js";
+} from "../../contracts/enterprise-operating-graph-observatory-runtime.js";
 
 export const EVO_RUNTIME_OBSERVATORY_PROVIDER_ID =
   "evo.runtime-observatory";
