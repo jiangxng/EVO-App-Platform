@@ -14,6 +14,12 @@ import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "../../dist/manager/enterprise-operating-graph-agent-tools.js";
 import {
+  createEog2dDesignerAgentToolRegistrationsV010
+} from "../../dist/apps/eog-2d-designer/agent-tools.js";
+import {
+  createEog3dViewerAgentToolRegistrationsV010
+} from "../../dist/apps/eog-3d-viewer/agent-tools.js";
+import {
   createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020
 } from "../../dist/manager/enterprise-operating-graph-observatory-agent-tools.js";
 
@@ -196,4 +202,43 @@ test("observatory Agent tools are owned and lifecycle-gated by the 2D Viewer whi
     isViewerActive: () => false
   });
   assert.equal(inactive.every(item => item.available?.() === false), true);
+});
+
+
+test("physical Agent tool factories are package-owned while manager remains compatibility composition", () => {
+  const designer = createEog2dDesignerAgentToolRegistrationsV010({
+    service: {},
+    viewService: {},
+    principal,
+    context,
+    isDesignerActive: () => true
+  });
+  assert.equal(designer.length, 6);
+  assert.equal(
+    designer.every(item => item.descriptor.ownerPackageId === EOG_2D_DESIGNER_PACKAGE_ID),
+    true
+  );
+
+  const spatial = createEog3dViewerAgentToolRegistrationsV010({
+    service: {},
+    viewService: {},
+    principal,
+    context,
+    is3dViewerActive: () => true
+  });
+  assert.equal(spatial.length, 2);
+  assert.equal(
+    spatial.every(item => item.descriptor.ownerPackageId === EOG_3D_VIEWER_PACKAGE_ID),
+    true
+  );
+
+  const compatibility = createEnterpriseOperatingGraphAgentToolRegistrationsV010({
+    service: {},
+    viewService: {},
+    principal,
+    context,
+    isDesignerActive: () => true,
+    is3dViewerActive: () => true
+  });
+  assert.equal(compatibility.length, designer.length + spatial.length);
 });
