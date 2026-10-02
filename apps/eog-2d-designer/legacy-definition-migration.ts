@@ -90,14 +90,14 @@ export function migrateLegacyEnterpriseOperatingGraphSnapshotV010(input: {
   let alreadyPresent = 0;
   for (const graph of input.snapshot.graphs) {
     const next = revision(graph);
-    const existing = input.repository.getLatest({
+    const history = input.repository.listHistory({
       enterpriseId: next.enterpriseId,
       definitionId: next.definitionId
     });
+    const existing = history.find(item => item.revision === next.revision);
     if (existing) {
       if (
         existing.kind !== next.kind
-        || existing.revision !== next.revision
         || JSON.stringify(existing.payload) !== JSON.stringify(next.payload)
         || existing.state !== next.state
       ) {
@@ -105,6 +105,9 @@ export function migrateLegacyEnterpriseOperatingGraphSnapshotV010(input: {
       }
       alreadyPresent += 1;
       continue;
+    }
+    if (history.some(item => item.revision > next.revision)) {
+      throw new Error("BUSINESS_DEFINITION_MIGRATION_HISTORY_GAP");
     }
     input.repository.importRevision(next);
     imported += 1;

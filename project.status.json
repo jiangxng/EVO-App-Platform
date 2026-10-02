@@ -441,7 +441,10 @@
     "eog-agent-view-tool-2d-3d-split-v0-1",
     "eog-enterprise-context-definition-kind-v0-1",
     "eog-business-definition-persistence-adapter-v0-1",
-    "eog-legacy-semantic-store-migration-v0-1"
+    "eog-legacy-semantic-store-migration-v0-1",
+    "eog-enterprise-context-runtime-persistence-cutover-v0-1",
+    "eog-legacy-semantic-store-migration-source-only-v0-1",
+    "eog-definition-persistence-contract-boundary-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -467,7 +470,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Enterprise Context EOG definition-persistence foundation is implemented but not yet runtime-cut-over: ENTERPRISE_OPERATING_GRAPH is now a Business Definition kind; a repository adapter preserves the existing EOG semantic contract/revision model; a non-destructive legacy semantic-store migration is available. Next slice wires Host runtime to this adapter and demotes the legacy EOG semantic store to migration-only input.",
+  "currentStep": "EOG semantic runtime persistence is cut over in code: Host startup non-destructively migrates any legacy EOG semantic snapshot into Enterprise Context Business Definition Repository, then constructs EnterpriseOperatingGraphHostService over the contract-bound EOG Designer adapter. New semantic create/revise/publish writes no longer target the legacy EOG store; 2D/3D View State remains separate. CI and production migration verification are the current gate.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1723,8 +1726,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-11",
-    "snapshotAt": "2026-10-02T14:25:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-12",
+    "snapshotAt": "2026-10-02T14:45:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1759,18 +1762,18 @@
         }
       },
       "openGate": {
-        "id": "eog-enterprise-context-runtime-persistence-cutover-v0-1",
-        "status": "READY_AFTER_FOUNDATION_CI",
-        "summary": "Wire EnterpriseOperatingGraphHostService to Enterprise Context Business Definition persistence, run non-destructive legacy semantic migration first, and stop the legacy EOG semantic store from receiving new authoritative writes. Preserve graph IDs, semantic revision numbers, routes, Agent/Human authority and separate View State.",
+        "id": "eog-enterprise-context-production-migration-proof-v0-1",
+        "status": "READY_AFTER_CI",
+        "summary": "Deploy the EOG semantic persistence cutover and verify that production startup safely imports any legacy EOG graph snapshot into Enterprise Context Business Definition Repository without mutating the legacy source, then confirm EOG read/edit paths remain healthy.",
         "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md",
         "acceptance": [
-          "new EOG semantic create/revise/publish operations persist through enterprise.business-definition.repository",
-          "legacy EOG semantic file is imported before repository-backed reads/writes",
-          "legacy EOG semantic file remains untouched as migration evidence",
-          "graph IDs and EnterpriseOperatingGraphV010 responses remain compatible",
-          "published graph attribution remains Human for new publications",
-          "2D/3D View State persistence remains outside Enterprise Context Business Definition revisions",
-          "server no longer constructs legacy EOG semantic store as the authority for new runtime operations"
+          "Platform CI and Project Continuity CI pass",
+          "production deployment reaches SUCCESS on the cutover commit",
+          "startup migration either reports imported legacy EOG graph definitions or safely reports no legacy source",
+          "subsequent restart is migration-idempotent and does not conflict with newer repository revisions",
+          "existing EOG routes and semantic graph reads remain healthy",
+          "legacy EOG semantic file is not used for new authoritative writes",
+          "2D/3D View State remains independent"
         ]
       },
       "productionPreview": {
@@ -2465,7 +2468,10 @@
       "state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split",
       "state ENTERPRISE_OPERATING_GRAPH as the Enterprise Context Business Definition kind for EOG semantic truth",
       "state the repository-backed EOG persistence adapter and non-destructive legacy migration as foundation-ready but not yet runtime-cut-over",
-      "state 2D/3D View State as explicitly excluded from Enterprise Business Definition payloads"
+      "state 2D/3D View State as explicitly excluded from Enterprise Business Definition payloads",
+      "state EOG semantic Host runtime as repository-backed through Enterprise Context Business Definition authority after the cutover",
+      "state the EOG-specific persistence adapter as owned by evo-eog-2d-designer, not by the generic Enterprise Context provider",
+      "state the legacy EOG semantic file as migration evidence/input only with no new authoritative writes"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3464,12 +3470,14 @@
       "agentSpatialViewTools": "SPATIAL_3D_OWNED_BY_3D_VIEWER"
     },
     "graphDefinitionPersistence": {
-      "status": "FOUNDATION_READY_RUNTIME_CUTOVER_PENDING",
+      "status": "RUNTIME_CUTOVER_IMPLEMENTED_CI_PRODUCTION_GATE",
       "businessDefinitionKind": "ENTERPRISE_OPERATING_GRAPH",
-      "adapter": "providers/enterprise-context/eog-graph-definitions.ts",
-      "migration": "providers/enterprise-context/eog-graph-migration.ts",
-      "legacySemanticStore": "MIGRATION_SOURCE_NOT_FUTURE_AUTHORITY",
-      "viewState": "SEPARATE_NOT_BUSINESS_DEFINITION"
+      "adapter": "apps/eog-2d-designer/definition-persistence.ts",
+      "migration": "apps/eog-2d-designer/legacy-definition-migration.ts",
+      "legacySemanticStore": "MIGRATION_SOURCE_ONLY_NO_NEW_WRITES",
+      "viewState": "SEPARATE_NOT_BUSINESS_DEFINITION",
+      "persistenceContract": "contracts/enterprise-operating-graph-definition-persistence.ts",
+      "enterpriseContextImplementationKnowledge": "GENERIC_BUSINESS_DEFINITION_ONLY"
     }
   },
   "externalAgentFirstValidation": {
