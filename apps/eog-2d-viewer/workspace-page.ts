@@ -29,13 +29,16 @@ import {
 } from "../../eog/diagram-projection.js";
 import {
   EOG_2D_VIEWER_FEATURE_ID,
-  EOG_2D_VIEWER_PACKAGE_ID
+  EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_ROUTE
 } from "./package.js";
 
-export const EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE =
-  "app://evo-enterprise-operating-graph/pages/viewer";
-export const EOG_2D_VIEWER_WORKSPACE_ROUTE =
-  "/operating-graph/view";
+export {
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_ROUTE
+} from "./package.js";
 export const EOG_2D_VIEWER_WORKSPACE_GET_ACTION =
   "enterprise-operating-graph.viewer.workspace.get";
 export const EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION =
@@ -67,7 +70,7 @@ export function createEnterpriseOperatingGraphViewerWorkspacePageV010(input: {
   return {
     contractVersion: "0.1.0",
     kind: "diagram-editor",
-    id: "evo-eog-2d-viewer.workspace",
+    id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
     title: text.title,
     resourceId: PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010,
     readCommand: {
