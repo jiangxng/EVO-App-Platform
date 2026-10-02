@@ -12,39 +12,30 @@ import type {
   EnterpriseOperatingGraphAnalysisProviderV020,
   EnterpriseOperatingGraphRuntimeFactProviderV020
 } from "../contracts/enterprise-operating-graph-observatory.js";
+import {
+  EOG_ANALYSIS_PROVIDER_CAPABILITY_V020,
+  EOG_ANALYSIS_PROVIDER_CONTRACT_V020,
+  EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020,
+  EOG_RUNTIME_FACT_PROVIDER_CONTRACT_V020,
+  type EnterpriseOperatingGraphObservatoryProviderResolverV020
+} from "../contracts/enterprise-operating-graph-observatory-runtime.js";
 import type {
   EnterpriseOperatingGraphReadProviderV010
 } from "../contracts/enterprise-operating-graph-read.js";
 import {
-  createEnterpriseOperatingGraphObservatoryServiceV020,
-  type EnterpriseOperatingGraphObservatoryServiceV020
+  createEnterpriseOperatingGraphObservatoryServiceV020
 } from "./enterprise-operating-graph-observatory.js";
 
-export const EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020 =
-  "enterprise.operating-graph.runtime-facts";
-export const EOG_ANALYSIS_PROVIDER_CAPABILITY_V020 =
-  "enterprise.operating-graph.analysis";
-
-export const EOG_RUNTIME_FACT_PROVIDER_CONTRACT_V020 =
-  "evo.enterprise-operating-graph.runtime-facts";
-export const EOG_ANALYSIS_PROVIDER_CONTRACT_V020 =
-  "evo.enterprise-operating-graph.analysis";
-
-export interface EnterpriseOperatingGraphObservatoryProviderResolverV020 {
-  hasRuntimeCandidate(): boolean;
-  hasAnalysisCandidate(): boolean;
-  resolveRuntime(
-    enterpriseId: string
-  ): EnterpriseOperatingGraphRuntimeFactProviderV020 | undefined;
-  resolveAnalysis(
-    enterpriseId: string
-  ): EnterpriseOperatingGraphAnalysisProviderV020 | undefined;
-  createService(input: {
-    graphService: EnterpriseOperatingGraphReadProviderV010;
-    enterpriseId: string;
-    requireAnalysis?: boolean;
-  }): EnterpriseOperatingGraphObservatoryServiceV020;
-}
+export {
+  EOG_ANALYSIS_PROVIDER_CAPABILITY_V020,
+  EOG_ANALYSIS_PROVIDER_CONTRACT_V020,
+  EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020,
+  EOG_RUNTIME_FACT_PROVIDER_CONTRACT_V020
+} from "../contracts/enterprise-operating-graph-observatory-runtime.js";
+export type {
+  EnterpriseOperatingGraphObservatoryProviderResolverV020,
+  EnterpriseOperatingGraphObservatoryServiceV020
+} from "../contracts/enterprise-operating-graph-observatory-runtime.js";
 
 function required(value: string, code: string): string {
   if (!value?.trim()) throw new Error(code);
