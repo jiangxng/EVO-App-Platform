@@ -40,7 +40,7 @@ import type {
 } from "../../contracts/enterprise-operating-graph-view-state.js";
 import type {
   EnterpriseOperatingGraphObservatoryProviderResolverV020
-} from "../../manager/enterprise-operating-graph-observatory-provider.js";
+} from "../../contracts/enterprise-operating-graph-observatory-runtime.js";
 import {
   parseEogMetricCodesV020,
   parseEogTimeLensInputV020
