@@ -3746,6 +3746,20 @@ const server = createServer(async (request, response) => {
         form,
         correlationId: randomUUID()
       });
+      if (result.status >= 400) {
+        console.warn(JSON.stringify({
+          event: "external_agent_oauth_token_error",
+          grantType: form.get("grant_type")?.trim() || null,
+          clientId: form.get("client_id")?.trim() || null,
+          hasResource: Boolean(form.get("resource")?.trim()),
+          hasCode: Boolean(form.get("code")?.trim()),
+          hasRedirectUri: Boolean(form.get("redirect_uri")?.trim()),
+          hasCodeVerifier: Boolean(form.get("code_verifier")?.trim()),
+          hasRefreshToken: Boolean(form.get("refresh_token")?.trim()),
+          error: result.body.error ?? null,
+          errorDescription: result.body.error_description ?? null
+        }));
+      }
       return json(response, result.status, result.body);
     }
 
