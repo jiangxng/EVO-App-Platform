@@ -433,7 +433,8 @@
     "eog-3d-viewer-package-identity-v0-1",
     "eog-2d-designer-target-experience-ownership-v0-1",
     "eog-2d-viewer-target-experience-ownership-v0-1",
-    "eog-3d-viewer-target-experience-ownership-v0-1"
+    "eog-3d-viewer-target-experience-ownership-v0-1",
+    "eog-2d-designer-controlled-cutover-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -459,7 +460,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "All three split EOG packages now declare target Eidos Experience ownership while remaining default-OFF: 2D Designer, 2D Viewer and 3D Viewer. No production lifecycle/route gating has been switched yet. The next slice is controlled compatibility cutover: install/activate the three packages, gate pages/actions by their owning features, and remove Enterprise Agent ownership without changing routes, page sources or Enterprise Context definition authority.",
+  "currentStep": "EOG 2D Designer controlled cutover is implemented: the dedicated evo-eog-2d-designer package is default-active, owns the effective /operating-graph Experience, and owns/gates EOG semantic plus 2D diagram Human ActionHost handlers. Enterprise Agent no longer injects or gates the Designer Experience. 2D Viewer and 3D Viewer remain on compatibility ownership until their own cutover slices.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1715,8 +1716,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-05",
-    "snapshotAt": "2026-10-02T12:25:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-06",
+    "snapshotAt": "2026-10-02T12:45:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1751,19 +1752,17 @@
         }
       },
       "openGate": {
-        "id": "eog-three-plugin-compatibility-cutover-v0-1",
-        "status": "READY_AFTER_3D_VIEWER_CI",
-        "summary": "Switch EOG production ownership from Enterprise Agent compatibility gating to the three dedicated EOG application packages. Preserve existing routes/page sources, install/activate through controlled lifecycle migration, and keep Enterprise Context as the sole Enterprise Graph Definition authority.",
+        "id": "eog-2d-viewer-controlled-cutover-v0-1",
+        "status": "READY_AFTER_2D_DESIGNER_CI",
+        "summary": "Cut EOG 2D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-2d-viewer while preserving existing desktop/mobile-read routes, page sources and peer-provider analysis boundaries.",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "all three dedicated EOG packages are installed/activated through an explicit compatibility migration",
-          "2D Designer pages/actions are gated by evo-eog-2d-designer",
-          "2D Viewer pages/read actions are gated by evo-eog-2d-viewer",
-          "3D Viewer pages/read actions are gated by evo-eog-3d-viewer",
-          "Enterprise Agent package no longer owns EOG Experience manifests",
-          "existing routes and page source identifiers remain compatible",
-          "no duplicate active EOG Experiences exist",
-          "Human confirmation/publish boundaries and Enterprise Context definition authority remain unchanged"
+          "evo-eog-2d-viewer is explicitly activated through lifecycle migration",
+          "desktop and mobile-read Viewer Experiences are supplied only by evo-eog-2d-viewer",
+          "Viewer page/read actions are gated by evo-eog-2d-viewer.default",
+          "existing /operating-graph/observe and /m/operating-graph/observe routes remain stable",
+          "analysis calculations remain owned by peer providers/plugins",
+          "no duplicate active Viewer Experience exists"
         ]
       },
       "productionPreview": {
@@ -1779,6 +1778,21 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 262,
+        "status": "MERGED_CI_PASS",
+        "summary": "Assign EOG 3D Viewer target Experience ownership while keeping the package default-OFF before controlled cutover."
+      },
+      {
+        "pr": 261,
+        "status": "MERGED_CI_PASS",
+        "summary": "Assign EOG 2D Viewer target desktop/mobile-read Experience ownership while keeping the package default-OFF."
+      },
+      {
+        "pr": 260,
+        "status": "MERGED_CI_PASS",
+        "summary": "Assign EOG 2D Designer target Experience ownership while keeping the package default-OFF."
+      },
       {
         "pr": 258,
         "status": "MERGED_CI_PASS",
@@ -2289,7 +2303,9 @@
       "Do not re-expand mixed EOG Core ownership: Enterprise Context owns Enterprise Graph Definition authority, Eidos owns reusable 2D/3D cores, and App Platform converges EOG into 2D Designer, 2D Viewer and 3D Viewer plugins.",
       "Do not create separate semantic graph authorities for 2D Designer, 2D Viewer and 3D Viewer; all consume the same Enterprise Graph Definition.",
       "Do not move Application, Ledger, SOP, Enterprise Relation or publication semantics into Eidos 2D/3D Core.",
-      "Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined."
+      "Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined.",
+      "Do not restore EOG 2D Designer Experience or Human action ownership to Enterprise Agent; evo-eog-2d-designer is the cut-over owner.",
+      "Do not inject a second /operating-graph Designer manifest from server compatibility code; the effective Designer Experience now comes from ordinary package lifecycle discovery."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2398,7 +2414,9 @@
       "state all three EOG plugins as consumers of one semantic definition with separate 2D/3D View State",
       "state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership",
       "state Eidos PR #75 as merged and authoritative for reusable 2D Core / 3D Core ownership",
-      "state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration"
+      "state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration",
+      "state EOG 2D Designer controlled cutover as active: evo-eog-2d-designer owns /operating-graph Experience plus semantic/2D Human action handlers",
+      "state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3385,11 +3403,12 @@
       }
     ],
     "eogExperienceOwnershipMigration": {
-      "status": "TARGET_OWNERSHIP_DEFINED",
-      "twoDDesigner": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
+      "status": "IN_PROGRESS",
+      "twoDDesigner": "CUT_OVER_ACTIVE",
       "twoDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
       "threeDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
-      "compatibilityCutover": "NEXT"
+      "agentToolOwnership": "COMPATIBILITY_PENDING_VIEWER_SPLIT",
+      "compatibilityCutover": "2D_DESIGNER_DONE"
     }
   },
   "externalAgentFirstValidation": {
