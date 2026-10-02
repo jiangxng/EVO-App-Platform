@@ -29,7 +29,7 @@ import {
   createEnterpriseOperatingGraphActionHandlersV010,
   EOG_APPLY_OPERATION_ACTION,
   EOG_CREATE_ACTION
-} from "./enterprise-operating-graph-actions.js";
+} from "../apps/eog-2d-designer/semantic-actions.js";
 import type {
   EnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
