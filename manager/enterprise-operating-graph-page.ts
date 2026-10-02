@@ -5,9 +5,9 @@ import type {
   JsonValue
 } from "../actions/contracts.js";
 import {
-  ENTERPRISE_AGENT_FEATURE_ID,
-  ENTERPRISE_AGENT_PACKAGE_ID
-} from "../agents/enterprise-agent/package.js";
+  EOG_2D_DESIGNER_FEATURE_ID,
+  EOG_2D_DESIGNER_PACKAGE_ID
+} from "../apps/eog-2d-designer/package.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -55,8 +55,8 @@ export function createEnterpriseOperatingGraphExperienceManifestV010() {
   return {
     contractVersion: "0.1.0" as const,
     experienceId: "evo-enterprise-operating-graph",
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+    featureId: EOG_2D_DESIGNER_FEATURE_ID,
     defaultRoute: EOG_EDITOR_ROUTE,
     pages: [
       {
@@ -546,8 +546,8 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
       context: PlatformRequestContextV010
     ) => Promise<AppActionExecutionResultV010>
   ): AppActionHandler => ({
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+    featureId: EOG_2D_DESIGNER_FEATURE_ID,
     commandCode,
     async execute(request, context) {
       if (!context) {
