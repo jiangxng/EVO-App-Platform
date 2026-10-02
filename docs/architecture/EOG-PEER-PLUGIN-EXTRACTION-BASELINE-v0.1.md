@@ -35,7 +35,14 @@ Logical role:
 
 `SOP_DESIGNER`
 
-A concrete package id is deliberately not frozen in this baseline. Package naming will be chosen in the package-identity slice, without changing the role boundary.
+The concrete package identity is now frozen by the package-identity slice:
+
+- package: `evo-sop-designer`;
+- feature: `evo-sop-designer.default`;
+- capability: `enterprise.sop.designer`;
+- activation: default-OFF until controlled implementation cutover.
+
+This identity does not transfer SOP analysis ownership into the Designer and does not create a second SOP persistence authority.
 
 SOP Designer owns:
 
@@ -167,3 +174,16 @@ EOG Viewer -> declared read-only peer contribution
 ## Canonical statement
 
 > SOP Designer owns SOP domain semantics and editing; Enterprise Context owns SOP definition truth; runtime and analysis remain separate peer responsibilities; EOG only designs/navigates the graph and aggregates peer contributions.
+
+
+## SOP Designer package identity closure
+
+The first peer-plugin identity is now catalog-discoverable as `evo-sop-designer`.
+
+This slice is identity-only:
+
+- no SOP Experience is contributed yet;
+- no legacy SOP runtime implementation is moved yet;
+- no startup auto-install/activation is introduced;
+- Enterprise Context Business Definition Repository remains authoritative;
+- SOP conformance/deviation analysis remains a separate peer responsibility.
