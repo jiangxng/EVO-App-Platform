@@ -49,10 +49,9 @@ test("EOG responsibility convergence has three independent application package i
   );
   assert.equal(new Set(packages.map(item => item.packageId)).size, 3);
   assert.equal(packages.every(item => item.type === "APPLICATION"), true);
-  assert.equal(
-    packages.every(item => item.features[0].defaultActivation === false),
-    true
-  );
+  assert.equal(eog2dDesignerPackage.features[0].defaultActivation, true);
+  assert.equal(eog2dViewerPackage.features[0].defaultActivation, false);
+  assert.equal(eog3dViewerPackage.features[0].defaultActivation, false);
 });
 
 test("all EOG application packages depend on Enterprise Context definition authority", () => {
@@ -111,12 +110,12 @@ test("split package capabilities are distinct and catalog-discoverable", () => {
   );
 });
 
-test("2D Designer declares its target Experience ownership without activating migration", () => {
+test("2D Designer owns its Experience and is active by default after controlled cutover", () => {
   const feature = eog2dDesignerPackage.features[0];
   const experiences = (feature.contributions ?? []).filter(
     item => item.kind === "eidos.experience"
   );
-  assert.equal(feature.defaultActivation, false);
+  assert.equal(feature.defaultActivation, true);
   assert.equal(experiences.length, 1);
   const manifest = experiences[0].manifest;
   assert.equal(manifest.experienceId, EOG_2D_DESIGNER_EXPERIENCE_ID);
