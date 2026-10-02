@@ -71,3 +71,13 @@ export interface EnterpriseOperatingGraphInspectorPropertyProviderV010 {
     target: EogInspectorTargetV010;
   }): Promise<EogInspectorPropertyContributionV010>;
 }
+
+
+export interface EnterpriseOperatingGraphInspectorPropertyResolverV010 {
+  hasCandidates(): boolean;
+  inspect(input: {
+    enterpriseId: string;
+    graphId: string;
+    target: EogInspectorTargetV010;
+  }): Promise<EogInspectorPropertyContributionV010[]>;
+}
