@@ -199,7 +199,7 @@
       "agentSemanticToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
     },
     "eog-2d-viewer": {
-      "role": "READ_ONLY_2D_NAVIGATION_AND_CONTRIBUTION_AGGREGATION",
+      "role": "INTERACTIVE_SEMANTIC_READ_2D_NAVIGATION_INSPECTION_AND_CONTRIBUTION_AGGREGATION",
       "targetAssets": [
         "apps/eog-2d-viewer/observatory-actions.ts",
         "apps/eog-2d-viewer/agent-tools.ts",
@@ -216,7 +216,16 @@
       "agentToolOwnership": "ACTIVE_SPLIT",
       "authority": "docs/architecture/EOG-2D-VIEWER-CUTOVER-v0.1.md",
       "agentObservatoryToolOwnership": "ACTIVE",
-      "agentObservatoryToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
+      "agentObservatoryToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md",
+      "interactionModel": {
+        "nodeSelection": "ACTIVE",
+        "edgeSelection": "ACTIVE",
+        "nodePropertyInspection": "ACTIVE_SHARED_WORKSPACE",
+        "edgePropertyInspection": "ACTIVE_SHARED_WORKSPACE",
+        "navigation": "ACTIVE",
+        "semanticMutation": "PROHIBITED",
+        "persistentViewStateMutation": "POLICY_DRIVEN"
+      }
     },
     "eog-3d-viewer": {
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
@@ -267,6 +276,13 @@
     "neutralAdapters": [
       "eog/diagram-projection.ts",
       "eog/observatory-input.ts"
-    ]
+    ],
+    "twoDWorkspace": {
+      "authority": "docs/architecture/EOG-2D-INTERACTIVE-WORKSPACE-v0.1.md",
+      "capabilityProfiles": "eog/2d-workspace-capabilities.ts",
+      "projection": "eog/diagram-projection.ts",
+      "eidosInspector": "vendor/eidos/src/diagram/surface.ts",
+      "model": "VIEWER_AND_DESIGNER_SIBLINGS_OVER_SHARED_INTERACTION_FOUNDATION"
+    }
   }
 }
