@@ -61,8 +61,9 @@ export function applyEog2dInspectorPropertyContributionsV010(
   const next = structuredClone(state);
 
   for (const contribution of contributions) {
-    const target = contribution.target.kind === "NODE"
-      ? next.nodes.find(item => item.id === contribution.target.nodeId)
+    const contributionTarget = contribution.target;
+    const target = contributionTarget.kind === "NODE"
+      ? next.nodes.find(item => item.id === contributionTarget.nodeId)
       : next.edges.find(item => item.id === edgeId(contribution));
 
     if (!target) {
