@@ -41,7 +41,7 @@ import type {
 } from "../../contracts/enterprise-operating-graph-view-state.js";
 import {
   authorizeMaterialWriteV010
-} from "../../manager/material-write-authorization.js";
+} from "../../actions/material-write-authorization.js";
 
 export const EOG_EDITOR_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/editor";
