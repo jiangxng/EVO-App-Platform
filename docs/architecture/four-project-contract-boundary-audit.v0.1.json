@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-02",
+  "status": "AUDIT_ACTIVE",
+  "projects": {
+    "EVO": {
+      "authority": "DETERMINISTIC_RUNTIME",
+      "result": "PASS_ACTIVE_CONVERGENCE",
+      "currentTransition": "APPLICATION_ID_MINIMAL_RUNTIME_CONVERGENCE",
+      "integration": "APPLICATION_RUNTIME_BINDING_PROVIDER"
+    },
+    "EVO-App-Platform": {
+      "authority": "CONTROL_PLANE_ENTERPRISE_CONTEXT_INTEGRATION",
+      "result": "PASS_AFTER_DOCUMENTATION_CORRECTION"
+    },
+    "Eidos": {
+      "authority": "DETERMINISTIC_EXPERIENCE_FRAMEWORK",
+      "result": "PASS"
+    },
+    "Experience-Compiler": {
+      "authority": "PERSISTENT_ADVISORY_INTELLIGENCE",
+      "result": "PASS_MINOR_WORDING_CLEANUP_PENDING"
+    }
+  },
+  "sop": "DEFERRED_PRESERVED",
+  "next": [
+    "PATCH_EC_AMBIGUOUS_EVO_TRUTH_WORDING",
+    "RECHECK_EVO_COMPATIBILITY_PUBLIC_API_VS_TARGET_CORE_BOUNDARY",
+    "CLOSE_CROSS_PROJECT_AUDIT"
+  ]
+}
