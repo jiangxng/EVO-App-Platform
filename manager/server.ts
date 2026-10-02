@@ -112,6 +112,9 @@ import {
   createEnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
 import {
+  createEnterpriseOperatingGraphInspectorPropertyResolverV010
+} from "./enterprise-operating-graph-inspector-provider.js";
+import {
   createEnterpriseOperatingGraphObservatoryActionHandlersV020
 } from "./enterprise-operating-graph-observatory-actions.js";
 import {
@@ -667,6 +670,7 @@ import {
   createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010,
   createEnterpriseOperatingGraphViewerWorkspacePageV010,
   createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
+  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
 } from "../apps/eog-2d-viewer/workspace-page.js";
 import {
@@ -1592,6 +1596,12 @@ const enterpriseOperatingGraphObservatoryProviders =
     registry: providerRuntimeRegistry,
     bindings: providerBindings,
     installationId: "default"
+  });
+
+const enterpriseOperatingGraphInspectorProperties =
+  createEnterpriseOperatingGraphInspectorPropertyResolverV010({
+    manager,
+    registry: providerRuntimeRegistry
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
@@ -3117,6 +3127,7 @@ const actionRouter = createAppActionRouter(
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
       resolveAuthorizationProvider,
+      inspectorResolver: enterpriseOperatingGraphInspectorProperties,
       locale(context) {
         return context.locale;
       }
@@ -3140,6 +3151,10 @@ const actionRouter = createAppActionRouter(
       locale(context) {
         return context.locale;
       }
+    }),
+    createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
+      graphService: enterpriseOperatingGraphService,
+      inspectorResolver: enterpriseOperatingGraphInspectorProperties
     }),
     createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010(),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
