@@ -128,7 +128,6 @@ import {
 } from "./enterprise-operating-graph-mobile-read-page.js";
 import {
   createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020,
-  createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020,
   createEnterpriseOperatingGraphSpatialObservatoryPageV020,
   EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE
 } from "./enterprise-operating-graph-spatial-observatory-page.js";
@@ -661,6 +660,10 @@ import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../apps/eog-2d-viewer/package.js";
+import {
+  EOG_3D_VIEWER_FEATURE_ID,
+  EOG_3D_VIEWER_PACKAGE_ID
+} from "../apps/eog-3d-viewer/package.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
@@ -1549,6 +1552,16 @@ if (!manager.getSnapshot().activeFeatures.some(
     console.log("Activated EOG 2D Viewer ownership cutover.");
   } catch (error) {
     console.error("Failed to activate EOG 2D Viewer ownership cutover.", error);
+  }
+}
+if (!manager.getSnapshot().activeFeatures.some(
+  feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
+)) {
+  try {
+    manager.install(EOG_3D_VIEWER_PACKAGE_ID);
+    console.log("Activated EOG 3D Viewer ownership cutover.");
+  } catch (error) {
+    console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
   }
 }
 
@@ -4361,14 +4374,7 @@ const server = createServer(async (request, response) => {
         createProviderManagerExperienceManifest(manager),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
-        ...manager.listEffectiveExperiences(),
-        ...(manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
-        )
-          ? [
-              createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020()
-            ]
-          : [])
+        ...manager.listEffectiveExperiences()
       ]);
     }
 
@@ -4438,7 +4444,7 @@ const server = createServer(async (request, response) => {
       }
       if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+          feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
