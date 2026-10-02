@@ -333,6 +333,58 @@ export function applyEnterpriseOperatingGraphOperationV010(
       throw new Error("EOG_SEMANTIC_REF_DUPLICATE");
     }
     graph.nodes.push(node);
+  } else if (operation.type === "NODE_REBIND") {
+    const currentNode = graph.nodes.find(
+      node => node.nodeId === operation.nodeId
+    );
+    if (!currentNode) {
+      throw new Error("EOG_NODE_NOT_FOUND");
+    }
+    if (
+      graph.guidanceRelations.some(relation =>
+        relation.applicationNodeId === operation.nodeId
+        || relation.ledgerNodeId === operation.nodeId
+      )
+      || graph.enterpriseRelations.some(relation =>
+        relation.applicationNodeId === operation.nodeId
+        || relation.ledgerNodeId === operation.nodeId
+      )
+    ) {
+      throw new Error("EOG_NODE_REBIND_RELATION_CONFLICT");
+    }
+
+    const nextNode = {
+      ...clone(currentNode),
+      semanticRef: clone(operation.semanticRef)
+    };
+    if (
+      !nonEmpty(nextNode.semanticRef.refId)
+      || !nodeRefMatchesKind(nextNode)
+    ) {
+      throw new Error("EOG_NODE_INVALID");
+    }
+
+    const refKey = [
+      nextNode.semanticRef.authority,
+      nextNode.semanticRef.kind,
+      nextNode.semanticRef.refId,
+      nextNode.semanticRef.versionRef ?? ""
+    ].join(":");
+    if (graph.nodes.some(item =>
+      item.nodeId !== operation.nodeId
+      && [
+        item.semanticRef.authority,
+        item.semanticRef.kind,
+        item.semanticRef.refId,
+        item.semanticRef.versionRef ?? ""
+      ].join(":") === refKey
+    )) {
+      throw new Error("EOG_SEMANTIC_REF_DUPLICATE");
+    }
+
+    graph.nodes = graph.nodes.map(node =>
+      node.nodeId === operation.nodeId ? nextNode : node
+    );
   } else if (operation.type === "NODE_REMOVE") {
     if (!graph.nodes.some(node => node.nodeId === operation.nodeId)) {
       throw new Error("EOG_NODE_NOT_FOUND");
@@ -372,6 +424,38 @@ export function applyEnterpriseOperatingGraphOperationV010(
       throw new Error("EOG_GUIDANCE_RELATION_DUPLICATE");
     }
     graph.guidanceRelations.push(relation);
+  } else if (operation.type === "GUIDANCE_RELATION_SOURCE_UPDATE") {
+    const relation = graph.guidanceRelations.find(
+      item => item.relationId === operation.relationId
+    );
+    if (!relation) {
+      throw new Error("EOG_GUIDANCE_RELATION_NOT_FOUND");
+    }
+    if (graph.enterpriseRelations.some(
+      item => item.confirmedFromGuidanceRelationId === operation.relationId
+    )) {
+      throw new Error("EOG_GUIDANCE_SOURCE_CONFIRMED_IMMUTABLE");
+    }
+
+    const source = clone(operation.source);
+    if (
+      ![
+        "LEGACY_POSTING_RULE_TEMPLATE",
+        "ACCOUNTING_GUIDANCE",
+        "APQC",
+        "INDUSTRY_TEMPLATE",
+        "ENTERPRISE_TEMPLATE"
+      ].includes(source.kind)
+      || !nonEmpty(source.sourceRef)
+    ) {
+      throw new Error("EOG_GUIDANCE_SOURCE_INVALID");
+    }
+
+    graph.guidanceRelations = graph.guidanceRelations.map(item =>
+      item.relationId === operation.relationId
+        ? { ...item, source }
+        : item
+    );
   } else if (operation.type === "GUIDANCE_RELATION_REMOVE") {
     if (!graph.guidanceRelations.some(
       relation => relation.relationId === operation.relationId
