@@ -102,7 +102,25 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
         node.semanticRef.authority,
         node.semanticRef.kind,
         node.semanticRef.refId
-      ].join(" · ")
+      ].join(" · "),
+      properties: [
+        { key: "node.kind", label: "Node type", value: node.kind },
+        {
+          key: "semantic.authority",
+          label: "Authority",
+          value: node.semanticRef.authority
+        },
+        {
+          key: "semantic.kind",
+          label: "Reference type",
+          value: node.semanticRef.kind
+        },
+        {
+          key: "semantic.ref",
+          label: "Reference",
+          value: node.semanticRef.refId
+        }
+      ]
     };
   });
 
@@ -119,7 +137,27 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
       kind: "guidance",
       label: labels.guidance,
       style: "dashed" as const,
-      detail: relation.source.kind + " · " + relation.source.sourceRef
+      detail: relation.source.kind + " · " + relation.source.sourceRef,
+      properties: [
+        { key: "authority", label: "Authority", value: "GUIDANCE" },
+        { key: "relation.kind", label: "Relation type", value: relation.kind },
+        {
+          key: "applicationNodeId",
+          label: "Application node",
+          value: relation.applicationNodeId
+        },
+        {
+          key: "ledgerNodeId",
+          label: "Ledger node",
+          value: relation.ledgerNodeId
+        },
+        { key: "source.kind", label: "Source type", value: relation.source.kind },
+        {
+          key: "source.ref",
+          label: "Source reference",
+          value: relation.source.sourceRef
+        }
+      ]
     }));
 
   const confirmedEdges = graph.enterpriseRelations.map(relation => ({
@@ -134,7 +172,36 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
       relation.confirmedFromGuidanceRelationId
         ? "From " + relation.confirmedFromGuidanceRelationId
         : undefined
-    ].filter(Boolean).join(" · ")
+    ].filter(Boolean).join(" · "),
+    properties: [
+      { key: "authority", label: "Authority", value: "ENTERPRISE" },
+      { key: "relation.kind", label: "Relation type", value: relation.kind },
+      {
+        key: "applicationNodeId",
+        label: "Application node",
+        value: relation.applicationNodeId
+      },
+      {
+        key: "ledgerNodeId",
+        label: "Ledger node",
+        value: relation.ledgerNodeId
+      },
+      {
+        key: "confirmedBy",
+        label: "Confirmed by",
+        value: relation.confirmedBySubjectId
+      },
+      {
+        key: "confirmedAt",
+        label: "Confirmed at",
+        value: relation.confirmedAt
+      },
+      {
+        key: "confirmedFromGuidanceRelationId",
+        label: "Guidance source",
+        value: relation.confirmedFromGuidanceRelationId ?? null
+      }
+    ]
   }));
 
   return {
