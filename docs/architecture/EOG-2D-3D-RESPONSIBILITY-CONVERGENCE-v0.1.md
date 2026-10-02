@@ -390,3 +390,14 @@ EnterpriseOperatingGraphReadProviderV010
 The 2D Designer Host service structurally implements this contract while retaining its private write/mutation surface. 2D Viewer, 3D Viewer and Observatory code consume only the read contract for semantic graph access.
 
 This keeps write authority and editor implementation out of read-oriented plugins without creating a second graph authority.
+
+
+## 18. Package-neutral 2D projection adapter
+
+The common mapping from Enterprise Graph semantic nodes/relations plus DIAGRAM_2D View State into Eidos 2D nodes/edges is a package-neutral pure adapter:
+
+`eog/diagram-projection.ts`
+
+It owns no lifecycle, authority, persistence, action handling or package identity.
+
+The base projection emits nodes/edges only and no semantic edit actions. The 2D Designer adds confirmation/publication actions in its own package. The 2D Viewer may consume the same base mapping in read-only mode without depending on Designer implementation.
