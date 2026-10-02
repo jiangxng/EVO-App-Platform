@@ -337,3 +337,18 @@ This slice does not:
 ## 14. Canonical statement
 
 > Enterprise Context owns Enterprise Graph Definition truth; Eidos owns reusable 2D/3D interaction cores; App Platform owns three EOG application plugins—2D Designer, 2D Viewer and 3D Viewer—which consume the same authoritative definition through stable contracts.
+
+
+## 15. Physical extraction progress — 2D Designer semantic core
+
+The first physical extraction slice moves implementation ownership for the EOG semantic model, legacy compatibility store, and Host-facing semantic service into `apps/eog-2d-designer/`.
+
+Moved implementation owners:
+
+- `enterprise-operating-graph-model.ts`
+- `enterprise-operating-graph-store.ts`
+- `enterprise-operating-graph-service.ts`
+
+The previous `manager/enterprise-operating-graph-*.ts` locations remain as compatibility re-exports only.
+
+This does not change semantic authority: authoritative Enterprise Graph Definition persistence remains Enterprise Context Business Definition Repository. The package-local store exists only for compatibility/migration and tests; it is not restored as production authority.
