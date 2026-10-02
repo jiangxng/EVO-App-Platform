@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Four-project contract-boundary audit is closed PASS. Experience Compiler remains an independent advisory-intelligence owner project; enterprise-agent is an App Platform lifecycle/integration package boundary only. EVO target Core versus compatibility API wording is clarified. SOP remains separate and deferred. Next gate is a public-contract proof from Host semantic Application identity through enterprise.application-runtime-binding to EVO applicationId when EVO is the selected runtime provider.",
+  "currentStep": "App Platform → EVO applicationId public-contract proof is closed PASS: lifecycle-gated enterprise.application-runtime-binding resolves Host semantic Application identity to runtimeApplicationId, and the EVO bridge preserves that exact value as EVO applicationId without transformation. SOP remains separate and deferred. The next cross-project gate is EVO-side convergence of the generic BusinessDataSubmission transport/endpoint onto this exact applicationId routing anchor.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1783,18 +1783,19 @@
         }
       },
       "openGate": {
-        "id": "app-platform-evo-application-id-contract-proof-v0-1",
+        "id": "evo-generic-business-data-submission-transport-convergence-v0-1",
         "status": "READY",
-        "summary": "Prove the public contract path from Host semantic Application identity through the lifecycle-gated Application Runtime Binding Provider to EVO's minimal applicationId routing anchor, without importing private implementation or restoring rich Application lifecycle to EVO.",
-        "authority": "docs/architecture/FOUR-PROJECT-CONTRACT-BOUNDARY-AUDIT-v0.1.md",
+        "summary": "Converge EVO's target generic BusinessDataSubmission transport/endpoint so App Platform adapters can submit through the public EVO contract using the exact applicationId proven by #308, without restoring rich Application lifecycle into EVO Core.",
+        "authority": "docs/architecture/APP-PLATFORM-EVO-APPLICATION-ID-CONTRACT-PROOF-v0.1.md",
         "acceptance": [
-          "Host semantic Application identity resolves through enterprise.application-runtime-binding",
-          "binding result exposes runtimeProviderId and runtimeApplicationId without EOG-private identity",
-          "when EVO is the selected runtime provider runtimeApplicationId maps exactly to EVO applicationId",
-          "App Platform provider/package lifecycle remains authoritative for binding availability",
-          "EVO rich Application lifecycle/capability/authorization remains outside target Ledger Runtime Core",
-          "cross-project integration uses public contracts only and no repository-private imports",
-          "SOP remains separate, preserved and deferred"
+          "EVO exposes or converges a public generic BusinessDataSubmission transport/endpoint",
+          "submission routes by exact applicationId",
+          "PostingRule selection uses the same exact applicationId",
+          "compatibility transports remain adapters and do not create alternate application identity",
+          "EVO Core remains limited to minimal Application routing anchor, deterministic BusinessData, posting and ledger execution",
+          "App Platform rich Application lifecycle/capability/authorization remains outside EVO Core",
+          "cross-project integration uses public contracts only",
+          "SOP remains separate and deferred"
         ]
       },
       "productionPreview": {
@@ -1811,9 +1812,19 @@
     },
     "recentMainline": [
       {
+        "pr": 308,
+        "status": "MERGED_CI_PASS",
+        "summary": "Prove exact Host semantic Application → runtimeApplicationId → EVO applicationId public-contract identity mapping."
+      },
+      {
+        "pr": 307,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close four-project boundary audit and open the App Platform→EVO applicationId proof gate."
+      },
+      {
         "pr": 306,
         "status": "MERGED_CI_PASS",
-        "summary": "Close the four-project ownership audit across EVO, App Platform, Eidos and Experience Compiler and identify bounded cross-repository wording follow-up."
+        "summary": "Audit and correct ownership boundaries across EVO, App Platform, Eidos and Experience Compiler."
       },
       {
         "pr": 305,
