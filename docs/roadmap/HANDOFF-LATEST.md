@@ -10,7 +10,7 @@
 ## Current milestone
 
 ```text
-EOG 2D/3D Responsibility Convergence v0.1
+Cross-Project Contract Boundary Convergence v0.1
 ACTIVE
 ```
 
@@ -40,18 +40,18 @@ Evidence:
 
 ## Current open live gate
 
-**runtime-binding-adapter-contract-identity-v0-1: READY**
+**four-project-contract-boundary-audit-v0-1: READY**
 
-Freeze the Runtime Binding Adapter public contract and package identity while keeping SOP extraction deferred and EOG/SOP boundaries separate.
+Re-verify the public contract and authority boundaries across EVO, EVO App Platform, Eidos and Experience Compiler after the EOG/runtime-binding convergence, without reopening deferred SOP work.
 
 Acceptance:
 
-- SOP extraction remains deferred and no SOP package/product expansion is introduced
-- Runtime Binding Adapter owns only semantic-reference to runtime-provider/runtime-application identity mapping
-- Enterprise Graph and SOP definition authority remain outside the adapter
-- Ledger Runtime execution remains outside the adapter
-- adapter public contract is explicit before physical implementation extraction
-- adapter does not import EOG application private implementation
+- EVO remains deterministic runtime/execution authority and is consumed through stable runtime/provider contracts
+- EVO App Platform remains lifecycle/control-plane and enterprise-definition Experience integration layer without absorbing EVO or EC private implementation
+- Eidos 2D/3D Core remains generic visual-interaction infrastructure with no EOG/EVO/EC business semantics
+- Experience Compiler remains enterprise/industry knowledge, learning and proposal authority without taking Enterprise Context definition authority
+- cross-project dependencies use public contracts rather than repository-private implementation
+- SOP remains separate and deferred during this audit
 
 ## Current production preview
 
@@ -92,6 +92,12 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #304 — MERGED_CI_PASS: Audit Runtime Fact / Analysis Provider boundaries; freeze historical SOP conformance/deviation coupling as preserved deferred debt.
+- PR #303 — MERGED_CI_PASS: Gate Application Runtime Binding provider resolution through package lifecycle while preserving upgrade compatibility.
+- PR #302 — MERGED_CI_PASS: Move Application Runtime Binding service/store into generic provider ownership with manager compatibility re-exports.
+- PR #301 — MERGED_CI_PASS: Publish generic Enterprise Application Runtime Binding public contract and headless provider package identity.
+- PR #300 — MERGED_CI_PASS: Defer SOP extraction/product development and advance the Runtime Binding Adapter convergence gate.
+- PR #297 — MERGED_CI_PASS: Close interactive EOG 2D Workspace convergence across Viewer and Designer.
 - PR #296 — MERGED_CI_PASS: Prove end-to-end Designer Inspector edit -> ActionHost -> new authoritative Enterprise Graph revision while Viewer remains non-editable.
 - PR #295 — MERGED_CI_PASS: Add governed Designer edits for EOG-owned Inspector properties: safe node rebind and unconfirmed Guidance source updates.
 - PR #294 — MERGED_CI_PASS: Wire lazy selection-time peer-owned Inspector properties into Viewer and Designer with role-based edit descriptor filtering.
@@ -377,6 +383,9 @@ Not proved:
 - Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands.
 - Do not resume SOP Designer extraction or expand the SOP domain until the product work is explicitly reactivated.
 - Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references.
+- Do not treat Application Runtime Binding as EOG-owned; the generic provider contract/package is authoritative and old EOG paths are compatibility only.
+- Do not bypass Application Runtime Binding package lifecycle by directly consuming its implementation when normal provider resolution is available.
+- Do not resume SOP extraction/product development during the four-project boundary audit.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -534,6 +543,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity
 - state SOP as a separate preserved peer domain whose extraction/product development is currently deferred
 - state Runtime Binding Adapter contract/package identity as the active next convergence gate
+- state Enterprise Application Runtime Binding as a generic lifecycle-gated PLATFORM_PROVIDER rather than EOG-owned infrastructure
+- state existing Runtime Fact / Analysis Providers as audited with SOP conformance/deviation preserved frozen debt
+- state the active next gate as the EVO / App Platform / Eidos / Experience Compiler contract-boundary audit
 
 No previous ChatGPT transcript is required.
 

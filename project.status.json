@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "EOG 2D/3D Responsibility Convergence v0.1",
+  "currentMilestone": "Cross-Project Contract Boundary Convergence v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG 2D Viewer/Designer interactive Workspace convergence is closed. SOP remains a separate preserved peer domain but its extraction/product development is deferred. The active next convergence target is the Runtime Binding Adapter public contract and package identity, followed by physical extraction and analysis-provider contract audit.",
+  "currentStep": "EOG 2D Viewer/Designer interactive Workspace convergence is closed. SOP remains separate and deferred. Enterprise Application Runtime Binding is now a generic lifecycle-gated PLATFORM_PROVIDER with provider-owned runtime/store and compatibility aliases for historical EOG paths. Existing Runtime Fact / Analysis providers are audited; EVO Runtime Observatory passes the public-contract boundary, while historical SOP conformance/deviation inside Bottleneck Analysis is preserved frozen debt. Next gate is a four-project contract-boundary audit across EVO, EVO App Platform, Eidos and Experience Compiler.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1763,7 +1763,7 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "EOG 2D/3D Responsibility Convergence v0.1",
+      "milestone": "Cross-Project Contract Boundary Convergence v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
         "id": "eog-enterprise-context-production-migration-proof-v0-1",
@@ -1783,17 +1783,17 @@
         }
       },
       "openGate": {
-        "id": "runtime-binding-adapter-contract-identity-v0-1",
+        "id": "four-project-contract-boundary-audit-v0-1",
         "status": "READY",
-        "summary": "Freeze the Runtime Binding Adapter public contract and package identity while keeping SOP extraction deferred and EOG/SOP boundaries separate.",
-        "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
+        "summary": "Re-verify the public contract and authority boundaries across EVO, EVO App Platform, Eidos and Experience Compiler after the EOG/runtime-binding convergence, without reopening deferred SOP work.",
+        "authority": "project.status.json",
         "acceptance": [
-          "SOP extraction remains deferred and no SOP package/product expansion is introduced",
-          "Runtime Binding Adapter owns only semantic-reference to runtime-provider/runtime-application identity mapping",
-          "Enterprise Graph and SOP definition authority remain outside the adapter",
-          "Ledger Runtime execution remains outside the adapter",
-          "adapter public contract is explicit before physical implementation extraction",
-          "adapter does not import EOG application private implementation"
+          "EVO remains deterministic runtime/execution authority and is consumed through stable runtime/provider contracts",
+          "EVO App Platform remains lifecycle/control-plane and enterprise-definition Experience integration layer without absorbing EVO or EC private implementation",
+          "Eidos 2D/3D Core remains generic visual-interaction infrastructure with no EOG/EVO/EC business semantics",
+          "Experience Compiler remains enterprise/industry knowledge, learning and proposal authority without taking Enterprise Context definition authority",
+          "cross-project dependencies use public contracts rather than repository-private implementation",
+          "SOP remains separate and deferred during this audit"
         ]
       },
       "productionPreview": {
@@ -1809,6 +1809,36 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 304,
+        "status": "MERGED_CI_PASS",
+        "summary": "Audit Runtime Fact / Analysis Provider boundaries; freeze historical SOP conformance/deviation coupling as preserved deferred debt."
+      },
+      {
+        "pr": 303,
+        "status": "MERGED_CI_PASS",
+        "summary": "Gate Application Runtime Binding provider resolution through package lifecycle while preserving upgrade compatibility."
+      },
+      {
+        "pr": 302,
+        "status": "MERGED_CI_PASS",
+        "summary": "Move Application Runtime Binding service/store into generic provider ownership with manager compatibility re-exports."
+      },
+      {
+        "pr": 301,
+        "status": "MERGED_CI_PASS",
+        "summary": "Publish generic Enterprise Application Runtime Binding public contract and headless provider package identity."
+      },
+      {
+        "pr": 300,
+        "status": "MERGED_CI_PASS",
+        "summary": "Defer SOP extraction/product development and advance the Runtime Binding Adapter convergence gate."
+      },
+      {
+        "pr": 297,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close interactive EOG 2D Workspace convergence across Viewer and Designer."
+      },
       {
         "pr": 296,
         "status": "MERGED_CI_PASS",
@@ -2500,7 +2530,10 @@
       "Do not fork separate Viewer and Designer property panels; both use the shared Eidos 2D Workspace Inspector and shared EOG property projection.",
       "Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands.",
       "Do not resume SOP Designer extraction or expand the SOP domain until the product work is explicitly reactivated.",
-      "Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references."
+      "Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references.",
+      "Do not treat Application Runtime Binding as EOG-owned; the generic provider contract/package is authoritative and old EOG paths are compatibility only.",
+      "Do not bypass Application Runtime Binding package lifecycle by directly consuming its implementation when normal provider resolution is available.",
+      "Do not resume SOP extraction/product development during the four-project boundary audit."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2640,7 +2673,10 @@
       "state App Platform PRs #287-#296 as the interactive 2D Workspace and Inspector convergence line",
       "state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity",
       "state SOP as a separate preserved peer domain whose extraction/product development is currently deferred",
-      "state Runtime Binding Adapter contract/package identity as the active next convergence gate"
+      "state Runtime Binding Adapter contract/package identity as the active next convergence gate",
+      "state Enterprise Application Runtime Binding as a generic lifecycle-gated PLATFORM_PROVIDER rather than EOG-owned infrastructure",
+      "state existing Runtime Fact / Analysis Providers as audited with SOP conformance/deviation preserved frozen debt",
+      "state the active next gate as the EVO / App Platform / Eidos / Experience Compiler contract-boundary audit"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
