@@ -9,9 +9,9 @@ import type {
   PlatformRequestContextV010
 } from "../contracts/platform-services.js";
 import {
-  ENTERPRISE_AGENT_FEATURE_ID,
-  ENTERPRISE_AGENT_PACKAGE_ID
-} from "../agents/enterprise-agent/package.js";
+  EOG_2D_DESIGNER_FEATURE_ID,
+  EOG_2D_DESIGNER_PACKAGE_ID
+} from "../apps/eog-2d-designer/package.js";
 import type {
   EnterpriseOperatingGraphHostServiceV010,
   EnterpriseOperatingGraphMutationV010
@@ -170,8 +170,8 @@ function handler(
   ) => Promise<AppActionExecutionResultV010>
 ): AppActionHandler {
   return {
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+    featureId: EOG_2D_DESIGNER_FEATURE_ID,
     commandCode,
     async execute(request, context) {
       if (!context) {
