@@ -167,7 +167,9 @@
       "experienceOwnership": "ACTIVE",
       "humanActionOwnership": "ACTIVE",
       "agentToolOwnership": "COMPATIBILITY_PENDING_VIEWER_SPLIT",
-      "authority": "docs/architecture/EOG-2D-DESIGNER-CUTOVER-v0.1.md"
+      "authority": "docs/architecture/EOG-2D-DESIGNER-CUTOVER-v0.1.md",
+      "agentSemanticToolOwnership": "ACTIVE",
+      "agentSemanticToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
     },
     "eog-2d-viewer": {
       "role": "READ_ONLY_2D_NAVIGATION_AND_CONTRIBUTION_AGGREGATION",
@@ -183,7 +185,9 @@
       "readActionOwnership": "ACTIVE",
       "analysisCalculationOwnership": "PEER_PROVIDERS",
       "agentToolOwnership": "COMPATIBILITY_PENDING_3D_SPLIT",
-      "authority": "docs/architecture/EOG-2D-VIEWER-CUTOVER-v0.1.md"
+      "authority": "docs/architecture/EOG-2D-VIEWER-CUTOVER-v0.1.md",
+      "agentObservatoryToolOwnership": "ACTIVE",
+      "agentObservatoryToolAuthority": "docs/architecture/EOG-AGENT-TOOL-OWNERSHIP-SPLIT-v0.1.md"
     },
     "eog-3d-viewer": {
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
@@ -196,8 +200,17 @@
       "experienceOwnership": "ACTIVE",
       "readActionOwnership": "ACTIVE",
       "analysisCalculationOwnership": "PEER_PROVIDERS",
-      "agentToolOwnership": "COMPATIBILITY_PENDING_TOOL_SPLIT",
+      "agentToolOwnership": "PENDING_SPATIAL_VIEW_TOOL_SPLIT",
       "authority": "docs/architecture/EOG-3D-VIEWER-CUTOVER-v0.1.md"
     }
+  },
+  "agentToolCompatibilityDebt": {
+    "genericViewTools": [
+      "enterprise.operating_graph.view.get",
+      "enterprise.operating_graph.view.apply"
+    ],
+    "currentOwner": "evo-app-platform",
+    "reason": "The existing tool schema mixes DIAGRAM_2D and SPATIAL_3D and cannot truthfully have one dedicated plugin owner.",
+    "next": "Split 2D and 3D View tooling while preserving stable compatibility identifiers where possible."
   }
 }
