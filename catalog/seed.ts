@@ -22,6 +22,9 @@ import {
 import {
   eog3dViewerPackage
 } from "../apps/eog-3d-viewer/package.js";
+import {
+  sopDesignerPackage
+} from "../apps/sop-designer/package.js";
 
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 export {
@@ -36,6 +39,9 @@ export {
 export {
   eog3dViewerPackage
 } from "../apps/eog-3d-viewer/package.js";
+export {
+  sopDesignerPackage
+} from "../apps/sop-designer/package.js";
 
 
 export const companyNotesPackage: PackageManifestV010 = {
