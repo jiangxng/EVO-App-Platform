@@ -22,7 +22,7 @@ test("EOG application projections consume public Eidos visual-core facades, not 
   const files = [
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
     "apps/eog-2d-viewer/desktop-page.ts",
-    "manager/enterprise-operating-graph-spatial-observatory-page.ts"
+    "apps/eog-3d-viewer/spatial-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));
 

@@ -96,3 +96,18 @@ Now that all three application plugins have independent lifecycle ownership, Age
 4. no EOG Experience is injected by the Enterprise Agent compatibility feature;
 5. analysis calculation remains in peer Providers/Plugins;
 6. existing spatial regression tests remain green.
+
+
+## Spatial Viewer physical cutover
+
+The 3D spatial Observatory implementation now lives under `apps/eog-3d-viewer/spatial-page.ts`.
+
+It consumes only:
+
+- the public Enterprise Graph semantic read contract;
+- the public shared View State provider contract;
+- the package-neutral Observatory input grammar;
+- the public Eidos 3D Core facade;
+- Host-provided Observatory provider resolution.
+
+It no longer imports 2D Designer or 2D Viewer private implementation. The old manager spatial page path remains a compatibility re-export only.
