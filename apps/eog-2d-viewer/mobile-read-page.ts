@@ -36,7 +36,7 @@ import type {
 import {
   parseEogMetricCodesV020,
   parseEogTimeLensInputV020
-} from "./observatory-input.js";
+} from "../../eog/observatory-input.js";
 
 export const EOG_MOBILE_READ_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/observatory-mobile-read";

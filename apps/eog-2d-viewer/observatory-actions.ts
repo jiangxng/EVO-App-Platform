@@ -18,7 +18,7 @@ import type {
 } from "../../manager/enterprise-operating-graph-observatory-provider.js";
 import {
   parseEogObservatoryRequestInputV020
-} from "./observatory-input.js";
+} from "../../eog/observatory-input.js";
 
 export const EOG_OBSERVE_ACTION =
   "enterprise-operating-graph.observatory.observe";

@@ -20,7 +20,7 @@ import {
 } from "../../manager/enterprise-operating-graph-observatory-provider.js";
 import {
   parseEogObservatoryRequestInputV020
-} from "./observatory-input.js";
+} from "../../eog/observatory-input.js";
 
 function enterpriseId(
   context: ResolvedContextSetV010

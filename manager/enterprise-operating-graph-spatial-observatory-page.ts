@@ -45,7 +45,7 @@ import type {
 import {
   parseEogMetricCodesV020,
   parseEogTimeLensInputV020
-} from "./enterprise-operating-graph-observatory-input.js";
+} from "../eog/observatory-input.js";
 
 export const EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/observatory-spatial";

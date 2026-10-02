@@ -4,7 +4,6 @@ import { readFile } from "node:fs/promises";
 
 test("2D Viewer runtime/read implementation is physically package-owned", async () => {
   const owned = [
-    "apps/eog-2d-viewer/observatory-input.ts",
     "apps/eog-2d-viewer/observatory-actions.ts",
     "apps/eog-2d-viewer/agent-tools.ts",
     "apps/eog-2d-viewer/mobile-read-page.ts",

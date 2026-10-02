@@ -401,3 +401,16 @@ The common mapping from Enterprise Graph semantic nodes/relations plus DIAGRAM_2
 It owns no lifecycle, authority, persistence, action handling or package identity.
 
 The base projection emits nodes/edges only and no semantic edit actions. The 2D Designer adds confirmation/publication actions in its own package. The 2D Viewer may consume the same base mapping in read-only mode without depending on Designer implementation.
+
+
+## 19. Package-neutral Observatory input grammar
+
+Time Lens, metric filter and target request parsing is shared by 2D and 3D observation experiences. It is therefore not owned by either Viewer plugin.
+
+Canonical implementation:
+
+`eog/observatory-input.ts`
+
+Both Viewer families consume this neutral parser. The old manager path and the temporary 2D Viewer path remain compatibility re-exports only.
+
+This prevents 3D Viewer from depending on 2D Viewer private implementation while keeping the Observatory request contract identical across projections.
