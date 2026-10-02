@@ -40,19 +40,17 @@ Evidence:
 
 ## Current open live gate
 
-**eog-2d-designer-experience-implementation-extraction-v0-1: READY_AFTER_SEMANTIC_CORE_CI**
+**eog-peer-plugin-extraction-baseline-v0-1: READY**
 
-Move EOG 2D Designer action handlers, Personal Agent tools and editor page/projection implementation into apps/eog-2d-designer while preserving stable manager compatibility re-exports, routes, page sources and authority rules.
+Freeze peer-plugin extraction order, package identities and public boundaries for preserved SOP, Observatory analysis/provider and runtime-binding assets before moving implementation.
 
 Acceptance:
 
-- EOG 2D Designer actions are package-local implementation
-- EOG 2D Designer semantic/2D Agent tools are package-local implementation
-- EOG editor page and projection are package-local implementation
-- manager compatibility modules contain re-exports only for moved implementation
-- routes/page source/action IDs remain unchanged
-- Enterprise Context remains semantic persistence authority
-- Human-only confirm/remove/publish boundaries remain unchanged
+- EOG 2D Designer, 2D Viewer and 3D Viewer physical ownership remains stable
+- SOP semantics remain APQC process structure plus time dimension
+- SOP, analysis/provider and runtime-binding target package identities are explicit before physical extraction
+- peer plugins communicate through public contracts and do not import EOG application private implementation
+- EOG application packages remain prohibited from importing manager-private implementation
 
 ## Current production preview
 
@@ -93,6 +91,18 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #284 — MERGED_CI_PASS: Close EOG application package dependency leaks into manager-private implementation and enforce the boundary in CI.
+- PR #283 — MERGED_CI_PASS: Remove residual 2D Designer persistence/migration compatibility imports and use package-owned model/store directly.
+- PR #282 — MERGED_CI_PASS: Publish Observatory Service/Provider Resolver contracts and move Viewer/peer Provider type dependencies off manager-private implementation.
+- PR #281 — MERGED_CI_PASS: Physically move the 3D spatial Observatory page/action implementation into evo-eog-3d-viewer.
+- PR #280 — MERGED_CI_PASS: Promote Observatory request parsing to a package-neutral EOG input grammar shared by 2D and 3D viewers.
+- PR #279 — MERGED_CI_PASS: Complete desktop 2D Viewer physical cutover with a Viewer-owned fail-closed read-only operation command.
+- PR #278 — MERGED_CI_PASS: Extract package-neutral EOG-to-Eidos 2D base projection and keep semantic edit actions Designer-owned.
+- PR #277 — MERGED_CI_PASS: Physically move 2D Viewer observatory actions, Agent tools and mobile read implementation into the owning package.
+- PR #276 — MERGED_CI_PASS: Publish the Enterprise Graph semantic read contract so Viewer code no longer depends on the Designer Host service type.
+- PR #275 — MERGED_CI_PASS: Extract shared 2D/3D View State into a public Host presentation-state provider boundary.
+- PR #274 — MERGED_CI_PASS: Physically split EOG Personal Agent tool implementation between 2D Designer and 3D Viewer package owners.
+- PR #273 — MERGED_CI_PASS: Physically move 2D Designer Human actions and editor projection into the owning package.
 - PR #269 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Cut EOG semantic runtime persistence over to Enterprise Context Business Definition Repository; production imported one legacy graph definition and controlled restart proved idempotence.
 - PR #268 — MERGED_CI_PASS: Add ENTERPRISE_OPERATING_GRAPH Business Definition kind, contract-bound persistence adapter foundation and non-destructive legacy semantic migration.
 - PR #266 — MERGED_CI_PASS: Split semantic and Observatory Personal Agent tool ownership between EOG 2D Designer and EOG 2D Viewer while preserving Provider calculation ownership.
@@ -347,6 +357,9 @@ Not proved:
 - Do not move EOG-specific semantic mapping into the generic Enterprise Context provider; the adapter belongs to EOG 2D Designer behind a stable persistence contract.
 - Do not make EOG application code import vendor/eidos/src/diagram/** or vendor/eidos/src/spatial/** directly after the public visual-core boundary is available.
 - Do not rewrite Eidos diagram/spatial implementations merely to satisfy 2D/3D naming; the public facades are the stable boundary.
+- Do not treat EOG three-plugin physical extraction as pending; package ownership and plugin-to-manager private dependency closure are implemented on main through PR #284.
+- Do not reintroduce apps/eog-* imports from manager/**; CI now prohibits this dependency direction.
+- Do not physically extract preserved SOP/analysis/runtime-binding assets before their peer-plugin package identities and public contracts are frozen.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -500,6 +513,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EOG 2D Designer and EOG 2D Viewer as consumers of the Eidos 2D Core facade
 - state EOG 3D Viewer as a consumer of the Eidos 3D Core facade
 - state physical EOG plugin implementation extraction as the next convergence gate
+- state EOG 2D Designer, 2D Viewer and 3D Viewer physical application ownership as converged
+- state EOG application package imports from manager-private implementation as prohibited by CI
+- state the next EOG gate as peer-plugin extraction baseline for SOP, analysis/provider and runtime-binding preserved assets
 
 No previous ChatGPT transcript is required.
 
