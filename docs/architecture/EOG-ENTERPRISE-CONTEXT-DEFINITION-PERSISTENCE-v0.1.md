@@ -1,6 +1,6 @@
 # EOG Enterprise Context Definition Persistence v0.1
 
-**Status:** FOUNDATION READY — RUNTIME CUTOVER NOT YET APPLIED  
+**Status:** RUNTIME CUTOVER IMPLEMENTED — CI / PRODUCTION VERIFICATION GATE  
 **Date:** 2026-10-02  
 **Parent authority:** `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`
 
@@ -55,8 +55,7 @@ The existing `EnterpriseOperatingGraphV010` remains the EOG domain contract.
 A repository adapter translates between that contract and
 `BusinessDefinitionRevisionV010` without changing graph IDs or semantic revision numbers.
 
-The existing file/memory EOG semantic store remains a protected legacy migration
-asset until runtime cutover is independently CI-proven.
+The existing file EOG semantic store is now a protected migration source only. The Host runtime no longer constructs it as the authority for new semantic writes. In-memory legacy store support remains only for compatibility tests and isolated historical code paths.
 
 ## Legacy migration
 
@@ -92,8 +91,24 @@ new EOG semantic writes
 
 No 2D/3D presentation change may create an Enterprise Business Definition revision.
 
-## Next slice
+## Runtime cutover
 
-Wire `EnterpriseOperatingGraphHostServiceV010` to the repository-backed
-persistence adapter, migrate any legacy semantic snapshot before reads/writes,
-and stop using the legacy EOG semantic store as authority for new operations.
+The Host startup sequence is now:
+
+```text
+legacy EOG semantic file (if present)
+        ↓ non-destructive migration
+Enterprise Context Business Definition Repository
+        ↓ EOG domain adapter
+EnterpriseOperatingGraphHostServiceV010
+```
+
+New EOG semantic create/revise/publish operations go only through the Business Definition Repository.
+
+The legacy semantic file is not rewritten or deleted.
+
+Human and Agent creation attribution is preserved at the Business Definition revision boundary. New publication still requires Human authority.
+
+## Next gate
+
+Deploy the cutover and verify production migration/startup evidence before any legacy semantic-store cleanup.
