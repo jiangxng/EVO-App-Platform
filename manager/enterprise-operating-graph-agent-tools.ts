@@ -2,7 +2,6 @@ import type {
   AgentToolDescriptorV010
 } from "../agents/enterprise-agent/contracts.js";
 import {
-  EOG_2D_DESIGNER_FEATURE_ID,
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
 import {
