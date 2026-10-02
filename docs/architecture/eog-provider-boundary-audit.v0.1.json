@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-02",
+  "status": "AUDITED",
+  "runtimeBindingAdapter": "CONVERGED",
+  "providers": {
+    "evoRuntimeObservatory": {
+      "path": "providers/evo-runtime-observatory",
+      "role": "PEER_RUNTIME_FACT_PROVIDER",
+      "result": "PASS",
+      "privateEogAppImports": "NONE",
+      "privateManagerImports": "NONE",
+      "sopDependency": "NONE"
+    },
+    "eogBottleneckAnalysis": {
+      "path": "providers/eog-bottleneck-analysis",
+      "role": "PEER_ANALYSIS_PROVIDER_WITH_PRESERVED_MIXED_SOP_DEBT",
+      "result": "PASS_WITH_PRESERVED_DEBT",
+      "privateEogAppImports": "NONE",
+      "preservedDebt": [
+        "manager/enterprise-operating-graph-sop-service.ts",
+        "contracts/enterprise-operating-graph-sop.ts"
+      ],
+      "sopBranchStatus": "FROZEN_DEFERRED"
+    }
+  },
+  "sop": {
+    "productDevelopment": "DEFERRED",
+    "extraction": "DEFERRED",
+    "conformanceDeviationAnalysis": "PRESERVED_FROZEN"
+  }
+}
