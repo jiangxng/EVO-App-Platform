@@ -13,8 +13,8 @@ import type {
   EnterpriseOperatingGraphRuntimeFactProviderV020
 } from "../contracts/enterprise-operating-graph-observatory.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 import {
   createEnterpriseOperatingGraphObservatoryServiceV020,
   type EnterpriseOperatingGraphObservatoryServiceV020
@@ -40,7 +40,7 @@ export interface EnterpriseOperatingGraphObservatoryProviderResolverV020 {
     enterpriseId: string
   ): EnterpriseOperatingGraphAnalysisProviderV020 | undefined;
   createService(input: {
-    graphService: EnterpriseOperatingGraphHostServiceV010;
+    graphService: EnterpriseOperatingGraphReadProviderV010;
     enterpriseId: string;
     requireAnalysis?: boolean;
   }): EnterpriseOperatingGraphObservatoryServiceV020;

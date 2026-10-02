@@ -28,8 +28,8 @@ import type {
   EntityInspectorV010
 } from "../vendor/eidos/src/entity-inspector/contracts.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 import type {
   EnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
@@ -359,7 +359,7 @@ function failure(
 
 export function createEnterpriseOperatingGraphMobileReadActionHandlerV010(
   input: {
-    graphService: EnterpriseOperatingGraphHostServiceV010;
+    graphService: EnterpriseOperatingGraphReadProviderV010;
     providers: EnterpriseOperatingGraphObservatoryProviderResolverV020;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
   }

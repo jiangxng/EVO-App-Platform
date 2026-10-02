@@ -16,6 +16,9 @@ import type {
 import type {
   EnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../../contracts/enterprise-operating-graph-definition-persistence.js";
+import type {
+  EnterpriseOperatingGraphReadProviderV010
+} from "../../contracts/enterprise-operating-graph-read.js";
 
 export type EnterpriseOperatingGraphMutationV010 =
   | {
@@ -49,7 +52,7 @@ export type EnterpriseOperatingGraphMutationV010 =
       type: "PUBLISH";
     };
 
-export interface EnterpriseOperatingGraphHostServiceV010 {
+export interface EnterpriseOperatingGraphHostServiceV010 extends EnterpriseOperatingGraphReadProviderV010 {
   create(input: {
     enterpriseId: string;
     graphId?: string;
@@ -59,13 +62,6 @@ export interface EnterpriseOperatingGraphHostServiceV010 {
     };
     occurredAt?: string;
   }): EnterpriseOperatingGraphV010;
-  get(input: {
-    enterpriseId: string;
-    graphId: string;
-  }): EnterpriseOperatingGraphV010;
-  list(input: {
-    enterpriseId: string;
-  }): EnterpriseOperatingGraphV010[];
   apply(input: {
     enterpriseId: string;
     graphId: string;

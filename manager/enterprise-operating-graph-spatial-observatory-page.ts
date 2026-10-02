@@ -34,8 +34,8 @@ import {
   EOG_EDITOR_RESOURCE_ID
 } from "./enterprise-operating-graph-page.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 import type {
   EnterpriseOperatingGraphViewHostServiceV010
 } from "./enterprise-operating-graph-view-service.js";
@@ -240,7 +240,7 @@ function failure(request:AppActionRequestV010,error:unknown):AppActionExecutionR
 }
 
 export function createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020(input:{
-  graphService:EnterpriseOperatingGraphHostServiceV010;
+  graphService:EnterpriseOperatingGraphReadProviderV010;
   viewService:EnterpriseOperatingGraphViewHostServiceV010;
   providers:EnterpriseOperatingGraphObservatoryProviderResolverV020;
 }):AppActionHandler {

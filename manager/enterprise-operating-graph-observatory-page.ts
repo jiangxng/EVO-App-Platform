@@ -33,8 +33,8 @@ import {
   projectMissingEnterpriseOperatingGraphEditorStateV010
 } from "./enterprise-operating-graph-page.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 import type {
   EnterpriseOperatingGraphViewHostServiceV010
 } from "./enterprise-operating-graph-view-service.js";
@@ -549,7 +549,7 @@ function enterpriseId(
 
 export function createEnterpriseOperatingGraphObservatoryViewActionHandlerV020(
   input: {
-    graphService: EnterpriseOperatingGraphHostServiceV010;
+    graphService: EnterpriseOperatingGraphReadProviderV010;
     viewService: EnterpriseOperatingGraphViewHostServiceV010;
     providers: EnterpriseOperatingGraphObservatoryProviderResolverV020;
     locale?: (context: PlatformRequestContextV010) => string | undefined;

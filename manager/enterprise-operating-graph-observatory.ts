@@ -16,8 +16,8 @@ import type {
   EnterpriseOperatingGraphV010
 } from "../contracts/enterprise-operating-graph.js";
 import type {
-  EnterpriseOperatingGraphHostServiceV010
-} from "./enterprise-operating-graph-service.js";
+  EnterpriseOperatingGraphReadProviderV010
+} from "../contracts/enterprise-operating-graph-read.js";
 
 function nonEmpty(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -397,7 +397,7 @@ export interface EnterpriseOperatingGraphObservatoryServiceV020 {
 }
 
 export function createEnterpriseOperatingGraphObservatoryServiceV020(input: {
-  graphService: EnterpriseOperatingGraphHostServiceV010;
+  graphService: EnterpriseOperatingGraphReadProviderV010;
   runtimeProvider: EnterpriseOperatingGraphRuntimeFactProviderV020;
   analysisProvider?: EnterpriseOperatingGraphAnalysisProviderV020;
 }): EnterpriseOperatingGraphObservatoryServiceV020 {
