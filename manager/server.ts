@@ -103,7 +103,6 @@ import {
 } from "./enterprise-operating-graph-agent-tools.js";
 import {
   createEnterpriseOperatingGraphEditorPageV010,
-  createEnterpriseOperatingGraphExperienceManifestV010,
   createEnterpriseOperatingGraphViewActionHandlersV010,
   EOG_EDITOR_PAGE_SOURCE
 } from "./enterprise-operating-graph-page.js";
@@ -654,6 +653,10 @@ import {
   referenceExperienceAssets,
   tradingLitePackage
 } from "../catalog/seed.js";
+import {
+  EOG_2D_DESIGNER_FEATURE_ID,
+  EOG_2D_DESIGNER_PACKAGE_ID
+} from "../apps/eog-2d-designer/package.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
@@ -1523,6 +1526,18 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+
+if (!manager.getSnapshot().activeFeatures.some(
+  feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+)) {
+  try {
+    manager.install(EOG_2D_DESIGNER_PACKAGE_ID);
+    console.log("Activated EOG 2D Designer ownership cutover.");
+  } catch (error) {
+    console.error("Failed to activate EOG 2D Designer ownership cutover.", error);
+  }
+}
+
 const enterpriseOperatingGraphObservatoryProviders =
   createEnterpriseOperatingGraphObservatoryProviderResolverV020({
     manager,
@@ -4337,7 +4352,6 @@ const server = createServer(async (request, response) => {
           feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
         )
           ? [
-              createEnterpriseOperatingGraphExperienceManifestV010(),
               createEnterpriseOperatingGraphObservatoryExperienceManifestV020(),
               createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020()
             ]
@@ -4350,7 +4364,7 @@ const server = createServer(async (request, response) => {
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
       if (source === EOG_EDITOR_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID
+          feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });

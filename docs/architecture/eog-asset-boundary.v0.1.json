@@ -160,7 +160,14 @@
         "manager/enterprise-operating-graph-page.ts",
         "manager/enterprise-operating-graph-view-store.ts",
         "manager/enterprise-operating-graph-view-service.ts"
-      ]
+      ],
+      "lifecycle": "CUT_OVER_ACTIVE",
+      "packageId": "evo-eog-2d-designer",
+      "featureId": "evo-eog-2d-designer.default",
+      "experienceOwnership": "ACTIVE",
+      "humanActionOwnership": "ACTIVE",
+      "agentToolOwnership": "COMPATIBILITY_PENDING_VIEWER_SPLIT",
+      "authority": "docs/architecture/EOG-2D-DESIGNER-CUTOVER-v0.1.md"
     },
     "eog-2d-viewer": {
       "role": "READ_ONLY_2D_NAVIGATION_AND_CONTRIBUTION_AGGREGATION",
