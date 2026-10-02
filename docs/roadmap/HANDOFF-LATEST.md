@@ -40,19 +40,20 @@ Evidence:
 
 ## Current open live gate
 
-**app-platform-evo-application-id-contract-proof-v0-1: READY**
+**evo-generic-business-data-submission-transport-convergence-v0-1: READY**
 
-Prove the public contract path from Host semantic Application identity through the lifecycle-gated Application Runtime Binding Provider to EVO's minimal applicationId routing anchor, without importing private implementation or restoring rich Application lifecycle to EVO.
+Converge EVO's target generic BusinessDataSubmission transport/endpoint so App Platform adapters submit through the public EVO contract using the exact applicationId proven by #308.
 
 Acceptance:
 
-- Host semantic Application identity resolves through enterprise.application-runtime-binding
-- binding result exposes runtimeProviderId and runtimeApplicationId without EOG-private identity
-- when EVO is the selected runtime provider runtimeApplicationId maps exactly to EVO applicationId
-- App Platform provider/package lifecycle remains authoritative for binding availability
-- EVO rich Application lifecycle/capability/authorization remains outside target Ledger Runtime Core
-- cross-project integration uses public contracts only and no repository-private imports
-- SOP remains separate, preserved and deferred
+- EVO exposes or converges a public generic BusinessDataSubmission transport/endpoint
+- submission routes by exact applicationId
+- PostingRule selection uses the same exact applicationId
+- compatibility transports remain adapters and do not create alternate application identity
+- EVO Core remains narrow and deterministic
+- App Platform rich Application lifecycle remains outside EVO Core
+- cross-project integration uses public contracts only
+- SOP remains separate and deferred
 
 ## Current production preview
 
