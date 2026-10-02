@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-12`  
-**Snapshot time:** `2026-10-02T17:50:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-13`  
+**Snapshot time:** `2026-10-02T21:56:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,17 +40,18 @@ Evidence:
 
 ## Current open live gate
 
-**eog-peer-plugin-extraction-baseline-v0-1: READY**
+**sop-designer-package-identity-v0-1: READY**
 
-Freeze peer-plugin extraction order, package identities and public boundaries for preserved SOP, Observatory analysis/provider and runtime-binding assets before moving implementation.
+Establish the concrete SOP Designer peer-plugin package identity and public dependency boundary without moving SOP analysis ownership into the Designer.
 
 Acceptance:
 
-- EOG 2D Designer, 2D Viewer and 3D Viewer physical ownership remains stable
-- SOP semantics remain APQC process structure plus time dimension
-- SOP, analysis/provider and runtime-binding target package identities are explicit before physical extraction
-- peer plugins communicate through public contracts and do not import EOG application private implementation
-- EOG application packages remain prohibited from importing manager-private implementation
+- SOP Designer package identity is explicit and catalog-discoverable
+- package remains default-OFF until controlled implementation cutover
+- Enterprise Context remains authoritative SOP Business Definition persistence/lifecycle owner
+- project SOP semantics remain APQC process structure plus time dimension
+- SOP conformance/deviation analysis remains a separate peer analysis responsibility
+- SOP Designer does not import EOG application private implementation
 
 ## Current production preview
 
@@ -91,6 +92,17 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #296 — MERGED_CI_PASS: Prove end-to-end Designer Inspector edit -> ActionHost -> new authoritative Enterprise Graph revision while Viewer remains non-editable.
+- PR #295 — MERGED_CI_PASS: Add governed Designer edits for EOG-owned Inspector properties: safe node rebind and unconfirmed Guidance source updates.
+- PR #294 — MERGED_CI_PASS: Wire lazy selection-time peer-owned Inspector properties into Viewer and Designer with role-based edit descriptor filtering.
+- PR #293 — MERGED_CI_PASS: Add deterministic additive multi-provider Inspector property resolution.
+- PR #292 — MERGED_CI_PASS: Publish peer-owned Inspector property contribution contract and owner-command editing metadata.
+- PR #291 — MERGED_CI_PASS: Make the generic interactive 2D Viewer Workspace the primary desktop shell; Observatory becomes a mode rather than Viewer identity.
+- PR #290 — MERGED_CI_PASS: Adopt neutral Eidos Diagram Workspace vocabulary across shared EOG 2D Viewer/Designer code.
+- PR #289 — MERGED_CI_PASS: Add explicit Designer-only Inspector editor binding seam over the shared property model.
+- PR #288 — MERGED_CI_PASS: Share structured node/edge Inspector property data across Viewer and Designer.
+- PR #287 — MERGED_CI_PASS: Correct 2D Viewer architecture: interactive semantic-read-only workspace sharing interaction foundations with Designer.
+- PR #286 — MERGED_CI_PASS: Freeze peer-plugin extraction baseline: SOP Designer first, runtime-binding adapter later, analysis/report portfolio remains demand-driven.
 - PR #284 — MERGED_CI_PASS: Close EOG application package dependency leaks into manager-private implementation and enforce the boundary in CI.
 - PR #283 — MERGED_CI_PASS: Remove residual 2D Designer persistence/migration compatibility imports and use package-owned model/store directly.
 - PR #282 — MERGED_CI_PASS: Publish Observatory Service/Provider Resolver contracts and move Viewer/peer Provider type dependencies off manager-private implementation.
@@ -360,6 +372,9 @@ Not proved:
 - Do not treat EOG three-plugin physical extraction as pending; package ownership and plugin-to-manager private dependency closure are implemented on main through PR #284.
 - Do not reintroduce apps/eog-* imports from manager/**; CI now prohibits this dependency direction.
 - Do not physically extract preserved SOP/analysis/runtime-binding assets before their peer-plugin package identities and public contracts are frozen.
+- Do not describe EOG 2D Viewer as non-interactive or as a static read-only page; only Enterprise Graph semantic mutation is prohibited.
+- Do not fork separate Viewer and Designer property panels; both use the shared Eidos 2D Workspace Inspector and shared EOG property projection.
+- Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -485,22 +500,15 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state all three EOG plugins as consumers of one semantic definition with separate 2D/3D View State
 - state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership
 - state Eidos PR #75 as merged and authoritative for reusable 2D Core / 3D Core ownership
-- state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration
 - state EOG 2D Designer controlled cutover as active: evo-eog-2d-designer owns /operating-graph Experience plus semantic/2D Human action handlers
-- state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices
 - state EOG 2D Viewer controlled cutover as active: evo-eog-2d-viewer owns desktop/mobile-read Experiences and Viewer read/orchestration handlers
-- state EOG 3D Viewer as the only remaining EOG Experience on compatibility ownership
 - state all three EOG application Experiences as cut over to dedicated packages: evo-eog-2d-designer, evo-eog-2d-viewer and evo-eog-3d-viewer
-- state Enterprise Agent as no longer an EOG Experience owner; the remaining compatibility debt is mixed Personal Agent EOG tool ownership
-- state EOG Agent tool ownership split as the next active gate while preserving stable tool IDs and Human-only confirm/publish authority
 - state EOG semantic Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-designer
 - state EOG Observatory Personal Agent tools as owned/lifecycle-gated by evo-eog-2d-viewer while calculations remain peer-Provider-owned
-- state enterprise.operating_graph.view.get/apply as the final generic EOG Agent-tool compatibility debt requiring a 2D/3D split
 - state stable enterprise.operating_graph.view.get/apply as DIAGRAM_2D-only compatibility tools owned by evo-eog-2d-designer
 - state enterprise.operating_graph.spatial_view.get/apply as SPATIAL_3D tools owned and lifecycle-gated by evo-eog-3d-viewer
 - state no EOG Agent tool descriptor as owned by evo-app-platform after the 2D/3D View split
 - state ENTERPRISE_OPERATING_GRAPH as the Enterprise Context Business Definition kind for EOG semantic truth
-- state the repository-backed EOG persistence adapter and non-destructive legacy migration as foundation-ready but not yet runtime-cut-over
 - state 2D/3D View State as explicitly excluded from Enterprise Business Definition payloads
 - state EOG semantic Host runtime as repository-backed through Enterprise Context Business Definition authority after the cutover
 - state the EOG-specific persistence adapter as owned by evo-eog-2d-designer, not by the generic Enterprise Context provider
@@ -508,14 +516,20 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state EOG Enterprise Context semantic persistence cutover as VERIFIED_PRODUCTION_PASS
 - state production #269 as commit 932098f9e2be13e1d0c9cf809831d3f3c5c2297c / deployment f93c06bd-651a-4b86-bb60-e97cab781d6a SUCCESS after controlled restart
 - state the first production migration as importing exactly 1 legacy EOG graph definition into Enterprise Context and the controlled restart as graph-migration-idempotent
-- state explicit Eidos 2D Core / 3D Core public API convergence as the next gate
 - state jiangxng/eidos PR #76 / commit 860658902b76fd0b1e5b9bd5faa01f17d4ca7920 as the explicit public 2D Core / 3D Core API authority
 - state EOG 2D Designer and EOG 2D Viewer as consumers of the Eidos 2D Core facade
 - state EOG 3D Viewer as a consumer of the Eidos 3D Core facade
-- state physical EOG plugin implementation extraction as the next convergence gate
 - state EOG 2D Designer, 2D Viewer and 3D Viewer physical application ownership as converged
 - state EOG application package imports from manager-private implementation as prohibited by CI
-- state the next EOG gate as peer-plugin extraction baseline for SOP, analysis/provider and runtime-binding preserved assets
+- state EOG 2D Viewer as an interactive semantic-read-only Workspace, not a static read-only page
+- state EOG 2D Designer as the same shared interaction foundation plus governed semantic editing capabilities
+- state node/edge selection and structured Inspector property display as shared Viewer/Designer behavior
+- state peer-owned Inspector properties as lazily resolved on selection through additive providers rather than prefetched for the full graph
+- state Viewer as stripping Inspector edit descriptors while Designer preserves owner-declared commands
+- state EOG-owned semantic reference and unconfirmed Guidance source edits as governed new-revision mutations, not historical rewrites
+- state Eidos 2D PRs #77-#81 as the upstream Workspace/Inspector authority
+- state App Platform PRs #287-#296 as the interactive 2D Workspace and Inspector convergence line
+- state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity
 
 No previous ChatGPT transcript is required.
 
