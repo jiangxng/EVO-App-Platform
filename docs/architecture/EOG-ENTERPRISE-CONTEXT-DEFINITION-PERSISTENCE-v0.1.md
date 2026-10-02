@@ -17,7 +17,7 @@ Enterprise Context
         └── attribution / provenance
 ```
 
-EOG 2D Designer remains the editing application. It does not become the persistence authority.
+EOG 2D Designer owns the domain adapter that translates EOG semantics into the generic Enterprise Context Business Definition contract. Enterprise Context remains the persistence/lifecycle authority and contains no EOG-specific domain implementation.
 
 ## Definition mapping
 
