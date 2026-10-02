@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-13`  
-**Snapshot time:** `2026-10-02T14:55:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-14`  
+**Snapshot time:** `2026-10-02T15:10:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,18 +40,19 @@ Evidence:
 
 ## Current open live gate
 
-**eidos-2d-3d-public-core-api-v0-1: READY**
+**eog-physical-plugin-implementation-extraction-v0-1: READY_AFTER_VISUAL_CORE_CI**
 
-Formalize explicit stable public 2D Core and 3D Core API entrypoints in jiangxng/eidos over the existing src/diagram and src/spatial compatibility assets. Preserve current implementation, avoid rewrites, and keep all product/business semantics outside Eidos.
+Move EOG implementation ownership physically out of mixed manager/enterprise-operating-graph-* locations into the three owning application packages without changing public contracts, routes, semantic authority or working behavior. Start with EOG 2D Designer and preserve compatibility re-exports where needed.
 
 Acceptance:
 
-- Eidos exposes explicit public 2D Core entrypoint/contracts without breaking existing diagram consumers
-- Eidos exposes explicit public 3D Core entrypoint/contracts without breaking existing spatial consumers
-- 2D/3D public APIs remain product/domain-semantic-free
-- renderer implementation details remain behind replaceable adapters
-- compatibility tests prove existing diagram/spatial imports remain valid
-- App Platform can depend on explicit Eidos 2D/3D public boundaries instead of naming implementation folders
+- EOG 2D Designer domain/application implementation has a package-local owner boundary
+- existing public contracts and route/page source identifiers remain stable
+- manager/Host retains orchestration only rather than EOG product implementation ownership
+- EOG 2D Viewer and 3D Viewer extraction follow in separate slices
+- Enterprise Context remains Enterprise Graph Definition authority
+- Eidos public 2D/3D Core boundaries remain the only visual framework dependency for EOG application code
+- no working Observatory/SOP/analysis asset is deleted during extraction
 
 ## Current production preview
 
@@ -344,6 +345,8 @@ Not proved:
 - Do not move Observatory Runtime Fact or Analysis calculation ownership into EOG 2D Viewer merely because the Personal Agent tool descriptor is Viewer-owned.
 - Do not restore the legacy EOG semantic store as the authority for new writes; it is migration evidence/input only after production #269.
 - Do not move EOG-specific semantic mapping into the generic Enterprise Context provider; the adapter belongs to EOG 2D Designer behind a stable persistence contract.
+- Do not make EOG application code import vendor/eidos/src/diagram/** or vendor/eidos/src/spatial/** directly after the public visual-core boundary is available.
+- Do not rewrite Eidos diagram/spatial implementations merely to satisfy 2D/3D naming; the public facades are the stable boundary.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -493,6 +496,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state production #269 as commit 932098f9e2be13e1d0c9cf809831d3f3c5c2297c / deployment f93c06bd-651a-4b86-bb60-e97cab781d6a SUCCESS after controlled restart
 - state the first production migration as importing exactly 1 legacy EOG graph definition into Enterprise Context and the controlled restart as graph-migration-idempotent
 - state explicit Eidos 2D Core / 3D Core public API convergence as the next gate
+- state jiangxng/eidos PR #76 / commit 860658902b76fd0b1e5b9bd5faa01f17d4ca7920 as the explicit public 2D Core / 3D Core API authority
+- state EOG 2D Designer and EOG 2D Viewer as consumers of the Eidos 2D Core facade
+- state EOG 3D Viewer as a consumer of the Eidos 3D Core facade
+- state physical EOG plugin implementation extraction as the next convergence gate
 
 No previous ChatGPT transcript is required.
 

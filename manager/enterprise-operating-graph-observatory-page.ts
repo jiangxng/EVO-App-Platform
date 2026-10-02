@@ -25,7 +25,7 @@ import type {
   DiagramEditorPageV010,
   DiagramEditorStateV010,
   DiagramObservationBadgeV010
-} from "../vendor/eidos/src/diagram/surface.js";
+} from "../vendor/eidos/src/2d/index.js";
 import {
   EOG_EDITOR_RESOURCE_ID,
   EOG_VIEW_OPERATION_ACTION,
