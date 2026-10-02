@@ -79,8 +79,8 @@ test("all EOG application packages depend on Enterprise Context definition autho
   assert.equal(
     eog3dViewerPackage.features[0].requiresCapabilities?.includes(
       "authorization.check"
-    ) ?? false,
-    false
+    ),
+    true
   );
 });
 
