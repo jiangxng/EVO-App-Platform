@@ -119,6 +119,11 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
           key: "semantic.ref",
           label: "Reference",
           value: node.semanticRef.refId
+        },
+        {
+          key: "semantic.version",
+          label: "Reference version",
+          value: node.semanticRef.versionRef ?? null
         }
       ]
     };
