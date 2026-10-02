@@ -42,7 +42,7 @@ Evidence:
 
 **evo-generic-business-data-submission-transport-convergence-v0-1: READY**
 
-Converge EVO's target generic BusinessDataSubmission transport/endpoint so App Platform adapters submit through the public EVO contract using the exact applicationId proven by #308.
+Converge EVO's target generic BusinessDataSubmission transport/endpoint so App Platform adapters can submit through the public EVO contract using the exact applicationId proven by #308, without restoring rich Application lifecycle into EVO Core.
 
 Acceptance:
 
@@ -50,8 +50,8 @@ Acceptance:
 - submission routes by exact applicationId
 - PostingRule selection uses the same exact applicationId
 - compatibility transports remain adapters and do not create alternate application identity
-- EVO Core remains narrow and deterministic
-- App Platform rich Application lifecycle remains outside EVO Core
+- EVO Core remains limited to minimal Application routing anchor, deterministic BusinessData, posting and ledger execution
+- App Platform rich Application lifecycle/capability/authorization remains outside EVO Core
 - cross-project integration uses public contracts only
 - SOP remains separate and deferred
 
@@ -94,7 +94,9 @@ Not proved:
 
 ## Recent mainline changes
 
-- PR #306 — MERGED_CI_PASS: Close the four-project ownership audit across EVO, App Platform, Eidos and Experience Compiler and identify bounded cross-repository wording follow-up.
+- PR #308 — MERGED_CI_PASS: Prove exact Host semantic Application → runtimeApplicationId → EVO applicationId public-contract identity mapping.
+- PR #307 — MERGED_CI_PASS: Close four-project boundary audit and open the App Platform→EVO applicationId proof gate.
+- PR #306 — MERGED_CI_PASS: Audit and correct ownership boundaries across EVO, App Platform, Eidos and Experience Compiler.
 - PR #305 — MERGED_CI_PASS: Close peer-provider convergence and open the four-project contract-boundary audit.
 - PR #304 — MERGED_CI_PASS: Audit Runtime Fact / Analysis Provider boundaries; freeze historical SOP conformance/deviation coupling as preserved deferred debt.
 - PR #303 — MERGED_CI_PASS: Gate Application Runtime Binding provider resolution through package lifecycle while preserving upgrade compatibility.
