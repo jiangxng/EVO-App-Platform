@@ -96,12 +96,22 @@ export type EnterpriseOperatingGraphOperationV010 =
       node: EogNodeBindingV010;
     })
   | (EogOperationBaseV010 & {
+      type: "NODE_REBIND";
+      nodeId: string;
+      semanticRef: EogCanonicalRefV010;
+    })
+  | (EogOperationBaseV010 & {
       type: "NODE_REMOVE";
       nodeId: string;
     })
   | (EogOperationBaseV010 & {
       type: "GUIDANCE_RELATION_PUT";
       relation: EogApplicationLedgerGuidanceRelationV010;
+    })
+  | (EogOperationBaseV010 & {
+      type: "GUIDANCE_RELATION_SOURCE_UPDATE";
+      relationId: string;
+      source: EogGuidanceSourceV010;
     })
   | (EogOperationBaseV010 & {
       type: "GUIDANCE_RELATION_REMOVE";

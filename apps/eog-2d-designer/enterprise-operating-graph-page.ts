@@ -33,6 +33,9 @@ import {
   type Eog2dInspectorEditorBindingV010
 } from "../../eog/2d-inspector-editors.js";
 import {
+  createEogOwnedInspectorEditorBindingsV010
+} from "./inspector-editors.js";
+import {
   inspectEog2dSelectionV010,
   parseEog2dSelectionTargetV010
 } from "../../eog/2d-selection-inspection.js";
@@ -228,8 +231,12 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       ]
     : [];
 
-  const interactive = editorBindings.length
-    ? attachEog2dInspectorEditorsV010(base, editorBindings)
+  const bindings = [
+    ...createEogOwnedInspectorEditorBindingsV010(graph),
+    ...editorBindings
+  ];
+  const interactive = bindings.length
+    ? attachEog2dInspectorEditorsV010(base, bindings)
     : base;
 
   return {
@@ -555,6 +562,130 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
 
       const currentGraph = getGraph(context, resourceId);
       if (!currentGraph) throw new Error("EOG_GRAPH_NOT_FOUND");
+
+      if (type === "NODE_SEMANTIC_REF_PATCH") {
+        const nodeId = operation.nodeId;
+        if (typeof nodeId !== "string" || !nodeId.trim()) {
+          throw new Error("EOG_VIEW_NODE_ID_REQUIRED");
+        }
+        const node = currentGraph.nodes.find(
+          item => item.nodeId === nodeId.trim()
+        );
+        if (!node) throw new Error("EOG_NODE_NOT_FOUND");
+
+        const nextRefId = operation.refId === undefined
+          ? node.semanticRef.refId
+          : typeof operation.refId === "string"
+            ? operation.refId.trim()
+            : "";
+        if (!nextRefId) {
+          throw new Error("EOG_SEMANTIC_REF_REQUIRED");
+        }
+
+        const nextVersionRef = operation.versionRef === undefined
+          ? node.semanticRef.versionRef
+          : typeof operation.versionRef === "string"
+            ? operation.versionRef.trim() || undefined
+            : undefined;
+
+        const semanticResult = await semanticHandler(
+          semanticHandlers,
+          EOG_APPLY_OPERATION_ACTION
+        ).execute(
+          {
+            ...request,
+            command: {
+              code: EOG_APPLY_OPERATION_ACTION,
+              inputVersion: "0.1.0"
+            },
+            values: {
+              graphId: resourceId,
+              expectedRevision: semanticRevision(operation),
+              mutation: {
+                type: "NODE_REBIND",
+                nodeId: node.nodeId,
+                semanticRef: {
+                  authority: node.semanticRef.authority,
+                  kind: node.semanticRef.kind,
+                  refId: nextRefId,
+                  ...(nextVersionRef === undefined
+                    ? {}
+                    : { versionRef: nextVersionRef })
+                }
+              }
+            }
+          },
+          context
+        );
+        if (!semanticResult.ok) return semanticResult;
+        return success(
+          request,
+          project(
+            context,
+            semanticResult.result as unknown as EnterpriseOperatingGraphV010
+          )
+        );
+      }
+
+      if (type === "GUIDANCE_SOURCE_PATCH") {
+        const relationId = operation.relationId;
+        if (typeof relationId !== "string" || !relationId.trim()) {
+          throw new Error("EOG_VIEW_GUIDANCE_RELATION_REQUIRED");
+        }
+        const relation = currentGraph.guidanceRelations.find(
+          item => item.relationId === relationId.trim()
+        );
+        if (!relation) throw new Error("EOG_GUIDANCE_RELATION_NOT_FOUND");
+
+        const sourceKind = operation.sourceKind === undefined
+          ? relation.source.kind
+          : typeof operation.sourceKind === "string"
+            ? operation.sourceKind
+            : "";
+        const sourceRef = operation.sourceRef === undefined
+          ? relation.source.sourceRef
+          : typeof operation.sourceRef === "string"
+            ? operation.sourceRef.trim()
+            : "";
+
+        if (!sourceRef) {
+          throw new Error("EOG_GUIDANCE_SOURCE_INVALID");
+        }
+
+        const semanticResult = await semanticHandler(
+          semanticHandlers,
+          EOG_APPLY_OPERATION_ACTION
+        ).execute(
+          {
+            ...request,
+            command: {
+              code: EOG_APPLY_OPERATION_ACTION,
+              inputVersion: "0.1.0"
+            },
+            values: {
+              graphId: resourceId,
+              expectedRevision: semanticRevision(operation),
+              mutation: {
+                type: "GUIDANCE_RELATION_SOURCE_UPDATE",
+                relationId: relation.relationId,
+                source: {
+                  kind: sourceKind,
+                  sourceRef
+                }
+              }
+            }
+          },
+          context
+        );
+        if (!semanticResult.ok) return semanticResult;
+        return success(
+          request,
+          project(
+            context,
+            semanticResult.result as unknown as EnterpriseOperatingGraphV010
+          )
+        );
+      }
 
       if (type === "MOVE_NODE") {
         const nodeId = operation.nodeId;
