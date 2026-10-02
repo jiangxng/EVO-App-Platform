@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-05`  
-**Snapshot time:** `2026-10-02T12:25:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-06`  
+**Snapshot time:** `2026-10-02T12:45:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,20 +35,18 @@ Evidence:
 
 ## Current open live gate
 
-**eog-three-plugin-compatibility-cutover-v0-1: READY_AFTER_3D_VIEWER_CI**
+**eog-2d-viewer-controlled-cutover-v0-1: READY_AFTER_2D_DESIGNER_CI**
 
-Switch EOG production ownership from Enterprise Agent compatibility gating to the three dedicated EOG application packages. Preserve existing routes/page sources, install/activate through controlled lifecycle migration, and keep Enterprise Context as the sole Enterprise Graph Definition authority.
+Cut EOG 2D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-2d-viewer while preserving existing desktop/mobile-read routes, page sources and peer-provider analysis boundaries.
 
 Acceptance:
 
-- all three dedicated EOG packages are installed/activated through an explicit compatibility migration
-- 2D Designer pages/actions are gated by evo-eog-2d-designer
-- 2D Viewer pages/read actions are gated by evo-eog-2d-viewer
-- 3D Viewer pages/read actions are gated by evo-eog-3d-viewer
-- Enterprise Agent package no longer owns EOG Experience manifests
-- existing routes and page source identifiers remain compatible
-- no duplicate active EOG Experiences exist
-- Human confirmation/publish boundaries and Enterprise Context definition authority remain unchanged
+- evo-eog-2d-viewer is explicitly activated through lifecycle migration
+- desktop and mobile-read Viewer Experiences are supplied only by evo-eog-2d-viewer
+- Viewer page/read actions are gated by evo-eog-2d-viewer.default
+- existing /operating-graph/observe and /m/operating-graph/observe routes remain stable
+- analysis calculations remain owned by peer providers/plugins
+- no duplicate active Viewer Experience exists
 
 ## Current production preview
 
@@ -85,6 +83,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #262 — MERGED_CI_PASS: Assign EOG 3D Viewer target Experience ownership while keeping the package default-OFF before controlled cutover.
+- PR #261 — MERGED_CI_PASS: Assign EOG 2D Viewer target desktop/mobile-read Experience ownership while keeping the package default-OFF.
+- PR #260 — MERGED_CI_PASS: Assign EOG 2D Designer target Experience ownership while keeping the package default-OFF.
 - PR #258 — MERGED_CI_PASS: Freeze EOG 2D/3D responsibility convergence: Enterprise Context definition authority, Eidos reusable 2D/3D cores, and three App Platform EOG application plugins.
 - PR #257 — MERGED_CI_PASS: Close External Agent READ/PLAN capability validation and record Grok Web/Mobile production proof.
 - PR #256 — MERGED_CI_PASS_DEPLOYED: Add bounded non-secret OAuth token-failure diagnostics used to prove Grok stale refresh-token behavior without logging authorization codes, PKCE verifiers, refresh tokens or access tokens.
@@ -317,6 +318,8 @@ Not proved:
 - Do not create separate semantic graph authorities for 2D Designer, 2D Viewer and 3D Viewer; all consume the same Enterprise Graph Definition.
 - Do not move Application, Ledger, SOP, Enterprise Relation or publication semantics into Eidos 2D/3D Core.
 - Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined.
+- Do not restore EOG 2D Designer Experience or Human action ownership to Enterprise Agent; evo-eog-2d-designer is the cut-over owner.
+- Do not inject a second /operating-graph Designer manifest from server compatibility code; the effective Designer Experience now comes from ordinary package lifecycle discovery.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -443,6 +446,8 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership
 - state Eidos PR #75 as merged and authoritative for reusable 2D Core / 3D Core ownership
 - state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration
+- state EOG 2D Designer controlled cutover as active: evo-eog-2d-designer owns /operating-graph Experience plus semantic/2D Human action handlers
+- state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices
 
 No previous ChatGPT transcript is required.
 
