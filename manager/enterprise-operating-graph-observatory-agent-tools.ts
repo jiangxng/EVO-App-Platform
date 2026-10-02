@@ -2,7 +2,6 @@ import type {
   EnterpriseAgentToolRegistrationV010
 } from "../agents/enterprise-agent/host-tool-catalog.js";
 import {
-  EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../apps/eog-2d-viewer/package.js";
 import type {
