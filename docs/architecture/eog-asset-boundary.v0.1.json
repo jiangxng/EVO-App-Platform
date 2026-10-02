@@ -92,9 +92,11 @@
     "eogDefinitionPersistence": {
       "status": "FOUNDATION_READY_RUNTIME_CUTOVER_PENDING",
       "kind": "ENTERPRISE_OPERATING_GRAPH",
-      "adapter": "providers/enterprise-context/eog-graph-definitions.ts",
-      "migration": "providers/enterprise-context/eog-graph-migration.ts",
-      "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md"
+      "adapter": "apps/eog-2d-designer/definition-persistence.ts",
+      "migration": "apps/eog-2d-designer/legacy-definition-migration.ts",
+      "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md",
+      "domainAdapterOwner": "EOG_2D_DESIGNER",
+      "enterpriseContextDomainKnowledge": "NONE_GENERIC_REPOSITORY_ONLY"
     }
   },
   "experienceCompiler": {
