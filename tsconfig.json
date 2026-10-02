@@ -19,6 +19,7 @@
     "agents/**/*.ts",
     "apps/**/*.ts",
     "providers/**/*.ts",
-    "vendor/**/*.ts"
+    "vendor/**/*.ts",
+    "eog/**/*.ts"
   ]
 }
