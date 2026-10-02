@@ -414,3 +414,21 @@ Canonical implementation:
 Both Viewer families consume this neutral parser. The old manager path and the temporary 2D Viewer path remain compatibility re-exports only.
 
 This prevents 3D Viewer from depending on 2D Viewer private implementation while keeping the Observatory request contract identical across projections.
+
+
+## 20. Public Observatory runtime contract
+
+Viewer plugins and peer analysis/runtime Provider packages no longer type-depend on the Host manager implementation.
+
+Public authority:
+
+`contracts/enterprise-operating-graph-observatory-runtime.ts`
+
+It defines:
+
+- Observatory Service shape;
+- Provider Resolver shape;
+- Runtime Fact / Analysis provider capability identifiers;
+- provider contract identifiers.
+
+The Host manager keeps provider discovery/binding and concrete service construction. Viewer plugins receive the public resolver/service boundary and remain unaware of manager-private implementation.
