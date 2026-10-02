@@ -434,7 +434,8 @@
     "eog-2d-designer-target-experience-ownership-v0-1",
     "eog-2d-viewer-target-experience-ownership-v0-1",
     "eog-3d-viewer-target-experience-ownership-v0-1",
-    "eog-2d-designer-controlled-cutover-v0-1"
+    "eog-2d-designer-controlled-cutover-v0-1",
+    "eog-2d-viewer-controlled-cutover-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -460,7 +461,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG 2D Designer controlled cutover is implemented: the dedicated evo-eog-2d-designer package is default-active, owns the effective /operating-graph Experience, and owns/gates EOG semantic plus 2D diagram Human ActionHost handlers. Enterprise Agent no longer injects or gates the Designer Experience. 2D Viewer and 3D Viewer remain on compatibility ownership until their own cutover slices.",
+  "currentStep": "EOG 2D Designer and EOG 2D Viewer controlled cutovers are implemented. The dedicated 2D Viewer package is default-active, owns the desktop/mobile-read Viewer Experience and its read/orchestration ActionHost handlers, while Runtime Facts and analysis calculations remain peer-provider responsibilities. EOG 3D Viewer remains on compatibility ownership for the next slice.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1716,8 +1717,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-06",
-    "snapshotAt": "2026-10-02T12:45:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-07",
+    "snapshotAt": "2026-10-02T13:10:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1752,17 +1753,17 @@
         }
       },
       "openGate": {
-        "id": "eog-2d-viewer-controlled-cutover-v0-1",
-        "status": "READY_AFTER_2D_DESIGNER_CI",
-        "summary": "Cut EOG 2D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-2d-viewer while preserving existing desktop/mobile-read routes, page sources and peer-provider analysis boundaries.",
+        "id": "eog-3d-viewer-controlled-cutover-v0-1",
+        "status": "READY_AFTER_2D_VIEWER_CI",
+        "summary": "Cut EOG 3D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-3d-viewer while preserving the existing spatial route/page source and peer-provider analysis boundaries.",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "evo-eog-2d-viewer is explicitly activated through lifecycle migration",
-          "desktop and mobile-read Viewer Experiences are supplied only by evo-eog-2d-viewer",
-          "Viewer page/read actions are gated by evo-eog-2d-viewer.default",
-          "existing /operating-graph/observe and /m/operating-graph/observe routes remain stable",
+          "evo-eog-3d-viewer is explicitly activated through lifecycle migration",
+          "3D Viewer Experience is supplied only by evo-eog-3d-viewer",
+          "3D spatial read action is gated by evo-eog-3d-viewer.default",
+          "existing /operating-graph/observe/3d route and spatial page source remain stable",
           "analysis calculations remain owned by peer providers/plugins",
-          "no duplicate active Viewer Experience exists"
+          "no duplicate active 3D Viewer Experience exists"
         ]
       },
       "productionPreview": {
@@ -2305,7 +2306,9 @@
       "Do not move Application, Ledger, SOP, Enterprise Relation or publication semantics into Eidos 2D/3D Core.",
       "Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined.",
       "Do not restore EOG 2D Designer Experience or Human action ownership to Enterprise Agent; evo-eog-2d-designer is the cut-over owner.",
-      "Do not inject a second /operating-graph Designer manifest from server compatibility code; the effective Designer Experience now comes from ordinary package lifecycle discovery."
+      "Do not inject a second /operating-graph Designer manifest from server compatibility code; the effective Designer Experience now comes from ordinary package lifecycle discovery.",
+      "Do not restore EOG 2D Viewer Experience or read-action ownership to Enterprise Agent; evo-eog-2d-viewer is the cut-over owner.",
+      "Do not move Runtime Fact or analysis calculation ownership into EOG 2D Viewer; it aggregates peer-provider results."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2416,7 +2419,9 @@
       "state Eidos PR #75 as merged and authoritative for reusable 2D Core / 3D Core ownership",
       "state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration",
       "state EOG 2D Designer controlled cutover as active: evo-eog-2d-designer owns /operating-graph Experience plus semantic/2D Human action handlers",
-      "state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices"
+      "state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices",
+      "state EOG 2D Viewer controlled cutover as active: evo-eog-2d-viewer owns desktop/mobile-read Experiences and Viewer read/orchestration handlers",
+      "state EOG 3D Viewer as the only remaining EOG Experience on compatibility ownership"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3405,10 +3410,10 @@
     "eogExperienceOwnershipMigration": {
       "status": "IN_PROGRESS",
       "twoDDesigner": "CUT_OVER_ACTIVE",
-      "twoDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
+      "twoDViewer": "CUT_OVER_ACTIVE",
       "threeDViewer": "TARGET_MANIFEST_DEFINED_DEFAULT_OFF",
-      "agentToolOwnership": "COMPATIBILITY_PENDING_VIEWER_SPLIT",
-      "compatibilityCutover": "2D_DESIGNER_DONE"
+      "agentToolOwnership": "COMPATIBILITY_PENDING_3D_SPLIT",
+      "compatibilityCutover": "2D_DESIGNER_AND_VIEWER_DONE"
     }
   },
   "externalAgentFirstValidation": {
