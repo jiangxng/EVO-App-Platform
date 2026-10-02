@@ -26,17 +26,19 @@
     "deletionPolicy": "PRESERVE",
     "categories": {
       "sopDefinitionAndPublication": {
-        "targetOwnership": "FUTURE_SOP_PLUGIN",
+        "targetOwnership": "SOP_DESIGNER_LOGICAL_ROLE_PACKAGE_ID_NEXT_SLICE",
         "assets": [
           "contracts/enterprise-operating-graph-sop.ts",
           "manager/enterprise-operating-graph-sop-service.ts",
           "manager/enterprise-operating-graph-sop-actions.ts",
           "manager/enterprise-operating-graph-sop-agent-tools.ts",
           "manager/enterprise-operating-graph-sop-store.ts"
-        ]
+        ],
+        "definitionAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
+        "analysisOwnership": "SEPARATE_TBD_NOT_SOP_DESIGNER"
       },
       "observatoryAndAnalysis": {
-        "targetOwnership": "FUTURE_REPORT_ANALYSIS_RUNTIME_ADAPTER_PLUGINS_TBD",
+        "targetOwnership": "EXISTING_PEER_PROVIDERS_PRESERVED_FUTURE_EXPERIENCE_PORTFOLIO_TBD",
         "assets": [
           "contracts/enterprise-operating-graph-observatory.ts",
           "manager/enterprise-operating-graph-observatory.ts",
@@ -50,7 +52,7 @@
         ]
       },
       "runtimeBinding": {
-        "targetOwnership": "FUTURE_RUNTIME_ADAPTER_PLUGIN_TBD",
+        "targetOwnership": "RUNTIME_BINDING_ADAPTER_LOGICAL_ROLE_PACKAGE_ID_AFTER_SOP",
         "assets": [
           "contracts/enterprise-operating-graph-application-runtime.ts",
           "manager/enterprise-operating-graph-application-runtime-service.ts",
@@ -68,7 +70,9 @@
       "tests/preserved/evo-runtime-observatory-provider.preserved.mjs",
       "tests/preserved/enterprise-operating-graph-application-runtime-binding.preserved.mjs",
       "tests/preserved/eog-mobile-read-surface.preserved.mjs"
-    ]
+    ],
+    "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
+    "plan": "docs/architecture/eog-peer-plugin-extraction.v0.1.json"
   },
   "enterpriseContext": {
     "lifecycle": "ACTIVE",
