@@ -1,6 +1,6 @@
 # External-Agent-First Platform Validation Roadmap
 
-**Status:** STRATEGIC_PRIORITY_DECISION  
+**Status:** EXTERNAL_AGENT_READ_PLAN_FOUNDATION_VALIDATED  
 **Date:** 2026-09-30  
 **Scope:** Near-term product/platform sequencing after the current atomic Enterprise Context definition-authority gate
 
@@ -430,3 +430,30 @@ More concretely:
 
 > Build the platform so mature external Agents can use stable authorized plugin capabilities. Use those independent clients to harden plugin contracts. Then return to Personal Agent and make it the best integrated client of the already-proven platform.
 
+
+
+## 17. Validation closure — 2026-10-02
+
+The External Agent READ/PLAN capability foundation is now **VERIFIED_PRODUCTION_PASS**.
+
+Production evidence includes:
+
+- official MCP Inspector standards-client OAuth/MCP validation;
+- Cline 4.1.22 + DeepSeek real Agent autonomy through a thin compatibility adapter;
+- Grok Web native CIMD OAuth + native MCP;
+- Grok Mobile manual public-client OAuth + native MCP;
+- natural-language capability discovery/use over Ledger Runtime configuration READ;
+- bounded data reads rather than indiscriminate export;
+- immediate effective-authority loss after delegated Grant revocation;
+- handshake-era MCP compatibility without weakening the governed core.
+
+Accordingly, External Agent capability validation is no longer an active platform gate.
+
+The original roadmap remains useful as historical strategy and extension guidance, but the following are now **future expansion / regression scopes**, not prerequisites for accepting the foundation:
+
+- External Agent WRITE;
+- additional non-Ledger plugin exposure;
+- product-specific ChatGPT entitlement/UX validation;
+- future Grok callback/UI compatibility changes.
+
+Do not repeat generic External Agent portability proof work unless a regression or a materially new capability class requires it.

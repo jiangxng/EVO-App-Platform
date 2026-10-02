@@ -1,122 +1,170 @@
 # Grok Web/Mobile + EVO Native OAuth Validation
 
-**Status:** Integration client profile  
-**Date:** 2026-10-01
+**Status:** VERIFIED_PRODUCTION_PASS  
+**Date:** 2026-10-02
 
-## Purpose
+## Conclusion
 
-Validate EVO External Agent OAuth and Agent Capability Fabric from Grok Web/Mobile without DevTools, client secrets, DCR or a local MCP adapter.
+Grok Web and Grok Mobile both completed real production OAuth + MCP + Ledger Runtime READ validation against EVO.
 
-Architecture:
+This closes the Grok live gate for the External Agent READ/PLAN foundation.
 
-    Grok Web/Mobile
-      ↓ native Custom MCP
+Validated production path:
+
+    Grok Web / Mobile
+      ↓ Custom MCP
     EVO production /mcp
-      ↓ OAuth discovery
+      ↓ OAuth protected-resource discovery
     EVO Authorization Server
-      ↓ Human Consent
-    bounded External Agent Authority Grant
-      ↓
+      ↓ Human Consent / delegated Grant
     Agent Capability Fabric / delegated Capability Operations
+      ↓
+    Ledger Runtime configuration READ
 
-## MCP server
+Production MCP endpoint:
 
     https://ledger-configurator-production.up.railway.app/mcp
 
-## Public Client ID
+## Web client identity
 
-Use this HTTPS CIMD document as the OAuth Client ID:
+Current Grok Web behavior uses Grok's own published CIMD identity automatically:
+
+    https://grok.com/oauth/mcp-client.json
+
+The current Web Custom Connector UI can complete setup from the MCP server URL without asking the Human to type a Client ID.
+
+This native Grok identity is the observed Web client identity and must not be replaced by the EVO-maintained compatibility profile merely for consistency.
+
+## Mobile/manual client identity
+
+Current Grok Mobile behavior differs from Web.
+
+The Mobile Custom Connector flow asks for:
+
+- Client ID
+- optional Client Secret
+
+For that manual flow use the EVO-maintained compatibility profile:
 
     https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/grok-web-mobile-client.json
 
-Client secret:
+Client Secret:
 
     leave blank
 
-The client is public and uses Authorization Code + PKCE.
-
-## Redirect compatibility
-
-Current Grok Web custom-connector integrations observed in August/September 2026 use:
+The profile is a PUBLIC Authorization Code + PKCE client and currently declares:
 
     https://grok.com/connectors-oauth-exchange-code/
 
-This callback is not currently documented as a stable xAI public contract.
+as its redirect URI.
 
-Therefore it is treated as an Integration Client Profile fact, not an EVO Host invariant.
+The callback is an observed compatibility fact, not an EVO invariant. Do not loosen generic redirect matching if Grok changes it.
 
-If Grok changes the callback, update this versioned client profile after observing the exact new value. Do not loosen generic redirect validation.
+## MCP protocol compatibility
 
-## Expected first-use flow
+Initial native Grok OAuth succeeded but tool discovery failed because Grok used handshake-era Streamable HTTP behavior while EVO only accepted the strict 2026-07-28 wire path.
 
-    Grok
-    → EVO /mcp
-    → OAuth metadata
-    → Client ID supplied by Human
-    → EVO fetches and validates CIMD
-    → EVO Human login
-    → EVO Human Consent page
-    → Human selects Enterprise Context
-    → Human selects explicit READ/PLAN operations
-    → Human chooses 1h / 4h / 24h
-    → EVO enrolls Agent + PUBLIC MCP Client
-    → EVO creates normal Authority Grant
-    → OAuth code + PKCE token exchange
-    → Grok reconnects to /mcp
+PR #255 added stateless compatibility for:
 
-No pre-created Agent/Client/Grant is required.
+- 2025-11-25
+- 2025-06-18
+- 2025-03-26
 
-## First validation selection
+while preserving the existing 2026-07-28 path.
 
-For the first mobile proof, grant only:
+The compatibility layer adapts the older handshake-era transport into the existing governed MCP core. It does not widen delegated authority, bypass OAuth or move business semantics into the transport adapter.
 
-    ledger.runtime.configuration.describe
-    ledger.runtime.configuration.section.read
+## Web production proof
 
-Do not grant WRITE.
+Grok Web completed all of the following in production:
 
-## Agent Capability Fabric
+- OAuth protected-resource discovery;
+- native Grok CIMD client identity;
+- Authorization Code + PKCE token exchange;
+- MCP initialize / tool discovery over the handshake-era compatible path;
+- natural-language autonomous selection of Ledger Runtime configuration capabilities;
+- installation-scoped configuration description;
+- bounded accounts READ;
+- no WRITE exposure;
+- immediate delegated-Grant revocation cutoff.
 
-Production currently runs MCP capability mode HYBRID.
+Observed Ledger Runtime evidence matched the independent Cline + DeepSeek proof:
 
-Therefore Grok may see:
+- templateId: `bookkeeping-default`
+- semanticDigest: `8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98`
+- accounts: 141
+- applications: 143
+- dictionaries: 106
+- postingRules: 912
+- referenceLegacyPostingRules: 587
+- burnReady: true
 
-    evo.capabilities.search
-    evo.capabilities.describe
-    evo.capabilities.invoke
+After all effective native Grok Grants were revoked, a fresh Grok request reached EVO `/mcp` and received HTTP 401 while the connector still existed. Grok then required re-authentication.
 
-and the two directly delegated Ledger operations.
+That is the production proof that an already-held client credential cannot outlive current delegated authority.
 
-A later FABRIC-only test should expose only the three generic Fabric gateway tools.
+## Mobile production proof
 
-## Security
+Grok Mobile completed:
 
-- CIMD identity is public and secret-free.
-- PKCE S256 remains mandatory.
-- Redirect URI is exact-match HTTPS.
-- Human Consent does not preselect business operations.
-- WRITE is excluded from Consent v0.1.
-- Grant expiry bounds token and refresh-token authority.
-- Current Human, Context, Feature lifecycle and authorization are recomputed at runtime.
-- Revocation remains immediate.
+- manual public Client ID setup with no Client Secret;
+- EVO Human Consent;
+- OAuth token exchange;
+- native MCP tool discovery;
+- real Ledger Runtime bounded READ.
 
-## Mobile pass criteria
+The fresh Mobile test requested accounts 6 through 10 and returned:
 
-A phone-only validation passes when:
+| ID | Title |
+| --- | --- |
+| 1121 | 应收票据 |
+| 1122 | 应收账款 |
+| 1123 | 预付账款 |
+| 1131 | 应收股利 |
+| 1132 | 应收利息 |
 
-1. the Human enters the EVO MCP URL and this Client ID in Grok;
-2. Client Secret is left blank;
-3. Grok opens EVO OAuth;
-4. EVO shows Human Consent without DevTools;
-5. Human selects the two Ledger READ operations and a short expiry;
-6. OAuth returns to Grok;
-7. Grok discovers EVO tools;
-8. a natural-language request results in a real EVO tool call;
-9. the answer remains installation-scoped;
-10. no WRITE tool is available.
+Production HTTP logs showed the corresponding MCP request sequence returning 200 / 202 / 200 responses.
 
-## Current evidence boundary
+## OAuth callback UX observation
 
-xAI's official connector documentation confirms Custom MCP and OAuth-capable authentication, but does not currently publish the Grok hosted OAuth callback URI.
+A Grok interoperability UX issue exists on both PC Web and Mobile:
 
-The callback above is based on current third-party interoperability reports and must be revalidated if Grok changes behavior.
+1. the Human completes EVO consent;
+2. EVO returns HTTP 303 to the registered Grok callback;
+3. the browser may remain open instead of visibly returning/closing into Grok;
+4. when the connector flow is started again, EVO can recognize the already-created effective Grant;
+5. the second authorization request can redirect immediately and Grok completes `/oauth/token` successfully.
+
+Therefore:
+
+- the first visible callback stall must not automatically be interpreted as failed EVO consent;
+- verify the server-side 303 and subsequent token exchange before diagnosing the authorization itself;
+- this is an Integration Client UX compatibility issue, not evidence that EVO lost the Grant.
+
+A separate observed Grok behavior is that an expired cached refresh token may continue to be retried. Disconnecting/recreating the connector cleared that client-side state during validation.
+
+## Security boundary proved
+
+The live validation proves:
+
+- public-client OAuth with PKCE;
+- exact delegated READ authority;
+- current-authority recomputation;
+- token-family ceilings do not silently expand authority;
+- no WRITE exposure in the validated slice;
+- Grant revocation removes effective access immediately;
+- protocol-version compatibility does not bypass governance;
+- a third-party Agent can discover and use EVO capabilities from natural-language intent without source-code knowledge.
+
+## Evidence boundary
+
+This proof validates the External Agent READ/PLAN capability foundation.
+
+It does not by itself prove:
+
+- External Agent WRITE;
+- every future Grok UI/callback behavior;
+- every non-Ledger plugin's external projection;
+- ChatGPT product-specific MCP entitlement/UX.
+
+Those are future product or regression slices, not prerequisites for considering the External Agent capability foundation validated.

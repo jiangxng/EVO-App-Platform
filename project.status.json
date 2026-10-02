@@ -420,7 +420,11 @@
     "external-agent-capability-level-delegation-v0-2",
     "external-agent-capability-selector-runtime-resolution-v0-2",
     "external-agent-oauth-operation-ceiling-v0-2",
-    "external-agent-oauth-token-family-non-expansion-v0-2"
+    "external-agent-oauth-token-family-non-expansion-v0-2",
+    "mcp-handshake-era-streamable-http-compatibility-v0-1",
+    "grok-web-native-oauth-mcp-production-pass-v0-2",
+    "grok-mobile-public-client-oauth-mcp-production-pass-v0-2",
+    "external-agent-immediate-grant-revocation-cutoff-production-pass-v0-2"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -446,7 +450,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "External-Agent foundation code is implemented through ChatGPT MCP product adaptation and deployed in production-shape at commit 74796311df71e16a8f25f1caf21e203324aae4a4 with public External Agent OAuth/MCP still disabled. The active live gate remains real Human OIDC browser login/logout/revocation. After that proof, intentionally enable delegated OAuth/MCP, register a ChatGPT client + Ledger READ Grant, and run EA-001 Blind Enterprise Discovery. EOG upper-layer and major Personal Agent feature expansion remain deferred.",
+  "currentStep": "External Agent READ/PLAN capability foundation is VERIFIED_PRODUCTION_PASS across the official MCP Inspector, Cline + DeepSeek, Grok Web and Grok Mobile. The Grok Web/Mobile live gate and immediate Grant-revocation cutoff are closed. Do not repeat generic External Agent portability validation unless a regression or materially new capability class requires it. External Agent WRITE, additional non-Ledger plugin exposure and product-specific ChatGPT entitlement/UX are future expansion scopes, not foundation blockers.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1702,8 +1706,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "AGENT-CAP-FABRIC-2026-10-01-05",
-    "snapshotAt": "2026-10-01T20:24:00+08:00",
+    "snapshotId": "AGENT-CAP-FABRIC-2026-10-02-06",
+    "snapshotAt": "2026-10-02T10:57:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1724,51 +1728,69 @@
     ],
     "current": {
       "milestone": "Agent Capability Fabric v0.2",
-      "milestoneStatus": "ACTIVE",
+      "milestoneStatus": "VERIFIED_PRODUCTION_PASS",
       "lastClosedLiveSlice": {
-        "id": "cline-deepseek-real-ai-agent-portability-v0-1",
+        "id": "grok-web-mobile-native-mcp-v0-2",
         "status": "VERIFIED_PRODUCTION_PASS",
-        "summary": "Cline 4.1.22 using DeepSeek API completed a real AI-Agent production portability proof against EVO. From a natural-language request that did not disclose operation IDs and explicitly prohibited source/GitHub/database/private-endpoint access, the Agent autonomously selected the delegated Ledger Runtime describe tool, then independently chose a bounded accounts section read with pageSize 5 to illustrate configuration structure. The final answer stayed installation-scoped and did not claim Enterprise-specific Ledger Template binding. Cline's native remote OAuth attempted DCR, so a local Integration Adapter translated Cline STDIO MCP to EVO CIMD + PKCE + modern MCP 2026-07-28 without changing EVO Core or authorization.",
-        "authority": "docs/integration-clients/CLINE-DEEPSEEK-LOCAL-MCP-ADAPTER.md",
+        "summary": "Grok Web and Grok Mobile completed real production External Agent OAuth + MCP + Ledger Runtime READ validation. Web used Grok's native CIMD identity with URL-only connector setup; Mobile used the EVO-maintained public compatibility Client ID with no secret. Both reached the governed production /mcp path and executed bounded Ledger Runtime reads. Web Grant revocation was then proven immediate: after all effective native Grok Grants were revoked, a fresh Grok request hit /mcp and received HTTP 401 while the connector still existed. PR #255 added handshake-era Streamable HTTP compatibility without weakening the governed core. The first-consent browser-return stall observed on both Web and Mobile is recorded as a Grok callback UX interoperability issue, not an authorization failure.",
+        "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
         "evidence": {
-          "clineVersion": "4.1.22",
-          "modelProvider": "DeepSeek API",
-          "nativeRemoteOauthFailure": "Incompatible auth server: does not support dynamic client registration",
-          "evoDcrEnabled": false,
-          "adapterType": "INTEGRATION_ADAPTER",
-          "adapterMainlinePr": 244,
-          "adapterMainlineCommit": "4ccd6f1d5be9b6c555c818e3bf10e52b828dbeb5",
-          "autonomousDescribe": true,
-          "autonomousBoundedSectionRead": true,
-          "boundedSection": "accounts",
-          "boundedPageSize": 5,
-          "visibleOperations": [
-            "ledger.runtime.configuration.describe",
-            "ledger.runtime.configuration.section.read"
+          "webClientIdentity": "https://grok.com/oauth/mcp-client.json",
+          "mobileClientIdentity": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/grok-web-mobile-client.json",
+          "clientSecretRequired": false,
+          "webOauthTokenExchange": true,
+          "webMcpRead": true,
+          "mobileOauthTokenExchange": true,
+          "mobileMcpRead": true,
+          "mcpCompatibilityPr": 255,
+          "mcpCompatibilityProtocols": [
+            "2026-07-28",
+            "2025-11-25",
+            "2025-06-18",
+            "2025-03-26"
           ],
           "templateId": "bookkeeping-default",
           "semanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
-          "answerInstallationScoped": true,
-          "enterpriseSpecificBindingClaimed": false,
-          "prohibitedKnowledgeSourcesUsed": false
+          "counts": {
+            "accounts": 141,
+            "applications": 143,
+            "dictionaries": 106,
+            "postingRules": 912,
+            "referenceLegacyPostingRules": 587
+          },
+          "mobileAccounts6To10": [
+            {
+              "id": "1121",
+              "title": "应收票据"
+            },
+            {
+              "id": "1122",
+              "title": "应收账款"
+            },
+            {
+              "id": "1123",
+              "title": "预付账款"
+            },
+            {
+              "id": "1131",
+              "title": "应收股利"
+            },
+            {
+              "id": "1132",
+              "title": "应收利息"
+            }
+          ],
+          "grantRevocationCutoff": "PASS_HTTP_401",
+          "callbackUxIssue": "OBSERVED_WEB_AND_MOBILE_FIRST_CONSENT_BROWSER_RETURN_MAY_STALL",
+          "staleRefreshTokenRetry": "OBSERVED_GROK_CLIENT_CACHE_BEHAVIOR"
         }
       },
       "openGate": {
-        "id": "agent-capability-fabric-live-mobile-grok-v0-2",
-        "status": "READY_FOR_HUMAN_LIVE_VALIDATION",
-        "summary": "Capability-level Human Consent is merged and deployed. The remaining gate is a phone-only Grok Web/Mobile native OAuth + MCP proof with no DevTools: first-use CIMD enrollment, Human selection of one Enterprise Context and exact Ledger Runtime READ capability selector, OAuth return to Grok, Agent Capability Fabric discovery/use, and immediate authority loss after Grant revocation.",
-        "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
-        "acceptance": [
-          "Human enters only EVO MCP URL and the public Grok CIMD Client ID; Client Secret remains blank",
-          "EVO login and consent work in the mobile browser without DevTools",
-          "Consent page offers exact capability/effect grouping and shows currently covered operations",
-          "Human selects the Ledger Runtime Configuration READ capability group and a short expiry",
-          "OAuth returns to Grok and the connector reaches EVO /mcp",
-          "Grok can discover/use EVO Agent Capability Fabric or delegated Ledger READ operations from a natural-language request",
-          "no WRITE capability is available",
-          "the resulting token family remains bounded by the operation ceiling captured at authorization",
-          "revoking the Grant removes effective capability immediately"
-        ]
+        "id": "external-agent-capability-foundation-v0-2",
+        "status": "CLOSED_VERIFIED_PRODUCTION_PASS",
+        "summary": "No External Agent capability-validation gate remains. READ/PLAN interoperability, natural-language discovery/use, protocol compatibility and immediate delegated-authority revocation have production evidence across independent clients. Select the next product/platform milestone separately.",
+        "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md",
+        "acceptance": []
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1776,13 +1798,28 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "5bd4a0556a9f3fe4263dcfdadb1d41f9899e1421",
-        "deploymentId": "6e725991-5fea-46bc-986b-fab00fa2ed07",
+        "commit": "5ba3a8193d004c660bd0c4e4b4434bae21f7c959",
+        "deploymentId": "7e851fd2-47f5-445b-9ef9-ccb07d4d9a09",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 256,
+        "status": "MERGED_CI_PASS_DEPLOYED",
+        "summary": "Add bounded non-secret OAuth token-failure diagnostics used to prove Grok stale refresh-token behavior without logging authorization codes, PKCE verifiers, refresh tokens or access tokens."
+      },
+      {
+        "pr": 255,
+        "status": "MERGED_CI_PASS_DEPLOYED_LIVE_PASS",
+        "summary": "Add stateless handshake-era Streamable HTTP MCP compatibility for 2025-11-25, 2025-06-18 and 2025-03-26 while preserving the strict 2026-07-28 path; native Grok Web/Mobile production calls pass through the same governed core."
+      },
+      {
+        "pr": 254,
+        "status": "MERGED_CONTINUITY_PASS",
+        "summary": "Prepare the capability-level Grok Web/Mobile Human live validation gate that is now closed VERIFIED_PRODUCTION_PASS."
+      },
       {
         "pr": 253,
         "status": "MERGED_CI_PASS_DEPLOYED",
@@ -2260,7 +2297,11 @@
       "Do not preselect business operations in the consent UI or infer WRITE authority from OAuth scopes.",
       "Do not implement capability delegation scale as wildcard operation ids; use exact Capability selectors with explicit READ/PLAN effects.",
       "Do not let a durable capability selector silently expand an already-issued OAuth authorization code, access token, or refresh-token family; token authority must only stay equal or shrink.",
-      "Do not remove explicit allowedOperationIds; precise operation-level delegation remains a supported authority primitive."
+      "Do not remove explicit allowedOperationIds; precise operation-level delegation remains a supported authority primitive.",
+      "Do not treat External Agent READ/PLAN capability as unverified or keep Grok portability as an active gate; Grok Web and Mobile are VERIFIED_PRODUCTION_PASS as of 2026-10-02.",
+      "Do not treat docs/integration-clients/grok-web-mobile-client.json as the canonical current Grok Web native identity; Web observed https://grok.com/oauth/mcp-client.json automatically, while the EVO-maintained profile remains the Mobile/manual compatibility client.",
+      "Do not interpret the first-consent Grok browser-return stall by itself as failed EVO authorization; both Web and Mobile were observed to receive EVO 303 while the browser could remain open, and a subsequent connector attempt completed token exchange using the already-created effective Grant.",
+      "Do not repeat generic External Agent client portability proof unless a regression or materially new capability class requires it; WRITE and additional plugin exposure are expansion scopes."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2353,38 +2394,34 @@
       "state EVO Ledger Runtime as deterministic BusinessData/posting/reconciliation/calculation/replay without Business Definition version-lifecycle ownership",
       "state App Platform as control plane while peer components exchange ordinary data through stable contract-bound interfaces after binding",
       "state enterprise-context-business-definitions-sop-authority-migration-v0-1 as VERIFIED_PRODUCTION_PASS with one legacy SOP migrated into Enterprise Context on Railway deployment 8f31d73c-d211-48a4-a377-4894c2181dfc",
-      "state External-Agent-First Platform Validation v0.1 as the current milestone",
-      "state production-human-login-request-bound-session-v0-1 as the active gate before public delegated External Agent access",
       "state EOG upper-layer expansion and major Personal Agent feature expansion as deferred while their existing assets remain preserved/regression-protected",
-      "state EA-001 Blind Enterprise Discovery over Ledger Runtime as the first external Agent conformance target after login, delegation and Generic MCP READ/PLAN exist",
-      "state PRs #217-#229 as merged foundations: Capability Operations, Ledger READ operations, current-authority delegation, OAuth, MCP and ChatGPT Product Adapter are implemented rather than future work",
-      "state production Ledger Configurator as commit 74796311df71e16a8f25f1caf21e203324aae4a4 / Railway deployment 41ae4d9e-8d96-44fa-bf85-e6b853405c6e SUCCESS",
-      "state the production startup evidence exactly: Enterprise Context legacy SOP migration still reports one imported definition; Generic OIDC reports ISSUER_REQUIRED/inactive; Host listens normally",
-      "state External Agent OAuth and MCP as default-OFF in production and therefore not yet a public External Agent live pass",
-      "state the active gate as real production Human OIDC login/logout/revocation, not Capability Registry/OAuth/MCP implementation",
-      "state EA-001 as ready in code but still awaiting live Human OIDC, explicit ChatGPT client registration/Grant and intentional OAuth/MCP activation",
-      "state ChatGPT integration as a Product Adapter over Generic MCP, selected only by validated CIMD identity and never by model text/clientInfo",
-      "state ledger.runtime.configuration.describe and ledger.runtime.configuration.section.read as the plugin-owned first EA-001 READ operations"
+      "state Agent Capability Fabric v0.2 / External Agent READ/PLAN foundation as VERIFIED_PRODUCTION_PASS rather than an active validation gate",
+      "state Grok Web native client identity as https://grok.com/oauth/mcp-client.json with current URL-only connector setup",
+      "state Grok Mobile/manual compatibility Client ID as docs/integration-clients/grok-web-mobile-client.json with no Client Secret",
+      "state PR #255 handshake-era MCP compatibility as live-proven for native Grok while the 2026-07-28 path remains supported",
+      "state immediate Grant-revocation cutoff as live-proven: a fresh Grok /mcp request returned 401 while the connector remained configured",
+      "state the Grok first-consent browser-return stall as a known Web+Mobile client UX interoperability issue, not an unresolved authorization gate",
+      "state External Agent WRITE, additional non-Ledger external projections and ChatGPT product-specific entitlement/UX as future expansion rather than foundation blockers",
+      "state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
-      "scenario": "Real external AI Agent autonomy over governed EVO Ledger Runtime capabilities",
-      "observed": "Cline 4.1.22 backed by DeepSeek API connected through the local Cline Integration Adapter to EVO's production CIMD/OAuth/MCP protected resource. The Human prompt did not name operation IDs and prohibited source, GitHub, database and private-endpoint access. The Agent first chose the Ledger Runtime describe capability, then decided on its own that five accounts were useful to illustrate structure and invoked the bounded section-read capability with section=accounts and pageSize=5. Its final answer accurately summarized the current installation configuration and explicitly avoided Enterprise-specific template claims.",
-      "authority": "docs/integration-clients/CLINE-DEEPSEEK-LOCAL-MCP-ADAPTER.md",
+      "scenario": "External Agent READ/PLAN capability foundation across independent production clients",
+      "observed": "The production protected-resource path was exercised by the official MCP Inspector, Cline 4.1.22 + DeepSeek, Grok Web and Grok Mobile. Grok Web used its native published CIMD identity and Grok Mobile used the EVO-maintained public compatibility Client ID. Natural-language requests caused real bounded Ledger Runtime reads. Handshake-era MCP compatibility was added for native Grok without changing authorization semantics. After revoking all effective native Grok Grants, a fresh Grok request reached /mcp and was rejected with HTTP 401 while the connector still existed, proving immediate current-authority enforcement.",
+      "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
       "proves": [
-        "a real third-party AI Agent harness and non-OpenAI model can use EVO through governed MCP capabilities",
-        "tool choice was Agent-driven from natural-language intent rather than operation IDs supplied in the prompt",
-        "the Agent selected a bounded follow-up read rather than indiscriminately dumping configuration",
-        "the final answer can stay within the installation-scoped semantic boundary exposed by the Capability contract",
-        "Cline-specific DCR incompatibility can be contained in a thin Integration Adapter without weakening EVO CIMD-first OAuth or adding vendor business logic to Host Core",
-        "the same remote protected-resource path retains current delegated-authority recomputation already proven by the Inspector Grant-revocation live test"
+        "independent standards and AI-Agent clients can use the same governed EVO External Agent protected-resource path",
+        "External Agent READ/PLAN capability discovery and invocation work from natural-language intent without source-code knowledge",
+        "both native CIMD Web setup and manual public-client Mobile setup can complete OAuth + MCP against EVO",
+        "bounded Ledger Runtime reads preserve installation-scoped semantics",
+        "handshake-era MCP transport compatibility can coexist with the strict 2026-07-28 path without bypassing governance",
+        "delegated Grant revocation removes effective access immediately even when the external connector remains configured"
       ],
       "doesNotProve": [
-        "Cline 4.1.22 natively supports EVO CIMD-first remote OAuth without an adapter",
-        "a second mature external AI Agent client has completed portability",
-        "a real ChatGPT custom MCP client has completed OAuth or called EVO tools",
-        "Enterprise Context-specific Ledger Template selection/binding",
-        "External Agent WRITE"
+        "External Agent WRITE",
+        "every non-Ledger plugin external projection",
+        "ChatGPT product-specific MCP entitlement or UX",
+        "future Grok callback/UI behavior remains stable"
       ]
     },
     "webDelivery": {
@@ -3321,13 +3358,13 @@
     }
   },
   "externalAgentFirstValidation": {
-    "status": "ACTIVE",
+    "status": "VERIFIED_PRODUCTION_PASS_READ_PLAN_FOUNDATION",
     "authority": "docs/roadmap/EXTERNAL-AGENT-FIRST-PLATFORM-VALIDATION.md",
     "standard": "docs/architecture/EXTERNAL-AGENT-ACCESS-STANDARD-v0.1.md",
     "strategy": "USE_MATURE_EXTERNAL_AGENTS_AS_INDEPENDENT_PLUGIN_PLATFORM_VALIDATION_CLIENTS_BEFORE_MAJOR_PERSONAL_AGENT_REFINEMENT",
     "personalAgent": "PRESERVED_REGRESSION_PROTECTED_NOT_PRIMARY_EXPANSION_TARGET",
     "eogUpperLayers": "DEFERRED_AFTER_DEFINITION_AUTHORITY_CLOSE",
-    "currentGate": "production-human-login-request-bound-session-v0-1",
+    "currentGate": "NONE_EXTERNAL_AGENT_CAPABILITY_VALIDATED",
     "firstExternalProtocol": "MCP",
     "firstReferencePlugin": "Ledger Runtime / Ledger Configurator",
     "firstConformanceCase": "EA-001 Blind Enterprise Discovery",
@@ -3344,9 +3381,9 @@
       "governed WRITE + approval + receipt",
       "resume major Personal Agent refinement"
     ],
-    "foundationStatus": "IMPLEMENTED_THROUGH_CHATGPT_PRODUCT_ADAPTER_PRODUCTION_SHAPE_DEPLOYED_DEFAULT_OFF",
-    "productionCommit": "74796311df71e16a8f25f1caf21e203324aae4a4",
-    "productionDeploymentId": "41ae4d9e-8d96-44fa-bf85-e6b853405c6e",
+    "foundationStatus": "VERIFIED_PRODUCTION_PASS",
+    "productionCommit": "5ba3a8193d004c660bd0c4e4b4434bae21f7c959",
+    "productionDeploymentId": "7e851fd2-47f5-445b-9ef9-ccb07d4d9a09",
     "completedFoundation": [
       "EA-1B1 Host authentication orchestration",
       "EA-1B2A generic OIDC Provider core",
@@ -3360,39 +3397,43 @@
       "EA-5 MCP 2026-07-28 protected resource + delegated Tool projection",
       "EA-6A ChatGPT MCP Product Adapter + RFC 9207 issuer identification"
     ],
-    "remainingLiveSequence": [
-      "configure one real production OIDC Identity Provider",
-      "Human browser /auth/login -> IdP -> /auth/callback -> managed Session",
-      "prove /auth/session and logout/revocation",
-      "register ChatGPT External Agent/client using validated CIMD identity",
-      "create explicit Ledger READ delegated Authority Grant",
-      "enable External Agent OAuth intentionally",
-      "enable External Agent MCP intentionally",
-      "connect ChatGPT to https://ledger-configurator-production.up.railway.app/mcp",
-      "run EA-001 without GitHub/source/database/internal endpoint knowledge",
-      "prove Grant revocation removes Tool access immediately",
-      "validate second mature Agent portability"
+    "remainingLiveSequence": [],
+    "closureDate": "2026-10-02",
+    "closureAuthority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
+    "validatedClients": [
+      "Official MCP Inspector",
+      "Cline 4.1.22 + DeepSeek API through thin Integration Adapter",
+      "Grok Web native CIMD Custom MCP",
+      "Grok Mobile manual public-client Custom MCP"
     ]
   },
   "externalAgentProductionValidation": {
-    "status": "REAL_AI_AGENT_PORTABILITY_PASS_SECOND_CLIENT_PENDING",
-    "date": "2026-10-01",
+    "status": "VERIFIED_PRODUCTION_PASS_READ_PLAN_FOUNDATION",
+    "date": "2026-10-02",
     "productionBaseUrl": "https://ledger-configurator-production.up.railway.app",
-    "productionCommit": "9c3c1399ecc2c9d42598004e39b5add49d7015ae",
-    "mcpDeploymentId": "9b44fd96-df50-48c4-bc66-c7bea7428b64",
-    "oauthDeploymentId": "2d809e5e-e22e-4e17-aae0-52fddf399e35",
+    "productionCommit": "5ba3a8193d004c660bd0c4e4b4434bae21f7c959",
+    "mcpDeploymentId": "7e851fd2-47f5-445b-9ef9-ccb07d4d9a09",
+    "oauthDeploymentId": "7e851fd2-47f5-445b-9ef9-ccb07d4d9a09",
     "humanLoginGate": "VERIFIED_PRODUCTION_PASS",
     "enterpriseContextCreation": "VERIFIED_PRODUCTION_PASS",
     "delegatedGrant": {
-      "state": "ACTIVE",
+      "state": "DYNAMIC_HUMAN_CONSENT_PROVEN",
       "effects": [
         "READ"
+      ],
+      "capabilitySelectors": [
+        {
+          "capability": "ledger.runtime.configuration",
+          "effects": [
+            "READ"
+          ]
+        }
       ],
       "operationIds": [
         "ledger.runtime.configuration.describe",
         "ledger.runtime.configuration.section.read"
       ],
-      "validUntil": "2026-10-02T01:15:27.387Z"
+      "authorityNote": "Do not infer current live authority from this snapshot; effective authority is recomputed at request time and Grants used in revocation proofs were intentionally revoked."
     },
     "publicProtocol": {
       "protectedResourceMetadataStatus": 200,
@@ -3505,6 +3546,60 @@
         "burnReady": true
       },
       "securityInheritance": "The adapter does not own authorization. Remote bearer requests still pass through EVO current delegated-authority recomputation; Inspector production proof already established immediate Grant revocation cutoff on the same protected resource path."
-    }
+    },
+    "mcpCompatibility": {
+      "status": "VERIFIED_PRODUCTION_PASS",
+      "mainlinePr": 255,
+      "deployedCommit": "38013e6cb2a1e0e4c501a31fc66ed25852496bc6",
+      "modernProtocol": "2026-07-28",
+      "handshakeEraProtocols": [
+        "2025-11-25",
+        "2025-06-18",
+        "2025-03-26"
+      ],
+      "boundary": "Transport compatibility adapts into the same governed MCP core and does not widen delegated authority."
+    },
+    "grokWebMobileValidation": {
+      "status": "VERIFIED_PRODUCTION_PASS",
+      "date": "2026-10-02",
+      "authority": "docs/integration-clients/GROK-WEB-MOBILE-NATIVE-MCP.md",
+      "web": {
+        "clientIdentity": "https://grok.com/oauth/mcp-client.json",
+        "setup": "MCP_URL_ONLY_NATIVE_CIMD",
+        "oauthTokenExchange": "PASS",
+        "mcpDiscovery": "PASS",
+        "naturalLanguageLedgerRead": "PASS",
+        "templateId": "bookkeeping-default",
+        "semanticDigest": "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98",
+        "immediateGrantRevocationCutoff": "PASS_HTTP_401"
+      },
+      "mobile": {
+        "clientIdentity": "https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/main/docs/integration-clients/grok-web-mobile-client.json",
+        "clientSecret": "NONE_PUBLIC_CLIENT",
+        "oauthTokenExchange": "PASS",
+        "mcpDiscovery": "PASS",
+        "boundedAccountsRead": "PASS_ACCOUNTS_6_TO_10"
+      },
+      "callbackUx": {
+        "status": "KNOWN_INTEGRATION_CLIENT_UX_ISSUE",
+        "surfaces": [
+          "WEB",
+          "MOBILE"
+        ],
+        "observation": "After first Human consent EVO returns 303, but the Grok browser surface may not visibly close/return. Re-entering connector setup can reuse the already-created effective Grant and complete token exchange.",
+        "securityImpact": "NONE_OBSERVED"
+      },
+      "staleRefreshTokenBehavior": {
+        "status": "OBSERVED",
+        "observation": "Grok may keep retrying an expired cached refresh token until the connector is disconnected/recreated."
+      }
+    },
+    "capabilityFoundationConclusion": "External Agent READ/PLAN capability foundation is validated. Further client-specific compatibility checks are regression work; WRITE and additional plugin exposure are future expansion.",
+    "notValidated": [
+      "External Agent WRITE",
+      "all non-Ledger plugin external projections",
+      "ChatGPT product-specific MCP entitlement and UX",
+      "future Grok callback/UI behavior"
+    ]
   }
 }
