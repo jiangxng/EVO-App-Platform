@@ -2,7 +2,7 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 import {
   EOG_ANALYSIS_PROVIDER_CAPABILITY_V020,
   EOG_ANALYSIS_PROVIDER_CONTRACT_V020
-} from "../../manager/enterprise-operating-graph-observatory-provider.js";
+} from "../../contracts/enterprise-operating-graph-observatory-runtime.js";
 
 export const EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID =
   "eog.bottleneck-analysis";
