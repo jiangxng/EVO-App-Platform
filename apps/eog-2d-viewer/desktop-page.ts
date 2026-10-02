@@ -44,7 +44,7 @@ import type {
 import {
   parseEogMetricCodesV020,
   parseEogTimeLensInputV020
-} from "./observatory-input.js";
+} from "../../eog/observatory-input.js";
 import {
   EOG_MOBILE_READ_PAGE_SOURCE,
   EOG_MOBILE_READ_ROUTE
