@@ -12,7 +12,7 @@
       "manager/enterprise-operating-graph-model.ts"
     ],
     "legacySemanticStore": {
-      "status": "PROTECTED_MIGRATION_SOURCE_PENDING_RUNTIME_CUTOVER",
+      "status": "MIGRATION_SOURCE_ONLY_NO_NEW_AUTHORITATIVE_WRITES",
       "source": "manager/enterprise-operating-graph-store.ts",
       "futureAuthority": false
     }
@@ -90,7 +90,7 @@
       "eog-viewer-ux"
     ],
     "eogDefinitionPersistence": {
-      "status": "FOUNDATION_READY_RUNTIME_CUTOVER_PENDING",
+      "status": "RUNTIME_CUTOVER_IMPLEMENTED_CI_PRODUCTION_GATE",
       "kind": "ENTERPRISE_OPERATING_GRAPH",
       "adapter": "apps/eog-2d-designer/definition-persistence.ts",
       "migration": "apps/eog-2d-designer/legacy-definition-migration.ts",
@@ -141,7 +141,8 @@
     "eogCoreIntegrationGate": "tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
     "note": "Preserved source may still typecheck transitively until physical plugin extraction; capability acceptance tests are excluded from current CI gates.",
     "convergenceGate": "RESPONSIBILITY_SPLIT_BEFORE_UPPER_LAYER_EOG_EXPANSION",
-    "architectureAuthority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+    "architectureAuthority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+    "definitionPersistenceGate": "ENTERPRISE_CONTEXT_REPOSITORY_BACKED_EOG_RUNTIME"
   },
   "eidosVisualCores": {
     "twoDCore": {
