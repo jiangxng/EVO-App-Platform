@@ -2,24 +2,23 @@
   "schemaVersion": 1,
   "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
   "updatedAt": "2026-10-02",
-  "status": "BASELINE_FROZEN",
+  "status": "SOP_DEFERRED_RUNTIME_BINDING_ACTIVE",
   "prerequisites": {
     "eogThreePluginPhysicalBoundary": "CLOSED",
     "pluginToManagerPrivateImports": "PROHIBITED_CI"
   },
   "extractionOrder": [
-    "SOP_DESIGNER_PACKAGE_IDENTITY",
-    "SOP_DESIGNER_PHYSICAL_EXTRACTION",
-    "LEGACY_SOP_STORE_ISOLATION",
+    "SOP_PRESERVED_DEFERRED",
     "RUNTIME_BINDING_ADAPTER_CONTRACT_AND_IDENTITY",
     "RUNTIME_BINDING_ADAPTER_PHYSICAL_EXTRACTION",
     "EXISTING_ANALYSIS_PROVIDER_CONTRACT_AUDIT",
+    "SOP_RESUME_ONLY_ON_EXPLICIT_PRODUCT_DECISION",
     "FUTURE_REPORT_ANALYSIS_PORTFOLIO_ON_DEMAND"
   ],
   "targets": {
     "sopDesigner": {
       "logicalRole": "SOP_DESIGNER",
-      "concretePackageId": "TBD_NEXT_SLICE",
+      "concretePackageId": "NOT_FROZEN_WHILE_DEFERRED",
       "semantics": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
       "compatibilityName": "SOP",
       "definitionAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
@@ -45,7 +44,8 @@
       ],
       "legacyCompatibilityAssets": [
         "manager/enterprise-operating-graph-sop-store.ts"
-      ]
+      ],
+      "status": "DEFERRED_PRESERVE_ONLY"
     },
     "runtimeBindingAdapter": {
       "logicalRole": "RUNTIME_BINDING_ADAPTER",
@@ -58,7 +58,8 @@
         "contracts/enterprise-operating-graph-application-runtime.ts",
         "manager/enterprise-operating-graph-application-runtime-service.ts",
         "manager/enterprise-operating-graph-application-runtime-store.ts"
-      ]
+      ],
+      "status": "ACTIVE_NEXT_TARGET"
     },
     "analysisProviders": {
       "status": "PRESERVE_EXISTING_PROVIDERS_PORTFOLIO_TBD",

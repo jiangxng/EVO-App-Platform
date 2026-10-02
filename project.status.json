@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG 2D Viewer and 2D Designer now share an interactive 2D Workspace foundation: node/edge selection, structured Inspector properties, lazy selection-time peer property resolution and owner-routed edits. Viewer is semantic-read-only but interactive; Designer is the same workspace plus governed semantic editing. EOG-owned Inspector edits are implemented and end-to-end proven. Peer-plugin extraction baseline is frozen; next gate is concrete SOP Designer package identity and public dependency boundary.",
+  "currentStep": "EOG 2D Viewer/Designer interactive Workspace convergence is closed. SOP remains a separate preserved peer domain but its extraction/product development is deferred. The active next convergence target is the Runtime Binding Adapter public contract and package identity, followed by physical extraction and analysis-provider contract audit.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1783,17 +1783,17 @@
         }
       },
       "openGate": {
-        "id": "sop-designer-package-identity-v0-1",
+        "id": "runtime-binding-adapter-contract-identity-v0-1",
         "status": "READY",
-        "summary": "Establish the concrete SOP Designer peer-plugin package identity and public dependency boundary without moving SOP analysis ownership into the Designer.",
+        "summary": "Freeze the Runtime Binding Adapter public contract and package identity while keeping SOP extraction deferred and EOG/SOP boundaries separate.",
         "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
         "acceptance": [
-          "SOP Designer package identity is explicit and catalog-discoverable",
-          "package remains default-OFF until controlled implementation cutover",
-          "Enterprise Context remains authoritative SOP Business Definition persistence/lifecycle owner",
-          "project SOP semantics remain APQC process structure plus time dimension",
-          "SOP conformance/deviation analysis remains a separate peer analysis responsibility",
-          "SOP Designer does not import EOG application private implementation"
+          "SOP extraction remains deferred and no SOP package/product expansion is introduced",
+          "Runtime Binding Adapter owns only semantic-reference to runtime-provider/runtime-application identity mapping",
+          "Enterprise Graph and SOP definition authority remain outside the adapter",
+          "Ledger Runtime execution remains outside the adapter",
+          "adapter public contract is explicit before physical implementation extraction",
+          "adapter does not import EOG application private implementation"
         ]
       },
       "productionPreview": {
@@ -2498,7 +2498,9 @@
       "Do not physically extract preserved SOP/analysis/runtime-binding assets before their peer-plugin package identities and public contracts are frozen.",
       "Do not describe EOG 2D Viewer as non-interactive or as a static read-only page; only Enterprise Graph semantic mutation is prohibited.",
       "Do not fork separate Viewer and Designer property panels; both use the shared Eidos 2D Workspace Inspector and shared EOG property projection.",
-      "Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands."
+      "Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands.",
+      "Do not resume SOP Designer extraction or expand the SOP domain until the product work is explicitly reactivated.",
+      "Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2636,7 +2638,9 @@
       "state EOG-owned semantic reference and unconfirmed Guidance source edits as governed new-revision mutations, not historical rewrites",
       "state Eidos 2D PRs #77-#81 as the upstream Workspace/Inspector authority",
       "state App Platform PRs #287-#296 as the interactive 2D Workspace and Inspector convergence line",
-      "state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity"
+      "state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity",
+      "state SOP as a separate preserved peer domain whose extraction/product development is currently deferred",
+      "state Runtime Binding Adapter contract/package identity as the active next convergence gate"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",

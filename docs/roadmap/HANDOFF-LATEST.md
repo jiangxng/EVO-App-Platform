@@ -40,18 +40,18 @@ Evidence:
 
 ## Current open live gate
 
-**sop-designer-package-identity-v0-1: READY**
+**runtime-binding-adapter-contract-identity-v0-1: READY**
 
-Establish the concrete SOP Designer peer-plugin package identity and public dependency boundary without moving SOP analysis ownership into the Designer.
+Freeze the Runtime Binding Adapter public contract and package identity while keeping SOP extraction deferred and EOG/SOP boundaries separate.
 
 Acceptance:
 
-- SOP Designer package identity is explicit and catalog-discoverable
-- package remains default-OFF until controlled implementation cutover
-- Enterprise Context remains authoritative SOP Business Definition persistence/lifecycle owner
-- project SOP semantics remain APQC process structure plus time dimension
-- SOP conformance/deviation analysis remains a separate peer analysis responsibility
-- SOP Designer does not import EOG application private implementation
+- SOP extraction remains deferred and no SOP package/product expansion is introduced
+- Runtime Binding Adapter owns only semantic-reference to runtime-provider/runtime-application identity mapping
+- Enterprise Graph and SOP definition authority remain outside the adapter
+- Ledger Runtime execution remains outside the adapter
+- adapter public contract is explicit before physical implementation extraction
+- adapter does not import EOG application private implementation
 
 ## Current production preview
 
@@ -375,6 +375,8 @@ Not proved:
 - Do not describe EOG 2D Viewer as non-interactive or as a static read-only page; only Enterprise Graph semantic mutation is prohibited.
 - Do not fork separate Viewer and Designer property panels; both use the shared Eidos 2D Workspace Inspector and shared EOG property projection.
 - Do not route peer-owned business-property writes through EOG; owner providers declare their own ActionHost commands.
+- Do not resume SOP Designer extraction or expand the SOP domain until the product work is explicitly reactivated.
+- Do not couple SOP back into EOG merely because historical SOP compatibility assets carry EOG-named types or graph/application-node references.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -530,6 +532,8 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Eidos 2D PRs #77-#81 as the upstream Workspace/Inspector authority
 - state App Platform PRs #287-#296 as the interactive 2D Workspace and Inspector convergence line
 - state peer-plugin extraction baseline PR #286 as closed and the next EOG gate as SOP Designer package identity
+- state SOP as a separate preserved peer domain whose extraction/product development is currently deferred
+- state Runtime Binding Adapter contract/package identity as the active next convergence gate
 
 No previous ChatGPT transcript is required.
 

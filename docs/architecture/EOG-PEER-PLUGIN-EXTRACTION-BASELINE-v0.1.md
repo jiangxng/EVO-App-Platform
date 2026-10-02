@@ -29,7 +29,7 @@ Runtime Binding Adapter
 
 ## 1. SOP Designer logical identity
 
-The first peer-plugin target is **SOP Designer**.
+SOP Designer remains a valid peer-plugin boundary, but its extraction is currently **DEFERRED**. The active next convergence target is the Runtime Binding Adapter.
 
 Logical role:
 
@@ -111,16 +111,14 @@ Concrete package id remains TBD until the adapter contract is frozen.
 
 ## 5. Extraction order
 
-The controlled order is:
+The controlled order is now:
 
-1. freeze this baseline;
-2. establish SOP Designer package identity and public dependency contract;
-3. move SOP definition/editor service/actions/Agent tools behind that package identity;
-4. retire or isolate legacy SOP store compatibility after migration proof;
-5. freeze runtime-binding adapter public contract and package identity;
-6. physically extract runtime-binding implementation;
-7. audit existing Runtime Fact / Analysis Provider packages against public contracts;
-8. design additional report/analysis Experience packages only when a concrete product requirement exists.
+1. preserve the SOP boundary and existing implementation assets without further extraction;
+2. freeze Runtime Binding Adapter public contract and package identity;
+3. physically extract Runtime Binding Adapter implementation;
+4. audit existing Runtime Fact / Analysis Provider packages against public contracts;
+5. return to SOP Designer only when SOP product development is explicitly resumed;
+6. design additional report/analysis Experience packages only when a concrete product requirement exists.
 
 ## 6. Preserved assets
 
@@ -167,3 +165,19 @@ EOG Viewer -> declared read-only peer contribution
 ## Canonical statement
 
 > SOP Designer owns SOP domain semantics and editing; Enterprise Context owns SOP definition truth; runtime and analysis remain separate peer responsibilities; EOG only designs/navigates the graph and aggregates peer contributions.
+
+
+## SOP extraction deferral
+
+SOP remains architecturally separate from EOG.
+
+Current status:
+
+```text
+SOP domain boundary = DEFINED
+SOP preserved implementation = RETAINED
+SOP extraction/product development = DEFERRED
+EOG dependency on SOP private implementation = FORBIDDEN
+```
+
+No new SOP package identity, UI, editor, service abstraction or model expansion should be introduced until SOP work is explicitly resumed.
