@@ -1,6 +1,6 @@
 # EOG Agent Tool Ownership Split — Semantic and Observatory v0.1
 
-**Status:** IMPLEMENTED / CI GATE  
+**Status:** IMPLEMENTED — VIEW SPLIT COMPLETE  
 **Date:** 2026-10-02  
 **Parent authority:** `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`
 
@@ -21,13 +21,17 @@ evo-eog-2d-viewer
 ├── enterprise.operating_graph.observe
 └── enterprise.operating_graph.analyze
 
-compatibility debt for next slice
+evo-eog-2d-designer
 ├── enterprise.operating_graph.view.get
 └── enterprise.operating_graph.view.apply
-    (currently mixed DIAGRAM_2D / SPATIAL_3D)
+    (stable generic IDs retained as the DIAGRAM_2D compatibility path)
+
+evo-eog-3d-viewer
+├── enterprise.operating_graph.spatial_view.get
+└── enterprise.operating_graph.spatial_view.apply
 ```
 
-The mixed View tools remain temporarily owned by `evo-app-platform` so this PR does not mis-assign 3D behavior to a 2D package.
+No EOG Agent View tool remains owned by `evo-app-platform`. The stable generic View IDs are explicitly 2D-only; SPATIAL_3D uses explicit spatial tool IDs owned by the 3D Viewer.
 
 ## Lifecycle gating
 
@@ -68,11 +72,10 @@ Preserved:
 - capabilities;
 - Agent action-receipt / material-write authorization behavior.
 
-## Next slice
+## View split invariants
 
-Split the remaining generic View tools by visual responsibility:
-
-- DIAGRAM_2D -> EOG 2D ownership;
-- SPATIAL_3D -> EOG 3D Viewer ownership.
-
-That slice may add explicit spatial tool IDs while preserving the existing generic 2D IDs as the compatibility path.
+- `enterprise.operating_graph.view.get/apply` is the stable DIAGRAM_2D compatibility path owned by EOG 2D Designer;
+- 2D mutation cannot set camera state;
+- `enterprise.operating_graph.spatial_view.get/apply` is the explicit SPATIAL_3D path owned by EOG 3D Viewer;
+- spatial placement/camera remain presentation state and do not change semantic graph revision;
+- no EOG Agent tool descriptor remains generically owned by `evo-app-platform`.
