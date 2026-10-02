@@ -21,7 +21,7 @@ test("vendored Eidos public 3D Core facade preserves spatial implementation iden
 test("EOG application projections consume public Eidos visual-core facades, not implementation folders", async () => {
   const files = [
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
-    "manager/enterprise-operating-graph-observatory-page.ts",
+    "apps/eog-2d-viewer/desktop-page.ts",
     "manager/enterprise-operating-graph-spatial-observatory-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));

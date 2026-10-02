@@ -100,3 +100,19 @@ The following implementations now live under `apps/eog-2d-viewer/`:
 The previous `manager/enterprise-operating-graph-*` locations remain compatibility re-exports only.
 
 The desktop 2D Observatory projection is intentionally deferred to the next slice because it still shares EOG-to-Eidos 2D projection logic with the Designer. That projection dependency will be separated before the desktop page is moved.
+
+
+## Desktop Viewer physical cutover
+
+The desktop Observatory projection now lives under `apps/eog-2d-viewer/desktop-page.ts`.
+
+Key boundary changes:
+
+- consumes the package-neutral EOG 2D base projection directly;
+- consumes the public semantic read contract and public View State provider contract;
+- no longer imports the Designer page/service implementation;
+- no longer binds its page to the Designer semantic/view operation command;
+- exposes a Viewer-owned operation command that fails closed as `EOG_2D_VIEWER_READ_ONLY`;
+- old manager page path is a compatibility re-export only.
+
+This makes read-only Viewer behavior an executable boundary rather than a presentation convention.

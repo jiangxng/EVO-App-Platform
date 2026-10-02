@@ -9,7 +9,7 @@ test("Viewer-side EOG code depends on the public semantic read contract", async 
     "manager/enterprise-operating-graph-observatory-provider.ts",
     "apps/eog-2d-viewer/observatory-actions.ts",
     "apps/eog-2d-viewer/agent-tools.ts",
-    "manager/enterprise-operating-graph-observatory-page.ts",
+    "apps/eog-2d-viewer/desktop-page.ts",
     "apps/eog-2d-viewer/mobile-read-page.ts",
     "manager/enterprise-operating-graph-spatial-observatory-page.ts"
   ];
