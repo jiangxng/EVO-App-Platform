@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-13`  
-**Snapshot time:** `2026-10-02T21:56:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-14`  
+**Snapshot time:** `2026-10-02T22:41:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,18 +40,19 @@ Evidence:
 
 ## Current open live gate
 
-**four-project-contract-boundary-audit-v0-1: READY**
+**app-platform-evo-application-id-contract-proof-v0-1: READY**
 
-Re-verify the public contract and authority boundaries across EVO, EVO App Platform, Eidos and Experience Compiler after the EOG/runtime-binding convergence, without reopening deferred SOP work.
+Prove the public contract path from Host semantic Application identity through the lifecycle-gated Application Runtime Binding Provider to EVO's minimal applicationId routing anchor, without importing private implementation or restoring rich Application lifecycle to EVO.
 
 Acceptance:
 
-- EVO remains deterministic runtime/execution authority and is consumed through stable runtime/provider contracts
-- EVO App Platform remains lifecycle/control-plane and enterprise-definition Experience integration layer without absorbing EVO or EC private implementation
-- Eidos 2D/3D Core remains generic visual-interaction infrastructure with no EOG/EVO/EC business semantics
-- Experience Compiler remains enterprise/industry knowledge, learning and proposal authority without taking Enterprise Context definition authority
-- cross-project dependencies use public contracts rather than repository-private implementation
-- SOP remains separate and deferred during this audit
+- Host semantic Application identity resolves through enterprise.application-runtime-binding
+- binding result exposes runtimeProviderId and runtimeApplicationId without EOG-private identity
+- when EVO is the selected runtime provider runtimeApplicationId maps exactly to EVO applicationId
+- App Platform provider/package lifecycle remains authoritative for binding availability
+- EVO rich Application lifecycle/capability/authorization remains outside target Ledger Runtime Core
+- cross-project integration uses public contracts only and no repository-private imports
+- SOP remains separate, preserved and deferred
 
 ## Current production preview
 
@@ -92,6 +93,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #306 — MERGED_CI_PASS: Close the four-project ownership audit across EVO, App Platform, Eidos and Experience Compiler and identify bounded cross-repository wording follow-up.
+- PR #305 — MERGED_CI_PASS: Close peer-provider convergence and open the four-project contract-boundary audit.
 - PR #304 — MERGED_CI_PASS: Audit Runtime Fact / Analysis Provider boundaries; freeze historical SOP conformance/deviation coupling as preserved deferred debt.
 - PR #303 — MERGED_CI_PASS: Gate Application Runtime Binding provider resolution through package lifecycle while preserving upgrade compatibility.
 - PR #302 — MERGED_CI_PASS: Move Application Runtime Binding service/store into generic provider ownership with manager compatibility re-exports.
@@ -386,6 +389,9 @@ Not proved:
 - Do not treat Application Runtime Binding as EOG-owned; the generic provider contract/package is authoritative and old EOG paths are compatibility only.
 - Do not bypass Application Runtime Binding package lifecycle by directly consuming its implementation when normal provider resolution is available.
 - Do not resume SOP extraction/product development during the four-project boundary audit.
+- Do not treat Experience-Compiler as replaced by the App Platform enterprise-agent package; EC remains an independent owner project for durable advisory intelligence.
+- Do not read EVO compatibility endpoints as target EVO Ledger Runtime Core ownership; targetCoreBoundary and minimal-runtime decisions are authoritative.
+- Do not reopen SOP work while proving the App Platform to EVO applicationId contract path.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -546,6 +552,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Enterprise Application Runtime Binding as a generic lifecycle-gated PLATFORM_PROVIDER rather than EOG-owned infrastructure
 - state existing Runtime Fact / Analysis Providers as audited with SOP conformance/deviation preserved frozen debt
 - state the active next gate as the EVO / App Platform / Eidos / Experience Compiler contract-boundary audit
+- state the four-project contract-boundary audit as CLOSED PASS
+- state Experience-Compiler as an independent owner project and enterprise-agent as an App Platform integration/package boundary
+- state the current open gate as App Platform semantic Application -> Application Runtime Binding -> EVO applicationId public-contract proof
+- state SOP as separate and deferred
 
 No previous ChatGPT transcript is required.
 
