@@ -67,10 +67,10 @@ import {
 } from "./conversation-thread-store.js";
 import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
-} from "../providers/enterprise-context/eog-graph-definitions.js";
+} from "../apps/eog-2d-designer/definition-persistence.js";
 import {
   migrateLegacyEnterpriseOperatingGraphsV010
-} from "../providers/enterprise-context/eog-graph-migration.js";
+} from "../apps/eog-2d-designer/legacy-definition-migration.js";
 import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
