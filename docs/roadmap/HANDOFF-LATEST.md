@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-01`  
-**Snapshot time:** `2026-10-02T11:20:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-02`  
+**Snapshot time:** `2026-10-02T11:50:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,18 +35,18 @@ Evidence:
 
 ## Current open live gate
 
-**eog-2d-3d-responsibility-convergence-v0-1: ACTIVE**
+**eog-experience-ownership-migration-v0-1: READY_AFTER_PACKAGE_IDENTITY_CI**
 
-Converge EOG into one Enterprise Context definition authority, reusable Eidos 2D/3D cores, and three App Platform application plugins: EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer. Preserve all working assets and move ownership incrementally.
+Move existing EOG Experience manifests and page ownership from the Enterprise Agent compatibility package into the three dedicated EOG application packages without changing semantic authority or deleting compatibility assets.
 
 Acceptance:
 
-- Eidos 2D Core and 3D Core responsibilities are explicit and business-semantic-free
-- EOG 2D Designer, 2D Viewer and 3D Viewer have independent App Platform package identities
-- all three consume one shared Enterprise Graph Definition authority from Enterprise Context
-- semantic graph state remains separate from 2D/3D View State
-- existing Observatory/SOP/analysis assets remain preserved for peer-plugin extraction
-- no private cross-plugin implementation imports are introduced
+- EOG 2D Designer Experience is owned by evo-eog-2d-designer
+- EOG 2D Viewer Experience is owned by evo-eog-2d-viewer
+- EOG 3D Viewer Experience is owned by evo-eog-3d-viewer
+- all three continue to consume Enterprise Context Business Definition authority
+- no duplicate active routes/experiences exist during compatibility migration
+- existing EOG Human/Agent authority invariants remain unchanged
 
 ## Current production preview
 
@@ -83,6 +83,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #258 — MERGED_CI_PASS: Freeze EOG 2D/3D responsibility convergence: Enterprise Context definition authority, Eidos reusable 2D/3D cores, and three App Platform EOG application plugins.
 - PR #257 — MERGED_CI_PASS: Close External Agent READ/PLAN capability validation and record Grok Web/Mobile production proof.
 - PR #256 — MERGED_CI_PASS_DEPLOYED: Add bounded non-secret OAuth token-failure diagnostics used to prove Grok stale refresh-token behavior without logging authorization codes, PKCE verifiers, refresh tokens or access tokens.
 - PR #255 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Add stateless handshake-era Streamable HTTP MCP compatibility for 2025-11-25, 2025-06-18 and 2025-03-26 while preserving the strict 2026-07-28 path; native Grok Web/Mobile production calls pass through the same governed core.
@@ -438,6 +439,8 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state App Platform target EOG package family as EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer
 - state all three EOG plugins as consumers of one semantic definition with separate 2D/3D View State
 - state Observatory/SOP/analysis/runtime assets as preserved pending peer-plugin extraction rather than EOG Core ownership
+- state Eidos PR #75 as merged and authoritative for reusable 2D Core / 3D Core ownership
+- state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration
 
 No previous ChatGPT transcript is required.
 
