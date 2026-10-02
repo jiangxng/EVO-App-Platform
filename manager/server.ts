@@ -121,6 +121,7 @@ import {
   createEnterpriseOperatingGraphObservatoryExperienceManifestV020,
   createEnterpriseOperatingGraphObservatoryPageV020,
   createEnterpriseOperatingGraphObservatoryViewActionHandlerV020,
+  createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020,
   EOG_OBSERVATORY_PAGE_SOURCE
 } from "./enterprise-operating-graph-observatory-page.js";
 import {
@@ -3126,6 +3127,7 @@ const actionRouter = createAppActionRouter(
         return context.locale;
       }
     }),
+    createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
