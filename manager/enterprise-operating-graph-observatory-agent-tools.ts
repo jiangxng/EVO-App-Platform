@@ -1,6 +1,10 @@
 import type {
   EnterpriseAgentToolRegistrationV010
 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  EOG_2D_VIEWER_FEATURE_ID,
+  EOG_2D_VIEWER_PACKAGE_ID
+} from "../apps/eog-2d-viewer/package.js";
 import type {
   PlatformPrincipalV010,
   ResolvedContextSetV010
@@ -83,10 +87,13 @@ export function createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV
     providers: EnterpriseOperatingGraphObservatoryProviderResolverV020;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
+    isViewerActive?: () => boolean;
   }
 ): EnterpriseAgentToolRegistrationV010[] {
   const inEnterprise = () =>
     input.context.activeContext.kind === "ENTERPRISE";
+  const viewerAvailable = () =>
+    inEnterprise() && (input.isViewerActive?.() ?? true);
 
   const execute = async (
     args: Record<string, unknown>,
@@ -120,11 +127,11 @@ export function createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV
         description: "Read time-bounded Runtime Facts over the current Enterprise Operating Graph. Facts are Provider-sourced observations, not enterprise semantic truth. Use for event frequency, throughput, WIP/backlog, wait/lead time, quantity or amount questions.",
         inputSchema: querySchema,
         effect: "READ",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_VIEWER_PACKAGE_ID,
         capability: EOG_RUNTIME_FACT_PROVIDER_CAPABILITY_V020
       },
       available() {
-        return inEnterprise()
+        return viewerAvailable()
           && input.providers.hasRuntimeCandidate();
       },
       execute(args) {
@@ -141,11 +148,11 @@ export function createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV
         description: "Read evidence-backed derived Analysis Overlays over Runtime Facts, such as bottleneck, SOP conformance/deviation or anomaly analysis. Analysis remains separate from raw facts and enterprise semantic truth.",
         inputSchema: querySchema,
         effect: "READ",
-        ownerPackageId: "evo-app-platform",
+        ownerPackageId: EOG_2D_VIEWER_PACKAGE_ID,
         capability: EOG_ANALYSIS_PROVIDER_CAPABILITY_V020
       },
       available() {
-        return inEnterprise()
+        return viewerAvailable()
           && input.providers.hasRuntimeCandidate()
           && input.providers.hasAnalysisCandidate();
       },
