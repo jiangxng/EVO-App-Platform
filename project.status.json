@@ -447,7 +447,8 @@
     "eog-definition-persistence-contract-boundary-v0-1",
     "eidos-public-2d-core-api-consumed-v0-1",
     "eidos-public-3d-core-api-consumed-v0-1",
-    "eog-visual-core-public-boundary-v0-1"
+    "eog-visual-core-public-boundary-v0-1",
+    "eog-2d-designer-semantic-physical-extraction-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -473,7 +474,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Eidos #76 is merged with explicit public `@eidos/reference/2d` and `@eidos/reference/3d` entrypoints, and App Platform EOG projections now consume the pinned equivalent vendored facades instead of Eidos diagram/spatial implementation folders. Semantic authority remains Enterprise Context, 2D/3D View State remains presentation state, and no renderer rewrite was introduced. Next gate is physical EOG implementation extraction into the three owning application packages, starting with EOG 2D Designer.",
+  "currentStep": "EOG physical extraction has started. The 2D Designer now physically owns the semantic graph model, legacy compatibility store, and Host-facing semantic service under apps/eog-2d-designer; manager paths are compatibility re-exports only. Enterprise Context remains authoritative persistence. Next slice moves 2D Designer actions, Agent tools, and editor page/projection into the package while preserving routes and public compatibility imports.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1729,8 +1730,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-14",
-    "snapshotAt": "2026-10-02T15:10:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-12",
+    "snapshotAt": "2026-10-02T17:50:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1770,18 +1771,18 @@
         }
       },
       "openGate": {
-        "id": "eog-physical-plugin-implementation-extraction-v0-1",
-        "status": "READY_AFTER_VISUAL_CORE_CI",
-        "summary": "Move EOG implementation ownership physically out of mixed manager/enterprise-operating-graph-* locations into the three owning application packages without changing public contracts, routes, semantic authority or working behavior. Start with EOG 2D Designer and preserve compatibility re-exports where needed.",
+        "id": "eog-2d-designer-experience-implementation-extraction-v0-1",
+        "status": "READY_AFTER_SEMANTIC_CORE_CI",
+        "summary": "Move EOG 2D Designer action handlers, Personal Agent tools and editor page/projection implementation into apps/eog-2d-designer while preserving stable manager compatibility re-exports, routes, page sources and authority rules.",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "EOG 2D Designer domain/application implementation has a package-local owner boundary",
-          "existing public contracts and route/page source identifiers remain stable",
-          "manager/Host retains orchestration only rather than EOG product implementation ownership",
-          "EOG 2D Viewer and 3D Viewer extraction follow in separate slices",
-          "Enterprise Context remains Enterprise Graph Definition authority",
-          "Eidos public 2D/3D Core boundaries remain the only visual framework dependency for EOG application code",
-          "no working Observatory/SOP/analysis asset is deleted during extraction"
+          "EOG 2D Designer actions are package-local implementation",
+          "EOG 2D Designer semantic/2D Agent tools are package-local implementation",
+          "EOG editor page and projection are package-local implementation",
+          "manager compatibility modules contain re-exports only for moved implementation",
+          "routes/page source/action IDs remain unchanged",
+          "Enterprise Context remains semantic persistence authority",
+          "Human-only confirm/remove/publish boundaries remain unchanged"
         ]
       },
       "productionPreview": {
@@ -3530,6 +3531,13 @@
       "twoDViewer": "EIDOS_2D_CORE",
       "threeDViewer": "EIDOS_3D_CORE",
       "directDiagramSpatialImplementationImports": "PROHIBITED_AT_EOG_APPLICATION_BOUNDARY"
+    },
+    "physicalExtraction": {
+      "status": "IN_PROGRESS",
+      "twoDDesignerSemanticCore": "PACKAGE_LOCAL_IMPLEMENTATION_MANAGER_COMPAT_REEXPORT",
+      "twoDDesignerExperienceActions": "NEXT",
+      "twoDViewer": "PENDING",
+      "threeDViewer": "PENDING"
     }
   },
   "externalAgentFirstValidation": {
