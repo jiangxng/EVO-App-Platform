@@ -82,12 +82,12 @@ import {
   createEogViewStateProviderV010
 } from "../providers/eog-view-state/runtime.js";
 import {
-  createFileEogApplicationRuntimeBindingStoreV010,
-  createMemoryEogApplicationRuntimeBindingStoreV010
-} from "./enterprise-operating-graph-application-runtime-store.js";
+  createFileEnterpriseApplicationRuntimeBindingStoreV010,
+  createMemoryEnterpriseApplicationRuntimeBindingStoreV010
+} from "../providers/application-runtime-binding/store.js";
 import {
-  createEogApplicationRuntimeBindingServiceV010
-} from "./enterprise-operating-graph-application-runtime-service.js";
+  createEnterpriseApplicationRuntimeBindingProviderV010
+} from "../providers/application-runtime-binding/runtime.js";
 import {
   createEogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
@@ -885,19 +885,20 @@ const enterpriseOperatingGraphViewService =
     store: enterpriseOperatingGraphViewStore
   });
 
-const eogApplicationRuntimeBindingStateFile =
-  process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+const applicationRuntimeBindingStateFile =
+  process.env.APP_PLATFORM_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+  || process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "eog-application-runtime-bindings.json")
     : undefined);
-const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
-  ? createFileEogApplicationRuntimeBindingStoreV010(
-      eogApplicationRuntimeBindingStateFile
+const applicationRuntimeBindingStore = applicationRuntimeBindingStateFile
+  ? createFileEnterpriseApplicationRuntimeBindingStoreV010(
+      applicationRuntimeBindingStateFile
     )
-  : createMemoryEogApplicationRuntimeBindingStoreV010();
-const eogApplicationRuntimeBindingService =
-  createEogApplicationRuntimeBindingServiceV010({
-    store: eogApplicationRuntimeBindingStore
+  : createMemoryEnterpriseApplicationRuntimeBindingStoreV010();
+const applicationRuntimeBindingProvider =
+  createEnterpriseApplicationRuntimeBindingProviderV010({
+    store: applicationRuntimeBindingStore
   });
 
 const legacySopMigration = migrateLegacyEogSopsV010({
@@ -2327,7 +2328,7 @@ const evoObservatoryApplicationMap = (() => {
   return result;
 })();
 for (const mapping of evoObservatoryApplicationMap) {
-  eogApplicationRuntimeBindingService.bind({
+  applicationRuntimeBindingProvider.bind({
     enterpriseId: mapping.enterpriseId,
     hostApplicationRefId: mapping.hostApplicationRefId,
     runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
@@ -2748,7 +2749,7 @@ if (evoObservatoryEnabled) {
       hostEnterpriseId: string,
       hostApplicationRefId: string
     ) {
-      return eogApplicationRuntimeBindingService.resolve({
+      return applicationRuntimeBindingProvider.resolve({
         enterpriseId: hostEnterpriseId,
         hostApplicationRefId,
         runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID
