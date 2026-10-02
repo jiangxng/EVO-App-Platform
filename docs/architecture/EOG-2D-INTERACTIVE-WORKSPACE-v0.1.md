@@ -331,3 +331,34 @@ App Platform integrates this as two package-owned commands over one neutral EOG 
 - Designer selection read: the same peer properties retain owner-declared edit descriptors.
 
 Provider discovery is additive and Host-owned. Property write commands continue to target the true owner plugin declared by each provider.
+
+
+## EOG-owned editable Inspector properties
+
+The first concrete editable fields are limited to properties actually owned by the Enterprise Graph domain:
+
+- an unconnected node may rebind its canonical semantic reference;
+- an unconfirmed Guidance relation may revise its Guidance source kind/reference.
+
+These edits create a new Enterprise Graph revision through the existing governed Designer semantic mutation path.
+
+Safety rules:
+
+- a node participating in Guidance or Enterprise relations cannot be rebound directly;
+- a Guidance source referenced by a confirmed Enterprise relation is immutable;
+- Published Enterprise Graph definitions remain immutable.
+
+This is intentionally separate from peer-owned business properties.
+
+```text
+EOG-owned structural property
+→ EOG Designer semantic mutation
+→ Enterprise Context authoritative new definition revision
+
+Application/Ledger/other business property
+→ owner Inspector provider editor descriptor
+→ owner ActionHost command
+→ owner authority
+```
+
+EOG must not become a generic write router for business properties merely because those properties are displayed inside its Inspector.
