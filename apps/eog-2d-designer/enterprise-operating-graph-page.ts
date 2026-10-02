@@ -34,8 +34,8 @@ import type {
   EnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
 import type {
-  EnterpriseOperatingGraphViewHostServiceV010
-} from "../../manager/enterprise-operating-graph-view-service.js";
+  EnterpriseOperatingGraphViewStateProviderV010
+} from "../../contracts/enterprise-operating-graph-view-state.js";
 import {
   authorizeMaterialWriteV010
 } from "../../manager/material-write-authorization.js";
@@ -456,7 +456,7 @@ function semanticHandler(
 export function createEnterpriseOperatingGraphViewActionHandlersV010(
   dependencies: {
     service: EnterpriseOperatingGraphHostServiceV010;
-    viewService: EnterpriseOperatingGraphViewHostServiceV010;
+    viewService: EnterpriseOperatingGraphViewStateProviderV010;
     resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
   }

@@ -23,8 +23,8 @@ import type {
   EnterpriseOperatingGraphMutationV010
 } from "./enterprise-operating-graph-service.js";
 import type {
-  EnterpriseOperatingGraphViewHostServiceV010
-} from "../../manager/enterprise-operating-graph-view-service.js";
+  EnterpriseOperatingGraphViewStateProviderV010
+} from "../../contracts/enterprise-operating-graph-view-state.js";
 
 function descriptor(
   input: Omit<AgentToolDescriptorV010, "contractVersion">
@@ -139,7 +139,7 @@ function twoDViewMutation(
 export function createEog2dDesignerAgentToolRegistrationsV010(
   input: {
     service: EnterpriseOperatingGraphHostServiceV010;
-    viewService: EnterpriseOperatingGraphViewHostServiceV010;
+    viewService: EnterpriseOperatingGraphViewStateProviderV010;
     principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010;
     isDesignerActive?: () => boolean;
