@@ -203,7 +203,11 @@ export function createEnterpriseOperatingGraphActionHandlersV010(
         request,
         dependencies.service.create({
           enterpriseId: scope.enterpriseId,
-          ...(graphId ? { graphId } : {})
+          ...(graphId ? { graphId } : {}),
+          actor: {
+            type: "HUMAN",
+            subjectId: scope.subjectId
+          }
         })
       );
     }),
