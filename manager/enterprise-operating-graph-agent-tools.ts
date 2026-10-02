@@ -8,9 +8,6 @@ import {
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
 import {
-  EOG_3D_VIEWER_PACKAGE_ID
-} from "../apps/eog-3d-viewer/package.js";
-import {
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010
 } from "../contracts/enterprise-operating-graph.js";
 import {
@@ -348,12 +345,12 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.read"
       }),
-      available: diagramViewAvailable,
+      available: designerAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const enterpriseId = currentEnterpriseId();
         input.service.get({ enterpriseId, graphId });
-        if (viewKindArg(args) !== "DIAGRAM_2D") {
+        if (twoDViewKindArg(args) !== "DIAGRAM_2D") {
           throw new Error("EOG_2D_VIEW_KIND_REQUIRED");
         }
         const suppliedViewId = stringArg(args, "viewId", false);
@@ -403,17 +400,17 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_2D_DESIGNER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.write"
       }),
-      available: diagramViewAvailable,
+      available: designerAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const graph = input.service.get({
           enterpriseId: currentEnterpriseId(),
           graphId
         });
-        if (viewKindArg(args) !== "DIAGRAM_2D") {
+        if (twoDViewKindArg(args) !== "DIAGRAM_2D") {
           throw new Error("EOG_2D_VIEW_KIND_REQUIRED");
         }
-        const mutation = viewMutation(args);
+        const mutation = twoDViewMutation(args);
         if (mutation.type !== "NODE_POSITION_SET") {
           throw new Error("EOG_2D_VIEW_MUTATION_INVALID");
         }
@@ -456,7 +453,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_3D_VIEWER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.read"
       }),
-      available: spatialViewAvailable,
+      available: spatialViewerAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const enterpriseId = currentEnterpriseId();
@@ -507,14 +504,14 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
         ownerPackageId: EOG_3D_VIEWER_PACKAGE_ID,
         capability: "enterprise.operating-graph.view.write"
       }),
-      available: spatialViewAvailable,
+      available: spatialViewerAvailable,
       execute(args) {
         const graphId = stringArg(args, "graphId")!;
         const graph = input.service.get({
           enterpriseId: currentEnterpriseId(),
           graphId
         });
-        const mutation = viewMutation(args);
+        const mutation = spatialViewMutation(args);
         if (
           mutation.type === "NODE_POSITION_SET"
           && !graph.nodes.some(node => node.nodeId === mutation.placement.nodeId)
