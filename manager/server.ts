@@ -99,7 +99,7 @@ import {
 } from "./enterprise-operating-graph-sop-agent-tools.js";
 import {
   createEnterpriseOperatingGraphActionHandlersV010
-} from "./enterprise-operating-graph-actions.js";
+} from "../apps/eog-2d-designer/semantic-actions.js";
 import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-agent-tools.js";
