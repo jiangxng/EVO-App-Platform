@@ -13,10 +13,10 @@ import {
 } from "../../dist/providers/enterprise-context/business-definitions.js";
 import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
-} from "../../dist/providers/enterprise-context/eog-graph-definitions.js";
+} from "../../dist/apps/eog-2d-designer/definition-persistence.js";
 import {
   migrateLegacyEnterpriseOperatingGraphSnapshotV010
-} from "../../dist/providers/enterprise-context/eog-graph-migration.js";
+} from "../../dist/apps/eog-2d-designer/legacy-definition-migration.js";
 
 const human = { type: "HUMAN", subjectId: "human:owner" };
 const agent = { type: "AGENT", subjectId: "agent:personal" };
