@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "EOG 2D/3D Responsibility Convergence v0.1",
+  "currentMilestone": "EOG 2D/3D Responsibility Convergence v0.1 - Physical Boundary Closed",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -448,7 +448,19 @@
     "eidos-public-2d-core-api-consumed-v0-1",
     "eidos-public-3d-core-api-consumed-v0-1",
     "eog-visual-core-public-boundary-v0-1",
-    "eog-2d-designer-semantic-physical-extraction-v0-1"
+    "eog-2d-designer-semantic-physical-extraction-v0-1",
+    "eog-2d-designer-actions-editor-physical-extraction-v0-1",
+    "eog-agent-tool-physical-owner-split-v0-1",
+    "eog-shared-view-state-provider-boundary-v0-1",
+    "eog-public-semantic-read-contract-v0-1",
+    "eog-2d-viewer-runtime-mobile-physical-extraction-v0-1",
+    "eog-package-neutral-2d-base-projection-v0-1",
+    "eog-2d-viewer-desktop-readonly-physical-cutover-v0-1",
+    "eog-neutral-observatory-input-v0-1",
+    "eog-3d-viewer-spatial-physical-cutover-v0-1",
+    "eog-public-observatory-runtime-contract-v0-1",
+    "eog-designer-compatibility-import-cleanup-v0-1",
+    "eog-plugin-manager-private-import-prohibition-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -474,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG physical extraction has started. The 2D Designer now physically owns the semantic graph model, legacy compatibility store, and Host-facing semantic service under apps/eog-2d-designer; manager paths are compatibility re-exports only. Enterprise Context remains authoritative persistence. Next slice moves 2D Designer actions, Agent tools, and editor page/projection into the package while preserving routes and public compatibility imports.",
+  "currentStep": "EOG 2D Designer, 2D Viewer and 3D Viewer physical ownership is converged. Enterprise Context remains authoritative Enterprise Graph Definition persistence; shared View State, semantic-read, Observatory runtime contracts and neutral projection/input adapters are explicit. CI prohibits EOG application packages from importing manager-private implementation. Next convergence target is preserved peer-plugin extraction for SOP, analysis/observatory providers and runtime-binding adapters.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -3435,7 +3447,7 @@
     "enterpriseContext": "ENTERPRISE_GRAPH_DEFINITION_AUTHORITY",
     "businessDefinitionRepository": "CAPABILITY_INSIDE_ENTERPRISE_CONTEXT",
     "experienceCompiler": "ENTERPRISE_KNOWLEDGE_AND_LEARNING_AUTHORITY",
-    "eogCore": "MIGRATING_TO_THREE_APP_PLUGINS",
+    "eogCore": "THREE_APP_PLUGIN_FAMILY_ACTIVE",
     "sop": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
     "sopCurrentOwnership": "PRESERVED_NON_GATING_PENDING_PEER_PLUGIN_EXTRACTION",
     "observatoryAnalysis": "PRESERVED_NON_GATING_PENDING_REPORT_ANALYSIS_PLUGIN_PLANNING",
@@ -3475,24 +3487,24 @@
       "appPlatformVendored2dBoundary": "vendor/eidos/src/2d/index.ts",
       "appPlatformVendored3dBoundary": "vendor/eidos/src/3d/index.ts"
     },
-    "eogPackageIdentityStatus": "IMPLEMENTED_CATALOG_REGISTERED_NOT_ACTIVATED",
+    "eogPackageIdentityStatus": "IMPLEMENTED_CATALOG_REGISTERED_ACTIVE",
     "eogApplicationPackages": [
       {
         "packageId": "evo-eog-2d-designer",
         "capability": "enterprise.operating-graph.designer.2d",
-        "activation": "DEFAULT_OFF",
+        "activation": "DEFAULT_ACTIVE_HOST_CUTOVER",
         "definitionAuthorityDependency": "enterprise.business-definition.repository"
       },
       {
         "packageId": "evo-eog-2d-viewer",
         "capability": "enterprise.operating-graph.viewer.2d",
-        "activation": "DEFAULT_OFF",
+        "activation": "DEFAULT_ACTIVE_HOST_CUTOVER",
         "definitionAuthorityDependency": "enterprise.business-definition.repository"
       },
       {
         "packageId": "evo-eog-3d-viewer",
         "capability": "enterprise.operating-graph.viewer.3d",
-        "activation": "DEFAULT_OFF",
+        "activation": "DEFAULT_ACTIVE_HOST_CUTOVER",
         "definitionAuthorityDependency": "enterprise.business-definition.repository"
       }
     ],
@@ -3533,11 +3545,20 @@
       "directDiagramSpatialImplementationImports": "PROHIBITED_AT_EOG_APPLICATION_BOUNDARY"
     },
     "physicalExtraction": {
-      "status": "IN_PROGRESS",
-      "twoDDesignerSemanticCore": "PACKAGE_LOCAL_IMPLEMENTATION_MANAGER_COMPAT_REEXPORT",
-      "twoDDesignerExperienceActions": "NEXT",
-      "twoDViewer": "PENDING",
-      "threeDViewer": "PENDING"
+      "status": "THREE_PLUGIN_PHYSICAL_BOUNDARY_CLOSED",
+      "twoDDesigner": "PACKAGE_LOCAL_IMPLEMENTATION_ACTIVE",
+      "twoDViewer": "PACKAGE_LOCAL_DESKTOP_MOBILE_AGENT_ACTION_IMPLEMENTATION_ACTIVE",
+      "threeDViewer": "PACKAGE_LOCAL_SPATIAL_AGENT_IMPLEMENTATION_ACTIVE",
+      "managerCompatibility": "REEXPORTS_ONLY_FOR_MIGRATED_EOG_APPLICATION_ASSETS",
+      "pluginToManagerPrivateImports": "PROHIBITED_CI_GATE",
+      "sharedViewState": "PUBLIC_CONTRACT_HOST_PROVIDER",
+      "semanticRead": "PUBLIC_CONTRACT",
+      "observatoryRuntime": "PUBLIC_SERVICE_RESOLVER_CONTRACT",
+      "neutralAdapters": [
+        "eog/diagram-projection.ts",
+        "eog/observatory-input.ts"
+      ],
+      "next": "PRESERVED_PEER_PLUGIN_EXTRACTION"
     }
   },
   "externalAgentFirstValidation": {
