@@ -3042,6 +3042,9 @@ function createPersonalAgentToolCatalogV010(
       context,
       isDesignerActive: () => manager.getSnapshot().activeFeatures.some(
         feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+      ),
+      is3dViewerActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
       )
     }),
     ...createEogExpectedSopAgentToolRegistrationsV010({
