@@ -175,7 +175,15 @@
         "manager/enterprise-operating-graph-observatory-page.ts",
         "manager/enterprise-operating-graph-mobile-read-page.ts"
       ],
-      "note": "Analysis calculations remain peer-plugin/provider responsibilities."
+      "note": "Analysis calculations remain peer-plugin/provider responsibilities.",
+      "lifecycle": "CUT_OVER_ACTIVE",
+      "packageId": "evo-eog-2d-viewer",
+      "featureId": "evo-eog-2d-viewer.default",
+      "experienceOwnership": "ACTIVE_DESKTOP_AND_MOBILE_READ",
+      "readActionOwnership": "ACTIVE",
+      "analysisCalculationOwnership": "PEER_PROVIDERS",
+      "agentToolOwnership": "COMPATIBILITY_PENDING_3D_SPLIT",
+      "authority": "docs/architecture/EOG-2D-VIEWER-CUTOVER-v0.1.md"
     },
     "eog-3d-viewer": {
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",

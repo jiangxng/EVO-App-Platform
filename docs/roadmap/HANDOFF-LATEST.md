@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-06`  
-**Snapshot time:** `2026-10-02T12:45:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-07`  
+**Snapshot time:** `2026-10-02T13:10:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,18 +35,18 @@ Evidence:
 
 ## Current open live gate
 
-**eog-2d-viewer-controlled-cutover-v0-1: READY_AFTER_2D_DESIGNER_CI**
+**eog-3d-viewer-controlled-cutover-v0-1: READY_AFTER_2D_VIEWER_CI**
 
-Cut EOG 2D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-2d-viewer while preserving existing desktop/mobile-read routes, page sources and peer-provider analysis boundaries.
+Cut EOG 3D Viewer lifecycle, Experience/page/read-action ownership from the Enterprise Agent compatibility path to evo-eog-3d-viewer while preserving the existing spatial route/page source and peer-provider analysis boundaries.
 
 Acceptance:
 
-- evo-eog-2d-viewer is explicitly activated through lifecycle migration
-- desktop and mobile-read Viewer Experiences are supplied only by evo-eog-2d-viewer
-- Viewer page/read actions are gated by evo-eog-2d-viewer.default
-- existing /operating-graph/observe and /m/operating-graph/observe routes remain stable
+- evo-eog-3d-viewer is explicitly activated through lifecycle migration
+- 3D Viewer Experience is supplied only by evo-eog-3d-viewer
+- 3D spatial read action is gated by evo-eog-3d-viewer.default
+- existing /operating-graph/observe/3d route and spatial page source remain stable
 - analysis calculations remain owned by peer providers/plugins
-- no duplicate active Viewer Experience exists
+- no duplicate active 3D Viewer Experience exists
 
 ## Current production preview
 
@@ -320,6 +320,8 @@ Not proved:
 - Do not delete existing Observatory/SOP/analysis/runtime assets during responsibility convergence; preserve and extract only after target peer-plugin contracts are defined.
 - Do not restore EOG 2D Designer Experience or Human action ownership to Enterprise Agent; evo-eog-2d-designer is the cut-over owner.
 - Do not inject a second /operating-graph Designer manifest from server compatibility code; the effective Designer Experience now comes from ordinary package lifecycle discovery.
+- Do not restore EOG 2D Viewer Experience or read-action ownership to Enterprise Agent; evo-eog-2d-viewer is the cut-over owner.
+- Do not move Runtime Fact or analysis calculation ownership into EOG 2D Viewer; it aggregates peer-provider results.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -448,6 +450,8 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state the three EOG App Platform package identities as catalog-registered default-OFF scaffolds before Experience migration
 - state EOG 2D Designer controlled cutover as active: evo-eog-2d-designer owns /operating-graph Experience plus semantic/2D Human action handlers
 - state EOG 2D Viewer and 3D Viewer as target manifests defined but still compatibility-owned until their controlled cutover slices
+- state EOG 2D Viewer controlled cutover as active: evo-eog-2d-viewer owns desktop/mobile-read Experiences and Viewer read/orchestration handlers
+- state EOG 3D Viewer as the only remaining EOG Experience on compatibility ownership
 
 No previous ChatGPT transcript is required.
 
