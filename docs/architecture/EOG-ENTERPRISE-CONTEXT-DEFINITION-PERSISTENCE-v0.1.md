@@ -1,6 +1,6 @@
 # EOG Enterprise Context Definition Persistence v0.1
 
-**Status:** RUNTIME CUTOVER IMPLEMENTED — CI / PRODUCTION VERIFICATION GATE  
+**Status:** VERIFIED_PRODUCTION_PASS  
 **Date:** 2026-10-02  
 **Parent authority:** `EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`
 
@@ -112,3 +112,61 @@ Human and Agent creation attribution is preserved at the Business Definition rev
 ## Next gate
 
 Deploy the cutover and verify production migration/startup evidence before any legacy semantic-store cleanup.
+
+
+## Production verification — 2026-10-02
+
+Production commit:
+
+```text
+932098f9e2be13e1d0c9cf809831d3f3c5c2297c
+```
+
+Initial Railway deployment:
+
+```text
+36ed9180-da9e-46fe-9900-a6e575e5b314
+```
+
+Startup evidence included:
+
+```text
+Migrated 1 legacy EOG graph definition(s) into Enterprise Context.
+Migrated 1 legacy EOG SOP definition(s) into Enterprise Context.
+Activated EOG 2D Designer ownership cutover.
+Activated EOG 2D Viewer ownership cutover.
+Activated EOG 3D Viewer ownership cutover.
+EVO App Manager listening on http://localhost:8080
+```
+
+A controlled redeploy was then performed to prove restart behavior.
+
+Controlled-restart deployment:
+
+```text
+f93c06bd-651a-4b86-bb60-e97cab781d6a
+SUCCESS
+```
+
+On the controlled restart, the legacy EOG graph migration did not run a second
+import and did not conflict with the repository-backed graph revision. The Host
+started successfully.
+
+The earlier container received SIGTERM because the controlled redeploy replaced
+it. That replacement is not an application-crash signal.
+
+This closes the semantic-authority migration gate:
+
+```text
+legacy EOG semantic file
+= migration evidence/input only
+
+Enterprise Context Business Definition Repository
+= current Enterprise Graph semantic authority
+
+EOG 2D Designer adapter
+= EOG-domain mapping owner
+
+2D / 3D View State
+= separate presentation persistence
+```
