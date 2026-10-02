@@ -5,9 +5,9 @@ import type {
   JsonValue
 } from "../actions/contracts.js";
 import {
-  ENTERPRISE_AGENT_FEATURE_ID,
-  ENTERPRISE_AGENT_PACKAGE_ID
-} from "../agents/enterprise-agent/package.js";
+  EOG_2D_VIEWER_FEATURE_ID,
+  EOG_2D_VIEWER_PACKAGE_ID
+} from "../apps/eog-2d-viewer/package.js";
 import type {
   ActiveContextRefV010,
   PlatformRequestContextV010
@@ -66,8 +66,8 @@ export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020(
   return {
     contractVersion: "0.1.0" as const,
     experienceId: "evo-enterprise-operating-graph-observatory",
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_2D_VIEWER_PACKAGE_ID,
+    featureId: EOG_2D_VIEWER_FEATURE_ID,
     defaultRoute: EOG_OBSERVATORY_ROUTE,
     pages: [
       {
@@ -556,8 +556,8 @@ export function createEnterpriseOperatingGraphObservatoryViewActionHandlerV020(
   }
 ): AppActionHandler {
   return {
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_2D_VIEWER_PACKAGE_ID,
+    featureId: EOG_2D_VIEWER_FEATURE_ID,
     commandCode: EOG_OBSERVATORY_VIEW_GET_ACTION,
 
     async execute(request, context) {
