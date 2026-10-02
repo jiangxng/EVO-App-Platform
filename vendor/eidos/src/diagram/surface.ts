@@ -30,11 +30,26 @@ export type DiagramInspectorPropertyValueV010 =
   | boolean
   | null;
 
+export interface DiagramInspectorSelectOptionV010 {
+  label: string;
+  value: Exclude<DiagramInspectorPropertyValueV010, null>;
+}
+
+export interface DiagramInspectorPropertyEditorV010 {
+  kind: "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT";
+  actionId: string;
+  valueField: string;
+  operation: Record<string, JsonValue>;
+  requiresConfirmation?: boolean;
+  options?: DiagramInspectorSelectOptionV010[];
+}
+
 export interface DiagramInspectorPropertyV010 {
   key: string;
   label: string;
   value: DiagramInspectorPropertyValueV010;
   detail?: string;
+  editor?: DiagramInspectorPropertyEditorV010;
 }
 
 export interface DiagramEditorReadPresetV010 {
@@ -130,6 +145,45 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function validInspectorEditor(
+  value: DiagramInspectorPropertyEditorV010 | undefined
+): boolean {
+  if (value === undefined) return true;
+  if (
+    !["TEXT", "NUMBER", "BOOLEAN", "SELECT"].includes(value.kind)
+    || !nonEmpty(value.actionId)
+    || !nonEmpty(value.valueField)
+    || value.operation === null
+    || typeof value.operation !== "object"
+    || Array.isArray(value.operation)
+  ) {
+    return false;
+  }
+  if (value.options !== undefined) {
+    if (
+      value.kind !== "SELECT"
+      || !Array.isArray(value.options)
+      || value.options.length === 0
+      || value.options.some(option =>
+        !nonEmpty(option?.label)
+        || option.value === null
+        || !(
+          typeof option.value === "string"
+          || typeof option.value === "number"
+          || typeof option.value === "boolean"
+        )
+        || (
+          typeof option.value === "number"
+          && !Number.isFinite(option.value)
+        )
+      )
+    ) {
+      return false;
+    }
+  }
+  return value.kind !== "SELECT" || value.options !== undefined;
+}
+
 function validInspectorProperties(
   value: DiagramInspectorPropertyV010[] | undefined
 ): boolean {
@@ -154,6 +208,7 @@ function validInspectorProperties(
         property.detail !== undefined
         && typeof property.detail !== "string"
       )
+      || !validInspectorEditor(property.editor)
       || keys.has(property.key)
     ) {
       return false;
@@ -650,13 +705,89 @@ export function mountDiagramEditorPageV010(
       term.style.fontWeight = "600";
 
       const value = document.createElement("dd");
-      value.textContent = property.value === null
-        ? "—"
-        : String(property.value);
       value.style.margin = "0";
       value.style.overflowWrap = "anywhere";
       if (property.detail) value.title = property.detail;
 
+      if (!property.editor) {
+        value.textContent = property.value === null
+          ? "—"
+          : String(property.value);
+        list.append(term, value);
+        continue;
+      }
+
+      const editor = property.editor;
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "6px";
+      row.style.alignItems = "center";
+
+      let readValue: () => DiagramInspectorPropertyValueV010;
+
+      if (editor.kind === "BOOLEAN") {
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = property.value === true;
+        input.setAttribute("aria-label", property.label);
+        input.setAttribute("data-eidos-diagram-property-editor", property.key);
+        readValue = () => input.checked;
+        row.appendChild(input);
+      } else if (editor.kind === "SELECT") {
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", property.label);
+        select.setAttribute("data-eidos-diagram-property-editor", property.key);
+        for (const [index, option] of (editor.options ?? []).entries()) {
+          const item = document.createElement("option");
+          item.value = String(index);
+          item.textContent = option.label;
+          item.selected = Object.is(option.value, property.value);
+          select.appendChild(item);
+        }
+        readValue = () => {
+          const index = Number(select.value);
+          return editor.options?.[index]?.value ?? null;
+        };
+        row.appendChild(select);
+      } else {
+        const input = document.createElement("input");
+        input.type = editor.kind === "NUMBER" ? "number" : "text";
+        input.value = property.value === null ? "" : String(property.value);
+        input.setAttribute("aria-label", property.label);
+        input.setAttribute("data-eidos-diagram-property-editor", property.key);
+        readValue = () => {
+          if (editor.kind === "NUMBER") {
+            if (!input.value.trim()) return null;
+            const parsed = Number(input.value);
+            if (!Number.isFinite(parsed)) {
+              throw new Error("EIDOS_DIAGRAM_PROPERTY_NUMBER_INVALID");
+            }
+            return parsed;
+          }
+          return input.value;
+        };
+        row.appendChild(input);
+      }
+
+      const save = document.createElement("button");
+      save.type = "button";
+      save.textContent = "Save";
+      save.setAttribute("data-eidos-diagram-property-save", property.key);
+      save.onclick = () => {
+        try {
+          const operation = jsonClone(editor.operation);
+          operation[editor.valueField] = readValue();
+          void executeOperation(
+            operation,
+            editor.actionId,
+            editor.requiresConfirmation === true
+          );
+        } catch (error) {
+          report(error instanceof Error ? error.message : String(error));
+        }
+      };
+      row.appendChild(save);
+      value.appendChild(row);
       list.append(term, value);
     }
     selectionProperties.appendChild(list);

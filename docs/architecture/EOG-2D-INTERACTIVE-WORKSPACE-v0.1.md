@@ -226,3 +226,22 @@ Result:
 - Viewer renders them without semantic editors;
 - Designer receives the same property model and can add governed edit descriptors in a later slice;
 - property semantics remain in EOG, while rendering remains generic in Eidos.
+
+
+## Implementation progress — field-level edit binding
+
+Eidos 2D Core now supports optional field-level Inspector editor descriptors. App Platform binds these through:
+
+`eog/2d-inspector-editors.ts`
+
+The shared EOG property projection remains read-oriented. Editor metadata is attached only by an explicit binding keyed by target and property key.
+
+Therefore:
+
+- Viewer receives the shared property values and no semantic editors;
+- Designer may attach an editor only after a domain write contract exists;
+- a visible property does not imply writability;
+- an editable control does not invent persistence semantics;
+- authorization and validation remain in the owning domain/Host action.
+
+At this stage no new EOG semantic property-write operation is invented. The seam is ready for real domain capabilities to opt in.

@@ -5,6 +5,12 @@ import { readFile } from "node:fs/promises";
 import {
   projectEnterpriseOperatingGraphDiagramBaseV010
 } from "../../dist/eog/diagram-projection.js";
+import {
+  attachEog2dInspectorEditorsV010
+} from "../../dist/eog/2d-inspector-editors.js";
+import {
+  projectEnterpriseOperatingGraphEditorStateV010
+} from "../../dist/apps/eog-2d-designer/enterprise-operating-graph-page.js";
 
 const graph = {
   contractVersion: "0.1.0",
@@ -105,4 +111,69 @@ test("shared EOG 2D projection provides the same structured Inspector data to Vi
   );
   assert.equal(viewer.nodes[0].readOnly, true);
   assert.equal(designer.nodes[0].readOnly, false);
+});
+
+
+test("Inspector editor bindings decorate Designer state without changing shared property values", () => {
+  const base = projectEnterpriseOperatingGraphDiagramBaseV010({
+    graph,
+    view,
+    readOnly: false
+  });
+  const binding = {
+    target: { kind: "node", id: "app:1" },
+    propertyKey: "semantic.ref",
+    editor: {
+      kind: "TEXT",
+      actionId: "test.semantic-ref.set",
+      valueField: "value",
+      operation: {
+        type: "TEST_PROPERTY_SET",
+        nodeId: "app:1",
+        propertyKey: "semantic.ref"
+      }
+    }
+  };
+
+  const decorated = attachEog2dInspectorEditorsV010(base, [binding]);
+
+  assert.equal(
+    base.nodes[0].properties.find(item => item.key === "semantic.ref").editor,
+    undefined
+  );
+  assert.deepEqual(
+    decorated.nodes[0].properties.find(item => item.key === "semantic.ref").value,
+    base.nodes[0].properties.find(item => item.key === "semantic.ref").value
+  );
+  assert.equal(
+    decorated.nodes[0].properties.find(item => item.key === "semantic.ref").editor.actionId,
+    "test.semantic-ref.set"
+  );
+
+  const designer = projectEnterpriseOperatingGraphEditorStateV010(
+    graph,
+    view,
+    "en",
+    [binding]
+  );
+  assert.equal(
+    designer.nodes[0].properties.find(item => item.key === "semantic.ref").editor.actionId,
+    "test.semantic-ref.set"
+  );
+});
+
+test("Viewer base projection never gains an editor unless an explicit binding is supplied", () => {
+  const viewer = projectEnterpriseOperatingGraphDiagramBaseV010({
+    graph,
+    view,
+    readOnly: true
+  });
+  assert.equal(
+    viewer.nodes.flatMap(node => node.properties ?? []).some(property => property.editor),
+    false
+  );
+  assert.equal(
+    viewer.edges.flatMap(edge => edge.properties ?? []).some(property => property.editor),
+    false
+  );
 });
