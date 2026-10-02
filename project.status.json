@@ -444,7 +444,10 @@
     "eog-legacy-semantic-store-migration-v0-1",
     "eog-enterprise-context-runtime-persistence-cutover-v0-1",
     "eog-legacy-semantic-store-migration-source-only-v0-1",
-    "eog-definition-persistence-contract-boundary-v0-1"
+    "eog-definition-persistence-contract-boundary-v0-1",
+    "eidos-public-2d-core-api-consumed-v0-1",
+    "eidos-public-3d-core-api-consumed-v0-1",
+    "eog-visual-core-public-boundary-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -470,7 +473,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "EOG semantic authority cutover is VERIFIED_PRODUCTION_PASS. Production imported 1 legacy EOG graph definition into Enterprise Context Business Definition Repository on the first #269 startup, then a controlled restart completed successfully without re-importing/conflicting with the already-migrated graph revision. New EOG semantic writes are repository-backed; the legacy semantic file is migration evidence only; 2D/3D View State remains separate. Next mainline slice formalizes explicit public Eidos 2D Core / 3D Core API entrypoints over the existing diagram/spatial compatibility assets.",
+  "currentStep": "Eidos #76 is merged with explicit public `@eidos/reference/2d` and `@eidos/reference/3d` entrypoints, and App Platform EOG projections now consume the pinned equivalent vendored facades instead of Eidos diagram/spatial implementation folders. Semantic authority remains Enterprise Context, 2D/3D View State remains presentation state, and no renderer rewrite was introduced. Next gate is physical EOG implementation extraction into the three owning application packages, starting with EOG 2D Designer.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1726,8 +1729,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-13",
-    "snapshotAt": "2026-10-02T14:55:00+08:00",
+    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-14",
+    "snapshotAt": "2026-10-02T15:10:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1767,17 +1770,18 @@
         }
       },
       "openGate": {
-        "id": "eidos-2d-3d-public-core-api-v0-1",
-        "status": "READY",
-        "summary": "Formalize explicit stable public 2D Core and 3D Core API entrypoints in jiangxng/eidos over the existing src/diagram and src/spatial compatibility assets. Preserve current implementation, avoid rewrites, and keep all product/business semantics outside Eidos.",
-        "authority": "jiangxng/eidos:docs/architecture/EIDOS-2D-3D-CORE-v0.1.md",
+        "id": "eog-physical-plugin-implementation-extraction-v0-1",
+        "status": "READY_AFTER_VISUAL_CORE_CI",
+        "summary": "Move EOG implementation ownership physically out of mixed manager/enterprise-operating-graph-* locations into the three owning application packages without changing public contracts, routes, semantic authority or working behavior. Start with EOG 2D Designer and preserve compatibility re-exports where needed.",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
         "acceptance": [
-          "Eidos exposes explicit public 2D Core entrypoint/contracts without breaking existing diagram consumers",
-          "Eidos exposes explicit public 3D Core entrypoint/contracts without breaking existing spatial consumers",
-          "2D/3D public APIs remain product/domain-semantic-free",
-          "renderer implementation details remain behind replaceable adapters",
-          "compatibility tests prove existing diagram/spatial imports remain valid",
-          "App Platform can depend on explicit Eidos 2D/3D public boundaries instead of naming implementation folders"
+          "EOG 2D Designer domain/application implementation has a package-local owner boundary",
+          "existing public contracts and route/page source identifiers remain stable",
+          "manager/Host retains orchestration only rather than EOG product implementation ownership",
+          "EOG 2D Viewer and 3D Viewer extraction follow in separate slices",
+          "Enterprise Context remains Enterprise Graph Definition authority",
+          "Eidos public 2D/3D Core boundaries remain the only visual framework dependency for EOG application code",
+          "no working Observatory/SOP/analysis asset is deleted during extraction"
         ]
       },
       "productionPreview": {
@@ -2359,7 +2363,9 @@
       "Do not assign the mixed DIAGRAM_2D/SPATIAL_3D generic Agent View tools wholesale to one dedicated EOG plugin; split their visual responsibilities first.",
       "Do not move Observatory Runtime Fact or Analysis calculation ownership into EOG 2D Viewer merely because the Personal Agent tool descriptor is Viewer-owned.",
       "Do not restore the legacy EOG semantic store as the authority for new writes; it is migration evidence/input only after production #269.",
-      "Do not move EOG-specific semantic mapping into the generic Enterprise Context provider; the adapter belongs to EOG 2D Designer behind a stable persistence contract."
+      "Do not move EOG-specific semantic mapping into the generic Enterprise Context provider; the adapter belongs to EOG 2D Designer behind a stable persistence contract.",
+      "Do not make EOG application code import vendor/eidos/src/diagram/** or vendor/eidos/src/spatial/** directly after the public visual-core boundary is available.",
+      "Do not rewrite Eidos diagram/spatial implementations merely to satisfy 2D/3D naming; the public facades are the stable boundary."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2491,7 +2497,11 @@
       "state EOG Enterprise Context semantic persistence cutover as VERIFIED_PRODUCTION_PASS",
       "state production #269 as commit 932098f9e2be13e1d0c9cf809831d3f3c5c2297c / deployment f93c06bd-651a-4b86-bb60-e97cab781d6a SUCCESS after controlled restart",
       "state the first production migration as importing exactly 1 legacy EOG graph definition into Enterprise Context and the controlled restart as graph-migration-idempotent",
-      "state explicit Eidos 2D Core / 3D Core public API convergence as the next gate"
+      "state explicit Eidos 2D Core / 3D Core public API convergence as the next gate",
+      "state jiangxng/eidos PR #76 / commit 860658902b76fd0b1e5b9bd5faa01f17d4ca7920 as the explicit public 2D Core / 3D Core API authority",
+      "state EOG 2D Designer and EOG 2D Viewer as consumers of the Eidos 2D Core facade",
+      "state EOG 3D Viewer as a consumer of the Eidos 3D Core facade",
+      "state physical EOG plugin implementation extraction as the next convergence gate"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -3455,10 +3465,14 @@
     "crossPluginModel": "CONTROL_PLANE_DISCOVERY_BINDING_PLUS_STABLE_DIRECT_CONTRACT_DATA_PLANE",
     "eidosCoreAuthority": {
       "repository": "jiangxng/eidos",
-      "pr": 75,
-      "status": "MERGED",
-      "twoDCore": "CURRENT_ARCHITECTURE",
-      "threeDCore": "CURRENT_ARCHITECTURE"
+      "architecturePr": 75,
+      "publicApiPr": 76,
+      "publicApiCommit": "860658902b76fd0b1e5b9bd5faa01f17d4ca7920",
+      "status": "PUBLIC_API_ACTIVE",
+      "twoDCore": "@eidos/reference/2d",
+      "threeDCore": "@eidos/reference/3d",
+      "appPlatformVendored2dBoundary": "vendor/eidos/src/2d/index.ts",
+      "appPlatformVendored3dBoundary": "vendor/eidos/src/3d/index.ts"
     },
     "eogPackageIdentityStatus": "IMPLEMENTED_CATALOG_REGISTERED_NOT_ACTIVATED",
     "eogApplicationPackages": [
@@ -3508,6 +3522,14 @@
       "controlledRestartDeploymentId": "f93c06bd-651a-4b86-bb60-e97cab781d6a",
       "controlledRestartStatus": "SUCCESS",
       "controlledRestartGraphMigration": "IDEMPOTENT_NO_REIMPORT_NO_CONFLICT"
+    },
+    "eogVisualCoreConsumption": {
+      "status": "IMPLEMENTED_CI_GATE",
+      "authority": "docs/architecture/EOG-EIDOS-VISUAL-CORE-CONSUMPTION-v0.1.md",
+      "twoDDesigner": "EIDOS_2D_CORE",
+      "twoDViewer": "EIDOS_2D_CORE",
+      "threeDViewer": "EIDOS_3D_CORE",
+      "directDiagramSpatialImplementationImports": "PROHIBITED_AT_EOG_APPLICATION_BOUNDARY"
     }
   },
   "externalAgentFirstValidation": {
