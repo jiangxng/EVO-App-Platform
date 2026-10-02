@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-14`  
-**Snapshot time:** `2026-10-02T15:10:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-12`  
+**Snapshot time:** `2026-10-02T17:50:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -40,19 +40,19 @@ Evidence:
 
 ## Current open live gate
 
-**eog-physical-plugin-implementation-extraction-v0-1: READY_AFTER_VISUAL_CORE_CI**
+**eog-2d-designer-experience-implementation-extraction-v0-1: READY_AFTER_SEMANTIC_CORE_CI**
 
-Move EOG implementation ownership physically out of mixed manager/enterprise-operating-graph-* locations into the three owning application packages without changing public contracts, routes, semantic authority or working behavior. Start with EOG 2D Designer and preserve compatibility re-exports where needed.
+Move EOG 2D Designer action handlers, Personal Agent tools and editor page/projection implementation into apps/eog-2d-designer while preserving stable manager compatibility re-exports, routes, page sources and authority rules.
 
 Acceptance:
 
-- EOG 2D Designer domain/application implementation has a package-local owner boundary
-- existing public contracts and route/page source identifiers remain stable
-- manager/Host retains orchestration only rather than EOG product implementation ownership
-- EOG 2D Viewer and 3D Viewer extraction follow in separate slices
-- Enterprise Context remains Enterprise Graph Definition authority
-- Eidos public 2D/3D Core boundaries remain the only visual framework dependency for EOG application code
-- no working Observatory/SOP/analysis asset is deleted during extraction
+- EOG 2D Designer actions are package-local implementation
+- EOG 2D Designer semantic/2D Agent tools are package-local implementation
+- EOG editor page and projection are package-local implementation
+- manager compatibility modules contain re-exports only for moved implementation
+- routes/page source/action IDs remain unchanged
+- Enterprise Context remains semantic persistence authority
+- Human-only confirm/remove/publish boundaries remain unchanged
 
 ## Current production preview
 
