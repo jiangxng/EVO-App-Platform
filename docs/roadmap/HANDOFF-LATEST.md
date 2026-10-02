@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-11`  
-**Snapshot time:** `2026-10-02T14:25:00+08:00`  
+**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-12`  
+**Snapshot time:** `2026-10-02T14:45:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -35,19 +35,19 @@ Evidence:
 
 ## Current open live gate
 
-**eog-enterprise-context-runtime-persistence-cutover-v0-1: READY_AFTER_FOUNDATION_CI**
+**eog-enterprise-context-production-migration-proof-v0-1: READY_AFTER_CI**
 
-Wire EnterpriseOperatingGraphHostService to Enterprise Context Business Definition persistence, run non-destructive legacy semantic migration first, and stop the legacy EOG semantic store from receiving new authoritative writes. Preserve graph IDs, semantic revision numbers, routes, Agent/Human authority and separate View State.
+Deploy the EOG semantic persistence cutover and verify that production startup safely imports any legacy EOG graph snapshot into Enterprise Context Business Definition Repository without mutating the legacy source, then confirm EOG read/edit paths remain healthy.
 
 Acceptance:
 
-- new EOG semantic create/revise/publish operations persist through enterprise.business-definition.repository
-- legacy EOG semantic file is imported before repository-backed reads/writes
-- legacy EOG semantic file remains untouched as migration evidence
-- graph IDs and EnterpriseOperatingGraphV010 responses remain compatible
-- published graph attribution remains Human for new publications
-- 2D/3D View State persistence remains outside Enterprise Context Business Definition revisions
-- server no longer constructs legacy EOG semantic store as the authority for new runtime operations
+- Platform CI and Project Continuity CI pass
+- production deployment reaches SUCCESS on the cutover commit
+- startup migration either reports imported legacy EOG graph definitions or safely reports no legacy source
+- subsequent restart is migration-idempotent and does not conflict with newer repository revisions
+- existing EOG routes and semantic graph reads remain healthy
+- legacy EOG semantic file is not used for new authoritative writes
+- 2D/3D View State remains independent
 
 ## Current production preview
 
@@ -474,6 +474,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state ENTERPRISE_OPERATING_GRAPH as the Enterprise Context Business Definition kind for EOG semantic truth
 - state the repository-backed EOG persistence adapter and non-destructive legacy migration as foundation-ready but not yet runtime-cut-over
 - state 2D/3D View State as explicitly excluded from Enterprise Business Definition payloads
+- state EOG semantic Host runtime as repository-backed through Enterprise Context Business Definition authority after the cutover
+- state the EOG-specific persistence adapter as owned by evo-eog-2d-designer, not by the generic Enterprise Context provider
+- state the legacy EOG semantic file as migration evidence/input only with no new authoritative writes
 
 No previous ChatGPT transcript is required.
 
