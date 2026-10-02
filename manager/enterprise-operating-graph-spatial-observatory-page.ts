@@ -5,9 +5,9 @@ import type {
   JsonValue
 } from "../actions/contracts.js";
 import {
-  ENTERPRISE_AGENT_FEATURE_ID,
-  ENTERPRISE_AGENT_PACKAGE_ID
-} from "../agents/enterprise-agent/package.js";
+  EOG_3D_VIEWER_FEATURE_ID,
+  EOG_3D_VIEWER_PACKAGE_ID
+} from "../apps/eog-3d-viewer/package.js";
 import type {
   ActiveContextRefV010,
   PlatformRequestContextV010
@@ -58,8 +58,8 @@ export function createEnterpriseOperatingGraphSpatialObservatoryExperienceManife
   return {
     contractVersion: "0.1.0" as const,
     experienceId: "evo-enterprise-operating-graph-observatory-spatial",
-    packageId: ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId: ENTERPRISE_AGENT_FEATURE_ID,
+    packageId: EOG_3D_VIEWER_PACKAGE_ID,
+    featureId: EOG_3D_VIEWER_FEATURE_ID,
     defaultRoute: EOG_SPATIAL_OBSERVATORY_ROUTE,
     pages: [{
       id: "evo-enterprise-operating-graph.observatory-spatial",
@@ -245,8 +245,8 @@ export function createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV02
   providers:EnterpriseOperatingGraphObservatoryProviderResolverV020;
 }):AppActionHandler {
   return {
-    packageId:ENTERPRISE_AGENT_PACKAGE_ID,
-    featureId:ENTERPRISE_AGENT_FEATURE_ID,
+    packageId:EOG_3D_VIEWER_PACKAGE_ID,
+    featureId:EOG_3D_VIEWER_FEATURE_ID,
     commandCode:EOG_SPATIAL_OBSERVATORY_GET_ACTION,
     async execute(request,context){
       if(!context) return failure(request,new Error("REQUEST_CONTEXT_REQUIRED"));

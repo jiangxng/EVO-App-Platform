@@ -7,7 +7,7 @@ The package family is migrating incrementally:
 
 - `evo-eog-2d-designer` — **CUT OVER**: owns the effective 2D Designer Experience and Human semantic/2D action handlers; default activation is ON.
 - `evo-eog-2d-viewer` — **CUT OVER**: owns the effective desktop/mobile-read Viewer Experience and Viewer read/orchestration handlers; default activation is ON.
-- `evo-eog-3d-viewer` — package identity plus target spatial Eidos Experience manifest is defined; activation remains default-OFF until compatibility cutover.
+- `evo-eog-3d-viewer` — **CUT OVER**: owns the effective spatial Viewer Experience and spatial read handler; default activation is ON.
 
 All packages are registered in the Package Catalog but are not installed or
 activated by default. Existing EOG production behavior remains owned by the
