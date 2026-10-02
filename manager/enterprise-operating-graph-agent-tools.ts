@@ -389,7 +389,7 @@ export function createEnterpriseOperatingGraphAgentToolRegistrationsV010(
             graphId: { type: "string" },
             kind: {
               type: "string",
-              enum: ["DIAGRAM_2D", "SPATIAL_3D"]
+              enum: ["DIAGRAM_2D"]
             },
             viewId: { type: "string" },
             expectedRevision: { type: "number" },
