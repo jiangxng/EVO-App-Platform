@@ -49,7 +49,7 @@
     },
     "runtimeBindingAdapter": {
       "logicalRole": "RUNTIME_BINDING_ADAPTER",
-      "concretePackageId": "TBD_AFTER_SOP",
+      "concretePackageId": "evo-application-runtime-binding-provider",
       "owns": [
         "host-semantic-to-runtime-provider-binding",
         "host-application-ref-to-runtime-application-id-mapping"
@@ -59,7 +59,11 @@
         "manager/enterprise-operating-graph-application-runtime-service.ts",
         "manager/enterprise-operating-graph-application-runtime-store.ts"
       ],
-      "status": "ACTIVE_NEXT_TARGET"
+      "status": "PACKAGE_IDENTITY_AND_PUBLIC_CONTRACT_DEFINED",
+      "providerId": "evo.application-runtime-binding",
+      "capability": "enterprise.application-runtime-binding",
+      "publicContract": "contracts/enterprise-application-runtime-binding.ts",
+      "defaultActivation": false
     },
     "analysisProviders": {
       "status": "PRESERVE_EXISTING_PROVIDERS_PORTFOLIO_TBD",

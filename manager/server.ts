@@ -416,6 +416,9 @@ import {
   eogBottleneckAnalysisProviderPackage
 } from "../providers/eog-bottleneck-analysis/package.js";
 import {
+  applicationRuntimeBindingProviderPackage
+} from "../providers/application-runtime-binding/package.js";
+import {
   createEogBottleneckAnalysisProviderV020
 } from "../providers/eog-bottleneck-analysis/runtime.js";
 import {
@@ -708,6 +711,7 @@ const catalog = createPackageCatalog([
   experienceCompilerMemoryIntakeProviderPackage,
   evoRuntimeObservatoryProviderPackage,
   eogBottleneckAnalysisProviderPackage,
+  applicationRuntimeBindingProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();

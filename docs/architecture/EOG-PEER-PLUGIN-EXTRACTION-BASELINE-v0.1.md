@@ -181,3 +181,25 @@ EOG dependency on SOP private implementation = FORBIDDEN
 ```
 
 No new SOP package identity, UI, editor, service abstraction or model expansion should be introduced until SOP work is explicitly resumed.
+
+
+## Runtime Binding Adapter concrete identity
+
+The active Runtime Binding Adapter target is now concrete:
+
+```text
+packageId       = evo-application-runtime-binding-provider
+providerId      = evo.application-runtime-binding
+capability      = enterprise.application-runtime-binding
+providerContract= evo.enterprise.application-runtime-binding
+```
+
+It is a headless `PLATFORM_PROVIDER`, not an application Experience.
+
+Its public contract is:
+
+`contracts/enterprise-application-runtime-binding.ts`
+
+The historical `enterprise-operating-graph-application-runtime.ts` path is compatibility-only and MUST NOT be treated as evidence that EOG owns runtime identity binding.
+
+The provider scaffold remains default-OFF until the existing service/store implementation is physically cut over and runtime binding is proven equivalent.
