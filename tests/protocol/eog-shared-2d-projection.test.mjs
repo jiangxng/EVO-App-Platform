@@ -103,7 +103,13 @@ test("shared EOG 2D projection provides the same structured Inspector data to Vi
 
   assert.deepEqual(
     viewer.nodes[0].properties.map(item => item.key),
-    ["node.kind", "semantic.authority", "semantic.kind", "semantic.ref"]
+    [
+      "node.kind",
+      "semantic.authority",
+      "semantic.kind",
+      "semantic.ref",
+      "semantic.version"
+    ]
   );
   assert.equal(
     viewer.edges[0].properties.find(item => item.key === "authority")?.value,
