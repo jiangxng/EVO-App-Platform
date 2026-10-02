@@ -35,7 +35,7 @@ export const eog2dDesignerPackage: PackageManifestV010 = {
     packageId: EOG_2D_DESIGNER_PACKAGE_ID,
     version: "0.1.0",
     activationScope: "INSTALLATION",
-    defaultActivation: false,
+    defaultActivation: true,
     requiresCapabilities: [
       ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
       "authorization.check"
