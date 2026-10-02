@@ -7,6 +7,14 @@ export const EOG_2D_VIEWER_PACKAGE_ID = "evo-eog-2d-viewer";
 export const EOG_2D_VIEWER_FEATURE_ID = "evo-eog-2d-viewer.default";
 export const EOG_2D_VIEWER_CAPABILITY = "enterprise.operating-graph.viewer.2d";
 export const EOG_2D_VIEWER_EXPERIENCE_ID = "evo-eog-2d-viewer";
+export const EOG_2D_VIEWER_WORKSPACE_PAGE_ID = "evo-eog-2d-viewer.workspace";
+export const EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE =
+  "app://evo-enterprise-operating-graph/pages/viewer";
+export const EOG_2D_VIEWER_WORKSPACE_ROUTE = "/operating-graph/view";
+
+/**
+ * Observatory identifiers remain stable compatibility entrypoints.
+ */
 export const EOG_2D_VIEWER_PAGE_ID = "evo-eog-2d-viewer.observe";
 export const EOG_2D_VIEWER_MOBILE_PAGE_ID = "evo-eog-2d-viewer.mobile-read";
 export const EOG_2D_VIEWER_PAGE_SOURCE =
@@ -53,8 +61,13 @@ export const eog2dViewerPackage: PackageManifestV010 = {
         experienceId: EOG_2D_VIEWER_EXPERIENCE_ID,
         packageId: EOG_2D_VIEWER_PACKAGE_ID,
         featureId: EOG_2D_VIEWER_FEATURE_ID,
-        defaultRoute: EOG_2D_VIEWER_ROUTE,
+        defaultRoute: EOG_2D_VIEWER_WORKSPACE_ROUTE,
         pages: [
+          {
+            id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
+            title: "Enterprise Operating Graph Viewer",
+            source: EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
+          },
           {
             id: EOG_2D_VIEWER_PAGE_ID,
             title: "Enterprise Operating Graph Viewer",
@@ -67,6 +80,13 @@ export const eog2dViewerPackage: PackageManifestV010 = {
           }
         ],
         routes: [
+          {
+            id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
+            semanticId: "evo-eog-2d-viewer.workspace",
+            surfaceId: "evo-eog-2d-viewer.desktop",
+            path: EOG_2D_VIEWER_WORKSPACE_ROUTE,
+            pageId: EOG_2D_VIEWER_WORKSPACE_PAGE_ID
+          },
           {
             id: EOG_2D_VIEWER_PAGE_ID,
             semanticId: "evo-eog-2d-viewer.observe",
@@ -85,7 +105,7 @@ export const eog2dViewerPackage: PackageManifestV010 = {
         navigation: [{
           id: "evo-eog-2d-viewer.nav",
           label: "Operating Graph",
-          route: EOG_2D_VIEWER_ROUTE,
+          route: EOG_2D_VIEWER_WORKSPACE_ROUTE,
           order: 16,
           surfaceIds: ["evo-eog-2d-viewer.desktop"]
         }],
@@ -94,7 +114,7 @@ export const eog2dViewerPackage: PackageManifestV010 = {
             id: "evo-eog-2d-viewer.desktop",
             target: "DESKTOP_WORKBENCH",
             support: "FULL",
-            entryRoute: EOG_2D_VIEWER_ROUTE
+            entryRoute: EOG_2D_VIEWER_WORKSPACE_ROUTE
           },
           {
             id: "evo-eog-2d-viewer.mobile-task",

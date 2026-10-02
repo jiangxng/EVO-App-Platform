@@ -201,6 +201,7 @@
     "eog-2d-viewer": {
       "role": "INTERACTIVE_SEMANTIC_READ_2D_NAVIGATION_INSPECTION_AND_CONTRIBUTION_AGGREGATION",
       "targetAssets": [
+        "apps/eog-2d-viewer/workspace-page.ts",
         "apps/eog-2d-viewer/observatory-actions.ts",
         "apps/eog-2d-viewer/agent-tools.ts",
         "apps/eog-2d-viewer/desktop-page.ts",
@@ -210,7 +211,7 @@
       "lifecycle": "PHYSICAL_OWNERSHIP_ACTIVE",
       "packageId": "evo-eog-2d-viewer",
       "featureId": "evo-eog-2d-viewer.default",
-      "experienceOwnership": "ACTIVE_DESKTOP_AND_MOBILE_READ",
+      "experienceOwnership": "ACTIVE_GENERIC_WORKSPACE_PLUS_OBSERVATORY_AND_MOBILE_READ",
       "readActionOwnership": "ACTIVE",
       "analysisCalculationOwnership": "PEER_PROVIDERS",
       "agentToolOwnership": "ACTIVE_SPLIT",
@@ -225,7 +226,9 @@
         "navigation": "ACTIVE",
         "semanticMutation": "PROHIBITED",
         "persistentViewStateMutation": "POLICY_DRIVEN"
-      }
+      },
+      "defaultDesktopExperience": "GENERIC_INTERACTIVE_WORKSPACE",
+      "observatoryRole": "OPTIONAL_MODE_AND_PEER_PROVIDER_AGGREGATION"
     },
     "eog-3d-viewer": {
       "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
