@@ -171,7 +171,7 @@ const installed = await json(await fetch(host + "/v1/install", {
   body: JSON.stringify({ packageId: "trading-lite" })
 }));
 assert.ok(
-  installed.installedPackages.some(item => item.packageId === "trading-lite"),
+  installed.snapshot?.installedPackages?.some(item => item.packageId === "trading-lite"),
   "Trading Lite was not installed"
 );
 
