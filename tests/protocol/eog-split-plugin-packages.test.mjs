@@ -28,15 +28,26 @@ import {
   eog2dViewerPackage
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
+  EOG_3D_PACKAGE_ID,
   EOG_3D_VIEWER_CAPABILITY,
   EOG_3D_VIEWER_EXPERIENCE_ID,
-  EOG_3D_VIEWER_PACKAGE_ID,
+  EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PAGE_SOURCE,
   EOG_3D_VIEWER_ROUTE,
+  eog3dPackage
+} from "../../dist/apps/eog-3d/package.js";
+import {
+  EOG_3D_VIEWER_PACKAGE_ID,
   eog3dViewerPackage
 } from "../../dist/apps/eog-3d-viewer/package.js";
+import {
+  ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_ROUTE,
+  ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+  enterpriseObservatoryPackage
+} from "../../dist/apps/enterprise-observatory/package.js";
 
-const packages = [eog2dPackage, eog3dViewerPackage];
+const packages = [eog2dPackage, eog3dPackage, enterpriseObservatoryPackage];
 
 const viewer = eog2dPackage.features.find(
   item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
@@ -48,15 +59,15 @@ const designer = eog2dPackage.features.find(
 test("EOG convergence has one 2D package plus one 3D package", () => {
   assert.deepEqual(
     packages.map(item => item.packageId),
-    [EOG_2D_PACKAGE_ID, EOG_3D_VIEWER_PACKAGE_ID]
+    [EOG_2D_PACKAGE_ID, EOG_3D_PACKAGE_ID, ENTERPRISE_OBSERVATORY_PACKAGE_ID]
   );
-  assert.equal(new Set(packages.map(item => item.packageId)).size, 2);
+  assert.equal(new Set(packages.map(item => item.packageId)).size, 3);
   assert.equal(packages.every(item => item.type === "APPLICATION"), true);
   assert.ok(viewer);
   assert.ok(designer);
   assert.equal(viewer.defaultActivation, true);
   assert.equal(designer.defaultActivation, true);
-  assert.equal(eog3dViewerPackage.features[0].defaultActivation, true);
+  assert.equal(eog3dPackage.features[0].defaultActivation, true);
 });
 
 test("legacy 2D package names are compatibility aliases to the unified package", () => {
@@ -116,8 +127,8 @@ test("EOG capabilities remain catalog-discoverable through feature identity", ()
   assert.deepEqual(
     catalog.findCapabilityProviders(EOG_3D_VIEWER_CAPABILITY),
     [{
-      packageId: EOG_3D_VIEWER_PACKAGE_ID,
-      featureId: "evo-eog-3d-viewer.default"
+      packageId: EOG_3D_PACKAGE_ID,
+      featureId: EOG_3D_VIEWER_FEATURE_ID
     }]
   );
 });
@@ -162,7 +173,7 @@ test("2D Designer is an editing Feature over the Viewer baseline", () => {
 });
 
 test("3D Viewer remains an independent spatial package", () => {
-  const feature = eog3dViewerPackage.features[0];
+  const feature = eog3dPackage.features[0];
   const experiences = (feature.contributions ?? []).filter(
     item => item.kind === "eidos.experience"
   );
@@ -170,7 +181,29 @@ test("3D Viewer remains an independent spatial package", () => {
   assert.equal(experiences.length, 1);
   const manifest = experiences[0].manifest;
   assert.equal(manifest.experienceId, EOG_3D_VIEWER_EXPERIENCE_ID);
-  assert.equal(manifest.packageId, EOG_3D_VIEWER_PACKAGE_ID);
+  assert.equal(manifest.packageId, EOG_3D_PACKAGE_ID);
   assert.equal(manifest.defaultRoute, EOG_3D_VIEWER_ROUTE);
   assert.equal(manifest.pages[0].source, EOG_3D_VIEWER_PAGE_SOURCE);
+});
+
+
+test("legacy 3D package name is a compatibility alias to unified EOG 3D", () => {
+  assert.equal(EOG_3D_VIEWER_PACKAGE_ID, EOG_3D_PACKAGE_ID);
+  assert.equal(eog3dViewerPackage, eog3dPackage);
+});
+
+test("3D Observatory is a peer Feature, not the EOG 3D Viewer product", () => {
+  const feature = enterpriseObservatoryPackage.features.find(
+    item => item.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
+  );
+  assert.ok(feature);
+  assert.equal(
+    feature.requiresFeatures.includes(EOG_3D_VIEWER_FEATURE_ID),
+    true
+  );
+  const experience = feature.contributions.find(
+    item => item.kind === "eidos.experience"
+  ).manifest;
+  assert.equal(experience.packageId, ENTERPRISE_OBSERVATORY_PACKAGE_ID);
+  assert.equal(experience.defaultRoute, ENTERPRISE_OBSERVATORY_3D_ROUTE);
 });
