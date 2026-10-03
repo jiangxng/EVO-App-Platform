@@ -16,6 +16,7 @@ test("Trading Lite declares Application Runtime Binding as a package dependency"
 test("Host composition resolves Trading Lite target through binding provider and generic EVO adapter", async () => {
   const source = await readFile("manager/server.ts", "utf8");
   assert.equal(source.includes("createEvoBusinessDataHttpAdapterV010"), true);
+  assert.equal(source.includes("createEvoRuntimeObservationHttpAdapterV010"), true);
   assert.equal(source.includes("resolveTradingLiteEvoRuntimeTarget"), true);
   assert.equal(
     source.includes("TRADING_LITE_HOST_APPLICATION_REF_ID_V010"),
@@ -24,6 +25,10 @@ test("Host composition resolves Trading Lite target through binding provider and
   assert.equal(source.includes("EVO_LEDGER_RUNTIME_PROVIDER_ID_V010"), true);
   assert.equal(
     source.includes("runtimeApplicationId: tradingLiteEvoApplicationId"),
+    true
+  );
+  assert.equal(
+    source.includes("observationAdapter: evoRuntimeObservationAdapter"),
     true
   );
 });

@@ -10,17 +10,22 @@ import type {
 import type {
   EvoBusinessDataAdapterV010
 } from "../../contracts/evo-business-data.js";
+import type {
+  EvoRuntimeObservationAdapterV010
+} from "../../contracts/evo-runtime-observation.js";
 
 export const TRADING_LITE_HOST_APPLICATION_REF_ID_V010 =
   "application:trading-lite" as const;
 
 export interface TradingLiteEvoRuntimeTargetV010 {
   scopeKey: string;
+  enterpriseId: string;
   applicationId: string;
 }
 
 export interface TradingLiteEvoActionOptions {
   adapter: EvoBusinessDataAdapterV010;
+  observationAdapter: EvoRuntimeObservationAdapterV010;
   resolveRuntimeTarget(
     context: PlatformRequestContextV010 | undefined
   ):
@@ -56,6 +61,13 @@ function requiredTargetText(value: string, code: string): string {
   return value.trim();
 }
 
+function observationWindow(at: Date): { startAt: string; endAt: string } {
+  return {
+    startAt: new Date(at.getTime() - 1000).toISOString(),
+    endAt: new Date(at.getTime() + 1000).toISOString()
+  };
+}
+
 export function createTradingLiteEvoActionHandler(
   options: TradingLiteEvoActionOptions
 ): AppActionHandler {
@@ -80,6 +92,10 @@ export function createTradingLiteEvoActionHandler(
           target.scopeKey,
           "TRADING_LITE_EVO_SCOPE_REQUIRED"
         );
+        const enterpriseId = requiredTargetText(
+          target.enterpriseId,
+          "TRADING_LITE_EVO_ENTERPRISE_ID_REQUIRED"
+        );
         const applicationId = requiredTargetText(
           target.applicationId,
           "TRADING_LITE_EVO_APPLICATION_ID_REQUIRED"
@@ -99,12 +115,14 @@ export function createTradingLiteEvoActionHandler(
           throw new Error("TRADING_LITE_INVALID_ORDER_VALUE");
         }
 
+        const acceptedAt = now();
         const instanceKey =
           request.runtimeInstanceId
-          ?? `${request.sourceInteractionId}-${now().getTime()}`;
+          ?? `${request.sourceInteractionId}-${acceptedAt.getTime()}`;
         const orderNo = `TL-${instanceKey}`;
         const totalAmount = amount.toFixed(2);
         const unitPrice = (amount / quantity).toFixed(2);
+        const effectiveAt = acceptedAt.toISOString();
 
         const response = await options.adapter.submit({
           contractVersion: "0.1.0",
@@ -112,7 +130,7 @@ export function createTradingLiteEvoActionHandler(
           applicationId,
           businessDataType: "sales_order.approved",
           businessObjectKey: orderNo,
-          effectiveAt: now().toISOString(),
+          effectiveAt,
           correlationId: `TRADING-LITE:${instanceKey}`,
           idempotencyKey: `trading-lite:${instanceKey}`,
           payload: {
@@ -134,6 +152,49 @@ export function createTradingLiteEvoActionHandler(
           }
         });
 
+        let runtimeObservation:
+          | {
+              status: "OBSERVED";
+              metricCode: "event.count";
+              value: number;
+              window: { startAt: string; endAt: string };
+            }
+          | {
+              status: "UNAVAILABLE";
+              message: string;
+            };
+
+        try {
+          const window = observationWindow(acceptedAt);
+          const observed = await options.observationAdapter.query({
+            contractVersion: "0.1.0",
+            enterpriseId,
+            target: {
+              kind: "APPLICATION_ANCHOR",
+              applicationId
+            },
+            window,
+            metricCodes: ["event.count"]
+          });
+          const eventCount = observed.observations.find(
+            item => item.metricCode === "event.count"
+          );
+          if (!eventCount) {
+            throw new Error("TRADING_LITE_EVO_EVENT_COUNT_MISSING");
+          }
+          runtimeObservation = {
+            status: "OBSERVED",
+            metricCode: "event.count",
+            value: eventCount.value,
+            window
+          };
+        } catch (error) {
+          runtimeObservation = {
+            status: "UNAVAILABLE",
+            message: error instanceof Error ? error.message : String(error)
+          };
+        }
+
         return {
           ok: true,
           correlationId,
@@ -146,7 +207,8 @@ export function createTradingLiteEvoActionHandler(
             postingSequence: response.postingSequence,
             postingStatus: response.postingStatus,
             replayRequired: response.replayRequired,
-            idempotentReplay: response.idempotentReplay
+            idempotentReplay: response.idempotentReplay,
+            runtimeObservation
           }
         };
       } catch (error) {

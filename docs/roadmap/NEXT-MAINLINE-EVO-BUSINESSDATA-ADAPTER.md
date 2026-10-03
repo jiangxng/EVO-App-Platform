@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** WRITE DATABASE + EIDOS BROWSER PASS — HOST READ ADAPTER IN PROGRESS  
+**Status:** HOST READ ADAPTER MERGED — TRADING LITE READBACK IN PROGRESS  
 **Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -323,6 +323,18 @@ EVO public runtime observation/read boundary
 → real-browser readback evidence
 ```
 
-The Host read boundary now targets EVO's existing public `POST /api/v1/runtime-observations/query` contract through a business-neutral adapter. The next bounded slice is Trading Lite/Eidos rendering plus real-browser readback evidence.
+The Host read boundary now targets EVO's existing public `POST /api/v1/runtime-observations/query` contract through a business-neutral adapter.
+
+Trading Lite now performs a bounded application-owned readback after accepted BusinessData submission:
+
+```text
+accepted BusinessData
+→ Host generic runtime-observation adapter
+→ APPLICATION_ANCHOR(applicationId)
+→ event.count
+→ Trading Lite action result
+```
+
+Readback failure does not convert an already accepted material write into a failed action; the result reports the observation as unavailable instead. The next bounded slice is Eidos result rendering plus real-browser readback evidence.
 
 The legacy `/api/v1/commands` path remains compatibility-only until this readback proof is closed.
