@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** PUBLIC READBACK BROWSER PASS — COMPATIBILITY RETIREMENT NEXT  
+**Status:** PUBLIC READBACK BROWSER PASS — APP PLATFORM COMPATIBILITY DEPENDENCY CLEARED  
 **Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -353,3 +353,14 @@ Eidos Trading Lite form
 The readback gate is therefore closed when this change is on `main`, because merge requires the cross-project browser certification to pass.
 
 The next bounded slice is a compatibility-usage audit before retiring any legacy `/api/v1/commands` dependency. No compatibility endpoint should be removed merely because Trading Lite no longer needs it.
+
+
+## 16. Compatibility usage audit
+
+The App Platform mainline no longer directly depends on EVO `/api/v1/commands`, capability discovery, or enterprise lookup for the Trading Lite certified flow.
+
+This closes the App Platform migration gate without deleting EVO's compatibility endpoints. EVO-side endpoint retirement is a separate compatibility decision because consumers may exist outside the four-project mainline.
+
+See `docs/architecture/EVO-COMMAND-COMPATIBILITY-USAGE-AUDIT-2026-10-03.md`.
+
+Next bounded slice: generalize runtime observation as a reusable Host contribution seam so future Apps/Agents do not repeat Trading Lite-specific integration wiring.
