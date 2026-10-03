@@ -200,7 +200,7 @@ function collectFormValues(
   return values;
 }
 
-function resultMessage(result: unknown): string {
+export function formatAppHostActionResultV010(result: unknown): string {
   if (result !== null && typeof result === "object" && !Array.isArray(result)) {
     const message = (result as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) return message;
@@ -236,7 +236,7 @@ function resultMessageV020(
     contractVersion: "0.2.0",
     role: ok ? "assistant" : "error",
     parts: ok
-      ? [{ type: "text", text: resultMessage(result) }]
+      ? [{ type: "text", text: formatAppHostActionResultV010(result) }]
       : [{ type: "notice", tone: "danger", text: fallbackError ?? "Unknown action error" }]
   };
 }
@@ -948,7 +948,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             id: resultId,
             role: result.ok ? "assistant" : "error",
             text: result.ok
-              ? resultMessage(result.result)
+              ? formatAppHostActionResultV010(result.result)
               : result.error?.message ?? "Unknown action error"
           });
       renderTranscript();
@@ -1512,7 +1512,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           const values = collectFormValues(form, page.definition);
           const execution = await executeAppHostPageAction(page, values, options.actionHost);
           actionStatus.textContent = execution.result.ok
-            ? hostText("shell.completed", "Completed.")
+            ? formatAppHostActionResultV010(execution.result.result)
             : hostText(
                 "shell.actionFailed",
                 "Action failed: {message}",
