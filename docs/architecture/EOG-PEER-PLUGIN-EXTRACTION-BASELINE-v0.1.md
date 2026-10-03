@@ -260,3 +260,12 @@ Because App Manager installation only activates Features marked
 package is installed. This corrects the previous impossible state where
 bootstrap installed the package but normal provider resolution could never
 observe it.
+
+
+### Legacy installed-but-inactive repair
+
+Hosts upgraded from the earlier `defaultActivation: false` descriptor may
+already contain the provider package in durable lifecycle state without its
+Feature being active. Bootstrap therefore checks Feature activation, not only
+package installation. If such a legacy state is found, the installed package
+is enabled to activate its sole provider Feature before provider resolution.
