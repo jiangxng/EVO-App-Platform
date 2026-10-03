@@ -118,16 +118,17 @@ Concrete package id remains TBD until the adapter contract is frozen.
 
 ## 5. Extraction order
 
-The controlled order is:
+The controlled order is now:
 
 1. freeze this baseline;
-2. establish SOP Designer package identity and public dependency contract;
-3. move SOP definition/editor service/actions/Agent tools behind that package identity;
-4. retire or isolate legacy SOP store compatibility after migration proof;
-5. freeze runtime-binding adapter public contract and package identity;
-6. physically extract runtime-binding implementation;
-7. audit existing Runtime Fact / Analysis Provider packages against public contracts;
-8. design additional report/analysis Experience packages only when a concrete product requirement exists.
+2. establish SOP Designer package identity;
+3. **freeze SOP implementation development at that boundary**;
+4. preserve existing SOP definition/edit/analysis assets without further extraction or expansion;
+5. continue with Runtime Binding Adapter boundary work when that stream is resumed;
+6. audit existing Runtime Fact / Analysis Provider packages against public contracts;
+7. design additional report/analysis Experience packages only when a concrete product requirement exists.
+
+SOP public-domain redesign, editor development and physical implementation extraction are explicitly **ON HOLD** until a future decision reopens that stream.
 
 ## 6. Preserved assets
 
@@ -187,3 +188,22 @@ This slice is identity-only:
 - no startup auto-install/activation is introduced;
 - Enterprise Context Business Definition Repository remains authoritative;
 - SOP conformance/deviation analysis remains a separate peer responsibility.
+
+
+## SOP development hold
+
+After the `evo-sop-designer` package identity is established, SOP work is intentionally paused.
+
+Current authoritative state:
+
+```text
+SOP ownership != EOG ownership
+SOP Designer package identity = established
+SOP implementation extraction = ON_HOLD
+SOP domain redesign = ON_HOLD
+SOP editor/runtime expansion = ON_HOLD
+legacy SOP assets = PRESERVED
+Enterprise Context SOP definition authority = unchanged
+```
+
+This hold prevents the historical EOG-coupled SOP implementation from being mechanically promoted into the new plugin before the SOP model is deliberately revisited.
