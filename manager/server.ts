@@ -44,7 +44,10 @@ import {
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
-import { createTradingLiteEvoActionHandler } from "../apps/trading-lite/action-handler.js";
+import {
+  createTradingLiteEvoActionHandler,
+  TRADING_LITE_HOST_APPLICATION_REF_ID_V010
+} from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createPersonalAgentRunActionHandlersV010 } from "../agents/enterprise-agent/run-action-handlers.js";
 import { createResumableAgentRunExecutorV010 } from "../agents/enterprise-agent/run-runtime.js";
@@ -181,6 +184,10 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
 import {
+  EVO_LEDGER_RUNTIME_PROVIDER_ID_V010,
+  toEvoLedgerRuntimeApplicationIdBindingV010
+} from "../contracts/evo-ledger-runtime-application-id.js";
+import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
   type EnterpriseApplicationRuntimeBindingProviderV010
 } from "../contracts/enterprise-application-runtime-binding.js";
@@ -210,6 +217,9 @@ import type {
   SecretReferenceV010
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
+import {
+  createEvoBusinessDataHttpAdapterV010
+} from "./evo-business-data-http-adapter.js";
 import {
   createFileProviderBindingStoreV010,
   createMemoryProviderBindingStoreV010,
@@ -2306,6 +2316,29 @@ const runtimeDispatcher = createPluginRuntimeDispatcherV010({
 const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
+const tradingLiteEvoApplicationId =
+  process.env.APP_PLATFORM_TRADING_LITE_EVO_APPLICATION_ID?.trim()
+  || "sales_order";
+const evoRuntimeScopeMap = (() => {
+  const raw = process.env.APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON?.trim();
+  if (!raw) return new Map<string, string>();
+  const parsed = JSON.parse(raw) as unknown;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("EVO_RUNTIME_SCOPE_MAP_INVALID");
+  }
+  const result = new Map<string, string>();
+  for (const [hostEnterpriseId, value] of Object.entries(parsed)) {
+    if (
+      !hostEnterpriseId.trim()
+      || typeof value !== "string"
+      || !value.trim()
+    ) {
+      throw new Error("EVO_RUNTIME_SCOPE_MAP_INVALID");
+    }
+    result.set(hostEnterpriseId.trim(), value.trim());
+  }
+  return result;
+})();
 const evoObservatoryEnterpriseMap = (() => {
   const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_ENTERPRISE_MAP_JSON?.trim();
   if (!raw) return new Map<string, string>();
@@ -2449,6 +2482,72 @@ const evoRuntimeRevisionBridge = evoObservatoryEnabled
 const evoActorType = (process.env.EVO_ACTOR_TYPE?.trim() || "HUMAN") as "HUMAN" | "AI" | "AUTOMATION";
 const evoActorId = process.env.EVO_ACTOR_ID?.trim() || "demo-user";
 const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
+const evoBusinessDataAdapter = createEvoBusinessDataHttpAdapterV010({
+  baseUrl: evoBaseUrl
+});
+let compatibilityEvoRuntimeScopeKey: string | undefined;
+
+async function resolveCompatibilityEvoRuntimeScopeKey(): Promise<string> {
+  if (compatibilityEvoRuntimeScopeKey) return compatibilityEvoRuntimeScopeKey;
+  const response = await fetch(
+    evoBaseUrl
+      + "/api/v1/enterprises/"
+      + encodeURIComponent(evoEnterpriseCode),
+    { headers: { accept: "application/json" } }
+  );
+  const body = await response.json() as {
+    id?: string;
+    code?: string;
+    status?: string;
+    error?: { code?: string; message?: string };
+  };
+  if (!response.ok || typeof body.id !== "string" || !body.id.trim()) {
+    throw new Error(
+      (body.error?.code ?? "EVO_RUNTIME_SCOPE_RESOLUTION_FAILED")
+      + ": "
+      + (body.error?.message ?? response.statusText)
+    );
+  }
+  compatibilityEvoRuntimeScopeKey = body.id.trim();
+  return compatibilityEvoRuntimeScopeKey;
+}
+
+async function resolveTradingLiteEvoRuntimeTarget(
+  context: PlatformRequestContextV010 | undefined
+): Promise<{ scopeKey: string; applicationId: string }> {
+  const active = context?.context?.activeContext;
+  if (!active || active.kind !== "ENTERPRISE") {
+    throw new Error("TRADING_LITE_ENTERPRISE_CONTEXT_REQUIRED");
+  }
+
+  const provider = resolveApplicationRuntimeBindingProvider();
+  if (!provider) {
+    throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+  }
+
+  const enterpriseId = active.enterpriseId;
+  let binding = provider.resolve({
+    enterpriseId,
+    hostApplicationRefId: TRADING_LITE_HOST_APPLICATION_REF_ID_V010,
+    runtimeProviderId: EVO_LEDGER_RUNTIME_PROVIDER_ID_V010
+  });
+  if (!binding) {
+    binding = provider.bind({
+      enterpriseId,
+      hostApplicationRefId: TRADING_LITE_HOST_APPLICATION_REF_ID_V010,
+      runtimeProviderId: EVO_LEDGER_RUNTIME_PROVIDER_ID_V010,
+      runtimeApplicationId: tradingLiteEvoApplicationId
+    });
+  }
+
+  const runtime = toEvoLedgerRuntimeApplicationIdBindingV010(binding);
+  return {
+    scopeKey:
+      evoRuntimeScopeMap.get(enterpriseId)
+      ?? await resolveCompatibilityEvoRuntimeScopeKey(),
+    applicationId: runtime.applicationId
+  };
+}
 
 function installationSecretReference(
   namespace: string,
@@ -3396,9 +3495,8 @@ const actionRouter = createAppActionRouter(
     createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
     ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
-      baseUrl: evoBaseUrl,
-      enterpriseCode: evoEnterpriseCode,
-      actor: { type: evoActorType, id: evoActorId }
+      adapter: evoBusinessDataAdapter,
+      resolveRuntimeTarget: resolveTradingLiteEvoRuntimeTarget
     })
   ],
   featureId => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === featureId),
