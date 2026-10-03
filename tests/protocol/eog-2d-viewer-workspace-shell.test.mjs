@@ -21,7 +21,7 @@ test("2D Viewer has a generic interactive Workspace independent of Observatory p
   );
   assert.equal(
     experience.routes.some(route => route.path === "/operating-graph/observe"),
-    true
+    false
   );
 
   const source = await readFile(
