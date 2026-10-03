@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** PUBLIC READBACK BROWSER PASS — COMPATIBILITY RETIREMENT NEXT  
+**Status:** PUBLIC READBACK BROWSER PASS — COMPATIBILITY AUDITED / RUNTIME-SCOPE FALLBACK NEXT  
 **Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -18,15 +18,15 @@ Trading Lite
 → Eidos
 ```
 
-The current Trading Lite integration is still a compatibility adapter that directly uses:
+Trading Lite no longer calls EVO capability discovery or Command compatibility endpoints.
+
+The remaining App Platform compatibility dependency is narrower:
 
 ```text
-GET  /api/v1/enterprises/:enterpriseCode
-GET  /api/v1/capabilities?enterprise_id=...
-POST /api/v1/commands
+GET /api/v1/enterprises/:enterpriseCode
 ```
 
-EVO `PUBLIC-API.md` now explicitly identifies those endpoints as Host/compatibility composition rather than the target minimal Core boundary.
+It is used only as a Host runtime-scope fallback when no explicit EVO runtime-scope mapping exists. EVO `PUBLIC-API.md` identifies this family of endpoints as Host/compatibility composition rather than the target minimal Core boundary.
 
 ## 2. Current EVO authority inspected
 
@@ -352,4 +352,6 @@ Eidos Trading Lite form
 
 The readback gate is therefore closed when this change is on `main`, because merge requires the cross-project browser certification to pass.
 
-The next bounded slice is a compatibility-usage audit before retiring any legacy `/api/v1/commands` dependency. No compatibility endpoint should be removed merely because Trading Lite no longer needs it.
+The compatibility-usage audit is now frozen in `docs/architecture/EVO-COMPATIBILITY-RETIREMENT-AUDIT-v0.1.md`.
+
+App Platform has no active runtime dependency on `/api/v1/commands`, `/api/v1/capabilities`, or `/api/v1/apps`. The remaining bounded migration is the Host-owned `/api/v1/enterprises/:enterpriseCode` runtime-scope fallback. No EVO compatibility endpoint should be removed until EVO separately accepts its sunset and all remaining consumers are migrated.
