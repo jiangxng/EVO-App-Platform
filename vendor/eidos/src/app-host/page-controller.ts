@@ -1518,7 +1518,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 "Action failed: {message}",
                 { message: execution.result.error?.message ?? "Unknown action error" }
               );
-          await options.onActionResult?.(execution.result, page);
+          await options.onActionResult?.(
+            execution.result,
+            page,
+            { preserveMountedPage: true }
+          );
         } catch (error) {
           actionStatus.textContent = hostText(
             "shell.actionFailed",

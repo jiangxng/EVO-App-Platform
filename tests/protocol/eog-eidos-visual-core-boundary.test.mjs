@@ -48,7 +48,24 @@ test("vendored Eidos snapshot includes the neutral 2D Workspace boundary", async
   );
   assert.equal(
     manifest.sourceCommit,
-    "179cc158c6619b81a379cdf615ad34d6780f35c8"
+    "71e7cc0bb05b67c57dba3a1fb919070cf46b1c69"
   );
   assert.equal(manifest.files.includes("src/diagram/workspace.ts"), true);
+});
+
+
+test("vendored Eidos preserves locally rendered form results in Workbench", async () => {
+  const source = await readFile(
+    "vendor/eidos/src/app-host/page-controller.ts",
+    "utf8"
+  );
+  const resultRender = source.indexOf(
+    "formatAppHostActionResultV010(execution.result.result)"
+  );
+  const preserve = source.indexOf(
+    "{ preserveMountedPage: true }",
+    resultRender
+  );
+  assert.notEqual(resultRender, -1);
+  assert.ok(preserve > resultRender);
 });
