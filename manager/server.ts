@@ -672,6 +672,7 @@ import {
   companyNotesPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
+  enterpriseObservatoryPackage,
   eog2dPackage,
   eog3dViewerPackage,
   evoFoundationPackage,
@@ -697,11 +698,16 @@ import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
+import {
+  ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_PACKAGE_ID
+} from "../apps/enterprise-observatory/package.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
+  enterpriseObservatoryPackage,
   eog2dPackage,
   eog3dViewerPackage,
   evoFoundationPackage,
@@ -1611,6 +1617,16 @@ if (!manager.getSnapshot().activeFeatures.some(
     console.log("Activated EOG 2D Viewer ownership cutover.");
   } catch (error) {
     console.error("Failed to activate EOG 2D Viewer ownership cutover.", error);
+  }
+}
+if (!manager.getSnapshot().activeFeatures.some(
+  feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
+)) {
+  try {
+    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
+    console.log("Activated Enterprise Observatory 2D peer plugin.");
+  } catch (error) {
+    console.error("Failed to activate Enterprise Observatory 2D peer plugin.", error);
   }
 }
 if (!manager.getSnapshot().activeFeatures.some(
@@ -3265,8 +3281,8 @@ function createPersonalAgentToolCatalogV010(
       providers: enterpriseOperatingGraphObservatoryProviders,
       principal,
       context,
-      isViewerActive: () => manager.getSnapshot().activeFeatures.some(
-        feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+      isObservatoryActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
       )
     })
   ]);
@@ -4671,7 +4687,7 @@ const server = createServer(async (request, response) => {
         || source === EOG_MOBILE_READ_PAGE_SOURCE
       ) {
         const effective = manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+          feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
