@@ -308,7 +308,30 @@ try {
     assert.equal(actionBody.ok, true, JSON.stringify(actionBody));
     assert.equal(actionBody.result.applicationId, runtimeApplicationId);
     assert.equal(actionBody.result.postingStatus, "QUEUED");
+    assert.equal(actionBody.result.runtimeObservation?.status, "OBSERVED");
+    assert.equal(actionBody.result.runtimeObservation?.metricCode, "event.count");
   }
+
+  await waitFor(
+    client,
+    `Array.from(document.querySelectorAll("[data-eidos-action-status]")).some(element => {
+      const text = element.textContent ?? "";
+      return text.includes('"runtimeObservation"')
+        && text.includes('"OBSERVED"')
+        && text.includes('"event.count"');
+    })`
+  );
+  const renderedActionResultText = await evaluate(client, `(() => {
+    const values = Array.from(document.querySelectorAll("[data-eidos-action-status]"))
+      .map(element => element.textContent ?? "");
+    return values.find(text => text.includes('"runtimeObservation"')) ?? "";
+  })()`);
+  const renderedActionResult = JSON.parse(renderedActionResultText);
+  assert.equal(renderedActionResult.applicationId, runtimeApplicationId);
+  assert.equal(renderedActionResult.postingStatus, "QUEUED");
+  assert.equal(renderedActionResult.runtimeObservation.status, "OBSERVED");
+  assert.equal(renderedActionResult.runtimeObservation.metricCode, "event.count");
+  assert.ok(renderedActionResult.runtimeObservation.value >= 1);
 
   let afterEventCount = beforeEventCount;
   let afterReceivable = null;
@@ -367,6 +390,8 @@ try {
     evoScopeKey: enterprise.id,
     businessDataId: actionBody?.result?.businessDataId ?? null,
     postingInputId: actionBody?.result?.postingInputId ?? null,
+    browserRenderedRuntimeObservation: true,
+    runtimeObservationStatus: renderedActionResult.runtimeObservation.status,
     eventCountDelta: afterEventCount - beforeEventCount,
     receivableBalanceAmount: afterReceivable
   }, null, 2));
