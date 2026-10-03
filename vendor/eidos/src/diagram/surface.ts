@@ -61,12 +61,12 @@ export interface DiagramEditorReadPresetV010 {
 
 export interface DiagramEditorPageV010 {
   contractVersion: "0.1.0";
-  kind: "diagram-editor";
+  kind: "diagram-editor" | "diagram-workspace";
   id: string;
   title: string;
   resourceId: string;
   readCommand: DiagramEditorCommandV010;
-  operationCommand: DiagramEditorCommandV010;
+  operationCommand?: DiagramEditorCommandV010;
   selectionReadCommand?: DiagramEditorCommandV010;
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
@@ -248,16 +248,20 @@ export function isDiagramEditorPageV010(
   }
   const page = value as Partial<DiagramEditorPageV010>;
   return page.contractVersion === "0.1.0"
-    && page.kind === "diagram-editor"
+    && (page.kind === "diagram-editor" || page.kind === "diagram-workspace")
     && nonEmpty(page.id)
     && nonEmpty(page.title)
     && nonEmpty(page.resourceId)
     && page.readCommand !== undefined
     && nonEmpty(page.readCommand?.code)
     && nonEmpty(page.readCommand?.inputVersion)
-    && page.operationCommand !== undefined
-    && nonEmpty(page.operationCommand?.code)
-    && nonEmpty(page.operationCommand?.inputVersion)
+    && (
+      page.operationCommand === undefined
+      || (
+        nonEmpty(page.operationCommand.code)
+        && nonEmpty(page.operationCommand.inputVersion)
+      )
+    )
     && (
       page.selectionReadCommand === undefined
       || (
@@ -496,10 +500,14 @@ export function diagramEditorOperationRequestV010(
   requiresConfirmation = false,
   commandOverride?: DiagramEditorCommandV010
 ): ActionRequestV010 {
+  const command = commandOverride ?? page.operationCommand;
+  if (!command) {
+    throw new Error("EIDOS_DIAGRAM_OPERATION_COMMAND_REQUIRED");
+  }
   return {
     contractVersion: "0.1.0",
     type: "command",
-    command: { ...(commandOverride ?? page.operationCommand) },
+    command: { ...command },
     values: {
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
