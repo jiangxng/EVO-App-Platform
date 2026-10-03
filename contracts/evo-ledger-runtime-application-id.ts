@@ -1,3 +1,6 @@
+export const EVO_LEDGER_RUNTIME_PROVIDER_ID_V010 =
+  "evo-ledger-runtime" as const;
+
 import type {
   EnterpriseApplicationRuntimeBindingV010
 } from "./enterprise-application-runtime-binding.js";
