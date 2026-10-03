@@ -111,3 +111,19 @@ It consumes only:
 - Host-provided Observatory provider resolution.
 
 It no longer imports 2D Designer or 2D Viewer private implementation. The old manager spatial page path remains a compatibility re-export only.
+
+
+## Superseding convergence — 2026-10-03
+
+The original cutover intentionally preserved the historical Spatial
+Observatory implementation inside the 3D Viewer package. That transitional
+ownership is now superseded.
+
+Canonical target:
+
+- `evo-eog-3d / evo-eog-3d.viewer` owns the neutral 3D spatial Viewer;
+- `evo-enterprise-observatory / evo-enterprise-observatory.3d` owns Runtime
+  Fact and Analysis overlays;
+- both reuse the package-neutral EOG spatial projection and Eidos 3D Workspace.
+
+The old `apps/eog-3d-viewer/spatial-page.ts` path is compatibility only.
