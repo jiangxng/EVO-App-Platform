@@ -362,3 +362,18 @@ Application/Ledger/other business property
 ```
 
 EOG must not become a generic write router for business properties merely because those properties are displayed inside its Inspector.
+
+
+## Runtime convergence — neutral Workspace capability
+
+Eidos 2D Core now accepts the neutral serialized kind `diagram-workspace` and
+makes `operationCommand` optional.
+
+EOG adopts that contract directly:
+
+- Viewer: `diagram-workspace` + read + selection/Inspector, no operation command.
+- Designer: the same `diagram-workspace` + explicit governed operation command.
+
+This removes the previous fake Viewer edit command. Viewer interactivity is
+proven by selection reads and Inspector properties, not by an operation handler
+that merely rejects writes.
