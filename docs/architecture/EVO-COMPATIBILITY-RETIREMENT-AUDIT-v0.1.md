@@ -75,3 +75,22 @@ This audit does not:
 - add capability discovery back to App Platform;
 - change Eidos;
 - change SOP.
+
+
+## Certified normal-path scope mapping
+
+The cross-project Trading Lite browser certification now resolves the EVO demo runtime scope before App Platform startup and supplies it through:
+
+`APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON`
+
+Therefore the certified Trading Lite normal path exercises:
+
+```text
+Enterprise Context enterpriseId
+→ Host-owned explicit runtime-scope map
+→ EVO scopeKey
+```
+
+rather than relying on the compatibility enterprise-code fallback.
+
+This does not yet retire the fallback because the runtime revision bridge, EVO Observatory, and compatibility/demo startup paths still use enterprise-code resolution.
