@@ -19,6 +19,7 @@ export function createRevisionAwareBrowserTransportV010(options: {
   importUrl: string;
   fetchImpl?: typeof fetch;
   onUpdateAvailable?: (hostRevision: string) => void;
+  selectedContextId?: () => string | undefined;
 }): RevisionAwareBrowserTransportV010 {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   if (!fetchImpl) throw new Error("EVO_BROWSER_FETCH_UNAVAILABLE");
@@ -38,7 +39,13 @@ export function createRevisionAwareBrowserTransportV010(options: {
     const headers = new Headers(init?.headers ?? (
       input instanceof Request ? input.headers : undefined
     ));
-    if (sameOrigin) headers.set("x-evo-client-revision", clientRevision);
+    if (sameOrigin) {
+      headers.set("x-evo-client-revision", clientRevision);
+      const selectedContextId = options.selectedContextId?.()?.trim();
+      if (selectedContextId && !headers.has("x-evo-context-id")) {
+        headers.set("x-evo-context-id", selectedContextId);
+      }
+    }
 
     const response = await fetchImpl(input, {
       ...init,
