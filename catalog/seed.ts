@@ -34,6 +34,9 @@ export {
   eog3dPackage
 } from "../apps/eog-3d/package.js";
 export {
+  eog3dViewerPackage
+} from "../apps/eog-3d-viewer/package.js";
+export {
   enterpriseObservatoryPackage
 } from "../apps/enterprise-observatory/package.js";
 
