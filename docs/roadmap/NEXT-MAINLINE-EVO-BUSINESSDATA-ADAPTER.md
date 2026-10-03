@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** HOST ADAPTER IMPLEMENTED — TRADING LITE MIGRATION NEXT  
+**Status:** TRADING LITE HOST-ADAPTER MIGRATION IMPLEMENTED — DATABASE/BROWSER PROOF NEXT  
 **Date:** 2026-09-28  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -282,3 +282,35 @@ App Platform now has:
 - deterministic idempotency identity preservation across retry.
 
 The next bounded slice migrates Trading Lite to consume the Host adapter while leaving the legacy command path available as compatibility evidence.
+
+
+## 15. Trading Lite migration
+
+Trading Lite now submits through `EvoBusinessDataAdapterV010` and no longer performs EVO capability discovery or Command invocation directly.
+
+The App owns:
+
+- `sales_order.approved` businessDataType;
+- order identity;
+- business payload mapping.
+
+The Host owns:
+
+- current Enterprise Context;
+- runtime scope mapping;
+- Application Runtime Binding resolution;
+- exact `runtimeApplicationId -> applicationId`;
+- EVO HTTP transport.
+
+Next proof:
+
+```text
+Eidos Trading Lite
+→ App Platform ActionHost
+→ Host runtime target resolution
+→ POST /api/v1/business-data
+→ EVO PostgreSQL
+→ PostingRule(applicationId=sales_order)
+→ Ledger / Balance
+→ readback / browser evidence
+```
