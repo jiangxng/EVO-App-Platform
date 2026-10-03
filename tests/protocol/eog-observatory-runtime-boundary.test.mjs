@@ -8,7 +8,7 @@ test("Enterprise Observatory and spatial compatibility consume public Observator
     "apps/enterprise-observatory/agent-tools.ts",
     "apps/enterprise-observatory/mobile-read-page.ts",
     "apps/enterprise-observatory/desktop-page.ts",
-    "apps/eog-3d-viewer/spatial-page.ts"
+    "apps/enterprise-observatory/spatial-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));
   assert.equal(

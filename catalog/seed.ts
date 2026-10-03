@@ -17,8 +17,8 @@ import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
 import {
-  eog3dViewerPackage
-} from "../apps/eog-3d-viewer/package.js";
+  eog3dPackage
+} from "../apps/eog-3d/package.js";
 import {
   enterpriseObservatoryPackage
 } from "../apps/enterprise-observatory/package.js";
@@ -30,6 +30,9 @@ export {
 export {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
+export {
+  eog3dPackage
+} from "../apps/eog-3d/package.js";
 export {
   eog3dViewerPackage
 } from "../apps/eog-3d-viewer/package.js";

@@ -488,3 +488,28 @@ fully interactive for selection, node/edge inspection, navigation and
 presentation interaction.
 
 Authority: `docs/architecture/EOG-2D-PACKAGE-CONVERGENCE-v0.1.md`.
+
+
+## 24. Final package convergence
+
+The migration-era three-package model is superseded by:
+
+```text
+evo-eog-2d
+├─ viewer
+└─ designer
+
+evo-eog-3d
+└─ viewer
+
+evo-enterprise-observatory
+├─ 2d
+└─ 3d
+```
+
+2D Viewer and Designer share one interactive Workspace family. EOG 3D Viewer
+uses the neutral Eidos Spatial Workspace. Runtime Fact / Analysis experiences
+belong to the peer Enterprise Observatory package in both dimensions.
+
+Compatibility module paths and observe routes may remain while callers migrate;
+they do not imply ownership.

@@ -16,7 +16,7 @@ test("Observatory input grammar is package-neutral across 2D and 3D viewers", as
     "apps/enterprise-observatory/agent-tools.ts",
     "apps/enterprise-observatory/mobile-read-page.ts",
     "apps/enterprise-observatory/desktop-page.ts",
-    "apps/eog-3d-viewer/spatial-page.ts"
+    "apps/enterprise-observatory/spatial-page.ts"
   ];
   const contents = await Promise.all(consumers.map(path => readFile(path, "utf8")));
   assert.equal(
