@@ -77,7 +77,7 @@ test("Host Runtime Binding consumers resolve through installed provider descript
   );
 });
 
-test("legacy configured bindings trigger package migration without making the package default-on", async () => {
+test("legacy configured bindings trigger package migration and activate the installed provider", async () => {
   const server = await readFile("manager/server.ts", "utf8");
   assert.equal(
     server.includes("applicationRuntimeBindingStore.snapshot().bindings.length > 0"),
@@ -89,6 +89,6 @@ test("legacy configured bindings trigger package migration without making the pa
   );
   assert.equal(
     applicationRuntimeBindingProviderPackage.features[0]?.defaultActivation,
-    false
+    true
   );
 });

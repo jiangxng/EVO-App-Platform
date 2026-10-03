@@ -24,7 +24,7 @@ export const applicationRuntimeBindingProviderPackage: PackageManifestV010 = {
       packageId: APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
       version: "0.1.0",
       activationScope: "INSTALLATION",
-      defaultActivation: false,
+      defaultActivation: true,
       providesCapabilities: [
         ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010
       ],

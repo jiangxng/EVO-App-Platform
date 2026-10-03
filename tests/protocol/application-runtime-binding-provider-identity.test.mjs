@@ -16,7 +16,7 @@ import {
   applicationRuntimeBindingProviderPackage
 } from "../../dist/providers/application-runtime-binding/package.js";
 
-test("Application Runtime Binding is a generic headless provider identity", () => {
+test("Application Runtime Binding is a generic install-gated headless provider identity", () => {
   assert.equal(
     APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
     "evo-application-runtime-binding-provider"
@@ -36,7 +36,7 @@ test("Application Runtime Binding is a generic headless provider identity", () =
   assert.equal(applicationRuntimeBindingProviderPackage.type, "PLATFORM_PROVIDER");
   assert.equal(
     applicationRuntimeBindingProviderPackage.features[0]?.defaultActivation,
-    false
+    true
   );
 });
 
