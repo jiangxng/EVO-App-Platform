@@ -89,6 +89,6 @@ test("legacy configured bindings trigger package migration and activate the inst
   );
   assert.equal(
     applicationRuntimeBindingProviderPackage.features[0]?.defaultActivation,
-    false
+    true
   );
 });
