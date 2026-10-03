@@ -8,6 +8,9 @@ import {
   createEvoBusinessDataHttpAdapterV010
 } from "../dist/manager/evo-business-data-http-adapter.js";
 import {
+  createEvoRuntimeObservationHttpAdapterV010
+} from "../dist/manager/evo-runtime-observation-http-adapter.js";
+import {
   createMemoryEnterpriseApplicationRuntimeBindingStoreV010
 } from "../dist/providers/application-runtime-binding/store.js";
 import {
@@ -91,8 +94,10 @@ const runtime = toEvoLedgerRuntimeApplicationIdBindingV010(binding);
 assert.equal(runtime.applicationId, runtimeApplicationId);
 
 const adapter = createEvoBusinessDataHttpAdapterV010({ baseUrl });
+const observationAdapter = createEvoRuntimeObservationHttpAdapterV010({ baseUrl });
 const handler = createTradingLiteEvoActionHandler({
   adapter,
+  observationAdapter,
   resolveRuntimeTarget(context) {
     assert.equal(
       context?.context?.activeContext.kind,
@@ -104,6 +109,7 @@ const handler = createTradingLiteEvoActionHandler({
     );
     return {
       scopeKey: enterprise.id,
+      enterpriseId: enterprise.id,
       applicationId: runtime.applicationId
     };
   },
@@ -163,6 +169,9 @@ assert.equal(result.ok, true, JSON.stringify(result));
 assert.equal(result.result.applicationId, runtimeApplicationId);
 assert.equal(result.result.postingStatus, "QUEUED");
 assert.ok(result.result.businessDataId);
+assert.equal(result.result.runtimeObservation.status, "OBSERVED");
+assert.equal(result.result.runtimeObservation.metricCode, "event.count");
+assert.equal(result.result.runtimeObservation.value, 1);
 
 let afterEventCount = beforeEventCount;
 let afterReceivable = null;
