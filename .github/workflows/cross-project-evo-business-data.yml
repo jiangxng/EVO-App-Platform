@@ -1,0 +1,129 @@
+name: Cross Project CI - Trading Lite EVO PostgreSQL
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-lite/**"
+      - "contracts/evo-business-data.ts"
+      - "contracts/evo-ledger-runtime-application-id.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-trading-lite-evo-postgres.mjs"
+      - ".github/workflows/cross-project-evo-business-data.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/trading-lite/**"
+      - "contracts/evo-business-data.ts"
+      - "contracts/evo-ledger-runtime-application-id.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-trading-lite-evo-postgres.mjs"
+      - ".github/workflows/cross-project-evo-business-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-project-evo-business-data-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "24.20.0"
+  DATABASE_URL: postgres://evo:evo@localhost:5432/evo
+  EVO_CERTIFIED_COMMIT: 5f0e0195e9b2e71b3d1347c7c2479805d26875d3
+  EVO_BASE_URL: http://127.0.0.1:3000
+  NODE_ENV: test
+  LOG_LEVEL: silent
+
+jobs:
+  postgres-ledger-proof:
+    name: Trading Lite -> EVO PostgreSQL -> Ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: evo
+          POSTGRES_PASSWORD: evo
+          POSTGRES_DB: evo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evo -d evo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout App Platform
+        uses: actions/checkout@v5
+
+      - name: Checkout certified EVO
+        uses: actions/checkout@v5
+        with:
+          repository: jiangxng/EVO
+          ref: ${{ env.EVO_CERTIFIED_COMMIT }}
+          path: evo
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install and build App Platform
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install, migrate, seed and build EVO
+        working-directory: evo
+        run: |
+          npm ci
+          npm run migrate
+          npm run seed:demo
+          npm run build
+
+      - name: Start EVO API and Worker
+        run: |
+          set -euo pipefail
+          (
+            cd evo
+            HOST=0.0.0.0 PORT=3000 \
+              node dist/apps/api/src/main.js > /tmp/evo-api.log 2>&1 &
+            echo $! > /tmp/evo-api.pid
+            WORKER_POLL_INTERVAL_MS=100 \
+              node dist/apps/worker/src/main.js > /tmp/evo-worker.log 2>&1 &
+            echo $! > /tmp/evo-worker.pid
+          )
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS "${EVO_BASE_URL}/health/ready" > /tmp/evo-ready.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "${ready}" -ne 1 ]; then
+            cat /tmp/evo-api.log || true
+            cat /tmp/evo-worker.log || true
+            exit 1
+          fi
+
+      - name: Certify App Platform -> EVO -> PostgreSQL -> Ledger
+        run: node tools/certify-trading-lite-evo-postgres.mjs
+
+      - name: Show EVO logs on failure
+        if: failure()
+        run: |
+          cat /tmp/evo-api.log || true
+          cat /tmp/evo-worker.log || true
+
+      - name: Stop EVO processes
+        if: always()
+        run: |
+          if [ -f /tmp/evo-worker.pid ]; then kill "$(cat /tmp/evo-worker.pid)" || true; fi
+          if [ -f /tmp/evo-api.pid ]; then kill "$(cat /tmp/evo-api.pid)" || true; fi
