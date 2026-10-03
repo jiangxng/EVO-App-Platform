@@ -10,6 +10,11 @@ import * as spatial from "../../dist/vendor/eidos/src/spatial/index.js";
 test("vendored Eidos public 2D Core facade preserves diagram implementation identity", () => {
   assert.equal(twoD.mountDiagramEditorPageV010, diagramSurface.mountDiagramEditorPageV010);
   assert.equal(twoD.validateDiagramEditorStateV010, diagramSurface.validateDiagramEditorStateV010);
+  assert.equal(twoD.mountDiagramWorkspacePageV010, diagramSurface.mountDiagramEditorPageV010);
+  assert.equal(
+    twoD.diagramWorkspaceSelectionReadRequestV010,
+    diagramSurface.diagramEditorSelectionReadRequestV010
+  );
 });
 
 test("vendored Eidos public 3D Core facade preserves spatial implementation identity", () => {
@@ -34,4 +39,16 @@ test("EOG application projections consume public Eidos visual-core facades, not 
     assert.equal(content.includes("vendor/eidos/src/diagram/"), false);
     assert.equal(content.includes("vendor/eidos/src/spatial/"), false);
   }
+});
+
+
+test("vendored Eidos snapshot includes the neutral 2D Workspace boundary", async () => {
+  const manifest = JSON.parse(
+    await readFile("vendor/eidos/source.manifest.json", "utf8")
+  );
+  assert.equal(
+    manifest.sourceCommit,
+    "179cc158c6619b81a379cdf615ad34d6780f35c8"
+  );
+  assert.equal(manifest.files.includes("src/diagram/workspace.ts"), true);
 });
