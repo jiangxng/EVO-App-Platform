@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** HOST READ ADAPTER MERGED — TRADING LITE READBACK IN PROGRESS  
+**Status:** PUBLIC READBACK BROWSER PASS — COMPATIBILITY RETIREMENT NEXT  
 **Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -335,6 +335,21 @@ accepted BusinessData
 → Trading Lite action result
 ```
 
-Readback failure does not convert an already accepted material write into a failed action; the result reports the observation as unavailable instead. The next bounded slice is Eidos result rendering plus real-browser readback evidence.
+Readback failure does not convert an already accepted material write into a failed action; the result reports the observation as unavailable instead.
 
-The legacy `/api/v1/commands` path remains compatibility-only until this readback proof is closed.
+Visible browser proof now covers:
+
+```text
+Eidos Trading Lite form
+→ /v1/actions
+→ generic BusinessData write
+→ Host generic runtime observation read
+→ Trading Lite result
+→ Eidos generic form result renderer
+→ visible runtimeObservation = OBSERVED
+→ EVO Ledger / Balance verification
+```
+
+The readback gate is therefore closed when this change is on `main`, because merge requires the cross-project browser certification to pass.
+
+The next bounded slice is a compatibility-usage audit before retiring any legacy `/api/v1/commands` dependency. No compatibility endpoint should be removed merely because Trading Lite no longer needs it.
