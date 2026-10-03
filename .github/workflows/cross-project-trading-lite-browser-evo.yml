@@ -1,0 +1,171 @@
+name: Cross Project CI - Trading Lite Eidos Browser EVO
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-lite/**"
+      - "catalog/seed.ts"
+      - "manager/app-host-client.ts"
+      - "manager/browser-transport.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "manager/server.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-trading-lite-eidos-browser-evo.mjs"
+      - ".github/workflows/cross-project-trading-lite-browser-evo.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/trading-lite/**"
+      - "catalog/seed.ts"
+      - "manager/app-host-client.ts"
+      - "manager/browser-transport.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "manager/server.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-trading-lite-eidos-browser-evo.mjs"
+      - ".github/workflows/cross-project-trading-lite-browser-evo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-project-trading-lite-browser-evo-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "24.20.0"
+  DATABASE_URL: postgres://evo:evo@localhost:5432/evo
+  EVO_CERTIFIED_COMMIT: 04103a006fa6c0805ea52c0b05a5cbf172eaae78
+  EVO_BASE_URL: http://127.0.0.1:3000
+  APP_PLATFORM_BASE_URL: http://127.0.0.1:4100
+  EVO_ENTERPRISE_CODE: EVO_DEMO
+  APP_PLATFORM_PROOF_CONTEXT_ID: enterprise:browser-proof
+  NODE_ENV: test
+  LOG_LEVEL: silent
+
+jobs:
+  browser-ledger-proof:
+    name: Eidos Browser -> ActionHost -> EVO -> Ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: evo
+          POSTGRES_PASSWORD: evo
+          POSTGRES_DB: evo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evo -d evo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout App Platform
+        uses: actions/checkout@v5
+
+      - name: Checkout certified EVO
+        uses: actions/checkout@v5
+        with:
+          repository: jiangxng/EVO
+          ref: ${{ env.EVO_CERTIFIED_COMMIT }}
+          path: evo
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install and build App Platform
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install, migrate, seed and build EVO
+        working-directory: evo
+        run: |
+          npm ci
+          npm run migrate
+          npm run seed:demo
+          npm run build
+
+      - name: Start EVO API and Worker
+        run: |
+          set -euo pipefail
+          (
+            cd evo
+            HOST=0.0.0.0 PORT=3000 \
+              node dist/apps/api/src/main.js > /tmp/evo-api.log 2>&1 &
+            echo $! > /tmp/evo-api.pid
+            WORKER_POLL_INTERVAL_MS=100 \
+              node dist/apps/worker/src/main.js > /tmp/evo-worker.log 2>&1 &
+            echo $! > /tmp/evo-worker.pid
+          )
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS "${EVO_BASE_URL}/health/ready" > /tmp/evo-ready.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "${ready}" -ne 1 ]; then
+            cat /tmp/evo-api.log || true
+            cat /tmp/evo-worker.log || true
+            exit 1
+          fi
+
+      - name: Start App Platform with governed Enterprise Context
+        env:
+          APP_PLATFORM_STATIC_SESSION_JSON: '{"contractVersion":"0.1.0","sessionId":"browser-proof-session","principal":{"contractVersion":"0.1.0","subjectId":"browser-proof-user","actorType":"HUMAN","identityProviderId":"proof.identity","displayName":"Browser Proof"},"issuedAt":"2026-10-03T00:00:00.000Z"}'
+          APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON: '{"contractVersion":"0.1.0","contexts":[{"contextId":"enterprise:browser-proof","enterpriseId":"enterprise:browser-proof","displayName":"Browser Proof Enterprise"}]}'
+          APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON: '{"contractVersion":"0.1.0","grants":[{"grantId":"grant:browser-proof","subjectId":"browser-proof-user","contextId":"enterprise:browser-proof","relationship":"OWNER"}]}'
+          APP_PLATFORM_TRADING_LITE_EVO_APPLICATION_ID: sales_order
+        run: |
+          set -euo pipefail
+          PORT=4100 npm start > /tmp/app-platform.log 2>&1 &
+          echo $! > /tmp/app-platform.pid
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS "${APP_PLATFORM_BASE_URL}/v1/catalog" > /tmp/app-platform-catalog.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "${ready}" -ne 1 ]; then
+            cat /tmp/app-platform.log || true
+            exit 1
+          fi
+
+      - name: Certify browser to EVO Ledger
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "${CHROME}" ]; then
+            echo "No Chrome/Chromium binary available on runner" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/certify-trading-lite-eidos-browser-evo.mjs | tee /tmp/trading-lite-browser-evo-proof.log
+          grep -q "TRADING_LITE_BROWSER_EVO_PROOF=" /tmp/trading-lite-browser-evo-proof.log
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          cat /tmp/app-platform.log || true
+          cat /tmp/evo-api.log || true
+          cat /tmp/evo-worker.log || true
+
+      - name: Stop proof processes
+        if: always()
+        run: |
+          if [ -f /tmp/app-platform.pid ]; then kill "$(cat /tmp/app-platform.pid)" || true; fi
+          if [ -f /tmp/evo-worker.pid ]; then kill "$(cat /tmp/evo-worker.pid)" || true; fi
+          if [ -f /tmp/evo-api.pid ]; then kill "$(cat /tmp/evo-api.pid)" || true; fi
