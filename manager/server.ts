@@ -1635,11 +1635,14 @@ if (!manager.getSnapshot().activeFeatures.some(
     console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
   }
 }
-if (!manager.getSnapshot().activeFeatures.some(
-  feature =>
-    feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
-    || feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
-)) {
+if (
+  !manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
+  )
+  || !manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
+  )
+) {
   try {
     manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
     console.log("Activated Enterprise Observatory peer plugin.");
