@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `TRADING-LITE-EVO-TRANSPORT-2026-10-03-01`  
-**Snapshot time:** `2026-10-03T11:23:00+08:00`  
+**Snapshot:** `TRADING-LITE-EVO-BROWSER-WRITE-2026-10-03-01`  
+**Snapshot time:** `2026-10-03T11:40:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,44 +16,44 @@ ACTIVE
 
 ## Latest closed live slice
 
-**eog-enterprise-context-production-migration-proof-v0-1: VERIFIED_PRODUCTION_PASS**
+**trading-lite-eidos-browser-generic-transport-proof-v0-1: VERIFIED_CI_PASS**
 
-EOG semantic persistence is production-proven on Enterprise Context Business Definition Repository. Initial #269 startup non-destructively imported one legacy EOG graph definition; a controlled restart then reached SUCCESS without re-importing or conflicting with the migrated graph revision. The legacy semantic file remains migration evidence only and 2D/3D View State remains separate.
+Real Chrome drove the existing Eidos Trading Lite /trading Experience through ActionHost with Host-selected Enterprise Context, the generic EVO BusinessData adapter, EVO PostgreSQL 18 and Worker posting, and public runtime observation confirmed the resulting Receivable ledger state.
 
-Authority: `docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md`
+Authority: `docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md`
 
 Evidence:
 
 ```json
 {
-  "productionCommit": "932098f9e2be13e1d0c9cf809831d3f3c5c2297c",
-  "firstMigrationDeploymentId": "36ed9180-da9e-46fe-9900-a6e575e5b314",
-  "firstMigrationImportedGraphCount": 1,
-  "controlledRestartDeploymentId": "f93c06bd-651a-4b86-bb60-e97cab781d6a",
-  "controlledRestartStatus": "SUCCESS",
-  "graphMigrationRestartBehavior": "IDEMPOTENT_NO_REIMPORT_NO_CONFLICT",
-  "legacySourceMutation": "NONE",
-  "semanticAuthority": "enterprise.business-definition.repository",
-  "viewStateAuthority": "SEPARATE_PRESENTATION_STORE"
+  "appPlatformPr": 315,
+  "mergeCommit": "0d604992ae3747989a1ac0644bbd6a0bc28c4a14",
+  "browserRoute": "/trading",
+  "surface": "DESKTOP_WORKBENCH",
+  "actionEndpoint": "/v1/actions",
+  "contextPropagation": "x-evo-context-id",
+  "evoApplicationId": "sales_order",
+  "eventCountDelta": 1,
+  "receivableBalanceAmount": 137
 }
 ```
 
 ## Current open live gate
 
-**trading-lite-eidos-browser-generic-transport-proof-v0-1: READY**
+**trading-lite-evo-public-readback-projection-v0-1: READY**
 
-Restore a real-browser Trading Lite end-to-end proof through the Eidos-hosted App Platform experience while keeping EVO submission behind the Host-owned generic BusinessData adapter certified by #312.
+Complete the remaining generic EVO integration slice by returning authoritative public EVO runtime results through a Host-owned read/query projection to the Eidos Trading Lite Experience.
 
 Acceptance:
 
-- Trading Lite remains an App Platform application Experience rendered through Eidos public App Host/runtime surfaces
-- Human create-order interaction goes through ActionRequest/ActionHost rather than browser-direct EVO calls
-- Host resolves the lifecycle-gated Application Runtime Binding to the exact EVO applicationId
-- server-side EVO adapter submits only through the public generic BusinessData endpoint
-- browser proof observes deterministic success feedback and the resulting public EVO runtime evidence
-- no private Eidos or EVO implementation import is introduced
-- 2D/3D EOG responsibility split remains unchanged
-- SOP remains separate and deferred
+- Host publishes a business-neutral EVO public read/query projection contract
+- the implementation uses only documented EVO public runtime observation/read boundaries
+- Enterprise scope and exact runtime applicationId are resolved by Host Context and Application Runtime Binding
+- browser/Eidos never calls EVO directly and no EVO private module, SQL table or persistence row becomes a Host contract
+- Trading Lite can render authoritative post-submit runtime evidence through the Host projection
+- real-browser CI proves Eidos -> Host read/query -> EVO public read -> Eidos rendering
+- legacy /api/v1/commands compatibility remains available until this readback gate is closed
+- EOG 2D/3D ownership remains unchanged and SOP remains separate and deferred
 
 ## Current production preview
 
@@ -94,6 +94,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #315 — MERGED_CI_PASS: Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger.
+- PR #314 — MERGED_CI_PASS: Propagate the Host-selected active Context generically on same-origin browser requests without app-specific context injection.
+- PR #313 — MERGED_CI_PASS: Close the generic EVO transport gate and open the bounded Trading Lite Eidos browser proof.
 - PR #312 — MERGED_CI_PASS: Certify Trading Lite through App Platform → public EVO BusinessData HTTP → PostgreSQL 18 → Worker → Ledger/runtime observation using exact runtime applicationId binding.
 - PR #311 — MERGED_CI_PASS: Migrate Trading Lite to the generic EVO BusinessData transport.
 - PR #310 — MERGED_CI_PASS: Add Host-owned EVO BusinessData HTTP adapter.
