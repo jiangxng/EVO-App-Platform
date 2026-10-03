@@ -644,6 +644,7 @@ test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency gra
     "trading-lite"
   ]);
   assert.deepEqual(snapshot.effectiveCapabilities, [
+    "enterprise.application-runtime-binding",
     "evo.balance",
     "evo.business-data",
     "evo.ledger",
