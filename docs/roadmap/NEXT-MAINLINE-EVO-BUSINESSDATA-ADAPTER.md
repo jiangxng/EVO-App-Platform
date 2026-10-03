@@ -1,7 +1,7 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** TRADING LITE HOST-ADAPTER MIGRATION IMPLEMENTED — DATABASE/BROWSER PROOF NEXT  
-**Date:** 2026-09-28  
+**Status:** WRITE DATABASE + EIDOS BROWSER PASS — PUBLIC READ/QUERY PROJECTION NEXT  
+**Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
 
@@ -281,7 +281,7 @@ App Platform now has:
 - malformed-response and public-error fail-closed tests;
 - deterministic idempotency identity preservation across retry.
 
-The next bounded slice migrates Trading Lite to consume the Host adapter while leaving the legacy command path available as compatibility evidence.
+Trading Lite now consumes the Host adapter and the real-browser write path is certified through Eidos, ActionHost, governed Enterprise Context, PostgreSQL 18, EVO Worker and Ledger. The remaining bounded slice is the public Host-owned read/query result projection.
 
 
 ## 15. Trading Lite migration
@@ -302,7 +302,7 @@ The Host owns:
 - exact `runtimeApplicationId -> applicationId`;
 - EVO HTTP transport.
 
-Next proof:
+Write proof — PASS:
 
 ```text
 Eidos Trading Lite
@@ -312,5 +312,15 @@ Eidos Trading Lite
 → EVO PostgreSQL
 → PostingRule(applicationId=sales_order)
 → Ledger / Balance
-→ readback / browser evidence
 ```
+
+Remaining proof:
+
+```text
+EVO public runtime observation/read boundary
+→ Host-owned generic read/query projection
+→ Trading Lite / Eidos rendering
+→ real-browser readback evidence
+```
+
+The legacy `/api/v1/commands` path remains compatibility-only until this readback proof is closed.
