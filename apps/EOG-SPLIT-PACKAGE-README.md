@@ -1,20 +1,32 @@
-# EOG split plugin package identities
+# EOG package convergence
 
-This directory-level split starts the physical convergence defined by
-`docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md`.
+Current canonical package family:
 
-The package family is migrating incrementally:
+- `evo-eog-2d`
+  - `evo-eog-2d.viewer` — interactive read/inspect/navigate Workspace.
+  - `evo-eog-2d.designer` — Viewer baseline plus governed semantic editing.
+- `evo-eog-3d-viewer` — current spatial Viewer package; scheduled for naming/Observatory cleanup.
 
-- `evo-eog-2d-designer` — **CUT OVER**: owns the effective 2D Designer Experience and Human semantic/2D action handlers; default activation is ON.
-- `evo-eog-2d-viewer` — **CUT OVER**: owns the effective desktop/mobile-read Viewer Experience and Viewer read/orchestration handlers; default activation is ON.
-- `evo-eog-3d-viewer` — **CUT OVER**: owns the effective spatial Viewer Experience and spatial read handler; default activation is ON.
+The earlier physical split into separate `evo-eog-2d-viewer` and
+`evo-eog-2d-designer` packages was a migration step, not the final model.
+Their source directories remain temporarily as implementation/compatibility
+locations while the package identity converges.
 
-All packages are registered in the Package Catalog but are not installed or
-activated by default. Existing EOG production behavior remains owned by the
-compatibility implementation until each Experience/action/provider asset is
-migrated with its own regression proof.
+The 2D Viewer is **interactive**, not static. Viewer and Designer share:
 
-All three depend on the Enterprise Context Business Definition repository
-capability. The Designer additionally depends on `authorization.check`.
+- graph projection;
+- node/edge selection;
+- node/edge Inspector;
+- pan / zoom / focus;
+- navigation / drill-down;
+- overlays;
+- View State.
 
-No package may introduce a second Enterprise Graph Definition authority.
+Designer adds semantic mutation capabilities; Viewer does not receive them.
+
+Enterprise Context remains the single Enterprise Graph Definition authority.
+Eidos owns the reusable 2D/3D interaction cores.
+
+Observatory / Analysis / SOP are peer capabilities, not children of the EOG
+Viewer or Designer. Observatory compatibility routes remain temporarily and
+will be extracted in a subsequent bounded slice. SOP remains deferred.
