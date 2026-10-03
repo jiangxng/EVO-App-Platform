@@ -82,12 +82,12 @@ import {
   createEogViewStateProviderV010
 } from "../providers/eog-view-state/runtime.js";
 import {
-  createFileEogApplicationRuntimeBindingStoreV010,
-  createMemoryEogApplicationRuntimeBindingStoreV010
-} from "./enterprise-operating-graph-application-runtime-store.js";
+  createFileEnterpriseApplicationRuntimeBindingStoreV010,
+  createMemoryEnterpriseApplicationRuntimeBindingStoreV010
+} from "../providers/application-runtime-binding/store.js";
 import {
-  createEogApplicationRuntimeBindingServiceV010
-} from "./enterprise-operating-graph-application-runtime-service.js";
+  createEnterpriseApplicationRuntimeBindingProviderV010
+} from "../providers/application-runtime-binding/runtime.js";
 import {
   createEogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
@@ -111,6 +111,9 @@ import {
 import {
   createEnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
+import {
+  createEnterpriseOperatingGraphInspectorPropertyResolverV010
+} from "./enterprise-operating-graph-inspector-provider.js";
 import {
   createEnterpriseOperatingGraphObservatoryActionHandlersV020
 } from "./enterprise-operating-graph-observatory-actions.js";
@@ -177,6 +180,10 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
+import {
+  ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
+  type EnterpriseApplicationRuntimeBindingProviderV010
+} from "../contracts/enterprise-application-runtime-binding.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -412,6 +419,11 @@ import {
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
   eogBottleneckAnalysisProviderPackage
 } from "../providers/eog-bottleneck-analysis/package.js";
+import {
+  APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
+  applicationRuntimeBindingProviderPackage
+} from "../providers/application-runtime-binding/package.js";
 import {
   createEogBottleneckAnalysisProviderV020
 } from "../providers/eog-bottleneck-analysis/runtime.js";
@@ -665,6 +677,13 @@ import {
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../apps/eog-2d-viewer/package.js";
 import {
+  createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010,
+  createEnterpriseOperatingGraphViewerWorkspacePageV010,
+  createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
+  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
+} from "../apps/eog-2d-viewer/workspace-page.js";
+import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
@@ -700,6 +719,7 @@ const catalog = createPackageCatalog([
   experienceCompilerMemoryIntakeProviderPackage,
   evoRuntimeObservatoryProviderPackage,
   eogBottleneckAnalysisProviderPackage,
+  applicationRuntimeBindingProviderPackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
@@ -873,19 +893,20 @@ const enterpriseOperatingGraphViewService =
     store: enterpriseOperatingGraphViewStore
   });
 
-const eogApplicationRuntimeBindingStateFile =
-  process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+const applicationRuntimeBindingStateFile =
+  process.env.APP_PLATFORM_APPLICATION_RUNTIME_BINDING_FILE?.trim()
+  || process.env.APP_PLATFORM_EOG_APPLICATION_RUNTIME_BINDING_FILE?.trim()
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "eog-application-runtime-bindings.json")
     : undefined);
-const eogApplicationRuntimeBindingStore = eogApplicationRuntimeBindingStateFile
-  ? createFileEogApplicationRuntimeBindingStoreV010(
-      eogApplicationRuntimeBindingStateFile
+const applicationRuntimeBindingStore = applicationRuntimeBindingStateFile
+  ? createFileEnterpriseApplicationRuntimeBindingStoreV010(
+      applicationRuntimeBindingStateFile
     )
-  : createMemoryEogApplicationRuntimeBindingStoreV010();
-const eogApplicationRuntimeBindingService =
-  createEogApplicationRuntimeBindingServiceV010({
-    store: eogApplicationRuntimeBindingStore
+  : createMemoryEnterpriseApplicationRuntimeBindingStoreV010();
+const applicationRuntimeBindingProvider =
+  createEnterpriseApplicationRuntimeBindingProviderV010({
+    store: applicationRuntimeBindingStore
   });
 
 const legacySopMigration = migrateLegacyEogSopsV010({
@@ -1128,6 +1149,19 @@ const helpCorpus = (() => {
   }
 })();
 const providerRuntimeRegistry = createProviderRuntimeRegistry();
+
+providerRuntimeRegistry.replace<EnterpriseApplicationRuntimeBindingProviderV010>(
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
+  applicationRuntimeBindingProvider
+);
+providerRuntimeRegistry.setHealth(
+  APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Application Runtime Binding runtime is ready; package lifecycle controls discoverability.",
+    checkedAt: new Date().toISOString()
+  }
+);
 
 if (managedSessionEnabled) {
   providerRuntimeRegistry.replace<RequestIdentitySessionProviderV010>(
@@ -1590,7 +1624,26 @@ const enterpriseOperatingGraphObservatoryProviders =
     installationId: "default"
   });
 
+const enterpriseOperatingGraphInspectorProperties =
+  createEnterpriseOperatingGraphInspectorPropertyResolverV010({
+    manager,
+    registry: providerRuntimeRegistry
+  });
+
 const installedAtStartup = manager.getSnapshot().installedPackages;
+if (
+  applicationRuntimeBindingStore.snapshot().bindings.length > 0
+  && !installedAtStartup.some(
+    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    console.log("Migrated persisted Application Runtime Bindings onto the provider package.");
+  } catch (error) {
+    console.error("Failed to activate Application Runtime Binding Provider.", error);
+  }
+}
 if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
@@ -1788,6 +1841,19 @@ if (
   } catch (error) {
     console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
   }
+}
+
+function resolveApplicationRuntimeBindingProvider():
+  EnterpriseApplicationRuntimeBindingProviderV010 | undefined {
+  return resolveProviderRuntimeV010<EnterpriseApplicationRuntimeBindingProviderV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(
+      ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010
+    ),
+    providerBindings,
+    ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
+    { installationId: "default" }
+  )?.runtime;
 }
 
 function resolveManagedSecretsProvider(): ManagedSecretsProviderV010 | undefined {
@@ -2308,8 +2374,31 @@ const evoObservatoryApplicationMap = (() => {
   }
   return result;
 })();
+if (
+  evoObservatoryApplicationMap.length > 0
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
+  } catch (error) {
+    console.error("Failed to activate Application Runtime Binding Provider.", error);
+  }
+}
+const configuredApplicationRuntimeBindingProvider =
+  evoObservatoryApplicationMap.length > 0
+    ? resolveApplicationRuntimeBindingProvider()
+    : undefined;
+if (
+  evoObservatoryApplicationMap.length > 0
+  && !configuredApplicationRuntimeBindingProvider
+) {
+  throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+}
 for (const mapping of evoObservatoryApplicationMap) {
-  eogApplicationRuntimeBindingService.bind({
+  configuredApplicationRuntimeBindingProvider!.bind({
     enterpriseId: mapping.enterpriseId,
     hostApplicationRefId: mapping.hostApplicationRefId,
     runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
@@ -2730,7 +2819,7 @@ if (evoObservatoryEnabled) {
       hostEnterpriseId: string,
       hostApplicationRefId: string
     ) {
-      return eogApplicationRuntimeBindingService.resolve({
+      return resolveApplicationRuntimeBindingProvider()?.resolve({
         enterpriseId: hostEnterpriseId,
         hostApplicationRefId,
         runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID
@@ -3113,6 +3202,7 @@ const actionRouter = createAppActionRouter(
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
       resolveAuthorizationProvider,
+      inspectorResolver: enterpriseOperatingGraphInspectorProperties,
       locale(context) {
         return context.locale;
       }
@@ -3130,6 +3220,18 @@ const actionRouter = createAppActionRouter(
       }
     }),
     createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
+    createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
+      graphService: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService,
+      locale(context) {
+        return context.locale;
+      }
+    }),
+    createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
+      graphService: enterpriseOperatingGraphService,
+      inspectorResolver: enterpriseOperatingGraphInspectorProperties
+    }),
+    createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010(),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
@@ -4435,6 +4537,34 @@ const server = createServer(async (request, response) => {
           })
         );
       }
+      if (source === EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraphViewerWorkspacePageV010({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
       if (
         source === EOG_OBSERVATORY_PAGE_SOURCE
         || source === EOG_MOBILE_READ_PAGE_SOURCE
