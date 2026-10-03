@@ -688,7 +688,6 @@ import {
   EOG_2D_VIEWER_PACKAGE_ID
 } from "../apps/eog-2d-viewer/package.js";
 import {
-  createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010,
   createEnterpriseOperatingGraphViewerWorkspacePageV010,
   createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
   createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
@@ -3334,7 +3333,6 @@ const actionRouter = createAppActionRouter(
       graphService: enterpriseOperatingGraphService,
       inspectorResolver: enterpriseOperatingGraphInspectorProperties
     }),
-    createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010(),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
