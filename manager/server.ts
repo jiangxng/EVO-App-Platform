@@ -674,7 +674,7 @@ import {
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
   eog2dPackage,
-  eog3dViewerPackage,
+  eog3dPackage,
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
@@ -699,7 +699,13 @@ import {
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
 import {
+  createEnterpriseOperatingGraph3dViewerPageV010,
+  createEnterpriseOperatingGraph3dViewerReadActionV010,
+  EOG_3D_VIEWER_PAGE_SOURCE
+} from "../apps/eog-3d/workspace-page.js";
+import {
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
 
@@ -709,7 +715,7 @@ const catalog = createPackageCatalog([
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
   eog2dPackage,
-  eog3dViewerPackage,
+  eog3dPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
   ledgerRuntimeConfiguratorPackage,
@@ -1620,16 +1626,6 @@ if (!manager.getSnapshot().activeFeatures.some(
   }
 }
 if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
-)) {
-  try {
-    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
-    console.log("Activated Enterprise Observatory 2D peer plugin.");
-  } catch (error) {
-    console.error("Failed to activate Enterprise Observatory 2D peer plugin.", error);
-  }
-}
-if (!manager.getSnapshot().activeFeatures.some(
   feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
 )) {
   try {
@@ -1637,6 +1633,18 @@ if (!manager.getSnapshot().activeFeatures.some(
     console.log("Activated EOG 3D Viewer ownership cutover.");
   } catch (error) {
     console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
+  }
+}
+if (!manager.getSnapshot().activeFeatures.some(
+  feature =>
+    feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
+    || feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
+)) {
+  try {
+    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
+    console.log("Activated Enterprise Observatory peer plugin.");
+  } catch (error) {
+    console.error("Failed to activate Enterprise Observatory peer plugin.", error);
   }
 }
 
@@ -3356,6 +3364,10 @@ const actionRouter = createAppActionRouter(
         return context.locale;
       }
     }),
+    createEnterpriseOperatingGraph3dViewerReadActionV010({
+      graphService: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService
+    }),
     createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
       graphService: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
@@ -4716,9 +4728,36 @@ const server = createServer(async (request, response) => {
               })
         );
       }
-      if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
+      if (source === EOG_3D_VIEWER_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraph3dViewerPageV010({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+      if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
