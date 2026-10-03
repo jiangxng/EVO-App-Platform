@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** IMPLEMENTATION READY  
+**Status:** HOST ADAPTER IMPLEMENTED — TRADING LITE MIGRATION NEXT  
 **Date:** 2026-09-28  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -265,3 +265,20 @@ Do not yet:
 - freeze an HTTP path that EVO itself still labels unfrozen.
 
 The purpose is to establish the correct ownership boundary first.
+
+
+## 14. Current implementation convergence
+
+EVO now exposes the target transport:
+
+`POST /api/v1/business-data`
+
+App Platform now has:
+
+- `contracts/evo-business-data.ts`;
+- `manager/evo-business-data-http-adapter.ts`;
+- exact `runtimeApplicationId -> applicationId` protocol proof;
+- malformed-response and public-error fail-closed tests;
+- deterministic idempotency identity preservation across retry.
+
+The next bounded slice migrates Trading Lite to consume the Host adapter while leaving the legacy command path available as compatibility evidence.
