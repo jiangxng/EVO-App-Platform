@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "App Platform → EVO applicationId public-contract proof is closed PASS: lifecycle-gated enterprise.application-runtime-binding resolves Host semantic Application identity to runtimeApplicationId, and the EVO bridge preserves that exact value as EVO applicationId without transformation. SOP remains separate and deferred. The next cross-project gate is EVO-side convergence of the generic BusinessDataSubmission transport/endpoint onto this exact applicationId routing anchor.",
+  "currentStep": "Trading Lite → EVO generic transport proof is closed PASS via PR #312: App Platform resolves the lifecycle-gated runtime applicationId, submits through the Host-owned public EVO BusinessData HTTP adapter, and CI proves PostgreSQL 18 + EVO Worker + Ledger/runtime observation end to end. SOP remains separate and deferred. The next gate is a real-browser Trading Lite proof through the Eidos-hosted Experience and the same generic transport.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1742,8 +1742,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "EOG-RESPONSIBILITY-2026-10-02-14",
-    "snapshotAt": "2026-10-02T22:41:00+08:00",
+    "snapshotId": "TRADING-LITE-EVO-TRANSPORT-2026-10-03-01",
+    "snapshotAt": "2026-10-03T11:23:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1783,18 +1783,18 @@
         }
       },
       "openGate": {
-        "id": "evo-generic-business-data-submission-transport-convergence-v0-1",
+        "id": "trading-lite-eidos-browser-generic-transport-proof-v0-1",
         "status": "READY",
-        "summary": "Converge EVO's target generic BusinessDataSubmission transport/endpoint so App Platform adapters can submit through the public EVO contract using the exact applicationId proven by #308, without restoring rich Application lifecycle into EVO Core.",
-        "authority": "docs/architecture/APP-PLATFORM-EVO-APPLICATION-ID-CONTRACT-PROOF-v0.1.md",
+        "summary": "Restore a real-browser Trading Lite end-to-end proof through the Eidos-hosted App Platform experience while keeping EVO submission behind the Host-owned generic BusinessData adapter certified by #312.",
+        "authority": "docs/architecture/EIDOS-EXPERIENCE-ARCHITECTURE-ADOPTION-v0.1.md",
         "acceptance": [
-          "EVO exposes or converges a public generic BusinessDataSubmission transport/endpoint",
-          "submission routes by exact applicationId",
-          "PostingRule selection uses the same exact applicationId",
-          "compatibility transports remain adapters and do not create alternate application identity",
-          "EVO Core remains limited to minimal Application routing anchor, deterministic BusinessData, posting and ledger execution",
-          "App Platform rich Application lifecycle/capability/authorization remains outside EVO Core",
-          "cross-project integration uses public contracts only",
+          "Trading Lite remains an App Platform application Experience rendered through Eidos public App Host/runtime surfaces",
+          "Human create-order interaction goes through ActionRequest/ActionHost rather than browser-direct EVO calls",
+          "Host resolves the lifecycle-gated Application Runtime Binding to the exact EVO applicationId",
+          "server-side EVO adapter submits only through the public generic BusinessData endpoint",
+          "browser proof observes deterministic success feedback and the resulting public EVO runtime evidence",
+          "no private Eidos or EVO implementation import is introduced",
+          "2D/3D EOG responsibility split remains unchanged",
           "SOP remains separate and deferred"
         ]
       },
@@ -1811,6 +1811,21 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 312,
+        "status": "MERGED_CI_PASS",
+        "summary": "Certify Trading Lite through App Platform → public EVO BusinessData HTTP → PostgreSQL 18 → Worker → Ledger/runtime observation using exact runtime applicationId binding."
+      },
+      {
+        "pr": 311,
+        "status": "MERGED_CI_PASS",
+        "summary": "Migrate Trading Lite to the generic EVO BusinessData transport."
+      },
+      {
+        "pr": 310,
+        "status": "MERGED_CI_PASS",
+        "summary": "Add Host-owned EVO BusinessData HTTP adapter."
+      },
       {
         "pr": 308,
         "status": "MERGED_CI_PASS",
