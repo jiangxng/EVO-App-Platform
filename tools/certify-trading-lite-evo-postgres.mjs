@@ -74,13 +74,7 @@ const beforeApp = await runtimeObservation(
   { kind: "APPLICATION_ANCHOR", applicationId: runtimeApplicationId },
   ["event.count"]
 );
-const beforeLedger = await runtimeObservation(
-  enterprise.id,
-  { kind: "LEDGER_DEFINITION", code: "receivable" },
-  ["balance.amount"]
-);
 const beforeEventCount = metric(beforeApp, "event.count");
-const beforeReceivable = metric(beforeLedger, "balance.amount");
 
 const bindingProvider = createEnterpriseApplicationRuntimeBindingProviderV010({
   store: createMemoryEnterpriseApplicationRuntimeBindingStoreV010(),
@@ -171,36 +165,50 @@ assert.equal(result.result.postingStatus, "QUEUED");
 assert.ok(result.result.businessDataId);
 
 let afterEventCount = beforeEventCount;
-let afterReceivable = beforeReceivable;
+let afterReceivable = null;
+let lastLedgerError = null;
 for (let attempt = 0; attempt < 40; attempt += 1) {
   await new Promise(resolve => setTimeout(resolve, 500));
-  const [app, ledger] = await Promise.all([
-    runtimeObservation(
-      enterprise.id,
-      { kind: "APPLICATION_ANCHOR", applicationId: runtimeApplicationId },
-      ["event.count"]
-    ),
-    runtimeObservation(
+  const app = await runtimeObservation(
+    enterprise.id,
+    { kind: "APPLICATION_ANCHOR", applicationId: runtimeApplicationId },
+    ["event.count"]
+  );
+  afterEventCount = metric(app, "event.count");
+
+  try {
+    const ledger = await runtimeObservation(
       enterprise.id,
       { kind: "LEDGER_DEFINITION", code: "receivable" },
       ["balance.amount"]
-    )
-  ]);
-  afterEventCount = metric(app, "event.count");
-  afterReceivable = metric(ledger, "balance.amount");
+    );
+    afterReceivable = metric(ledger, "balance.amount");
+    lastLedgerError = null;
+  } catch (error) {
+    lastLedgerError = error;
+  }
+
   if (
     afterEventCount >= beforeEventCount + 1
-    && Math.abs((afterReceivable - beforeReceivable) - amount) < 0.000001
+    && afterReceivable !== null
+    && Math.abs(afterReceivable - amount) < 0.000001
   ) {
     break;
   }
 }
 
 assert.equal(afterEventCount, beforeEventCount + 1);
+assert.notEqual(
+  afterReceivable,
+  null,
+  lastLedgerError instanceof Error
+    ? lastLedgerError.message
+    : "receivable runtime observation unavailable"
+);
 assert.ok(
-  Math.abs((afterReceivable - beforeReceivable) - amount) < 0.000001,
-  "expected receivable balance delta " + amount
-    + ", got " + (afterReceivable - beforeReceivable)
+  Math.abs(afterReceivable - amount) < 0.000001,
+  "expected receivable balance amount " + amount
+    + ", got " + afterReceivable
 );
 
 console.log(JSON.stringify({
@@ -213,5 +221,5 @@ console.log(JSON.stringify({
   businessDataId: result.result.businessDataId,
   postingInputId: result.result.postingInputId,
   eventCountDelta: afterEventCount - beforeEventCount,
-  receivableBalanceDelta: afterReceivable - beforeReceivable
+  receivableBalanceAmount: afterReceivable
 }, null, 2));
