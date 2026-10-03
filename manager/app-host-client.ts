@@ -37,6 +37,9 @@ const initialLocale = persistedLocale || browserLocale || "en";
 const versionNotice = mountBrowserVersionNoticeV010();
 const transport = createRevisionAwareBrowserTransportV010({
   importUrl: import.meta.url,
+  selectedContextId() {
+    return window.localStorage.getItem("evo.context.id")?.trim() || undefined;
+  },
   onUpdateAvailable(hostRevision) {
     versionNotice.show(hostRevision);
   }
