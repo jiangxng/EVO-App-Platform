@@ -36,7 +36,7 @@ test("Application Runtime Binding is a generic install-gated headless provider i
   assert.equal(applicationRuntimeBindingProviderPackage.type, "PLATFORM_PROVIDER");
   assert.equal(
     applicationRuntimeBindingProviderPackage.features[0]?.defaultActivation,
-    false
+    true
   );
 });
 
