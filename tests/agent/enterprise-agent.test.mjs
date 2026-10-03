@@ -29,6 +29,9 @@ import {
 import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js";
 import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
 import { enterpriseAgentPackage } from "../../dist/agents/enterprise-agent/package.js";
+import {
+  applicationRuntimeBindingProviderPackage
+} from "../../dist/providers/application-runtime-binding/package.js";
 
 const testPrincipal = {
   contractVersion: "0.1.0",
@@ -592,6 +595,7 @@ test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency gra
   const catalogSource = createPackageCatalog([
     companyNotesPackage,
     evoFoundationPackage,
+    applicationRuntimeBindingProviderPackage,
     tradingLitePackage
   ]);
   const store = createMemoryLifecycleStore();
@@ -619,8 +623,13 @@ test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency gra
   assert.equal(plan.packageId, "trading-lite");
   assert.deepEqual(plan.blockers, []);
   assert.deepEqual(plan.missingCapabilities, []);
-  assert.deepEqual(plan.installPackages, ["evo.core", "trading-lite"]);
+  assert.deepEqual(plan.installPackages, [
+    "evo-application-runtime-binding-provider",
+    "evo.core",
+    "trading-lite"
+  ]);
   assert.deepEqual(plan.activateFeatures, [
+    "evo-application-runtime-binding-provider.default",
     "evo.balance",
     "evo.business-data",
     "evo.ledger",
@@ -630,6 +639,7 @@ test("Proof B: Enterprise Agent installs Trading Lite and its EVO dependency gra
 
   const snapshot = manager.getSnapshot();
   assert.deepEqual(snapshot.installedPackages.map(x => x.packageId), [
+    "evo-application-runtime-binding-provider",
     "evo.core",
     "trading-lite"
   ]);
