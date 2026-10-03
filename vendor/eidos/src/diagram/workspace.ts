@@ -29,9 +29,13 @@ import type {
 /**
  * Neutral 2D Workspace names over the established diagram surface contract.
  *
- * The serialized v0.1 page contract intentionally remains compatible with
- * kind="diagram-editor". Editing is an optional capability expressed by
- * actions / Inspector editor descriptors, not by the identity of the surface.
+ * The serialized v0.1 page contract accepts both the legacy
+ * kind="diagram-editor" and the neutral kind="diagram-workspace".
+ *
+ * Editing is an optional capability. A Viewer Workspace may omit
+ * operationCommand entirely while retaining selection, inspection,
+ * navigation and other interaction. Designer surfaces add operationCommand
+ * and editor descriptors explicitly.
  */
 export type DiagramWorkspaceCommandV010 = DiagramEditorCommandV010;
 export type DiagramWorkspaceReadPresetV010 = DiagramEditorReadPresetV010;
