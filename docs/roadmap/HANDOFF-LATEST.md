@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `EOG-RESPONSIBILITY-2026-10-02-14`  
-**Snapshot time:** `2026-10-02T22:41:00+08:00`  
+**Snapshot:** `TRADING-LITE-EVO-TRANSPORT-2026-10-03-01`  
+**Snapshot time:** `2026-10-03T11:23:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -42,7 +42,7 @@ Evidence:
 
 **trading-lite-eidos-browser-generic-transport-proof-v0-1: READY**
 
-Restore a real-browser Trading Lite end-to-end proof through the Eidos-hosted App Platform experience, while keeping EVO submission behind the Host-owned generic BusinessData adapter certified by #312.
+Restore a real-browser Trading Lite end-to-end proof through the Eidos-hosted App Platform experience while keeping EVO submission behind the Host-owned generic BusinessData adapter certified by #312.
 
 Acceptance:
 
@@ -94,7 +94,7 @@ Not proved:
 
 ## Recent mainline changes
 
-- PR #312 — MERGED_CI_PASS: Certify Trading Lite through App Platform → public EVO BusinessData HTTP → PostgreSQL 18 → Worker → Ledger/runtime observation, using exact runtime applicationId binding.
+- PR #312 — MERGED_CI_PASS: Certify Trading Lite through App Platform → public EVO BusinessData HTTP → PostgreSQL 18 → Worker → Ledger/runtime observation using exact runtime applicationId binding.
 - PR #311 — MERGED_CI_PASS: Migrate Trading Lite to the generic EVO BusinessData transport.
 - PR #310 — MERGED_CI_PASS: Add Host-owned EVO BusinessData HTTP adapter.
 - PR #308 — MERGED_CI_PASS: Prove exact Host semantic Application → runtimeApplicationId → EVO applicationId public-contract identity mapping.
