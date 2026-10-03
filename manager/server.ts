@@ -78,6 +78,10 @@ import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
 import {
+  applyEogPreviewSeedV010,
+  parseEogPreviewSeedV010
+} from "./eog-preview-seed.js";
+import {
   createFileEogViewStateStoreV010,
   createMemoryEogViewStateStoreV010
 } from "../providers/eog-view-state/store.js";
@@ -897,6 +901,19 @@ const enterpriseOperatingGraphService =
     persistence: enterpriseOperatingGraphDefinitionPersistence,
     id: randomUUID
   });
+
+const eogPreviewSeed = parseEogPreviewSeedV010(
+  process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
+);
+const eogPreviewSeedResult = applyEogPreviewSeedV010({
+  service: enterpriseOperatingGraphService,
+  seed: eogPreviewSeed
+});
+if (eogPreviewSeedResult.seeded) {
+  console.log(
+    "Seeded EOG public preview graph '" + eogPreviewSeedResult.graphId + "'."
+  );
+}
 
 const enterpriseOperatingGraphViewStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_VIEW_FILE?.trim()
