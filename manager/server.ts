@@ -437,6 +437,7 @@ import {
   eogBottleneckAnalysisProviderPackage
 } from "../providers/eog-bottleneck-analysis/package.js";
 import {
+  APPLICATION_RUNTIME_BINDING_FEATURE_ID,
   APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
@@ -1685,13 +1686,20 @@ const enterpriseOperatingGraphInspectorProperties =
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
   applicationRuntimeBindingStore.snapshot().bindings.length > 0
-  && !installedAtStartup.some(
-    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  && !manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
   )
 ) {
   try {
-    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    console.log("Migrated persisted Application Runtime Bindings onto the provider package.");
+    const installed = manager.getSnapshot().installedPackages.some(
+      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+    );
+    if (installed) {
+      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    } else {
+      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    }
+    console.log("Migrated persisted Application Runtime Bindings onto the active provider feature.");
   } catch (error) {
     console.error("Failed to activate Application Runtime Binding Provider.", error);
   }
@@ -2451,12 +2459,19 @@ const evoObservatoryApplicationMap = (() => {
 })();
 if (
   evoObservatoryApplicationMap.length > 0
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  && !manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
   )
 ) {
   try {
-    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    const installed = manager.getSnapshot().installedPackages.some(
+      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+    );
+    if (installed) {
+      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    } else {
+      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    }
     console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
   } catch (error) {
     console.error("Failed to activate Application Runtime Binding Provider.", error);
