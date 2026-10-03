@@ -377,3 +377,30 @@ EOG adopts that contract directly:
 This removes the previous fake Viewer edit command. Viewer interactivity is
 proven by selection reads and Inspector properties, not by an operation handler
 that merely rejects writes.
+
+
+## Observatory extraction
+
+The earlier compatibility model that described Observatory as a Viewer mode is
+superseded.
+
+Canonical ownership is now:
+
+```text
+EOG 2D Viewer
+= interactive Workspace / selection / Inspector / navigation
+
+Enterprise Observatory
+= peer plugin
+  + Time Lens
+  + Runtime Facts
+  + Analysis overlays
+```
+
+The Observatory may reuse the EOG projection and requires the Viewer Feature,
+but it has an independent Package/Feature lifecycle. The Viewer package no
+longer contributes `/operating-graph/observe` or the mobile Observatory
+surface.
+
+Authority:
+`docs/architecture/ENTERPRISE-OBSERVATORY-PEER-PACKAGE-v0.1.md`.
