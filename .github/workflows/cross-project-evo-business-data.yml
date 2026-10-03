@@ -32,7 +32,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: 5f0e0195e9b2e71b3d1347c7c2479805d26875d3
+  EVO_CERTIFIED_COMMIT: 04103a006fa6c0805ea52c0b05a5cbf172eaae78
   EVO_BASE_URL: http://127.0.0.1:3000
   NODE_ENV: test
   LOG_LEVEL: silent
