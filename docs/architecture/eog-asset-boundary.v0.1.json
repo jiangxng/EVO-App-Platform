@@ -5,7 +5,7 @@
   "eogCore": {
     "lifecycle": "SPLIT_PLUGIN_FAMILY_ACTIVE",
     "ci": "GATING_SPLIT_BOUNDARIES",
-    "replacementModel": "EOG_2D_DESIGNER_PLUS_EOG_2D_VIEWER_PLUS_EOG_3D_VIEWER",
+    "replacementModel": "EOG_2D_PACKAGE_PLUS_EOG_3D_PACKAGE_WITH_ENTERPRISE_OBSERVATORY_PEER",
     "sharedSemanticAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
     "sharedDomainContract": [
       "contracts/enterprise-operating-graph.ts",
@@ -231,17 +231,17 @@
       "observatoryRole": "EXTRACTED_TO_ENTERPRISE_OBSERVATORY_PEER_PACKAGE"
     },
     "eog-3d-viewer": {
-      "role": "READ_ONLY_3D_SPATIAL_PROJECTION_AND_CONTRIBUTION_AGGREGATION",
+      "role": "READ_ONLY_3D_SPATIAL_WORKSPACE_AND_CONTRIBUTION_RENDERING",
       "targetAssets": [
         "apps/eog-3d-viewer/agent-tools.ts",
         "apps/eog-3d-viewer/spatial-page.ts"
       ],
       "lifecycle": "PHYSICAL_OWNERSHIP_ACTIVE",
-      "packageId": "evo-eog-3d-viewer",
-      "featureId": "evo-eog-3d-viewer.default",
-      "experienceOwnership": "ACTIVE",
+      "packageId": "evo-eog-3d",
+      "featureId": "evo-eog-3d.viewer",
+      "experienceOwnership": "ACTIVE_NEUTRAL_SPATIAL_WORKSPACE",
       "readActionOwnership": "ACTIVE",
-      "analysisCalculationOwnership": "PEER_PROVIDERS",
+      "analysisCalculationOwnership": "PEER_PROVIDERS_VIA_ENTERPRISE_OBSERVATORY",
       "agentToolOwnership": "ACTIVE_SPLIT",
       "authority": "docs/architecture/EOG-3D-VIEWER-CUTOVER-v0.1.md"
     }
@@ -287,6 +287,12 @@
       "projection": "eog/diagram-projection.ts",
       "eidosInspector": "vendor/eidos/src/diagram/surface.ts",
       "model": "VIEWER_AND_DESIGNER_SIBLINGS_OVER_SHARED_INTERACTION_FOUNDATION"
+    },
+    "spatialWorkspace": {
+      "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+      "projection": "eog/spatial-projection.ts",
+      "eidosWorkspace": "vendor/eidos/src/spatial/workspace.ts",
+      "model": "EOG_3D_VIEWER_PLUS_ENTERPRISE_OBSERVATORY_3D_OVER_SHARED_SPATIAL_FOUNDATION"
     }
   }
 }
