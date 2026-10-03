@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Trading Lite → EVO generic transport proof is closed PASS via PR #312: App Platform resolves the lifecycle-gated runtime applicationId, submits through the Host-owned public EVO BusinessData HTTP adapter, and CI proves PostgreSQL 18 + EVO Worker + Ledger/runtime observation end to end. SOP remains separate and deferred. The next gate is a real-browser Trading Lite proof through the Eidos-hosted Experience and the same generic transport.",
+  "currentStep": "Trading Lite real-browser write path is closed PASS via PR #315: Eidos /trading -> ActionHost -> Host generic EVO BusinessData adapter -> EVO PostgreSQL 18 -> Worker -> Ledger, with governed Enterprise Context propagation. The next bounded gate is the generic public read/query result projection from EVO through Host back to Eidos. SOP remains separate and deferred.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1742,8 +1742,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "TRADING-LITE-EVO-TRANSPORT-2026-10-03-01",
-    "snapshotAt": "2026-10-03T11:23:00+08:00",
+    "snapshotId": "TRADING-LITE-EVO-BROWSER-WRITE-2026-10-03-01",
+    "snapshotAt": "2026-10-03T11:40:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1766,36 +1766,36 @@
       "milestone": "Cross-Project Contract Boundary Convergence v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "eog-enterprise-context-production-migration-proof-v0-1",
-        "status": "VERIFIED_PRODUCTION_PASS",
-        "summary": "EOG semantic persistence is production-proven on Enterprise Context Business Definition Repository. Initial #269 startup non-destructively imported one legacy EOG graph definition; a controlled restart then reached SUCCESS without re-importing or conflicting with the migrated graph revision. The legacy semantic file remains migration evidence only and 2D/3D View State remains separate.",
-        "authority": "docs/architecture/EOG-ENTERPRISE-CONTEXT-DEFINITION-PERSISTENCE-v0.1.md",
+        "id": "trading-lite-eidos-browser-generic-transport-proof-v0-1",
+        "status": "VERIFIED_CI_PASS",
+        "summary": "Real Chrome drove the existing Eidos Trading Lite /trading Experience through ActionHost with Host-selected Enterprise Context, the generic EVO BusinessData adapter, EVO PostgreSQL 18 and Worker posting, and public runtime observation confirmed the resulting Receivable ledger state.",
+        "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md",
         "evidence": {
-          "productionCommit": "932098f9e2be13e1d0c9cf809831d3f3c5c2297c",
-          "firstMigrationDeploymentId": "36ed9180-da9e-46fe-9900-a6e575e5b314",
-          "firstMigrationImportedGraphCount": 1,
-          "controlledRestartDeploymentId": "f93c06bd-651a-4b86-bb60-e97cab781d6a",
-          "controlledRestartStatus": "SUCCESS",
-          "graphMigrationRestartBehavior": "IDEMPOTENT_NO_REIMPORT_NO_CONFLICT",
-          "legacySourceMutation": "NONE",
-          "semanticAuthority": "enterprise.business-definition.repository",
-          "viewStateAuthority": "SEPARATE_PRESENTATION_STORE"
+          "appPlatformPr": 315,
+          "mergeCommit": "0d604992ae3747989a1ac0644bbd6a0bc28c4a14",
+          "browserRoute": "/trading",
+          "surface": "DESKTOP_WORKBENCH",
+          "actionEndpoint": "/v1/actions",
+          "contextPropagation": "x-evo-context-id",
+          "evoApplicationId": "sales_order",
+          "eventCountDelta": 1,
+          "receivableBalanceAmount": 137
         }
       },
       "openGate": {
-        "id": "trading-lite-eidos-browser-generic-transport-proof-v0-1",
+        "id": "trading-lite-evo-public-readback-projection-v0-1",
         "status": "READY",
-        "summary": "Restore a real-browser Trading Lite end-to-end proof through the Eidos-hosted App Platform experience while keeping EVO submission behind the Host-owned generic BusinessData adapter certified by #312.",
-        "authority": "docs/architecture/EIDOS-EXPERIENCE-ARCHITECTURE-ADOPTION-v0.1.md",
+        "summary": "Complete the remaining generic EVO integration slice by returning authoritative public EVO runtime results through a Host-owned read/query projection to the Eidos Trading Lite Experience.",
+        "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md",
         "acceptance": [
-          "Trading Lite remains an App Platform application Experience rendered through Eidos public App Host/runtime surfaces",
-          "Human create-order interaction goes through ActionRequest/ActionHost rather than browser-direct EVO calls",
-          "Host resolves the lifecycle-gated Application Runtime Binding to the exact EVO applicationId",
-          "server-side EVO adapter submits only through the public generic BusinessData endpoint",
-          "browser proof observes deterministic success feedback and the resulting public EVO runtime evidence",
-          "no private Eidos or EVO implementation import is introduced",
-          "2D/3D EOG responsibility split remains unchanged",
-          "SOP remains separate and deferred"
+          "Host publishes a business-neutral EVO public read/query projection contract",
+          "the implementation uses only documented EVO public runtime observation/read boundaries",
+          "Enterprise scope and exact runtime applicationId are resolved by Host Context and Application Runtime Binding",
+          "browser/Eidos never calls EVO directly and no EVO private module, SQL table or persistence row becomes a Host contract",
+          "Trading Lite can render authoritative post-submit runtime evidence through the Host projection",
+          "real-browser CI proves Eidos -> Host read/query -> EVO public read -> Eidos rendering",
+          "legacy /api/v1/commands compatibility remains available until this readback gate is closed",
+          "EOG 2D/3D ownership remains unchanged and SOP remains separate and deferred"
         ]
       },
       "productionPreview": {
@@ -1811,6 +1811,21 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 315,
+        "status": "MERGED_CI_PASS",
+        "summary": "Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger."
+      },
+      {
+        "pr": 314,
+        "status": "MERGED_CI_PASS",
+        "summary": "Propagate the Host-selected active Context generically on same-origin browser requests without app-specific context injection."
+      },
+      {
+        "pr": 313,
+        "status": "MERGED_CI_PASS",
+        "summary": "Close the generic EVO transport gate and open the bounded Trading Lite Eidos browser proof."
+      },
       {
         "pr": 312,
         "status": "MERGED_CI_PASS",
@@ -3578,11 +3593,11 @@
     }
   },
   "evoBusinessDataIntegrationMainline": {
-    "status": "ARCHITECTURE_IMPLEMENTATION_READY_DEFERRED_BY_PRIORITY",
+    "status": "WRITE_DATABASE_AND_BROWSER_PROVEN_READBACK_NEXT",
     "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md",
     "evoAuthority": {
       "repository": "jiangxng/EVO",
-      "inspectedMain": "38799a38f455107a33ef68724b9a6fe7d8672852",
+      "inspectedMain": "04103a006fa6c0805ea52c0b05a5cbf172eaae78",
       "publicApi": "PUBLIC-API.md",
       "targetBusinessDataSubmissionFields": [
         "scopeKey",
@@ -3599,7 +3614,7 @@
         "GET /api/v1/capabilities?enterprise_id=<id>",
         "POST /api/v1/commands"
       ],
-      "compatibilityRule": "KEEP_UNTIL_GENERIC_BUSINESSDATA_PATH_IS_DATABASE_AND_BROWSER_PROVEN"
+      "compatibilityRule": "KEEP_UNTIL_GENERIC_PUBLIC_READBACK_IS_HOST_AND_BROWSER_PROVEN"
     },
     "target": [
       "Host-owned generic EVO BusinessData adapter",
@@ -3612,23 +3627,31 @@
     ]
   },
   "prioritySequencing": {
-    "current": "EOG 2D/3D Responsibility Convergence v0.1",
-    "rationale": "External Agent READ/PLAN capability validation is closed. The next mainline converges EOG responsibility boundaries before further upper-layer expansion: Enterprise Context owns Enterprise Graph Definition authority; Eidos owns reusable 2D/3D visual cores; App Platform owns separate EOG 2D Designer, EOG 2D Viewer and EOG 3D Viewer plugins.",
+    "current": "EVO BusinessData public readback convergence v0.1",
+    "rationale": "EOG 2D/3D responsibility convergence and the Trading Lite generic BusinessData write path are closed. The current mainline completes the remaining Host-owned public read/query projection so Eidos can render authoritative EVO runtime results without browser-direct EVO access.",
     "active": [
       {
-        "id": "eog-responsibility-convergence",
-        "name": "EOG 2D/3D responsibility convergence",
+        "id": "evo-businessdata-public-readback",
+        "name": "EVO BusinessData public read/query projection",
         "status": "ACTIVE",
-        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+        "authority": "docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md"
       }
     ],
     "deferred": [
       {
         "id": "eog-upper-layer-analysis-expansion",
-        "name": "new EOG analysis/report/SOP upper-layer features",
-        "status": "DEFERRED_UNTIL_RESPONSIBILITY_SPLIT",
-        "resumeAfter": "three-plugin EOG package boundary and Enterprise Context definition authority path are stable",
+        "name": "new EOG analysis/report upper-layer features",
+        "status": "DEFERRED_BY_PRODUCT_PRIORITY",
+        "resumeAfter": "current cross-project readback convergence gate is closed",
         "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md"
+      },
+      {
+        "id": "sop-independent-product-line",
+        "name": "SOP independent product line",
+        "status": "DEFERRED_BY_USER_DIRECTION",
+        "resumeAfter": "explicit product-priority decision",
+        "authority": "docs/architecture/EOG-2D-3D-RESPONSIBILITY-CONVERGENCE-v0.1.md",
+        "note": "SOP is separate from EOG and must not advance as part of EOG work."
       },
       {
         "id": "external-agent-write",
