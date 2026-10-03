@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
-  "updatedAt": "2026-10-02",
+  "updatedAt": "2026-10-03",
   "status": "BASELINE_FROZEN",
   "prerequisites": {
     "eogThreePluginPhysicalBoundary": "CLOSED",
@@ -9,10 +9,9 @@
   },
   "extractionOrder": [
     "SOP_DESIGNER_PACKAGE_IDENTITY",
-    "SOP_DESIGNER_PHYSICAL_EXTRACTION",
-    "LEGACY_SOP_STORE_ISOLATION",
-    "RUNTIME_BINDING_ADAPTER_CONTRACT_AND_IDENTITY",
-    "RUNTIME_BINDING_ADAPTER_PHYSICAL_EXTRACTION",
+    "SOP_DEVELOPMENT_HOLD",
+    "RUNTIME_BINDING_ADAPTER_CONTRACT_AND_IDENTITY_WHEN_RESUMED",
+    "RUNTIME_BINDING_ADAPTER_PHYSICAL_EXTRACTION_WHEN_RESUMED",
     "EXISTING_ANALYSIS_PROVIDER_CONTRACT_AUDIT",
     "FUTURE_REPORT_ANALYSIS_PORTFOLIO_ON_DEMAND"
   ],
@@ -49,12 +48,16 @@
       "featureId": "evo-sop-designer.default",
       "capability": "enterprise.sop.designer",
       "packageIdentityStatus": "CATALOG_REGISTERED_DEFAULT_OFF",
-      "activation": "DEFAULT_OFF_UNTIL_CONTROLLED_CUTOVER",
-      "next": "PUBLIC_DEPENDENCY_CONTRACT"
+      "activation": "DEFAULT_OFF",
+      "developmentStatus": "ON_HOLD_AFTER_OWNERSHIP_SPLIT",
+      "physicalExtraction": "NOT_STARTED_PRESERVE_EXISTING_ASSETS",
+      "domainRedesign": "ON_HOLD",
+      "editorDevelopment": "ON_HOLD",
+      "next": "NONE_UNTIL_STREAM_REOPENED"
     },
     "runtimeBindingAdapter": {
       "logicalRole": "RUNTIME_BINDING_ADAPTER",
-      "concretePackageId": "TBD_AFTER_SOP",
+      "concretePackageId": "TBD",
       "owns": [
         "host-semantic-to-runtime-provider-binding",
         "host-application-ref-to-runtime-application-id-mapping"
