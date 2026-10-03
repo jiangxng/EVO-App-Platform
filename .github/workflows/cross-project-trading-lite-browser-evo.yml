@@ -128,6 +128,12 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve explicit EVO runtime scope mapping
+        run: |
+          set -euo pipefail
+          EVO_SCOPE_KEY="$(curl -fsS "${EVO_BASE_URL}/api/v1/enterprises/${EVO_ENTERPRISE_CODE}" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const v=JSON.parse(s);if(!v.id)process.exit(1);process.stdout.write(v.id)})')"
+          echo "APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON={\"enterprise:browser-proof\":\"${EVO_SCOPE_KEY}\"}" >> "${GITHUB_ENV}"
+
       - name: Start App Platform with governed Enterprise Context
         env:
           APP_PLATFORM_STATIC_SESSION_JSON: '{"contractVersion":"0.1.0","sessionId":"browser-proof-session","principal":{"contractVersion":"0.1.0","subjectId":"browser-proof-user","actorType":"HUMAN","identityProviderId":"proof.identity","displayName":"Browser Proof"},"issuedAt":"2026-10-03T00:00:00.000Z"}'
