@@ -150,7 +150,7 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
   const text = localizedText(input.locale);
   return {
     contractVersion: "0.1.0",
-    kind: "diagram-editor",
+    kind: "diagram-workspace",
     id: "evo-enterprise-operating-graph.editor",
     title: text.title,
     resourceId: EOG_EDITOR_RESOURCE_ID,
