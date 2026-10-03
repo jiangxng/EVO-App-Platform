@@ -252,7 +252,7 @@ export const tradingLitePackage: PackageManifestV010 = {
       version: "0.1.0",
       activationScope: "INSTALLATION",
       defaultActivation: true,
-      requiresCapabilities: ["evo.business-data", "evo.posting", "evo.ledger", "evo.balance"],
+      requiresCapabilities: ["evo.business-data", "evo.posting", "evo.ledger", "evo.balance", "enterprise.application-runtime-binding"],
       providesCapabilities: ["trading-lite"],
       contributions: [
         {
