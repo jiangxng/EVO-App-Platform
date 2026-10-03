@@ -221,6 +221,9 @@ import {
   createEvoBusinessDataHttpAdapterV010
 } from "./evo-business-data-http-adapter.js";
 import {
+  createEvoRuntimeObservationHttpAdapterV010
+} from "./evo-runtime-observation-http-adapter.js";
+import {
   createFileProviderBindingStoreV010,
   createMemoryProviderBindingStoreV010,
   resolveProviderRuntimeV010
@@ -2485,6 +2488,9 @@ const ledgerConfiguratorFeatureId = "evo-ledger-runtime-configurator.default";
 const evoBusinessDataAdapter = createEvoBusinessDataHttpAdapterV010({
   baseUrl: evoBaseUrl
 });
+const evoRuntimeObservationAdapter = createEvoRuntimeObservationHttpAdapterV010({
+  baseUrl: evoBaseUrl
+});
 let compatibilityEvoRuntimeScopeKey: string | undefined;
 
 async function resolveCompatibilityEvoRuntimeScopeKey(): Promise<string> {
@@ -2514,7 +2520,7 @@ async function resolveCompatibilityEvoRuntimeScopeKey(): Promise<string> {
 
 async function resolveTradingLiteEvoRuntimeTarget(
   context: PlatformRequestContextV010 | undefined
-): Promise<{ scopeKey: string; applicationId: string }> {
+): Promise<{ scopeKey: string; enterpriseId: string; applicationId: string }> {
   const active = context?.context?.activeContext;
   if (!active || active.kind !== "ENTERPRISE") {
     throw new Error("TRADING_LITE_ENTERPRISE_CONTEXT_REQUIRED");
@@ -2541,10 +2547,12 @@ async function resolveTradingLiteEvoRuntimeTarget(
   }
 
   const runtime = toEvoLedgerRuntimeApplicationIdBindingV010(binding);
+  const evoEnterpriseId =
+    evoRuntimeScopeMap.get(enterpriseId)
+    ?? await resolveCompatibilityEvoRuntimeScopeKey();
   return {
-    scopeKey:
-      evoRuntimeScopeMap.get(enterpriseId)
-      ?? await resolveCompatibilityEvoRuntimeScopeKey(),
+    scopeKey: evoEnterpriseId,
+    enterpriseId: evoEnterpriseId,
     applicationId: runtime.applicationId
   };
 }
@@ -3496,6 +3504,7 @@ const actionRouter = createAppActionRouter(
     ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
     createTradingLiteEvoActionHandler({
       adapter: evoBusinessDataAdapter,
+      observationAdapter: evoRuntimeObservationAdapter,
       resolveRuntimeTarget: resolveTradingLiteEvoRuntimeTarget
     })
   ],
