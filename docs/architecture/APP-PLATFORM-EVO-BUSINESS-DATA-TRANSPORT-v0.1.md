@@ -75,3 +75,45 @@ No compatibility route is removed by this change.
 ## SOP
 
 SOP is unrelated to this boundary and remains separate and deferred.
+
+
+## Trading Lite reference migration
+
+Trading Lite is the first Business App migrated onto the generic Host adapter.
+
+Ownership after migration:
+
+```text
+Trading Lite
+  owns businessDataType / businessObjectKey / payload mapping
+
+Host
+  owns current enterprise Context
+  owns EVO runtime scope resolution
+  owns Application Runtime Binding resolution
+  owns transport / errors / idempotency transport identity
+
+EVO
+  owns BusinessData acceptance
+  owns applicationId routing
+  owns PostingRule selection
+  owns deterministic Posting / Ledger / Balance
+```
+
+Trading Lite no longer calls:
+
+- `/api/v1/capabilities`;
+- `/api/v1/commands`;
+- `/api/v1/enterprises/:code`.
+
+The Host may temporarily use the old enterprise lookup only as a scope-resolution compatibility adapter when no explicit `APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON` entry exists. That compatibility is not visible to the Business App and is a separate retirement gate.
+
+The Host Application reference is:
+
+`application:trading-lite`
+
+The target runtime provider identity is:
+
+`evo-ledger-runtime`
+
+For the reference sales-order flow, the default runtime applicationId is `sales_order`, configurable through `APP_PLATFORM_TRADING_LITE_EVO_APPLICATION_ID`. The resolved binding remains authoritative at runtime.
