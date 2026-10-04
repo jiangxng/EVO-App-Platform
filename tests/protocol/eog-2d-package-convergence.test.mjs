@@ -23,7 +23,10 @@ test("EOG 2D is one Package with Viewer and Designer feature profiles", () => {
 
   assert.ok(viewer);
   assert.ok(designer);
-  assert.deepEqual(viewer.providesCapabilities, [EOG_2D_VIEWER_CAPABILITY]);
+  assert.deepEqual(
+    viewer.providesCapabilities,
+    [EOG_2D_VIEWER_CAPABILITY, "visual.viewer.2d"]
+  );
   assert.deepEqual(designer.providesCapabilities, [EOG_2D_DESIGNER_CAPABILITY]);
   assert.equal(
     designer.requiresFeatures.includes(EOG_2D_VIEWER_FEATURE_ID),
