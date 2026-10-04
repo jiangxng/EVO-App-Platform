@@ -24,7 +24,19 @@ Designer 左侧提供类似 Visio 的企业对象工具箱。
 
 后续组织、人员、客户、供应商、产品、仓库、设备、流程、数据对象、外部系统等可继续加入工具箱。
 
-工具箱条目属于 EOG 领域配置；工具箱容器、拖放和图元创建交互属于 Eidos。
+工具箱条目属于 EOG 领域配置；工具箱容器、拖放和图元交互属于 Eidos。
+
+首期工具箱由当前企业的 Runtime Definition 驱动，而不是任意创建新业务对象：
+
+```text
+选中 Application
+→ toolbox = 该 Application 按条件式 Posting 可能增加的 Ledger
+
+选中 Ledger
+→ toolbox = 按条件式 Posting 可能减少该 Ledger 的 Application
+```
+
+因此工具箱同时承担“对象库”和“沿运行拓扑继续建模”的导航作用。
 
 ## 3. 第一阶段编辑能力
 
@@ -71,7 +83,8 @@ EOG 负责：
 - 企业对象工具箱内容；
 - 企业对象图标语义；
 - Graph / Node / Edge 的企业领域语义；
-- Enterprise Context mutation；
+- EOG Graph / View mutation；
+- 对 EVO Runtime Definition 的只读引用与投影；
 - 企业关系校验；
 - 发布与治理；
 - EOG 特有 Inspector；
@@ -98,10 +111,13 @@ Human Designer 与 Agent 应共用同一套公开建模命令：
 
 ```text
 Human Drag / Edit ─┐
-                    ├─> EOG Modeling Commands
+                    ├─> EOG Graph Modeling Commands
 Agent Proposal/Edit ┘
                          ↓
-                 Enterprise Context Authority
+                 Enterprise Context / Graph Store
+
+Runtime semantic reference
+→ EVO Runtime Definition Authority
 ```
 
 这样未来 Agent 自动建模不会形成第二套写入机制。
@@ -131,14 +147,65 @@ Agent Proposal/Edit ┘
 
 最终一个企业允许拥有多个 Graph，不设产品级数量上限。页面、查询、导航、View State 和权限接口不得长期假设只有一个 Primary Graph。
 
-### 8.3 Toolbox Drop 的语义仍需确认
+### 8.3 Toolbox Drop 语义（已确认）
 
-通用拖放交互属于 Eidos 已确定；但 EOG 中从“应用 / 账本”工具项拖到画布后，究竟：
+从“应用 / 账本”工具项拖到画布后：
 
-1. 创建新的企业对象；
-2. 从已有企业对象中选择并绑定；
-3. 先创建未绑定的建模草稿节点，再完成语义绑定；
+- 只把**已有 Runtime 对象的引用**加入当前 EOG Graph；
+- 保存图形出现状态与 View State；
+- 不创建 Application；
+- 不创建 LedgerDefinition；
+- 不创建/修改 PostingRule；
+- 不改变 Runtime Definition。
 
-这一点尚未确认。
+如果已有 Runtime Definition 表明两个对象存在条件式 Posting 关系，EOG 可以自动投影/显示该已有关系；但拖放动作本身不创建语义关系。
 
-在该语义确认前，只冻结 Toolbox 视觉与交互机制，不应私自引入第二套企业对象真相。
+新增 Application / Ledger / PostingRule 属于高级设置，当前延期。
+
+
+## 9. 企业运行权威分层
+
+EOG 必须区分四种不同权威：
+
+```text
+Reference / Standards
+会计准则、行业经验、APQC、历史模板
+        ↓
+Default Runtime Template
+        ↓ 企业采用/调整
+Enterprise Runtime Definition
+ApplicationAnchor + PostingRule + LedgerDefinition
+        ↓ 执行
+Runtime Facts
+BusinessData + Posting + LedgerEntry + LedgerBalance
+```
+
+另有：
+
+```text
+Enterprise Context / EOG Graph
+= 企业上下文 + 用户组织出来的 Graph + Runtime 对象引用
+```
+
+关键原则：
+
+- Runtime Facts 的发生源只能是 EVO Runtime。
+- Application ↔ PostingRule ↔ Ledger 的运行语义以 Runtime Definition 为准。
+- Default Runtime Template 是默认实施骨架，不等于某企业不可变真相。
+- Enterprise Context 不复制 Posting/Ledger 运行定义成为第二套真相。
+- EOG 是对这些对象的选择、组织、解释和可视化建模层。
+
+## 10. 先运行骨架、后应用字段
+
+实施顺序允许：
+
+```text
+先确定企业有哪些 Application
+→ 确定 Application 与 Ledger 的条件式 Posting 拓扑
+→ 形成企业运行骨架
+→ 再逐步深入具体 Application 字段/表单/数据模型
+```
+
+这与 APQC 先建立流程/分类框架再深入具体实现细节的思想相似，但 EOG 的运行骨架最终以 EVO Runtime Definition 为执行依据。
+
+PostingRule 中需要的具体字段绑定可以在后续应用详细设计阶段补齐；EOG 首层不要求先展开所有字段。
