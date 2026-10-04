@@ -44,7 +44,7 @@ export const ledgerRuntimeBaselineTemplateV010: TemplateStoreEntryV010 = {
   templateId: "evo.ledger-runtime.baseline.v0.1",
   name: "EVO 账本运行时基线",
   description:
-    "基于当前 EVO Ledger Runtime 的首个共享模板，展示 BusinessData → Posting → LedgerEntry → LedgerBalance 的核心运行链路，作为后续企业复制与二次设计的起点。",
+    "EVO Ledger Runtime Configurator 的完整可烧录基线：143 个应用、141 个账本、106 条字典和 912 条 Posting Rules，可用于安装、预览与上线验证。",
   thumbnail: {
     src: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(ledgerRuntimeSvg)}`,
     alt: "EVO 账本运行时基线缩略图"
@@ -53,8 +53,8 @@ export const ledgerRuntimeBaselineTemplateV010: TemplateStoreEntryV010 = {
   source: {
     kind: "BUILT_IN_REFERENCE",
     ownerProject: "EVO",
-    artifact: "ledger-runtime",
-    version: "current-reference"
+    artifact: "ledger-runtime-configurator/bookkeeping-default",
+    version: "8a1e5f7110625cf92da1c6c65a57d875cca9c008bc47c391ebeb76a694990e98"
   }
 };
 
