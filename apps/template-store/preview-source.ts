@@ -32,6 +32,27 @@ function asFiniteNumber(value: unknown): number | undefined {
     : undefined;
 }
 
+function ledgerFlowDirection(
+  direction: string | undefined
+): "in" | "out" | undefined {
+  if (!direction) return undefined;
+  if (["借方", "Dr", "dr", "增加", "add", "-Cr", "-cr"].includes(direction)) {
+    return "in";
+  }
+  if (["贷方", "Cr", "cr", "减少", "sub", "-Dr", "-dr"].includes(direction)) {
+    return "out";
+  }
+  return undefined;
+}
+
+function postingFlowLabel(rule: Record<string, unknown>): string {
+  const kinds = [
+    asString(rule.quantityFormula) ? "数量" : undefined,
+    asString(rule.amountFormula) ? "资金" : undefined
+  ].filter((value): value is string => value !== undefined);
+  return kinds.length > 0 ? kinds.join(" + ") : "发生数";
+}
+
 function previewFromDeclaredPayload(
   payload: unknown
 ): Template2dPreviewV010 | undefined {
@@ -65,6 +86,7 @@ function previewFromDeclaredPayload(
         `TEMPLATE_PREVIEW_2D_NODE_INVALID: preview2d.nodes[${index}]`
       );
     }
+    const shape = asString(node?.shape);
     nodes.push({
       id,
       kind,
@@ -73,6 +95,12 @@ function previewFromDeclaredPayload(
       y,
       width,
       height,
+      ...(shape === "rectangle" || shape === "rounded-rectangle"
+        ? { shape }
+        : {}),
+      ...(asString(node?.typeLabel)
+        ? { typeLabel: asString(node?.typeLabel)! }
+        : {}),
       ...(asString(node?.detail) ? { detail: asString(node?.detail)! } : {})
     });
   }
@@ -94,12 +122,16 @@ function previewFromDeclaredPayload(
         `TEMPLATE_PREVIEW_2D_EDGE_INVALID: preview2d.edges[${index}]`
       );
     }
+    const arrow = asString(edge?.arrow);
     edges.push({
       id,
       source,
       target,
       kind,
       ...(asString(edge?.label) ? { label: asString(edge?.label)! } : {}),
+      ...(arrow && ["none", "start", "end", "both"].includes(arrow)
+        ? { arrow: arrow as "none" | "start" | "end" | "both" }
+        : {}),
       ...(asString(edge?.detail) ? { detail: asString(edge?.detail)! } : {})
     });
   }
@@ -163,6 +195,8 @@ function previewFromLedgerRuntimeTemplate(
         y: 80 + row * 118,
         width: 210,
         height: 82,
+        shape: "rounded-rectangle",
+        typeLabel: "应用",
         detail: `Application · ${rulesByApplication.get(applicationId) ?? 0} posting rules`,
         properties: [{
           key: "applicationId",
@@ -200,6 +234,8 @@ function previewFromLedgerRuntimeTemplate(
         y: 80 + row * 118,
         width: 210,
         height: 82,
+        shape: "rectangle",
+        typeLabel: "账本",
         detail: `Ledger ${ledgerId} · ${rulesByLedger.get(ledgerId) ?? 0} posting rules`,
         properties: [{
           key: "ledgerId",
@@ -238,27 +274,47 @@ function previewFromLedgerRuntimeTemplate(
     const applicationId = asString(rule.applicationId);
     const ledgerId = asFiniteNumber(rule.ledgerId);
     if (!applicationId || ledgerId === undefined) continue;
-    const source = `application:${applicationId}`;
-    const target = `ledger:${ledgerId}`;
-    if (!nodeIds.has(source) || !nodeIds.has(target)) continue;
+    const applicationNode = `application:${applicationId}`;
+    const ledgerNode = `ledger:${ledgerId}`;
+    if (!nodeIds.has(applicationNode) || !nodeIds.has(ledgerNode)) continue;
     const sourceId = asFiniteNumber(rule.sourceId) ?? index + 1;
+    const direction = asString(rule.direction);
+    const flowDirection = ledgerFlowDirection(direction);
+    const source = flowDirection === "out" ? ledgerNode : applicationNode;
+    const target = flowDirection === "out" ? applicationNode : ledgerNode;
+    const flowLabel = postingFlowLabel(rule);
+    const appTitle = asString(rule.appTitle) ?? applicationId;
+    const ledgerTitle = asString(rule.ledgerTitle) ?? String(ledgerId);
     edges.push({
       id: `posting-rule:${sourceId}`,
       source,
       target,
       kind: "posting-rule",
-      label: asString(rule.direction) ?? "posting",
-      detail:
-        `${asString(rule.appTitle) ?? applicationId} → `
-        + `${asString(rule.ledgerTitle) ?? ledgerId}`,
+      label: `${flowLabel} · ${direction ?? "posting"}`,
+      arrow: "end",
+      detail: flowDirection === "out"
+        ? `${ledgerTitle} → ${appTitle}`
+        : `${appTitle} → ${ledgerTitle}`,
       properties: [{
         key: "sourceId",
         label: "Rule ID",
         value: sourceId
       }, {
+        key: "flowType",
+        label: "流动类型",
+        value: flowLabel
+      }, {
+        key: "flowDirection",
+        label: "流动方向",
+        value: flowDirection === "out"
+          ? "流出账本"
+          : flowDirection === "in"
+            ? "流入账本"
+            : "未识别"
+      }, {
         key: "direction",
         label: "Direction",
-        value: asString(rule.direction) ?? null
+        value: direction ?? null
       }, {
         key: "quantityFormula",
         label: "Quantity Formula",
