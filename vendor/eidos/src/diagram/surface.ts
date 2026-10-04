@@ -1261,8 +1261,14 @@ export function mountDiagramEditorPageV010(
           let moved = false;
 
           const pointerMove = (move: PointerEvent) => {
-            const nextX = Math.max(0, originalX + move.clientX - startX);
-            const nextY = Math.max(0, originalY + move.clientY - startY);
+            const nextX = Math.max(
+              0,
+              originalX + (move.clientX - startX) / zoom
+            );
+            const nextY = Math.max(
+              0,
+              originalY + (move.clientY - startY) / zoom
+            );
             moved = moved || Math.abs(nextX - originalX) > 1 || Math.abs(nextY - originalY) > 1;
             element.style.left = nextX + "px";
             element.style.top = nextY + "px";
@@ -1281,6 +1287,9 @@ export function mountDiagramEditorPageV010(
               node.x = x;
               node.y = y;
               render();
+              window.setTimeout(() => {
+                suppressNextNodeClick = false;
+              }, 0);
               report("View adjusted locally. No changes were saved.");
               return;
             }
