@@ -55,6 +55,15 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
   assert.equal(definition.items[0].title, "EVO 账本运行时基线");
   assert.match(definition.items[0].summary, /BusinessData/);
   assert.match(definition.items[0].thumbnail.src, /^data:image\/svg\+xml/);
+  assert.equal(definition.items[0].primaryAction?.id, "copy");
+  assert.equal(
+    definition.items[0].primaryAction?.command,
+    "evo-template-store.copy"
+  );
+  assert.equal(
+    definition.items[0].primaryAction?.requiresConfirmation,
+    true
+  );
 
   const html = renderAppHostPageToHtml({
     experienceId: "evo-template-store",
@@ -75,6 +84,8 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
   assert.match(html, /data-eidos-catalog-thumbnail/);
   assert.match(html, /EVO 账本运行时基线/);
   assert.match(html, /BusinessData/);
+  assert.match(html, /data-eidos-catalog-action="copy"/);
+  assert.match(html, /data-eidos-command="evo-template-store.copy"/);
 });
 
 test("built-in ledger runtime template preserves copy semantics without runtime linkage", () => {
