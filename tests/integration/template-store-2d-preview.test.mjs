@@ -188,4 +188,6 @@ test("Template Store preview action refuses missing Viewer and navigates when av
   assert.equal(opened.result.navigateTo, TEMPLATE_2D_PREVIEW_ROUTE_V010);
   assert.equal(sessions.get("session:preview").templateId, templateId);
   assert.equal(sessions.get("session:preview").templateVersion, 2);
+  assert.equal(sessions.get("human:preview").templateId, templateId);
+  assert.equal(sessions.get("human:preview").templateVersion, 2);
 });
