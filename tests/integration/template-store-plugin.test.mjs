@@ -20,6 +20,9 @@ import {
 import {
   renderAppHostPageToHtml
 } from "../../dist/vendor/eidos/src/app-host/index.js";
+import {
+  renderCatalogBrowserToHtml
+} from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 
 test("Template Store is an installable APPLICATION plugin with no Enterprise Context dependency", () => {
   const feature = templateStorePackage.features[0];
