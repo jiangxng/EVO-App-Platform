@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -43,6 +44,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import {
   createTradingLiteEvoActionHandler,
@@ -198,6 +200,9 @@ import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
   type EnterpriseApplicationRuntimeBindingProviderV010
 } from "../contracts/enterprise-application-runtime-binding.js";
+import {
+  VISUAL_2D_VIEWER_CAPABILITY_V010
+} from "../contracts/template-preview.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -699,14 +704,14 @@ import {
 } from "../apps/eog-2d-designer/package.js";
 import {
   EOG_2D_VIEWER_FEATURE_ID,
-  EOG_2D_VIEWER_PACKAGE_ID
+  EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "../apps/eog-2d-viewer/package.js";
-import {
-  createEnterpriseOperatingGraphViewerWorkspacePageV010,
-  createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
-  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
-  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
-} from "../apps/eog-2d-viewer/workspace-page.js";
 import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
@@ -721,16 +726,16 @@ import {
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
-import {
-  createFileTemplateStoreRepositoryV010,
-  createMemoryTemplateStoreRepositoryV010
+import type {
+  TemplateStoreRepositoryV010
 } from "../apps/template-store/repository.js";
 import {
-  templateStoreSeedRecordsV010
-} from "../apps/template-store/seed-records.js";
-import {
-  createTemplateStoreCopyActionHandlerV010
-} from "../apps/template-store/copy-action.js";
+  TEMPLATE_STORE_COPY_COMMAND,
+  TEMPLATE_STORE_FEATURE_ID,
+  TEMPLATE_STORE_PACKAGE_ID,
+  TEMPLATE_STORE_PAGE_SOURCE,
+  TEMPLATE_STORE_PREVIEW_2D_COMMAND
+} from "../apps/template-store/package.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
@@ -773,14 +778,28 @@ const templateStoreStateFile =
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "template-store.json")
     : undefined);
-const templateStoreRepository = templateStoreStateFile
-  ? createFileTemplateStoreRepositoryV010(
-      templateStoreStateFile,
-      templateStoreSeedRecordsV010
-    )
-  : createMemoryTemplateStoreRepositoryV010(
-      templateStoreSeedRecordsV010
-    );
+let templateStoreRepositoryPromise:
+  | Promise<TemplateStoreRepositoryV010>
+  | undefined;
+async function resolveTemplateStoreRepository():
+Promise<TemplateStoreRepositoryV010> {
+  templateStoreRepositoryPromise ??= Promise.all([
+    import("../apps/template-store/repository.js"),
+    import("../apps/template-store/seed-records.js")
+  ]).then(([repository, seed]) =>
+    templateStoreStateFile
+      ? repository.createFileTemplateStoreRepositoryV010(
+          templateStoreStateFile,
+          seed.templateStoreSeedRecordsV010
+        )
+      : repository.createMemoryTemplateStoreRepositoryV010(
+          seed.templateStoreSeedRecordsV010
+        )
+  );
+  return templateStoreRepositoryPromise;
+}
+const templatePreviewSessions =
+  createMemoryTemplatePreviewSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -1671,26 +1690,6 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_2D_DESIGNER_PACKAGE_ID);
-    console.log("Activated EOG 2D Designer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 2D Designer ownership cutover.", error);
-  }
-}
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_2D_VIEWER_PACKAGE_ID);
-    console.log("Activated EOG 2D Viewer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 2D Viewer ownership cutover.", error);
-  }
-}
 if (!manager.getSnapshot().activeFeatures.some(
   feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
 )) {
