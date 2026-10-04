@@ -5,12 +5,18 @@ on:
     branches: [main]
     paths:
       - "apps/template-store/**"
+      - "contracts/template-transfer.ts"
+      - "contracts/enterprise-business-definition.ts"
+      - "providers/enterprise-context/template-transfer.ts"
+      - "providers/enterprise-context/business-definitions.ts"
+      - "providers/enterprise-context/package.ts"
       - "catalog/seed.ts"
       - "manager/server.ts"
       - "vendor/eidos/src/catalog-browser/**"
       - "vendor/eidos/src/design-language/productive-workbench-css.ts"
       - "vendor/eidos/source.manifest.json"
       - "tests/integration/template-store-plugin.test.mjs"
+      - "tests/protocol/template-store-transfer-boundary.test.mjs"
       - "package.json"
       - ".github/workflows/plugin-template-store.yml"
   pull_request:
