@@ -102,13 +102,11 @@ export const eog2dPackage: PackageManifestV010 = {
           routes: [{
             id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
             semanticId: "evo-eog-2d-viewer.workspace",
-            surfaceId: "evo-eog-2d-viewer.desktop",
             path: EOG_2D_VIEWER_WORKSPACE_ROUTE,
             pageId: EOG_2D_VIEWER_WORKSPACE_PAGE_ID
           }, {
             id: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID,
             semanticId: "evo-eog-2d-viewer.template-preview",
-            surfaceId: "evo-eog-2d-viewer.desktop",
             path: EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
             pageId: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID
           }],
@@ -117,11 +115,25 @@ export const eog2dPackage: PackageManifestV010 = {
             label: "Operating Graph",
             route: EOG_2D_VIEWER_WORKSPACE_ROUTE,
             order: 16,
-            surfaceIds: ["evo-eog-2d-viewer.desktop"]
+            surfaceIds: [
+              "evo-eog-2d-viewer.desktop",
+              "evo-eog-2d-viewer.mobile",
+              "evo-eog-2d-viewer.tablet"
+            ]
           }],
           surfaces: [{
             id: "evo-eog-2d-viewer.desktop",
             target: "DESKTOP_WORKBENCH",
+            support: "FULL",
+            entryRoute: EOG_2D_VIEWER_WORKSPACE_ROUTE
+          }, {
+            id: "evo-eog-2d-viewer.mobile",
+            target: "MOBILE_TASK",
+            support: "FULL",
+            entryRoute: EOG_2D_VIEWER_WORKSPACE_ROUTE
+          }, {
+            id: "evo-eog-2d-viewer.tablet",
+            target: "TABLET_WORKBENCH",
             support: "FULL",
             entryRoute: EOG_2D_VIEWER_WORKSPACE_ROUTE
           }]
