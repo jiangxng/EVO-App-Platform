@@ -146,13 +146,15 @@ Included now:
 - Template Store-owned immutable shared snapshot repository;
 - copy-into-enterprise adapter that always creates a new enterprise-owned Draft;
 - `TEMPLATE_COPY` provenance without a live source dependency;
-- SHA-256 bundle digest validation across the transfer boundary.
+- SHA-256 bundle digest validation across the transfer boundary;
+- governed Human Copy Action handler requiring an explicit target Enterprise Context, explicit confirmation and authorization before invoking the public transfer Provider.
 
 Deliberately deferred to the next slice:
 
-- Human/Agent ActionHost Share and Copy commands;
+- Human/Agent ActionHost Share command;
+- Host registration/wiring of the Template Store Copy Action;
 - durable Template Store repository wiring in the Host;
-- authorization and confirmation around Share/Copy;
+- Agent projection of Share/Copy operations;
 - Designer-generated thumbnail persistence;
 - template detail page;
 - categories, ratings, popularity, comments or marketplace economics.
@@ -229,10 +231,40 @@ providers/enterprise-context/template-transfer.ts
 
 Both sides may depend on `contracts/template-transfer.ts`.
 
+## 9.1 Target Enterprise Context selection
+
+Template Store is installation-wide and a Principal may have access to multiple Enterprise Context instances.
+
+Therefore Copy MUST carry an explicit `targetContextId`.
+
+Canonical UX:
+
+```text
+Template Store card
+  -> Use template
+  -> choose target Enterprise Context
+  -> confirm
+  -> authorization
+  -> copy into selected Enterprise Context
+```
+
+Rules:
+
+- if zero writable Enterprise Contexts are available, Copy is disabled;
+- if exactly one is available, the UI MAY preselect it but MUST still show the destination in confirmation;
+- if more than one is available, the user MUST explicitly choose one;
+- the current active Context MAY be offered as the default selection, but MUST NOT be silently used as the write target;
+- the Host resolves `targetContextId` through the Principal's authorized Context registry and derives the canonical `enterpriseId` from that result;
+- callers MUST NOT be allowed to inject an arbitrary `enterpriseId` as the destination.
+
+This preserves a clean distinction:
+
+> Template Store owns the Copy interaction; Enterprise Context owns the resulting enterprise definition; Host Context resolution owns destination authority.
+
 ## 10. Next implementation gate
 
 The next smallest real gate is:
 
-> Wire governed Share and Copy Actions over the public transfer Provider and a durable Template Store repository, while preserving the independent-plugin boundary.
+> Wire the implemented governed Copy Action into the Host with durable Template Store state, then add the symmetric Enterprise Context Share Action.
 
-Acceptance requires explicit authorization/confirmation, durable Store state, the existing three-field card projection, and no direct cross-plugin persistence access.
+The Copy handler now enforces Human caller + explicit target Enterprise Context + explicit confirmation + authorization. The target is resolved from the Principal's Host-authorized Context registry; the current active Context is not silently treated as the destination. The remaining acceptance gate is durable Host wiring, target-selector UX, Share orchestration, and continued absence of direct cross-plugin persistence access.
