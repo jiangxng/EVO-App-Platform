@@ -19,6 +19,9 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   const ids = new Set<string>();
   for (const item of input.items) {
     if (!item.id || !item.title) throw new Error("EIDOS_CATALOG_ITEM_INVALID");
+    if (item.thumbnail && (!item.thumbnail.src || !item.thumbnail.alt)) {
+      throw new Error("EIDOS_CATALOG_ITEM_THUMBNAIL_INVALID");
+    }
     if (ids.has(item.id)) throw new Error(`EIDOS_CATALOG_ITEM_DUPLICATE: ${item.id}`);
     ids.add(item.id);
   }
@@ -46,6 +49,9 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     const status = item.status
       ? `<span data-eidos-catalog-status data-tone="${esc(item.status.tone ?? "neutral")}">${esc(item.status.label)}</span>`
       : "";
+    const thumbnail = item.thumbnail
+      ? `<div data-eidos-catalog-thumbnail><img src="${esc(item.thumbnail.src)}" alt="${esc(item.thumbnail.alt)}" loading="lazy" decoding="async"></div>`
+      : "";
     const actions = [
       ...(item.primaryAction ? [actionButton(item.id, item.primaryAction, true)] : []),
       ...(item.secondaryActions ?? []).map(a => actionButton(item.id, a, false))
@@ -56,11 +62,12 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
       item.summary ?? "",
       item.version ?? "",
       item.category ?? "",
+      item.thumbnail?.alt ?? "",
       ...(item.badges ?? []),
       ...Object.entries(item.metadata ?? {}).flatMap(([key, value]) => [key, String(value ?? "")])
     ].join(" ").toLocaleLowerCase();
 
-    return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}"><header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer></article>`;
+    return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}">${thumbnail}<header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer></article>`;
   }).join("");
 
   const search = model.search

@@ -320,6 +320,11 @@ form[data-eidos-id] button,
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
   padding:var(--eidos-space-lg);display:flex;flex-direction:column;gap:var(--eidos-space-md);background:var(--eidos-bg);
 }
+[data-eidos-catalog-thumbnail]{
+  aspect-ratio:16/9;overflow:hidden;border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-sm);background:var(--eidos-bg-subtle);
+}
+[data-eidos-catalog-thumbnail] img{display:block;width:100%;height:100%;object-fit:cover}
 [data-eidos-catalog-item] header,[data-eidos-extension-item] header{
   display:flex;justify-content:space-between;align-items:flex-start;gap:var(--eidos-space-lg);
 }

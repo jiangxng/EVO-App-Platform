@@ -13,9 +13,15 @@ export interface CatalogBrowserActionV010 {
   helpText?: string;
 }
 
+export interface CatalogBrowserThumbnailV010 {
+  src: string;
+  alt: string;
+}
+
 export interface CatalogBrowserItemV010 {
   id: string;
   title: string;
+  thumbnail?: CatalogBrowserThumbnailV010;
   summary?: string;
   version?: string;
   category?: string;

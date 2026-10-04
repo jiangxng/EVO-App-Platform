@@ -683,6 +683,7 @@ import {
   evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
+  templateStorePackage,
   tradingLitePackage
 } from "../catalog/seed.js";
 import {
@@ -745,6 +746,7 @@ const catalog = createPackageCatalog([
   evoRuntimeObservatoryProviderPackage,
   eogBottleneckAnalysisProviderPackage,
   applicationRuntimeBindingProviderPackage,
+  templateStorePackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
