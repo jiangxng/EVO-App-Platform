@@ -26,6 +26,7 @@ import {
 } from "../../dist/contracts/template-preview.js";
 
 const templateId = "evo.ledger-runtime.baseline.v0.1";
+const templateVersion = 2;
 
 function context() {
   return {
@@ -49,7 +50,7 @@ test("Ledger Runtime seed exposes the complete application-ledger-rule 2D previe
     templateStoreSeedRecordsV010
   );
   const source = createTemplateStorePreviewArtifactSourceV010(repository);
-  const artifact = source.get({ templateId, templateVersion: 1 });
+  const artifact = source.get({ templateId, templateVersion });
 
   assert.ok(artifact);
   assert.equal(artifact.diagram2d.nodes.length, 284);
@@ -81,7 +82,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   const source = createTemplateStorePreviewArtifactSourceV010(repository);
   const page = createTemplate2dPreviewPageV010({
     templateId,
-    templateVersion: 1,
+    templateVersion,
     title: "EVO 账本运行时基线"
   });
 
@@ -95,7 +96,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     },
     values: {
       templateId,
-      templateVersion: 1,
+      templateVersion,
       resourceId: page.resourceId
     },
     sourceInteractionId: page.id,
@@ -118,7 +119,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     },
     values: {
       templateId,
-      templateVersion: 1,
+      templateVersion,
       resourceId: page.resourceId,
       target: {
         kind: "node",
@@ -186,5 +187,5 @@ test("Template Store preview action refuses missing Viewer and navigates when av
   assert.equal(opened.ok, true);
   assert.equal(opened.result.navigateTo, TEMPLATE_2D_PREVIEW_ROUTE_V010);
   assert.equal(sessions.get("session:preview").templateId, templateId);
-  assert.equal(sessions.get("session:preview").templateVersion, 1);
+  assert.equal(sessions.get("session:preview").templateVersion, 2);
 });
