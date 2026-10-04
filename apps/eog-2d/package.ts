@@ -2,6 +2,10 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 import {
   ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
 } from "../../contracts/enterprise-business-definition.js";
+import {
+  TEMPLATE_2D_PREVIEW_ROUTE_V010,
+  VISUAL_2D_VIEWER_CAPABILITY_V010
+} from "../../contracts/template-preview.js";
 
 export const EOG_2D_PACKAGE_ID = "evo-eog-2d";
 
@@ -14,6 +18,20 @@ export const EOG_2D_VIEWER_WORKSPACE_PAGE_ID =
 export const EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/viewer";
 export const EOG_2D_VIEWER_WORKSPACE_ROUTE = "/operating-graph/view";
+export const EOG_2D_VIEWER_WORKSPACE_GET_ACTION =
+  "enterprise-operating-graph.viewer.workspace.get";
+export const EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION =
+  "enterprise-operating-graph.viewer.workspace.selection.get";
+export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID =
+  "evo-eog-2d-viewer.template-preview";
+export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE =
+  "app://evo-eog-2d-viewer/pages/template-preview";
+export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE =
+  TEMPLATE_2D_PREVIEW_ROUTE_V010;
+export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION =
+  "evo-eog-2d.viewer.template-preview.get";
+export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION =
+  "evo-eog-2d.viewer.template-preview.selection.get";
 
 export const EOG_2D_DESIGNER_FEATURE_ID = "evo-eog-2d.designer";
 export const EOG_2D_DESIGNER_CAPABILITY =
@@ -61,7 +79,8 @@ export const eog2dPackage: PackageManifestV010 = {
         ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
       ],
       providesCapabilities: [
-        EOG_2D_VIEWER_CAPABILITY
+        EOG_2D_VIEWER_CAPABILITY,
+        VISUAL_2D_VIEWER_CAPABILITY_V010
       ],
       contributions: [{
         kind: "eidos.experience",
@@ -75,6 +94,10 @@ export const eog2dPackage: PackageManifestV010 = {
             id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
             title: "Enterprise Operating Graph Viewer",
             source: EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
+          }, {
+            id: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID,
+            title: "2D Template Preview",
+            source: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE
           }],
           routes: [{
             id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
@@ -82,6 +105,12 @@ export const eog2dPackage: PackageManifestV010 = {
             surfaceId: "evo-eog-2d-viewer.desktop",
             path: EOG_2D_VIEWER_WORKSPACE_ROUTE,
             pageId: EOG_2D_VIEWER_WORKSPACE_PAGE_ID
+          }, {
+            id: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID,
+            semanticId: "evo-eog-2d-viewer.template-preview",
+            surfaceId: "evo-eog-2d-viewer.desktop",
+            path: EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
+            pageId: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID
           }],
           navigation: [{
             id: "evo-eog-2d-viewer.nav",
