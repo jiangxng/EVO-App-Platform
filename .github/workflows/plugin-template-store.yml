@@ -5,6 +5,15 @@ on:
     branches: [main]
     paths:
       - "apps/template-store/**"
+      - "apps/eog-2d/package.ts"
+      - "apps/eog-2d-viewer/**"
+      - "contracts/template-preview.ts"
+      - "actions/lazy-handler.ts"
+      - "manager/template-preview-session.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/integration/template-store-2d-preview.test.mjs"
+      - "tests/protocol/plugin-resource-lazy-loading.test.mjs"
+      - "tests/actions/lazy-handler.test.mjs"
       - "contracts/template-transfer.ts"
       - "contracts/enterprise-business-definition.ts"
       - "providers/enterprise-context/template-transfer.ts"
@@ -24,6 +33,15 @@ on:
   pull_request:
     paths:
       - "apps/template-store/**"
+      - "apps/eog-2d/package.ts"
+      - "apps/eog-2d-viewer/**"
+      - "contracts/template-preview.ts"
+      - "actions/lazy-handler.ts"
+      - "manager/template-preview-session.ts"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tests/integration/template-store-2d-preview.test.mjs"
+      - "tests/protocol/plugin-resource-lazy-loading.test.mjs"
+      - "tests/actions/lazy-handler.test.mjs"
       - "catalog/seed.ts"
       - "manager/server.ts"
       - "vendor/eidos/src/catalog-browser/**"
