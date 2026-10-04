@@ -5,7 +5,9 @@ import type {
   JsonValue
 } from "../../actions/contracts.js";
 import type {
+  ActiveContextRefV010,
   AuthorizationProviderV010,
+  PlatformPrincipalV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
 import type {
@@ -29,6 +31,9 @@ export interface TemplateStoreCopyActionDependenciesV010 {
   store: TemplateStoreRepositoryV010;
   transfer: EnterpriseTemplateTransferProviderV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
+  listAvailableContexts(
+    principal: PlatformPrincipalV010
+  ): ActiveContextRefV010[];
   now?: () => Date;
 }
 
@@ -65,14 +70,6 @@ function requireConfirmation(request: AppActionRequestV010): void {
   }
 }
 
-function activeEnterpriseId(context: PlatformRequestContextV010): string {
-  const active = context.context?.activeContext;
-  if (!active || active.kind !== "ENTERPRISE" || !active.enterpriseId.trim()) {
-    throw new Error("ENTERPRISE_ACTIVE_CONTEXT_REQUIRED");
-  }
-  return active.enterpriseId.trim();
-}
-
 function stringValue(
   values: Record<string, JsonValue>,
   key: string
@@ -99,6 +96,23 @@ function positiveInteger(
   return value;
 }
 
+function resolveTargetContext(
+  dependencies: TemplateStoreCopyActionDependenciesV010,
+  context: PlatformRequestContextV010,
+  targetContextId: string
+): Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> {
+  const target = dependencies.listAvailableContexts(context.principal)
+    .find(item =>
+      item.kind === "ENTERPRISE"
+      && item.contextId === targetContextId
+    );
+
+  if (!target || target.kind !== "ENTERPRISE") {
+    throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_NOT_AVAILABLE");
+  }
+  return target;
+}
+
 export function createTemplateStoreCopyActionHandlerV010(
   dependencies: TemplateStoreCopyActionDependenciesV010
 ): AppActionHandler {
@@ -118,11 +132,20 @@ export function createTemplateStoreCopyActionHandlerV010(
           request.values,
           "templateVersion"
         );
+        const targetContextId = stringValue(
+          request.values,
+          "targetContextId"
+        );
         const targetDefinitionId = stringValue(
           request.values,
           "targetDefinitionId"
         );
-        const targetEnterpriseId = activeEnterpriseId(context);
+        const targetContext = resolveTargetContext(
+          dependencies,
+          context,
+          targetContextId
+        );
+        const targetEnterpriseId = targetContext.enterpriseId.trim();
 
         const record = dependencies.store.getVersion(
           templateId,
@@ -140,6 +163,7 @@ export function createTemplateStoreCopyActionHandlerV010(
               id: templateId,
               attributes: {
                 templateVersion,
+                targetContextId,
                 targetEnterpriseId,
                 targetDefinitionId
               }
@@ -172,6 +196,7 @@ export function createTemplateStoreCopyActionHandlerV010(
           result: JSON.parse(JSON.stringify({
             templateId,
             templateVersion,
+            targetContextId,
             targetEnterpriseId,
             targetDefinitionId,
             copiedRevision: copied.revision,
