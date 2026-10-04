@@ -19,6 +19,42 @@ export interface TemplateStoreRecordV010 {
   publishedAt: string;
 }
 
+export function templateStoreRecordItemIdV010(
+  templateId: string,
+  version: number
+): string {
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error("TEMPLATE_STORE_VERSION_INVALID");
+  }
+  return encodeURIComponent(
+    required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED")
+  ) + "@" + version;
+}
+
+export function parseTemplateStoreRecordItemIdV010(
+  itemId: string
+): { templateId: string; version: number } {
+  const normalized = required(itemId, "TEMPLATE_STORE_ITEM_ID_REQUIRED");
+  const separator = normalized.lastIndexOf("@");
+  if (separator <= 0 || separator === normalized.length - 1) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  const version = Number.parseInt(normalized.slice(separator + 1), 10);
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  let templateId: string;
+  try {
+    templateId = decodeURIComponent(normalized.slice(0, separator));
+  } catch {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  return {
+    templateId: required(templateId, "TEMPLATE_STORE_ITEM_ID_INVALID"),
+    version
+  };
+}
+
 export interface TemplateStoreRepositoryV010 {
   publish(input: {
     templateId: string;
