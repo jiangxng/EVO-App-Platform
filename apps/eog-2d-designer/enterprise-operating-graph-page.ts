@@ -288,10 +288,15 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
     ...projectionActions
   ];
 
+  const visibleNodeIds = new Set(base.nodes.map(node => node.id));
   const bindings = [
     ...createEogOwnedInspectorEditorBindingsV010(graph),
     ...editorBindings
-  ];
+  ].filter(binding =>
+    binding.target.kind === "node"
+      ? visibleNodeIds.has(binding.target.id)
+      : visibleEdgeIds.has(binding.target.id)
+  );
   const interactive = bindings.length
     ? attachEog2dInspectorEditorsV010(base, bindings)
     : base;
