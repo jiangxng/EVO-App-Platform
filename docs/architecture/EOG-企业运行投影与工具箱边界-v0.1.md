@@ -112,13 +112,14 @@ EOG 负责：
 - EOG 特有 Inspector；
 - Graph-to-Graph drill-down 语义。
 
-EOG 不负责：
+EOG 首期明确不负责：
 
-- 新建/定义 Application；
-- 新建/定义 LedgerDefinition；
-- 新建/定义 PostingRule；
-- 写入 BusinessData / LedgerEntry；
-- 通过画线改变企业实际运行语义。
+- 新建企业 Application；
+- 新建企业 LedgerDefinition。
+
+其他能力不因为这条“不新增”原则被一并禁止。尤其是 PostingRule、关系、Graph、Subgraph、投影节点等是否允许新增/修改，继续按各自需求单独确认。
+
+EOG 仍然不直接写入 BusinessData / LedgerEntry，也不通过纯视觉画线伪造已经发生的运行事实。
 
 ## 6. 多图与钻取
 
@@ -181,16 +182,18 @@ Runtime semantic reference
 
 从“应用 / 账本”工具项拖到画布后：
 
-- 只把**已有 Runtime 对象的引用**加入当前 EOG Graph；
+- 只把**已有 Application / Ledger 的引用**加入当前 EOG Graph；
 - 保存图形出现状态与 View State；
-- 不创建 Application；
-- 不创建 LedgerDefinition；
-- 不创建/修改 PostingRule；
-- 不改变 Runtime Definition。
+- 不创建新的企业 Application；
+- 不创建新的企业 LedgerDefinition。
+
+这里“不新增”的范围只锁定 Application 与 Ledger，不自动扩展到 PostingRule、关系或其他 EOG 能力。
 
 如果已有 Runtime Definition 表明两个对象存在条件式 Posting 关系，EOG 可以自动投影/显示该已有关系；但拖放动作本身不创建语义关系。
 
-新增 Application / Ledger / PostingRule 属于高级设置，当前延期。
+新增企业 Application / Ledger 属于 EOG 之外或后续高级设置能力，当前不做。
+
+PostingRule 和关系是否允许在 EOG 中新增/修改，仍是独立需求，不在这里提前否定。
 
 
 ## 9. 企业运行权威分层
@@ -278,7 +281,7 @@ EOG 2D Designer
 
 因此正式采用：
 
-> **Template-first Implementation：先选择成熟模板，再做企业差异化确认与调整。**
+> **Template-first Implementation：先选择成熟模板，再做企业差异化裁剪与调整；EOG 首期不新建企业 Application 或企业 Ledger。**
 
 ### 12.1 模板知识来源
 
@@ -383,3 +386,26 @@ EOG 可以：
 > **EOG = Projection Tool；Template = 实施基线；Runtime Definition = 可执行企业定义。**
 
 三者不得合并成同一份数据。
+
+
+### 12.6 EOG“不新增”的精确定义
+
+本阶段“不新增”只表示：
+
+```text
+EOG 不新建 Enterprise Application
+EOG 不新建 Enterprise Ledger
+```
+
+它**不等价于**：
+
+- 不允许新增 Graph；
+- 不允许新增 Subgraph；
+- 不允许把已有对象加入当前投影；
+- 不允许新增投影节点；
+- 不允许新增/调整关系；
+- 不允许新增/调整 PostingRule。
+
+上述能力分别由各自需求决定，不能从“Application / Ledger 不新增”推导出来。
+
+EOG 加载默认模板后，企业主可以对模板提供的 Application / Ledger 做裁剪、保留、恢复和修改其已有配置；但不会在 EOG 中凭空创建新的企业 Application 或新的企业 Ledger。
