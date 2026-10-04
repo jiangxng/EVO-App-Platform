@@ -197,6 +197,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       relation.applicationNodeId + "->" + relation.ledgerNodeId
     )
   );
+  const visibleEdgeIds = new Set(base.edges.map(edge => edge.id));
 
   const semanticActions = graph.state === "DRAFT"
     ? [
@@ -205,6 +206,7 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
             !confirmedPairs.has(
               relation.applicationNodeId + "->" + relation.ledgerNodeId
             )
+            && visibleEdgeIds.has("guidance-edge:" + relation.relationId)
           )
           .map(relation => ({
             id: "confirm:" + relation.relationId,
