@@ -44,7 +44,7 @@ function context() {
   };
 }
 
-test("Ledger Runtime seed exposes a neutral four-stage 2D preview artifact", () => {
+test("Ledger Runtime seed exposes the complete application-ledger-rule 2D preview", () => {
   const repository = createMemoryTemplateStoreRepositoryV010(
     templateStoreSeedRecordsV010
   );
@@ -52,12 +52,26 @@ test("Ledger Runtime seed exposes a neutral four-stage 2D preview artifact", () 
   const artifact = source.get({ templateId, templateVersion: 1 });
 
   assert.ok(artifact);
-  assert.equal(artifact.diagram2d.nodes.length, 4);
-  assert.deepEqual(
-    artifact.diagram2d.nodes.map(node => node.label),
-    ["BusinessData", "Posting", "LedgerEntry", "LedgerBalance"]
+  assert.equal(artifact.diagram2d.nodes.length, 284);
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.kind === "ledger-runtime-application"
+    ).length,
+    143
   );
-  assert.equal(artifact.diagram2d.edges.length, 3);
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.kind === "ledger-runtime-ledger"
+    ).length,
+    141
+  );
+  assert.equal(artifact.diagram2d.edges.length, 912);
+  assert.equal(
+    artifact.diagram2d.edges.every(
+      edge => edge.kind === "posting-rule"
+    ),
+    true
+  );
 });
 
 test("2D Viewer renders Template Store artifact read-only and supports inspection", async () => {
@@ -106,7 +120,10 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
       templateId,
       templateVersion: 1,
       resourceId: page.resourceId,
-      target: { kind: "node", id: "stage:1" }
+      target: {
+        kind: "node",
+        id: "application:418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
+      }
     },
     sourceInteractionId: page.id,
     actionId: "diagram.selection.read",
@@ -114,10 +131,14 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   }, context());
 
   assert.equal(selection.ok, true);
-  assert.equal(selection.result.target.id, "stage:1");
+  assert.equal(
+    selection.result.target.id,
+    "application:418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
+  );
   assert.equal(
     selection.result.properties.some(
-      property => property.value === "BusinessData"
+      property => property.value
+        === "418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
     ),
     true
   );
