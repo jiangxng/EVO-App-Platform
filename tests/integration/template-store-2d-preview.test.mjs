@@ -145,6 +145,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   assert.equal(result.result.nodes.every(node => node.readOnly === true), true);
   assert.deepEqual(page.viewInteraction, {
     zoom: true,
+    pan: true,
     localNodeDrag: true
   });
   assert.equal(
