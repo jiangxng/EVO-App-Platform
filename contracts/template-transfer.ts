@@ -91,7 +91,7 @@ function canonical(value: unknown): string {
   throw new Error("TEMPLATE_TRANSFER_CANONICAL_VALUE_INVALID");
 }
 
-function required(value: string, code: string): string {
+function required(value: unknown, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
   return value.trim();
 }
