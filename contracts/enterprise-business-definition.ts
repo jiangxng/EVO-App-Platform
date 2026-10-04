@@ -22,10 +22,14 @@ export interface BusinessDefinitionAttributionV010 {
 }
 
 export interface BusinessDefinitionOriginV010 {
-  type: "NATIVE" | "MIGRATED";
+  type: "NATIVE" | "MIGRATED" | "TEMPLATE_COPY";
   sourceRef?: string;
   historyComplete: boolean;
 }
+
+export type BusinessDefinitionCreateOriginV010 =
+  | { type: "NATIVE" }
+  | { type: "TEMPLATE_COPY"; sourceRef: string };
 
 export interface BusinessDefinitionRevisionV010 {
   contractVersion: "0.1.0";
@@ -55,6 +59,7 @@ export interface BusinessDefinitionRepositoryV010 {
     payload: Record<string, unknown>;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
+    origin?: BusinessDefinitionCreateOriginV010;
   }): BusinessDefinitionRevisionV010;
 
   reviseDraft(input: {
