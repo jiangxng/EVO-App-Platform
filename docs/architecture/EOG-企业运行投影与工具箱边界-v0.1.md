@@ -617,3 +617,108 @@ local or full projection
 - EOG 首期仍不新建企业 Ledger；
 - 普通拖拽/画布修改仍只改变 Projection；
 - Runtime 永远不会因为 EOG Save 而自动升级。
+
+
+## 14. 插件所有权冻结：只属于 Ledger Runtime 与 Enterprise Context
+
+本节是明确所有权，不新增插件。
+
+> **Runtime Spec、默认企业模板、软件 Working Draft、版本管理与运行版本选择，全部收敛到现有 Ledger Runtime 与 Enterprise Context 两个插件/能力域。不得因为这些功能再创建第三个 Template Plugin、Version Plugin、Release Plugin 或 EOG Runtime Plugin。**
+
+### 14.1 Ledger Runtime 插件
+
+Ledger Runtime 负责“硬件规格”。
+
+其所有权包括：
+
+- Ledger Runtime Spec / Semantic Contract；
+- ApplicationAnchor、LedgerDefinition、PostingRule 可执行契约；
+- 条件/表达式/effect 的执行规格；
+- BusinessData → Posting → LedgerEntry → Balance；
+- Replay / deterministic execution；
+- Runtime Spec compatibility 校验；
+- 加载并执行 Enterprise Context 选择为 active 的兼容企业软件版本。
+
+Ledger Runtime **不拥有**：
+
+- Enterprise Template Catalog；
+- Enterprise Template Working Draft；
+- Enterprise Template Version 历史；
+- 企业管理员的软件版本选择/发布治理。
+
+### 14.2 Enterprise Context 插件
+
+Enterprise Context 负责“软件”。
+
+其所有权包括：
+
+- Default Enterprise Template v1.0；
+- Enterprise Template Catalog；
+- template provenance / applicability；
+- 企业采用、裁剪与差异配置；
+- Enterprise Template Working Draft；
+- Save Working Draft；
+- Create Version；
+- immutable Enterprise Template Version history；
+- version diff / compatibility request / migration metadata；
+- 企业管理员选择哪个版本进入 active / effective 状态；
+- Enterprise Graph Definition 与 EOG Graph Revision。
+
+Enterprise Context 负责的是**软件定义与版本治理**，不是 Ledger Runtime 的确定性执行引擎。
+
+### 14.3 EOG
+
+EOG 不因此成为新插件或新的版本权威。
+
+EOG 只是 Enterprise Context / Ledger Runtime 现有能力的一个投影与编辑入口：
+
+```text
+Ledger Runtime
+└─ Runtime Spec / executable contract
+
+Enterprise Context
+├─ Default Template
+├─ Working Draft
+├─ Version Management
+├─ Active-version governance
+└─ Enterprise Graph Definition
+        ↑
+       EOG
+       projection / selected governed edits
+```
+
+EOG 的 `Save Projection` 写 Enterprise Context 的 Graph Definition / Revision。
+
+EOG 的受治理 Posting Relationship Edit 写 Enterprise Context 的 Template Working Draft。
+
+EOG 不自行保存一套 Template Version，不自行实现发布引擎，也不直接改变 Ledger Runtime 当前 active version。
+
+### 14.4 Activate 的跨插件边界
+
+“企业管理员选择版本”和“运行时实际接受并执行版本”是一个跨插件协议，不是第三个插件：
+
+```text
+Enterprise Context
+Administrator selects Template v1.1
+        ↓ governed activation request
+Ledger Runtime
+validate Runtime Spec compatibility
+        ↓
+accept / reject
+        ↓
+execute accepted active definition
+```
+
+Enterprise Context 拥有版本治理与选择意图；Ledger Runtime 拥有最终兼容性校验和执行安全。
+
+### 14.5 现有 Ledger Runtime Configurator 的定位
+
+仓库中现有 `apps/ledger-runtime-configurator` 是 Ledger Runtime 的开发/配置/编译工具与历史过渡实现，不应被解释成第三个产品级“企业模板插件”。
+
+其中现有 `default-library.ts` / bookkeeping 默认配置属于早期导入与编译证据。产品级 Default Enterprise Template 的长期权威归 Enterprise Context。
+
+后续代码迁移应遵循：
+
+- Runtime-spec 编译/验证能力留在 Ledger Runtime；
+- 产品级默认模板内容与版本生命周期迁入/暴露于 Enterprise Context；
+- 在迁移完成前保留兼容适配，避免破坏已有验证资产。
