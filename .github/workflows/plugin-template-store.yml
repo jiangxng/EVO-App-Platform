@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "apps/template-store/**"
+      - "tests/protocol/template-store-exported-bootstrap-seed.test.mjs"
+      - "apps/template-store/seeds/**"
       - "apps/eog-2d/package.ts"
       - "apps/eog-2d-viewer/**"
       - "contracts/template-preview.ts"
@@ -33,6 +35,8 @@ on:
   pull_request:
     paths:
       - "apps/template-store/**"
+      - "tests/protocol/template-store-exported-bootstrap-seed.test.mjs"
+      - "apps/template-store/seeds/**"
       - "apps/eog-2d/package.ts"
       - "apps/eog-2d-viewer/**"
       - "contracts/template-preview.ts"
