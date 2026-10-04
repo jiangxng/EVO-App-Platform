@@ -26,7 +26,8 @@ import {
 } from "../../dist/contracts/template-preview.js";
 
 const templateId = "evo.ledger-runtime.baseline.v0.1";
-const templateVersion = 2;
+const templateVersion = 3;
+const projectionId = "projection:main";
 
 function context() {
   return {
@@ -50,9 +51,11 @@ test("Ledger Runtime seed exposes the complete application-ledger-rule 2D previe
     templateStoreSeedRecordsV010
   );
   const source = createTemplateStorePreviewArtifactSourceV010(repository);
-  const artifact = source.get({ templateId, templateVersion });
+  const artifact = source.get({ templateId, templateVersion, projectionId });
 
   assert.ok(artifact);
+  assert.equal(artifact.projectionId, projectionId);
+  assert.equal(artifact.title, "完整账本运行时");
   assert.equal(artifact.diagram2d.nodes.length, 284);
   assert.equal(
     artifact.diagram2d.nodes.filter(
@@ -118,7 +121,8 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   const page = createTemplate2dPreviewPageV010({
     templateId,
     templateVersion,
-    title: "EVO 账本运行时基线"
+    title: "完整账本运行时",
+    projectionId
   });
 
   const read = createTemplate2dPreviewReadActionV010({ source });
@@ -132,6 +136,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     values: {
       templateId,
       templateVersion,
+      projectionId,
       resourceId: page.resourceId
     },
     sourceInteractionId: page.id,
@@ -176,6 +181,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     values: {
       templateId,
       templateVersion,
+      projectionId,
       resourceId: page.resourceId,
       target: {
         kind: "node",
@@ -221,7 +227,7 @@ test("Template Store preview action refuses missing Viewer and navigates when av
       code: "evo-template-store.preview-2d",
       inputVersion: "0.1.0"
     },
-    values: { itemId: templateId },
+    values: { itemId: templateId, projectionId },
     sourceInteractionId: "evo-template-store",
     actionId: "preview-2d",
     requiresConfirmation: false
@@ -243,7 +249,9 @@ test("Template Store preview action refuses missing Viewer and navigates when av
   assert.equal(opened.ok, true);
   assert.equal(opened.result.navigateTo, TEMPLATE_2D_PREVIEW_ROUTE_V010);
   assert.equal(sessions.get("session:preview").templateId, templateId);
-  assert.equal(sessions.get("session:preview").templateVersion, 2);
+  assert.equal(sessions.get("session:preview").templateVersion, 3);
+  assert.equal(sessions.get("session:preview").projectionId, projectionId);
   assert.equal(sessions.get("human:preview").templateId, templateId);
-  assert.equal(sessions.get("human:preview").templateVersion, 2);
+  assert.equal(sessions.get("human:preview").templateVersion, 3);
+  assert.equal(sessions.get("human:preview").projectionId, projectionId);
 });
