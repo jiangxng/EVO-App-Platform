@@ -1,4 +1,12 @@
 import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync
+} from "node:fs";
+import { dirname } from "node:path";
+import {
   assertTemplateTransferBundleV010,
   type TemplateTransferBundleV010
 } from "../../contracts/template-transfer.js";
@@ -25,6 +33,11 @@ export interface TemplateStoreRepositoryV010 {
   ): TemplateStoreRecordV010 | undefined;
 }
 
+interface TemplateStoreSnapshotV010 {
+  contractVersion: "0.1.0";
+  records: TemplateStoreRecordV010[];
+}
+
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
   return value.trim();
@@ -42,19 +55,66 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-export function createMemoryTemplateStoreRepositoryV010(
-  seed: TemplateStoreRecordV010[] = []
-): TemplateStoreRepositoryV010 {
-  const records = seed.map(item => ({
-    ...clone(item),
-    bundle: assertTemplateTransferBundleV010(item.bundle)
-  }));
+function validateRecord(value: TemplateStoreRecordV010): TemplateStoreRecordV010 {
+  if (
+    value?.contractVersion !== "0.1.0"
+    || !Number.isInteger(value.version)
+    || value.version < 1
+  ) {
+    throw new Error("TEMPLATE_STORE_RECORD_INVALID");
+  }
+  return {
+    contractVersion: "0.1.0",
+    templateId: required(
+      value.templateId,
+      "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED"
+    ),
+    version: value.version,
+    bundle: assertTemplateTransferBundleV010(value.bundle),
+    publishedAt: at(value.publishedAt)
+  };
+}
 
-  function history(templateId: string): TemplateStoreRecordV010[] {
-    return records
+function validateSnapshot(value: TemplateStoreSnapshotV010): TemplateStoreSnapshotV010 {
+  if (
+    value?.contractVersion !== "0.1.0"
+    || !Array.isArray(value.records)
+  ) {
+    throw new Error("TEMPLATE_STORE_SNAPSHOT_INVALID");
+  }
+  const records = value.records.map(validateRecord);
+  const identities = new Set<string>();
+  const transfers = new Map<string, string>();
+  for (const record of records) {
+    const identity = record.templateId + "@" + record.version;
+    if (identities.has(identity)) {
+      throw new Error("TEMPLATE_STORE_RECORD_DUPLICATE");
+    }
+    identities.add(identity);
+
+    const previousTemplate = transfers.get(record.bundle.transferId);
+    if (
+      previousTemplate !== undefined
+      && previousTemplate !== record.templateId
+    ) {
+      throw new Error("TEMPLATE_STORE_TRANSFER_ALREADY_PUBLISHED");
+    }
+    transfers.set(record.bundle.transferId, record.templateId);
+  }
+  return { contractVersion: "0.1.0", records };
+}
+
+function createRepository(
+  read: () => TemplateStoreSnapshotV010,
+  write: (snapshot: TemplateStoreSnapshotV010) => void
+): TemplateStoreRepositoryV010 {
+  const history = (
+    snapshot: TemplateStoreSnapshotV010,
+    templateId: string
+  ): TemplateStoreRecordV010[] =>
+    snapshot.records
       .filter(item => item.templateId === templateId)
       .sort((a, b) => a.version - b.version);
-  }
 
   return {
     publish(input) {
@@ -63,8 +123,8 @@ export function createMemoryTemplateStoreRepositoryV010(
         "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED"
       );
       const bundle = assertTemplateTransferBundleV010(input.bundle);
-      const existing = history(templateId);
-      const duplicateTransfer = records.find(
+      const snapshot = read();
+      const duplicateTransfer = snapshot.records.find(
         item => item.bundle.transferId === bundle.transferId
       );
       if (duplicateTransfer) {
@@ -73,20 +133,26 @@ export function createMemoryTemplateStoreRepositoryV010(
         }
         return clone(duplicateTransfer);
       }
+
       const record: TemplateStoreRecordV010 = {
         contractVersion: "0.1.0",
         templateId,
-        version: (existing.at(-1)?.version ?? 0) + 1,
+        version:
+          (history(snapshot, templateId).at(-1)?.version ?? 0) + 1,
         bundle: clone(bundle),
         publishedAt: at(input.publishedAt)
       };
-      records.push(record);
+      write(validateSnapshot({
+        contractVersion: "0.1.0",
+        records: [...snapshot.records, record]
+      }));
       return clone(record);
     },
 
     listLatest() {
-      return [...new Set(records.map(item => item.templateId))]
-        .map(templateId => history(templateId).at(-1))
+      const snapshot = read();
+      return [...new Set(snapshot.records.map(item => item.templateId))]
+        .map(templateId => history(snapshot, templateId).at(-1))
         .filter(
           (item): item is TemplateStoreRecordV010 => item !== undefined
         )
@@ -95,7 +161,9 @@ export function createMemoryTemplateStoreRepositoryV010(
     },
 
     getLatest(templateId) {
+      const snapshot = read();
       const item = history(
+        snapshot,
         required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED")
       ).at(-1);
       return item ? clone(item) : undefined;
@@ -105,10 +173,52 @@ export function createMemoryTemplateStoreRepositoryV010(
       if (!Number.isInteger(version) || version < 1) {
         throw new Error("TEMPLATE_STORE_VERSION_INVALID");
       }
+      const snapshot = read();
       const item = history(
+        snapshot,
         required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED")
       ).find(value => value.version === version);
       return item ? clone(item) : undefined;
     }
   };
+}
+
+export function createMemoryTemplateStoreRepositoryV010(
+  seed: TemplateStoreRecordV010[] = []
+): TemplateStoreRepositoryV010 {
+  let snapshot = validateSnapshot({
+    contractVersion: "0.1.0",
+    records: clone(seed)
+  });
+  return createRepository(
+    () => clone(snapshot),
+    next => {
+      snapshot = validateSnapshot(clone(next));
+    }
+  );
+}
+
+export function createFileTemplateStoreRepositoryV010(
+  path: string
+): TemplateStoreRepositoryV010 {
+  const read = (): TemplateStoreSnapshotV010 => {
+    if (!existsSync(path)) {
+      return { contractVersion: "0.1.0", records: [] };
+    }
+    return validateSnapshot(
+      JSON.parse(readFileSync(path, "utf8")) as TemplateStoreSnapshotV010
+    );
+  };
+  const write = (snapshot: TemplateStoreSnapshotV010): void => {
+    const valid = validateSnapshot(snapshot);
+    mkdirSync(dirname(path), { recursive: true });
+    const temp = path + ".tmp";
+    writeFileSync(
+      temp,
+      JSON.stringify(valid, null, 2) + "\n",
+      "utf8"
+    );
+    renameSync(temp, path);
+  };
+  return createRepository(read, write);
 }
