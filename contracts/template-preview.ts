@@ -1,3 +1,6 @@
+export const VISUAL_2D_VIEWER_CAPABILITY_V010 = "visual.viewer.2d";
+export const TEMPLATE_2D_PREVIEW_ROUTE_V010 = "/template-preview/2d";
+
 export interface TemplatePreviewPropertyV010 {
   key: string;
   label: string;
@@ -48,4 +51,17 @@ export interface TemplatePreviewArtifactSourceV010 {
     templateId: string;
     templateVersion?: number;
   }): TemplatePreviewArtifactV010 | undefined;
+}
+
+export interface TemplatePreviewSelectionV010 {
+  contractVersion: "0.1.0";
+  templateId: string;
+  templateVersion: number;
+  selectedAt: string;
+}
+
+export interface TemplatePreviewSessionStoreV010 {
+  set(sessionKey: string, selection: TemplatePreviewSelectionV010): void;
+  get(sessionKey: string): TemplatePreviewSelectionV010 | undefined;
+  remove(sessionKey: string): void;
 }
