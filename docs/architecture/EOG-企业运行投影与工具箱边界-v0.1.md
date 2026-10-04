@@ -72,7 +72,9 @@ Designer 左侧提供类似 Visio 的企业对象工具箱。
 - 已有权威关系的显示/隐藏；
 - Projection / View Inspector 属性编辑。
 
-这里的所有“编辑”都作用于 Graph Definition / Projection / View State，不直接修改 Application、LedgerDefinition、PostingRule 或 Runtime Facts。
+这里列出的**普通投影编辑**只作用于 Graph Definition / Projection / View State，不直接修改 Application、LedgerDefinition 或 Runtime Facts。
+
+唯一已经确认的例外是显式的 **Posting Relationship Edit**：它针对已有 Application / Ledger 之间的条件式记账关系，写入 Enterprise Template Working Draft，并遵循后文“Save Working Draft → Create Version → Administrator Activate”的软件版本流程。
 
 其他成熟图编辑能力预留并逐步加入。
 
@@ -193,7 +195,9 @@ Runtime semantic reference
 
 新增企业 Application / Ledger 属于 EOG 之外或后续高级设置能力，当前不做。
 
-PostingRule 和关系是否允许在 EOG 中新增/修改，仍是独立需求，不在这里提前否定。
+已确认 EOG 可以通过受治理的 **Posting Relationship Edit** 修改已有 Application / Ledger 之间的记账关系，并写入软件 Working Draft。
+
+这里的“关系修改”可覆盖已有 Application / Ledger 之间的关系新增、删除、条件/effect 调整；它不会创建新的 Application 或 Ledger。具体可编辑字段与校验规则继续单独冻结。
 
 
 ## 9. 企业运行权威分层
