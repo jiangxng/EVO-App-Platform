@@ -4,9 +4,10 @@ import type {
   JsonValue
 } from "../runtime/contracts.js";
 import {
-  clampDiagramViewportScaleV010,
-  panDiagramViewportByScreenDeltaV010,
-  zoomDiagramViewportAtScreenPointV010
+  createDiagramCameraTransformV010,
+  fitDiagramCameraToBoundsV010,
+  panDiagramCameraByScreenDeltaV010,
+  zoomDiagramCameraAtScreenPointV010
 } from "./viewport.js";
 
 export type DiagramEditorNodeShapeV010 =
@@ -594,7 +595,7 @@ export function renderDiagramEditorPageShellToHtmlV010(
 <div data-eidos-diagram-toolbar style="margin-left:auto;display:flex;gap:8px"></div>
 </header>
 <div data-eidos-diagram-layout>
-<div data-eidos-diagram-canvas style="position:relative;overflow:auto;min-height:480px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%)"></div>
+<div data-eidos-diagram-canvas style="position:relative;overflow:hidden;min-height:480px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%)"></div>
 <aside data-eidos-diagram-inspector style="border:1px solid color-mix(in srgb,CanvasText 18%,transparent);border-radius:8px;padding:12px;overflow:auto">
 <strong>Selection</strong>
 <p data-eidos-diagram-selection>${escapeHtml(page.emptyMessage ?? "Select a node or relation.")}</p>
@@ -700,7 +701,8 @@ export function mountDiagramEditorPageV010(
     DiagramEditorSelectionInspectionV010 | undefined;
   let selectionReadGeneration = 0;
   let activeReadPresetId = page.readPresets?.[0]?.id;
-  let zoom = 1;
+  let camera = createDiagramCameraTransformV010();
+  let stageElement: HTMLElement | undefined;
   let suppressNextNodeClick = false;
   const navigationPointers = new Map<number, { x: number; y: number }>();
   let panLast: { x: number; y: number } | undefined;
@@ -751,6 +753,42 @@ export function mountDiagramEditorPageV010(
     report("Ready.");
   };
 
+  const selectionStillExists = (
+    candidate: { kind: "node" | "edge"; id: string } | undefined
+  ): boolean => {
+    if (!state || !candidate) return false;
+    return candidate.kind === "node"
+      ? state.nodes.some(item => item.id === candidate.id)
+      : state.edges.some(item => item.id === candidate.id);
+  };
+
+  const applyCameraTransform = (): void => {
+    if (!stageElement) return;
+    stageElement.style.transform =
+      `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
+  };
+
+  const graphBounds = (): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } => {
+    if (!state || state.nodes.length === 0) {
+      return { x: 0, y: 0, width: 1, height: 1 };
+    }
+    const minX = Math.min(...state.nodes.map(node => node.x));
+    const minY = Math.min(...state.nodes.map(node => node.y));
+    const maxX = Math.max(...state.nodes.map(node => node.x + node.width));
+    const maxY = Math.max(...state.nodes.map(node => node.y + node.height));
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY)
+    };
+  };
+
   const matchingActions = (): DiagramEditorActionV010[] => {
     if (!state) return [];
     return (state.actions ?? []).filter(action => {
@@ -783,6 +821,7 @@ export function mountDiagramEditorPageV010(
       requiresConfirmation,
       commandOverride
     );
+    const previousSelection = selected;
     report("Saving…");
     const result = await actionHost.execute(request);
     await options.onActionResult?.(result);
@@ -791,7 +830,9 @@ export function mountDiagramEditorPageV010(
       return;
     }
     state = stateFromResult(result.result);
-    selected = undefined;
+    selected = selectionStillExists(previousSelection)
+      ? previousSelection
+      : undefined;
     render();
     report("Saved.");
   };
@@ -803,21 +844,13 @@ export function mountDiagramEditorPageV010(
       y: canvas.clientHeight / 2
     }
   ): void => {
-    const next = zoomDiagramViewportAtScreenPointV010(
-      {
-        scale: zoom,
-        scrollLeft: canvas.scrollLeft,
-        scrollTop: canvas.scrollTop
-      },
+    camera = zoomDiagramCameraAtScreenPointV010(
+      camera,
       nextZoom,
       anchor
     );
-    zoom = next.scale;
-    render();
-    canvas.scrollTo({
-      left: next.scrollLeft,
-      top: next.scrollTop
-    });
+    applyCameraTransform();
+    renderActions();
   };
 
   const renderActions = (): void => {
@@ -839,35 +872,31 @@ export function mountDiagramEditorPageV010(
         toolbar.appendChild(button);
       };
       addViewButton("−", "Zoom out", () => {
-        applyZoomAt(zoom / 1.2);
+        applyZoomAt(camera.scale / 1.2);
       });
       addViewButton("+", "Zoom in", () => {
-        applyZoomAt(zoom * 1.2);
+        applyZoomAt(camera.scale * 1.2);
       });
       addViewButton("Fit", "Fit diagram to canvas", () => {
-        const maxX = Math.max(
-          900,
-          ...state!.nodes.map(node => node.x + node.width + 120)
+        camera = fitDiagramCameraToBoundsV010(
+          graphBounds(),
+          {
+            width: Math.max(1, canvas.clientWidth),
+            height: Math.max(1, canvas.clientHeight)
+          },
+          24,
+          { min: 0.1, max: 2 }
         );
-        const maxY = Math.max(
-          520,
-          ...state!.nodes.map(node => node.y + node.height + 120)
-        );
-        const availableWidth = Math.max(240, canvas.clientWidth - 24);
-        const availableHeight = Math.max(240, canvas.clientHeight - 24);
-        zoom = clampDiagramViewportScaleV010(
-          Math.min(2, availableWidth / maxX, availableHeight / maxY)
-        );
-        render();
-        canvas.scrollTo({ left: 0, top: 0 });
+        applyCameraTransform();
+        renderActions();
       });
       addViewButton(
-        `${Math.round(zoom * 100)}%`,
+        `${Math.round(camera.scale * 100)}%`,
         "Reset view",
         () => {
-          zoom = 1;
-          render();
-          canvas.scrollTo({ left: 0, top: 0 });
+          camera = createDiagramCameraTransformV010();
+          applyCameraTransform();
+          renderActions();
         }
       );
     }
@@ -1117,21 +1146,14 @@ export function mountDiagramEditorPageV010(
     revision.textContent = "Revision: " + state.revision;
     canvas.replaceChildren();
 
-    const maxX = Math.max(
-      900,
-      ...state.nodes.map(node => node.x + node.width + 120)
-    );
-    const maxY = Math.max(
-      520,
-      ...state.nodes.map(node => node.y + node.height + 120)
-    );
+    const bounds = graphBounds();
+    const maxX = Math.max(1, bounds.x + bounds.width + 120);
+    const maxY = Math.max(1, bounds.y + bounds.height + 120);
 
     const viewport = document.createElement("div");
-    viewport.style.position = "relative";
-    viewport.style.width = Math.max(canvas.clientWidth, maxX * zoom) + "px";
-    viewport.style.height = Math.max(canvas.clientHeight, maxY * zoom) + "px";
-    viewport.style.minWidth = "100%";
-    viewport.style.minHeight = "100%";
+    viewport.style.position = "absolute";
+    viewport.style.inset = "0";
+    viewport.style.overflow = "visible";
 
     const stage = document.createElement("div");
     stage.style.position = "absolute";
@@ -1140,13 +1162,15 @@ export function mountDiagramEditorPageV010(
     stage.style.width = maxX + "px";
     stage.style.height = maxY + "px";
     stage.style.transformOrigin = "0 0";
-    stage.style.transform = `scale(${zoom})`;
+    stageElement = stage;
+    applyCameraTransform();
 
     const svg = svgElement("svg");
     svg.setAttribute("width", String(maxX));
     svg.setAttribute("height", String(maxY));
     svg.style.position = "absolute";
     svg.style.inset = "0";
+    svg.style.overflow = "visible";
     svg.style.pointerEvents = "none";
 
     const defs = svgElement("defs");
@@ -1345,11 +1369,11 @@ export function mountDiagramEditorPageV010(
             }
             const nextX = Math.max(
               0,
-              originalX + screenDeltaX / zoom
+              originalX + screenDeltaX / camera.scale
             );
             const nextY = Math.max(
               0,
-              originalY + screenDeltaY / zoom
+              originalY + screenDeltaY / camera.scale
             );
             moved = true;
             element.style.left = nextX + "px";
@@ -1393,7 +1417,6 @@ export function mountDiagramEditorPageV010(
           element.addEventListener("pointercancel", pointerUp);
         };
         element.addEventListener("pointerdown", pointerDown);
-        listeners.push(() => element.removeEventListener("pointerdown", pointerDown));
       }
 
       stage.appendChild(element);
@@ -1401,6 +1424,7 @@ export function mountDiagramEditorPageV010(
 
     viewport.appendChild(stage);
     canvas.appendChild(viewport);
+    applyCameraTransform();
     if (state.notice) report(state.notice);
     renderSelection();
   };
@@ -1479,28 +1503,21 @@ export function mountDiagramEditorPageV010(
           y: (points[0]!.y + points[1]!.y) / 2
         };
         if (pinchLastMidpoint && page.viewInteraction?.pan) {
-          const next = panDiagramViewportByScreenDeltaV010(
-            {
-              scale: zoom,
-              scrollLeft: canvas.scrollLeft,
-              scrollTop: canvas.scrollTop
-            },
+          camera = panDiagramCameraByScreenDeltaV010(
+            camera,
             {
               x: midpoint.x - pinchLastMidpoint.x,
               y: midpoint.y - pinchLastMidpoint.y
             }
           );
-          canvas.scrollTo({
-            left: next.scrollLeft,
-            top: next.scrollTop
-          });
+          applyCameraTransform();
         }
         const previousDistance = Math.max(
           1,
           pinchLastDistance ?? pinchStartDistance
         );
         applyZoomAt(
-          zoom * currentDistance / previousDistance,
+          camera.scale * currentDistance / previousDistance,
           canvasPoint(midpoint.x, midpoint.y)
         );
         pinchLastDistance = currentDistance;
@@ -1510,21 +1527,14 @@ export function mountDiagramEditorPageV010(
 
       if (points.length === 1 && page.viewInteraction?.pan && panLast) {
         const current = points[0]!;
-        const next = panDiagramViewportByScreenDeltaV010(
-          {
-            scale: zoom,
-            scrollLeft: canvas.scrollLeft,
-            scrollTop: canvas.scrollTop
-          },
+        camera = panDiagramCameraByScreenDeltaV010(
+          camera,
           {
             x: current.x - panLast.x,
             y: current.y - panLast.y
           }
         );
-        canvas.scrollTo({
-          left: next.scrollLeft,
-          top: next.scrollTop
-        });
+        applyCameraTransform();
         panLast = current;
       }
     };
@@ -1582,7 +1592,7 @@ export function mountDiagramEditorPageV010(
         };
       })();
       const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
-      applyZoomAt(zoom * factor, anchor);
+      applyZoomAt(camera.scale * factor, anchor);
     };
     canvas.addEventListener("wheel", wheel, { passive: false });
     listeners.push(() => canvas.removeEventListener("wheel", wheel));
