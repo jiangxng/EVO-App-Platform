@@ -25,7 +25,17 @@ export function createTemplateStorePageV010(
       id: template.templateId,
       title: template.name,
       summary: template.description,
-      thumbnail: template.thumbnail
+      thumbnail: template.thumbnail,
+      primaryAction: {
+        id: "copy",
+        label: "Use template",
+        type: "command",
+        command: "evo-template-store.copy",
+        inputVersion: "0.1.0",
+        requiresConfirmation: true,
+        helpText:
+          "Creates an independent copy in the Enterprise Context repository."
+      }
     })),
     emptyMessage: "No shared templates are available."
   } as const;

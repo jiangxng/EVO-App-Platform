@@ -1,4 +1,12 @@
 import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync
+} from "node:fs";
+import { dirname } from "node:path";
+import {
   assertTemplateTransferBundleV010,
   type TemplateTransferBundleV010
 } from "../../contracts/template-transfer.js";
@@ -9,6 +17,11 @@ export interface TemplateStoreRecordV010 {
   version: number;
   bundle: TemplateTransferBundleV010;
   publishedAt: string;
+}
+
+interface TemplateStoreSnapshotV010 {
+  contractVersion: "0.1.0";
+  records: TemplateStoreRecordV010[];
 }
 
 export interface TemplateStoreRepositoryV010 {
@@ -42,19 +55,97 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-export function createMemoryTemplateStoreRepositoryV010(
-  seed: TemplateStoreRecordV010[] = []
-): TemplateStoreRepositoryV010 {
-  const records = seed.map(item => ({
-    ...clone(item),
-    bundle: assertTemplateTransferBundleV010(item.bundle)
-  }));
+function validateRecord(
+  value: TemplateStoreRecordV010
+): TemplateStoreRecordV010 {
+  if (
+    value?.contractVersion !== "0.1.0"
+    || !Number.isInteger(value.version)
+    || value.version < 1
+    || !Number.isFinite(Date.parse(value.publishedAt))
+  ) {
+    throw new Error("TEMPLATE_STORE_RECORD_INVALID");
+  }
+  return {
+    contractVersion: "0.1.0",
+    templateId: required(
+      value.templateId,
+      "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED"
+    ),
+    version: value.version,
+    bundle: assertTemplateTransferBundleV010(value.bundle),
+    publishedAt: value.publishedAt
+  };
+}
 
-  function history(templateId: string): TemplateStoreRecordV010[] {
-    return records
+function validateSnapshot(
+  raw: TemplateStoreSnapshotV010
+): TemplateStoreSnapshotV010 {
+  if (
+    raw?.contractVersion !== "0.1.0"
+    || !Array.isArray(raw.records)
+  ) {
+    throw new Error("TEMPLATE_STORE_SNAPSHOT_INVALID");
+  }
+
+  const records = raw.records.map(validateRecord);
+  const versions = new Set<string>();
+  const transfers = new Set<string>();
+  for (const record of records) {
+    const versionKey = record.templateId + "@" + record.version;
+    if (versions.has(versionKey)) {
+      throw new Error("TEMPLATE_STORE_VERSION_DUPLICATE");
+    }
+    versions.add(versionKey);
+    if (transfers.has(record.bundle.transferId)) {
+      throw new Error("TEMPLATE_STORE_TRANSFER_DUPLICATE");
+    }
+    transfers.add(record.bundle.transferId);
+  }
+
+  return {
+    contractVersion: "0.1.0",
+    records: records.map(clone)
+  };
+}
+
+function seedSnapshot(
+  seed: readonly TemplateStoreRecordV010[]
+): TemplateStoreSnapshotV010 {
+  return validateSnapshot({
+    contractVersion: "0.1.0",
+    records: seed.map(clone)
+  });
+}
+
+function mergeMissingSeed(
+  snapshot: TemplateStoreSnapshotV010,
+  seed: readonly TemplateStoreRecordV010[]
+): TemplateStoreSnapshotV010 {
+  const next = clone(snapshot);
+  const presentTemplateIds = new Set(
+    next.records.map(record => record.templateId)
+  );
+  for (const seeded of seed.map(validateRecord)) {
+    if (!presentTemplateIds.has(seeded.templateId)) {
+      next.records.push(clone(seeded));
+      presentTemplateIds.add(seeded.templateId);
+    }
+  }
+  return validateSnapshot(next);
+}
+
+function createRepository(
+  read: () => TemplateStoreSnapshotV010,
+  write: (snapshot: TemplateStoreSnapshotV010) => void
+): TemplateStoreRepositoryV010 {
+  const history = (
+    snapshot: TemplateStoreSnapshotV010,
+    templateId: string
+  ): TemplateStoreRecordV010[] =>
+    snapshot.records
       .filter(item => item.templateId === templateId)
       .sort((a, b) => a.version - b.version);
-  }
 
   return {
     publish(input) {
@@ -63,8 +154,9 @@ export function createMemoryTemplateStoreRepositoryV010(
         "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED"
       );
       const bundle = assertTemplateTransferBundleV010(input.bundle);
-      const existing = history(templateId);
-      const duplicateTransfer = records.find(
+      const current = read();
+      const existing = history(current, templateId);
+      const duplicateTransfer = current.records.find(
         item => item.bundle.transferId === bundle.transferId
       );
       if (duplicateTransfer) {
@@ -73,6 +165,7 @@ export function createMemoryTemplateStoreRepositoryV010(
         }
         return clone(duplicateTransfer);
       }
+
       const record: TemplateStoreRecordV010 = {
         contractVersion: "0.1.0",
         templateId,
@@ -80,13 +173,17 @@ export function createMemoryTemplateStoreRepositoryV010(
         bundle: clone(bundle),
         publishedAt: at(input.publishedAt)
       };
-      records.push(record);
+      write(validateSnapshot({
+        contractVersion: "0.1.0",
+        records: [...current.records, record]
+      }));
       return clone(record);
     },
 
     listLatest() {
-      return [...new Set(records.map(item => item.templateId))]
-        .map(templateId => history(templateId).at(-1))
+      const snapshot = read();
+      return [...new Set(snapshot.records.map(item => item.templateId))]
+        .map(templateId => history(snapshot, templateId).at(-1))
         .filter(
           (item): item is TemplateStoreRecordV010 => item !== undefined
         )
@@ -96,6 +193,7 @@ export function createMemoryTemplateStoreRepositoryV010(
 
     getLatest(templateId) {
       const item = history(
+        read(),
         required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED")
       ).at(-1);
       return item ? clone(item) : undefined;
@@ -106,9 +204,53 @@ export function createMemoryTemplateStoreRepositoryV010(
         throw new Error("TEMPLATE_STORE_VERSION_INVALID");
       }
       const item = history(
+        read(),
         required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED")
       ).find(value => value.version === version);
       return item ? clone(item) : undefined;
     }
   };
+}
+
+export function createMemoryTemplateStoreRepositoryV010(
+  seed: TemplateStoreRecordV010[] = []
+): TemplateStoreRepositoryV010 {
+  let snapshot = seedSnapshot(seed);
+  return createRepository(
+    () => clone(snapshot),
+    next => {
+      snapshot = validateSnapshot(next);
+    }
+  );
+}
+
+export function createFileTemplateStoreRepositoryV010(
+  path: string,
+  seed: readonly TemplateStoreRecordV010[] = []
+): TemplateStoreRepositoryV010 {
+  const validatedSeed = seed.map(validateRecord);
+
+  const read = (): TemplateStoreSnapshotV010 => {
+    if (!existsSync(path)) {
+      return seedSnapshot(validatedSeed);
+    }
+    const parsed = validateSnapshot(
+      JSON.parse(readFileSync(path, "utf8")) as TemplateStoreSnapshotV010
+    );
+    return mergeMissingSeed(parsed, validatedSeed);
+  };
+
+  const write = (snapshot: TemplateStoreSnapshotV010): void => {
+    const valid = validateSnapshot(snapshot);
+    mkdirSync(dirname(path), { recursive: true });
+    const temporaryPath = path + ".tmp";
+    writeFileSync(
+      temporaryPath,
+      JSON.stringify(valid, null, 2) + "\n",
+      "utf8"
+    );
+    renameSync(temporaryPath, path);
+  };
+
+  return createRepository(read, write);
 }

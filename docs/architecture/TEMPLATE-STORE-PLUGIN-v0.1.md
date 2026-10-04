@@ -147,13 +147,15 @@ Included now:
 - copy-into-enterprise adapter that always creates a new enterprise-owned Draft;
 - `TEMPLATE_COPY` provenance without a live source dependency;
 - SHA-256 bundle digest validation across the transfer boundary;
-- governed Human Copy Action handler that auto-resolves the single Enterprise Context in v0.1 while preserving optional `targetContextId` for future multi-context use, plus explicit confirmation and authorization before invoking the public transfer Provider.
+- governed Human Copy Action handler that auto-resolves the single Enterprise Context in v0.1 while preserving optional `targetContextId` for future multi-context use, plus explicit confirmation and authorization before invoking the public transfer Provider;
+- durable Host Template Store repository using `APP_PLATFORM_TEMPLATE_STORE_FILE` or the main state directory;
+- built-in Ledger Runtime seed represented as a real versioned `TemplateTransferBundleV010` record;
+- Template Store card `Use template` action wired through the App Host command path;
+- system-generated target Business Definition identity so the Human does not manage internal IDs.
 
 Deliberately deferred to the next slice:
 
 - Human/Agent ActionHost Share command;
-- Host registration/wiring of the Template Store Copy Action;
-- durable Template Store repository wiring in the Host;
 - Agent projection of Share/Copy operations;
 - Designer-generated thumbnail persistence;
 - template detail page;
@@ -273,6 +275,6 @@ This preserves the long-term split:
 
 The next smallest real gate is:
 
-> Wire the implemented governed Copy Action into the Host with durable Template Store state, then add the symmetric Enterprise Context Share Action.
+> Validate the page-level Copy experience end-to-end, then add the symmetric Enterprise Context Share Action and dynamic projection of newly shared repository records.
 
-The Copy handler now enforces Human caller + explicit confirmation + authorization. v0.1 auto-resolves the single Enterprise Context from the Principal's Host-authorized Context registry; the optional target Context identity remains in the contract for future multi-context use. The remaining acceptance gate is durable Host wiring, Share orchestration, and continued absence of direct cross-plugin persistence access.
+The current v0.1 path is now `Template Store card -> Use template -> confirm -> authorization -> Enterprise Context Draft`. The Host owns durable Template Store state and target Context resolution. The next architecture gate is Share plus dynamic Store refresh without introducing direct cross-plugin persistence access.
