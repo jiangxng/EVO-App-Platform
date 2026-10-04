@@ -104,6 +104,53 @@ EOG
 
 ---
 
+
+## 0.2 Template-first 企业实施
+
+**状态：已确认**
+
+企业项目实施默认不从空白开始，而从 Enterprise Template 开始。
+
+### 原因
+
+- 会计准则/应用指南已经提供大量可复用的会计与业务处理指导；
+- APQC、行业公开资料和其他可靠公开知识已经提供大量基础流程/分类参考；
+- 基础元数据、常见 Application、Ledger 和条件式 Posting 拓扑可以提前整理；
+- 从零访谈和定义会显著增加实施时间、沟通成本与遗漏概率。
+
+### 决策
+
+Enterprise Context 可以保存版本化的 **Enterprise Template Catalog**。
+
+模板可包含候选：
+
+- Application；
+- LedgerDefinition；
+- PostingRule / 条件式记账拓扑；
+- 基础 Metadata；
+- Process / Classification reference；
+- 默认投影提示。
+
+项目实施时：
+
+```text
+企业主选择模板
+→ 确认 / 裁剪 / 调整
+→ 形成企业自己的 Runtime Definition
+→ EOG 投影该 Runtime Definition
+→ 后续再深入 Application 字段与细节
+```
+
+### 边界
+
+- Template 是实施基线，不是 Runtime Fact。
+- 企业选择模板后必须形成企业自己的版本化 Runtime Definition。
+- 模板升级不能隐式改变已实施企业。
+- EOG 不负责创建模板，也不负责把普通拖放变成模板实例化。
+- EOG 可以预览模板、显示差异和投影已采用定义。
+
+---
+
 ## 1. EOG 最终表达哪些企业对象
 
 **状态：已确认**  
@@ -248,7 +295,7 @@ Application / Ledger 首期关系不由画布创建，而是投影 Runtime Defin
 **状态：已确认（第一阶段能力）**  
 **优先级：P0**
 
-Designer 已确认是**完整企业建模工具**，不是轻量企业拓扑编辑器。
+Designer 已确认是**完整企业运行投影编辑工具**，不是企业本体设计器。
 
 首期必须覆盖：
 
