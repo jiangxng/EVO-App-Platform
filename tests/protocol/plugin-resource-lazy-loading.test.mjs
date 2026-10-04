@@ -26,11 +26,11 @@ test("Template Store and 2D Viewer runtime resources are not eagerly imported by
 
   assert.match(
     server,
-    /import\("\.\.\/apps\/template-store\/experience-assets\.js"\)/
+    /import\(\s*"\.\.\/apps\/template-store\/experience-assets\.js"\s*\)/
   );
   assert.match(
     server,
-    /import\("\.\.\/apps\/template-store\/copy-action\.js"\)/
+    /import\(\s*"\.\.\/apps\/template-store\/copy-action\.js"\s*\)/
   );
   assert.match(
     server,
