@@ -29,3 +29,12 @@ Enterprise Context remains the single Enterprise Graph Definition authority.
 Eidos owns reusable 2D/3D interaction cores.
 
 SOP remains a separate deferred capability.
+
+
+## 需求澄清入口
+
+EOG 后续产品需求按中文清单逐项收敛：
+
+`docs/roadmap/EOG-待明确需求清单-v0.1.md`
+
+该文档只记录已确认边界与待明确问题；每项确认后再回写对应架构/契约。
