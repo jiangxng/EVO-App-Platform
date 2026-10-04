@@ -18,6 +18,8 @@ import {
   authorizeMaterialWriteV010
 } from "../../manager/material-write-authorization.js";
 import {
+  TEMPLATE_STORE_COPY_AUTHORIZATION_ACTION,
+  TEMPLATE_STORE_COPY_COMMAND,
   TEMPLATE_STORE_FEATURE_ID,
   TEMPLATE_STORE_PACKAGE_ID
 } from "./package.js";
@@ -25,9 +27,6 @@ import type {
   TemplateStoreRecordV010,
   TemplateStoreRepositoryV010
 } from "./repository.js";
-
-export const TEMPLATE_STORE_COPY_COMMAND = "evo-template-store.copy";
-export const TEMPLATE_STORE_COPY_AUTHORIZATION_ACTION = "template.store.copy";
 
 export interface TemplateStoreCopyActionDependenciesV010 {
   store: TemplateStoreRepositoryV010;
