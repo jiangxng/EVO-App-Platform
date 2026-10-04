@@ -69,7 +69,42 @@ test("Ledger Runtime seed exposes the complete application-ledger-rule 2D previe
   assert.equal(artifact.diagram2d.edges.length, 912);
   assert.equal(
     artifact.diagram2d.edges.every(
-      edge => edge.kind === "posting-rule"
+      edge => edge.kind === "posting-rule" && edge.arrow === "end"
+    ),
+    true
+  );
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.typeLabel === "应用"
+        && node.shape === "rounded-rectangle"
+    ).length,
+    143
+  );
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.typeLabel === "账本"
+        && node.shape === "rectangle"
+    ).length,
+    141
+  );
+  assert.equal(
+    artifact.diagram2d.edges.filter(
+      edge => edge.target.startsWith("ledger:")
+    ).length,
+    496
+  );
+  assert.equal(
+    artifact.diagram2d.edges.filter(
+      edge => edge.source.startsWith("ledger:")
+    ).length,
+    416
+  );
+  assert.equal(
+    artifact.diagram2d.edges.every(
+      edge => edge.properties.some(property =>
+        property.key === "flowType"
+        && ["数量", "资金", "数量 + 资金", "发生数"].includes(property.value)
+      )
     ),
     true
   );
@@ -108,6 +143,26 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   assert.equal(result.result.lifecycleState, "TEMPLATE_PREVIEW");
   assert.equal(result.result.actions.length, 0);
   assert.equal(result.result.nodes.every(node => node.readOnly === true), true);
+  assert.deepEqual(page.viewInteraction, {
+    zoom: true,
+    localNodeDrag: true
+  });
+  assert.equal(
+    result.result.nodes.some(node =>
+      node.typeLabel === "应用" && node.shape === "rounded-rectangle"
+    ),
+    true
+  );
+  assert.equal(
+    result.result.nodes.some(node =>
+      node.typeLabel === "账本" && node.shape === "rectangle"
+    ),
+    true
+  );
+  assert.equal(
+    result.result.edges.every(edge => edge.arrow === "end"),
+    true
+  );
 
   const inspect = createTemplate2dPreviewSelectionReadActionV010({ source });
   const selection = await inspect.execute({
