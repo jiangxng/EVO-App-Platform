@@ -68,7 +68,7 @@ export const templateStorePackage: PackageManifestV010 = {
           messages: {
             "navigation.evo-template-store.nav.label": "Template Store",
             "catalog.evo-template-store.title": "Template Store",
-            "catalog.evo-template-store.description": "Browse shared templates. A future copy action will create an independent enterprise-owned copy.",
+            "catalog.evo-template-store.description": "Browse shared templates and copy an independent enterprise-owned definition into Enterprise Context.",
             "catalog.evo-template-store.search.placeholder": "Search templates",
             "catalog.evo-template-store.search.ariaLabel": "Search templates",
             "catalog.evo-template-store.search.noResults": "No matching templates.",
@@ -85,7 +85,7 @@ export const templateStorePackage: PackageManifestV010 = {
           messages: {
             "navigation.evo-template-store.nav.label": "模板商店",
             "catalog.evo-template-store.title": "模板商店",
-            "catalog.evo-template-store.description": "浏览共享模板。后续复制动作会在企业上下文中创建一份独立副本。",
+            "catalog.evo-template-store.description": "浏览共享模板，并将独立副本复制到企业上下文仓库。",
             "catalog.evo-template-store.search.placeholder": "搜索模板",
             "catalog.evo-template-store.search.ariaLabel": "搜索模板",
             "catalog.evo-template-store.search.noResults": "没有匹配的模板。",
