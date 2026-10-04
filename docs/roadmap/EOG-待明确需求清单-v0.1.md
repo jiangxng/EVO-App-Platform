@@ -11,10 +11,16 @@
 
 以下内容已经确定，不再作为待讨论项：
 
-- **EVO Runtime 是企业运行定义与运行事实的来源；Enterprise Context 不创造 Posting/Ledger 经济语义。**
+- **本轮澄清不推翻此前任何架构决定，只进一步拆清各自权威边界。**
+- **Enterprise Context 继续是 Enterprise Graph Definition 的权威来源。**
+  - 这里的 Graph Definition 指：一个 Graph 投影哪些对象、如何组织、如何钻取、Graph 间如何引用以及其他投影定义。
+  - 它不等于 Application / PostingRule / LedgerDefinition 的运行定义。
+- **EVO Runtime 继续是 Application / PostingRule / LedgerDefinition 运行语义与运行事实的权威来源。**
   - Runtime Definition Plane：ApplicationAnchor、PostingRule、LedgerDefinition、条件式记账配置及企业采用的模板版本。
   - Runtime Fact Plane：BusinessData、Posting、LedgerEntry、LedgerBalance 等实际运行事实。
-  - Enterprise Context：保存企业级上下文、EOG Graph 组织/引用与其他 Host 侧定义；可以引用 Runtime 定义，但不得复制并成为第二套 Posting/Ledger 真相。
+- **EOG 是投影工具，不是企业本体设计器。**
+  - EOG 读取并引用各自权威来源；
+  - EOG 不通过画图创造 Application、Ledger、PostingRule 或已经发生的运行事实。
 - EOG 2D 是一个 Package：
   - Viewer：可交互、可选择节点/连线、可查看 Inspector 属性，但不可进行语义编辑。
   - Designer：复用 Viewer 的 Workspace 能力，并增加受治理的语义编辑能力。
@@ -68,15 +74,33 @@ BusinessData
 
 ### Enterprise Context 的角色
 
-Enterprise Context 负责企业上下文和 Host 侧定义组织，并可保存：
+Enterprise Context 继续承担此前已经确定的 **Enterprise Graph Definition authority**。
 
-- EOG Graph 本身；
-- Graph 中引用了哪些 Runtime 对象；
+它负责保存：
+
+- EOG Graph 本身的定义；
+- 这张投影图选择了哪些对象；
+- Graph 中对 Runtime / Host 权威对象的稳定引用；
 - 多 Graph 组织与导航；
+- Graph/Subgraph 钻取定义；
 - 权限、人员、组织等 Host 语义；
 - 其他不属于最小 Ledger Runtime 的企业上下文。
 
-但对于 Application ↔ PostingRule ↔ Ledger 的运行语义，只保存稳定引用/上下文，不建立第二套真相。
+但对于 Application ↔ PostingRule ↔ Ledger 的运行语义，只保存稳定引用/投影关系，不复制并建立第二套 Runtime 真相。
+
+因此此前设计与本轮设计不是替换关系，而是：
+
+```text
+Enterprise Context
+= Enterprise Graph Definition authority
+
+EVO Runtime
+= executable Application / PostingRule / Ledger authority
+  + Runtime Fact authority
+
+EOG
+= projection surface over both
+```
 
 ---
 
@@ -87,9 +111,11 @@ Enterprise Context 负责企业上下文和 Host 侧定义组织，并可保存�
 
 ### 决策
 
-EOG 最终目标不是“应用—账本运行图”，而是**完整企业建模工具 / 企业全景图**。
+EOG 最终目标不是只显示“应用—账本运行图”，而是成为**完整的企业运行投影工具 / 企业全景投影视图**。
 
-EOG 原则上可以表达企业中的全部对象。对象类型不预先设上限，也不把当前 Application / Ledger 视为最终固定集合。
+EOG 原则上可以**投影企业中的全部对象**。对象类型不预先设上限，也不把当前 Application / Ledger 视为最终固定集合。
+
+这里的“可以投影全部对象”不等于“EOG 负责定义全部对象”。每类对象仍由其所属权威系统定义，EOG 只保存引用、投影组织和 View State。
 
 候选对象包括但不限于：
 
@@ -110,7 +136,9 @@ EOG 原则上可以表达企业中的全部对象。对象类型不预先设上�
 
 ### 工具箱模型
 
-EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”，但首期不是空白图形库，而是**Runtime Definition 驱动的建模导航器**。
+EOG 2D Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”，但这里的 Designer 是**投影设计器**，不是企业设计器。
+
+首期工具箱不是空白图形库，而是 **Runtime Definition 驱动的投影导航器**。
 
 当前第一批先提供：
 
@@ -149,7 +177,7 @@ Application
 → ...
 ```
 
-逐步搭建企业运行图。
+逐步组织当前 EOG 投影图。
 
 未选中任何对象时工具箱如何组织/过滤，后续再定。
 
@@ -163,9 +191,9 @@ Application
 - 其他 Agent；
 - 或其他上层智能能力
 
-调用 EOG/Enterprise Context 的公开建模能力生成或修改图。
+调用 EOG/Enterprise Context 的公开**投影操作**生成或修改 Graph。
 
-因此 EOG 需要提供**确定性、可组合、可由 Human 与 Agent 共用的公开建模命令**，但 EOG 本体不负责自动推理“应该画什么”。
+因此 EOG 需要提供**确定性、可组合、可由 Human 与 Agent 共用的公开投影命令**，但 EOG 本体不负责自动推理“应该投影什么”。
 
 ### 明确不做什么
 
@@ -176,8 +204,9 @@ Application
 ### 架构影响
 
 - EVO Runtime Definition Plane 负责 Application / PostingRule / Ledger 等运行定义权威。
-- Enterprise Context 负责 EOG Graph 组织、引用以及 Host 侧企业上下文，不复制 Posting/Ledger 真相。
-- EOG 负责把这些对象和关系投影成可建模的节点、关系和工具箱项。
+- Enterprise Context 继续负责 Enterprise Graph Definition、Graph 组织、引用以及 Host 侧企业上下文。
+- EOG 负责把这些权威对象和关系投影成节点、连线、工具箱项和钻取入口。
+- EOG 不承担企业对象本体设计职责。
 - Eidos 只提供通用 Toolbox / Shape / Interaction 机制。
 
 ---
@@ -223,18 +252,18 @@ Designer 已确认是**完整企业建模工具**，不是轻量企业拓扑编�
 
 首期必须覆盖：
 
-- 新增节点
-- 删除节点
-- 新增关系
-- 删除关系
-- 属性编辑
+- 将已有权威对象加入投影节点；
+- 从当前 Graph 投影中移除节点（不删除源对象）；
+- 投影已有权威关系；
+- 隐藏/移除投影关系（不删除源关系）；
+- 投影/View 属性编辑；
 - 拖拽布局
 - 多选 / 框选
 - 批量编辑
 - 子图
 - 对齐
 
-其中拖拽、框选、多选、批量选择基础、子图 primitive、对齐等通用能力属于 Eidos 2D Core；EOG 只定义企业语义和合法操作。
+其中拖拽、框选、多选、批量选择基础、子图 primitive、对齐等通用能力属于 Eidos 2D Core；EOG 只定义投影语义、来源引用和合法的 Projection/View 操作。
 
 复制/粘贴、撤销/重做、自动布局、分组、折叠、锁定、快捷键、模板等继续预留。
 
@@ -595,13 +624,13 @@ Enterprise Context 已承担定义权威，但 EOG 产品流程仍需冻结。
 
 因此：
 
-> **Drop = 把已有运行对象放进这张图，而不是创建运行对象。**
+> **Drop = 把已有权威对象加入这张投影图，而不是创建企业对象。**
 
 ### 已有关系的显示
 
 如果被放入画布的 Application / Ledger 在 Runtime Definition 中已经存在 Posting 关系，EOG 可以读取并显示该关系及其条件/方向。
 
-这属于“显示已有事实/定义”，不是“Drop 创建关系”。
+这属于“投影已有定义”，不是“Drop 创建关系”。
 
 ### 新增 Application / Ledger
 
