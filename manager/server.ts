@@ -3463,6 +3463,20 @@ const actionRouter = createAppActionRouter(
       packageId: EOG_2D_VIEWER_PACKAGE_ID,
       featureId: EOG_2D_VIEWER_FEATURE_ID,
       commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
       async load() {
         const [
           viewer,
@@ -3484,6 +3498,20 @@ const actionRouter = createAppActionRouter(
       packageId: EOG_2D_VIEWER_PACKAGE_ID,
       featureId: EOG_2D_VIEWER_FEATURE_ID,
       commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
       async load() {
         const [
           viewer,
