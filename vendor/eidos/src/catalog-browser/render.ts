@@ -53,8 +53,8 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
       ? `<div data-eidos-catalog-thumbnail><img src="${esc(item.thumbnail.src)}" alt="${esc(item.thumbnail.alt)}" loading="lazy" decoding="async"></div>`
       : "";
     const actions = [
-      ...(item.primaryAction ? [actionButton(item.id, item.primaryAction, true)] : []),
-      ...(item.secondaryActions ?? []).map(a => actionButton(item.id, a, false))
+      ...(item.secondaryActions ?? []).map(a => actionButton(item.id, a, false)),
+      ...(item.primaryAction ? [actionButton(item.id, item.primaryAction, true)] : [])
     ].join("");
 
     const searchText = [
