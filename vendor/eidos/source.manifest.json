@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "75fdf3bc2322459e7fbf7cf672ac6f141ca9b2b3",
+  "sourceCommit": "78ed96ff9ea67bf62f1a6d1add3beec9525e42d1",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
@@ -34,6 +34,7 @@
     "src/diagram/editor.ts",
     "src/diagram/index.ts",
     "src/diagram/surface.ts",
+    "src/diagram/viewport.ts",
     "src/diagram/workspace.ts",
     "src/extension-manager/contracts.ts",
     "src/extension-manager/index.ts",
