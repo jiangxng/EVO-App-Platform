@@ -8,6 +8,9 @@ import type {
 import {
   ledgerRuntimeBaselineTemplateV010
 } from "./templates.js";
+import {
+  ledgerRuntimeProductionTemplateV010
+} from "./seeds/evo-ledger-runtime-production.snapshot.js";
 
 const sharedAt = "2026-10-04T00:00:00.000Z";
 
@@ -31,21 +34,7 @@ const unsignedLedgerRuntimeBundle = {
   definition: {
     kind: "LEDGER_RUNTIME_TEMPLATE",
     title: ledgerRuntimeBaselineTemplateV010.name,
-    payload: {
-      contractVersion: "0.1.0",
-      source: {
-        project: ledgerRuntimeBaselineTemplateV010.source.ownerProject,
-        artifact: ledgerRuntimeBaselineTemplateV010.source.artifact,
-        version: ledgerRuntimeBaselineTemplateV010.source.version
-      },
-      runtimeFlow: [
-        "BusinessData",
-        "Posting",
-        "LedgerEntry",
-        "LedgerBalance"
-      ],
-      copyMode: "COPY"
-    }
+    payload: structuredClone(ledgerRuntimeProductionTemplateV010)
   },
   sharedAt,
   sharedBy: {
