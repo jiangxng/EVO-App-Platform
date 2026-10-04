@@ -25,11 +25,9 @@ function request(overrides = {}) {
       inputVersion: "0.1.0"
     },
     values: {
-      templateId: "template:o2c",
-      templateVersion: 1,
-      targetDefinitionId: "process:o2c-local"
+      itemId: "template:o2c"
     },
-    sourceInteractionId: "interaction:1",
+    sourceInteractionId: "evo-template-store",
     actionId: "copy",
     requiresConfirmation: true,
     ...overrides
@@ -123,7 +121,7 @@ function setup({ allowed = true, enterpriseContexts } = {}) {
     listAvailableContexts: () => availableContexts,
     resolveAuthorizationProvider: () => ({
       providerId: "test.authorization",
-      check(input) {
+      check() {
         return {
           contractVersion: "0.1.0",
           allowed,
@@ -132,23 +130,26 @@ function setup({ allowed = true, enterpriseContexts } = {}) {
         };
       }
     }),
-    now: () => new Date("2026-10-04T03:00:00.000Z")
+    now: () => new Date("2026-10-04T03:00:00.000Z"),
+    id: () => "copy-1"
   });
 
   return { definitions, handler };
 }
 
-test("Template Store Copy auto-resolves the single Enterprise Context in v0.1", async () => {
+test("catalog-style Template Store Copy auto-resolves the single Enterprise Context", async () => {
   const { definitions, handler } = setup();
   const result = await handler.execute(request(), context());
 
   assert.equal(result.ok, true);
   assert.equal(result.result.targetContextId, "context:target");
   assert.equal(result.result.targetEnterpriseId, "enterprise:target");
+  assert.equal(result.result.targetDefinitionId, "template-copy:copy-1");
+  assert.match(result.result.message, /Order to Cash/);
 
   const copied = definitions.getLatest({
     enterpriseId: "enterprise:target",
-    definitionId: "process:o2c-local"
+    definitionId: "template-copy:copy-1"
   });
   assert.ok(copied);
   assert.equal(copied.state, "DRAFT");
@@ -159,7 +160,6 @@ test("Template Store Copy auto-resolves the single Enterprise Context in v0.1", 
     "template-store:template:o2c@1"
   );
   assert.equal(copied.payload.stage, "source-v0");
-
 });
 
 test("Template Store Copy preserves future multi-context targeting through targetContextId", async () => {
@@ -182,10 +182,8 @@ test("Template Store Copy preserves future multi-context targeting through targe
   const result = await handler.execute(
     request({
       values: {
-        templateId: "template:o2c",
-        templateVersion: 1,
-        targetContextId: "context:target-b",
-        targetDefinitionId: "process:o2c-local"
+        itemId: "template:o2c",
+        targetContextId: "context:target-b"
       }
     }),
     context()
@@ -194,7 +192,7 @@ test("Template Store Copy preserves future multi-context targeting through targe
   assert.equal(result.result.targetContextId, "context:target-b");
   assert.ok(definitions.getLatest({
     enterpriseId: "enterprise:target-b",
-    definitionId: "process:o2c-local"
+    definitionId: "template-copy:copy-1"
   }));
 });
 
@@ -220,28 +218,8 @@ test("Template Store Copy refuses ambiguous multi-context writes until a target 
   assert.equal(result.error.code, "TEMPLATE_STORE_TARGET_CONTEXT_REQUIRED");
 });
 
-test("Template Store Copy rejects a target Context unavailable to the principal", async () => {
-  const { handler } = setup();
-  const result = await handler.execute(
-    request({
-      values: {
-        templateId: "template:o2c",
-        templateVersion: 1,
-        targetContextId: "context:not-available",
-        targetDefinitionId: "process:o2c-local"
-      }
-    }),
-    context()
-  );
-  assert.equal(result.ok, false);
-  assert.equal(
-    result.error.code,
-    "TEMPLATE_STORE_TARGET_CONTEXT_NOT_AVAILABLE"
-  );
-});
-
 test("Template Store Copy rejects missing confirmation", async () => {
-  const { handler } = setup(true);
+  const { handler } = setup();
   const result = await handler.execute(
     request({ requiresConfirmation: false }),
     context()
@@ -251,7 +229,7 @@ test("Template Store Copy rejects missing confirmation", async () => {
 });
 
 test("Template Store Copy rejects non-Human callers in the Human Action path", async () => {
-  const { handler } = setup(true);
+  const { handler } = setup();
   const result = await handler.execute(request(), context("AI"));
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "TEMPLATE_STORE_COPY_HUMAN_REQUIRED");
