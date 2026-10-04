@@ -11,6 +11,9 @@ import type {
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
 import {
+  assertTemplateProjectionGalleryV010
+} from "../../contracts/template-projection-gallery.js";
+import {
   TEMPLATE_STORE_FEATURE_ID,
   TEMPLATE_STORE_PACKAGE_ID,
   TEMPLATE_STORE_PREVIEW_2D_COMMAND
@@ -49,6 +52,18 @@ function sessionKeys(context: PlatformRequestContextV010): string[] {
   );
 }
 
+function optionalString(
+  values: Record<string, JsonValue>,
+  key: string
+): string | undefined {
+  const value = values[key];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`TEMPLATE_STORE_PREVIEW_FIELD_INVALID: ${key}`);
+  }
+  return value.trim();
+}
+
 function itemId(values: Record<string, JsonValue>): string {
   const value = values.itemId ?? values.templateId;
   if (typeof value !== "string" || !value.trim()) {
@@ -82,10 +97,32 @@ export function createTemplateStorePreview2dActionHandlerV010(input: {
         const record = input.store.getLatest(templateId);
         if (!record) throw new Error("TEMPLATE_STORE_VERSION_NOT_FOUND");
 
+        const requestedProjectionId = optionalString(
+          request.values,
+          "projectionId"
+        );
+        const gallery = record.bundle.definition.projectionGallery
+          ? assertTemplateProjectionGalleryV010(
+              record.bundle.definition.projectionGallery
+            )
+          : undefined;
+        const projectionId = gallery
+          ? requestedProjectionId ?? gallery.primaryProjectionId
+          : requestedProjectionId;
+        if (
+          projectionId
+          && (!gallery || !gallery.projections.some(
+            item => item.projectionId === projectionId
+          ))
+        ) {
+          throw new Error("TEMPLATE_PROJECTION_NOT_FOUND");
+        }
+
         const selection = {
           contractVersion: "0.1.0" as const,
           templateId: record.templateId,
           templateVersion: record.version,
+          ...(projectionId ? { projectionId } : {}),
           selectedAt: (input.now ?? (() => new Date()))().toISOString()
         };
         for (const key of sessionKeys(context)) {
