@@ -45,8 +45,10 @@ import {
 } from "./package.js";
 
 export {
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
-  EOG_2D_VIEWER_WORKSPACE_ROUTE
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "./package.js";
 function localizedText(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";
