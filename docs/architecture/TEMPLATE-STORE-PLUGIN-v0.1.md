@@ -139,14 +139,20 @@ Included now:
 - one built-in Ledger Runtime baseline card;
 - thumbnail/name/description rendering;
 - plugin-focused CI;
-- no dependency on Enterprise Context for browsing.
+- no dependency on Enterprise Context for browsing;
+- neutral `TemplateTransferBundleV010` public contract;
+- Enterprise Context `enterprise.template-transfer` Provider capability;
+- exact-revision Share export for both Draft and Published definitions;
+- Template Store-owned immutable shared snapshot repository;
+- copy-into-enterprise adapter that always creates a new enterprise-owned Draft;
+- `TEMPLATE_COPY` provenance without a live source dependency;
+- SHA-256 bundle digest validation across the transfer boundary.
 
 Deliberately deferred to the next slice:
 
-- Enterprise Context share/export contract;
-- Template Store shared-content repository;
-- Copy command into a selected Enterprise Context;
-- authorization around Share/Copy;
+- Human/Agent ActionHost Share and Copy commands;
+- durable Template Store repository wiring in the Host;
+- authorization and confirmation around Share/Copy;
 - Designer-generated thumbnail persistence;
 - template detail page;
 - categories, ratings, popularity, comments or marketplace economics.
@@ -159,8 +165,11 @@ Current allowed direction:
 Template Store Experience
   -> Eidos public Catalog Browser
 
-future Share/Copy adapter
-  -> Enterprise Context public contracts
+Enterprise Context transfer adapter
+  -> neutral Template Transfer contract
+
+Template Store repository
+  -> neutral Template Transfer contract
 ```
 
 Forbidden:
@@ -176,10 +185,54 @@ Enterprise Context
   -> Template Store private persistence
 ```
 
-## 9. Next implementation gate
+## 9. Share/Copy transfer boundary
+
+The cross-plugin payload is a neutral immutable `TemplateTransferBundleV010`.
+
+```text
+Enterprise Context
+  exact definition revision
+  + explicit Share metadata
+  -> TemplateTransferBundle
+
+TemplateTransferBundle
+  -> Template Store repository
+  -> immutable Store version
+
+Template Store record
+  -> TemplateTransferBundle
+  -> Enterprise Context transfer Provider
+  -> new target Enterprise Context Draft
+```
+
+Rules:
+
+- Share pins an exact Enterprise Context definition revision; it never means "whatever is latest later".
+- Share MAY export either a Draft or a Published revision. This preserves the established rule that `Submit != Publish != Share`.
+- the bundle carries template name, description and thumbnail plus the exact business-definition payload;
+- the bundle carries source enterprise/definition/revision metadata for provenance;
+- the bundle is integrity-protected by a deterministic SHA-256 digest;
+- Template Store persists a cloned snapshot and never reads Enterprise Context private storage;
+- Enterprise Context copy accepts the neutral bundle and creates revision 0 in state `DRAFT` for the target enterprise;
+- copied definitions record `origin.type = TEMPLATE_COPY` and a source reference for audit;
+- provenance is not synchronization: source and target remain independently editable after the copy.
+
+Physical dependency regression tests MUST keep both implementation directions absent:
+
+```text
+apps/template-store/**
+  X providers/enterprise-context/**
+
+providers/enterprise-context/template-transfer.ts
+  X apps/template-store/**
+```
+
+Both sides may depend on `contracts/template-transfer.ts`.
+
+## 10. Next implementation gate
 
 The next smallest real gate is:
 
-> Define the public Enterprise Context template-share/copy boundary so a shared item can be copied into a target Enterprise Context without Template Store owning or directly mutating Enterprise Context storage.
+> Wire governed Share and Copy Actions over the public transfer Provider and a durable Template Store repository, while preserving the independent-plugin boundary.
 
-That gate must preserve the copy-only invariant and Enterprise Context authority.
+Acceptance requires explicit authorization/confirmation, durable Store state, the existing three-field card projection, and no direct cross-plugin persistence access.

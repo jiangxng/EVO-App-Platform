@@ -187,6 +187,9 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
+import type {
+  EnterpriseTemplateTransferProviderV010
+} from "../contracts/template-transfer.js";
 import {
   EVO_LEDGER_RUNTIME_PROVIDER_ID_V010,
   toEvoLedgerRuntimeApplicationIdBindingV010
@@ -280,6 +283,7 @@ import {
   HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
   HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
   hostEnterpriseContextProviderPackage
 } from "../providers/enterprise-context/package.js";
 import {
@@ -291,6 +295,9 @@ import {
   createFileBusinessDefinitionRepositoryV010,
   createMemoryBusinessDefinitionRepositoryV010
 } from "../providers/enterprise-context/business-definitions.js";
+import {
+  createEnterpriseTemplateTransferProviderV010
+} from "../providers/enterprise-context/template-transfer.js";
 import {
   migrateLegacyEogSopsV010
 } from "../providers/enterprise-context/eog-sop-migration.js";
@@ -1349,6 +1356,22 @@ providerRuntimeRegistry.setHealth(
   {
     state: "HEALTHY",
     message: "Enterprise Context Business Definitions are active.",
+    checkedAt: new Date().toISOString()
+  }
+);
+const enterpriseTemplateTransferProvider =
+  createEnterpriseTemplateTransferProviderV010(
+    enterpriseBusinessDefinitionRepository
+  );
+providerRuntimeRegistry.replace<EnterpriseTemplateTransferProviderV010>(
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  enterpriseTemplateTransferProvider
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Template Transfer is active.",
     checkedAt: new Date().toISOString()
   }
 );
