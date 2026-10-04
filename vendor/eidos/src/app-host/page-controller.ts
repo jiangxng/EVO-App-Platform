@@ -651,6 +651,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           );
         }
 
+        const navigateTo =
+          result.ok
+          && result.result !== null
+          && typeof result.result === "object"
+          && !Array.isArray(result.result)
+          && typeof (result.result as { navigateTo?: unknown }).navigateTo === "string"
+            ? (result.result as { navigateTo: string }).navigateTo.trim()
+            : "";
+        if (navigateTo && options.onNavigate) {
+          if (!navigateTo.startsWith("/")) {
+            throw new Error("EIDOS_ACTION_NAVIGATE_TARGET_INVALID");
+          }
+          await options.onNavigate(navigateTo);
+        }
+
         const continuation = result.ok && options.onNavigate
           ? consumeJourneyContinuationV010(
               page.route.path,
