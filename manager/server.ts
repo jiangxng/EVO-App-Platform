@@ -4870,12 +4870,71 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphViewerWorkspacePageV010({
+          module.createEnterpriseOperatingGraphViewerWorkspacePageV010({
             activeContext,
             locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (source === EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const templateStoreEffective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!templateStoreEffective) {
+          return json(response, 409, { code: "TEMPLATE_STORE_NOT_ACTIVE" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const previewSelection = templatePreviewSessions.get(
+          session.principal.sessionId?.trim()
+          || session.principal.subjectId.trim()
+        );
+        if (!previewSelection) {
+          return json(response, 409, {
+            code: "TEMPLATE_PREVIEW_SELECTION_REQUIRED",
+            message: "Choose Preview from a Template Store card first."
+          });
+        }
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        const artifact =
+          previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          ).get({
+            templateId: previewSelection.templateId,
+            templateVersion: previewSelection.templateVersion
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "TEMPLATE_PREVIEW_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          viewer.createTemplate2dPreviewPageV010({
+            templateId: artifact.templateId,
+            templateVersion: artifact.templateVersion,
+            title: artifact.title
           })
         );
       }
@@ -5092,6 +5151,31 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "HELP_DOCUMENT_NOT_FOUND", id: helpDocumentId });
         }
         return json(response, 200, document);
+      }
+      if (source === TEMPLATE_STORE_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const module = await import(
+          "../apps/template-store/experience-assets.js"
+        );
+        return json(
+          response,
+          200,
+          module.createTemplateStorePageV010(
+            undefined,
+            {
+              viewer2dAvailable:
+                manager.getSnapshot().effectiveCapabilities.includes(
+                  VISUAL_2D_VIEWER_CAPABILITY_V010
+                ),
+              locale: requestedLocale(url)
+            }
+          )
+        );
       }
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
