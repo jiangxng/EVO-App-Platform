@@ -55,3 +55,59 @@ test("inactive plugin action does not load its implementation", async () => {
   assert.equal((await router.execute(request)).ok, true);
   assert.equal(loads, 1);
 });
+
+
+test("lazy handler guard blocks dependent plugin loading", async () => {
+  let loads = 0;
+  let dependencyActive = false;
+  const handler = createLazyAppActionHandlerV010({
+    packageId: "plugin.viewer",
+    featureId: "plugin.viewer.default",
+    commandCode: "plugin.viewer.preview",
+    guard() {
+      return dependencyActive
+        ? undefined
+        : {
+            ok: false,
+            error: {
+              code: "DEPENDENCY_NOT_ACTIVE",
+              message: "Dependency is not active."
+            }
+          };
+    },
+    async load() {
+      loads += 1;
+      return {
+        packageId: "plugin.viewer",
+        featureId: "plugin.viewer.default",
+        commandCode: "plugin.viewer.preview",
+        async execute() {
+          return { ok: true };
+        }
+      };
+    }
+  });
+  const router = createAppActionRouter([handler], () => true);
+
+  const blocked = await router.execute({
+    ...request,
+    command: {
+      code: "plugin.viewer.preview",
+      inputVersion: "0.1.0"
+    }
+  });
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.error.code, "DEPENDENCY_NOT_ACTIVE");
+  assert.equal(loads, 0);
+
+  dependencyActive = true;
+  const allowed = await router.execute({
+    ...request,
+    command: {
+      code: "plugin.viewer.preview",
+      inputVersion: "0.1.0"
+    }
+  });
+  assert.equal(allowed.ok, true);
+  assert.equal(loads, 1);
+});
