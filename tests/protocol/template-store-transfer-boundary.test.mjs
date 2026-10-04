@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   createMemoryBusinessDefinitionRepositoryV010
@@ -226,4 +227,23 @@ test("Enterprise Context exposes template transfer as a public provider capabili
 
   assert.equal(provider.capability, ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010);
   assert.equal(provider.providerContract, "evo.enterprise.template-transfer");
+});
+
+
+test("Template Store and Enterprise Context transfer implementations depend only on the neutral contract", async () => {
+  const [storeSource, enterpriseSource] = await Promise.all([
+    readFile("apps/template-store/repository.ts", "utf8"),
+    readFile("providers/enterprise-context/template-transfer.ts", "utf8")
+  ]);
+
+  assert.equal(
+    storeSource.includes("providers/enterprise-context"),
+    false
+  );
+  assert.equal(
+    enterpriseSource.includes("apps/template-store"),
+    false
+  );
+  assert.match(storeSource, /contracts\/template-transfer/);
+  assert.match(enterpriseSource, /contracts\/template-transfer/);
 });
