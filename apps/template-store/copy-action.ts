@@ -96,21 +96,23 @@ function positiveInteger(
   return value;
 }
 
-function resolveTargetContext(
+function resolveSingleEnterpriseContext(
   dependencies: TemplateStoreCopyActionDependenciesV010,
-  context: PlatformRequestContextV010,
-  targetContextId: string
+  context: PlatformRequestContextV010
 ): Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> {
-  const target = dependencies.listAvailableContexts(context.principal)
-    .find(item =>
-      item.kind === "ENTERPRISE"
-      && item.contextId === targetContextId
+  const targets = dependencies.listAvailableContexts(context.principal)
+    .filter(
+      (item): item is Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> =>
+        item.kind === "ENTERPRISE"
     );
 
-  if (!target || target.kind !== "ENTERPRISE") {
-    throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_NOT_AVAILABLE");
+  if (targets.length === 0) {
+    throw new Error("TEMPLATE_STORE_ENTERPRISE_CONTEXT_REQUIRED");
   }
-  return target;
+  if (targets.length !== 1) {
+    throw new Error("TEMPLATE_STORE_MULTI_CONTEXT_NOT_SUPPORTED");
+  }
+  return targets[0];
 }
 
 export function createTemplateStoreCopyActionHandlerV010(
@@ -132,19 +134,15 @@ export function createTemplateStoreCopyActionHandlerV010(
           request.values,
           "templateVersion"
         );
-        const targetContextId = stringValue(
-          request.values,
-          "targetContextId"
-        );
         const targetDefinitionId = stringValue(
           request.values,
           "targetDefinitionId"
         );
-        const targetContext = resolveTargetContext(
+        const targetContext = resolveSingleEnterpriseContext(
           dependencies,
-          context,
-          targetContextId
+          context
         );
+        const targetContextId = targetContext.contextId;
         const targetEnterpriseId = targetContext.enterpriseId.trim();
 
         const record = dependencies.store.getVersion(
