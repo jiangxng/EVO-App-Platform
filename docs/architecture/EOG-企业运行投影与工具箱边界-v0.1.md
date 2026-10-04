@@ -1,15 +1,34 @@
-# EOG 完整企业建模与工具箱边界 v0.1
+# EOG 企业运行投影与工具箱边界 v0.1
 
 **状态：已确认基础方向**  
 **日期：2026-10-04**
 
 ## 1. 产品定位
 
-EOG 2D Designer 是完整企业建模工具。
+EOG 是**企业运行投影工具**，不是企业本体设计器。
 
-EOG 可以表达企业全部对象，不预设最终对象类型集合。一个企业可以拥有多个 Graph，Graph 数量和钻取深度均不由系统固定，最终由企业用户自行组织。
+EOG 2D Designer 中的 “Designer” 指 **Projection Designer / 投影设计器**：用户设计的是“这张图如何投影企业”，不是在画布上创建企业的 Application、Ledger、PostingRule 等运行定义。
 
-自动画图暂不属于 EOG 本体；未来 Personal Agent 或其他 Agent 通过公开建模命令完成自动建模。
+本轮澄清不推翻任何此前设计。权威边界继续保持：
+
+```text
+Enterprise Context
+= Enterprise Graph Definition authority
+
+EVO Runtime
+= ApplicationAnchor / PostingRule / LedgerDefinition authority
+  + Runtime Fact authority
+
+EOG
+= projection / organization / navigation surface
+
+Eidos
+= neutral 2D/3D interaction foundation
+```
+
+EOG 可以投影企业全部对象，不预设最终对象类型集合。一个企业可以拥有多个 Graph，Graph 数量和钻取深度均不由系统固定，最终由企业用户自行组织。
+
+自动生成投影图暂不属于 EOG 本体；未来 Personal Agent 或其他 Agent 通过公开 Projection Commands 完成。
 
 ## 2. 工具箱
 
@@ -36,23 +55,26 @@ Designer 左侧提供类似 Visio 的企业对象工具箱。
 → toolbox = 按条件式 Posting 可能减少该 Ledger 的 Application
 ```
 
-因此工具箱同时承担“对象库”和“沿运行拓扑继续建模”的导航作用。
+因此工具箱同时承担“可投影对象库”和“沿运行拓扑继续组织投影”的导航作用。
 
-## 3. 第一阶段编辑能力
+## 3. 第一阶段投影编辑能力
 
 必须具备：
 
-- Toolbox → Canvas 拖拽建节点；
+- Toolbox → Canvas：将已有权威对象加入当前投影；
+- 从投影中移除对象，但不删除源对象；
 - 框选；
 - 多选；
-- 批量操作；
-- 子图；
+- 批量投影操作；
+- 子图 / Graph 引用；
 - 对齐；
-- 现有单节点移动；
-- 节点 / 关系创建删除；
-- Inspector 属性编辑。
+- 现有投影节点移动；
+- 已有权威关系的显示/隐藏；
+- Projection / View Inspector 属性编辑。
 
-其他成熟建模能力预留并逐步加入。
+这里的所有“编辑”都作用于 Graph Definition / Projection / View State，不直接修改 Application、LedgerDefinition、PostingRule 或 Runtime Facts。
+
+其他成熟图编辑能力预留并逐步加入。
 
 ## 4. Eidos 2D Core 应承担
 
@@ -80,15 +102,23 @@ Eidos 不认识 Application、Ledger、客户、仓库等企业语义。
 
 EOG 负责：
 
-- 企业对象工具箱内容；
+- 可投影企业对象的工具箱内容；
 - 企业对象图标语义；
-- Graph / Node / Edge 的企业领域语义；
-- EOG Graph / View mutation；
-- 对 EVO Runtime Definition 的只读引用与投影；
-- 企业关系校验；
-- 发布与治理；
+- Graph / Node / Edge 的投影语义；
+- EOG Graph Definition / View mutation；
+- 对 EVO Runtime Definition 和其他权威企业对象的稳定引用与投影；
+- 投影一致性校验；
+- Graph Definition 的发布与治理；
 - EOG 特有 Inspector；
 - Graph-to-Graph drill-down 语义。
+
+EOG 不负责：
+
+- 新建/定义 Application；
+- 新建/定义 LedgerDefinition；
+- 新建/定义 PostingRule；
+- 写入 BusinessData / LedgerEntry；
+- 通过画线改变企业实际运行语义。
 
 ## 6. 多图与钻取
 
@@ -110,11 +140,11 @@ Graph 不是固定层级中的“某一级”，而是用户定义的建模空�
 Human Designer 与 Agent 应共用同一套公开建模命令：
 
 ```text
-Human Drag / Edit ─┐
-                    ├─> EOG Graph Modeling Commands
-Agent Proposal/Edit ┘
-                         ↓
-                 Enterprise Context / Graph Store
+Human Drag / Projection Edit ─┐
+                               ├─> EOG Projection Commands
+Agent Projection Proposal/Edit ┘
+                                    ↓
+                     Enterprise Context Graph Definition
 
 Runtime semantic reference
 → EVO Runtime Definition Authority
@@ -197,6 +227,8 @@ Enterprise Context / EOG Graph
 
 ## 10. 先运行骨架、后应用字段
 
+这是一条企业实施/配置顺序，不是 EOG 创建这些定义的职责。
+
 实施顺序允许：
 
 ```text
@@ -209,3 +241,22 @@ Enterprise Context / EOG Graph
 这与 APQC 先建立流程/分类框架再深入具体实现细节的思想相似，但 EOG 的运行骨架最终以 EVO Runtime Definition 为执行依据。
 
 PostingRule 中需要的具体字段绑定可以在后续应用详细设计阶段补齐；EOG 首层不要求先展开所有字段。
+
+
+## 11. “Designer” 的命名约束
+
+为了避免未来再次混淆：
+
+```text
+EOG 2D Viewer
+= 读取既有 Graph Definition 的交互式投影
+
+EOG 2D Designer
+= 编辑 Graph Definition / Projection / View 的工具
+  ≠ Enterprise Designer
+  ≠ Application Designer
+  ≠ PostingRule Designer
+  ≠ Ledger Designer
+```
+
+如果后续产品语言仍使用 “Designer”，所有契约与文档必须能够明确指出它设计的是 **Projection**，而不是企业运行本体。
