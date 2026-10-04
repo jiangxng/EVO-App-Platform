@@ -403,3 +403,64 @@ test("published semantic graph still permits non-semantic layout changes", async
     "PUBLISHED"
   );
 });
+
+
+test("Designer projection clipping hides and restores items without changing semantic graph revision", async () => {
+  const { service, viewService } = services();
+  const graph = bindDemoGraph(service);
+  const semanticRevision = graph.revision;
+  const operate = handlers(service, viewService).find(
+    item => item.commandCode === EOG_VIEW_OPERATION_ACTION
+  );
+  assert.ok(operate);
+
+  const hiddenNode = await operate.execute(
+    request(EOG_VIEW_OPERATION_ACTION, {
+      resourceId: graph.graphId,
+      expectedRevision: 0,
+      operation: {
+        type: "PROJECTION_ITEM_VISIBILITY_SET",
+        targetKind: "NODE",
+        targetId: "ledger:receivable",
+        visible: false
+      }
+    }),
+    context()
+  );
+  assert.equal(hiddenNode.ok, true);
+  assert.deepEqual(
+    hiddenNode.result.nodes.map(node => node.id),
+    ["app:sales"]
+  );
+  assert.equal(hiddenNode.result.edges.length, 0);
+  assert.equal(hiddenNode.result.revision, 1);
+  assert.equal(
+    service.get({
+      enterpriseId: graph.enterpriseId,
+      graphId: graph.graphId
+    }).revision,
+    semanticRevision
+  );
+
+  const restored = await operate.execute(
+    request(EOG_VIEW_OPERATION_ACTION, {
+      resourceId: graph.graphId,
+      expectedRevision: 1,
+      operation: {
+        type: "PROJECTION_VISIBILITY_RESET"
+      }
+    }),
+    context()
+  );
+  assert.equal(restored.ok, true);
+  assert.equal(restored.result.nodes.length, 2);
+  assert.equal(restored.result.edges.length, 1);
+  assert.equal(restored.result.revision, 2);
+  assert.equal(
+    service.get({
+      enterpriseId: graph.enterpriseId,
+      graphId: graph.graphId
+    }).revision,
+    semanticRevision
+  );
+});
