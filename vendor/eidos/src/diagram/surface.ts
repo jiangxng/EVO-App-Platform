@@ -3,6 +3,11 @@ import type {
   ActionRequestV010,
   JsonValue
 } from "../runtime/contracts.js";
+import {
+  clampDiagramViewportScaleV010,
+  panDiagramViewportByScreenDeltaV010,
+  zoomDiagramViewportAtScreenPointV010
+} from "./viewport.js";
 
 export type DiagramEditorNodeShapeV010 =
   | "rectangle"
@@ -20,6 +25,7 @@ export type DiagramEditorEdgeArrowV010 =
 
 export interface DiagramEditorViewInteractionV010 {
   zoom?: boolean;
+  pan?: boolean;
   localNodeDrag?: boolean;
 }
 
@@ -292,6 +298,10 @@ export function isDiagramEditorPageV010(
         && (
           page.viewInteraction.zoom === undefined
           || typeof page.viewInteraction.zoom === "boolean"
+        )
+        && (
+          page.viewInteraction.pan === undefined
+          || typeof page.viewInteraction.pan === "boolean"
         )
         && (
           page.viewInteraction.localNodeDrag === undefined
@@ -692,6 +702,10 @@ export function mountDiagramEditorPageV010(
   let activeReadPresetId = page.readPresets?.[0]?.id;
   let zoom = 1;
   let suppressNextNodeClick = false;
+  const navigationPointers = new Map<number, { x: number; y: number }>();
+  let panLast: { x: number; y: number } | undefined;
+  let pinchStartDistance: number | undefined;
+  let pinchStartZoom = 1;
   const listeners: Array<() => void> = [];
 
   const report = (message: string): void => {
@@ -780,6 +794,30 @@ export function mountDiagramEditorPageV010(
     report("Saved.");
   };
 
+  const applyZoomAt = (
+    nextZoom: number,
+    anchor = {
+      x: canvas.clientWidth / 2,
+      y: canvas.clientHeight / 2
+    }
+  ): void => {
+    const next = zoomDiagramViewportAtScreenPointV010(
+      {
+        scale: zoom,
+        scrollLeft: canvas.scrollLeft,
+        scrollTop: canvas.scrollTop
+      },
+      nextZoom,
+      anchor
+    );
+    zoom = next.scale;
+    render();
+    canvas.scrollTo({
+      left: next.scrollLeft,
+      top: next.scrollTop
+    });
+  };
+
   const renderActions = (): void => {
     toolbar.replaceChildren();
     selectionActions.replaceChildren();
@@ -799,12 +837,10 @@ export function mountDiagramEditorPageV010(
         toolbar.appendChild(button);
       };
       addViewButton("−", "Zoom out", () => {
-        zoom = Math.max(0.1, Math.round((zoom - 0.1) * 10) / 10);
-        render();
+        applyZoomAt(zoom / 1.2);
       });
       addViewButton("+", "Zoom in", () => {
-        zoom = Math.min(3, Math.round((zoom + 0.1) * 10) / 10);
-        render();
+        applyZoomAt(zoom * 1.2);
       });
       addViewButton("Fit", "Fit diagram to canvas", () => {
         const maxX = Math.max(
@@ -817,8 +853,7 @@ export function mountDiagramEditorPageV010(
         );
         const availableWidth = Math.max(240, canvas.clientWidth - 24);
         const availableHeight = Math.max(240, canvas.clientHeight - 24);
-        zoom = Math.max(
-          0.1,
+        zoom = clampDiagramViewportScaleV010(
           Math.min(2, availableWidth / maxX, availableHeight / maxY)
         );
         render();
@@ -826,10 +861,11 @@ export function mountDiagramEditorPageV010(
       });
       addViewButton(
         `${Math.round(zoom * 100)}%`,
-        "Reset zoom",
+        "Reset view",
         () => {
           zoom = 1;
           render();
+          canvas.scrollTo({ left: 0, top: 0 });
         }
       );
     }
@@ -1144,6 +1180,7 @@ export function mountDiagramEditorPageV010(
       hit.setAttribute("stroke-width", "18");
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
+      hit.setAttribute("data-eidos-diagram-edge", edge.id);
       hit.addEventListener("click", () => {
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
@@ -1253,6 +1290,7 @@ export function mountDiagramEditorPageV010(
       if (localViewDrag || persistentDrag) {
         const pointerDown = (event: PointerEvent) => {
           event.preventDefault();
+          event.stopPropagation();
           element.setPointerCapture(event.pointerId);
           const startX = event.clientX;
           const startY = event.clientY;
@@ -1321,13 +1359,140 @@ export function mountDiagramEditorPageV010(
     renderSelection();
   };
 
+  if (page.viewInteraction?.zoom || page.viewInteraction?.pan) {
+    canvas.style.touchAction = "none";
+    if (page.viewInteraction?.pan) {
+      canvas.style.cursor = "grab";
+    }
+
+    const canvasPoint = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    };
+
+    const distance = (
+      a: { x: number; y: number },
+      b: { x: number; y: number }
+    ): number => Math.hypot(b.x - a.x, b.y - a.y);
+
+    const pointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (
+        target?.closest?.("[data-eidos-diagram-node]")
+        || target?.closest?.("[data-eidos-diagram-edge]")
+      ) {
+        return;
+      }
+      if (!page.viewInteraction?.pan && event.pointerType !== "touch") {
+        return;
+      }
+      event.preventDefault();
+      canvas.setPointerCapture(event.pointerId);
+      navigationPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+      });
+      const points = [...navigationPointers.values()];
+      if (points.length === 1) {
+        panLast = points[0];
+        canvas.style.cursor = page.viewInteraction?.pan ? "grabbing" : "";
+      } else if (points.length >= 2 && page.viewInteraction?.zoom) {
+        pinchStartDistance = Math.max(1, distance(points[0]!, points[1]!));
+        pinchStartZoom = zoom;
+        panLast = undefined;
+      }
+    };
+
+    const pointerMove = (event: PointerEvent) => {
+      if (!navigationPointers.has(event.pointerId)) return;
+      event.preventDefault();
+      navigationPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+      });
+      const points = [...navigationPointers.values()];
+
+      if (
+        points.length >= 2
+        && page.viewInteraction?.zoom
+        && pinchStartDistance !== undefined
+      ) {
+        const currentDistance = Math.max(1, distance(points[0]!, points[1]!));
+        const midpoint = {
+          x: (points[0]!.x + points[1]!.x) / 2,
+          y: (points[0]!.y + points[1]!.y) / 2
+        };
+        applyZoomAt(
+          pinchStartZoom * currentDistance / pinchStartDistance,
+          canvasPoint(midpoint.x, midpoint.y)
+        );
+        return;
+      }
+
+      if (points.length === 1 && page.viewInteraction?.pan && panLast) {
+        const current = points[0]!;
+        const next = panDiagramViewportByScreenDeltaV010(
+          {
+            scale: zoom,
+            scrollLeft: canvas.scrollLeft,
+            scrollTop: canvas.scrollTop
+          },
+          {
+            x: current.x - panLast.x,
+            y: current.y - panLast.y
+          }
+        );
+        canvas.scrollTo({
+          left: next.scrollLeft,
+          top: next.scrollTop
+        });
+        panLast = current;
+      }
+    };
+
+    const pointerUp = (event: PointerEvent) => {
+      navigationPointers.delete(event.pointerId);
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      const points = [...navigationPointers.values()];
+      if (points.length < 2) {
+        pinchStartDistance = undefined;
+        pinchStartZoom = zoom;
+      }
+      panLast = points.length === 1 ? points[0] : undefined;
+      if (points.length === 0) {
+        canvas.style.cursor = page.viewInteraction?.pan ? "grab" : "";
+      }
+    };
+
+    canvas.addEventListener("pointerdown", pointerDown);
+    canvas.addEventListener("pointermove", pointerMove);
+    canvas.addEventListener("pointerup", pointerUp);
+    canvas.addEventListener("pointercancel", pointerUp);
+    listeners.push(
+      () => canvas.removeEventListener("pointerdown", pointerDown),
+      () => canvas.removeEventListener("pointermove", pointerMove),
+      () => canvas.removeEventListener("pointerup", pointerUp),
+      () => canvas.removeEventListener("pointercancel", pointerUp)
+    );
+  }
+
   if (page.viewInteraction?.zoom) {
     const wheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
-      const delta = event.deltaY < 0 ? 0.1 : -0.1;
-      zoom = Math.max(0.1, Math.min(3, Math.round((zoom + delta) * 10) / 10));
-      render();
+      const anchor = (() => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      })();
+      const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+      applyZoomAt(zoom * factor, anchor);
     };
     canvas.addEventListener("wheel", wheel, { passive: false });
     listeners.push(() => canvas.removeEventListener("wheel", wheel));
