@@ -92,3 +92,131 @@ export function panDiagramViewportByScreenDeltaV010(
     scrollTop: Math.max(0, viewport.scrollTop - delta.y)
   };
 }
+
+
+export interface DiagramCameraTransformV010 {
+  scale: number;
+  translateX: number;
+  translateY: number;
+}
+
+export function createDiagramCameraTransformV010(
+  value: Partial<DiagramCameraTransformV010> = {}
+): DiagramCameraTransformV010 {
+  const scale = clampDiagramViewportScaleV010(value.scale ?? 1);
+  const translateX = value.translateX ?? 0;
+  const translateY = value.translateY ?? 0;
+  if (!finite(translateX) || !finite(translateY)) {
+    throw new Error("EIDOS_2D_CAMERA_TRANSLATION_INVALID");
+  }
+  return { scale, translateX, translateY };
+}
+
+export function diagramCameraScreenToWorldV010(
+  camera: DiagramCameraTransformV010,
+  screen: DiagramViewPointV010
+): DiagramViewPointV010 {
+  const scale = clampDiagramViewportScaleV010(camera.scale);
+  return {
+    x: (screen.x - camera.translateX) / scale,
+    y: (screen.y - camera.translateY) / scale
+  };
+}
+
+export function diagramCameraWorldToScreenV010(
+  camera: DiagramCameraTransformV010,
+  world: DiagramViewPointV010
+): DiagramViewPointV010 {
+  const scale = clampDiagramViewportScaleV010(camera.scale);
+  return {
+    x: world.x * scale + camera.translateX,
+    y: world.y * scale + camera.translateY
+  };
+}
+
+export function zoomDiagramCameraAtScreenPointV010(
+  camera: DiagramCameraTransformV010,
+  nextScale: number,
+  anchor: DiagramViewPointV010,
+  limits: DiagramViewportScaleLimitsV010 =
+    DEFAULT_DIAGRAM_VIEWPORT_SCALE_LIMITS_V010
+): DiagramCameraTransformV010 {
+  const scale = clampDiagramViewportScaleV010(nextScale, limits);
+  const world = diagramCameraScreenToWorldV010(camera, anchor);
+  return {
+    scale,
+    translateX: anchor.x - world.x * scale,
+    translateY: anchor.y - world.y * scale
+  };
+}
+
+export function panDiagramCameraByScreenDeltaV010(
+  camera: DiagramCameraTransformV010,
+  delta: DiagramViewPointV010
+): DiagramCameraTransformV010 {
+  if (!finite(delta.x) || !finite(delta.y)) {
+    throw new Error("EIDOS_2D_CAMERA_PAN_INVALID");
+  }
+  return {
+    ...camera,
+    translateX: camera.translateX + delta.x,
+    translateY: camera.translateY + delta.y
+  };
+}
+
+export interface DiagramWorldRectV010 {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DiagramViewportSizeV010 {
+  width: number;
+  height: number;
+}
+
+export function fitDiagramCameraToBoundsV010(
+  bounds: DiagramWorldRectV010,
+  viewport: DiagramViewportSizeV010,
+  padding = 24,
+  limits: DiagramViewportScaleLimitsV010 =
+    DEFAULT_DIAGRAM_VIEWPORT_SCALE_LIMITS_V010
+): DiagramCameraTransformV010 {
+  if (
+    !finite(bounds.x)
+    || !finite(bounds.y)
+    || !finite(bounds.width)
+    || !finite(bounds.height)
+    || bounds.width < 0
+    || bounds.height < 0
+    || !finite(viewport.width)
+    || !finite(viewport.height)
+    || viewport.width <= 0
+    || viewport.height <= 0
+    || !finite(padding)
+    || padding < 0
+  ) {
+    throw new Error("EIDOS_2D_CAMERA_FIT_INVALID");
+  }
+
+  const availableWidth = Math.max(1, viewport.width - padding * 2);
+  const availableHeight = Math.max(1, viewport.height - padding * 2);
+  const widthScale = bounds.width > 0
+    ? availableWidth / bounds.width
+    : limits.max;
+  const heightScale = bounds.height > 0
+    ? availableHeight / bounds.height
+    : limits.max;
+  const scale = clampDiagramViewportScaleV010(
+    Math.min(widthScale, heightScale),
+    limits
+  );
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  return {
+    scale,
+    translateX: viewport.width / 2 - centerX * scale,
+    translateY: viewport.height / 2 - centerY * scale
+  };
+}
