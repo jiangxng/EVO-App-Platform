@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -21,6 +22,7 @@ import {
   TEMPLATE_STORE_PACKAGE_ID
 } from "./package.js";
 import type {
+  TemplateStoreRecordV010,
   TemplateStoreRepositoryV010
 } from "./repository.js";
 
@@ -35,6 +37,7 @@ export interface TemplateStoreCopyActionDependenciesV010 {
     principal: PlatformPrincipalV010
   ): ActiveContextRefV010[];
   now?: () => Date;
+  id?: () => string;
 }
 
 function failure(error: unknown): AppActionExecutionResultV010 {
@@ -93,11 +96,12 @@ function optionalStringValue(
   return value.trim();
 }
 
-function positiveInteger(
+function optionalPositiveInteger(
   values: Record<string, JsonValue>,
   key: string
-): number {
+): number | undefined {
   const value = values[key];
+  if (value === undefined) return undefined;
   if (
     typeof value !== "number"
     || !Number.isInteger(value)
@@ -138,9 +142,25 @@ function resolveEnterpriseContext(
   throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_REQUIRED");
 }
 
+function resolveRecord(
+  repository: TemplateStoreRepositoryV010,
+  values: Record<string, JsonValue>
+): TemplateStoreRecordV010 {
+  const templateId = optionalStringValue(values, "templateId")
+    ?? stringValue(values, "itemId");
+  const templateVersion = optionalPositiveInteger(values, "templateVersion");
+  const record = templateVersion === undefined
+    ? repository.getLatest(templateId)
+    : repository.getVersion(templateId, templateVersion);
+  if (!record) throw new Error("TEMPLATE_STORE_VERSION_NOT_FOUND");
+  return record;
+}
+
 export function createTemplateStoreCopyActionHandlerV010(
   dependencies: TemplateStoreCopyActionDependenciesV010
 ): AppActionHandler {
+  const nextId = dependencies.id ?? randomUUID;
+
   return {
     packageId: TEMPLATE_STORE_PACKAGE_ID,
     featureId: TEMPLATE_STORE_FEATURE_ID,
@@ -152,18 +172,12 @@ export function createTemplateStoreCopyActionHandlerV010(
         requireHuman(context);
         requireConfirmation(request);
 
-        const templateId = stringValue(request.values, "templateId");
-        const templateVersion = positiveInteger(
-          request.values,
-          "templateVersion"
-        );
+        const record = resolveRecord(dependencies.store, request.values);
+        const templateId = record.templateId;
+        const templateVersion = record.version;
         const requestedTargetContextId = optionalStringValue(
           request.values,
           "targetContextId"
-        );
-        const targetDefinitionId = stringValue(
-          request.values,
-          "targetDefinitionId"
         );
         const targetContext = resolveEnterpriseContext(
           dependencies,
@@ -172,12 +186,10 @@ export function createTemplateStoreCopyActionHandlerV010(
         );
         const targetContextId = targetContext.contextId;
         const targetEnterpriseId = targetContext.enterpriseId.trim();
-
-        const record = dependencies.store.getVersion(
-          templateId,
-          templateVersion
-        );
-        if (!record) throw new Error("TEMPLATE_STORE_VERSION_NOT_FOUND");
+        const targetDefinitionId = optionalStringValue(
+          request.values,
+          "targetDefinitionId"
+        ) ?? `template-copy:${nextId()}`;
 
         const authorization = await authorizeMaterialWriteV010(
           dependencies.resolveAuthorizationProvider(),
@@ -220,6 +232,7 @@ export function createTemplateStoreCopyActionHandlerV010(
           ok: true,
           correlationId: context.correlationId,
           result: JSON.parse(JSON.stringify({
+            message: `已将“${record.bundle.listing.name}”复制到企业上下文。`,
             templateId,
             templateVersion,
             targetContextId,
