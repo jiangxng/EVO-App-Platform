@@ -27,7 +27,6 @@ function request(overrides = {}) {
     values: {
       templateId: "template:o2c",
       templateVersion: 1,
-      targetContextId: "context:target-b",
       targetDefinitionId: "process:o2c-local"
     },
     sourceInteractionId: "interaction:1",
@@ -66,7 +65,7 @@ function context(actorType = "HUMAN") {
   };
 }
 
-function setup(allowed = true) {
+function setup({ allowed = true, enterpriseContexts } = {}) {
   const definitions = createMemoryBusinessDefinitionRepositoryV010();
   const transfer = createEnterpriseTemplateTransferProviderV010(definitions);
   const store = createMemoryTemplateStoreRepositoryV010();
@@ -110,18 +109,12 @@ function setup(allowed = true) {
       kind: "PERSONAL",
       contextId: "personal:target"
     },
-    {
+    ...(enterpriseContexts ?? [{
       contractVersion: "0.1.0",
       kind: "ENTERPRISE",
-      contextId: "context:target-a",
-      enterpriseId: "enterprise:target-a"
-    },
-    {
-      contractVersion: "0.1.0",
-      kind: "ENTERPRISE",
-      contextId: "context:target-b",
-      enterpriseId: "enterprise:target-b"
-    }
+      contextId: "context:target",
+      enterpriseId: "enterprise:target"
+    }])
   ];
 
   const handler = createTemplateStoreCopyActionHandlerV010({
@@ -145,16 +138,16 @@ function setup(allowed = true) {
   return { definitions, handler };
 }
 
-test("Template Store Copy targets the explicitly selected Enterprise Context", async () => {
-  const { definitions, handler } = setup(true);
+test("Template Store Copy auto-resolves the single Enterprise Context in v0.1", async () => {
+  const { definitions, handler } = setup();
   const result = await handler.execute(request(), context());
 
   assert.equal(result.ok, true);
-  assert.equal(result.result.targetContextId, "context:target-b");
-  assert.equal(result.result.targetEnterpriseId, "enterprise:target-b");
+  assert.equal(result.result.targetContextId, "context:target");
+  assert.equal(result.result.targetEnterpriseId, "enterprise:target");
 
   const copied = definitions.getLatest({
-    enterpriseId: "enterprise:target-b",
+    enterpriseId: "enterprise:target",
     definitionId: "process:o2c-local"
   });
   assert.ok(copied);
@@ -167,33 +160,68 @@ test("Template Store Copy targets the explicitly selected Enterprise Context", a
   );
   assert.equal(copied.payload.stage, "source-v0");
 
-  assert.equal(
-    definitions.getLatest({
-      enterpriseId: "enterprise:target-a",
-      definitionId: "process:o2c-local"
-    }),
-    undefined
-  );
 });
 
-test("Template Store Copy requires an explicit target Enterprise Context", async () => {
-  const { handler } = setup(true);
+test("Template Store Copy preserves future multi-context targeting through targetContextId", async () => {
+  const { definitions, handler } = setup({
+    enterpriseContexts: [
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-a",
+        enterpriseId: "enterprise:target-a"
+      },
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-b",
+        enterpriseId: "enterprise:target-b"
+      }
+    ]
+  });
   const result = await handler.execute(
     request({
       values: {
         templateId: "template:o2c",
         templateVersion: 1,
+        targetContextId: "context:target-b",
         targetDefinitionId: "process:o2c-local"
       }
     }),
     context()
   );
+  assert.equal(result.ok, true);
+  assert.equal(result.result.targetContextId, "context:target-b");
+  assert.ok(definitions.getLatest({
+    enterpriseId: "enterprise:target-b",
+    definitionId: "process:o2c-local"
+  }));
+});
+
+test("Template Store Copy refuses ambiguous multi-context writes until a target is supplied", async () => {
+  const { handler } = setup({
+    enterpriseContexts: [
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-a",
+        enterpriseId: "enterprise:target-a"
+      },
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-b",
+        enterpriseId: "enterprise:target-b"
+      }
+    ]
+  });
+  const result = await handler.execute(request(), context());
   assert.equal(result.ok, false);
-  assert.equal(result.error.code, "TEMPLATE_STORE_COPY_FIELD_INVALID");
+  assert.equal(result.error.code, "TEMPLATE_STORE_TARGET_CONTEXT_REQUIRED");
 });
 
 test("Template Store Copy rejects a target Context unavailable to the principal", async () => {
-  const { handler } = setup(true);
+  const { handler } = setup();
   const result = await handler.execute(
     request({
       values: {
@@ -230,7 +258,7 @@ test("Template Store Copy rejects non-Human callers in the Human Action path", a
 });
 
 test("Template Store Copy honors authorization denial", async () => {
-  const { handler } = setup(false);
+  const { handler } = setup({ allowed: false });
   const result = await handler.execute(request(), context());
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "TEST_DENY");
