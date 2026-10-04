@@ -486,7 +486,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Template Store browse foundation is merged via PR #342: evo-template-store is an independent APPLICATION plugin, Eidos Catalog Browser now owns reusable thumbnail rendering, and the first built-in EVO 账本运行时基线 template is visible through /templates. The next bounded gate is the public Enterprise Context Share/Copy contract. Submit, Publish and Share remain distinct; Copy creates an independent enterprise-owned copy.",
+  "currentStep": "Template Store browse foundation and neutral Share/Copy transfer boundary are merged through PR #342 and PR #344. Enterprise Context now exposes enterprise.template-transfer over an exact-revision neutral TemplateTransferBundle; Template Store owns an independent immutable snapshot repository; copies enter the target Enterprise Context as revision-0 Drafts with TEMPLATE_COPY audit provenance and no live source dependency. The next bounded gate is governed ActionHost Share/Copy commands plus durable Template Store Host state and authorization/confirmation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -618,7 +618,7 @@
       "burnStatus": "BLOCKED_UNTIL_AVIATOR_COMPATIBLE_EXPRESSION_RUNTIME_AND_LEDGER_RUNTIME_BUILTINS"
     },
     "evo-template-store": {
-      "status": "ACTIVE_V0_1_BROWSE_FOUNDATION_MERGED",
+      "status": "ACTIVE_V0_1_TRANSFER_BOUNDARY_MERGED",
       "packageId": "evo-template-store",
       "type": "APPLICATION",
       "route": "/templates",
@@ -631,7 +631,12 @@
         "description"
       ],
       "semantics": "COPY_NOT_LIVE_REFERENCE",
-      "next": "Enterprise Context public Share/Copy contract"
+      "next": "Governed Share/Copy ActionHost commands + durable Template Store Host state",
+      "transferCapability": "enterprise.template-transfer",
+      "transferContract": "evo.enterprise.template-transfer",
+      "transferSemantics": "EXACT_REVISION_IMMUTABLE_BUNDLE",
+      "integrity": "SHA256",
+      "copyOrigin": "TEMPLATE_COPY"
     }
   },
   "shortTermMainlineStatus": "HISTORICAL_REFERENCE_ONLY",
@@ -1758,8 +1763,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "TEMPLATE-STORE-V0-1-2026-10-04-01",
-    "snapshotAt": "2026-10-04T13:30:00+08:00",
+    "snapshotId": "TEMPLATE-STORE-TRANSFER-V0-1-2026-10-04-01",
+    "snapshotAt": "2026-10-04T13:45:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1782,42 +1787,41 @@
       "milestone": "Template Store v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "template-store-browse-foundation-v0-1",
+        "id": "template-store-neutral-share-copy-transfer-v0-1",
         "status": "MERGED_CI_PASS",
-        "summary": "Template Store v0.1 is now an independent App Platform APPLICATION plugin. It renders the first EVO Ledger Runtime baseline template through Eidos Catalog Browser with thumbnail, name and description only; the source remains independent and copy semantics are frozen without a live source dependency.",
+        "summary": "The Template Store / Enterprise Context cross-plugin boundary is now executable through the neutral TemplateTransferBundle contract. Enterprise Context exports an exact Draft or Published definition revision, Template Store stores an immutable cloned snapshot, and copy creates an independent target-enterprise Draft with TEMPLATE_COPY provenance. Neither plugin imports the other's implementation.",
         "authority": "docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md",
         "evidence": {
-          "appPlatformPr": 342,
-          "mergeCommit": "1f86352d105ca9bd03b8c56f8b2c3dfeaebfb6a6",
-          "eidosPr": 88,
-          "eidosMergeCommit": "0d889af675f59466091fdcf89a061c0d421e7bdb",
-          "packageId": "evo-template-store",
-          "route": "/templates",
-          "firstTemplate": "evo.ledger-runtime.baseline.v0.1",
-          "templateCardFields": [
-            "thumbnail",
-            "name",
-            "description"
-          ],
-          "pluginCI": "PASS",
+          "appPlatformPr": 344,
+          "mergeCommit": "6269e05c5218caf35a32ab3c7cfc6a4973cf77c4",
+          "transferCapability": "enterprise.template-transfer",
+          "transferContract": "evo.enterprise.template-transfer",
+          "draftShareSupported": true,
+          "copyTargetState": "DRAFT",
+          "copyTargetRevision": 0,
+          "copyOrigin": "TEMPLATE_COPY",
+          "digest": "SHA-256",
+          "privateCrossPluginImports": "PROHIBITED_AND_TESTED",
+          "templateStoreCI": "PASS",
+          "enterpriseContextProviderCI": "PASS",
           "platformCI": "PASS",
           "continuityCI": "PASS"
         }
       },
       "openGate": {
-        "id": "template-store-enterprise-context-share-copy-v0-1",
+        "id": "template-store-governed-share-copy-actions-v0-1",
         "status": "READY",
-        "summary": "Define the public Enterprise Context Share/Copy boundary so Enterprise Context can explicitly expose a submitted/published definition for sharing and Template Store can copy it into a target Enterprise Context without owning or directly mutating Enterprise Context storage.",
+        "summary": "Wire real governed Share and Copy ActionHost operations over the neutral transfer Provider and a durable Template Store repository, then project shared records back into the existing three-field Template Store catalog page.",
         "authority": "docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md",
         "acceptance": [
-          "Enterprise Context remains the authoritative owner of enterprise definitions and the explicit Share decision.",
-          "2D Designer Save and Submit remain editor operations; Submit may provide a thumbnail but Submit does not imply Publish or Share.",
-          "Template Store reads only content explicitly shared through a public Enterprise Context contract and never reads Enterprise Context private persistence.",
-          "Template Store Copy creates a new enterprise-owned definition/revision in the target Enterprise Context through a public write contract.",
-          "A copied template has no required runtime parent/source linkage; later source updates or removal do not rewrite the enterprise copy.",
-          "Thumbnail remains presentation metadata rendered through Eidos Catalog Browser rather than Template Store-specific rendering.",
-          "Authorization and provenance for Share and Copy are explicit and fail closed.",
-          "Tests prove source/target independence and preserve the existing EOG 2D/3D ownership boundaries; SOP remains separate and deferred."
+          "Template Store Host state is durable and owned by the Template Store integration boundary, not Enterprise Context private persistence.",
+          "Share is an explicit confirmed material action that resolves the active source Enterprise Context and exact definition revision through public capabilities.",
+          "Share authorization is fail-closed and distinct from Business Definition Publish authorization.",
+          "Copy is an explicit confirmed material action that reads an immutable Template Store record and writes a new Draft through enterprise.template-transfer into the active target Enterprise Context.",
+          "Copy authorization is fail-closed and never grants implicit Publish rights.",
+          "The /templates Experience is populated from the durable Template Store repository while retaining thumbnail + name + description as the primary card fields.",
+          "The built-in EVO 账本运行时基线 remains available as a seed without becoming a special runtime dependency.",
+          "Tests prove restart-safe Store persistence, Share/Copy authorization and confirmation, exact-version copy, and continued absence of cross-plugin private imports."
         ]
       },
       "productionPreview": {
@@ -1833,6 +1837,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 344,
+        "status": "MERGED_CI_PASS",
+        "summary": "Add neutral exact-revision TemplateTransferBundle, Enterprise Context template-transfer Provider, independent Template Store snapshot repository, SHA-256 integrity and TEMPLATE_COPY provenance."
+      },
       {
         "pr": 342,
         "status": "MERGED_CI_PASS",
@@ -2618,7 +2627,9 @@
       "Do not reopen SOP work while proving the App Platform to EVO applicationId contract path.",
       "Do not move Template Store into Enterprise Context; Template Store is an independent APPLICATION plugin and Enterprise Context remains the definition/share authority.",
       "Do not collapse 2D Designer Submit into Publish or Share; Save, Submit, Publish and Share are distinct lifecycle actions.",
-      "Do not implement template use as a live source reference; v0.1 semantics are Copy -> independent enterprise-owned content."
+      "Do not implement template use as a live source reference; v0.1 semantics are Copy -> independent enterprise-owned content.",
+      "Do not make Share an alias for Enterprise Context Publish; a shared bundle may pin either an exact Draft or Published revision.",
+      "Do not import Template Store private persistence from Enterprise Context or Enterprise Context private persistence from Template Store; both sides use contracts/template-transfer.ts."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2770,7 +2781,12 @@
       "state Eidos PR #88 / merge 0d889af675f59466091fdcf89a061c0d421e7bdb as the reusable Catalog Browser thumbnail authority",
       "state Template Store card v0.1 as thumbnail + name + description with the first built-in EVO 账本运行时基线 template",
       "state Enterprise Context as the template definition/share authority and Template Store use as copy-only with no required live source linkage",
-      "state the current Template Store gate as the public Enterprise Context Share/Copy contract while SOP remains separate and deferred"
+      "state the current Template Store gate as the public Enterprise Context Share/Copy contract while SOP remains separate and deferred",
+      "state App Platform PR #344 / merge 6269e05c5218caf35a32ab3c7cfc6a4973cf77c4 as the merged neutral Template Store Share/Copy transfer boundary",
+      "state Share as exact-revision export that may represent Draft or Published state, preserving Submit != Publish != Share",
+      "state Template Store snapshots as immutable cloned bundles with deterministic SHA-256 integrity",
+      "state Copy as creation of an independent target Enterprise Context revision-0 Draft with TEMPLATE_COPY provenance and no live source dependency",
+      "state the current Template Store gate as governed ActionHost Share/Copy plus durable Store persistence and catalog projection"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
