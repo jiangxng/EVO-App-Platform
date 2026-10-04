@@ -263,9 +263,11 @@ Application
 **状态：讨论中（Application ↔ Ledger 骨架已明确）**  
 **优先级：P0**
 
-Application / Ledger 首期关系不由画布创建，而是投影 Runtime Definition 中已有的条件式 Posting 拓扑。
+Application / Ledger 首期关系仍需要继续讨论其创建/修改边界。
 
-拖入画布的动作只保存 EOG Graph 中的图形/引用与 View State；**不得创建 Application、Ledger 或 PostingRule**。
+拖入画布的动作只保存 EOG Graph 中的图形/引用与 View State；**不得创建新的企业 Application 或新的企业 Ledger**。
+
+这里不同时禁止 PostingRule 或关系的新增/修改；这些是独立需求。
 
 如果两个已放入画布的对象在 Runtime Definition 中已经存在语义关系，EOG 可以把这条已有关系投影出来；这不等于由拖放创建关系。
 
@@ -681,6 +683,37 @@ Enterprise Context 已承担定义权威，但 EOG 产品流程仍需冻结。
 
 ### 新增 Application / Ledger
 
-“新增应用”“新增账本”“新增/修改 PostingRule”属于高级设置能力。
+EOG 首期明确：
 
-当前不在 Toolbox 普通拖放中实现；具体入口、权限、生命周期和模板继承方式后续单独讨论。
+- 不新增企业 Application；
+- 不新增企业 Ledger。
+
+这就是当前“不做新增”的精确定义。
+
+PostingRule、关系、Graph、Subgraph 等是否允许新增或修改，不由这条规则决定，后续分别确认。
+
+
+## 14. “不新增”的精确定义
+
+**状态：已确认**  
+**优先级：P0**
+
+EOG 加载默认模板后允许裁剪和修改。
+
+当前“不新增”只锁定两类企业运行对象：
+
+1. 不新增企业 Application；
+2. 不新增企业 Ledger。
+
+它不应被扩大解释为“EOG 不能新增任何东西”。
+
+例如新增 Graph、Subgraph、投影节点、关系、PostingRule 等能力，仍按对应需求单独讨论和确认。
+
+因此：
+
+```text
+Default Template
+→ EOG 加载
+→ 对已有 Application / Ledger 做选择、裁剪、恢复、修改
+→ 不在 EOG 内创建新的企业 Application / Ledger
+```
