@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `TEMPLATE-STORE-V0-1-2026-10-04-01`  
-**Snapshot time:** `2026-10-04T13:30:00+08:00`  
+**Snapshot:** `TEMPLATE-STORE-TRANSFER-V0-1-2026-10-04-01`  
+**Snapshot time:** `2026-10-04T13:45:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**template-store-browse-foundation-v0-1: MERGED_CI_PASS**
+**template-store-neutral-share-copy-transfer-v0-1: MERGED_CI_PASS**
 
-Template Store v0.1 is now an independent App Platform APPLICATION plugin. It renders the first EVO Ledger Runtime baseline template through Eidos Catalog Browser with thumbnail, name and description only; the source remains independent and copy semantics are frozen without a live source dependency.
+The Template Store / Enterprise Context cross-plugin boundary is now executable through the neutral TemplateTransferBundle contract. Enterprise Context exports an exact Draft or Published definition revision, Template Store stores an immutable cloned snapshot, and copy creates an independent target-enterprise Draft with TEMPLATE_COPY provenance. Neither plugin imports the other's implementation.
 
 Authority: `docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md`
 
@@ -26,19 +26,18 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 342,
-  "mergeCommit": "1f86352d105ca9bd03b8c56f8b2c3dfeaebfb6a6",
-  "eidosPr": 88,
-  "eidosMergeCommit": "0d889af675f59466091fdcf89a061c0d421e7bdb",
-  "packageId": "evo-template-store",
-  "route": "/templates",
-  "firstTemplate": "evo.ledger-runtime.baseline.v0.1",
-  "templateCardFields": [
-    "thumbnail",
-    "name",
-    "description"
-  ],
-  "pluginCI": "PASS",
+  "appPlatformPr": 344,
+  "mergeCommit": "6269e05c5218caf35a32ab3c7cfc6a4973cf77c4",
+  "transferCapability": "enterprise.template-transfer",
+  "transferContract": "evo.enterprise.template-transfer",
+  "draftShareSupported": true,
+  "copyTargetState": "DRAFT",
+  "copyTargetRevision": 0,
+  "copyOrigin": "TEMPLATE_COPY",
+  "digest": "SHA-256",
+  "privateCrossPluginImports": "PROHIBITED_AND_TESTED",
+  "templateStoreCI": "PASS",
+  "enterpriseContextProviderCI": "PASS",
   "platformCI": "PASS",
   "continuityCI": "PASS"
 }
@@ -46,20 +45,20 @@ Evidence:
 
 ## Current open live gate
 
-**template-store-enterprise-context-share-copy-v0-1: READY**
+**template-store-governed-share-copy-actions-v0-1: READY**
 
-Define the public Enterprise Context Share/Copy boundary so Enterprise Context can explicitly expose a submitted/published definition for sharing and Template Store can copy it into a target Enterprise Context without owning or directly mutating Enterprise Context storage.
+Wire real governed Share and Copy ActionHost operations over the neutral transfer Provider and a durable Template Store repository, then project shared records back into the existing three-field Template Store catalog page.
 
 Acceptance:
 
-- Enterprise Context remains the authoritative owner of enterprise definitions and the explicit Share decision.
-- 2D Designer Save and Submit remain editor operations; Submit may provide a thumbnail but Submit does not imply Publish or Share.
-- Template Store reads only content explicitly shared through a public Enterprise Context contract and never reads Enterprise Context private persistence.
-- Template Store Copy creates a new enterprise-owned definition/revision in the target Enterprise Context through a public write contract.
-- A copied template has no required runtime parent/source linkage; later source updates or removal do not rewrite the enterprise copy.
-- Thumbnail remains presentation metadata rendered through Eidos Catalog Browser rather than Template Store-specific rendering.
-- Authorization and provenance for Share and Copy are explicit and fail closed.
-- Tests prove source/target independence and preserve the existing EOG 2D/3D ownership boundaries; SOP remains separate and deferred.
+- Template Store Host state is durable and owned by the Template Store integration boundary, not Enterprise Context private persistence.
+- Share is an explicit confirmed material action that resolves the active source Enterprise Context and exact definition revision through public capabilities.
+- Share authorization is fail-closed and distinct from Business Definition Publish authorization.
+- Copy is an explicit confirmed material action that reads an immutable Template Store record and writes a new Draft through enterprise.template-transfer into the active target Enterprise Context.
+- Copy authorization is fail-closed and never grants implicit Publish rights.
+- The /templates Experience is populated from the durable Template Store repository while retaining thumbnail + name + description as the primary card fields.
+- The built-in EVO 账本运行时基线 remains available as a seed without becoming a special runtime dependency.
+- Tests prove restart-safe Store persistence, Share/Copy authorization and confirmation, exact-version copy, and continued absence of cross-plugin private imports.
 
 ## Current production preview
 
@@ -100,6 +99,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #344 — MERGED_CI_PASS: Add neutral exact-revision TemplateTransferBundle, Enterprise Context template-transfer Provider, independent Template Store snapshot repository, SHA-256 integrity and TEMPLATE_COPY provenance.
 - PR #342 — MERGED_CI_PASS: Add independent evo-template-store v0.1, first EVO Ledger Runtime baseline template, Eidos thumbnail rendering, plugin CI and durable architecture/decision documentation.
 - PR #315 — MERGED_CI_PASS: Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger.
 - PR #314 — MERGED_CI_PASS: Propagate the Host-selected active Context generically on same-origin browser requests without app-specific context injection.
@@ -411,6 +411,8 @@ Not proved:
 - Do not move Template Store into Enterprise Context; Template Store is an independent APPLICATION plugin and Enterprise Context remains the definition/share authority.
 - Do not collapse 2D Designer Submit into Publish or Share; Save, Submit, Publish and Share are distinct lifecycle actions.
 - Do not implement template use as a live source reference; v0.1 semantics are Copy -> independent enterprise-owned content.
+- Do not make Share an alias for Enterprise Context Publish; a shared bundle may pin either an exact Draft or Published revision.
+- Do not import Template Store private persistence from Enterprise Context or Enterprise Context private persistence from Template Store; both sides use contracts/template-transfer.ts.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -580,6 +582,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Template Store card v0.1 as thumbnail + name + description with the first built-in EVO 账本运行时基线 template
 - state Enterprise Context as the template definition/share authority and Template Store use as copy-only with no required live source linkage
 - state the current Template Store gate as the public Enterprise Context Share/Copy contract while SOP remains separate and deferred
+- state App Platform PR #344 / merge 6269e05c5218caf35a32ab3c7cfc6a4973cf77c4 as the merged neutral Template Store Share/Copy transfer boundary
+- state Share as exact-revision export that may represent Draft or Published state, preserving Submit != Publish != Share
+- state Template Store snapshots as immutable cloned bundles with deterministic SHA-256 integrity
+- state Copy as creation of an independent target Enterprise Context revision-0 Draft with TEMPLATE_COPY provenance and no live source dependency
+- state the current Template Store gate as governed ActionHost Share/Copy plus durable Store persistence and catalog projection
 
 No previous ChatGPT transcript is required.
 
