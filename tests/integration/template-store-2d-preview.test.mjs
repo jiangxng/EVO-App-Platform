@@ -26,6 +26,7 @@ import {
 } from "../../dist/contracts/template-preview.js";
 
 const templateId = "evo.ledger-runtime.baseline.v0.1";
+const templateVersion = 2;
 
 function context() {
   return {
@@ -44,20 +45,34 @@ function context() {
   };
 }
 
-test("Ledger Runtime seed exposes a neutral four-stage 2D preview artifact", () => {
+test("Ledger Runtime seed exposes the complete application-ledger-rule 2D preview", () => {
   const repository = createMemoryTemplateStoreRepositoryV010(
     templateStoreSeedRecordsV010
   );
   const source = createTemplateStorePreviewArtifactSourceV010(repository);
-  const artifact = source.get({ templateId, templateVersion: 1 });
+  const artifact = source.get({ templateId, templateVersion });
 
   assert.ok(artifact);
-  assert.equal(artifact.diagram2d.nodes.length, 4);
-  assert.deepEqual(
-    artifact.diagram2d.nodes.map(node => node.label),
-    ["BusinessData", "Posting", "LedgerEntry", "LedgerBalance"]
+  assert.equal(artifact.diagram2d.nodes.length, 284);
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.kind === "ledger-runtime-application"
+    ).length,
+    143
   );
-  assert.equal(artifact.diagram2d.edges.length, 3);
+  assert.equal(
+    artifact.diagram2d.nodes.filter(
+      node => node.kind === "ledger-runtime-ledger"
+    ).length,
+    141
+  );
+  assert.equal(artifact.diagram2d.edges.length, 912);
+  assert.equal(
+    artifact.diagram2d.edges.every(
+      edge => edge.kind === "posting-rule"
+    ),
+    true
+  );
 });
 
 test("2D Viewer renders Template Store artifact read-only and supports inspection", async () => {
@@ -67,7 +82,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   const source = createTemplateStorePreviewArtifactSourceV010(repository);
   const page = createTemplate2dPreviewPageV010({
     templateId,
-    templateVersion: 1,
+    templateVersion,
     title: "EVO 账本运行时基线"
   });
 
@@ -81,7 +96,7 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     },
     values: {
       templateId,
-      templateVersion: 1,
+      templateVersion,
       resourceId: page.resourceId
     },
     sourceInteractionId: page.id,
@@ -104,9 +119,12 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
     },
     values: {
       templateId,
-      templateVersion: 1,
+      templateVersion,
       resourceId: page.resourceId,
-      target: { kind: "node", id: "stage:1" }
+      target: {
+        kind: "node",
+        id: "application:418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
+      }
     },
     sourceInteractionId: page.id,
     actionId: "diagram.selection.read",
@@ -114,10 +132,14 @@ test("2D Viewer renders Template Store artifact read-only and supports inspectio
   }, context());
 
   assert.equal(selection.ok, true);
-  assert.equal(selection.result.target.id, "stage:1");
+  assert.equal(
+    selection.result.target.id,
+    "application:418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
+  );
   assert.equal(
     selection.result.properties.some(
-      property => property.value === "BusinessData"
+      property => property.value
+        === "418bd0e9-1dce-4e01-aa5a-3d4cd80e87d4"
     ),
     true
   );
@@ -165,5 +187,5 @@ test("Template Store preview action refuses missing Viewer and navigates when av
   assert.equal(opened.ok, true);
   assert.equal(opened.result.navigateTo, TEMPLATE_2D_PREVIEW_ROUTE_V010);
   assert.equal(sessions.get("session:preview").templateId, templateId);
-  assert.equal(sessions.get("session:preview").templateVersion, 1);
+  assert.equal(sessions.get("session:preview").templateVersion, 2);
 });

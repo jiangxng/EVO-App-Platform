@@ -53,7 +53,8 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
   const definition = createTemplateStorePageV010();
   assert.equal(definition.items.length, 1);
   assert.equal(definition.items[0].title, "EVO 账本运行时基线");
-  assert.match(definition.items[0].summary, /BusinessData/);
+  assert.match(definition.items[0].summary, /143 个应用/);
+  assert.match(definition.items[0].summary, /912 条 Posting Rules/);
   assert.match(definition.items[0].thumbnail.src, /^data:image\/svg\+xml/);
   assert.equal(definition.items[0].primaryAction?.id, "copy");
   assert.equal(
@@ -108,7 +109,8 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
 
   assert.match(html, /data-eidos-catalog-thumbnail/);
   assert.match(html, /EVO 账本运行时基线/);
-  assert.match(html, /BusinessData/);
+  assert.match(html, /143 个应用/);
+  assert.match(html, /912 条 Posting Rules/);
   assert.match(html, /data-eidos-catalog-action="copy"/);
   assert.match(html, /data-eidos-command="evo-template-store.copy"/);
   assert.match(html, /data-eidos-catalog-action="preview-2d"/);
@@ -123,6 +125,6 @@ test("built-in ledger runtime template preserves copy semantics without runtime 
   );
   assert.equal(
     ledgerRuntimeBaselineTemplateV010.source.artifact,
-    "ledger-runtime"
+    "ledger-runtime-configurator/bookkeeping-default"
   );
 });

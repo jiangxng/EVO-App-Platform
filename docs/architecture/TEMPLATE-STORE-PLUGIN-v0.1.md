@@ -320,3 +320,41 @@ The Host owns lifecycle admission and transient preview selection, while plugin
 implementation resources remain lazy-loaded. The next architecture gate is
 Share plus dynamic Store refresh without introducing direct cross-plugin
 persistence access.
+
+
+## Production bootstrap baseline correction
+
+The built-in Ledger Runtime template MUST be exported from the actual
+`evo-ledger-runtime-configurator` default library, not from the broader
+`enterpriseCoreV1` reference Enterprise Template.
+
+The production validation baseline is:
+
+- 141 account / ledger definitions;
+- 143 applications;
+- 106 dictionary entries;
+- 912 active Posting Rules from bookkeeping `policy.sql`;
+- 401 unique expressions, all compiled to EVO Expression IR;
+- `burn.ready = true`;
+- 587 rules from `记账规则.sql` retained separately as REFERENCE and never
+  merged into the active baseline.
+
+The Template Store carries a build-time snapshot of
+`LedgerRuntimeConfiguratorService.exportTemplate()`. It does not runtime-import
+or require the Configurator plugin.
+
+The first incomplete v1 Store seed is preserved only as historical state in
+already-persisted deployments. The corrected production snapshot is built-in
+Template Store record version 2. Repository bootstrap merges missing exact seed
+versions, so an existing v1 store gains v2 without rewriting history and
+`getLatest()` resolves the corrected production template.
+
+CI MUST prove:
+
+1. generated production template JSON deep-equals the current Configurator
+   `exportTemplate()`;
+2. import/validation remains burn-ready;
+3. all 912 rules compile;
+4. Template Store v2 TransferBundle is digest-valid;
+5. the 587-rule reference library remains separate;
+6. existing persisted v1 + built-in v2 converges to latest=v2.

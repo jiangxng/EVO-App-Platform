@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -36,7 +36,7 @@ test("file Template Store repository exposes the built-in seed before a state fi
     );
     const seed = repository.getLatest("evo.ledger-runtime.baseline.v0.1");
     assert.ok(seed);
-    assert.equal(seed.version, 1);
+    assert.equal(seed.version, 2);
     assert.equal(seed.bundle.definition.kind, "LEDGER_RUNTIME_TEMPLATE");
     assert.equal(existsSync(path), false);
   } finally {
@@ -74,6 +74,76 @@ test("file Template Store repository persists published records together with th
     assert.equal(
       JSON.parse(readFileSync(path, "utf8")).records.length,
       2
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+test("durable Template Store preserves old v1 and adds corrected built-in v2", () => {
+  const dir = mkdtempSync(join(tmpdir(), "evo-template-store-"));
+  const path = join(dir, "template-store.json");
+
+  try {
+    const currentSeed = templateStoreSeedRecordsV010[0];
+    assert.equal(currentSeed.version, 2);
+
+    const oldUnsigned = structuredClone(currentSeed.bundle);
+    delete oldUnsigned.contentDigest;
+    oldUnsigned.transferId = "built-in:evo.ledger-runtime.baseline.v0.1";
+    oldUnsigned.source.definitionRevision = 0;
+    oldUnsigned.definition.payload = {
+      contractVersion: "0.1.0",
+      runtimeFlow: [
+        "BusinessData",
+        "Posting",
+        "LedgerEntry",
+        "LedgerBalance"
+      ]
+    };
+
+    const oldRecord = {
+      contractVersion: "0.1.0",
+      templateId: currentSeed.templateId,
+      version: 1,
+      bundle: {
+        ...oldUnsigned,
+        contentDigest: templateTransferDigestV010(oldUnsigned)
+      },
+      publishedAt: "2026-10-04T00:00:00.000Z"
+    };
+
+    writeFileSync(
+      path,
+      JSON.stringify({
+        contractVersion: "0.1.0",
+        records: [oldRecord]
+      }, null, 2) + "\n",
+      "utf8"
+    );
+
+    const repository = createFileTemplateStoreRepositoryV010(
+      path,
+      templateStoreSeedRecordsV010
+    );
+
+    assert.equal(
+      repository.getVersion(currentSeed.templateId, 1)?.version,
+      1
+    );
+    assert.equal(
+      repository.getVersion(currentSeed.templateId, 2)?.version,
+      2
+    );
+    assert.equal(
+      repository.getLatest(currentSeed.templateId)?.version,
+      2
+    );
+    assert.equal(
+      repository.getLatest(currentSeed.templateId)
+        ?.bundle.definition.payload.kind,
+      "evo.ledger-runtime.template"
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });

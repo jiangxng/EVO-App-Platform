@@ -8,16 +8,19 @@ import type {
 import {
   ledgerRuntimeBaselineTemplateV010
 } from "./templates.js";
+import {
+  ledgerRuntimeProductionTemplateV010
+} from "./seeds/evo-ledger-runtime-production.snapshot.js";
 
 const sharedAt = "2026-10-04T00:00:00.000Z";
 
 const unsignedLedgerRuntimeBundle = {
   contractVersion: "0.1.0" as const,
-  transferId: "built-in:evo.ledger-runtime.baseline.v0.1",
+  transferId: "built-in:evo.ledger-runtime.baseline.v0.2",
   source: {
     enterpriseId: "enterprise:evo-reference",
     definitionId: "evo.ledger-runtime.baseline.v0.1",
-    definitionRevision: 0,
+    definitionRevision: 1,
     definitionKind: "LEDGER_RUNTIME_TEMPLATE",
     definitionState: "PUBLISHED" as const
   },
@@ -31,21 +34,7 @@ const unsignedLedgerRuntimeBundle = {
   definition: {
     kind: "LEDGER_RUNTIME_TEMPLATE",
     title: ledgerRuntimeBaselineTemplateV010.name,
-    payload: {
-      contractVersion: "0.1.0",
-      source: {
-        project: ledgerRuntimeBaselineTemplateV010.source.ownerProject,
-        artifact: ledgerRuntimeBaselineTemplateV010.source.artifact,
-        version: ledgerRuntimeBaselineTemplateV010.source.version
-      },
-      runtimeFlow: [
-        "BusinessData",
-        "Posting",
-        "LedgerEntry",
-        "LedgerBalance"
-      ],
-      copyMode: "COPY"
-    }
+    payload: structuredClone(ledgerRuntimeProductionTemplateV010)
   },
   sharedAt,
   sharedBy: {
@@ -62,7 +51,7 @@ export const ledgerRuntimeBaselineBundleV010: TemplateTransferBundleV010 = {
 export const templateStoreSeedRecordsV010: TemplateStoreRecordV010[] = [{
   contractVersion: "0.1.0",
   templateId: ledgerRuntimeBaselineTemplateV010.templateId,
-  version: 1,
+  version: 2,
   bundle: ledgerRuntimeBaselineBundleV010,
   publishedAt: sharedAt
 }];
