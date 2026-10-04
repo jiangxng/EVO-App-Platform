@@ -341,7 +341,17 @@ form[data-eidos-id] button,
   color:var(--eidos-danger);border-color:#e2b2b2;background:var(--eidos-danger-bg);
 }
 [data-eidos-catalog-item] footer,[data-eidos-extension-item] footer{
-  margin-top:auto;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--eidos-space-sm);
+  margin-top:auto;display:flex;justify-content:flex-end;align-items:flex-end;flex-wrap:wrap;gap:var(--eidos-space-sm);
+}
+[data-eidos-catalog-item] [data-eidos-action-wrap]{
+  display:grid;gap:var(--eidos-space-xs);justify-items:end;
+}
+[data-eidos-catalog-item] [data-eidos-action-help]{
+  max-width:260px;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+  line-height:1.35;text-align:right;
+}
+[data-eidos-catalog-item] button:disabled{
+  cursor:not-allowed;opacity:.5;
 }
 
 [data-eidos-capability="extension-manager"]{width:min(1180px,100%);margin:0 auto}
