@@ -39,6 +39,15 @@ test("EOG 2D is one Package with Viewer and Designer feature profiles", () => {
     viewer.contributions[0].manifest.packageId,
     EOG_2D_PACKAGE_ID
   );
+  const viewerManifest = viewer.contributions[0].manifest;
+  assert.deepEqual(
+    viewerManifest.surfaces.map(surface => surface.target),
+    ["DESKTOP_WORKBENCH", "MOBILE_TASK", "TABLET_WORKBENCH"]
+  );
+  assert.equal(
+    viewerManifest.routes.every(route => route.surfaceId === undefined),
+    true
+  );
   assert.equal(
     designer.contributions[0].manifest.packageId,
     EOG_2D_PACKAGE_ID
