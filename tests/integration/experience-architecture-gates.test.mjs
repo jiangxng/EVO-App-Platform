@@ -37,7 +37,13 @@ test("critical App Platform Experiences are registered under pinned Eidos experi
     APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010.eidosChatMarkdownCommit,
     "2b0fc5aa80d1cacf6277535e715a3b9e6efb0e3f"
   );
+  assert.equal(
+    APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010
+      .eidosCatalogBrowserDesignLanguageCommit,
+    "7bf486cd6770f141e62d23a878bfde687751653d"
+  );
   for (const id of [
+    "evo-template-store",
     "personal-agent.chat",
     "personal-agent.setup",
     "personal-agent.memory-review",
