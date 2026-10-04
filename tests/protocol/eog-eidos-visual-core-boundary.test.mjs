@@ -53,9 +53,10 @@ test("vendored Eidos snapshot includes neutral 2D and 3D Workspace boundaries", 
   );
   assert.equal(
     manifest.sourceCommit,
-    "0d889af675f59466091fdcf89a061c0d421e7bdb"
+    "78ed96ff9ea67bf62f1a6d1add3beec9525e42d1"
   );
   assert.equal(manifest.files.includes("src/diagram/workspace.ts"), true);
+  assert.equal(manifest.files.includes("src/diagram/viewport.ts"), true);
   assert.equal(manifest.files.includes("src/spatial/workspace.ts"), true);
 });
 
