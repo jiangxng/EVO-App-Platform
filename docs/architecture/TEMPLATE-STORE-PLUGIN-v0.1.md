@@ -151,7 +151,11 @@ Included now:
 - durable Host Template Store repository using `APP_PLATFORM_TEMPLATE_STORE_FILE` or the main state directory;
 - built-in Ledger Runtime seed represented as a real versioned `TemplateTransferBundleV010` record;
 - Template Store card `Use template` action wired through the App Host command path;
-- system-generated target Business Definition identity so the Human does not manage internal IDs.
+- system-generated target Business Definition identity so the Human does not manage internal IDs;
+- optional 2D Preview action backed by the public `visual.viewer.2d` capability;
+- Preview remains read-only and does not create an Enterprise Context copy;
+- when no 2D Viewer provider is active, Preview is disabled with an explicit install hint;
+- Template Store page/Action/Repository implementation is lazy-loaded only after its Feature is active and actually used.
 
 Deliberately deferred to the next slice:
 
@@ -160,6 +164,34 @@ Deliberately deferred to the next slice:
 - Designer-generated thumbnail persistence;
 - template detail page;
 - categories, ratings, popularity, comments or marketplace economics.
+
+## 7.1 2D preview experience
+
+Template Store may ask an installed 2D Viewer extension to visualize a template
+snapshot before Copy.
+
+```text
+Template Store card
+  -> Preview
+  -> visual.viewer.2d
+  -> read-only 2D Workspace
+```
+
+Preview rules:
+
+- Preview does not create a Draft;
+- Preview does not write Enterprise Context;
+- node/edge inspection is allowed;
+- Template Store depends on the public `visual.viewer.2d` capability, not a
+  concrete Viewer package implementation;
+- if the capability is absent, the Preview control remains visible but disabled
+  with the message “未安装 2D Viewer 扩展插件，无法预览。”;
+- Viewer implementation resources are not loaded merely to render Template
+  Store.
+
+The first Ledger Runtime seed projects
+`BusinessData -> Posting -> LedgerEntry -> LedgerBalance` into the neutral
+2D preview artifact contract.
 
 ## 8. Dependency direction
 
@@ -275,6 +307,16 @@ This preserves the long-term split:
 
 The next smallest real gate is:
 
-> Validate the page-level Copy experience end-to-end, then add the symmetric Enterprise Context Share Action and dynamic projection of newly shared repository records.
+> Validate the new 2D Preview experience online, then add the symmetric Enterprise Context Share Action and dynamic projection of newly shared repository records.
 
-The current v0.1 path is now `Template Store card -> Use template -> confirm -> authorization -> Enterprise Context Draft`. The Host owns durable Template Store state and target Context resolution. The next architecture gate is Share plus dynamic Store refresh without introducing direct cross-plugin persistence access.
+The current v0.1 paths are:
+
+```text
+Template Store -> Preview -> 2D Viewer read-only Workspace
+Template Store -> Use template -> confirm -> authorization -> Enterprise Context Draft
+```
+
+The Host owns lifecycle admission and transient preview selection, while plugin
+implementation resources remain lazy-loaded. The next architecture gate is
+Share plus dynamic Store refresh without introducing direct cross-plugin
+persistence access.
