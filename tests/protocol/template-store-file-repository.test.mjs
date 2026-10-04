@@ -73,7 +73,7 @@ test("file Template Store repository persists published records together with th
     assert.ok(reopened.getLatest("template:second"));
     assert.equal(
       JSON.parse(readFileSync(path, "utf8")).records.length,
-      2
+      3
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -86,7 +86,10 @@ test("durable Template Store preserves old versions and adds Projection Gallery 
   const path = join(dir, "template-store.json");
 
   try {
-    const currentSeed = templateStoreSeedRecordsV010[0];
+    const currentSeed = templateStoreSeedRecordsV010.find(
+      record => record.version === 3
+    );
+    assert.ok(currentSeed);
     assert.equal(currentSeed.version, 3);
 
     const oldUnsigned = structuredClone(currentSeed.bundle);
