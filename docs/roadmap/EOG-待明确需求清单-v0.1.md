@@ -717,3 +717,39 @@ Default Template
 → 对已有 Application / Ledger 做选择、裁剪、恢复、修改
 → 不在 EOG 内创建新的企业 Application / Ledger
 ```
+
+
+## 15. EOG 保存 / 软件版本 / Runtime 激活
+
+**状态：已确认核心模型**  
+**优先级：P0**
+
+### 三层版本
+
+```text
+Ledger Runtime Spec v1.0 = 硬件规格
+Enterprise Template / Package v1.x = 企业软件版本
+EOG Graph Revision = 投影修订
+```
+
+### 已确认规则
+
+1. EOG 可以对 Enterprise Template v1.0 做局部或全部 Application ↔ Ledger 投影。
+2. 纯投影修改只保存 Graph Revision，不产生 Enterprise Template 新版本。
+3. EOG 首期不新增企业 Application / Ledger。
+4. 修改受治理的 Application ↔ Ledger Posting relationship 属于软件语义变化。
+5. 软件语义修改先进入 Working Draft，不直接改写已生成版本。
+6. `Save` 与 `Create Version` 是两个独立动作。
+7. `Create Version` 产生不可变的新 Enterprise Template Version，例如 v1.1。
+8. 生成版本不等于上线。
+9. Enterprise Administrator 决定何时把哪个兼容版本 Activate 到企业 Ledger Runtime。
+10. EOG Save 永远不能自动升级 Runtime。
+
+### 下一步待明确
+
+- Posting relationship 编辑的具体字段/条件范围；
+- Working Draft 是否支持多人协作；
+- Version 命名规则（SemVer 或内部序列）；
+- Activate 是否支持定时生效；
+- Runtime 切版本时是否需要 Replay / Re-posting；
+- 回滚到旧软件版本的边界。

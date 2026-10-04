@@ -72,7 +72,9 @@ Designer 左侧提供类似 Visio 的企业对象工具箱。
 - 已有权威关系的显示/隐藏；
 - Projection / View Inspector 属性编辑。
 
-这里的所有“编辑”都作用于 Graph Definition / Projection / View State，不直接修改 Application、LedgerDefinition、PostingRule 或 Runtime Facts。
+这里列出的**普通投影编辑**只作用于 Graph Definition / Projection / View State，不直接修改 Application、LedgerDefinition 或 Runtime Facts。
+
+唯一已经确认的例外是显式的 **Posting Relationship Edit**：它针对已有 Application / Ledger 之间的条件式记账关系，写入 Enterprise Template Working Draft，并遵循后文“Save Working Draft → Create Version → Administrator Activate”的软件版本流程。
 
 其他成熟图编辑能力预留并逐步加入。
 
@@ -193,7 +195,9 @@ Runtime semantic reference
 
 新增企业 Application / Ledger 属于 EOG 之外或后续高级设置能力，当前不做。
 
-PostingRule 和关系是否允许在 EOG 中新增/修改，仍是独立需求，不在这里提前否定。
+已确认 EOG 可以通过受治理的 **Posting Relationship Edit** 修改已有 Application / Ledger 之间的记账关系，并写入软件 Working Draft。
+
+这里的“关系修改”可覆盖已有 Application / Ledger 之间的关系新增、删除、条件/effect 调整；它不会创建新的 Application 或 Ledger。具体可编辑字段与校验规则继续单独冻结。
 
 
 ## 9. 企业运行权威分层
@@ -409,3 +413,207 @@ EOG 不新建 Enterprise Ledger
 上述能力分别由各自需求决定，不能从“Application / Ledger 不新增”推导出来。
 
 EOG 加载默认模板后，企业主可以对模板提供的 Application / Ledger 做裁剪、保留、恢复和修改其已有配置；但不会在 EOG 中凭空创建新的企业 Application 或新的企业 Ledger。
+
+
+## 13. Runtime Spec / Enterprise Template / EOG Graph 三层版本模型
+
+本节继续收敛“硬件 / 软件 / 投影”的关系，不推翻此前任何权威边界。
+
+### 13.1 账本运行时版本 = 硬件规格
+
+`Ledger Runtime Spec v1.0` 类似硬件平台规格。
+
+它定义企业软件能够依赖的基础能力与契约，例如：
+
+- ApplicationAnchor；
+- LedgerDefinition；
+- PostingRule；
+- 条件表达；
+- Posting effect；
+- BusinessData → Posting → LedgerEntry → Balance；
+- version pinning / replay；
+- compatibility / migration 基础能力。
+
+它不等于某家企业的具体配置。
+
+### 13.2 Enterprise Template Version = 软件版本
+
+Enterprise Context 保存版本化 Enterprise Template / Enterprise Package。
+
+例如：
+
+```text
+Ledger Runtime Spec v1.0
+        ↑ compatible with
+Enterprise Template v1.0
+Enterprise Template v1.1
+Enterprise Template v1.2
+```
+
+Enterprise Template 声明自己依赖的 Runtime Spec compatibility。
+
+模板/企业软件可以持续演进，但**已经生成的版本不可原地重写**。
+
+因此：
+
+```text
+Enterprise Template v1.0
+        ↓ create working draft
+Working Draft
+        ↓ modify
+Working Draft*
+        ↓ explicit Create Version
+Enterprise Template v1.1
+```
+
+### 13.3 EOG Graph Revision = 投影修订
+
+EOG 基于某一个 Enterprise Template Version / Working Draft 工作。
+
+它可以投影：
+
+- 全部 Application ↔ Ledger 结构；
+- 任意局部 Application ↔ Ledger 结构；
+- 多个不同 Graph；
+- 不同钻取深度和布局。
+
+仅发生以下变化时，只产生 Graph/Projection 保存，不产生新的 Enterprise Template Version：
+
+- 加入/移除投影中的已有 Application；
+- 加入/移除投影中的已有 Ledger；
+- 改变节点位置；
+- 改变布局；
+- 改变显示范围；
+- 新增 Graph / Subgraph；
+- 改变钻取组织；
+- 其他纯 Projection / View State 变化。
+
+因此：
+
+```text
+Enterprise Template v1.0
+        ↓
+EOG Graph A rev 1
+EOG Graph A rev 2
+EOG Graph B rev 7
+
+≠ Enterprise Template v1.1
+```
+
+### 13.4 记账关系修改 = 软件 Working Draft 变化
+
+如果 EOG 中执行的是受治理的 **Application ↔ Ledger 条件式 Posting 关系修改**，该动作不再只是投影变化。
+
+它写入的是当前 Enterprise Template / Enterprise Package 的 **Working Draft**。
+
+例如：
+
+```text
+Enterprise Template v1.0
+        ↓ open working draft
+Working Draft based on v1.0
+        ↓ modify Application ↔ Ledger Posting relationship
+Dirty Working Draft
+```
+
+此时：
+
+- 当前 Runtime 仍继续运行已激活版本；
+- v1.0 本身不被修改；
+- 仅产生未激活的软件草稿变化。
+
+只有用户显式执行 **Create Version / 生成新版本**：
+
+```text
+Dirty Working Draft
+→ validate
+→ Create Version
+→ Enterprise Template v1.1
+```
+
+才产生新的软件版本。
+
+### 13.5 保存、生成版本、运行时激活必须分离
+
+EOG 至少区分以下动作：
+
+#### A. 保存投影
+
+`Save Projection`
+
+保存：Graph membership、Graph/Subgraph、layout、position、projection visibility、navigation/view state。
+
+不会产生 Enterprise Template 新版本。
+
+#### B. 保存软件草稿
+
+`Save Working Draft`
+
+当存在 Posting relationship 等软件语义修改时，保存到 Enterprise Template Working Draft。
+
+不会改写 base version、不会自动生成新版本、不会自动影响 Runtime。
+
+#### C. 生成软件新版本
+
+`Create Version`
+
+对 Working Draft 做 validation、diff、compatibility check，并生成 immutable snapshot。
+
+结果例如：`Enterprise Template v1.1`。
+
+生成版本不等于立即上线。
+
+#### D. 激活到企业账本运行时
+
+`Activate Version`
+
+由有权限的 Enterprise Administrator 显式选择某一个兼容版本激活到企业 Ledger Runtime。
+
+```text
+Enterprise Template v1.0 / v1.1 / v1.2
+        ↓ Administrator Activate
+Enterprise Ledger Runtime
+```
+
+Runtime 只能执行被明确激活/生效的版本集合；具体灰度、多版本并行与生效时间策略后续再冻结。
+
+### 13.6 Git 类比
+
+概念上可类比：
+
+```text
+EOG / Working Draft 修改
+≈ working tree
+
+Save
+≈ 保存工作区
+
+Create Version
+≈ commit / tag 一个不可变软件版本
+
+Administrator Activate
+≈ deploy / release 到生产运行时
+```
+
+这里只借用 Git 的心智模型，不要求复制 Git 技术实现。
+
+### 13.7 EOG 的定位仍然不变
+
+EOG 仍然是 Projection Tool。
+
+它的主要职责是：
+
+```text
+Enterprise Template / Runtime Definition
+        ↓
+local or full projection
+```
+
+只有当用户明确进入受治理的 Posting Relationship Edit 操作时，EOG 才作为**软件 Working Draft 的一个受控编辑入口**。
+
+这不把 EOG 扩张为完整 Enterprise Designer：
+
+- EOG 首期仍不新建企业 Application；
+- EOG 首期仍不新建企业 Ledger；
+- 普通拖拽/画布修改仍只改变 Projection；
+- Runtime 永远不会因为 EOG Save 而自动升级。
