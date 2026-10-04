@@ -80,8 +80,12 @@ export function createEogViewStateProviderV010(input: {
         kind: request.kind,
         revision: 0,
         placements: [],
-        hiddenNodeIds: [],
-        hiddenEdgeIds: [],
+        ...(request.kind === "DIAGRAM_2D"
+          ? {
+              hiddenNodeIds: [],
+              hiddenEdgeIds: []
+            }
+          : {}),
         createdAt: occurredAt,
         updatedAt: occurredAt
       });
