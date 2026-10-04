@@ -175,6 +175,10 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
     requestValues: {
       activeContext: structuredClone(input.activeContext) as unknown as JsonValue
     },
+    viewInteraction: {
+      zoom: true,
+      pan: true
+    },
     emptyMessage: text.empty
   };
 }

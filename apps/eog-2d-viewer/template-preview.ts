@@ -240,6 +240,7 @@ export function createTemplate2dPreviewPageV010(input: {
     },
     viewInteraction: {
       zoom: true,
+      pan: true,
       localNodeDrag: true
     },
     emptyMessage: "Select a node or relation to inspect template properties."
