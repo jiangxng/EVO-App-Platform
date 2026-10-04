@@ -146,13 +146,15 @@ Included now:
 - Template Store-owned immutable shared snapshot repository;
 - copy-into-enterprise adapter that always creates a new enterprise-owned Draft;
 - `TEMPLATE_COPY` provenance without a live source dependency;
-- SHA-256 bundle digest validation across the transfer boundary.
+- SHA-256 bundle digest validation across the transfer boundary;
+- governed Human Copy Action handler requiring an active Enterprise Context, explicit confirmation and authorization before invoking the public transfer Provider.
 
 Deliberately deferred to the next slice:
 
-- Human/Agent ActionHost Share and Copy commands;
+- Human/Agent ActionHost Share command;
+- Host registration/wiring of the Template Store Copy Action;
 - durable Template Store repository wiring in the Host;
-- authorization and confirmation around Share/Copy;
+- Agent projection of Share/Copy operations;
 - Designer-generated thumbnail persistence;
 - template detail page;
 - categories, ratings, popularity, comments or marketplace economics.
@@ -233,6 +235,6 @@ Both sides may depend on `contracts/template-transfer.ts`.
 
 The next smallest real gate is:
 
-> Wire governed Share and Copy Actions over the public transfer Provider and a durable Template Store repository, while preserving the independent-plugin boundary.
+> Wire the implemented governed Copy Action into the Host with durable Template Store state, then add the symmetric Enterprise Context Share Action.
 
-Acceptance requires explicit authorization/confirmation, durable Store state, the existing three-field card projection, and no direct cross-plugin persistence access.
+The Copy handler now enforces Human caller + explicit confirmation + authorization and targets the Host-resolved active Enterprise Context. The remaining acceptance gate is durable Host wiring, Share orchestration, and continued absence of direct cross-plugin persistence access.
