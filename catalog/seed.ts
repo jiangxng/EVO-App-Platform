@@ -14,6 +14,12 @@ import {
   enterpriseContextGovernanceExperienceAssets
 } from "../apps/enterprise-context-governance/experience-assets.js";
 import {
+  templateStorePackage
+} from "../apps/template-store/package.js";
+import {
+  templateStoreExperienceAssets
+} from "../apps/template-store/experience-assets.js";
+import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
 import {
@@ -27,6 +33,9 @@ export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 export {
   enterpriseContextGovernanceAppPackage
 } from "../apps/enterprise-context-governance/package.js";
+export {
+  templateStorePackage
+} from "../apps/template-store/package.js";
 export {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
@@ -401,6 +410,7 @@ export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown
 export const referenceExperienceAssets = new Map<string, unknown>([
   ...enterpriseAgentExperienceAssets,
   ...enterpriseContextGovernanceExperienceAssets,
+  ...templateStoreExperienceAssets,
   ...companyNotesExperienceAssets,
   ...tradingLiteExperienceAssets,
   ...ledgerRuntimeConfiguratorExperienceAssets
