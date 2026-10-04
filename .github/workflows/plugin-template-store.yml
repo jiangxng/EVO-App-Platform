@@ -16,6 +16,7 @@ on:
       - "vendor/eidos/src/design-language/productive-workbench-css.ts"
       - "vendor/eidos/source.manifest.json"
       - "tests/integration/template-store-plugin.test.mjs"
+      - "tests/integration/template-store-copy-action.test.mjs"
       - "tests/protocol/template-store-transfer-boundary.test.mjs"
       - "package.json"
       - ".github/workflows/plugin-template-store.yml"
@@ -28,6 +29,7 @@ on:
       - "vendor/eidos/src/design-language/productive-workbench-css.ts"
       - "vendor/eidos/source.manifest.json"
       - "tests/integration/template-store-plugin.test.mjs"
+      - "tests/integration/template-store-copy-action.test.mjs"
       - "package.json"
       - ".github/workflows/plugin-template-store.yml"
 
