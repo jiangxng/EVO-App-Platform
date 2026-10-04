@@ -40,9 +40,13 @@ function requireContext(
   return context;
 }
 
-function sessionKey(context: PlatformRequestContextV010): string {
-  return context.principal.sessionId?.trim()
-    || context.principal.subjectId.trim();
+function sessionKeys(context: PlatformRequestContextV010): string[] {
+  return [
+    context.principal.sessionId?.trim(),
+    context.principal.subjectId.trim()
+  ].filter((value, index, values): value is string =>
+    Boolean(value) && values.indexOf(value) === index
+  );
 }
 
 function itemId(values: Record<string, JsonValue>): string {
@@ -78,12 +82,15 @@ export function createTemplateStorePreview2dActionHandlerV010(input: {
         const record = input.store.getLatest(templateId);
         if (!record) throw new Error("TEMPLATE_STORE_VERSION_NOT_FOUND");
 
-        input.sessions.set(sessionKey(context), {
-          contractVersion: "0.1.0",
+        const selection = {
+          contractVersion: "0.1.0" as const,
           templateId: record.templateId,
           templateVersion: record.version,
           selectedAt: (input.now ?? (() => new Date()))().toISOString()
-        });
+        };
+        for (const key of sessionKeys(context)) {
+          input.sessions.set(key, selection);
+        }
 
         return {
           ok: true,

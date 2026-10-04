@@ -4925,10 +4925,11 @@ const server = createServer(async (request, response) => {
           return json(response, 409, { code: "TEMPLATE_STORE_NOT_ACTIVE" });
         }
         const session = resolveRequestIdentitySession(request);
-        const previewSelection = templatePreviewSessions.get(
-          session.principal.sessionId?.trim()
-          || session.principal.subjectId.trim()
-        );
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const previewSelection =
+          (sessionId ? templatePreviewSessions.get(sessionId) : undefined)
+          ?? templatePreviewSessions.get(subjectId);
         if (!previewSelection) {
           return json(response, 409, {
             code: "TEMPLATE_PREVIEW_SELECTION_REQUIRED",
