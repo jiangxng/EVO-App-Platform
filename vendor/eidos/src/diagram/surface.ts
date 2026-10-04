@@ -1289,6 +1289,21 @@ export function mountDiagramEditorPageV010(
 
       if (localViewDrag || persistentDrag) {
         const pointerDown = (event: PointerEvent) => {
+          const isTouch = event.pointerType === "touch";
+          if (isTouch) {
+            navigationPointers.set(event.pointerId, {
+              x: event.clientX,
+              y: event.clientY
+            });
+            const touchDragEligible =
+              selected?.kind === "node"
+              && selected.id === node.id
+              && navigationPointers.size === 1;
+            if (!touchDragEligible) {
+              return;
+            }
+          }
+
           event.preventDefault();
           event.stopPropagation();
           element.setPointerCapture(event.pointerId);
@@ -1297,8 +1312,26 @@ export function mountDiagramEditorPageV010(
           const originalX = node.x;
           const originalY = node.y;
           let moved = false;
+          let cancelledByNavigation = false;
+
+          const cancelForNavigation = (): void => {
+            if (cancelledByNavigation) return;
+            cancelledByNavigation = true;
+            moved = false;
+            element.style.left = originalX + "px";
+            element.style.top = originalY + "px";
+            suppressNextNodeClick = true;
+            window.setTimeout(() => {
+              suppressNextNodeClick = false;
+            }, 0);
+          };
 
           const pointerMove = (move: PointerEvent) => {
+            if (isTouch && navigationPointers.size >= 2) {
+              cancelForNavigation();
+              return;
+            }
+            if (cancelledByNavigation) return;
             const nextX = Math.max(
               0,
               originalX + (move.clientX - startX) / zoom
@@ -1313,11 +1346,13 @@ export function mountDiagramEditorPageV010(
           };
 
           const pointerUp = (up: PointerEvent) => {
-            element.releasePointerCapture(up.pointerId);
+            if (element.hasPointerCapture(up.pointerId)) {
+              element.releasePointerCapture(up.pointerId);
+            }
             element.removeEventListener("pointermove", pointerMove);
             element.removeEventListener("pointerup", pointerUp);
             element.removeEventListener("pointercancel", pointerUp);
-            if (!moved) return;
+            if (cancelledByNavigation || !moved) return;
             suppressNextNodeClick = true;
             const x = Number.parseFloat(element.style.left);
             const y = Number.parseFloat(element.style.top);
@@ -1381,8 +1416,11 @@ export function mountDiagramEditorPageV010(
     const pointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null;
       if (
-        target?.closest?.("[data-eidos-diagram-node]")
-        || target?.closest?.("[data-eidos-diagram-edge]")
+        event.pointerType !== "touch"
+        && (
+          target?.closest?.("[data-eidos-diagram-node]")
+          || target?.closest?.("[data-eidos-diagram-edge]")
+        )
       ) {
         return;
       }
