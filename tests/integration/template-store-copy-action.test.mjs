@@ -27,6 +27,7 @@ function request(overrides = {}) {
     values: {
       templateId: "template:o2c",
       templateVersion: 1,
+      targetContextId: "context:target-b",
       targetDefinitionId: "process:o2c-local"
     },
     sourceInteractionId: "interaction:1",
@@ -46,8 +47,7 @@ function context(actorType = "HUMAN") {
       identityProviderId: "test.identity"
     },
     scope: {
-      contractVersion: "0.1.0",
-      enterpriseId: "enterprise:target"
+      contractVersion: "0.1.0"
     },
     context: {
       contractVersion: "0.1.0",
@@ -58,9 +58,8 @@ function context(actorType = "HUMAN") {
       },
       activeContext: {
         contractVersion: "0.1.0",
-        kind: "ENTERPRISE",
-        contextId: "context:target",
-        enterpriseId: "enterprise:target"
+        kind: "PERSONAL",
+        contextId: "personal:target"
       }
     },
     correlationId: "correlation:1"
@@ -105,9 +104,30 @@ function setup(allowed = true) {
     publishedAt: "2026-10-04T02:05:00.000Z"
   });
 
+  const availableContexts = [
+    {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:target"
+    },
+    {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "context:target-a",
+      enterpriseId: "enterprise:target-a"
+    },
+    {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "context:target-b",
+      enterpriseId: "enterprise:target-b"
+    }
+  ];
+
   const handler = createTemplateStoreCopyActionHandlerV010({
     store,
     transfer,
+    listAvailableContexts: () => availableContexts,
     resolveAuthorizationProvider: () => ({
       providerId: "test.authorization",
       check(input) {
@@ -115,8 +135,7 @@ function setup(allowed = true) {
           contractVersion: "0.1.0",
           allowed,
           policyProviderId: "test.authorization",
-          reasonCodes: [allowed ? "TEST_ALLOW" : "TEST_DENY"],
-          request: input
+          reasonCodes: [allowed ? "TEST_ALLOW" : "TEST_DENY"]
         };
       }
     }),
@@ -126,13 +145,16 @@ function setup(allowed = true) {
   return { definitions, handler };
 }
 
-test("Template Store Copy requires explicit Human confirmation and creates an independent target Draft", async () => {
+test("Template Store Copy targets the explicitly selected Enterprise Context", async () => {
   const { definitions, handler } = setup(true);
   const result = await handler.execute(request(), context());
 
   assert.equal(result.ok, true);
+  assert.equal(result.result.targetContextId, "context:target-b");
+  assert.equal(result.result.targetEnterpriseId, "enterprise:target-b");
+
   const copied = definitions.getLatest({
-    enterpriseId: "enterprise:target",
+    enterpriseId: "enterprise:target-b",
     definitionId: "process:o2c-local"
   });
   assert.ok(copied);
@@ -144,6 +166,50 @@ test("Template Store Copy requires explicit Human confirmation and creates an in
     "template-store:template:o2c@1"
   );
   assert.equal(copied.payload.stage, "source-v0");
+
+  assert.equal(
+    definitions.getLatest({
+      enterpriseId: "enterprise:target-a",
+      definitionId: "process:o2c-local"
+    }),
+    undefined
+  );
+});
+
+test("Template Store Copy requires an explicit target Enterprise Context", async () => {
+  const { handler } = setup(true);
+  const result = await handler.execute(
+    request({
+      values: {
+        templateId: "template:o2c",
+        templateVersion: 1,
+        targetDefinitionId: "process:o2c-local"
+      }
+    }),
+    context()
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "TEMPLATE_STORE_COPY_FIELD_INVALID");
+});
+
+test("Template Store Copy rejects a target Context unavailable to the principal", async () => {
+  const { handler } = setup(true);
+  const result = await handler.execute(
+    request({
+      values: {
+        templateId: "template:o2c",
+        templateVersion: 1,
+        targetContextId: "context:not-available",
+        targetDefinitionId: "process:o2c-local"
+      }
+    }),
+    context()
+  );
+  assert.equal(result.ok, false);
+  assert.equal(
+    result.error.code,
+    "TEMPLATE_STORE_TARGET_CONTEXT_NOT_AVAILABLE"
+  );
 });
 
 test("Template Store Copy rejects missing confirmation", async () => {
