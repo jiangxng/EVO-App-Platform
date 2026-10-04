@@ -358,3 +358,64 @@ CI MUST prove:
 4. Template Store v2 TransferBundle is digest-valid;
 5. the 587-rule reference library remains separate;
 6. existing persisted v1 + built-in v2 converges to latest=v2.
+
+
+## Eidos Productive Design Language compliance
+
+Template Store is an Eidos Experience, not a plugin-specific visual system.
+
+The page uses the public Eidos `catalog-browser` capability and inherits Host
+design tokens, Productive Workbench CSS, keyboard focus behavior, responsive
+card layout and action hierarchy.
+
+Required action hierarchy:
+
+```text
+supporting action(s)                  primary action
+Preview                               Use template
+                                      ^ trailing edge
+```
+
+The Eidos Catalog Browser implementation pinned by this repository includes the
+upstream fix from Eidos commit
+`7bf486cd6770f141e62d23a878bfde687751653d`, which ensures secondary actions
+render before the single trailing primary action and provides standard disabled
+and help-text styling.
+
+Template Store MUST NOT add private CSS to override this hierarchy.
+
+The Experience is also registered in the App Platform Experience Architecture
+Registry as `evo-template-store` with:
+
+- archetype: `collection`;
+- task mode: `exploration`;
+- Human goal: discover, preview and copy reusable templates;
+- deterministic direct `Preview` and `Use template` actions;
+- one primary action (`Use template`);
+- localized system chrome;
+- Eidos Design Language compliance.
+
+Chinese locale covers page title, description, search chrome, empty/no-result
+states, action labels, help text and Viewer-unavailable explanation.
+
+## Production Ledger Runtime bootstrap content
+
+The built-in Ledger Runtime card is backed by the Ledger Runtime Configurator's
+own deterministic `exportTemplate()` result.
+
+Current v2 production seed contains:
+
+- 143 applications;
+- 141 accounts / ledgers;
+- 106 dictionary entries;
+- 912 active `policy.sql` Posting Rules;
+- validation result `burnReady = true`;
+- zero compatibility blockers.
+
+The separate 587-rule `记账规则.sql` corpus is preserved as a REFERENCE
+library and is deliberately not merged into the active 912-rule baseline.
+
+CI requires the checked-in production template snapshot to be exactly equal to
+`createLedgerRuntimeConfiguratorService().exportTemplate()`. Template Store
+therefore distributes the Configurator-owned snapshot and does not become the
+authority for Ledger Runtime configuration semantics.

@@ -20,6 +20,9 @@ import {
 import {
   renderAppHostPageToHtml
 } from "../../dist/vendor/eidos/src/app-host/index.js";
+import {
+  renderCatalogBrowserToHtml
+} from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 
 test("Template Store is an installable APPLICATION plugin with no Enterprise Context dependency", () => {
   const feature = templateStorePackage.features[0];
@@ -126,5 +129,38 @@ test("built-in ledger runtime template preserves copy semantics without runtime 
   assert.equal(
     ledgerRuntimeBaselineTemplateV010.source.artifact,
     "ledger-runtime-configurator/bookkeeping-default"
+  );
+});
+
+
+test("Template Store zh-CN page localizes complete system chrome", () => {
+  const definition = createTemplateStorePageV010(
+    undefined,
+    { viewer2dAvailable: false, locale: "zh-CN" }
+  );
+  assert.equal(definition.title, "模板商店");
+  assert.equal(
+    definition.description,
+    "浏览共享模板。使用模板后会在企业上下文仓库中创建独立副本。"
+  );
+  assert.equal(definition.search?.placeholder, "搜索模板");
+  assert.equal(definition.search?.ariaLabel, "搜索模板");
+  assert.equal(definition.search?.noResultsMessage, "没有匹配的模板。");
+  assert.equal(definition.emptyMessage, "暂无可用的共享模板。");
+});
+
+test("Eidos Catalog Browser keeps Template Store primary action on trailing edge", () => {
+  const definition = createTemplateStorePageV010(
+    undefined,
+    { viewer2dAvailable: true, locale: "zh-CN" }
+  );
+  const html = renderCatalogBrowserToHtml(definition);
+  assert.ok(
+    html.indexOf('data-eidos-catalog-action="preview-2d"')
+      < html.indexOf('data-eidos-catalog-action="copy"')
+  );
+  assert.match(
+    html,
+    /data-eidos-catalog-action="copy"[^>]*data-eidos-primary="true"/
   );
 });
