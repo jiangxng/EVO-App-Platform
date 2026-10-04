@@ -98,13 +98,24 @@ function validateRevision(
     recordedBy: validateActor(value.recordedBy),
     origin: {
       type:
-        value.origin?.type === "MIGRATED" ? "MIGRATED" : "NATIVE",
+        value.origin?.type === "MIGRATED"
+          ? "MIGRATED"
+          : value.origin?.type === "TEMPLATE_COPY"
+            ? "TEMPLATE_COPY"
+            : "NATIVE",
       ...(value.origin?.sourceRef?.trim()
         ? { sourceRef: value.origin.sourceRef.trim() }
         : {}),
       historyComplete: value.origin?.historyComplete === true
     }
   };
+
+  if (
+    revision.origin.type === "TEMPLATE_COPY"
+    && !revision.origin.sourceRef?.trim()
+  ) {
+    throw new Error("BUSINESS_DEFINITION_TEMPLATE_COPY_SOURCE_REQUIRED");
+  }
 
   if (revision.state === "PUBLISHED") {
     if (
@@ -238,10 +249,19 @@ function createRepository(
         definitionCreatedAt: recordedAt,
         recordedAt,
         recordedBy: validateActor(input.actor),
-        origin: {
-          type: "NATIVE",
-          historyComplete: true
-        }
+        origin: input.origin?.type === "TEMPLATE_COPY"
+          ? {
+              type: "TEMPLATE_COPY",
+              sourceRef: required(
+                input.origin.sourceRef,
+                "BUSINESS_DEFINITION_TEMPLATE_COPY_SOURCE_REQUIRED"
+              ),
+              historyComplete: true
+            }
+          : {
+              type: "NATIVE",
+              historyComplete: true
+            }
       });
     },
 
