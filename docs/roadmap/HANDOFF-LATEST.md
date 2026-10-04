@@ -3,57 +3,63 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `TRADING-LITE-EVO-BROWSER-WRITE-2026-10-03-01`  
-**Snapshot time:** `2026-10-03T11:40:00+08:00`  
+**Snapshot:** `TEMPLATE-STORE-V0-1-2026-10-04-01`  
+**Snapshot time:** `2026-10-04T13:30:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Cross-Project Contract Boundary Convergence v0.1
+Template Store v0.1
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**trading-lite-eidos-browser-generic-transport-proof-v0-1: VERIFIED_CI_PASS**
+**template-store-browse-foundation-v0-1: MERGED_CI_PASS**
 
-Real Chrome drove the existing Eidos Trading Lite /trading Experience through ActionHost with Host-selected Enterprise Context, the generic EVO BusinessData adapter, EVO PostgreSQL 18 and Worker posting, and public runtime observation confirmed the resulting Receivable ledger state.
+Template Store v0.1 is now an independent App Platform APPLICATION plugin. It renders the first EVO Ledger Runtime baseline template through Eidos Catalog Browser with thumbnail, name and description only; the source remains independent and copy semantics are frozen without a live source dependency.
 
-Authority: `docs/roadmap/NEXT-MAINLINE-EVO-BUSINESSDATA-ADAPTER.md`
+Authority: `docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "appPlatformPr": 315,
-  "mergeCommit": "0d604992ae3747989a1ac0644bbd6a0bc28c4a14",
-  "browserRoute": "/trading",
-  "surface": "DESKTOP_WORKBENCH",
-  "actionEndpoint": "/v1/actions",
-  "contextPropagation": "x-evo-context-id",
-  "evoApplicationId": "sales_order",
-  "eventCountDelta": 1,
-  "receivableBalanceAmount": 137
+  "appPlatformPr": 342,
+  "mergeCommit": "1f86352d105ca9bd03b8c56f8b2c3dfeaebfb6a6",
+  "eidosPr": 88,
+  "eidosMergeCommit": "0d889af675f59466091fdcf89a061c0d421e7bdb",
+  "packageId": "evo-template-store",
+  "route": "/templates",
+  "firstTemplate": "evo.ledger-runtime.baseline.v0.1",
+  "templateCardFields": [
+    "thumbnail",
+    "name",
+    "description"
+  ],
+  "pluginCI": "PASS",
+  "platformCI": "PASS",
+  "continuityCI": "PASS"
 }
 ```
 
 ## Current open live gate
 
-**trading-lite-evo-public-readback-projection-v0-1: READY**
+**template-store-enterprise-context-share-copy-v0-1: READY**
 
-Complete the remaining generic EVO integration slice by returning authoritative public EVO runtime results through a Host-owned read/query projection to the Eidos Trading Lite Experience.
+Define the public Enterprise Context Share/Copy boundary so Enterprise Context can explicitly expose a submitted/published definition for sharing and Template Store can copy it into a target Enterprise Context without owning or directly mutating Enterprise Context storage.
 
 Acceptance:
 
-- Host publishes a business-neutral EVO public read/query projection contract
-- the implementation uses only documented EVO public runtime observation/read boundaries
-- Enterprise scope and exact runtime applicationId are resolved by Host Context and Application Runtime Binding
-- browser/Eidos never calls EVO directly and no EVO private module, SQL table or persistence row becomes a Host contract
-- Trading Lite can render authoritative post-submit runtime evidence through the Host projection
-- real-browser CI proves Eidos -> Host read/query -> EVO public read -> Eidos rendering
-- legacy /api/v1/commands compatibility remains available until this readback gate is closed
-- EOG 2D/3D ownership remains unchanged and SOP remains separate and deferred
+- Enterprise Context remains the authoritative owner of enterprise definitions and the explicit Share decision.
+- 2D Designer Save and Submit remain editor operations; Submit may provide a thumbnail but Submit does not imply Publish or Share.
+- Template Store reads only content explicitly shared through a public Enterprise Context contract and never reads Enterprise Context private persistence.
+- Template Store Copy creates a new enterprise-owned definition/revision in the target Enterprise Context through a public write contract.
+- A copied template has no required runtime parent/source linkage; later source updates or removal do not rewrite the enterprise copy.
+- Thumbnail remains presentation metadata rendered through Eidos Catalog Browser rather than Template Store-specific rendering.
+- Authorization and provenance for Share and Copy are explicit and fail closed.
+- Tests prove source/target independence and preserve the existing EOG 2D/3D ownership boundaries; SOP remains separate and deferred.
 
 ## Current production preview
 
@@ -94,6 +100,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #342 — MERGED_CI_PASS: Add independent evo-template-store v0.1, first EVO Ledger Runtime baseline template, Eidos thumbnail rendering, plugin CI and durable architecture/decision documentation.
 - PR #315 — MERGED_CI_PASS: Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger.
 - PR #314 — MERGED_CI_PASS: Propagate the Host-selected active Context generically on same-origin browser requests without app-specific context injection.
 - PR #313 — MERGED_CI_PASS: Close the generic EVO transport gate and open the bounded Trading Lite Eidos browser proof.
@@ -401,6 +408,9 @@ Not proved:
 - Do not treat Experience-Compiler as replaced by the App Platform enterprise-agent package; EC remains an independent owner project for durable advisory intelligence.
 - Do not read EVO compatibility endpoints as target EVO Ledger Runtime Core ownership; targetCoreBoundary and minimal-runtime decisions are authoritative.
 - Do not reopen SOP work while proving the App Platform to EVO applicationId contract path.
+- Do not move Template Store into Enterprise Context; Template Store is an independent APPLICATION plugin and Enterprise Context remains the definition/share authority.
+- Do not collapse 2D Designer Submit into Publish or Share; Save, Submit, Publish and Share are distinct lifecycle actions.
+- Do not implement template use as a live source reference; v0.1 semantics are Copy -> independent enterprise-owned content.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -565,6 +575,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Experience-Compiler as an independent owner project and enterprise-agent as an App Platform integration/package boundary
 - state the current open gate as App Platform semantic Application -> Application Runtime Binding -> EVO applicationId public-contract proof
 - state SOP as separate and deferred
+- state Template Store v0.1 as merged through App Platform PR #342 with package evo-template-store and route /templates
+- state Eidos PR #88 / merge 0d889af675f59466091fdcf89a061c0d421e7bdb as the reusable Catalog Browser thumbnail authority
+- state Template Store card v0.1 as thumbnail + name + description with the first built-in EVO 账本运行时基线 template
+- state Enterprise Context as the template definition/share authority and Template Store use as copy-only with no required live source linkage
+- state the current Template Store gate as the public Enterprise Context Share/Copy contract while SOP remains separate and deferred
 
 No previous ChatGPT transcript is required.
 
