@@ -1,4 +1,4 @@
-# Decision Record — Template Store Copy Requires Explicit Target Context
+# Decision Record — Single-Context v0.1 with Multi-Context Architecture Reserved
 
 **Document class:** DECISION_RECORD  
 **Status:** Accepted  
@@ -6,43 +6,63 @@
 
 ## Context
 
-EVO App Platform may host multiple Enterprise Context instances for the same user/principal.
+Enterprise Context behaves as an enterprise-owned repository/authority boundary.
 
-Template Store is an installation-wide plugin, so a template Copy action cannot assume that the currently active Enterprise Context is the intended destination.
+The long-term platform architecture may host multiple Enterprise Context repositories for one Principal, but the current product does not need the UI and operational complexity of multi-context selection.
+
+Template Store must therefore remain simple now without hard-coding a permanently singular architecture.
 
 ## Decision
 
-Template Store Copy requires an explicit `targetContextId`.
+Product v0.1 supports one available Enterprise Context repository.
 
-The Host resolves that Context from the Principal's authorized Context registry and derives the canonical `enterpriseId` from the resolved Enterprise Context.
+Template Store Copy automatically resolves that single authorized Enterprise Context through the Host Context Registry.
 
-The action does not accept an arbitrary destination `enterpriseId` from the client.
+The Copy contract nevertheless preserves an optional `targetContextId` and the Host continues to use stable Context identity.
 
-## UX
+If multiple Enterprise Contexts are present:
+
+- an explicit authorized `targetContextId` can disambiguate the operation at the architecture/API layer;
+- an ambiguous Copy without a target fails closed;
+- v0.1 does not expose the multi-context selector in the product UI.
+
+The client never supplies a trusted destination `enterpriseId`; Host Context resolution derives it.
+
+## Current UX
 
 ```text
 Template Store
   -> Use template
-  -> Select target Enterprise Context
-  -> Confirm destination
-  -> Authorization
+  -> single Enterprise Context auto-resolved
+  -> confirm
+  -> authorization
   -> Enterprise Context creates independent Draft
 ```
 
-Rules:
+No Enterprise Context selector is required in v0.1.
 
-- zero eligible Enterprise Contexts: Copy disabled;
-- one eligible Enterprise Context: it may be preselected, but destination remains visible in confirmation;
-- multiple eligible Enterprise Contexts: explicit user selection is required;
-- active Context may be suggested but is never silently treated as destination.
+## Long-term extension
+
+```text
+Template Store
+  -> Use template
+  -> select targetContextId
+  -> confirm
+  -> authorization
+  -> selected Enterprise Context repository
+```
+
+This can be enabled later without changing:
+
+- Enterprise Context storage semantics;
+- TemplateTransferBundle;
+- independent-copy semantics;
+- Template Store ownership;
+- Host authorization boundary.
 
 ## Ownership
 
-- Template Store owns the interaction and selected template.
-- Host Context resolution owns destination authority.
-- Enterprise Context owns the created definition.
-- The resulting copy remains independent from Template Store.
-
-## Consequence
-
-The Template Store page must gain a destination-selection interaction before Copy is considered a complete page experience.
+- Template Store owns the Copy interaction.
+- Host Context Registry owns target resolution authority.
+- Enterprise Context owns the resulting repository content.
+- Multi-context selection is a future product capability, not a new storage model.
