@@ -52,3 +52,34 @@ Legacy source paths under `apps/eog-2d-viewer` and
 `apps/eog-2d-designer` remain compatibility implementation locations during
 incremental convergence. Their package manifests are compatibility aliases to
 the unified package and must not be independently registered in the Catalog.
+
+
+## Cross-plugin read-only preview capability
+
+The Viewer Feature also provides the neutral capability:
+
+`visual.viewer.2d`
+
+This capability is intentionally broader than Enterprise Operating Graph
+semantics. It allows other installed plugins, such as Template Store, to supply
+neutral read-only preview artifacts to the shared Eidos 2D Workspace.
+
+Template Store depends only on this public capability and neutral preview
+contract. It does not import EOG 2D Viewer private implementation.
+
+## Lifecycle / loading invariant
+
+EOG 2D is an optional application plugin.
+
+Fresh Hosts MUST NOT auto-install Viewer or Designer merely because their
+manifest is present in Catalog.
+
+When the Viewer Feature is inactive:
+
+- its routes are not effective;
+- its Actions are rejected by ActionHost before implementation load;
+- its Workspace / template-preview modules are not eagerly imported.
+
+When active, the Host may lazy-load the requested Viewer page or Action module.
+
+Existing persisted installations remain compatible.
