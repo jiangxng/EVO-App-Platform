@@ -36,7 +36,7 @@ test("file Template Store repository exposes the built-in seed before a state fi
     );
     const seed = repository.getLatest("evo.ledger-runtime.baseline.v0.1");
     assert.ok(seed);
-    assert.equal(seed.version, 2);
+    assert.equal(seed.version, 3);
     assert.equal(seed.bundle.definition.kind, "LEDGER_RUNTIME_TEMPLATE");
     assert.equal(existsSync(path), false);
   } finally {
@@ -81,13 +81,13 @@ test("file Template Store repository persists published records together with th
 });
 
 
-test("durable Template Store preserves old v1 and adds corrected built-in v2", () => {
+test("durable Template Store preserves old versions and adds Projection Gallery v3", () => {
   const dir = mkdtempSync(join(tmpdir(), "evo-template-store-"));
   const path = join(dir, "template-store.json");
 
   try {
     const currentSeed = templateStoreSeedRecordsV010[0];
-    assert.equal(currentSeed.version, 2);
+    assert.equal(currentSeed.version, 3);
 
     const oldUnsigned = structuredClone(currentSeed.bundle);
     delete oldUnsigned.contentDigest;
@@ -137,8 +137,17 @@ test("durable Template Store preserves old v1 and adds corrected built-in v2", (
       2
     );
     assert.equal(
+      repository.getVersion(currentSeed.templateId, 3)?.version,
+      3
+    );
+    assert.equal(
       repository.getLatest(currentSeed.templateId)?.version,
-      2
+      3
+    );
+    assert.equal(
+      repository.getLatest(currentSeed.templateId)
+        ?.bundle.definition.projectionGallery.primaryProjectionId,
+      "projection:main"
     );
     assert.equal(
       repository.getLatest(currentSeed.templateId)
