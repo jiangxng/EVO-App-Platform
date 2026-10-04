@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "987ebf4ae8fbb24798cf3b177f5ac09d4c005e8e",
+  "sourceCommit": "718acf47917bec3ab755a21c9f5edd173d21a9ff",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
@@ -21,6 +21,9 @@
     "src/app-host/page-renderer.ts",
     "src/catalog-browser/contracts.ts",
     "src/catalog-browser/render.ts",
+    "src/catalog-detail/contracts.ts",
+    "src/catalog-detail/index.ts",
+    "src/catalog-detail/render.ts",
     "src/chat/contracts.ts",
     "src/chat/index.ts",
     "src/chat/render.ts",
@@ -65,10 +68,10 @@
     "src/spatial/index.ts",
     "src/spatial/surface.ts",
     "src/spatial/three-adapter.ts",
+    "src/spatial/workspace.ts",
     "src/workbench/contracts.ts",
     "src/workbench/index.ts",
-    "src/workbench/shell.ts",
-    "src/spatial/workspace.ts"
+    "src/workbench/shell.ts"
   ],
   "hostOverlays": [
     {

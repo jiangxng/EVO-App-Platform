@@ -587,7 +587,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
           },
           values: (() => {
+            const rawActionValues = button.dataset.eidosActionValues;
+            let actionValues: Record<string, JsonValue> = {};
+            if (rawActionValues) {
+              const parsed = JSON.parse(rawActionValues) as unknown;
+              if (
+                parsed === null
+                || typeof parsed !== "object"
+                || Array.isArray(parsed)
+              ) {
+                throw new Error("EIDOS_ACTION_VALUES_INVALID");
+              }
+              actionValues = parsed as Record<string, JsonValue>;
+            }
             const values: Record<string, JsonValue> = {
+              ...actionValues,
               ...(itemId ? { itemId } : {}),
               confirmed: button.dataset.eidosConfirm === "true"
             };

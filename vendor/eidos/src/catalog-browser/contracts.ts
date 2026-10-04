@@ -1,3 +1,4 @@
+import type { JsonValue } from "../runtime/contracts.js";
 export type CatalogStatusTone = "neutral" | "positive" | "warning";
 
 export interface CatalogBrowserActionV010 {
@@ -11,6 +12,7 @@ export interface CatalogBrowserActionV010 {
   enabled?: boolean;
   disabledReason?: string;
   helpText?: string;
+  values?: Record<string, JsonValue>;
 }
 
 export interface CatalogBrowserThumbnailV010 {
