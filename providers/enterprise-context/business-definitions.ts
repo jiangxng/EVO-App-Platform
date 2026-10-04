@@ -6,6 +6,9 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname } from "node:path";
+import {
+  assertTemplateProjectionGalleryV010
+} from "../../contracts/template-projection-gallery.js";
 import type {
   BusinessDefinitionAttributionV010,
   BusinessDefinitionRepositoryMigrationV010,
@@ -96,6 +99,13 @@ function validateRevision(
       "BUSINESS_DEFINITION_RECORDED_AT_INVALID"
     ),
     recordedBy: validateActor(value.recordedBy),
+    ...(value.projectionGallery
+      ? {
+          projectionGallery: assertTemplateProjectionGalleryV010(
+            value.projectionGallery
+          )
+        }
+      : {}),
     origin: {
       type:
         value.origin?.type === "MIGRATED"
@@ -246,6 +256,13 @@ function createRepository(
         state: "DRAFT",
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        ...(input.projectionGallery
+          ? {
+              projectionGallery: assertTemplateProjectionGalleryV010(
+                input.projectionGallery
+              )
+            }
+          : {}),
         definitionCreatedAt: recordedAt,
         recordedAt,
         recordedBy: validateActor(input.actor),
@@ -287,6 +304,9 @@ function createRepository(
         revision: current.revision + 1,
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        projectionGallery: input.projectionGallery
+          ? assertTemplateProjectionGalleryV010(input.projectionGallery)
+          : current.projectionGallery,
         recordedAt: timestamp(
           input.recordedAt,
           "BUSINESS_DEFINITION_RECORDED_AT_INVALID"
@@ -318,6 +338,9 @@ function createRepository(
         state: "DRAFT",
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        projectionGallery: input.projectionGallery
+          ? assertTemplateProjectionGalleryV010(input.projectionGallery)
+          : current.projectionGallery,
         recordedAt: timestamp(
           input.recordedAt,
           "BUSINESS_DEFINITION_RECORDED_AT_INVALID"

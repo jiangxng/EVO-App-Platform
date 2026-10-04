@@ -43,6 +43,7 @@ export interface TemplatePreviewArtifactV010 {
   contractVersion: "0.1.0";
   templateId: string;
   templateVersion: number;
+  projectionId?: string;
   title: string;
   description?: string;
   definitionKind: string;
@@ -53,6 +54,7 @@ export interface TemplatePreviewArtifactSourceV010 {
   get(input: {
     templateId: string;
     templateVersion?: number;
+    projectionId?: string;
   }): TemplatePreviewArtifactV010 | undefined;
 }
 
@@ -60,6 +62,7 @@ export interface TemplatePreviewSelectionV010 {
   contractVersion: "0.1.0";
   templateId: string;
   templateVersion: number;
+  projectionId?: string;
   selectedAt: string;
 }
 

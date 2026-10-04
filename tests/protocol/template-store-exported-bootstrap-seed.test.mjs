@@ -6,7 +6,9 @@ import {
   assertTemplateTransferBundleV010
 } from "../../dist/contracts/template-transfer.js";
 import {
-  ledgerRuntimeBaselineBundleV010
+  ledgerRuntimeBaselineBundleV010,
+  ledgerRuntimeBaselineBundleV2V010,
+  templateStoreSeedRecordsV010
 } from "../../dist/apps/template-store/seed-records.js";
 import {
   createLedgerRuntimeConfiguratorService
@@ -83,5 +85,22 @@ test("Template Store bootstrap Seed wraps the production Ledger Runtime template
   assert.deepEqual(bundle.definition.payload, productionTemplate);
   assert.match(bundle.contentDigest, /^sha256:[0-9a-f]{64}$/);
 
-  assert.deepEqual(bundle, ledgerRuntimeBaselineBundleV010);
+  assert.deepEqual(bundle, ledgerRuntimeBaselineBundleV2V010);
+});
+
+test("Template Store v3 adds Projection Gallery without mutating the runtime payload", () => {
+  const v3 = templateStoreSeedRecordsV010.find(record => record.version === 3);
+  assert.ok(v3);
+  assert.deepEqual(v3.bundle.definition.payload, productionTemplate);
+  assert.equal(
+    v3.bundle.definition.projectionGallery.primaryProjectionId,
+    "projection:main"
+  );
+  assert.equal(v3.bundle.definition.projectionGallery.projections.length, 1);
+  assert.equal(
+    v3.bundle.definition.projectionGallery.projections[0].view.kind,
+    "DIAGRAM_2D"
+  );
+  assert.deepEqual(v3.bundle, ledgerRuntimeBaselineBundleV010);
+  assert.match(v3.bundle.contentDigest, /^sha256:[0-9a-f]{64}$/);
 });

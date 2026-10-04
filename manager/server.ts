@@ -4950,7 +4950,10 @@ const server = createServer(async (request, response) => {
             templateStoreRepository
           ).get({
             templateId: previewSelection.templateId,
-            templateVersion: previewSelection.templateVersion
+            templateVersion: previewSelection.templateVersion,
+            ...(previewSelection.projectionId
+              ? { projectionId: previewSelection.projectionId }
+              : {})
           });
         if (!artifact) {
           return json(response, 404, {
@@ -4963,7 +4966,10 @@ const server = createServer(async (request, response) => {
           viewer.createTemplate2dPreviewPageV010({
             templateId: artifact.templateId,
             templateVersion: artifact.templateVersion,
-            title: artifact.title
+            title: artifact.title,
+            ...(artifact.projectionId
+              ? { projectionId: artifact.projectionId }
+              : {})
           })
         );
       }

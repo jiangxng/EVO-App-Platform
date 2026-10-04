@@ -247,3 +247,65 @@ test("Template Store and Enterprise Context transfer implementations depend only
   assert.match(storeSource, /contracts\/template-transfer/);
   assert.match(enterpriseSource, /contracts\/template-transfer/);
 });
+
+
+test("Projection Gallery is versioned, shared and copied with the definition", () => {
+  const definitions = createMemoryBusinessDefinitionRepositoryV010();
+  const transfer = createEnterpriseTemplateTransferProviderV010(definitions);
+  const gallery = {
+    contractVersion: "0.1.0",
+    primaryProjectionId: "projection:main",
+    projections: [{
+      projectionId: "projection:main",
+      title: "Main",
+      thumbnail: {
+        src: "data:image/svg+xml,main",
+        alt: "Main projection"
+      },
+      view: {
+        contractVersion: "0.1.0",
+        kind: "DIAGRAM_2D",
+        hiddenNodeIds: ["node:hidden"],
+        placements: [{ nodeId: "node:a", x: 120, y: 80 }]
+      }
+    }]
+  };
+
+  const draft = definitions.createDraft({
+    enterpriseId: "enterprise:source",
+    definitionId: "definition:gallery",
+    kind: "ENTERPRISE_OPERATING_GRAPH",
+    title: "Gallery definition",
+    payload: { graphContractVersion: "0.1.0" },
+    projectionGallery: gallery,
+    actor: human,
+    recordedAt: "2026-10-05T00:00:00.000Z"
+  });
+  assert.deepEqual(draft.projectionGallery, gallery);
+
+  const bundle = transfer.prepareShare({
+    enterpriseId: "enterprise:source",
+    definitionId: "definition:gallery",
+    definitionRevision: draft.revision,
+    transferId: "share:gallery:1",
+    listing: {
+      name: "Gallery definition",
+      description: "Projection Gallery transfer",
+      thumbnail: gallery.projections[0].thumbnail
+    },
+    actor: human,
+    sharedAt: "2026-10-05T00:10:00.000Z"
+  });
+  assert.deepEqual(bundle.definition.projectionGallery, gallery);
+
+  const copied = transfer.copyIntoEnterprise({
+    bundle,
+    targetEnterpriseId: "enterprise:target",
+    targetDefinitionId: "definition:gallery-copy",
+    sourceRef: "template-store:gallery@1",
+    actor: human,
+    recordedAt: "2026-10-05T00:20:00.000Z"
+  });
+  assert.deepEqual(copied.projectionGallery, gallery);
+  assert.equal(copied.state, "DRAFT");
+});

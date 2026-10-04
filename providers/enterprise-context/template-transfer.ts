@@ -67,7 +67,14 @@ export function createEnterpriseTemplateTransferProviderV010(
         definition: {
           kind: revision.kind,
           title: revision.title,
-          payload: structuredClone(revision.payload)
+          payload: structuredClone(revision.payload),
+          ...(revision.projectionGallery
+            ? {
+                projectionGallery: structuredClone(
+                  revision.projectionGallery
+                )
+              }
+            : {})
         },
         sharedAt: at(input.sharedAt, "TEMPLATE_SHARE_AT_INVALID"),
         sharedBy: structuredClone(input.actor)
@@ -93,6 +100,13 @@ export function createEnterpriseTemplateTransferProviderV010(
         kind: bundle.definition.kind,
         title: bundle.definition.title,
         payload: structuredClone(bundle.definition.payload),
+        ...(bundle.definition.projectionGallery
+          ? {
+              projectionGallery: structuredClone(
+                bundle.definition.projectionGallery
+              )
+            }
+          : {}),
         actor: structuredClone(input.actor),
         recordedAt: input.recordedAt,
         origin: {

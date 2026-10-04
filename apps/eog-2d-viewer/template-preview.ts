@@ -70,6 +70,18 @@ function stringValue(
   return value.trim();
 }
 
+function optionalStringValue(
+  values: Record<string, JsonValue>,
+  key: string
+): string | undefined {
+  const value = values[key];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`TEMPLATE_2D_PREVIEW_FIELD_INVALID: ${key}`);
+  }
+  return value.trim();
+}
+
 function positiveInteger(
   values: Record<string, JsonValue>,
   key: string
@@ -91,7 +103,12 @@ function artifact(
 ): TemplatePreviewArtifactV010 {
   const templateId = stringValue(values, "templateId");
   const templateVersion = positiveInteger(values, "templateVersion");
-  const value = source.get({ templateId, templateVersion });
+  const projectionId = optionalStringValue(values, "projectionId");
+  const value = source.get({
+    templateId,
+    templateVersion,
+    ...(projectionId ? { projectionId } : {})
+  });
   if (!value) throw new Error("TEMPLATE_2D_PREVIEW_NOT_FOUND");
   return value;
 }
@@ -117,7 +134,8 @@ function state(
   return {
     contractVersion: "0.1.0",
     resourceId:
-      `template-store:${value.templateId}@${value.templateVersion}`,
+      `template-store:${value.templateId}@${value.templateVersion}`
+      + (value.projectionId ? `#${value.projectionId}` : ""),
     revision: value.templateVersion,
     lifecycleState: "TEMPLATE_PREVIEW",
     nodes: diagram.nodes.map(node => ({
@@ -218,6 +236,7 @@ export function createTemplate2dPreviewPageV010(input: {
   templateId: string;
   templateVersion: number;
   title: string;
+  projectionId?: string;
 }): DiagramWorkspacePageV010 {
   return {
     contractVersion: "0.1.0",
@@ -225,7 +244,8 @@ export function createTemplate2dPreviewPageV010(input: {
     id: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID,
     title: `Template Preview · ${input.title}`,
     resourceId:
-      `template-store:${input.templateId}@${input.templateVersion}`,
+      `template-store:${input.templateId}@${input.templateVersion}`
+      + (input.projectionId ? `#${input.projectionId}` : ""),
     readCommand: {
       code: EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
       inputVersion: "0.1.0"
@@ -236,7 +256,8 @@ export function createTemplate2dPreviewPageV010(input: {
     },
     requestValues: {
       templateId: input.templateId,
-      templateVersion: input.templateVersion
+      templateVersion: input.templateVersion,
+      ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
     viewInteraction: {
       zoom: true,

@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import {
+  assertTemplateProjectionGalleryV010,
+  type TemplateProjectionGalleryV010
+} from "./template-projection-gallery.js";
 import type {
   BusinessDefinitionAttributionV010,
   BusinessDefinitionRevisionV010,
@@ -34,6 +38,7 @@ export interface TemplateTransferDefinitionV010 {
   kind: string;
   title: string;
   payload: Record<string, unknown>;
+  projectionGallery?: TemplateProjectionGalleryV010;
 }
 
 export interface TemplateTransferBundleV010 {
@@ -169,7 +174,14 @@ export function assertTemplateTransferBundleV010(
         value.definition.title,
         "TEMPLATE_TRANSFER_DEFINITION_TITLE_REQUIRED"
       ),
-      payload: structuredClone(value.definition.payload)
+      payload: structuredClone(value.definition.payload),
+      ...(value.definition.projectionGallery
+        ? {
+            projectionGallery: assertTemplateProjectionGalleryV010(
+              value.definition.projectionGallery
+            )
+          }
+        : {})
     },
     sharedAt: value.sharedAt,
     sharedBy: {

@@ -1,3 +1,4 @@
+import type { TemplateProjectionGalleryV010 } from "./template-projection-gallery.js";
 export const ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010 =
   "enterprise.business-definition.repository" as const;
 
@@ -40,6 +41,7 @@ export interface BusinessDefinitionRevisionV010 {
   state: BusinessDefinitionStateV010;
   title: string;
   payload: Record<string, unknown>;
+  projectionGallery?: TemplateProjectionGalleryV010;
   definitionCreatedAt: string;
   recordedAt: string;
   recordedBy: BusinessDefinitionAttributionV010;
@@ -57,6 +59,7 @@ export interface BusinessDefinitionRepositoryV010 {
     kind: string;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
     origin?: BusinessDefinitionCreateOriginV010;
@@ -68,6 +71,7 @@ export interface BusinessDefinitionRepositoryV010 {
     expectedRevision: number;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
   }): BusinessDefinitionRevisionV010;
@@ -78,6 +82,7 @@ export interface BusinessDefinitionRepositoryV010 {
     expectedRevision: number;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
   }): BusinessDefinitionRevisionV010;

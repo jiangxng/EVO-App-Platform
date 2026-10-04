@@ -1,3 +1,4 @@
+import type { TemplateProjectionGalleryV010 } from "../../contracts/template-projection-gallery.js";
 export interface TemplateStoreThumbnailV010 {
   src: string;
   alt: string;
@@ -8,6 +9,7 @@ export interface TemplateStoreEntryV010 {
   name: string;
   description: string;
   thumbnail: TemplateStoreThumbnailV010;
+  projectionGallery?: TemplateProjectionGalleryV010;
   copyMode: "COPY";
   source: {
     kind: "BUILT_IN_REFERENCE";
@@ -48,6 +50,23 @@ export const ledgerRuntimeBaselineTemplateV010: TemplateStoreEntryV010 = {
   thumbnail: {
     src: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(ledgerRuntimeSvg)}`,
     alt: "EVO 账本运行时基线缩略图"
+  },
+  projectionGallery: {
+    contractVersion: "0.1.0",
+    primaryProjectionId: "projection:main",
+    projections: [{
+      projectionId: "projection:main",
+      title: "完整账本运行时",
+      description: "完整展示当前模板中的应用、账本与条件记账关系。",
+      thumbnail: {
+        src: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(ledgerRuntimeSvg)}`,
+        alt: "完整账本运行时主投影"
+      },
+      view: {
+        contractVersion: "0.1.0",
+        kind: "DIAGRAM_2D"
+      }
+    }]
   },
   copyMode: "COPY",
   source: {

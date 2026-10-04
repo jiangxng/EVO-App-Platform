@@ -5,6 +5,9 @@ import type {
   TemplatePreviewEdgeV010,
   TemplatePreviewNodeV010
 } from "../../contracts/template-preview.js";
+import {
+  assertTemplateProjectionGalleryV010
+} from "../../contracts/template-projection-gallery.js";
 import type {
   TemplateStoreRecordV010,
   TemplateStoreRepositoryV010
@@ -394,25 +397,108 @@ function previewFromRuntimeFlow(
   };
 }
 
+function applyProjection(
+  diagram: Template2dPreviewV010 | undefined,
+  record: TemplateStoreRecordV010,
+  requestedProjectionId?: string
+): {
+  diagram2d?: Template2dPreviewV010;
+  projectionId?: string;
+  title?: string;
+  description?: string;
+} {
+  const gallery = record.bundle.definition.projectionGallery;
+  if (!gallery) {
+    if (requestedProjectionId) {
+      throw new Error("TEMPLATE_PROJECTION_NOT_FOUND");
+    }
+    return diagram ? { diagram2d: diagram } : {};
+  }
+
+  const valid = assertTemplateProjectionGalleryV010(gallery);
+  const projectionId = requestedProjectionId?.trim()
+    || valid.primaryProjectionId;
+  const projection = valid.projections.find(
+    item => item.projectionId === projectionId
+  );
+  if (!projection) throw new Error("TEMPLATE_PROJECTION_NOT_FOUND");
+  if (!diagram) {
+    return {
+      projectionId,
+      title: projection.title,
+      ...(projection.description
+        ? { description: projection.description }
+        : {})
+    };
+  }
+
+  const hiddenNodes = new Set(projection.view.hiddenNodeIds ?? []);
+  const hiddenEdges = new Set(projection.view.hiddenEdgeIds ?? []);
+  const placements = new Map(
+    (projection.view.placements ?? []).map(item => [
+      item.nodeId,
+      { x: item.x, y: item.y }
+    ])
+  );
+
+  const nodes = diagram.nodes
+    .filter(node => !hiddenNodes.has(node.id))
+    .map(node => {
+      const placement = placements.get(node.id);
+      return placement
+        ? { ...node, x: placement.x, y: placement.y }
+        : { ...node };
+    });
+  const visibleNodeIds = new Set(nodes.map(node => node.id));
+  const edges = diagram.edges
+    .filter(edge =>
+      !hiddenEdges.has(edge.id)
+      && visibleNodeIds.has(edge.source)
+      && visibleNodeIds.has(edge.target)
+    )
+    .map(edge => ({ ...edge }));
+
+  return {
+    projectionId,
+    title: projection.title,
+    ...(projection.description
+      ? { description: projection.description }
+      : {}),
+    diagram2d: {
+      contractVersion: "0.1.0",
+      nodes,
+      edges
+    }
+  };
+}
+
 function toArtifact(
-  record: TemplateStoreRecordV010
+  record: TemplateStoreRecordV010,
+  projectionId?: string
 ): TemplatePreviewArtifactV010 {
   const payload = record.bundle.definition.payload;
-  const diagram2d =
+  const baseDiagram =
     previewFromDeclaredPayload(payload)
     ?? previewFromLedgerRuntimeTemplate(payload)
     ?? previewFromRuntimeFlow(payload);
+  const projected = applyProjection(baseDiagram, record, projectionId);
 
   return {
     contractVersion: "0.1.0",
     templateId: record.templateId,
     templateVersion: record.version,
-    title: record.bundle.listing.name,
-    ...(record.bundle.listing.description
-      ? { description: record.bundle.listing.description }
+    ...(projected.projectionId
+      ? { projectionId: projected.projectionId }
+      : {}),
+    title: projected.title ?? record.bundle.listing.name,
+    ...(projected.description ?? record.bundle.listing.description
+      ? {
+          description:
+            projected.description ?? record.bundle.listing.description
+        }
       : {}),
     definitionKind: record.bundle.definition.kind,
-    ...(diagram2d ? { diagram2d } : {})
+    ...(projected.diagram2d ? { diagram2d: projected.diagram2d } : {})
   };
 }
 
@@ -427,7 +513,7 @@ export function createTemplateStorePreviewArtifactSourceV010(
             input.templateId,
             input.templateVersion
           );
-      return record ? toArtifact(record) : undefined;
+      return record ? toArtifact(record, input.projectionId) : undefined;
     }
   };
 }
