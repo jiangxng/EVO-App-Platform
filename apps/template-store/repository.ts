@@ -123,13 +123,16 @@ function mergeMissingSeed(
   seed: readonly TemplateStoreRecordV010[]
 ): TemplateStoreSnapshotV010 {
   const next = clone(snapshot);
-  const presentTemplateIds = new Set(
-    next.records.map(record => record.templateId)
+  const presentVersions = new Set(
+    next.records.map(
+      record => record.templateId + "@" + record.version
+    )
   );
   for (const seeded of seed.map(validateRecord)) {
-    if (!presentTemplateIds.has(seeded.templateId)) {
+    const versionKey = seeded.templateId + "@" + seeded.version;
+    if (!presentVersions.has(versionKey)) {
       next.records.push(clone(seeded));
-      presentTemplateIds.add(seeded.templateId);
+      presentVersions.add(versionKey);
     }
   }
   return validateSnapshot(next);
