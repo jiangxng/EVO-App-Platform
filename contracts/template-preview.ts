@@ -16,6 +16,8 @@ export interface TemplatePreviewNodeV010 {
   y: number;
   width: number;
   height: number;
+  shape?: "rectangle" | "rounded-rectangle";
+  typeLabel?: string;
   detail?: string;
   properties?: TemplatePreviewPropertyV010[];
 }
@@ -26,6 +28,7 @@ export interface TemplatePreviewEdgeV010 {
   target: string;
   kind: string;
   label?: string;
+  arrow?: "none" | "start" | "end" | "both";
   detail?: string;
   properties?: TemplatePreviewPropertyV010[];
 }

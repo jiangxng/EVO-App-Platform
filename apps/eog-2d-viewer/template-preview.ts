@@ -124,7 +124,8 @@ function state(
       id: node.id,
       kind: node.kind,
       label: node.label,
-      shape: "rounded-rectangle",
+      shape: node.shape ?? "rounded-rectangle",
+      ...(node.typeLabel ? { typeLabel: node.typeLabel } : {}),
       x: node.x,
       y: node.y,
       width: node.width,
@@ -141,6 +142,7 @@ function state(
       target: edge.target,
       kind: edge.kind,
       ...(edge.label ? { label: edge.label } : {}),
+      ...(edge.arrow ? { arrow: edge.arrow } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }
@@ -235,6 +237,10 @@ export function createTemplate2dPreviewPageV010(input: {
     requestValues: {
       templateId: input.templateId,
       templateVersion: input.templateVersion
+    },
+    viewInteraction: {
+      zoom: true,
+      localNodeDrag: true
     },
     emptyMessage: "Select a node or relation to inspect template properties."
   };
