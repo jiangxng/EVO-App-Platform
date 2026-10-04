@@ -81,6 +81,18 @@ function stringValue(
   return value.trim();
 }
 
+function optionalStringValue(
+  values: Record<string, JsonValue>,
+  key: string
+): string | undefined {
+  const value = values[key];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`TEMPLATE_STORE_COPY_FIELD_INVALID: ${key}`);
+  }
+  return value.trim();
+}
+
 function positiveInteger(
   values: Record<string, JsonValue>,
   key: string
@@ -96,9 +108,10 @@ function positiveInteger(
   return value;
 }
 
-function resolveSingleEnterpriseContext(
+function resolveEnterpriseContext(
   dependencies: TemplateStoreCopyActionDependenciesV010,
-  context: PlatformRequestContextV010
+  context: PlatformRequestContextV010,
+  targetContextId?: string
 ): Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> {
   const targets = dependencies.listAvailableContexts(context.principal)
     .filter(
@@ -109,10 +122,20 @@ function resolveSingleEnterpriseContext(
   if (targets.length === 0) {
     throw new Error("TEMPLATE_STORE_ENTERPRISE_CONTEXT_REQUIRED");
   }
-  if (targets.length !== 1) {
-    throw new Error("TEMPLATE_STORE_MULTI_CONTEXT_NOT_SUPPORTED");
+
+  if (targetContextId) {
+    const explicit = targets.find(item => item.contextId === targetContextId);
+    if (!explicit) {
+      throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_NOT_AVAILABLE");
+    }
+    return explicit;
   }
-  return targets[0];
+
+  if (targets.length === 1) {
+    return targets[0];
+  }
+
+  throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_REQUIRED");
 }
 
 export function createTemplateStoreCopyActionHandlerV010(
@@ -134,13 +157,18 @@ export function createTemplateStoreCopyActionHandlerV010(
           request.values,
           "templateVersion"
         );
+        const requestedTargetContextId = optionalStringValue(
+          request.values,
+          "targetContextId"
+        );
         const targetDefinitionId = stringValue(
           request.values,
           "targetDefinitionId"
         );
-        const targetContext = resolveSingleEnterpriseContext(
+        const targetContext = resolveEnterpriseContext(
           dependencies,
-          context
+          context,
+          requestedTargetContextId
         );
         const targetContextId = targetContext.contextId;
         const targetEnterpriseId = targetContext.enterpriseId.trim();
