@@ -147,7 +147,7 @@ Included now:
 - copy-into-enterprise adapter that always creates a new enterprise-owned Draft;
 - `TEMPLATE_COPY` provenance without a live source dependency;
 - SHA-256 bundle digest validation across the transfer boundary;
-- governed Human Copy Action handler requiring an explicit target Enterprise Context, explicit confirmation and authorization before invoking the public transfer Provider.
+- governed Human Copy Action handler that auto-resolves the single Enterprise Context in v0.1 while preserving optional `targetContextId` for future multi-context use, plus explicit confirmation and authorization before invoking the public transfer Provider.
 
 Deliberately deferred to the next slice:
 
@@ -231,35 +231,43 @@ providers/enterprise-context/template-transfer.ts
 
 Both sides may depend on `contracts/template-transfer.ts`.
 
-## 9.1 Target Enterprise Context selection
+## 9.1 Enterprise Context cardinality
 
-Template Store is installation-wide and a Principal may have access to multiple Enterprise Context instances.
+Product v0.1 deliberately supports **one Enterprise Context repository per current product experience**.
 
-Therefore Copy MUST carry an explicit `targetContextId`.
+The architecture MUST NOT assume this is permanently singular.
 
-Canonical UX:
+Current UX:
 
 ```text
 Template Store card
   -> Use template
-  -> choose target Enterprise Context
+  -> resolve the one available Enterprise Context
   -> confirm
   -> authorization
-  -> copy into selected Enterprise Context
+  -> copy into Enterprise Context
 ```
+
+Long-term multi-context architecture is preserved through:
+
+- stable `ActiveContextRefV010` / `contextId` identity;
+- Principal-scoped Host Context Registry;
+- optional `targetContextId` on the Copy command;
+- Host-side resolution from `contextId` to canonical `enterpriseId`;
+- refusal of ambiguous writes when multiple Enterprise Contexts exist and no target is supplied.
 
 Rules:
 
-- if zero writable Enterprise Contexts are available, Copy is disabled;
-- if exactly one is available, the UI MAY preselect it but MUST still show the destination in confirmation;
-- if more than one is available, the user MUST explicitly choose one;
-- the current active Context MAY be offered as the default selection, but MUST NOT be silently used as the write target;
-- the Host resolves `targetContextId` through the Principal's authorized Context registry and derives the canonical `enterpriseId` from that result;
-- callers MUST NOT be allowed to inject an arbitrary `enterpriseId` as the destination.
+- v0.1 UI does not expose a Context selector;
+- zero available Enterprise Contexts disables Copy;
+- exactly one available Enterprise Context is resolved automatically;
+- if a future deployment exposes multiple Enterprise Contexts, Copy fails closed unless an explicit authorized `targetContextId` is supplied;
+- a future selector can be added without changing Enterprise Context storage, Template Transfer, or Copy ownership semantics;
+- callers MUST NOT inject an arbitrary destination `enterpriseId`.
 
-This preserves a clean distinction:
+This preserves the long-term split:
 
-> Template Store owns the Copy interaction; Enterprise Context owns the resulting enterprise definition; Host Context resolution owns destination authority.
+> Template Store owns the Copy interaction; Enterprise Context owns the resulting repository content; Host Context resolution owns destination authority.
 
 ## 10. Next implementation gate
 
@@ -267,4 +275,4 @@ The next smallest real gate is:
 
 > Wire the implemented governed Copy Action into the Host with durable Template Store state, then add the symmetric Enterprise Context Share Action.
 
-The Copy handler now enforces Human caller + explicit target Enterprise Context + explicit confirmation + authorization. The target is resolved from the Principal's Host-authorized Context registry; the current active Context is not silently treated as the destination. The remaining acceptance gate is durable Host wiring, target-selector UX, Share orchestration, and continued absence of direct cross-plugin persistence access.
+The Copy handler now enforces Human caller + explicit confirmation + authorization. v0.1 auto-resolves the single Enterprise Context from the Principal's Host-authorized Context registry; the optional target Context identity remains in the contract for future multi-context use. The remaining acceptance gate is durable Host wiring, Share orchestration, and continued absence of direct cross-plugin persistence access.
