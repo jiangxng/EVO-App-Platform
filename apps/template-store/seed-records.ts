@@ -16,11 +16,11 @@ const sharedAt = "2026-10-04T00:00:00.000Z";
 
 const unsignedLedgerRuntimeBundle = {
   contractVersion: "0.1.0" as const,
-  transferId: "built-in:evo.ledger-runtime.baseline.v0.1",
+  transferId: "built-in:evo.ledger-runtime.baseline.v0.2",
   source: {
     enterpriseId: "enterprise:evo-reference",
     definitionId: "evo.ledger-runtime.baseline.v0.1",
-    definitionRevision: 0,
+    definitionRevision: 1,
     definitionKind: "LEDGER_RUNTIME_TEMPLATE",
     definitionState: "PUBLISHED" as const
   },
@@ -51,7 +51,7 @@ export const ledgerRuntimeBaselineBundleV010: TemplateTransferBundleV010 = {
 export const templateStoreSeedRecordsV010: TemplateStoreRecordV010[] = [{
   contractVersion: "0.1.0",
   templateId: ledgerRuntimeBaselineTemplateV010.templateId,
-  version: 1,
+  version: 2,
   bundle: ledgerRuntimeBaselineBundleV010,
   publishedAt: sharedAt
 }];
