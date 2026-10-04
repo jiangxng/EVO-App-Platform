@@ -16,14 +16,28 @@ export interface TemplateStorePageOptionsV010 {
 function localizedText(locale: string | undefined) {
   if ((locale ?? "").toLowerCase().startsWith("zh")) {
     return {
+      title: "模板商店",
+      description:
+        "浏览共享模板。复制后会在企业上下文仓库中创建独立、由企业拥有的副本。",
+      searchPlaceholder: "搜索模板",
+      searchAriaLabel: "搜索模板",
+      noResultsMessage: "没有匹配的模板。",
+      emptyMessage: "当前没有可用的共享模板。",
       preview: "预览",
       use: "使用模板",
       previewHelp: "使用 2D Viewer 只读查看模板，不会复制或修改企业上下文。",
       previewUnavailable: "未安装 2D Viewer 扩展插件，无法预览。",
-      copyHelp: "在 Enterprise Context 仓库中创建独立副本。"
+      copyHelp: "在企业上下文仓库中创建独立副本。"
     };
   }
   return {
+    title: "Template Store",
+    description:
+      "Browse shared templates. Copies become independent enterprise-owned definitions.",
+    searchPlaceholder: "Search templates",
+    searchAriaLabel: "Search templates",
+    noResultsMessage: "No matching templates.",
+    emptyMessage: "No shared templates are available.",
     preview: "Preview",
     use: "Use template",
     previewHelp:
@@ -46,13 +60,12 @@ export function createTemplateStorePageV010(
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo-template-store",
-    title: "Template Store",
-    description:
-      "Browse shared templates. Copy semantics are independent: copied content becomes enterprise-owned.",
+    title: text.title,
+    description: text.description,
     search: {
-      placeholder: "Search templates",
-      ariaLabel: "Search templates",
-      noResultsMessage: "No matching templates."
+      placeholder: text.searchPlaceholder,
+      ariaLabel: text.searchAriaLabel,
+      noResultsMessage: text.noResultsMessage
     },
     items: templates.map(template => ({
       id: template.templateId,
@@ -84,7 +97,7 @@ export function createTemplateStorePageV010(
             })
       }]
     })),
-    emptyMessage: "No shared templates are available."
+    emptyMessage: text.emptyMessage
   } as const;
 }
 
