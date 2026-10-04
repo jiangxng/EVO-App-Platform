@@ -11,7 +11,10 @@
 
 以下内容已经确定，不再作为待讨论项：
 
-- Enterprise Context 是 Enterprise Graph Definition 的权威来源。
+- **EVO Runtime 是企业运行定义与运行事实的来源；Enterprise Context 不创造 Posting/Ledger 经济语义。**
+  - Runtime Definition Plane：ApplicationAnchor、PostingRule、LedgerDefinition、条件式记账配置及企业采用的模板版本。
+  - Runtime Fact Plane：BusinessData、Posting、LedgerEntry、LedgerBalance 等实际运行事实。
+  - Enterprise Context：保存企业级上下文、EOG Graph 组织/引用与其他 Host 侧定义；可以引用 Runtime 定义，但不得复制并成为第二套 Posting/Ledger 真相。
 - EOG 2D 是一个 Package：
   - Viewer：可交互、可选择节点/连线、可查看 Inspector 属性，但不可进行语义编辑。
   - Designer：复用 Viewer 的 Workspace 能力，并增加受治理的语义编辑能力。
@@ -21,6 +24,59 @@
 - SOP 与 EOG 分离；当前暂停 SOP 产品发展。
 - Eidos 负责可复用的 2D Core / 3D Core；EOG 只拥有企业图领域投影与产品能力。
 - Viewer 是“只读语义”，不是“无交互界面”。
+
+---
+
+## 0.1 企业核心运行权威链
+
+**状态：已确认**
+
+需要严格区分“定义”与“事实”。
+
+### 运行定义
+
+企业有哪些 Application、有哪些 Ledger、Application 在什么条件下对哪些 Ledger 产生增加/减少效果，这些属于 **Runtime Definition Plane**。
+
+其来源链为：
+
+```text
+会计/行业/历史经验
+        ↓
+Default Runtime Template
+        ↓ 企业采用 / 调整 / 版本固定
+Enterprise Runtime Definition
+├─ ApplicationAnchor
+├─ PostingRule
+├─ LedgerDefinition
+└─ Conditional Posting Topology
+```
+
+Default Runtime Template 是实施起点和默认运行骨架，不等于不可修改的企业事实。
+
+### 运行事实
+
+真正已经发生的企业运行事实产生于 EVO Runtime：
+
+```text
+BusinessData
+→ Posting
+→ LedgerEntry
+→ LedgerBalance
+```
+
+因此“发生了什么”不能由 EOG 或 Enterprise Context 推断后写成事实。
+
+### Enterprise Context 的角色
+
+Enterprise Context 负责企业上下文和 Host 侧定义组织，并可保存：
+
+- EOG Graph 本身；
+- Graph 中引用了哪些 Runtime 对象；
+- 多 Graph 组织与导航；
+- 权限、人员、组织等 Host 语义；
+- 其他不属于最小 Ledger Runtime 的企业上下文。
+
+但对于 Application ↔ PostingRule ↔ Ledger 的运行语义，只保存稳定引用/上下文，不建立第二套真相。
 
 ---
 
@@ -54,7 +110,7 @@ EOG 原则上可以表达企业中的全部对象。对象类型不预先设上�
 
 ### 工具箱模型
 
-EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”。
+EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”，但首期不是空白图形库，而是**Runtime Definition 驱动的建模导航器**。
 
 当前第一批先提供：
 
@@ -68,6 +124,34 @@ EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”。
   - toolbox id：`eog.ledger`
 
 后续企业对象类型继续向该工具箱扩展，而不是修改 Eidos Core。
+
+### 工具箱选择过滤（已确认首期规则）
+
+当用户在画布选择不同对象时，工具箱按当前企业 Runtime Definition 的条件式记账拓扑过滤：
+
+```text
+选中 Application
+→ 只显示该 Application 可能“增加”的 Ledger
+
+选中 Ledger
+→ 只显示可能“减少”该 Ledger 的 Application
+```
+
+这里的“可能”表示存在对应的 PostingRule / 条件式记账定义；不是在没有 BusinessData 的情况下提前判定某个条件已经发生。
+
+这使用户可以沿着：
+
+```text
+Application
+→ Ledger（增加）
+→ Application（减少）
+→ Ledger（增加）
+→ ...
+```
+
+逐步搭建企业运行图。
+
+未选中任何对象时工具箱如何组织/过滤，后续再定。
 
 ### 自动画图
 
@@ -91,18 +175,25 @@ EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”。
 
 ### 架构影响
 
-- Enterprise Context 仍负责企业对象/关系定义权威。
-- EOG 负责把这些企业对象投影成可建模的节点、关系和工具箱项。
+- EVO Runtime Definition Plane 负责 Application / PostingRule / Ledger 等运行定义权威。
+- Enterprise Context 负责 EOG Graph 组织、引用以及 Host 侧企业上下文，不复制 Posting/Ledger 真相。
+- EOG 负责把这些对象和关系投影成可建模的节点、关系和工具箱项。
 - Eidos 只提供通用 Toolbox / Shape / Interaction 机制。
 
 ---
 
 ## 2. 节点和连接线的业务语义
 
-**状态：待明确**  
+**状态：讨论中（Application ↔ Ledger 骨架已明确）**  
 **优先级：P0**
 
-需要冻结节点与关系的领域语义，而不仅是画布元素。
+Application / Ledger 首期关系不由画布创建，而是投影 Runtime Definition 中已有的条件式 Posting 拓扑。
+
+拖入画布的动作只保存 EOG Graph 中的图形/引用与 View State；**不得创建 Application、Ledger 或 PostingRule**。
+
+如果两个已放入画布的对象在 Runtime Definition 中已经存在语义关系，EOG 可以把这条已有关系投影出来；这不等于由拖放创建关系。
+
+需要继续冻结其他节点与关系的领域语义。
 
 ### 需要回答
 
@@ -125,19 +216,12 @@ EOG Designer 采用类似 Visio 左侧图形库的“企业对象工具箱”。
 
 ## 3. 2D Designer 的编辑深度
 
-**状态：待明确**  
+**状态：已确认（第一阶段能力）**  
 **优先级：P0**
 
-已确认 Designer 可以编辑，Viewer 不可以编辑；但 Designer 的最终产品深度尚未冻结。
+Designer 已确认是**完整企业建模工具**，不是轻量企业拓扑编辑器。
 
-### 需要回答
-
-Designer 是：
-
-- 轻量企业拓扑编辑器；
-- 还是完整企业建模工具？
-
-候选能力包括：
+首期必须覆盖：
 
 - 新增节点
 - 删除节点
@@ -147,19 +231,12 @@ Designer 是：
 - 拖拽布局
 - 多选 / 框选
 - 批量编辑
-- 复制 / 粘贴
-- 撤销 / 重做
-- 对齐 / 分布
-- 自动布局
-- 分组
-- 折叠 / 展开
 - 子图
-- 锁定
-- 快捷键
-- 节点模板
-- 关系模板
+- 对齐
 
-需要逐项确定哪些属于 EOG Designer，哪些属于 Eidos 2D Core 的通用编辑能力。
+其中拖拽、框选、多选、批量选择基础、子图 primitive、对齐等通用能力属于 Eidos 2D Core；EOG 只定义企业语义和合法操作。
+
+复制/粘贴、撤销/重做、自动布局、分组、折叠、锁定、快捷键、模板等继续预留。
 
 ---
 
@@ -497,3 +574,37 @@ Enterprise Context 已承担定义权威，但 EOG 产品流程仍需冻结。
   - 是否需要代码迁移
 - 已确认需求如果改变，必须通过新的决策记录覆盖，不直接删除历史。
 - 本文负责“还有什么需要定”；正式架构结论继续进入 `docs/architecture/`。
+
+
+## 13. Toolbox 拖放与高级设置
+
+**状态：已确认首期行为 / 高级设置延期**  
+**优先级：P0**
+
+### 首期行为
+
+从左侧 Toolbox 将 Application 或 Ledger 拖入 Canvas：
+
+1. 保存该对象在当前 EOG Graph 中的引用/出现；
+2. 保存必要的 View State（位置、布局等）；
+3. 不创建新的 Application；
+4. 不创建新的 LedgerDefinition；
+5. 不创建或修改 PostingRule；
+6. 不安装新的业务应用；
+7. 不修改 Runtime Definition。
+
+因此：
+
+> **Drop = 把已有运行对象放进这张图，而不是创建运行对象。**
+
+### 已有关系的显示
+
+如果被放入画布的 Application / Ledger 在 Runtime Definition 中已经存在 Posting 关系，EOG 可以读取并显示该关系及其条件/方向。
+
+这属于“显示已有事实/定义”，不是“Drop 创建关系”。
+
+### 新增 Application / Ledger
+
+“新增应用”“新增账本”“新增/修改 PostingRule”属于高级设置能力。
+
+当前不在 Toolbox 普通拖放中实现；具体入口、权限、生命周期和模板继承方式后续单独讨论。
