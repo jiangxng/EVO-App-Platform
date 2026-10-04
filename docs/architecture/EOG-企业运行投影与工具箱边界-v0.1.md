@@ -260,3 +260,126 @@ EOG 2D Designer
 ```
 
 如果后续产品语言仍使用 “Designer”，所有契约与文档必须能够明确指出它设计的是 **Projection**，而不是企业运行本体。
+
+
+## 12. Template-first 企业实施原则
+
+企业实施不应默认从空白开始。
+
+如果每个企业都从零定义：
+
+- 有哪些 Application；
+- 有哪些 Ledger；
+- Application 与 Ledger 之间有哪些条件式 Posting；
+- 哪些基础企业元数据需要存在；
+- 哪些基础流程/分类需要采用；
+
+实施效率会非常低，也会把大量成熟、重复、可复用的知识重新变成人工访谈成本。
+
+因此正式采用：
+
+> **Template-first Implementation：先选择成熟模板，再做企业差异化确认与调整。**
+
+### 12.1 模板知识来源
+
+模板可以提前吸收和整理：
+
+- 会计准则及其应用指南；
+- 行业公开资料；
+- APQC 等流程分类参考；
+- 已验证的行业经验；
+- 已实施企业中可复用、脱敏后的模式；
+- 基础主数据 / 基础元数据结构；
+- 常见 Application / Ledger / PostingRule 拓扑；
+- 其他公开、可验证、可版本化的知识来源。
+
+这些来源是模板的知识输入，不等于某家企业已经发生的事实。
+
+### 12.2 模板存放位置
+
+可部署、可选择、可版本化的 **Enterprise Template** 存放在 Enterprise Context。
+
+Enterprise Context 因此可以拥有：
+
+```text
+Enterprise Template Catalog
+├─ template id / version
+├─ applicability
+├─ provenance / source references
+├─ Application candidates
+├─ LedgerDefinition candidates
+├─ PostingRule / conditional-posting candidates
+├─ base metadata candidates
+├─ process / classification references
+└─ optional default Graph / projection hints
+```
+
+这里存放的是**模板定义**，不是企业 Runtime Fact。
+
+### 12.3 项目实施流程
+
+建议实施主链：
+
+```text
+公共知识 / 准则 / 行业经验
+        ↓ 整理、验证、版本化
+Enterprise Template Catalog
+        ↓
+项目实施：企业主选择模板
+        ↓
+确认 / 裁剪 / 调整企业差异
+        ↓
+Enterprise Runtime Definition
+├─ ApplicationAnchor
+├─ LedgerDefinition
+├─ PostingRule
+└─ Conditional Posting Topology
+        ↓
+EOG Projection
+        ↓
+继续深入具体 Application 字段 / 表单 / 数据模型
+```
+
+这样企业主讨论的第一批问题从：
+
+> “请从空白告诉我们整个企业应该怎么建。”
+
+变成：
+
+> “这套默认运行骨架哪些适合你？哪些需要删、换、补？”
+
+目标是显著降低实施时间、沟通成本和遗漏概率。
+
+### 12.4 Template 与 Runtime 的边界
+
+模板被选择，不代表模板本身直接成为企业运行事实。
+
+必须经过：
+
+```text
+Template
+→ enterprise adoption
+→ enterprise-specific pinned Runtime Definition
+→ runtime execution
+```
+
+真正执行时仍以企业自己的 Runtime Definition 为权威。
+
+模板更新也不能偷偷改变已经实施企业的运行逻辑；升级必须显式比较、确认、迁移和版本化。
+
+### 12.5 Template 与 EOG 的边界
+
+EOG 不负责设计模板，也不因为拖放而实例化模板中的 Application / Ledger。
+
+EOG 可以：
+
+- 投影企业已经采用的 Runtime Definition；
+- 在实施阶段预览候选模板拓扑；
+- 显示“模板建议”与“企业已采用定义”的差异；
+- 根据已采用 Runtime Definition 过滤 Toolbox。
+
+但：
+
+> **EOG = Projection Tool；Template = 实施基线；Runtime Definition = 可执行企业定义。**
+
+三者不得合并成同一份数据。
