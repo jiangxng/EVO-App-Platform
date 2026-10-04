@@ -14,6 +14,9 @@ import {
   createTemplateStorePreview2dActionHandlerV010
 } from "../../dist/apps/template-store/preview-action.js";
 import {
+  createTemplateStoreOpenDetailActionHandlerV010
+} from "../../dist/apps/template-store/detail-action.js";
+import {
   createTemplate2dPreviewPageV010,
   createTemplate2dPreviewReadActionV010,
   createTemplate2dPreviewSelectionReadActionV010
@@ -24,6 +27,9 @@ import {
 import {
   TEMPLATE_2D_PREVIEW_ROUTE_V010
 } from "../../dist/contracts/template-preview.js";
+import {
+  TEMPLATE_STORE_DETAIL_ROUTE
+} from "../../dist/apps/template-store/package.js";
 
 const templateId = "evo.ledger-runtime.baseline.v0.1";
 const templateVersion = 3;
@@ -227,7 +233,7 @@ test("Template Store preview action refuses missing Viewer and navigates when av
       code: "evo-template-store.preview-2d",
       inputVersion: "0.1.0"
     },
-    values: { itemId: templateId, projectionId },
+    values: { itemId: templateId, templateVersion, projectionId },
     sourceInteractionId: "evo-template-store",
     actionId: "preview-2d",
     requiresConfirmation: false
@@ -254,4 +260,70 @@ test("Template Store preview action refuses missing Viewer and navigates when av
   assert.equal(sessions.get("human:preview").templateId, templateId);
   assert.equal(sessions.get("human:preview").templateVersion, 3);
   assert.equal(sessions.get("human:preview").projectionId, projectionId);
+});
+
+
+test("Template Store detail action locks an immutable version before navigation", async () => {
+  const repository = createMemoryTemplateStoreRepositoryV010(
+    templateStoreSeedRecordsV010
+  );
+  const sessions = createMemoryTemplatePreviewSessionStoreV010();
+  const detail = createTemplateStoreOpenDetailActionHandlerV010({
+    store: repository,
+    sessions,
+    now: () => new Date("2026-10-05T00:00:00.000Z")
+  });
+
+  const opened = await detail.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "evo-template-store.open-detail",
+      inputVersion: "0.1.0"
+    },
+    values: {
+      itemId: templateId,
+      templateVersion: 3
+    },
+    sourceInteractionId: "evo-template-store",
+    actionId: "detail",
+    requiresConfirmation: false
+  }, context());
+
+  assert.equal(opened.ok, true);
+  assert.equal(opened.result.navigateTo, TEMPLATE_STORE_DETAIL_ROUTE);
+  assert.equal(sessions.get("session:preview").templateVersion, 3);
+  assert.equal(sessions.get("session:preview").projectionId, undefined);
+});
+
+test("2D preview honors an exact older immutable template version", async () => {
+  const repository = createMemoryTemplateStoreRepositoryV010(
+    templateStoreSeedRecordsV010
+  );
+  const sessions = createMemoryTemplatePreviewSessionStoreV010();
+  const available = createTemplateStorePreview2dActionHandlerV010({
+    store: repository,
+    sessions,
+    viewerAvailable: () => true
+  });
+
+  const opened = await available.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "evo-template-store.preview-2d",
+      inputVersion: "0.1.0"
+    },
+    values: {
+      itemId: templateId,
+      templateVersion: 2
+    },
+    sourceInteractionId: "evo-template-store",
+    actionId: "preview-2d",
+    requiresConfirmation: false
+  }, context());
+
+  assert.equal(opened.ok, true);
+  assert.equal(sessions.get("session:preview").templateVersion, 2);
+  assert.equal(sessions.get("session:preview").projectionId, undefined);
 });

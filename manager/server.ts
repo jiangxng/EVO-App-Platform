@@ -731,7 +731,9 @@ import type {
 } from "../apps/template-store/repository.js";
 import {
   TEMPLATE_STORE_COPY_COMMAND,
+  TEMPLATE_STORE_DETAIL_PAGE_SOURCE,
   TEMPLATE_STORE_FEATURE_ID,
+  TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
   TEMPLATE_STORE_PACKAGE_ID,
   TEMPLATE_STORE_PAGE_SOURCE,
   TEMPLATE_STORE_PREVIEW_2D_COMMAND
@@ -3574,6 +3576,21 @@ const actionRouter = createAppActionRouter(
     createLazyAppActionHandlerV010({
       packageId: TEMPLATE_STORE_PACKAGE_ID,
       featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/detail-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreOpenDetailActionHandlerV010({
+          store: templateStoreRepository,
+          sessions: templatePreviewSessions
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
       commandCode: TEMPLATE_STORE_PREVIEW_2D_COMMAND,
       async load() {
         const [module, templateStoreRepository] = await Promise.all([
@@ -5187,28 +5204,68 @@ const server = createServer(async (request, response) => {
         }
         return json(response, 200, document);
       }
-      if (source === TEMPLATE_STORE_PAGE_SOURCE) {
+      if (
+        source === TEMPLATE_STORE_PAGE_SOURCE
+        || source === TEMPLATE_STORE_DETAIL_PAGE_SOURCE
+      ) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
         }
-        const module = await import(
-          "../apps/template-store/experience-assets.js"
-        );
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/experience-assets.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        const pageOptions = {
+          viewer2dAvailable:
+            manager.getSnapshot().effectiveCapabilities.includes(
+              VISUAL_2D_VIEWER_CAPABILITY_V010
+            ),
+          locale: requestedLocale(url)
+        };
+
+        if (source === TEMPLATE_STORE_DETAIL_PAGE_SOURCE) {
+          const session = resolveRequestIdentitySession(request);
+          const sessionId = session.principal.sessionId?.trim();
+          const subjectId = session.principal.subjectId.trim();
+          const selection =
+            (sessionId ? templatePreviewSessions.get(sessionId) : undefined)
+            ?? templatePreviewSessions.get(subjectId);
+          if (!selection) {
+            return json(response, 409, {
+              code: "TEMPLATE_DETAIL_SELECTION_REQUIRED",
+              message: "Choose Details from a Template Store card first."
+            });
+          }
+          const record = templateStoreRepository.getVersion(
+            selection.templateId,
+            selection.templateVersion
+          );
+          if (!record) {
+            return json(response, 404, {
+              code: "TEMPLATE_STORE_VERSION_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createTemplateStoreDetailPageV010(
+              record,
+              pageOptions
+            )
+          );
+        }
+
         return json(
           response,
           200,
           module.createTemplateStorePageV010(
-            undefined,
-            {
-              viewer2dAvailable:
-                manager.getSnapshot().effectiveCapabilities.includes(
-                  VISUAL_2D_VIEWER_CAPABILITY_V010
-                ),
-              locale: requestedLocale(url)
-            }
+            module.createTemplateStoreCatalogEntriesV010(
+              templateStoreRepository.listLatest()
+            ),
+            pageOptions
           )
         );
       }

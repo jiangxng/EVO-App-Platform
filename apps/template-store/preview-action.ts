@@ -52,6 +52,22 @@ function sessionKeys(context: PlatformRequestContextV010): string[] {
   );
 }
 
+function optionalPositiveInteger(
+  values: Record<string, JsonValue>,
+  key: string
+): number | undefined {
+  const value = values[key];
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== "number"
+    || !Number.isInteger(value)
+    || value < 1
+  ) {
+    throw new Error(`TEMPLATE_STORE_PREVIEW_FIELD_INVALID: ${key}`);
+  }
+  return value;
+}
+
 function optionalString(
   values: Record<string, JsonValue>,
   key: string
@@ -94,7 +110,13 @@ export function createTemplateStorePreview2dActionHandlerV010(input: {
         }
 
         const templateId = itemId(request.values);
-        const record = input.store.getLatest(templateId);
+        const templateVersion = optionalPositiveInteger(
+          request.values,
+          "templateVersion"
+        );
+        const record = templateVersion === undefined
+          ? input.store.getLatest(templateId)
+          : input.store.getVersion(templateId, templateVersion);
         if (!record) throw new Error("TEMPLATE_STORE_VERSION_NOT_FOUND");
 
         const requestedProjectionId = optionalString(

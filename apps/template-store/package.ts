@@ -6,7 +6,13 @@ export const TEMPLATE_STORE_EXPERIENCE_ID = "evo-template-store";
 export const TEMPLATE_STORE_PAGE_ID = "evo-template-store.home";
 export const TEMPLATE_STORE_PAGE_SOURCE = "app://evo-template-store/pages/home";
 export const TEMPLATE_STORE_ROUTE = "/templates";
+export const TEMPLATE_STORE_DETAIL_PAGE_ID = "evo-template-store.detail";
+export const TEMPLATE_STORE_DETAIL_PAGE_SOURCE =
+  "app://evo-template-store/pages/detail";
+export const TEMPLATE_STORE_DETAIL_ROUTE = "/templates/detail";
 export const TEMPLATE_STORE_COPY_COMMAND = "evo-template-store.copy";
+export const TEMPLATE_STORE_OPEN_DETAIL_COMMAND =
+  "evo-template-store.open-detail";
 export const TEMPLATE_STORE_COPY_AUTHORIZATION_ACTION = "template.store.copy";
 export const TEMPLATE_STORE_PREVIEW_2D_COMMAND =
   "evo-template-store.preview-2d";
@@ -49,11 +55,19 @@ export const templateStorePackage: PackageManifestV010 = {
             id: TEMPLATE_STORE_PAGE_ID,
             title: "Template Store",
             source: TEMPLATE_STORE_PAGE_SOURCE
+          }, {
+            id: TEMPLATE_STORE_DETAIL_PAGE_ID,
+            title: "Template Detail",
+            source: TEMPLATE_STORE_DETAIL_PAGE_SOURCE
           }],
           routes: [{
             id: TEMPLATE_STORE_PAGE_ID,
             path: TEMPLATE_STORE_ROUTE,
             pageId: TEMPLATE_STORE_PAGE_ID
+          }, {
+            id: TEMPLATE_STORE_DETAIL_PAGE_ID,
+            path: TEMPLATE_STORE_DETAIL_ROUTE,
+            pageId: TEMPLATE_STORE_DETAIL_PAGE_ID
           }],
           navigation: [{
             id: "evo-template-store.nav",
