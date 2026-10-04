@@ -64,6 +64,31 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
     definition.items[0].primaryAction?.requiresConfirmation,
     true
   );
+  assert.equal(
+    definition.items[0].secondaryActions?.[0]?.id,
+    "preview-2d"
+  );
+  assert.equal(
+    definition.items[0].secondaryActions?.[0]?.enabled,
+    false
+  );
+  assert.match(
+    definition.items[0].secondaryActions?.[0]?.disabledReason,
+    /2D Viewer/
+  );
+
+  const previewReady = createTemplateStorePageV010(
+    undefined,
+    { viewer2dAvailable: true, locale: "zh-CN" }
+  );
+  assert.equal(
+    previewReady.items[0].secondaryActions?.[0]?.enabled,
+    true
+  );
+  assert.equal(
+    previewReady.items[0].secondaryActions?.[0]?.label,
+    "预览"
+  );
 
   const html = renderAppHostPageToHtml({
     experienceId: "evo-template-store",
@@ -86,6 +111,8 @@ test("Template Store v0.1 renders thumbnail, name and description for the ledger
   assert.match(html, /BusinessData/);
   assert.match(html, /data-eidos-catalog-action="copy"/);
   assert.match(html, /data-eidos-command="evo-template-store.copy"/);
+  assert.match(html, /data-eidos-catalog-action="preview-2d"/);
+  assert.match(html, /disabled/);
 });
 
 test("built-in ledger runtime template preserves copy semantics without runtime linkage", () => {

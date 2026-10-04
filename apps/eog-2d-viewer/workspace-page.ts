@@ -37,20 +37,19 @@ import {
 import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
   EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
-  EOG_2D_VIEWER_WORKSPACE_ROUTE
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "./package.js";
 
 export {
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
-  EOG_2D_VIEWER_WORKSPACE_ROUTE
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "./package.js";
-export const EOG_2D_VIEWER_WORKSPACE_GET_ACTION =
-  "enterprise-operating-graph.viewer.workspace.get";
-export const EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION =
-  "enterprise-operating-graph.viewer.workspace.selection.get";
-
 function localizedText(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";
   if (normalized.startsWith("zh")) {

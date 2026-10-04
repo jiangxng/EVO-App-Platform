@@ -17,9 +17,6 @@ import {
   templateStorePackage
 } from "../apps/template-store/package.js";
 import {
-  templateStoreExperienceAssets
-} from "../apps/template-store/experience-assets.js";
-import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
 import {
@@ -410,7 +407,6 @@ export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown
 export const referenceExperienceAssets = new Map<string, unknown>([
   ...enterpriseAgentExperienceAssets,
   ...enterpriseContextGovernanceExperienceAssets,
-  ...templateStoreExperienceAssets,
   ...companyNotesExperienceAssets,
   ...tradingLiteExperienceAssets,
   ...ledgerRuntimeConfiguratorExperienceAssets

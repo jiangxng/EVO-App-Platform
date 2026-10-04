@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -43,6 +44,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import {
   createTradingLiteEvoActionHandler,
@@ -198,6 +200,9 @@ import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
   type EnterpriseApplicationRuntimeBindingProviderV010
 } from "../contracts/enterprise-application-runtime-binding.js";
+import {
+  VISUAL_2D_VIEWER_CAPABILITY_V010
+} from "../contracts/template-preview.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -699,14 +704,14 @@ import {
 } from "../apps/eog-2d-designer/package.js";
 import {
   EOG_2D_VIEWER_FEATURE_ID,
-  EOG_2D_VIEWER_PACKAGE_ID
+  EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "../apps/eog-2d-viewer/package.js";
-import {
-  createEnterpriseOperatingGraphViewerWorkspacePageV010,
-  createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
-  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
-  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
-} from "../apps/eog-2d-viewer/workspace-page.js";
 import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
@@ -721,16 +726,16 @@ import {
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
-import {
-  createFileTemplateStoreRepositoryV010,
-  createMemoryTemplateStoreRepositoryV010
+import type {
+  TemplateStoreRepositoryV010
 } from "../apps/template-store/repository.js";
 import {
-  templateStoreSeedRecordsV010
-} from "../apps/template-store/seed-records.js";
-import {
-  createTemplateStoreCopyActionHandlerV010
-} from "../apps/template-store/copy-action.js";
+  TEMPLATE_STORE_COPY_COMMAND,
+  TEMPLATE_STORE_FEATURE_ID,
+  TEMPLATE_STORE_PACKAGE_ID,
+  TEMPLATE_STORE_PAGE_SOURCE,
+  TEMPLATE_STORE_PREVIEW_2D_COMMAND
+} from "../apps/template-store/package.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
@@ -773,14 +778,28 @@ const templateStoreStateFile =
   || (lifecycleStateFile
     ? join(dirname(lifecycleStateFile), "template-store.json")
     : undefined);
-const templateStoreRepository = templateStoreStateFile
-  ? createFileTemplateStoreRepositoryV010(
-      templateStoreStateFile,
-      templateStoreSeedRecordsV010
-    )
-  : createMemoryTemplateStoreRepositoryV010(
-      templateStoreSeedRecordsV010
-    );
+let templateStoreRepositoryPromise:
+  | Promise<TemplateStoreRepositoryV010>
+  | undefined;
+async function resolveTemplateStoreRepository():
+Promise<TemplateStoreRepositoryV010> {
+  templateStoreRepositoryPromise ??= Promise.all([
+    import("../apps/template-store/repository.js"),
+    import("../apps/template-store/seed-records.js")
+  ]).then(([repository, seed]) =>
+    templateStoreStateFile
+      ? repository.createFileTemplateStoreRepositoryV010(
+          templateStoreStateFile,
+          seed.templateStoreSeedRecordsV010
+        )
+      : repository.createMemoryTemplateStoreRepositoryV010(
+          seed.templateStoreSeedRecordsV010
+        )
+  );
+  return templateStoreRepositoryPromise;
+}
+const templatePreviewSessions =
+  createMemoryTemplatePreviewSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -1671,26 +1690,6 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_2D_DESIGNER_PACKAGE_ID);
-    console.log("Activated EOG 2D Designer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 2D Designer ownership cutover.", error);
-  }
-}
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_2D_VIEWER_PACKAGE_ID);
-    console.log("Activated EOG 2D Viewer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 2D Viewer ownership cutover.", error);
-  }
-}
 if (!manager.getSnapshot().activeFeatures.some(
   feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
 )) {
@@ -3429,16 +3428,106 @@ const actionRouter = createAppActionRouter(
       }
     }),
     createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
-    createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      locale(context) {
-        return context.locale;
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
+      async load() {
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
+        return module.createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          locale(context) {
+            return context.locale;
+          }
+        });
       }
     }),
-    createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION,
+      async load() {
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
+        return module.createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          inspectorResolver: enterpriseOperatingGraphInspectorProperties
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
+      async load() {
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return viewer.createTemplate2dPreviewReadActionV010({
+          source: previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
+      async load() {
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return viewer.createTemplate2dPreviewSelectionReadActionV010({
+          source: previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          )
+        });
+      }
     }),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
@@ -3460,15 +3549,46 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
-    createTemplateStoreCopyActionHandlerV010({
-      store: templateStoreRepository,
-      transfer: enterpriseTemplateTransferProvider,
-      resolveAuthorizationProvider,
-      listAvailableContexts(principal) {
-        return createPrincipalContextRegistryV010(
-          principal,
-          principalContextSources()
-        ).list();
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_COPY_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/copy-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreCopyActionHandlerV010({
+          store: templateStoreRepository,
+          transfer: enterpriseTemplateTransferProvider,
+          resolveAuthorizationProvider,
+          listAvailableContexts(principal) {
+            return createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            ).list();
+          }
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_PREVIEW_2D_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/preview-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStorePreview2dActionHandlerV010({
+          store: templateStoreRepository,
+          sessions: templatePreviewSessions,
+          viewerAvailable() {
+            return manager.getSnapshot().effectiveCapabilities.includes(
+              VISUAL_2D_VIEWER_CAPABILITY_V010
+            );
+          }
+        });
       }
     }),
     ...createEnterpriseRelationshipActionHandlersV010({
@@ -4778,12 +4898,71 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphViewerWorkspacePageV010({
+          module.createEnterpriseOperatingGraphViewerWorkspacePageV010({
             activeContext,
             locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (source === EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const templateStoreEffective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!templateStoreEffective) {
+          return json(response, 409, { code: "TEMPLATE_STORE_NOT_ACTIVE" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const previewSelection = templatePreviewSessions.get(
+          session.principal.sessionId?.trim()
+          || session.principal.subjectId.trim()
+        );
+        if (!previewSelection) {
+          return json(response, 409, {
+            code: "TEMPLATE_PREVIEW_SELECTION_REQUIRED",
+            message: "Choose Preview from a Template Store card first."
+          });
+        }
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        const artifact =
+          previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          ).get({
+            templateId: previewSelection.templateId,
+            templateVersion: previewSelection.templateVersion
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "TEMPLATE_PREVIEW_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          viewer.createTemplate2dPreviewPageV010({
+            templateId: artifact.templateId,
+            templateVersion: artifact.templateVersion,
+            title: artifact.title
           })
         );
       }
@@ -5000,6 +5179,31 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "HELP_DOCUMENT_NOT_FOUND", id: helpDocumentId });
         }
         return json(response, 200, document);
+      }
+      if (source === TEMPLATE_STORE_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const module = await import(
+          "../apps/template-store/experience-assets.js"
+        );
+        return json(
+          response,
+          200,
+          module.createTemplateStorePageV010(
+            undefined,
+            {
+              viewer2dAvailable:
+                manager.getSnapshot().effectiveCapabilities.includes(
+                  VISUAL_2D_VIEWER_CAPABILITY_V010
+                ),
+              locale: requestedLocale(url)
+            }
+          )
+        );
       }
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(

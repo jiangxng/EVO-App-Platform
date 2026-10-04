@@ -15,6 +15,8 @@ import {
   EOG_2D_VIEWER_CAPABILITY,
   EOG_2D_VIEWER_EXPERIENCE_ID,
   EOG_2D_VIEWER_FEATURE_ID,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
   EOG_2D_VIEWER_WORKSPACE_ROUTE,
   eog2dPackage
@@ -133,7 +135,7 @@ test("EOG capabilities remain catalog-discoverable through feature identity", ()
   );
 });
 
-test("2D Viewer owns only the interactive Workspace; Observatory is a peer plugin", () => {
+test("2D Viewer owns interactive read-only Workspaces; Observatory remains a peer plugin", () => {
   assert.ok(viewer);
   const experiences = (viewer.contributions ?? []).filter(
     item => item.kind === "eidos.experience"
@@ -146,11 +148,17 @@ test("2D Viewer owns only the interactive Workspace; Observatory is a peer plugi
   assert.equal(manifest.defaultRoute, EOG_2D_VIEWER_WORKSPACE_ROUTE);
   assert.deepEqual(
     manifest.pages.map(page => page.source),
-    [EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE]
+    [
+      EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+      EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE
+    ]
   );
   assert.deepEqual(
     manifest.routes.map(route => route.path),
-    [EOG_2D_VIEWER_WORKSPACE_ROUTE]
+    [
+      EOG_2D_VIEWER_WORKSPACE_ROUTE,
+      EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE
+    ]
   );
   assert.equal(
     manifest.routes.some(route => route.path.includes("/observe")),
