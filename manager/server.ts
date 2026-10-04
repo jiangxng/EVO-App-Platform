@@ -721,6 +721,16 @@ import {
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
+import {
+  createFileTemplateStoreRepositoryV010,
+  createMemoryTemplateStoreRepositoryV010
+} from "../apps/template-store/repository.js";
+import {
+  templateStoreSeedRecordsV010
+} from "../apps/template-store/seed-records.js";
+import {
+  createTemplateStoreCopyActionHandlerV010
+} from "../apps/template-store/copy-action.js";
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
@@ -758,6 +768,19 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const templateStoreStateFile =
+  process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "template-store.json")
+    : undefined);
+const templateStoreRepository = templateStoreStateFile
+  ? createFileTemplateStoreRepositoryV010(
+      templateStoreStateFile,
+      templateStoreSeedRecordsV010
+    )
+  : createMemoryTemplateStoreRepositoryV010(
+      templateStoreSeedRecordsV010
+    );
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -3436,6 +3459,17 @@ const actionRouter = createAppActionRouter(
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
+    }),
+    createTemplateStoreCopyActionHandlerV010({
+      store: templateStoreRepository,
+      transfer: enterpriseTemplateTransferProvider,
+      resolveAuthorizationProvider,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      }
     }),
     ...createEnterpriseRelationshipActionHandlersV010({
       store: enterpriseGovernanceStore,
