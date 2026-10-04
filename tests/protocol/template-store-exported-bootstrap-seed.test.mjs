@@ -26,7 +26,7 @@ const referenceLibrary = JSON.parse(
 );
 const seed = JSON.parse(
   readFileSync(
-    "apps/template-store/seeds/evo-ledger-runtime-baseline.v0.1.seed.json",
+    "apps/template-store/seeds/evo-ledger-runtime-baseline.v0.2.seed.json",
     "utf8"
   )
 );
@@ -76,7 +76,7 @@ test("587 legacy posting rules remain a separate reference library", () => {
 test("Template Store bootstrap Seed wraps the production Ledger Runtime template", () => {
   assert.equal(seed.contractVersion, "0.1.0");
   assert.equal(seed.templateId, "evo.ledger-runtime.baseline.v0.1");
-  assert.equal(seed.version, 1);
+  assert.equal(seed.version, 2);
 
   const bundle = assertTemplateTransferBundleV010(seed.bundle);
   assert.equal(bundle.definition.kind, "LEDGER_RUNTIME_TEMPLATE");
