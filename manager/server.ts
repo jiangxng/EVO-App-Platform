@@ -710,6 +710,7 @@ import {
   eog2dPackage,
   eog3dPackage,
   evoFoundationPackage,
+  ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
   referenceExperienceAssets,
   templateStorePackage,
@@ -721,17 +722,23 @@ import {
 } from "../apps/eog-2d-designer/package.js";
 import {
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
-  ENTERPRISE_CONTEXT_SELECT_COMMAND,
-  ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-  ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
-  ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
-  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
-  ENTERPRISE_SOFTWARE_PAGE_SOURCE,
-  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
-  ENTERPRISE_SOFTWARE_SHARE_COMMAND
+  ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
+import {
+  LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
+  LEDGER_MANAGER_FEATURE_ID,
+  LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+  LEDGER_MANAGER_PACKAGE_ID,
+  LEDGER_MANAGER_PAGE_SOURCE,
+  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+  LEDGER_MANAGER_PUBLISH_COMMAND
+} from "../apps/ledger-manager/constants.js";
+import {
+  ledgerManagerAuthorizationPolicyV010
+} from "../apps/ledger-manager/authorization.js";
 import {
   EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
   EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE,
@@ -782,6 +789,7 @@ const catalog = createPackageCatalog([
   eog3dPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
+  ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
@@ -1605,6 +1613,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
   ),
   enterpriseContextGovernanceAuthorizationPolicyV010,
+  ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON
@@ -1771,6 +1780,26 @@ const enterpriseOperatingGraphInspectorProperties =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
+if (
+  installedAtStartup.some(
+    item => item.packageId === "evo-ledger-runtime-configurator"
+  )
+  && !installedAtStartup.some(
+    item => item.packageId === LEDGER_MANAGER_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(LEDGER_MANAGER_PACKAGE_ID);
+    console.log(
+      "Migrated Ledger Configurator product surface to Ledger Manager."
+    );
+  } catch (error) {
+    console.error(
+      "Failed to activate Ledger Manager product cutover.",
+      error
+    );
+  }
+}
 if (
   applicationRuntimeBindingStore.snapshot().bindings.length > 0
   && !manager.getSnapshot().activeFeatures.some(
@@ -3655,53 +3684,78 @@ const actionRouter = createAppActionRouter(
       }
     }),
     ...[
-      ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
-      ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-      ENTERPRISE_SOFTWARE_SHARE_COMMAND,
-      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
-      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
+      LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+      LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+      LEDGER_MANAGER_PUBLISH_COMMAND
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
-        packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
-        featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+        packageId: LEDGER_MANAGER_PACKAGE_ID,
+        featureId: LEDGER_MANAGER_FEATURE_ID,
         commandCode,
         async load() {
-          const module = await import(
-            "../apps/enterprise-context-governance/software-actions.js"
-          );
-          const handlers = module.createEnterpriseSoftwareActionHandlersV010({
+          const module = await import("../apps/ledger-manager/actions.js");
+          const handlers = module.createLedgerManagerActionHandlersV010({
             repository: enterpriseBusinessDefinitionRepository,
-            transfer: enterpriseTemplateTransferProvider,
-            resolveAuthorizationProvider,
-            async resolvePublicationProvider() {
-              const templateStoreActive =
-                manager.getSnapshot().activeFeatures.some(
-                  feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
-                );
-              if (!templateStoreActive) return undefined;
-              const [publicationModule, templateStoreRepository] =
-                await Promise.all([
-                  import("../apps/template-store/publication-provider.js"),
-                  resolveTemplateStoreRepository()
-                ]);
-              return publicationModule
-                .createTemplateStorePublicationProviderV010(
-                  templateStoreRepository
-                );
-            },
-            id: randomUUID,
             projectionSessions: enterpriseDefinitionProjectionSessions,
+            resolveAuthorizationProvider,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
             viewerAvailable() {
               return manager.getSnapshot().effectiveCapabilities.includes(
                 VISUAL_2D_VIEWER_CAPABILITY_V010
               );
+            },
+            async publishToLedgerRuntime({
+              enterpriseId,
+              enterpriseDisplayName,
+              compiled
+            }) {
+              const runtimeEnterpriseId =
+                evoRuntimeScopeMap.get(enterpriseId);
+              const result = await evoJson(
+                "/api/v1/configurator/burn",
+                {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    ...compiled,
+                    target: runtimeEnterpriseId
+                      ? { enterpriseId: runtimeEnterpriseId }
+                      : {
+                          enterpriseCode: enterpriseId,
+                          enterpriseName:
+                            enterpriseDisplayName ?? enterpriseId
+                        }
+                  })
+                }
+              );
+              if (result.status < 200 || result.status >= 300) {
+                throw new Error(
+                  "LEDGER_MANAGER_RUNTIME_PUBLISH_FAILED: "
+                  + JSON.stringify(result.body)
+                );
+              }
+              return result.body;
+            },
+            resolveEnterpriseDisplayName(enterpriseId) {
+              const item = enterpriseGovernanceStore.snapshot().contexts
+                .find(context => context.enterpriseId === enterpriseId);
+              return item?.displayName;
             }
           });
           const handler = handlers.find(
             candidate => candidate.commandCode === commandCode
           );
           if (!handler) {
-            throw new Error("ENTERPRISE_SOFTWARE_HANDLER_NOT_FOUND");
+            throw new Error("LEDGER_MANAGER_HANDLER_NOT_FOUND");
           }
           return handler;
         }
@@ -5129,80 +5183,116 @@ const server = createServer(async (request, response) => {
           })
         );
       }
-      if (source === ENTERPRISE_SOFTWARE_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
-          feature =>
-            feature.featureId
-            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+      if (source === ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const selected = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
         );
-        if (!effective) {
-          return json(
-            response,
-            404,
-            { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" }
-          );
+        const resolved = contextRegistry.resolve(selected);
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !resolved.enterpriseContext
+        ) {
+          return json(response, 409, {
+            code: "ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
         }
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: contextRegistry.list(),
+          store: enterpriseGovernanceStore
+        });
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const module = await import(
+          "../apps/enterprise-context-governance/context-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseContextOverviewPageV010({
+            context: resolved.enterpriseContext,
+            currentRole: relationship?.kind,
+            isDefault:
+              defaultEnterpriseContext?.contextId === active.contextId,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (source === LEDGER_MANAGER_PAGE_SOURCE) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
         const resolved = contextRegistry.resolve(
           contextFromHeaderV010(request.headers, contextRegistry)
         );
-        const enterpriseContexts = contextRegistry.list().filter(
-          item => item.kind === "ENTERPRISE"
-        );
-        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
-          ? resolved.activeContext
-          : enterpriseContexts.length === 1
-            ? enterpriseContexts[0]
-            : undefined;
-        if (
-          !activeContext
-          || activeContext.kind !== "ENTERPRISE"
-          || !activeContext.enterpriseId?.trim()
-        ) {
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
           return json(response, 409, {
-            code: "ENTERPRISE_SOFTWARE_CONTEXT_REQUIRED",
+            code: "LEDGER_MANAGER_ENTERPRISE_CONTEXT_REQUIRED",
             message: "Select an Enterprise Context first."
           });
         }
-        const module = await import(
-          "../apps/enterprise-context-governance/software-page.js"
+        const relationships =
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? [];
+        const canPublish = relationships.some(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+          && (item.kind === "OWNER" || item.kind === "ADMIN")
         );
+        const module = await import("../apps/ledger-manager/page.js");
         return json(
           response,
           200,
-          module.createEnterpriseSoftwarePageV010({
-            enterpriseId: activeContext.enterpriseId,
+          module.createLedgerManagerPageV010({
+            enterpriseId: active.enterpriseId,
             repository: enterpriseBusinessDefinitionRepository,
-            shareAvailable:
-              manager.getSnapshot().activeFeatures.some(
-                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+            viewer2dAvailable:
+              manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
               ),
+            canPublish,
             locale: requestedLocale(url)
           })
         );
       }
-      if (source === ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
-          feature =>
-            feature.featureId
-            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
-        );
-        if (!effective) {
-          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
-        }
+
+      if (source === LEDGER_MANAGER_DETAIL_PAGE_SOURCE) {
         const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "LEDGER_MANAGER_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
         const sessionId = session.principal.sessionId?.trim();
-        const subjectId = session.principal.subjectId.trim();
         const selection =
           (sessionId
             ? enterpriseDefinitionProjectionSessions.get(sessionId)
             : undefined)
-          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
-        if (!selection) {
+          ?? enterpriseDefinitionProjectionSessions.get(
+            session.principal.subjectId
+          );
+        if (
+          !selection
+          || selection.enterpriseId !== active.enterpriseId
+        ) {
           return json(response, 409, {
-            code: "ENTERPRISE_SOFTWARE_DETAIL_SELECTION_REQUIRED",
-            message: "Choose Details from Enterprise Software first."
+            code: "LEDGER_MANAGER_DETAIL_SELECTION_REQUIRED"
           });
         }
         const revision = enterpriseBusinessDefinitionRepository
@@ -5210,28 +5300,34 @@ const server = createServer(async (request, response) => {
             enterpriseId: selection.enterpriseId,
             definitionId: selection.definitionId
           })
-          .find(item => item.revision === selection.definitionRevision);
+          .find(item =>
+            item.revision === selection.definitionRevision
+            && item.kind === "LEDGER_RUNTIME_TEMPLATE"
+          );
         if (!revision) {
           return json(response, 404, {
-            code: "BUSINESS_DEFINITION_REVISION_NOT_FOUND"
+            code: "LEDGER_MANAGER_DEFINITION_NOT_FOUND"
           });
         }
-        const module = await import(
-          "../apps/enterprise-context-governance/software-page.js"
+        const relationships =
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? [];
+        const canPublish = relationships.some(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+          && (item.kind === "OWNER" || item.kind === "ADMIN")
         );
+        const module = await import("../apps/ledger-manager/page.js");
         return json(
           response,
           200,
-          module.createEnterpriseSoftwareDetailPageV010({
+          module.createLedgerManagerDetailPageV010({
             revision,
             viewer2dAvailable:
               manager.getSnapshot().effectiveCapabilities.includes(
                 VISUAL_2D_VIEWER_CAPABILITY_V010
               ),
-            shareAvailable:
-              manager.getSnapshot().activeFeatures.some(
-                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
-              ),
+            canPublish,
             locale: requestedLocale(url)
           })
         );

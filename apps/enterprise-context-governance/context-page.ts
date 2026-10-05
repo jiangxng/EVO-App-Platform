@@ -181,3 +181,67 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     emptyMessage: text.empty
   };
 }
+
+
+export function createEnterpriseContextOverviewPageV010(input: {
+  context: EnterpriseContextV010;
+  currentRole?: string;
+  isDefault?: boolean;
+  locale?: string;
+}): CatalogBrowserV010 {
+  const zh = (input.locale ?? "").toLowerCase().startsWith("zh");
+  const contextId = input.context.contextId?.trim() ?? "";
+  const enterpriseId = input.context.enterpriseId.trim();
+  const displayName = input.context.displayName?.trim() || enterpriseId;
+  const code = typeof input.context.attributes?.code === "string"
+    ? input.context.attributes.code
+    : undefined;
+
+  return {
+    contractVersion: "0.1.0",
+    kind: "catalog-browser",
+    id: "evo-enterprise-context-governance.overview",
+    title: displayName,
+    description: zh
+      ? "企业上下文是一个薄的企业级持久资源容器。业务能力由独立插件读取和操作这里的资源。"
+      : "An Enterprise Context is a thin persistent enterprise resource container. Independent plugins read and operate its resources.",
+    items: [{
+      id: contextId || enterpriseId,
+      title: zh ? "容器状态" : "Container status",
+      summary: input.isDefault
+        ? (zh ? "当前默认企业上下文" : "Current default Enterprise Context")
+        : (zh ? "企业级资源边界" : "Enterprise resource boundary"),
+      status: {
+        label: input.context.lifecycleState ?? "ACTIVE",
+        tone: input.context.lifecycleState === "ACTIVE"
+          ? "positive"
+          : "neutral"
+      },
+      metadata: {
+        [zh ? "企业 ID" : "Enterprise ID"]: enterpriseId,
+        ...(contextId
+          ? { [zh ? "Context ID" : "Context ID"]: contextId }
+          : {}),
+        ...(code
+          ? { [zh ? "企业代码" : "Enterprise code"]: code }
+          : {}),
+        [zh ? "当前角色" : "Current role"]: input.currentRole ?? "—",
+        [zh ? "默认" : "Default"]: input.isDefault ? (zh ? "是" : "Yes") : (zh ? "否" : "No"),
+        [zh ? "职责" : "Responsibility"]: zh
+          ? "存储、隔离、寻址、访问边界"
+          : "Persistence, isolation, addressing and access boundary"
+      }
+    }, {
+      id: "enterprise-context:plugin-boundary",
+      title: zh ? "插件操作资源" : "Plugins operate resources",
+      summary: zh
+        ? "账本、组织、应用、文件等领域能力不属于企业上下文本体；它们由独立插件通过当前 Context 工作。"
+        : "Ledger, organization, applications, files and other domain capabilities live in independent plugins operating against the current Context.",
+      status: {
+        label: zh ? "薄容器" : "Thin container",
+        tone: "neutral"
+      }
+    }],
+    emptyMessage: zh ? "企业上下文可用。" : "Enterprise Context is available."
+  };
+}

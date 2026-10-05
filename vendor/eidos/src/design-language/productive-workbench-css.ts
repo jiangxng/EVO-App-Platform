@@ -134,6 +134,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   border-top:1px solid var(--eidos-border);
   padding:var(--eidos-space-md) var(--eidos-space-lg);
 }
+[data-eidos-side-panel-footer]:empty{display:none}
 [data-eidos-locale-control]{
   display:grid;
   grid-template-columns:auto 1fr;
@@ -183,7 +184,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 [data-eidos-browser-toolbar]{
   flex:0 0 auto;
   display:grid;
-  grid-template-columns:minmax(140px,1fr) auto auto;
+  grid-template-columns:minmax(140px,1fr) auto auto auto;
   gap:var(--eidos-space-sm);
   align-items:center;
   min-height:44px;
@@ -208,6 +209,114 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   color:var(--eidos-fg);
 }
 [data-eidos-browser-toolbar] button:hover{background:var(--eidos-bg-hover)}
+[data-eidos-global-controls]{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:var(--eidos-space-sm);
+  padding-left:var(--eidos-space-sm);
+  border-left:1px solid var(--eidos-border);
+}
+
+[data-eidos-global-control]{
+  display:flex;
+  align-items:center;
+  gap:var(--eidos-space-xs);
+  min-width:0;
+}
+[data-eidos-global-control-label]{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+[data-eidos-global-control-select]{
+  width:auto;
+  min-width:150px;
+  max-width:240px;
+  height:var(--eidos-control-compact);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-sm);
+  padding:0 var(--eidos-space-md);
+  background:var(--eidos-bg);
+  color:var(--eidos-fg);
+}
+[data-eidos-account-control]{position:relative}
+[data-eidos-account-control]>summary{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  gap:var(--eidos-space-xs);
+  min-height:var(--eidos-control-compact);
+  padding:0 var(--eidos-space-sm);
+  border-radius:var(--eidos-radius-pill);
+  cursor:pointer;
+  white-space:nowrap;
+}
+[data-eidos-account-control]>summary::-webkit-details-marker{display:none}
+[data-eidos-account-control]>summary:hover{background:var(--eidos-bg-hover)}
+[data-eidos-account-avatar]{
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--eidos-fg);
+  color:var(--eidos-bg);
+  font-size:10px;
+  font-weight:700;
+}
+[data-eidos-account-menu]{
+  position:absolute;
+  right:0;
+  top:calc(100% + var(--eidos-space-sm));
+  z-index:30;
+  width:min(320px,80vw);
+  display:grid;
+  gap:var(--eidos-space-sm);
+  padding:var(--eidos-space-md);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);
+  background:var(--eidos-bg);
+  box-shadow:0 12px 32px color-mix(in srgb,var(--eidos-fg) 14%,transparent);
+}
+[data-eidos-account-row]{display:grid;gap:2px;min-width:0}
+[data-eidos-account-row]>span{
+  font-size:var(--eidos-font-meta);
+  color:var(--eidos-fg-muted);
+}
+[data-eidos-account-row]>strong{
+  overflow-wrap:anywhere;
+  font-size:var(--eidos-font-compact);
+  font-weight:600;
+}
+[data-eidos-global-controls] [data-eidos-locale-control]{
+  display:flex;
+  align-items:center;
+  gap:var(--eidos-space-xs);
+}
+[data-eidos-global-controls] [data-eidos-locale-control]>span{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+[data-eidos-global-controls] [data-eidos-locale-control] select{
+  width:auto;
+  min-width:84px;
+  max-width:132px;
+}
 [data-eidos-workspace-content]{
   flex:1 1 auto;min-height:0;overflow:auto;
   padding:var(--eidos-space-lg);
@@ -1361,6 +1470,9 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
 }
 
 @media(max-width:700px){
+  [data-eidos-global-control-select]{min-width:0;max-width:52vw}
+  [data-eidos-account-control]>summary>span:last-child{display:none}
+
   [data-eidos-review-queue]{padding:0}
   [data-eidos-review-item-header]{grid-template-columns:1fr;gap:var(--eidos-space-sm)}
   [data-eidos-review-status]{justify-self:start}
@@ -1379,8 +1491,9 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
 @media(max-width:1024px) and (min-width:701px){
   [data-eidos-app-host-layout="workbench"]{--eidos-activity-width:46px}
   [data-eidos-catalog-items],[data-eidos-extension-items]{grid-template-columns:1fr}
-  [data-eidos-browser-toolbar]{grid-template-columns:minmax(120px,1fr) auto}
+  [data-eidos-browser-toolbar]{grid-template-columns:minmax(120px,1fr) auto auto}
   [data-eidos-browser-external]{display:none}
+  [data-eidos-global-controls]{grid-column:3}
 }
 @media(max-width:700px){
   :root{--eidos-activity-width:44px}
@@ -1402,9 +1515,19 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
   [data-mobile-surface="workspace"] [data-eidos-workspace]{display:flex}
   [data-side-panel-visible="false"] [data-eidos-side-panel]{display:none}
   [data-side-panel-visible="false"] [data-eidos-workspace]{display:flex}
-  [data-eidos-browser-toolbar]{grid-template-columns:minmax(80px,1fr) auto;padding:var(--eidos-space-sm)}
+  [data-eidos-browser-toolbar]{
+    grid-template-columns:minmax(80px,1fr) auto;
+    padding:var(--eidos-space-sm)
+  }
   [data-eidos-browser-toolbar] button{min-width:44px;min-height:44px}
   [data-eidos-browser-external]{display:none}
+  [data-eidos-global-controls]{
+    grid-column:1/-1;
+    justify-content:flex-end;
+    padding:var(--eidos-space-xs) 0 0;
+    border-left:0;
+    border-top:1px solid var(--eidos-border);
+  }
   [data-eidos-workspace-content]{padding:var(--eidos-space-md)}
   [data-eidos-catalog-items],[data-eidos-extension-items]{grid-template-columns:1fr}
   [data-eidos-extension-manager-header]{grid-template-columns:1fr;gap:var(--eidos-space-lg)}

@@ -7,6 +7,7 @@ function safeAssetRevision(value: string): string {
 
 export const appHostShellCss = eidosProductiveWorkbenchCss;
 
+
 export function createAppHostShellHtmlV010(assetRevision: string): string {
   const revision = safeAssetRevision(assetRevision);
   return `<!doctype html>

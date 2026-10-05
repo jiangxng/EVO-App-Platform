@@ -60,6 +60,13 @@ export interface WorkbenchShellOptions {
   minSidePanelWidth?: number;
   maxSidePanelWidth?: number;
   onActionResult?: Parameters<typeof mountAppHostLoadedPage>[0]["onActionResult"];
+  /**
+   * Host-owned global chrome mounted beside built-in Workbench controls.
+   * Eidos provides placement only and does not interpret Host/domain semantics.
+   */
+  mountGlobalControls?: (
+    container: HTMLElement
+  ) => void | (() => void);
 }
 
 export interface WorkbenchShell {
@@ -323,13 +330,6 @@ export async function mountWorkbenchShell(
 
   const sideFooter = document.createElement("footer");
   sideFooter.setAttribute("data-eidos-side-panel-footer", "");
-  const localeWrap = document.createElement("label");
-  localeWrap.setAttribute("data-eidos-locale-control", "");
-  const localeLabel = document.createElement("span");
-  const localeSelect = document.createElement("select");
-  localeSelect.setAttribute("data-eidos-locale", "");
-  localeWrap.append(localeLabel, localeSelect);
-  if (localization) sideFooter.append(localeWrap);
 
   sidePanel.append(sideHeader, sideContent, sideFooter);
 
@@ -357,7 +357,24 @@ export async function mountWorkbenchShell(
   const browserExternal = document.createElement("button");
   browserExternal.type = "button";
   browserExternal.setAttribute("data-eidos-browser-external", "");
-  browserToolbar.append(browserAddress, browserGo, browserExternal);
+
+  const globalControls = document.createElement("div");
+  globalControls.setAttribute("data-eidos-global-controls", "");
+
+  const localeWrap = document.createElement("label");
+  localeWrap.setAttribute("data-eidos-locale-control", "");
+  const localeLabel = document.createElement("span");
+  const localeSelect = document.createElement("select");
+  localeSelect.setAttribute("data-eidos-locale", "");
+  localeWrap.append(localeLabel, localeSelect);
+  if (localization) globalControls.append(localeWrap);
+
+  browserToolbar.append(
+    browserAddress,
+    browserGo,
+    browserExternal,
+    globalControls
+  );
 
   const workspaceContent = document.createElement("div");
   workspaceContent.setAttribute("data-eidos-workspace-content", "");
@@ -372,6 +389,9 @@ export async function mountWorkbenchShell(
 
   root.append(activityBar, sidePanel, splitter, workspace, statusBar);
   container.replaceChildren(root);
+
+  const disposeGlobalControls =
+    options.mountGlobalControls?.(globalControls);
 
   function persist(): void {
     stateStore.save({ ...state });
@@ -1047,6 +1067,9 @@ export async function mountWorkbenchShell(
     workspaceMount?.dispose();
     unsubscribeHost();
     unsubscribeLocale?.();
+    if (typeof disposeGlobalControls === "function") {
+      disposeGlobalControls();
+    }
     window.removeEventListener("hashchange", hashHandler);
     window.removeEventListener("keydown", keyboardHandler);
     window.removeEventListener("pointermove", move);

@@ -41,11 +41,30 @@ interface BrowserContextOptionV010 {
   label: string;
 }
 
+interface BrowserPrincipalV010 {
+  subjectId: string;
+  actorType: string;
+  identityProviderId: string;
+  displayName?: string;
+}
+
+interface BrowserSessionSnapshotV010 {
+  sessionId: string;
+  principal: BrowserPrincipalV010;
+}
+
+export function currentUserDisplayNameV010(
+  principal: BrowserPrincipalV010
+): string {
+  return principal.displayName?.trim() || principal.subjectId;
+}
+
 async function loadBrowserContextOptionsV010(
   fetchImpl: typeof fetch
 ): Promise<{
   options: BrowserContextOptionV010[];
   defaultContextId?: string;
+  session?: BrowserSessionSnapshotV010;
 }> {
   const response = await fetchImpl("/v1/contexts/effective", {
     headers: { accept: "application/json" }
@@ -54,6 +73,7 @@ async function loadBrowserContextOptionsV010(
     throw new Error(`CONTEXT_OPTIONS_HTTP_${response.status}`);
   }
   const payload = await response.json() as {
+    session?: BrowserSessionSnapshotV010;
     availableContextOptions?: BrowserContextOptionV010[];
     availableContexts?: BrowserContextOptionV010["ref"][];
     defaultActiveContext?: { contextId?: string };
@@ -66,7 +86,8 @@ async function loadBrowserContextOptionsV010(
       }));
   return {
     options,
-    defaultContextId: payload.defaultActiveContext?.contextId
+    defaultContextId: payload.defaultActiveContext?.contextId,
+    session: payload.session
   };
 }
 
@@ -84,6 +105,11 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     fetchImpl: options.fetchImpl
   });
   let activeLocale = options.initialLocale;
+  let contextSelect: HTMLSelectElement | undefined;
+  let contextLabel: HTMLSpanElement | undefined;
+  let currentUserSummary: HTMLElement | undefined;
+  let currentUserMenu: HTMLElement | undefined;
+  let currentSession: BrowserSessionSnapshotV010 | undefined;
   const initialBundles = await source.listEffectiveLocalizationBundles();
 
   let pendingBootstrapManifests: unknown[] | undefined =
@@ -117,6 +143,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   localization.subscribe(context => {
     activeLocale = context.locale;
     window.localStorage.setItem("evo.locale", context.locale);
+    refreshGlobalControlLabelsV010();
   });
   
   async function refreshLocalizationBundles(): Promise<boolean> {
@@ -326,6 +353,112 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   let topologyEventTimer: ReturnType<typeof setTimeout> | undefined;
   
   
+    function refreshGlobalControlLabelsV010(): void {
+      const zh = activeLocale.toLowerCase().startsWith("zh");
+      if (contextLabel) {
+        contextLabel.textContent = zh ? "当前企业" : "Current enterprise";
+      }
+      if (currentUserSummary) {
+        const principal = currentSession?.principal;
+        currentUserSummary.replaceChildren();
+        const avatar = document.createElement("span");
+        avatar.setAttribute("data-evo-current-user-avatar", "");
+        avatar.setAttribute("data-eidos-account-avatar", "");
+        const label = principal
+          ? currentUserDisplayNameV010(principal)
+          : (zh ? "当前用户" : "Current user");
+        avatar.textContent = label.slice(0, 1).toUpperCase();
+        const name = document.createElement("span");
+        name.textContent = label;
+        currentUserSummary.append(avatar, name);
+      }
+      if (currentUserMenu) {
+        currentUserMenu.replaceChildren();
+        const principal = currentSession?.principal;
+        if (!principal) {
+          currentUserMenu.textContent = zh
+            ? "当前会话用户信息不可用。"
+            : "Current session user is unavailable.";
+          return;
+        }
+        const rows: Array<[string, string]> = [
+          [zh ? "用户" : "User", currentUserDisplayNameV010(principal)],
+          ["Subject", principal.subjectId],
+          [zh ? "身份提供方" : "Identity provider", principal.identityProviderId],
+          [zh ? "会话" : "Session", currentSession?.sessionId ?? "—"]
+        ];
+        for (const [key, value] of rows) {
+          const row = document.createElement("div");
+          row.setAttribute("data-evo-current-user-row", "");
+          row.setAttribute("data-eidos-account-row", "");
+          const label = document.createElement("span");
+          label.textContent = key;
+          const data = document.createElement("strong");
+          data.textContent = value;
+          row.append(label, data);
+          currentUserMenu.append(row);
+        }
+      }
+    }
+
+    async function refreshContextControlV010(
+      preferredContextId?: string
+    ): Promise<void> {
+      try {
+        const loaded = await loadBrowserContextOptionsV010(
+          options.fetchImpl ?? fetch
+        );
+        currentSession = loaded.session;
+        refreshGlobalControlLabelsV010();
+
+        const enterpriseOptions = loaded.options.filter(
+          item => item.ref.kind === "ENTERPRISE"
+        );
+        const persistedCandidate =
+          preferredContextId
+          ?? window.localStorage.getItem("evo.context.id")?.trim()
+          ?? loaded.defaultContextId;
+        const persisted = enterpriseOptions.some(
+          item => item.ref.contextId === persistedCandidate
+        )
+          ? persistedCandidate
+          : loaded.defaultContextId
+            && enterpriseOptions.some(
+              item => item.ref.contextId === loaded.defaultContextId
+            )
+              ? loaded.defaultContextId
+              : enterpriseOptions[0]?.ref.contextId;
+
+        contextSelect?.replaceChildren();
+        if (contextSelect && enterpriseOptions.length === 0) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = activeLocale.toLowerCase().startsWith("zh")
+            ? "暂无企业"
+            : "No enterprise";
+          contextSelect.appendChild(option);
+          contextSelect.disabled = true;
+        } else if (contextSelect) {
+          contextSelect.disabled = false;
+          for (const item of enterpriseOptions) {
+            const option = document.createElement("option");
+            option.value = item.ref.contextId;
+            option.textContent = `🏢 ${item.label}`;
+            option.selected = item.ref.contextId === persisted;
+            contextSelect.appendChild(option);
+          }
+        }
+
+        if (persisted) {
+          window.localStorage.setItem("evo.context.id", persisted);
+        } else {
+          window.localStorage.removeItem("evo.context.id");
+        }
+      } catch (error) {
+        console.error("Failed to refresh Enterprise Context selector.", error);
+      }
+    }
+  
     const initialActivities = await loadEffectiveWorkbenchActivities();
   
     workbench = await mountWorkbenchShell({
@@ -340,6 +473,59 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization,
       minSidePanelWidth: 260,
       maxSidePanelWidth: 720,
+      mountGlobalControls(container) {
+        const contextControl = document.createElement("label");
+        contextControl.setAttribute("data-evo-context-control", "");
+        contextControl.setAttribute("data-eidos-global-control", "");
+        contextLabel = document.createElement("span");
+        contextLabel.setAttribute("data-evo-global-control-label", "");
+        contextLabel.setAttribute("data-eidos-global-control-label", "");
+        contextSelect = document.createElement("select");
+        contextSelect.setAttribute("data-evo-context-select", "");
+        contextSelect.setAttribute("data-eidos-global-control-select", "");
+        contextControl.append(contextLabel, contextSelect);
+
+        const userDetails = document.createElement("details");
+        userDetails.setAttribute("data-evo-current-user", "");
+        userDetails.setAttribute("data-eidos-account-control", "");
+        currentUserSummary = document.createElement("summary");
+        currentUserSummary.setAttribute("data-evo-current-user-summary", "");
+        currentUserMenu = document.createElement("div");
+        currentUserMenu.setAttribute("data-evo-current-user-menu", "");
+        currentUserMenu.setAttribute("data-eidos-account-menu", "");
+        userDetails.append(currentUserSummary, currentUserMenu);
+
+        const localeControl =
+          container.querySelector<HTMLElement>("[data-eidos-locale-control]");
+        if (localeControl) {
+          container.insertBefore(contextControl, localeControl);
+        } else {
+          container.prepend(contextControl);
+        }
+        container.append(userDetails);
+
+        contextSelect.addEventListener("change", () => {
+          const selected = contextSelect?.value.trim() ?? "";
+          if (selected) {
+            window.localStorage.setItem("evo.context.id", selected);
+          } else {
+            window.localStorage.removeItem("evo.context.id");
+          }
+          void workbench?.refresh();
+        });
+
+        refreshGlobalControlLabelsV010();
+        void refreshContextControlV010();
+
+        return () => {
+          contextControl.remove();
+          userDetails.remove();
+          contextSelect = undefined;
+          contextLabel = undefined;
+          currentUserSummary = undefined;
+          currentUserMenu = undefined;
+        };
+      },
       async onActionResult(result, page, renderHint) {
         if (renderHint?.preserveMountedPage === true) {
           rememberLocallyAppliedCorrelation(result);
@@ -423,69 +609,12 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           if (copiedContextId) {
             window.localStorage.setItem("evo.context.id", copiedContextId);
             await refreshContextControlV010(copiedContextId);
-            await workbench?.navigateWorkspace("/enterprise-contexts/applications");
+            await workbench?.navigateWorkspace("/ledger");
           }
         }
       }
     });
 
-    const contextControl = document.createElement("label");
-    contextControl.setAttribute("data-evo-context-control", "");
-    contextControl.style.display = "grid";
-    contextControl.style.gap = "4px";
-    contextControl.style.marginBottom = "10px";
-    const contextLabel = document.createElement("span");
-    contextLabel.textContent = activeLocale.toLowerCase().startsWith("zh")
-      ? "当前上下文"
-      : "Current Context";
-    contextLabel.style.fontSize = "12px";
-    const contextSelect = document.createElement("select");
-    contextSelect.setAttribute("data-evo-context-select", "");
-    contextSelect.style.width = "100%";
-    contextControl.append(contextLabel, contextSelect);
-    document.querySelector<HTMLElement>("[data-eidos-side-panel-footer]")
-      ?.prepend(contextControl);
-
-    async function refreshContextControlV010(
-      preferredContextId?: string
-    ): Promise<void> {
-      try {
-        const loaded = await loadBrowserContextOptionsV010(
-          options.fetchImpl ?? fetch
-        );
-        const persisted =
-          preferredContextId
-          ?? window.localStorage.getItem("evo.context.id")?.trim()
-          ?? loaded.defaultContextId;
-        contextSelect.replaceChildren();
-        for (const item of loaded.options) {
-          const option = document.createElement("option");
-          option.value = item.ref.contextId;
-          option.textContent = item.ref.kind === "ENTERPRISE"
-            ? `🏢 ${item.label}`
-            : `👤 ${item.label}`;
-          option.selected = item.ref.contextId === persisted;
-          contextSelect.appendChild(option);
-        }
-        if (
-          persisted
-          && loaded.options.some(item => item.ref.contextId === persisted)
-        ) {
-          window.localStorage.setItem("evo.context.id", persisted);
-        } else {
-          window.localStorage.removeItem("evo.context.id");
-        }
-      } catch (error) {
-        console.error("Failed to refresh Enterprise Context selector.", error);
-      }
-    }
-
-    contextSelect.addEventListener("change", () => {
-      const selected = contextSelect.value.trim();
-      if (selected) window.localStorage.setItem("evo.context.id", selected);
-      else window.localStorage.removeItem("evo.context.id");
-      void workbench?.refresh();
-    });
     await refreshContextControlV010();
   
     const realtime = createFetchSseRealtimeSourceV010({

@@ -1,19 +1,23 @@
-name: Plugin CI - Ledger Configurator
+name: Plugin CI - Ledger Manager
 
 on:
   push:
     branches: [main]
     paths:
       - "apps/ledger-runtime-configurator/**"
+      - "apps/ledger-manager/**"
       - "tests/configurator/**"
       - "tests/ledger-runtime-configurator-compiler.test.mjs"
       - "tests/ledger-runtime-configurator-ui.test.mjs"
+      - "tests/integration/ledger-manager.test.mjs"
   pull_request:
     paths:
       - "apps/ledger-runtime-configurator/**"
+      - "apps/ledger-manager/**"
       - "tests/configurator/**"
       - "tests/ledger-runtime-configurator-compiler.test.mjs"
       - "tests/ledger-runtime-configurator-ui.test.mjs"
+      - "tests/integration/ledger-manager.test.mjs"
 
 concurrency:
   group: plugin-ledger-configurator-${{ github.ref }}

@@ -106,47 +106,18 @@ test("installed Plugin Store item becomes an App Host navigation action", () => 
 });
 
 
-test("installed Configurator is visible and renderable through Eidos App Host", async () => {
-  const { createPackageCatalog } = await import("../dist/catalog/catalog.js");
-  const { createMemoryLifecycleStore } = await import("../dist/manager/store.js");
-  const { createAppManagerService } = await import("../dist/manager/service.js");
+test("Ledger Runtime Configurator is an internal runtime extension without product navigation", async () => {
   const {
-    evoFoundationPackage,
-    ledgerRuntimeConfiguratorPackage,
-    referenceExperienceAssets
+    ledgerRuntimeConfiguratorPackage
   } = await import("../dist/catalog/seed.js");
-  const {
-    createAppHost,
-    createMemoryExperienceSource
-  } = await import("../dist/vendor/eidos/src/app-host/index.js");
 
-  const manager = createAppManagerService(
-    createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage]),
-    createMemoryLifecycleStore(),
-    () => new Date("2026-09-24T00:00:00Z"),
-    referenceExperienceAssets
+  assert.equal(ledgerRuntimeConfiguratorPackage.type, "RUNTIME_EXTENSION");
+  assert.equal(
+    ledgerRuntimeConfiguratorPackage.features[0].contributions.some(
+      item => item.kind === "eidos.experience"
+    ),
+    false
   );
-
-  manager.install("evo-ledger-runtime-configurator");
-  const manifests = manager.listEffectiveExperiences();
-  const source = createMemoryExperienceSource(
-    manifests,
-    {
-      "app://evo-ledger-runtime-configurator/pages/home":
-        manager.loadExperiencePage("app://evo-ledger-runtime-configurator/pages/home")
-    }
-  );
-  const host = createAppHost(source);
-  const snapshot = await host.refresh();
-
-  assert.ok(snapshot.navigation.some(x => x.route === "/ledger-runtime-configurator"));
-  assert.ok(host.resolveRoute("/ledger-runtime-configurator"));
-
-  const loaded = await host.loadRoute("/ledger-runtime-configurator");
-  assert.equal(loaded.page.id, "evo-ledger-runtime-configurator.home");
-  const html = renderAppHostPageToHtml(loaded);
-  assert.match(html, /Ledger Runtime Configurator/);
-  assert.match(html, /evo-ledger-runtime-configurator\.validate-default/);
 });
 
 test("Plugin Store exposes disable enable and uninstall states", () => {
