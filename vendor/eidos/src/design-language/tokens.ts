@@ -17,6 +17,8 @@ export const eidosDesignTokensV010 = {
   size: {
     activityBarDesktop: 48,
     activityBarMobile: 44,
+    mobileNavigationHeight: 56,
+    mobileChromeMinHeight: 52,
     compactControl: 32,
     normalControl: 36,
     touchTarget: 44,
@@ -76,6 +78,12 @@ export const eidosDesignTokenCss = `
   --eidos-control-normal:36px;
   --eidos-touch-target:44px;
   --eidos-activity-width:48px;
+  --eidos-mobile-nav-height:56px;
+  --eidos-mobile-chrome-min-height:52px;
+  --eidos-safe-area-top:env(safe-area-inset-top,0px);
+  --eidos-safe-area-right:env(safe-area-inset-right,0px);
+  --eidos-safe-area-bottom:env(safe-area-inset-bottom,0px);
+  --eidos-safe-area-left:env(safe-area-inset-left,0px);
   --eidos-side-header-height:40px;
   --eidos-status-height:22px;
 
