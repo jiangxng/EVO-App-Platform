@@ -14,6 +14,9 @@ import {
 import {
   enterpriseContextGovernanceAuthorizationPolicyV010
 } from "../../dist/manager/enterprise-context-authorization.js";
+import {
+  templateStoreAuthorizationPolicyV010
+} from "../../dist/manager/template-store-authorization.js";
 
 const principal = {
   contractVersion: "0.1.0",
@@ -256,5 +259,48 @@ test("deployment explicit deny still overrides Enterprise Context archive baseli
   assert.deepEqual(
     decision.reasonCodes,
     ["STATIC_POLICY_EXPLICIT_DENY", "deployment-deny-archive"]
+  );
+});
+
+test("Template Store copy baseline admits Human copy checks", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      templateStoreAuthorizationPolicyV010
+    )
+  );
+  const decision = await provider.check(
+    check("template.store.copy", "template.store.entry")
+  );
+  assert.equal(decision.allowed, true);
+  assert.deepEqual(
+    decision.reasonCodes,
+    ["STATIC_POLICY_ALLOW", "evo.template-store.copy-to-enterprise"]
+  );
+});
+
+test("deployment explicit deny overrides Template Store copy baseline", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      {
+        contractVersion: "0.1.0",
+        rules: [{
+          id: "deployment-deny-template-copy",
+          effect: "DENY",
+          actions: ["template.store.copy"],
+          actorTypes: ["HUMAN"],
+          resourceTypes: ["template.store.entry"]
+        }]
+      },
+      templateStoreAuthorizationPolicyV010
+    )
+  );
+  const decision = await provider.check(
+    check("template.store.copy", "template.store.entry")
+  );
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(
+    decision.reasonCodes,
+    ["STATIC_POLICY_EXPLICIT_DENY", "deployment-deny-template-copy"]
   );
 });
