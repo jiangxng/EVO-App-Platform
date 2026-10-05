@@ -1781,6 +1781,26 @@ const enterpriseOperatingGraphInspectorProperties =
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
+  installedAtStartup.some(
+    item => item.packageId === "evo-ledger-runtime-configurator"
+  )
+  && !installedAtStartup.some(
+    item => item.packageId === LEDGER_MANAGER_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(LEDGER_MANAGER_PACKAGE_ID);
+    console.log(
+      "Migrated Ledger Configurator product surface to Ledger Manager."
+    );
+  } catch (error) {
+    console.error(
+      "Failed to activate Ledger Manager product cutover.",
+      error
+    );
+  }
+}
+if (
   applicationRuntimeBindingStore.snapshot().bindings.length > 0
   && !manager.getSnapshot().activeFeatures.some(
     item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
