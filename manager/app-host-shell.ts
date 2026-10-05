@@ -5,7 +5,9 @@ function safeAssetRevision(value: string): string {
   return normalized || "dev";
 }
 
-export const appHostShellCss = eidosProductiveWorkbenchCss + `
+export const appHostShellCss = eidosProductiveWorkbenchCss;
+
+export const appHostChromeCss = `
 [data-evo-context-control]{
   display:flex;align-items:center;gap:var(--eidos-space-xs);min-width:0
 }
@@ -47,7 +49,7 @@ export const appHostShellCss = eidosProductiveWorkbenchCss + `
   [data-evo-current-user]>summary>span:last-child{display:none}
 }`;
 
-export function createAppHostShellHtmlV010(assetRevision: string): string {
+export function createAppHostShellHtmlV010export function createAppHostShellHtmlV010(assetRevision: string): string {
   const revision = safeAssetRevision(assetRevision);
   return `<!doctype html>
 <html lang="en">
@@ -56,6 +58,7 @@ export function createAppHostShellHtmlV010(assetRevision: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>EVO</title>
 <link rel="stylesheet" href="/assets/${revision}/manager/app-host-shell.css">
+<style>${appHostChromeCss}</style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
