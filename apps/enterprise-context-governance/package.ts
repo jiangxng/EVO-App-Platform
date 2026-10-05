@@ -6,15 +6,17 @@ import {
   ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010
 } from "../../contracts/template-transfer.js";
 import {
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_SOFTWARE_PAGE_ID,
   ENTERPRISE_SOFTWARE_PAGE_SOURCE,
   ENTERPRISE_SOFTWARE_ROUTE
-} from "./software-page.js";
+} from "./constants.js";
 
-export const ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID =
-  "evo-enterprise-context-governance";
-export const ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID =
-  "evo-enterprise-context-governance.default";
+export {
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID
+} from "./constants.js";
 
 export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
