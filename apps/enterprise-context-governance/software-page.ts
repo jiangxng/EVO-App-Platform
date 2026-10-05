@@ -214,6 +214,7 @@ export function createEnterpriseSoftwarePageV010(input: {
 export function createEnterpriseSoftwareDetailPageV010(input: {
   revision: BusinessDefinitionRevisionV010;
   viewer2dAvailable: boolean;
+  shareAvailable: boolean;
   locale?: string;
 }) {
   const text = localizedText(input.locale);
@@ -305,7 +306,13 @@ export function createEnterpriseSoftwareDetailPageV010(input: {
           values: {
             definitionRevision: input.revision.revision
           },
-          helpText: text.shareHelp
+          enabled: input.shareAvailable,
+          ...(input.shareAvailable
+            ? { helpText: text.shareHelp }
+            : {
+                disabledReason: "Template Store is not available.",
+                helpText: "Template Store is not available."
+              })
         }]
       : []
   } as const;
