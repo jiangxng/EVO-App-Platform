@@ -3,6 +3,7 @@ import type {
   BusinessDefinitionRevisionV010
 } from "../../contracts/enterprise-business-definition.js";
 import type {
+  CatalogBrowserActionV010,
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
@@ -113,6 +114,49 @@ export function createLedgerManagerPageV010(input: {
         )
         ?? projections[0];
 
+      const secondaryActions: CatalogBrowserActionV010[] = [];
+      if (primaryProjection) {
+        secondaryActions.push({
+          id: "preview",
+          label: text.preview,
+          type: "command",
+          command: LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: false,
+          values: {
+            definitionId: item.definitionId,
+            definitionRevision: item.revision,
+            projectionId: primaryProjection.projectionId
+          },
+          enabled: input.viewer2dAvailable,
+          ...(input.viewer2dAvailable
+            ? {}
+            : {
+                disabledReason: text.viewerUnavailable,
+                helpText: text.viewerUnavailable
+              })
+        });
+      }
+      secondaryActions.push({
+        id: "publish",
+        label: text.publish,
+        type: "command",
+        command: LEDGER_MANAGER_PUBLISH_COMMAND,
+        inputVersion: "0.1.0",
+        requiresConfirmation: true,
+        values: {
+          definitionId: item.definitionId,
+          definitionRevision: item.revision
+        },
+        enabled: input.canPublish,
+        ...(input.canPublish
+          ? { helpText: text.publishHelp }
+          : {
+              disabledReason: "OWNER or ADMIN role is required.",
+              helpText: "OWNER or ADMIN role is required."
+            })
+      });
+
       return {
         id: `${item.definitionId}@${item.revision}`,
         title: item.title,
@@ -144,51 +188,7 @@ export function createLedgerManagerPageV010(input: {
             definitionRevision: item.revision
           }
         },
-        secondaryActions: [
-          ...(primaryProjection
-            ? [{
-                id: "preview",
-                label: text.preview,
-                type: "command" as const,
-                command: LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
-                inputVersion: "0.1.0",
-                requiresConfirmation: false,
-                values: {
-                  definitionId: item.definitionId,
-                  definitionRevision: item.revision,
-                  projectionId: primaryProjection.projectionId
-                },
-                enabled: input.viewer2dAvailable,
-                ...(input.viewer2dAvailable
-                  ? {}
-                  : {
-                      disabledReason: text.viewerUnavailable,
-                      helpText: text.viewerUnavailable
-                    })
-              }]
-            : []),
-          {
-            id: "publish",
-            label: text.publish,
-            type: "command" as const,
-            command: LEDGER_MANAGER_PUBLISH_COMMAND,
-            inputVersion: "0.1.0",
-            requiresConfirmation: true,
-            values: {
-              definitionId: item.definitionId,
-              definitionRevision: item.revision
-            },
-            enabled: input.canPublish,
-            ...(input.canPublish
-              ? { helpText: text.publishHelp }
-              : {
-                  disabledReason:
-                    "OWNER or ADMIN role is required.",
-                  helpText:
-                    "OWNER or ADMIN role is required."
-                })
-          }
-        ]
+        secondaryActions
       };
     }),
     emptyMessage: text.empty
