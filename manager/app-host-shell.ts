@@ -14,7 +14,7 @@ export function createAppHostShellHtmlV010(assetRevision: string): string {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="text-scale" content="scale">
 <title>EVO</title>
 <link rel="stylesheet" href="/assets/${revision}/manager/app-host-shell.css">
 </head>
