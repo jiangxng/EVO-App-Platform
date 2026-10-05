@@ -113,31 +113,33 @@ function artifact(
   return value;
 }
 
-function state(
-  value: TemplatePreviewArtifactV010
-): DiagramWorkspaceStateV010 {
-  const diagram = value.diagram2d;
+export function projectReadOnly2dArtifactStateV010(input: {
+  resourceId: string;
+  revision: number;
+  lifecycleState: string;
+  title: string;
+  diagram2d?: Template2dPreviewV010;
+  notice: string;
+}): DiagramWorkspaceStateV010 {
+  const diagram = input.diagram2d;
   if (!diagram) {
     return {
       contractVersion: "0.1.0",
-      resourceId:
-        `template-store:${value.templateId}@${value.templateVersion}`,
-      revision: value.templateVersion,
-      lifecycleState: "TEMPLATE_PREVIEW",
+      resourceId: input.resourceId,
+      revision: input.revision,
+      lifecycleState: input.lifecycleState,
       nodes: [],
       edges: [],
       actions: [],
-      notice: "This template does not provide a 2D preview."
+      notice: input.notice
     };
   }
 
   return {
     contractVersion: "0.1.0",
-    resourceId:
-      `template-store:${value.templateId}@${value.templateVersion}`
-      + (value.projectionId ? `#${value.projectionId}` : ""),
-    revision: value.templateVersion,
-    lifecycleState: "TEMPLATE_PREVIEW",
+    resourceId: input.resourceId,
+    revision: input.revision,
+    lifecycleState: input.lifecycleState,
     nodes: diagram.nodes.map(node => ({
       id: node.id,
       kind: node.kind,
@@ -167,13 +169,28 @@ function state(
         : {})
     })),
     actions: [],
-    notice:
-      `Read-only Template Store preview: ${value.title}. `
-      + "Preview does not copy or modify Enterprise Context."
+    notice: input.notice
   };
 }
 
-function selectionTarget(
+function state(
+  value: TemplatePreviewArtifactV010
+): DiagramWorkspaceStateV010 {
+  return projectReadOnly2dArtifactStateV010({
+    resourceId:
+      `template-store:${value.templateId}@${value.templateVersion}`
+      + (value.projectionId ? `#${value.projectionId}` : ""),
+    revision: value.templateVersion,
+    lifecycleState: "TEMPLATE_PREVIEW",
+    title: value.title,
+    ...(value.diagram2d ? { diagram2d: value.diagram2d } : {}),
+    notice:
+      `Read-only Template Store preview: ${value.title}. `
+      + "Preview does not copy or modify Enterprise Context."
+  });
+}
+
+export function parseReadOnly2dSelectionTargetV010(
   value: JsonValue | undefined
 ): { kind: "node" | "edge"; id: string } {
   if (
@@ -196,7 +213,7 @@ function selectionTarget(
   return { kind, id: id.trim() };
 }
 
-function nodeInspection(
+export function nodeInspectionV010(
   node: TemplatePreviewNodeV010
 ): DiagramWorkspaceSelectionInspectionV010 {
   return {
@@ -214,7 +231,7 @@ function nodeInspection(
   };
 }
 
-function edgeInspection(
+export function edgeInspectionV010(
   edge: TemplatePreviewEdgeV010
 ): DiagramWorkspaceSelectionInspectionV010 {
   return {
@@ -305,15 +322,15 @@ export function createTemplate2dPreviewSelectionReadActionV010(input: {
         if (!diagram) {
           throw new Error("TEMPLATE_2D_PREVIEW_NOT_AVAILABLE");
         }
-        const target = selectionTarget(request.values.target);
+        const target = parseReadOnly2dSelectionTargetV010(request.values.target);
         if (target.kind === "node") {
           const node = diagram.nodes.find(item => item.id === target.id);
           if (!node) throw new Error("TEMPLATE_2D_PREVIEW_NODE_NOT_FOUND");
-          return success(request, nodeInspection(node));
+          return success(request, nodeInspectionV010(node));
         }
         const edge = diagram.edges.find(item => item.id === target.id);
         if (!edge) throw new Error("TEMPLATE_2D_PREVIEW_EDGE_NOT_FOUND");
-        return success(request, edgeInspection(edge));
+        return success(request, edgeInspectionV010(edge));
       } catch (error) {
         return failure(request, error);
       }
