@@ -321,6 +321,7 @@ test("Enterprise Software detail exposes every Projection as a 2D Viewer entry",
   const detail = createEnterpriseSoftwareDetailPageV010({
     revision,
     viewer2dAvailable: true,
+    shareAvailable: true,
     locale: "zh-CN"
   });
   assert.equal(detail.gallery.items.length, 2);
@@ -392,6 +393,7 @@ test("Enterprise Software detail keeps edit/version/share in the same lifecycle 
   const publishedDetail = createEnterpriseSoftwareDetailPageV010({
     revision: published,
     viewer2dAvailable: true,
+    shareAvailable: true,
     locale: "zh-CN"
   });
   assert.equal(publishedDetail.primaryAction.id, "begin-draft");
@@ -416,6 +418,7 @@ test("Enterprise Software detail keeps edit/version/share in the same lifecycle 
   const draftDetail = createEnterpriseSoftwareDetailPageV010({
     revision: draft,
     viewer2dAvailable: true,
+    shareAvailable: true,
     locale: "zh-CN"
   });
   assert.equal(draftDetail.primaryAction.id, "create-version");
