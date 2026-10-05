@@ -1,6 +1,7 @@
 import {
   TEMPLATE_STORE_COPY_COMMAND,
   TEMPLATE_STORE_DETAIL_PAGE_SOURCE,
+  TEMPLATE_STORE_DOWNLOAD_COMMAND,
   TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
   TEMPLATE_STORE_PAGE_SOURCE,
   TEMPLATE_STORE_PREVIEW_2D_COMMAND
@@ -42,12 +43,14 @@ function localizedText(locale: string | undefined) {
       emptyMessage: "暂无可用的共享模板。",
       details: "详情",
       preview: "预览",
+      download: "下载",
       use: "使用模板",
       projectionCount: "投影数量",
       detailHelp: "查看模板版本与可交互的 2D 投影。",
       previewHelp: "使用 2D Viewer 只读查看模板，不会复制或修改企业上下文。",
       previewUnavailable: "未安装 2D Viewer 扩展插件，无法预览。",
       copyHelp: "在 Enterprise Context 仓库中创建独立副本。",
+      downloadHelp: "下载此不可变模板版本的完整 EVO Template Package，包含全部可交互投影。",
       openProjection: "使用 2D Viewer 查看投影"
     };
   }
@@ -61,6 +64,7 @@ function localizedText(locale: string | undefined) {
     emptyMessage: "No shared templates are available.",
     details: "Details",
     preview: "Preview",
+    download: "Download",
     use: "Use template",
     projectionCount: "Projections",
     detailHelp: "Inspect this immutable template version and its interactive 2D projections.",
@@ -70,6 +74,8 @@ function localizedText(locale: string | undefined) {
       "2D Viewer extension is not installed, so preview is unavailable.",
     copyHelp:
       "Creates an independent copy in the Enterprise Context repository.",
+    downloadHelp:
+      "Download this immutable template version as a complete EVO Template Package including all interactive projections.",
     openProjection: "Open projection in 2D Viewer"
   };
 }
@@ -234,6 +240,18 @@ export function createTemplateStoreDetailPageV010(
         }
       }))
     },
+    secondaryActions: [{
+      id: "download",
+      label: text.download,
+      type: "command",
+      command: TEMPLATE_STORE_DOWNLOAD_COMMAND,
+      inputVersion: "0.1.0",
+      requiresConfirmation: false,
+      values: {
+        templateVersion: record.version
+      },
+      helpText: text.downloadHelp
+    }],
     primaryAction: {
       id: "copy",
       label: text.use,
