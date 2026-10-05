@@ -6,6 +6,12 @@ import {
   ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010
 } from "../../contracts/template-transfer.js";
 import {
+  ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
+  ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_CREATE_ROUTE,
+  ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID,
+  ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_SOFTWARE_DETAIL_PAGE_ID,
@@ -62,11 +68,15 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
           experienceId: "evo-enterprise-context-governance",
           packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
           featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
-          defaultRoute: "/enterprise-contexts/new",
+          defaultRoute: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
           pages: [{
-            id: "evo-enterprise-context-governance.create",
+            id: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID,
+            title: "Enterprise Contexts",
+            source: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE
+          }, {
+            id: ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
             title: "Create Enterprise Context",
-            source: "app://evo-enterprise-context-governance/pages/create"
+            source: ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
           }, {
             id: ENTERPRISE_SOFTWARE_PAGE_ID,
             title: "Enterprise Software",
@@ -77,9 +87,13 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             source: ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE
           }],
           routes: [{
-            id: "evo-enterprise-context-governance.create",
-            path: "/enterprise-contexts/new",
-            pageId: "evo-enterprise-context-governance.create"
+            id: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID,
+            path: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
+            pageId: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID
+          }, {
+            id: ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
+            path: ENTERPRISE_CONTEXT_CREATE_ROUTE,
+            pageId: ENTERPRISE_CONTEXT_CREATE_PAGE_ID
           }, {
             id: ENTERPRISE_SOFTWARE_PAGE_ID,
             path: ENTERPRISE_SOFTWARE_ROUTE,
@@ -92,7 +106,7 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
           navigation: [{
             id: "evo-enterprise-context-governance.nav",
             label: "Enterprise Contexts",
-            route: "/enterprise-contexts/new",
+            route: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
             order: 20
           }, {
             id: "evo-enterprise-context-governance.software.nav",
