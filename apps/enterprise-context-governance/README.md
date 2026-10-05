@@ -5,9 +5,15 @@
 `evo-enterprise-context-governance` is the Human-facing management Experience
 for Enterprise Contexts.
 
-Enterprise Context is the governed enterprise backend/control-plane boundary.
+Enterprise Context is a thin enterprise-scoped persistent resource container.
+It provides identity, namespace, persistence and access boundaries; domain
+semantics are owned by independent plugins.
+
+The sole conceptual authority is:
+`docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`.
+
 It is not a physical database, not Ledger Runtime, not Template Store and not
-an Application-owned data store.
+an all-in-one enterprise administration/control-plane application.
 
 Provider/service capabilities remain authoritative for Enterprise Context
 facts. This Application owns the Eidos-facing management journey.
@@ -50,27 +56,21 @@ a parallel IAM or persistence model.
 
 ## Target management information architecture
 
+Keep the Enterprise Context management Experience intentionally small:
+
 ```text
 Enterprise Contexts
   ├─ Directory
-  └─ Create Enterprise
-
-Selected Enterprise Context
-  ├─ Overview
-  ├─ Applications
-  ├─ Organization
-  ├─ Data
-  ├─ Files
-  ├─ Members & Access
-  ├─ Connections
-  ├─ Jobs
-  ├─ Audit
-  ├─ Backup / Export
-  └─ Settings
+  ├─ Create Context
+  └─ Context Detail
+       ├─ identity / lifecycle
+       ├─ current / default state
+       ├─ access / ownership
+       └─ optional generic resource diagnostics
 ```
 
-Sections are projections over stable capabilities and appear only when the
-relevant Provider exists.
+Applications, Organization, Ledger, Files, Jobs, Connections and other domain
+surfaces belong to independent plugins operating against the selected Context.
 
 ## Enterprise Context Directory
 
@@ -184,7 +184,7 @@ facts.
 
 See:
 
-`docs/architecture/ENTERPRISE-CONTEXT-PRODUCT-CONTROL-PLANE-v0.2.md`
+`docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`
 
 That document records lessons from SAP, Oracle Fusion, Microsoft
 Power Platform / Dynamics 365 and Odoo and translates them into EVO design
