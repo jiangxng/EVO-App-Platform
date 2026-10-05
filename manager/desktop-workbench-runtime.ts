@@ -356,6 +356,8 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
               context?: { contextId?: unknown };
               targetContextId?: unknown;
               copiedState?: unknown;
+              selectedContextId?: unknown;
+              navigateTo?: unknown;
             };
           }).result;
 
@@ -367,7 +369,22 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           if (createdContextId) {
             window.localStorage.setItem("evo.context.id", createdContextId);
             await refreshContextControlV010(createdContextId);
-            await workbench?.navigateWorkspace("/enterprise-contexts/software");
+            await workbench?.navigateWorkspace("/enterprise-contexts");
+            return;
+          }
+
+          const selectedContextId =
+            typeof payload?.selectedContextId === "string"
+              ? payload.selectedContextId.trim()
+              : undefined;
+          if (selectedContextId) {
+            window.localStorage.setItem("evo.context.id", selectedContextId);
+            await refreshContextControlV010(selectedContextId);
+            await workbench?.navigateWorkspace(
+              typeof payload?.navigateTo === "string"
+                ? payload.navigateTo
+                : "/enterprise-contexts/software"
+            );
             return;
           }
 
