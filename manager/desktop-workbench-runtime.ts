@@ -358,6 +358,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
               copiedState?: unknown;
               selectedContextId?: unknown;
               defaultContextId?: unknown;
+              archivedContextId?: unknown;
               navigateTo?: unknown;
             };
           }).result;
@@ -386,6 +387,22 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
                 ? payload.navigateTo
                 : "/enterprise-contexts/overview"
             );
+            return;
+          }
+
+          const archivedContextId =
+            typeof payload?.archivedContextId === "string"
+              ? payload.archivedContextId.trim()
+              : undefined;
+          if (archivedContextId) {
+            if (
+              window.localStorage.getItem("evo.context.id")?.trim()
+              === archivedContextId
+            ) {
+              window.localStorage.removeItem("evo.context.id");
+            }
+            await refreshContextControlV010();
+            await workbench?.navigateWorkspace("/enterprise-contexts");
             return;
           }
 
