@@ -64,6 +64,15 @@ function actionButton(
   const help = action.helpText
     ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>`
     : "";
+  if (action.type === "download") {
+    if (!action.href?.startsWith("/")) {
+      throw new Error("EIDOS_CATALOG_DOWNLOAD_HREF_INVALID");
+    }
+    const downloadName = action.downloadFileName
+      ? ` download="${esc(action.downloadFileName)}"`
+      : " download";
+    return `<span data-eidos-action-wrap><a data-eidos-catalog-download="${esc(action.id)}" data-eidos-item-id="${esc(itemId)}" data-eidos-primary="${primary ? "true" : "false"}" href="${esc(action.href)}"${downloadName}>${esc(action.label)}</a>${help}</span>`;
+  }
   return `<span data-eidos-action-wrap><button type="button" ${actionAttributes(itemId, action, primary)}>${esc(action.label)}</button>${help}</span>`;
 }
 
