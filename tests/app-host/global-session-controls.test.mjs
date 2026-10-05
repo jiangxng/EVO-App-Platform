@@ -5,7 +5,6 @@ import {
   currentUserDisplayNameV010
 } from "../../dist/manager/desktop-workbench-runtime.js";
 import {
-  appHostChromeCss,
   appHostShellCss
 } from "../../dist/manager/app-host-shell.js";
 
@@ -30,7 +29,7 @@ test("current user display prefers identity displayName and falls back to subjec
 });
 
 test("EVO global chrome styles current enterprise and current user controls", () => {
-  assert.match(appHostChromeCss, /data-evo-context-select/);
-  assert.match(appHostChromeCss, /data-evo-current-user/);
   assert.match(appHostShellCss, /data-eidos-global-controls/);
+  assert.match(appHostShellCss, /data-eidos-global-control-select/);
+  assert.match(appHostShellCss, /data-eidos-account-control/);
 });
