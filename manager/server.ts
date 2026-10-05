@@ -7,6 +7,7 @@ import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
+import { createMemoryDefinitionProjectionSessionStoreV010 } from "../contracts/definition-projection.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -707,10 +708,16 @@ import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
   ENTERPRISE_SOFTWARE_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
 import {
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
   EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
@@ -811,6 +818,8 @@ Promise<TemplateStoreRepositoryV010> {
 }
 const templatePreviewSessions =
   createMemoryTemplatePreviewSessionStoreV010();
+const enterpriseDefinitionProjectionSessions =
+  createMemoryDefinitionProjectionSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -3563,7 +3572,9 @@ const actionRouter = createAppActionRouter(
     ...[
       ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
       ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-      ENTERPRISE_SOFTWARE_SHARE_COMMAND
+      ENTERPRISE_SOFTWARE_SHARE_COMMAND,
+      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
@@ -3593,7 +3604,13 @@ const actionRouter = createAppActionRouter(
                   templateStoreRepository
                 );
             },
-            id: randomUUID
+            id: randomUUID,
+            projectionSessions: enterpriseDefinitionProjectionSessions,
+            viewerAvailable() {
+              return manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              );
+            }
           });
           const handler = handlers.find(
             candidate => candidate.commandCode === commandCode
