@@ -325,6 +325,9 @@ test("Enterprise Software detail exposes every Projection as a 2D Viewer entry",
   });
   assert.equal(detail.gallery.items.length, 2);
   assert.equal(detail.gallery.primaryItemId, "projection:main");
+  assert.equal(detail.gallery.maxItems, 9);
+  assert.equal(detail.gallery.requireItemActions, true);
+  assert.equal(detail.primaryAction.id, "create-version");
   assert.equal(
     detail.gallery.items.every(
       item => item.action.command === ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
@@ -368,4 +371,54 @@ test("Enterprise Projection Viewer pins exact enterprise revision and projection
   assert.equal(artifact.definitionRevision, 0);
   assert.equal(artifact.projectionId, "projection:finance");
   assert.equal(artifact.title, "Finance");
+});
+
+
+test("Enterprise Software detail keeps edit/version/share in the same lifecycle surface", async () => {
+  const { repository, handler } = setup();
+
+  await handler(ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND).execute(
+    request(
+      ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+      { itemId: "software:runtime", expectedRevision: 0 }
+    ),
+    context()
+  );
+
+  const published = repository.getLatest({
+    enterpriseId: "enterprise:test",
+    definitionId: "software:runtime"
+  });
+  const publishedDetail = createEnterpriseSoftwareDetailPageV010({
+    revision: published,
+    viewer2dAvailable: true,
+    locale: "zh-CN"
+  });
+  assert.equal(publishedDetail.primaryAction.id, "begin-draft");
+  assert.equal(publishedDetail.primaryAction.label, "编辑新版本");
+  assert.equal(
+    publishedDetail.secondaryActions.some(action => action.id === "share"),
+    true
+  );
+
+  await handler(ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND).execute(
+    request(
+      ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+      { itemId: "software:runtime", expectedRevision: published.revision }
+    ),
+    context()
+  );
+
+  const draft = repository.getLatest({
+    enterpriseId: "enterprise:test",
+    definitionId: "software:runtime"
+  });
+  const draftDetail = createEnterpriseSoftwareDetailPageV010({
+    revision: draft,
+    viewer2dAvailable: true,
+    locale: "zh-CN"
+  });
+  assert.equal(draftDetail.primaryAction.id, "create-version");
+  assert.equal(draftDetail.primaryAction.label, "创建版本");
+  assert.equal(draftDetail.secondaryActions.length, 0);
 });
