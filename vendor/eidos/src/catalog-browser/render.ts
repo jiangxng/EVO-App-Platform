@@ -29,6 +29,18 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
 }
 
 function actionButton(itemId: string, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean): string {
+  if (action.type === "download") {
+    if (!action.href?.startsWith("/")) {
+      throw new Error("EIDOS_CATALOG_DOWNLOAD_HREF_INVALID");
+    }
+    const downloadName = action.downloadFileName
+      ? ` download="${esc(action.downloadFileName)}"`
+      : " download";
+    const help = action.helpText
+      ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>`
+      : "";
+    return `<span data-eidos-action-wrap><a data-eidos-catalog-download="${esc(action.id)}" data-eidos-item-id="${esc(itemId)}" data-eidos-primary="${primary ? "true" : "false"}" href="${esc(action.href)}"${downloadName}>${esc(action.label)}</a>${help}</span>`;
+  }
   const command = action.command ? ` data-eidos-command="${esc(action.command)}"` : "";
   const values = action.values
     ? ` data-eidos-action-values="${esc(JSON.stringify(action.values))}"`
