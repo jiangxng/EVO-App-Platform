@@ -28,6 +28,9 @@ if (!shell.includes('eidosProductiveWorkbenchCss')) {
 if (!shell.includes("/manager/app-host-shell.css")) {
   problems.push("App Host shell must reference the revisioned shell stylesheet asset.");
 }
+if (!shell.includes('<meta name="text-scale" content="scale">')) {
+  problems.push("App Host shell must opt into OS/browser system text scaling.");
+}
 if (appHostShellCss !== eidosProductiveWorkbenchCss) {
   problems.push("App Host shell CSS asset must remain exactly the Eidos Productive Workbench stylesheet.");
 }
@@ -116,6 +119,17 @@ if (
   problems.push("Workbench Help must remain an Eidos secondary side-route Activity with semantic help icon.");
 }
 
+if (
+  !desktopRuntime.includes('window.localStorage.getItem("evo.textScale")')
+  || !desktopRuntime.includes("applyEidosTextScalePreferenceV010")
+  || !desktopRuntime.includes('"system", zh ? "跟随系统"')
+  || !desktopRuntime.includes('"small", zh ? "小"')
+  || !desktopRuntime.includes('"standard", zh ? "标准"')
+  || !desktopRuntime.includes('"large", zh ? "大"')
+) {
+  problems.push("Workbench must expose the Eidos system/small/standard/large text-size preference.");
+}
+
 if (problems.length) {
   console.error("Eidos Design Language validation failed:");
   for (const problem of problems) console.error("- " + problem);
@@ -134,5 +148,7 @@ console.log(JSON.stringify({
   reviewDecisionPattern: true,
   managerCssFiles: 0,
   pluginCssFiles: 0,
-  privateMobileShells: false
+  privateMobileShells: false,
+  systemTextScale: true,
+  userTextScalePresets: ["system", "small", "standard", "large"]
 }, null, 2));

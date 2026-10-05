@@ -12,6 +12,17 @@ export const eidosMobileDesignLanguageV010 = {
     sideRailOnPhoneForbidden: true,
     destinationTouchTargetPx: 44
   },
+  typography: {
+    preferenceAuthority: "os-and-user-agent",
+    hostOptIn: "meta-text-scale",
+    sizing: "rem",
+    defaultPreference: "system",
+    userScalePresets: ["system", "small", "standard", "large"],
+    presetAdditionalScale: { small: 0.9, standard: 1, large: 1.15 },
+    userScaleComposesWithSystem: true,
+    fixedPixelFontSizesForbidden: true,
+    overflowStrategy: "reflow-not-clip"
+  },
   content: {
     primaryFlow: "single-column",
     workspaceWidth: "full",

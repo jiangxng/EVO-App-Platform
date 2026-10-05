@@ -5,10 +5,15 @@ import {
   eidosMobileDesignLanguageV010
 } from "../../dist/vendor/eidos/src/design-language/mobile.js";
 import {
+  eidosTextScalePreferencesV010,
+  normalizeEidosTextScalePreferenceV010
+} from "../../dist/vendor/eidos/src/design-language/typography.js";
+import {
   eidosDesignPolicyV010
 } from "../../dist/vendor/eidos/src/design-language/policy.js";
 import {
-  appHostShellCss
+  appHostShellCss,
+  appHostShellHtml
 } from "../../dist/manager/app-host-shell.js";
 
 test("EVO consumes the normative Eidos mobile design language", () => {
@@ -18,6 +23,8 @@ test("EVO consumes the normative Eidos mobile design language", () => {
   assert.equal(eidosMobileDesignLanguageV010.plugin.customMobileShellForbidden, true);
   assert.equal(eidosMobileDesignLanguageV010.plugin.customBreakpointForbidden, true);
   assert.equal(eidosDesignPolicyV010.plugin.inheritResponsiveRealization, true);
+  assert.equal(eidosMobileDesignLanguageV010.typography.defaultPreference, "system");
+  assert.deepEqual(eidosMobileDesignLanguageV010.typography.userScalePresets, ["system", "small", "standard", "large"]);
 });
 
 test("EVO shell receives phone realization from Eidos rather than Host CSS", () => {
@@ -25,4 +32,18 @@ test("EVO shell receives phone realization from Eidos rather than Host CSS", () 
   assert.match(appHostShellCss, /--eidos-mobile-nav-height:56px/);
   assert.match(appHostShellCss, /data-eidos-status-bar\]\{display:none\}/);
   assert.match(appHostShellCss, /data-eidos-account-menu/);
+});
+
+
+test("EVO phone typography follows system size with user presets layered above it", () => {
+  assert.match(appHostShellHtml, /<meta name="text-scale" content="scale">/);
+  assert.deepEqual(
+    eidosTextScalePreferencesV010.map(item => [item.id, item.additionalScale]),
+    [["system", 1], ["small", 0.9], ["standard", 1], ["large", 1.15]]
+  );
+  assert.equal(normalizeEidosTextScalePreferenceV010(undefined), "system");
+  assert.match(appHostShellCss, /data-eidos-text-scale="small"\]\{font-size:90%\}/);
+  assert.match(appHostShellCss, /data-eidos-text-scale="standard"\]\{font-size:100%\}/);
+  assert.match(appHostShellCss, /data-eidos-text-scale="large"\]\{font-size:115%\}/);
+  assert.match(appHostShellCss, /data-eidos-text-scale-control/);
 });

@@ -23,6 +23,11 @@ import {
   createFetchSseRealtimeSourceV010,
   type RealtimeEventV010
 } from "../vendor/eidos/src/realtime/index.js";
+import {
+  applyEidosTextScalePreferenceV010,
+  normalizeEidosTextScalePreferenceV010,
+  type EidosTextScalePreferenceV010
+} from "../vendor/eidos/src/design-language/index.js";
 
 type WorkbenchExperienceSource =
   ExperienceSource
@@ -105,6 +110,14 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     fetchImpl: options.fetchImpl
   });
   let activeLocale = options.initialLocale;
+  let activeTextScale: EidosTextScalePreferenceV010 =
+    normalizeEidosTextScalePreferenceV010(
+      window.localStorage.getItem("evo.textScale")
+    );
+  applyEidosTextScalePreferenceV010(
+    document.documentElement,
+    activeTextScale
+  );
   let contextSelect: HTMLSelectElement | undefined;
   let contextLabel: HTMLSpanElement | undefined;
   let currentUserSummary: HTMLElement | undefined;
@@ -398,6 +411,46 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           row.append(label, data);
           currentUserMenu.append(row);
         }
+
+        const textScaleControl = document.createElement("label");
+        textScaleControl.setAttribute("data-evo-text-scale-control", "");
+        textScaleControl.setAttribute("data-eidos-text-scale-control", "");
+        const textScaleLabel = document.createElement("span");
+        textScaleLabel.textContent = zh ? "字体大小" : "Text size";
+        const textScaleSelect = document.createElement("select");
+        textScaleSelect.setAttribute("aria-label", textScaleLabel.textContent);
+        const textScaleOptions: Array<[
+          EidosTextScalePreferenceV010,
+          string
+        ]> = [
+          ["system", zh ? "跟随系统" : "Follow system"],
+          ["small", zh ? "小" : "Small"],
+          ["standard", zh ? "标准" : "Standard"],
+          ["large", zh ? "大" : "Large"]
+        ];
+        for (const [value, label] of textScaleOptions) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          option.selected = value === activeTextScale;
+          textScaleSelect.appendChild(option);
+        }
+        textScaleSelect.addEventListener("change", () => {
+          activeTextScale = normalizeEidosTextScalePreferenceV010(
+            textScaleSelect.value
+          );
+          if (activeTextScale === "system") {
+            window.localStorage.removeItem("evo.textScale");
+          } else {
+            window.localStorage.setItem("evo.textScale", activeTextScale);
+          }
+          applyEidosTextScalePreferenceV010(
+            document.documentElement,
+            activeTextScale
+          );
+        });
+        textScaleControl.append(textScaleLabel, textScaleSelect);
+        currentUserMenu.append(textScaleControl);
       }
     }
 
