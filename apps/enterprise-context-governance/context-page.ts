@@ -51,29 +51,38 @@ export function createEnterpriseContextDirectoryPageV010(input: {
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const enterprises = [...input.contexts].sort((a, b) =>
-    a.displayName.localeCompare(b.displayName)
+    (a.displayName ?? a.contextId ?? a.enterpriseId ?? "").localeCompare(
+      b.displayName ?? b.contextId ?? b.enterpriseId ?? ""
+    )
   );
 
-  const enterpriseItems = enterprises.map(context => {
+  const enterpriseItems = enterprises.flatMap(context => {
+    const contextId = context.contextId?.trim();
+    const enterpriseId = context.enterpriseId?.trim();
+    if (!contextId || !enterpriseId) return [];
+    const displayName =
+      context.displayName?.trim()
+      || enterpriseId;
+
     const current =
       input.activeContext?.kind === "ENTERPRISE"
-      && input.activeContext.contextId === context.contextId;
+      && input.activeContext.contextId === contextId;
     const code = typeof context.attributes?.code === "string"
       ? context.attributes.code
       : undefined;
 
     return {
-      id: context.contextId,
-      title: context.displayName,
+      id: contextId,
+      title: displayName,
       summary: current ? text.current : text.available,
       badges: current ? [text.current] : [],
       status: {
-        label: current ? text.current : context.lifecycleState,
+        label: current ? text.current : (context.lifecycleState ?? text.available),
         tone: current ? "positive" as const : "neutral" as const
       },
       metadata: {
         ...(code ? { [text.code]: code } : {}),
-        [text.state]: context.lifecycleState
+        [text.state]: context.lifecycleState ?? "ACTIVE"
       },
       primaryAction: {
         id: "enter",
@@ -83,12 +92,12 @@ export function createEnterpriseContextDirectoryPageV010(input: {
         inputVersion: "0.1.0",
         requiresConfirmation: false,
         values: {
-          targetContextId: context.contextId,
-          targetEnterpriseId: context.enterpriseId,
+          targetContextId: contextId,
+          targetEnterpriseId: enterpriseId,
           navigateTo: ENTERPRISE_SOFTWARE_ROUTE
         }
       }
-    };
+    }];
   });
 
   return {
