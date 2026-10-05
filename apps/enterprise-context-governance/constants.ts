@@ -19,6 +19,8 @@ export const ENTERPRISE_CONTEXT_CREATE_ROUTE =
 
 export const ENTERPRISE_CONTEXT_SELECT_COMMAND =
   "enterprise.context.select" as const;
+export const ENTERPRISE_CONTEXT_ARCHIVE_COMMAND =
+  "enterprise.context.archive" as const;
 
 export const ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID =
   "evo-enterprise-context-governance.overview" as const;
