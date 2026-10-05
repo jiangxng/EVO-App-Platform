@@ -574,6 +574,9 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  createEnterpriseContextArchiveActionHandlerV010
+} from "./enterprise-context-archive.js";
+import {
   createEnterpriseContextDefaultActionHandlerV010
 } from "./enterprise-context-default-actions.js";
 import {
@@ -3612,6 +3615,10 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    createEnterpriseContextArchiveActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      resolveAuthorizationProvider
+    }),
     createEnterpriseContextDefaultActionHandlerV010({
       store: enterpriseGovernanceStore,
       listAvailableContexts(principal) {
@@ -5076,6 +5083,12 @@ const server = createServer(async (request, response) => {
           availableContexts: contextRegistry.list(),
           store: enterpriseGovernanceStore
         });
+        const ownerContextIds = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? []
+        ).filter(item =>
+          item.kind === "OWNER" && item.state === "ACTIVE"
+        ).map(item => item.contextId);
         const contexts = contextRegistry.list().flatMap(ref => {
           if (ref.kind !== "ENTERPRISE") return [];
           const resolved = contextRegistry.resolve(ref);
@@ -5093,6 +5106,7 @@ const server = createServer(async (request, response) => {
             contexts,
             activeContext,
             defaultContextId: defaultEnterpriseContext?.contextId,
+            ownerContextIds,
             locale: requestedLocale(url)
           })
         );
