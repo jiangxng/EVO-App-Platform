@@ -3,6 +3,9 @@ import type {
   AppActionHandler,
   AppActionRequestV010
 } from "../actions/contracts.js";
+import {
+  ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010
+} from "../contracts/enterprise-context-preference.js";
 import type {
   ActiveContextRefV010,
   PlatformPrincipalV010,
@@ -16,9 +19,6 @@ import type {
   EnterpriseContextGovernanceStoreV010
 } from "./enterprise-context-governance-store.js";
 
-export const ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND =
-  "enterprise.context.default.set" as const;
-
 export function createEnterpriseContextDefaultActionHandlerV010(input: {
   store: EnterpriseContextGovernanceStoreV010;
   listAvailableContexts(
@@ -29,7 +29,7 @@ export function createEnterpriseContextDefaultActionHandlerV010(input: {
   return {
     packageId: HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
     featureId: HOST_ENTERPRISE_CONTEXT_FEATURE_ID,
-    commandCode: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND,
+    commandCode: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
     async execute(
       request: AppActionRequestV010,
       context?: PlatformRequestContextV010
