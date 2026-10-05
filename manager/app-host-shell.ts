@@ -49,7 +49,7 @@ export const appHostChromeCss = `
   [data-evo-current-user]>summary>span:last-child{display:none}
 }`;
 
-export function createAppHostShellHtmlV010export function createAppHostShellHtmlV010(assetRevision: string): string {
+export function createAppHostShellHtmlV010(assetRevision: string): string {
   const revision = safeAssetRevision(assetRevision);
   return `<!doctype html>
 <html lang="en">
