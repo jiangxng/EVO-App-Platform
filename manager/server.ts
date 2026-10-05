@@ -5040,6 +5040,57 @@ const server = createServer(async (request, response) => {
           })
         );
       }
+      if (source === ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature =>
+            feature.featureId
+            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const selection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        if (!selection) {
+          return json(response, 409, {
+            code: "ENTERPRISE_SOFTWARE_DETAIL_SELECTION_REQUIRED",
+            message: "Choose Details from Enterprise Software first."
+          });
+        }
+        const revision = enterpriseBusinessDefinitionRepository
+          .listHistory({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId
+          })
+          .find(item => item.revision === selection.definitionRevision);
+        if (!revision) {
+          return json(response, 404, {
+            code: "BUSINESS_DEFINITION_REVISION_NOT_FOUND"
+          });
+        }
+        const module = await import(
+          "../apps/enterprise-context-governance/software-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseSoftwareDetailPageV010({
+            revision,
+            viewer2dAvailable:
+              manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              ),
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
       if (source === EOG_EDITOR_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
