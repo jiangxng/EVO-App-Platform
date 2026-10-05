@@ -41,11 +41,30 @@ interface BrowserContextOptionV010 {
   label: string;
 }
 
+interface BrowserPrincipalV010 {
+  subjectId: string;
+  actorType: string;
+  identityProviderId: string;
+  displayName?: string;
+}
+
+interface BrowserSessionSnapshotV010 {
+  sessionId: string;
+  principal: BrowserPrincipalV010;
+}
+
+export function currentUserDisplayNameV010(
+  principal: BrowserPrincipalV010
+): string {
+  return principal.displayName?.trim() || principal.subjectId;
+}
+
 async function loadBrowserContextOptionsV010(
   fetchImpl: typeof fetch
 ): Promise<{
   options: BrowserContextOptionV010[];
   defaultContextId?: string;
+  session?: BrowserSessionSnapshotV010;
 }> {
   const response = await fetchImpl("/v1/contexts/effective", {
     headers: { accept: "application/json" }
@@ -54,6 +73,7 @@ async function loadBrowserContextOptionsV010(
     throw new Error(`CONTEXT_OPTIONS_HTTP_${response.status}`);
   }
   const payload = await response.json() as {
+    session?: BrowserSessionSnapshotV010;
     availableContextOptions?: BrowserContextOptionV010[];
     availableContexts?: BrowserContextOptionV010["ref"][];
     defaultActiveContext?: { contextId?: string };
@@ -66,7 +86,8 @@ async function loadBrowserContextOptionsV010(
       }));
   return {
     options,
-    defaultContextId: payload.defaultActiveContext?.contextId
+    defaultContextId: payload.defaultActiveContext?.contextId,
+    session: payload.session
   };
 }
 
@@ -84,6 +105,11 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     fetchImpl: options.fetchImpl
   });
   let activeLocale = options.initialLocale;
+  let contextSelect: HTMLSelectElement | undefined;
+  let contextLabel: HTMLSpanElement | undefined;
+  let currentUserSummary: HTMLElement | undefined;
+  let currentUserMenu: HTMLElement | undefined;
+  let currentSession: BrowserSessionSnapshotV010 | undefined;
   const initialBundles = await source.listEffectiveLocalizationBundles();
 
   let pendingBootstrapManifests: unknown[] | undefined =
@@ -117,6 +143,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   localization.subscribe(context => {
     activeLocale = context.locale;
     window.localStorage.setItem("evo.locale", context.locale);
+    refreshGlobalControlLabelsV010();
   });
   
   async function refreshLocalizationBundles(): Promise<boolean> {
@@ -340,111 +367,52 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization,
       minSidePanelWidth: 260,
       maxSidePanelWidth: 720,
-      async onActionResult(result, page, renderHint) {
-        if (renderHint?.preserveMountedPage === true) {
-          rememberLocallyAppliedCorrelation(result);
+      mountGlobalControls(container) {
+        function refreshGlobalControlLabelsV010(): void {
+      const zh = activeLocale.toLowerCase().startsWith("zh");
+      if (contextLabel) {
+        contextLabel.textContent = zh ? "当前企业" : "Current enterprise";
+      }
+      if (currentUserSummary) {
+        const principal = currentSession?.principal;
+        currentUserSummary.replaceChildren();
+        const avatar = document.createElement("span");
+        avatar.setAttribute("data-evo-current-user-avatar", "");
+        const label = principal
+          ? currentUserDisplayNameV010(principal)
+          : (zh ? "当前用户" : "Current user");
+        avatar.textContent = label.slice(0, 1).toUpperCase();
+        const name = document.createElement("span");
+        name.textContent = label;
+        currentUserSummary.append(avatar, name);
+      }
+      if (currentUserMenu) {
+        currentUserMenu.replaceChildren();
+        const principal = currentSession?.principal;
+        if (!principal) {
+          currentUserMenu.textContent = zh
+            ? "当前会话用户信息不可用。"
+            : "Current session user is unavailable.";
+          return;
         }
-
-        if (
-          result !== null
-          && typeof result === "object"
-          && !Array.isArray(result)
-          && (result as { ok?: unknown }).ok === true
-        ) {
-          const payload = (result as {
-            result?: {
-              context?: { contextId?: unknown };
-              targetContextId?: unknown;
-              copiedState?: unknown;
-              selectedContextId?: unknown;
-              defaultContextId?: unknown;
-              archivedContextId?: unknown;
-              navigateTo?: unknown;
-            };
-          }).result;
-
-          const createdContextId =
-            page.page.id === "evo-enterprise-context-governance.create"
-            && typeof payload?.context?.contextId === "string"
-              ? payload.context.contextId.trim()
-              : undefined;
-          if (createdContextId) {
-            window.localStorage.setItem("evo.context.id", createdContextId);
-            await refreshContextControlV010(createdContextId);
-            await workbench?.navigateWorkspace("/enterprise-contexts");
-            return;
-          }
-
-          const selectedContextId =
-            typeof payload?.selectedContextId === "string"
-              ? payload.selectedContextId.trim()
-              : undefined;
-          if (selectedContextId) {
-            window.localStorage.setItem("evo.context.id", selectedContextId);
-            await refreshContextControlV010(selectedContextId);
-            await workbench?.navigateWorkspace(
-              typeof payload?.navigateTo === "string"
-                ? payload.navigateTo
-                : "/enterprise-contexts/overview"
-            );
-            return;
-          }
-
-          const archivedContextId =
-            typeof payload?.archivedContextId === "string"
-              ? payload.archivedContextId.trim()
-              : undefined;
-          if (archivedContextId) {
-            if (
-              window.localStorage.getItem("evo.context.id")?.trim()
-              === archivedContextId
-            ) {
-              window.localStorage.removeItem("evo.context.id");
-            }
-            await refreshContextControlV010();
-            await workbench?.navigateWorkspace("/enterprise-contexts");
-            return;
-          }
-
-          const defaultContextId =
-            typeof payload?.defaultContextId === "string"
-              ? payload.defaultContextId.trim()
-              : undefined;
-          if (defaultContextId) {
-            await workbench?.navigateWorkspace("/enterprise-contexts");
-            return;
-          }
-
-          const copiedContextId =
-            typeof payload?.targetContextId === "string"
-            && typeof payload?.copiedState === "string"
-              ? payload.targetContextId.trim()
-              : undefined;
-          if (copiedContextId) {
-            window.localStorage.setItem("evo.context.id", copiedContextId);
-            await refreshContextControlV010(copiedContextId);
-            await workbench?.navigateWorkspace("/enterprise-contexts/applications");
-          }
+        const rows: Array<[string, string]> = [
+          [zh ? "用户" : "User", currentUserDisplayNameV010(principal)],
+          ["Subject", principal.subjectId],
+          [zh ? "身份提供方" : "Identity provider", principal.identityProviderId],
+          [zh ? "会话" : "Session", currentSession?.sessionId ?? "—"]
+        ];
+        for (const [key, value] of rows) {
+          const row = document.createElement("div");
+          row.setAttribute("data-evo-current-user-row", "");
+          const label = document.createElement("span");
+          label.textContent = key;
+          const data = document.createElement("strong");
+          data.textContent = value;
+          row.append(label, data);
+          currentUserMenu.append(row);
         }
       }
-    });
-
-    const contextControl = document.createElement("label");
-    contextControl.setAttribute("data-evo-context-control", "");
-    contextControl.style.display = "grid";
-    contextControl.style.gap = "4px";
-    contextControl.style.marginBottom = "10px";
-    const contextLabel = document.createElement("span");
-    contextLabel.textContent = activeLocale.toLowerCase().startsWith("zh")
-      ? "当前上下文"
-      : "Current Context";
-    contextLabel.style.fontSize = "12px";
-    const contextSelect = document.createElement("select");
-    contextSelect.setAttribute("data-evo-context-select", "");
-    contextSelect.style.width = "100%";
-    contextControl.append(contextLabel, contextSelect);
-    document.querySelector<HTMLElement>("[data-eidos-side-panel-footer]")
-      ?.prepend(contextControl);
+    }
 
     async function refreshContextControlV010(
       preferredContextId?: string
@@ -453,12 +421,15 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         const loaded = await loadBrowserContextOptionsV010(
           options.fetchImpl ?? fetch
         );
+        currentSession = loaded.session;
+        refreshGlobalControlLabelsV010();
         const persisted =
           preferredContextId
           ?? window.localStorage.getItem("evo.context.id")?.trim()
           ?? loaded.defaultContextId;
-        contextSelect.replaceChildren();
+        contextSelect?.replaceChildren();
         for (const item of loaded.options) {
+          if (!contextSelect) break;
           const option = document.createElement("option");
           option.value = item.ref.contextId;
           option.textContent = item.ref.kind === "ENTERPRISE"
@@ -480,14 +451,8 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       }
     }
 
-    contextSelect.addEventListener("change", () => {
-      const selected = contextSelect.value.trim();
-      if (selected) window.localStorage.setItem("evo.context.id", selected);
-      else window.localStorage.removeItem("evo.context.id");
-      void workbench?.refresh();
-    });
     await refreshContextControlV010();
-  
+
     const realtime = createFetchSseRealtimeSourceV010({
       url: () => window.location.origin + "/v1/events",
       fetchImpl: options.fetchImpl
