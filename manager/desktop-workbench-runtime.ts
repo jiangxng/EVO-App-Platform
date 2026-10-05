@@ -363,6 +363,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         currentUserSummary.replaceChildren();
         const avatar = document.createElement("span");
         avatar.setAttribute("data-evo-current-user-avatar", "");
+        avatar.setAttribute("data-eidos-account-avatar", "");
         const label = principal
           ? currentUserDisplayNameV010(principal)
           : (zh ? "当前用户" : "Current user");
@@ -389,6 +390,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         for (const [key, value] of rows) {
           const row = document.createElement("div");
           row.setAttribute("data-evo-current-user-row", "");
+          row.setAttribute("data-eidos-account-row", "");
           const label = document.createElement("span");
           label.textContent = key;
           const data = document.createElement("strong");
@@ -474,18 +476,23 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       mountGlobalControls(container) {
         const contextControl = document.createElement("label");
         contextControl.setAttribute("data-evo-context-control", "");
+        contextControl.setAttribute("data-eidos-global-control", "");
         contextLabel = document.createElement("span");
         contextLabel.setAttribute("data-evo-global-control-label", "");
+        contextLabel.setAttribute("data-eidos-global-control-label", "");
         contextSelect = document.createElement("select");
         contextSelect.setAttribute("data-evo-context-select", "");
+        contextSelect.setAttribute("data-eidos-global-control-select", "");
         contextControl.append(contextLabel, contextSelect);
 
         const userDetails = document.createElement("details");
         userDetails.setAttribute("data-evo-current-user", "");
+        userDetails.setAttribute("data-eidos-account-control", "");
         currentUserSummary = document.createElement("summary");
         currentUserSummary.setAttribute("data-evo-current-user-summary", "");
         currentUserMenu = document.createElement("div");
         currentUserMenu.setAttribute("data-evo-current-user-menu", "");
+        currentUserMenu.setAttribute("data-eidos-account-menu", "");
         userDetails.append(currentUserSummary, currentUserMenu);
 
         const localeControl =
