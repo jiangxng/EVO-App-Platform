@@ -574,6 +574,9 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  enterpriseContextGovernanceAuthorizationPolicyV010
+} from "./enterprise-context-authorization.js";
+import {
   createEnterpriseContextArchiveActionHandlerV010
 } from "./enterprise-context-archive.js";
 import {
@@ -1598,6 +1601,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
   ),
+  enterpriseContextGovernanceAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON
   )
