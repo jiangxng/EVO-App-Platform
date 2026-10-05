@@ -52,6 +52,12 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
   );
   assert.ok(experience);
   assert.equal(experience.defaultRoute, "/enterprise-contexts/new");
+  assert.equal(
+    experience.pages.some(
+      item => item.source === "app://evo-enterprise-context-governance/pages/software"
+    ),
+    true
+  );
 
   const page = manager.loadExperiencePage(
     "app://evo-enterprise-context-governance/pages/create"
@@ -70,7 +76,12 @@ test("Enterprise Context Governance declares provider and authorization dependen
   const feature = enterpriseContextGovernanceAppPackage.features[0];
   assert.deepEqual(
     [...feature.requiresCapabilities].sort(),
-    ["authorization.check", "enterprise.directory"]
+    [
+      "authorization.check",
+      "enterprise.business-definition.repository",
+      "enterprise.directory",
+      "enterprise.template-transfer"
+    ]
   );
   assert.equal(
     feature.contributions.some(
