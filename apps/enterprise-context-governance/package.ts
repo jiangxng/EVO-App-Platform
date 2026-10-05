@@ -1,9 +1,22 @@
 import type { PackageManifestV010 } from "../../contracts/package.js";
+import {
+  ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
+} from "../../contracts/enterprise-business-definition.js";
+import {
+  ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010
+} from "../../contracts/template-transfer.js";
+import {
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_SOFTWARE_PAGE_ID,
+  ENTERPRISE_SOFTWARE_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_ROUTE
+} from "./constants.js";
 
-export const ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID =
-  "evo-enterprise-context-governance";
-export const ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID =
-  "evo-enterprise-context-governance.default";
+export {
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID
+} from "./constants.js";
 
 export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -31,7 +44,9 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
     defaultActivation: true,
     requiresCapabilities: [
       "enterprise.directory",
-      "authorization.check"
+      "authorization.check",
+      ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
+      ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010
     ],
     providesCapabilities: [
       "enterprise.context.governance-experience"
@@ -49,17 +64,30 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             id: "evo-enterprise-context-governance.create",
             title: "Create Enterprise Context",
             source: "app://evo-enterprise-context-governance/pages/create"
+          }, {
+            id: ENTERPRISE_SOFTWARE_PAGE_ID,
+            title: "Enterprise Software",
+            source: ENTERPRISE_SOFTWARE_PAGE_SOURCE
           }],
           routes: [{
             id: "evo-enterprise-context-governance.create",
             path: "/enterprise-contexts/new",
             pageId: "evo-enterprise-context-governance.create"
+          }, {
+            id: ENTERPRISE_SOFTWARE_PAGE_ID,
+            path: ENTERPRISE_SOFTWARE_ROUTE,
+            pageId: ENTERPRISE_SOFTWARE_PAGE_ID
           }],
           navigation: [{
             id: "evo-enterprise-context-governance.nav",
             label: "Enterprise Contexts",
             route: "/enterprise-contexts/new",
             order: 20
+          }, {
+            id: "evo-enterprise-context-governance.software.nav",
+            label: "Enterprise Software",
+            route: ENTERPRISE_SOFTWARE_ROUTE,
+            order: 21
           }]
         }
       },
@@ -79,7 +107,9 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             "field.evo-enterprise-context-governance.create.code.label":
               "Enterprise code",
             "action.evo-enterprise-context-governance.create.create.label":
-              "Create enterprise"
+              "Create enterprise",
+            "navigation.evo-enterprise-context-governance.software.nav.label":
+              "Enterprise Software"
           }
         }
       },
@@ -99,7 +129,9 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             "field.evo-enterprise-context-governance.create.code.label":
               "企业代码",
             "action.evo-enterprise-context-governance.create.create.label":
-              "创建企业"
+              "创建企业",
+            "navigation.evo-enterprise-context-governance.software.nav.label":
+              "企业软件"
           }
         }
       }

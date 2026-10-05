@@ -1,3 +1,7 @@
+import {
+  ENTERPRISE_SOFTWARE_PAGE_SOURCE
+} from "./constants.js";
+
 export const enterpriseContextGovernanceExperienceAssets =
   new Map<string, unknown>([
     [
@@ -42,6 +46,18 @@ export const enterpriseContextGovernanceExperienceAssets =
           creationFactsImmutable: true,
           initialRelationship: "OWNER"
         }
+      }
+    ],
+    [
+      ENTERPRISE_SOFTWARE_PAGE_SOURCE,
+      {
+        contractVersion: "0.1.0",
+        kind: "catalog-browser",
+        id: "evo-enterprise-context-governance.software",
+        title: "Enterprise Software",
+        description: "Select an Enterprise Context to manage enterprise software.",
+        items: [],
+        emptyMessage: "No enterprise software definitions are available."
       }
     ]
   ]);
