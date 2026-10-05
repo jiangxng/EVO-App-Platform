@@ -3,7 +3,7 @@ import { eidosDesignTokenCss } from "./tokens.js";
 export const eidosProductiveWorkbenchCss = `
 ${eidosDesignTokenCss}
 *{box-sizing:border-box}
-html,body,#app{margin:0;width:100%;height:100%;min-height:100%}
+html{font-size:100%;-webkit-text-size-adjust:auto;text-size-adjust:auto}\nhtml,body,#app{margin:0;width:100%;height:100%;min-height:100%}
 body{
   overflow:hidden;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -91,7 +91,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   border-left-color:var(--eidos-fg);
   background:var(--eidos-bg-hover);
 }
-[data-eidos-activity-icon]{font-size:20px;line-height:1}
+[data-eidos-activity-icon]{font-size:1.25rem;line-height:1}
 
 [data-eidos-side-panel]{
   grid-column:2;
@@ -269,7 +269,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   border-radius:50%;
   background:var(--eidos-fg);
   color:var(--eidos-bg);
-  font-size:10px;
+  font-size:.625rem;
   font-weight:700;
 }
 [data-eidos-account-menu]{
@@ -386,7 +386,7 @@ form[data-eidos-id],
 }
 form[data-eidos-id] h1,
 [data-eidos-capability="catalog-browser"]>header h1,
-[data-eidos-settings-editor]>header h1{margin:0 0 var(--eidos-space-md);font-size:20px}
+[data-eidos-settings-editor]>header h1{margin:0 0 var(--eidos-space-md);font-size:1.25rem}
 form[data-eidos-id] label,[data-eidos-setting]{
   display:block;margin:var(--eidos-space-lg) 0;font-size:var(--eidos-font-compact);font-weight:600;
 }
@@ -540,21 +540,21 @@ button[data-eidos-catalog-detail-media]:hover{background:var(--eidos-bg-hover)}
 [data-eidos-extension-protocol]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 [data-eidos-extension-protocol-status]{
   justify-self:start;padding:2px 7px;border-radius:var(--eidos-radius-pill);
-  background:#f1f3f5;text-transform:uppercase;letter-spacing:.05em;font-size:9px;
+  background:#f1f3f5;text-transform:uppercase;letter-spacing:.05em;font-size:.5625rem;
 }
 [data-eidos-extension-identity]>div{display:flex;gap:var(--eidos-space-md);color:var(--eidos-fg-subtle);font-size:var(--eidos-font-meta)}
 [data-eidos-extension-publisher]::before{content:"·";margin-right:var(--eidos-space-md)}
-[data-eidos-extension-category]{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--eidos-fg-subtle)}
+[data-eidos-extension-category]{font-size:.625rem;font-weight:700;letter-spacing:.05em;color:var(--eidos-fg-subtle)}
 [data-eidos-extension-description]{margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-supporting);line-height:1.5}
 [data-eidos-extension-compatibility]{
   display:flex;flex-wrap:wrap;gap:var(--eidos-space-sm) var(--eidos-space-lg);
   padding:var(--eidos-space-md) var(--eidos-space-lg);border-radius:var(--eidos-radius-md);
-  background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);font-size:10px;
+  background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);font-size:.625rem;
 }
 [data-eidos-extension-trust]{
   display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-sm);
   padding:var(--eidos-space-md) var(--eidos-space-lg);border:1px solid var(--eidos-border);
-  border-radius:var(--eidos-radius-md);font-size:10px;background:var(--eidos-bg-subtle);
+  border-radius:var(--eidos-radius-md);font-size:.625rem;background:var(--eidos-bg-subtle);
 }
 [data-eidos-extension-trust][data-level="trusted"] strong{color:var(--eidos-success)}
 [data-eidos-extension-trust][data-level="review"] strong{color:var(--eidos-warning)}
@@ -562,7 +562,7 @@ button[data-eidos-catalog-detail-media]:hover{background:var(--eidos-bg-hover)}
 [data-eidos-extension-integrity]{
   display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-sm);
   padding:var(--eidos-space-md) var(--eidos-space-lg);border:1px solid var(--eidos-border);
-  border-radius:var(--eidos-radius-md);font-size:10px;background:#fbfcfe;
+  border-radius:var(--eidos-radius-md);font-size:.625rem;background:#fbfcfe;
 }
 [data-eidos-extension-integrity][data-state="verified"] strong{color:var(--eidos-success)}
 [data-eidos-extension-integrity][data-state="pending"] strong,
@@ -572,18 +572,18 @@ button[data-eidos-catalog-detail-media]:hover{background:var(--eidos-bg-hover)}
 [data-eidos-extension-permission],
 [data-eidos-extension-runtime-tag]{
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-sm);
-  padding:3px 6px;background:#fafbfc;font-size:10px;color:#555a63;
+  padding:3px 6px;background:#fafbfc;font-size:.625rem;color:#555a63;
 }
 [data-eidos-extension-permission][data-risk="high"]{border-color:#e2b2b2;background:var(--eidos-danger-bg);color:var(--eidos-danger)}
 [data-eidos-extension-permission][data-risk="medium"]{border-color:#e3d5a5;background:#fffaf0;color:var(--eidos-warning)}
 [data-eidos-extension-section]{display:grid;gap:var(--eidos-space-sm)}
 [data-eidos-extension-section-title]{
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--eidos-fg-subtle);
+  font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--eidos-fg-subtle);
 }
 [data-eidos-extension-tags]{display:flex;flex-wrap:wrap;gap:var(--eidos-space-xs)}
 [data-eidos-extension-contribution],[data-eidos-extension-capability],[data-eidos-extension-muted]{
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-sm);
-  padding:3px 6px;background:#fafbfc;font-size:10px;color:#555a63;
+  padding:3px 6px;background:#fafbfc;font-size:.625rem;color:#555a63;
 }
 [data-eidos-extension-capability][data-direction="provides"]::before{content:"+ ";color:var(--eidos-success)}
 [data-eidos-extension-capability][data-direction="requires"]::before{content:"→ ";color:var(--eidos-warning)}
@@ -593,13 +593,13 @@ button[data-eidos-catalog-detail-media]:hover{background:var(--eidos-bg-hover)}
 }
 [data-eidos-extension-runtime-history] summary{
   cursor:pointer;padding:var(--eidos-space-sm) var(--eidos-space-md);
-  font-size:10px;font-weight:700;color:var(--eidos-fg-muted);
+  font-size:.625rem;font-weight:700;color:var(--eidos-fg-muted);
 }
 [data-eidos-extension-runtime-history]>div{border-top:1px solid var(--eidos-border)}
 [data-eidos-extension-runtime-event]{
   display:grid;grid-template-columns:auto auto auto auto minmax(0,1fr);
   gap:var(--eidos-space-sm);align-items:start;padding:6px var(--eidos-space-md);
-  font-size:10px;color:var(--eidos-fg-muted);border-top:1px solid var(--eidos-border);
+  font-size:.625rem;color:var(--eidos-fg-muted);border-top:1px solid var(--eidos-border);
 }
 [data-eidos-extension-runtime-event]:first-child{border-top:0}
 [data-eidos-extension-runtime-event] strong{color:var(--eidos-fg)}
