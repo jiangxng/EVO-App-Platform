@@ -54,6 +54,18 @@ export const EOG_2D_DESIGNER_PAGE_ID = "evo-eog-2d-designer.editor";
 export const EOG_2D_DESIGNER_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/editor";
 export const EOG_2D_DESIGNER_ROUTE = "/operating-graph";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID =
+  "evo-eog-2d-designer.definition-projection";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE =
+  "app://evo-eog-2d-designer/pages/definition-projection";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE =
+  "/definition-projection/edit";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION =
+  "evo-eog-2d.designer.definition-projection.get";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_OPERATION_ACTION =
+  "evo-eog-2d.designer.definition-projection.operation";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION =
+  "evo-eog-2d.designer.definition-projection.selection.get";
 
 /**
  * One installable EOG 2D package with two capability profiles:
@@ -191,11 +203,19 @@ export const eog2dPackage: PackageManifestV010 = {
             id: EOG_2D_DESIGNER_PAGE_ID,
             title: "Enterprise Operating Graph Designer",
             source: EOG_2D_DESIGNER_PAGE_SOURCE
+          }, {
+            id: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID,
+            title: "Enterprise Definition Projection Designer",
+            source: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE
           }],
           routes: [{
             id: EOG_2D_DESIGNER_PAGE_ID,
             path: EOG_2D_DESIGNER_ROUTE,
             pageId: EOG_2D_DESIGNER_PAGE_ID
+          }, {
+            id: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID,
+            path: EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE,
+            pageId: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID
           }],
           navigation: [{
             id: "evo-eog-2d-designer.nav",
