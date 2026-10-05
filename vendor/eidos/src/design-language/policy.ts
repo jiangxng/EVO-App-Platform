@@ -55,20 +55,36 @@ export const eidosDesignPolicyV010 = {
     activityTargetDesktopPx: 48,
     touchTargetMinimumPx: 44
   },
+  mobile: {
+    normativeReference: "Eidos Mobile Design Language v0.1",
+    semanticContract: "shared-with-desktop",
+    primaryNavigation: "bottom",
+    contentFlow: "single-column",
+    secondaryContext: "replace-or-overlay",
+    globalContextChrome: "top-compact",
+    accountDetails: "bottom-sheet",
+    statusBar: "hidden",
+    safeAreaAware: true
+  },
   plugin: {
     inheritHostTokens: true,
     inheritStandardControlRealization: true,
+    inheritResponsiveRealization: true,
     forbiddenByDefault: [
       "custom-shell-layout",
+      "custom-mobile-shell",
+      "custom-breakpoint-system",
       "custom-spacing-scale",
       "custom-focus-system",
-      "competing-standard-button-hierarchy"
+      "competing-standard-button-hierarchy",
+      "device-specific-business-semantics"
     ]
   },
   accessibility: {
     nativeHtmlFirst: true,
     visibleFocusRequired: true,
     colorOnlyStateForbidden: true,
-    ariaRoleRequiresKeyboardBehavior: true
+    ariaRoleRequiresKeyboardBehavior: true,
+    gestureOnlyActionForbidden: true
   }
 } as const;
