@@ -1,3 +1,6 @@
+import {
+  ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010
+} from "../../contracts/enterprise-context-preference.js";
 import type {
   ActiveContextRefV010,
   EnterpriseContextV010
@@ -20,6 +23,8 @@ function textFor(locale?: string) {
         search: "搜索企业",
         empty: "还没有企业上下文。请先创建一家企业。",
         current: "当前企业",
+        default: "默认企业",
+        setDefault: "设为默认",
         available: "可进入",
         enter: "进入企业",
         create: "创建新企业",
@@ -34,6 +39,8 @@ function textFor(locale?: string) {
         search: "Search enterprises",
         empty: "No Enterprise Contexts yet. Create your first enterprise.",
         current: "Current enterprise",
+        default: "Default enterprise",
+        setDefault: "Set default",
         available: "Available",
         enter: "Enter enterprise",
         create: "Create enterprise",
@@ -47,6 +54,7 @@ function textFor(locale?: string) {
 export function createEnterpriseContextDirectoryPageV010(input: {
   contexts: readonly EnterpriseContextV010[];
   activeContext?: ActiveContextRefV010;
+  defaultContextId?: string;
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -67,6 +75,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     const current =
       input.activeContext?.kind === "ENTERPRISE"
       && input.activeContext.contextId === contextId;
+    const isDefault = input.defaultContextId === contextId;
     const code = typeof context.attributes?.code === "string"
       ? context.attributes.code
       : undefined;
@@ -74,8 +83,14 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     return [{
       id: contextId,
       title: displayName,
-      summary: current ? text.current : text.available,
-      badges: current ? [text.current] : [],
+      summary: [
+        current ? text.current : undefined,
+        isDefault ? text.default : undefined
+      ].filter(Boolean).join(" · ") || text.available,
+      badges: [
+        ...(isDefault ? [text.default] : []),
+        ...(current ? [text.current] : [])
+      ],
       status: {
         label: current ? text.current : (context.lifecycleState ?? text.available),
         tone: current ? "positive" as const : "neutral" as const
@@ -84,6 +99,19 @@ export function createEnterpriseContextDirectoryPageV010(input: {
         ...(code ? { [text.code]: code } : {}),
         [text.state]: context.lifecycleState ?? "ACTIVE"
       },
+      secondaryActions: isDefault
+        ? []
+        : [{
+            id: "set-default",
+            label: text.setDefault,
+            type: "command" as const,
+            command: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
+            inputVersion: "0.1.0",
+            requiresConfirmation: false,
+            values: {
+              targetContextId: contextId
+            }
+          }],
       primaryAction: {
         id: "enter",
         label: text.enter,
