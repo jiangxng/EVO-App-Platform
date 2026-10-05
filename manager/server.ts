@@ -705,8 +705,10 @@ import {
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
 import {
+  ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_CONTEXT_SELECT_COMMAND,
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
   ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
@@ -3604,6 +3606,24 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+      featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+      commandCode: ENTERPRISE_CONTEXT_SELECT_COMMAND,
+      async load() {
+        const module = await import(
+          "../apps/enterprise-context-governance/context-actions.js"
+        );
+        return module.createEnterpriseContextSelectionActionHandlerV010({
+          listAvailableContexts(principal) {
+            return createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            ).list();
+          }
+        });
+      }
+    }),
     ...[
       ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
       ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
@@ -4999,6 +5019,46 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature =>
+            feature.featureId
+            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(
+            response,
+            404,
+            { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" }
+          );
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const selected = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
+        );
+        const activeContext = contextRegistry.resolve(selected).activeContext;
+        const contexts = contextRegistry.list().flatMap(ref => {
+          if (ref.kind !== "ENTERPRISE") return [];
+          const resolved = contextRegistry.resolve(ref);
+          return resolved.enterpriseContext
+            ? [resolved.enterpriseContext]
+            : [];
+        });
+        const module = await import(
+          "../apps/enterprise-context-governance/context-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseContextDirectoryPageV010({
+            contexts,
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
       if (source === ENTERPRISE_SOFTWARE_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature =>
