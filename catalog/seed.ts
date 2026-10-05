@@ -173,14 +173,14 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
   displayName: "EVO Ledger Runtime Compiler",
-  version: "0.2.0",
+  version: "0.1.0",
   type: "RUNTIME_EXTENSION",
   features: [
     {
       contractVersion: "0.1.0",
       featureId: "evo-ledger-runtime-configurator.default",
       packageId: "evo-ledger-runtime-configurator",
-      version: "0.2.0",
+      version: "0.1.0",
       activationScope: "INSTALLATION",
       defaultActivation: true,
       requiresCapabilities: ["evo.posting", "evo.ledger"],
