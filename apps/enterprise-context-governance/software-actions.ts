@@ -221,7 +221,8 @@ export function createEnterpriseSoftwareActionHandlersV010(input: {
   repository: BusinessDefinitionRepositoryV010;
   transfer: EnterpriseTemplateTransferProviderV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
-  resolvePublicationProvider(): TemplatePublicationProviderV010 | undefined;
+  resolvePublicationProvider():
+    Promise<TemplatePublicationProviderV010 | undefined>;
   now?: () => Date;
   id?: () => string;
 }): AppActionHandler[] {
@@ -357,7 +358,7 @@ export function createEnterpriseSoftwareActionHandlersV010(input: {
           definitionId,
           definitionRevision
         );
-        const publication = input.resolvePublicationProvider();
+        const publication = await input.resolvePublicationProvider();
         if (!publication) {
           throw new Error("TEMPLATE_STORE_PUBLICATION_UNAVAILABLE");
         }
