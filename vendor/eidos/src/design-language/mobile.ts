@@ -16,7 +16,10 @@ export const eidosMobileDesignLanguageV010 = {
     preferenceAuthority: "os-and-user-agent",
     hostOptIn: "meta-text-scale",
     sizing: "rem",
-    customFontSizeSettingRequired: false,
+    defaultPreference: "system",
+    userScalePresets: ["system", "small", "standard", "large"],
+    presetAdditionalScale: { small: 0.9, standard: 1, large: 1.15 },
+    userScaleComposesWithSystem: true,
     fixedPixelFontSizesForbidden: true,
     overflowStrategy: "reflow-not-clip"
   },
