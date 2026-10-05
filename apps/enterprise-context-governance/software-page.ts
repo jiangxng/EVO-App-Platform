@@ -18,11 +18,11 @@ function localizedText(locale: string | undefined) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
   return zh
     ? {
-        title: "企业软件",
+        title: "应用",
         description:
-          "管理企业上下文中的 Working Draft、不可变版本、投影画廊与模板共享。",
-        search: "搜索企业软件",
-        empty: "当前企业上下文还没有企业软件定义。",
+          "从当前企业上下文查看和管理应用定义、草稿、版本、投影与共享。",
+        search: "搜索应用",
+        empty: "当前企业上下文还没有应用。",
         draft: "Working Draft",
         version: "版本",
         createVersion: "创建版本",
@@ -36,18 +36,18 @@ function localizedText(locale: string | undefined) {
         history: "修订记录",
         source: "来源",
         createVersionHelp:
-          "将当前 Working Draft 冻结为不可变企业软件版本。",
+          "将当前 Working Draft 冻结为不可变应用版本。",
         beginDraftHelp:
-          "从当前不可变版本创建新的 Working Draft。",
+          "从当前不可变应用版本创建新的 Working Draft。",
         shareHelp:
-          "将最近的不可变企业软件版本复制到模板商店；不会建立实时关联。"
+          "将最近的不可变应用版本复制到模板商店；不会建立实时关联。"
       }
     : {
-        title: "Enterprise Software",
+        title: "Applications",
         description:
-          "Manage Working Drafts, immutable versions, Projection Galleries and Template Store sharing in Enterprise Context.",
-        search: "Search enterprise software",
-        empty: "This Enterprise Context has no enterprise software definitions yet.",
+          "View and manage application definitions, drafts, versions, projections and sharing for the current Enterprise Context.",
+        search: "Search applications",
+        empty: "This Enterprise Context has no applications yet.",
         draft: "Working Draft",
         version: "Version",
         createVersion: "Create Version",
@@ -61,11 +61,11 @@ function localizedText(locale: string | undefined) {
         history: "Revisions",
         source: "Origin",
         createVersionHelp:
-          "Freeze the current Working Draft as an immutable enterprise software version.",
+          "Freeze the current Working Draft as an immutable application version.",
         beginDraftHelp:
-          "Create a new Working Draft from the current immutable version.",
+          "Create a new Working Draft from the current immutable application version.",
         shareHelp:
-          "Copy the latest immutable enterprise software version to Template Store without creating a live link."
+          "Copy the latest immutable application version to Template Store without creating a live link."
       };
 }
 
