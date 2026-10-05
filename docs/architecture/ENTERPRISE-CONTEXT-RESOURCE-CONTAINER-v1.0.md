@@ -116,6 +116,7 @@ Recommended minimum envelope:
 EnterpriseResource {
   contextId
   namespace
+  collectionId?
   resourceType
   resourceId
   schemaRef
@@ -164,6 +165,97 @@ Canonical rule:
 > **Context is the container; Plugin is the semantics.**
 
 ---
+
+## 3.3 Resource Collections — the SharePoint List/Library lesson
+
+Inside a namespace, plugins may declare **Resource Collections**.
+
+A Resource Collection is a logical typed collection analogous to a SharePoint
+List/Library, but generalized beyond documents.
+
+```text
+Enterprise Context
+  -> Namespace
+      -> Resource Collection
+          -> Resource Item
+```
+
+Example:
+
+```text
+ABC Context
+├─ evo.ledger
+│   ├─ definitions
+│   │   ├─ default
+│   │   ├─ v1
+│   │   └─ v2
+│   └─ publish-receipts
+│
+├─ evo.organization
+│   ├─ units
+│   └─ relations
+│
+└─ vendor.crm
+    ├─ customer-model
+    └─ configuration
+```
+
+A collection declaration can describe:
+
+```text
+collectionId
+namespace
+resourceType
+schemaRef
+storageProfile
+ownerPackageId
+indexes?
+retentionPolicy?
+accessPolicyRef?
+```
+
+The Core understands the collection contract but not the business meaning of its
+items.
+
+This gives EVO the useful part of the SharePoint pattern:
+
+```text
+SharePoint Site
+  -> List / Library
+      -> Content Type + Columns
+          -> Item / File
+
+EVO Enterprise Context
+  -> Resource Collection
+      -> SchemaRef + Resource Type
+          -> Resource Item
+```
+
+It also gives plugin installation/binding a concrete initialization primitive:
+a plugin may provision or attach to declared collections without needing to
+change Enterprise Context Core.
+
+### Storage profiles
+
+Collections may use different physical storage profiles while preserving one
+logical API:
+
+```text
+DOCUMENT
+  small/medium structured JSON resources
+
+TABLE
+  high-volume typed structured records
+
+OBJECT
+  files / binary / large payloads
+
+REFERENCE
+  externally stored resources addressed by provider reference
+```
+
+The first implementation does not need all profiles, but the contract MUST avoid
+assuming every resource is one JSON row or one file.
 
 ## 4. Logical “big table”, not physical mega-table
 
