@@ -3,6 +3,9 @@ import {
   ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
 } from "../../contracts/enterprise-business-definition.js";
 import {
+  DEFINITION_2D_PREVIEW_ROUTE_V010
+} from "../../contracts/definition-projection.js";
+import {
   TEMPLATE_2D_PREVIEW_ROUTE_V010,
   VISUAL_2D_VIEWER_CAPABILITY_V010
 } from "../../contracts/template-preview.js";
@@ -37,7 +40,7 @@ export const EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID =
 export const EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE =
   "app://evo-eog-2d-viewer/pages/definition-preview";
 export const EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE =
-  "/definition-preview/2d";
+  DEFINITION_2D_PREVIEW_ROUTE_V010;
 export const EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION =
   "evo-eog-2d.viewer.definition-preview.get";
 export const EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION =
