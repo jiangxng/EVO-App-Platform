@@ -11,6 +11,9 @@ import {
   AUTHORIZATION_CHECK_CAPABILITY,
   hostStaticAuthorizationProviderPackage
 } from "../../dist/providers/authorization/package.js";
+import {
+  enterpriseContextGovernanceAuthorizationPolicyV010
+} from "../../dist/manager/enterprise-context-authorization.js";
 
 const principal = {
   contractVersion: "0.1.0",
@@ -205,5 +208,53 @@ test("authorization policy overlays reject duplicate rule ids", () => {
   assert.throws(
     () => mergeHostStaticAuthorizationPoliciesV010(base, overlay),
     /AUTHORIZATION_POLICY_RULE_DUPLICATE/
+  );
+});
+
+test("Enterprise Context archive baseline admits Human governance checks", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      {
+        contractVersion: "0.1.0",
+        rules: []
+      },
+      enterpriseContextGovernanceAuthorizationPolicyV010
+    )
+  );
+
+  const decision = await provider.check(
+    check("enterprise.context.archive", "enterprise.context")
+  );
+  assert.equal(decision.allowed, true);
+  assert.deepEqual(
+    decision.reasonCodes,
+    ["STATIC_POLICY_ALLOW", "evo.enterprise-context.owner-archive"]
+  );
+});
+
+test("deployment explicit deny still overrides Enterprise Context archive baseline", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      {
+        contractVersion: "0.1.0",
+        rules: [{
+          id: "deployment-deny-archive",
+          effect: "DENY",
+          actions: ["enterprise.context.archive"],
+          actorTypes: ["HUMAN"],
+          resourceTypes: ["enterprise.context"]
+        }]
+      },
+      enterpriseContextGovernanceAuthorizationPolicyV010
+    )
+  );
+
+  const decision = await provider.check(
+    check("enterprise.context.archive", "enterprise.context")
+  );
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(
+    decision.reasonCodes,
+    ["STATIC_POLICY_EXPLICIT_DENY", "deployment-deny-archive"]
   );
 });
