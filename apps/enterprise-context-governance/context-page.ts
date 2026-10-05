@@ -10,6 +10,7 @@ import type {
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
   ENTERPRISE_CONTEXT_CREATE_ROUTE,
+  ENTERPRISE_CONTEXT_ARCHIVE_COMMAND,
   ENTERPRISE_CONTEXT_OVERVIEW_ROUTE,
   ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "./constants.js";
@@ -25,6 +26,8 @@ function textFor(locale?: string) {
         current: "当前企业",
         default: "默认企业",
         setDefault: "设为默认",
+        archive: "归档企业",
+        archiveHelp: "从日常企业列表中移除，同时保留创建事实和审计记录。",
         available: "可进入",
         enter: "进入企业",
         create: "创建新企业",
@@ -41,6 +44,8 @@ function textFor(locale?: string) {
         current: "Current enterprise",
         default: "Default enterprise",
         setDefault: "Set default",
+        archive: "Archive enterprise",
+        archiveHelp: "Remove it from normal enterprise use while retaining creation and audit facts.",
         available: "Available",
         enter: "Enter enterprise",
         create: "Create enterprise",
@@ -55,6 +60,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
   contexts: readonly EnterpriseContextV010[];
   activeContext?: ActiveContextRefV010;
   defaultContextId?: string;
+  ownerContextIds?: readonly string[];
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -76,6 +82,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
       input.activeContext?.kind === "ENTERPRISE"
       && input.activeContext.contextId === contextId;
     const isDefault = input.defaultContextId === contextId;
+    const isOwner = input.ownerContextIds?.includes(contextId) === true;
     const code = typeof context.attributes?.code === "string"
       ? context.attributes.code
       : undefined;
@@ -99,19 +106,35 @@ export function createEnterpriseContextDirectoryPageV010(input: {
         ...(code ? { [text.code]: code } : {}),
         [text.state]: context.lifecycleState ?? "ACTIVE"
       },
-      secondaryActions: isDefault
-        ? []
-        : [{
-            id: "set-default",
-            label: text.setDefault,
-            type: "command" as const,
-            command: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
-            inputVersion: "0.1.0",
-            requiresConfirmation: false,
-            values: {
-              targetContextId: contextId
-            }
-          }],
+      secondaryActions: [
+        ...(!isDefault
+          ? [{
+              id: "set-default",
+              label: text.setDefault,
+              type: "command" as const,
+              command: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
+              inputVersion: "0.1.0",
+              requiresConfirmation: false,
+              values: {
+                targetContextId: contextId
+              }
+            }]
+          : []),
+        ...(isOwner
+          ? [{
+              id: "archive",
+              label: text.archive,
+              type: "command" as const,
+              command: ENTERPRISE_CONTEXT_ARCHIVE_COMMAND,
+              inputVersion: "0.1.0",
+              requiresConfirmation: true,
+              helpText: text.archiveHelp,
+              values: {
+                targetContextId: contextId
+              }
+            }]
+          : [])
+      ],
       primaryAction: {
         id: "enter",
         label: text.enter,
