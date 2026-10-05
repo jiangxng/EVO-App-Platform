@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyWebRevisionHeadersV010,
   normalizeClientRevisionV010,
   webRevisionHeadersV010
 } from "../../dist/manager/web-version-skew.js";
@@ -89,4 +90,24 @@ test("stale-client update navigation forces a new shell URL while preserving rou
   ));
   assert.equal(updatedAgain.searchParams.getAll("evo-web-revision").length, 1);
   assert.equal(updatedAgain.searchParams.get("evo-web-revision"), "host-revision-3");
+});
+
+test("web revision headers explicitly clear stale cached update state", () => {
+  const headers = new Map();
+  applyWebRevisionHeadersV010(
+    (name, value) => headers.set(name.toLowerCase(), value),
+    "host-2",
+    "host-2"
+  );
+
+  assert.equal(headers.get("x-evo-host-revision"), "host-2");
+  assert.equal(headers.get("x-evo-client-update"), "current");
+  assert.equal(headers.get("vary"), "x-evo-client-revision");
+
+  applyWebRevisionHeadersV010(
+    (name, value) => headers.set(name.toLowerCase(), value),
+    "host-2",
+    "host-1"
+  );
+  assert.equal(headers.get("x-evo-client-update"), "available");
 });
