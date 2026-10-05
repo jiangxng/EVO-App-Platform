@@ -19,6 +19,7 @@ export function createRevisionAwareBrowserTransportV010(options: {
   importUrl: string;
   fetchImpl?: typeof fetch;
   onUpdateAvailable?: (hostRevision: string) => void;
+  onCurrentRevision?: (hostRevision: string) => void;
   selectedContextId?: () => string | undefined;
 }): RevisionAwareBrowserTransportV010 {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
@@ -55,12 +56,19 @@ export function createRevisionAwareBrowserTransportV010(options: {
     if (sameOrigin) {
       const hostRevision = response.headers.get("x-evo-host-revision")?.trim();
       if (hostRevision) observedHostRevision = hostRevision;
-      const nextUpdateAvailable =
-        response.headers.get("x-evo-client-update") === "available";
-      if (nextUpdateAvailable && !updateAvailable && hostRevision) {
-        options.onUpdateAvailable?.(hostRevision);
+      const nextUpdateAvailable = Boolean(
+        hostRevision
+        && hostRevision !== clientRevision
+        && response.headers.get("x-evo-client-update") === "available"
+      );
+      if (nextUpdateAvailable !== updateAvailable && hostRevision) {
+        if (nextUpdateAvailable) {
+          options.onUpdateAvailable?.(hostRevision);
+        } else if (hostRevision === clientRevision) {
+          options.onCurrentRevision?.(hostRevision);
+        }
       }
-      updateAvailable ||= nextUpdateAvailable;
+      updateAvailable = nextUpdateAvailable;
     }
 
     return response;

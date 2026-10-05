@@ -1,5 +1,6 @@
 export interface BrowserVersionNoticeV010 {
   show(hostRevision: string): void;
+  hide(): void;
   dispose(): void;
 }
 
@@ -63,6 +64,11 @@ export function mountBrowserVersionNoticeV010(): BrowserVersionNoticeV010 {
       root.hidden = false;
       button.disabled = false;
       button.textContent = "Update";
+    },
+    hide() {
+      latestHostRevision = undefined;
+      root.hidden = true;
+      delete root.dataset.hostRevision;
     },
     dispose() {
       root.remove();
