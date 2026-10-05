@@ -3,7 +3,10 @@ import { eidosDesignTokenCss } from "./tokens.js";
 export const eidosProductiveWorkbenchCss = `
 ${eidosDesignTokenCss}
 *{box-sizing:border-box}
-html{font-size:100%;-webkit-text-size-adjust:auto;text-size-adjust:auto}\nhtml,body,#app{margin:0;width:100%;height:100%;min-height:100%}
+html{font-size:100%;-webkit-text-size-adjust:auto;text-size-adjust:auto}
+html[data-eidos-text-scale="small"]{font-size:90%}
+html[data-eidos-text-scale="standard"]{font-size:100%}
+html[data-eidos-text-scale="large"]{font-size:115%}\nhtml,body,#app{margin:0;width:100%;height:100%;min-height:100%}
 body{
   overflow:hidden;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
