@@ -8,11 +8,13 @@ import {
   createEnterpriseTemplateTransferProviderV010
 } from "../../dist/providers/enterprise-context/template-transfer.js";
 import {
-  createEnterpriseSoftwareActionHandlersV010,
+  createEnterpriseSoftwareActionHandlersV010
+} from "../../dist/apps/enterprise-context-governance/software-actions.js";
+import {
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
-} from "../../dist/apps/enterprise-context-governance/software-actions.js";
+} from "../../dist/apps/enterprise-context-governance/constants.js";
 import {
   createEnterpriseSoftwarePageV010
 } from "../../dist/apps/enterprise-context-governance/software-page.js";
