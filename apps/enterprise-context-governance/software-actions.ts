@@ -11,6 +11,10 @@ import type {
   BusinessDefinitionRepositoryV010,
   BusinessDefinitionRevisionV010
 } from "../../contracts/enterprise-business-definition.js";
+import {
+  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  type DefinitionProjectionSessionStoreV010
+} from "../../contracts/definition-projection.js";
 import type {
   AuthorizationProviderV010,
   PlatformRequestContextV010
@@ -26,6 +30,9 @@ import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_DETAIL_ROUTE,
+  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
 } from "./constants.js";
 
@@ -151,6 +158,15 @@ function handler(
   };
 }
 
+function sessionKeys(context: PlatformRequestContextV010): string[] {
+  return [
+    context.principal.sessionId?.trim(),
+    context.principal.subjectId.trim()
+  ].filter((value, index, values): value is string =>
+    Boolean(value) && values.indexOf(value) === index
+  );
+}
+
 function current(
   repository: BusinessDefinitionRepositoryV010,
   enterpriseId: string,
@@ -219,6 +235,8 @@ export function createEnterpriseSoftwareActionHandlersV010(input: {
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
   resolvePublicationProvider():
     Promise<TemplatePublicationProviderV010 | undefined>;
+  projectionSessions: DefinitionProjectionSessionStoreV010;
+  viewerAvailable(): boolean;
   now?: () => Date;
   id?: () => string;
 }): AppActionHandler[] {
@@ -226,6 +244,87 @@ export function createEnterpriseSoftwareActionHandlersV010(input: {
   const id = input.id ?? (() => crypto.randomUUID());
 
   return [
+    handler(
+      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+      async (request, context) => {
+        const scope = enterpriseScope(context);
+        const definitionId = stringValue(request.values, "itemId");
+        const definitionRevision = revisionValue(
+          request.values,
+          "definitionRevision"
+        );
+        const revision = input.repository.listHistory({
+          enterpriseId: scope.enterpriseId,
+          definitionId
+        }).find(item => item.revision === definitionRevision);
+        if (!revision) {
+          throw new Error("BUSINESS_DEFINITION_REVISION_NOT_FOUND");
+        }
+        const selection = {
+          contractVersion: "0.1.0" as const,
+          enterpriseId: scope.enterpriseId,
+          definitionId,
+          definitionRevision,
+          selectedAt: now().toISOString()
+        };
+        for (const key of sessionKeys(context)) {
+          input.projectionSessions.set(key, selection);
+        }
+        return success(request, {
+          message: `Opening details for “${revision.title}”.`,
+          navigateTo: ENTERPRISE_SOFTWARE_DETAIL_ROUTE
+        });
+      }
+    ),
+
+    handler(
+      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
+      async (request, context) => {
+        const scope = enterpriseScope(context);
+        if (!input.viewerAvailable()) {
+          throw new Error(
+            "DEFINITION_2D_VIEWER_NOT_INSTALLED: "
+            + "2D Viewer extension is not installed."
+          );
+        }
+        const definitionId = stringValue(request.values, "itemId");
+        const definitionRevision = revisionValue(
+          request.values,
+          "definitionRevision"
+        );
+        const projectionId = stringValue(request.values, "projectionId");
+        const revision = input.repository.listHistory({
+          enterpriseId: scope.enterpriseId,
+          definitionId
+        }).find(item => item.revision === definitionRevision);
+        if (!revision) {
+          throw new Error("BUSINESS_DEFINITION_REVISION_NOT_FOUND");
+        }
+        if (
+          !revision.projectionGallery?.projections.some(
+            item => item.projectionId === projectionId
+          )
+        ) {
+          throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
+        }
+        const selection = {
+          contractVersion: "0.1.0" as const,
+          enterpriseId: scope.enterpriseId,
+          definitionId,
+          definitionRevision,
+          projectionId,
+          selectedAt: now().toISOString()
+        };
+        for (const key of sessionKeys(context)) {
+          input.projectionSessions.set(key, selection);
+        }
+        return success(request, {
+          message: `Opening 2D projection “${projectionId}”.`,
+          navigateTo: DEFINITION_2D_PREVIEW_ROUTE_V010
+        });
+      }
+    ),
+
     handler(
       ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
       async (request, context) => {
