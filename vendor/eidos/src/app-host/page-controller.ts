@@ -664,7 +664,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               : undefined;
             status().textContent = typeof message === "string"
               ? message
-              : hostText("shell.downloadStarted", "Download started.");
+              : hostText("shell.completed", "Completed.");
           } else if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
             const message = (payload as { message?: unknown }).message;
             const nextAction = (payload as { nextAction?: unknown }).nextAction;
