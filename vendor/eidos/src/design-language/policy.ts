@@ -85,7 +85,8 @@ export const eidosDesignPolicyV010 = {
     hostOptIn: "meta-text-scale",
     sizing: "root-relative",
     fixedPixelFontSizesForbidden: true,
-    productFontScaleOverride: "not-required"
+    productFontScaleOverride: "system-relative-presets",
+    defaultTextScalePreference: "system"
   },
   accessibility: {
     systemTextScaleRequired: true,
