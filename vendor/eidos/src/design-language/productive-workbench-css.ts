@@ -299,6 +299,24 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   font-size:var(--eidos-font-compact);
   font-weight:600;
 }
+[data-eidos-text-scale-control]{
+  display:grid;
+  gap:var(--eidos-space-xs);
+  padding-top:var(--eidos-space-xs);
+}
+[data-eidos-text-scale-control]>span{
+  color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);
+}
+[data-eidos-text-scale-control] select{
+  width:100%;
+  min-height:var(--eidos-control-normal);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);
+  padding:0 var(--eidos-space-md);
+  background:var(--eidos-bg);
+  color:var(--eidos-fg);
+}
 [data-eidos-global-controls] [data-eidos-locale-control]{
   display:flex;
   align-items:center;
@@ -1710,6 +1728,9 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
   [data-eidos-account-avatar]{
     width:28px;
     height:28px;
+  }
+  [data-eidos-text-scale-control] select{
+    min-height:var(--eidos-touch-target);
   }
   [data-eidos-account-menu]{
     position:fixed;
