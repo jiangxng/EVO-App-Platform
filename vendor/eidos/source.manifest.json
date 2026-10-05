@@ -1,13 +1,14 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "718acf47917bec3ab755a21c9f5edd173d21a9ff",
+  "sourceCommit": "352d443ac1b77a239deef10698caa8d14c42846a",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
     "src/2d/index.ts",
     "src/3d/index.ts",
     "src/adapters/ports.ts",
+    "src/app-host/action-download.ts",
     "src/app-host/action-executor.ts",
     "src/app-host/agent-workspace-shell.ts",
     "src/app-host/app-manager-action-host.ts",
