@@ -16,6 +16,8 @@ export const TEMPLATE_STORE_OPEN_DETAIL_COMMAND =
 export const TEMPLATE_STORE_COPY_AUTHORIZATION_ACTION = "template.store.copy";
 export const TEMPLATE_STORE_PREVIEW_2D_COMMAND =
   "evo-template-store.preview-2d";
+export const TEMPLATE_STORE_DOWNLOAD_COMMAND =
+  "evo-template-store.download";
 
 export const templateStorePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
