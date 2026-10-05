@@ -23,15 +23,11 @@ import type {
 } from "../../contracts/template-transfer.js";
 import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
-  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID
-} from "./package.js";
-
-export const ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND =
-  "enterprise.software.create-version";
-export const ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND =
-  "enterprise.software.begin-draft";
-export const ENTERPRISE_SOFTWARE_SHARE_COMMAND =
-  "enterprise.software.share";
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+  ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_SHARE_COMMAND
+} from "./constants.js";
 
 function errorResult(
   request: AppActionRequestV010,
