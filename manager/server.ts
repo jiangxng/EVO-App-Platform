@@ -703,6 +703,14 @@ import {
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
 import {
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+  ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_SHARE_COMMAND
+} from "../apps/enterprise-context-governance/constants.js";
+import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
   EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
@@ -3552,6 +3560,51 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    ...[
+      ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+      ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+      ENTERPRISE_SOFTWARE_SHARE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+        featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import(
+            "../apps/enterprise-context-governance/software-actions.js"
+          );
+          const handlers = module.createEnterpriseSoftwareActionHandlersV010({
+            repository: enterpriseBusinessDefinitionRepository,
+            transfer: enterpriseTemplateTransferProvider,
+            resolveAuthorizationProvider,
+            async resolvePublicationProvider() {
+              const templateStoreActive =
+                manager.getSnapshot().activeFeatures.some(
+                  feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+                );
+              if (!templateStoreActive) return undefined;
+              const [publicationModule, templateStoreRepository] =
+                await Promise.all([
+                  import("../apps/template-store/publication-provider.js"),
+                  resolveTemplateStoreRepository()
+                ]);
+              return publicationModule
+                .createTemplateStorePublicationProviderV010(
+                  templateStoreRepository
+                );
+            },
+            id: randomUUID
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("ENTERPRISE_SOFTWARE_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
     createLazyAppActionHandlerV010({
       packageId: TEMPLATE_STORE_PACKAGE_ID,
       featureId: TEMPLATE_STORE_FEATURE_ID,
@@ -4885,6 +4938,57 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === ENTERPRISE_SOFTWARE_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature =>
+            feature.featureId
+            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(
+            response,
+            404,
+            { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" }
+          );
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : undefined;
+        if (
+          !activeContext
+          || activeContext.kind !== "ENTERPRISE"
+          || !activeContext.enterpriseId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "ENTERPRISE_SOFTWARE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const module = await import(
+          "../apps/enterprise-context-governance/software-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseSoftwarePageV010({
+            enterpriseId: activeContext.enterpriseId,
+            repository: enterpriseBusinessDefinitionRepository,
+            shareAvailable:
+              manager.getSnapshot().activeFeatures.some(
+                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+              ),
+            locale: requestedLocale(url)
+          })
+        );
+      }
       if (source === EOG_EDITOR_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
