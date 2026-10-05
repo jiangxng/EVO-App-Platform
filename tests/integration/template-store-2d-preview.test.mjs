@@ -267,7 +267,9 @@ test("Template Store detail action locks an immutable version before navigation"
   const repository = createMemoryTemplateStoreRepositoryV010(
     templateStoreSeedRecordsV010
   );
-  const sessions = createMemoryTemplatePreviewSessionStoreV010();
+  const sessions = createMemoryTemplatePreviewSessionStoreV010({
+    now: () => Date.parse("2026-10-05T00:00:30.000Z")
+  });
   const detail = createTemplateStoreOpenDetailActionHandlerV010({
     store: repository,
     sessions,
