@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { resolveEidosIconName } from "../dist/vendor/eidos/src/design-language/icons/icon-system.js";
 import { eidosProductiveWorkbenchCss } from "../dist/vendor/eidos/src/design-language/productive-workbench-css.js";
+import { eidosMobileDesignLanguageV010 } from "../dist/vendor/eidos/src/design-language/mobile.js";
 import { appHostShellCss } from "../dist/manager/app-host-shell.js";
 import {
   createHelpIndexPageV010,
@@ -75,6 +76,29 @@ if (managerCss.length) {
   problems.push("App Platform manager owns CSS files instead of delegating visual realization to Eidos: " + managerCss.join(", "));
 }
 
+const pluginCss = findCssFiles(join(root, "apps"));
+if (pluginCss.length) {
+  problems.push("EVO plugins own private CSS instead of using Eidos responsive realization: " + pluginCss.join(", "));
+}
+
+if (
+  eidosMobileDesignLanguageV010.contractVersion !== "0.1.0"
+  || eidosMobileDesignLanguageV010.plugin.customMobileShellForbidden !== true
+  || eidosMobileDesignLanguageV010.plugin.customBreakpointForbidden !== true
+) {
+  problems.push("Vendored Eidos must expose the normative Mobile Design Language v0.1 plugin contract.");
+}
+for (const mobileMarker of [
+  "--eidos-mobile-nav-height:56px",
+  "Eidos Mobile Design Language v0.1 reference realization",
+  '[data-eidos-status-bar]{display:none}',
+  "[data-eidos-account-menu]"
+]) {
+  if (!eidosProductiveWorkbenchCss.includes(mobileMarker)) {
+    problems.push("Vendored Eidos mobile realization is incomplete: " + mobileMarker);
+  }
+}
+
 const corpus = loadHelpCorpusV010();
 const index = createHelpIndexPageV010(corpus, "zh-CN");
 if (index.kind !== "catalog-browser") {
@@ -101,11 +125,14 @@ if (problems.length) {
 console.log(JSON.stringify({
   ok: true,
   authority: "Eidos Productive Design Language v0.1",
+  mobileAuthority: "Eidos Mobile Design Language v0.1",
   shellCssOwner: "Eidos",
   workbenchIcons: iconNames,
   helpNavigator: index.kind,
   helpArticle: document.kind,
   rawHostControls: false,
   reviewDecisionPattern: true,
-  managerCssFiles: 0
+  managerCssFiles: 0,
+  pluginCssFiles: 0,
+  privateMobileShells: false
 }, null, 2));

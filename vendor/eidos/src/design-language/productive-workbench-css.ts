@@ -1571,4 +1571,292 @@ details[data-eidos-settings-group]>summary{cursor:pointer;font-weight:650;font-s
     grid-row:auto;
   }
 }
+
+/* Eidos Mobile Design Language v0.1 reference realization.
+   Phone UI is a semantic reflow of the same capabilities, not a reduced desktop shell. */
+@media(max-width:700px){
+  :root{
+    --eidos-activity-width:var(--eidos-mobile-nav-height);
+  }
+
+  [data-eidos-app-host-layout="workbench"],
+  [data-eidos-app-host-layout="workbench"][data-side-panel-visible="false"]{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto;
+    padding:0;
+  }
+
+  [data-eidos-activity-bar]{
+    grid-column:1;
+    grid-row:2;
+    min-width:0;
+    min-height:calc(var(--eidos-mobile-nav-height) + var(--eidos-safe-area-bottom));
+    flex-direction:row;
+    align-items:flex-start;
+    justify-content:space-between;
+    padding:0 var(--eidos-safe-area-right) var(--eidos-safe-area-bottom) var(--eidos-safe-area-left);
+    border-right:0;
+    border-top:1px solid var(--eidos-border);
+    background:color-mix(in srgb,var(--eidos-bg) 96%,transparent);
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    z-index:20;
+  }
+  [data-eidos-activity-bar]::-webkit-scrollbar{display:none}
+  [data-eidos-activity-primary],
+  [data-eidos-activity-secondary]{
+    min-width:max-content;
+    flex-direction:row;
+    align-items:center;
+  }
+  [data-eidos-activity-secondary]{margin-left:auto}
+  [data-eidos-activity-bar] button{
+    width:var(--eidos-mobile-nav-height);
+    height:var(--eidos-mobile-nav-height);
+    min-width:var(--eidos-mobile-nav-height);
+    min-height:var(--eidos-touch-target);
+    border-left:0;
+    border-top:2px solid transparent;
+  }
+  [data-eidos-activity-bar] button[data-active="true"]{
+    border-left-color:transparent;
+    border-top-color:var(--eidos-fg);
+    background:transparent;
+  }
+
+  [data-eidos-side-panel],
+  [data-eidos-workspace],
+  [data-side-panel-visible="false"] [data-eidos-workspace]{
+    grid-column:1;
+    grid-row:1;
+    width:100%;
+    height:100%;
+    min-width:0;
+    min-height:0;
+    border:0;
+  }
+  [data-eidos-status-bar]{display:none}
+
+  [data-eidos-side-panel-header]{
+    min-height:var(--eidos-mobile-chrome-min-height);
+    flex-basis:var(--eidos-mobile-chrome-min-height);
+    padding-left:max(var(--eidos-space-lg),var(--eidos-safe-area-left));
+    padding-right:max(var(--eidos-space-md),var(--eidos-safe-area-right));
+    text-transform:none;
+    letter-spacing:0;
+    font-size:var(--eidos-font-compact);
+    background:var(--eidos-bg);
+  }
+  [data-eidos-side-panel-header] button{
+    width:var(--eidos-touch-target);
+    height:var(--eidos-touch-target);
+  }
+  [data-eidos-workbench-navigation]{
+    padding:var(--eidos-space-sm) max(var(--eidos-space-md),var(--eidos-safe-area-right))
+      var(--eidos-space-lg) max(var(--eidos-space-md),var(--eidos-safe-area-left));
+  }
+  [data-eidos-workbench-navigation] button{
+    min-height:48px;
+    padding:var(--eidos-space-md) var(--eidos-space-lg);
+    border-radius:var(--eidos-radius-md);
+    font-size:var(--eidos-font-body);
+  }
+
+  [data-eidos-browser-toolbar]{
+    min-height:calc(var(--eidos-mobile-chrome-min-height) + var(--eidos-safe-area-top));
+    grid-template-columns:minmax(0,1fr);
+    padding:var(--eidos-safe-area-top) max(var(--eidos-space-md),var(--eidos-safe-area-right))
+      0 max(var(--eidos-space-md),var(--eidos-safe-area-left));
+    background:var(--eidos-bg);
+  }
+  [data-eidos-browser-address],
+  [data-eidos-browser-go],
+  [data-eidos-browser-external]{display:none!important}
+  [data-eidos-global-controls]{
+    grid-column:1;
+    width:100%;
+    min-height:var(--eidos-mobile-chrome-min-height);
+    justify-content:space-between;
+    gap:var(--eidos-space-sm);
+    padding:0;
+    border:0;
+  }
+  [data-eidos-global-control]{min-width:0}
+  [data-eidos-global-control-select],
+  [data-eidos-global-controls] [data-eidos-locale-control] select{
+    min-height:var(--eidos-touch-target);
+    height:var(--eidos-touch-target);
+    border-radius:var(--eidos-radius-pill);
+  }
+  [data-eidos-global-control-select]{
+    min-width:0;
+    max-width:58vw;
+  }
+  [data-eidos-global-controls] [data-eidos-locale-control] select{
+    min-width:72px;
+    max-width:92px;
+  }
+  [data-eidos-account-control]>summary{
+    min-width:var(--eidos-touch-target);
+    min-height:var(--eidos-touch-target);
+    justify-content:center;
+    padding:0 var(--eidos-space-sm);
+  }
+  [data-eidos-account-avatar]{
+    width:28px;
+    height:28px;
+  }
+  [data-eidos-account-menu]{
+    position:fixed;
+    left:max(var(--eidos-space-lg),var(--eidos-safe-area-left));
+    right:max(var(--eidos-space-lg),var(--eidos-safe-area-right));
+    top:auto;
+    bottom:calc(var(--eidos-mobile-nav-height) + var(--eidos-safe-area-bottom) + var(--eidos-space-lg));
+    width:auto;
+    max-height:min(62dvh,520px);
+    overflow:auto;
+    padding:var(--eidos-space-lg);
+    border-radius:var(--eidos-radius-lg);
+    box-shadow:0 -8px 36px color-mix(in srgb,var(--eidos-fg) 18%,transparent);
+  }
+
+  [data-eidos-workspace-content]{
+    padding:var(--eidos-space-md)
+      max(var(--eidos-space-md),var(--eidos-safe-area-right))
+      var(--eidos-space-xl)
+      max(var(--eidos-space-md),var(--eidos-safe-area-left));
+    background:var(--eidos-bg);
+  }
+
+  form[data-eidos-id],
+  [data-eidos-capability="catalog-browser"],
+  [data-eidos-settings-editor],
+  [data-eidos-settings-editor][data-settings-version="0.2.0"],
+  [data-eidos-review-queue],
+  [data-eidos-help-document],
+  [data-eidos-setup-flow]{
+    width:100%;
+    margin:0;
+    border:0;
+    border-radius:0;
+    padding:var(--eidos-space-md);
+    background:var(--eidos-bg);
+  }
+  form[data-eidos-id] input,
+  form[data-eidos-id] select,
+  [data-eidos-setting] input,
+  [data-eidos-setting] select,
+  [data-eidos-catalog-search] input{
+    min-height:var(--eidos-touch-target);
+    height:var(--eidos-touch-target);
+    border-radius:var(--eidos-radius-md);
+  }
+
+  [data-eidos-catalog-items],
+  [data-eidos-extension-items]{
+    grid-template-columns:1fr;
+    gap:var(--eidos-space-md);
+  }
+  [data-eidos-catalog-item],
+  [data-eidos-extension-item]{
+    gap:var(--eidos-space-md);
+    padding:var(--eidos-space-lg);
+    border-radius:var(--eidos-radius-lg);
+  }
+  [data-eidos-catalog-item] header,
+  [data-eidos-extension-item] header{
+    gap:var(--eidos-space-md);
+  }
+  [data-eidos-catalog-item] footer,
+  [data-eidos-extension-item] footer{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  [data-eidos-catalog-item] [data-eidos-action-wrap],
+  [data-eidos-capability="catalog-detail"] [data-eidos-action-wrap]{
+    width:100%;
+    justify-items:stretch;
+  }
+  [data-eidos-catalog-item] [data-eidos-action-help]{
+    max-width:none;
+    text-align:left;
+  }
+  [data-eidos-catalog-item] footer button,
+  [data-eidos-catalog-item] footer [data-eidos-catalog-download],
+  [data-eidos-extension-item] footer button{
+    width:100%;
+    min-height:var(--eidos-touch-target);
+  }
+
+  [data-eidos-capability="catalog-detail"]{
+    width:100%;
+    grid-template-columns:1fr;
+    gap:var(--eidos-space-lg);
+  }
+  [data-eidos-catalog-detail-thumbnails]{
+    display:flex;
+    gap:var(--eidos-space-sm);
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    padding-bottom:var(--eidos-space-xs);
+  }
+  [data-eidos-catalog-detail-media="thumbnail"]{
+    flex:0 0 min(44vw,180px);
+    scroll-snap-align:start;
+  }
+  [data-eidos-catalog-detail-info]{
+    border-radius:var(--eidos-radius-lg);
+    padding:var(--eidos-space-lg);
+  }
+  [data-eidos-catalog-detail-info] footer{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  [data-eidos-capability="catalog-detail"] button,
+  [data-eidos-capability="catalog-detail"] [data-eidos-catalog-download]{
+    width:100%;
+    min-height:var(--eidos-touch-target);
+  }
+
+  [data-eidos-settings-editor][data-settings-version="0.2.0"] [data-eidos-settings-group]{
+    padding:var(--eidos-space-lg);
+  }
+  [data-eidos-settings-editor][data-settings-version="0.2.0"] [data-eidos-settings-footer]{
+    bottom:0;
+    margin-inline:calc(-1 * var(--eidos-space-md));
+    padding:var(--eidos-space-md);
+    border-top:1px solid var(--eidos-border);
+    background:color-mix(in srgb,var(--eidos-bg) 96%,transparent);
+  }
+  [data-eidos-settings-editor][data-settings-version="0.2.0"] [data-eidos-settings-footer] button{
+    min-height:var(--eidos-touch-target);
+  }
+
+  [data-eidos-chat-transcript]{
+    padding-left:max(var(--eidos-space-md),var(--eidos-safe-area-left));
+    padding-right:max(var(--eidos-space-md),var(--eidos-safe-area-right));
+  }
+  [data-eidos-chat-composer]{
+    margin-left:max(var(--eidos-space-sm),var(--eidos-safe-area-left));
+    margin-right:max(var(--eidos-space-sm),var(--eidos-safe-area-right));
+  }
+
+  [data-eidos-review-actions]{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  [data-eidos-review-actions] button,
+  [data-eidos-review-actions] button[data-eidos-primary="true"]{
+    width:100%;
+    min-height:var(--eidos-touch-target);
+    margin-left:0;
+  }
+}
+
 `;
