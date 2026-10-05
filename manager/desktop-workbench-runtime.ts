@@ -384,7 +384,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
             await workbench?.navigateWorkspace(
               typeof payload?.navigateTo === "string"
                 ? payload.navigateTo
-                : "/enterprise-contexts/software"
+                : "/enterprise-contexts/overview"
             );
             return;
           }
@@ -406,7 +406,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           if (copiedContextId) {
             window.localStorage.setItem("evo.context.id", copiedContextId);
             await refreshContextControlV010(copiedContextId);
-            await workbench?.navigateWorkspace("/enterprise-contexts/software");
+            await workbench?.navigateWorkspace("/enterprise-contexts/applications");
           }
         }
       }
