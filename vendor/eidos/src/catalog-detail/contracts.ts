@@ -8,6 +8,7 @@ export interface CatalogDetailGalleryItemV010 {
   title: string;
   thumbnail: CatalogBrowserThumbnailV010;
   action?: CatalogBrowserActionV010;
+  secondaryActions?: CatalogBrowserActionV010[];
 }
 
 export interface CatalogDetailGalleryV010 {
