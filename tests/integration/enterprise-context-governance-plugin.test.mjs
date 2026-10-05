@@ -62,7 +62,7 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     experience.pages.some(
       item => item.source === "app://evo-enterprise-context-governance/pages/software"
     ),
-    true
+    false
   );
   assert.equal(
     experience.routes.some(
@@ -76,25 +76,13 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     experience.routes.some(
       item =>
         item.path === "/enterprise-contexts/applications"
-        && item.pageId === "evo-enterprise-context-governance.software"
+        && item.pageId === "evo-enterprise-context-governance.overview"
     ),
     true
   );
   assert.deepEqual(
     experience.navigation.map(item => item.route),
-    [
-      "/enterprise-contexts",
-      "/enterprise-contexts/overview",
-      "/enterprise-contexts/applications",
-      "/enterprise-contexts/organization",
-      "/enterprise-contexts/data",
-      "/enterprise-contexts/files",
-      "/enterprise-contexts/members",
-      "/enterprise-contexts/connections",
-      "/enterprise-contexts/jobs",
-      "/enterprise-contexts/audit",
-      "/enterprise-contexts/settings"
-    ]
+    ["/enterprise-contexts"]
   );
 
   const page = manager.loadExperiencePage(
@@ -109,25 +97,11 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
   assert.equal(page.metadata.designOwner, "evo-enterprise-context-governance");
   assert.equal("contexts" in page.metadata, false);
 
-  const overview = manager.loadExperiencePage(
-    "app://evo-enterprise-context-governance/pages/overview"
-  );
-  assert.ok(overview);
-  assert.equal(overview.kind, "catalog-browser");
-  assert.equal(overview.title, "企业概览");
-  assert.deepEqual(
-    overview.items.map(item => item.id),
-    [
-      "applications",
-      "organization",
-      "data",
-      "files",
-      "members",
-      "connections",
-      "jobs",
-      "audit",
-      "settings"
-    ]
+  assert.equal(
+    manager.loadExperiencePage(
+      "app://evo-enterprise-context-governance/pages/overview"
+    ),
+    undefined
   );
 });
 
@@ -137,9 +111,7 @@ test("Enterprise Context Governance declares provider and authorization dependen
     [...feature.requiresCapabilities].sort(),
     [
       "authorization.check",
-      "enterprise.business-definition.repository",
-      "enterprise.directory",
-      "enterprise.template-transfer"
+      "enterprise.directory"
     ]
   );
   assert.equal(
