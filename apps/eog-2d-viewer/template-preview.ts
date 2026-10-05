@@ -5,6 +5,7 @@ import type {
   JsonValue
 } from "../../actions/contracts.js";
 import type {
+  Template2dPreviewV010,
   TemplatePreviewArtifactSourceV010,
   TemplatePreviewArtifactV010,
   TemplatePreviewEdgeV010,
