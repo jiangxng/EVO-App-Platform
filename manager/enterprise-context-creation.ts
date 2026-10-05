@@ -260,7 +260,21 @@ export function createEnterpriseContextCreationActionHandlerV010(
               subjectId: requestContext.principal.subjectId,
               relationshipId: owner.relationshipId
             }
-          ]
+          ],
+          defaultContexts: snapshot.defaultContexts.some(
+            item => item.subjectId === requestContext.principal.subjectId
+          )
+            ? snapshot.defaultContexts
+            : [
+                ...snapshot.defaultContexts,
+                {
+                  contractVersion: "0.1.0",
+                  subjectId: requestContext.principal.subjectId,
+                  contextId,
+                  selectedAt: createdAt,
+                  selectedBySubjectId: requestContext.principal.subjectId
+                }
+              ]
         });
 
         return {
