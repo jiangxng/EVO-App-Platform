@@ -287,7 +287,10 @@ test("Enterprise Software page separates Working Draft from user-facing Version 
   });
   assert.equal(page.items[0].summary, "版本 1");
   assert.equal(page.items[0].primaryAction.label, "编辑新版本");
-  assert.equal(page.items[0].secondaryActions[0].label, "共享到模板商店");
+  assert.equal(
+    page.items[0].secondaryActions.find(action => action.id === "share")?.label,
+    "共享到模板商店"
+  );
 });
 
 
