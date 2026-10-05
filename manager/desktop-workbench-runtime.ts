@@ -353,22 +353,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   let topologyEventTimer: ReturnType<typeof setTimeout> | undefined;
   
   
-    const initialActivities = await loadEffectiveWorkbenchActivities();
-  
-    workbench = await mountWorkbenchShell({
-      host,
-      container: "#app",
-      title: "EVO",
-      defaultActivityId: "plugins",
-      initialWorkspaceRoute: "/store",
-      surfaceId: activeSurfaceId,
-      activities: initialActivities.activities,
-      actionHost,
-      localization,
-      minSidePanelWidth: 260,
-      maxSidePanelWidth: 720,
-      mountGlobalControls(container) {
-        function refreshGlobalControlLabelsV010(): void {
+    function refreshGlobalControlLabelsV010(): void {
       const zh = activeLocale.toLowerCase().startsWith("zh");
       if (contextLabel) {
         contextLabel.textContent = zh ? "当前企业" : "Current enterprise";
@@ -423,25 +408,46 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         );
         currentSession = loaded.session;
         refreshGlobalControlLabelsV010();
-        const persisted =
+
+        const enterpriseOptions = loaded.options.filter(
+          item => item.ref.kind === "ENTERPRISE"
+        );
+        const persistedCandidate =
           preferredContextId
           ?? window.localStorage.getItem("evo.context.id")?.trim()
           ?? loaded.defaultContextId;
+        const persisted = enterpriseOptions.some(
+          item => item.ref.contextId === persistedCandidate
+        )
+          ? persistedCandidate
+          : loaded.defaultContextId
+            && enterpriseOptions.some(
+              item => item.ref.contextId === loaded.defaultContextId
+            )
+              ? loaded.defaultContextId
+              : enterpriseOptions[0]?.ref.contextId;
+
         contextSelect?.replaceChildren();
-        for (const item of loaded.options) {
-          if (!contextSelect) break;
+        if (contextSelect && enterpriseOptions.length === 0) {
           const option = document.createElement("option");
-          option.value = item.ref.contextId;
-          option.textContent = item.ref.kind === "ENTERPRISE"
-            ? `🏢 ${item.label}`
-            : `👤 ${item.label}`;
-          option.selected = item.ref.contextId === persisted;
+          option.value = "";
+          option.textContent = activeLocale.toLowerCase().startsWith("zh")
+            ? "暂无企业"
+            : "No enterprise";
           contextSelect.appendChild(option);
+          contextSelect.disabled = true;
+        } else if (contextSelect) {
+          contextSelect.disabled = false;
+          for (const item of enterpriseOptions) {
+            const option = document.createElement("option");
+            option.value = item.ref.contextId;
+            option.textContent = `🏢 ${item.label}`;
+            option.selected = item.ref.contextId === persisted;
+            contextSelect.appendChild(option);
+          }
         }
-        if (
-          persisted
-          && loaded.options.some(item => item.ref.contextId === persisted)
-        ) {
+
+        if (persisted) {
           window.localStorage.setItem("evo.context.id", persisted);
         } else {
           window.localStorage.removeItem("evo.context.id");
@@ -450,9 +456,24 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         console.error("Failed to refresh Enterprise Context selector.", error);
       }
     }
-
-    await refreshContextControlV010();
-
+  
+    const initialActivities = await loadEffectiveWorkbenchActivities();
+  
+    workbench = await mountWorkbenchShell({
+      host,
+      container: "#app",
+      title: "EVO",
+      defaultActivityId: "plugins",
+      initialWorkspaceRoute: "/store",
+      surfaceId: activeSurfaceId,
+      activities: initialActivities.activities,
+      actionHost,
+      localization,
+      minSidePanelWidth: 260,
+      maxSidePanelWidth: 720,
+      mountGlobalControls(container) {
+        await refreshContextControlV010();
+  
     const realtime = createFetchSseRealtimeSourceV010({
       url: () => window.location.origin + "/v1/events",
       fetchImpl: options.fetchImpl
