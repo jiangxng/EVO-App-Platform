@@ -27,3 +27,12 @@ export const ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND =
   "enterprise.software.open-detail" as const;
 export const ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND =
   "enterprise.software.preview-projection" as const;
+
+export const ENTERPRISE_SOFTWARE_EDIT_PROJECTION_COMMAND =
+  "enterprise.software.edit-projection" as const;
+export const ENTERPRISE_SOFTWARE_SET_PRIMARY_PROJECTION_COMMAND =
+  "enterprise.software.set-primary-projection" as const;
+export const ENTERPRISE_SOFTWARE_ADD_PROJECTION_COMMAND =
+  "enterprise.software.add-projection" as const;
+export const ENTERPRISE_SOFTWARE_REMOVE_PROJECTION_COMMAND =
+  "enterprise.software.remove-projection" as const;
