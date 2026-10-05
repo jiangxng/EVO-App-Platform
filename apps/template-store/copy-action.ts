@@ -38,6 +38,10 @@ export interface TemplateStoreCopyActionDependenciesV010 {
   resolveDefaultEnterpriseContext?(
     principal: PlatformPrincipalV010
   ): Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> | undefined;
+  canManageEnterpriseContext?(
+    principal: PlatformPrincipalV010,
+    contextId: string
+  ): boolean;
   now?: () => Date;
   id?: () => string;
 }
@@ -206,6 +210,15 @@ export function createTemplateStoreCopyActionHandlerV010(
         );
         const targetContextId = targetContext.contextId;
         const targetEnterpriseId = targetContext.enterpriseId.trim();
+        if (
+          dependencies.canManageEnterpriseContext
+          && !dependencies.canManageEnterpriseContext(
+            context.principal,
+            targetContextId
+          )
+        ) {
+          throw new Error("TEMPLATE_STORE_TARGET_CONTEXT_MANAGE_REQUIRED");
+        }
         const targetDefinitionId = optionalStringValue(
           request.values,
           "targetDefinitionId"

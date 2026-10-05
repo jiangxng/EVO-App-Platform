@@ -577,6 +577,9 @@ import {
   enterpriseContextGovernanceAuthorizationPolicyV010
 } from "./enterprise-context-authorization.js";
 import {
+  templateStoreAuthorizationPolicyV010
+} from "./template-store-authorization.js";
+import {
   createEnterpriseContextArchiveActionHandlerV010
 } from "./enterprise-context-archive.js";
 import {
@@ -1602,6 +1605,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
   ),
   enterpriseContextGovernanceAuthorizationPolicyV010,
+  templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON
   )
@@ -3732,6 +3736,16 @@ const actionRouter = createAppActionRouter(
               availableContexts: registry.list(),
               store: enterpriseGovernanceStore
             });
+          },
+          canManageEnterpriseContext(principal, contextId) {
+            return (
+              resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(principal) ?? []
+            ).some(item =>
+              item.contextId === contextId
+              && item.state === "ACTIVE"
+              && (item.kind === "OWNER" || item.kind === "ADMIN")
+            );
           }
         });
       }

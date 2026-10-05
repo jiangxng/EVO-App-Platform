@@ -63,7 +63,7 @@ function context(actorType = "HUMAN", activeEnterprise) {
   };
 }
 
-function setup({ allowed = true, enterpriseContexts, defaultContextId } = {}) {
+function setup({ allowed = true, enterpriseContexts, defaultContextId, canManage = true } = {}) {
   const definitions = createMemoryBusinessDefinitionRepositoryV010();
   const transfer = createEnterpriseTemplateTransferProviderV010(definitions);
   const store = createMemoryTemplateStoreRepositoryV010();
@@ -125,6 +125,7 @@ function setup({ allowed = true, enterpriseContexts, defaultContextId } = {}) {
         item => item.kind === "ENTERPRISE" && item.contextId === defaultContextId
       );
     },
+    canManageEnterpriseContext: () => canManage,
     resolveAuthorizationProvider: () => ({
       providerId: "test.authorization",
       check() {
@@ -307,4 +308,11 @@ test("Template Store Copy honors authorization denial", async () => {
   const result = await handler.execute(request(), context());
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "TEST_DENY");
+});
+
+test("Template Store Copy requires enterprise management role", async () => {
+  const { handler } = setup({ canManage: false });
+  const result = await handler.execute(request(), context());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "TEMPLATE_STORE_TARGET_CONTEXT_MANAGE_REQUIRED");
 });
