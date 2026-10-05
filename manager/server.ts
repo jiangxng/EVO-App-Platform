@@ -4601,7 +4601,7 @@ const server = createServer(async (request, response) => {
       const etag = representationEtag(appHostShellHtml);
       applyCors(response);
       response.setHeader("etag", etag);
-      response.setHeader("cache-control", "no-cache");
+      response.setHeader("cache-control", "no-store");
       if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
         transportTraffic.recordNotModified();
         response.statusCode = 304;
