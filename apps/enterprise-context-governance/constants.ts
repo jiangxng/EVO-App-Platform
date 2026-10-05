@@ -20,6 +20,72 @@ export const ENTERPRISE_CONTEXT_CREATE_ROUTE =
 export const ENTERPRISE_CONTEXT_SELECT_COMMAND =
   "enterprise.context.select" as const;
 
+export const ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID =
+  "evo-enterprise-context-governance.overview" as const;
+export const ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/overview" as const;
+export const ENTERPRISE_CONTEXT_OVERVIEW_ROUTE =
+  "/enterprise-contexts/overview" as const;
+
+export const ENTERPRISE_APPLICATIONS_ROUTE =
+  "/enterprise-contexts/applications" as const;
+
+export const ENTERPRISE_CONTEXT_ORGANIZATION_PAGE_ID =
+  "evo-enterprise-context-governance.organization" as const;
+export const ENTERPRISE_CONTEXT_ORGANIZATION_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/organization" as const;
+export const ENTERPRISE_CONTEXT_ORGANIZATION_ROUTE =
+  "/enterprise-contexts/organization" as const;
+
+export const ENTERPRISE_CONTEXT_DATA_PAGE_ID =
+  "evo-enterprise-context-governance.data" as const;
+export const ENTERPRISE_CONTEXT_DATA_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/data" as const;
+export const ENTERPRISE_CONTEXT_DATA_ROUTE =
+  "/enterprise-contexts/data" as const;
+
+export const ENTERPRISE_CONTEXT_FILES_PAGE_ID =
+  "evo-enterprise-context-governance.files" as const;
+export const ENTERPRISE_CONTEXT_FILES_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/files" as const;
+export const ENTERPRISE_CONTEXT_FILES_ROUTE =
+  "/enterprise-contexts/files" as const;
+
+export const ENTERPRISE_CONTEXT_MEMBERS_PAGE_ID =
+  "evo-enterprise-context-governance.members" as const;
+export const ENTERPRISE_CONTEXT_MEMBERS_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/members" as const;
+export const ENTERPRISE_CONTEXT_MEMBERS_ROUTE =
+  "/enterprise-contexts/members" as const;
+
+export const ENTERPRISE_CONTEXT_CONNECTIONS_PAGE_ID =
+  "evo-enterprise-context-governance.connections" as const;
+export const ENTERPRISE_CONTEXT_CONNECTIONS_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/connections" as const;
+export const ENTERPRISE_CONTEXT_CONNECTIONS_ROUTE =
+  "/enterprise-contexts/connections" as const;
+
+export const ENTERPRISE_CONTEXT_JOBS_PAGE_ID =
+  "evo-enterprise-context-governance.jobs" as const;
+export const ENTERPRISE_CONTEXT_JOBS_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/jobs" as const;
+export const ENTERPRISE_CONTEXT_JOBS_ROUTE =
+  "/enterprise-contexts/jobs" as const;
+
+export const ENTERPRISE_CONTEXT_AUDIT_PAGE_ID =
+  "evo-enterprise-context-governance.audit" as const;
+export const ENTERPRISE_CONTEXT_AUDIT_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/audit" as const;
+export const ENTERPRISE_CONTEXT_AUDIT_ROUTE =
+  "/enterprise-contexts/audit" as const;
+
+export const ENTERPRISE_CONTEXT_SETTINGS_PAGE_ID =
+  "evo-enterprise-context-governance.settings" as const;
+export const ENTERPRISE_CONTEXT_SETTINGS_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/settings" as const;
+export const ENTERPRISE_CONTEXT_SETTINGS_ROUTE =
+  "/enterprise-contexts/settings" as const;
+
 export const ENTERPRISE_SOFTWARE_PAGE_ID =
   "evo-enterprise-context-governance.software" as const;
 export const ENTERPRISE_SOFTWARE_PAGE_SOURCE =

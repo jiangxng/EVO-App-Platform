@@ -10,8 +10,8 @@ import type {
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
   ENTERPRISE_CONTEXT_CREATE_ROUTE,
-  ENTERPRISE_CONTEXT_SELECT_COMMAND,
-  ENTERPRISE_SOFTWARE_ROUTE
+  ENTERPRISE_CONTEXT_OVERVIEW_ROUTE,
+  ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "./constants.js";
 
 function textFor(locale?: string) {
@@ -122,7 +122,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
         values: {
           targetContextId: contextId,
           targetEnterpriseId: enterpriseId,
-          navigateTo: ENTERPRISE_SOFTWARE_ROUTE
+          navigateTo: ENTERPRISE_CONTEXT_OVERVIEW_ROUTE
         }
       }
     }];
