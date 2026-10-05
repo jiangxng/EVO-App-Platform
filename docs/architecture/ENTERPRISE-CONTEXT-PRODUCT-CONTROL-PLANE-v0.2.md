@@ -1,6 +1,8 @@
-# Enterprise Context Product Control Plane — Reference Design v0.2
+# Enterprise Context Product Control Plane — Historical Reference v0.2
 
-**Status:** Design convergence reference
+> **SUPERSEDED:** The canonical product role is now defined only by `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`. The broad control-plane information architecture in this document MUST NOT be used as the current product direction.
+
+**Status:** SUPERSEDED — historical design reference
 **Date:** 2026-10-05
 **Scope:** Enterprise Context creation and management experience
 **Stable dependencies:** Ledger Runtime and Template Store are treated as stable external capabilities for this design slice.

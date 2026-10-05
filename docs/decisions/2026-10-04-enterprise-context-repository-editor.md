@@ -1,7 +1,9 @@
 # Decision Record — Enterprise Context Is a Repository; Editor Is a Separate Application
 
+> **Current authority:** `docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`. The repository/editor separation remains valid, but Enterprise Context is now explicitly a thin generic Resource Container rather than a definition-specific repository.
+
 **Document class:** DECISION_RECORD  
-**Status:** Accepted  
+**Status:** SUPERSEDED IN PART — historical decision record  
 **Date:** 2026-10-04
 
 ## Decision
