@@ -357,6 +357,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
               targetContextId?: unknown;
               copiedState?: unknown;
               selectedContextId?: unknown;
+              defaultContextId?: unknown;
               navigateTo?: unknown;
             };
           }).result;
@@ -385,6 +386,15 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
                 ? payload.navigateTo
                 : "/enterprise-contexts/software"
             );
+            return;
+          }
+
+          const defaultContextId =
+            typeof payload?.defaultContextId === "string"
+              ? payload.defaultContextId.trim()
+              : undefined;
+          if (defaultContextId) {
+            await workbench?.navigateWorkspace("/enterprise-contexts");
             return;
           }
 
