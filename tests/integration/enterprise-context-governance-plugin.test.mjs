@@ -51,7 +51,13 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     item => item.experienceId === "evo-enterprise-context-governance"
   );
   assert.ok(experience);
-  assert.equal(experience.defaultRoute, "/enterprise-contexts/new");
+  assert.equal(experience.defaultRoute, "/enterprise-contexts");
+  assert.equal(
+    experience.pages.some(
+      item => item.source === "app://evo-enterprise-context-governance/pages/directory"
+    ),
+    true
+  );
   assert.equal(
     experience.pages.some(
       item => item.source === "app://evo-enterprise-context-governance/pages/software"
