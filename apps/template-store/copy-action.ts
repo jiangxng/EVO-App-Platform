@@ -134,9 +134,10 @@ function resolveEnterpriseContext(
     return explicit;
   }
 
-  if (context.context.activeContext.kind === "ENTERPRISE") {
+  const activeContext = context.context?.activeContext;
+  if (activeContext?.kind === "ENTERPRISE") {
     const selected = targets.find(
-      item => item.contextId === context.context.activeContext.contextId
+      item => item.contextId === activeContext.contextId
     );
     if (selected) return selected;
   }
