@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "352d443ac1b77a239deef10698caa8d14c42846a",
+  "sourceCommit": "e4dae946e1709e693ad2b90d62f73bb529e7724e",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
