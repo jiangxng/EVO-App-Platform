@@ -1,0 +1,68 @@
+import type {
+  DefinitionProjectionArtifactSourceV010,
+  DefinitionProjectionArtifactV010
+} from "../../contracts/definition-projection.js";
+import type {
+  BusinessDefinitionRepositoryV010,
+  BusinessDefinitionRevisionV010
+} from "../../contracts/enterprise-business-definition.js";
+import {
+  applyDefinitionProjectionV010,
+  buildDefinition2dBaseV010
+} from "../../eog/definition-projection.js";
+
+function resolveRevision(
+  repository: BusinessDefinitionRepositoryV010,
+  input: {
+    enterpriseId: string;
+    definitionId: string;
+    definitionRevision?: number;
+  }
+): BusinessDefinitionRevisionV010 | undefined {
+  if (input.definitionRevision === undefined) {
+    return repository.getLatest({
+      enterpriseId: input.enterpriseId,
+      definitionId: input.definitionId
+    });
+  }
+  return repository.listHistory({
+    enterpriseId: input.enterpriseId,
+    definitionId: input.definitionId
+  }).find(item => item.revision === input.definitionRevision);
+}
+
+export function createEnterpriseDefinitionProjectionArtifactSourceV010(
+  repository: BusinessDefinitionRepositoryV010
+): DefinitionProjectionArtifactSourceV010 {
+  return {
+    get(input) {
+      const revision = resolveRevision(repository, input);
+      if (!revision) return undefined;
+      const projected = applyDefinitionProjectionV010({
+        diagram: buildDefinition2dBaseV010(revision.payload),
+        ...(revision.projectionGallery
+          ? { gallery: revision.projectionGallery }
+          : {}),
+        ...(input.projectionId ? { projectionId: input.projectionId } : {})
+      });
+      const artifact: DefinitionProjectionArtifactV010 = {
+        contractVersion: "0.1.0",
+        enterpriseId: revision.enterpriseId,
+        definitionId: revision.definitionId,
+        definitionRevision: revision.revision,
+        ...(projected.projectionId
+          ? { projectionId: projected.projectionId }
+          : {}),
+        title: projected.title ?? revision.title,
+        ...(projected.description
+          ? { description: projected.description }
+          : {}),
+        definitionKind: revision.kind,
+        ...(projected.diagram2d
+          ? { diagram2d: projected.diagram2d }
+          : {})
+      };
+      return artifact;
+    }
+  };
+}
