@@ -67,7 +67,7 @@ function activeContextFromValue(value: unknown): ActiveContextRefV010 | undefine
   throw new Error("ACTIVE_CONTEXT_INVALID");
 }
 
-function contextFromHeader(
+export function contextFromHeaderV010(
   headers: IncomingHttpHeaders,
   registry: HostContextRegistryV010
 ): ActiveContextRefV010 | undefined {
@@ -91,7 +91,7 @@ export function createPlatformRequestContextV010(
   locale?: string
 ): PlatformRequestContextV010 {
   const selection = activeContextFromValue(action.values.activeContext)
-    ?? contextFromHeader(headers, registry);
+    ?? contextFromHeaderV010(headers, registry);
   const context = registry.resolve(selection);
   const principal = {
     ...structuredClone(session.principal),
