@@ -34,7 +34,7 @@ function request(overrides = {}) {
   };
 }
 
-function context(actorType = "HUMAN") {
+function context(actorType = "HUMAN", activeEnterprise) {
   return {
     contractVersion: "0.1.0",
     principal: {
@@ -53,7 +53,7 @@ function context(actorType = "HUMAN") {
         kind: "PERSONAL",
         contextId: "personal:target"
       },
-      activeContext: {
+      activeContext: activeEnterprise ?? {
         contractVersion: "0.1.0",
         kind: "PERSONAL",
         contextId: "personal:target"
@@ -187,6 +187,40 @@ test("Template Store Copy preserves future multi-context targeting through targe
       }
     }),
     context()
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.result.targetContextId, "context:target-b");
+  assert.ok(definitions.getLatest({
+    enterpriseId: "enterprise:target-b",
+    definitionId: "template-copy:copy-1"
+  }));
+});
+
+test("Template Store Copy prefers the Host-selected Enterprise Context", async () => {
+  const { definitions, handler } = setup({
+    enterpriseContexts: [
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-a",
+        enterpriseId: "enterprise:target-a"
+      },
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-b",
+        enterpriseId: "enterprise:target-b"
+      }
+    ]
+  });
+  const result = await handler.execute(
+    request(),
+    context("HUMAN", {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "context:target-b",
+      enterpriseId: "enterprise:target-b"
+    })
   );
   assert.equal(result.ok, true);
   assert.equal(result.result.targetContextId, "context:target-b");
