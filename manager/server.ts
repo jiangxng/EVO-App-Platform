@@ -3549,6 +3549,40 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewSelectionReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            )
+        });
+      }
+    }),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
