@@ -5161,6 +5161,62 @@ const server = createServer(async (request, response) => {
         );
       }
 
+      if (source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const selection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        if (!selection) {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
+            message: "Choose a Projection from Enterprise Software first."
+          });
+        }
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        const artifact =
+          sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+            enterpriseBusinessDefinitionRepository
+          ).get({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            ...(selection.projectionId
+              ? { projectionId: selection.projectionId }
+              : {})
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "DEFINITION_2D_PREVIEW_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          viewer.createEnterpriseDefinition2dPreviewPageV010({
+            enterpriseId: artifact.enterpriseId,
+            definitionId: artifact.definitionId,
+            definitionRevision: artifact.definitionRevision,
+            title: artifact.title,
+            ...(artifact.projectionId
+              ? { projectionId: artifact.projectionId }
+              : {})
+          })
+        );
+      }
+
       if (
         source === EOG_OBSERVATORY_PAGE_SOURCE
         || source === EOG_MOBILE_READ_PAGE_SOURCE
