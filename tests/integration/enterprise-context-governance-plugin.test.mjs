@@ -64,6 +64,38 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     ),
     true
   );
+  assert.equal(
+    experience.routes.some(
+      item =>
+        item.path === "/enterprise-contexts/overview"
+        && item.pageId === "evo-enterprise-context-governance.overview"
+    ),
+    true
+  );
+  assert.equal(
+    experience.routes.some(
+      item =>
+        item.path === "/enterprise-contexts/applications"
+        && item.pageId === "evo-enterprise-context-governance.software"
+    ),
+    true
+  );
+  assert.deepEqual(
+    experience.navigation.map(item => item.route),
+    [
+      "/enterprise-contexts",
+      "/enterprise-contexts/overview",
+      "/enterprise-contexts/applications",
+      "/enterprise-contexts/organization",
+      "/enterprise-contexts/data",
+      "/enterprise-contexts/files",
+      "/enterprise-contexts/members",
+      "/enterprise-contexts/connections",
+      "/enterprise-contexts/jobs",
+      "/enterprise-contexts/audit",
+      "/enterprise-contexts/settings"
+    ]
+  );
 
   const page = manager.loadExperiencePage(
     "app://evo-enterprise-context-governance/pages/create"
@@ -76,6 +108,27 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
   assert.equal(page.metadata.commandOwner, "host-enterprise-context-provider");
   assert.equal(page.metadata.designOwner, "evo-enterprise-context-governance");
   assert.equal("contexts" in page.metadata, false);
+
+  const overview = manager.loadExperiencePage(
+    "app://evo-enterprise-context-governance/pages/overview"
+  );
+  assert.ok(overview);
+  assert.equal(overview.kind, "catalog-browser");
+  assert.equal(overview.title, "企业概览");
+  assert.deepEqual(
+    overview.items.map(item => item.id),
+    [
+      "applications",
+      "organization",
+      "data",
+      "files",
+      "members",
+      "connections",
+      "jobs",
+      "audit",
+      "settings"
+    ]
+  );
 });
 
 test("Enterprise Context Governance declares provider and authorization dependencies", () => {
