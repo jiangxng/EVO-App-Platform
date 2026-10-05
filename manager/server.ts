@@ -3635,17 +3635,6 @@ const actionRouter = createAppActionRouter(
               principal,
               principalContextSources()
             ).list();
-          },
-          resolveDefaultEnterpriseContext(principal) {
-            const registry = createPrincipalContextRegistryV010(
-              principal,
-              principalContextSources()
-            );
-            return resolveDefaultEnterpriseContextV010({
-              principal,
-              availableContexts: registry.list(),
-              store: enterpriseGovernanceStore
-            });
           }
         });
       }
