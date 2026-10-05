@@ -360,7 +360,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           }).result;
 
           const createdContextId =
-            page.id === "evo-enterprise-context-governance.create"
+            page.page.id === "evo-enterprise-context-governance.create"
             && typeof payload?.context?.contextId === "string"
               ? payload.context.contextId.trim()
               : undefined;
