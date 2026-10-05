@@ -80,7 +80,16 @@ export const eidosDesignPolicyV010 = {
       "device-specific-business-semantics"
     ]
   },
+  typography: {
+    preferenceAuthority: "os-and-user-agent",
+    hostOptIn: "meta-text-scale",
+    sizing: "root-relative",
+    fixedPixelFontSizesForbidden: true,
+    productFontScaleOverride: "not-required"
+  },
   accessibility: {
+    systemTextScaleRequired: true,
+    reflowWithoutTextClippingRequired: true,
     nativeHtmlFirst: true,
     visibleFocusRequired: true,
     colorOnlyStateForbidden: true,
