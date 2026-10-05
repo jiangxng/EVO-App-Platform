@@ -71,7 +71,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
       ? context.attributes.code
       : undefined;
 
-    return {
+    return [{
       id: contextId,
       title: displayName,
       summary: current ? text.current : text.available,
