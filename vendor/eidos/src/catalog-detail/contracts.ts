@@ -13,6 +13,17 @@ export interface CatalogDetailGalleryItemV010 {
 export interface CatalogDetailGalleryV010 {
   primaryItemId: string;
   items: CatalogDetailGalleryItemV010[];
+  /**
+   * Optional product-level gallery limit. Template Store / Enterprise Context
+   * projection galleries use 9 (1 primary + up to 8 alternates).
+   */
+  maxItems?: number;
+  /**
+   * When true, every gallery item must expose a primary action. This allows
+   * product surfaces to guarantee that thumbnails are interactive entries into
+   * a viewer instead of decorative screenshots.
+   */
+  requireItemActions?: boolean;
 }
 
 export interface CatalogDetailV010 {

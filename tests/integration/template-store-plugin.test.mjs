@@ -227,6 +227,8 @@ test("Template Store detail renders every Projection Gallery item as an actionab
   assert.equal(definition.version, "v3");
   assert.equal(definition.gallery.items.length, 1);
   assert.equal(definition.gallery.primaryItemId, "projection:main");
+  assert.equal(definition.gallery.maxItems, 9);
+  assert.equal(definition.gallery.requireItemActions, true);
   assert.equal(
     definition.gallery.items[0].action.command,
     "evo-template-store.preview-2d"

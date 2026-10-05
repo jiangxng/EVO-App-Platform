@@ -213,6 +213,8 @@ export function createTemplateStoreDetailPageV010(
     },
     gallery: {
       primaryItemId: primaryProjectionId,
+      maxItems: 9,
+      requireItemActions: true,
       items: projections.map(projection => ({
         id: projection.projectionId,
         title: projection.title,

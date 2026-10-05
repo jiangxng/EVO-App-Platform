@@ -5086,6 +5086,10 @@ const server = createServer(async (request, response) => {
               manager.getSnapshot().effectiveCapabilities.includes(
                 VISUAL_2D_VIEWER_CAPABILITY_V010
               ),
+            shareAvailable:
+              manager.getSnapshot().activeFeatures.some(
+                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+              ),
             locale: requestedLocale(url)
           })
         );

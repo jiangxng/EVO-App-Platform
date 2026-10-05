@@ -104,6 +104,17 @@ export function assertCatalogDetailV010(
     throw new Error("EIDOS_CATALOG_DETAIL_INVALID");
   }
 
+  if (
+    input.gallery.maxItems !== undefined
+    && (
+      !Number.isInteger(input.gallery.maxItems)
+      || input.gallery.maxItems < 1
+      || input.gallery.items.length > input.gallery.maxItems
+    )
+  ) {
+    throw new Error("EIDOS_CATALOG_DETAIL_GALLERY_LIMIT_INVALID");
+  }
+
   const ids = new Set<string>();
   for (const item of input.gallery.items) {
     if (
@@ -116,6 +127,9 @@ export function assertCatalogDetailV010(
     }
     if (ids.has(item.id)) {
       throw new Error("EIDOS_CATALOG_DETAIL_GALLERY_ITEM_DUPLICATE");
+    }
+    if (input.gallery.requireItemActions === true && !item.action) {
+      throw new Error("EIDOS_CATALOG_DETAIL_GALLERY_ITEM_ACTION_REQUIRED");
     }
     ids.add(item.id);
   }
