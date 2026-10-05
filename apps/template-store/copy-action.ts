@@ -35,6 +35,9 @@ export interface TemplateStoreCopyActionDependenciesV010 {
   listAvailableContexts(
     principal: PlatformPrincipalV010
   ): ActiveContextRefV010[];
+  resolveDefaultEnterpriseContext?(
+    principal: PlatformPrincipalV010
+  ): Extract<ActiveContextRefV010, { kind: "ENTERPRISE" }> | undefined;
   now?: () => Date;
   id?: () => string;
 }
@@ -138,6 +141,16 @@ function resolveEnterpriseContext(
   if (activeContext?.kind === "ENTERPRISE") {
     const selected = targets.find(
       item => item.contextId === activeContext.contextId
+    );
+    if (selected) return selected;
+  }
+
+  const fallback = dependencies.resolveDefaultEnterpriseContext?.(
+    context.principal
+  );
+  if (fallback) {
+    const selected = targets.find(
+      item => item.contextId === fallback.contextId
     );
     if (selected) return selected;
   }
