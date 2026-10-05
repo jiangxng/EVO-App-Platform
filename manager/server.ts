@@ -577,6 +577,7 @@ import {
   createEnterpriseRelationshipActionHandlersV010
 } from "./enterprise-relationship-actions.js";
 import {
+  contextFromHeaderV010,
   createPlatformRequestContextV010,
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
@@ -4792,6 +4793,15 @@ const server = createServer(async (request, response) => {
         },
         personalContext: contextRegistry.personal(),
         availableContexts: contextRegistry.list(),
+        availableContextOptions: contextRegistry.list().map(ref => {
+          const resolved = contextRegistry.resolve(ref);
+          return {
+            ref,
+            label: ref.kind === "PERSONAL"
+              ? resolved.personalContext.displayName ?? ref.contextId
+              : resolved.enterpriseContext?.displayName ?? ref.contextId
+          };
+        }),
         relationships: resolveEnterpriseContextRelationshipProvider()
           ?.listForPrincipal(session.principal) ?? [],
         pendingInvitations: enterpriseGovernanceStore.snapshot().invitations
@@ -5004,7 +5014,9 @@ const server = createServer(async (request, response) => {
         }
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
-        const resolved = contextRegistry.resolve();
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
         const enterpriseContexts = contextRegistry.list().filter(
           item => item.kind === "ENTERPRISE"
         );
