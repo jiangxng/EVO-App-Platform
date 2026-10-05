@@ -725,14 +725,7 @@ import {
   ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
-  ENTERPRISE_CONTEXT_SELECT_COMMAND,
-  ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-  ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
-  ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
-  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
-  ENTERPRISE_SOFTWARE_PAGE_SOURCE,
-  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
-  ENTERPRISE_SOFTWARE_SHARE_COMMAND
+  ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
 import {
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -3748,59 +3741,6 @@ const actionRouter = createAppActionRouter(
         }
       })
     ),
-    ...[
-      ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
-      ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-      ENTERPRISE_SOFTWARE_SHARE_COMMAND,
-      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
-      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
-    ].map(commandCode =>
-      createLazyAppActionHandlerV010({
-        packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
-        featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
-        commandCode,
-        async load() {
-          const module = await import(
-            "../apps/enterprise-context-governance/software-actions.js"
-          );
-          const handlers = module.createEnterpriseSoftwareActionHandlersV010({
-            repository: enterpriseBusinessDefinitionRepository,
-            transfer: enterpriseTemplateTransferProvider,
-            resolveAuthorizationProvider,
-            async resolvePublicationProvider() {
-              const templateStoreActive =
-                manager.getSnapshot().activeFeatures.some(
-                  feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
-                );
-              if (!templateStoreActive) return undefined;
-              const [publicationModule, templateStoreRepository] =
-                await Promise.all([
-                  import("../apps/template-store/publication-provider.js"),
-                  resolveTemplateStoreRepository()
-                ]);
-              return publicationModule
-                .createTemplateStorePublicationProviderV010(
-                  templateStoreRepository
-                );
-            },
-            id: randomUUID,
-            projectionSessions: enterpriseDefinitionProjectionSessions,
-            viewerAvailable() {
-              return manager.getSnapshot().effectiveCapabilities.includes(
-                VISUAL_2D_VIEWER_CAPABILITY_V010
-              );
-            }
-          });
-          const handler = handlers.find(
-            candidate => candidate.commandCode === commandCode
-          );
-          if (!handler) {
-            throw new Error("ENTERPRISE_SOFTWARE_HANDLER_NOT_FOUND");
-          }
-          return handler;
-        }
-      })
-    ),
     createLazyAppActionHandlerV010({
       packageId: TEMPLATE_STORE_PACKAGE_ID,
       featureId: TEMPLATE_STORE_FEATURE_ID,
@@ -5368,114 +5308,6 @@ const server = createServer(async (request, response) => {
                 VISUAL_2D_VIEWER_CAPABILITY_V010
               ),
             canPublish,
-            locale: requestedLocale(url)
-          })
-        );
-      }
-
-      if (source === ENTERPRISE_SOFTWARE_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
-          feature =>
-            feature.featureId
-            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
-        );
-        if (!effective) {
-          return json(
-            response,
-            404,
-            { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" }
-          );
-        }
-        const session = resolveRequestIdentitySession(request);
-        const contextRegistry = createContextRegistryForSession(session);
-        const resolved = contextRegistry.resolve(
-          contextFromHeaderV010(request.headers, contextRegistry)
-        );
-        const enterpriseContexts = contextRegistry.list().filter(
-          item => item.kind === "ENTERPRISE"
-        );
-        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
-          ? resolved.activeContext
-          : enterpriseContexts.length === 1
-            ? enterpriseContexts[0]
-            : undefined;
-        if (
-          !activeContext
-          || activeContext.kind !== "ENTERPRISE"
-          || !activeContext.enterpriseId?.trim()
-        ) {
-          return json(response, 409, {
-            code: "ENTERPRISE_SOFTWARE_CONTEXT_REQUIRED",
-            message: "Select an Enterprise Context first."
-          });
-        }
-        const module = await import(
-          "../apps/enterprise-context-governance/software-page.js"
-        );
-        return json(
-          response,
-          200,
-          module.createEnterpriseSoftwarePageV010({
-            enterpriseId: activeContext.enterpriseId,
-            repository: enterpriseBusinessDefinitionRepository,
-            shareAvailable:
-              manager.getSnapshot().activeFeatures.some(
-                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
-              ),
-            locale: requestedLocale(url)
-          })
-        );
-      }
-      if (source === ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
-          feature =>
-            feature.featureId
-            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
-        );
-        if (!effective) {
-          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
-        }
-        const session = resolveRequestIdentitySession(request);
-        const sessionId = session.principal.sessionId?.trim();
-        const subjectId = session.principal.subjectId.trim();
-        const selection =
-          (sessionId
-            ? enterpriseDefinitionProjectionSessions.get(sessionId)
-            : undefined)
-          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
-        if (!selection) {
-          return json(response, 409, {
-            code: "ENTERPRISE_SOFTWARE_DETAIL_SELECTION_REQUIRED",
-            message: "Choose Details from Enterprise Software first."
-          });
-        }
-        const revision = enterpriseBusinessDefinitionRepository
-          .listHistory({
-            enterpriseId: selection.enterpriseId,
-            definitionId: selection.definitionId
-          })
-          .find(item => item.revision === selection.definitionRevision);
-        if (!revision) {
-          return json(response, 404, {
-            code: "BUSINESS_DEFINITION_REVISION_NOT_FOUND"
-          });
-        }
-        const module = await import(
-          "../apps/enterprise-context-governance/software-page.js"
-        );
-        return json(
-          response,
-          200,
-          module.createEnterpriseSoftwareDetailPageV010({
-            revision,
-            viewer2dAvailable:
-              manager.getSnapshot().effectiveCapabilities.includes(
-                VISUAL_2D_VIEWER_CAPABILITY_V010
-              ),
-            shareAvailable:
-              manager.getSnapshot().activeFeatures.some(
-                feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
-              ),
             locale: requestedLocale(url)
           })
         );
