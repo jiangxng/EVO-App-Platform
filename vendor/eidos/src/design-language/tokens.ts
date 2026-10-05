@@ -36,6 +36,8 @@ export const eidosDesignTokensV010 = {
     pill: 999
   },
   type: {
+    unit: "rem",
+    referenceRootPx: 16,
     meta: 11,
     supporting: 12,
     compactBody: 13,
@@ -93,12 +95,12 @@ export const eidosDesignTokenCss = `
   --eidos-radius-lg:10px;
   --eidos-radius-pill:999px;
 
-  --eidos-font-meta:11px;
-  --eidos-font-supporting:12px;
-  --eidos-font-compact:13px;
-  --eidos-font-body:14px;
-  --eidos-font-section:16px;
-  --eidos-font-page:22px;
+  --eidos-font-meta:.6875rem;
+  --eidos-font-supporting:.75rem;
+  --eidos-font-compact:.8125rem;
+  --eidos-font-body:.875rem;
+  --eidos-font-section:1rem;
+  --eidos-font-page:1.375rem;
 
   --eidos-fg:#24262a;
   --eidos-fg-muted:#686d75;
