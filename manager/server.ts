@@ -574,6 +574,12 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  createEnterpriseContextDefaultActionHandlerV010
+} from "./enterprise-context-default-actions.js";
+import {
+  resolveDefaultEnterpriseContextV010
+} from "./default-enterprise-context.js";
+import {
   createEnterpriseRelationshipActionHandlersV010
 } from "./enterprise-relationship-actions.js";
 import {
@@ -3606,6 +3612,15 @@ const actionRouter = createAppActionRouter(
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
     }),
+    createEnterpriseContextDefaultActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      }
+    }),
     createLazyAppActionHandlerV010({
       packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
       featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
@@ -3620,6 +3635,17 @@ const actionRouter = createAppActionRouter(
               principal,
               principalContextSources()
             ).list();
+          },
+          resolveDefaultEnterpriseContext(principal) {
+            const registry = createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            );
+            return resolveDefaultEnterpriseContextV010({
+              principal,
+              availableContexts: registry.list(),
+              store: enterpriseGovernanceStore
+            });
           }
         });
       }
@@ -4805,6 +4831,11 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
+      const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+        principal: session.principal,
+        availableContexts: contextRegistry.list(),
+        store: enterpriseGovernanceStore
+      });
       return json(response, 200, {
         contractVersion: "0.1.0",
         session: {
@@ -4836,6 +4867,7 @@ const server = createServer(async (request, response) => {
             && item.state === "PENDING"
             && (item.expiresAt === undefined || Date.parse(item.expiresAt) > Date.now())
           ),
+        defaultEnterpriseContext,
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
@@ -5039,6 +5071,11 @@ const server = createServer(async (request, response) => {
           contextRegistry
         );
         const activeContext = contextRegistry.resolve(selected).activeContext;
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: contextRegistry.list(),
+          store: enterpriseGovernanceStore
+        });
         const contexts = contextRegistry.list().flatMap(ref => {
           if (ref.kind !== "ENTERPRISE") return [];
           const resolved = contextRegistry.resolve(ref);
@@ -5055,6 +5092,7 @@ const server = createServer(async (request, response) => {
           module.createEnterpriseContextDirectoryPageV010({
             contexts,
             activeContext,
+            defaultContextId: defaultEnterpriseContext?.contextId,
             locale: requestedLocale(url)
           })
         );
