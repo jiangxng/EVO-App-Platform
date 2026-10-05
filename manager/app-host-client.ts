@@ -42,6 +42,9 @@ const transport = createRevisionAwareBrowserTransportV010({
   },
   onUpdateAvailable(hostRevision) {
     versionNotice.show(hostRevision);
+  },
+  onCurrentRevision() {
+    versionNotice.hide();
   }
 });
 
