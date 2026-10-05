@@ -8,6 +8,9 @@ import {
 import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_SOFTWARE_DETAIL_PAGE_ID,
+  ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_DETAIL_ROUTE,
   ENTERPRISE_SOFTWARE_PAGE_ID,
   ENTERPRISE_SOFTWARE_PAGE_SOURCE,
   ENTERPRISE_SOFTWARE_ROUTE
@@ -68,6 +71,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             id: ENTERPRISE_SOFTWARE_PAGE_ID,
             title: "Enterprise Software",
             source: ENTERPRISE_SOFTWARE_PAGE_SOURCE
+          }, {
+            id: ENTERPRISE_SOFTWARE_DETAIL_PAGE_ID,
+            title: "Enterprise Software Detail",
+            source: ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE
           }],
           routes: [{
             id: "evo-enterprise-context-governance.create",
@@ -77,6 +84,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             id: ENTERPRISE_SOFTWARE_PAGE_ID,
             path: ENTERPRISE_SOFTWARE_ROUTE,
             pageId: ENTERPRISE_SOFTWARE_PAGE_ID
+          }, {
+            id: ENTERPRISE_SOFTWARE_DETAIL_PAGE_ID,
+            path: ENTERPRISE_SOFTWARE_DETAIL_ROUTE,
+            pageId: ENTERPRISE_SOFTWARE_DETAIL_PAGE_ID
           }],
           navigation: [{
             id: "evo-enterprise-context-governance.nav",
