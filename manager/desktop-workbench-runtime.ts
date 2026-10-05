@@ -32,6 +32,44 @@ export interface DesktopWorkbenchRuntimeV010 {
   dispose(): void;
 }
 
+interface BrowserContextOptionV010 {
+  ref: {
+    kind: "PERSONAL" | "ENTERPRISE";
+    contextId: string;
+    enterpriseId?: string;
+  };
+  label: string;
+}
+
+async function loadBrowserContextOptionsV010(
+  fetchImpl: typeof fetch
+): Promise<{
+  options: BrowserContextOptionV010[];
+  defaultContextId?: string;
+}> {
+  const response = await fetchImpl("/v1/contexts/effective", {
+    headers: { accept: "application/json" }
+  });
+  if (!response.ok) {
+    throw new Error(`CONTEXT_OPTIONS_HTTP_${response.status}`);
+  }
+  const payload = await response.json() as {
+    availableContextOptions?: BrowserContextOptionV010[];
+    availableContexts?: BrowserContextOptionV010["ref"][];
+    defaultActiveContext?: { contextId?: string };
+  };
+  const options = payload.availableContextOptions?.length
+    ? payload.availableContextOptions
+    : (payload.availableContexts ?? []).map(ref => ({
+        ref,
+        label: ref.contextId
+      }));
+  return {
+    options,
+    defaultContextId: payload.defaultActiveContext?.contextId
+  };
+}
+
 export async function mountDesktopWorkbenchRuntimeV010(options: {
   source: WorkbenchExperienceSource;
   bootstrapManifests: unknown[];
@@ -302,12 +340,109 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization,
       minSidePanelWidth: 260,
       maxSidePanelWidth: 720,
-      async onActionResult(result, _page, renderHint) {
+      async onActionResult(result, page, renderHint) {
         if (renderHint?.preserveMountedPage === true) {
           rememberLocallyAppliedCorrelation(result);
         }
+
+        if (
+          result !== null
+          && typeof result === "object"
+          && !Array.isArray(result)
+          && (result as { ok?: unknown }).ok === true
+        ) {
+          const payload = (result as {
+            result?: {
+              context?: { contextId?: unknown };
+              targetContextId?: unknown;
+              copiedState?: unknown;
+            };
+          }).result;
+
+          const createdContextId =
+            page.id === "evo-enterprise-context-governance.create"
+            && typeof payload?.context?.contextId === "string"
+              ? payload.context.contextId.trim()
+              : undefined;
+          if (createdContextId) {
+            window.localStorage.setItem("evo.context.id", createdContextId);
+            await refreshContextControlV010(createdContextId);
+            await workbench?.navigateWorkspace("/enterprise-contexts/software");
+            return;
+          }
+
+          const copiedContextId =
+            typeof payload?.targetContextId === "string"
+            && typeof payload?.copiedState === "string"
+              ? payload.targetContextId.trim()
+              : undefined;
+          if (copiedContextId) {
+            window.localStorage.setItem("evo.context.id", copiedContextId);
+            await refreshContextControlV010(copiedContextId);
+            await workbench?.navigateWorkspace("/enterprise-contexts/software");
+          }
+        }
       }
     });
+
+    const contextControl = document.createElement("label");
+    contextControl.setAttribute("data-evo-context-control", "");
+    contextControl.style.display = "grid";
+    contextControl.style.gap = "4px";
+    contextControl.style.marginBottom = "10px";
+    const contextLabel = document.createElement("span");
+    contextLabel.textContent = activeLocale.toLowerCase().startsWith("zh")
+      ? "当前上下文"
+      : "Current Context";
+    contextLabel.style.fontSize = "12px";
+    const contextSelect = document.createElement("select");
+    contextSelect.setAttribute("data-evo-context-select", "");
+    contextSelect.style.width = "100%";
+    contextControl.append(contextLabel, contextSelect);
+    document.querySelector<HTMLElement>("[data-eidos-side-panel-footer]")
+      ?.prepend(contextControl);
+
+    async function refreshContextControlV010(
+      preferredContextId?: string
+    ): Promise<void> {
+      try {
+        const loaded = await loadBrowserContextOptionsV010(
+          options.fetchImpl ?? fetch
+        );
+        const persisted =
+          preferredContextId
+          ?? window.localStorage.getItem("evo.context.id")?.trim()
+          ?? loaded.defaultContextId;
+        contextSelect.replaceChildren();
+        for (const item of loaded.options) {
+          const option = document.createElement("option");
+          option.value = item.ref.contextId;
+          option.textContent = item.ref.kind === "ENTERPRISE"
+            ? `🏢 ${item.label}`
+            : `👤 ${item.label}`;
+          option.selected = item.ref.contextId === persisted;
+          contextSelect.appendChild(option);
+        }
+        if (
+          persisted
+          && loaded.options.some(item => item.ref.contextId === persisted)
+        ) {
+          window.localStorage.setItem("evo.context.id", persisted);
+        } else {
+          window.localStorage.removeItem("evo.context.id");
+        }
+      } catch (error) {
+        console.error("Failed to refresh Enterprise Context selector.", error);
+      }
+    }
+
+    contextSelect.addEventListener("change", () => {
+      const selected = contextSelect.value.trim();
+      if (selected) window.localStorage.setItem("evo.context.id", selected);
+      else window.localStorage.removeItem("evo.context.id");
+      void workbench?.refresh();
+    });
+    await refreshContextControlV010();
   
     const realtime = createFetchSseRealtimeSourceV010({
       url: () => window.location.origin + "/v1/events",
