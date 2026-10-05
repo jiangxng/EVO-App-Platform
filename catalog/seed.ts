@@ -14,6 +14,9 @@ import {
   enterpriseContextGovernanceExperienceAssets
 } from "../apps/enterprise-context-governance/experience-assets.js";
 import {
+  ledgerManagerPackage
+} from "../apps/ledger-manager/package.js";
+import {
   templateStorePackage
 } from "../apps/template-store/package.js";
 import {
@@ -33,6 +36,9 @@ export {
 export {
   templateStorePackage
 } from "../apps/template-store/package.js";
+export {
+  ledgerManagerPackage
+} from "../apps/ledger-manager/package.js";
 export {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
@@ -166,15 +172,15 @@ export const evoFoundationPackage: PackageManifestV010 = {
 export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
-  displayName: "EVO Ledger Runtime Configurator",
-  version: "0.1.0",
-  type: "APPLICATION",
+  displayName: "EVO Ledger Runtime Compiler",
+  version: "0.2.0",
+  type: "RUNTIME_EXTENSION",
   features: [
     {
       contractVersion: "0.1.0",
       featureId: "evo-ledger-runtime-configurator.default",
       packageId: "evo-ledger-runtime-configurator",
-      version: "0.1.0",
+      version: "0.2.0",
       activationScope: "INSTALLATION",
       defaultActivation: true,
       requiresCapabilities: ["evo.posting", "evo.ledger"],
@@ -183,69 +189,12 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
         LEDGER_RUNTIME_CONFIGURATION_CAPABILITY
       ],
       contributions: [
-        ...ledgerRuntimeConfigurationCapabilityContributionsV010,
-        {
-          kind: "eidos.experience",
-          manifest: {
-            contractVersion: "0.1.0",
-            experienceId: "evo-ledger-runtime-configurator",
-            packageId: "evo-ledger-runtime-configurator",
-            featureId: "evo-ledger-runtime-configurator.default",
-            defaultRoute: "/ledger-runtime-configurator",
-            pages: [
-              {
-                id: "evo-ledger-runtime-configurator.home",
-                title: "Ledger Runtime Configurator",
-                source: "app://evo-ledger-runtime-configurator/pages/home"
-              }
-            ],
-            routes: [
-              {
-                id: "evo-ledger-runtime-configurator.home",
-                path: "/ledger-runtime-configurator",
-                pageId: "evo-ledger-runtime-configurator.home"
-              }
-            ],
-            navigation: [
-              {
-                id: "evo-ledger-runtime-configurator.nav",
-                label: "Ledger Configurator",
-                route: "/ledger-runtime-configurator",
-                order: 40
-              }
-            ]
-          }
-        },
-        {
-          kind: "eidos.localization-bundle",
-          bundle: {
-            contractVersion: "0.1.0",
-            namespace: "evo-ledger-runtime-configurator",
-            locale: "en",
-            messages: {
-                      "navigation.evo-ledger-runtime-configurator.nav.label": "Ledger Configurator",
-                      "page.evo-ledger-runtime-configurator.home.title": "Ledger Runtime Configurator — Bookkeeping defaults",
-                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "Validate Default Configuration"
-            }
-          }
-        },
-        {
-          kind: "eidos.localization-bundle",
-          bundle: {
-            contractVersion: "0.1.0",
-            namespace: "evo-ledger-runtime-configurator",
-            locale: "zh-CN",
-            messages: {
-                      "navigation.evo-ledger-runtime-configurator.nav.label": "账本配置",
-                      "page.evo-ledger-runtime-configurator.home.title": "EVO 账本运行时配置 — Bookkeeping 默认配置",
-                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "校验默认配置"
-            }
-          }
-        }
+        ...ledgerRuntimeConfigurationCapabilityContributionsV010
       ]
     }
   ]
 };
+
 
 export const tradingLitePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
