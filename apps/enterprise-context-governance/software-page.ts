@@ -6,9 +6,16 @@ import type {
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
+  TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010
+} from "../../contracts/template-projection-gallery.js";
+import {
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+  ENTERPRISE_SOFTWARE_ADD_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_EDIT_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+  ENTERPRISE_SOFTWARE_REMOVE_PROJECTION_COMMAND,
+  ENTERPRISE_SOFTWARE_SET_PRIMARY_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_PAGE_ID,
   ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
@@ -30,7 +37,12 @@ function localizedText(locale: string | undefined) {
         share: "共享到模板商店",
         details: "详情",
         previewProjection: "使用 2D Viewer 查看投影",
+        editProjection: "编辑投影",
+        setPrimaryProjection: "设为主投影",
+        removeProjection: "删除投影",
+        addProjection: "新增投影",
         projectionUnavailable: "未安装 2D Viewer 扩展插件，无法查看投影。",
+        designerUnavailable: "未安装 2D Designer 扩展插件，无法编辑投影。",
         kind: "类型",
         projections: "投影",
         history: "修订记录",
@@ -55,7 +67,12 @@ function localizedText(locale: string | undefined) {
         share: "Share to Template Store",
         details: "Details",
         previewProjection: "Open projection in 2D Viewer",
+        editProjection: "Edit Projection",
+        setPrimaryProjection: "Set as Primary",
+        removeProjection: "Remove Projection",
+        addProjection: "Add Projection",
         projectionUnavailable: "2D Viewer extension is not installed.",
+        designerUnavailable: "2D Designer extension is not installed.",
         kind: "Kind",
         projections: "Projections",
         history: "Revisions",
@@ -214,6 +231,7 @@ export function createEnterpriseSoftwarePageV010(input: {
 export function createEnterpriseSoftwareDetailPageV010(input: {
   revision: BusinessDefinitionRevisionV010;
   viewer2dAvailable: boolean;
+  designer2dAvailable?: boolean;
   locale?: string;
 }) {
   const text = localizedText(input.locale);
@@ -264,8 +282,71 @@ export function createEnterpriseSoftwareDetailPageV010(input: {
                 disabledReason: text.projectionUnavailable,
                 helpText: text.projectionUnavailable
               })
-        }
+        },
+        ...(input.revision.state === "DRAFT"
+          ? {
+              secondaryActions: [{
+                id: `edit-projection:${projection.projectionId}`,
+                label: text.editProjection,
+                type: "command" as const,
+                command: ENTERPRISE_SOFTWARE_EDIT_PROJECTION_COMMAND,
+                inputVersion: "0.1.0",
+                requiresConfirmation: false,
+                values: {
+                  definitionRevision: input.revision.revision,
+                  projectionId: projection.projectionId
+                },
+                enabled: input.designer2dAvailable === true,
+                ...(input.designer2dAvailable === true
+                  ? {}
+                  : {
+                      disabledReason: text.designerUnavailable,
+                      helpText: text.designerUnavailable
+                    })
+              }, ...(gallery?.primaryProjectionId !== projection.projectionId
+                ? [{
+                    id: `set-primary:${projection.projectionId}`,
+                    label: text.setPrimaryProjection,
+                    type: "command" as const,
+                    command: ENTERPRISE_SOFTWARE_SET_PRIMARY_PROJECTION_COMMAND,
+                    inputVersion: "0.1.0",
+                    requiresConfirmation: true,
+                    values: {
+                      definitionRevision: input.revision.revision,
+                      projectionId: projection.projectionId
+                    }
+                  }, {
+                    id: `remove-projection:${projection.projectionId}`,
+                    label: text.removeProjection,
+                    type: "command" as const,
+                    command: ENTERPRISE_SOFTWARE_REMOVE_PROJECTION_COMMAND,
+                    inputVersion: "0.1.0",
+                    requiresConfirmation: true,
+                    values: {
+                      definitionRevision: input.revision.revision,
+                      projectionId: projection.projectionId
+                    }
+                  }]
+                : [])]
+            }
+          : {})
       }))
-    }
+    },
+    ...(input.revision.state === "DRAFT"
+      && projections.length < TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010
+      ? {
+          primaryAction: {
+            id: "add-projection",
+            label: text.addProjection,
+            type: "command" as const,
+            command: ENTERPRISE_SOFTWARE_ADD_PROJECTION_COMMAND,
+            inputVersion: "0.1.0",
+            requiresConfirmation: true,
+            values: {
+              definitionRevision: input.revision.revision
+            }
+          }
+        }
+      : {})
   } as const;
 }
