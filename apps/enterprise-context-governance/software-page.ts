@@ -8,15 +8,9 @@ import type {
 import {
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_PAGE_ID,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
-} from "./software-actions.js";
-
-export const ENTERPRISE_SOFTWARE_PAGE_ID =
-  "evo-enterprise-context-governance.software";
-export const ENTERPRISE_SOFTWARE_PAGE_SOURCE =
-  "app://evo-enterprise-context-governance/pages/software";
-export const ENTERPRISE_SOFTWARE_ROUTE =
-  "/enterprise-contexts/software";
+} from "./constants.js";
 
 function localizedText(locale: string | undefined) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
