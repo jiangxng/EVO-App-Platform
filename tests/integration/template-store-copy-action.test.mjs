@@ -63,7 +63,7 @@ function context(actorType = "HUMAN", activeEnterprise) {
   };
 }
 
-function setup({ allowed = true, enterpriseContexts } = {}) {
+function setup({ allowed = true, enterpriseContexts, defaultContextId } = {}) {
   const definitions = createMemoryBusinessDefinitionRepositoryV010();
   const transfer = createEnterpriseTemplateTransferProviderV010(definitions);
   const store = createMemoryTemplateStoreRepositoryV010();
@@ -119,6 +119,12 @@ function setup({ allowed = true, enterpriseContexts } = {}) {
     store,
     transfer,
     listAvailableContexts: () => availableContexts,
+    resolveDefaultEnterpriseContext: () => {
+      if (!defaultContextId) return undefined;
+      return availableContexts.find(
+        item => item.kind === "ENTERPRISE" && item.contextId === defaultContextId
+      );
+    },
     resolveAuthorizationProvider: () => ({
       providerId: "test.authorization",
       check() {
@@ -230,7 +236,34 @@ test("Template Store Copy prefers the Host-selected Enterprise Context", async (
   }));
 });
 
-test("Template Store Copy refuses ambiguous multi-context writes until a target is supplied", async () => {
+test("Template Store Copy uses the Principal default Enterprise Context when multiple are available", async () => {
+  const { definitions, handler } = setup({
+    enterpriseContexts: [
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-a",
+        enterpriseId: "enterprise:target-a"
+      },
+      {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "context:target-b",
+        enterpriseId: "enterprise:target-b"
+      }
+    ],
+    defaultContextId: "context:target-a"
+  });
+  const result = await handler.execute(request(), context());
+  assert.equal(result.ok, true);
+  assert.equal(result.result.targetContextId, "context:target-a");
+  assert.ok(definitions.getLatest({
+    enterpriseId: "enterprise:target-a",
+    definitionId: "template-copy:copy-1"
+  }));
+});
+
+test("Template Store Copy refuses ambiguous multi-context writes when no default or explicit target exists", async () => {
   const { handler } = setup({
     enterpriseContexts: [
       {

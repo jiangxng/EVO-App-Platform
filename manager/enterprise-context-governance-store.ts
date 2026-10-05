@@ -51,6 +51,14 @@ export interface EnterpriseRelationshipLifecycleEventV010 {
   transferId?: string;
 }
 
+export interface EnterpriseContextDefaultSelectionV010 {
+  contractVersion: "0.1.0";
+  subjectId: string;
+  contextId: string;
+  selectedAt: string;
+  selectedBySubjectId: string;
+}
+
 export interface EnterpriseContextGovernanceSnapshotV010 {
   contractVersion: "0.1.0";
   contexts: EnterpriseContextV010[];
@@ -60,6 +68,7 @@ export interface EnterpriseContextGovernanceSnapshotV010 {
   invitations: EnterpriseRelationshipInvitationV010[];
   ownershipTransfers: EnterpriseOwnershipTransferV010[];
   relationshipEvents: EnterpriseRelationshipLifecycleEventV010[];
+  defaultContexts: EnterpriseContextDefaultSelectionV010[];
 }
 
 export interface EnterpriseContextGovernanceStoreV010 {
@@ -76,7 +85,8 @@ function empty(): EnterpriseContextGovernanceSnapshotV010 {
     lifecycleEvents: [],
     invitations: [],
     ownershipTransfers: [],
-    relationshipEvents: []
+    relationshipEvents: [],
+    defaultContexts: []
   };
 }
 
@@ -103,6 +113,9 @@ function normalize(value: unknown): EnterpriseContextGovernanceSnapshotV010 {
       : [],
     relationshipEvents: Array.isArray(raw.relationshipEvents)
       ? structuredClone(raw.relationshipEvents)
+      : [],
+    defaultContexts: Array.isArray(raw.defaultContexts)
+      ? structuredClone(raw.defaultContexts)
       : []
   };
 }
@@ -158,6 +171,21 @@ function validate(
     normalized.relationshipEvents.map(item => item.eventId),
     "ENTERPRISE_GOVERNANCE_RELATIONSHIP_EVENT_DUPLICATE"
   );
+  duplicate(
+    normalized.defaultContexts.map(item => item.subjectId),
+    "ENTERPRISE_CONTEXT_DEFAULT_SUBJECT_DUPLICATE"
+  );
+  for (const selection of normalized.defaultContexts) {
+    if (
+      selection.contractVersion !== "0.1.0"
+      || !selection.subjectId?.trim()
+      || !selection.contextId?.trim()
+      || !selection.selectedAt?.trim()
+      || !selection.selectedBySubjectId?.trim()
+    ) {
+      throw new Error("ENTERPRISE_CONTEXT_DEFAULT_INVALID");
+    }
+  }
 
   for (const relationship of normalized.relationships) {
     if (!["ACTIVE", "REVOKED"].includes(relationship.state)) {

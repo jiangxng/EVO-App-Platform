@@ -1,11 +1,12 @@
 import {
+  ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
   ENTERPRISE_SOFTWARE_PAGE_SOURCE
 } from "./constants.js";
 
 export const enterpriseContextGovernanceExperienceAssets =
   new Map<string, unknown>([
     [
-      "app://evo-enterprise-context-governance/pages/create",
+      ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
       {
         contractVersion: "0.1.1",
         kind: "form",
