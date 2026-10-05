@@ -3,6 +3,9 @@ import {
   ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
 } from "../../contracts/enterprise-business-definition.js";
 import {
+  DEFINITION_2D_PREVIEW_ROUTE_V010
+} from "../../contracts/definition-projection.js";
+import {
   TEMPLATE_2D_PREVIEW_ROUTE_V010,
   VISUAL_2D_VIEWER_CAPABILITY_V010
 } from "../../contracts/template-preview.js";
@@ -32,6 +35,16 @@ export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION =
   "evo-eog-2d.viewer.template-preview.get";
 export const EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION =
   "evo-eog-2d.viewer.template-preview.selection.get";
+export const EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID =
+  "evo-eog-2d-viewer.definition-preview";
+export const EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE =
+  "app://evo-eog-2d-viewer/pages/definition-preview";
+export const EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE =
+  DEFINITION_2D_PREVIEW_ROUTE_V010;
+export const EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION =
+  "evo-eog-2d.viewer.definition-preview.get";
+export const EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION =
+  "evo-eog-2d.viewer.definition-preview.selection.get";
 
 export const EOG_2D_DESIGNER_FEATURE_ID = "evo-eog-2d.designer";
 export const EOG_2D_DESIGNER_CAPABILITY =
@@ -98,6 +111,10 @@ export const eog2dPackage: PackageManifestV010 = {
             id: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID,
             title: "2D Template Preview",
             source: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE
+          }, {
+            id: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID,
+            title: "2D Enterprise Definition Preview",
+            source: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE
           }],
           routes: [{
             id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
@@ -109,6 +126,11 @@ export const eog2dPackage: PackageManifestV010 = {
             semanticId: "evo-eog-2d-viewer.template-preview",
             path: EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
             pageId: EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_ID
+          }, {
+            id: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID,
+            semanticId: "evo-eog-2d-viewer.definition-preview",
+            path: EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE,
+            pageId: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID
           }],
           navigation: [{
             id: "evo-eog-2d-viewer.nav",

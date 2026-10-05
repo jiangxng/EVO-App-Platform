@@ -13,11 +13,20 @@ import {
 import {
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
 } from "../../dist/apps/enterprise-context-governance/constants.js";
 import {
+  createMemoryDefinitionProjectionSessionStoreV010
+} from "../../dist/contracts/definition-projection.js";
+import {
+  createEnterpriseSoftwareDetailPageV010,
   createEnterpriseSoftwarePageV010
 } from "../../dist/apps/enterprise-context-governance/software-page.js";
+import {
+  createEnterpriseDefinitionProjectionArtifactSourceV010
+} from "../../dist/providers/enterprise-context/definition-projection.js";
 import {
   createMemoryTemplateStoreRepositoryV010
 } from "../../dist/apps/template-store/repository.js";
@@ -113,6 +122,8 @@ function setup() {
   const transfer = createEnterpriseTemplateTransferProviderV010(repository);
   const store = createMemoryTemplateStoreRepositoryV010();
   const publication = createTemplateStorePublicationProviderV010(store);
+  const projectionSessions =
+    createMemoryDefinitionProjectionSessionStoreV010();
 
   repository.createDraft({
     enterpriseId: "enterprise:test",
@@ -143,12 +154,15 @@ function setup() {
       return publication;
     },
     now: () => new Date("2026-10-05T02:00:00.000Z"),
-    id: () => "share-1"
+    id: () => "share-1",
+    projectionSessions,
+    viewerAvailable: () => true
   });
 
   return {
     repository,
     store,
+    projectionSessions,
     handler(code) {
       return handlers.find(item => item.commandCode === code);
     }
@@ -273,5 +287,85 @@ test("Enterprise Software page separates Working Draft from user-facing Version 
   });
   assert.equal(page.items[0].summary, "版本 1");
   assert.equal(page.items[0].primaryAction.label, "编辑新版本");
-  assert.equal(page.items[0].secondaryActions[0].label, "共享到模板商店");
+  assert.equal(
+    page.items[0].secondaryActions.find(action => action.id === "share")?.label,
+    "共享到模板商店"
+  );
+});
+
+
+test("Enterprise Software detail exposes every Projection as a 2D Viewer entry", async () => {
+  const { repository, projectionSessions, handler } = setup();
+  const open = await handler(ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND).execute(
+    request(
+      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+      {
+        itemId: "software:runtime",
+        definitionRevision: 0
+      },
+      false
+    ),
+    context()
+  );
+  assert.equal(open.ok, true);
+  assert.equal(open.result.navigateTo, "/enterprise-contexts/software/detail");
+  assert.equal(
+    projectionSessions.get("human:owner").definitionRevision,
+    0
+  );
+
+  const revision = repository.getLatest({
+    enterpriseId: "enterprise:test",
+    definitionId: "software:runtime"
+  });
+  const detail = createEnterpriseSoftwareDetailPageV010({
+    revision,
+    viewer2dAvailable: true,
+    locale: "zh-CN"
+  });
+  assert.equal(detail.gallery.items.length, 2);
+  assert.equal(detail.gallery.primaryItemId, "projection:main");
+  assert.equal(
+    detail.gallery.items.every(
+      item => item.action.command === ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
+    ),
+    true
+  );
+});
+
+test("Enterprise Projection Viewer pins exact enterprise revision and projection", async () => {
+  const { repository, projectionSessions, handler } = setup();
+  const preview = await handler(
+    ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
+  ).execute(
+    request(
+      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
+      {
+        itemId: "software:runtime",
+        definitionRevision: 0,
+        projectionId: "projection:finance"
+      },
+      false
+    ),
+    context()
+  );
+  assert.equal(preview.ok, true);
+  assert.equal(preview.result.navigateTo, "/definition-preview/2d");
+  const selection = projectionSessions.get("human:owner");
+  assert.equal(selection.definitionRevision, 0);
+  assert.equal(selection.projectionId, "projection:finance");
+
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository
+  );
+  const artifact = source.get({
+    enterpriseId: "enterprise:test",
+    definitionId: "software:runtime",
+    definitionRevision: 0,
+    projectionId: "projection:finance"
+  });
+  assert.ok(artifact);
+  assert.equal(artifact.definitionRevision, 0);
+  assert.equal(artifact.projectionId, "projection:finance");
+  assert.equal(artifact.title, "Finance");
 });

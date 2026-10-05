@@ -8,7 +8,9 @@ import type {
 import {
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
   ENTERPRISE_SOFTWARE_PAGE_ID,
+  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
 } from "./constants.js";
 
@@ -26,6 +28,9 @@ function localizedText(locale: string | undefined) {
         createVersion: "创建版本",
         beginDraft: "编辑新版本",
         share: "共享到模板商店",
+        details: "详情",
+        previewProjection: "使用 2D Viewer 查看投影",
+        projectionUnavailable: "未安装 2D Viewer 扩展插件，无法查看投影。",
         kind: "类型",
         projections: "投影",
         history: "修订记录",
@@ -48,6 +53,9 @@ function localizedText(locale: string | undefined) {
         createVersion: "Create Version",
         beginDraft: "Edit New Version",
         share: "Share to Template Store",
+        details: "Details",
+        previewProjection: "Open projection in 2D Viewer",
+        projectionUnavailable: "2D Viewer extension is not installed.",
         kind: "Kind",
         projections: "Projections",
         history: "Revisions",
@@ -166,7 +174,17 @@ export function createEnterpriseSoftwarePageV010(input: {
           [text.source]: item.origin.type
         },
         primaryAction,
-        secondaryActions: shareRevision
+        secondaryActions: [{
+          id: "detail",
+          label: text.details,
+          type: "command" as const,
+          command: ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: false,
+          values: {
+            definitionRevision: item.revision
+          }
+        }, ...(shareRevision
           ? [{
               id: "share",
               label: text.share,
@@ -185,9 +203,69 @@ export function createEnterpriseSoftwarePageV010(input: {
                     helpText: "Template Store is not available."
                   })
             }]
-          : []
+          : [])]
       };
     }),
     emptyMessage: text.empty
   };
+}
+
+
+export function createEnterpriseSoftwareDetailPageV010(input: {
+  revision: BusinessDefinitionRevisionV010;
+  viewer2dAvailable: boolean;
+  locale?: string;
+}) {
+  const text = localizedText(input.locale);
+  const gallery = input.revision.projectionGallery;
+  const projections = gallery?.projections ?? [];
+  return {
+    contractVersion: "0.1.0",
+    kind: "catalog-detail",
+    id: "evo-enterprise-context-governance.software-detail",
+    itemId: input.revision.definitionId,
+    title: input.revision.title,
+    description:
+      input.revision.state === "DRAFT"
+        ? text.draft
+        : text.version,
+    version:
+      input.revision.state === "DRAFT"
+        ? text.draft
+        : `r${input.revision.revision}`,
+    metadata: {
+      [text.kind]: input.revision.kind,
+      [text.projections]: projections.length,
+      [text.source]: input.revision.origin.type
+    },
+    gallery: {
+      primaryItemId: gallery?.primaryProjectionId
+        ?? projections[0]?.projectionId
+        ?? "projection:none",
+      items: projections.map(projection => ({
+        id: projection.projectionId,
+        title: projection.title,
+        thumbnail: { ...projection.thumbnail },
+        action: {
+          id: `preview-projection:${projection.projectionId}`,
+          label: text.previewProjection,
+          type: "command" as const,
+          command: ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: false,
+          values: {
+            definitionRevision: input.revision.revision,
+            projectionId: projection.projectionId
+          },
+          enabled: input.viewer2dAvailable,
+          ...(input.viewer2dAvailable
+            ? {}
+            : {
+                disabledReason: text.projectionUnavailable,
+                helpText: text.projectionUnavailable
+              })
+        }
+      }))
+    }
+  } as const;
 }

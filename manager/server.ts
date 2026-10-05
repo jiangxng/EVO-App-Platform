@@ -7,6 +7,7 @@ import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
+import { createMemoryDefinitionProjectionSessionStoreV010 } from "../contracts/definition-projection.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -707,10 +708,16 @@ import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
   ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+  ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
   ENTERPRISE_SOFTWARE_PAGE_SOURCE,
+  ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND,
   ENTERPRISE_SOFTWARE_SHARE_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
 import {
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
   EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
@@ -811,6 +818,8 @@ Promise<TemplateStoreRepositoryV010> {
 }
 const templatePreviewSessions =
   createMemoryTemplatePreviewSessionStoreV010();
+const enterpriseDefinitionProjectionSessions =
+  createMemoryDefinitionProjectionSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -3540,6 +3549,40 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewSelectionReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            )
+        });
+      }
+    }),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
@@ -3563,7 +3606,9 @@ const actionRouter = createAppActionRouter(
     ...[
       ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
       ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
-      ENTERPRISE_SOFTWARE_SHARE_COMMAND
+      ENTERPRISE_SOFTWARE_SHARE_COMMAND,
+      ENTERPRISE_SOFTWARE_OPEN_DETAIL_COMMAND,
+      ENTERPRISE_SOFTWARE_PREVIEW_PROJECTION_COMMAND
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
@@ -3593,7 +3638,13 @@ const actionRouter = createAppActionRouter(
                   templateStoreRepository
                 );
             },
-            id: randomUUID
+            id: randomUUID,
+            projectionSessions: enterpriseDefinitionProjectionSessions,
+            viewerAvailable() {
+              return manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              );
+            }
           });
           const handler = handlers.find(
             candidate => candidate.commandCode === commandCode
@@ -4989,6 +5040,57 @@ const server = createServer(async (request, response) => {
           })
         );
       }
+      if (source === ENTERPRISE_SOFTWARE_DETAIL_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature =>
+            feature.featureId
+            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const selection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        if (!selection) {
+          return json(response, 409, {
+            code: "ENTERPRISE_SOFTWARE_DETAIL_SELECTION_REQUIRED",
+            message: "Choose Details from Enterprise Software first."
+          });
+        }
+        const revision = enterpriseBusinessDefinitionRepository
+          .listHistory({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId
+          })
+          .find(item => item.revision === selection.definitionRevision);
+        if (!revision) {
+          return json(response, 404, {
+            code: "BUSINESS_DEFINITION_REVISION_NOT_FOUND"
+          });
+        }
+        const module = await import(
+          "../apps/enterprise-context-governance/software-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseSoftwareDetailPageV010({
+            revision,
+            viewer2dAvailable:
+              manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              ),
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
       if (source === EOG_EDITOR_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
@@ -5102,6 +5204,62 @@ const server = createServer(async (request, response) => {
           viewer.createTemplate2dPreviewPageV010({
             templateId: artifact.templateId,
             templateVersion: artifact.templateVersion,
+            title: artifact.title,
+            ...(artifact.projectionId
+              ? { projectionId: artifact.projectionId }
+              : {})
+          })
+        );
+      }
+
+      if (source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const selection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        if (!selection) {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
+            message: "Choose a Projection from Enterprise Software first."
+          });
+        }
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        const artifact =
+          sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+            enterpriseBusinessDefinitionRepository
+          ).get({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            ...(selection.projectionId
+              ? { projectionId: selection.projectionId }
+              : {})
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "DEFINITION_2D_PREVIEW_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          viewer.createEnterpriseDefinition2dPreviewPageV010({
+            enterpriseId: artifact.enterpriseId,
+            definitionId: artifact.definitionId,
+            definitionRevision: artifact.definitionRevision,
             title: artifact.title,
             ...(artifact.projectionId
               ? { projectionId: artifact.projectionId }
