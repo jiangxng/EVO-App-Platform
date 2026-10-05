@@ -242,6 +242,8 @@ export function createEnterpriseSoftwareDetailPageV010(input: {
       primaryItemId: gallery?.primaryProjectionId
         ?? projections[0]?.projectionId
         ?? "projection:none",
+      maxItems: 9,
+      requireItemActions: true,
       items: projections.map(projection => ({
         id: projection.projectionId,
         title: projection.title,
@@ -266,6 +268,45 @@ export function createEnterpriseSoftwareDetailPageV010(input: {
               })
         }
       }))
-    }
+    },
+    primaryAction: input.revision.state === "DRAFT"
+      ? {
+          id: "create-version",
+          label: text.createVersion,
+          type: "command" as const,
+          command: ENTERPRISE_SOFTWARE_CREATE_VERSION_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: true,
+          values: {
+            expectedRevision: input.revision.revision
+          },
+          helpText: text.createVersionHelp
+        }
+      : {
+          id: "begin-draft",
+          label: text.beginDraft,
+          type: "command" as const,
+          command: ENTERPRISE_SOFTWARE_BEGIN_DRAFT_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: true,
+          values: {
+            expectedRevision: input.revision.revision
+          },
+          helpText: text.beginDraftHelp
+        },
+    secondaryActions: input.revision.state === "PUBLISHED"
+      ? [{
+          id: "share",
+          label: text.share,
+          type: "command" as const,
+          command: ENTERPRISE_SOFTWARE_SHARE_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: true,
+          values: {
+            definitionRevision: input.revision.revision
+          },
+          helpText: text.shareHelp
+        }]
+      : []
   } as const;
 }
