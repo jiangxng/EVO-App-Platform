@@ -83,10 +83,15 @@ function mediaButton(
 ): string {
   const content =
     `<img src="${esc(media.thumbnail.src)}" alt="${esc(media.thumbnail.alt)}" loading="lazy" decoding="async">`;
-  if (!media.action) {
-    return `<div data-eidos-catalog-detail-media="${esc(role)}" data-eidos-media-id="${esc(media.id)}">${content}</div>`;
-  }
-  return `<button type="button" data-eidos-catalog-detail-media="${esc(role)}" data-eidos-media-id="${esc(media.id)}" aria-label="${esc(media.action.label)}" ${actionAttributes(itemId, media.action, false)}>${content}<span data-eidos-catalog-detail-media-label>${esc(media.title)}</span></button>`;
+  const mediaContent = media.action
+    ? `<button type="button" data-eidos-catalog-detail-media="${esc(role)}" data-eidos-media-id="${esc(media.id)}" aria-label="${esc(media.action.label)}" ${actionAttributes(itemId, media.action, false)}>${content}<span data-eidos-catalog-detail-media-label>${esc(media.title)}</span></button>`
+    : `<div data-eidos-catalog-detail-media="${esc(role)}" data-eidos-media-id="${esc(media.id)}">${content}<span data-eidos-catalog-detail-media-label>${esc(media.title)}</span></div>`;
+  const actions = (media.secondaryActions ?? [])
+    .map(action => actionButton(itemId, action, false))
+    .join("");
+  return actions
+    ? `<div data-eidos-catalog-detail-media-wrap data-eidos-media-id="${esc(media.id)}">${mediaContent}<div data-eidos-catalog-detail-media-actions>${actions}</div></div>`
+    : mediaContent;
 }
 
 export function assertCatalogDetailV010(
