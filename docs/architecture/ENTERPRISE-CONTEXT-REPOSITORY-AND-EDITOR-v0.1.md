@@ -1,7 +1,9 @@
 # Enterprise Context Repository and Editor Boundary v0.1
 
-**Document class:** CURRENT_AUTHORITY  
-**Status:** Architecture baseline  
+> **SUPERSEDED:** `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md` is the sole conceptual authority. This document is retained only for historical boundary decisions.
+
+**Document class:** SUPERSEDED_REFERENCE  
+**Status:** SUPERSEDED — retained for migration/history  
 **Date:** 2026-10-04  
 **Owner repository:** EVO-App-Platform
 
