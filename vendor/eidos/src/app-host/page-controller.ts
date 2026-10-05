@@ -25,6 +25,7 @@ import {
 } from "../spatial/surface.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
+import { actionResultDownloadV010 } from "./action-download.js";
 import {
   executeRunBackedChatV010,
   recoverRunBackedChatV010,
@@ -641,7 +642,30 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         const result = await options.actionHost.execute(request);
         if (result.ok) {
           const payload = result.result;
-          if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+          const download = actionResultDownloadV010(payload);
+          if (download) {
+            const blob = new Blob([download.content], {
+              type: download.mediaType
+            });
+            const href = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = href;
+            anchor.download = download.fileName;
+            anchor.style.display = "none";
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.setTimeout(() => URL.revokeObjectURL(href), 0);
+
+            const message = payload !== null
+              && typeof payload === "object"
+              && !Array.isArray(payload)
+              ? (payload as { message?: unknown }).message
+              : undefined;
+            status().textContent = typeof message === "string"
+              ? message
+              : hostText("shell.completed", "Completed.");
+          } else if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
             const message = (payload as { message?: unknown }).message;
             const nextAction = (payload as { nextAction?: unknown }).nextAction;
             const details = JSON.stringify(payload, null, 2);

@@ -732,6 +732,7 @@ import type {
 import {
   TEMPLATE_STORE_COPY_COMMAND,
   TEMPLATE_STORE_DETAIL_PAGE_SOURCE,
+  TEMPLATE_STORE_DOWNLOAD_COMMAND,
   TEMPLATE_STORE_FEATURE_ID,
   TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
   TEMPLATE_STORE_PACKAGE_ID,
@@ -3570,6 +3571,20 @@ const actionRouter = createAppActionRouter(
               principalContextSources()
             ).list();
           }
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_DOWNLOAD_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/download-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreDownloadActionHandlerV010({
+          store: templateStoreRepository
         });
       }
     }),

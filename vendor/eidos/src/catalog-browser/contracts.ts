@@ -4,10 +4,12 @@ export type CatalogStatusTone = "neutral" | "positive" | "warning";
 export interface CatalogBrowserActionV010 {
   id: string;
   label: string;
-  type: "command" | "navigate";
+  type: "command" | "navigate" | "download";
   command?: string;
   inputVersion?: string;
   route?: string;
+  href?: string;
+  downloadFileName?: string;
   requiresConfirmation?: boolean;
   enabled?: boolean;
   disabledReason?: string;
