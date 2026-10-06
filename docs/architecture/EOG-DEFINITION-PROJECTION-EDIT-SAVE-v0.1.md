@@ -14,11 +14,11 @@ Definition Projection Editor
         ↓ drag nodes / pan / zoom
         ↓ remove unnecessary nodes / relations from this projection
         ↓ explicit Save projection
-Enterprise Context Business Definition Repository
-        ↓ append new revision
+Projection presentation store
+        ↓ overwrite current Projection state in place
 Projection Gallery updated
         ↓
-Viewer / Editor reads the new revision
+Viewer / Editor reads the same Business Definition revision with the updated Projection
 ```
 
 ## Boundary
@@ -45,15 +45,19 @@ It does not change:
 
 ## Persistence rule
 
-Business Definition revisions are append-only.
+Business Definition revisions are reserved for **real business-semantic changes**. Projection changes do not create Business Definition revisions.
 
-Therefore Projection Gallery persistence follows the existing repository lifecycle:
+Projection is intentionally non-versioned presentation state:
 
-- latest DRAFT → `reviseDraft` with an identical payload and updated Projection Gallery;
-- latest PUBLISHED → `beginDraft` with an identical payload and updated Projection Gallery;
-- historical/stale revision → save fails with revision conflict.
+- Save overwrites the current Projection state in place;
+- Rename updates the current Projection in place;
+- layout, camera, hide/show and Restore all update only the current Projection;
+- Set as default updates only Projection Gallery presentation metadata;
+- Save As creates another Projection identity, not another version;
+- Projection has no independent revision history;
+- a Projection remains bound to a specific Business Definition revision, so saving against a stale business revision still fails closed.
 
-No old revision is mutated.
+This keeps Business Definition history readable: adding/changing applications, ledgers, semantic relations and later posting/accounting logic may create a new Business Definition version; presentation work never does.
 
 ## Interaction rule
 
@@ -94,7 +98,7 @@ Eidos does not know Ledger, Enterprise Context or Projection Gallery semantics.
 
 EOG 2D Designer owns the contextual Definition Projection Editor Experience and save command.
 
-Enterprise Context remains authoritative persistence through the Business Definition Repository.
+Enterprise Context remains authoritative for business semantics through the Business Definition Repository. Projection presentation state is persisted separately and mutably for the selected Business Definition revision; it does not participate in Business Definition version history.
 
 ## Session continuity
 
@@ -105,7 +109,7 @@ The existing Definition Projection session identifies:
 - selected revision;
 - projection.
 
-After a successful save the session is advanced to the newly appended revision, so subsequent editor reads continue from the saved state.
+After a successful save the session remains on the same Business Definition revision and Projection identity (or the new Projection identity after Save As). Subsequent reads resolve the updated presentation state without advancing the business version.
 
 ## Product home and next increments
 
@@ -125,9 +129,8 @@ Potential later additions, without changing this persistence boundary:
 
 - projection description edit;
 - restore/show a previously hidden node or relation individually;
-- reset layout;
-- compare projection revisions;
 - explicit discard/unsaved-change guard;
+- Personal Agent natural-language Projection authoring such as “裁剪出从销售到收款的投影”;
 - plugin-owned `visualIdentity` rendering when real owning business plugins declare it.
 
 Projection identity remains presentation metadata. EOG/Eidos must not infer domain icons from names.
@@ -242,7 +245,7 @@ Changing the default:
 - updates only `primaryProjectionId`;
 - preserves every Projection title, thumbnail and view state;
 - preserves the Business Definition payload;
-- appends a normal Business Definition revision;
+- does not create or advance a Business Definition version;
 - uses the same governed Projection persistence authorization boundary.
 
 The action is not shown when the current Projection is already the default. This is gallery presentation preference, not Ledger Runtime configuration.
