@@ -55,6 +55,7 @@ test("EVO inherits the Eidos business-office visual language on desktop and mobi
   assert.equal(eidosDesignPolicyV010.visualLanguage.developerConsoleAsDefault, false);
   assert.equal(eidosDesignPolicyV010.workbench.statusBar.defaultVisibility, "hidden");
   assert.equal(eidosDesignPolicyV010.workbench.workspace.internalRouteAddress, "not-rendered-in-standard-business-workbench");
+  assert.equal(eidosDesignPolicyV010.toolbar.technicalAddress, "separate-explicit-capability-only");
   assert.equal(eidosDesignPolicyV010.mobile.primaryNavigationLabels, "visible");
   assert.match(appHostShellCss, /Eidos Business Office Visual Language v0\.2/);
   assert.match(appHostShellCss, /--eidos-primary:#2B6CB0/);
