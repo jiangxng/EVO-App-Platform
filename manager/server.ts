@@ -205,6 +205,10 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
+import {
+  ENTERPRISE_RESOURCE_CAPABILITY_V010,
+  type EnterpriseResourceRepositoryV010
+} from "../contracts/enterprise-resource.js";
 import type {
   EnterpriseTemplateTransferProviderV010
 } from "../contracts/template-transfer.js";
@@ -305,6 +309,7 @@ import {
   HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
   HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
   HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
   hostEnterpriseContextProviderPackage
 } from "../providers/enterprise-context/package.js";
 import {
@@ -316,6 +321,10 @@ import {
   createFileBusinessDefinitionRepositoryV010,
   createMemoryBusinessDefinitionRepositoryV010
 } from "../providers/enterprise-context/business-definitions.js";
+import {
+  createFileEnterpriseResourceRepositoryV010,
+  createMemoryEnterpriseResourceRepositoryV010
+} from "../providers/enterprise-context/resources.js";
 import {
   createFileDefinitionProjectionStoreV010,
   createMemoryDefinitionProjectionStoreV010
@@ -738,6 +747,7 @@ import {
 } from "./secret-governance.js";
 import {
   companyNotesPackage,
+  counterpartyPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -765,6 +775,16 @@ import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
+import {
+  COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_CREATE_PAGE_SOURCE,
+  COUNTERPARTY_DETAIL_PAGE_SOURCE,
+  COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
+  COUNTERPARTY_FEATURE_ID,
+  COUNTERPARTY_PACKAGE_ID,
+  parseCounterpartyDetailRouteV010
+} from "../apps/counterparty/constants.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -824,6 +844,7 @@ import {
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
+  counterpartyPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -859,6 +880,17 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const enterpriseResourceStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-resources.json")
+    : undefined);
+const enterpriseResourceRepository =
+  enterpriseResourceStateFile
+    ? createFileEnterpriseResourceRepositoryV010(
+        enterpriseResourceStateFile
+      )
+    : createMemoryEnterpriseResourceRepositoryV010();
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -1500,6 +1532,18 @@ providerRuntimeRegistry.setHealth(
   {
     state: "HEALTHY",
     message: "Enterprise Context Business Definitions are active.",
+    checkedAt: new Date().toISOString()
+  }
+);
+providerRuntimeRegistry.replace<EnterpriseResourceRepositoryV010>(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  enterpriseResourceRepository
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Resource Library is active.",
     checkedAt: new Date().toISOString()
   }
 );
