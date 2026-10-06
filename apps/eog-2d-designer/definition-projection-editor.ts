@@ -292,6 +292,11 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
   projectionId: string;
   title: string;
   locale?: string;
+  camera?: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
 }): DiagramWorkspacePageV010 {
   const zh = input.locale?.toLowerCase().startsWith("zh") === true;
   return {
@@ -316,6 +321,7 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       code: EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
       inputVersion: "0.1.0"
     },
+    ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     requestValues: {
       enterpriseId: input.enterpriseId,
       definitionId: input.definitionId,
