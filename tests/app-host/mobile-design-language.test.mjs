@@ -54,11 +54,23 @@ test("EVO inherits the Eidos business-office visual language on desktop and mobi
   assert.equal(eidosDesignPolicyV010.visualLanguage.name, "Eidos Business Office");
   assert.equal(eidosDesignPolicyV010.visualLanguage.developerConsoleAsDefault, false);
   assert.equal(eidosDesignPolicyV010.workbench.statusBar.defaultVisibility, "hidden");
-  assert.equal(eidosDesignPolicyV010.workbench.workspace.internalRouteAddress, "hidden-by-default");
+  assert.equal(eidosDesignPolicyV010.workbench.workspace.internalRouteAddress, "not-rendered-in-standard-business-workbench");
   assert.equal(eidosDesignPolicyV010.mobile.primaryNavigationLabels, "visible");
   assert.match(appHostShellCss, /Eidos Business Office Visual Language v0\.2/);
   assert.match(appHostShellCss, /--eidos-primary:#2B6CB0/);
   assert.match(appHostShellCss, /--eidos-bg-selected:#EAF2FB/);
   assert.match(appHostShellCss, /data-eidos-workspace-mode="app"/);
   assert.match(appHostShellCss, /data-eidos-activity-label/);
+});
+
+
+test("standard business Workbench omits browser address controls", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../vendor/eidos/src/workbench/shell.ts", import.meta.url), "utf8")
+  );
+  assert.doesNotMatch(source, /data-eidos-browser-address/);
+  assert.doesNotMatch(source, /data-eidos-browser-go/);
+  assert.doesNotMatch(source, /data-eidos-browser-external/);
+  assert.doesNotMatch(source, /\bbrowserAddress\b|\bbrowserGo\b|\bbrowserExternal\b/);
+  assert.match(source, /browserToolbar\.append\(globalControls\)/);
 });
