@@ -137,3 +137,24 @@ Consequences:
 - legacy session selection remains compatibility state only and is not the authoritative locator.
 
 The Web delivery cache policy remains unchanged. Qualified page reads continue to use normal private conditional revalidation, and immutable revisioned assets keep their existing cache behavior.
+
+
+## Restore complete view and Save As
+
+Projection editing supports two additional view-authoring operations without changing Enterprise Definition business truth.
+
+### Restore all
+
+The editor materializes the complete graph for the selected Definition revision, including nodes and relations currently hidden by the saved Projection. Persisted hidden IDs initialize local visibility state, so the Human initially sees the saved Projection exactly as before.
+
+"Restore all" clears only the editor's local hidden-node and hidden-relation sets. It does not immediately append a Definition revision and does not mutate Applications, Ledgers, posting rules or other business payload. The Human may continue editing and explicitly choose "Save projection" when ready.
+
+When saved, the captured hidden-ID sets are authoritative for that Projection. Therefore an empty hidden set removes previously saved projection hiding and makes the complete graph visible again.
+
+### Save as projection
+
+"Save as projection" captures the current positions, camera and visibility state into a new Projection entry while leaving the source Projection unchanged. The Definition still advances through the normal append/versioned revision path.
+
+The new Projection receives a unique projection ID and a deterministic copy title such as "原投影 副本", "原投影 副本 2", etc. The editor navigates to the newly created Projection after save. Gallery capacity remains governed by the existing maximum of nine projections.
+
+Neither Save nor Save As duplicates or mutates the underlying Application/Ledger objects.
