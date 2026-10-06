@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-5-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T22:20:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-5-2026-10-06-02`  
+**Snapshot time:** `2026-10-06T23:20:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**fixed-layered-auto-layout-scalable-actions-v0-5: MERGED_CI_PRODUCTION_PASS**
+**fixed-auto-layout-human-browser-v0-5: HUMAN_VALIDATED_PRODUCTION_PASS**
 
-Stable deterministic 2D layout is now a fixed Human product capability rather than an Agent-only feature. Eidos provides domain-neutral deterministic layered/hierarchical auto layout and generic action overflow; Definition Projection Editor exposes Auto layout + Save projection as frequent actions and moves Restore/Rename/Save As/Set default into More. The previous Personal Agent current-editor crop flow has also been Human-confirmed working.
+Human production validation passed for the fixed Auto layout and scalable Projection action area. The deterministic layered layout, compact frequent-action surface and More overflow are accepted as the current product behavior.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,40 +26,36 @@ Evidence:
 
 ```json
 {
+  "humanValidation": "PASS",
+  "validatedAt": "2026-10-06T23:20:00+08:00",
   "eidosPr": 126,
-  "eidosMergeCommit": "7de1b1a608385a70d5045fbfea0c005f49ed86a2",
   "appPlatformPr": 412,
-  "appPlatformMergeCommit": "d6397d71ede4c7eb2a9fc92cf5721b8cd1b186a8",
-  "platformCI": "PASS",
-  "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "94a0d4f4-ff5d-475e-ab20-fab84f831864",
+  "architecturePr": 413,
+  "productionCommit": "da4e8a3358e562bd2681d15fce5b88ff9478a323",
+  "railwayDeploymentId": "a94a0ba7-abec-4139-ae28-141abd717466",
   "railwayDeploymentStatus": "SUCCESS",
-  "layoutFamily": "LAYERED_HIERARCHICAL",
-  "defaultDirection": "RIGHT",
-  "businessDefinitionRevisionMutation": false,
-  "projectionVersioning": "NONE",
-  "fixedHumanCapability": true,
+  "fixedAutoLayout": true,
   "scalableToolbarOverflow": true,
-  "priorPersonalAgentCropHumanValidation": "PASS"
+  "projectionVersioning": "NONE",
+  "businessDefinitionRevisionMutation": false
 }
 ```
 
 ## Current open live gate
 
-**fixed-auto-layout-human-browser-v0-5: READY**
+**projection-unsaved-change-guard-v0-5-1: READY**
 
-Human-validate the new fixed Auto layout and scalable Projection action area in production, focusing on readability of real enterprise graphs and desktop/mobile action ergonomics.
+Add explicit unsaved-change protection for Projection presentation edits so drag, hide/restore and Auto layout cannot be discarded accidentally during navigation.
 
 Acceptance:
 
-- Open an existing Definition Projection Editor with a non-trivial visible graph.
-- The frequent action area shows 自动排版 / Auto layout and 保存投影 / Save projection without an ever-growing button row.
-- Restore all, Rename, Save As and Set default (when applicable) are available under 更多 / More.
-- Choosing 自动排版 arranges only currently visible nodes/relations in a deterministic left-to-right layered layout and automatically fits the result to the canvas.
-- Auto layout does not save immediately; the Human may inspect or manually adjust the result before Save projection.
-- Saving after Auto layout persists positions in the same Projection identity without creating a Projection version or Business Definition version.
-- The action area remains compact and usable on mobile; low-frequency actions remain in More rather than wrapping into a button wall.
-- If the real enterprise graph reveals poor crossing/component behavior, refine the generic Eidos layout algorithm rather than introducing Ledger/business-name-specific layout rules.
+- Any local Projection presentation edit marks the editor dirty, including node drag, projection hide/restore and Auto layout.
+- Navigating away from a dirty Projection Editor requires an explicit keep-editing or discard decision.
+- A successful Save projection clears the dirty state without creating a Projection version or Business Definition version.
+- A clean editor never shows an unnecessary discard warning.
+- The guard works with the existing desktop deep navigation and remains usable on mobile.
+- Viewer and Designer remain separate application/plugin ownership boundaries; this safety behavior does not merge them.
+- The guard protects presentation state only and must not introduce business-semantic mutation.
 
 ## Current production preview
 
@@ -68,8 +64,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `d6397d71ede4c7eb2a9fc92cf5721b8cd1b186a8`
-- Deployment: `94a0d4f4-ff5d-475e-ab20-fab84f831864`
+- Commit: `da4e8a3358e562bd2681d15fce5b88ff9478a323`
+- Deployment: `a94a0ba7-abec-4139-ae28-141abd717466`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -453,6 +449,7 @@ Not proved:
 - do not add Ledger, Application, sales, cash or other business vocabulary to Eidos auto-layout heuristics
 - do not make Auto layout persist immediately; it is a local presentation edit until Save projection
 - do not let Auto layout create Projection versions or Business Definition versions
+- do not reopen fixed Auto layout or scalable Projection action-area validation after the Human production pass unless a new regression is observed
 
 ## Fresh ChatGPT / LLM startup
 
@@ -647,6 +644,7 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Auto layout as domain-neutral layered/hierarchical, left-to-right by default, visible-material-only and unsaved until Save projection
 - state Projection Editor action IA as frequent Auto layout + Save projection with secondary management actions under More
 - state the prior Personal Agent current-editor crop scenario as Human-confirmed working and the next gate as Human browser validation of fixed Auto layout/action ergonomics
+- state fixed Auto layout and scalable Projection action-area v0.5 as Human-validated in production
 
 No previous ChatGPT transcript is required.
 
