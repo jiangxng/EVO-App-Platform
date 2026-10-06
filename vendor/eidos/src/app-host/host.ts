@@ -90,6 +90,11 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+function routeLookupPath(path: string): string {
+  const queryIndex = path.indexOf("?");
+  return queryIndex >= 0 ? path.slice(0, queryIndex) : path;
+}
+
 export function validateEffectiveExperienceManifest(
   value: unknown,
   index = 0
@@ -651,7 +656,8 @@ export function createAppHost(source: ExperienceSource): AppHost {
   const getSnapshot = (): AppHostSnapshotV010 => cloneSnapshot(snapshot);
 
   const resolveRoute = (path: string): AppHostResolvedRouteV010 | undefined => {
-    const route = snapshot.routes.find(item => item.path === path);
+    const lookupPath = routeLookupPath(path);
+    const route = snapshot.routes.find(item => item.path === lookupPath);
     if (!route) return undefined;
     const page = snapshot.pages.find(item => item.id === route.pageId);
     if (!page) return undefined;
@@ -678,7 +684,10 @@ export function createAppHost(source: ExperienceSource): AppHost {
     if (!resolved) return undefined;
     const definition = await source.loadPage(
       clonePage(resolved.page),
-      options
+      {
+        ...(options ?? {}),
+        routePath: path
+      }
     );
     if (options?.signal?.aborted) {
       throw new DOMException("Route load aborted", "AbortError");
