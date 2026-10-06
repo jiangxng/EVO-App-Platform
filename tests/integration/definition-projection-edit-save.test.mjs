@@ -127,18 +127,8 @@ test("Saving a projection appends a new definition revision without changing bus
     repository,
     source,
     sessions,
-    resolveAuthorizationProvider: () => ({
-      providerId: "test.authorization",
-      check() {
-        return {
-          contractVersion: "0.1.0",
-          allowed: true,
-          policyProviderId: "test.authorization",
-          reasonCodes: ["TEST_ALLOW"]
-        };
-      }
-    }),
     canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
     locale: () => "zh-CN",
     now: () => new Date("2026-10-06T00:02:00.000Z")
   });
@@ -256,18 +246,8 @@ test("Projection save refuses to branch silently from a stale historical revisio
     repository,
     source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository),
     sessions,
-    resolveAuthorizationProvider: () => ({
-      providerId: "test.authorization",
-      check() {
-        return {
-          contractVersion: "0.1.0",
-          allowed: true,
-          policyProviderId: "test.authorization",
-          reasonCodes: ["TEST_ALLOW"]
-        };
-      }
-    }),
-    canManageEnterpriseContext: () => true
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {}
   });
   const save = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
