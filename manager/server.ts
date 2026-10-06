@@ -634,9 +634,11 @@ import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createSettingsExperienceManifest,
+  createSettingsGroupPage,
   createSettingsIndexPage,
   createSettingsPage,
   packageIdFromSettingsPageSource,
+  settingsGroupFromPageSource,
   settingsIndexPageSource,
   secretReferenceForPackageV010,
   validateAndMergeSettings
@@ -5924,7 +5926,23 @@ const server = createServer(async (request, response) => {
         }));
       }
       if (source === settingsIndexPageSource) {
-        return json(response, 200, createSettingsIndexPage(manager));
+        return json(
+          response,
+          200,
+          createSettingsIndexPage(manager, requestedLocale(url))
+        );
+      }
+      const settingsGroup = settingsGroupFromPageSource(source);
+      if (settingsGroup) {
+        return json(
+          response,
+          200,
+          createSettingsGroupPage(
+            manager,
+            settingsGroup,
+            requestedLocale(url)
+          )
+        );
       }
       if (source === providerManagerIndexPageSource) {
         return json(response, 200, createProviderManagerIndexPage(
