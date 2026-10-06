@@ -3716,7 +3716,6 @@ const actionRouter = createAppActionRouter(
                   enterpriseBusinessDefinitionRepository
                 ),
               sessions: enterpriseDefinitionProjectionSessions,
-              resolveAuthorizationProvider,
               canManageEnterpriseContext(principal, contextId) {
                 return (
                   resolveEnterpriseContextRelationshipProvider()
@@ -3726,6 +3725,28 @@ const actionRouter = createAppActionRouter(
                   && item.state === "ACTIVE"
                   && (item.kind === "OWNER" || item.kind === "ADMIN")
                 );
+              },
+              async authorizeProjectionSave(context, target) {
+                const authorization = await authorizeMaterialWriteV010(
+                  resolveAuthorizationProvider(),
+                  context,
+                  {
+                    action: "definition.projection.save",
+                    resource: {
+                      type: "enterprise.business-definition.projection",
+                      id: `${target.definitionId}#${target.projectionId}`,
+                      attributes: {
+                        enterpriseId: target.enterpriseId,
+                        definitionRevision: target.definitionRevision
+                      }
+                    }
+                  }
+                );
+                if (!authorization.allowed) {
+                  throw new Error(
+                    `${authorization.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED"}: denied by '${authorization.policyProviderId}' ${authorization.reasonCodes.join(", ")}`
+                  );
+                }
               },
               locale(context) {
                 return context.locale;
