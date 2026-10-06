@@ -377,3 +377,12 @@ For contextual detail/deep-link routes:
 This rule does **not** weaken the Web delivery cache policy. Qualified page reads use their full request URL as the cache key and continue to use ETag/conditional revalidation. Immutable revisioned JS/CSS remain long-lived and immutable; the shell remains revalidated; authenticated snapshots remain private and conditionally revalidated.
 
 Browser history clearing the final hash must render the configured initial workspace rather than leaving an empty surface.
+
+
+## Route identity must survive Host adapters
+
+Every adapter between Workbench/App Host and the App Manager page source must forward `ExperienceReadOptionsV010` unchanged, including the exact qualified `routePath`.
+
+A wrapper that forwards only the page descriptor but drops read options breaks reloadable detail/deep-link routes even when authentication and the underlying page source are correct. Regression coverage therefore treats read-option forwarding as part of the page-read contract.
+
+Authentication failures remain distinct: expired or missing sessions use 401/403 and the managed login flow; a 409 page-selection conflict must not be interpreted as an authentication failure.
