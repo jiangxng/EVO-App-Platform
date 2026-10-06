@@ -383,6 +383,7 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
     translateX: number;
     translateY: number;
   };
+  contextNavigation?: DiagramWorkspacePageV010["contextNavigation"];
   locale?: string;
 }): DiagramWorkspacePageV010 {
   const text = textFor(input.locale);
@@ -411,15 +412,9 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       definitionRevision: input.definitionRevision,
       projectionId: input.projectionId
     },
-    toolbarActions: [{
-      id: "back-to-view",
-      label: text.back,
-      route: definition2dPreviewRouteV010({
-        definitionId: input.definitionId,
-        definitionRevision: input.definitionRevision,
-        projectionId: input.projectionId
-      })
-    }],
+    ...(input.contextNavigation
+      ? { contextNavigation: input.contextNavigation }
+      : {}),
     ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     viewInteraction: {
       zoom: true,

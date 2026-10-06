@@ -11,6 +11,7 @@ import {
   createMemoryDefinitionProjectionSessionStoreV010,
   DEFINITION_2D_EDITOR_ROUTE_V010,
   DEFINITION_2D_PREVIEW_ROUTE_V010,
+  definition2dPreviewRouteV010,
   parseDefinitionProjectionRouteV010
 } from "../contracts/definition-projection.js";
 import {
@@ -744,6 +745,7 @@ import {
   ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
 import {
+  LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
   LEDGER_MANAGER_FEATURE_ID,
   LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
@@ -751,6 +753,8 @@ import {
   LEDGER_MANAGER_PAGE_SOURCE,
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
   LEDGER_MANAGER_PUBLISH_COMMAND,
+  LEDGER_MANAGER_ROUTE,
+  ledgerManagerDetailRouteV010,
   parseLedgerManagerDetailRouteV010
 } from "../apps/ledger-manager/constants.js";
 import {
@@ -5652,6 +5656,55 @@ const server = createServer(async (request, response) => {
             code: "DEFINITION_PROJECTION_NOT_FOUND"
           });
         }
+        const locale = requestedLocale(url);
+        const definitionRevisionRecord =
+          enterpriseBusinessDefinitionRepository
+            .listHistory({
+              enterpriseId: artifact.enterpriseId,
+              definitionId: artifact.definitionId
+            })
+            .find(item => item.revision === artifact.definitionRevision);
+        const definitionTitle =
+          definitionRevisionRecord?.title ?? artifact.title;
+        const contextNavigation =
+          artifact.definitionKind === LEDGER_MANAGER_DEFINITION_KIND
+            ? {
+                items: [
+                  {
+                    id: "ledger-manager",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "账本管理"
+                      : "Ledger management",
+                    route: LEDGER_MANAGER_ROUTE
+                  },
+                  {
+                    id: "ledger-runtime-template",
+                    label: definitionTitle,
+                    route: ledgerManagerDetailRouteV010(
+                      artifact.definitionId,
+                      artifact.definitionRevision
+                    )
+                  },
+                  {
+                    id: "relationship-map",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "关系图"
+                      : "Relationship map",
+                    route: definition2dPreviewRouteV010({
+                      definitionId: artifact.definitionId,
+                      definitionRevision: artifact.definitionRevision,
+                      projectionId: selection.projectionId
+                    })
+                  },
+                  {
+                    id: "edit-projection",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "编辑投影"
+                      : "Edit projection"
+                  }
+                ]
+              }
+            : undefined;
         return json(
           response,
           200,
@@ -5662,7 +5715,8 @@ const server = createServer(async (request, response) => {
             projectionId: selection.projectionId,
             title: artifact.title,
             ...(artifact.camera ? { camera: artifact.camera } : {}),
-            locale: requestedLocale(url)
+            ...(contextNavigation ? { contextNavigation } : {}),
+            locale
           })
         );
       }
@@ -5736,6 +5790,44 @@ const server = createServer(async (request, response) => {
             code: "DEFINITION_2D_PREVIEW_NOT_FOUND"
           });
         }
+        const locale = requestedLocale(url);
+        const definitionRevisionRecord =
+          enterpriseBusinessDefinitionRepository
+            .listHistory({
+              enterpriseId: artifact.enterpriseId,
+              definitionId: artifact.definitionId
+            })
+            .find(item => item.revision === artifact.definitionRevision);
+        const definitionTitle =
+          definitionRevisionRecord?.title ?? artifact.title;
+        const contextNavigation =
+          artifact.definitionKind === LEDGER_MANAGER_DEFINITION_KIND
+            ? {
+                items: [
+                  {
+                    id: "ledger-manager",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "账本管理"
+                      : "Ledger management",
+                    route: LEDGER_MANAGER_ROUTE
+                  },
+                  {
+                    id: "ledger-runtime-template",
+                    label: definitionTitle,
+                    route: ledgerManagerDetailRouteV010(
+                      artifact.definitionId,
+                      artifact.definitionRevision
+                    )
+                  },
+                  {
+                    id: "relationship-map",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "关系图"
+                      : "Relationship map"
+                  }
+                ]
+              }
+            : undefined;
         return json(
           response,
           200,
@@ -5748,10 +5840,11 @@ const server = createServer(async (request, response) => {
               ? { projectionId: artifact.projectionId }
               : {}),
             ...(artifact.camera ? { camera: artifact.camera } : {}),
+            ...(contextNavigation ? { contextNavigation } : {}),
             canEditProjection: manager.getSnapshot().activeFeatures.some(
               feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
             ),
-            locale: requestedLocale(url)
+            locale
           })
         );
       }

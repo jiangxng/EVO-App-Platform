@@ -124,6 +124,7 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
     translateY: number;
   };
   canEditProjection?: boolean;
+  contextNavigation?: DiagramWorkspacePageV010["contextNavigation"];
   locale?: string;
 }): DiagramWorkspacePageV010 {
   const zh = (input.locale ?? "").toLowerCase().startsWith("zh");
@@ -149,6 +150,9 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
       definitionRevision: input.definitionRevision,
       ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
+    ...(input.contextNavigation
+      ? { contextNavigation: input.contextNavigation }
+      : {}),
     ...(input.canEditProjection && input.projectionId
       ? {
           toolbarActions: [{
