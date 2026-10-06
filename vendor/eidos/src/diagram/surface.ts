@@ -1176,7 +1176,23 @@ export function mountDiagramEditorPageV010(
       toolbar.appendChild(button);
     }
 
-    if (page.viewInteraction?.zoom) {
+    const clearSelectionOnCanvasClick = (event: MouseEvent): void => {
+    const target = event.target as Element | null;
+    if (
+      target?.closest?.("[data-eidos-diagram-node]")
+      || target?.closest?.("[data-eidos-diagram-edge]")
+      || target?.closest?.("[data-eidos-diagram-view-controls]")
+    ) {
+      return;
+    }
+    clearSelection();
+  };
+  canvas.addEventListener("click", clearSelectionOnCanvasClick);
+  listeners.push(() =>
+    canvas.removeEventListener("click", clearSelectionOnCanvasClick)
+  );
+
+  if (page.viewInteraction?.zoom) {
       const addViewButton = (
         label: string,
         title: string,
@@ -1274,6 +1290,15 @@ export function mountDiagramEditorPageV010(
       selectionActions.appendChild(hideButton);
     }
   };
+
+  function clearSelection(): void {
+    if (!selected && !selectionInspection) return;
+    selected = undefined;
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    canvas?.focus({ preventScroll: true });
+  }
 
   function hideSelectedFromView(): void {
     if (
@@ -1576,6 +1601,7 @@ export function mountDiagramEditorPageV010(
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
         render();
+        canvas.focus({ preventScroll: true });
         void inspectSelection();
       });
       svg.appendChild(hit);
@@ -1738,6 +1764,7 @@ export function mountDiagramEditorPageV010(
         selected = { kind: "node", id: node.id };
         selectionInspection = undefined;
         render();
+        canvas.focus({ preventScroll: true });
         void inspectSelection();
       });
 
@@ -1795,14 +1822,10 @@ export function mountDiagramEditorPageV010(
             ) {
               return;
             }
-            const nextX = Math.max(
-              0,
-              originalX + screenDeltaX / camera.scale
-            );
-            const nextY = Math.max(
-              0,
-              originalY + screenDeltaY / camera.scale
-            );
+            const nextX =
+              originalX + screenDeltaX / camera.scale;
+            const nextY =
+              originalY + screenDeltaY / camera.scale;
             moved = true;
             element.style.left = nextX + "px";
             element.style.top = nextY + "px";
@@ -2038,13 +2061,6 @@ export function mountDiagramEditorPageV010(
   }
 
   const keydownHandler = (event: KeyboardEvent): void => {
-    if (
-      page.viewInteraction?.localSelectionHide !== true
-      || !selected
-      || (event.key !== "Delete" && event.key !== "Backspace")
-    ) {
-      return;
-    }
     const target = event.target;
     if (
       target instanceof HTMLInputElement
@@ -2054,8 +2070,21 @@ export function mountDiagramEditorPageV010(
     ) {
       return;
     }
-    event.preventDefault();
-    hideSelectedFromView();
+
+    if (event.key === "Escape" && selected) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+
+    if (
+      page.viewInteraction?.localSelectionHide === true
+      && selected
+      && (event.key === "Delete" || event.key === "Backspace")
+    ) {
+      event.preventDefault();
+      hideSelectedFromView();
+    }
   };
   root.addEventListener("keydown", keydownHandler);
   listeners.push(() => root.removeEventListener("keydown", keydownHandler));
