@@ -4,9 +4,6 @@ import type {
   AppActionRequestV010,
   JsonValue
 } from "../../actions/contracts.js";
-import {
-  authorizeMaterialWriteV010
-} from "../../manager/material-write-authorization.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
@@ -17,7 +14,6 @@ import {
   type DefinitionProjectionSelectionV010
 } from "../../contracts/definition-projection.js";
 import type {
-  AuthorizationProviderV010,
   PlatformPrincipalV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
@@ -39,9 +35,6 @@ import {
   EOG_2D_DESIGNER_FEATURE_ID,
   EOG_2D_PACKAGE_ID
 } from "../eog-2d/package.js";
-
-const DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION =
-  "definition.projection.save";
 
 function textFor(locale?: string) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
@@ -434,11 +427,19 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
     repository: BusinessDefinitionRepositoryV010;
     source: DefinitionProjectionArtifactSourceV010;
     sessions: DefinitionProjectionSessionStoreV010;
-    resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
     canManageEnterpriseContext(
       principal: PlatformPrincipalV010,
       contextId: string
     ): boolean;
+    authorizeProjectionSave(
+      context: PlatformRequestContextV010,
+      target: {
+        enterpriseId: string;
+        definitionId: string;
+        projectionId: string;
+        definitionRevision: number;
+      }
+    ): Promise<void> | void;
     locale?(context: PlatformRequestContextV010): string | undefined;
     now?: () => Date;
   }
@@ -548,26 +549,12 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           throw new Error("DEFINITION_PROJECTION_GALLERY_REQUIRED");
         }
 
-        const authorization = await authorizeMaterialWriteV010(
-          input.resolveAuthorizationProvider(),
-          context,
-          {
-            action: DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION,
-            resource: {
-              type: "enterprise.business-definition.projection",
-              id: `${selection.definitionId}#${selection.projectionId}`,
-              attributes: {
-                enterpriseId: scope.enterpriseId,
-                definitionRevision: latest.revision
-              }
-            }
-          }
-        );
-        if (!authorization.allowed) {
-          throw new Error(
-            `${authorization.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED"}: denied by '${authorization.policyProviderId}' ${authorization.reasonCodes.join(", ")}`
-          );
-        }
+        await input.authorizeProjectionSave(context, {
+          enterpriseId: scope.enterpriseId,
+          definitionId: selection.definitionId,
+          projectionId: selection.projectionId,
+          definitionRevision: latest.revision
+        });
 
         const projectionGallery = mergeProjection(
           latest.projectionGallery,
