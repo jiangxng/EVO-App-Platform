@@ -956,6 +956,16 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
       }
     ): Promise<void> | void;
     locale?(context: PlatformRequestContextV010): string | undefined;
+    onEditorRead?: (
+      context: PlatformRequestContextV010,
+      target: {
+        enterpriseId: string;
+        definitionId: string;
+        definitionRevision: number;
+        projectionId: string;
+        resourceId: string;
+      }
+    ) => void;
     now?: () => Date;
     projectionIdFactory?: () => string;
   }
@@ -995,6 +1005,14 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           sessions: input.sessions,
           context,
           values: request.values
+        });
+        input.onEditorRead?.(context, {
+          enterpriseId: selection.enterpriseId,
+          definitionId: selection.definitionId,
+          definitionRevision: selection.definitionRevision,
+          projectionId: selection.projectionId,
+          resourceId:
+            `enterprise-definition:${selection.enterpriseId}:${selection.definitionId}@${selection.definitionRevision}#${selection.projectionId}`
         });
         const selectedAt = now().toISOString();
         for (const key of sessionKeys(context)) {
