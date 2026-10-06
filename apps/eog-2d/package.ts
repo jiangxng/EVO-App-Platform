@@ -132,17 +132,9 @@ export const eog2dPackage: PackageManifestV010 = {
             path: EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE,
             pageId: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID
           }],
-          navigation: [{
-            id: "evo-eog-2d-viewer.nav",
-            label: "Operating Graph",
-            route: EOG_2D_VIEWER_WORKSPACE_ROUTE,
-            order: 16,
-            surfaceIds: [
-              "evo-eog-2d-viewer.desktop",
-              "evo-eog-2d-viewer.mobile",
-              "evo-eog-2d-viewer.tablet"
-            ]
-          }],
+          // Capability tool: intentionally not contributed to persistent
+          // Workbench navigation. Open contextually from owning business flows,
+          // Agent actions, deep links, or other declared capability consumers.
           surfaces: [{
             id: "evo-eog-2d-viewer.desktop",
             target: "DESKTOP_WORKBENCH",
@@ -196,13 +188,9 @@ export const eog2dPackage: PackageManifestV010 = {
             id: EOG_2D_DESIGNER_PAGE_ID,
             path: EOG_2D_DESIGNER_ROUTE,
             pageId: EOG_2D_DESIGNER_PAGE_ID
-          }],
-          navigation: [{
-            id: "evo-eog-2d-designer.nav",
-            label: "Operating Graph Designer",
-            route: EOG_2D_DESIGNER_ROUTE,
-            order: 15
           }]
+          // Designer remains routable/capability-discoverable but is launched
+          // from a business context rather than persistent navigation.
         }
       }]
     }
