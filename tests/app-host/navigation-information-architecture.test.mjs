@@ -54,3 +54,20 @@ test("primary Workbench activities contain work context, not system administrati
   assert.doesNotMatch(source, /id: "memory"/);
   assert.match(source, /defaultActivityId: "apps"/);
 });
+
+test("global Help Center uses the main workspace while remaining secondary navigation", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  const helpStart = source.indexOf('id: "help"');
+  assert.notEqual(helpStart, -1);
+  const helpBlock = source.slice(helpStart, helpStart + 520);
+  assert.match(helpBlock, /kind: "workspace-route"/);
+  assert.match(helpBlock, /route: "\/help"/);
+  assert.match(helpBlock, /placement: "secondary"/);
+  assert.doesNotMatch(helpBlock, /kind: "side-route"/);
+});
