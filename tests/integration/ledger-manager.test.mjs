@@ -324,3 +324,18 @@ test("Ledger Manager localizes business-facing labels without exposing technical
   assert.equal(JSON.stringify(item).includes("TEMPLATE_COPY"), false);
   assert.equal(JSON.stringify(item).includes("DRAFT"), false);
 });
+
+
+test("Ledger relationship-map page source keeps a direct return to the same template revision", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+
+  assert.match(source, /artifact\.definitionKind === LEDGER_MANAGER_DEFINITION_KIND/);
+  assert.match(
+    source,
+    /route:\s*ledgerManagerDetailRouteV010\(\s*artifact\.definitionId,\s*artifact\.definitionRevision\s*\)/
+  );
+  assert.match(source, /"返回模板详情"/);
+  assert.match(source, /"Back to template details"/);
+});
