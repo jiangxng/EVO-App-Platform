@@ -8,8 +8,7 @@ import {
   authorizeMaterialWriteV010
 } from "../../actions/material-write-authorization.js";
 import type {
-  BusinessDefinitionRepositoryV010,
-  BusinessDefinitionRevisionV010
+  BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
 import type {
   DefinitionProjectionArtifactSourceV010,
@@ -196,20 +195,6 @@ function enterpriseScope(
     enterpriseId,
     subjectId: context.principal.subjectId
   };
-}
-
-function revision(
-  repository: BusinessDefinitionRepositoryV010,
-  enterpriseId: string,
-  definitionId: string,
-  definitionRevision: number
-): BusinessDefinitionRevisionV010 {
-  const item = repository.listHistory({
-    enterpriseId,
-    definitionId
-  }).find(candidate => candidate.revision === definitionRevision);
-  if (!item) throw new Error("DEFINITION_PROJECTION_DEFINITION_NOT_FOUND");
-  return item;
 }
 
 function mergeView(input: {
