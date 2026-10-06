@@ -24,7 +24,7 @@ export const eidosDesignPolicyV010 = {
     workspace: {
       purpose: "primary-task",
       dominance: "highest",
-      internalRouteAddress: "hidden-by-default"
+      internalRouteAddress: "not-rendered-in-standard-business-workbench"
     },
     statusBar: {
       purpose: "contextual-status",
@@ -36,7 +36,7 @@ export const eidosDesignPolicyV010 = {
     leading: ["navigation", "back", "sidebar-structure"],
     center: ["title", "current-context", "search"],
     trailing: ["frequent-contextual-actions", "primary-action", "overflow"],
-    technicalAddress: "web-or-diagnostic-mode-only",
+    technicalAddress: "separate-explicit-capability-only",
     maxVisibleLogicalGroups: 3,
     overflowLowFrequencyActions: true
   },
