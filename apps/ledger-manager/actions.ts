@@ -11,7 +11,7 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
 import {
-  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  definition2dPreviewRouteV010,
   type DefinitionProjectionSessionStoreV010
 } from "../../contracts/definition-projection.js";
 import type {
@@ -247,7 +247,11 @@ export function createLedgerManagerActionHandlersV010(input: {
         }
         return success(request, {
           message: `Opening 2D projection “${projectionId}”.`,
-          navigateTo: DEFINITION_2D_PREVIEW_ROUTE_V010
+          navigateTo: definition2dPreviewRouteV010({
+            definitionId,
+            definitionRevision,
+            projectionId
+          })
         });
       }
     ),
