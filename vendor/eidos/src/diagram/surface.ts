@@ -1090,7 +1090,7 @@ export function renderDiagramEditorPageShellToHtmlV010(
     width:100%;
     margin-left:0;
     justify-content:flex-start;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
   }
   [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-menu]{
     left:0;
