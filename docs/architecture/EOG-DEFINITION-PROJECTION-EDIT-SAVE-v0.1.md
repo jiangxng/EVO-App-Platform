@@ -130,7 +130,6 @@ Potential later additions, without changing this persistence boundary:
 - projection description edit;
 - restore/show a previously hidden node or relation individually;
 - explicit discard/unsaved-change guard;
-- Personal Agent natural-language Projection authoring such as “裁剪出从销售到收款的投影”;
 - plugin-owned `visualIdentity` rendering when real owning business plugins declare it.
 
 Projection identity remains presentation metadata. EOG/Eidos must not infer domain icons from names.
@@ -168,7 +167,7 @@ When saved, the captured hidden-ID sets are authoritative for that Projection. T
 
 ### Save as projection
 
-"Save as projection" captures the current positions, camera and visibility state into a new Projection entry while leaving the source Projection unchanged. The Definition still advances through the normal append/versioned revision path.
+"Save as projection" captures the current positions, camera and visibility state into a new Projection entry while leaving the source Projection unchanged. It creates a new Projection identity only and does not advance the Business Definition version.
 
 The new Projection receives a unique projection ID and a deterministic copy title such as "原投影 副本", "原投影 副本 2", etc. The editor navigates to the newly created Projection after save. Gallery capacity remains governed by the existing maximum of nine projections.
 
@@ -221,7 +220,7 @@ This baseline does not grant enterprise membership by itself and does not weaken
 
 A saved Projection has a Human-editable title independent of its stable `projectionId`.
 
-The editor exposes an explicit rename action. Renaming appends the normal Definition revision, updates only Projection Gallery presentation metadata, preserves the projection ID/view/business payload, and updates thumbnail alternative text. Projection titles must be non-empty and unique within the same gallery.
+The editor exposes an explicit rename action. Renaming updates only the current Projection Gallery presentation metadata in place, preserves the projection ID/view/business payload, does not advance the Business Definition version, and updates thumbnail alternative text. Projection titles must be non-empty and unique within the same gallery.
 
 Every explicit **Save projection** and **Save as projection** regenerates the Projection thumbnail from the captured current canvas view:
 
@@ -249,6 +248,45 @@ Changing the default:
 - uses the same governed Projection persistence authorization boundary.
 
 The action is not shown when the current Projection is already the default. This is gallery presentation preference, not Ledger Runtime configuration.
+
+## Personal Agent direct current-Projection authoring
+
+Personal Agent is a third operator over the same Projection model. It does not replace either the 2D Viewer or the 2D Designer.
+
+The first normative Human scenario is:
+
+```text
+Human opens a qualified 2D Projection Editor
+        ↓
+Human opens/uses Personal Agent in the same Workbench session
+        ↓
+Human: “帮我裁剪出从销售到收款的投影”
+        ↓
+Personal Agent reads the complete material behind the current Projection
+        ↓
+The model chooses the exact nodes and relations that satisfy the Human intent
+        ↓
+Personal Agent writes that retained set directly to the current Projection
+        ↓
+Host publishes a resource invalidation for the exact open editor
+        ↓
+The mounted 2D canvas refreshes to the new Projection
+```
+
+Rules:
+
+- no mouse, drag simulation or click choreography is used;
+- the Human does not need to repeat definition ID, revision ID or projection ID after opening the editor;
+- opening/loading a qualified Projection Editor establishes that Projection as the current target for the browser session;
+- the Agent reads complete material, including items currently hidden from the Projection, before selecting a retained set;
+- business meaning is interpreted by the model from the current material; phrases such as “销售到收款” are **not** hard-coded into EOG/Eidos keyword rules;
+- the Agent writes exact retained node/relation IDs through the same governed Projection persistence boundary as Human authoring;
+- the current Projection identity is updated in place and remains on the same Business Definition revision;
+- applications, ledgers, posting logic and semantic relations are not created, deleted or rewritten;
+- the Projection thumbnail is regenerated with the resulting visibility state;
+- the open editor refreshes through the generic resource-invalidation path; Eidos remains unaware of Ledger/business semantics.
+
+The v0.4 acceptance assumes one intended current 2D Projection Editor in the active Workbench session. Multi-tab/current-surface arbitration is a separate concern and must not be guessed from business semantics.
 
 ## Node visual identity boundary
 
