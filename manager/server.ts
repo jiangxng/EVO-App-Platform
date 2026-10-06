@@ -786,6 +786,9 @@ import {
   parseCounterpartyDetailRouteV010
 } from "../apps/counterparty/constants.js";
 import {
+  createCounterpartyRepositoryV010
+} from "../apps/counterparty/repository.js";
+import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
   LEDGER_MANAGER_FEATURE_ID,
@@ -891,6 +894,8 @@ const enterpriseResourceRepository =
         enterpriseResourceStateFile
       )
     : createMemoryEnterpriseResourceRepositoryV010();
+const counterpartyRepository =
+  createCounterpartyRepositoryV010(enterpriseResourceRepository);
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -4076,6 +4081,42 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      COUNTERPARTY_CREATE_COMMAND,
+      COUNTERPARTY_ARCHIVE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/counterparty/actions.js");
+          const handlers = module.createCounterpartyActionHandlersV010({
+            repository: counterpartyRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "cp-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
       LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
       LEDGER_MANAGER_PUBLISH_COMMAND
@@ -5617,6 +5658,72 @@ const server = createServer(async (request, response) => {
             currentRole: relationship?.kind,
             isDefault:
               defaultEnterpriseContext?.contextId === active.contextId,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (
+        source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE
+        || source === COUNTERPARTY_CREATE_PAGE_SOURCE
+        || source === COUNTERPARTY_DETAIL_PAGE_SOURCE
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "COUNTERPARTY_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const module = await import("../apps/counterparty/page.js");
+        if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyDirectoryPageV010({
+              counterparties:
+                counterpartyRepository.list(active.contextId),
+              locale: requestedLocale(url)
+            })
+          );
+        }
+        if (source === COUNTERPARTY_CREATE_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyCreatePageV010(
+              requestedLocale(url)
+            )
+          );
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const counterpartyId =
+          parseCounterpartyDetailRouteV010(routeValue || undefined);
+        if (!counterpartyId) {
+          return json(response, 400, {
+            code: "COUNTERPARTY_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const counterparty =
+          counterpartyRepository.get(active.contextId, counterpartyId);
+        if (!counterparty) {
+          return json(response, 404, {
+            code: "COUNTERPARTY_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          module.createCounterpartyDetailPageV010({
+            counterparty,
             locale: requestedLocale(url)
           })
         );
