@@ -115,6 +115,8 @@ test("Definition Projection Viewer-to-Editor page exposes direct edit workflow",
   assert.equal(page.kind, "diagram-workspace");
   assert.equal(page.operationCommand.code, EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
   assert.equal(page.viewInteraction.localNodeDrag, true);
+  assert.equal(page.viewInteraction.localSelectionHide, true);
+  assert.equal(page.viewInteraction.localSelectionHideLabel, "从投影移除");
   assert.equal(page.toolbarActions[0].label, "返回查看");
   assert.equal(page.initialCamera.scale, 1.1);
 });
@@ -163,11 +165,17 @@ test("Saving a projection appends a new definition revision without changing bus
   );
 
   const nodes = readResult.result.nodes;
-  const placements = nodes.map((node, index) => ({
-    nodeId: node.id,
-    x: node.x + 20 + index,
-    y: node.y + 10
-  }));
+  const hiddenNodeId = nodes[0].id;
+  const hiddenEdgeId = readResult.result.edges.find(
+    edge => edge.source !== hiddenNodeId && edge.target !== hiddenNodeId
+  )?.id;
+  const placements = nodes
+    .filter(node => node.id !== hiddenNodeId)
+    .map((node, index) => ({
+      nodeId: node.id,
+      x: node.x + 20 + index,
+      y: node.y + 10
+    }));
   const beforePayload = structuredClone(revision.payload);
   const beforeGallery = structuredClone(revision.projectionGallery);
 
@@ -178,6 +186,8 @@ test("Saving a projection appends a new definition revision without changing bus
         expectedRevision: 0,
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
+          hiddenNodeIds: [hiddenNodeId],
+          ...(hiddenEdgeId ? { hiddenEdgeIds: [hiddenEdgeId] } : {}),
           placements,
           camera: {
             scale: 1.25,
@@ -217,10 +227,38 @@ test("Saving a projection appends a new definition revision without changing bus
     translateX: 18,
     translateY: -12
   });
+  assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
+  if (hiddenEdgeId) {
+    assert.deepEqual(projection.view.hiddenEdgeIds, [hiddenEdgeId]);
+  }
   for (const placement of placements) {
     assert.deepEqual(
       projection.view.placements.find(item => item.nodeId === placement.nodeId),
       placement
+    );
+  }
+
+  const projected = source.get({
+    enterpriseId: "ent-a",
+    definitionId: "ledger:main",
+    definitionRevision: 1,
+    projectionId
+  });
+  assert.ok(projected?.diagram2d);
+  assert.equal(
+    projected.diagram2d.nodes.some(node => node.id === hiddenNodeId),
+    false
+  );
+  assert.equal(
+    projected.diagram2d.edges.some(
+      edge => edge.source === hiddenNodeId || edge.target === hiddenNodeId
+    ),
+    false
+  );
+  if (hiddenEdgeId) {
+    assert.equal(
+      projected.diagram2d.edges.some(edge => edge.id === hiddenEdgeId),
+      false
     );
   }
 
