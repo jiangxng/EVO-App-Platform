@@ -58,6 +58,9 @@ export function createEnterpriseDefinitionProjectionArtifactSourceV010(
           ? { description: projected.description }
           : {}),
         definitionKind: revision.kind,
+        ...(projected.camera
+          ? { camera: structuredClone(projected.camera) }
+          : {}),
         ...(projected.diagram2d
           ? { diagram2d: projected.diagram2d }
           : {})
