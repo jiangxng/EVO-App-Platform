@@ -155,7 +155,6 @@ export function createLedgerManagerPageV010(input: {
       noResultsMessage: text.empty
     },
     items: revisions.map(item => {
-      const version = ledgerManagerVersionLabelV010(item.revision);
       const displayVersion = versionDisplayLabel(item.revision, text);
       const projections = item.projectionGallery?.projections ?? [];
       const primaryProjection =
@@ -248,7 +247,6 @@ export function createLedgerManagerDetailPageV010(input: {
   locale?: string;
 }) {
   const text = textFor(input.locale);
-  const version = ledgerManagerVersionLabelV010(input.revision.revision);
   const displayVersion = versionDisplayLabel(input.revision.revision, text);
   const projections = input.revision.projectionGallery?.projections ?? [];
 
