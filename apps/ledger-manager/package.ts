@@ -66,12 +66,6 @@ export const ledgerManagerPackage: PackageManifestV010 = {
           id: LEDGER_MANAGER_DETAIL_PAGE_ID,
           path: LEDGER_MANAGER_DETAIL_ROUTE,
           pageId: LEDGER_MANAGER_DETAIL_PAGE_ID
-        }],
-        navigation: [{
-          id: "evo-ledger-manager.nav",
-          label: "Ledger Manager",
-          route: LEDGER_MANAGER_ROUTE,
-          order: 35
         }]
       }
     }, {
