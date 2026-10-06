@@ -495,7 +495,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       container: "#app",
       title: "EVO",
       defaultActivityId: "apps",
-      initialWorkspaceRoute: "/store",
+      initialWorkspaceRoute: "/workspace",
       surfaceId: activeSurfaceId,
       activities: initialActivities.activities,
       actionHost,
