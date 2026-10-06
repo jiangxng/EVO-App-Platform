@@ -795,6 +795,81 @@ function mergeProjection(
   return next;
 }
 
+
+export function cropDefinitionProjectionToVisibleItemsV010(input: {
+  gallery: TemplateProjectionGalleryV010;
+  projectionId: string;
+  diagram: Template2dPreviewV010;
+  visibleNodeIds: readonly string[];
+  visibleEdgeIds?: readonly string[];
+  locale?: string;
+}): TemplateProjectionGalleryV010 {
+  const allNodeIds = new Set(input.diagram.nodes.map(node => node.id));
+  const visibleNodeIds = [...new Set(
+    input.visibleNodeIds.map(value => value.trim()).filter(Boolean)
+  )];
+  if (visibleNodeIds.length < 1) {
+    throw new Error("DEFINITION_PROJECTION_VISIBLE_NODES_REQUIRED");
+  }
+  if (visibleNodeIds.some(id => !allNodeIds.has(id))) {
+    throw new Error("DEFINITION_PROJECTION_VISIBLE_NODE_NOT_FOUND");
+  }
+
+  const visibleNodeSet = new Set(visibleNodeIds);
+  const candidateEdges = input.diagram.edges.filter(edge =>
+    visibleNodeSet.has(edge.source) && visibleNodeSet.has(edge.target)
+  );
+  const requestedVisibleEdges = input.visibleEdgeIds
+    ? [...new Set(input.visibleEdgeIds.map(value => value.trim()).filter(Boolean))]
+    : candidateEdges.map(edge => edge.id);
+  const candidateEdgeIds = new Set(candidateEdges.map(edge => edge.id));
+  if (requestedVisibleEdges.some(id => !candidateEdgeIds.has(id))) {
+    throw new Error("DEFINITION_PROJECTION_VISIBLE_EDGE_NOT_FOUND");
+  }
+  const visibleEdgeSet = new Set(requestedVisibleEdges);
+
+  const current = input.gallery.projections.find(
+    item => item.projectionId === input.projectionId
+  );
+  if (!current) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
+
+  const camera = current.view.camera ?? {
+    scale: 1,
+    translateX: 0,
+    translateY: 0
+  };
+  const placements = (
+    current.view.placements?.length
+      ? current.view.placements
+      : input.diagram.nodes.map(node => ({
+          nodeId: node.id,
+          x: node.x,
+          y: node.y
+        }))
+  ).filter(item => visibleNodeSet.has(item.nodeId));
+
+  return mergeProjection(
+    input.gallery,
+    input.projectionId,
+    {
+      hiddenNodeIds: input.diagram.nodes
+        .filter(node => !visibleNodeSet.has(node.id))
+        .map(node => node.id),
+      hiddenEdgeIds: input.diagram.edges
+        .filter(edge =>
+          !visibleNodeSet.has(edge.source)
+          || !visibleNodeSet.has(edge.target)
+          || !visibleEdgeSet.has(edge.id)
+        )
+        .map(edge => edge.id),
+      placements,
+      camera: { ...camera }
+    },
+    input.diagram,
+    input.locale
+  );
+}
+
 function projectionCopyTitle(
   gallery: TemplateProjectionGalleryV010,
   sourceTitle: string,
@@ -921,6 +996,17 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           context,
           values: request.values
         });
+        const selectedAt = now().toISOString();
+        for (const key of sessionKeys(context)) {
+          input.sessions.set(key, {
+            contractVersion: "0.1.0",
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            projectionId: selection.projectionId,
+            selectedAt
+          });
+        }
         const revision = input.repository.listHistory({
           enterpriseId: selection.enterpriseId,
           definitionId: selection.definitionId
