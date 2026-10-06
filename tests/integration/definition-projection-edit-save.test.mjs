@@ -144,6 +144,30 @@ test("EOG 2D uses the canvas-first professional diagram shell", () => {
   assert.doesNotMatch(html, />Selection<\/strong>/);
 });
 
+test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eidos", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../vendor/eidos/src/diagram/surface.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(
+    source,
+    /const nextX =\s*originalX \+ screenDeltaX \/ camera\.scale/
+  );
+  assert.match(
+    source,
+    /const nextY =\s*originalY \+ screenDeltaY \/ camera\.scale/
+  );
+  assert.doesNotMatch(source, /const nextX = Math\.max\(\s*0,/);
+  assert.doesNotMatch(source, /const nextY = Math\.max\(\s*0,/);
+  assert.match(source, /function clearSelection\(\): void/);
+  assert.match(source, /canvas\.addEventListener\("click", clearSelectionOnCanvasClick\)/);
+  assert.match(source, /event\.key === "Escape"/);
+  assert.match(source, /event\.key === "Delete" \|\| event\.key === "Backspace"/);
+});
+
 test("Saving a projection appends a new definition revision without changing business payload", async () => {
   const { repository, revision, projectionId } = seeded();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
@@ -196,8 +220,8 @@ test("Saving a projection appends a new definition revision without changing bus
     .filter(node => node.id !== hiddenNodeId)
     .map((node, index) => ({
       nodeId: node.id,
-      x: node.x + 20 + index,
-      y: node.y + 10
+      x: index === 0 ? -180 : node.x + 20 + index,
+      y: index === 0 ? -120 : node.y + 10
     }));
   const beforePayload = structuredClone(revision.payload);
   const beforeGallery = structuredClone(revision.projectionGallery);
