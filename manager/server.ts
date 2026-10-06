@@ -745,7 +745,8 @@ import {
   LEDGER_MANAGER_PACKAGE_ID,
   LEDGER_MANAGER_PAGE_SOURCE,
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
-  LEDGER_MANAGER_PUBLISH_COMMAND
+  LEDGER_MANAGER_PUBLISH_COMMAND,
+  parseLedgerManagerDetailRouteV010
 } from "../apps/ledger-manager/constants.js";
 import {
   ledgerManagerAuthorizationPolicyV010
@@ -5384,14 +5385,31 @@ const server = createServer(async (request, response) => {
             code: "LEDGER_MANAGER_ENTERPRISE_CONTEXT_REQUIRED"
           });
         }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseLedgerManagerDetailRouteV010(
+          routeValue || undefined
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "LEDGER_MANAGER_DETAIL_ROUTE_INVALID"
+          });
+        }
+
         const sessionId = session.principal.sessionId?.trim();
-        const selection =
+        const sessionSelection =
           (sessionId
             ? enterpriseDefinitionProjectionSessions.get(sessionId)
             : undefined)
           ?? enterpriseDefinitionProjectionSessions.get(
             session.principal.subjectId
           );
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision
+            }
+          : sessionSelection;
         if (
           !selection
           || selection.enterpriseId !== active.enterpriseId
