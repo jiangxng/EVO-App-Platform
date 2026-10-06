@@ -3342,6 +3342,26 @@ function createPersonalAgentToolCatalogV010(
     principal,
     principalContextSources()
   );
+  const editorEnterpriseRef = (enterpriseId: string) =>
+    contextRegistry.list().find(candidate =>
+      candidate.kind === "ENTERPRISE"
+      && candidate.enterpriseId === enterpriseId
+    );
+  const canManageEditorEnterprise = (
+    currentPrincipal: PlatformPrincipalV010,
+    enterpriseId: string
+  ) => {
+    const ref = editorEnterpriseRef(enterpriseId);
+    if (!ref) return false;
+    return (
+      resolveEnterpriseContextRelationshipProvider()
+        ?.listForPrincipal(currentPrincipal) ?? []
+    ).some(item =>
+      item.contextId === ref.contextId
+      && item.state === "ACTIVE"
+      && (item.kind === "OWNER" || item.kind === "ADMIN")
+    );
+  };
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     principal,
@@ -3473,17 +3493,36 @@ function createPersonalAgentToolCatalogV010(
       const current2dEditorTarget = current2dEditorWrite
         ? current2dEditorSessionKeysV010(principal)
             .map(key => current2dEditorSessions.get(key))
-            .find(target =>
-              target !== undefined
-              && context.activeContext.kind === "ENTERPRISE"
-              && target.enterpriseId === context.activeContext.enterpriseId
-            )
+            .find(target => target !== undefined)
         : undefined;
       if (current2dEditorWrite && !current2dEditorTarget) {
         return {
           allowed: false,
           code: "CURRENT_2D_EDITOR_REQUIRED",
           message: "Open the target 2D editor before asking Personal Agent to change the current canvas."
+        };
+      }
+      const current2dEditorEnterpriseRef = current2dEditorTarget
+        ? editorEnterpriseRef(current2dEditorTarget.enterpriseId)
+        : undefined;
+      if (current2dEditorWrite && !current2dEditorEnterpriseRef) {
+        return {
+          allowed: false,
+          code: "CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED",
+          message: "The current 2D editor belongs to an Enterprise Context that is not available to this principal."
+        };
+      }
+      if (
+        current2dEditorTarget
+        && !canManageEditorEnterprise(
+          principal,
+          current2dEditorTarget.enterpriseId
+        )
+      ) {
+        return {
+          allowed: false,
+          code: "CURRENT_2D_EDITOR_MANAGE_ROLE_REQUIRED",
+          message: "Changing the current 2D editor requires an ACTIVE Owner or Admin relationship for its Enterprise Context."
         };
       }
 
@@ -3517,9 +3556,18 @@ function createPersonalAgentToolCatalogV010(
             }
           : undefined;
 
+      const authorizationRequestContext =
+        current2dEditorEnterpriseRef
+          ? {
+              ...requestContext,
+              context: contextRegistry.resolve(
+                current2dEditorEnterpriseRef
+              )
+            }
+          : requestContext;
       const decision = await authorizeMaterialWriteV010(
         resolveAuthorizationProvider(),
-        requestContext,
+        authorizationRequestContext,
         current2dAuthorization ?? {
           action: descriptor.id === "context.memory.canonicalization.proposal.create"
             ? "context.memory.proposal.create"
@@ -3589,25 +3637,27 @@ function createPersonalAgentToolCatalogV010(
       isDesignerActive: () => manager.getSnapshot().activeFeatures.some(
         feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
       ),
-      canManageEnterpriseContext(currentPrincipal, contextId) {
-        return (
-          resolveEnterpriseContextRelationshipProvider()
-            ?.listForPrincipal(currentPrincipal) ?? []
-        ).some(item =>
-          item.contextId === contextId
-          && item.state === "ACTIVE"
-          && (item.kind === "OWNER" || item.kind === "ADMIN")
-        );
+      canAccessEnterprise(_currentPrincipal, enterpriseId) {
+        return editorEnterpriseRef(enterpriseId) !== undefined;
+      },
+      canManageEnterprise(currentPrincipal, enterpriseId) {
+        return canManageEditorEnterprise(currentPrincipal, enterpriseId);
       },
       onEditorUpdated(update) {
+        const editorContext = editorEnterpriseRef(
+          update.target.enterpriseId
+        );
+        if (!editorContext) {
+          throw new Error(
+            "CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED"
+          );
+        }
         realtimeEvents.publish({
           topic: "resource.current-2d-editor",
           type: "RESOURCE_INVALIDATED",
           scope: {
-            contextId: context.activeContext.contextId,
-            ...(context.activeContext.kind === "ENTERPRISE"
-              ? { enterpriseId: context.activeContext.enterpriseId }
-              : {})
+            contextId: editorContext.contextId,
+            enterpriseId: update.target.enterpriseId
           },
           resource: {
             kind: update.target.kind === "OPERATING_GRAPH"
