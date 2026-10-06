@@ -404,3 +404,24 @@ surface.
 
 Authority:
 `docs/architecture/ENTERPRISE-OBSERVATORY-PEER-PACKAGE-v0.1.md`.
+
+
+## Professional canvas visual convergence
+
+The EOG 2D Viewer/Designer adopts the Eidos professional-canvas hierarchy rather than maintaining a private graph skin.
+
+Current product behavior:
+
+- the graph canvas expands to the available Workbench task height instead of using a short fixed diagram window;
+- when no saved camera exists, the initial camera fits the visible projection and keeps fit behavior through container resize until the Human manually pans/zooms;
+- camera controls live as a compact floating control group at the canvas edge; business actions such as Edit projection / Save projection remain page actions;
+- an empty Inspector does not permanently consume canvas width; selection opens contextual detail and clearing selection restores the canvas width;
+- Application and Ledger nodes retain their product-owned type/shape distinction while Eidos supplies restrained Business Office surfaces, light borders and brand-only selection emphasis;
+- dense relations are visually low-weight by default; selecting a node or relation emphasizes the directly connected neighborhood and de-emphasizes unrelated graph content;
+- relation labels are progressively disclosed for dense graphs instead of rendering every label continuously;
+- relation stroke width remains screen-stable during zoom where SVG supports non-scaling strokes;
+- raw renderer/state metadata is not default business chrome.
+
+These rules are presentation-only. They do not change ledger/application semantics, projection persistence rules or Enterprise Definition authority.
+
+Reference patterns were reviewed from mature canvas/map products (Figma, Miro, Mapbox and Lucidchart) and summarized into Eidos-owned design authority so the product does not depend on external product imitation at runtime.
