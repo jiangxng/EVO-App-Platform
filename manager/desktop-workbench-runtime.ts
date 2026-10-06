@@ -639,6 +639,16 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
             window.localStorage.setItem("evo.context.id", copiedContextId);
             await refreshContextControlV010(copiedContextId);
             await workbench?.navigateWorkspace("/ledger");
+            return;
+          }
+
+          const navigateTo =
+            typeof payload?.navigateTo === "string"
+              ? payload.navigateTo.trim()
+              : "";
+          if (navigateTo.startsWith("/")) {
+            await workbench?.navigateWorkspace(navigateTo);
+            return;
           }
         }
       }

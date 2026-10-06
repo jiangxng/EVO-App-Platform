@@ -58,3 +58,18 @@ test("primary Workbench activities contain work context, not system administrati
   assert.doesNotMatch(source, /id: "memory"/);
   assert.match(source, /defaultActivityId: "apps"/);
 });
+
+
+test("successful business actions may navigate the Workbench to a declared internal route", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(
+    source,
+    /const navigateTo =[\s\S]*?typeof payload\?\.navigateTo === "string"[\s\S]*?navigateTo\.startsWith\("\/"\)[\s\S]*?workbench\?\.navigateWorkspace\(navigateTo\)/
+  );
+});
