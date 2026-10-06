@@ -8,7 +8,7 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
 import {
-  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  definition2dPreviewRouteV010,
   type DefinitionProjectionArtifactSourceV010,
   type DefinitionProjectionSessionStoreV010,
   type DefinitionProjectionSelectionV010
@@ -133,13 +133,83 @@ function selectionFor(
   throw new Error("DEFINITION_PROJECTION_SELECTION_REQUIRED");
 }
 
+type DefinitionProjectionTargetV010 = Pick<
+  DefinitionProjectionSelectionV010,
+  "enterpriseId" | "definitionId" | "definitionRevision" | "projectionId"
+>;
+
+function targetForRequest(
+  sessions: DefinitionProjectionSessionStoreV010,
+  context: PlatformRequestContextV010,
+  values: Record<string, JsonValue>
+): DefinitionProjectionTargetV010 {
+  const scope = activeEnterprise(context);
+  const definitionId =
+    typeof values.definitionId === "string" && values.definitionId.trim()
+      ? values.definitionId.trim()
+      : undefined;
+  const definitionRevision =
+    typeof values.definitionRevision === "number"
+    && Number.isInteger(values.definitionRevision)
+    && values.definitionRevision >= 0
+      ? values.definitionRevision
+      : undefined;
+  const projectionId =
+    typeof values.projectionId === "string" && values.projectionId.trim()
+      ? values.projectionId.trim()
+      : undefined;
+  const explicitCount = [
+    definitionId,
+    definitionRevision,
+    projectionId
+  ].filter(value => value !== undefined).length;
+
+  if (explicitCount > 0 && explicitCount < 3) {
+    throw new Error("DEFINITION_PROJECTION_ROUTE_IDENTITY_INVALID");
+  }
+  if (
+    values.enterpriseId !== undefined
+    && (
+      typeof values.enterpriseId !== "string"
+      || values.enterpriseId.trim() !== scope.enterpriseId
+    )
+  ) {
+    throw new Error("DEFINITION_PROJECTION_CONTEXT_MISMATCH");
+  }
+  if (
+    definitionId !== undefined
+    && definitionRevision !== undefined
+    && projectionId !== undefined
+  ) {
+    return {
+      enterpriseId: scope.enterpriseId,
+      definitionId,
+      definitionRevision,
+      projectionId
+    };
+  }
+
+  const selection = selectionFor(sessions, context);
+  return {
+    enterpriseId: selection.enterpriseId,
+    definitionId: selection.definitionId,
+    definitionRevision: selection.definitionRevision,
+    projectionId: selection.projectionId
+  };
+}
+
 function selectedArtifact(input: {
   source: DefinitionProjectionArtifactSourceV010;
   sessions: DefinitionProjectionSessionStoreV010;
   context: PlatformRequestContextV010;
+  values: Record<string, JsonValue>;
 }) {
   const scope = activeEnterprise(input.context);
-  const selection = selectionFor(input.sessions, input.context);
+  const selection = targetForRequest(
+    input.sessions,
+    input.context,
+    input.values
+  );
   if (selection.enterpriseId !== scope.enterpriseId) {
     throw new Error("DEFINITION_PROJECTION_CONTEXT_MISMATCH");
   }
@@ -313,7 +383,11 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
     toolbarActions: [{
       id: "back-to-view",
       label: text.back,
-      route: DEFINITION_2D_PREVIEW_ROUTE_V010
+      route: definition2dPreviewRouteV010({
+        definitionId: input.definitionId,
+        definitionRevision: input.definitionRevision,
+        projectionId: input.projectionId
+      })
     }],
     ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     viewInteraction: {
@@ -527,7 +601,8 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         const { artifact } = selectedArtifact({
           source: input.source,
           sessions: input.sessions,
-          context
+          context,
+          values: request.values
         });
         return success(request, editorState({
           artifact,
@@ -541,7 +616,8 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         const { artifact } = selectedArtifact({
           source: input.source,
           sessions: input.sessions,
-          context
+          context,
+          values: request.values
         });
         return success(
           request,
@@ -579,7 +655,11 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           throw new Error("DEFINITION_PROJECTION_REVISION_INVALID");
         }
 
-        const selection = selectionFor(input.sessions, context);
+        const selection = targetForRequest(
+          input.sessions,
+          context,
+          request.values
+        );
         if (
           selection.enterpriseId !== scope.enterpriseId
           || !selection.projectionId
