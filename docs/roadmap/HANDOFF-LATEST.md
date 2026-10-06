@@ -3,62 +3,57 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `TEMPLATE-STORE-TRANSFER-V0-1-2026-10-04-01`  
-**Snapshot time:** `2026-10-04T13:45:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-AUTHORING-V0-1-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T17:40:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Template Store v0.1
+Ledger Manager / EOG Projection Authoring v0.1
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**template-store-neutral-share-copy-transfer-v0-1: MERGED_CI_PASS**
+**ledger-eog-projection-authoring-v0-1: MERGED_MAINLINE**
 
-The Template Store / Enterprise Context cross-plugin boundary is now executable through the neutral TemplateTransferBundle contract. Enterprise Context exports an exact Draft or Published definition revision, Template Store stores an immutable cloned snapshot, and copy creates an independent target-enterprise Draft with TEMPLATE_COPY provenance. Neither plugin imports the other's implementation.
+Ledger Manager and EOG now provide a coherent Definition Projection authoring journey: qualified navigation, projection-only editing, Save/Save As, restore-all, governed persistence, rename and current-view thumbnail regeneration. Projection views remain children of the owning Business Definition rather than a standalone top-level application.
 
-Authority: `docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md`
+Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "appPlatformPr": 344,
-  "mergeCommit": "6269e05c5218caf35a32ab3c7cfc6a4973cf77c4",
-  "transferCapability": "enterprise.template-transfer",
-  "transferContract": "evo.enterprise.template-transfer",
-  "draftShareSupported": true,
-  "copyTargetState": "DRAFT",
-  "copyTargetRevision": 0,
-  "copyOrigin": "TEMPLATE_COPY",
-  "digest": "SHA-256",
-  "privateCrossPluginImports": "PROHIBITED_AND_TESTED",
-  "templateStoreCI": "PASS",
-  "enterpriseContextProviderCI": "PASS",
-  "platformCI": "PASS",
-  "continuityCI": "PASS"
+  "appPlatformPr": 401,
+  "appPlatformMergeCommit": "0b3ba70a00e5dceb3c10c9daed24f1aa66ea380d",
+  "eidosPr": 124,
+  "projectionHome": "LEDGER_MANAGER_DEFINITION_DETAIL",
+  "rename": true,
+  "saveAs": true,
+  "restoreAll": true,
+  "currentViewThumbnail": true,
+  "nameBasedIconGuessing": false,
+  "visualIdentityOwner": "OWNING_PLUGIN_METADATA"
 }
 ```
 
 ## Current open live gate
 
-**template-store-governed-share-copy-actions-v0-1: READY**
+**projection-library-management-v0-2: READY**
 
-Wire real governed Share and Copy ActionHost operations over the neutral transfer Provider and a durable Template Store repository, then project shared records back into the existing three-field Template Store catalog page.
+Finish Projection Library management as a small child capability of the owning Business Definition, without creating a global Projection application or leaking business semantics into Eidos.
 
 Acceptance:
 
-- Template Store Host state is durable and owned by the Template Store integration boundary, not Enterprise Context private persistence.
-- Share is an explicit confirmed material action that resolves the active source Enterprise Context and exact definition revision through public capabilities.
-- Share authorization is fail-closed and distinct from Business Definition Publish authorization.
-- Copy is an explicit confirmed material action that reads an immutable Template Store record and writes a new Draft through enterprise.template-transfer into the active target Enterprise Context.
-- Copy authorization is fail-closed and never grants implicit Publish rights.
-- The /templates Experience is populated from the durable Template Store repository while retaining thumbnail + name + description as the primary card fields.
-- The built-in EVO 账本运行时基线 remains available as a seed without becoming a special runtime dependency.
-- Tests prove restart-safe Store persistence, Share/Copy authorization and confirmation, exact-version copy, and continued absence of cross-plugin private imports.
+- Ledger Manager detail remains the clear product home for Ledger Definition Projection views.
+- A Human can choose/set the primary Projection without changing Ledger Runtime business payload.
+- A Human can restore hidden nodes/relations selectively or reset layout without mutating semantic objects.
+- Unsaved projection changes are explicit before navigation or discard.
+- Desktop remains the authoring surface; mobile remains compact and inspection-first for this deep canvas journey.
+- Business icons are rendered only from owning-plugin visualIdentity metadata; no name-based semantic guessing is introduced.
+- All Projection writes remain append-only Business Definition revisions and retain existing authorization boundaries.
 
 ## Current production preview
 
@@ -99,6 +94,18 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #401 — MERGED_MAINLINE: Add independent Projection rename plus automatic current-canvas thumbnail regeneration on Save and Save As; keep visual identity plugin-owned.
+- PR #400 — MERGED_MAINLINE: Authorize governed EOG Projection persistence and remove STATIC_POLICY_NO_MATCH for valid Owner/Admin writes.
+- PR #399 — MERGED_MAINLINE: Trial responsive deep context navigation for Ledger Manager -> Definition -> Projection -> Edit, with compact mobile parent navigation.
+- PR #398 — MERGED_MAINLINE: Restore complete Projection state, add Save As and preserve qualified projection identity across the authoring journey.
+- PR #397 — MERGED_MAINLINE: Preserve qualified routes through Desktop Workbench so deep Projection pages survive routing and reload.
+- PR #394 — MERGED_MAINLINE: Adopt the professional Eidos 2D canvas in EOG.
+- PR #393 — MERGED_MAINLINE: Restore Ledger detail reload and browser history.
+- PR #392 — MERGED_MAINLINE: Support projection-only node/relation pruning without deleting business objects.
+- PR #390 — MERGED_MAINLINE: Complete the explicit EOG Projection edit-save flow.
+- PR #387 — MERGED_MAINLINE: Align Ledger Manager with the Business Office design language.
+- PR #379 — MERGED_MAINLINE: Adopt Eidos Mobile Design Language v0.1.
+- PR #378 — MERGED_MAINLINE: Converge thin Enterprise Context, global session controls and Ledger Manager v0.1.
 - PR #344 — MERGED_CI_PASS: Add neutral exact-revision TemplateTransferBundle, Enterprise Context template-transfer Provider, independent Template Store snapshot repository, SHA-256 integrity and TEMPLATE_COPY provenance.
 - PR #342 — MERGED_CI_PASS: Add independent evo-template-store v0.1, first EVO Ledger Runtime baseline template, Eidos thumbnail rendering, plugin CI and durable architecture/decision documentation.
 - PR #315 — MERGED_CI_PASS: Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger.
@@ -413,6 +420,9 @@ Not proved:
 - Do not implement template use as a live source reference; v0.1 semantics are Copy -> independent enterprise-owned content.
 - Do not make Share an alias for Enterprise Context Publish; a shared bundle may pin either an exact Draft or Published revision.
 - Do not import Template Store private persistence from Enterprise Context or Enterprise Context private persistence from Template Store; both sides use contracts/template-transfer.ts.
+- do not create a global top-level Projection application; Projection views are children of their owning Business Definition surface
+- do not infer business icons from node names; wait for owning-plugin visualIdentity metadata
+- do not move Projection presentation state into Ledger Runtime business truth
 
 ## Fresh ChatGPT / LLM startup
 
