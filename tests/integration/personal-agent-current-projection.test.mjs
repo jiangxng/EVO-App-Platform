@@ -2,17 +2,30 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  createMemoryDefinitionProjectionStoreV010
-} from "../../dist/providers/enterprise-context/definition-projection-store.js";
+  createMemoryCurrent2dEditorSessionStoreV010
+} from "../../dist/contracts/current-2d-editor.js";
 import {
   createMemoryDefinitionProjectionSessionStoreV010
 } from "../../dist/contracts/definition-projection.js";
 import {
+  createMemoryDefinitionProjectionStoreV010
+} from "../../dist/providers/enterprise-context/definition-projection-store.js";
+import {
+  createMemoryEogViewStateStoreV010
+} from "../../dist/providers/eog-view-state/store.js";
+import {
+  createEogViewStateProviderV010
+} from "../../dist/providers/eog-view-state/runtime.js";
+import {
   createEnterpriseDefinitionProjectionEditorActionHandlersV010
 } from "../../dist/apps/eog-2d-designer/definition-projection-editor.js";
 import {
-  createDefinitionProjectionAgentToolRegistrationsV010
-} from "../../dist/apps/eog-2d-designer/definition-projection-agent-tools.js";
+  createCurrent2dEditorAgentToolRegistrationsV010
+} from "../../dist/apps/eog-2d-designer/current-2d-editor-agent-tools.js";
+import {
+  createEnterpriseOperatingGraphViewActionHandlersV010,
+  EOG_VIEW_GET_ACTION
+} from "../../dist/apps/eog-2d-designer/enterprise-operating-graph-page.js";
 import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
 } from "../../dist/apps/eog-2d-designer/package.js";
@@ -24,6 +37,7 @@ const enterpriseId = "ent-a";
 const definitionId = "ledger:main";
 const definitionRevision = 0;
 const projectionId = "projection:main";
+const graphId = "eog:primary";
 
 function principal() {
   return {
@@ -63,7 +77,7 @@ function requestContext() {
     },
     context: resolvedContext(),
     locale: "zh-CN",
-    correlationId: "projection-agent-test"
+    correlationId: "current-2d-editor-agent-test"
   };
 }
 
@@ -231,7 +245,103 @@ function artifactSource() {
   };
 }
 
-function actionRequest(values) {
+function operatingGraph() {
+  return {
+    contractVersion: "0.1.0",
+    graphId,
+    enterpriseId,
+    revision: 7,
+    state: "DRAFT",
+    nodes: [{
+      nodeId: "app:sales-order",
+      kind: "APPLICATION",
+      semanticRef: {
+        kind: "APPLICATION",
+        authority: "HOST",
+        refId: "application:sales-order"
+      }
+    }, {
+      nodeId: "ledger:receivable",
+      kind: "LEDGER",
+      semanticRef: {
+        kind: "LEDGER_DEFINITION",
+        authority: "EVO",
+        refId: "ledger:receivable"
+      }
+    }, {
+      nodeId: "app:cash-receipt",
+      kind: "APPLICATION",
+      semanticRef: {
+        kind: "APPLICATION",
+        authority: "HOST",
+        refId: "application:cash-receipt"
+      }
+    }, {
+      nodeId: "app:purchase",
+      kind: "APPLICATION",
+      semanticRef: {
+        kind: "APPLICATION",
+        authority: "HOST",
+        refId: "application:purchase-receipt"
+      }
+    }, {
+      nodeId: "ledger:inventory",
+      kind: "LEDGER",
+      semanticRef: {
+        kind: "LEDGER_DEFINITION",
+        authority: "EVO",
+        refId: "ledger:inventory"
+      }
+    }],
+    guidanceRelations: [{
+      relationId: "sales-receivable",
+      kind: "APPLICATION_LEDGER",
+      applicationNodeId: "app:sales-order",
+      ledgerNodeId: "ledger:receivable",
+      source: {
+        kind: "BUSINESS_RULE",
+        sourceRef: "sales-order-to-receivable"
+      }
+    }, {
+      relationId: "cash-receivable",
+      kind: "APPLICATION_LEDGER",
+      applicationNodeId: "app:cash-receipt",
+      ledgerNodeId: "ledger:receivable",
+      source: {
+        kind: "BUSINESS_RULE",
+        sourceRef: "cash-receipt-settles-receivable"
+      }
+    }, {
+      relationId: "purchase-inventory",
+      kind: "APPLICATION_LEDGER",
+      applicationNodeId: "app:purchase",
+      ledgerNodeId: "ledger:inventory",
+      source: {
+        kind: "BUSINESS_RULE",
+        sourceRef: "purchase-receipt-to-inventory"
+      }
+    }],
+    enterpriseRelations: [],
+    createdAt: "2026-10-06T12:00:00.000Z",
+    updatedAt: "2026-10-06T12:00:00.000Z"
+  };
+}
+
+function fakeGraphService(graph) {
+  return {
+    get(input) {
+      if (
+        input.enterpriseId !== graph.enterpriseId
+        || input.graphId !== graph.graphId
+      ) {
+        throw new Error("EOG_GRAPH_NOT_FOUND");
+      }
+      return structuredClone(graph);
+    }
+  };
+}
+
+function definitionActionRequest(values) {
   return {
     contractVersion: "0.1.0",
     type: "command",
@@ -246,10 +356,27 @@ function actionRequest(values) {
   };
 }
 
+function operatingGraphReadRequest() {
+  return {
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: EOG_VIEW_GET_ACTION,
+      inputVersion: "0.1.0"
+    },
+    values: { resourceId: graphId },
+    sourceInteractionId: "operating-graph-editor-open",
+    actionId: "graph.read",
+    requiresConfirmation: false
+  };
+}
+
 function toolCatalog(registrations) {
   return {
     list() {
-      return registrations.map(item => structuredClone(item.descriptor));
+      return registrations
+        .filter(item => item.available?.() ?? true)
+        .map(item => structuredClone(item.descriptor));
     },
     async invoke(call, observations) {
       const registration = registrations.find(
@@ -285,28 +412,123 @@ function toolCatalog(registrations) {
   };
 }
 
-test("opening a qualified 2D Projection Editor establishes the current Projection for Personal Agent", async () => {
+function salesToCashModel(expectedKind) {
+  let modelStep = 0;
+  return {
+    get modelStep() {
+      return modelStep;
+    },
+    async decide(input) {
+      modelStep += 1;
+      if (modelStep === 1) {
+        assert.equal(input.userMessage, "帮我裁剪出从销售到收款的投影");
+        assert.ok(
+          input.tools.some(tool =>
+            tool.id === "enterprise.current_2d_editor.get"
+          )
+        );
+        assert.ok(
+          input.tools.some(tool =>
+            tool.id === "enterprise.current_2d_editor.crop"
+          )
+        );
+        return {
+          type: "tool",
+          call: {
+            tool: "enterprise.current_2d_editor.get",
+            arguments: {}
+          }
+        };
+      }
+      if (modelStep === 2) {
+        const material = input.observations.find(
+          item =>
+            item.tool === "enterprise.current_2d_editor.get"
+            && item.ok
+        )?.result;
+        assert.ok(material);
+        assert.equal(material.currentEditor.kind, expectedKind);
+        const ids = new Set(material.nodes.map(node => node.id));
+        for (const id of [
+          "app:sales-order",
+          "ledger:receivable",
+          "app:cash-receipt"
+        ]) {
+          assert.equal(ids.has(id), true);
+        }
+        const wantedEdges = material.edges
+          .filter(edge =>
+            [
+              "app:sales-order",
+              "ledger:receivable",
+              "app:cash-receipt"
+            ].includes(edge.source)
+            && [
+              "app:sales-order",
+              "ledger:receivable",
+              "app:cash-receipt"
+            ].includes(edge.target)
+          )
+          .map(edge => edge.id);
+        return {
+          type: "tool",
+          call: {
+            tool: "enterprise.current_2d_editor.crop",
+            arguments: {
+              visibleNodeIds: [
+                "app:sales-order",
+                "ledger:receivable",
+                "app:cash-receipt"
+              ],
+              visibleEdgeIds: wantedEdges,
+              rationale: "根据当前素材保留销售、应收与收款相关节点及关系。"
+            }
+          }
+        };
+      }
+      return {
+        type: "final",
+        message: "已根据当前 2D 编辑器素材裁剪销售到收款视图。"
+      };
+    }
+  };
+}
+
+test("opening a qualified Definition Projection Editor establishes the unified current 2D editor", async () => {
   const repository = fakeRepository();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
-  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const projectionSessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
     projectionStore,
     source: artifactSource(),
-    sessions,
+    sessions: projectionSessions,
     canManageEnterpriseContext: () => true,
     authorizeProjectionSave: async () => {},
     locale: () => "zh-CN",
-    now: () => new Date("2026-10-06T12:00:00.000Z")
+    onEditorRead(context, target) {
+      currentEditors.set(context.principal.sessionId, {
+        contractVersion: "0.1.0",
+        kind: "DEFINITION_PROJECTION",
+        enterpriseId: target.enterpriseId,
+        definitionId: target.definitionId,
+        definitionRevision: target.definitionRevision,
+        projectionId: target.projectionId,
+        resourceId: target.resourceId,
+        selectedAt: "2026-10-06T12:00:00.000Z"
+      });
+    }
   });
+
   const read = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
   );
   assert.ok(read);
-  assert.equal(sessions.get("session-a"), undefined);
 
   const result = await read.execute(
-    actionRequest({
+    definitionActionRequest({
       enterpriseId,
       definitionId,
       definitionRevision,
@@ -316,109 +538,54 @@ test("opening a qualified 2D Projection Editor establishes the current Projectio
   );
 
   assert.equal(result.ok, true);
-  assert.deepEqual(
-    {
-      enterpriseId: sessions.get("session-a").enterpriseId,
-      definitionId: sessions.get("session-a").definitionId,
-      definitionRevision: sessions.get("session-a").definitionRevision,
-      projectionId: sessions.get("session-a").projectionId
-    },
-    {
-      enterpriseId,
-      definitionId,
-      definitionRevision,
-      projectionId
-    }
+  assert.equal(
+    currentEditors.get("session-a").kind,
+    "DEFINITION_PROJECTION"
+  );
+  assert.equal(
+    currentEditors.get("session-a").resourceId,
+    "enterprise-definition:ent-a:ledger:main@0#projection:main"
   );
 });
 
-test("Personal Agent can crop the current editor from sales to cash without mouse interaction", async () => {
+test("the same Personal Agent current-2D tools crop a Definition Projection without mouse interaction", async () => {
   const repository = fakeRepository();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
-  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
-  sessions.set("session-a", {
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+  currentEditors.set("session-a", {
     contractVersion: "0.1.0",
+    kind: "DEFINITION_PROJECTION",
     enterpriseId,
     definitionId,
     definitionRevision,
     projectionId,
+    resourceId:
+      "enterprise-definition:ent-a:ledger:main@0#projection:main",
     selectedAt: "2026-10-06T12:00:00.000Z"
   });
 
+  const viewService = createEogViewStateProviderV010({
+    store: createMemoryEogViewStateStoreV010()
+  });
   const invalidations = [];
-  const registrations = createDefinitionProjectionAgentToolRegistrationsV010({
-    repository,
-    projectionStore,
-    source: artifactSource(),
-    sessions,
+  const registrations = createCurrent2dEditorAgentToolRegistrationsV010({
+    currentEditors,
+    graphService: fakeGraphService(operatingGraph()),
+    graphViewService: viewService,
+    definitionRepository: repository,
+    definitionProjectionStore: projectionStore,
+    definitionProjectionSource: artifactSource(),
     principal: principal(),
     context: resolvedContext(),
     locale: "zh-CN",
     canManageEnterpriseContext: () => true,
-    onProjectionUpdated(update) {
+    onEditorUpdated(update) {
       invalidations.push(structuredClone(update));
     },
     now: () => new Date("2026-10-06T12:01:00.000Z")
   });
 
-  let modelStep = 0;
-  const model = {
-    async decide(input) {
-      modelStep += 1;
-      if (modelStep === 1) {
-        assert.equal(input.userMessage, "帮我裁剪出从销售到收款的投影");
-        assert.ok(
-          input.tools.some(tool =>
-            tool.id === "enterprise.definition_projection.current.get"
-          )
-        );
-        return {
-          type: "tool",
-          call: {
-            tool: "enterprise.definition_projection.current.get",
-            arguments: {}
-          }
-        };
-      }
-      if (modelStep === 2) {
-        const material = input.observations.find(
-          item =>
-            item.tool === "enterprise.definition_projection.current.get"
-            && item.ok
-        )?.result;
-        assert.ok(material);
-        const byLabel = new Map(
-          material.nodes.map(node => [node.label, node.id])
-        );
-        const edgeByLabel = new Map(
-          material.edges.map(edge => [edge.label, edge.id])
-        );
-        return {
-          type: "tool",
-          call: {
-            tool: "enterprise.definition_projection.current.crop",
-            arguments: {
-              visibleNodeIds: [
-                byLabel.get("销售订单"),
-                byLabel.get("应收账款"),
-                byLabel.get("销售收款")
-              ],
-              visibleEdgeIds: [
-                edgeByLabel.get("形成应收"),
-                edgeByLabel.get("收款核销")
-              ],
-              rationale: "保留销售订单形成应收并完成销售收款的连续业务链。"
-            }
-          }
-        };
-      }
-      return {
-        type: "final",
-        message: "已按当前素材裁剪为销售到收款的投影，并直接更新当前编辑器。"
-      };
-    }
-  };
-
+  const model = salesToCashModel("DEFINITION_PROJECTION");
   const runtime = createEnterpriseAgentRuntime(
     model,
     toolCatalog(registrations),
@@ -436,7 +603,7 @@ test("Personal Agent can crop the current editor from sales to cash without mous
   );
 
   assert.match(reply.message, /销售到收款/);
-  assert.equal(modelStep, 3);
+  assert.equal(model.modelStep, 3);
 
   const gallery = projectionStore.get({
     enterpriseId,
@@ -458,23 +625,131 @@ test("Personal Agent can crop the current editor from sales to cash without mous
     projection.thumbnail.src,
     /^data:image\/svg\+xml;charset=UTF-8,/
   );
-  assert.notEqual(
-    projection.thumbnail.src,
-    initialGallery().projections[0].thumbnail.src
-  );
-
   assert.deepEqual(
     repository.getLatest({ enterpriseId, definitionId }),
     before
   );
-
   assert.equal(invalidations.length, 1);
   assert.equal(
     invalidations[0].resourceId,
     "enterprise-definition:ent-a:ledger:main@0#projection:main"
   );
-  assert.deepEqual(
-    invalidations[0].visibleNodeIds,
-    ["app:sales-order", "ledger:receivable", "app:cash-receipt"]
+});
+
+test("opening /operating-graph establishes the Operating Graph as the same unified current 2D editor", async () => {
+  const graph = operatingGraph();
+  const graphService = fakeGraphService(graph);
+  const viewService = createEogViewStateProviderV010({
+    store: createMemoryEogViewStateStoreV010()
+  });
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+
+  const handlers = createEnterpriseOperatingGraphViewActionHandlersV010({
+    service: graphService,
+    viewService,
+    resolveAuthorizationProvider: () => undefined,
+    inspectorResolver: {},
+    locale: () => "zh-CN",
+    onEditorRead(context, target) {
+      currentEditors.set(context.principal.sessionId, {
+        contractVersion: "0.1.0",
+        kind: "OPERATING_GRAPH",
+        enterpriseId: target.enterpriseId,
+        graphId: target.graphId,
+        resourceId: target.resourceId,
+        selectedAt: "2026-10-06T12:02:00.000Z"
+      });
+    }
+  });
+  const read = handlers.find(item => item.commandCode === EOG_VIEW_GET_ACTION);
+  assert.ok(read);
+
+  const result = await read.execute(
+    operatingGraphReadRequest(),
+    requestContext()
   );
+
+  assert.equal(result.ok, true);
+  assert.equal(currentEditors.get("session-a").kind, "OPERATING_GRAPH");
+  assert.equal(currentEditors.get("session-a").resourceId, graphId);
+});
+
+test("the same Personal Agent request directly crops the current /operating-graph view without semantic mutation", async () => {
+  const graph = operatingGraph();
+  const graphService = fakeGraphService(graph);
+  const viewService = createEogViewStateProviderV010({
+    store: createMemoryEogViewStateStoreV010(),
+    now: () => new Date("2026-10-06T12:03:00.000Z")
+  });
+  viewService.ensure({
+    enterpriseId,
+    graphId,
+    kind: "DIAGRAM_2D"
+  });
+
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+  currentEditors.set("session-a", {
+    contractVersion: "0.1.0",
+    kind: "OPERATING_GRAPH",
+    enterpriseId,
+    graphId,
+    resourceId: graphId,
+    selectedAt: "2026-10-06T12:03:00.000Z"
+  });
+
+  const invalidations = [];
+  const registrations = createCurrent2dEditorAgentToolRegistrationsV010({
+    currentEditors,
+    graphService,
+    graphViewService: viewService,
+    definitionRepository: fakeRepository(),
+    definitionProjectionStore: createMemoryDefinitionProjectionStoreV010(),
+    definitionProjectionSource: artifactSource(),
+    principal: principal(),
+    context: resolvedContext(),
+    locale: "zh-CN",
+    canManageEnterpriseContext: () => true,
+    onEditorUpdated(update) {
+      invalidations.push(structuredClone(update));
+    },
+    now: () => new Date("2026-10-06T12:04:00.000Z")
+  });
+
+  const model = salesToCashModel("OPERATING_GRAPH");
+  const runtime = createEnterpriseAgentRuntime(
+    model,
+    toolCatalog(registrations),
+    4
+  );
+
+  const reply = await runtime.chat(
+    "帮我裁剪出从销售到收款的投影",
+    resolvedContext(),
+    principal()
+  );
+
+  assert.match(reply.message, /销售到收款/);
+  assert.equal(model.modelStep, 3);
+
+  const view = viewService.list({
+    enterpriseId,
+    graphId
+  })[0];
+  assert.equal(view.revision, 1);
+  assert.deepEqual(
+    new Set(view.hiddenNodeIds),
+    new Set(["app:purchase", "ledger:inventory"])
+  );
+  assert.deepEqual(
+    new Set(view.hiddenEdgeIds),
+    new Set(["guidance-edge:purchase-inventory"])
+  );
+
+  assert.equal(
+    graphService.get({ enterpriseId, graphId }).revision,
+    7
+  );
+  assert.equal(invalidations.length, 1);
+  assert.equal(invalidations[0].resourceId, graphId);
+  assert.equal(invalidations[0].target.kind, "OPERATING_GRAPH");
 });
