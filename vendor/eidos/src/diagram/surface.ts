@@ -77,6 +77,26 @@ export interface DiagramEditorReadPresetV010 {
   values: Record<string, JsonValue>;
 }
 
+export interface DiagramEditorToolbarActionV010 {
+  id: string;
+  label: string;
+  route: string;
+  primary?: boolean;
+}
+
+export interface DiagramEditorCapturedViewStateV010 {
+  placements: Array<{
+    nodeId: string;
+    x: number;
+    y: number;
+  }>;
+  camera: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
+}
+
 export interface DiagramEditorPageV010 {
   contractVersion: "0.1.0";
   kind: "diagram-editor" | "diagram-workspace";
@@ -88,6 +108,7 @@ export interface DiagramEditorPageV010 {
   selectionReadCommand?: DiagramEditorCommandV010;
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
+  toolbarActions?: DiagramEditorToolbarActionV010[];
   viewInteraction?: DiagramEditorViewInteractionV010;
   emptyMessage?: string;
 }
@@ -126,6 +147,7 @@ export interface DiagramEditorActionV010 {
   label: string;
   operation: JsonValue;
   requiresConfirmation?: boolean;
+  captureViewState?: boolean;
   target?: {
     kind: "graph" | "node" | "edge";
     id?: string;
@@ -162,6 +184,7 @@ export interface MountDiagramEditorPageOptionsV010 {
   container: HTMLElement;
   actionHost: ActionHost;
   onActionResult?: (result: unknown) => void | Promise<void>;
+  onNavigate?: (route: string) => void | Promise<void>;
 }
 
 export interface MountedDiagramEditorPageV010 {
@@ -288,6 +311,22 @@ export function isDiagramEditorPageV010(
       || (
         nonEmpty(page.selectionReadCommand.code)
         && nonEmpty(page.selectionReadCommand.inputVersion)
+      )
+    )
+    && (
+      page.toolbarActions === undefined
+      || (
+        Array.isArray(page.toolbarActions)
+        && page.toolbarActions.every(action =>
+          nonEmpty(action?.id)
+          && nonEmpty(action?.label)
+          && nonEmpty(action?.route)
+          && action.route.startsWith("/")
+          && (
+            action.primary === undefined
+            || typeof action.primary === "boolean"
+          )
+        )
       )
     )
     && (
@@ -455,6 +494,10 @@ export function validateDiagramEditorStateV010(
           !nonEmpty(action?.id)
           || !nonEmpty(action?.label)
           || action.operation === undefined
+          || (
+            action.captureViewState !== undefined
+            && typeof action.captureViewState !== "boolean"
+          )
         ) {
           issues.push(`actions[${index}] is invalid.`);
           continue;
@@ -545,7 +588,8 @@ export function diagramEditorOperationRequestV010(
   operation: JsonValue,
   actionId: string,
   requiresConfirmation = false,
-  commandOverride?: DiagramEditorCommandV010
+  commandOverride?: DiagramEditorCommandV010,
+  viewState?: DiagramEditorCapturedViewStateV010
 ): ActionRequestV010 {
   const command = commandOverride ?? page.operationCommand;
   if (!command) {
@@ -559,7 +603,10 @@ export function diagramEditorOperationRequestV010(
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
       expectedRevision: state.revision,
-      operation: jsonClone(operation)
+      operation: jsonClone(operation),
+      ...(viewState
+        ? { viewState: jsonClone(viewState) as unknown as JsonValue }
+        : {})
     },
     sourceInteractionId: page.id,
     actionId,
@@ -804,7 +851,8 @@ export function mountDiagramEditorPageV010(
     operation: JsonValue,
     actionId: string,
     requiresConfirmation = false,
-    commandOverride?: DiagramEditorCommandV010
+    commandOverride?: DiagramEditorCommandV010,
+    captureViewState = false
   ): Promise<void> => {
     if (!state || disposed) return;
     if (
@@ -819,7 +867,21 @@ export function mountDiagramEditorPageV010(
       operation,
       actionId,
       requiresConfirmation,
-      commandOverride
+      commandOverride,
+      captureViewState
+        ? {
+            placements: state.nodes.map(node => ({
+              nodeId: node.id,
+              x: node.x,
+              y: node.y
+            })),
+            camera: {
+              scale: camera.scale,
+              translateX: camera.translateX,
+              translateY: camera.translateY
+            }
+          }
+        : undefined
     );
     const previousSelection = selected;
     report("Saving…");
@@ -857,6 +919,23 @@ export function mountDiagramEditorPageV010(
     toolbar.replaceChildren();
     selectionActions.replaceChildren();
     if (!state) return;
+
+    for (const action of page.toolbarActions ?? []) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      button.setAttribute("data-eidos-diagram-toolbar-action", action.id);
+      button.setAttribute(
+        "data-eidos-primary",
+        action.primary === true ? "true" : "false"
+      );
+      button.onclick = () => {
+        if (options.onNavigate) {
+          void options.onNavigate(action.route);
+        }
+      };
+      toolbar.appendChild(button);
+    }
 
     if (page.viewInteraction?.zoom) {
       const addViewButton = (
@@ -928,7 +1007,9 @@ export function mountDiagramEditorPageV010(
         void executeOperation(
           action.operation,
           action.id,
-          action.requiresConfirmation === true
+          action.requiresConfirmation === true,
+          undefined,
+          action.captureViewState === true
         );
       };
       toolbar.appendChild(button);
