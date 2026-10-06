@@ -126,7 +126,6 @@ Potential later additions, without changing this persistence boundary:
 - projection description edit;
 - restore/show a previously hidden node or relation individually;
 - reset layout;
-- choose/set the primary projection;
 - compare projection revisions;
 - explicit discard/unsaved-change guard;
 - plugin-owned `visualIdentity` rendering when real owning business plugins declare it.
@@ -231,6 +230,22 @@ Every explicit **Save projection** and **Save as projection** regenerates the Pr
 The thumbnail is therefore a lightweight visual memory of what the Human was looking at when the Projection was saved, not an automatic fit-to-graph rendering. The stored artifact is a self-contained SVG data URI so Ledger Manager can render it without an additional image service/network round trip.
 
 Rename alone does not regenerate the image pixels because it does not change the view; it only refreshes thumbnail alt text.
+
+## Default projection
+
+Each Projection Gallery has exactly one default Projection. The default controls which saved view is presented as the primary view when an owning business surface opens the gallery without naming another Projection.
+
+A non-default Projection may be promoted from the existing Projection Editor with **Set as default projection**.
+
+Changing the default:
+
+- updates only `primaryProjectionId`;
+- preserves every Projection title, thumbnail and view state;
+- preserves the Business Definition payload;
+- appends a normal Business Definition revision;
+- uses the same governed Projection persistence authorization boundary.
+
+The action is not shown when the current Projection is already the default. This is gallery presentation preference, not Ledger Runtime configuration.
 
 ## Node visual identity boundary
 
