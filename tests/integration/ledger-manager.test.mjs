@@ -121,10 +121,11 @@ test("Ledger Manager presents copied revision zero as default", () => {
     details.route,
     ledgerManagerDetailRouteV010("ledger:main", 0)
   );
-  assert.ok(
+  assert.equal(
     page.items[0].secondaryActions.some(
       item => item.command === "ledger.manager.preview-projection"
-    )
+    ),
+    false
   );
 });
 
@@ -150,6 +151,15 @@ test("Ledger Manager detail route survives reload without transient selection st
   assert.equal(detail.secondaryActions[0].label, "返回账本管理");
   assert.equal(detail.secondaryActions[0].type, "navigate");
   assert.equal(detail.secondaryActions[0].route, LEDGER_MANAGER_ROUTE);
+  assert.equal(detail.gallery.items.length, 1);
+  assert.equal(
+    detail.gallery.items[0].action.command,
+    "ledger.manager.preview-projection"
+  );
+  assert.equal(
+    detail.gallery.items[0].action.values.projectionId,
+    "projection:main"
+  );
 });
 
 test("legacy Ledger Manager open-detail command returns the qualified reloadable route", async () => {
@@ -306,7 +316,7 @@ test("Ledger Manager localizes business-facing labels without exposing technical
   );
   assert.equal(
     item.secondaryActions.some(action => action.label === "查看关系图"),
-    true
+    false
   );
   assert.equal(JSON.stringify(item).includes("template-copy:"), false);
   assert.equal(JSON.stringify(item).includes("TEMPLATE_COPY"), false);
