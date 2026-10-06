@@ -7,6 +7,10 @@ import {
   ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010,
   ENTERPRISE_TEMPLATE_TRANSFER_CONTRACT_V010
 } from "../../contracts/template-transfer.js";
+import {
+  ENTERPRISE_RESOURCE_CAPABILITY_V010,
+  ENTERPRISE_RESOURCE_CONTRACT_V010
+} from "../../contracts/enterprise-resource.js";
 
 export const HOST_ENTERPRISE_CONTEXT_PACKAGE_ID = "host-enterprise-context-provider";
 export const HOST_ENTERPRISE_CONTEXT_FEATURE_ID = "host-enterprise-context-provider.default";
@@ -16,6 +20,8 @@ export const HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID =
   "host.enterprise-context.business-definitions";
 export const HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID =
   "host.enterprise-context.template-transfer";
+export const HOST_ENTERPRISE_RESOURCE_PROVIDER_ID =
+  "host.enterprise-context.resources";
 
 export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -44,7 +50,8 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
     providesCapabilities: [
       ENTERPRISE_CONTEXT_CAPABILITY,
       ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010,
-      ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010
+      ENTERPRISE_TEMPLATE_TRANSFER_CAPABILITY_V010,
+      ENTERPRISE_RESOURCE_CAPABILITY_V010
     ],
     contributions: [
       {
@@ -103,6 +110,26 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
               "Export exact Enterprise Context definition revisions as portable template bundles and copy bundles into independent enterprise-owned drafts",
             copySemantics: "INDEPENDENT_DRAFT",
             sourceDependency: "NONE_AFTER_COPY"
+          }
+        }
+      },
+      {
+        kind: "platform.service-provider",
+        provider: {
+          contractVersion: "0.1.0",
+          providerId: HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+          capability: ENTERPRISE_RESOURCE_CAPABILITY_V010,
+          providerContract: ENTERPRISE_RESOURCE_CONTRACT_V010,
+          providerContractVersion: "0.1.0",
+          binding: {
+            type: "IN_PROCESS",
+            ref: "runtime://host.enterprise-context.resources"
+          },
+          metadata: {
+            purpose:
+              "Provider-neutral Enterprise Context Resource Library persistence",
+            semanticsBoundary: "DOMAIN_PLUGIN",
+            lifecycleBoundary: "CONTEXT_OWNED"
           }
         }
       }
