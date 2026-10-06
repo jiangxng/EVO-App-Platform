@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-AUTHORING-V0-1-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T17:40:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-2-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T18:05:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Authoring v0.1
+Ledger Manager / EOG Projection Library v0.2
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**ledger-eog-projection-authoring-v0-1: MERGED_MAINLINE**
+**projection-default-view-v0-1: MERGED_CI_PASS**
 
-Ledger Manager and EOG now provide a coherent Definition Projection authoring journey: qualified navigation, projection-only editing, Save/Save As, restore-all, governed persistence, rename and current-view thumbnail regeneration. Projection views remain children of the owning Business Definition rather than a standalone top-level application.
+Projection Library now has an explicit default view. A Human can promote a saved alternate Projection as default from the existing editor, changing only Projection Gallery presentation metadata while preserving all business payload and saved Projection content.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,34 +26,31 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 401,
-  "appPlatformMergeCommit": "0b3ba70a00e5dceb3c10c9daed24f1aa66ea380d",
-  "eidosPr": 124,
-  "projectionHome": "LEDGER_MANAGER_DEFINITION_DETAIL",
-  "rename": true,
-  "saveAs": true,
-  "restoreAll": true,
-  "currentViewThumbnail": true,
-  "nameBasedIconGuessing": false,
-  "visualIdentityOwner": "OWNING_PLUGIN_METADATA"
+  "appPlatformPr": 403,
+  "mergeCommit": "d45de92da2908675cf5d88322c13daa83e6877fc",
+  "projectContinuityCI": "PASS",
+  "platformCI": "PASS",
+  "primaryProjectionField": "primaryProjectionId",
+  "businessPayloadMutation": false,
+  "ledgerRuntimeMutation": false
 }
 ```
 
 ## Current open live gate
 
-**projection-library-management-v0-2: READY**
+**projection-authoring-safety-v0-3: READY**
 
-Finish Projection Library management as a small child capability of the owning Business Definition, without creating a global Projection application or leaking business semantics into Eidos.
+Complete the next small Projection authoring safety layer without expanding Projection into a standalone application.
 
 Acceptance:
 
-- Ledger Manager detail remains the clear product home for Ledger Definition Projection views.
-- A Human can choose/set the primary Projection without changing Ledger Runtime business payload.
-- A Human can restore hidden nodes/relations selectively or reset layout without mutating semantic objects.
-- Unsaved projection changes are explicit before navigation or discard.
-- Desktop remains the authoring surface; mobile remains compact and inspection-first for this deep canvas journey.
-- Business icons are rendered only from owning-plugin visualIdentity metadata; no name-based semantic guessing is introduced.
-- All Projection writes remain append-only Business Definition revisions and retain existing authorization boundaries.
+- A Human can selectively restore hidden nodes or relations when refining a saved Projection.
+- A Human can reset Projection layout/view state deliberately without changing semantic business objects.
+- Navigation away from a locally modified Projection makes unsaved changes explicit before discard.
+- Ledger Manager detail remains the product home and default Projection remains explicit.
+- Desktop remains the authoring surface; mobile stays compact and inspection-first for deep canvas journeys.
+- Visual identity is rendered only from owning-plugin metadata and is never guessed from names.
+- Projection writes remain append-only Business Definition revisions under the existing authorization boundary.
 
 ## Current production preview
 
@@ -94,6 +91,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #403 — MERGED_CI_PASS: Add explicit default Projection management while preserving Business Definition payload and Ledger Runtime semantics.
 - PR #401 — MERGED_MAINLINE: Add independent Projection rename plus automatic current-canvas thumbnail regeneration on Save and Save As; keep visual identity plugin-owned.
 - PR #400 — MERGED_MAINLINE: Authorize governed EOG Projection persistence and remove STATIC_POLICY_NO_MATCH for valid Owner/Admin writes.
 - PR #399 — MERGED_MAINLINE: Trial responsive deep context navigation for Ledger Manager -> Definition -> Projection -> Edit, with compact mobile parent navigation.
