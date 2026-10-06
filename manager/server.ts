@@ -633,6 +633,11 @@ import {
 import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
+  createWorkspaceHomePageV010,
+  workspaceHomeExperienceManifest,
+  workspaceHomePageSource
+} from "./workspace-home-page.js";
+import {
   createSettingsExperienceManifest,
   createSettingsGroupPage,
   createSettingsIndexPage,
@@ -5120,6 +5125,7 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return jsonVersioned(request, response, 200, [
+        workspaceHomeExperienceManifest,
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
@@ -5924,6 +5930,13 @@ const server = createServer(async (request, response) => {
           operationLog: contextMemoryOperationLog,
           relationships: resolveEnterpriseContextRelationshipProvider()
         }));
+      }
+      if (source === workspaceHomePageSource) {
+        return json(
+          response,
+          200,
+          createWorkspaceHomePageV010(requestedLocale(url))
+        );
       }
       if (source === settingsIndexPageSource) {
         return json(
