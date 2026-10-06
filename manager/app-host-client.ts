@@ -45,6 +45,15 @@ const transport = createRevisionAwareBrowserTransportV010({
   },
   onCurrentRevision() {
     versionNotice.hide();
+  },
+  onAuthenticationRequired() {
+    const returnTo =
+      window.location.pathname
+      + window.location.search
+      + window.location.hash;
+    window.location.replace(
+      "/auth/login?returnTo=" + encodeURIComponent(returnTo)
+    );
   }
 });
 
