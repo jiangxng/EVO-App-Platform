@@ -928,7 +928,11 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           operation === null
           || typeof operation !== "object"
           || Array.isArray(operation)
-          || !["SAVE_PROJECTION_VIEW", "SAVE_PROJECTION_AS_NEW"].includes(
+          || ![
+            "SAVE_PROJECTION_VIEW",
+            "SAVE_PROJECTION_AS_NEW",
+            "RENAME_PROJECTION"
+          ].includes(
             String((operation as Record<string, JsonValue>).type)
           )
         ) {
@@ -979,24 +983,55 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           definitionRevision: latest.revision
         });
 
-        const captured = parsedViewState(request.values.viewState);
+        const locale = input.locale?.(context);
+        const rename = operationType === "RENAME_PROJECTION";
         const saveAs = operationType === "SAVE_PROJECTION_AS_NEW";
-        const nextProjection = saveAs
-          ? saveProjectionAsNew(
+        let nextProjection: {
+          gallery: TemplateProjectionGalleryV010;
+          projectionId: string;
+        };
+        if (rename) {
+          nextProjection = {
+            gallery: renameProjection(
               latest.projectionGallery,
               selection.projectionId,
-              captured,
-              input.locale?.(context),
-              projectionIdFactory
-            )
-          : {
-              gallery: mergeProjection(
+              (operation as Record<string, JsonValue>).title,
+              locale
+            ),
+            projectionId: selection.projectionId
+          };
+        } else {
+          const captured = parsedViewState(request.values.viewState);
+          const currentArtifact = input.source.get({
+            enterpriseId: latest.enterpriseId,
+            definitionId: latest.definitionId,
+            definitionRevision: latest.revision,
+            projectionId: selection.projectionId,
+            includeHidden: true
+          });
+          if (!currentArtifact?.diagram2d) {
+            throw new Error("DEFINITION_PROJECTION_DIAGRAM_NOT_AVAILABLE");
+          }
+          nextProjection = saveAs
+            ? saveProjectionAsNew(
                 latest.projectionGallery,
                 selection.projectionId,
-                captured
-              ),
-              projectionId: selection.projectionId
-            };
+                captured,
+                currentArtifact.diagram2d,
+                locale,
+                projectionIdFactory
+              )
+            : {
+                gallery: mergeProjection(
+                  latest.projectionGallery,
+                  selection.projectionId,
+                  captured,
+                  currentArtifact.diagram2d,
+                  locale
+                ),
+                projectionId: selection.projectionId
+              };
+        }
         const projectionGallery = nextProjection.gallery;
         const actor = {
           actorType: "HUMAN" as const,
@@ -1048,11 +1083,13 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         return success(request, {
           ...editorState({
             artifact,
-            locale: input.locale?.(context),
+            locale,
             saved: true,
-            notice: saveAs
-              ? textFor(input.locale?.(context)).savedAs
-              : textFor(input.locale?.(context)).saved
+            notice: rename
+              ? textFor(locale).renamed
+              : saveAs
+                ? textFor(locale).savedAs
+                : textFor(locale).saved
           }),
           navigateTo: definition2dEditorRouteV010({
             definitionId: saved.definitionId,
