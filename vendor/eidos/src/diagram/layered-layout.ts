@@ -179,7 +179,9 @@ function layoutConnectedComponent(input: {
     && (sequenceIndex.get(edge.source) ?? 0) < (sequenceIndex.get(edge.target) ?? 0)
   );
 
-  const level = new Map(input.nodeIds.map(id => [id, 0] as const));
+  const level = new Map<string, number>(
+    input.nodeIds.map(id => [id, 0] as const)
+  );
   for (const id of sequence) {
     const sourceLevel = level.get(id) ?? 0;
     for (const edge of forwardEdges) {
