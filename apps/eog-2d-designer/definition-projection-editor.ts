@@ -37,7 +37,7 @@ import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
-  EOG_2D_DESIGNER_PACKAGE_ID
+  EOG_2D_PACKAGE_ID
 } from "../eog-2d/package.js";
 
 const DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION =
@@ -452,7 +452,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
       context: PlatformRequestContextV010
     ) => Promise<AppActionExecutionResultV010>
   ): AppActionHandler => ({
-    packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+    packageId: EOG_2D_PACKAGE_ID,
     featureId: EOG_2D_DESIGNER_FEATURE_ID,
     commandCode,
     async execute(request, context) {
