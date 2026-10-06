@@ -119,6 +119,7 @@ export interface DiagramEditorPageV010 {
   toolbarActions?: DiagramEditorToolbarActionV010[];
   initialCamera?: DiagramCameraTransformV010;
   viewInteraction?: DiagramEditorViewInteractionV010;
+  showTechnicalMetadata?: boolean;
   emptyMessage?: string;
 }
 
@@ -372,6 +373,10 @@ export function isDiagramEditorPageV010(
         && Number.isFinite(page.initialCamera.translateX)
         && Number.isFinite(page.initialCamera.translateY)
       )
+    )
+    && (
+      page.showTechnicalMetadata === undefined
+      || typeof page.showTechnicalMetadata === "boolean"
     )
     && (
       page.viewInteraction === undefined
@@ -682,31 +687,163 @@ function escapeHtml(value: unknown): string {
 export function renderDiagramEditorPageShellToHtmlV010(
   page: DiagramEditorPageV010
 ): string {
-  return `<section data-eidos-diagram-editor="${escapeHtml(page.id)}" style="display:grid;grid-template-rows:auto minmax(420px,1fr);gap:12px;min-height:560px">
+  return `<section data-eidos-diagram-editor="${escapeHtml(page.id)}" data-has-selection="false">
 <style>
-[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout]{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px;min-height:0}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  gap:8px;
+  min-width:0;
+  height:calc(100dvh - 112px);
+  min-height:560px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]>header{
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]>header h1{
+  margin:0;
+  font-size:1.125rem;
+  line-height:1.25;
+  font-weight:650;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-lifecycle],
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-revision]{
+  font-size:var(--eidos-font-meta,.75rem);
+  color:var(--eidos-fg-muted,#5F6B76);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar]{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button{
+  min-height:32px;
+  border:1px solid var(--eidos-border-strong,#C9D2DC);
+  border-radius:var(--eidos-radius-sm,8px);
+  padding:0 10px;
+  background:var(--eidos-bg,#FFFFFF);
+  color:var(--eidos-fg,#1F2933);
+  box-shadow:var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05));
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button:hover,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button:hover{
+  background:var(--eidos-bg-hover,#EEF3F8);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button[data-eidos-primary="true"]{
+  border-color:var(--eidos-primary,#2B6CB0);
+  background:var(--eidos-primary,#2B6CB0);
+  color:var(--eidos-primary-fg,#FFFFFF);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout]{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:12px;
+  min-height:0;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-layout]{
+  grid-template-columns:minmax(0,1fr) minmax(260px,320px);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas-wrap]{
+  position:relative;
+  min-width:0;
+  min-height:0;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas]{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border:1px solid var(--eidos-border,#E2E7ED);
+  border-radius:var(--eidos-radius-lg,12px);
+  background-color:var(--eidos-bg,#FFFFFF);
+  background-image:radial-gradient(circle,color-mix(in srgb,var(--eidos-fg,#1F2933) 10%,transparent) .7px,transparent .8px);
+  background-size:24px 24px;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--eidos-bg,#FFFFFF) 60%,transparent);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls]{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:4px;
+  border:1px solid color-mix(in srgb,var(--eidos-border-strong,#C9D2DC) 82%,transparent);
+  border-radius:var(--eidos-radius-md,10px);
+  background:color-mix(in srgb,var(--eidos-bg,#FFFFFF) 94%,transparent);
+  box-shadow:var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.10));
+  backdrop-filter:blur(8px);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button{
+  min-width:32px;
+  padding-inline:8px;
+  box-shadow:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-inspector]{
+  display:none;
+  min-width:0;
+  overflow:auto;
+  border:1px solid var(--eidos-border,#E2E7ED);
+  border-radius:var(--eidos-radius-lg,12px);
+  padding:14px;
+  background:var(--eidos-bg,#FFFFFF);
+  box-shadow:var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05));
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-inspector]{
+  display:block;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-selection]{
+  margin:0 0 10px;
+  white-space:pre-line;
+  line-height:1.5;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-selection-actions]{
+  display:grid;
+  gap:8px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-status]{
+  min-height:18px;
+  font-size:var(--eidos-font-meta,.75rem);
+  color:var(--eidos-fg-muted,#5F6B76);
+}
 @media (max-width:760px){
-  [data-eidos-diagram-editor="${escapeHtml(page.id)}"]{min-height:0!important}
-  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout]{grid-template-columns:minmax(0,1fr)}
-  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas]{min-height:56vh!important}
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"]{
+    height:auto;
+    min-height:0;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout],
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-layout]{
+    grid-template-columns:minmax(0,1fr);
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas-wrap]{
+    min-height:62dvh;
+  }
 }
 </style>
-<header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-<h1 style="margin:0;font-size:20px">${escapeHtml(page.title)}</h1>
-<span data-eidos-diagram-lifecycle style="font-size:12px"></span>
-<span data-eidos-diagram-revision style="font-size:12px"></span>
-<div data-eidos-diagram-toolbar style="margin-left:auto;display:flex;gap:8px"></div>
+<header>
+<h1>${escapeHtml(page.title)}</h1>
+<span data-eidos-diagram-lifecycle></span>
+<span data-eidos-diagram-revision></span>
+<div data-eidos-diagram-toolbar></div>
 </header>
 <div data-eidos-diagram-layout>
-<div data-eidos-diagram-canvas style="position:relative;overflow:hidden;min-height:480px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%)"></div>
-<aside data-eidos-diagram-inspector style="border:1px solid color-mix(in srgb,CanvasText 18%,transparent);border-radius:8px;padding:12px;overflow:auto">
-<strong>Selection</strong>
+<div data-eidos-diagram-canvas-wrap>
+<div data-eidos-diagram-canvas tabindex="0"></div>
+<div data-eidos-diagram-view-controls aria-label="Canvas view controls"></div>
+</div>
+<aside data-eidos-diagram-inspector>
 <p data-eidos-diagram-selection>${escapeHtml(page.emptyMessage ?? "Select a node or relation.")}</p>
 <div data-eidos-diagram-selection-properties style="display:grid;gap:6px;margin:10px 0"></div>
-<div data-eidos-diagram-selection-actions style="display:grid;gap:8px"></div>
+<div data-eidos-diagram-selection-actions></div>
 </aside>
 </div>
-<div data-eidos-diagram-status role="status" style="font-size:12px"></div>
+<div data-eidos-diagram-status role="status"></div>
 </section>`;
 }
 
@@ -773,6 +910,9 @@ export function mountDiagramEditorPageV010(
 
   const canvas = root.querySelector<HTMLElement>("[data-eidos-diagram-canvas]");
   const toolbar = root.querySelector<HTMLElement>("[data-eidos-diagram-toolbar]");
+  const viewControls = root.querySelector<HTMLElement>(
+    "[data-eidos-diagram-view-controls]"
+  );
   const lifecycle = root.querySelector<HTMLElement>("[data-eidos-diagram-lifecycle]");
   const revision = root.querySelector<HTMLElement>("[data-eidos-diagram-revision]");
   const status = root.querySelector<HTMLElement>("[data-eidos-diagram-status]");
@@ -787,6 +927,7 @@ export function mountDiagramEditorPageV010(
   if (
     !canvas
     || !toolbar
+    || !viewControls
     || !lifecycle
     || !revision
     || !status
@@ -805,6 +946,7 @@ export function mountDiagramEditorPageV010(
   let selectionReadGeneration = 0;
   let activeReadPresetId = page.readPresets?.[0]?.id;
   let camera = createDiagramCameraTransformV010(page.initialCamera ?? {});
+  let followsFitToCanvas = page.initialCamera === undefined;
   let stageElement: HTMLElement | undefined;
   let suppressNextNodeClick = false;
   const locallyHiddenNodeIds = new Set<string>();
@@ -855,6 +997,7 @@ export function mountDiagramEditorPageV010(
       ? previousSelection
       : undefined;
     render();
+    if (followsFitToCanvas) fitViewToCanvas();
     report("Ready.");
   };
 
@@ -978,6 +1121,21 @@ export function mountDiagramEditorPageV010(
     report("Saved.");
   };
 
+  const fitViewToCanvas = (): void => {
+    if (!state) return;
+    camera = fitDiagramCameraToBoundsV010(
+      graphBounds(),
+      {
+        width: Math.max(1, canvas.clientWidth),
+        height: Math.max(1, canvas.clientHeight)
+      },
+      48,
+      { min: 0.1, max: 1.25 }
+    );
+    applyCameraTransform();
+    renderActions();
+  };
+
   const applyZoomAt = (
     nextZoom: number,
     anchor = {
@@ -985,6 +1143,7 @@ export function mountDiagramEditorPageV010(
       y: canvas.clientHeight / 2
     }
   ): void => {
+    followsFitToCanvas = false;
     camera = zoomDiagramCameraAtScreenPointV010(
       camera,
       nextZoom,
@@ -996,6 +1155,7 @@ export function mountDiagramEditorPageV010(
 
   const renderActions = (): void => {
     toolbar.replaceChildren();
+    viewControls.replaceChildren();
     selectionActions.replaceChildren();
     if (!state) return;
 
@@ -1026,8 +1186,10 @@ export function mountDiagramEditorPageV010(
         button.type = "button";
         button.textContent = label;
         button.title = title;
+        button.setAttribute("aria-label", title);
+        button.setAttribute("data-eidos-diagram-view-action", "");
         button.onclick = onClick;
-        toolbar.appendChild(button);
+        viewControls.appendChild(button);
       };
       addViewButton("−", "Zoom out", () => {
         applyZoomAt(camera.scale / 1.2);
@@ -1036,22 +1198,14 @@ export function mountDiagramEditorPageV010(
         applyZoomAt(camera.scale * 1.2);
       });
       addViewButton("Fit", "Fit diagram to canvas", () => {
-        camera = fitDiagramCameraToBoundsV010(
-          graphBounds(),
-          {
-            width: Math.max(1, canvas.clientWidth),
-            height: Math.max(1, canvas.clientHeight)
-          },
-          24,
-          { min: 0.1, max: 2 }
-        );
-        applyCameraTransform();
-        renderActions();
+        followsFitToCanvas = true;
+        fitViewToCanvas();
       });
       addViewButton(
         `${Math.round(camera.scale * 100)}%`,
         "Reset view",
         () => {
+          followsFitToCanvas = false;
           camera = createDiagramCameraTransformV010();
           applyCameraTransform();
           renderActions();
@@ -1297,6 +1451,7 @@ export function mountDiagramEditorPageV010(
   };
 
   const renderSelection = (): void => {
+    root.setAttribute("data-has-selection", selected ? "true" : "false");
     if (!state || !selected) {
       selectionText.textContent = page.emptyMessage ?? "Select a node or relation.";
       renderSelectionProperties(undefined);
@@ -1325,10 +1480,15 @@ export function mountDiagramEditorPageV010(
 
   const render = (): void => {
     if (!state || disposed) return;
-    lifecycle.textContent = state.lifecycleState
+    const showTechnicalMetadata = page.showTechnicalMetadata === true;
+    lifecycle.hidden = !showTechnicalMetadata || !state.lifecycleState;
+    revision.hidden = !showTechnicalMetadata;
+    lifecycle.textContent = showTechnicalMetadata && state.lifecycleState
       ? "State: " + state.lifecycleState
       : "";
-    revision.textContent = "Revision: " + state.revision;
+    revision.textContent = showTechnicalMetadata
+      ? "Revision: " + state.revision
+      : "";
     canvas.replaceChildren();
 
     const bounds = graphBounds();
@@ -1364,8 +1524,8 @@ export function mountDiagramEditorPageV010(
     markerEnd.setAttribute("viewBox", "0 0 10 10");
     markerEnd.setAttribute("refX", "9");
     markerEnd.setAttribute("refY", "5");
-    markerEnd.setAttribute("markerWidth", "7");
-    markerEnd.setAttribute("markerHeight", "7");
+    markerEnd.setAttribute("markerWidth", "5.5");
+    markerEnd.setAttribute("markerHeight", "5.5");
     markerEnd.setAttribute("orient", "auto-start-reverse");
     const markerEndPath = svgElement("path");
     markerEndPath.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
@@ -1376,6 +1536,23 @@ export function mountDiagramEditorPageV010(
 
     const renderedNodes = visibleNodes();
     const renderedEdges = visibleEdges();
+    const focusedNodeIds = new Set<string>();
+    const selectedNodeId = selected?.kind === "node" ? selected.id : undefined;
+    const selectedEdgeId = selected?.kind === "edge" ? selected.id : undefined;
+    if (selectedNodeId) {
+      focusedNodeIds.add(selectedNodeId);
+      for (const edge of renderedEdges) {
+        if (edge.source === selectedNodeId) focusedNodeIds.add(edge.target);
+        if (edge.target === selectedNodeId) focusedNodeIds.add(edge.source);
+      }
+    }
+    if (selectedEdgeId) {
+      const edge = renderedEdges.find(item => item.id === selectedEdgeId);
+      if (edge) {
+        focusedNodeIds.add(edge.source);
+        focusedNodeIds.add(edge.target);
+      }
+    }
 
     for (const edge of renderedEdges) {
       const source = renderedNodes.find(node => node.id === edge.source);
@@ -1398,7 +1575,7 @@ export function mountDiagramEditorPageV010(
       hit.addEventListener("click", () => {
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
-        renderSelection();
+        render();
         void inspectSelection();
       });
       svg.appendChild(hit);
@@ -1408,8 +1585,27 @@ export function mountDiagramEditorPageV010(
       line.setAttribute("y1", String(a.y));
       line.setAttribute("x2", String(b.x));
       line.setAttribute("y2", String(b.y));
-      line.setAttribute("stroke", "currentColor");
-      line.setAttribute("stroke-width", selected?.kind === "edge" && selected.id === edge.id ? "3" : "2");
+      const edgeSelected = selectedEdgeId === edge.id;
+      const edgeConnected =
+        Boolean(selectedNodeId)
+        && (edge.source === selectedNodeId || edge.target === selectedNodeId);
+      const edgeFocused = edgeSelected || edgeConnected;
+      const edgeDimmed = Boolean(selected) && !edgeFocused;
+      line.setAttribute(
+        "stroke",
+        edgeFocused
+          ? "var(--eidos-primary,#2B6CB0)"
+          : "var(--eidos-fg-muted,#5F6B76)"
+      );
+      line.setAttribute(
+        "stroke-width",
+        edgeSelected ? "2.4" : edgeConnected ? "1.7" : "1.15"
+      );
+      line.setAttribute(
+        "stroke-opacity",
+        edgeDimmed ? "0.10" : edgeFocused ? "0.92" : "0.42"
+      );
+      line.setAttribute("vector-effect", "non-scaling-stroke");
       if (edge.style === "dashed") {
         line.setAttribute("stroke-dasharray", "8 6");
       }
@@ -1428,12 +1624,25 @@ export function mountDiagramEditorPageV010(
           item.label + " " + item.value
         )
       ].filter(Boolean).join(" · ");
-      if (edgeCaption) {
+      const showEdgeCaption =
+        Boolean(edgeCaption)
+        && (
+          edgeSelected
+          || edgeConnected
+          || (renderedEdges.length <= 18 && camera.scale >= 0.72)
+        );
+      if (showEdgeCaption) {
         const label = svgElement("text");
         label.setAttribute("x", String((a.x + b.x) / 2));
         label.setAttribute("y", String((a.y + b.y) / 2 - 8));
         label.setAttribute("text-anchor", "middle");
-        label.setAttribute("font-size", "12");
+        label.setAttribute("font-size", "11");
+        label.setAttribute("fill", "var(--eidos-fg-muted,#5F6B76)");
+        label.setAttribute("paint-order", "stroke fill");
+        label.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+        label.setAttribute("stroke-width", "4");
+        label.setAttribute("stroke-linejoin", "round");
+        label.setAttribute("opacity", edgeFocused ? "1" : "0.82");
         label.textContent = edgeCaption;
         label.style.pointerEvents = "none";
         svg.appendChild(label);
@@ -1449,16 +1658,26 @@ export function mountDiagramEditorPageV010(
       if (node.typeLabel) {
         const typeLabel = document.createElement("small");
         typeLabel.textContent = node.typeLabel;
-        typeLabel.style.display = "block";
-        typeLabel.style.marginBottom = "4px";
-        typeLabel.style.fontSize = "10px";
+        typeLabel.style.display = "inline-flex";
+        typeLabel.style.alignSelf = "center";
+        typeLabel.style.marginBottom = "5px";
+        typeLabel.style.padding = "1px 6px";
+        typeLabel.style.borderRadius = "999px";
+        typeLabel.style.fontSize = ".6875rem";
         typeLabel.style.fontWeight = "600";
-        typeLabel.style.opacity = "0.7";
+        typeLabel.style.letterSpacing = ".02em";
+        typeLabel.style.color = "var(--eidos-fg-muted,#5F6B76)";
+        typeLabel.style.background =
+          node.shape === "rounded-rectangle"
+            ? "color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 72%,var(--eidos-bg,#FFFFFF) 28%)"
+            : "color-mix(in srgb,var(--eidos-accent-teal,#0F7B83) 9%,var(--eidos-bg,#FFFFFF) 91%)";
         element.appendChild(typeLabel);
       }
       const label = document.createElement("strong");
       label.textContent = node.label;
       label.style.display = "block";
+      label.style.lineHeight = "1.35";
+      label.style.fontWeight = "650";
       element.appendChild(label);
       for (const observation of node.observations ?? []) {
         const badge = document.createElement("small");
@@ -1467,7 +1686,7 @@ export function mountDiagramEditorPageV010(
         badge.title = observation.detail ?? "";
         badge.style.display = "block";
         badge.style.marginTop = "3px";
-        badge.style.fontSize = "10px";
+        badge.style.fontSize = ".6875rem";
         badge.style.fontWeight = "400";
         element.appendChild(badge);
       }
@@ -1475,15 +1694,36 @@ export function mountDiagramEditorPageV010(
         node.detail ?? node.kind,
         ...observationText(node.observations)
       ].filter(Boolean).join("\n");
+      const nodeSelected = selectedNodeId === node.id;
+      const nodeFocused = !selected || focusedNodeIds.has(node.id);
       element.style.position = "absolute";
       element.style.left = node.x + "px";
       element.style.top = node.y + "px";
       element.style.width = node.width + "px";
       element.style.height = node.height + "px";
-      element.style.border = "2px solid currentColor";
-      element.style.borderRadius = node.shape === "rounded-rectangle" ? "14px" : "2px";
-      element.style.background = "Canvas";
-      element.style.color = "CanvasText";
+      element.style.display = "flex";
+      element.style.flexDirection = "column";
+      element.style.alignItems = "center";
+      element.style.justifyContent = "center";
+      element.style.padding = "10px 12px";
+      element.style.textAlign = "center";
+      element.style.border = nodeSelected
+        ? "2px solid var(--eidos-primary,#2B6CB0)"
+        : "1px solid var(--eidos-border-strong,#C9D2DC)";
+      element.style.borderRadius =
+        node.shape === "rounded-rectangle" ? "12px" : "8px";
+      element.style.background = nodeSelected
+        ? "var(--eidos-primary-subtle,#EAF2FB)"
+        : node.shape === "rounded-rectangle"
+          ? "color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 34%,var(--eidos-bg,#FFFFFF) 66%)"
+          : "color-mix(in srgb,var(--eidos-accent-teal,#0F7B83) 5%,var(--eidos-bg,#FFFFFF) 95%)";
+      element.style.color = "var(--eidos-fg,#1F2933)";
+      element.style.boxShadow = nodeSelected
+        ? "0 0 0 2px color-mix(in srgb,var(--eidos-primary,#2B6CB0) 14%,transparent),var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.10))"
+        : "var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05))";
+      element.style.opacity = nodeFocused ? "1" : "0.42";
+      element.style.transition =
+        "border-color .12s ease,background-color .12s ease,box-shadow .12s ease,opacity .12s ease";
       const localViewDrag = page.viewInteraction?.localNodeDrag === true;
       const persistentDrag = !node.readOnly && state.lifecycleState !== "PUBLISHED";
       element.style.cursor = localViewDrag || persistentDrag ? "grab" : "default";
@@ -1497,7 +1737,7 @@ export function mountDiagramEditorPageV010(
         }
         selected = { kind: "node", id: node.id };
         selectionInspection = undefined;
-        renderSelection();
+        render();
         void inspectSelection();
       });
 
@@ -1715,6 +1955,7 @@ export function mountDiagramEditorPageV010(
 
       if (points.length === 1 && page.viewInteraction?.pan && panLast) {
         const current = points[0]!;
+        followsFitToCanvas = false;
         camera = panDiagramCameraByScreenDeltaV010(
           camera,
           {
@@ -1784,6 +2025,16 @@ export function mountDiagramEditorPageV010(
     };
     canvas.addEventListener("wheel", wheel, { passive: false });
     listeners.push(() => canvas.removeEventListener("wheel", wheel));
+  }
+
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => {
+      if (!disposed && state && followsFitToCanvas) {
+        fitViewToCanvas();
+      }
+    });
+    observer.observe(canvas);
+    listeners.push(() => observer.disconnect());
   }
 
   const keydownHandler = (event: KeyboardEvent): void => {

@@ -30,6 +30,9 @@ import {
 import {
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND
 } from "../../dist/apps/ledger-manager/constants.js";
+import {
+  renderDiagramEditorPageShellToHtmlV010
+} from "../../dist/vendor/eidos/src/diagram/surface.js";
 
 function seeded() {
   const repository = createMemoryBusinessDefinitionRepositoryV010();
@@ -119,6 +122,24 @@ test("Definition Projection Viewer-to-Editor page exposes direct edit workflow",
   assert.equal(page.viewInteraction.localSelectionHideLabel, "从投影移除");
   assert.equal(page.toolbarActions[0].label, "返回查看");
   assert.equal(page.initialCamera.scale, 1.1);
+});
+
+test("EOG 2D uses the canvas-first professional diagram shell", () => {
+  const page = createEnterpriseDefinitionProjectionEditorPageV010({
+    enterpriseId: "ent-a",
+    definitionId: "ledger:main",
+    definitionRevision: 0,
+    projectionId: "projection:main",
+    title: "完整账本运行时",
+    locale: "zh-CN"
+  });
+  const html = renderDiagramEditorPageShellToHtmlV010(page);
+
+  assert.match(html, /data-eidos-diagram-canvas-wrap/);
+  assert.match(html, /data-eidos-diagram-view-controls/);
+  assert.match(html, /data-has-selection="false"/);
+  assert.match(html, /height:calc\(100dvh - 112px\)/);
+  assert.doesNotMatch(html, />Selection<\/strong>/);
 });
 
 test("Saving a projection appends a new definition revision without changing business payload", async () => {
