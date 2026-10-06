@@ -289,3 +289,6 @@
 
 
 - **APP-226** Help remains a secondary Workbench utility, but substantive Help Center catalogs and article content MUST render in the primary workspace rather than the narrow side panel. Side-panel Help is reserved for lightweight navigation or contextual assistance. Business-facing Help cards MUST prioritize Human-readable title, summary, category and action; technical metadata is progressively disclosed.
+
+
+- **APP-227** Enterprise Definition projection editing MUST preserve the View → explicit Edit → local direct manipulation → explicit Save boundary. Node drag, pan and zoom MUST NOT create durable revisions individually. Saving a projection creates exactly one new append-only Business Definition revision, preserves the business payload, never mutates a historical or shared Template Store source revision, and fails closed on stale revision or missing Enterprise management authority.
