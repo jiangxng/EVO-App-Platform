@@ -26,11 +26,6 @@ export interface AppHostSurfaceDeclarationV010 {
   support: AppHostSurfaceSupportV010;
   entryRoute?: string;
   fallbackSurfaceId?: string;
-  /**
-   * Changes only when the mounted UI contract is structurally incompatible.
-   * Data/version refreshes must not increment this value.
-   */
-  structuralVersion?: string;
 }
 
 export interface ClientSurfaceProfileV010 {
@@ -97,12 +92,6 @@ export interface AppHostLoadedPageV010 extends AppHostResolvedRouteV010 {
 
 export interface ExperienceReadOptionsV010 {
   signal?: AbortSignal;
-  /**
-   * Exact client-side route used for this read, including a query string when
-   * the route carries reloadable page identity. Manifest matching still uses
-   * the declared base route.
-   */
-  routePath?: string;
 }
 
 export interface ExperienceSource {
