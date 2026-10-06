@@ -288,6 +288,30 @@ function jsonClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+export function mergeDiagramInspectorPropertiesV010(
+  base: DiagramInspectorPropertyV010[] | undefined,
+  inspection: DiagramInspectorPropertyV010[] | undefined
+): DiagramInspectorPropertyV010[] | undefined {
+  if (!inspection?.length) return base;
+  const result = (base ?? []).map(item => ({ ...item }));
+  const indexByKey = new Map(
+    result.map((item, index) => [item.key, index] as const)
+  );
+  for (const property of inspection) {
+    const existing = indexByKey.get(property.key);
+    if (existing === undefined) {
+      indexByKey.set(property.key, result.length);
+      result.push({ ...property });
+    } else {
+      // Lazy selection inspection is authoritative for the selected object.
+      // Repeated keys refine/refresh the base projection instead of turning a
+      // valid selection into a rendering error.
+      result[existing] = { ...property };
+    }
+  }
+  return result;
+}
+
 export function isDiagramEditorPageV010(
   value: unknown
 ): value is DiagramEditorPageV010 {
@@ -1163,19 +1187,11 @@ export function mountDiagramEditorPageV010(
 
   const selectionPropertiesMerged = (
     base: DiagramInspectorPropertyV010[] | undefined
-  ): DiagramInspectorPropertyV010[] | undefined => {
-    if (!selectionInspection) return base;
-    const result = [...(base ?? [])];
-    const keys = new Set(result.map(item => item.key));
-    for (const property of selectionInspection.properties) {
-      if (keys.has(property.key)) {
-        throw new Error("EIDOS_DIAGRAM_SELECTION_PROPERTY_DUPLICATE");
-      }
-      keys.add(property.key);
-      result.push(property);
-    }
-    return result;
-  };
+  ): DiagramInspectorPropertyV010[] | undefined =>
+    mergeDiagramInspectorPropertiesV010(
+      base,
+      selectionInspection?.properties
+    );
 
   const inspectSelection = async (): Promise<void> => {
     if (!state || !selected || !page.selectionReadCommand || disposed) return;
