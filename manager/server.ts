@@ -81,6 +81,12 @@ import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
 import {
+  createDefinitionProjectionAgentToolRegistrationsV010
+} from "../apps/eog-2d-designer/definition-projection-agent-tools.js";
+import {
+  createEnterpriseDefinitionProjectionArtifactSourceV010
+} from "../providers/enterprise-context/definition-projection.js";
+import {
   migrateLegacyEnterpriseOperatingGraphsV010
 } from "../apps/eog-2d-designer/legacy-definition-migration.js";
 import {
@@ -3443,38 +3449,79 @@ function createPersonalAgentToolCatalogV010(
           message: "Material WRITE requires a Host-resolved request context."
         };
       }
+      const projectionFocus =
+        descriptor.id === "enterprise.definition_projection.current.crop";
+      const projectionSelection = projectionFocus
+        ? (
+            (principal.sessionId?.trim()
+              ? enterpriseDefinitionProjectionSessions.get(
+                  principal.sessionId.trim()
+                )
+              : undefined)
+            ?? enterpriseDefinitionProjectionSessions.get(principal.subjectId)
+          )
+        : undefined;
+      if (
+        projectionFocus
+        && (
+          !projectionSelection
+          || context.activeContext.kind !== "ENTERPRISE"
+          || projectionSelection.enterpriseId
+            !== context.activeContext.enterpriseId
+        )
+      ) {
+        return {
+          allowed: false,
+          code: "CURRENT_DEFINITION_PROJECTION_EDITOR_REQUIRED",
+          message: "Open the target 2D Projection Editor before asking Personal Agent to change the current projection."
+        };
+      }
+
       const decision = await authorizeMaterialWriteV010(
         resolveAuthorizationProvider(),
         requestContext,
         {
-          action: descriptor.id === "context.memory.canonicalization.proposal.create"
-            ? "context.memory.proposal.create"
-            : descriptor.id,
-          resource: (
-            descriptor.id === "context.memory.proposal.create"
-            || descriptor.id === "context.memory.canonicalization.proposal.create"
-          )
+          action: projectionFocus
+            ? EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010
+            : descriptor.id === "context.memory.canonicalization.proposal.create"
+              ? "context.memory.proposal.create"
+              : descriptor.id,
+          resource: projectionFocus
             ? {
-                type: "context.memory.proposal",
+                type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+                id:
+                  `${projectionSelection!.definitionId}#${projectionSelection!.projectionId}`,
                 attributes: {
-                  contextId: context.activeContext.contextId,
-                  contextKind: context.activeContext.kind,
-                  ownerPackageId: descriptor.ownerPackageId,
-                  effect: descriptor.effect,
-                  proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
-                    ? "CANONICALIZATION"
-                    : "CONTENT"
+                  enterpriseId: projectionSelection!.enterpriseId,
+                  definitionRevision: projectionSelection!.definitionRevision,
+                  operator: "PERSONAL_AGENT"
                 }
               }
-            : {
-                type: "agent.tool",
-                id: descriptor.id,
-                attributes: {
-                  ownerPackageId: descriptor.ownerPackageId,
-                  effect: descriptor.effect,
-                  ...(descriptor.capability ? { capability: descriptor.capability } : {})
-                }
-              }
+            : (
+                descriptor.id === "context.memory.proposal.create"
+                || descriptor.id === "context.memory.canonicalization.proposal.create"
+              )
+                ? {
+                    type: "context.memory.proposal",
+                    attributes: {
+                      contextId: context.activeContext.contextId,
+                      contextKind: context.activeContext.kind,
+                      ownerPackageId: descriptor.ownerPackageId,
+                      effect: descriptor.effect,
+                      proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
+                        ? "CANONICALIZATION"
+                        : "CONTENT"
+                    }
+                  }
+                : {
+                    type: "agent.tool",
+                    id: descriptor.id,
+                    attributes: {
+                      ownerPackageId: descriptor.ownerPackageId,
+                      effect: descriptor.effect,
+                      ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                    }
+                  }
         }
       );
       return decision.allowed
@@ -3497,6 +3544,54 @@ function createPersonalAgentToolCatalogV010(
       is3dViewerActive: () => manager.getSnapshot().activeFeatures.some(
         feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
       )
+    }),
+    ...createDefinitionProjectionAgentToolRegistrationsV010({
+      repository: enterpriseBusinessDefinitionRepository,
+      projectionStore: enterpriseDefinitionProjectionStore,
+      source: createEnterpriseDefinitionProjectionArtifactSourceV010(
+        enterpriseBusinessDefinitionRepository,
+        enterpriseDefinitionProjectionStore
+      ),
+      sessions: enterpriseDefinitionProjectionSessions,
+      principal,
+      context,
+      locale,
+      isDesignerActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+      ),
+      canManageEnterpriseContext(currentPrincipal, contextId) {
+        return (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(currentPrincipal) ?? []
+        ).some(item =>
+          item.contextId === contextId
+          && item.state === "ACTIVE"
+          && (item.kind === "OWNER" || item.kind === "ADMIN")
+        );
+      },
+      onProjectionUpdated(update) {
+        realtimeEvents.publish({
+          topic: "resource.definition-projection",
+          type: "RESOURCE_INVALIDATED",
+          scope: {
+            contextId: context.activeContext.contextId,
+            ...(context.activeContext.kind === "ENTERPRISE"
+              ? { enterpriseId: context.activeContext.enterpriseId }
+              : {})
+          },
+          resource: {
+            kind: "enterprise-business-definition-projection",
+            resourceId: update.resourceId,
+            version: update.selection.definitionRevision
+          },
+          payload: {
+            operator: "PERSONAL_AGENT",
+            projectionId: update.selection.projectionId,
+            visibleNodeIds: [...update.visibleNodeIds],
+            visibleEdgeIds: [...update.visibleEdgeIds]
+          }
+        });
+      }
     }),
     ...createEogExpectedSopAgentToolRegistrationsV010({
       service: eogExpectedSopService,
