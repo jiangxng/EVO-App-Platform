@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-4-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T20:10:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-4-1-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T21:35:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Library v0.4
+Ledger Manager / EOG Projection Library v0.4.1
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**personal-agent-current-projection-authoring-v0-4: MERGED_CI_PASS**
+**personal-agent-current-editor-resource-scope-v0-4-1: MERGED_CI_PRODUCTION_PASS**
 
-Personal Agent can now treat the open qualified 2D Projection Editor as the current target, read its complete material, select the retained nodes/relations from natural-language intent, write the current Projection directly without mouse simulation or Business Definition version changes, and invalidate the exact mounted editor resource for automatic canvas refresh.
+Production Human validation exposed that Personal Agent current-2D tools were incorrectly filtered when chat/memory context remained Personal. PR #410 separates Personal Agent conversation context from current-editor task/resource scope: current enterprise 2D tools remain available under Personal chat context, access is rechecked against the editor enterprise, writes require Owner/Admin and are authorized in the editor enterprise scope, and canvas invalidation is published to the editor enterprise scope.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,34 +26,37 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 407,
-  "mergeCommit": "a5c19d0d0e0b2b0da686b6fe13adc4dcb064f66d",
+  "humanObservedRegression": "Personal Agent context=Personal while enterprise /operating-graph is open caused current-2D tools to be absent.",
+  "appPlatformPr": 410,
+  "mergeCommit": "391b41a2cc1348d16526ab44453d272e65e6da5e",
   "platformCI": "PASS",
-  "projectContinuityCI": "PASS",
-  "scenario": "帮我裁剪出从销售到收款的投影",
-  "mouseSimulation": false,
-  "businessDefinitionRevisionMutation": false,
-  "projectionVersioning": "NONE",
-  "currentEditorContext": true,
-  "resourceInvalidationRefresh": true
+  "regressionTestPersonalContextToolExposure": "PASS",
+  "regressionTestUnauthorizedEnterpriseHidden": "PASS",
+  "railwayDeploymentId": "97e8a258-e558-4e69-b26c-21c3ef59e8a2",
+  "railwayDeploymentStatus": "SUCCESS",
+  "chatContextMayRemainPersonal": true,
+  "editorEnterpriseTaskScope": true,
+  "ownerAdminWriteCheck": true,
+  "editorScopedInvalidation": true
 }
 ```
 
 ## Current open live gate
 
-**personal-agent-current-projection-human-live-v0-4: READY**
+**personal-agent-current-editor-human-retest-v0-4-1: READY**
 
-Run the first Human browser validation of direct Personal Agent authoring against a real open 2D Projection Editor and refine only issues observed in that real interaction.
+Repeat the exact production Human scenario after PR #410 with Personal Agent context left as Personal and an enterprise 2D editor open; validate tool selection, direct crop quality and automatic canvas refresh.
 
 Acceptance:
 
-- A Human opens one qualified 2D Projection Editor and keeps it visible in the Workbench.
-- Without repeating definition/projection identifiers, the Human tells Personal Agent: 帮我裁剪出从销售到收款的投影.
-- Personal Agent reads the current material and chooses a reasonable retained business slice rather than relying on a hard-coded sales-to-cash mapping.
-- The current editor updates automatically after the Agent write with no mouse/click simulation and no manual Save action.
-- The Projection keeps the same identity and Business Definition revision; business semantic objects remain unchanged.
-- The resulting view is understandable enough for the Human to judge whether semantic selection quality needs further refinement.
-- If the real material makes the request ambiguous, the Agent should explain the ambiguity or use the material to disambiguate rather than silently invent business semantics.
+- Left Personal Agent panel remains on 当前上下文：个人.
+- Right Workbench keeps the intended enterprise 2D editor open (/operating-graph or a Definition Projection Editor).
+- Human says: 帮我裁剪出从销售到收款的投影.
+- Personal Agent is offered enterprise.current_2d_editor.get and enterprise.current_2d_editor.crop despite Personal chat context.
+- The Agent reads current editor material and directly updates only presentation/projection state without asking the Human to manually operate the canvas.
+- The write is authorized against the current editor's Enterprise Context and requires an ACTIVE Owner/Admin relationship.
+- The visible enterprise canvas refreshes automatically from an invalidation scoped to the editor Enterprise Context.
+- If this retest still says graph tools are unavailable, inspect the exact production Agent Run tool catalog rather than changing business semantics or asking the Human to switch context manually.
 
 ## Current production preview
 
@@ -62,8 +65,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `932098f9e2be13e1d0c9cf809831d3f3c5c2297c`
-- Deployment: `f93c06bd-651a-4b86-bb60-e97cab781d6a`
+- Commit: `391b41a2cc1348d16526ab44453d272e65e6da5e`
+- Deployment: `97e8a258-e558-4e69-b26c-21c3ef59e8a2`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -94,6 +97,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; keep current-editor tools available under Personal context with editor-enterprise authorization and refresh.
+- PR #409 — MERGED_CI_PRODUCTION_PASS: Unify /operating-graph and Definition Projection Editor as the Host-owned current 2D editor target for Personal Agent.
 - PR #407 — MERGED_CI_PASS: Let Personal Agent read and directly crop the currently open 2D Projection, preserving Projection identity/business revision and triggering exact mounted-canvas refresh.
 - PR #405 — MERGED_CI_PASS: Make Projection non-versioned presentation state with in-place saves, collapse legacy projection-only raw revisions into semantic Ledger versions, and adopt pane-responsive Personal Agent chat chrome from Eidos PR #125.
 - PR #403 — MERGED_CI_PASS: Add explicit default Projection management while preserving Business Definition payload and Ledger Runtime semantics.
@@ -434,6 +439,10 @@ Not proved:
 - do not simulate mouse/drag/click actions for Personal Agent Projection authoring; use the governed Projection capability directly
 - do not require the Human to repeat definitionId/revision/projectionId after opening the intended 2D Projection Editor in the same Workbench session
 - do not claim multi-tab current-editor arbitration is solved by v0.4; the first acceptance targets one intended current editor per active Workbench session
+- do not require Personal Agent 当前上下文 to be ENTERPRISE merely because the Human is operating an enterprise 2D editor; chat/memory context and current-editor task scope are separate
+- do not scope current-editor resource invalidation to the Personal Agent chat context; publish it to the current editor Enterprise Context
+- do not expose current enterprise editor tools solely because a stale session target exists; re-check principal access to that editor enterprise
+- do not weaken current-editor WRITE governance when chat context is Personal; Owner/Admin and material-write authorization are evaluated against the editor enterprise
 
 ## Fresh ChatGPT / LLM startup
 
@@ -618,6 +627,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state current Projection target selection as established by opening/loading the qualified editor in the same Workbench session
 - state natural-language Projection meaning as model reasoning over current material, not an EOG/Eidos sales-to-cash keyword dictionary
 - state the next Projection gate as Human browser live validation of this direct current-editor flow
+- state App Platform PR #410 as the production fix for Personal Agent context=Personal while an enterprise 2D editor is current
+- state Personal Agent chat/memory context and current-editor task/resource scope as separate concepts
+- state current-editor tool exposure under Personal chat context as allowed only after editor-enterprise access is rechecked
+- state current-editor writes as Owner/Admin governed and authorized against the editor Enterprise Context rather than the chat context
+- state the next live gate as re-running the exact screenshot scenario without manually switching 当前上下文 away from 个人
 
 No previous ChatGPT transcript is required.
 
