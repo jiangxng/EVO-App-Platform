@@ -42,14 +42,6 @@ export const pluginStoreExperienceManifest = {
       path: "/store",
       pageId: "evo-plugin-store.home"
     }
-  ],
-  navigation: [
-    {
-      id: "evo-plugin-store.nav",
-      label: "Plugins",
-      route: "/store",
-      order: 0
-    }
   ]
 } as const;
 

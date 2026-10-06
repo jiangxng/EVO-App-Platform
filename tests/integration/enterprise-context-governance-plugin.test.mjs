@@ -80,10 +80,7 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     ),
     true
   );
-  assert.deepEqual(
-    experience.navigation.map(item => item.route),
-    ["/enterprise-contexts"]
-  );
+  assert.deepEqual(experience.navigation ?? [], []);
 
   const page = manager.loadExperiencePage(
     "app://evo-enterprise-context-governance/pages/create"

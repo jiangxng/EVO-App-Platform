@@ -27,7 +27,7 @@ import {
 } from "./browser-lifecycle.js";
 
 if (!window.location.hash || window.location.hash === "#") {
-  window.location.hash = "/store";
+  window.location.hash = "/workspace";
 }
 
 const persistedLocale = window.localStorage.getItem("evo.locale")?.trim();
@@ -65,14 +65,14 @@ const currentSurfacePath = window.location.hash.startsWith("#")
 
 const surfaceGateway = resolveBrowserSurfaceGatewayV010({
   manifests: bootstrapManifests,
-  path: currentSurfacePath || "/store",
+  path: currentSurfacePath || "/workspace",
   url: new URL(window.location.href),
   profile: readBrowserSurfaceProfileV010(),
   storedUserTarget:
     window.localStorage.getItem("evo.surface.target") ?? undefined
 });
 
-let activePath = currentSurfacePath || "/store";
+let activePath = currentSurfacePath || "/workspace";
 let activeSurfaceId: string | undefined;
 let activeTarget:
   | "DESKTOP_WORKBENCH"

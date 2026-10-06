@@ -112,13 +112,7 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             id: `evo-enterprise-context-governance.legacy-route-${index + 1}`,
             path,
             pageId: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID
-          }))],
-          navigation: [{
-            id: "evo-enterprise-context-governance.nav",
-            label: "Enterprise Contexts",
-            route: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
-            order: 20
-          }]
+          }))]
         }
       },
       {

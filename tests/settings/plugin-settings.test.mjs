@@ -6,6 +6,7 @@ import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createMemorySettingsStore } from "../../dist/manager/settings-store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import {
+  createSettingsGroupPage,
   createSettingsIndexPage,
   createSettingsPage,
   validateAndMergeSettings
@@ -160,14 +161,49 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
   manager.install("openai-llm-provider");
   manager.install("enterprise-agent");
 
-  const index = createSettingsIndexPage(manager);
+  const index = createSettingsIndexPage(manager, "zh-CN");
   assert.deepEqual(index.items.map(item => item.id), [
-    "provider-bindings",
-    "openai-llm-provider"
+    "business",
+    "applications",
+    "ai",
+    "system"
   ]);
+  assert.deepEqual(
+    index.items.map(item => item.primaryAction.route),
+    [
+      "/settings/business",
+      "/settings/applications",
+      "/settings/ai",
+      "/settings/system"
+    ]
+  );
+
+  const system = createSettingsGroupPage(manager, "system", "en");
   assert.equal(
-    index.items.find(item => item.id === "openai-llm-provider").primaryAction.route,
+    system.items.some(item => item.id === "provider-bindings"),
+    true
+  );
+  assert.equal(
+    system.items.find(item => item.id === "openai-llm-provider")?.primaryAction.route,
     "/settings/openai-llm-provider"
+  );
+
+  const business = createSettingsGroupPage(manager, "business", "zh-CN");
+  assert.deepEqual(
+    business.items.map(item => item.primaryAction.route),
+    ["/enterprise-contexts", "/ledger"]
+  );
+
+  const applications = createSettingsGroupPage(manager, "applications", "zh-CN");
+  assert.deepEqual(
+    applications.items.map(item => item.primaryAction.route),
+    ["/store", "/templates"]
+  );
+
+  const ai = createSettingsGroupPage(manager, "ai", "zh-CN");
+  assert.deepEqual(
+    ai.items.map(item => item.primaryAction.route),
+    ["/memory"]
   );
 
   const storePage = createPluginStorePage(

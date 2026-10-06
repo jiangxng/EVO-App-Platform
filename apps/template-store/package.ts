@@ -70,12 +70,6 @@ export const templateStorePackage: PackageManifestV010 = {
             id: TEMPLATE_STORE_DETAIL_PAGE_ID,
             path: TEMPLATE_STORE_DETAIL_ROUTE,
             pageId: TEMPLATE_STORE_DETAIL_PAGE_ID
-          }],
-          navigation: [{
-            id: "evo-template-store.nav",
-            label: "Template Store",
-            route: TEMPLATE_STORE_ROUTE,
-            order: 50
           }]
         }
       },

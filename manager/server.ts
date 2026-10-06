@@ -633,10 +633,17 @@ import {
 import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
+  createWorkspaceHomePageV010,
+  workspaceHomeExperienceManifest,
+  workspaceHomePageSource
+} from "./workspace-home-page.js";
+import {
   createSettingsExperienceManifest,
+  createSettingsGroupPage,
   createSettingsIndexPage,
   createSettingsPage,
   packageIdFromSettingsPageSource,
+  settingsGroupFromPageSource,
   settingsIndexPageSource,
   secretReferenceForPackageV010,
   validateAndMergeSettings
@@ -5118,6 +5125,7 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return jsonVersioned(request, response, 200, [
+        workspaceHomeExperienceManifest,
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
@@ -5923,8 +5931,31 @@ const server = createServer(async (request, response) => {
           relationships: resolveEnterpriseContextRelationshipProvider()
         }));
       }
+      if (source === workspaceHomePageSource) {
+        return json(
+          response,
+          200,
+          createWorkspaceHomePageV010(requestedLocale(url))
+        );
+      }
       if (source === settingsIndexPageSource) {
-        return json(response, 200, createSettingsIndexPage(manager));
+        return json(
+          response,
+          200,
+          createSettingsIndexPage(manager, requestedLocale(url))
+        );
+      }
+      const settingsGroup = settingsGroupFromPageSource(source);
+      if (settingsGroup) {
+        return json(
+          response,
+          200,
+          createSettingsGroupPage(
+            manager,
+            settingsGroup,
+            requestedLocale(url)
+          )
+        );
       }
       if (source === providerManagerIndexPageSource) {
         return json(response, 200, createProviderManagerIndexPage(
