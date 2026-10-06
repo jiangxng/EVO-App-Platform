@@ -158,3 +158,29 @@ When saved, the captured hidden-ID sets are authoritative for that Projection. T
 The new Projection receives a unique projection ID and a deterministic copy title such as "原投影 副本", "原投影 副本 2", etc. The editor navigates to the newly created Projection after save. Gallery capacity remains governed by the existing maximum of nine projections.
 
 Neither Save nor Save As duplicates or mutates the underlying Application/Ledger objects.
+
+
+## Deep context navigation — first product trial
+
+Breadcrumb-style context navigation is intentionally **not** global EVO chrome. The first trial is limited to the deep Ledger Runtime Template relationship-map journey.
+
+Desktop:
+
+`账本管理 › <账本运行时模板> › 关系图`
+
+and in edit mode:
+
+`账本管理 › <账本运行时模板> › 关系图 › 编辑投影`
+
+The path sits above the page title inside the main workspace header. It is visually subordinate to the title and remains outside the graph canvas. Current business actions remain on the title/action row.
+
+Mobile does not render the full path. It reduces the same context to the nearest reloadable parent:
+
+- Viewer: `‹ <账本运行时模板>`
+- Editor: `‹ 关系图`
+
+The page title stays visible below that parent affordance. This preserves context without consuming the limited canvas width.
+
+The editor therefore does not duplicate navigation with a separate "返回查看" toolbar action. Navigation answers "where am I / where can I go back"; Save / Save As / Restore and other controls answer "what can I do here".
+
+This trial applies only when the Host knows the relationship graph belongs to a Ledger Runtime Template. Shallow Ledger Manager list/detail pages remain unchanged.
