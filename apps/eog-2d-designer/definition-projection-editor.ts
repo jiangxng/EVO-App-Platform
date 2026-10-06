@@ -415,15 +415,6 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
     ...(input.contextNavigation
       ? { contextNavigation: input.contextNavigation }
       : {}),
-    toolbarActions: [{
-      id: "back-to-view",
-      label: text.back,
-      route: definition2dPreviewRouteV010({
-        definitionId: input.definitionId,
-        definitionRevision: input.definitionRevision,
-        projectionId: input.projectionId
-      })
-    }],
     ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     viewInteraction: {
       zoom: true,
