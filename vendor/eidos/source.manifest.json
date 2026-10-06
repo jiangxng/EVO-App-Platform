@@ -80,6 +80,12 @@
       "owner": "EVO-App-Platform",
       "reason": "Host integration overlay preserving production-verified durable Personal Agent thread/run behavior while mounting generic Eidos page capabilities such as Diagram Editor.",
       "syncPolicy": "Never replace wholesale. Start from the current App-Platform overlay and apply the minimal Eidos semantic delta."
+    },
+    {
+      "path": "src/app-host/app-manager-action-host.ts",
+      "owner": "EVO-App-Platform",
+      "reason": "Host integration overlay preserving EVO active Enterprise Context request headers while adopting generic Eidos ActionHost capabilities such as action locale propagation.",
+      "syncPolicy": "Never replace wholesale. Start from the current App-Platform overlay and apply the minimal Eidos semantic delta."
     }
   ]
 }
