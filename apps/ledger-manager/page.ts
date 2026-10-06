@@ -10,9 +10,10 @@ import type {
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
-  LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
-  LEDGER_MANAGER_PUBLISH_COMMAND
+  LEDGER_MANAGER_PUBLISH_COMMAND,
+  LEDGER_MANAGER_ROUTE,
+  ledgerManagerDetailRouteV010
 } from "./constants.js";
 
 export function ledgerManagerVersionLabelV010(revision: number): string {
@@ -30,6 +31,7 @@ function textFor(locale?: string) {
         empty:
           "当前企业还没有账本定义。可以先从模板商店添加一个账本模板。",
         details: "查看详情",
+        back: "返回账本管理",
         publish: "发布生效",
         publishHelp:
           "发布后，这个版本将成为当前企业正在使用的账本配置。",
@@ -58,6 +60,7 @@ function textFor(locale?: string) {
         empty:
           "This enterprise has no ledger definitions yet. Add a ledger template from Template Store first.",
         details: "View details",
+        back: "Back to ledger management",
         publish: "Publish",
         publishHelp:
           "After publishing, this version becomes the active ledger configuration for the current enterprise.",
@@ -168,14 +171,12 @@ export function createLedgerManagerPageV010(input: {
       const secondaryActions: CatalogBrowserActionV010[] = [{
         id: "details",
         label: text.details,
-        type: "command",
-        command: LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
-        inputVersion: "0.1.0",
-        requiresConfirmation: false,
-        values: {
-          definitionId: item.definitionId,
-          definitionRevision: item.revision
-        }
+        type: "navigate",
+        route: ledgerManagerDetailRouteV010(
+          item.definitionId,
+          item.revision
+        ),
+        requiresConfirmation: false
       }];
 
       if (primaryProjection) {
@@ -298,6 +299,13 @@ export function createLedgerManagerDetailPageV010(input: {
         }
       }))
     },
+    secondaryActions: [{
+      id: "back",
+      label: text.back,
+      type: "navigate" as const,
+      route: LEDGER_MANAGER_ROUTE,
+      requiresConfirmation: false
+    }],
     primaryAction: {
       id: "publish",
       label: text.publish,
