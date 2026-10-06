@@ -744,6 +744,7 @@ import {
   ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
 import {
+  LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
   LEDGER_MANAGER_FEATURE_ID,
   LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
@@ -751,6 +752,7 @@ import {
   LEDGER_MANAGER_PAGE_SOURCE,
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
   LEDGER_MANAGER_PUBLISH_COMMAND,
+  ledgerManagerDetailRouteV010,
   parseLedgerManagerDetailRouteV010
 } from "../apps/ledger-manager/constants.js";
 import {
@@ -5748,6 +5750,19 @@ const server = createServer(async (request, response) => {
               ? { projectionId: artifact.projectionId }
               : {}),
             ...(artifact.camera ? { camera: artifact.camera } : {}),
+            ...(artifact.definitionKind === LEDGER_MANAGER_DEFINITION_KIND
+              ? {
+                  returnAction: {
+                    route: ledgerManagerDetailRouteV010(
+                      artifact.definitionId,
+                      artifact.definitionRevision
+                    ),
+                    label: requestedLocale(url).toLowerCase().startsWith("zh")
+                      ? "返回模板详情"
+                      : "Back to template details"
+                  }
+                }
+              : {}),
             canEditProjection: manager.getSnapshot().activeFeatures.some(
               feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
             ),
