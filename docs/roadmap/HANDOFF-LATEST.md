@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-2-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T18:05:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-3-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T19:35:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Library v0.2
+Ledger Manager / EOG Projection Library v0.3
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**projection-default-view-v0-1: MERGED_CI_PASS**
+**projection-presentation-state-v0-3: MERGED_CI_PASS**
 
-Projection Library now has an explicit default view. A Human can promote a saved alternate Projection as default from the existing editor, changing only Projection Gallery presentation metadata while preserving all business payload and saved Projection content.
+Projection is now explicitly non-versioned presentation state. Save, rename, layout, hide/show, Restore all, Save As and default-view changes do not advance Business Definition versions; Ledger Manager presents semantic business versions only. Personal Agent chat chrome now reflows by pane width for narrow desktop and mobile use.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,31 +26,35 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 403,
-  "mergeCommit": "d45de92da2908675cf5d88322c13daa83e6877fc",
-  "projectContinuityCI": "PASS",
+  "appPlatformPr": 405,
+  "appPlatformMergeCommit": "6a02fd14971f401123c2c8765a793bfb3b6b3ab5",
+  "eidosPr": 125,
+  "eidosMergeCommit": "40a5019391d1ffa4a02edf6c92dbaf4be4ab2ece",
   "platformCI": "PASS",
-  "primaryProjectionField": "primaryProjectionId",
-  "businessPayloadMutation": false,
+  "ledgerManagerCI": "PASS",
+  "projectContinuityCI": "PASS",
+  "personalAgentExperienceCI": "PASS",
+  "projectionVersioning": "NONE",
+  "businessDefinitionRevisionMutation": false,
   "ledgerRuntimeMutation": false
 }
 ```
 
 ## Current open live gate
 
-**projection-authoring-safety-v0-3: READY**
+**personal-agent-projection-authoring-v0-4: READY**
 
-Complete the next small Projection authoring safety layer without expanding Projection into a standalone application.
+Connect Personal Agent natural-language intent to the existing Projection model so a Human can ask for a readable business slice without giving the Agent authority to rewrite business truth.
 
 Acceptance:
 
-- A Human can selectively restore hidden nodes or relations when refining a saved Projection.
-- A Human can reset Projection layout/view state deliberately without changing semantic business objects.
-- Navigation away from a locally modified Projection makes unsaved changes explicit before discard.
-- Ledger Manager detail remains the product home and default Projection remains explicit.
-- Desktop remains the authoring surface; mobile stays compact and inspection-first for deep canvas journeys.
-- Visual identity is rendered only from owning-plugin metadata and is never guessed from names.
-- Projection writes remain append-only Business Definition revisions under the existing authorization boundary.
+- A Human can ask for a Projection such as 从销售到收款 / sales-to-cash and the Personal Agent can derive a focused view from the current complete Business Definition.
+- Personal Agent Projection work uses the same Projection persistence boundary as Human authoring and never creates a Business Definition version.
+- The Agent may create a new Projection or update an explicitly selected Projection, while Save As remains a new Projection identity rather than a version.
+- A Projection request cannot add, delete or rewrite applications, ledgers, posting logic or semantic relations; those remain separate governed business-definition changes.
+- 2D Viewer and 2D Designer remain separate capabilities; Personal Agent is an additional operator over the same Projection model, not a replacement for either.
+- Ledger Manager -> definition/version -> Projection views remains the product home.
+- Visual identity remains owning-plugin metadata and is never inferred from node names.
 
 ## Current production preview
 
@@ -91,6 +95,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #405 — MERGED_CI_PASS: Make Projection non-versioned presentation state with in-place saves, collapse legacy projection-only raw revisions into semantic Ledger versions, and adopt pane-responsive Personal Agent chat chrome from Eidos PR #125.
 - PR #403 — MERGED_CI_PASS: Add explicit default Projection management while preserving Business Definition payload and Ledger Runtime semantics.
 - PR #401 — MERGED_MAINLINE: Add independent Projection rename plus automatic current-canvas thumbnail regeneration on Save and Save As; keep visual identity plugin-owned.
 - PR #400 — MERGED_MAINLINE: Authorize governed EOG Projection persistence and remove STATIC_POLICY_NO_MATCH for valid Owner/Admin writes.
@@ -421,6 +426,10 @@ Not proved:
 - do not create a global top-level Projection application; Projection views are children of their owning Business Definition surface
 - do not infer business icons from node names; wait for owning-plugin visualIdentity metadata
 - do not move Projection presentation state into Ledger Runtime business truth
+- do not create Projection versions; Projection save overwrites presentation state in place
+- do not create or advance Business Definition versions for Projection rename, layout, hide/show, Restore all, Save As or default-view changes
+- do not reopen Restore all/reset as pending; the Human flow has already been implemented and user-validated
+- do not merge EOG 2D Viewer and EOG 2D Designer; they remain separate capabilities even though Ledger Manager owns the Projection product entry
 
 ## Fresh ChatGPT / LLM startup
 
@@ -595,6 +604,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Template Store snapshots as immutable cloned bundles with deterministic SHA-256 integrity
 - state Copy as creation of an independent target Enterprise Context revision-0 Draft with TEMPLATE_COPY provenance and no live source dependency
 - state the current Template Store gate as governed ActionHost Share/Copy plus durable Store persistence and catalog projection
+- state Projection as non-versioned presentation state whose saves overwrite in place without advancing Business Definition versions
+- state Business Definition versions as representing real semantic business change rather than Projection layout/view changes
+- state Restore all/reset for Projection as implemented and Human-validated rather than an open gate
+- state Eidos PR #125 and App Platform PR #405 as the pane-responsive Personal Agent header and Projection no-version correction
+- state Ledger Manager -> definition/version -> Projection views as the Projection product home while 2D Viewer and 2D Designer remain separate
 
 No previous ChatGPT transcript is required.
 
