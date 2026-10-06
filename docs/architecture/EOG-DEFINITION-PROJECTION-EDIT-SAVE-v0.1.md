@@ -184,3 +184,19 @@ The page title stays visible below that parent affordance. This preserves contex
 The editor therefore does not duplicate navigation with a separate "返回查看" toolbar action. Navigation answers "where am I / where can I go back"; Save / Save As / Restore and other controls answer "what can I do here".
 
 This trial applies only when the Host knows the relationship graph belongs to a Ledger Runtime Template. Shallow Ledger Manager list/detail pages remain unchanged.
+
+
+## Authorization boundary
+
+Projection persistence is a governed material write.
+
+The EOG projection editor first requires the active Human to have an ACTIVE OWNER or ADMIN relationship to the current Enterprise Context. It then evaluates Host authorization using:
+
+- action: `definition.projection.save`
+- resource type: `enterprise.business-definition.projection`
+
+The built-in EOG authorization baseline explicitly allows this action for Human actors so normal Owner/Admin editing does not fall through to the static Provider's default-deny `STATIC_POLICY_NO_MATCH`.
+
+This baseline does not grant enterprise membership by itself and does not weaken deployment governance. An explicit deployment DENY for the same action/resource still overrides the built-in ALLOW rule.
+
+"Save projection" and "Save as projection" intentionally share this authorization action because both persist Projection Gallery presentation state under the same business-definition write boundary; neither mutates Application, Ledger or posting-rule semantics.
