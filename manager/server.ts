@@ -3306,6 +3306,17 @@ if (contextMemoryScheduleMs > 0) {
   contextMemoryScheduleTimer.unref();
 }
 
+function current2dEditorSessionKeysV010(
+  principal: PlatformPrincipalV010
+): string[] {
+  return [
+    principal.sessionId?.trim(),
+    principal.subjectId.trim()
+  ].filter((value, index, values): value is string =>
+    Boolean(value) && values.indexOf(value) === index
+  );
+}
+
 function resolveContextForPrincipal(
   principal: PlatformPrincipalV010,
   ref: ActiveContextRefV010
@@ -3456,79 +3467,86 @@ function createPersonalAgentToolCatalogV010(
           message: "Material WRITE requires a Host-resolved request context."
         };
       }
-      const projectionFocus =
-        descriptor.id === "enterprise.definition_projection.current.crop";
-      const projectionSelection = projectionFocus
-        ? (
-            (principal.sessionId?.trim()
-              ? enterpriseDefinitionProjectionSessions.get(
-                  principal.sessionId.trim()
-                )
-              : undefined)
-            ?? enterpriseDefinitionProjectionSessions.get(principal.subjectId)
-          )
+      const current2dEditorWrite =
+        descriptor.id === "enterprise.current_2d_editor.crop";
+      const current2dEditorTarget = current2dEditorWrite
+        ? current2dEditorSessionKeysV010(principal)
+            .map(key => current2dEditorSessions.get(key))
+            .find(target =>
+              target !== undefined
+              && context.activeContext.kind === "ENTERPRISE"
+              && target.enterpriseId === context.activeContext.enterpriseId
+            )
         : undefined;
-      if (
-        projectionFocus
-        && (
-          !projectionSelection
-          || context.activeContext.kind !== "ENTERPRISE"
-          || projectionSelection.enterpriseId
-            !== context.activeContext.enterpriseId
-        )
-      ) {
+      if (current2dEditorWrite && !current2dEditorTarget) {
         return {
           allowed: false,
-          code: "CURRENT_DEFINITION_PROJECTION_EDITOR_REQUIRED",
-          message: "Open the target 2D Projection Editor before asking Personal Agent to change the current projection."
+          code: "CURRENT_2D_EDITOR_REQUIRED",
+          message: "Open the target 2D editor before asking Personal Agent to change the current canvas."
         };
       }
+
+      const current2dAuthorization = current2dEditorTarget?.kind === "DEFINITION_PROJECTION"
+        ? {
+            action: EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+            resource: {
+              type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+              id:
+                `${current2dEditorTarget.definitionId}#${current2dEditorTarget.projectionId}`,
+              attributes: {
+                enterpriseId: current2dEditorTarget.enterpriseId,
+                definitionRevision: current2dEditorTarget.definitionRevision,
+                operator: "PERSONAL_AGENT"
+              }
+            }
+          }
+        : current2dEditorTarget?.kind === "OPERATING_GRAPH"
+          ? {
+              action: EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010,
+              resource: {
+                type: EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010,
+                id: current2dEditorTarget.resourceId,
+                attributes: {
+                  enterpriseId: current2dEditorTarget.enterpriseId,
+                  graphId: current2dEditorTarget.graphId,
+                  operator: "PERSONAL_AGENT"
+                }
+              }
+            }
+          : undefined;
 
       const decision = await authorizeMaterialWriteV010(
         resolveAuthorizationProvider(),
         requestContext,
-        {
-          action: projectionFocus
-            ? EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010
-            : descriptor.id === "context.memory.canonicalization.proposal.create"
-              ? "context.memory.proposal.create"
-              : descriptor.id,
-          resource: projectionFocus
+        current2dAuthorization ?? {
+          action: descriptor.id === "context.memory.canonicalization.proposal.create"
+            ? "context.memory.proposal.create"
+            : descriptor.id,
+          resource: (
+            descriptor.id === "context.memory.proposal.create"
+            || descriptor.id === "context.memory.canonicalization.proposal.create"
+          )
             ? {
-                type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
-                id:
-                  `${projectionSelection!.definitionId}#${projectionSelection!.projectionId}`,
+                type: "context.memory.proposal",
                 attributes: {
-                  enterpriseId: projectionSelection!.enterpriseId,
-                  definitionRevision: projectionSelection!.definitionRevision,
-                  operator: "PERSONAL_AGENT"
+                  contextId: context.activeContext.contextId,
+                  contextKind: context.activeContext.kind,
+                  ownerPackageId: descriptor.ownerPackageId,
+                  effect: descriptor.effect,
+                  proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
+                    ? "CANONICALIZATION"
+                    : "CONTENT"
                 }
               }
-            : (
-                descriptor.id === "context.memory.proposal.create"
-                || descriptor.id === "context.memory.canonicalization.proposal.create"
-              )
-                ? {
-                    type: "context.memory.proposal",
-                    attributes: {
-                      contextId: context.activeContext.contextId,
-                      contextKind: context.activeContext.kind,
-                      ownerPackageId: descriptor.ownerPackageId,
-                      effect: descriptor.effect,
-                      proposalType: descriptor.id === "context.memory.canonicalization.proposal.create"
-                        ? "CANONICALIZATION"
-                        : "CONTENT"
-                    }
-                  }
-                : {
-                    type: "agent.tool",
-                    id: descriptor.id,
-                    attributes: {
-                      ownerPackageId: descriptor.ownerPackageId,
-                      effect: descriptor.effect,
-                      ...(descriptor.capability ? { capability: descriptor.capability } : {})
-                    }
-                  }
+            : {
+                type: "agent.tool",
+                id: descriptor.id,
+                attributes: {
+                  ownerPackageId: descriptor.ownerPackageId,
+                  effect: descriptor.effect,
+                  ...(descriptor.capability ? { capability: descriptor.capability } : {})
+                }
+              }
         }
       );
       return decision.allowed
@@ -3552,14 +3570,17 @@ function createPersonalAgentToolCatalogV010(
         feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
       )
     }),
-    ...createDefinitionProjectionAgentToolRegistrationsV010({
-      repository: enterpriseBusinessDefinitionRepository,
-      projectionStore: enterpriseDefinitionProjectionStore,
-      source: createEnterpriseDefinitionProjectionArtifactSourceV010(
-        enterpriseBusinessDefinitionRepository,
-        enterpriseDefinitionProjectionStore
-      ),
-      sessions: enterpriseDefinitionProjectionSessions,
+    ...createCurrent2dEditorAgentToolRegistrationsV010({
+      currentEditors: current2dEditorSessions,
+      graphService: enterpriseOperatingGraphService,
+      graphViewService: enterpriseOperatingGraphViewService,
+      definitionRepository: enterpriseBusinessDefinitionRepository,
+      definitionProjectionStore: enterpriseDefinitionProjectionStore,
+      definitionProjectionSource:
+        createEnterpriseDefinitionProjectionArtifactSourceV010(
+          enterpriseBusinessDefinitionRepository,
+          enterpriseDefinitionProjectionStore
+        ),
       principal,
       context,
       locale,
@@ -3576,9 +3597,9 @@ function createPersonalAgentToolCatalogV010(
           && (item.kind === "OWNER" || item.kind === "ADMIN")
         );
       },
-      onProjectionUpdated(update) {
+      onEditorUpdated(update) {
         realtimeEvents.publish({
-          topic: "resource.definition-projection",
+          topic: "resource.current-2d-editor",
           type: "RESOURCE_INVALIDATED",
           scope: {
             contextId: context.activeContext.contextId,
@@ -3587,13 +3608,17 @@ function createPersonalAgentToolCatalogV010(
               : {})
           },
           resource: {
-            kind: "enterprise-business-definition-projection",
+            kind: update.target.kind === "OPERATING_GRAPH"
+              ? "enterprise-operating-graph"
+              : "enterprise-business-definition-projection",
             resourceId: update.resourceId,
-            version: update.selection.definitionRevision
+            ...(update.version === undefined
+              ? {}
+              : { version: update.version })
           },
           payload: {
             operator: "PERSONAL_AGENT",
-            projectionId: update.selection.projectionId,
+            editorKind: update.target.kind,
             visibleNodeIds: [...update.visibleNodeIds],
             visibleEdgeIds: [...update.visibleEdgeIds]
           }
@@ -3652,6 +3677,19 @@ const actionRouter = createAppActionRouter(
       inspectorResolver: enterpriseOperatingGraphInspectorProperties,
       locale(context) {
         return context.locale;
+      },
+      onEditorRead(context, target) {
+        const selectedAt = new Date().toISOString();
+        for (const key of current2dEditorSessionKeysV010(context.principal)) {
+          current2dEditorSessions.set(key, {
+            contractVersion: "0.1.0",
+            kind: "OPERATING_GRAPH",
+            enterpriseId: target.enterpriseId,
+            graphId: target.graphId,
+            resourceId: target.resourceId,
+            selectedAt
+          });
+        }
       }
     }),
     ...createEnterpriseOperatingGraphObservatoryActionHandlersV020({
@@ -3914,6 +3952,21 @@ const actionRouter = createAppActionRouter(
               },
               locale(context) {
                 return context.locale;
+              },
+              onEditorRead(context, target) {
+                const selectedAt = new Date().toISOString();
+                for (const key of current2dEditorSessionKeysV010(context.principal)) {
+                  current2dEditorSessions.set(key, {
+                    contractVersion: "0.1.0",
+                    kind: "DEFINITION_PROJECTION",
+                    enterpriseId: target.enterpriseId,
+                    definitionId: target.definitionId,
+                    definitionRevision: target.definitionRevision,
+                    projectionId: target.projectionId,
+                    resourceId: target.resourceId,
+                    selectedAt
+                  });
+                }
               }
             });
           const handler = handlers.find(
