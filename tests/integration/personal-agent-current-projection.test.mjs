@@ -67,6 +67,23 @@ function resolvedContext() {
   };
 }
 
+function personalResolvedContext() {
+  return {
+    contractVersion: "0.1.0",
+    personalContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:owner-a",
+      ownerSubjectId: "owner-a"
+    },
+    activeContext: {
+      contractVersion: "0.1.0",
+      kind: "PERSONAL",
+      contextId: "personal:owner-a"
+    }
+  };
+}
+
 function requestContext() {
   return {
     contractVersion: "0.1.0",
@@ -505,7 +522,8 @@ test("opening a qualified Definition Projection Editor establishes the unified c
     projectionStore,
     source: artifactSource(),
     sessions: projectionSessions,
-    canManageEnterpriseContext: () => true,
+    canAccessEnterprise: () => true,
+    canManageEnterprise: () => true,
     authorizeProjectionSave: async () => {},
     locale: () => "zh-CN",
     onEditorRead(context, target) {
@@ -578,7 +596,8 @@ test("the same Personal Agent current-2D tools crop a Definition Projection with
     principal: principal(),
     context: resolvedContext(),
     locale: "zh-CN",
-    canManageEnterpriseContext: () => true,
+    canAccessEnterprise: () => true,
+    canManageEnterprise: () => true,
     onEditorUpdated(update) {
       invalidations.push(structuredClone(update));
     },
@@ -708,7 +727,8 @@ test("the same Personal Agent request directly crops the current /operating-grap
     principal: principal(),
     context: resolvedContext(),
     locale: "zh-CN",
-    canManageEnterpriseContext: () => true,
+    canAccessEnterprise: () => true,
+    canManageEnterprise: () => true,
     onEditorUpdated(update) {
       invalidations.push(structuredClone(update));
     },
@@ -752,4 +772,113 @@ test("the same Personal Agent request directly crops the current /operating-grap
   assert.equal(invalidations.length, 1);
   assert.equal(invalidations[0].resourceId, graphId);
   assert.equal(invalidations[0].target.kind, "OPERATING_GRAPH");
+});
+
+
+test("Personal context does not hide current enterprise 2D editor tools", async () => {
+  const graph = operatingGraph();
+  const graphService = fakeGraphService(graph);
+  const viewService = createEogViewStateProviderV010({
+    store: createMemoryEogViewStateStoreV010(),
+    now: () => new Date("2026-10-06T13:20:00.000Z")
+  });
+  viewService.ensure({
+    enterpriseId,
+    graphId,
+    kind: "DIAGRAM_2D"
+  });
+
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+  currentEditors.set("session-a", {
+    contractVersion: "0.1.0",
+    kind: "OPERATING_GRAPH",
+    enterpriseId,
+    graphId,
+    resourceId: graphId,
+    selectedAt: "2026-10-06T13:20:00.000Z"
+  });
+
+  const registrations = createCurrent2dEditorAgentToolRegistrationsV010({
+    currentEditors,
+    graphService,
+    graphViewService: viewService,
+    definitionRepository: fakeRepository(),
+    definitionProjectionStore: createMemoryDefinitionProjectionStoreV010(),
+    definitionProjectionSource: artifactSource(),
+    principal: principal(),
+    context: personalResolvedContext(),
+    locale: "zh-CN",
+    canAccessEnterprise: (_principal, candidateEnterpriseId) =>
+      candidateEnterpriseId === enterpriseId,
+    canManageEnterprise: (_principal, candidateEnterpriseId) =>
+      candidateEnterpriseId === enterpriseId,
+    now: () => new Date("2026-10-06T13:21:00.000Z")
+  });
+
+  const listed = toolCatalog(registrations).list();
+  assert.equal(
+    listed.some(tool => tool.id === "enterprise.current_2d_editor.get"),
+    true
+  );
+  assert.equal(
+    listed.some(tool => tool.id === "enterprise.current_2d_editor.crop"),
+    true
+  );
+
+  const model = salesToCashModel("OPERATING_GRAPH");
+  const runtime = createEnterpriseAgentRuntime(
+    model,
+    toolCatalog(registrations),
+    4
+  );
+
+  const reply = await runtime.chat(
+    "帮我裁剪出从销售到收款的投影",
+    personalResolvedContext(),
+    principal()
+  );
+
+  assert.match(reply.message, /销售到收款/);
+  assert.equal(model.modelStep, 3);
+
+  const view = viewService.list({
+    enterpriseId,
+    graphId
+  })[0];
+  assert.deepEqual(
+    new Set(view.hiddenNodeIds),
+    new Set(["app:purchase", "ledger:inventory"])
+  );
+  assert.deepEqual(
+    new Set(view.hiddenEdgeIds),
+    new Set(["guidance-edge:purchase-inventory"])
+  );
+});
+
+test("current enterprise 2D editor tools stay hidden when principal lacks editor-enterprise access", () => {
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+  currentEditors.set("session-a", {
+    contractVersion: "0.1.0",
+    kind: "OPERATING_GRAPH",
+    enterpriseId,
+    graphId,
+    resourceId: graphId,
+    selectedAt: "2026-10-06T13:22:00.000Z"
+  });
+  const registrations = createCurrent2dEditorAgentToolRegistrationsV010({
+    currentEditors,
+    graphService: fakeGraphService(operatingGraph()),
+    graphViewService: createEogViewStateProviderV010({
+      store: createMemoryEogViewStateStoreV010()
+    }),
+    definitionRepository: fakeRepository(),
+    definitionProjectionStore: createMemoryDefinitionProjectionStoreV010(),
+    definitionProjectionSource: artifactSource(),
+    principal: principal(),
+    context: personalResolvedContext(),
+    canAccessEnterprise: () => false,
+    canManageEnterprise: () => false
+  });
+
+  assert.equal(toolCatalog(registrations).list().length, 0);
 });
