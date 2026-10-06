@@ -8,6 +8,9 @@ import type {
 import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
+import type {
+  DefinitionProjectionStoreV010
+} from "../../providers/enterprise-context/definition-projection-store.js";
 import {
   definition2dEditorRouteV010,
   definition2dPreviewRouteV010,
@@ -861,6 +864,7 @@ function saveProjectionAsNew(
 export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
   input: {
     repository: BusinessDefinitionRepositoryV010;
+    projectionStore: DefinitionProjectionStoreV010;
     source: DefinitionProjectionArtifactSourceV010;
     sessions: DefinitionProjectionSessionStoreV010;
     canManageEnterpriseContext(
@@ -921,11 +925,16 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           enterpriseId: selection.enterpriseId,
           definitionId: selection.definitionId
         }).find(item => item.revision === selection.definitionRevision);
+        const projectionGallery = input.projectionStore.get({
+          enterpriseId: selection.enterpriseId,
+          definitionId: selection.definitionId,
+          definitionRevision: selection.definitionRevision
+        }) ?? revision?.projectionGallery;
         return success(request, editorState({
           artifact,
           locale: input.locale?.(context),
           isPrimary:
-            revision?.projectionGallery?.primaryProjectionId
+            projectionGallery?.primaryProjectionId
             === selection.projectionId
         }));
       }
@@ -1007,7 +1016,12 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         ) {
           throw new Error("DEFINITION_PROJECTION_REVISION_CONFLICT");
         }
-        if (!latest.projectionGallery) {
+        const currentProjectionGallery = input.projectionStore.get({
+          enterpriseId: latest.enterpriseId,
+          definitionId: latest.definitionId,
+          definitionRevision: latest.revision
+        }) ?? latest.projectionGallery;
+        if (!currentProjectionGallery) {
           throw new Error("DEFINITION_PROJECTION_GALLERY_REQUIRED");
         }
 
@@ -1029,7 +1043,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         if (rename) {
           nextProjection = {
             gallery: renameProjection(
-              latest.projectionGallery,
+              currentProjectionGallery,
               selection.projectionId,
               (operation as Record<string, JsonValue>).title,
               locale
@@ -1039,7 +1053,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         } else if (setPrimary) {
           nextProjection = {
             gallery: setPrimaryProjection(
-              latest.projectionGallery,
+              currentProjectionGallery,
               selection.projectionId
             ),
             projectionId: selection.projectionId
@@ -1058,7 +1072,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           }
           nextProjection = saveAs
             ? saveProjectionAsNew(
-                latest.projectionGallery,
+                currentProjectionGallery,
                 selection.projectionId,
                 captured,
                 currentArtifact.diagram2d,
@@ -1067,7 +1081,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
               )
             : {
                 gallery: mergeProjection(
-                  latest.projectionGallery,
+                  currentProjectionGallery,
                   selection.projectionId,
                   captured,
                   currentArtifact.diagram2d,
@@ -1077,38 +1091,21 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
               };
         }
         const projectionGallery = nextProjection.gallery;
-        const actor = {
-          actorType: "HUMAN" as const,
-          subjectId: context.principal.subjectId
-        };
         const recordedAt = now().toISOString();
-        const saved = latest.state === "DRAFT"
-          ? input.repository.reviseDraft({
-              enterpriseId: latest.enterpriseId,
-              definitionId: latest.definitionId,
-              expectedRevision: latest.revision,
-              title: latest.title,
-              payload: structuredClone(latest.payload),
-              projectionGallery,
-              actor,
-              recordedAt
-            })
-          : input.repository.beginDraft({
-              enterpriseId: latest.enterpriseId,
-              definitionId: latest.definitionId,
-              expectedRevision: latest.revision,
-              title: latest.title,
-              payload: structuredClone(latest.payload),
-              projectionGallery,
-              actor,
-              recordedAt
-            });
+        input.projectionStore.put({
+          enterpriseId: latest.enterpriseId,
+          definitionId: latest.definitionId,
+          definitionRevision: latest.revision,
+          gallery: projectionGallery,
+          updatedAt: recordedAt,
+          updatedBySubjectId: context.principal.subjectId
+        });
 
         const nextSelection: DefinitionProjectionSelectionV010 = {
           contractVersion: "0.1.0",
-          enterpriseId: saved.enterpriseId,
-          definitionId: saved.definitionId,
-          definitionRevision: saved.revision,
+          enterpriseId: latest.enterpriseId,
+          definitionId: latest.definitionId,
+          definitionRevision: latest.revision,
           projectionId: nextProjection.projectionId,
           selectedAt: recordedAt
         };
@@ -1117,9 +1114,9 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         }
 
         const artifact = input.source.get({
-          enterpriseId: saved.enterpriseId,
-          definitionId: saved.definitionId,
-          definitionRevision: saved.revision,
+          enterpriseId: latest.enterpriseId,
+          definitionId: latest.definitionId,
+          definitionRevision: latest.revision,
           projectionId: nextProjection.projectionId,
           includeHidden: true
         });
@@ -1141,8 +1138,8 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
               === nextProjection.projectionId
           }),
           navigateTo: definition2dEditorRouteV010({
-            definitionId: saved.definitionId,
-            definitionRevision: saved.revision,
+            definitionId: latest.definitionId,
+            definitionRevision: latest.revision,
             projectionId: nextProjection.projectionId
           })
         });

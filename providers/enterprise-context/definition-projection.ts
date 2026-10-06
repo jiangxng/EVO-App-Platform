@@ -6,6 +6,9 @@ import type {
   BusinessDefinitionRepositoryV010,
   BusinessDefinitionRevisionV010
 } from "../../contracts/enterprise-business-definition.js";
+import type {
+  DefinitionProjectionStoreV010
+} from "./definition-projection-store.js";
 import {
   applyDefinitionProjectionV010,
   buildDefinition2dBaseV010
@@ -32,16 +35,22 @@ function resolveRevision(
 }
 
 export function createEnterpriseDefinitionProjectionArtifactSourceV010(
-  repository: BusinessDefinitionRepositoryV010
+  repository: BusinessDefinitionRepositoryV010,
+  projectionStore?: DefinitionProjectionStoreV010
 ): DefinitionProjectionArtifactSourceV010 {
   return {
     get(input) {
       const revision = resolveRevision(repository, input);
       if (!revision) return undefined;
+      const projectionGallery = projectionStore?.get({
+        enterpriseId: revision.enterpriseId,
+        definitionId: revision.definitionId,
+        definitionRevision: revision.revision
+      }) ?? revision.projectionGallery;
       const projected = applyDefinitionProjectionV010({
         diagram: buildDefinition2dBaseV010(revision.payload),
-        ...(revision.projectionGallery
-          ? { gallery: revision.projectionGallery }
+        ...(projectionGallery
+          ? { gallery: projectionGallery }
           : {}),
         ...(input.projectionId ? { projectionId: input.projectionId } : {}),
         ...(input.includeHidden === true ? { includeHidden: true } : {})

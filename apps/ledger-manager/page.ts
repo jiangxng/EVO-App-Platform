@@ -8,6 +8,9 @@ import type {
   CatalogBrowserActionV010,
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
+import type {
+  TemplateProjectionGalleryV010
+} from "../../contracts/template-projection-gallery.js";
 import {
   definition2dPreviewRouteV010
 } from "../../contracts/definition-projection.js";
@@ -85,26 +88,87 @@ function textFor(locale?: string) {
       };
 }
 
+interface LedgerSemanticHistoryItemV010 {
+  revision: BusinessDefinitionRevisionV010;
+  semanticVersion: number;
+}
+
+function semanticFingerprint(
+  revision: BusinessDefinitionRevisionV010
+): string {
+  return JSON.stringify({
+    kind: revision.kind,
+    title: revision.title,
+    payload: revision.payload
+  });
+}
+
 function ledgerHistory(
   repository: BusinessDefinitionRepositoryV010,
   enterpriseId: string
-): BusinessDefinitionRevisionV010[] {
-  return repository
-    .listLatest({
+): LedgerSemanticHistoryItemV010[] {
+  const latestDefinitions = repository.listLatest({
+    enterpriseId,
+    kind: LEDGER_MANAGER_DEFINITION_KIND
+  });
+  const semantic: LedgerSemanticHistoryItemV010[] = [];
+
+  for (const latest of latestDefinitions) {
+    const history = repository.listHistory({
       enterpriseId,
-      kind: LEDGER_MANAGER_DEFINITION_KIND
+      definitionId: latest.definitionId
     })
-    .flatMap(item =>
-      repository.listHistory({
-        enterpriseId,
-        definitionId: item.definitionId
-      })
-    )
+      .filter(item => item.kind === LEDGER_MANAGER_DEFINITION_KIND)
+      .sort((a, b) => a.revision - b.revision);
+
+    let previousFingerprint: string | undefined;
+    let semanticVersion = -1;
+    for (const revision of history) {
+      const fingerprint = semanticFingerprint(revision);
+      if (fingerprint !== previousFingerprint) {
+        semanticVersion += 1;
+        semantic.push({ revision, semanticVersion });
+        previousFingerprint = fingerprint;
+      } else {
+        const index = semantic.findIndex(item =>
+          item.revision.definitionId === revision.definitionId
+          && item.semanticVersion === semanticVersion
+        );
+        if (index >= 0) {
+          semantic[index] = { revision, semanticVersion };
+        }
+      }
+    }
+  }
+
+  return semantic.sort((a, b) =>
+    a.revision.title.localeCompare(b.revision.title)
+    || b.semanticVersion - a.semanticVersion
+  );
+}
+
+export function ledgerManagerSemanticVersionV010(
+  repository: BusinessDefinitionRepositoryV010,
+  enterpriseId: string,
+  definitionId: string,
+  definitionRevision: number
+): number {
+  const history = repository.listHistory({ enterpriseId, definitionId })
     .filter(item => item.kind === LEDGER_MANAGER_DEFINITION_KIND)
-    .sort((a, b) =>
-      a.title.localeCompare(b.title)
-      || b.revision - a.revision
-    );
+    .sort((a, b) => a.revision - b.revision);
+  let semanticVersion = -1;
+  let previousFingerprint: string | undefined;
+  for (const revision of history) {
+    const fingerprint = semanticFingerprint(revision);
+    if (fingerprint !== previousFingerprint) {
+      semanticVersion += 1;
+      previousFingerprint = fingerprint;
+    }
+    if (revision.revision === definitionRevision) {
+      return Math.max(semanticVersion, 0);
+    }
+  }
+  return 0;
 }
 
 function stateLabel(
@@ -143,6 +207,8 @@ export function createLedgerManagerPageV010(input: {
   viewer2dAvailable: boolean;
   canPublish: boolean;
   locale?: string;
+  projectionGallery?(revision: BusinessDefinitionRevisionV010):
+    TemplateProjectionGalleryV010 | undefined;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const revisions = ledgerHistory(input.repository, input.enterpriseId);
@@ -159,9 +225,12 @@ export function createLedgerManagerPageV010(input: {
       ariaLabel: text.search,
       noResultsMessage: text.empty
     },
-    items: revisions.map(item => {
-      const displayVersion = versionDisplayLabel(item.revision, text);
-      const projections = item.projectionGallery?.projections ?? [];
+    items: revisions.map(entry => {
+      const item = entry.revision;
+      const displayVersion = versionDisplayLabel(entry.semanticVersion, text);
+      const projectionGallery =
+        input.projectionGallery?.(item) ?? item.projectionGallery;
+      const projections = projectionGallery?.projections ?? [];
       const secondaryActions: CatalogBrowserActionV010[] = [{
         id: "details",
         label: text.details,
@@ -218,10 +287,17 @@ export function createLedgerManagerDetailPageV010(input: {
   viewer2dAvailable: boolean;
   canPublish: boolean;
   locale?: string;
+  displayRevision?: number;
+  projectionGallery?: TemplateProjectionGalleryV010;
 }) {
   const text = textFor(input.locale);
-  const displayVersion = versionDisplayLabel(input.revision.revision, text);
-  const projections = input.revision.projectionGallery?.projections ?? [];
+  const displayVersion = versionDisplayLabel(
+    input.displayRevision ?? input.revision.revision,
+    text
+  );
+  const projectionGallery =
+    input.projectionGallery ?? input.revision.projectionGallery;
+  const projections = projectionGallery?.projections ?? [];
 
   return {
     contractVersion: "0.1.0",
@@ -241,7 +317,7 @@ export function createLedgerManagerDetailPageV010(input: {
     },
     gallery: {
       primaryItemId:
-        input.revision.projectionGallery?.primaryProjectionId
+        projectionGallery?.primaryProjectionId
         ?? projections[0]?.projectionId
         ?? "projection:none",
       maxItems: 9,

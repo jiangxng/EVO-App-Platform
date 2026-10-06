@@ -18,7 +18,7 @@ test("EVO bootstrap stays minimal while the lazy desktop runtime owns Workbench 
   );
   assert.doesNotMatch(appHostShellHtml, /data-eidos-app-host-layout="workbench"/);
 
-  assert.match(appHostShellCss, /--eidos-activity-width:48px/);
+  assert.match(appHostShellCss, /--eidos-activity-width:56px/);
   assert.match(appHostShellCss, /data-eidos-activity-bar/);
   assert.match(appHostShellCss, /data-eidos-side-panel/);
   assert.match(appHostShellCss, /data-eidos-workbench-splitter/);

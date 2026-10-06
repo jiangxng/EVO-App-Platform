@@ -2303,4 +2303,86 @@ form[data-eidos-id] button:hover,
   }
 }
 
+
+/* Responsive agent conversation chrome.
+   Chat controls adapt to the chat pane itself, not only to viewport width. */
+[data-eidos-side-panel] [data-eidos-chat]{
+  container-type:inline-size;
+  container-name:eidos-chat;
+}
+[data-eidos-side-panel] [data-eidos-chat-header] h1{
+  display:none;
+}
+[data-eidos-chat-new-thread],
+[data-eidos-chat-archive-thread]{
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+
+@container eidos-chat (max-width:520px){
+  [data-eidos-chat-header]{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:stretch;
+    gap:var(--eidos-space-sm);
+    min-height:auto;
+    padding:var(--eidos-space-sm) var(--eidos-space-md);
+  }
+  [data-eidos-chat-context]{
+    width:100%;
+    margin:0;
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    gap:var(--eidos-space-sm);
+  }
+  [data-eidos-chat-context]>span{
+    white-space:nowrap;
+  }
+  [data-eidos-chat-context] select{
+    width:100%;
+    min-width:0;
+    max-width:none;
+  }
+  [data-eidos-chat-thread-controls]{
+    width:100%;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:var(--eidos-space-xs);
+  }
+  [data-eidos-chat-thread-selector]{
+    flex:1 1 auto;
+    min-width:0;
+    max-width:none;
+  }
+  [data-eidos-chat-new-thread],
+  [data-eidos-chat-archive-thread]{
+    min-height:var(--eidos-control-compact);
+    padding-inline:var(--eidos-space-sm);
+  }
+}
+
+@container eidos-chat (max-width:360px){
+  [data-eidos-chat-context]>span{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+  [data-eidos-chat-context]{
+    grid-template-columns:minmax(0,1fr);
+  }
+  [data-eidos-chat-new-thread],
+  [data-eidos-chat-archive-thread]{
+    padding-inline:var(--eidos-space-xs);
+    font-size:var(--eidos-font-meta);
+  }
+}
+
 `;
