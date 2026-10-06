@@ -15,6 +15,9 @@ import {
   parseDefinitionProjectionRouteV010
 } from "../contracts/definition-projection.js";
 import {
+  createMemoryCurrent2dEditorSessionStoreV010
+} from "../contracts/current-2d-editor.js";
+import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
 } from "./secret-store.js";
@@ -81,8 +84,8 @@ import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
 import {
-  createDefinitionProjectionAgentToolRegistrationsV010
-} from "../apps/eog-2d-designer/definition-projection-agent-tools.js";
+  createCurrent2dEditorAgentToolRegistrationsV010
+} from "../apps/eog-2d-designer/current-2d-editor-agent-tools.js";
 import {
   createEnterpriseDefinitionProjectionArtifactSourceV010
 } from "../providers/enterprise-context/definition-projection.js";
@@ -595,6 +598,8 @@ import {
 import {
   EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
   EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+  EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010,
+  EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010,
   eogDefinitionProjectionAuthorizationPolicyV010
 } from "../apps/eog-2d-designer/authorization.js";
 import {
