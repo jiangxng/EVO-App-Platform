@@ -166,6 +166,12 @@ test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eid
   assert.match(source, /canvas\.addEventListener\("click", clearSelectionOnCanvasClick\)/);
   assert.match(source, /event\.key === "Escape"/);
   assert.match(source, /event\.key === "Delete" \|\| event\.key === "Backspace"/);
+  assert.match(source, /\["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"\]/);
+  assert.match(source, /const step = event\.shiftKey \? 10 : 1/);
+  assert.match(source, /event\.shiftKey && event\.code === "Digit1"/);
+  assert.match(source, /event\.shiftKey && event\.code === "Digit2"/);
+  assert.match(source, /commandOrControl && event\.code === "Digit0"/);
+  assert.match(source, /fitSelectionToCanvas/);
 });
 
 test("Saving a projection appends a new definition revision without changing business payload", async () => {
