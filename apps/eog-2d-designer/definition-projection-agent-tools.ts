@@ -73,141 +73,6 @@ function currentSelection(
   throw new Error("CURRENT_DEFINITION_PROJECTION_EDITOR_REQUIRED");
 }
 
-function normalize(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .replace(/[\s\p{P}\p{S}]+/gu, "");
-}
-
-function searchableNodeText(node: {
-  label: string;
-  typeLabel?: string;
-  detail?: string;
-  properties?: Array<{ key: string; label: string; value: unknown }>;
-}): string {
-  return normalize([
-    node.label,
-    node.typeLabel ?? "",
-    node.detail ?? "",
-    ...(node.properties ?? []).flatMap(property => [
-      property.key,
-      property.label,
-      String(property.value ?? "")
-    ])
-  ].join(" "));
-}
-
-function resolveNodeByTerm(
-  nodes: Array<{
-    id: string;
-    label: string;
-    typeLabel?: string;
-    detail?: string;
-    properties?: Array<{ key: string; label: string; value: unknown }>;
-  }>,
-  term: string
-) {
-  const query = normalize(term);
-  if (!query) throw new Error("DEFINITION_PROJECTION_FOCUS_TERM_REQUIRED");
-
-  const scored = nodes
-    .map(node => {
-      const label = normalize(node.label);
-      const text = searchableNodeText(node);
-      const score = label === query
-        ? 100
-        : label.includes(query)
-          ? 90
-          : text.includes(query)
-            ? 70
-            : query.includes(label) && label.length >= 2
-              ? 50
-              : 0;
-      return { node, score };
-    })
-    .filter(item => item.score > 0)
-    .sort((a, b) =>
-      b.score - a.score
-      || a.node.label.localeCompare(b.node.label)
-      || a.node.id.localeCompare(b.node.id)
-    );
-
-  if (scored.length === 0) {
-    throw new Error(
-      "DEFINITION_PROJECTION_FOCUS_TERM_NOT_FOUND:" + term
-    );
-  }
-  const best = scored[0]!;
-  const tied = scored.filter(item => item.score === best.score);
-  if (tied.length > 1) {
-    throw new Error(
-      "DEFINITION_PROJECTION_FOCUS_TERM_AMBIGUOUS:"
-      + term
-      + ":"
-      + tied.slice(0, 5).map(item => item.node.label).join("|")
-    );
-  }
-  return best.node;
-}
-
-function directedShortestPath(input: {
-  nodes: Array<{ id: string }>;
-  edges: Array<{ id: string; source: string; target: string }>;
-  startId: string;
-  endId: string;
-}): { nodeIds: string[]; edgeIds: string[] } {
-  if (input.startId === input.endId) {
-    return { nodeIds: [input.startId], edgeIds: [] };
-  }
-
-  const adjacency = new Map<string, Array<{ id: string; target: string }>>();
-  for (const edge of input.edges) {
-    const list = adjacency.get(edge.source) ?? [];
-    list.push({ id: edge.id, target: edge.target });
-    adjacency.set(edge.source, list);
-  }
-  for (const list of adjacency.values()) {
-    list.sort((a, b) =>
-      a.target.localeCompare(b.target) || a.id.localeCompare(b.id)
-    );
-  }
-
-  const queue = [input.startId];
-  const visited = new Set(queue);
-  const previous = new Map<string, { nodeId: string; edgeId: string }>();
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    for (const edge of adjacency.get(current) ?? []) {
-      if (visited.has(edge.target)) continue;
-      visited.add(edge.target);
-      previous.set(edge.target, {
-        nodeId: current,
-        edgeId: edge.id
-      });
-      if (edge.target === input.endId) {
-        const nodeIds = [input.endId];
-        const edgeIds: string[] = [];
-        let cursor = input.endId;
-        while (cursor !== input.startId) {
-          const step = previous.get(cursor);
-          if (!step) {
-            throw new Error("DEFINITION_PROJECTION_FOCUS_PATH_NOT_FOUND");
-          }
-          edgeIds.unshift(step.edgeId);
-          nodeIds.unshift(step.nodeId);
-          cursor = step.nodeId;
-        }
-        return { nodeIds, edgeIds };
-      }
-      queue.push(edge.target);
-    }
-  }
-
-  throw new Error("DEFINITION_PROJECTION_FOCUS_PATH_NOT_FOUND");
-}
-
 export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
   repository: BusinessDefinitionRepositoryV010;
   projectionStore: DefinitionProjectionStoreV010;
@@ -325,23 +190,29 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
     }
   }, {
     descriptor: descriptor({
-      id: "enterprise.definition_projection.current.focus_path",
-      modelName: "enterprise_definition_projection_current_focus_path",
-      title: "Focus current 2D Projection on a path",
-      description: "Directly crop the currently open 2D Definition Projection to the deterministic directed path between two Human business terms found in the current material. Use for requests such as '裁剪出从销售到收款的投影' or 'focus this diagram from order to cash'. This changes only Projection presentation state, never the Business Definition.",
+      id: "enterprise.definition_projection.current.crop",
+      modelName: "enterprise_definition_projection_current_crop",
+      title: "Crop current 2D Projection",
+      description: "Directly update the currently open 2D Definition Projection to keep only the node and relation IDs selected from the current material. Read enterprise.definition_projection.current.get first, reason over the Human request and current material, then pass the exact visible IDs. This changes only Projection presentation state, never the Business Definition. No mouse interaction is required.",
       inputSchema: {
         type: "object",
         properties: {
-          from: {
-            type: "string",
-            description: "Human term identifying the start node, for example 销售 or Sales."
+          visibleNodeIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "Exact node IDs to keep visible in the current Projection."
           },
-          to: {
+          visibleEdgeIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "Exact relation IDs to keep visible. Every kept relation must connect two kept nodes."
+          },
+          rationale: {
             type: "string",
-            description: "Human term identifying the end node, for example 收款 or Cash collection."
+            description: "Short explanation of how the retained material matches the Human request."
           }
         },
-        required: ["from", "to"],
+        required: ["visibleNodeIds", "visibleEdgeIds"],
         additionalProperties: false
       },
       effect: "WRITE",
@@ -350,10 +221,24 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
     }),
     available: currentAvailable,
     execute(args) {
-      const from = typeof args.from === "string" ? args.from.trim() : "";
-      const to = typeof args.to === "string" ? args.to.trim() : "";
-      if (!from || !to) {
-        throw new Error("DEFINITION_PROJECTION_FOCUS_TERM_REQUIRED");
+      const visibleNodeIds = Array.isArray(args.visibleNodeIds)
+        ? args.visibleNodeIds.map(value =>
+            typeof value === "string" ? value.trim() : ""
+          ).filter(Boolean)
+        : [];
+      const visibleEdgeIds = Array.isArray(args.visibleEdgeIds)
+        ? args.visibleEdgeIds.map(value =>
+            typeof value === "string" ? value.trim() : ""
+          ).filter(Boolean)
+        : [];
+      if (visibleNodeIds.length < 1) {
+        throw new Error("DEFINITION_PROJECTION_VISIBLE_NODES_REQUIRED");
+      }
+      if (
+        visibleNodeIds.length !== new Set(visibleNodeIds).size
+        || visibleEdgeIds.length !== new Set(visibleEdgeIds).size
+      ) {
+        throw new Error("DEFINITION_PROJECTION_VISIBLE_ITEMS_DUPLICATE");
       }
 
       const active = input.context.activeContext;
@@ -369,21 +254,12 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
 
       const { selection, latest, artifact, gallery } = readCurrent();
       const diagram = artifact.diagram2d!;
-      const start = resolveNodeByTerm(diagram.nodes, from);
-      const end = resolveNodeByTerm(diagram.nodes, to);
-      const path = directedShortestPath({
-        nodes: diagram.nodes,
-        edges: diagram.edges,
-        startId: start.id,
-        endId: end.id
-      });
-
       const nextGallery = cropDefinitionProjectionToVisibleItemsV010({
         gallery,
         projectionId: selection.projectionId!,
         diagram,
-        visibleNodeIds: path.nodeIds,
-        visibleEdgeIds: path.edgeIds,
+        visibleNodeIds,
+        visibleEdgeIds,
         locale: input.locale
       });
       const recordedAt = now().toISOString();
@@ -409,31 +285,39 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
       input.onProjectionUpdated?.({
         selection: nextSelection,
         resourceId,
-        visibleNodeIds: path.nodeIds,
-        visibleEdgeIds: path.edgeIds
+        visibleNodeIds,
+        visibleEdgeIds
       });
 
-      const byNodeId = new Map(diagram.nodes.map(node => [node.id, node]));
+      const nodeById = new Map(diagram.nodes.map(node => [node.id, node]));
+      const edgeById = new Map(diagram.edges.map(edge => [edge.id, edge]));
       return {
         changed: true,
         projectionId: selection.projectionId,
         definitionId: selection.definitionId,
         definitionRevision: selection.definitionRevision,
-        from: {
-          id: start.id,
-          label: start.label
-        },
-        to: {
-          id: end.id,
-          label: end.label
-        },
-        visibleNodes: path.nodeIds.map(id => ({
+        visibleNodes: visibleNodeIds.map(id => ({
           id,
-          label: byNodeId.get(id)?.label ?? id
+          label: nodeById.get(id)?.label ?? id
         })),
-        visibleEdgeIds: path.edgeIds,
-        hiddenNodeCount: diagram.nodes.length - path.nodeIds.length,
-        hiddenEdgeCount: diagram.edges.length - path.edgeIds.length,
+        visibleRelations: visibleEdgeIds.map(id => {
+          const edge = edgeById.get(id);
+          return {
+            id,
+            ...(edge
+              ? {
+                  source: edge.source,
+                  target: edge.target,
+                  ...(edge.label ? { label: edge.label } : {})
+                }
+              : {})
+          };
+        }),
+        hiddenNodeCount: diagram.nodes.length - visibleNodeIds.length,
+        hiddenEdgeCount: diagram.edges.length - visibleEdgeIds.length,
+        ...(typeof args.rationale === "string" && args.rationale.trim()
+          ? { rationale: args.rationale.trim() }
+          : {}),
         resourceId
       };
     }
