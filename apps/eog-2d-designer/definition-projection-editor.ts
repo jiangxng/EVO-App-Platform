@@ -23,8 +23,12 @@ import {
   TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010,
   type TemplateProjectionGalleryItemV010,
   type TemplateProjectionGalleryV010,
-  type TemplateProjectionPlacementV010
+  type TemplateProjectionPlacementV010,
+  type TemplateProjectionThumbnailV010
 } from "../../contracts/template-projection-gallery.js";
+import type {
+  Template2dPreviewV010
+} from "../../contracts/template-preview.js";
 import type {
   DiagramWorkspacePageV010,
   DiagramWorkspaceSelectionInspectionV010,
@@ -47,6 +51,12 @@ function textFor(locale?: string) {
         back: "返回查看",
         save: "保存投影",
         saveAs: "另存投影",
+        rename: "重命名投影",
+        renamePrompt: "请输入投影名称",
+        renamed: "投影已重命名。",
+        renameRequired: "投影名称不能为空。",
+        renameDuplicate: "已存在同名投影，请使用其他名称。",
+        thumbnailAltSuffix: "投影缩略图",
         restoreAll: "恢复全部",
         restoreAllNotice: "已恢复当前版本中的全部应用、账本和连线。尚未保存，可继续编辑。",
         removeFromProjection: "从投影移除",
@@ -64,6 +74,12 @@ function textFor(locale?: string) {
         back: "Back to view",
         save: "Save projection",
         saveAs: "Save as projection",
+        rename: "Rename projection",
+        renamePrompt: "Projection name",
+        renamed: "Projection renamed.",
+        renameRequired: "Projection name is required.",
+        renameDuplicate: "A projection with this name already exists.",
+        thumbnailAltSuffix: "projection thumbnail",
         restoreAll: "Restore all",
         restoreAllNotice: "All applications, ledgers, and relations from this revision are visible again. Nothing has been saved yet.",
         removeFromProjection: "Remove from projection",
