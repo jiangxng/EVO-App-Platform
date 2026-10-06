@@ -31,6 +31,9 @@ export interface DiagramEditorViewInteractionV010 {
   zoom?: boolean;
   pan?: boolean;
   localNodeDrag?: boolean;
+  localSelectionHide?: boolean;
+  localSelectionHideLabel?: string;
+  localSelectionHideNotice?: string;
 }
 
 export interface DiagramEditorCommandV010 {
@@ -88,6 +91,8 @@ export interface DiagramEditorToolbarActionV010 {
 }
 
 export interface DiagramEditorCapturedViewStateV010 {
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   placements: Array<{
     nodeId: string;
     x: number;
@@ -385,6 +390,18 @@ export function isDiagramEditorPageV010(
         && (
           page.viewInteraction.localNodeDrag === undefined
           || typeof page.viewInteraction.localNodeDrag === "boolean"
+        )
+        && (
+          page.viewInteraction.localSelectionHide === undefined
+          || typeof page.viewInteraction.localSelectionHide === "boolean"
+        )
+        && (
+          page.viewInteraction.localSelectionHideLabel === undefined
+          || nonEmpty(page.viewInteraction.localSelectionHideLabel)
+        )
+        && (
+          page.viewInteraction.localSelectionHideNotice === undefined
+          || nonEmpty(page.viewInteraction.localSelectionHideNotice)
         )
       )
     )
@@ -790,6 +807,8 @@ export function mountDiagramEditorPageV010(
   let camera = createDiagramCameraTransformV010(page.initialCamera ?? {});
   let stageElement: HTMLElement | undefined;
   let suppressNextNodeClick = false;
+  const locallyHiddenNodeIds = new Set<string>();
+  const locallyHiddenEdgeIds = new Set<string>();
   const navigationPointers = new Map<number, { x: number; y: number }>();
   let panLast: { x: number; y: number } | undefined;
   let pinchStartDistance: number | undefined;
@@ -839,13 +858,27 @@ export function mountDiagramEditorPageV010(
     report("Ready.");
   };
 
+  const nodeVisible = (nodeId: string): boolean =>
+    !locallyHiddenNodeIds.has(nodeId);
+
+  const edgeVisible = (edge: DiagramEditorEdgeV010): boolean =>
+    !locallyHiddenEdgeIds.has(edge.id)
+    && nodeVisible(edge.source)
+    && nodeVisible(edge.target);
+
+  const visibleNodes = (): DiagramEditorNodeV010[] =>
+    (state?.nodes ?? []).filter(node => nodeVisible(node.id));
+
+  const visibleEdges = (): DiagramEditorEdgeV010[] =>
+    (state?.edges ?? []).filter(edge => edgeVisible(edge));
+
   const selectionStillExists = (
     candidate: { kind: "node" | "edge"; id: string } | undefined
   ): boolean => {
     if (!state || !candidate) return false;
     return candidate.kind === "node"
-      ? state.nodes.some(item => item.id === candidate.id)
-      : state.edges.some(item => item.id === candidate.id);
+      ? visibleNodes().some(item => item.id === candidate.id)
+      : visibleEdges().some(item => item.id === candidate.id);
   };
 
   const applyCameraTransform = (): void => {
@@ -860,13 +893,14 @@ export function mountDiagramEditorPageV010(
     width: number;
     height: number;
   } => {
-    if (!state || state.nodes.length === 0) {
+    const nodes = visibleNodes();
+    if (!state || nodes.length === 0) {
       return { x: 0, y: 0, width: 1, height: 1 };
     }
-    const minX = Math.min(...state.nodes.map(node => node.x));
-    const minY = Math.min(...state.nodes.map(node => node.y));
-    const maxX = Math.max(...state.nodes.map(node => node.x + node.width));
-    const maxY = Math.max(...state.nodes.map(node => node.y + node.height));
+    const minX = Math.min(...nodes.map(node => node.x));
+    const minY = Math.min(...nodes.map(node => node.y));
+    const maxX = Math.max(...nodes.map(node => node.x + node.width));
+    const maxY = Math.max(...nodes.map(node => node.y + node.height));
     return {
       x: minX,
       y: minY,
@@ -909,7 +943,9 @@ export function mountDiagramEditorPageV010(
       commandOverride,
       captureViewState
         ? {
-            placements: state.nodes.map(node => ({
+            hiddenNodeIds: [...locallyHiddenNodeIds],
+            hiddenEdgeIds: [...locallyHiddenEdgeIds],
+            placements: visibleNodes().map(node => ({
               nodeId: node.id,
               x: node.x,
               y: node.y
@@ -931,6 +967,10 @@ export function mountDiagramEditorPageV010(
       return;
     }
     state = stateFromResult(result.result);
+    if (captureViewState) {
+      locallyHiddenNodeIds.clear();
+      locallyHiddenEdgeIds.clear();
+    }
     selected = selectionStillExists(previousSelection)
       ? previousSelection
       : undefined;
@@ -1069,7 +1109,40 @@ export function mountDiagramEditorPageV010(
       };
       selectionActions.appendChild(button);
     }
+
+    if (selected && page.viewInteraction?.localSelectionHide === true) {
+      const hideButton = document.createElement("button");
+      hideButton.type = "button";
+      hideButton.setAttribute("data-eidos-diagram-local-hide", "");
+      hideButton.textContent =
+        page.viewInteraction.localSelectionHideLabel ?? "Remove from view";
+      hideButton.onclick = () => hideSelectedFromView();
+      selectionActions.appendChild(hideButton);
+    }
   };
+
+  function hideSelectedFromView(): void {
+    if (
+      !state
+      || !selected
+      || page.viewInteraction?.localSelectionHide !== true
+    ) {
+      return;
+    }
+    if (selected.kind === "node") {
+      locallyHiddenNodeIds.add(selected.id);
+    } else {
+      locallyHiddenEdgeIds.add(selected.id);
+    }
+    selected = undefined;
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    report(
+      page.viewInteraction.localSelectionHideNotice
+      ?? "Removed from this view. Save the view to persist the change."
+    );
+  }
 
   const renderSelectionProperties = (
     properties: DiagramInspectorPropertyV010[] | undefined
@@ -1301,9 +1374,12 @@ export function mountDiagramEditorPageV010(
     defs.appendChild(markerEnd);
     svg.appendChild(defs);
 
-    for (const edge of state.edges) {
-      const source = state.nodes.find(node => node.id === edge.source);
-      const target = state.nodes.find(node => node.id === edge.target);
+    const renderedNodes = visibleNodes();
+    const renderedEdges = visibleEdges();
+
+    for (const edge of renderedEdges) {
+      const source = renderedNodes.find(node => node.id === edge.source);
+      const target = renderedNodes.find(node => node.id === edge.target);
       if (!source || !target) continue;
       const sourceCenter = nodeCenter(source);
       const targetCenter = nodeCenter(target);
@@ -1366,7 +1442,7 @@ export function mountDiagramEditorPageV010(
 
     stage.appendChild(svg);
 
-    for (const node of state.nodes) {
+    for (const node of renderedNodes) {
       const element = document.createElement("button");
       element.type = "button";
       element.setAttribute("data-eidos-diagram-node", node.id);
@@ -1709,6 +1785,29 @@ export function mountDiagramEditorPageV010(
     canvas.addEventListener("wheel", wheel, { passive: false });
     listeners.push(() => canvas.removeEventListener("wheel", wheel));
   }
+
+  const keydownHandler = (event: KeyboardEvent): void => {
+    if (
+      page.viewInteraction?.localSelectionHide !== true
+      || !selected
+      || (event.key !== "Delete" && event.key !== "Backspace")
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+      || (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
+    event.preventDefault();
+    hideSelectedFromView();
+  };
+  root.addEventListener("keydown", keydownHandler);
+  listeners.push(() => root.removeEventListener("keydown", keydownHandler));
 
   void load(
     page.readPresets?.find(preset =>

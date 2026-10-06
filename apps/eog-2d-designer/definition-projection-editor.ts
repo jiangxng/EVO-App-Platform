@@ -43,18 +43,22 @@ function textFor(locale?: string) {
         title: "编辑投影",
         back: "返回查看",
         save: "保存投影",
+        removeFromProjection: "从投影移除",
+        removedFromProjection: "已从当前投影移除。保存投影后生效；应用、账本及业务定义不会被删除。",
         empty: "当前投影没有可编辑的图形内容。",
-        ready: "拖动节点、调整缩放和视角；完成后点击“保存投影”。这些操作只修改投影，不修改账本规则。",
-        saved: "投影已保存。业务定义内容未改变。",
+        ready: "可拖动节点、调整缩放和视角，也可移除不需要的节点或连线来简化关系图；完成后点击“保存投影”。这些操作只修改当前投影，不修改应用、账本或业务定义。",
+        saved: "投影已保存。应用、账本及业务定义内容未改变。",
         manageRoleRequired: "需要企业所有者或管理员权限。"
       }
     : {
         title: "Edit projection",
         back: "Back to view",
         save: "Save projection",
+        removeFromProjection: "Remove from projection",
+        removedFromProjection: "Removed from this projection. Save the projection to persist it; applications, ledgers, and business definitions are unchanged.",
         empty: "This projection has no editable diagram content.",
-        ready: "Drag nodes and adjust zoom/pan, then choose Save projection. These changes affect only the projection, not ledger rules.",
-        saved: "Projection saved. Business-definition content was not changed.",
+        ready: "Drag nodes, adjust zoom/pan, or remove unnecessary nodes and relations to simplify the map; then choose Save projection. These changes affect only the current projection, not applications, ledgers, or business definitions.",
+        saved: "Projection saved. Applications, ledgers, and business-definition content were not changed.",
         manageRoleRequired: "Enterprise owner or administrator permission is required."
       };
 }
@@ -315,13 +319,32 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
     viewInteraction: {
       zoom: true,
       pan: true,
-      localNodeDrag: true
+      localNodeDrag: true,
+      localSelectionHide: true,
+      localSelectionHideLabel: text.removeFromProjection,
+      localSelectionHideNotice: text.removedFromProjection
     },
     emptyMessage: text.empty
   };
 }
 
+function parsedHiddenIds(
+  value: JsonValue | undefined,
+  code: string
+): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error(code);
+  const ids = value.map(item => {
+    if (typeof item !== "string" || !item.trim()) throw new Error(code);
+    return item.trim();
+  });
+  if (new Set(ids).size !== ids.length) throw new Error(code);
+  return ids;
+}
+
 function parsedViewState(value: JsonValue | undefined): {
+  hiddenNodeIds: string[];
+  hiddenEdgeIds: string[];
   placements: TemplateProjectionPlacementV010[];
   camera: {
     scale: number;
@@ -333,6 +356,14 @@ function parsedViewState(value: JsonValue | undefined): {
     throw new Error("DEFINITION_PROJECTION_VIEW_STATE_REQUIRED");
   }
   const raw = value as Record<string, JsonValue>;
+  const hiddenNodeIds = parsedHiddenIds(
+    raw.hiddenNodeIds,
+    "DEFINITION_PROJECTION_HIDDEN_NODE_IDS_INVALID"
+  );
+  const hiddenEdgeIds = parsedHiddenIds(
+    raw.hiddenEdgeIds,
+    "DEFINITION_PROJECTION_HIDDEN_EDGE_IDS_INVALID"
+  );
   if (!Array.isArray(raw.placements)) {
     throw new Error("DEFINITION_PROJECTION_PLACEMENTS_INVALID");
   }
@@ -382,6 +413,8 @@ function parsedViewState(value: JsonValue | undefined): {
     throw new Error("DEFINITION_PROJECTION_CAMERA_INVALID");
   }
   return {
+    hiddenNodeIds,
+    hiddenEdgeIds,
     placements,
     camera: {
       scale: camera.scale,
@@ -402,19 +435,38 @@ function mergeProjection(
   );
   if (index < 0) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
   const current = next.projections[index] as TemplateProjectionGalleryItemV010;
-  const placementMap = new Map(
-    (current.view.placements ?? []).map(item => [
-      item.nodeId,
-      { ...item }
+  const hiddenNodeIds = [
+    ...new Set([
+      ...(current.view.hiddenNodeIds ?? []),
+      ...captured.hiddenNodeIds
     ])
+  ];
+  const hiddenEdgeIds = [
+    ...new Set([
+      ...(current.view.hiddenEdgeIds ?? []),
+      ...captured.hiddenEdgeIds
+    ])
+  ];
+  const hiddenNodes = new Set(hiddenNodeIds);
+  const placementMap = new Map(
+    (current.view.placements ?? [])
+      .filter(item => !hiddenNodes.has(item.nodeId))
+      .map(item => [
+        item.nodeId,
+        { ...item }
+      ])
   );
   for (const placement of captured.placements) {
-    placementMap.set(placement.nodeId, { ...placement });
+    if (!hiddenNodes.has(placement.nodeId)) {
+      placementMap.set(placement.nodeId, { ...placement });
+    }
   }
   next.projections[index] = {
     ...current,
     view: {
       ...current.view,
+      ...(hiddenNodeIds.length ? { hiddenNodeIds } : {}),
+      ...(hiddenEdgeIds.length ? { hiddenEdgeIds } : {}),
       placements: [...placementMap.values()],
       camera: { ...captured.camera }
     }

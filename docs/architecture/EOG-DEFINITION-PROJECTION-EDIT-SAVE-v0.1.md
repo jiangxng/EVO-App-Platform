@@ -12,6 +12,7 @@ Definition Projection Viewer
         ↓ Edit projection
 Definition Projection Editor
         ↓ drag nodes / pan / zoom
+        ↓ remove unnecessary nodes / relations from this projection
         ↓ explicit Save projection
 Enterprise Context Business Definition Repository
         ↓ append new revision
@@ -29,6 +30,8 @@ Saving a projection may change:
 - node placements;
 - camera scale;
 - camera translation;
+- nodes hidden from this projection;
+- relations hidden from this projection;
 - existing projection view state.
 
 It does not change:
@@ -62,7 +65,11 @@ Editor behavior:
 
 - node drag is local until explicit save;
 - pan/zoom are local until explicit save;
-- Save projection captures all visible node placements and current 2D camera;
+- a selected node or relation may be removed from the current projection;
+- removing a node immediately removes all of its connected relations from the rendered projection;
+- this removal is projection-only: the application, ledger and semantic relation remain in the Business Definition;
+- Delete/Backspace may be used as a direct-manipulation shortcut when a diagram item is selected;
+- Save projection captures visible node placements, hidden projection items and the current 2D camera;
 - selection properties remain semantically read-only;
 - saving is a governed Host action;
 - owner/admin enterprise-management authority and Authorization Provider approval are required.
@@ -76,7 +83,8 @@ Eidos 2D Core owns generic mechanics:
 - Viewer → Editor toolbar navigation;
 - local node drag;
 - pan/zoom;
-- captured view-state payload;
+- local projection pruning for selected nodes/relations;
+- captured view-state payload, including hidden projection item IDs;
 - explicit graph action;
 - ActionHost invocation.
 
@@ -104,7 +112,7 @@ After a successful save the session is advanced to the newly appended revision, 
 Potential later additions, without changing this persistence boundary:
 
 - projection title/description edit;
-- hide/show node or edge;
+- restore/show previously hidden node or edge;
 - reset layout;
 - duplicate as a new projection;
 - choose/set primary projection;
