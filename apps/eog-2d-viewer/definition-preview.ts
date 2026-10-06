@@ -117,12 +117,22 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
   definitionRevision: number;
   projectionId?: string;
   title: string;
+  locale?: string;
+  editRoute?: string;
+  camera?: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
 }): DiagramWorkspacePageV010 {
+  const zh = input.locale?.toLowerCase().startsWith("zh") === true;
   return {
     contractVersion: "0.1.0",
     kind: "diagram-workspace",
     id: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID,
-    title: `2D Viewer · ${input.title}`,
+    title: zh
+      ? `关系图 · ${input.title}`
+      : `Relationship map · ${input.title}`,
     resourceId:
       `enterprise-definition:${input.enterpriseId}:${input.definitionId}@${input.definitionRevision}`
       + (input.projectionId ? `#${input.projectionId}` : ""),
@@ -140,12 +150,25 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
       definitionRevision: input.definitionRevision,
       ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
+    ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
+    ...(input.editRoute
+      ? {
+          toolbarActions: [{
+            id: "edit-projection",
+            label: zh ? "编辑投影" : "Edit projection",
+            route: input.editRoute,
+            primary: true
+          }]
+        }
+      : {}),
     viewInteraction: {
       zoom: true,
       pan: true,
       localNodeDrag: true
     },
-    emptyMessage: "Select a node or relation to inspect definition properties."
+    emptyMessage: zh
+      ? "选择节点或关系查看属性。"
+      : "Select a node or relation to inspect definition properties."
   };
 }
 
@@ -169,11 +192,14 @@ export function createEnterpriseDefinition2dPreviewReadActionV010(input: {
               `enterprise-definition:${value.enterpriseId}:${value.definitionId}@${value.definitionRevision}`
               + (value.projectionId ? `#${value.projectionId}` : ""),
             revision: value.definitionRevision,
-            lifecycleState: "ENTERPRISE_DEFINITION_PREVIEW",
+            lifecycleState: context.locale?.toLowerCase().startsWith("zh")
+              ? "查看"
+              : "View",
             title: value.title,
             ...(value.diagram2d ? { diagram2d: value.diagram2d } : {}),
-            notice:
-              `Read-only Enterprise Context projection: ${value.title}.`
+            notice: context.locale?.toLowerCase().startsWith("zh")
+              ? `正在查看“${value.title}”。调整布局不会保存；需要保存时请进入编辑投影。`
+              : `Viewing “${value.title}”. Layout changes are local; use Edit projection to save.`
           })
         );
       } catch (error) {

@@ -1,4 +1,5 @@
 import type { Template2dPreviewV010 } from "./template-preview.js";
+import type { TemplateProjectionCameraV010 } from "./template-projection-gallery.js";
 
 export const DEFINITION_2D_PREVIEW_ROUTE_V010 = "/definition-preview/2d" as const;
 
@@ -11,6 +12,7 @@ export interface DefinitionProjectionArtifactV010 {
   title: string;
   description?: string;
   definitionKind: string;
+  camera?: TemplateProjectionCameraV010;
   diagram2d?: Template2dPreviewV010;
 }
 

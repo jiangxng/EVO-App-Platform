@@ -404,3 +404,36 @@ surface.
 
 Authority:
 `docs/architecture/ENTERPRISE-OBSERVATORY-PEER-PACKAGE-v0.1.md`.
+
+
+## Definition projection editing loop
+
+Ledger Manager and other Business Definition owners may launch EOG 2D as a contextual projection tool.
+
+Canonical flow:
+
+```text
+Business Definition / Ledger Manager
+  → View relationship map
+  → EOG 2D Viewer
+  → Edit projection
+  → EOG 2D Projection Editor
+  → local node drag / pan / zoom
+  → Save projection
+  → Enterprise Context appends one Business Definition revision
+  → continue on saved revision / return to Viewer
+```
+
+Ownership boundaries:
+
+- Viewer remains semantic-read-only and may offer an explicit Editor handoff only when the Designer feature is active and the Human has Enterprise management authority.
+- Projection Editor edits presentation state, not ledger/business semantics.
+- Local dragging is ephemeral and does not call persistence per pointer move.
+- Save captures current node placements and camera once.
+- If the latest Business Definition is DRAFT, save uses `reviseDraft`.
+- If the latest Business Definition is PUBLISHED, save uses `beginDraft` and leaves the effective Published revision untouched.
+- A stale editor fails with a revision conflict rather than silently overwriting newer work.
+- The Definition Projection session advances to the new revision so Viewer/Editor continuation resolves the saved result.
+- Template Store remains copy-source authority. Editing a copied Enterprise Definition does not modify the shared template; publishing an improved enterprise definition back to Template Store is a separate future workflow.
+
+This realizes the Eidos Human Directness rule: graph layout is manipulated directly and cheaply; one explicit Save establishes the governed persistence boundary.
