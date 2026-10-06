@@ -343,6 +343,14 @@ test("Projection editor read/save survives without transient projection session 
   );
   assert.equal(saveResult.ok, true);
   assert.equal(saveResult.result.revision, revision.revision + 1);
+  assert.equal(
+    saveResult.result.navigateTo,
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision + 1,
+      projectionId
+    })
+  );
 });
 
 test("Projection save refuses to branch silently from a stale historical revision", async () => {
@@ -550,6 +558,14 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   assert.equal(saveResult.ok, true);
   assert.equal(saveResult.result.revision, revision.revision + 1);
   assert.match(saveResult.result.notice, /投影已保存/);
+  assert.equal(
+    saveResult.result.navigateTo,
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision + 1,
+      projectionId
+    })
+  );
 
   const nextSelection = sessions.get("session-a");
   assert.equal(nextSelection.definitionRevision, revision.revision + 1);
