@@ -887,6 +887,8 @@ const templatePreviewSessions =
   createMemoryTemplatePreviewSessionStoreV010();
 const enterpriseDefinitionProjectionSessions =
   createMemoryDefinitionProjectionSessionStoreV010();
+const current2dEditorSessions =
+  createMemoryCurrent2dEditorSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
