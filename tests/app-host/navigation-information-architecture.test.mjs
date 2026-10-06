@@ -73,3 +73,21 @@ test("successful business actions may navigate the Workbench to a declared inter
     /const navigateTo =[\s\S]*?typeof payload\?\.navigateTo === "string"[\s\S]*?navigateTo\.startsWith\("\/"\)[\s\S]*?workbench\?\.navigateWorkspace\(navigateTo\)/
   );
 });
+
+
+test("vendored Eidos Workbench owns action-result navigation and empty-hash recovery", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../vendor/eidos/src/workbench/shell.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(source, /function actionResultNavigateToV010/);
+  assert.match(
+    source,
+    /const navigateTo = actionResultNavigateToV010\(result\);[\s\S]*?await navigateWorkspace\(navigateTo\)/
+  );
+  assert.match(source, /window\.history\.replaceState/);
+  assert.match(source, /void navigateWorkspace\(fallback\)/);
+});
