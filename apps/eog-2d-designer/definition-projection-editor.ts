@@ -559,10 +559,15 @@ function mergeProjection(
       placementMap.set(placement.nodeId, { ...placement });
     }
   }
+  const {
+    hiddenNodeIds: _previousHiddenNodeIds,
+    hiddenEdgeIds: _previousHiddenEdgeIds,
+    ...currentView
+  } = current.view;
   next.projections[index] = {
     ...current,
     view: {
-      ...current.view,
+      ...currentView,
       ...(hiddenNodeIds.length ? { hiddenNodeIds } : {}),
       ...(hiddenEdgeIds.length ? { hiddenEdgeIds } : {}),
       placements: [...placementMap.values()],
