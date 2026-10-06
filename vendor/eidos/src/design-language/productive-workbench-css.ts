@@ -447,6 +447,12 @@ form[data-eidos-id] button,
 [data-eidos-catalog-items],[data-eidos-extension-items]{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--eidos-space-lg);margin-top:var(--eidos-space-lg);
 }
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-layout="list"] [data-eidos-catalog-items]{
+  grid-template-columns:minmax(0,1fr);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-layout="list"] [data-eidos-catalog-item]{
+  padding:var(--eidos-space-xl);
+}
 [data-eidos-catalog-item],[data-eidos-extension-item]{
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
   padding:var(--eidos-space-lg);display:flex;flex-direction:column;gap:var(--eidos-space-md);background:var(--eidos-bg);
