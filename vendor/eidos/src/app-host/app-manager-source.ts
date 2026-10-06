@@ -109,9 +109,6 @@ export function createAppManagerExperienceSource(
     async loadPage(page, options): Promise<unknown> {
       const url = withLocale("/v1/experience-pages");
       url.searchParams.set("source", page.source);
-      if (options?.routePath?.trim()) {
-        url.searchParams.set("route", options.routePath.trim());
-      }
       return readCachedJson(
         url,
         `Page load '${page.source}'`,
