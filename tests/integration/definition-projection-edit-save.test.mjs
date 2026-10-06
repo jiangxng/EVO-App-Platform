@@ -8,7 +8,9 @@ import {
   createEnterpriseDefinitionProjectionArtifactSourceV010
 } from "../../dist/providers/enterprise-context/definition-projection.js";
 import {
-  createMemoryDefinitionProjectionSessionStoreV010
+  createMemoryDefinitionProjectionSessionStoreV010,
+  definition2dEditorRouteV010,
+  definition2dPreviewRouteV010
 } from "../../dist/contracts/definition-projection.js";
 import {
   ledgerRuntimeBaselineBundleV010
@@ -286,6 +288,71 @@ test("Saving a projection appends a new definition revision without changing bus
   assert.equal(sessions.get("session-a").definitionRevision, 1);
 });
 
+test("Projection editor read/save survives without transient projection session state", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:04:00.000Z")
+  });
+  const read = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  assert.ok(read);
+  assert.ok(save);
+
+  const identity = {
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  };
+  const readResult = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity),
+    context()
+  );
+  assert.equal(readResult.ok, true);
+
+  const saveResult = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        ...identity,
+        expectedRevision: revision.revision,
+        operation: { type: "SAVE_PROJECTION_VIEW" },
+        viewState: {
+          placements: readResult.result.nodes.map(node => ({
+            nodeId: node.id,
+            x: node.x,
+            y: node.y
+          })),
+          camera: { scale: 1, translateX: 0, translateY: 0 }
+        }
+      }
+    ),
+    context()
+  );
+  assert.equal(saveResult.ok, true);
+  assert.equal(saveResult.result.revision, revision.revision + 1);
+  assert.equal(
+    saveResult.result.navigateTo,
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision + 1,
+      projectionId
+    })
+  );
+});
+
 test("Projection save refuses to branch silently from a stale historical revision", async () => {
   const { repository, projectionId } = seeded();
   repository.reviseDraft({
@@ -383,7 +450,14 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     ctx
   );
   assert.equal(previewResult.ok, true);
-  assert.equal(previewResult.result.navigateTo, "/definition-preview/2d");
+  assert.equal(
+    previewResult.result.navigateTo,
+    definition2dPreviewRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId
+    })
+  );
   assert.equal(sessions.get("session-a").projectionId, projectionId);
 
   const viewerPage = createEnterpriseDefinition2dPreviewPageV010({
@@ -398,7 +472,11 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   assert.equal(viewerPage.toolbarActions[0].label, "编辑投影");
   assert.equal(
     viewerPage.toolbarActions[0].route,
-    "/definition-preview/2d/edit"
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId
+    })
   );
 
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
@@ -421,6 +499,14 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   });
   assert.equal(editorPage.viewInteraction.localNodeDrag, true);
   assert.equal(editorPage.toolbarActions[0].label, "返回查看");
+  assert.equal(
+    editorPage.toolbarActions[0].route,
+    definition2dPreviewRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId
+    })
+  );
 
   const editorHandlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
@@ -472,6 +558,14 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   assert.equal(saveResult.ok, true);
   assert.equal(saveResult.result.revision, revision.revision + 1);
   assert.match(saveResult.result.notice, /投影已保存/);
+  assert.equal(
+    saveResult.result.navigateTo,
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision + 1,
+      projectionId
+    })
+  );
 
   const nextSelection = sessions.get("session-a");
   assert.equal(nextSelection.definitionRevision, revision.revision + 1);

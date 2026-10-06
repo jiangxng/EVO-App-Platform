@@ -7,7 +7,12 @@ import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
-import { createMemoryDefinitionProjectionSessionStoreV010 } from "../contracts/definition-projection.js";
+import {
+  createMemoryDefinitionProjectionSessionStoreV010,
+  DEFINITION_2D_EDITOR_ROUTE_V010,
+  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  parseDefinitionProjectionRouteV010
+} from "../contracts/definition-projection.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -5585,14 +5590,45 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
         }
         const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseDefinitionProjectionRouteV010(
+          routeValue || undefined,
+          DEFINITION_2D_EDITOR_ROUTE_V010
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "DEFINITION_PROJECTION_ROUTE_INVALID"
+          });
+        }
         const sessionId = session.principal.sessionId?.trim();
         const subjectId = session.principal.subjectId.trim();
-        const selection =
+        const sessionSelection =
           (sessionId
             ? enterpriseDefinitionProjectionSessions.get(sessionId)
             : undefined)
           ?? enterpriseDefinitionProjectionSessions.get(subjectId);
-        if (!selection?.projectionId) {
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision,
+              projectionId: routeSelection.projectionId
+            }
+          : sessionSelection;
+        if (
+          !selection?.projectionId
+          || selection.enterpriseId !== active.enterpriseId
+        ) {
           return json(response, 409, {
             code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
             message: "Open a saved Projection before editing it."
@@ -5639,14 +5675,42 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
         }
         const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseDefinitionProjectionRouteV010(
+          routeValue || undefined,
+          DEFINITION_2D_PREVIEW_ROUTE_V010
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "DEFINITION_PROJECTION_ROUTE_INVALID"
+          });
+        }
         const sessionId = session.principal.sessionId?.trim();
         const subjectId = session.principal.subjectId.trim();
-        const selection =
+        const sessionSelection =
           (sessionId
             ? enterpriseDefinitionProjectionSessions.get(sessionId)
             : undefined)
           ?? enterpriseDefinitionProjectionSessions.get(subjectId);
-        if (!selection) {
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision,
+              projectionId: routeSelection.projectionId
+            }
+          : sessionSelection;
+        if (!selection || selection.enterpriseId !== active.enterpriseId) {
           return json(response, 409, {
             code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
             message: "Choose a Projection from Enterprise Software first."
