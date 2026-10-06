@@ -5,6 +5,9 @@ import {
   createMemoryBusinessDefinitionRepositoryV010
 } from "../../dist/providers/enterprise-context/business-definitions.js";
 import {
+  createMemoryDefinitionProjectionStoreV010
+} from "../../dist/providers/enterprise-context/definition-projection-store.js";
+import {
   createEnterpriseDefinitionProjectionArtifactSourceV010
 } from "../../dist/providers/enterprise-context/definition-projection.js";
 import {
@@ -178,7 +181,12 @@ test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eid
 
 test("Saving a projection appends a new definition revision without changing business payload", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   sessions.set("session-a", {
     contractVersion: "0.1.0",
@@ -191,6 +199,7 @@ test("Saving a projection appends a new definition revision without changing bus
 
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -352,10 +361,15 @@ test("Saving a projection appends a new definition revision without changing bus
 
 test("Projection editor read/save survives without transient projection session state", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -418,10 +432,15 @@ test("Projection editor read/save survives without transient projection session 
 
 test("Restore all can reveal previously hidden projection items and persist that complete view", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const handlers0 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -471,6 +490,7 @@ test("Restore all can reveal previously hidden projection items and persist that
 
   const handlers1 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -546,10 +566,15 @@ test("Restore all can reveal previously hidden projection items and persist that
 
 test("Save as projection creates a new projection and leaves the source projection unchanged", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -638,10 +663,15 @@ test("Save as projection creates a new projection and leaves the source projecti
 
 test("A saved alternate projection can become the default without changing business content", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -748,10 +778,15 @@ test("A saved alternate projection can become the default without changing busin
 
 test("Projection may be renamed without changing business payload or view", async () => {
   const { repository, revision, projectionId } = seeded();
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
@@ -829,7 +864,11 @@ test("Projection save refuses to branch silently from a stale historical revisio
   });
   const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
-    source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository),
+    projectionStore,
+    source: createEnterpriseDefinitionProjectionArtifactSourceV010(
+      repository,
+      projectionStore
+    ),
     sessions,
     canManageEnterpriseContext: () => true,
     authorizeProjectionSave: async () => {}
@@ -942,7 +981,11 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     })
   );
 
-  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
+    repository,
+    projectionStore
+  );
   const before = source.get({
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
@@ -987,6 +1030,7 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
 
   const editorHandlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
+    projectionStore,
     source,
     sessions,
     canManageEnterpriseContext: () => true,
