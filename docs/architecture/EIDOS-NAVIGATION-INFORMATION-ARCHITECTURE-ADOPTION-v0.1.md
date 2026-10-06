@@ -76,3 +76,15 @@ The product opens a neutral Workspace route. It must not use Plugin Store, Provi
 When richer Eidos navigation placement contracts become available, migrate these product rules into declared placement semantics rather than rebuilding plugin-private menu systems.
 
 Authority upstream: Eidos `EIDOS-ENTERPRISE-NAVIGATION-INFORMATION-ARCHITECTURE-v0.1.md` and `EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md`.
+
+## Help placement
+
+The global Help Activity is secondary navigation, but its /help destination is a full Help Center and opens in the Main Workspace.
+
+Do not confuse launcher prominence with content-surface size:
+
+- global Help Center → Main Workspace;
+- contextual task/field/error help → Side Panel, popover, sheet or inline disclosure;
+- a secondary Activity does not imply a Side Panel Experience.
+
+The global Help Center may contain search, categories, document cards and complete articles. It MUST NOT be squeezed into the narrow Workbench Side Panel.
