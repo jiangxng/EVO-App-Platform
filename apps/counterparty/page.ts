@@ -111,10 +111,10 @@ export function createCounterpartyDirectoryPageV010(input: {
       ...input.counterparties.map(counterparty => ({
         id: counterparty.counterpartyId,
         title: counterparty.displayName,
-        summary: \`\${counterparty.code} · \${subjectTypeLabel(
+        summary: `${counterparty.code} · ${subjectTypeLabel(
           counterparty.subjectType,
           input.locale
-        )}\`,
+        )}`,
         status: {
           label:
             counterparty.status === "ACTIVE"
