@@ -55,6 +55,9 @@ function cloneSurface(
     ...(surface.entryRoute ? { entryRoute: surface.entryRoute } : {}),
     ...(surface.fallbackSurfaceId
       ? { fallbackSurfaceId: surface.fallbackSurfaceId }
+      : {}),
+    ...(surface.structuralVersion
+      ? { structuralVersion: surface.structuralVersion }
       : {})
   };
 }
@@ -88,6 +91,11 @@ function cloneSnapshot(snapshot: AppHostSnapshotV010): AppHostSnapshotV010 {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
+}
+
+function routeLookupPath(path: string): string {
+  const queryIndex = path.indexOf("?");
+  return queryIndex >= 0 ? path.slice(0, queryIndex) : path;
 }
 
 export function validateEffectiveExperienceManifest(
@@ -249,6 +257,16 @@ export function validateEffectiveExperienceManifest(
         "fallbackSurfaceId must be a non-empty string"
       ));
     }
+    if (
+      surface.structuralVersion !== undefined
+      && !isNonEmptyString(surface.structuralVersion)
+    ) {
+      diagnostics.push(diagnostic(
+        "EIDOS_APP_HOST_SURFACE_STRUCTURAL_VERSION",
+        `${path}.structuralVersion`,
+        "structuralVersion must be a non-empty string when provided"
+      ));
+    }
   });
 
   const pageIds = new Set<string>();
@@ -398,28 +416,9 @@ export function validateEffectiveExperienceManifest(
     }
   });
 
-  if (isNonEmptyString(value.defaultRoute) && !routePaths.has(value.defaultRoute)) {
-    diagnostics.push(diagnostic(
-      "EIDOS_APP_HOST_DEFAULT_ROUTE",
-      `${root}.defaultRoute`,
-      "defaultRoute must reference a route in the same manifest"
-    ));
-  } else if (value.defaultRoute !== undefined && !isNonEmptyString(value.defaultRoute)) {
-    diagnostics.push(diagnostic(
-      "EIDOS_APP_HOST_DEFAULT_ROUTE",
-      `${root}.defaultRoute`,
-      "defaultRoute must be a non-empty string"
-    ));
-  }
-
-
   const routeByPath = new Map<string, Record<string, unknown>>();
   for (const route of routes) {
-    if (
-      isPlainObject(route)
-      && isNonEmptyString(route.path)
-      && route.path.startsWith("/")
-    ) {
+    if (isPlainObject(route) && isNonEmptyString(route.path)) {
       routeByPath.set(route.path, route);
     }
   }
@@ -427,7 +426,6 @@ export function validateEffectiveExperienceManifest(
   const fallbackBySurface = new Map<string, string>();
   for (const surface of surfaces) {
     if (!isPlainObject(surface)) continue;
-
     if (
       isNonEmptyString(surface.entryRoute)
       && !routePaths.has(surface.entryRoute)
@@ -438,11 +436,7 @@ export function validateEffectiveExperienceManifest(
         `Surface entryRoute '${surface.entryRoute}' does not reference a route in the same manifest`
       ));
     }
-
-    if (
-      isNonEmptyString(surface.entryRoute)
-      && isNonEmptyString(surface.id)
-    ) {
+    if (isNonEmptyString(surface.entryRoute) && isNonEmptyString(surface.id)) {
       const entryRoute = routeByPath.get(surface.entryRoute);
       if (
         entryRoute
@@ -456,15 +450,14 @@ export function validateEffectiveExperienceManifest(
         ));
       }
     }
-
     if (
       isNonEmptyString(surface.fallbackSurfaceId)
       && !surfaceIds.has(surface.fallbackSurfaceId)
     ) {
       diagnostics.push(diagnostic(
-        "EIDOS_APP_HOST_SURFACE_FALLBACK",
+        "EIDOS_APP_HOST_SURFACE_FALLBACK_MISSING",
         root,
-        `Surface fallback '${surface.fallbackSurfaceId}' is not declared in the same manifest`
+        `Fallback surface '${surface.fallbackSurfaceId}' is not declared in the same manifest`
       ));
     } else if (
       isNonEmptyString(surface.id)
@@ -490,6 +483,21 @@ export function validateEffectiveExperienceManifest(
       current = fallbackBySurface.get(current);
     }
   }
+
+  if (isNonEmptyString(value.defaultRoute) && !routePaths.has(value.defaultRoute)) {
+    diagnostics.push(diagnostic(
+      "EIDOS_APP_HOST_DEFAULT_ROUTE",
+      `${root}.defaultRoute`,
+      "defaultRoute must reference a route in the same manifest"
+    ));
+  } else if (value.defaultRoute !== undefined && !isNonEmptyString(value.defaultRoute)) {
+    diagnostics.push(diagnostic(
+      "EIDOS_APP_HOST_DEFAULT_ROUTE",
+      `${root}.defaultRoute`,
+      "defaultRoute must be a non-empty string"
+    ));
+  }
+
 
   for (const item of navigation) {
     if (isPlainObject(item) && isNonEmptyString(item.parentId) && !navigationIds.has(item.parentId)) {
@@ -651,7 +659,8 @@ export function createAppHost(source: ExperienceSource): AppHost {
   const getSnapshot = (): AppHostSnapshotV010 => cloneSnapshot(snapshot);
 
   const resolveRoute = (path: string): AppHostResolvedRouteV010 | undefined => {
-    const route = snapshot.routes.find(item => item.path === path);
+    const lookupPath = routeLookupPath(path);
+    const route = snapshot.routes.find(item => item.path === lookupPath);
     if (!route) return undefined;
     const page = snapshot.pages.find(item => item.id === route.pageId);
     if (!page) return undefined;
@@ -678,7 +687,10 @@ export function createAppHost(source: ExperienceSource): AppHost {
     if (!resolved) return undefined;
     const definition = await source.loadPage(
       clonePage(resolved.page),
-      options
+      {
+        ...(options ?? {}),
+        routePath: path
+      }
     );
     if (options?.signal?.aborted) {
       throw new DOMException("Route load aborted", "AbortError");
