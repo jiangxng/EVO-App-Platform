@@ -8,6 +8,7 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
 import {
+  definition2dEditorRouteV010,
   definition2dPreviewRouteV010,
   type DefinitionProjectionArtifactSourceV010,
   type DefinitionProjectionSessionStoreV010,
@@ -739,11 +740,18 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           projectionId: selection.projectionId
         });
         if (!artifact) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
-        return success(request, editorState({
-          artifact,
-          locale: input.locale?.(context),
-          saved: true
-        }));
+        return success(request, {
+          ...editorState({
+            artifact,
+            locale: input.locale?.(context),
+            saved: true
+          }),
+          navigateTo: definition2dEditorRouteV010({
+            definitionId: saved.definitionId,
+            definitionRevision: saved.revision,
+            projectionId: selection.projectionId
+          })
+        });
       }
     )
   ];
