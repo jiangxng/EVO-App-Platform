@@ -155,9 +155,10 @@ if (!document || document.kind !== "help-document") {
 if (
   !desktopRuntime.includes('id: "help"')
   || !desktopRuntime.includes('icon: "help"')
-  || !desktopRuntime.includes('kind: "side-route"')
+  || !desktopRuntime.includes('kind: "workspace-route"')
+  || !desktopRuntime.includes('route: "/help"')
 ) {
-  problems.push("Workbench Help must remain an Eidos secondary side-route Activity with semantic help icon.");
+  problems.push("Global Help Center must remain a secondary Activity launcher that opens the full Help Center in the Main Workspace.");
 }
 
 if (
