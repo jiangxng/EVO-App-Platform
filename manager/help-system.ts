@@ -413,6 +413,21 @@ function helpRootLabel(locale: string): string {
   return helpUiLocale(locale) === "zh-CN" ? "帮助" : "Help";
 }
 
+function helpIndexUi(locale: string) {
+  const zh = helpUiLocale(locale) === "zh-CN";
+  return {
+    title: zh ? "帮助" : "Help",
+    description: zh
+      ? "查找产品使用方法、概念说明和常见问题。"
+      : "Find product guidance, concepts and common troubleshooting.",
+    placeholder: zh ? "搜索帮助…" : "Search help…",
+    ariaLabel: zh ? "搜索帮助" : "Search Help",
+    noResults: zh ? "没有匹配的帮助内容。" : "No matching Help documents.",
+    empty: zh ? "暂无帮助内容。" : "No Help documents are available.",
+    open: zh ? "打开" : "Open"
+  };
+}
+
 function helpKindLabel(kind: HelpDocumentKindV010, locale: string): string {
   const zh: Record<HelpDocumentKindV010, string> = {
     start: "快速开始",
@@ -580,6 +595,7 @@ export function createHelpIndexPageV010(
   corpus: CompiledHelpSourceV010[],
   locale = "en"
 ): CatalogBrowserV010 {
+  const ui = helpIndexUi(locale);
   const documents = resolveHelpDocumentsV010(corpus, locale)
     .slice()
     .sort((a, b) => a.metadata.kind.localeCompare(b.metadata.kind) || a.metadata.title.localeCompare(b.metadata.title));
@@ -587,33 +603,23 @@ export function createHelpIndexPageV010(
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo.help",
-    title: "Help",
-    description: "Search authoritative product Help. Results are version-aware product knowledge owned by the platform and installed packages.",
+    title: ui.title,
+    description: ui.description,
     search: {
-      placeholder: "Search help…",
-      ariaLabel: "Search Help",
-      noResultsMessage: "No matching Help documents."
+      placeholder: ui.placeholder,
+      ariaLabel: ui.ariaLabel,
+      noResultsMessage: ui.noResults
     },
-    emptyMessage: "No Help documents are available.",
+    emptyMessage: ui.empty,
     items: documents.map(item => ({
       id: item.metadata.id,
       title: item.metadata.title,
       summary: item.metadata.summary,
       category: helpKindLabel(item.metadata.kind, locale),
       badges: item.metadata.audiences.map(audience => helpAudienceLabel(audience, locale)),
-      metadata: {
-        owner: item.metadata.ownerPackageId,
-        locale: item.metadata.locale,
-        ...(item.metadata.contexts?.errorCodes?.length
-          ? { errorCodes: item.metadata.contexts.errorCodes.join(", ") }
-          : {}),
-        ...(item.metadata.contexts?.capabilities?.length
-          ? { capabilities: item.metadata.contexts.capabilities.join(", ") }
-          : {})
-      },
       primaryAction: {
         id: "open",
-        label: "Open",
+        label: ui.open,
         type: "navigate",
         route: helpDocumentRouteV010(item.metadata.id)
       }
