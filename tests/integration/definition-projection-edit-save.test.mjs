@@ -234,6 +234,10 @@ test("Saving a projection appends a new definition revision without changing bus
     readResult.result.actions.find(action => action.id === "projection.save-as").label,
     "另存投影"
   );
+  assert.equal(
+    readResult.result.actions.some(action => action.id === "projection.set-primary"),
+    false
+  );
 
   const nodes = readResult.result.nodes;
   const hiddenNodeId = nodes[0].id;
@@ -630,6 +634,116 @@ test("Save as projection creates a new projection and leaves the source projecti
   assert.notDeepEqual(copy.thumbnail, original.thumbnail);
   assert.deepEqual(copy.view.hiddenNodeIds, [state.result.nodes[0].id]);
   assert.equal(sessions.get("session-a").projectionId, "projection:copy-1");
+});
+
+test("A saved alternate projection can become the default without changing business content", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:08:30.000Z"),
+    projectionIdFactory: () => "projection:default-candidate"
+  });
+  const read = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  const state = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId
+    }),
+    context()
+  );
+
+  const copied = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        enterpriseId: revision.enterpriseId,
+        definitionId: revision.definitionId,
+        definitionRevision: revision.revision,
+        projectionId,
+        expectedRevision: revision.revision,
+        operation: { type: "SAVE_PROJECTION_AS_NEW" },
+        viewState: {
+          hiddenNodeIds: [],
+          hiddenEdgeIds: [],
+          viewport: { width: 1024, height: 576 },
+          placements: state.result.nodes.map(node => ({
+            nodeId: node.id,
+            x: node.x,
+            y: node.y
+          })),
+          camera: { scale: 1, translateX: 0, translateY: 0 }
+        }
+      }
+    ),
+    context()
+  );
+  assert.equal(copied.ok, true);
+  assert.equal(
+    copied.result.actions.some(action => action.id === "projection.set-primary"),
+    true
+  );
+
+  const beforeDefaultChange = structuredClone(repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  }));
+  const result = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        enterpriseId: revision.enterpriseId,
+        definitionId: revision.definitionId,
+        definitionRevision: 1,
+        projectionId: "projection:default-candidate",
+        expectedRevision: 1,
+        operation: { type: "SET_PRIMARY_PROJECTION" }
+      }
+    ),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.match(result.result.notice, /默认投影/);
+  assert.equal(
+    result.result.actions.some(action => action.id === "projection.set-primary"),
+    false
+  );
+  const latest = repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  });
+  assert.equal(latest.revision, 2);
+  assert.equal(
+    latest.projectionGallery.primaryProjectionId,
+    "projection:default-candidate"
+  );
+  assert.deepEqual(latest.payload, beforeDefaultChange.payload);
+  assert.deepEqual(
+    latest.projectionGallery.projections,
+    beforeDefaultChange.projectionGallery.projections
+  );
+  assert.equal(
+    source.get({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: latest.revision
+    }).projectionId,
+    "projection:default-candidate"
+  );
 });
 
 test("Projection may be renamed without changing business payload or view", async () => {
