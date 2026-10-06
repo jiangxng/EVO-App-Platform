@@ -3,59 +3,63 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-5-2026-10-06-02`  
-**Snapshot time:** `2026-10-06T23:20:00+08:00`  
+**Snapshot:** `COUNTERPARTY-ENTERPRISE-RESOURCE-V0-1-2026-10-06-01`  
+**Snapshot time:** `2026-10-07T00:15:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Library v0.5
+Counterparty / Enterprise Resource Library v0.1
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**fixed-auto-layout-human-browser-v0-5: HUMAN_VALIDATED_PRODUCTION_PASS**
+**counterparty-enterprise-context-v0-1: MERGED_CI_PRODUCTION_PASS**
 
-Human production validation passed for the fixed Auto layout and scalable Projection action area. The deterministic layered layout, compact frequent-action surface and More overflow are accepted as the current product behavior.
+The first Counterparty / 往来对象 slice is live. PR #415 introduced the provider-neutral Enterprise Resource Library and the first-party evo-counterparty plugin. Counterparty identity is stored inside the active Enterprise Context under evo.counterparty, with directory, create, detail and archive flows. Legacy Asloop Dealer semantics were converged without copying the legacy mega-record: Customer/Supplier/etc. remain explicit future roles/relationships rather than duplicate identities.
 
-Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
+Authority: `docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "humanValidation": "PASS",
-  "validatedAt": "2026-10-06T23:20:00+08:00",
-  "eidosPr": 126,
-  "appPlatformPr": 412,
-  "architecturePr": 413,
-  "productionCommit": "da4e8a3358e562bd2681d15fce5b88ff9478a323",
-  "railwayDeploymentId": "a94a0ba7-abec-4139-ae28-141abd717466",
+  "appPlatformPr": 415,
+  "mergeCommit": "f45237972ffb667cc4b4faae4f05615628454d5c",
+  "platformCI": "PASS",
+  "crossProjectCI": "PASS",
+  "railwayDeploymentId": "4fcd9619-6510-4dbd-b4ac-4bbe80577140",
   "railwayDeploymentStatus": "SUCCESS",
-  "fixedAutoLayout": true,
-  "scalableToolbarOverflow": true,
-  "projectionVersioning": "NONE",
-  "businessDefinitionRevisionMutation": false
+  "enterpriseResourceLibrary": true,
+  "resourceCapability": "enterprise.resource.repository",
+  "namespace": "evo.counterparty",
+  "collection": "counterparties",
+  "resourceType": "counterparty.subject",
+  "enterpriseIsolationTest": "PASS",
+  "archiveNotDelete": "PASS",
+  "customerSupplierAsRoles": true,
+  "arApSettlementOwnership": false
 }
 ```
 
 ## Current open live gate
 
-**projection-unsaved-change-guard-v0-5-1: READY**
+**counterparty-edit-and-relationship-roles-v0-2: READY**
 
-Add explicit unsaved-change protection for Projection presentation edits so drag, hide/restore and Auto layout cannot be discarded accidentally during navigation.
+Extend Counterparty from create/read/archive into governed current-master-data editing and explicit relationship roles, while preserving one stable Counterparty identity across Customer/Supplier/etc. roles.
 
 Acceptance:
 
-- Any local Projection presentation edit marks the editor dirty, including node drag, projection hide/restore and Auto layout.
-- Navigating away from a dirty Projection Editor requires an explicit keep-editing or discard decision.
-- A successful Save projection clears the dirty state without creating a Projection version or Business Definition version.
-- A clean editor never shows an unnecessary discard warning.
-- The guard works with the existing desktop deep navigation and remains usable on mobile.
-- Viewer and Designer remain separate application/plugin ownership boundaries; this safety behavior does not merge them.
-- The guard protects presentation state only and must not introduce business-semantic mutation.
+- An existing Counterparty can be edited in place as current master data without creating a second Counterparty identity.
+- Counterparty editing remains scoped to the selected Enterprise Context through the Enterprise Resource Library and preserves the stable counterpartyId.
+- Customer, Supplier and other business meanings are represented as explicit relationship-role resources or capabilities, not as duplicate Counterparty master records and not as a comma-separated dealerLabelName-style field.
+- One Counterparty may carry multiple simultaneous roles, such as Customer and Supplier.
+- Role-specific settings such as sales credit, supplier settlement terms or procurement defaults do not become fields on Counterparty core.
+- Historical BusinessData keeps reference identity plus committed snapshots and is not rewritten when current Counterparty master data changes.
+- Counterparty continues not to own AR/AP balances, open items, settlement, matching or cash collection/payment workflows.
+- The detail/edit experience remains usable on desktop and mobile.
 
 ## Current production preview
 
@@ -64,8 +68,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `da4e8a3358e562bd2681d15fce5b88ff9478a323`
-- Deployment: `a94a0ba7-abec-4139-ae28-141abd717466`
+- Commit: `f45237972ffb667cc4b4faae4f05615628454d5c`
+- Deployment: `4fcd9619-6510-4dbd-b4ac-4bbe80577140`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -96,6 +100,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #415 — MERGED_CI_PRODUCTION_PASS: Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows.
 - PR #412 — MERGED_CI_PRODUCTION_PASS: Add fixed deterministic layered Auto layout to Definition Projection Editor and replace the growing action row with frequent actions plus More overflow.
 - PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; current-editor tools work while chat context remains Personal.
 - PR #409 — MERGED_CI_PRODUCTION_PASS: Unify /operating-graph and Definition Projection Editor as the Host-owned current 2D editor target for Personal Agent.
@@ -450,6 +455,12 @@ Not proved:
 - do not make Auto layout persist immediately; it is a local presentation edit until Save projection
 - do not let Auto layout create Projection versions or Business Definition versions
 - do not reopen fixed Auto layout or scalable Projection action-area validation after the Human production pass unless a new regression is observed
+- do not rename the Counterparty product/domain back to 往来; the canonical product name is 往来对象 / Counterparty
+- do not model Customer, Supplier, Employee or other roles as duplicate Counterparty master identities
+- do not reintroduce legacy dealerLabelName-style comma-separated relationship labels as a Counterparty core field
+- do not store Counterparty domain data in a private plugin file/database outside the Enterprise Context Resource Library
+- do not move AR/AP balances, open-item accounting, settlement, matching, collection or payment workflows into the Counterparty plugin
+- do not mechanically copy the legacy Asloop Dealer mega-record; preserve semantics through explicit identity, role and profile resources
 
 ## Fresh ChatGPT / LLM startup
 
@@ -645,6 +656,13 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Projection Editor action IA as frequent Auto layout + Save projection with secondary management actions under More
 - state the prior Personal Agent current-editor crop scenario as Human-confirmed working and the next gate as Human browser validation of fixed Auto layout/action ergonomics
 - state fixed Auto layout and scalable Projection action-area v0.5 as Human-validated in production
+- state App Platform PR #415 as the merged/production first Counterparty slice and the first concrete Enterprise Resource Library consumer
+- state the canonical product/domain name as 往来对象 / Counterparty, with evo-counterparty as the first-party package
+- state Counterparty data as Enterprise Context-owned resources under namespace evo.counterparty rather than a private plugin database
+- state Customer/Supplier/etc. as roles/relationships over one stable Counterparty identity, not separate master objects
+- state legacy Asloop Dealer as design lineage that validates shared identity + role semantics but must not be copied mechanically
+- state Counterparty as identity/master-data scope only and explicitly outside AR/AP/open-item/settlement ownership
+- state the next live gate as Counterparty current-master-data editing plus explicit relationship roles
 
 No previous ChatGPT transcript is required.
 
