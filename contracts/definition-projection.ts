@@ -88,6 +88,8 @@ export interface DefinitionProjectionArtifactV010 {
   description?: string;
   definitionKind: string;
   diagram2d?: Template2dPreviewV010;
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   camera?: {
     scale: number;
     translateX: number;
@@ -101,6 +103,7 @@ export interface DefinitionProjectionArtifactSourceV010 {
     definitionId: string;
     definitionRevision?: number;
     projectionId?: string;
+    includeHidden?: boolean;
   }): DefinitionProjectionArtifactV010 | undefined;
 }
 
