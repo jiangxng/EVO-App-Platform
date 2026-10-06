@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { resolveEidosIconName } from "../dist/vendor/eidos/src/design-language/icons/icon-system.js";
 import { eidosProductiveWorkbenchCss } from "../dist/vendor/eidos/src/design-language/productive-workbench-css.js";
 import { eidosMobileDesignLanguageV010 } from "../dist/vendor/eidos/src/design-language/mobile.js";
+import { eidosDesignPolicyV010 } from "../dist/vendor/eidos/src/design-language/policy.js";
+import { eidosIconSystemMetadataV010 } from "../dist/vendor/eidos/src/design-language/icons/icon-system.js";
 import { appHostShellCss } from "../dist/manager/app-host-shell.js";
 import {
   createHelpIndexPageV010,
@@ -16,10 +18,12 @@ const root = process.cwd();
 const shellPath = join(root, "manager", "app-host-shell.ts");
 const clientPath = join(root, "manager", "app-host-client.ts");
 const desktopRuntimePath = join(root, "manager", "desktop-workbench-runtime.ts");
+const workbenchShellPath = join(root, "vendor", "eidos", "src", "workbench", "shell.ts");
 const helpPath = join(root, "manager", "help-system.ts");
 const shell = readFileSync(shellPath, "utf8");
 const client = readFileSync(clientPath, "utf8");
 const desktopRuntime = readFileSync(desktopRuntimePath, "utf8");
+const workbenchShell = readFileSync(workbenchShellPath, "utf8");
 const help = readFileSync(helpPath, "utf8");
 
 if (!shell.includes('eidosProductiveWorkbenchCss')) {
@@ -92,7 +96,7 @@ if (
   problems.push("Vendored Eidos must expose the normative Mobile Design Language v0.1 plugin contract.");
 }
 for (const mobileMarker of [
-  "--eidos-mobile-nav-height:56px",
+  "--eidos-mobile-nav-height:64px",
   "Eidos Mobile Design Language v0.1 reference realization",
   '[data-eidos-status-bar]{display:none}',
   "[data-eidos-account-menu]"
@@ -100,6 +104,37 @@ for (const mobileMarker of [
   if (!eidosProductiveWorkbenchCss.includes(mobileMarker)) {
     problems.push("Vendored Eidos mobile realization is incomplete: " + mobileMarker);
   }
+}
+
+if (
+  eidosDesignPolicyV010.visualRevision !== "0.2.0"
+  || eidosDesignPolicyV010.visualLanguage?.name !== "Eidos Business Office"
+  || eidosDesignPolicyV010.visualLanguage?.developerConsoleAsDefault !== false
+) {
+  problems.push("Vendored Eidos must use the Business Office visual language v0.2.");
+}
+for (const visualMarker of [
+  "Eidos Business Office Visual Language v0.2",
+  "--eidos-primary:#2B6CB0",
+  "--eidos-bg-selected:#EAF2FB",
+  'data-eidos-workspace-mode="app"',
+  "data-eidos-activity-label"
+]) {
+  if (!eidosProductiveWorkbenchCss.includes(visualMarker)) {
+    problems.push("Vendored Eidos business-office realization is incomplete: " + visualMarker);
+  }
+}
+if (
+  !workbenchShell.includes('data-eidos-workspace-mode')
+  || !workbenchShell.includes('data-eidos-activity-label')
+) {
+  problems.push("Vendored Eidos Workbench must suppress technical app chrome and expose labeled mobile navigation.");
+}
+if (
+  eidosIconSystemMetadataV010.standardUiColorMode !== "monochrome"
+  || eidosIconSystemMetadataV010.selectedStateTone !== "brand"
+) {
+  problems.push("Vendored Eidos standard icon language must remain monochrome with brand-selected state.");
 }
 
 const corpus = loadHelpCorpusV010();
@@ -140,6 +175,7 @@ console.log(JSON.stringify({
   ok: true,
   authority: "Eidos Productive Design Language v0.1",
   mobileAuthority: "Eidos Mobile Design Language v0.1",
+  visualAuthority: "Eidos Business Office Visual Language v0.2",
   shellCssOwner: "Eidos",
   workbenchIcons: iconNames,
   helpNavigator: index.kind,
@@ -149,6 +185,8 @@ console.log(JSON.stringify({
   managerCssFiles: 0,
   pluginCssFiles: 0,
   privateMobileShells: false,
+  developerConsoleDefault: false,
+  systemIconMode: "monochrome",
   systemTextScale: true,
   userTextScalePresets: ["system", "small", "standard", "large"]
 }, null, 2));
