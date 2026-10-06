@@ -205,6 +205,10 @@ import type { LlmInferenceProvider } from "../contracts/llm.js";
 import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
+import {
+  ENTERPRISE_RESOURCE_CAPABILITY_V010,
+  type EnterpriseResourceRepositoryV010
+} from "../contracts/enterprise-resource.js";
 import type {
   EnterpriseTemplateTransferProviderV010
 } from "../contracts/template-transfer.js";
@@ -305,6 +309,7 @@ import {
   HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
   HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
   HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
   hostEnterpriseContextProviderPackage
 } from "../providers/enterprise-context/package.js";
 import {
@@ -316,6 +321,10 @@ import {
   createFileBusinessDefinitionRepositoryV010,
   createMemoryBusinessDefinitionRepositoryV010
 } from "../providers/enterprise-context/business-definitions.js";
+import {
+  createFileEnterpriseResourceRepositoryV010,
+  createMemoryEnterpriseResourceRepositoryV010
+} from "../providers/enterprise-context/resources.js";
 import {
   createFileDefinitionProjectionStoreV010,
   createMemoryDefinitionProjectionStoreV010
@@ -738,6 +747,7 @@ import {
 } from "./secret-governance.js";
 import {
   companyNotesPackage,
+  counterpartyPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -765,6 +775,19 @@ import {
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   ENTERPRISE_CONTEXT_SELECT_COMMAND
 } from "../apps/enterprise-context-governance/constants.js";
+import {
+  COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_CREATE_PAGE_SOURCE,
+  COUNTERPARTY_DETAIL_PAGE_SOURCE,
+  COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
+  COUNTERPARTY_FEATURE_ID,
+  COUNTERPARTY_PACKAGE_ID,
+  parseCounterpartyDetailRouteV010
+} from "../apps/counterparty/constants.js";
+import {
+  createCounterpartyRepositoryV010
+} from "../apps/counterparty/repository.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -824,6 +847,7 @@ import {
 
 const catalog = createPackageCatalog([
   companyNotesPackage,
+  counterpartyPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -859,6 +883,19 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const enterpriseResourceStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-resources.json")
+    : undefined);
+const enterpriseResourceRepository =
+  enterpriseResourceStateFile
+    ? createFileEnterpriseResourceRepositoryV010(
+        enterpriseResourceStateFile
+      )
+    : createMemoryEnterpriseResourceRepositoryV010();
+const counterpartyRepository =
+  createCounterpartyRepositoryV010(enterpriseResourceRepository);
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -1503,6 +1540,18 @@ providerRuntimeRegistry.setHealth(
     checkedAt: new Date().toISOString()
   }
 );
+providerRuntimeRegistry.replace<EnterpriseResourceRepositoryV010>(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  enterpriseResourceRepository
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Resource Library is active.",
+    checkedAt: new Date().toISOString()
+  }
+);
 const enterpriseTemplateTransferProvider =
   createEnterpriseTemplateTransferProviderV010(
     enterpriseBusinessDefinitionRepository
@@ -2083,6 +2132,21 @@ if (
     console.log("Activated Host Enterprise Context Provider from Host-owned configuration.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Provider.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === COUNTERPARTY_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(COUNTERPARTY_PACKAGE_ID);
+    console.log("Activated EVO Counterparty plugin.");
+  } catch (error) {
+    console.error("Failed to activate EVO Counterparty plugin.", error);
   }
 }
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
@@ -4032,6 +4096,42 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      COUNTERPARTY_CREATE_COMMAND,
+      COUNTERPARTY_ARCHIVE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/counterparty/actions.js");
+          const handlers = module.createCounterpartyActionHandlersV010({
+            repository: counterpartyRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "cp-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
       LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
       LEDGER_MANAGER_PUBLISH_COMMAND
@@ -5573,6 +5673,72 @@ const server = createServer(async (request, response) => {
             currentRole: relationship?.kind,
             isDefault:
               defaultEnterpriseContext?.contextId === active.contextId,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (
+        source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE
+        || source === COUNTERPARTY_CREATE_PAGE_SOURCE
+        || source === COUNTERPARTY_DETAIL_PAGE_SOURCE
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "COUNTERPARTY_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const module = await import("../apps/counterparty/page.js");
+        if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyDirectoryPageV010({
+              counterparties:
+                counterpartyRepository.list(active.contextId),
+              locale: requestedLocale(url)
+            })
+          );
+        }
+        if (source === COUNTERPARTY_CREATE_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyCreatePageV010(
+              requestedLocale(url)
+            )
+          );
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const counterpartyId =
+          parseCounterpartyDetailRouteV010(routeValue || undefined);
+        if (!counterpartyId) {
+          return json(response, 400, {
+            code: "COUNTERPARTY_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const counterparty =
+          counterpartyRepository.get(active.contextId, counterpartyId);
+        if (!counterparty) {
+          return json(response, 404, {
+            code: "COUNTERPARTY_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          module.createCounterpartyDetailPageV010({
+            counterparty,
             locale: requestedLocale(url)
           })
         );

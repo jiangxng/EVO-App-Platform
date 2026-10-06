@@ -1,0 +1,242 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import {
+  createMemoryEnterpriseResourceRepositoryV010
+} from "../../dist/providers/enterprise-context/resources.js";
+import {
+  createCounterpartyRepositoryV010
+} from "../../dist/apps/counterparty/repository.js";
+import {
+  createCounterpartyActionHandlersV010
+} from "../../dist/apps/counterparty/actions.js";
+import {
+  createCounterpartyDirectoryPageV010,
+  createCounterpartyCreatePageV010
+} from "../../dist/apps/counterparty/page.js";
+import {
+  COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_ARCHIVE_COMMAND
+} from "../../dist/apps/counterparty/constants.js";
+import {
+  counterpartyPackage
+} from "../../dist/apps/counterparty/package.js";
+
+function context(contextId = "enterprise-context:a", enterpriseId = "ent-a") {
+  return {
+    contractVersion: "0.1.0",
+    principal: {
+      contractVersion: "0.1.0",
+      subjectId: "owner-a",
+      actorType: "HUMAN",
+      identityProviderId: "test.identity",
+      sessionId: "session-a"
+    },
+    scope: {
+      contractVersion: "0.1.0",
+      enterpriseId
+    },
+    context: {
+      contractVersion: "0.1.0",
+      personalContext: {
+        contractVersion: "0.1.0",
+        kind: "PERSONAL",
+        contextId: "personal:owner-a",
+        ownerSubjectId: "owner-a"
+      },
+      activeContext: {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId,
+        enterpriseId
+      }
+    },
+    correlationId: "cp-test"
+  };
+}
+
+function action(commandCode, values) {
+  return {
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: commandCode,
+      inputVersion: "0.1.0"
+    },
+    values,
+    sourceInteractionId: "counterparty-test",
+    actionId: commandCode,
+    requiresConfirmation: false
+  };
+}
+
+test("Counterparty package requires Enterprise Resource Library and exposes Chinese navigation", () => {
+  const feature = counterpartyPackage.features[0];
+  assert.ok(feature.requiresCapabilities.includes("enterprise.resource.repository"));
+  const zh = feature.contributions.find(item =>
+    item.kind === "eidos.localization-bundle"
+    && item.bundle.locale === "zh-CN"
+  );
+  assert.equal(
+    zh.bundle.messages["navigation.evo-counterparty.nav.label"],
+    "往来对象"
+  );
+});
+
+test("Counterparty create persists into the active Enterprise Context only", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createCounterpartyRepositoryV010(resources);
+  let id = 0;
+  const handlers = createCounterpartyActionHandlersV010({
+    repository,
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "cp-" + (++id),
+    now: () => new Date("2026-10-06T10:00:00.000Z")
+  });
+  const create = handlers.find(
+    item => item.commandCode === COUNTERPARTY_CREATE_COMMAND
+  );
+
+  const result = await create.execute(
+    action(COUNTERPARTY_CREATE_COMMAND, {
+      code: "C001",
+      displayName: "ABC有限公司",
+      subjectType: "ORGANIZATION",
+      legalName: "ABC有限公司",
+      taxIdentifier: "TAX-001",
+      countryOrRegion: "中国"
+    }),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(repository.list("enterprise-context:a").length, 1);
+  assert.equal(repository.list("enterprise-context:b").length, 0);
+
+  const saved = repository.list("enterprise-context:a")[0];
+  assert.equal(saved.counterpartyId, "cp-1");
+  assert.equal(saved.code, "C001");
+  assert.equal(saved.displayName, "ABC有限公司");
+  assert.equal(saved.subjectType, "ORGANIZATION");
+
+  const raw = resources.list({
+    contextId: "enterprise-context:a",
+    namespace: "evo.counterparty"
+  })[0];
+  assert.equal(raw.collectionId, "counterparties");
+  assert.equal(raw.resourceType, "counterparty.subject");
+  assert.equal(raw.schemaRef, "evo.counterparty/0.1.0");
+  assert.equal(raw.ownerPackageId, "evo-counterparty");
+});
+
+test("Counterparty code is unique inside one Enterprise Context but may repeat in another", () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createCounterpartyRepositoryV010(resources);
+  const base = {
+    contractVersion: "0.1.0",
+    counterpartyId: "cp-a",
+    code: "C001",
+    displayName: "Alpha",
+    subjectType: "ORGANIZATION",
+    status: "ACTIVE"
+  };
+  repository.save({
+    contextId: "enterprise-context:a",
+    subject: base,
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-06T10:00:00.000Z"
+  });
+
+  assert.throws(() => repository.save({
+    contextId: "enterprise-context:a",
+    subject: {
+      ...base,
+      counterpartyId: "cp-a-2",
+      displayName: "Another Alpha"
+    },
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-06T10:01:00.000Z"
+  }), /COUNTERPARTY_CODE_DUPLICATE/);
+
+  assert.doesNotThrow(() => repository.save({
+    contextId: "enterprise-context:b",
+    subject: {
+      ...base,
+      counterpartyId: "cp-b",
+      displayName: "Alpha in B"
+    },
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-06T10:02:00.000Z"
+  }));
+});
+
+test("Counterparty archive retains Enterprise Resource evidence but removes it from active directory", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createCounterpartyRepositoryV010(resources);
+  repository.save({
+    contextId: "enterprise-context:a",
+    subject: {
+      contractVersion: "0.1.0",
+      counterpartyId: "cp-1",
+      code: "C001",
+      displayName: "Alpha",
+      subjectType: "ORGANIZATION",
+      status: "ACTIVE"
+    },
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-06T10:00:00.000Z"
+  });
+
+  const handlers = createCounterpartyActionHandlersV010({
+    repository,
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "unused",
+    now: () => new Date("2026-10-06T11:00:00.000Z")
+  });
+  const archive = handlers.find(
+    item => item.commandCode === COUNTERPARTY_ARCHIVE_COMMAND
+  );
+  const result = await archive.execute(
+    action(COUNTERPARTY_ARCHIVE_COMMAND, {
+      counterpartyId: "cp-1"
+    }),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(repository.list("enterprise-context:a").length, 0);
+  assert.equal(
+    resources.list({
+      contextId: "enterprise-context:a",
+      namespace: "evo.counterparty",
+      lifecycleState: "ARCHIVED"
+    }).length,
+    1
+  );
+});
+
+test("Counterparty pages establish list-first management UX and a valid create form", () => {
+  const directory = createCounterpartyDirectoryPageV010({
+    counterparties: [{
+      contractVersion: "0.1.0",
+      counterpartyId: "cp-1",
+      code: "C001",
+      displayName: "ABC有限公司",
+      subjectType: "ORGANIZATION",
+      status: "ACTIVE"
+    }],
+    locale: "zh-CN"
+  });
+  assert.equal(directory.layout, "list");
+  assert.equal(directory.title, "往来对象");
+  assert.equal(directory.items[0].title, "ABC有限公司");
+  assert.equal(directory.items.at(-1).id, "counterparty:create");
+
+  const form = createCounterpartyCreatePageV010("zh-CN");
+  assert.equal(form.kind, "form");
+  assert.equal(form.title, "新建往来对象");
+  assert.equal(
+    form.fields.find(field => field.key === "subjectType").control,
+    "select"
+  );
+});
