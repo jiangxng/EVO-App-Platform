@@ -30,6 +30,25 @@ Eidos owns reusable 2D/3D interaction cores.
 
 SOP remains a separate deferred capability.
 
+## 导航与调用边界
+
+EOG Viewer / Designer / Observatory 是可安装、可激活、可路由、可被 Agent
+发现的专业能力，但不是普通办公用户的一级应用导航。
+
+因此当前约束是：
+
+- Package / Feature 生命周期保留；
+- Capability provider 保留；
+- Experience Page / Route / Surface 保留；
+- Agent Tools 与公共 Action 保留；
+- 不贡献持久 Workbench `navigation`；
+- 由 Ledger Manager、规则详情、模板预览、分析/诊断流程或显式 deep link
+  在有业务上下文时调用。
+
+**安装或激活一个 Feature 不等于必须在主导航显示它。**
+Navigation 是独立的 Experience discoverability 决策，不是 Capability
+存在性的证明。未来若某个 EOG 能力重新成为普通用户的高频独立任务，应先
+重新评估产品导航层级，而不是因为 Package 已安装就自动暴露。
 
 ## 需求澄清入口
 
