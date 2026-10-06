@@ -1121,7 +1121,7 @@ export function mountDiagramEditorPageV010(
     }
   };
 
-  const hideSelectedFromView = (): void => {
+  function hideSelectedFromView(): void {
     if (
       !state
       || !selected
@@ -1142,7 +1142,7 @@ export function mountDiagramEditorPageV010(
       page.viewInteraction.localSelectionHideNotice
       ?? "Removed from this view. Save the view to persist the change."
     );
-  };
+  }
 
   const renderSelectionProperties = (
     properties: DiagramInspectorPropertyV010[] | undefined
