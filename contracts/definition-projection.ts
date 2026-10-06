@@ -1,6 +1,7 @@
 import type { Template2dPreviewV010 } from "./template-preview.js";
 
 export const DEFINITION_2D_PREVIEW_ROUTE_V010 = "/definition-preview/2d" as const;
+export const DEFINITION_2D_EDITOR_ROUTE_V010 = "/definition-preview/2d/edit" as const;
 
 export interface DefinitionProjectionArtifactV010 {
   contractVersion: "0.1.0";
@@ -12,6 +13,11 @@ export interface DefinitionProjectionArtifactV010 {
   description?: string;
   definitionKind: string;
   diagram2d?: Template2dPreviewV010;
+  camera?: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
 }
 
 export interface DefinitionProjectionArtifactSourceV010 {
