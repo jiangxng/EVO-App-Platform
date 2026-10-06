@@ -119,6 +119,11 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
   title: string;
   locale?: string;
   editRoute?: string;
+  camera?: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
 }): DiagramWorkspacePageV010 {
   const zh = input.locale?.toLowerCase().startsWith("zh") === true;
   return {
@@ -145,6 +150,7 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
       definitionRevision: input.definitionRevision,
       ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
+    ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     ...(input.editRoute
       ? {
           toolbarActions: [{
