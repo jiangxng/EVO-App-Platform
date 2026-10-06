@@ -31,6 +31,105 @@ export interface AppHostChatState {
   messages: Array<ChatMessageV010 | ChatMessageV020>;
 }
 
+export const APP_HOST_ACTION_SELECTOR =
+  "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action],[data-eidos-task-action]";
+
+export function bindDelegatedAppHostActionsV010(
+  container: Pick<HTMLElement, "addEventListener" | "removeEventListener" | "contains">,
+  onAction: (button: HTMLButtonElement) => Promise<void> | void
+): () => void {
+  const handler = (event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest(APP_HOST_ACTION_SELECTOR) as HTMLButtonElement | null;
+    if (!button || !container.contains(button)) return;
+    void onAction(button);
+  };
+  container.addEventListener("click", handler);
+  return () => container.removeEventListener("click", handler);
+}
+
+export interface ChatConversationHistoryEntryV010 {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export function createChatConversationHistoryV010(
+  messages: readonly Array<ChatMessageV010 | ChatMessageV020 | {
+    id?: string;
+    role?: string;
+    text?: string;
+    parts?: unknown[];
+  }>,
+  options?: {
+    maxMessages?: number;
+    maxTotalCharacters?: number;
+    maxCharactersPerMessage?: number;
+  }
+): ChatConversationHistoryEntryV010[] {
+  const maxMessages = Math.max(1, options?.maxMessages ?? 12);
+  const maxTotalCharacters = Math.max(
+    1,
+    options?.maxTotalCharacters ?? 12_000
+  );
+  const maxCharactersPerMessage = Math.max(
+    1,
+    options?.maxCharactersPerMessage ?? 4_000
+  );
+
+  const normalized: ChatConversationHistoryEntryV010[] = [];
+  for (const raw of messages) {
+    if (raw.role !== "user" && raw.role !== "assistant") continue;
+    let content = "";
+    if (typeof raw.text === "string") {
+      content = raw.text.trim();
+    } else if (Array.isArray(raw.parts)) {
+      const blocks: string[] = [];
+      for (const part of raw.parts) {
+        if (part === null || typeof part !== "object" || Array.isArray(part)) {
+          continue;
+        }
+        const item = part as Record<string, unknown>;
+        if (item.type === "text" && typeof item.text === "string") {
+          const text = item.text.trim();
+          if (text) blocks.push(text);
+          continue;
+        }
+        if (item.type === "proposal") {
+          const proposal = [
+            typeof item.title === "string" ? item.title.trim() : "",
+            typeof item.summary === "string" ? item.summary.trim() : "",
+            ...(Array.isArray(item.reasons)
+              ? item.reasons
+                  .filter((reason): reason is string => typeof reason === "string")
+                  .map(reason => reason.trim())
+                  .filter(Boolean)
+              : [])
+          ].filter(Boolean);
+          if (proposal.length > 0) blocks.push(proposal.join("\n"));
+        }
+      }
+      content = blocks.join("\n\n");
+    }
+    if (!content) continue;
+    normalized.push({
+      role: raw.role,
+      content: content.slice(0, maxCharactersPerMessage)
+    });
+  }
+
+  const newest = normalized.slice(-maxMessages);
+  const selected: ChatConversationHistoryEntryV010[] = [];
+  let used = 0;
+  for (let index = newest.length - 1; index >= 0; index -= 1) {
+    const item = newest[index]!;
+    if (used + item.content.length > maxTotalCharacters) continue;
+    selected.push(item);
+    used += item.content.length;
+  }
+  return selected.reverse();
+}
+
 export interface AppHostActionRenderHintV010 {
   /**
    * The mounted surface has already applied the action result locally.
@@ -339,7 +438,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   }
 
   const hostActionButtons = container.querySelectorAll<HTMLButtonElement>(
-    "[data-eidos-catalog-action],[data-eidos-extension-action],[data-eidos-setup-action],[data-eidos-chat-action],[data-eidos-review-action],[data-eidos-task-action]"
+    APP_HOST_ACTION_SELECTOR
   );
   if (hostActionButtons.length > 0) {
     const actionStatus = document.createElement("pre");
