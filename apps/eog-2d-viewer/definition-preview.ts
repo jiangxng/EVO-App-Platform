@@ -124,9 +124,34 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
     translateY: number;
   };
   canEditProjection?: boolean;
+  returnAction?: {
+    route: string;
+    label: string;
+  };
   locale?: string;
 }): DiagramWorkspacePageV010 {
   const zh = (input.locale ?? "").toLowerCase().startsWith("zh");
+  const toolbarActions = [
+    ...(input.returnAction
+      ? [{
+          id: "return-to-source",
+          label: input.returnAction.label,
+          route: input.returnAction.route
+        }]
+      : []),
+    ...(input.canEditProjection && input.projectionId
+      ? [{
+          id: "edit-projection",
+          label: zh ? "编辑投影" : "Edit projection",
+          route: definition2dEditorRouteV010({
+            definitionId: input.definitionId,
+            definitionRevision: input.definitionRevision,
+            projectionId: input.projectionId
+          }),
+          primary: true
+        }]
+      : [])
+  ];
   return {
     contractVersion: "0.1.0",
     kind: "diagram-workspace",
@@ -149,20 +174,7 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
       definitionRevision: input.definitionRevision,
       ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
-    ...(input.canEditProjection && input.projectionId
-      ? {
-          toolbarActions: [{
-            id: "edit-projection",
-            label: zh ? "编辑投影" : "Edit projection",
-            route: definition2dEditorRouteV010({
-              definitionId: input.definitionId,
-              definitionRevision: input.definitionRevision,
-              projectionId: input.projectionId
-            }),
-            primary: true
-          }]
-        }
-      : {}),
+    ...(toolbarActions.length > 0 ? { toolbarActions } : {}),
     ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     viewInteraction: {
       zoom: true,
