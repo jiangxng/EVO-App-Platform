@@ -184,18 +184,6 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       }
     },
     {
-      id: "plugins",
-      title: "Plugins",
-      icon: "plugins",
-      kind: "workspace-route",
-      route: "/store",
-      order: 30,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.plugins"
-      }
-    },
-    {
       id: "workspace",
       title: "Workspace",
       icon: "workspace",
@@ -204,18 +192,6 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization: {
         namespace: "evo-app-platform",
         key: "workbench.activity.workspace"
-      }
-    },
-    {
-      id: "memory",
-      title: "Memory",
-      icon: "database",
-      kind: "workspace-route",
-      route: "/memory",
-      order: 50,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.memory"
       }
     },
     {
@@ -518,7 +494,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       host,
       container: "#app",
       title: "EVO",
-      defaultActivityId: "plugins",
+      defaultActivityId: "apps",
       initialWorkspaceRoute: "/store",
       surfaceId: activeSurfaceId,
       activities: initialActivities.activities,
