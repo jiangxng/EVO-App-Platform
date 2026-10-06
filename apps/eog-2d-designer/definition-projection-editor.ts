@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -19,6 +20,7 @@ import type {
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
 import type {
+  TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010,
   TemplateProjectionGalleryItemV010,
   TemplateProjectionGalleryV010,
   TemplateProjectionPlacementV010
@@ -44,22 +46,34 @@ function textFor(locale?: string) {
         title: "编辑投影",
         back: "返回查看",
         save: "保存投影",
+        saveAs: "另存投影",
+        restoreAll: "恢复全部",
+        restoreAllNotice: "已恢复当前版本中的全部应用、账本和连线。尚未保存，可继续编辑。",
         removeFromProjection: "从投影移除",
         removedFromProjection: "已从当前投影移除。保存投影后生效；应用、账本及业务定义不会被删除。",
         empty: "当前投影没有可编辑的图形内容。",
         ready: "可拖动节点、调整缩放和视角，也可移除不需要的节点或连线来简化关系图；完成后点击“保存投影”。这些操作只修改当前投影，不修改应用、账本或业务定义。",
         saved: "投影已保存。应用、账本及业务定义内容未改变。",
+        savedAs: "已另存为新投影。原投影保持不变。",
+        galleryFull: "最多只能保存 9 个投影，请先整理已有投影。",
+        copySuffix: "副本",
         manageRoleRequired: "需要企业所有者或管理员权限。"
       }
     : {
         title: "Edit projection",
         back: "Back to view",
         save: "Save projection",
+        saveAs: "Save as projection",
+        restoreAll: "Restore all",
+        restoreAllNotice: "All applications, ledgers, and relations from this revision are visible again. Nothing has been saved yet.",
         removeFromProjection: "Remove from projection",
         removedFromProjection: "Removed from this projection. Save the projection to persist it; applications, ledgers, and business definitions are unchanged.",
         empty: "This projection has no editable diagram content.",
         ready: "Drag nodes, adjust zoom/pan, or remove unnecessary nodes and relations to simplify the map; then choose Save projection. These changes affect only the current projection, not applications, ledgers, or business definitions.",
         saved: "Projection saved. Applications, ledgers, and business-definition content were not changed.",
+        savedAs: "Saved as a new projection. The original projection is unchanged.",
+        galleryFull: "A maximum of 9 projections is supported. Remove or consolidate an existing projection first.",
+        copySuffix: "Copy",
         manageRoleRequired: "Enterprise owner or administrator permission is required."
       };
 }
@@ -221,7 +235,8 @@ function selectedArtifact(input: {
     enterpriseId: selection.enterpriseId,
     definitionId: selection.definitionId,
     definitionRevision: selection.definitionRevision,
-    projectionId: selection.projectionId
+    projectionId: selection.projectionId,
+    includeHidden: true
   });
   if (!artifact) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
   return { artifact, selection, scope };
@@ -289,6 +304,7 @@ function editorState(input: {
   artifact: NonNullable<ReturnType<DefinitionProjectionArtifactSourceV010["get"]>>;
   locale?: string;
   saved?: boolean;
+  notice?: string;
 }): DiagramWorkspaceStateV010 {
   const text = textFor(input.locale);
   const diagram = input.artifact.diagram2d;
@@ -317,6 +333,12 @@ function editorState(input: {
         ? { properties: node.properties.map(property => ({ ...property })) }
         : {})
     })),
+    ...(input.artifact.hiddenNodeIds?.length
+      ? { hiddenNodeIds: [...input.artifact.hiddenNodeIds] }
+      : {}),
+    ...(input.artifact.hiddenEdgeIds?.length
+      ? { hiddenEdgeIds: [...input.artifact.hiddenEdgeIds] }
+      : {}),
     edges: (diagram?.edges ?? []).map(edge => ({
       id: edge.id,
       source: edge.source,
@@ -337,8 +359,16 @@ function editorState(input: {
       },
       captureViewState: true,
       target: { kind: "graph" }
+    }, {
+      id: "projection.save-as",
+      label: text.saveAs,
+      operation: {
+        type: "SAVE_PROJECTION_AS_NEW"
+      },
+      captureViewState: true,
+      target: { kind: "graph" }
     }],
-    notice: input.saved ? text.saved : text.ready
+    notice: input.notice ?? (input.saved ? text.saved : text.ready)
   };
 }
 
@@ -397,7 +427,10 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       localNodeDrag: true,
       localSelectionHide: true,
       localSelectionHideLabel: text.removeFromProjection,
-      localSelectionHideNotice: text.removedFromProjection
+      localSelectionHideNotice: text.removedFromProjection,
+      localVisibilityReset: true,
+      localVisibilityResetLabel: text.restoreAll,
+      localVisibilityResetNotice: text.restoreAllNotice
     },
     emptyMessage: text.empty
   };
@@ -510,18 +543,8 @@ function mergeProjection(
   );
   if (index < 0) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
   const current = next.projections[index] as TemplateProjectionGalleryItemV010;
-  const hiddenNodeIds = [
-    ...new Set([
-      ...(current.view.hiddenNodeIds ?? []),
-      ...captured.hiddenNodeIds
-    ])
-  ];
-  const hiddenEdgeIds = [
-    ...new Set([
-      ...(current.view.hiddenEdgeIds ?? []),
-      ...captured.hiddenEdgeIds
-    ])
-  ];
+  const hiddenNodeIds = [...new Set(captured.hiddenNodeIds)];
+  const hiddenEdgeIds = [...new Set(captured.hiddenEdgeIds)];
   const hiddenNodes = new Set(hiddenNodeIds);
   const placementMap = new Map(
     (current.view.placements ?? [])
@@ -549,6 +572,68 @@ function mergeProjection(
   return next;
 }
 
+function projectionCopyTitle(
+  gallery: TemplateProjectionGalleryV010,
+  sourceTitle: string,
+  locale?: string
+): string {
+  const suffix = textFor(locale).copySuffix;
+  const base = `${sourceTitle} ${suffix}`;
+  const used = new Set(gallery.projections.map(item => item.title));
+  if (!used.has(base)) return base;
+  let index = 2;
+  while (used.has(`${base} ${index}`)) index += 1;
+  return `${base} ${index}`;
+}
+
+function saveProjectionAsNew(
+  gallery: TemplateProjectionGalleryV010,
+  sourceProjectionId: string,
+  captured: ReturnType<typeof parsedViewState>,
+  locale: string | undefined,
+  projectionIdFactory: () => string
+): { gallery: TemplateProjectionGalleryV010; projectionId: string } {
+  if (gallery.projections.length >= TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010) {
+    throw new Error("DEFINITION_PROJECTION_GALLERY_FULL");
+  }
+  const source = gallery.projections.find(
+    item => item.projectionId === sourceProjectionId
+  );
+  if (!source) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
+
+  let projectionId = projectionIdFactory().trim();
+  while (
+    !projectionId
+    || gallery.projections.some(item => item.projectionId === projectionId)
+  ) {
+    projectionId = projectionIdFactory().trim();
+  }
+
+  const hiddenNodes = new Set(captured.hiddenNodeIds);
+  const next: TemplateProjectionGalleryV010 = structuredClone(gallery);
+  next.projections.push({
+    projectionId,
+    title: projectionCopyTitle(next, source.title, locale),
+    ...(source.description ? { description: source.description } : {}),
+    thumbnail: structuredClone(source.thumbnail),
+    view: {
+      contractVersion: "0.1.0",
+      kind: "DIAGRAM_2D",
+      ...(captured.hiddenNodeIds.length
+        ? { hiddenNodeIds: [...new Set(captured.hiddenNodeIds)] }
+        : {}),
+      ...(captured.hiddenEdgeIds.length
+        ? { hiddenEdgeIds: [...new Set(captured.hiddenEdgeIds)] }
+        : {}),
+      placements: captured.placements
+        .filter(item => !hiddenNodes.has(item.nodeId))
+        .map(item => ({ ...item })),
+      camera: { ...captured.camera }
+    }
+  });
+  return { gallery: next, projectionId };
+}
+
 export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
   input: {
     repository: BusinessDefinitionRepositoryV010;
@@ -569,9 +654,12 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
     ): Promise<void> | void;
     locale?(context: PlatformRequestContextV010): string | undefined;
     now?: () => Date;
+    projectionIdFactory?: () => string;
   }
 ): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
+  const projectionIdFactory =
+    input.projectionIdFactory ?? (() => `projection:${randomUUID()}`);
 
   const handler = (
     commandCode: string,
@@ -643,10 +731,15 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           operation === null
           || typeof operation !== "object"
           || Array.isArray(operation)
-          || (operation as Record<string, JsonValue>).type !== "SAVE_PROJECTION_VIEW"
+          || !["SAVE_PROJECTION_VIEW", "SAVE_PROJECTION_AS_NEW"].includes(
+            String((operation as Record<string, JsonValue>).type)
+          )
         ) {
           throw new Error("DEFINITION_PROJECTION_SAVE_OPERATION_INVALID");
         }
+        const operationType = String(
+          (operation as Record<string, JsonValue>).type
+        );
         const expectedRevision = request.values.expectedRevision;
         if (
           typeof expectedRevision !== "number"
@@ -689,11 +782,25 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           definitionRevision: latest.revision
         });
 
-        const projectionGallery = mergeProjection(
-          latest.projectionGallery,
-          selection.projectionId,
-          parsedViewState(request.values.viewState)
-        );
+        const captured = parsedViewState(request.values.viewState);
+        const saveAs = operationType === "SAVE_PROJECTION_AS_NEW";
+        const nextProjection = saveAs
+          ? saveProjectionAsNew(
+              latest.projectionGallery,
+              selection.projectionId,
+              captured,
+              input.locale?.(context),
+              projectionIdFactory
+            )
+          : {
+              gallery: mergeProjection(
+                latest.projectionGallery,
+                selection.projectionId,
+                captured
+              ),
+              projectionId: selection.projectionId
+            };
+        const projectionGallery = nextProjection.gallery;
         const actor = {
           actorType: "HUMAN" as const,
           subjectId: context.principal.subjectId
@@ -726,7 +833,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           enterpriseId: saved.enterpriseId,
           definitionId: saved.definitionId,
           definitionRevision: saved.revision,
-          projectionId: selection.projectionId,
+          projectionId: nextProjection.projectionId,
           selectedAt: recordedAt
         };
         for (const key of sessionKeys(context)) {
@@ -737,19 +844,23 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           enterpriseId: saved.enterpriseId,
           definitionId: saved.definitionId,
           definitionRevision: saved.revision,
-          projectionId: selection.projectionId
+          projectionId: nextProjection.projectionId,
+          includeHidden: true
         });
         if (!artifact) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
         return success(request, {
           ...editorState({
             artifact,
             locale: input.locale?.(context),
-            saved: true
+            saved: true,
+            notice: saveAs
+              ? textFor(input.locale?.(context)).savedAs
+              : textFor(input.locale?.(context)).saved
           }),
           navigateTo: definition2dEditorRouteV010({
             definitionId: saved.definitionId,
             definitionRevision: saved.revision,
-            projectionId: selection.projectionId
+            projectionId: nextProjection.projectionId
           })
         });
       }
