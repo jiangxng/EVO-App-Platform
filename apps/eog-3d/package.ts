@@ -60,13 +60,9 @@ export const eog3dPackage: PackageManifestV010 = {
           id: EOG_3D_VIEWER_PAGE_ID,
           path: EOG_3D_VIEWER_ROUTE,
           pageId: EOG_3D_VIEWER_PAGE_ID
-        }],
-        navigation: [{
-          id: "evo-eog-3d-viewer.nav",
-          label: "Operating Graph 3D",
-          route: EOG_3D_VIEWER_ROUTE,
-          order: 17
         }]
+        // Spatial viewer remains an installed capability and routable surface,
+        // but does not occupy persistent business navigation.
       }
     }]
   }]
