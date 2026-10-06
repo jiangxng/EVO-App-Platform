@@ -67,6 +67,10 @@ test("Help index is an Eidos searchable catalog and Help documents render throug
   assert.equal(index.kind, "catalog-browser");
   assert.equal(index.search?.placeholder, "Search help…");
   assert.ok(index.items.some(item => item.id === "evo.provider.binding"));
+  assert.equal(
+    index.items.every(item => item.metadata === undefined),
+    true
+  );
 
   const document = materializeHelpDocumentV010(corpus, "evo.provider.binding");
   assert.equal(document?.kind, "help-document");
@@ -125,6 +129,9 @@ test("zh-CN Help corpus preserves stable IDs and routes while localizing content
   );
 
   const zhIndex = createHelpIndexPageV010(corpus, "zh-CN");
+  assert.equal(zhIndex.title, "帮助");
+  assert.equal(zhIndex.search?.placeholder, "搜索帮助…");
+  assert.equal(zhIndex.description, "查找产品使用方法、概念说明和常见问题。");
   const zhBinding = zhIndex.items.find(item => item.id === "evo.provider.binding");
   assert.equal(zhBinding?.title, "配置 Provider 绑定");
   assert.equal(zhBinding?.category, "操作指南");

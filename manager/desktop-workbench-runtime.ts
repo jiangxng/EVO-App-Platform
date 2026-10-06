@@ -198,7 +198,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       id: "help",
       title: "Help",
       icon: "help",
-      kind: "side-route",
+      kind: "workspace-route",
       route: "/help",
       order: 900,
       placement: "secondary",

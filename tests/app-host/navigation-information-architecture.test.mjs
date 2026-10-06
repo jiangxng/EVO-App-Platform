@@ -50,6 +50,10 @@ test("primary Workbench activities contain work context, not system administrati
   assert.match(source, /id: "workspace"/);
   assert.match(source, /id: "help"/);
   assert.match(source, /id: "settings"/);
+  assert.match(
+    source,
+    /id: "help"[\s\S]*?kind: "workspace-route"[\s\S]*?route: "\/help"/
+  );
   assert.doesNotMatch(source, /id: "plugins"/);
   assert.doesNotMatch(source, /id: "memory"/);
   assert.match(source, /defaultActivityId: "apps"/);
