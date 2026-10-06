@@ -1010,9 +1010,9 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           enterpriseId: selection.enterpriseId,
           definitionId: selection.definitionId,
           definitionRevision: selection.definitionRevision,
-          projectionId: selection.projectionId,
+          projectionId: selection.projectionId!,
           resourceId:
-            `enterprise-definition:${selection.enterpriseId}:${selection.definitionId}@${selection.definitionRevision}#${selection.projectionId}`
+            `enterprise-definition:${selection.enterpriseId}:${selection.definitionId}@${selection.definitionRevision}#${selection.projectionId!}`
         });
         const selectedAt = now().toISOString();
         for (const key of sessionKeys(context)) {
