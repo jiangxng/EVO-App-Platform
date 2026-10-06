@@ -19,11 +19,11 @@ import type {
   PlatformPrincipalV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
-import type {
+import {
   TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010,
-  TemplateProjectionGalleryItemV010,
-  TemplateProjectionGalleryV010,
-  TemplateProjectionPlacementV010
+  type TemplateProjectionGalleryItemV010,
+  type TemplateProjectionGalleryV010,
+  type TemplateProjectionPlacementV010
 } from "../../contracts/template-projection-gallery.js";
 import type {
   DiagramWorkspacePageV010,
@@ -594,7 +594,9 @@ function saveProjectionAsNew(
   projectionIdFactory: () => string
 ): { gallery: TemplateProjectionGalleryV010; projectionId: string } {
   if (gallery.projections.length >= TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010) {
-    throw new Error("DEFINITION_PROJECTION_GALLERY_FULL");
+    throw new Error(
+      "DEFINITION_PROJECTION_GALLERY_FULL: " + textFor(locale).galleryFull
+    );
   }
   const source = gallery.projections.find(
     item => item.projectionId === sourceProjectionId
