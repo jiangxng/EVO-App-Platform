@@ -106,3 +106,18 @@ test("Desktop Workbench forwards qualified route read options to the page source
     /loadPage\(page, readOptions\)\s*\{\s*return source\.loadPage\(page, readOptions\);\s*\}/
   );
 });
+
+
+test("vendored ActionHost preserves EVO context headers while localizing actions", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../vendor/eidos/src/app-host/app-manager-action-host.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(source, /request\.values\.activeContext/);
+  assert.match(source, /"x-evo-context-id"/);
+  assert.match(source, /options\.locale\?\.\(\)\?\.trim\(\)/);
+  assert.match(source, /searchParams\.set\("locale", locale\)/);
+});
