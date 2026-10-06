@@ -8,6 +8,12 @@ export const EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010 =
 export const EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010 =
   "enterprise.business-definition.projection" as const;
 
+export const EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010 =
+  "enterprise.operating-graph.view.edit" as const;
+
+export const EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010 =
+  "enterprise.operating-graph.view" as const;
+
 /**
  * Product-level authorization baseline for EOG Definition Projection writes.
  *
@@ -31,6 +37,16 @@ export const eogDefinitionProjectionAuthorizationPolicyV010:
       actorTypes: ["HUMAN"],
       resourceTypes: [
         EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010
+      ]
+    }, {
+      id: "evo.eog-operating-graph.view.edit",
+      effect: "ALLOW",
+      actions: [
+        EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010
+      ],
+      actorTypes: ["HUMAN"],
+      resourceTypes: [
+        EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010
       ]
     }]
   };
