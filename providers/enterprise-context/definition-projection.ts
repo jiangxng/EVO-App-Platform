@@ -60,6 +60,9 @@ export function createEnterpriseDefinitionProjectionArtifactSourceV010(
         definitionKind: revision.kind,
         ...(projected.diagram2d
           ? { diagram2d: projected.diagram2d }
+          : {}),
+        ...(projected.camera
+          ? { camera: projected.camera }
           : {})
       };
       return artifact;
