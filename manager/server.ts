@@ -583,6 +583,11 @@ import {
   enterpriseContextGovernanceAuthorizationPolicyV010
 } from "./enterprise-context-authorization.js";
 import {
+  EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+  EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+  eogDefinitionProjectionAuthorizationPolicyV010
+} from "../apps/eog-2d-designer/authorization.js";
+import {
   templateStoreAuthorizationPolicyV010
 } from "./template-store-authorization.js";
 import {
@@ -1634,6 +1639,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
   ),
   enterpriseContextGovernanceAuthorizationPolicyV010,
+  eogDefinitionProjectionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
@@ -3766,9 +3772,10 @@ const actionRouter = createAppActionRouter(
                   resolveAuthorizationProvider(),
                   context,
                   {
-                    action: "definition.projection.save",
+                    action:
+                      EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
                     resource: {
-                      type: "enterprise.business-definition.projection",
+                      type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
                       id: `${target.definitionId}#${target.projectionId}`,
                       attributes: {
                         enterpriseId: target.enterpriseId,
