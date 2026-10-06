@@ -1136,6 +1136,63 @@ export function mountDiagramEditorPageV010(
     renderActions();
   };
 
+  const selectedBounds = (): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | undefined => {
+    if (!state || !selected) return undefined;
+    const nodes = selected.kind === "node"
+      ? state.nodes.filter(node => node.id === selected!.id)
+      : (() => {
+          const edge = state.edges.find(item => item.id === selected!.id);
+          if (!edge) return [];
+          return state.nodes.filter(
+            node => node.id === edge.source || node.id === edge.target
+          );
+        })();
+    if (nodes.length === 0) return undefined;
+    const minX = Math.min(...nodes.map(node => node.x));
+    const minY = Math.min(...nodes.map(node => node.y));
+    const maxX = Math.max(...nodes.map(node => node.x + node.width));
+    const maxY = Math.max(...nodes.map(node => node.y + node.height));
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY)
+    };
+  };
+
+  const fitSelectionToCanvas = (): void => {
+    const bounds = selectedBounds();
+    if (!bounds) return;
+    followsFitToCanvas = false;
+    camera = fitDiagramCameraToBoundsV010(
+      bounds,
+      {
+        width: Math.max(1, canvas.clientWidth),
+        height: Math.max(1, canvas.clientHeight)
+      },
+      64,
+      { min: 0.1, max: 2.5 }
+    );
+    applyCameraTransform();
+    renderActions();
+  };
+
+  const resetZoomTo100 = (): void => {
+    followsFitToCanvas = false;
+    const center = {
+      x: canvas.clientWidth / 2,
+      y: canvas.clientHeight / 2
+    };
+    camera = zoomDiagramCameraAtScreenPointV010(camera, 1, center);
+    applyCameraTransform();
+    renderActions();
+  };
+
   const applyZoomAt = (
     nextZoom: number,
     anchor = {
@@ -1176,7 +1233,23 @@ export function mountDiagramEditorPageV010(
       toolbar.appendChild(button);
     }
 
-    if (page.viewInteraction?.zoom) {
+    const clearSelectionOnCanvasClick = (event: MouseEvent): void => {
+    const target = event.target as Element | null;
+    if (
+      target?.closest?.("[data-eidos-diagram-node]")
+      || target?.closest?.("[data-eidos-diagram-edge]")
+      || target?.closest?.("[data-eidos-diagram-view-controls]")
+    ) {
+      return;
+    }
+    clearSelection();
+  };
+  canvas.addEventListener("click", clearSelectionOnCanvasClick);
+  listeners.push(() =>
+    canvas.removeEventListener("click", clearSelectionOnCanvasClick)
+  );
+
+  if (page.viewInteraction?.zoom) {
       const addViewButton = (
         label: string,
         title: string,
@@ -1204,12 +1277,7 @@ export function mountDiagramEditorPageV010(
       addViewButton(
         `${Math.round(camera.scale * 100)}%`,
         "Reset view",
-        () => {
-          followsFitToCanvas = false;
-          camera = createDiagramCameraTransformV010();
-          applyCameraTransform();
-          renderActions();
-        }
+        () => resetZoomTo100()
       );
     }
 
@@ -1274,6 +1342,15 @@ export function mountDiagramEditorPageV010(
       selectionActions.appendChild(hideButton);
     }
   };
+
+  function clearSelection(): void {
+    if (!selected && !selectionInspection) return;
+    selected = undefined;
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    canvas?.focus({ preventScroll: true });
+  }
 
   function hideSelectedFromView(): void {
     if (
@@ -1576,6 +1653,7 @@ export function mountDiagramEditorPageV010(
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
         render();
+        canvas.focus({ preventScroll: true });
         void inspectSelection();
       });
       svg.appendChild(hit);
@@ -1738,6 +1816,7 @@ export function mountDiagramEditorPageV010(
         selected = { kind: "node", id: node.id };
         selectionInspection = undefined;
         render();
+        canvas.focus({ preventScroll: true });
         void inspectSelection();
       });
 
@@ -1795,14 +1874,10 @@ export function mountDiagramEditorPageV010(
             ) {
               return;
             }
-            const nextX = Math.max(
-              0,
-              originalX + screenDeltaX / camera.scale
-            );
-            const nextY = Math.max(
-              0,
-              originalY + screenDeltaY / camera.scale
-            );
+            const nextX =
+              originalX + screenDeltaX / camera.scale;
+            const nextY =
+              originalY + screenDeltaY / camera.scale;
             moved = true;
             element.style.left = nextX + "px";
             element.style.top = nextY + "px";
@@ -2038,13 +2113,6 @@ export function mountDiagramEditorPageV010(
   }
 
   const keydownHandler = (event: KeyboardEvent): void => {
-    if (
-      page.viewInteraction?.localSelectionHide !== true
-      || !selected
-      || (event.key !== "Delete" && event.key !== "Backspace")
-    ) {
-      return;
-    }
     const target = event.target;
     if (
       target instanceof HTMLInputElement
@@ -2054,8 +2122,83 @@ export function mountDiagramEditorPageV010(
     ) {
       return;
     }
-    event.preventDefault();
-    hideSelectedFromView();
+
+    if (event.key === "Escape" && selected) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+
+    if (
+      page.viewInteraction?.localSelectionHide === true
+      && selected
+      && (event.key === "Delete" || event.key === "Backspace")
+    ) {
+      event.preventDefault();
+      hideSelectedFromView();
+      return;
+    }
+
+    if (
+      page.viewInteraction?.localNodeDrag === true
+      && selected?.kind === "node"
+      && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
+      && state
+    ) {
+      const node = state.nodes.find(item => item.id === selected!.id);
+      if (!node) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 10 : 1;
+      if (event.key === "ArrowLeft") node.x -= step;
+      if (event.key === "ArrowRight") node.x += step;
+      if (event.key === "ArrowUp") node.y -= step;
+      if (event.key === "ArrowDown") node.y += step;
+      followsFitToCanvas = false;
+      render();
+      canvas.focus({ preventScroll: true });
+      report(
+        event.shiftKey
+          ? "View adjusted by 10 units. No changes were saved."
+          : "View adjusted by 1 unit. No changes were saved."
+      );
+      return;
+    }
+
+    if (page.viewInteraction?.zoom === true) {
+      const commandOrControl = event.metaKey || event.ctrlKey;
+      if (
+        event.key === "+"
+        || event.key === "="
+        || (commandOrControl && event.code === "Equal")
+      ) {
+        event.preventDefault();
+        applyZoomAt(camera.scale * 1.2);
+        return;
+      }
+      if (
+        event.key === "-"
+        || (commandOrControl && event.code === "Minus")
+      ) {
+        event.preventDefault();
+        applyZoomAt(camera.scale / 1.2);
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit1") {
+        event.preventDefault();
+        followsFitToCanvas = true;
+        fitViewToCanvas();
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit2" && selected) {
+        event.preventDefault();
+        fitSelectionToCanvas();
+        return;
+      }
+      if (commandOrControl && event.code === "Digit0") {
+        event.preventDefault();
+        resetZoomTo100();
+      }
+    }
   };
   root.addEventListener("keydown", keydownHandler);
   listeners.push(() => root.removeEventListener("keydown", keydownHandler));

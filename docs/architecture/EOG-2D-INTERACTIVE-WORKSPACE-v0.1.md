@@ -425,3 +425,30 @@ Current product behavior:
 These rules are presentation-only. They do not change ledger/application semantics, projection persistence rules or Enterprise Definition authority.
 
 Reference patterns were reviewed from mature canvas/map products (Figma, Miro, Mapbox and Lucidchart) and summarized into Eidos-owned design authority so the product does not depend on external product imitation at runtime.
+
+
+## Direct manipulation and keyboard conventions
+
+The EOG 2D editor follows Eidos-owned professional canvas conventions rather than inventing ledger-specific controls.
+
+Spatial behavior:
+
+- projection coordinates are unbounded presentation coordinates; nodes may be dragged left/up past the original layout origin and may therefore have negative x/y values;
+- the camera, not a hard canvas origin, defines what the Human sees;
+- clicking blank canvas or pressing Escape clears the current node/edge selection;
+- selecting a node or relation returns keyboard focus to the canvas so editing shortcuts remain available.
+
+Keyboard behavior:
+
+- Escape: clear selection;
+- Delete / Backspace: remove the selected node or relation from the current projection only;
+- Arrow keys: nudge a selected movable node by 1 view unit;
+- Shift + Arrow: nudge by 10 view units;
+- + / -: zoom in/out;
+- Shift + 1: fit the visible graph;
+- Shift + 2: fit the current selection;
+- Ctrl/Cmd + 0: return zoom to 100%.
+
+Copy, paste and duplicate are intentionally not assigned to business nodes. EOG must not imply that duplicating a drawn node duplicates the underlying Application, Ledger or other Enterprise Definition object.
+
+Keyboard shortcuts are ignored while focus is inside text inputs, selects, textareas or contenteditable controls.
