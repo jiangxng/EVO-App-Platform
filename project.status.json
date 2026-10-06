@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Ledger Manager / EOG Projection Library v0.5",
+  "currentMilestone": "Counterparty / Enterprise Resource Library v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -471,7 +471,12 @@
     "eidos-layered-auto-layout-v0-1",
     "projection-fixed-auto-layout-v0-1",
     "diagram-action-overflow-v0-1",
-    "fixed-human-vs-agent-capability-boundary-v0-1"
+    "fixed-human-vs-agent-capability-boundary-v0-1",
+    "enterprise-resource-library-v0-1",
+    "counterparty-core-model-v0-1",
+    "counterparty-enterprise-context-persistence-v0-1",
+    "counterparty-directory-create-detail-archive-v0-1",
+    "legacy-dealer-counterparty-convergence-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -1774,8 +1779,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "LEDGER-EOG-PROJECTION-LIBRARY-V0-5-2026-10-06-02",
-    "snapshotAt": "2026-10-06T23:20:00+08:00",
+    "snapshotId": "COUNTERPARTY-ENTERPRISE-RESOURCE-V0-1-2026-10-06-01",
+    "snapshotAt": "2026-10-07T00:15:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1795,41 +1800,45 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Ledger Manager / EOG Projection Library v0.5",
+      "milestone": "Counterparty / Enterprise Resource Library v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "fixed-auto-layout-human-browser-v0-5",
-        "status": "HUMAN_VALIDATED_PRODUCTION_PASS",
-        "summary": "Human production validation passed for the fixed Auto layout and scalable Projection action area. The deterministic layered layout, compact frequent-action surface and More overflow are accepted as the current product behavior.",
-        "authority": "docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md",
+        "id": "counterparty-enterprise-context-v0-1",
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "The first Counterparty / 往来对象 slice is live. PR #415 introduced the provider-neutral Enterprise Resource Library and the first-party evo-counterparty plugin. Counterparty identity is stored inside the active Enterprise Context under evo.counterparty, with directory, create, detail and archive flows. Legacy Asloop Dealer semantics were converged without copying the legacy mega-record: Customer/Supplier/etc. remain explicit future roles/relationships rather than duplicate identities.",
+        "authority": "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
         "evidence": {
-          "humanValidation": "PASS",
-          "validatedAt": "2026-10-06T23:20:00+08:00",
-          "eidosPr": 126,
-          "appPlatformPr": 412,
-          "architecturePr": 413,
-          "productionCommit": "da4e8a3358e562bd2681d15fce5b88ff9478a323",
-          "railwayDeploymentId": "a94a0ba7-abec-4139-ae28-141abd717466",
+          "appPlatformPr": 415,
+          "mergeCommit": "f45237972ffb667cc4b4faae4f05615628454d5c",
+          "platformCI": "PASS",
+          "crossProjectCI": "PASS",
+          "railwayDeploymentId": "4fcd9619-6510-4dbd-b4ac-4bbe80577140",
           "railwayDeploymentStatus": "SUCCESS",
-          "fixedAutoLayout": true,
-          "scalableToolbarOverflow": true,
-          "projectionVersioning": "NONE",
-          "businessDefinitionRevisionMutation": false
+          "enterpriseResourceLibrary": true,
+          "resourceCapability": "enterprise.resource.repository",
+          "namespace": "evo.counterparty",
+          "collection": "counterparties",
+          "resourceType": "counterparty.subject",
+          "enterpriseIsolationTest": "PASS",
+          "archiveNotDelete": "PASS",
+          "customerSupplierAsRoles": true,
+          "arApSettlementOwnership": false
         }
       },
       "openGate": {
-        "id": "projection-unsaved-change-guard-v0-5-1",
+        "id": "counterparty-edit-and-relationship-roles-v0-2",
         "status": "READY",
-        "summary": "Add explicit unsaved-change protection for Projection presentation edits so drag, hide/restore and Auto layout cannot be discarded accidentally during navigation.",
-        "authority": "docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md",
+        "summary": "Extend Counterparty from create/read/archive into governed current-master-data editing and explicit relationship roles, while preserving one stable Counterparty identity across Customer/Supplier/etc. roles.",
+        "authority": "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
         "acceptance": [
-          "Any local Projection presentation edit marks the editor dirty, including node drag, projection hide/restore and Auto layout.",
-          "Navigating away from a dirty Projection Editor requires an explicit keep-editing or discard decision.",
-          "A successful Save projection clears the dirty state without creating a Projection version or Business Definition version.",
-          "A clean editor never shows an unnecessary discard warning.",
-          "The guard works with the existing desktop deep navigation and remains usable on mobile.",
-          "Viewer and Designer remain separate application/plugin ownership boundaries; this safety behavior does not merge them.",
-          "The guard protects presentation state only and must not introduce business-semantic mutation."
+          "An existing Counterparty can be edited in place as current master data without creating a second Counterparty identity.",
+          "Counterparty editing remains scoped to the selected Enterprise Context through the Enterprise Resource Library and preserves the stable counterpartyId.",
+          "Customer, Supplier and other business meanings are represented as explicit relationship-role resources or capabilities, not as duplicate Counterparty master records and not as a comma-separated dealerLabelName-style field.",
+          "One Counterparty may carry multiple simultaneous roles, such as Customer and Supplier.",
+          "Role-specific settings such as sales credit, supplier settlement terms or procurement defaults do not become fields on Counterparty core.",
+          "Historical BusinessData keeps reference identity plus committed snapshots and is not rewritten when current Counterparty master data changes.",
+          "Counterparty continues not to own AR/AP balances, open items, settlement, matching or cash collection/payment workflows.",
+          "The detail/edit experience remains usable on desktop and mobile."
         ]
       },
       "productionPreview": {
@@ -1838,13 +1847,18 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "da4e8a3358e562bd2681d15fce5b88ff9478a323",
-        "deploymentId": "a94a0ba7-abec-4139-ae28-141abd717466",
+        "commit": "f45237972ffb667cc4b4faae4f05615628454d5c",
+        "deploymentId": "4fcd9619-6510-4dbd-b4ac-4bbe80577140",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 415,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows."
+      },
       {
         "pr": 412,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -2749,7 +2763,13 @@
       "do not add Ledger, Application, sales, cash or other business vocabulary to Eidos auto-layout heuristics",
       "do not make Auto layout persist immediately; it is a local presentation edit until Save projection",
       "do not let Auto layout create Projection versions or Business Definition versions",
-      "do not reopen fixed Auto layout or scalable Projection action-area validation after the Human production pass unless a new regression is observed"
+      "do not reopen fixed Auto layout or scalable Projection action-area validation after the Human production pass unless a new regression is observed",
+      "do not rename the Counterparty product/domain back to 往来; the canonical product name is 往来对象 / Counterparty",
+      "do not model Customer, Supplier, Employee or other roles as duplicate Counterparty master identities",
+      "do not reintroduce legacy dealerLabelName-style comma-separated relationship labels as a Counterparty core field",
+      "do not store Counterparty domain data in a private plugin file/database outside the Enterprise Context Resource Library",
+      "do not move AR/AP balances, open-item accounting, settlement, matching, collection or payment workflows into the Counterparty plugin",
+      "do not mechanically copy the legacy Asloop Dealer mega-record; preserve semantics through explicit identity, role and profile resources"
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2927,7 +2947,14 @@
       "state Auto layout as domain-neutral layered/hierarchical, left-to-right by default, visible-material-only and unsaved until Save projection",
       "state Projection Editor action IA as frequent Auto layout + Save projection with secondary management actions under More",
       "state the prior Personal Agent current-editor crop scenario as Human-confirmed working and the next gate as Human browser validation of fixed Auto layout/action ergonomics",
-      "state fixed Auto layout and scalable Projection action-area v0.5 as Human-validated in production"
+      "state fixed Auto layout and scalable Projection action-area v0.5 as Human-validated in production",
+      "state App Platform PR #415 as the merged/production first Counterparty slice and the first concrete Enterprise Resource Library consumer",
+      "state the canonical product/domain name as 往来对象 / Counterparty, with evo-counterparty as the first-party package",
+      "state Counterparty data as Enterprise Context-owned resources under namespace evo.counterparty rather than a private plugin database",
+      "state Customer/Supplier/etc. as roles/relationships over one stable Counterparty identity, not separate master objects",
+      "state legacy Asloop Dealer as design lineage that validates shared identity + role semantics but must not be copied mechanically",
+      "state Counterparty as identity/master-data scope only and explicitly outside AR/AP/open-item/settlement ownership",
+      "state the next live gate as Counterparty current-master-data editing plus explicit relationship roles"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
