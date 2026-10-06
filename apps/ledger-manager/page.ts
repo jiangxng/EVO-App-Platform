@@ -9,8 +9,10 @@ import type {
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
+  definition2dPreviewRouteV010
+} from "../../contracts/definition-projection.js";
+import {
   LEDGER_MANAGER_DEFINITION_KIND,
-  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
   LEDGER_MANAGER_PUBLISH_COMMAND,
   LEDGER_MANAGER_ROUTE,
   ledgerManagerDetailRouteV010
@@ -251,15 +253,13 @@ export function createLedgerManagerDetailPageV010(input: {
         action: {
           id: `preview:${projection.projectionId}`,
           label: text.preview,
-          type: "command" as const,
-          command: LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
-          inputVersion: "0.1.0",
-          requiresConfirmation: false,
-          values: {
+          type: "navigate" as const,
+          route: definition2dPreviewRouteV010({
             definitionId: input.revision.definitionId,
             definitionRevision: input.revision.revision,
             projectionId: projection.projectionId
-          },
+          }),
+          requiresConfirmation: false,
           enabled: input.viewer2dAvailable,
           ...(input.viewer2dAvailable
             ? {}
