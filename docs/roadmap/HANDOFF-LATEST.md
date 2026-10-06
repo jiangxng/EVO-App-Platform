@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-3-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T19:35:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-4-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T20:10:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Library v0.3
+Ledger Manager / EOG Projection Library v0.4
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**projection-presentation-state-v0-3: MERGED_CI_PASS**
+**personal-agent-current-projection-authoring-v0-4: MERGED_CI_PASS**
 
-Projection is now explicitly non-versioned presentation state. Save, rename, layout, hide/show, Restore all, Save As and default-view changes do not advance Business Definition versions; Ledger Manager presents semantic business versions only. Personal Agent chat chrome now reflows by pane width for narrow desktop and mobile use.
+Personal Agent can now treat the open qualified 2D Projection Editor as the current target, read its complete material, select the retained nodes/relations from natural-language intent, write the current Projection directly without mouse simulation or Business Definition version changes, and invalidate the exact mounted editor resource for automatic canvas refresh.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,35 +26,34 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 405,
-  "appPlatformMergeCommit": "6a02fd14971f401123c2c8765a793bfb3b6b3ab5",
-  "eidosPr": 125,
-  "eidosMergeCommit": "40a5019391d1ffa4a02edf6c92dbaf4be4ab2ece",
+  "appPlatformPr": 407,
+  "mergeCommit": "a5c19d0d0e0b2b0da686b6fe13adc4dcb064f66d",
   "platformCI": "PASS",
-  "ledgerManagerCI": "PASS",
   "projectContinuityCI": "PASS",
-  "personalAgentExperienceCI": "PASS",
-  "projectionVersioning": "NONE",
+  "scenario": "帮我裁剪出从销售到收款的投影",
+  "mouseSimulation": false,
   "businessDefinitionRevisionMutation": false,
-  "ledgerRuntimeMutation": false
+  "projectionVersioning": "NONE",
+  "currentEditorContext": true,
+  "resourceInvalidationRefresh": true
 }
 ```
 
 ## Current open live gate
 
-**personal-agent-projection-authoring-v0-4: READY**
+**personal-agent-current-projection-human-live-v0-4: READY**
 
-Connect Personal Agent natural-language intent to the existing Projection model so a Human can ask for a readable business slice without giving the Agent authority to rewrite business truth.
+Run the first Human browser validation of direct Personal Agent authoring against a real open 2D Projection Editor and refine only issues observed in that real interaction.
 
 Acceptance:
 
-- A Human can ask for a Projection such as 从销售到收款 / sales-to-cash and the Personal Agent can derive a focused view from the current complete Business Definition.
-- Personal Agent Projection work uses the same Projection persistence boundary as Human authoring and never creates a Business Definition version.
-- The Agent may create a new Projection or update an explicitly selected Projection, while Save As remains a new Projection identity rather than a version.
-- A Projection request cannot add, delete or rewrite applications, ledgers, posting logic or semantic relations; those remain separate governed business-definition changes.
-- 2D Viewer and 2D Designer remain separate capabilities; Personal Agent is an additional operator over the same Projection model, not a replacement for either.
-- Ledger Manager -> definition/version -> Projection views remains the product home.
-- Visual identity remains owning-plugin metadata and is never inferred from node names.
+- A Human opens one qualified 2D Projection Editor and keeps it visible in the Workbench.
+- Without repeating definition/projection identifiers, the Human tells Personal Agent: 帮我裁剪出从销售到收款的投影.
+- Personal Agent reads the current material and chooses a reasonable retained business slice rather than relying on a hard-coded sales-to-cash mapping.
+- The current editor updates automatically after the Agent write with no mouse/click simulation and no manual Save action.
+- The Projection keeps the same identity and Business Definition revision; business semantic objects remain unchanged.
+- The resulting view is understandable enough for the Human to judge whether semantic selection quality needs further refinement.
+- If the real material makes the request ambiguous, the Agent should explain the ambiguity or use the material to disambiguate rather than silently invent business semantics.
 
 ## Current production preview
 
@@ -95,6 +94,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #407 — MERGED_CI_PASS: Let Personal Agent read and directly crop the currently open 2D Projection, preserving Projection identity/business revision and triggering exact mounted-canvas refresh.
 - PR #405 — MERGED_CI_PASS: Make Projection non-versioned presentation state with in-place saves, collapse legacy projection-only raw revisions into semantic Ledger versions, and adopt pane-responsive Personal Agent chat chrome from Eidos PR #125.
 - PR #403 — MERGED_CI_PASS: Add explicit default Projection management while preserving Business Definition payload and Ledger Runtime semantics.
 - PR #401 — MERGED_MAINLINE: Add independent Projection rename plus automatic current-canvas thumbnail regeneration on Save and Save As; keep visual identity plugin-owned.
@@ -430,6 +430,10 @@ Not proved:
 - do not create or advance Business Definition versions for Projection rename, layout, hide/show, Restore all, Save As or default-view changes
 - do not reopen Restore all/reset as pending; the Human flow has already been implemented and user-validated
 - do not merge EOG 2D Viewer and EOG 2D Designer; they remain separate capabilities even though Ledger Manager owns the Projection product entry
+- do not implement natural-language Projection requests as hard-coded business keyword/path rules; the Personal Agent reasons from current material and writes exact retained IDs
+- do not simulate mouse/drag/click actions for Personal Agent Projection authoring; use the governed Projection capability directly
+- do not require the Human to repeat definitionId/revision/projectionId after opening the intended 2D Projection Editor in the same Workbench session
+- do not claim multi-tab current-editor arbitration is solved by v0.4; the first acceptance targets one intended current editor per active Workbench session
 
 ## Fresh ChatGPT / LLM startup
 
@@ -609,6 +613,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Restore all/reset for Projection as implemented and Human-validated rather than an open gate
 - state Eidos PR #125 and App Platform PR #405 as the pane-responsive Personal Agent header and Projection no-version correction
 - state Ledger Manager -> definition/version -> Projection views as the Projection product home while 2D Viewer and 2D Designer remain separate
+- state App Platform PR #407 as merged and CI-passed: Personal Agent can directly crop the current open 2D Projection from natural-language intent with no mouse simulation
+- state the normative first Projection Agent scenario exactly as: open a 2D Projection Editor, tell Personal Agent 帮我裁剪出从销售到收款的投影, and have the current canvas refresh automatically
+- state current Projection target selection as established by opening/loading the qualified editor in the same Workbench session
+- state natural-language Projection meaning as model reasoning over current material, not an EOG/Eidos sales-to-cash keyword dictionary
+- state the next Projection gate as Human browser live validation of this direct current-editor flow
 
 No previous ChatGPT transcript is required.
 
