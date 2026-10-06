@@ -724,6 +724,10 @@ import {
   tradingLitePackage
 } from "../catalog/seed.js";
 import {
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
@@ -3691,6 +3695,53 @@ const actionRouter = createAppActionRouter(
       }
     }),
     ...[
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [editor, sourceModule] = await Promise.all([
+            import("../apps/eog-2d-designer/definition-projection-editor.js"),
+            import("../providers/enterprise-context/definition-projection.js")
+          ]);
+          const handlers =
+            editor.createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+              repository: enterpriseBusinessDefinitionRepository,
+              source:
+                sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+                  enterpriseBusinessDefinitionRepository
+                ),
+              sessions: enterpriseDefinitionProjectionSessions,
+              resolveAuthorizationProvider,
+              canManageEnterpriseContext(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).some(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                  && (item.kind === "OWNER" || item.kind === "ADMIN")
+                );
+              },
+              locale(context) {
+                return context.locale;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("DEFINITION_PROJECTION_EDITOR_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
       LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
       LEDGER_MANAGER_PUBLISH_COMMAND
@@ -5462,6 +5513,60 @@ const server = createServer(async (request, response) => {
         );
       }
 
+      if (source === EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const selection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        if (!selection?.projectionId) {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
+            message: "Open a saved Projection before editing it."
+          });
+        }
+        const [editor, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-designer/definition-projection-editor.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        const artifact =
+          sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+            enterpriseBusinessDefinitionRepository
+          ).get({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            projectionId: selection.projectionId
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "DEFINITION_PROJECTION_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          editor.createEnterpriseDefinitionProjectionEditorPageV010({
+            enterpriseId: artifact.enterpriseId,
+            definitionId: artifact.definitionId,
+            definitionRevision: artifact.definitionRevision,
+            projectionId: selection.projectionId,
+            title: artifact.title,
+            ...(artifact.camera ? { camera: artifact.camera } : {}),
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
       if (source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
@@ -5513,7 +5618,12 @@ const server = createServer(async (request, response) => {
             title: artifact.title,
             ...(artifact.projectionId
               ? { projectionId: artifact.projectionId }
-              : {})
+              : {}),
+            ...(artifact.camera ? { camera: artifact.camera } : {}),
+            canEditProjection: manager.getSnapshot().activeFeatures.some(
+              feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+            ),
+            locale: requestedLocale(url)
           })
         );
       }
