@@ -59,27 +59,13 @@ function sessionKeys(principal: PlatformPrincipalV010): string[] {
   );
 }
 
-function activeEnterpriseId(context: ResolvedContextSetV010): string {
-  if (
-    context.activeContext.kind !== "ENTERPRISE"
-    || !context.activeContext.enterpriseId?.trim()
-  ) {
-    throw new Error("CURRENT_2D_EDITOR_ENTERPRISE_CONTEXT_REQUIRED");
-  }
-  return context.activeContext.enterpriseId.trim();
-}
-
 function currentTarget(
   store: Current2dEditorSessionStoreV010,
-  principal: PlatformPrincipalV010,
-  context: ResolvedContextSetV010
+  principal: PlatformPrincipalV010
 ): Current2dEditorTargetV010 {
-  const enterpriseId = activeEnterpriseId(context);
   for (const key of sessionKeys(principal)) {
     const target = store.get(key);
-    if (target && target.enterpriseId === enterpriseId) {
-      return target;
-    }
+    if (target) return target;
   }
   throw new Error("CURRENT_2D_EDITOR_REQUIRED");
 }
@@ -157,9 +143,13 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
   context: ResolvedContextSetV010;
   locale?: string;
   isDesignerActive?: () => boolean;
-  canManageEnterpriseContext?: (
+  canAccessEnterprise?: (
     principal: PlatformPrincipalV010,
-    contextId: string
+    enterpriseId: string
+  ) => boolean;
+  canManageEnterprise?: (
+    principal: PlatformPrincipalV010,
+    enterpriseId: string
   ) => boolean;
   onEditorUpdated?: (input: {
     target: Current2dEditorTargetV010;
@@ -173,10 +163,12 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
   const now = input.now ?? (() => new Date());
   const available = () => {
     if (!(input.isDesignerActive?.() ?? true)) return false;
-    if (input.context.activeContext.kind !== "ENTERPRISE") return false;
     try {
-      currentTarget(input.currentEditors, input.principal, input.context);
-      return true;
+      const target = currentTarget(input.currentEditors, input.principal);
+      return input.canAccessEnterprise?.(
+        input.principal,
+        target.enterpriseId
+      ) ?? true;
     } catch {
       return false;
     }
@@ -185,9 +177,14 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
   const read = () => {
     const target = currentTarget(
       input.currentEditors,
-      input.principal,
-      input.context
+      input.principal
     );
+    if (
+      input.canAccessEnterprise
+      && !input.canAccessEnterprise(input.principal, target.enterpriseId)
+    ) {
+      throw new Error("CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED");
+    }
 
     if (target.kind === "OPERATING_GRAPH") {
       const graph = input.graphService.get({
@@ -257,7 +254,7 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
       id: "enterprise.current_2d_editor.get",
       modelName: "enterprise_current_2d_editor_get",
       title: "Current 2D editor material",
-      description: "Read the complete material behind the 2D editor the Human most recently opened in the current Workbench session. The Host resolves whether it is an Enterprise Operating Graph editor or a Definition Projection editor. Includes currently hidden nodes/relations so the model can reason about a requested crop.",
+      description: "Read the complete material behind the 2D editor the Human most recently opened in the current Workbench session. The current editor supplies its own enterprise resource scope even when Personal Agent conversation/memory context is Personal. The Host resolves whether it is an Enterprise Operating Graph editor or a Definition Projection editor. Includes currently hidden nodes/relations so the model can reason about a requested crop.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -345,6 +342,16 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
         edges: current.diagram.edges
       });
 
+      if (
+        input.canManageEnterprise
+        && !input.canManageEnterprise(
+          input.principal,
+          current.target.enterpriseId
+        )
+      ) {
+        throw new Error("CURRENT_2D_EDITOR_MANAGE_ROLE_REQUIRED");
+      }
+
       let version: number | undefined;
       if (current.kind === "OPERATING_GRAPH") {
         const hiddenNodeIds = current.diagram.nodes
@@ -371,17 +378,6 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
         });
         version = next.revision;
       } else {
-        const active = input.context.activeContext;
-        if (
-          active.kind !== "ENTERPRISE"
-          || !input.canManageEnterpriseContext?.(
-            input.principal,
-            active.contextId
-          )
-        ) {
-          throw new Error("CURRENT_2D_EDITOR_MANAGE_ROLE_REQUIRED");
-        }
-
         const nextGallery = cropDefinitionProjectionToVisibleItemsV010({
           gallery: current.gallery,
           projectionId: current.target.projectionId,
