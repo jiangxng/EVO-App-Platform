@@ -34,6 +34,9 @@ export interface DiagramEditorViewInteractionV010 {
   localSelectionHide?: boolean;
   localSelectionHideLabel?: string;
   localSelectionHideNotice?: string;
+  localVisibilityReset?: boolean;
+  localVisibilityResetLabel?: string;
+  localVisibilityResetNotice?: string;
 }
 
 export interface DiagramEditorCommandV010 {
@@ -171,6 +174,8 @@ export interface DiagramEditorStateV010 {
   lifecycleState?: string;
   nodes: DiagramEditorNodeV010[];
   edges: DiagramEditorEdgeV010[];
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   actions?: DiagramEditorActionV010[];
   notice?: string;
 }
@@ -408,6 +413,18 @@ export function isDiagramEditorPageV010(
           page.viewInteraction.localSelectionHideNotice === undefined
           || nonEmpty(page.viewInteraction.localSelectionHideNotice)
         )
+        && (
+          page.viewInteraction.localVisibilityReset === undefined
+          || typeof page.viewInteraction.localVisibilityReset === "boolean"
+        )
+        && (
+          page.viewInteraction.localVisibilityResetLabel === undefined
+          || nonEmpty(page.viewInteraction.localVisibilityResetLabel)
+        )
+        && (
+          page.viewInteraction.localVisibilityResetNotice === undefined
+          || nonEmpty(page.viewInteraction.localVisibilityResetNotice)
+        )
       )
     )
     && (
@@ -460,6 +477,21 @@ export function validateDiagramEditorStateV010(
   }
   if (!Array.isArray(state.nodes)) issues.push("nodes must be an array.");
   if (!Array.isArray(state.edges)) issues.push("edges must be an array.");
+  for (const [field, value] of [
+    ["hiddenNodeIds", state.hiddenNodeIds],
+    ["hiddenEdgeIds", state.hiddenEdgeIds]
+  ] as const) {
+    if (
+      value !== undefined
+      && (
+        !Array.isArray(value)
+        || value.some(item => !nonEmpty(item))
+        || new Set(value).size !== value.length
+      )
+    ) {
+      issues.push(`${field} must contain unique non-empty strings.`);
+    }
+  }
   if (issues.length > 0) return { ok: false, issues };
 
   const nodeIds = new Set<string>();
@@ -951,6 +983,12 @@ export function mountDiagramEditorPageV010(
   let suppressNextNodeClick = false;
   const locallyHiddenNodeIds = new Set<string>();
   const locallyHiddenEdgeIds = new Set<string>();
+  const syncLocalVisibilityFromState = (): void => {
+    locallyHiddenNodeIds.clear();
+    locallyHiddenEdgeIds.clear();
+    for (const id of state?.hiddenNodeIds ?? []) locallyHiddenNodeIds.add(id);
+    for (const id of state?.hiddenEdgeIds ?? []) locallyHiddenEdgeIds.add(id);
+  };
   const navigationPointers = new Map<number, { x: number; y: number }>();
   let panLast: { x: number; y: number } | undefined;
   let pinchStartDistance: number | undefined;
@@ -987,6 +1025,7 @@ export function mountDiagramEditorPageV010(
     }
     const previousSelection = selected;
     state = stateFromResult(result.result);
+    syncLocalVisibilityFromState();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
     selected = preserveViewState && previousSelection && (
@@ -1110,10 +1149,7 @@ export function mountDiagramEditorPageV010(
       return;
     }
     state = stateFromResult(result.result);
-    if (captureViewState) {
-      locallyHiddenNodeIds.clear();
-      locallyHiddenEdgeIds.clear();
-    }
+    syncLocalVisibilityFromState();
     selected = selectionStillExists(previousSelection)
       ? previousSelection
       : undefined;
@@ -1293,6 +1329,31 @@ export function mountDiagramEditorPageV010(
       button.onclick = () => {
         activeReadPresetId = preset.id;
         void load(preset);
+      };
+      toolbar.appendChild(button);
+    }
+
+    if (page.viewInteraction?.localVisibilityReset === true) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("data-eidos-diagram-local-visibility-reset", "");
+      button.textContent =
+        page.viewInteraction.localVisibilityResetLabel ?? "Restore all";
+      button.disabled =
+        locallyHiddenNodeIds.size === 0 && locallyHiddenEdgeIds.size === 0;
+      button.onclick = () => {
+        locallyHiddenNodeIds.clear();
+        locallyHiddenEdgeIds.clear();
+        selected = undefined;
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        render();
+        followsFitToCanvas = true;
+        fitViewToCanvas();
+        report(
+          page.viewInteraction?.localVisibilityResetNotice
+          ?? "All diagram items are visible again. Save to persist the view."
+        );
       };
       toolbar.appendChild(button);
     }
