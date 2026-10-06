@@ -200,3 +200,33 @@ The built-in EOG authorization baseline explicitly allows this action for Human 
 This baseline does not grant enterprise membership by itself and does not weaken deployment governance. An explicit deployment DENY for the same action/resource still overrides the built-in ALLOW rule.
 
 "Save projection" and "Save as projection" intentionally share this authorization action because both persist Projection Gallery presentation state under the same business-definition write boundary; neither mutates Application, Ledger or posting-rule semantics.
+
+
+## Projection naming and current-view thumbnails
+
+A saved Projection has a Human-editable title independent of its stable `projectionId`.
+
+The editor exposes an explicit rename action. Renaming appends the normal Definition revision, updates only Projection Gallery presentation metadata, preserves the projection ID/view/business payload, and updates thumbnail alternative text. Projection titles must be non-empty and unique within the same gallery.
+
+Every explicit **Save projection** and **Save as projection** regenerates the Projection thumbnail from the captured current canvas view:
+
+- current camera scale and translation;
+- current canvas viewport dimensions;
+- current node placements;
+- current hidden node/relation state.
+
+The thumbnail is therefore a lightweight visual memory of what the Human was looking at when the Projection was saved, not an automatic fit-to-graph rendering. The stored artifact is a self-contained SVG data URI so Ledger Manager can render it without an additional image service/network round trip.
+
+Rename alone does not regenerate the image pixels because it does not change the view; it only refreshes thumbnail alt text.
+
+## Node visual identity boundary
+
+EOG does **not** infer business icons from node names.
+
+A renderer-owned keyword dictionary such as “库存 -> box” or “现金 -> wallet” would embed business/industry semantics into the generic visualization layer before an owning Application/Ledger plugin exists. That would create an unstable hidden ontology and make localization/industry extension ambiguous.
+
+The intended future boundary is:
+
+`owning plugin / metadata -> declared visualIdentity (for example iconKey) -> EOG/Eidos presentation`
+
+When such metadata exists, EOG may render the declared icon as a restrained background identity element. When it does not exist, the current shape/type treatment remains the fallback. No name-based icon guessing is introduced by this version.

@@ -219,6 +219,14 @@ test("Saving a projection appends a new definition revision without changing bus
     true
   );
   assert.equal(
+    readResult.result.actions.find(action => action.id === "projection.rename").label,
+    "重命名投影"
+  );
+  assert.equal(
+    readResult.result.actions.find(action => action.id === "projection.rename").textPrompt.label,
+    "请输入投影名称"
+  );
+  assert.equal(
     readResult.result.actions.find(action => action.id === "projection.save").label,
     "保存投影"
   );
@@ -251,6 +259,7 @@ test("Saving a projection appends a new definition revision without changing bus
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
           ...(hiddenEdgeId ? { hiddenEdgeIds: [hiddenEdgeId] } : {}),
+          viewport: { width: 1180, height: 640 },
           placements,
           camera: {
             scale: 1.25,
@@ -291,6 +300,15 @@ test("Saving a projection appends a new definition revision without changing bus
     translateY: -12
   });
   assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
+  assert.match(
+    projection.thumbnail.src,
+    /^data:image\/svg\+xml;charset=UTF-8,/
+  );
+  assert.match(projection.thumbnail.alt, /投影缩略图$/);
+  assert.notDeepEqual(
+    projection.thumbnail,
+    beforeGallery.projections.find(item => item.projectionId === projectionId).thumbnail
+  );
   if (hiddenEdgeId) {
     assert.deepEqual(projection.view.hiddenEdgeIds, [hiddenEdgeId]);
   }
@@ -566,6 +584,7 @@ test("Save as projection creates a new projection and leaves the source projecti
         viewState: {
           hiddenNodeIds: [state.result.nodes[0].id],
           hiddenEdgeIds: [],
+          viewport: { width: 1024, height: 576 },
           placements: state.result.nodes.slice(1).map(node => ({
             nodeId: node.id,
             x: node.x + 12,
@@ -606,8 +625,68 @@ test("Save as projection creates a new projection and leaves the source projecti
   );
   assert.ok(copy);
   assert.match(copy.title, /副本/);
+  assert.match(copy.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
+  assert.match(copy.thumbnail.alt, /投影缩略图$/);
+  assert.notDeepEqual(copy.thumbnail, original.thumbnail);
   assert.deepEqual(copy.view.hiddenNodeIds, [state.result.nodes[0].id]);
   assert.equal(sessions.get("session-a").projectionId, "projection:copy-1");
+});
+
+test("Projection may be renamed without changing business payload or view", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:09:00.000Z")
+  });
+  const save = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  const beforePayload = structuredClone(revision.payload);
+  const beforeProjection = structuredClone(
+    revision.projectionGallery.projections.find(
+      item => item.projectionId === projectionId
+    )
+  );
+
+  const result = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        enterpriseId: revision.enterpriseId,
+        definitionId: revision.definitionId,
+        definitionRevision: revision.revision,
+        projectionId,
+        expectedRevision: revision.revision,
+        operation: {
+          type: "RENAME_PROJECTION",
+          title: "资金与库存关系"
+        }
+      }
+    ),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.match(result.result.notice, /已重命名/);
+  const latest = repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  });
+  const renamed = latest.projectionGallery.projections.find(
+    item => item.projectionId === projectionId
+  );
+  assert.equal(renamed.title, "资金与库存关系");
+  assert.deepEqual(latest.payload, beforePayload);
+  assert.deepEqual(renamed.view, beforeProjection.view);
+  assert.equal(renamed.thumbnail.src, beforeProjection.thumbnail.src);
+  assert.equal(renamed.thumbnail.alt, "资金与库存关系 投影缩略图");
 });
 
 test("Projection save refuses to branch silently from a stale historical revision", async () => {

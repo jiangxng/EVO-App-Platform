@@ -106,6 +106,10 @@ export interface DiagramEditorContextNavigationV010 {
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
+  viewport?: {
+    width: number;
+    height: number;
+  };
   placements: Array<{
     nodeId: string;
     x: number;
@@ -172,6 +176,12 @@ export interface DiagramEditorActionV010 {
   operation: JsonValue;
   requiresConfirmation?: boolean;
   captureViewState?: boolean;
+  textPrompt?: {
+    label: string;
+    valueKey: string;
+    defaultValue?: string;
+    required?: boolean;
+  };
   target?: {
     kind: "graph" | "node" | "edge";
     id?: string;
@@ -618,6 +628,21 @@ export function validateDiagramEditorStateV010(
           || (
             action.captureViewState !== undefined
             && typeof action.captureViewState !== "boolean"
+          )
+          || (
+            action.textPrompt !== undefined
+            && (
+              !nonEmpty(action.textPrompt.label)
+              || !nonEmpty(action.textPrompt.valueKey)
+              || (
+                action.textPrompt.defaultValue !== undefined
+                && typeof action.textPrompt.defaultValue !== "string"
+              )
+              || (
+                action.textPrompt.required !== undefined
+                && typeof action.textPrompt.required !== "boolean"
+              )
+            )
           )
         ) {
           issues.push(`actions[${index}] is invalid.`);
@@ -1252,6 +1277,10 @@ export function mountDiagramEditorPageV010(
         ? {
             hiddenNodeIds: [...locallyHiddenNodeIds],
             hiddenEdgeIds: [...locallyHiddenEdgeIds],
+            viewport: {
+              width: Math.max(1, canvas.clientWidth),
+              height: Math.max(1, canvas.clientHeight)
+            },
             placements: visibleNodes().map(node => ({
               nodeId: node.id,
               x: node.x,
@@ -1491,8 +1520,29 @@ export function mountDiagramEditorPageV010(
       button.textContent = action.label;
       button.disabled = state.lifecycleState === "PUBLISHED";
       button.onclick = () => {
+        let operation = action.operation;
+        if (action.textPrompt) {
+          const value = window.prompt(
+            action.textPrompt.label,
+            action.textPrompt.defaultValue ?? ""
+          );
+          if (value === null) return;
+          const normalized = value.trim();
+          if (action.textPrompt.required === true && !normalized) return;
+          if (
+            operation === null
+            || typeof operation !== "object"
+            || Array.isArray(operation)
+          ) {
+            return;
+          }
+          operation = {
+            ...(operation as Record<string, JsonValue>),
+            [action.textPrompt.valueKey]: normalized
+          } as JsonValue;
+        }
         void executeOperation(
-          action.operation,
+          operation,
           action.id,
           action.requiresConfirmation === true,
           undefined,
