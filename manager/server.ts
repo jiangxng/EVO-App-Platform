@@ -308,6 +308,10 @@ import {
   createMemoryBusinessDefinitionRepositoryV010
 } from "../providers/enterprise-context/business-definitions.js";
 import {
+  createFileDefinitionProjectionStoreV010,
+  createMemoryDefinitionProjectionStoreV010
+} from "../providers/enterprise-context/definition-projection-store.js";
+import {
   createEnterpriseTemplateTransferProviderV010
 } from "../providers/enterprise-context/template-transfer.js";
 import {
@@ -1006,6 +1010,18 @@ const enterpriseBusinessDefinitionRepository =
         enterpriseBusinessDefinitionStateFile
       )
     : createMemoryBusinessDefinitionRepositoryV010();
+
+const enterpriseDefinitionProjectionStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_DEFINITION_PROJECTIONS_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-definition-projections.json")
+    : undefined);
+const enterpriseDefinitionProjectionStore =
+  enterpriseDefinitionProjectionStateFile
+    ? createFileDefinitionProjectionStoreV010(
+        enterpriseDefinitionProjectionStateFile
+      )
+    : createMemoryDefinitionProjectionStoreV010();
 
 const legacyGraphMigration = migrateLegacyEnterpriseOperatingGraphsV010({
   path: legacyEnterpriseOperatingGraphStateFile,
@@ -3662,7 +3678,8 @@ const actionRouter = createAppActionRouter(
         return viewer.createEnterpriseDefinition2dPreviewReadActionV010({
           source:
             sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
-              enterpriseBusinessDefinitionRepository
+              enterpriseBusinessDefinitionRepository,
+              enterpriseDefinitionProjectionStore
             )
         });
       }
@@ -3679,7 +3696,8 @@ const actionRouter = createAppActionRouter(
         return viewer.createEnterpriseDefinition2dPreviewSelectionReadActionV010({
           source:
             sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
-              enterpriseBusinessDefinitionRepository
+              enterpriseBusinessDefinitionRepository,
+              enterpriseDefinitionProjectionStore
             )
         });
       }
@@ -3752,9 +3770,11 @@ const actionRouter = createAppActionRouter(
           const handlers =
             editor.createEnterpriseDefinitionProjectionEditorActionHandlersV010({
               repository: enterpriseBusinessDefinitionRepository,
+              projectionStore: enterpriseDefinitionProjectionStore,
               source:
                 sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
-                  enterpriseBusinessDefinitionRepository
+                  enterpriseBusinessDefinitionRepository,
+                  enterpriseDefinitionProjectionStore
                 ),
               sessions: enterpriseDefinitionProjectionSessions,
               canManageEnterpriseContext(principal, contextId) {
@@ -5384,6 +5404,13 @@ const server = createServer(async (request, response) => {
                 VISUAL_2D_VIEWER_CAPABILITY_V010
               ),
             canPublish,
+            projectionGallery(revision) {
+              return enterpriseDefinitionProjectionStore.get({
+                enterpriseId: revision.enterpriseId,
+                definitionId: revision.definitionId,
+                definitionRevision: revision.revision
+              });
+            },
             locale: requestedLocale(url)
           })
         );
@@ -5462,6 +5489,17 @@ const server = createServer(async (request, response) => {
           200,
           module.createLedgerManagerDetailPageV010({
             revision,
+            displayRevision: module.ledgerManagerSemanticVersionV010(
+              enterpriseBusinessDefinitionRepository,
+              revision.enterpriseId,
+              revision.definitionId,
+              revision.revision
+            ),
+            projectionGallery: enterpriseDefinitionProjectionStore.get({
+              enterpriseId: revision.enterpriseId,
+              definitionId: revision.definitionId,
+              definitionRevision: revision.revision
+            }),
             viewer2dAvailable:
               manager.getSnapshot().effectiveCapabilities.includes(
                 VISUAL_2D_VIEWER_CAPABILITY_V010
@@ -5651,7 +5689,8 @@ const server = createServer(async (request, response) => {
         ]);
         const artifact =
           sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
-            enterpriseBusinessDefinitionRepository
+            enterpriseBusinessDefinitionRepository,
+            enterpriseDefinitionProjectionStore
           ).get({
             enterpriseId: selection.enterpriseId,
             definitionId: selection.definitionId,
@@ -5783,7 +5822,8 @@ const server = createServer(async (request, response) => {
         ]);
         const artifact =
           sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
-            enterpriseBusinessDefinitionRepository
+            enterpriseBusinessDefinitionRepository,
+            enterpriseDefinitionProjectionStore
           ).get({
             enterpriseId: selection.enterpriseId,
             definitionId: selection.definitionId,
