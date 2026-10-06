@@ -158,3 +158,14 @@ When saved, the captured hidden-ID sets are authoritative for that Projection. T
 The new Projection receives a unique projection ID and a deterministic copy title such as "原投影 副本", "原投影 副本 2", etc. The editor navigates to the newly created Projection after save. Gallery capacity remains governed by the existing maximum of nine projections.
 
 Neither Save nor Save As duplicates or mutates the underlying Application/Ledger objects.
+
+
+## Source return from relationship-map viewing
+
+A relationship-map Viewer opened from a product-owned Definition detail must retain an explicit product return route. The Viewer does not infer domain ownership; the Host supplies the source action.
+
+For Ledger Runtime Templates the visible flow is:
+
+`Ledger template detail -> Relationship map -> Edit projection -> Relationship map -> Ledger template detail`
+
+The "返回模板详情 / Back to template details" action targets the exact Definition ID and revision that produced the relationship map. It does not rely on browser history and does not fall back to the Ledger Manager list.
