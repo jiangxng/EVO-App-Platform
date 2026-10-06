@@ -3450,7 +3450,7 @@ function createPersonalAgentToolCatalogV010(
         };
       }
       const projectionFocus =
-        descriptor.id === "enterprise.definition_projection.current.focus_path";
+        descriptor.id === "enterprise.definition_projection.current.crop";
       const projectionSelection = projectionFocus
         ? (
             (principal.sessionId?.trim()
