@@ -477,6 +477,10 @@ function parsedHiddenIds(
 function parsedViewState(value: JsonValue | undefined): {
   hiddenNodeIds: string[];
   hiddenEdgeIds: string[];
+  viewport?: {
+    width: number;
+    height: number;
+  };
   placements: TemplateProjectionPlacementV010[];
   camera: {
     scale: number;
@@ -496,6 +500,28 @@ function parsedViewState(value: JsonValue | undefined): {
     raw.hiddenEdgeIds,
     "DEFINITION_PROJECTION_HIDDEN_EDGE_IDS_INVALID"
   );
+  let viewport: { width: number; height: number } | undefined;
+  if (raw.viewport !== undefined) {
+    if (
+      raw.viewport === null
+      || typeof raw.viewport !== "object"
+      || Array.isArray(raw.viewport)
+    ) {
+      throw new Error("DEFINITION_PROJECTION_VIEWPORT_INVALID");
+    }
+    const value = raw.viewport as Record<string, JsonValue>;
+    if (
+      typeof value.width !== "number"
+      || !Number.isFinite(value.width)
+      || value.width <= 0
+      || typeof value.height !== "number"
+      || !Number.isFinite(value.height)
+      || value.height <= 0
+    ) {
+      throw new Error("DEFINITION_PROJECTION_VIEWPORT_INVALID");
+    }
+    viewport = { width: value.width, height: value.height };
+  }
   if (!Array.isArray(raw.placements)) {
     throw new Error("DEFINITION_PROJECTION_PLACEMENTS_INVALID");
   }
@@ -547,6 +573,7 @@ function parsedViewState(value: JsonValue | undefined): {
   return {
     hiddenNodeIds,
     hiddenEdgeIds,
+    ...(viewport ? { viewport } : {}),
     placements,
     camera: {
       scale: camera.scale,
@@ -556,10 +583,141 @@ function parsedViewState(value: JsonValue | undefined): {
   };
 }
 
+function xml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function thumbnailFromCapturedView(
+  diagram: Template2dPreviewV010,
+  captured: ReturnType<typeof parsedViewState>,
+  title: string,
+  locale?: string
+): TemplateProjectionThumbnailV010 {
+  const viewport = captured.viewport ?? { width: 1280, height: 720 };
+  const outputWidth = 640;
+  const outputHeight = Math.max(
+    240,
+    Math.min(480, Math.round(outputWidth * viewport.height / viewport.width))
+  );
+  const scaleX = outputWidth / viewport.width;
+  const scaleY = outputHeight / viewport.height;
+  const hiddenNodes = new Set(captured.hiddenNodeIds);
+  const hiddenEdges = new Set(captured.hiddenEdgeIds);
+  const placements = new Map(
+    captured.placements.map(item => [item.nodeId, item] as const)
+  );
+  const visible = diagram.nodes
+    .filter(node => !hiddenNodes.has(node.id))
+    .map(node => {
+      const placement = placements.get(node.id);
+      const x = (placement?.x ?? node.x) * captured.camera.scale
+        + captured.camera.translateX;
+      const y = (placement?.y ?? node.y) * captured.camera.scale
+        + captured.camera.translateY;
+      const width = node.width * captured.camera.scale;
+      const height = node.height * captured.camera.scale;
+      return { node, x, y, width, height };
+    })
+    .filter(item =>
+      item.x + item.width >= 0
+      && item.y + item.height >= 0
+      && item.x <= viewport.width
+      && item.y <= viewport.height
+    );
+  const visibleIds = new Set(visible.map(item => item.node.id));
+  const byId = new Map(visible.map(item => [item.node.id, item] as const));
+
+  const edgeSvg = diagram.edges
+    .filter(edge =>
+      !hiddenEdges.has(edge.id)
+      && visibleIds.has(edge.source)
+      && visibleIds.has(edge.target)
+    )
+    .map(edge => {
+      const source = byId.get(edge.source)!;
+      const target = byId.get(edge.target)!;
+      const x1 = (source.x + source.width / 2) * scaleX;
+      const y1 = (source.y + source.height / 2) * scaleY;
+      const x2 = (target.x + target.width / 2) * scaleX;
+      const y2 = (target.y + target.height / 2) * scaleY;
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#94a3b8" stroke-opacity=".48" stroke-width="1.25"/>`;
+    })
+    .join("");
+
+  const nodeSvg = visible.map(item => {
+    const x = item.x * scaleX;
+    const y = item.y * scaleY;
+    const width = Math.max(3, item.width * scaleX);
+    const height = Math.max(3, item.height * scaleY);
+    const rx = item.node.shape === "rounded-rectangle" ? 8 : 3;
+    const fill = item.node.kind.toLowerCase().includes("ledger")
+      ? "#f4f7fb"
+      : "#f7faf9";
+    const label = item.node.label.length > 14
+      ? item.node.label.slice(0, 13) + "…"
+      : item.node.label;
+    const showLabel = width >= 52 && height >= 22;
+    return [
+      `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${width.toFixed(1)}" height="${height.toFixed(1)}" rx="${rx}" fill="${fill}" stroke="#cbd5e1" stroke-width="1"/>`,
+      showLabel
+        ? `<text x="${(x + width / 2).toFixed(1)}" y="${(y + height / 2 + 3).toFixed(1)}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#334155">${xml(label)}</text>`
+        : ""
+    ].join("");
+  }).join("");
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${outputWidth} ${outputHeight}">`,
+    `<rect width="100%" height="100%" fill="#ffffff"/>`,
+    `<g>${edgeSvg}</g>`,
+    `<g>${nodeSvg}</g>`,
+    `</svg>`
+  ].join("");
+
+  return {
+    src: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    alt: `${title} ${textFor(locale).thumbnailAltSuffix}`
+  };
+}
+
+function renameProjection(
+  gallery: TemplateProjectionGalleryV010,
+  projectionId: string,
+  titleValue: unknown,
+  locale?: string
+): TemplateProjectionGalleryV010 {
+  const text = textFor(locale);
+  const title = typeof titleValue === "string" ? titleValue.trim() : "";
+  if (!title) throw new Error("DEFINITION_PROJECTION_TITLE_REQUIRED: " + text.renameRequired);
+  if (
+    gallery.projections.some(item =>
+      item.projectionId !== projectionId
+      && item.title.trim().toLocaleLowerCase() === title.toLocaleLowerCase()
+    )
+  ) {
+    throw new Error("DEFINITION_PROJECTION_TITLE_DUPLICATE: " + text.renameDuplicate);
+  }
+  const next = structuredClone(gallery);
+  const projection = next.projections.find(item => item.projectionId === projectionId);
+  if (!projection) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
+  projection.title = title;
+  projection.thumbnail = {
+    ...projection.thumbnail,
+    alt: `${title} ${text.thumbnailAltSuffix}`
+  };
+  return next;
+}
+
 function mergeProjection(
   gallery: TemplateProjectionGalleryV010,
   projectionId: string,
-  captured: ReturnType<typeof parsedViewState>
+  captured: ReturnType<typeof parsedViewState>,
+  diagram: Template2dPreviewV010,
+  locale?: string
 ): TemplateProjectionGalleryV010 {
   const next = structuredClone(gallery);
   const index = next.projections.findIndex(
@@ -590,6 +748,12 @@ function mergeProjection(
   } = current.view;
   next.projections[index] = {
     ...current,
+    thumbnail: thumbnailFromCapturedView(
+      diagram,
+      captured,
+      current.title,
+      locale
+    ),
     view: {
       ...currentView,
       ...(hiddenNodeIds.length ? { hiddenNodeIds } : {}),
@@ -619,6 +783,7 @@ function saveProjectionAsNew(
   gallery: TemplateProjectionGalleryV010,
   sourceProjectionId: string,
   captured: ReturnType<typeof parsedViewState>,
+  diagram: Template2dPreviewV010,
   locale: string | undefined,
   projectionIdFactory: () => string
 ): { gallery: TemplateProjectionGalleryV010; projectionId: string } {
@@ -642,11 +807,12 @@ function saveProjectionAsNew(
 
   const hiddenNodes = new Set(captured.hiddenNodeIds);
   const next: TemplateProjectionGalleryV010 = structuredClone(gallery);
+  const title = projectionCopyTitle(next, source.title, locale);
   next.projections.push({
     projectionId,
-    title: projectionCopyTitle(next, source.title, locale),
+    title,
     ...(source.description ? { description: source.description } : {}),
-    thumbnail: structuredClone(source.thumbnail),
+    thumbnail: thumbnailFromCapturedView(diagram, captured, title, locale),
     view: {
       contractVersion: "0.1.0",
       kind: "DIAGRAM_2D",
