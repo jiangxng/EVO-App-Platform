@@ -30,7 +30,8 @@ import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
 } from "../../dist/apps/eog-2d-designer/package.js";
 import {
-  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND
+  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+  ledgerManagerDetailRouteV010
 } from "../../dist/apps/ledger-manager/constants.js";
 import {
   renderDiagramEditorPageShellToHtmlV010
@@ -126,6 +127,34 @@ test("Definition Projection Viewer-to-Editor page exposes direct edit workflow",
   assert.equal(page.viewInteraction.localSelectionHideLabel, "从投影移除");
   assert.equal(page.toolbarActions[0].label, "返回查看");
   assert.equal(page.initialCamera.scale, 1.1);
+});
+
+
+test("Relationship map can return to the exact Ledger Manager template revision", () => {
+  const backRoute = ledgerManagerDetailRouteV010("ledger:main", 3);
+  const page = createEnterpriseDefinition2dPreviewPageV010({
+    enterpriseId: "ent-a",
+    definitionId: "ledger:main",
+    definitionRevision: 3,
+    projectionId: "projection:main",
+    title: "完整账本运行时",
+    canEditProjection: true,
+    returnAction: {
+      route: backRoute,
+      label: "返回模板详情"
+    },
+    locale: "zh-CN"
+  });
+
+  assert.equal(page.toolbarActions.length, 2);
+  assert.deepEqual(page.toolbarActions[0], {
+    id: "return-to-source",
+    label: "返回模板详情",
+    route: backRoute
+  });
+  assert.equal(page.toolbarActions[1].id, "edit-projection");
+  assert.equal(page.toolbarActions[1].label, "编辑投影");
+  assert.equal(page.toolbarActions[1].primary, true);
 });
 
 test("EOG 2D uses the canvas-first professional diagram shell", () => {
