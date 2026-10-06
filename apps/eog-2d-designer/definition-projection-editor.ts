@@ -54,6 +54,8 @@ function textFor(locale?: string) {
         rename: "重命名投影",
         renamePrompt: "请输入投影名称",
         renamed: "投影已重命名。",
+        setPrimary: "设为默认投影",
+        primarySet: "已设为默认投影。",
         renameRequired: "投影名称不能为空。",
         renameDuplicate: "已存在同名投影，请使用其他名称。",
         thumbnailAltSuffix: "投影缩略图",
@@ -77,6 +79,8 @@ function textFor(locale?: string) {
         rename: "Rename projection",
         renamePrompt: "Projection name",
         renamed: "Projection renamed.",
+        setPrimary: "Set as default projection",
+        primarySet: "Default projection updated.",
         renameRequired: "Projection name is required.",
         renameDuplicate: "A projection with this name already exists.",
         thumbnailAltSuffix: "projection thumbnail",
@@ -321,6 +325,7 @@ function editorState(input: {
   locale?: string;
   saved?: boolean;
   notice?: string;
+  isPrimary?: boolean;
 }): DiagramWorkspaceStateV010 {
   const text = textFor(input.locale);
   const diagram = input.artifact.diagram2d;
@@ -396,7 +401,14 @@ function editorState(input: {
       },
       captureViewState: true,
       target: { kind: "graph" }
-    }],
+    }, ...(!input.isPrimary ? [{
+      id: "projection.set-primary",
+      label: text.setPrimary,
+      operation: {
+        type: "SET_PRIMARY_PROJECTION"
+      },
+      target: { kind: "graph" as const }
+    }] : [])],
     notice: input.notice ?? (input.saved ? text.saved : text.ready)
   };
 }
@@ -712,6 +724,21 @@ function renameProjection(
   return next;
 }
 
+function setPrimaryProjection(
+  gallery: TemplateProjectionGalleryV010,
+  projectionId: string
+): TemplateProjectionGalleryV010 {
+  if (!gallery.projections.some(item => item.projectionId === projectionId)) {
+    throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
+  }
+  if (gallery.primaryProjectionId === projectionId) {
+    throw new Error("DEFINITION_PROJECTION_ALREADY_PRIMARY");
+  }
+  const next = structuredClone(gallery);
+  next.primaryProjectionId = projectionId;
+  return next;
+}
+
 function mergeProjection(
   gallery: TemplateProjectionGalleryV010,
   projectionId: string,
@@ -884,15 +911,22 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
     handler(
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
       async (request, context) => {
-        const { artifact } = selectedArtifact({
+        const { artifact, selection } = selectedArtifact({
           source: input.source,
           sessions: input.sessions,
           context,
           values: request.values
         });
+        const revision = input.repository.listHistory({
+          enterpriseId: selection.enterpriseId,
+          definitionId: selection.definitionId
+        }).find(item => item.revision === selection.definitionRevision);
         return success(request, editorState({
           artifact,
-          locale: input.locale?.(context)
+          locale: input.locale?.(context),
+          isPrimary:
+            revision?.projectionGallery?.primaryProjectionId
+            === selection.projectionId
         }));
       }
     ),
@@ -931,7 +965,8 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           || ![
             "SAVE_PROJECTION_VIEW",
             "SAVE_PROJECTION_AS_NEW",
-            "RENAME_PROJECTION"
+            "RENAME_PROJECTION",
+            "SET_PRIMARY_PROJECTION"
           ].includes(
             String((operation as Record<string, JsonValue>).type)
           )
@@ -986,6 +1021,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         const locale = input.locale?.(context);
         const rename = operationType === "RENAME_PROJECTION";
         const saveAs = operationType === "SAVE_PROJECTION_AS_NEW";
+        const setPrimary = operationType === "SET_PRIMARY_PROJECTION";
         let nextProjection: {
           gallery: TemplateProjectionGalleryV010;
           projectionId: string;
@@ -997,6 +1033,14 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
               selection.projectionId,
               (operation as Record<string, JsonValue>).title,
               locale
+            ),
+            projectionId: selection.projectionId
+          };
+        } else if (setPrimary) {
+          nextProjection = {
+            gallery: setPrimaryProjection(
+              latest.projectionGallery,
+              selection.projectionId
             ),
             projectionId: selection.projectionId
           };
@@ -1087,9 +1131,14 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
             saved: true,
             notice: rename
               ? textFor(locale).renamed
-              : saveAs
-                ? textFor(locale).savedAs
-                : textFor(locale).saved
+              : setPrimary
+                ? textFor(locale).primarySet
+                : saveAs
+                  ? textFor(locale).savedAs
+                  : textFor(locale).saved,
+            isPrimary:
+              projectionGallery.primaryProjectionId
+              === nextProjection.projectionId
           }),
           navigateTo: definition2dEditorRouteV010({
             definitionId: saved.definitionId,
