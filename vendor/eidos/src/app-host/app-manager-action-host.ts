@@ -23,14 +23,27 @@ export function createAppManagerActionHost(
 
   return {
     async execute(request: ActionRequestV010): Promise<ActionExecutionResult> {
+      const activeContext = request.values.activeContext;
+      const contextId = (
+        activeContext !== null
+        && typeof activeContext === "object"
+        && !Array.isArray(activeContext)
+        && typeof activeContext.contextId === "string"
+        && activeContext.contextId.trim()
+      )
+        ? activeContext.contextId.trim()
+        : undefined;
+
       const actionUrl = new URL(`${baseUrl}/v1/actions`);
       const locale = options.locale?.()?.trim();
       if (locale) actionUrl.searchParams.set("locale", locale);
+
       const response = await fetchImpl(actionUrl.toString(), {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          accept: "application/json"
+          accept: "application/json",
+          ...(contextId ? { "x-evo-context-id": contextId } : {})
         },
         body: JSON.stringify(request)
       });
