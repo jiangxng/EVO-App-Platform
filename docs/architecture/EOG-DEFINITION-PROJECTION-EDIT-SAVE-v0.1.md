@@ -121,3 +121,19 @@ Potential later additions, without changing this persistence boundary:
 - explicit discard/unsaved-change guard.
 
 These are projection capabilities, not reasons to mutate business payloads.
+
+
+## Reloadable projection routes
+
+Definition projection Viewer/Editor routes are self-identifying. A browser URL carries the definition ID, definition revision and projection ID required to reconstruct the page from authoritative Enterprise Context data.
+
+Consequences:
+
+- browser reload does not depend on an in-memory selection created by the previous click;
+- browser back/forward may restore the exact projection route;
+- Viewer → Editor and Editor → Viewer preserve the same projection identity;
+- a projection thumbnail whose target is explicit navigates directly to the qualified Viewer route;
+- Ledger Manager list-level shortcuts must not guess a projection. If a specific projection is not known, no relationship-map action is shown there;
+- legacy session selection remains compatibility state only and is not the authoritative locator.
+
+The Web delivery cache policy remains unchanged. Qualified page reads continue to use normal private conditional revalidation, and immutable revisioned assets keep their existing cache behavior.
