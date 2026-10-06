@@ -68,6 +68,35 @@ Human intent
 
 Low-risk read-only operations may execute without extra confirmation.
 
+
+## 3.1 Fixed product capability vs Agent capability
+
+Personal Agent is not the exclusive interface to product capability.
+
+Use this decision rule:
+
+```text
+stable + deterministic + common + directly understandable
+→ fixed Human product function
+
+open-ended + semantic + compositional + difficult to enumerate
+→ Personal Agent
+
+same underlying governed capability
+→ reusable by both when appropriate
+```
+
+Examples:
+
+- **Auto layout** is a fixed 2D Designer function. It should be available as a button and remain usable without an LLM.
+- **Save**, **Restore**, **Rename**, **Set default** and other stable document operations remain product functions.
+- “帮我裁剪出从销售到收款的投影” is Agent-suitable because the model must interpret business meaning and choose material.
+- “把销售到收款放中间，采购放下面，财务账本统一放右边” is Agent-suitable because it composes semantic intent with visual editing primitives.
+
+Do not respond to capability growth by registering one bespoke Agent tool per new UI feature. Keep a small set of stable platform/editor contracts and let the Agent compose them where semantic reasoning is valuable.
+
+The reverse is also prohibited: do not hide a deterministic, universally useful product function behind conversation merely because Personal Agent could theoretically perform it.
+
 ## 4. Right workspace
 
 Plugin Store, Ledger Configurator, Trading Lite and future Eidos Apps open in the right pane.

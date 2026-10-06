@@ -249,6 +249,80 @@ Changing the default:
 
 The action is not shown when the current Projection is already the default. This is gallery presentation preference, not Ledger Runtime configuration.
 
+
+## Fixed Human capabilities vs Personal Agent
+
+EVO does **not** make every new function an Agent-only tool.
+
+The product boundary is:
+
+- stable, deterministic, broadly useful operations are first-class Human product capabilities;
+- open-ended intent, semantic interpretation, multi-step composition and requests that cannot reasonably be enumerated belong to Personal Agent;
+- when Personal Agent later uses a stable capability, it should invoke the same governed underlying capability instead of growing a second business-semantic implementation;
+- do not create one bespoke Agent tool for every foreseeable UI command.
+
+For the 2D Projection Editor, **Auto layout** is therefore a fixed Designer function. A Human can use it directly even when Personal Agent is unavailable. Natural-language requests such as “把销售到收款放中间，采购放下面，财务账本统一放右边” remain suitable Agent work because they require semantic interpretation and composition.
+
+This keeps Human operation complete while allowing Agent behavior to grow without turning the tool catalog into an enumeration of every button.
+
+## Fixed Auto layout
+
+Definition Projection Editor exposes **Auto layout / 自动排版** as a fixed presentation function.
+
+The first layout policy follows the established layered/hierarchical family used by mature directed-graph layout systems:
+
+1. detect connected components;
+2. break cycles deterministically for layout purposes while preserving the original graph;
+3. assign directed layers;
+4. reduce edge crossings with repeated barycenter-style sweeps;
+5. place nodes with separate inter-layer and same-layer spacing;
+6. place disconnected components without overlap;
+7. fit the resulting visible graph to the canvas.
+
+The default direction is **left to right** because Projection material is primarily directed workflow/dependency information. The algorithm is domain-neutral: Eidos does not know “销售”, “收款”, “账本”, “应用” or any other business vocabulary.
+
+Only currently visible nodes and relations participate in the layout. Hidden Projection material remains hidden.
+
+Auto layout is a **local presentation edit**, like Human node dragging:
+
+- it changes node placements only;
+- it does not mutate Applications, Ledgers, semantic relations, posting logic or Business Definition payload;
+- it does not advance a Business Definition version;
+- it does not create a Projection version;
+- the Human can continue adjusting the result before choosing **Save projection**;
+- Save persists the current placements through the existing non-versioned Projection persistence boundary.
+
+The first implementation intentionally avoids a heavyweight layout dependency while preserving the same architectural phases. A future Eidos implementation may replace the algorithm internally as long as the public contract and deterministic presentation semantics stay compatible.
+
+## Scalable Projection action area
+
+The Projection Editor action area must scale as capabilities grow. It must not become an ever-expanding horizontal row of buttons.
+
+The fixed information architecture is:
+
+```text
+Frequent / immediate
+  Auto layout
+  Save projection
+
+More
+  Restore all
+  Rename projection
+  Save as projection
+  Set as default projection (when applicable)
+  future low-frequency management actions
+```
+
+Rules:
+
+- high-frequency, task-immediate actions stay visible;
+- low-frequency management/destructive/secondary actions belong in **More**;
+- new functions must be deliberately classified as visible or overflow rather than appended to the row by default;
+- desktop and mobile use the same information architecture;
+- mobile keeps a compact single-line action surface rather than wrapping into a multi-row button wall;
+- canvas navigation controls such as zoom/Fit remain separate from document actions;
+- selection-specific actions remain in the Inspector/selection surface rather than being promoted globally.
+
 ## Personal Agent direct current-Projection authoring
 
 Personal Agent is a third operator over the same Projection model. It does not replace either the 2D Viewer or the 2D Designer.

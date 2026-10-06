@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-4-1-2026-10-06-01`  
-**Snapshot time:** `2026-10-06T21:35:00+08:00`  
+**Snapshot:** `LEDGER-EOG-PROJECTION-LIBRARY-V0-5-2026-10-06-01`  
+**Snapshot time:** `2026-10-06T22:20:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Ledger Manager / EOG Projection Library v0.4.1
+Ledger Manager / EOG Projection Library v0.5
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**personal-agent-current-editor-resource-scope-v0-4-1: MERGED_CI_PRODUCTION_PASS**
+**fixed-layered-auto-layout-scalable-actions-v0-5: MERGED_CI_PRODUCTION_PASS**
 
-Production Human validation exposed that Personal Agent current-2D tools were incorrectly filtered when chat/memory context remained Personal. PR #410 separates Personal Agent conversation context from current-editor task/resource scope: current enterprise 2D tools remain available under Personal chat context, access is rechecked against the editor enterprise, writes require Owner/Admin and are authorized in the editor enterprise scope, and canvas invalidation is published to the editor enterprise scope.
+Stable deterministic 2D layout is now a fixed Human product capability rather than an Agent-only feature. Eidos provides domain-neutral deterministic layered/hierarchical auto layout and generic action overflow; Definition Projection Editor exposes Auto layout + Save projection as frequent actions and moves Restore/Rename/Save As/Set default into More. The previous Personal Agent current-editor crop flow has also been Human-confirmed working.
 
 Authority: `docs/architecture/EOG-DEFINITION-PROJECTION-EDIT-SAVE-v0.1.md`
 
@@ -26,37 +26,40 @@ Evidence:
 
 ```json
 {
-  "humanObservedRegression": "Personal Agent context=Personal while enterprise /operating-graph is open caused current-2D tools to be absent.",
-  "appPlatformPr": 410,
-  "mergeCommit": "391b41a2cc1348d16526ab44453d272e65e6da5e",
+  "eidosPr": 126,
+  "eidosMergeCommit": "7de1b1a608385a70d5045fbfea0c005f49ed86a2",
+  "appPlatformPr": 412,
+  "appPlatformMergeCommit": "d6397d71ede4c7eb2a9fc92cf5721b8cd1b186a8",
   "platformCI": "PASS",
-  "regressionTestPersonalContextToolExposure": "PASS",
-  "regressionTestUnauthorizedEnterpriseHidden": "PASS",
-  "railwayDeploymentId": "97e8a258-e558-4e69-b26c-21c3ef59e8a2",
+  "projectContinuityCI": "PASS",
+  "railwayDeploymentId": "94a0d4f4-ff5d-475e-ab20-fab84f831864",
   "railwayDeploymentStatus": "SUCCESS",
-  "chatContextMayRemainPersonal": true,
-  "editorEnterpriseTaskScope": true,
-  "ownerAdminWriteCheck": true,
-  "editorScopedInvalidation": true
+  "layoutFamily": "LAYERED_HIERARCHICAL",
+  "defaultDirection": "RIGHT",
+  "businessDefinitionRevisionMutation": false,
+  "projectionVersioning": "NONE",
+  "fixedHumanCapability": true,
+  "scalableToolbarOverflow": true,
+  "priorPersonalAgentCropHumanValidation": "PASS"
 }
 ```
 
 ## Current open live gate
 
-**personal-agent-current-editor-human-retest-v0-4-1: READY**
+**fixed-auto-layout-human-browser-v0-5: READY**
 
-Repeat the exact production Human scenario after PR #410 with Personal Agent context left as Personal and an enterprise 2D editor open; validate tool selection, direct crop quality and automatic canvas refresh.
+Human-validate the new fixed Auto layout and scalable Projection action area in production, focusing on readability of real enterprise graphs and desktop/mobile action ergonomics.
 
 Acceptance:
 
-- Left Personal Agent panel remains on 当前上下文：个人.
-- Right Workbench keeps the intended enterprise 2D editor open (/operating-graph or a Definition Projection Editor).
-- Human says: 帮我裁剪出从销售到收款的投影.
-- Personal Agent is offered enterprise.current_2d_editor.get and enterprise.current_2d_editor.crop despite Personal chat context.
-- The Agent reads current editor material and directly updates only presentation/projection state without asking the Human to manually operate the canvas.
-- The write is authorized against the current editor's Enterprise Context and requires an ACTIVE Owner/Admin relationship.
-- The visible enterprise canvas refreshes automatically from an invalidation scoped to the editor Enterprise Context.
-- If this retest still says graph tools are unavailable, inspect the exact production Agent Run tool catalog rather than changing business semantics or asking the Human to switch context manually.
+- Open an existing Definition Projection Editor with a non-trivial visible graph.
+- The frequent action area shows 自动排版 / Auto layout and 保存投影 / Save projection without an ever-growing button row.
+- Restore all, Rename, Save As and Set default (when applicable) are available under 更多 / More.
+- Choosing 自动排版 arranges only currently visible nodes/relations in a deterministic left-to-right layered layout and automatically fits the result to the canvas.
+- Auto layout does not save immediately; the Human may inspect or manually adjust the result before Save projection.
+- Saving after Auto layout persists positions in the same Projection identity without creating a Projection version or Business Definition version.
+- The action area remains compact and usable on mobile; low-frequency actions remain in More rather than wrapping into a button wall.
+- If the real enterprise graph reveals poor crossing/component behavior, refine the generic Eidos layout algorithm rather than introducing Ledger/business-name-specific layout rules.
 
 ## Current production preview
 
@@ -65,8 +68,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `391b41a2cc1348d16526ab44453d272e65e6da5e`
-- Deployment: `97e8a258-e558-4e69-b26c-21c3ef59e8a2`
+- Commit: `d6397d71ede4c7eb2a9fc92cf5721b8cd1b186a8`
+- Deployment: `94a0d4f4-ff5d-475e-ab20-fab84f831864`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -97,7 +100,8 @@ Not proved:
 
 ## Recent mainline changes
 
-- PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; keep current-editor tools available under Personal context with editor-enterprise authorization and refresh.
+- PR #412 — MERGED_CI_PRODUCTION_PASS: Add fixed deterministic layered Auto layout to Definition Projection Editor and replace the growing action row with frequent actions plus More overflow.
+- PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; current-editor tools work while chat context remains Personal.
 - PR #409 — MERGED_CI_PRODUCTION_PASS: Unify /operating-graph and Definition Projection Editor as the Host-owned current 2D editor target for Personal Agent.
 - PR #407 — MERGED_CI_PASS: Let Personal Agent read and directly crop the currently open 2D Projection, preserving Projection identity/business revision and triggering exact mounted-canvas refresh.
 - PR #405 — MERGED_CI_PASS: Make Projection non-versioned presentation state with in-place saves, collapse legacy projection-only raw revisions into semantic Ledger versions, and adopt pane-responsive Personal Agent chat chrome from Eidos PR #125.
@@ -443,6 +447,12 @@ Not proved:
 - do not scope current-editor resource invalidation to the Personal Agent chat context; publish it to the current editor Enterprise Context
 - do not expose current enterprise editor tools solely because a stale session target exists; re-check principal access to that editor enterprise
 - do not weaken current-editor WRITE governance when chat context is Personal; Owner/Admin and material-write authorization are evaluated against the editor enterprise
+- do not make stable deterministic common product functions Agent-only merely because Personal Agent can express the same intent
+- do not create one bespoke Agent tool per foreseeable UI feature; keep stable governed editor capabilities small and composable
+- do not keep appending global Diagram/Projection header buttons as functionality grows; classify actions into frequent toolbar actions, More overflow, canvas controls, or selection Inspector actions
+- do not add Ledger, Application, sales, cash or other business vocabulary to Eidos auto-layout heuristics
+- do not make Auto layout persist immediately; it is a local presentation edit until Save projection
+- do not let Auto layout create Projection versions or Business Definition versions
 
 ## Fresh ChatGPT / LLM startup
 
@@ -632,6 +642,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state current-editor tool exposure under Personal chat context as allowed only after editor-enterprise access is rechecked
 - state current-editor writes as Owner/Admin governed and authorized against the editor Enterprise Context rather than the chat context
 - state the next live gate as re-running the exact screenshot scenario without manually switching 当前上下文 away from 个人
+- state Eidos PR #126 and App Platform PR #412 as the fixed layered Auto layout plus scalable action-area implementation
+- state stable deterministic common functions as first-class Human product capabilities while Personal Agent handles open-ended semantic/compositional intent
+- state Auto layout as domain-neutral layered/hierarchical, left-to-right by default, visible-material-only and unsaved until Save projection
+- state Projection Editor action IA as frequent Auto layout + Save projection with secondary management actions under More
+- state the prior Personal Agent current-editor crop scenario as Human-confirmed working and the next gate as Human browser validation of fixed Auto layout/action ergonomics
 
 No previous ChatGPT transcript is required.
 
