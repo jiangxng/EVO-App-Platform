@@ -5695,8 +5695,8 @@ const server = createServer(async (request, response) => {
                   {
                     id: "relationship-map",
                     label: locale.toLowerCase().startsWith("zh")
-                      ? "关系图"
-                      : "Relationship map",
+                      ? "投影视图"
+                      : "Projection view",
                     route: definition2dPreviewRouteV010({
                       definitionId: artifact.definitionId,
                       definitionRevision: artifact.definitionRevision,
@@ -5829,8 +5829,8 @@ const server = createServer(async (request, response) => {
                   {
                     id: "relationship-map",
                     label: locale.toLowerCase().startsWith("zh")
-                      ? "关系图"
-                      : "Relationship map"
+                      ? "投影视图"
+                      : "Projection view"
                   }
                 ]
               }

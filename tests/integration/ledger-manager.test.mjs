@@ -337,6 +337,6 @@ test("Ledger relationship pages declare deep context navigation instead of globa
   assert.match(source, /id: "relationship-map"/);
   assert.match(source, /id: "edit-projection"/);
   assert.match(source, /"账本管理"/);
-  assert.match(source, /"关系图"/);
+  assert.match(source, /"投影视图"/);
   assert.match(source, /"编辑投影"/);
 });

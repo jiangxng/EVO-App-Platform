@@ -6,8 +6,8 @@
 ## Human flow
 
 ```text
-Ledger Manager / owning business surface
-        ↓ View relationship map
+Ledger Manager / owning business definition detail
+        ↓ Open projection view
 Definition Projection Viewer
         ↓ Edit projection
 Definition Projection Editor
@@ -107,18 +107,31 @@ The existing Definition Projection session identifies:
 
 After a successful save the session is advanced to the newly appended revision, so subsequent editor reads continue from the saved state.
 
-## Next increments
+## Product home and next increments
+
+A Projection is not a standalone top-level EVO application. It belongs to the owning Business Definition and is entered from that definition's management surface. For Ledger Runtime Templates, the current product home is the Ledger Manager detail page and its Projection Gallery.
+
+This keeps the hierarchy stable:
+
+```text
+Ledger Manager
+  -> Ledger definition / version
+      -> Projection Gallery
+          -> Projection Viewer
+              -> Projection Editor
+```
 
 Potential later additions, without changing this persistence boundary:
 
-- projection title/description edit;
-- restore/show previously hidden node or edge;
+- projection description edit;
+- restore/show a previously hidden node or relation individually;
 - reset layout;
-- duplicate as a new projection;
-- choose/set primary projection;
-- regenerate projection thumbnail;
+- choose/set the primary projection;
 - compare projection revisions;
-- explicit discard/unsaved-change guard.
+- explicit discard/unsaved-change guard;
+- plugin-owned `visualIdentity` rendering when real owning business plugins declare it.
+
+Projection identity remains presentation metadata. EOG/Eidos must not infer domain icons from names.
 
 These are projection capabilities, not reasons to mutate business payloads.
 
@@ -166,18 +179,18 @@ Breadcrumb-style context navigation is intentionally **not** global EVO chrome. 
 
 Desktop:
 
-`账本管理 › <账本运行时模板> › 关系图`
+`账本管理 › <账本运行时模板> › 投影视图`
 
 and in edit mode:
 
-`账本管理 › <账本运行时模板> › 关系图 › 编辑投影`
+`账本管理 › <账本运行时模板> › 投影视图 › 编辑投影`
 
 The path sits above the page title inside the main workspace header. It is visually subordinate to the title and remains outside the graph canvas. Current business actions remain on the title/action row.
 
 Mobile does not render the full path. It reduces the same context to the nearest reloadable parent:
 
 - Viewer: `‹ <账本运行时模板>`
-- Editor: `‹ 关系图`
+- Editor: `‹ 投影视图`
 
 The page title stays visible below that parent affordance. This preserves context without consuming the limited canvas width.
 
