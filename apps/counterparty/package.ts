@@ -1,0 +1,113 @@
+import type { PackageManifestV010 } from "../../contracts/package.js";
+import {
+  ENTERPRISE_RESOURCE_CAPABILITY_V010
+} from "../../contracts/enterprise-resource.js";
+import {
+  COUNTERPARTY_CREATE_PAGE_ID,
+  COUNTERPARTY_CREATE_PAGE_SOURCE,
+  COUNTERPARTY_CREATE_ROUTE,
+  COUNTERPARTY_DETAIL_PAGE_ID,
+  COUNTERPARTY_DETAIL_PAGE_SOURCE,
+  COUNTERPARTY_DETAIL_ROUTE,
+  COUNTERPARTY_DIRECTORY_PAGE_ID,
+  COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
+  COUNTERPARTY_DIRECTORY_ROUTE,
+  COUNTERPARTY_FEATURE_ID,
+  COUNTERPARTY_PACKAGE_ID
+} from "./constants.js";
+
+export const counterpartyPackage: PackageManifestV010 = {
+  contractVersion: "0.1.0",
+  packageId: COUNTERPARTY_PACKAGE_ID,
+  displayName: "EVO Counterparty",
+  version: "0.1.0",
+  type: "APPLICATION",
+  publisher: {
+    id: "evo",
+    displayName: "EVO",
+    trust: "FIRST_PARTY",
+    source: "built-in"
+  },
+  compatibility: {
+    appPlatform: ">=0.1.0 <0.2.0",
+    eidos: "^1.3.0",
+    pluginProtocol: "0.1.0"
+  },
+  features: [{
+    contractVersion: "0.1.0",
+    featureId: COUNTERPARTY_FEATURE_ID,
+    packageId: COUNTERPARTY_PACKAGE_ID,
+    version: "0.1.0",
+    activationScope: "INSTALLATION",
+    defaultActivation: true,
+    requiresCapabilities: [
+      "enterprise.directory",
+      ENTERPRISE_RESOURCE_CAPABILITY_V010
+    ],
+    providesCapabilities: [
+      "enterprise.counterparty.directory"
+    ],
+    contributions: [{
+      kind: "eidos.experience",
+      manifest: {
+        contractVersion: "0.1.0",
+        experienceId: COUNTERPARTY_PACKAGE_ID,
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        defaultRoute: COUNTERPARTY_DIRECTORY_ROUTE,
+        pages: [{
+          id: COUNTERPARTY_DIRECTORY_PAGE_ID,
+          title: "Counterparties",
+          source: COUNTERPARTY_DIRECTORY_PAGE_SOURCE
+        }, {
+          id: COUNTERPARTY_CREATE_PAGE_ID,
+          title: "New Counterparty",
+          source: COUNTERPARTY_CREATE_PAGE_SOURCE
+        }, {
+          id: COUNTERPARTY_DETAIL_PAGE_ID,
+          title: "Counterparty",
+          source: COUNTERPARTY_DETAIL_PAGE_SOURCE
+        }],
+        routes: [{
+          id: COUNTERPARTY_DIRECTORY_PAGE_ID,
+          path: COUNTERPARTY_DIRECTORY_ROUTE,
+          pageId: COUNTERPARTY_DIRECTORY_PAGE_ID
+        }, {
+          id: COUNTERPARTY_CREATE_PAGE_ID,
+          path: COUNTERPARTY_CREATE_ROUTE,
+          pageId: COUNTERPARTY_CREATE_PAGE_ID
+        }, {
+          id: COUNTERPARTY_DETAIL_PAGE_ID,
+          path: COUNTERPARTY_DETAIL_ROUTE,
+          pageId: COUNTERPARTY_DETAIL_PAGE_ID
+        }],
+        navigation: [{
+          id: "evo-counterparty.nav",
+          label: "Counterparties",
+          route: COUNTERPARTY_DIRECTORY_ROUTE,
+          order: 35
+        }]
+      }
+    }, {
+      kind: "eidos.localization-bundle",
+      bundle: {
+        contractVersion: "0.1.0",
+        namespace: COUNTERPARTY_PACKAGE_ID,
+        locale: "en",
+        messages: {
+          "navigation.evo-counterparty.nav.label": "Counterparties"
+        }
+      }
+    }, {
+      kind: "eidos.localization-bundle",
+      bundle: {
+        contractVersion: "0.1.0",
+        namespace: COUNTERPARTY_PACKAGE_ID,
+        locale: "zh-CN",
+        messages: {
+          "navigation.evo-counterparty.nav.label": "往来对象"
+        }
+      }
+    }]
+  }]
+};
