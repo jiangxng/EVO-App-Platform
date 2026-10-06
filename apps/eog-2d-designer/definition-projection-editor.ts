@@ -368,6 +368,19 @@ function editorState(input: {
         : {})
     })),
     actions: [{
+      id: "projection.rename",
+      label: text.rename,
+      operation: {
+        type: "RENAME_PROJECTION"
+      },
+      textPrompt: {
+        label: text.renamePrompt,
+        valueKey: "title",
+        defaultValue: input.artifact.title,
+        required: true
+      },
+      target: { kind: "graph" }
+    }, {
       id: "projection.save",
       label: text.save,
       operation: {
