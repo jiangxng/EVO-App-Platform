@@ -136,8 +136,8 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       }
       return source.listEffectiveExperienceManifests();
     },
-    loadPage(page) {
-      return source.loadPage(page);
+    loadPage(page, readOptions) {
+      return source.loadPage(page, readOptions);
     }
   });
 
