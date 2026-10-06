@@ -5,7 +5,7 @@ import type {
   JsonValue
 } from "../../actions/contracts.js";
 import {
-  DEFINITION_2D_EDITOR_ROUTE_V010,
+  definition2dEditorRouteV010,
   type DefinitionProjectionArtifactSourceV010
 } from "../../contracts/definition-projection.js";
 import type {
@@ -154,7 +154,11 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
           toolbarActions: [{
             id: "edit-projection",
             label: zh ? "编辑投影" : "Edit projection",
-            route: DEFINITION_2D_EDITOR_ROUTE_V010,
+            route: definition2dEditorRouteV010({
+              definitionId: input.definitionId,
+              definitionRevision: input.definitionRevision,
+              projectionId: input.projectionId
+            }),
             primary: true
           }]
         }
