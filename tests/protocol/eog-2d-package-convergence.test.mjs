@@ -23,6 +23,8 @@ test("EOG 2D is one Package with Viewer and Designer feature profiles", () => {
 
   assert.ok(viewer);
   assert.ok(designer);
+  assert.equal(viewer.defaultActivation, true);
+  assert.equal(designer.defaultActivation, true);
   assert.deepEqual(
     viewer.providesCapabilities,
     [EOG_2D_VIEWER_CAPABILITY, "visual.viewer.2d"]
@@ -51,5 +53,16 @@ test("EOG 2D is one Package with Viewer and Designer feature profiles", () => {
   assert.equal(
     designer.contributions[0].manifest.packageId,
     EOG_2D_PACKAGE_ID
+  );
+});
+
+
+test("server migrates Viewer-only EOG 2D installs to the Designer profile", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+  assert.match(
+    source,
+    /featureId === EOG_2D_VIEWER_FEATURE_ID[\s\S]*?!eog2dStartupSnapshot\.activeFeatures\.some\([\s\S]*?EOG_2D_DESIGNER_FEATURE_ID[\s\S]*?manager\.enable\(EOG_2D_DESIGNER_PACKAGE_ID\)/
   );
 });
