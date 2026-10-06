@@ -93,6 +93,16 @@ export interface DiagramEditorToolbarActionV010 {
   primary?: boolean;
 }
 
+export interface DiagramEditorContextNavigationItemV010 {
+  id: string;
+  label: string;
+  route?: string;
+}
+
+export interface DiagramEditorContextNavigationV010 {
+  items: DiagramEditorContextNavigationItemV010[];
+}
+
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
@@ -120,6 +130,7 @@ export interface DiagramEditorPageV010 {
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
   toolbarActions?: DiagramEditorToolbarActionV010[];
+  contextNavigation?: DiagramEditorContextNavigationV010;
   initialCamera?: DiagramCameraTransformV010;
   viewInteraction?: DiagramEditorViewInteractionV010;
   showTechnicalMetadata?: boolean;
@@ -364,6 +375,23 @@ export function isDiagramEditorPageV010(
           && (
             action.primary === undefined
             || typeof action.primary === "boolean"
+          )
+        )
+      )
+    )
+    && (
+      page.contextNavigation === undefined
+      || (
+        Array.isArray(page.contextNavigation.items)
+        && page.contextNavigation.items.length >= 2
+        && new Set(page.contextNavigation.items.map(item => item.id)).size
+          === page.contextNavigation.items.length
+        && page.contextNavigation.items.every(item =>
+          nonEmpty(item?.id)
+          && nonEmpty(item?.label)
+          && (
+            item.route === undefined
+            || (nonEmpty(item.route) && item.route.startsWith("/"))
           )
         )
       )
@@ -716,6 +744,31 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
+function renderDiagramContextNavigationV010(
+  page: DiagramEditorPageV010
+): string {
+  const items = page.contextNavigation?.items ?? [];
+  if (items.length < 2) return "";
+
+  const desktop = items.map((item, index) => {
+    const current = index === items.length - 1;
+    const content = item.route
+      ? `<button type="button" data-eidos-diagram-context-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button>`
+      : `<span${current ? ' aria-current="page"' : ""}>${escapeHtml(item.label)}</span>`;
+    return `${index > 0 ? '<span data-eidos-context-separator aria-hidden="true">›</span>' : ""}${content}`;
+  }).join("");
+
+  const parent = [...items.slice(0, -1)].reverse().find(item => item.route);
+  const mobile = parent?.route
+    ? `<button type="button" data-eidos-diagram-context-route="${escapeHtml(parent.route)}" data-eidos-mobile-context-parent>‹ ${escapeHtml(parent.label)}</button>`
+    : "";
+
+  return `<nav data-eidos-diagram-context-navigation aria-label="Context navigation">
+<div data-eidos-context-navigation-desktop>${desktop}</div>
+<div data-eidos-context-navigation-mobile>${mobile}</div>
+</nav>`;
+}
+
 export function renderDiagramEditorPageShellToHtmlV010(
   page: DiagramEditorPageV010
 ): string {
@@ -731,6 +784,10 @@ export function renderDiagramEditorPageShellToHtmlV010(
 }
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"]>header{
   min-height:40px;
+  display:grid;
+  gap:4px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-heading-row]{
   display:flex;
   align-items:center;
   gap:10px;
@@ -741,6 +798,47 @@ export function renderDiagramEditorPageShellToHtmlV010(
   font-size:1.125rem;
   line-height:1.25;
   font-weight:650;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-context-navigation]{
+  min-width:0;
+  min-height:22px;
+  color:var(--eidos-fg-muted,#5F6B76);
+  font-size:var(--eidos-font-meta,.75rem);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop]{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] button,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile] button{
+  appearance:none;
+  border:0;
+  padding:0;
+  background:transparent;
+  color:var(--eidos-fg-muted,#5F6B76);
+  font:inherit;
+  cursor:pointer;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] button:hover,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile] button:hover{
+  color:var(--eidos-primary,#2B6CB0);
+  text-decoration:underline;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] span[aria-current="page"]{
+  color:var(--eidos-fg,#1F2933);
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-separator]{
+  color:color-mix(in srgb,var(--eidos-fg-muted,#5F6B76) 58%,transparent);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile]{
+  display:none;
 }
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-lifecycle],
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-revision]{
@@ -849,6 +947,17 @@ export function renderDiagramEditorPageShellToHtmlV010(
     height:auto;
     min-height:0;
   }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop]{
+    display:none;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile]{
+    display:flex;
+    align-items:center;
+    min-height:28px;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-heading-row]{
+    align-items:flex-start;
+  }
   [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout],
   [data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-layout]{
     grid-template-columns:minmax(0,1fr);
@@ -859,10 +968,13 @@ export function renderDiagramEditorPageShellToHtmlV010(
 }
 </style>
 <header>
+${renderDiagramContextNavigationV010(page)}
+<div data-eidos-diagram-heading-row>
 <h1>${escapeHtml(page.title)}</h1>
 <span data-eidos-diagram-lifecycle></span>
 <span data-eidos-diagram-revision></span>
 <div data-eidos-diagram-toolbar></div>
+</div>
 </header>
 <div data-eidos-diagram-layout>
 <div data-eidos-diagram-canvas-wrap>
@@ -996,6 +1108,19 @@ export function mountDiagramEditorPageV010(
   let pinchLastMidpoint: { x: number; y: number } | undefined;
   const touchDragThresholdPx = 8;
   const listeners: Array<() => void> = [];
+
+  for (const button of Array.from(
+    root.querySelectorAll<HTMLButtonElement>(
+      "[data-eidos-diagram-context-route]"
+    )
+  )) {
+    const onContextNavigate = (): void => {
+      const route = button.dataset.eidosDiagramContextRoute?.trim();
+      if (route && options.onNavigate) void options.onNavigate(route);
+    };
+    button.addEventListener("click", onContextNavigate);
+    listeners.push(() => button.removeEventListener("click", onContextNavigate));
+  }
 
   const report = (message: string): void => {
     if (!disposed) status.textContent = message;
