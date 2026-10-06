@@ -366,3 +366,43 @@ test("deployment explicit deny overrides EOG projection save baseline", async ()
     ]
   );
 });
+
+
+test("EOG projection baseline remains fail-closed for non-Human actors", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      eogDefinitionProjectionAuthorizationPolicyV010
+    )
+  );
+  const decision = await provider.check({
+    ...check(
+      EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+      EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010
+    ),
+    principal: {
+      ...principal,
+      actorType: "AGENT"
+    }
+  });
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(decision.reasonCodes, ["STATIC_POLICY_NO_MATCH"]);
+});
+
+test("App Platform composes the EOG projection baseline into Host authorization", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+  assert.match(
+    source,
+    /enterpriseContextGovernanceAuthorizationPolicyV010,[\s\S]*eogDefinitionProjectionAuthorizationPolicyV010,[\s\S]*ledgerManagerAuthorizationPolicyV010/
+  );
+  assert.match(
+    source,
+    /action:\s*EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010/
+  );
+  assert.match(
+    source,
+    /type:\s*EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010/
+  );
+});
