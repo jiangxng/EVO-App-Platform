@@ -5,7 +5,8 @@ import {
   createMemoryBusinessDefinitionRepositoryV010
 } from "../../dist/providers/enterprise-context/business-definitions.js";
 import {
-  createMemoryDefinitionProjectionSessionStoreV010
+  createMemoryDefinitionProjectionSessionStoreV010,
+  definition2dPreviewRouteV010
 } from "../../dist/contracts/definition-projection.js";
 import {
   ledgerRuntimeBaselineBundleV010
@@ -152,13 +153,14 @@ test("Ledger Manager detail route survives reload without transient selection st
   assert.equal(detail.secondaryActions[0].type, "navigate");
   assert.equal(detail.secondaryActions[0].route, LEDGER_MANAGER_ROUTE);
   assert.equal(detail.gallery.items.length, 1);
+  assert.equal(detail.gallery.items[0].action.type, "navigate");
   assert.equal(
-    detail.gallery.items[0].action.command,
-    "ledger.manager.preview-projection"
-  );
-  assert.equal(
-    detail.gallery.items[0].action.values.projectionId,
-    "projection:main"
+    detail.gallery.items[0].action.route,
+    definition2dPreviewRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId: revision.projectionGallery.primaryProjectionId
+    })
   );
 });
 
