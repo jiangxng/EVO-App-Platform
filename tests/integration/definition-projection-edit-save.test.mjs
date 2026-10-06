@@ -118,6 +118,8 @@ test("Definition Projection Viewer-to-Editor page exposes direct edit workflow",
   });
 
   assert.equal(page.kind, "diagram-workspace");
+  assert.equal(page.viewInteraction.localVisibilityReset, true);
+  assert.equal(page.viewInteraction.localVisibilityResetLabel, "恢复全部");
   assert.equal(page.operationCommand.code, EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
   assert.equal(page.viewInteraction.localNodeDrag, true);
   assert.equal(page.viewInteraction.localSelectionHide, true);
@@ -215,6 +217,14 @@ test("Saving a projection appends a new definition revision without changing bus
   assert.equal(
     readResult.result.actions.some(action => action.id === "projection.save"),
     true
+  );
+  assert.equal(
+    readResult.result.actions.find(action => action.id === "projection.save").label,
+    "保存投影"
+  );
+  assert.equal(
+    readResult.result.actions.find(action => action.id === "projection.save-as").label,
+    "另存投影"
   );
 
   const nodes = readResult.result.nodes;
@@ -381,6 +391,223 @@ test("Projection editor read/save survives without transient projection session 
       projectionId
     })
   );
+});
+
+
+test("Restore all can reveal previously hidden projection items and persist that complete view", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers0 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:06:00.000Z")
+  });
+  const read0 = handlers0.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save0 = handlers0.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  const identity0 = {
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  };
+  const initial = await read0.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity0),
+    context()
+  );
+  assert.equal(initial.ok, true);
+  const hiddenNodeId = initial.result.nodes[0].id;
+
+  const hidden = await save0.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        ...identity0,
+        expectedRevision: 0,
+        operation: { type: "SAVE_PROJECTION_VIEW" },
+        viewState: {
+          hiddenNodeIds: [hiddenNodeId],
+          hiddenEdgeIds: [],
+          placements: initial.result.nodes
+            .filter(node => node.id !== hiddenNodeId)
+            .map(node => ({ nodeId: node.id, x: node.x, y: node.y })),
+          camera: { scale: 1, translateX: 0, translateY: 0 }
+        }
+      }
+    ),
+    context()
+  );
+  assert.equal(hidden.ok, true);
+
+  const handlers1 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:07:00.000Z")
+  });
+  const read1 = handlers1.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save1 = handlers1.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  const identity1 = {
+    ...identity0,
+    definitionRevision: 1
+  };
+  const afterHide = await read1.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity1),
+    context()
+  );
+  assert.equal(afterHide.ok, true);
+  assert.deepEqual(afterHide.result.hiddenNodeIds, [hiddenNodeId]);
+  assert.equal(
+    afterHide.result.nodes.some(node => node.id === hiddenNodeId),
+    true
+  );
+
+  const restored = await save1.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        ...identity1,
+        expectedRevision: 1,
+        operation: { type: "SAVE_PROJECTION_VIEW" },
+        viewState: {
+          hiddenNodeIds: [],
+          hiddenEdgeIds: [],
+          placements: afterHide.result.nodes.map(node => ({
+            nodeId: node.id,
+            x: node.x,
+            y: node.y
+          })),
+          camera: { scale: 1, translateX: 0, translateY: 0 }
+        }
+      }
+    ),
+    context()
+  );
+  assert.equal(restored.ok, true);
+
+  const latest = repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  });
+  const projection = latest.projectionGallery.projections.find(
+    item => item.projectionId === projectionId
+  );
+  assert.equal(projection.view.hiddenNodeIds, undefined);
+  assert.equal(projection.view.hiddenEdgeIds, undefined);
+
+  const visible = source.get({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: latest.revision,
+    projectionId
+  });
+  assert.equal(
+    visible.diagram2d.nodes.some(node => node.id === hiddenNodeId),
+    true
+  );
+});
+
+test("Save as projection creates a new projection and leaves the source projection unchanged", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:08:00.000Z"),
+    projectionIdFactory: () => "projection:copy-1"
+  });
+  const read = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save = handlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  const identity = {
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  };
+  const state = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity),
+    context()
+  );
+  const original = structuredClone(revision.projectionGallery.projections.find(
+    item => item.projectionId === projectionId
+  ));
+
+  const result = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        ...identity,
+        expectedRevision: revision.revision,
+        operation: { type: "SAVE_PROJECTION_AS_NEW" },
+        viewState: {
+          hiddenNodeIds: [state.result.nodes[0].id],
+          hiddenEdgeIds: [],
+          placements: state.result.nodes.slice(1).map(node => ({
+            nodeId: node.id,
+            x: node.x + 12,
+            y: node.y + 8
+          })),
+          camera: { scale: 0.8, translateX: 24, translateY: -16 }
+        }
+      }
+    ),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.match(result.result.notice, /另存为新投影/);
+  assert.equal(
+    result.result.navigateTo,
+    definition2dEditorRouteV010({
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision + 1,
+      projectionId: "projection:copy-1"
+    })
+  );
+
+  const latest = repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  });
+  assert.equal(
+    latest.projectionGallery.projections.length,
+    revision.projectionGallery.projections.length + 1
+  );
+  assert.deepEqual(
+    latest.projectionGallery.projections.find(item => item.projectionId === projectionId),
+    original
+  );
+  const copy = latest.projectionGallery.projections.find(
+    item => item.projectionId === "projection:copy-1"
+  );
+  assert.ok(copy);
+  assert.match(copy.title, /副本/);
+  assert.deepEqual(copy.view.hiddenNodeIds, [state.result.nodes[0].id]);
+  assert.equal(sessions.get("session-a").projectionId, "projection:copy-1");
 });
 
 test("Projection save refuses to branch silently from a stale historical revision", async () => {

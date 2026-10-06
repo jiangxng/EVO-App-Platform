@@ -4,6 +4,7 @@ import type { ActionRequestV010 } from "../runtime/contracts.js";
 export interface AppManagerActionHostOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  locale?: () => string | undefined;
 }
 
 function normalizeBaseUrl(value: string): string {
@@ -33,7 +34,11 @@ export function createAppManagerActionHost(
         ? activeContext.contextId.trim()
         : undefined;
 
-      const response = await fetchImpl(`${baseUrl}/v1/actions`, {
+      const actionUrl = new URL(`${baseUrl}/v1/actions`);
+      const locale = options.locale?.()?.trim();
+      if (locale) actionUrl.searchParams.set("locale", locale);
+
+      const response = await fetchImpl(actionUrl.toString(), {
         method: "POST",
         headers: {
           "content-type": "application/json",

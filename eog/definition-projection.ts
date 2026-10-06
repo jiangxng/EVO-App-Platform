@@ -375,11 +375,14 @@ export function applyDefinitionProjectionV010(input: {
   diagram: Template2dPreviewV010 | undefined;
   gallery?: TemplateProjectionGalleryV010;
   projectionId?: string;
+  includeHidden?: boolean;
 }): {
   diagram2d?: Template2dPreviewV010;
   projectionId?: string;
   title?: string;
   description?: string;
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   camera?: {
     scale: number;
     translateX: number;
@@ -420,7 +423,7 @@ export function applyDefinitionProjectionV010(input: {
   );
 
   const nodes = input.diagram.nodes
-    .filter(node => !hiddenNodes.has(node.id))
+    .filter(node => input.includeHidden === true || !hiddenNodes.has(node.id))
     .map(node => {
       const placement = placements.get(node.id);
       return placement
@@ -430,7 +433,7 @@ export function applyDefinitionProjectionV010(input: {
   const visibleNodeIds = new Set(nodes.map(node => node.id));
   const edges = input.diagram.edges
     .filter(edge =>
-      !hiddenEdges.has(edge.id)
+      (input.includeHidden === true || !hiddenEdges.has(edge.id))
       && visibleNodeIds.has(edge.source)
       && visibleNodeIds.has(edge.target)
     )
@@ -440,6 +443,12 @@ export function applyDefinitionProjectionV010(input: {
     projectionId,
     title: projection.title,
     ...(projection.description ? { description: projection.description } : {}),
+    ...(projection.view.hiddenNodeIds?.length
+      ? { hiddenNodeIds: [...projection.view.hiddenNodeIds] }
+      : {}),
+    ...(projection.view.hiddenEdgeIds?.length
+      ? { hiddenEdgeIds: [...projection.view.hiddenEdgeIds] }
+      : {}),
     ...(projection.view.camera
       ? { camera: structuredClone(projection.view.camera) }
       : {}),

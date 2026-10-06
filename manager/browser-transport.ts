@@ -20,6 +20,7 @@ export function createRevisionAwareBrowserTransportV010(options: {
   fetchImpl?: typeof fetch;
   onUpdateAvailable?: (hostRevision: string) => void;
   onCurrentRevision?: (hostRevision: string) => void;
+  onAuthenticationRequired?: () => void;
   selectedContextId?: () => string | undefined;
 }): RevisionAwareBrowserTransportV010 {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
@@ -48,10 +49,23 @@ export function createRevisionAwareBrowserTransportV010(options: {
       }
     }
 
+    const requestCredentials =
+      init?.credentials
+      ?? (input instanceof Request ? input.credentials : undefined)
+      ?? (sameOrigin ? "same-origin" : undefined);
     const response = await fetchImpl(input, {
       ...init,
+      ...(requestCredentials ? { credentials: requestCredentials } : {}),
       headers
     });
+
+    if (
+      sameOrigin
+      && response.status === 401
+      && !target.pathname.startsWith("/auth/")
+    ) {
+      options.onAuthenticationRequired?.();
+    }
 
     if (sameOrigin) {
       const hostRevision = response.headers.get("x-evo-host-revision")?.trim();

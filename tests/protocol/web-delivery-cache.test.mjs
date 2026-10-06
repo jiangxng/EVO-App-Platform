@@ -8,6 +8,9 @@ import {
 import {
   createAppHostShellHtmlV010
 } from "../../dist/manager/app-host-shell.js";
+import {
+  createRevisionAwareBrowserTransportV010
+} from "../../dist/manager/browser-transport.js";
 
 test("versioned browser assets are immutable while legacy URLs revalidate", () => {
   const revision = normalizeAssetRevisionV010("f154450b4cef");
@@ -105,4 +108,67 @@ test("relative ESM imports stay inside the same asset revision namespace", () =>
     imported.pathname,
     "/assets/rev-1/vendor/eidos/src/workbench/index.js"
   );
+});
+
+
+test("same-origin protected 401 responses enter authentication recovery and preserve cookies", async () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      origin: "https://evo.example",
+      pathname: "/",
+      search: "",
+      hash: "#/definition-preview/2d/edit?definitionId=ledger%3Amain"
+    }
+  };
+
+  try {
+    let authenticationRequired = 0;
+    let capturedInit;
+    const transport = createRevisionAwareBrowserTransportV010({
+      importUrl:
+        "https://evo.example/assets/rev-1/manager/app-host-client.js",
+      fetchImpl: async (_input, init) => {
+        capturedInit = init;
+        return new Response(JSON.stringify({
+          ok: false,
+          error: { code: "AUTHENTICATION_REQUIRED" }
+        }), {
+          status: 401,
+          headers: {
+            "content-type": "application/json",
+            "x-evo-host-revision": "rev-1"
+          }
+        });
+      },
+      onAuthenticationRequired() {
+        authenticationRequired += 1;
+      }
+    });
+
+    await transport.fetch("/v1/actions", { method: "POST" });
+    assert.equal(authenticationRequired, 1);
+    assert.equal(capturedInit.credentials, "same-origin");
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
+test("App Host client returns to the exact hash route after re-login", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../manager/app-host-client.ts", import.meta.url),
+      "utf8"
+    )
+  );
+  assert.match(source, /onAuthenticationRequired\(\)/);
+  assert.match(
+    source,
+    /window\.location\.pathname[\s\S]*window\.location\.search[\s\S]*window\.location\.hash/
+  );
+  assert.match(source, /\/auth\/login\?returnTo=/);
 });

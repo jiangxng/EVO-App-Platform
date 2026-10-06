@@ -105,11 +105,12 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   fetchImpl?: typeof fetch;
 }): Promise<DesktopWorkbenchRuntimeV010> {
   const source = options.source;
+  let activeLocale = options.initialLocale;
   const actionHost = createAppManagerActionHost({
     baseUrl: options.baseUrl,
-    fetchImpl: options.fetchImpl
+    fetchImpl: options.fetchImpl,
+    locale: () => activeLocale
   });
-  let activeLocale = options.initialLocale;
   let activeTextScale: EidosTextScalePreferenceV010 =
     normalizeEidosTextScalePreferenceV010(
       window.localStorage.getItem("evo.textScale")

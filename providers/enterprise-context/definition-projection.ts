@@ -43,7 +43,8 @@ export function createEnterpriseDefinitionProjectionArtifactSourceV010(
         ...(revision.projectionGallery
           ? { gallery: revision.projectionGallery }
           : {}),
-        ...(input.projectionId ? { projectionId: input.projectionId } : {})
+        ...(input.projectionId ? { projectionId: input.projectionId } : {}),
+        ...(input.includeHidden === true ? { includeHidden: true } : {})
       });
       const artifact: DefinitionProjectionArtifactV010 = {
         contractVersion: "0.1.0",
@@ -60,6 +61,12 @@ export function createEnterpriseDefinitionProjectionArtifactSourceV010(
         definitionKind: revision.kind,
         ...(projected.diagram2d
           ? { diagram2d: projected.diagram2d }
+          : {}),
+        ...(projected.hiddenNodeIds?.length
+          ? { hiddenNodeIds: [...projected.hiddenNodeIds] }
+          : {}),
+        ...(projected.hiddenEdgeIds?.length
+          ? { hiddenEdgeIds: [...projected.hiddenEdgeIds] }
           : {}),
         ...(projected.camera
           ? { camera: projected.camera }

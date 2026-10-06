@@ -74,6 +74,7 @@ export async function mountMobileReadRuntimeV010(options: {
   source: ExperienceSource;
   bootstrapManifests: unknown[];
   path: string;
+  locale: string;
   baseUrl: string;
   fetchImpl?: typeof fetch;
 }): Promise<MobileReadRuntimeV010> {
@@ -90,7 +91,10 @@ export async function mountMobileReadRuntimeV010(options: {
   );
   if (!page) throw new Error("EVO_MOBILE_READ_PAGE_NOT_FOUND");
 
-  const definition = await options.source.loadPage(page);
+  const definition = await options.source.loadPage(
+    page,
+    { routePath: options.path }
+  );
   if (!isEntityInspectorReaderPageV010(definition)) {
     throw new Error("EVO_MOBILE_READ_UNSUPPORTED_PAGE_KIND");
   }
@@ -115,7 +119,8 @@ export async function mountMobileReadRuntimeV010(options: {
   const controller = new AbortController();
   const actionHost = createAppManagerActionHost({
     baseUrl: options.baseUrl,
-    fetchImpl: options.fetchImpl
+    fetchImpl: options.fetchImpl,
+    locale: () => options.locale
   });
 
   const request: ActionRequestV010 = {
