@@ -91,3 +91,18 @@ test("vendored Eidos Workbench owns action-result navigation and empty-hash reco
   assert.match(source, /window\.history\.replaceState/);
   assert.match(source, /void navigateWorkspace\(fallback\)/);
 });
+
+
+test("Desktop Workbench forwards qualified route read options to the page source", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(
+    source,
+    /loadPage\(page, readOptions\)\s*\{\s*return source\.loadPage\(page, readOptions\);\s*\}/
+  );
+});
