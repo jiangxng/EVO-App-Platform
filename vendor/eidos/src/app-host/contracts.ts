@@ -92,6 +92,7 @@ export interface AppHostLoadedPageV010 extends AppHostResolvedRouteV010 {
 
 export interface ExperienceReadOptionsV010 {
   signal?: AbortSignal;
+  routePath?: string;
 }
 
 export interface ExperienceSource {

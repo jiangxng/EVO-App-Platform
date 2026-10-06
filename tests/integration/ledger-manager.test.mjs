@@ -11,6 +11,7 @@ import {
   ledgerRuntimeBaselineBundleV010
 } from "../../dist/apps/template-store/seed-records.js";
 import {
+  createLedgerManagerDetailPageV010,
   createLedgerManagerPageV010,
   ledgerManagerVersionLabelV010
 } from "../../dist/apps/ledger-manager/page.js";
@@ -18,7 +19,11 @@ import {
   createLedgerManagerActionHandlersV010
 } from "../../dist/apps/ledger-manager/actions.js";
 import {
-  LEDGER_MANAGER_PUBLISH_COMMAND
+  LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+  LEDGER_MANAGER_PUBLISH_COMMAND,
+  LEDGER_MANAGER_ROUTE,
+  ledgerManagerDetailRouteV010,
+  parseLedgerManagerDetailRouteV010
 } from "../../dist/apps/ledger-manager/constants.js";
 
 function seededRepository() {
@@ -108,15 +113,73 @@ test("Ledger Manager presents copied revision zero as default", () => {
   assert.equal(page.items[0].summary, "Default version · From template · 1 view");
   assert.equal(page.items[0].primaryAction.command, LEDGER_MANAGER_PUBLISH_COMMAND);
   assert.equal(page.items[0].primaryAction.label, "Publish");
-  assert.ok(
-    page.items[0].secondaryActions.some(
-      item => item.command === "ledger.manager.open-detail"
-    )
+  const details = page.items[0].secondaryActions.find(
+    item => item.id === "details"
+  );
+  assert.equal(details.type, "navigate");
+  assert.equal(
+    details.route,
+    ledgerManagerDetailRouteV010("ledger:main", 0)
   );
   assert.ok(
     page.items[0].secondaryActions.some(
       item => item.command === "ledger.manager.preview-projection"
     )
+  );
+});
+
+test("Ledger Manager detail route survives reload without transient selection state", () => {
+  const route = ledgerManagerDetailRouteV010("ledger:main", 0);
+  assert.deepEqual(parseLedgerManagerDetailRouteV010(route), {
+    definitionId: "ledger:main",
+    definitionRevision: 0
+  });
+
+  const repository = seededRepository();
+  const revision = repository.listHistory({
+    enterpriseId: "ent-a",
+    definitionId: "ledger:main"
+  })[0];
+  const detail = createLedgerManagerDetailPageV010({
+    revision,
+    viewer2dAvailable: true,
+    canPublish: true,
+    locale: "zh-CN"
+  });
+
+  assert.equal(detail.secondaryActions[0].label, "返回账本管理");
+  assert.equal(detail.secondaryActions[0].type, "navigate");
+  assert.equal(detail.secondaryActions[0].route, LEDGER_MANAGER_ROUTE);
+});
+
+test("legacy Ledger Manager open-detail command returns the qualified reloadable route", async () => {
+  const repository = seededRepository();
+  const handlers = createLedgerManagerActionHandlersV010({
+    repository,
+    projectionSessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    resolveAuthorizationProvider: () => undefined,
+    canManageEnterpriseContext: () => true,
+    viewerAvailable: () => true,
+    async publishToLedgerRuntime() {
+      throw new Error("not used");
+    }
+  });
+  const open = handlers.find(
+    item => item.commandCode === LEDGER_MANAGER_OPEN_DETAIL_COMMAND
+  );
+  assert.ok(open);
+
+  const result = await open.execute(
+    request(LEDGER_MANAGER_OPEN_DETAIL_COMMAND, {
+      definitionId: "ledger:main",
+      definitionRevision: 0
+    }),
+    context()
+  );
+  assert.equal(result.ok, true);
+  assert.equal(
+    result.result.navigateTo,
+    ledgerManagerDetailRouteV010("ledger:main", 0)
   );
 });
 

@@ -360,3 +360,20 @@ For `enterprise-agent.home`:
 - `/enterprise-agent/setup` on mobile task -> HANDOFF rather than mobile-home substitution.
 
 The Surface Gateway is presentation routing only and does not change Principal, Context, authorization or Agent command semantics.
+
+
+## 14. Reloadable detail routes and browser history
+
+A Human-visible contextual page must be reconstructable from its browser route. A detail page must not depend exclusively on transient in-memory selection created by the previous click.
+
+For contextual detail/deep-link routes:
+
+- the declared Experience route remains the stable base path;
+- reloadable item/revision identity may travel as a query-qualified route;
+- App Host matches the declared base route while forwarding the exact qualified route to the owning page source;
+- browser refresh, back/forward and Host process restart must be able to reconstruct the same readable page from authoritative data;
+- transient session selection may remain only as a compatibility fallback, never as the sole locator.
+
+This rule does **not** weaken the Web delivery cache policy. Qualified page reads use their full request URL as the cache key and continue to use ETag/conditional revalidation. Immutable revisioned JS/CSS remain long-lived and immutable; the shell remains revalidated; authenticated snapshots remain private and conditionally revalidated.
+
+Browser history clearing the final hash must render the configured initial workspace rather than leaving an empty surface.
