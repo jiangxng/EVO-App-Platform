@@ -632,7 +632,8 @@ import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
 import {
   authorizeMaterialWriteV010,
-  legacyScopeFromRequestContextV010
+  legacyScopeFromRequestContextV010,
+  type MaterialWriteAuthorizationInputV010
 } from "./material-write-authorization.js";
 import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
@@ -3486,7 +3487,8 @@ function createPersonalAgentToolCatalogV010(
         };
       }
 
-      const current2dAuthorization = current2dEditorTarget?.kind === "DEFINITION_PROJECTION"
+      const current2dAuthorization: MaterialWriteAuthorizationInputV010 | undefined =
+        current2dEditorTarget?.kind === "DEFINITION_PROJECTION"
         ? {
             action: EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
             resource: {
