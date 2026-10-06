@@ -79,13 +79,18 @@ export function createChatConversationHistoryV010(
 
   const normalized: ChatConversationHistoryEntryV010[] = [];
   for (const raw of messages) {
-    if (raw.role !== "user" && raw.role !== "assistant") continue;
+    const record = raw as {
+      role?: unknown;
+      text?: unknown;
+      parts?: unknown;
+    };
+    if (record.role !== "user" && record.role !== "assistant") continue;
     let content = "";
-    if (typeof raw.text === "string") {
-      content = raw.text.trim();
-    } else if (Array.isArray(raw.parts)) {
+    if (typeof record.text === "string") {
+      content = record.text.trim();
+    } else if (Array.isArray(record.parts)) {
       const blocks: string[] = [];
-      for (const part of raw.parts) {
+      for (const part of record.parts) {
         if (part === null || typeof part !== "object" || Array.isArray(part)) {
           continue;
         }
@@ -113,7 +118,7 @@ export function createChatConversationHistoryV010(
     }
     if (!content) continue;
     normalized.push({
-      role: raw.role,
+      role: record.role,
       content: content.slice(0, maxCharactersPerMessage)
     });
   }
