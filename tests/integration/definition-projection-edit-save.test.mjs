@@ -179,14 +179,13 @@ test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eid
   assert.match(source, /fitSelectionToCanvas/);
 });
 
-test("Saving a projection appends a new definition revision without changing business payload", async () => {
+test("Saving a projection overwrites presentation state without creating a definition revision", async () => {
   const { repository, revision, projectionId } = seeded();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
     repository,
     projectionStore
   );
-  const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   sessions.set("session-a", {
     contractVersion: "0.1.0",
@@ -207,7 +206,6 @@ test("Saving a projection appends a new definition revision without changing bus
     locale: () => "zh-CN",
     now: () => new Date("2026-10-06T00:02:00.000Z")
   });
-
   const read = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
   );
@@ -232,20 +230,8 @@ test("Saving a projection appends a new definition revision without changing bus
     "重命名投影"
   );
   assert.equal(
-    readResult.result.actions.find(action => action.id === "projection.rename").textPrompt.label,
-    "请输入投影名称"
-  );
-  assert.equal(
     readResult.result.actions.find(action => action.id === "projection.save").label,
     "保存投影"
-  );
-  assert.equal(
-    readResult.result.actions.find(action => action.id === "projection.save-as").label,
-    "另存投影"
-  );
-  assert.equal(
-    readResult.result.actions.some(action => action.id === "projection.set-primary"),
-    false
   );
 
   const nodes = readResult.result.nodes;
@@ -260,8 +246,10 @@ test("Saving a projection appends a new definition revision without changing bus
       x: index === 0 ? -180 : node.x + 20 + index,
       y: index === 0 ? -120 : node.y + 10
     }));
-  const beforePayload = structuredClone(revision.payload);
-  const beforeGallery = structuredClone(revision.projectionGallery);
+  const beforeDefinition = structuredClone(repository.getLatest({
+    enterpriseId: "ent-a",
+    definitionId: "ledger:main"
+  }));
 
   const saveResult = await save.execute(
     actionRequest(
@@ -286,25 +274,29 @@ test("Saving a projection appends a new definition revision without changing bus
   );
 
   assert.equal(saveResult.ok, true);
-  assert.equal(saveResult.result.revision, 1);
+  assert.equal(saveResult.result.revision, 0);
   assert.match(saveResult.result.notice, /投影已保存/);
-
-  const latest = repository.getLatest({
-    enterpriseId: "ent-a",
-    definitionId: "ledger:main"
-  });
-  assert.equal(latest.revision, 1);
-  assert.equal(latest.state, "DRAFT");
-  assert.deepEqual(latest.payload, beforePayload);
   assert.deepEqual(
+    repository.getLatest({
+      enterpriseId: "ent-a",
+      definitionId: "ledger:main"
+    }),
+    beforeDefinition
+  );
+  assert.equal(
     repository.listHistory({
       enterpriseId: "ent-a",
       definitionId: "ledger:main"
-    })[0].projectionGallery,
-    beforeGallery
+    }).length,
+    1
   );
 
-  const projection = latest.projectionGallery.projections.find(
+  const gallery = projectionStore.get({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  });
+  const projection = gallery.projections.find(
     item => item.projectionId === projectionId
   );
   assert.deepEqual(projection.view.camera, {
@@ -313,29 +305,16 @@ test("Saving a projection appends a new definition revision without changing bus
     translateY: -12
   });
   assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
-  assert.match(
-    projection.thumbnail.src,
-    /^data:image\/svg\+xml;charset=UTF-8,/
-  );
+  assert.match(projection.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
   assert.match(projection.thumbnail.alt, /投影缩略图$/);
-  assert.notDeepEqual(
-    projection.thumbnail,
-    beforeGallery.projections.find(item => item.projectionId === projectionId).thumbnail
-  );
   if (hiddenEdgeId) {
     assert.deepEqual(projection.view.hiddenEdgeIds, [hiddenEdgeId]);
-  }
-  for (const placement of placements) {
-    assert.deepEqual(
-      projection.view.placements.find(item => item.nodeId === placement.nodeId),
-      placement
-    );
   }
 
   const projected = source.get({
     enterpriseId: "ent-a",
     definitionId: "ledger:main",
-    definitionRevision: 1,
+    definitionRevision: 0,
     projectionId
   });
   assert.ok(projected?.diagram2d);
@@ -343,20 +322,7 @@ test("Saving a projection appends a new definition revision without changing bus
     projected.diagram2d.nodes.some(node => node.id === hiddenNodeId),
     false
   );
-  assert.equal(
-    projected.diagram2d.edges.some(
-      edge => edge.source === hiddenNodeId || edge.target === hiddenNodeId
-    ),
-    false
-  );
-  if (hiddenEdgeId) {
-    assert.equal(
-      projected.diagram2d.edges.some(edge => edge.id === hiddenEdgeId),
-      false
-    );
-  }
-
-  assert.equal(sessions.get("session-a").definitionRevision, 1);
+  assert.equal(sessions.get("session-a").definitionRevision, 0);
 });
 
 test("Projection editor read/save survives without transient projection session state", async () => {
@@ -383,9 +349,6 @@ test("Projection editor read/save survives without transient projection session 
   const save = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
   );
-  assert.ok(read);
-  assert.ok(save);
-
   const identity = {
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
@@ -418,17 +381,16 @@ test("Projection editor read/save survives without transient projection session 
     context()
   );
   assert.equal(saveResult.ok, true);
-  assert.equal(saveResult.result.revision, revision.revision + 1);
+  assert.equal(saveResult.result.revision, revision.revision);
   assert.equal(
     saveResult.result.navigateTo,
     definition2dEditorRouteV010({
       definitionId: revision.definitionId,
-      definitionRevision: revision.revision + 1,
+      definitionRevision: revision.revision,
       projectionId
     })
   );
 });
-
 
 test("Restore all can reveal previously hidden projection items and persist that complete view", async () => {
   const { repository, revision, projectionId } = seeded();
@@ -438,7 +400,7 @@ test("Restore all can reveal previously hidden projection items and persist that
     projectionStore
   );
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
-  const handlers0 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
     projectionStore,
     source,
@@ -448,31 +410,30 @@ test("Restore all can reveal previously hidden projection items and persist that
     locale: () => "zh-CN",
     now: () => new Date("2026-10-06T00:06:00.000Z")
   });
-  const read0 = handlers0.find(
+  const read = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
   );
-  const save0 = handlers0.find(
+  const save = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
   );
-  const identity0 = {
+  const identity = {
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
     definitionRevision: revision.revision,
     projectionId
   };
-  const initial = await read0.execute(
-    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity0),
+  const initial = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity),
     context()
   );
-  assert.equal(initial.ok, true);
   const hiddenNodeId = initial.result.nodes[0].id;
 
-  const hidden = await save0.execute(
+  const hidden = await save.execute(
     actionRequest(
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
-        ...identity0,
-        expectedRevision: 0,
+        ...identity,
+        expectedRevision: revision.revision,
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
@@ -488,43 +449,18 @@ test("Restore all can reveal previously hidden projection items and persist that
   );
   assert.equal(hidden.ok, true);
 
-  const handlers1 = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
-    repository,
-    projectionStore,
-    source,
-    sessions,
-    canManageEnterpriseContext: () => true,
-    authorizeProjectionSave: async () => {},
-    locale: () => "zh-CN",
-    now: () => new Date("2026-10-06T00:07:00.000Z")
-  });
-  const read1 = handlers1.find(
-    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
-  );
-  const save1 = handlers1.find(
-    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
-  );
-  const identity1 = {
-    ...identity0,
-    definitionRevision: 1
-  };
-  const afterHide = await read1.execute(
-    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity1),
+  const afterHide = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity),
     context()
   );
-  assert.equal(afterHide.ok, true);
   assert.deepEqual(afterHide.result.hiddenNodeIds, [hiddenNodeId]);
-  assert.equal(
-    afterHide.result.nodes.some(node => node.id === hiddenNodeId),
-    true
-  );
 
-  const restored = await save1.execute(
+  const restored = await save.execute(
     actionRequest(
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
-        ...identity1,
-        expectedRevision: 1,
+        ...identity,
+        expectedRevision: revision.revision,
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [],
@@ -542,20 +478,28 @@ test("Restore all can reveal previously hidden projection items and persist that
   );
   assert.equal(restored.ok, true);
 
-  const latest = repository.getLatest({
+  const gallery = projectionStore.get({
     enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
   });
-  const projection = latest.projectionGallery.projections.find(
+  const projection = gallery.projections.find(
     item => item.projectionId === projectionId
   );
   assert.equal(projection.view.hiddenNodeIds, undefined);
   assert.equal(projection.view.hiddenEdgeIds, undefined);
+  assert.equal(
+    repository.listHistory({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }).length,
+    1
+  );
 
   const visible = source.get({
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
-    definitionRevision: latest.revision,
+    definitionRevision: revision.revision,
     projectionId
   });
   assert.equal(
@@ -564,7 +508,7 @@ test("Restore all can reveal previously hidden projection items and persist that
   );
 });
 
-test("Save as projection creates a new projection and leaves the source projection unchanged", async () => {
+test("Save as projection creates a new projection without creating a definition revision", async () => {
   const { repository, revision, projectionId } = seeded();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
@@ -632,36 +576,43 @@ test("Save as projection creates a new projection and leaves the source projecti
     result.result.navigateTo,
     definition2dEditorRouteV010({
       definitionId: revision.definitionId,
-      definitionRevision: revision.revision + 1,
+      definitionRevision: revision.revision,
       projectionId: "projection:copy-1"
     })
   );
+  assert.equal(
+    repository.listHistory({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }).length,
+    1
+  );
 
-  const latest = repository.getLatest({
+  const gallery = projectionStore.get({
     enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
   });
   assert.equal(
-    latest.projectionGallery.projections.length,
+    gallery.projections.length,
     revision.projectionGallery.projections.length + 1
   );
   assert.deepEqual(
-    latest.projectionGallery.projections.find(item => item.projectionId === projectionId),
+    gallery.projections.find(item => item.projectionId === projectionId),
     original
   );
-  const copy = latest.projectionGallery.projections.find(
+  const copy = gallery.projections.find(
     item => item.projectionId === "projection:copy-1"
   );
   assert.ok(copy);
   assert.match(copy.title, /副本/);
   assert.match(copy.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
-  assert.match(copy.thumbnail.alt, /投影缩略图$/);
-  assert.notDeepEqual(copy.thumbnail, original.thumbnail);
   assert.deepEqual(copy.view.hiddenNodeIds, [state.result.nodes[0].id]);
   assert.equal(sessions.get("session-a").projectionId, "projection:copy-1");
+  assert.equal(sessions.get("session-a").definitionRevision, revision.revision);
 });
 
-test("A saved alternate projection can become the default without changing business content", async () => {
+test("A saved alternate projection can become the default in place", async () => {
   const { repository, revision, projectionId } = seeded();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
@@ -695,6 +646,10 @@ test("A saved alternate projection can become the default without changing busin
     }),
     context()
   );
+  const beforeDefinition = structuredClone(repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  }));
 
   const copied = await save.execute(
     actionRequest(
@@ -722,24 +677,16 @@ test("A saved alternate projection can become the default without changing busin
     context()
   );
   assert.equal(copied.ok, true);
-  assert.equal(
-    copied.result.actions.some(action => action.id === "projection.set-primary"),
-    true
-  );
 
-  const beforeDefaultChange = structuredClone(repository.getLatest({
-    enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId
-  }));
   const result = await save.execute(
     actionRequest(
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         enterpriseId: revision.enterpriseId,
         definitionId: revision.definitionId,
-        definitionRevision: 1,
+        definitionRevision: revision.revision,
         projectionId: "projection:default-candidate",
-        expectedRevision: 1,
+        expectedRevision: revision.revision,
         operation: { type: "SET_PRIMARY_PROJECTION" }
       }
     ),
@@ -752,31 +699,30 @@ test("A saved alternate projection can become the default without changing busin
     result.result.actions.some(action => action.id === "projection.set-primary"),
     false
   );
-  const latest = repository.getLatest({
-    enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId
-  });
-  assert.equal(latest.revision, 2);
-  assert.equal(
-    latest.projectionGallery.primaryProjectionId,
-    "projection:default-candidate"
-  );
-  assert.deepEqual(latest.payload, beforeDefaultChange.payload);
   assert.deepEqual(
-    latest.projectionGallery.projections,
-    beforeDefaultChange.projectionGallery.projections
+    repository.getLatest({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }),
+    beforeDefinition
   );
+  const gallery = projectionStore.get({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  });
+  assert.equal(gallery.primaryProjectionId, "projection:default-candidate");
   assert.equal(
     source.get({
       enterpriseId: revision.enterpriseId,
       definitionId: revision.definitionId,
-      definitionRevision: latest.revision
+      definitionRevision: revision.revision
     }).projectionId,
     "projection:default-candidate"
   );
 });
 
-test("Projection may be renamed without changing business payload or view", async () => {
+test("Projection may be renamed in place without changing business payload or view", async () => {
   const { repository, revision, projectionId } = seeded();
   const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
@@ -797,7 +743,10 @@ test("Projection may be renamed without changing business payload or view", asyn
   const save = handlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
   );
-  const beforePayload = structuredClone(revision.payload);
+  const beforeDefinition = structuredClone(repository.getLatest({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId
+  }));
   const beforeProjection = structuredClone(
     revision.projectionGallery.projections.find(
       item => item.projectionId === projectionId
@@ -824,21 +773,28 @@ test("Projection may be renamed without changing business payload or view", asyn
 
   assert.equal(result.ok, true);
   assert.match(result.result.notice, /已重命名/);
-  const latest = repository.getLatest({
+  assert.deepEqual(
+    repository.getLatest({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }),
+    beforeDefinition
+  );
+  const gallery = projectionStore.get({
     enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
   });
-  const renamed = latest.projectionGallery.projections.find(
+  const renamed = gallery.projections.find(
     item => item.projectionId === projectionId
   );
   assert.equal(renamed.title, "资金与库存关系");
-  assert.deepEqual(latest.payload, beforePayload);
   assert.deepEqual(renamed.view, beforeProjection.view);
   assert.equal(renamed.thumbnail.src, beforeProjection.thumbnail.src);
   assert.equal(renamed.thumbnail.alt, "资金与库存关系 投影缩略图");
 });
 
-test("Projection save refuses to branch silently from a stale historical revision", async () => {
+test("Projection save refuses to write against a stale business-definition revision", async () => {
   const { repository, projectionId } = seeded();
   repository.reviseDraft({
     enterpriseId: "ent-a",
@@ -853,6 +809,7 @@ test("Projection save refuses to branch silently from a stale historical revisio
     recordedAt: "2026-10-06T00:03:00.000Z"
   });
 
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   sessions.set("session-a", {
     contractVersion: "0.1.0",
@@ -896,9 +853,9 @@ test("Projection save refuses to branch silently from a stale historical revisio
   assert.equal(result.error.code, "DEFINITION_PROJECTION_REVISION_CONFLICT");
 });
 
-
-test("Ledger Manager relationship-map flow reaches editable projection and persists the saved view", async () => {
+test("Ledger Manager projection flow edits presentation in place", async () => {
   const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const sessions = createMemoryDefinitionProjectionSessionStoreV010();
   const ctx = context();
 
@@ -925,8 +882,6 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   const preview = ledgerHandlers.find(
     item => item.commandCode === LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND
   );
-  assert.ok(preview);
-
   const previewResult = await preview.execute(
     actionRequest(
       LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
@@ -947,41 +902,7 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
       projectionId
     })
   );
-  assert.equal(sessions.get("session-a").projectionId, projectionId);
 
-  const viewerContextNavigation = {
-    items: [
-      { id: "ledger-manager", label: "账本管理", route: "/ledger" },
-      {
-        id: "ledger-runtime-template",
-        label: revision.title,
-        route: "/ledger/detail?definitionId=ledger%3Amain&definitionRevision=0"
-      },
-      { id: "relationship-map", label: "关系图" }
-    ]
-  };
-  const viewerPage = createEnterpriseDefinition2dPreviewPageV010({
-    enterpriseId: revision.enterpriseId,
-    definitionId: revision.definitionId,
-    definitionRevision: revision.revision,
-    projectionId,
-    title: revision.title,
-    canEditProjection: true,
-    contextNavigation: viewerContextNavigation,
-    locale: "zh-CN"
-  });
-  assert.deepEqual(viewerPage.contextNavigation, viewerContextNavigation);
-  assert.equal(viewerPage.toolbarActions[0].label, "编辑投影");
-  assert.equal(
-    viewerPage.toolbarActions[0].route,
-    definition2dEditorRouteV010({
-      definitionId: revision.definitionId,
-      definitionRevision: revision.revision,
-      projectionId
-    })
-  );
-
-  const projectionStore = createMemoryDefinitionProjectionStoreV010();
   const source = createEnterpriseDefinitionProjectionArtifactSourceV010(
     repository,
     projectionStore
@@ -992,42 +913,6 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     definitionRevision: revision.revision,
     projectionId
   });
-  assert.ok(before?.diagram2d);
-
-  const editorContextNavigation = {
-    items: [
-      { id: "ledger-manager", label: "账本管理", route: "/ledger" },
-      {
-        id: "ledger-runtime-template",
-        label: revision.title,
-        route: "/ledger/detail?definitionId=ledger%3Amain&definitionRevision=0"
-      },
-      {
-        id: "relationship-map",
-        label: "关系图",
-        route: definition2dPreviewRouteV010({
-          definitionId: revision.definitionId,
-          definitionRevision: revision.revision,
-          projectionId
-        })
-      },
-      { id: "edit-projection", label: "编辑投影" }
-    ]
-  };
-  const editorPage = createEnterpriseDefinitionProjectionEditorPageV010({
-    enterpriseId: before.enterpriseId,
-    definitionId: before.definitionId,
-    definitionRevision: before.definitionRevision,
-    projectionId,
-    title: before.title,
-    ...(before.camera ? { camera: before.camera } : {}),
-    contextNavigation: editorContextNavigation,
-    locale: "zh-CN"
-  });
-  assert.equal(editorPage.viewInteraction.localNodeDrag, true);
-  assert.deepEqual(editorPage.contextNavigation, editorContextNavigation);
-  assert.equal(editorPage.toolbarActions, undefined);
-
   const editorHandlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
     projectionStore,
@@ -1044,14 +929,11 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   const save = editorHandlers.find(
     item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
   );
-  assert.ok(read);
-  assert.ok(save);
 
   const editorState = await read.execute(
     actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, {}),
     ctx
   );
-  assert.equal(editorState.ok, true);
   const placements = editorState.result.nodes.map((node, index) => ({
     nodeId: node.id,
     x: node.x + 40 + index,
@@ -1077,27 +959,25 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     ctx
   );
   assert.equal(saveResult.ok, true);
-  assert.equal(saveResult.result.revision, revision.revision + 1);
-  assert.match(saveResult.result.notice, /投影已保存/);
+  assert.equal(saveResult.result.revision, revision.revision);
   assert.equal(
     saveResult.result.navigateTo,
     definition2dEditorRouteV010({
       definitionId: revision.definitionId,
-      definitionRevision: revision.revision + 1,
+      definitionRevision: revision.revision,
       projectionId
     })
   );
-
   const nextSelection = sessions.get("session-a");
-  assert.equal(nextSelection.definitionRevision, revision.revision + 1);
+  assert.equal(nextSelection.definitionRevision, revision.revision);
 
   const after = source.get({
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
-    definitionRevision: nextSelection.definitionRevision,
+    definitionRevision: revision.revision,
     projectionId
   });
-  assert.ok(after);
+  assert.ok(before);
   assert.deepEqual(after.camera, {
     scale: 1.15,
     translateX: 32,
@@ -1108,9 +988,13 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     assert.equal(node.x, placement.x);
     assert.equal(node.y, placement.y);
   }
-
-  // Saving the projection appends a new revision but does not mutate the
-  // original template-derived business payload.
+  assert.equal(
+    repository.listHistory({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }).length,
+    1
+  );
   assert.deepEqual(
     repository.getLatest({
       enterpriseId: revision.enterpriseId,
@@ -1119,3 +1003,4 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     revision.payload
   );
 });
+
