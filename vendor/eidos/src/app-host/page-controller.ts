@@ -55,7 +55,7 @@ export interface ChatConversationHistoryEntryV010 {
 }
 
 export function createChatConversationHistoryV010(
-  messages: readonly Array<ChatMessageV010 | ChatMessageV020 | {
+  messages: ReadonlyArray<ChatMessageV010 | ChatMessageV020 | {
     id?: string;
     role?: string;
     text?: string;
