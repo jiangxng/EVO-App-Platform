@@ -15,18 +15,8 @@ import {
   surfaceTargetFromUrlV010,
   type ExperienceSurfaceHandoffResolutionV010
 } from "../app-host/surface.js";
-import {
-  createSurfaceInstanceIdentityV010,
-  sameSurfaceInstanceV010,
-  type SurfaceInstanceIdentityV010
-} from "../app-host/surface-lifecycle.js";
 import type { RealtimeEventV010 } from "../realtime/contracts.js";
 import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.js";
-import { createRealtimeEventSequenceGuardV010 } from "../realtime/event-sequence.js";
-import {
-  createRuntimeActivityMonitorV010,
-  type RuntimeActivitySnapshotV010
-} from "../realtime/runtime-performance.js";
 import {
   mountAppHostLoadedPage,
   type AppHostChatState,
@@ -86,7 +76,6 @@ export interface WorkbenchShell {
   toggleSidePanel(): Promise<void>;
   navigateWorkspace(target: string): Promise<void>;
   notifyRealtimeEvent(event: RealtimeEventV010): boolean;
-  runtimeSnapshot(): RuntimeActivitySnapshotV010;
   dispose(): void;
 }
 
@@ -101,11 +90,6 @@ function currentHashPath(): string | undefined {
   const hash = window.location.hash;
   if (!hash || hash === "#") return undefined;
   return hash.startsWith("#") ? hash.slice(1) : hash;
-}
-
-function routeQuerySuffix(path: string): string {
-  const queryIndex = path.indexOf("?");
-  return queryIndex >= 0 ? path.slice(queryIndex) : "";
 }
 
 function isExternalUrl(value: string): boolean {
@@ -181,9 +165,6 @@ export async function mountWorkbenchShell(
   let disposed = false;
   let sideMount: MountedAppHostPage | undefined;
   let workspaceMount: MountedAppHostPage | undefined;
-  let sideIdentity: SurfaceInstanceIdentityV010 | undefined;
-  let workspaceIdentity: SurfaceInstanceIdentityV010 | undefined;
-  let workspaceWebUrl: string | undefined;
   let activeSurfaceId: string | undefined = options.surfaceId;
   let activeSurfaceTarget: AppHostSurfaceTargetV010 = "DESKTOP_WORKBENCH";
   let workspaceMode: "app" | "web" = state.workspaceTarget.startsWith("/") ? "app" : "web";
@@ -193,9 +174,6 @@ export async function mountWorkbenchShell(
   let resourceRefreshInFlight = false;
   const sideReadGate = createSupersedingRequestGateV010();
   const workspaceReadGate = createSupersedingRequestGateV010();
-  const realtimeSequence = createRealtimeEventSequenceGuardV010();
-  const runtimeActivity = createRuntimeActivityMonitorV010();
-  let realtimeRecovery: Promise<void> | undefined;
 
   const hostText = (
     key: string,
@@ -482,15 +460,12 @@ export async function mountWorkbenchShell(
     sideContent.appendChild(list);
   }
 
-  function disposeSideMount(): void {
-    if (!sideMount) return;
-    sideMount.dispose();
+  async function renderSidePanel(): Promise<void> {
+    const read = sideReadGate.begin();
+    sideMount?.dispose();
     sideMount = undefined;
-    sideIdentity = undefined;
-    runtimeActivity.mark("surfaceUnmounts");
-  }
+    sideContent.replaceChildren();
 
-  async function renderSidePanel(forceRemount = false): Promise<void> {
     const activity = activityById(state.activeActivityId) ?? fallbackActivity();
     sideTitle.textContent = activity.localization && localization
       ? localization.resolve(
@@ -500,15 +475,9 @@ export async function mountWorkbenchShell(
         )
       : activity.title;
 
-    // Closing or temporarily hiding the panel does not destroy its mounted
-    // Surface. The instance is disposed only when the semantic Surface changes.
     if (!state.sidePanelVisible || !sideKind(activity)) return;
 
     if (activity.kind === "navigation") {
-      sideReadGate.cancel();
-      disposeSideMount();
-      sideContent.replaceChildren();
-      runtimeActivity.mark("structuralDomMutations");
       renderNavigationList(host.getSnapshot());
       return;
     }
@@ -518,40 +487,18 @@ export async function mountWorkbenchShell(
 
     const surface = resolveSurface(route);
     let resolvedRoute = route;
-    let nextIdentity: SurfaceInstanceIdentityV010 | undefined;
     if (surface?.resolution.kind === "HANDOFF") {
-      sideReadGate.cancel();
-      disposeSideMount();
-      sideContent.replaceChildren();
-      runtimeActivity.mark("structuralDomMutations");
       renderSurfaceHandoff(sideContent, surface.manifest, surface.resolution);
       return;
     }
     if (surface?.resolution.kind === "ROUTE") {
       resolvedRoute = surface.resolution.route.path;
-      nextIdentity = createSurfaceInstanceIdentityV010({
-        surfaceId: surface.resolution.surfaceId,
-        semanticId: surface.resolution.semanticRouteId,
-        routePath: resolvedRoute,
-        structuralVersion: surface.resolution.structuralVersion
-      });
       applyActiveSurface(
         surface.resolution.surfaceId,
         surface.resolution.target
       );
     }
 
-    if (
-      !forceRemount
-      && sideMount
-      && nextIdentity
-      && sameSurfaceInstanceV010(sideIdentity, nextIdentity)
-    ) {
-      runtimeActivity.mark("surfaceReuses");
-      return;
-    }
-
-    const read = sideReadGate.begin();
     let loaded;
     try {
       loaded = await host.loadRoute(resolvedRoute, { signal: read.signal });
@@ -562,11 +509,6 @@ export async function mountWorkbenchShell(
       throw error;
     }
     if (!read.isCurrent()) return;
-
-    disposeSideMount();
-    sideContent.replaceChildren();
-    runtimeActivity.mark("structuralDomMutations");
-
     if (!loaded) {
       const empty = document.createElement("p");
       empty.textContent = hostText(
@@ -600,41 +542,17 @@ export async function mountWorkbenchShell(
           && !Array.isArray(result)
           && (result as { ok?: unknown }).ok === true
         ) {
-          if (renderHint?.preserveMountedPage === true) {
-            await refreshChrome();
-          } else {
-            await renderSidePanel(true);
-          }
+          await refreshChrome();
         }
       }
     });
-    sideIdentity = nextIdentity ?? createSurfaceInstanceIdentityV010({
-      surfaceId: "legacy:desktop",
-      semanticId: loaded.route.semanticId ?? loaded.route.id,
-      routePath: resolvedRoute,
-      structuralVersion: "legacy:0"
-    });
-    runtimeActivity.mark("surfaceMounts");
   }
 
-  function disposeWorkspaceMount(): void {
-    if (!workspaceMount) return;
-    workspaceMount.dispose();
-    workspaceMount = undefined;
-    workspaceIdentity = undefined;
-    runtimeActivity.mark("surfaceUnmounts");
-  }
-
-  function renderWeb(url: string, forceRemount = false): void {
+  function renderWeb(url: string): void {
     workspaceReadGate.cancel();
-    if (!forceRemount && workspaceWebUrl === url && !workspaceMount) {
-      runtimeActivity.mark("surfaceReuses");
-      return;
-    }
-    disposeWorkspaceMount();
-    workspaceWebUrl = url;
+    workspaceMount?.dispose();
+    workspaceMount = undefined;
     workspaceContent.replaceChildren();
-    runtimeActivity.mark("structuralDomMutations");
 
     const iframe = document.createElement("iframe");
     iframe.setAttribute("data-eidos-browser-frame", "");
@@ -646,23 +564,18 @@ export async function mountWorkbenchShell(
       "allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
     );
     workspaceContent.appendChild(iframe);
-    runtimeActivity.mark("surfaceMounts");
     statusRight.textContent = hostText("shell.browserExternalContent", "External web content");
   }
 
-  async function renderInternalWorkspace(
-    path: string,
-    forceRemount = false
-  ): Promise<void> {
+  async function renderInternalWorkspace(path: string): Promise<void> {
+    const read = workspaceReadGate.begin();
+    workspaceMount?.dispose();
+    workspaceMount = undefined;
+    workspaceContent.replaceChildren();
+
     const surface = resolveSurface(path);
     let resolvedPath = path;
-    let nextIdentity: SurfaceInstanceIdentityV010 | undefined;
     if (surface?.resolution.kind === "HANDOFF") {
-      workspaceReadGate.cancel();
-      disposeWorkspaceMount();
-      workspaceWebUrl = undefined;
-      workspaceContent.replaceChildren();
-      runtimeActivity.mark("structuralDomMutations");
       renderSurfaceHandoff(
         workspaceContent,
         surface.manifest,
@@ -672,32 +585,13 @@ export async function mountWorkbenchShell(
       return;
     }
     if (surface?.resolution.kind === "ROUTE") {
-      resolvedPath =
-        surface.resolution.route.path + routeQuerySuffix(path);
-      nextIdentity = createSurfaceInstanceIdentityV010({
-        surfaceId: surface.resolution.surfaceId,
-        semanticId: surface.resolution.semanticRouteId,
-        routePath: resolvedPath,
-        structuralVersion: surface.resolution.structuralVersion
-      });
+      resolvedPath = surface.resolution.route.path;
       applyActiveSurface(
         surface.resolution.surfaceId,
         surface.resolution.target
       );
     }
 
-    if (
-      !forceRemount
-      && workspaceMount
-      && nextIdentity
-      && sameSurfaceInstanceV010(workspaceIdentity, nextIdentity)
-    ) {
-      runtimeActivity.mark("surfaceReuses");
-      statusRight.textContent = resolvedPath;
-      return;
-    }
-
-    const read = workspaceReadGate.begin();
     let loaded;
     try {
       loaded = await host.loadRoute(resolvedPath, { signal: read.signal });
@@ -708,12 +602,6 @@ export async function mountWorkbenchShell(
       throw error;
     }
     if (!read.isCurrent()) return;
-
-    disposeWorkspaceMount();
-    workspaceWebUrl = undefined;
-    workspaceContent.replaceChildren();
-    runtimeActivity.mark("structuralDomMutations");
-
     if (!loaded) {
       const empty = document.createElement("p");
       empty.textContent = hostText(
@@ -744,18 +632,11 @@ export async function mountWorkbenchShell(
           if (renderHint?.preserveMountedPage === true) {
             await refreshChrome();
           } else {
-            await renderInternalWorkspace(state.workspaceTarget, true);
+            await refresh();
           }
         }
       }
     });
-    workspaceIdentity = nextIdentity ?? createSurfaceInstanceIdentityV010({
-      surfaceId: "legacy:desktop",
-      semanticId: loaded.route.semanticId ?? loaded.route.id,
-      routePath: resolvedPath,
-      structuralVersion: "legacy:0"
-    });
-    runtimeActivity.mark("surfaceMounts");
     statusRight.textContent = loaded.page.title ?? resolvedPath;
   }
 
@@ -771,8 +652,7 @@ export async function mountWorkbenchShell(
       let resolvedTarget = normalized;
 
       if (surface?.resolution.kind === "ROUTE") {
-        resolvedTarget =
-          surface.resolution.route.path + routeQuerySuffix(normalized);
+        resolvedTarget = surface.resolution.route.path;
         applyActiveSurface(
           surface.resolution.surfaceId,
           surface.resolution.target
@@ -1009,29 +889,13 @@ export async function mountWorkbenchShell(
     refreshLocaleOptions();
     updateChromeLabels();
     renderActivities();
-    void renderSidePanel(true);
-    if (workspaceMode === "app") {
-      void renderInternalWorkspace(state.workspaceTarget, true);
-    } else if (isExternalUrl(state.workspaceTarget)) {
-      renderWeb(state.workspaceTarget, true);
-    }
+    void renderSidePanel();
+    if (workspaceMode === "app") void renderInternalWorkspace(state.workspaceTarget);
   });
 
   const hashHandler = () => {
     const path = currentHashPath();
-    if (path) {
-      if (path !== state.workspaceTarget) void navigateWorkspace(path);
-      return;
-    }
-
-    const fallback = options.initialWorkspaceRoute?.trim() || "/";
-    if (state.workspaceTarget === fallback) return;
-    workspaceMode = "app";
-    root.setAttribute("data-eidos-workspace-mode", workspaceMode);
-    state.workspaceTarget = fallback;
-    persist();
-    void renderInternalWorkspace(fallback);
-    root.setAttribute("data-mobile-surface", "workspace");
+    if (path && path !== state.workspaceTarget) void navigateWorkspace(path);
   };
   const keyboardHandler = (event: KeyboardEvent) => {
     const modifier = event.metaKey || event.ctrlKey;
@@ -1050,15 +914,14 @@ export async function mountWorkbenchShell(
     return snapshot;
   }
 
-  async function refresh(forceRemount = false): Promise<AppHostSnapshotV010> {
+  async function refresh(): Promise<AppHostSnapshotV010> {
     const snapshot = await host.refresh();
     renderActivities();
 
     if (workspaceMode === "app") {
       const routed = resolveSurface(state.workspaceTarget);
       if (routed?.resolution.kind === "ROUTE") {
-        const resolvedPath =
-          routed.resolution.route.path + routeQuerySuffix(state.workspaceTarget);
+        const resolvedPath = routed.resolution.route.path;
         applyActiveSurface(
           routed.resolution.surfaceId,
           routed.resolution.target
@@ -1085,11 +948,11 @@ export async function mountWorkbenchShell(
         persist();
       }
     }
-    await renderSidePanel(forceRemount);
+    await renderSidePanel();
     if (workspaceMode === "app") {
-      await renderInternalWorkspace(state.workspaceTarget, forceRemount);
+      await renderInternalWorkspace(state.workspaceTarget);
     } else if (isExternalUrl(state.workspaceTarget)) {
-      renderWeb(state.workspaceTarget, forceRemount);
+      renderWeb(state.workspaceTarget);
     }
 
     return snapshot;
@@ -1119,8 +982,6 @@ export async function mountWorkbenchShell(
           mountHandlesResource(workspaceMount, resourceId)
         );
 
-        const refreshes = Number(sideNeedsRefresh) + Number(workspaceNeedsRefresh);
-        if (refreshes > 0) runtimeActivity.mark("resourceRefreshes", refreshes);
         await Promise.all([
           sideNeedsRefresh ? sideMount?.refresh?.() : undefined,
           workspaceNeedsRefresh ? workspaceMount?.refresh?.() : undefined
@@ -1139,52 +1000,12 @@ export async function mountWorkbenchShell(
     }, 50);
   };
 
-  function scheduleRealtimeRecovery(): void {
-    if (disposed || realtimeRecovery) return;
-    realtimeRecovery = (async () => {
-      // If events continue arriving while the canonical snapshot is loading,
-      // run another reconciliation pass. A stable high-water mark means the
-      // last snapshot began after the newest observed event.
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const before = realtimeSequence.snapshot().highWaterSequence;
-        await refresh(false);
-        const after = realtimeSequence.snapshot().highWaterSequence;
-        if (before === after) {
-          realtimeSequence.completeRecovery(after);
-          return;
-        }
-      }
-      await refresh(false);
-      realtimeSequence.completeRecovery(
-        realtimeSequence.snapshot().highWaterSequence
-      );
-    })().finally(() => {
-      realtimeRecovery = undefined;
-    });
-  }
-
   function notifyRealtimeEvent(event: RealtimeEventV010): boolean {
     if (disposed) return false;
-    runtimeActivity.mark("sseMessages");
-
     if (event.type === "RESET_REQUIRED") {
-      realtimeSequence.reset();
-      void refresh(true);
+      void refresh();
       return true;
     }
-
-    const sequence = realtimeSequence.observe(event);
-    if (sequence.kind === "DUPLICATE") return true;
-    if (sequence.kind === "GAP" || sequence.kind === "RECOVERY_PENDING") {
-      scheduleRealtimeRecovery();
-      return true;
-    }
-
-    if (event.type === "HOST_TOPOLOGY_CHANGED") {
-      void refresh(false);
-      return true;
-    }
-
     const resourceId = event.resource?.resourceId;
     if (!resourceId) return false;
 
@@ -1193,7 +1014,6 @@ export async function mountWorkbenchShell(
       || mountHandlesResource(workspaceMount, resourceId);
     if (!handled) return false;
 
-    runtimeActivity.mark("resourceInvalidations");
     pendingResourceRefreshes.add(resourceId);
     scheduleResourceRefresh();
     return true;
@@ -1208,8 +1028,8 @@ export async function mountWorkbenchShell(
     pendingResourceRefreshes.clear();
     sideReadGate.dispose();
     workspaceReadGate.dispose();
-    disposeSideMount();
-    disposeWorkspaceMount();
+    sideMount?.dispose();
+    workspaceMount?.dispose();
     unsubscribeHost();
     unsubscribeLocale?.();
     if (typeof disposeGlobalControls === "function") {
@@ -1228,16 +1048,15 @@ export async function mountWorkbenchShell(
 
   updateChromeLabels();
   updateLayoutAttributes();
-  await refresh(false);
+  await refresh();
 
   return {
-    refresh: () => refresh(false),
+    refresh,
     setActivities,
     setActivity,
     toggleSidePanel,
     navigateWorkspace,
     notifyRealtimeEvent,
-    runtimeSnapshot: () => runtimeActivity.snapshot(),
     dispose
   };
 }
