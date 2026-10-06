@@ -1,6 +1,8 @@
 import type {
+  BusinessDefinitionOriginV010,
   BusinessDefinitionRepositoryV010,
-  BusinessDefinitionRevisionV010
+  BusinessDefinitionRevisionV010,
+  BusinessDefinitionStateV010
 } from "../../contracts/enterprise-business-definition.js";
 import type {
   CatalogBrowserActionV010,
@@ -23,40 +25,58 @@ function textFor(locale?: string) {
     ? {
         title: "账本管理",
         description:
-          "读取当前企业上下文中的账本定义，查看版本与 2D 投影，并将选定版本发布到账本运行时。",
-        search: "搜索账本定义",
+          "管理当前企业的账本定义与版本，并将选定版本发布为当前生效的账本配置。",
+        search: "搜索账本",
         empty:
-          "当前企业上下文还没有账本定义。可以先从模板商店复制一个账本模板。",
-        details: "详情",
-        publish: "发布到账本运行时",
+          "当前企业还没有账本定义。可以先从模板商店添加一个账本模板。",
+        details: "查看详情",
+        publish: "发布生效",
         publishHelp:
-          "读取当前企业上下文中的这个版本，校验并编译后发布为 Ledger Runtime 的当前定义。",
-        preview: "使用 2D Viewer 查看",
-        viewerUnavailable: "未安装 2D Viewer。",
+          "发布后，这个版本将成为当前企业正在使用的账本配置。",
+        preview: "查看关系图",
+        viewerUnavailable: "关系图查看器尚未安装。",
         revision: "版本",
-        repositoryState: "存储状态",
+        repositoryState: "状态",
         origin: "来源",
-        projections: "投影",
-        definition: "定义"
+        projections: "关系图",
+        definitionCategory: "账本定义",
+        defaultVersion: "默认版本",
+        draft: "草稿",
+        published: "已发布",
+        originNative: "企业创建",
+        originMigrated: "迁移导入",
+        originTemplate: "来自模板",
+        oneProjection: "1 个视图",
+        manyProjections: (count: number) => `${count} 个视图`,
+        manageRoleRequired: "需要企业所有者或管理员权限。"
       }
     : {
-        title: "Ledger Manager",
+        title: "Ledger management",
         description:
-          "Read ledger definitions from the current Enterprise Context, inspect versions and 2D projections, and publish a selected version to Ledger Runtime.",
-        search: "Search ledger definitions",
+          "Manage ledger definitions and versions for the current enterprise, and publish the selected version as the active ledger configuration.",
+        search: "Search ledgers",
         empty:
-          "This Enterprise Context has no ledger definitions. Copy a ledger template from Template Store first.",
-        details: "Details",
-        publish: "Publish to Ledger Runtime",
+          "This enterprise has no ledger definitions yet. Add a ledger template from Template Store first.",
+        details: "View details",
+        publish: "Publish",
         publishHelp:
-          "Read this version from Enterprise Context, validate and compile it, then publish it as Ledger Runtime's current definition.",
-        preview: "Open in 2D Viewer",
-        viewerUnavailable: "2D Viewer is not installed.",
+          "After publishing, this version becomes the active ledger configuration for the current enterprise.",
+        preview: "View relationship map",
+        viewerUnavailable: "The relationship-map viewer is not installed.",
         revision: "Version",
-        repositoryState: "Storage state",
-        origin: "Origin",
-        projections: "Projections",
-        definition: "Definition"
+        repositoryState: "Status",
+        origin: "Source",
+        projections: "Relationship maps",
+        definitionCategory: "Ledger definition",
+        defaultVersion: "Default version",
+        draft: "Draft",
+        published: "Published",
+        originNative: "Created in enterprise",
+        originMigrated: "Imported",
+        originTemplate: "From template",
+        oneProjection: "1 view",
+        manyProjections: (count: number) => `${count} views`,
+        manageRoleRequired: "Enterprise owner or administrator permission is required."
       };
 }
 
@@ -82,6 +102,36 @@ function ledgerHistory(
     );
 }
 
+function stateLabel(
+  state: BusinessDefinitionStateV010,
+  text: ReturnType<typeof textFor>
+): string {
+  return state === "PUBLISHED" ? text.published : text.draft;
+}
+
+function originLabel(
+  origin: BusinessDefinitionOriginV010,
+  text: ReturnType<typeof textFor>
+): string {
+  if (origin.type === "TEMPLATE_COPY") return text.originTemplate;
+  if (origin.type === "MIGRATED") return text.originMigrated;
+  return text.originNative;
+}
+
+function versionDisplayLabel(
+  revision: number,
+  text: ReturnType<typeof textFor>
+): string {
+  return revision === 0 ? text.defaultVersion : `v${revision}`;
+}
+
+function projectionCountLabel(
+  count: number,
+  text: ReturnType<typeof textFor>
+): string {
+  return count === 1 ? text.oneProjection : text.manyProjections(count);
+}
+
 export function createLedgerManagerPageV010(input: {
   enterpriseId: string;
   repository: BusinessDefinitionRepositoryV010;
@@ -95,6 +145,7 @@ export function createLedgerManagerPageV010(input: {
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
+    layout: "list",
     id: "evo-ledger-manager.home",
     title: text.title,
     description: text.description,
@@ -105,6 +156,7 @@ export function createLedgerManagerPageV010(input: {
     },
     items: revisions.map(item => {
       const version = ledgerManagerVersionLabelV010(item.revision);
+      const displayVersion = versionDisplayLabel(item.revision, text);
       const projections = item.projectionGallery?.projections ?? [];
       const primaryProjection =
         projections.find(
@@ -114,7 +166,19 @@ export function createLedgerManagerPageV010(input: {
         )
         ?? projections[0];
 
-      const secondaryActions: CatalogBrowserActionV010[] = [];
+      const secondaryActions: CatalogBrowserActionV010[] = [{
+        id: "details",
+        label: text.details,
+        type: "command",
+        command: LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+        inputVersion: "0.1.0",
+        requiresConfirmation: false,
+        values: {
+          definitionId: item.definitionId,
+          definitionRevision: item.revision
+        }
+      }];
+
       if (primaryProjection) {
         secondaryActions.push({
           id: "preview",
@@ -132,61 +196,43 @@ export function createLedgerManagerPageV010(input: {
           ...(input.viewer2dAvailable
             ? {}
             : {
-                disabledReason: text.viewerUnavailable,
-                helpText: text.viewerUnavailable
+                disabledReason: text.viewerUnavailable
               })
         });
       }
-      secondaryActions.push({
-        id: "publish",
-        label: text.publish,
-        type: "command",
-        command: LEDGER_MANAGER_PUBLISH_COMMAND,
-        inputVersion: "0.1.0",
-        requiresConfirmation: true,
-        values: {
-          definitionId: item.definitionId,
-          definitionRevision: item.revision
-        },
-        enabled: input.canPublish,
-        ...(input.canPublish
-          ? { helpText: text.publishHelp }
-          : {
-              disabledReason: "OWNER or ADMIN role is required.",
-              helpText: "OWNER or ADMIN role is required."
-            })
-      });
 
       return {
         id: `${item.definitionId}@${item.revision}`,
         title: item.title,
-        summary: `${version} · ${item.state}`,
-        version,
-        badges: [version],
+        category: text.definitionCategory,
+        summary: [
+          displayVersion,
+          originLabel(item.origin, text),
+          projectionCountLabel(projections.length, text)
+        ].join(" · "),
         status: {
-          label: item.state,
+          label: stateLabel(item.state, text),
           tone: item.state === "PUBLISHED"
             ? "positive" as const
             : "neutral" as const
         },
-        metadata: {
-          [text.definition]: item.definitionId,
-          [text.revision]: version,
-          [text.repositoryState]: item.state,
-          [text.origin]: item.origin.type,
-          [text.projections]: projections.length
-        },
         primaryAction: {
-          id: "details",
-          label: text.details,
+          id: "publish",
+          label: text.publish,
           type: "command" as const,
-          command: LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+          command: LEDGER_MANAGER_PUBLISH_COMMAND,
           inputVersion: "0.1.0",
-          requiresConfirmation: false,
+          requiresConfirmation: true,
           values: {
             definitionId: item.definitionId,
             definitionRevision: item.revision
-          }
+          },
+          enabled: input.canPublish,
+          ...(input.canPublish
+            ? {}
+            : {
+                disabledReason: text.manageRoleRequired
+              })
         },
         secondaryActions
       };
@@ -203,6 +249,7 @@ export function createLedgerManagerDetailPageV010(input: {
 }) {
   const text = textFor(input.locale);
   const version = ledgerManagerVersionLabelV010(input.revision.revision);
+  const displayVersion = versionDisplayLabel(input.revision.revision, text);
   const projections = input.revision.projectionGallery?.projections ?? [];
 
   return {
@@ -211,14 +258,15 @@ export function createLedgerManagerDetailPageV010(input: {
     id: "evo-ledger-manager.detail",
     itemId: input.revision.definitionId,
     title: input.revision.title,
-    description: `${text.revision}: ${version}`,
-    version,
+    description: text.publishHelp,
+    version: displayVersion,
+    category: text.definitionCategory,
+    badges: [stateLabel(input.revision.state, text)],
     metadata: {
-      [text.definition]: input.revision.definitionId,
-      [text.revision]: version,
-      [text.repositoryState]: input.revision.state,
-      [text.origin]: input.revision.origin.type,
-      [text.projections]: projections.length
+      [text.revision]: displayVersion,
+      [text.repositoryState]: stateLabel(input.revision.state, text),
+      [text.origin]: originLabel(input.revision.origin, text),
+      [text.projections]: projectionCountLabel(projections.length, text)
     },
     gallery: {
       primaryItemId:
@@ -247,8 +295,7 @@ export function createLedgerManagerDetailPageV010(input: {
           ...(input.viewer2dAvailable
             ? {}
             : {
-                disabledReason: text.viewerUnavailable,
-                helpText: text.viewerUnavailable
+                disabledReason: text.viewerUnavailable
               })
         }
       }))
@@ -268,8 +315,8 @@ export function createLedgerManagerDetailPageV010(input: {
       ...(input.canPublish
         ? { helpText: text.publishHelp }
         : {
-            disabledReason: "OWNER or ADMIN role is required.",
-            helpText: "OWNER or ADMIN role is required."
+            disabledReason: text.manageRoleRequired,
+            helpText: text.manageRoleRequired
           })
     }
   } as const;
