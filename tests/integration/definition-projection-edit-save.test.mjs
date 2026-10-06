@@ -717,6 +717,17 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   );
   assert.equal(sessions.get("session-a").projectionId, projectionId);
 
+  const viewerContextNavigation = {
+    items: [
+      { id: "ledger-manager", label: "账本管理", route: "/ledger" },
+      {
+        id: "ledger-runtime-template",
+        label: revision.title,
+        route: "/ledger/detail?definitionId=ledger%3Amain&definitionRevision=0"
+      },
+      { id: "relationship-map", label: "关系图" }
+    ]
+  };
   const viewerPage = createEnterpriseDefinition2dPreviewPageV010({
     enterpriseId: revision.enterpriseId,
     definitionId: revision.definitionId,
@@ -724,8 +735,10 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     projectionId,
     title: revision.title,
     canEditProjection: true,
+    contextNavigation: viewerContextNavigation,
     locale: "zh-CN"
   });
+  assert.deepEqual(viewerPage.contextNavigation, viewerContextNavigation);
   assert.equal(viewerPage.toolbarActions[0].label, "编辑投影");
   assert.equal(
     viewerPage.toolbarActions[0].route,
@@ -745,6 +758,26 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
   });
   assert.ok(before?.diagram2d);
 
+  const editorContextNavigation = {
+    items: [
+      { id: "ledger-manager", label: "账本管理", route: "/ledger" },
+      {
+        id: "ledger-runtime-template",
+        label: revision.title,
+        route: "/ledger/detail?definitionId=ledger%3Amain&definitionRevision=0"
+      },
+      {
+        id: "relationship-map",
+        label: "关系图",
+        route: definition2dPreviewRouteV010({
+          definitionId: revision.definitionId,
+          definitionRevision: revision.revision,
+          projectionId
+        })
+      },
+      { id: "edit-projection", label: "编辑投影" }
+    ]
+  };
   const editorPage = createEnterpriseDefinitionProjectionEditorPageV010({
     enterpriseId: before.enterpriseId,
     definitionId: before.definitionId,
@@ -752,18 +785,12 @@ test("Ledger Manager relationship-map flow reaches editable projection and persi
     projectionId,
     title: before.title,
     ...(before.camera ? { camera: before.camera } : {}),
+    contextNavigation: editorContextNavigation,
     locale: "zh-CN"
   });
   assert.equal(editorPage.viewInteraction.localNodeDrag, true);
-  assert.equal(editorPage.toolbarActions[0].label, "返回查看");
-  assert.equal(
-    editorPage.toolbarActions[0].route,
-    definition2dPreviewRouteV010({
-      definitionId: revision.definitionId,
-      definitionRevision: revision.revision,
-      projectionId
-    })
-  );
+  assert.deepEqual(editorPage.contextNavigation, editorContextNavigation);
+  assert.equal(editorPage.toolbarActions, undefined);
 
   const editorHandlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
     repository,
