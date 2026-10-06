@@ -3,6 +3,9 @@ import type {
   ActionRequestV010,
   JsonValue
 } from "../runtime/contracts.js";
+import type {
+  DiagramCameraTransformV010
+} from "./viewport.js";
 import {
   createDiagramCameraTransformV010,
   fitDiagramCameraToBoundsV010,
@@ -109,6 +112,7 @@ export interface DiagramEditorPageV010 {
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
   toolbarActions?: DiagramEditorToolbarActionV010[];
+  initialCamera?: DiagramCameraTransformV010;
   viewInteraction?: DiagramEditorViewInteractionV010;
   emptyMessage?: string;
 }
@@ -327,6 +331,17 @@ export function isDiagramEditorPageV010(
             || typeof action.primary === "boolean"
           )
         )
+      )
+    )
+    && (
+      page.initialCamera === undefined
+      || (
+        typeof page.initialCamera === "object"
+        && page.initialCamera !== null
+        && Number.isFinite(page.initialCamera.scale)
+        && page.initialCamera.scale > 0
+        && Number.isFinite(page.initialCamera.translateX)
+        && Number.isFinite(page.initialCamera.translateY)
       )
     )
     && (
@@ -748,7 +763,7 @@ export function mountDiagramEditorPageV010(
     DiagramEditorSelectionInspectionV010 | undefined;
   let selectionReadGeneration = 0;
   let activeReadPresetId = page.readPresets?.[0]?.id;
-  let camera = createDiagramCameraTransformV010();
+  let camera = createDiagramCameraTransformV010(page.initialCamera ?? {});
   let stageElement: HTMLElement | undefined;
   let suppressNextNodeClick = false;
   const navigationPointers = new Map<number, { x: number; y: number }>();
