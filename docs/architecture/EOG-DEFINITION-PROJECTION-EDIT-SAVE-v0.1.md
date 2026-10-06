@@ -256,17 +256,17 @@ Personal Agent is a third operator over the same Projection model. It does not r
 The first normative Human scenario is:
 
 ```text
-Human opens a qualified 2D Projection Editor
+Human opens a qualified 2D editor (Enterprise Operating Graph or Definition Projection)
         ↓
 Human opens/uses Personal Agent in the same Workbench session
         ↓
 Human: “帮我裁剪出从销售到收款的投影”
         ↓
-Personal Agent reads the complete material behind the current Projection
+Personal Agent reads the complete material behind the current 2D editor
         ↓
 The model chooses the exact nodes and relations that satisfy the Human intent
         ↓
-Personal Agent writes that retained set directly to the current Projection
+Personal Agent writes that retained set directly to the current editor's presentation/projection state
         ↓
 Host publishes a resource invalidation for the exact open editor
         ↓
@@ -276,17 +276,22 @@ The mounted 2D canvas refreshes to the new Projection
 Rules:
 
 - no mouse, drag simulation or click choreography is used;
+- Personal Agent conversation/memory context and current-editor task scope are distinct: the chat selector may remain **Personal** while the current editor belongs to an Enterprise Context;
+- the current editor supplies the enterprise resource scope for editor READ/WRITE tools; it does not silently change the chat's memory/context selector;
+- editor tools are exposed only when the principal still has access to the editor's Enterprise Context;
+- editor writes require an ACTIVE Owner/Admin relationship and are authorized against the editor's Enterprise Context even when the chat context is Personal;
+- resource invalidation is published in the editor's Enterprise Context so the mounted enterprise canvas receives the refresh;
 - the Human does not need to repeat definition ID, revision ID or projection ID after opening the editor;
-- opening/loading a qualified Projection Editor establishes that Projection as the current target for the browser session;
+- opening/loading a qualified Enterprise Operating Graph editor or Definition Projection Editor establishes that editor as the current 2D target for the browser session;
 - the Agent reads complete material, including items currently hidden from the Projection, before selecting a retained set;
 - business meaning is interpreted by the model from the current material; phrases such as “销售到收款” are **not** hard-coded into EOG/Eidos keyword rules;
 - the Agent writes exact retained node/relation IDs through the same governed Projection persistence boundary as Human authoring;
-- the current Projection identity is updated in place and remains on the same Business Definition revision;
+- a Definition Projection target keeps the same Projection identity and Business Definition revision; an Enterprise Operating Graph target changes only its 2D View State revision and never its semantic graph revision;
 - applications, ledgers, posting logic and semantic relations are not created, deleted or rewritten;
 - the Projection thumbnail is regenerated with the resulting visibility state;
 - the open editor refreshes through the generic resource-invalidation path; Eidos remains unaware of Ledger/business semantics.
 
-The v0.4 acceptance assumes one intended current 2D Projection Editor in the active Workbench session. Multi-tab/current-surface arbitration is a separate concern and must not be guessed from business semantics.
+The v0.4.1 acceptance assumes one intended current 2D editor in the active Workbench session. The Personal Agent context selector may remain Personal. Multi-tab/current-surface arbitration is a separate concern and must not be guessed from business semantics.
 
 ## Node visual identity boundary
 
