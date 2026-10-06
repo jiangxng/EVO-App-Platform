@@ -2134,6 +2134,21 @@ if (
     console.error("Failed to activate Host Enterprise Context Provider.", error);
   }
 }
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === COUNTERPARTY_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(COUNTERPARTY_PACKAGE_ID);
+    console.log("Activated EVO Counterparty plugin.");
+  } catch (error) {
+    console.error("Failed to activate EVO Counterparty plugin.", error);
+  }
+}
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
