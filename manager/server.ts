@@ -724,6 +724,10 @@ import {
   tradingLitePackage
 } from "../catalog/seed.js";
 import {
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
@@ -3639,6 +3643,53 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+      featureId: EOG_2D_DESIGNER_FEATURE_ID,
+      commandCode: EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+      async load() {
+        const [editor, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-designer/definition-projection-editor.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return editor.createEnterpriseDefinitionProjectionEditorReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+      featureId: EOG_2D_DESIGNER_FEATURE_ID,
+      commandCode: EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      async load() {
+        const [editor, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-designer/definition-projection-editor.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return editor.createEnterpriseDefinitionProjectionSaveActionV010({
+          repository: enterpriseBusinessDefinitionRepository,
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository
+            ),
+          projectionSessions: enterpriseDefinitionProjectionSessions,
+          resolveAuthorizationProvider,
+          canManageEnterpriseContext(principal, contextId) {
+            return (
+              resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(principal) ?? []
+            ).some(item =>
+              item.contextId === contextId
+              && item.state === "ACTIVE"
+              && (item.kind === "OWNER" || item.kind === "ADMIN")
+            );
+          }
+        });
+      }
+    }),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
@@ -5462,13 +5513,27 @@ const server = createServer(async (request, response) => {
         );
       }
 
-      if (source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE) {
-        const effective = manager.getSnapshot().activeFeatures.some(
+      if (
+        source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE
+        || source === EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE
+      ) {
+        const snapshot = manager.getSnapshot();
+        const viewerEffective = snapshot.activeFeatures.some(
           feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
         );
-        if (!effective) {
+        const designerEffective = snapshot.activeFeatures.some(
+          feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+        );
+        if (
+          !viewerEffective
+          || (
+            source === EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE
+            && !designerEffective
+          )
+        ) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
         }
+
         const session = resolveRequestIdentitySession(request);
         const sessionId = session.principal.sessionId?.trim();
         const subjectId = session.principal.subjectId.trim();
@@ -5480,29 +5545,79 @@ const server = createServer(async (request, response) => {
         if (!selection) {
           return json(response, 409, {
             code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
-            message: "Choose a Projection from Enterprise Software first."
+            message: "Choose a relationship map from Ledger management first."
           });
         }
-        const [viewer, sourceModule] = await Promise.all([
-          import("../apps/eog-2d-viewer/definition-preview.js"),
-          import("../providers/enterprise-context/definition-projection.js")
-        ]);
-        const artifact =
+
+        const sourceModule = await import(
+          "../providers/enterprise-context/definition-projection.js"
+        );
+        const projectionSource =
           sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
             enterpriseBusinessDefinitionRepository
-          ).get({
-            enterpriseId: selection.enterpriseId,
-            definitionId: selection.definitionId,
-            definitionRevision: selection.definitionRevision,
-            ...(selection.projectionId
-              ? { projectionId: selection.projectionId }
-              : {})
-          });
+          );
+        const artifact = projectionSource.get({
+          enterpriseId: selection.enterpriseId,
+          definitionId: selection.definitionId,
+          definitionRevision: selection.definitionRevision,
+          ...(selection.projectionId
+            ? { projectionId: selection.projectionId }
+            : {})
+        });
         if (!artifact) {
           return json(response, 404, {
             code: "DEFINITION_2D_PREVIEW_NOT_FOUND"
           });
         }
+
+        const enterpriseContext = enterpriseGovernanceStore
+          .snapshot()
+          .contexts
+          .find(item =>
+            item.enterpriseId === artifact.enterpriseId
+            && item.lifecycleState === "ACTIVE"
+          );
+        const canManage =
+          Boolean(enterpriseContext?.contextId)
+          && (
+            resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(session.principal) ?? []
+          ).some(item =>
+            item.contextId === enterpriseContext?.contextId
+            && item.state === "ACTIVE"
+            && (item.kind === "OWNER" || item.kind === "ADMIN")
+          );
+        const canEdit =
+          designerEffective
+          && canManage
+          && Boolean(artifact.projectionId);
+
+        if (source === EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE) {
+          if (!canEdit || !artifact.projectionId) {
+            return json(response, 403, {
+              code: "DEFINITION_PROJECTION_EDIT_NOT_ALLOWED"
+            });
+          }
+          const editor = await import(
+            "../apps/eog-2d-designer/definition-projection-editor.js"
+          );
+          return json(
+            response,
+            200,
+            editor.createEnterpriseDefinitionProjectionEditorPageV010({
+              enterpriseId: artifact.enterpriseId,
+              definitionId: artifact.definitionId,
+              definitionRevision: artifact.definitionRevision,
+              projectionId: artifact.projectionId,
+              title: artifact.title,
+              locale: requestedLocale(url)
+            })
+          );
+        }
+
+        const viewer = await import(
+          "../apps/eog-2d-viewer/definition-preview.js"
+        );
         return json(
           response,
           200,
@@ -5511,8 +5626,12 @@ const server = createServer(async (request, response) => {
             definitionId: artifact.definitionId,
             definitionRevision: artifact.definitionRevision,
             title: artifact.title,
+            locale: requestedLocale(url),
             ...(artifact.projectionId
               ? { projectionId: artifact.projectionId }
+              : {}),
+            ...(canEdit
+              ? { editRoute: EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE }
               : {})
           })
         );
