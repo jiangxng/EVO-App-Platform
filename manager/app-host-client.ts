@@ -157,6 +157,7 @@ if (surfaceGateway.kind === "HANDOFF") {
     source,
     bootstrapManifests,
     path: activePath,
+    locale: initialLocale,
     baseUrl: window.location.origin,
     fetchImpl: transport.fetch
   });
