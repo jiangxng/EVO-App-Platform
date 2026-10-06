@@ -39,6 +39,11 @@ export interface CatalogBrowserItemV010 {
 export interface CatalogBrowserV010 {
   contractVersion: "0.1.0";
   kind: "catalog-browser";
+  /**
+   * grid: browse/discovery cards such as stores and galleries.
+   * list: management/work records where scanning and direct actions dominate.
+   */
+  layout?: "grid" | "list";
   id: string;
   title: string;
   description?: string;
