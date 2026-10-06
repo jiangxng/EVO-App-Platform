@@ -324,3 +324,19 @@ test("Ledger Manager localizes business-facing labels without exposing technical
   assert.equal(JSON.stringify(item).includes("TEMPLATE_COPY"), false);
   assert.equal(JSON.stringify(item).includes("DRAFT"), false);
 });
+
+
+test("Ledger relationship pages declare deep context navigation instead of global breadcrumbs", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+
+  assert.match(source, /artifact\.definitionKind === LEDGER_MANAGER_DEFINITION_KIND/);
+  assert.match(source, /id: "ledger-manager"[\s\S]*route: LEDGER_MANAGER_ROUTE/);
+  assert.match(source, /id: "ledger-runtime-template"[\s\S]*ledgerManagerDetailRouteV010/);
+  assert.match(source, /id: "relationship-map"/);
+  assert.match(source, /id: "edit-projection"/);
+  assert.match(source, /"账本管理"/);
+  assert.match(source, /"关系图"/);
+  assert.match(source, /"编辑投影"/);
+});
