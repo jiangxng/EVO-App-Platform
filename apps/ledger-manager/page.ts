@@ -160,14 +160,6 @@ export function createLedgerManagerPageV010(input: {
     items: revisions.map(item => {
       const displayVersion = versionDisplayLabel(item.revision, text);
       const projections = item.projectionGallery?.projections ?? [];
-      const primaryProjection =
-        projections.find(
-          projection =>
-            projection.projectionId
-            === item.projectionGallery?.primaryProjectionId
-        )
-        ?? projections[0];
-
       const secondaryActions: CatalogBrowserActionV010[] = [{
         id: "details",
         label: text.details,
@@ -178,28 +170,6 @@ export function createLedgerManagerPageV010(input: {
         ),
         requiresConfirmation: false
       }];
-
-      if (primaryProjection) {
-        secondaryActions.push({
-          id: "preview",
-          label: text.preview,
-          type: "command",
-          command: LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
-          inputVersion: "0.1.0",
-          requiresConfirmation: false,
-          values: {
-            definitionId: item.definitionId,
-            definitionRevision: item.revision,
-            projectionId: primaryProjection.projectionId
-          },
-          enabled: input.viewer2dAvailable,
-          ...(input.viewer2dAvailable
-            ? {}
-            : {
-                disabledReason: text.viewerUnavailable
-              })
-        });
-      }
 
       return {
         id: `${item.definitionId}@${item.revision}`,
