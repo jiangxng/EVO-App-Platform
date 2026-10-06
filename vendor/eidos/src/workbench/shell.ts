@@ -347,17 +347,6 @@ export async function mountWorkbenchShell(
   const browserToolbar = document.createElement("div");
   browserToolbar.setAttribute("data-eidos-browser-toolbar", "");
   browserToolbar.setAttribute("aria-label", hostText("workbench.workspaceToolbar", "Workspace toolbar"));
-  const browserAddress = document.createElement("input");
-  browserAddress.type = "text";
-  browserAddress.autocomplete = "off";
-  browserAddress.setAttribute("data-eidos-browser-address", "");
-  browserAddress.setAttribute("aria-label", hostText("workbench.workspaceTarget", "Workspace route or web address"));
-  const browserGo = document.createElement("button");
-  browserGo.type = "button";
-  browserGo.setAttribute("data-eidos-browser-go", "");
-  const browserExternal = document.createElement("button");
-  browserExternal.type = "button";
-  browserExternal.setAttribute("data-eidos-browser-external", "");
 
   const globalControls = document.createElement("div");
   globalControls.setAttribute("data-eidos-global-controls", "");
@@ -370,12 +359,7 @@ export async function mountWorkbenchShell(
   localeWrap.append(localeLabel, localeSelect);
   if (localization) globalControls.append(localeWrap);
 
-  browserToolbar.append(
-    browserAddress,
-    browserGo,
-    browserExternal,
-    globalControls
-  );
+  browserToolbar.append(globalControls);
 
   const workspaceContent = document.createElement("div");
   workspaceContent.setAttribute("data-eidos-workspace-content", "");
@@ -676,7 +660,6 @@ export async function mountWorkbenchShell(
       }
 
       state.workspaceTarget = resolvedTarget;
-      browserAddress.value = resolvedTarget;
       if (
         surface?.resolution.kind !== "HANDOFF"
         && currentHashPath() !== resolvedTarget
@@ -703,7 +686,6 @@ export async function mountWorkbenchShell(
       workspaceMode = "web";
       root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       state.workspaceTarget = normalized;
-      browserAddress.value = normalized;
       persist();
       renderWeb(normalized);
       root.setAttribute("data-mobile-surface", "workspace");
@@ -853,18 +835,6 @@ export async function mountWorkbenchShell(
     await renderSidePanel();
   }
 
-  browserGo.addEventListener("click", () => { void navigateWorkspace(browserAddress.value); });
-  browserAddress.addEventListener("keydown", event => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      void navigateWorkspace(browserAddress.value);
-    }
-  });
-  browserExternal.addEventListener("click", () => {
-    if (workspaceMode === "web" && isExternalUrl(state.workspaceTarget)) {
-      window.open(state.workspaceTarget, "_blank", "noopener,noreferrer");
-    }
-  });
   sideToggle.addEventListener("click", () => { void toggleSidePanel(); });
 
   let dragStartX = 0;
@@ -934,15 +904,6 @@ export async function mountWorkbenchShell(
       void toggleSidePanel();
       return;
     }
-    if (modifier && event.key.toLowerCase() === "l") {
-      event.preventDefault();
-      browserAddress.focus();
-      browserAddress.select();
-      return;
-    }
-    if (event.key === "Escape" && document.activeElement === browserAddress) {
-      browserAddress.blur();
-    }
   };
   window.addEventListener("keydown", keyboardHandler);
   window.addEventListener("hashchange", hashHandler);
@@ -987,8 +948,6 @@ export async function mountWorkbenchShell(
         persist();
       }
     }
-
-    browserAddress.value = state.workspaceTarget;
     await renderSidePanel();
     if (workspaceMode === "app") {
       await renderInternalWorkspace(state.workspaceTarget);
@@ -1085,14 +1044,6 @@ export async function mountWorkbenchShell(
 
   function updateChromeLabels(): void {
     localeLabel.textContent = hostText("shell.language", "Language");
-    browserAddress.setAttribute("aria-label", hostText("shell.browserAddress", "Workspace address"));
-    setIconButton(browserGo, "arrow-right", hostText("shell.browserGo", "Open"), 18);
-    setIconButton(
-      browserExternal,
-      "external-link",
-      hostText("shell.browserOpenExternal", "Open externally"),
-      18
-    );
   }
 
   updateChromeLabels();

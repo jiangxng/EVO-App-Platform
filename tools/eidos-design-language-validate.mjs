@@ -131,6 +131,12 @@ if (
   problems.push("Vendored Eidos Workbench must suppress technical app chrome and expose labeled mobile navigation.");
 }
 if (
+  /data-eidos-browser-address|data-eidos-browser-go|data-eidos-browser-external/.test(workbenchShell)
+  || /\bbrowserAddress\b|\bbrowserGo\b|\bbrowserExternal\b/.test(workbenchShell)
+) {
+  problems.push("Standard Business Workbench must not render browser-style address controls.");
+}
+if (
   eidosIconSystemMetadataV010.standardUiColorMode !== "monochrome"
   || eidosIconSystemMetadataV010.selectedStateTone !== "brand"
 ) {
@@ -186,6 +192,7 @@ console.log(JSON.stringify({
   pluginCssFiles: 0,
   privateMobileShells: false,
   developerConsoleDefault: false,
+  browserAddressChrome: false,
   systemIconMode: "monochrome",
   systemTextScale: true,
   userTextScalePresets: ["system", "small", "standard", "large"]
