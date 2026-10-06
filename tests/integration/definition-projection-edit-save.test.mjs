@@ -18,9 +18,18 @@ import {
   createEnterpriseDefinitionProjectionEditorPageV010
 } from "../../dist/apps/eog-2d-designer/definition-projection-editor.js";
 import {
+  createEnterpriseDefinition2dPreviewPageV010
+} from "../../dist/apps/eog-2d-viewer/definition-preview.js";
+import {
+  createLedgerManagerActionHandlersV010
+} from "../../dist/apps/ledger-manager/actions.js";
+import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
 } from "../../dist/apps/eog-2d-designer/package.js";
+import {
+  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND
+} from "../../dist/apps/ledger-manager/constants.js";
 
 function seeded() {
   const repository = createMemoryBusinessDefinitionRepositoryV010();
@@ -270,4 +279,169 @@ test("Projection save refuses to branch silently from a stale historical revisio
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "DEFINITION_PROJECTION_REVISION_CONFLICT");
+});
+
+
+test("Ledger Manager relationship-map flow reaches editable projection and persists the saved view", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const ctx = context();
+
+  const ledgerHandlers = createLedgerManagerActionHandlersV010({
+    repository,
+    projectionSessions: sessions,
+    resolveAuthorizationProvider: () => ({
+      providerId: "test.authorization",
+      check() {
+        return {
+          contractVersion: "0.1.0",
+          allowed: true,
+          policyProviderId: "test.authorization",
+          reasonCodes: ["TEST_ALLOW"]
+        };
+      }
+    }),
+    canManageEnterpriseContext: () => true,
+    viewerAvailable: () => true,
+    async publishToLedgerRuntime() {
+      throw new Error("runtime publish is not part of projection editing");
+    }
+  });
+  const preview = ledgerHandlers.find(
+    item => item.commandCode === LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND
+  );
+  assert.ok(preview);
+
+  const previewResult = await preview.execute(
+    actionRequest(
+      LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+      {
+        definitionId: revision.definitionId,
+        definitionRevision: revision.revision,
+        projectionId
+      }
+    ),
+    ctx
+  );
+  assert.equal(previewResult.ok, true);
+  assert.equal(previewResult.result.navigateTo, "/definition-preview/2d");
+  assert.equal(sessions.get("session-a").projectionId, projectionId);
+
+  const viewerPage = createEnterpriseDefinition2dPreviewPageV010({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId,
+    title: revision.title,
+    canEditProjection: true,
+    locale: "zh-CN"
+  });
+  assert.equal(viewerPage.toolbarActions[0].label, "编辑投影");
+  assert.equal(
+    viewerPage.toolbarActions[0].route,
+    "/definition-preview/2d/edit"
+  );
+
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository);
+  const before = source.get({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  });
+  assert.ok(before?.diagram2d);
+
+  const editorPage = createEnterpriseDefinitionProjectionEditorPageV010({
+    enterpriseId: before.enterpriseId,
+    definitionId: before.definitionId,
+    definitionRevision: before.definitionRevision,
+    projectionId,
+    title: before.title,
+    ...(before.camera ? { camera: before.camera } : {}),
+    locale: "zh-CN"
+  });
+  assert.equal(editorPage.viewInteraction.localNodeDrag, true);
+  assert.equal(editorPage.toolbarActions[0].label, "返回查看");
+
+  const editorHandlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository,
+    source,
+    sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    locale: () => "zh-CN",
+    now: () => new Date("2026-10-06T00:05:00.000Z")
+  });
+  const read = editorHandlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION
+  );
+  const save = editorHandlers.find(
+    item => item.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+  );
+  assert.ok(read);
+  assert.ok(save);
+
+  const editorState = await read.execute(
+    actionRequest(EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, {}),
+    ctx
+  );
+  assert.equal(editorState.ok, true);
+  const placements = editorState.result.nodes.map((node, index) => ({
+    nodeId: node.id,
+    x: node.x + 40 + index,
+    y: node.y + 24
+  }));
+
+  const saveResult = await save.execute(
+    actionRequest(
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+      {
+        expectedRevision: revision.revision,
+        operation: { type: "SAVE_PROJECTION_VIEW" },
+        viewState: {
+          placements,
+          camera: {
+            scale: 1.15,
+            translateX: 32,
+            translateY: -18
+          }
+        }
+      }
+    ),
+    ctx
+  );
+  assert.equal(saveResult.ok, true);
+  assert.equal(saveResult.result.revision, revision.revision + 1);
+  assert.match(saveResult.result.notice, /投影已保存/);
+
+  const nextSelection = sessions.get("session-a");
+  assert.equal(nextSelection.definitionRevision, revision.revision + 1);
+
+  const after = source.get({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: nextSelection.definitionRevision,
+    projectionId
+  });
+  assert.ok(after);
+  assert.deepEqual(after.camera, {
+    scale: 1.15,
+    translateX: 32,
+    translateY: -18
+  });
+  for (const placement of placements) {
+    const node = after.diagram2d.nodes.find(item => item.id === placement.nodeId);
+    assert.equal(node.x, placement.x);
+    assert.equal(node.y, placement.y);
+  }
+
+  // Saving the projection appends a new revision but does not mutate the
+  // original template-derived business payload.
+  assert.deepEqual(
+    repository.getLatest({
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId
+    }).payload,
+    revision.payload
+  );
 });
