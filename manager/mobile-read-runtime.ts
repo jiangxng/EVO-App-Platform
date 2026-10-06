@@ -74,6 +74,7 @@ export async function mountMobileReadRuntimeV010(options: {
   source: ExperienceSource;
   bootstrapManifests: unknown[];
   path: string;
+  locale: string;
   baseUrl: string;
   fetchImpl?: typeof fetch;
 }): Promise<MobileReadRuntimeV010> {
