@@ -1750,6 +1750,31 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 
+const eog2dStartupSnapshot = manager.getSnapshot();
+if (
+  eog2dStartupSnapshot.installedPackages.some(
+    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
+  )
+  && eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
+  )
+  && !eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID
+  )
+) {
+  try {
+    manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+    console.log(
+      "Migrated EOG 2D installation to activate the contextual projection Designer."
+    );
+  } catch (error) {
+    console.error(
+      "Failed to activate EOG 2D projection Designer migration.",
+      error
+    );
+  }
+}
+
 if (!manager.getSnapshot().activeFeatures.some(
   feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
 )) {
