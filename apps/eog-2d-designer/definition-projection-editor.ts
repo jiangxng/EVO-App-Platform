@@ -64,10 +64,13 @@ function textFor(locale?: string) {
         thumbnailAltSuffix: "投影缩略图",
         restoreAll: "恢复全部",
         restoreAllNotice: "已恢复当前版本中的全部应用、账本和连线。尚未保存，可继续编辑。",
+        autoLayout: "自动排版",
+        autoLayoutNotice: "已按业务关系方向自动排版当前可见内容。尚未保存，可继续调整。",
+        more: "更多",
         removeFromProjection: "从投影移除",
         removedFromProjection: "已从当前投影移除。保存投影后生效；应用、账本及业务定义不会被删除。",
         empty: "当前投影没有可编辑的图形内容。",
-        ready: "可拖动节点、调整缩放和视角，也可移除不需要的节点或连线来简化关系图；完成后点击“保存投影”。这些操作只修改当前投影，不修改应用、账本或业务定义。",
+        ready: "可使用自动排版、拖动节点、调整缩放和视角，也可移除不需要的节点或连线来简化关系图；完成后点击“保存投影”。这些操作只修改当前投影，不修改应用、账本或业务定义。",
         saved: "投影已保存。应用、账本及业务定义内容未改变。",
         savedAs: "已另存为新投影。原投影保持不变。",
         galleryFull: "最多只能保存 9 个投影，请先整理已有投影。",
@@ -89,10 +92,13 @@ function textFor(locale?: string) {
         thumbnailAltSuffix: "projection thumbnail",
         restoreAll: "Restore all",
         restoreAllNotice: "All applications, ledgers, and relations from this revision are visible again. Nothing has been saved yet.",
+        autoLayout: "Auto layout",
+        autoLayoutNotice: "Visible content was arranged by relationship direction. Nothing has been saved yet.",
+        more: "More",
         removeFromProjection: "Remove from projection",
         removedFromProjection: "Removed from this projection. Save the projection to persist it; applications, ledgers, and business definitions are unchanged.",
         empty: "This projection has no editable diagram content.",
-        ready: "Drag nodes, adjust zoom/pan, or remove unnecessary nodes and relations to simplify the map; then choose Save projection. These changes affect only the current projection, not applications, ledgers, or business definitions.",
+        ready: "Use Auto layout, drag nodes, adjust zoom/pan, or remove unnecessary nodes and relations to simplify the map; then choose Save projection. These changes affect only the current projection, not applications, ledgers, or business definitions.",
         saved: "Projection saved. Applications, ledgers, and business-definition content were not changed.",
         savedAs: "Saved as a new projection. The original projection is unchanged.",
         galleryFull: "A maximum of 9 projections is supported. Remove or consolidate an existing projection first.",
@@ -387,6 +393,7 @@ function editorState(input: {
         defaultValue: input.artifact.title,
         required: true
       },
+      placement: "OVERFLOW",
       target: { kind: "graph" }
     }, {
       id: "projection.save",
@@ -395,6 +402,7 @@ function editorState(input: {
         type: "SAVE_PROJECTION_VIEW"
       },
       captureViewState: true,
+      placement: "TOOLBAR",
       target: { kind: "graph" }
     }, {
       id: "projection.save-as",
@@ -403,6 +411,7 @@ function editorState(input: {
         type: "SAVE_PROJECTION_AS_NEW"
       },
       captureViewState: true,
+      placement: "OVERFLOW",
       target: { kind: "graph" }
     }, ...(!input.isPrimary ? [{
       id: "projection.set-primary",
@@ -410,6 +419,7 @@ function editorState(input: {
       operation: {
         type: "SET_PRIMARY_PROJECTION"
       },
+      placement: "OVERFLOW" as const,
       target: { kind: "graph" as const }
     }] : [])],
     notice: input.notice ?? (input.saved ? text.saved : text.ready)
@@ -460,6 +470,7 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       ? { contextNavigation: input.contextNavigation }
       : {}),
     ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
+    toolbarOverflowLabel: text.more,
     viewInteraction: {
       zoom: true,
       pan: true,
@@ -469,7 +480,13 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       localSelectionHideNotice: text.removedFromProjection,
       localVisibilityReset: true,
       localVisibilityResetLabel: text.restoreAll,
-      localVisibilityResetNotice: text.restoreAllNotice
+      localVisibilityResetNotice: text.restoreAllNotice,
+      localVisibilityResetPlacement: "OVERFLOW",
+      localAutoLayout: true,
+      localAutoLayoutLabel: text.autoLayout,
+      localAutoLayoutNotice: text.autoLayoutNotice,
+      localAutoLayoutDirection: "RIGHT",
+      localAutoLayoutPlacement: "TOOLBAR"
     },
     emptyMessage: text.empty
   };
