@@ -301,6 +301,7 @@ test("saving a Draft projection appends one definition revision and preserves bu
   assert.equal(moved.x, captured.viewState.placements[0].x);
   assert.equal(moved.y, captured.viewState.placements[0].y);
 
+  assert.deepEqual(projected.camera, captured.viewState.camera);
   assert.equal(sessions.get("session-a").definitionRevision, 1);
   assert.equal(sessions.get("owner-a").definitionRevision, 1);
 });
