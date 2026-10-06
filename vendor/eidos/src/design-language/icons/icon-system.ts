@@ -205,7 +205,7 @@ function baseSvgAttributes(size: number): Record<string, string> {
     height: String(size),
     fill: "none",
     stroke: "currentColor",
-    "stroke-width": "1.8",
+    "stroke-width": "2",
     "stroke-linecap": "round",
     "stroke-linejoin": "round"
   };
@@ -284,9 +284,12 @@ export function renderEidosIconToSvg(
 export const eidosIconSystemMetadataV010 = {
   contractVersion: "0.1.0",
   name: "Eidos Workbench Core Icon Set",
-  designLanguage: "productive-quiet-precise",
+  designLanguage: "business-calm-approachable-productive",
   provenance: "original-eidos-project-assets",
   externalIconLibraryDependency: false,
   initialProductionIcons: Object.keys(eidosIconDefinitionsV010).length,
-  expansionPolicy: "additive-semantic-registry"
+  expansionPolicy: "additive-semantic-registry",
+  standardUiColorMode: "monochrome",
+  selectedStateTone: "brand",
+  productIdentityColor: "separate-governed-layer"
 } as const;

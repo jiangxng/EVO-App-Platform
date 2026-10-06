@@ -29,7 +29,7 @@ test("EVO consumes the normative Eidos mobile design language", () => {
 
 test("EVO shell receives phone realization from Eidos rather than Host CSS", () => {
   assert.match(appHostShellCss, /Eidos Mobile Design Language v0\.1 reference realization/);
-  assert.match(appHostShellCss, /--eidos-mobile-nav-height:56px/);
+  assert.match(appHostShellCss, /--eidos-mobile-nav-height:64px/);
   assert.match(appHostShellCss, /data-eidos-status-bar\]\{display:none\}/);
   assert.match(appHostShellCss, /data-eidos-account-menu/);
 });
@@ -46,4 +46,19 @@ test("EVO phone typography follows system size with user presets layered above i
   assert.match(appHostShellCss, /data-eidos-text-scale="standard"\]\{font-size:100%\}/);
   assert.match(appHostShellCss, /data-eidos-text-scale="large"\]\{font-size:115%\}/);
   assert.match(appHostShellCss, /data-eidos-text-scale-control/);
+});
+
+
+test("EVO inherits the Eidos business-office visual language on desktop and mobile", () => {
+  assert.equal(eidosDesignPolicyV010.visualRevision, "0.2.0");
+  assert.equal(eidosDesignPolicyV010.visualLanguage.name, "Eidos Business Office");
+  assert.equal(eidosDesignPolicyV010.visualLanguage.developerConsoleAsDefault, false);
+  assert.equal(eidosDesignPolicyV010.workbench.statusBar.defaultVisibility, "hidden");
+  assert.equal(eidosDesignPolicyV010.workbench.workspace.internalRouteAddress, "hidden-by-default");
+  assert.equal(eidosDesignPolicyV010.mobile.primaryNavigationLabels, "visible");
+  assert.match(appHostShellCss, /Eidos Business Office Visual Language v0\.2/);
+  assert.match(appHostShellCss, /--eidos-primary:#2B6CB0/);
+  assert.match(appHostShellCss, /--eidos-bg-selected:#EAF2FB/);
+  assert.match(appHostShellCss, /data-eidos-workspace-mode="app"/);
+  assert.match(appHostShellCss, /data-eidos-activity-label/);
 });

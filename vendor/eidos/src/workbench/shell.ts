@@ -302,6 +302,7 @@ export async function mountWorkbenchShell(
   root.setAttribute("data-eidos-app-host-layout", "workbench");
   root.setAttribute("data-side-panel-visible", state.sidePanelVisible ? "true" : "false");
   root.setAttribute("data-mobile-surface", "panel");
+  root.setAttribute("data-eidos-workspace-mode", workspaceMode);
   root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
 
   const activityBar = document.createElement("nav");
@@ -662,6 +663,7 @@ export async function mountWorkbenchShell(
 
     if (normalized.startsWith("/")) {
       workspaceMode = "app";
+      root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       const surface = resolveSurface(normalized);
       let resolvedTarget = normalized;
 
@@ -699,6 +701,7 @@ export async function mountWorkbenchShell(
 
     if (isExternalUrl(normalized)) {
       workspaceMode = "web";
+      root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       state.workspaceTarget = normalized;
       browserAddress.value = normalized;
       persist();
@@ -734,7 +737,10 @@ export async function mountWorkbenchShell(
       const icon = document.createElement("span");
       icon.setAttribute("data-eidos-activity-icon", "");
       setIconContent(icon, activity.icon, activity.icon, 22);
-      button.appendChild(icon);
+      const label = document.createElement("span");
+      label.setAttribute("data-eidos-activity-label", "");
+      label.textContent = activityTitle;
+      button.append(icon, label);
 
       button.addEventListener("click", () => { void setActivity(activity.id); });
       const target = activity.placement === "secondary" ? activityBottom : activityTop;
