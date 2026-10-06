@@ -100,12 +100,22 @@ test("Ledger Manager presents copied revision zero as default", () => {
 
   assert.equal(ledgerManagerVersionLabelV010(0), "default");
   assert.equal(ledgerManagerVersionLabelV010(2), "v2");
+  assert.equal(page.layout, "list");
   assert.equal(page.items.length, 1);
-  assert.equal(page.items[0].version, "default");
-  assert.equal(page.items[0].primaryAction.command, "ledger.manager.open-detail");
+  assert.equal(page.items[0].version, undefined);
+  assert.equal(page.items[0].metadata, undefined);
+  assert.equal(page.items[0].status.label, "Draft");
+  assert.equal(page.items[0].summary, "Default version · From template · 1 view");
+  assert.equal(page.items[0].primaryAction.command, LEDGER_MANAGER_PUBLISH_COMMAND);
+  assert.equal(page.items[0].primaryAction.label, "Publish");
   assert.ok(
     page.items[0].secondaryActions.some(
-      item => item.command === LEDGER_MANAGER_PUBLISH_COMMAND
+      item => item.command === "ledger.manager.open-detail"
+    )
+  );
+  assert.ok(
+    page.items[0].secondaryActions.some(
+      item => item.command === "ledger.manager.preview-projection"
     )
   );
 });
@@ -208,4 +218,34 @@ test("Ledger Manager publish requires OWNER or ADMIN management role", async () 
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, "LEDGER_MANAGER_MANAGE_ROLE_REQUIRED");
+});
+
+
+test("Ledger Manager localizes business-facing labels without exposing technical identifiers", () => {
+  const page = createLedgerManagerPageV010({
+    enterpriseId: "ent-a",
+    repository: seededRepository(),
+    viewer2dAvailable: true,
+    canPublish: true,
+    locale: "zh-CN"
+  });
+
+  const item = page.items[0];
+  assert.equal(page.title, "账本管理");
+  assert.equal(page.search.placeholder, "搜索账本");
+  assert.equal(item.category, "账本定义");
+  assert.equal(item.status.label, "草稿");
+  assert.equal(item.summary, "默认版本 · 来自模板 · 1 个视图");
+  assert.equal(item.primaryAction.label, "发布生效");
+  assert.equal(
+    item.secondaryActions.some(action => action.label === "查看详情"),
+    true
+  );
+  assert.equal(
+    item.secondaryActions.some(action => action.label === "查看关系图"),
+    true
+  );
+  assert.equal(JSON.stringify(item).includes("template-copy:"), false);
+  assert.equal(JSON.stringify(item).includes("TEMPLATE_COPY"), false);
+  assert.equal(JSON.stringify(item).includes("DRAFT"), false);
 });
