@@ -114,13 +114,8 @@ export const enterpriseObservatoryPackage: PackageManifestV010 = {
               pageId: ENTERPRISE_OBSERVATORY_MOBILE_PAGE_ID
             }
           ],
-          navigation: [{
-            id: "evo-enterprise-observatory.nav",
-            label: "Observatory",
-            route: ENTERPRISE_OBSERVATORY_2D_ROUTE,
-            order: 18,
-            surfaceIds: ["evo-enterprise-observatory.desktop"]
-          }],
+          // Observatory is an on-demand analytical capability, not a permanent
+          // application destination in ordinary business navigation.
           surfaces: [
             {
               id: "evo-enterprise-observatory.desktop",
@@ -177,13 +172,9 @@ export const enterpriseObservatoryPackage: PackageManifestV010 = {
             id: ENTERPRISE_OBSERVATORY_3D_PAGE_ID,
             path: ENTERPRISE_OBSERVATORY_3D_ROUTE,
             pageId: ENTERPRISE_OBSERVATORY_3D_PAGE_ID
-          }],
-          navigation: [{
-            id: "evo-enterprise-observatory-3d.nav",
-            label: "Observatory 3D",
-            route: ENTERPRISE_OBSERVATORY_3D_ROUTE,
-            order: 19
           }]
+          // 3D Observatory remains routable and capability-discoverable, and
+          // is opened only from a relevant analysis/diagnostic context.
         }
       }]
     }

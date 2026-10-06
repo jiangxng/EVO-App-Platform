@@ -278,3 +278,6 @@
 - **APP-220** A material change to current architecture SHOULD preserve its rationale in a Decision Record when future engineering will need to know why the rule changed; typo/format/link/current-pointer maintenance does not require permanent historical artifacts.
 - **APP-221** Fresh LLM work MUST load current authority/status first and load historical records only when rationale, migration, compatibility, archaeology or forensic evidence is relevant.
 
+
+
+- **APP-222** Package installation, Feature activation, Capability availability and persistent navigation visibility are separate concerns. A routable/agent-discoverable professional tool MAY intentionally contribute no Workbench navigation and instead be launched from a relevant business context. Hosts MUST NOT infer navigation visibility merely from installation, activation, defaultRoute or capability presence.

@@ -45,6 +45,9 @@ import {
   eog3dViewerPackage
 } from "../../dist/apps/eog-3d-viewer/package.js";
 import {
+  ENTERPRISE_OBSERVATORY_2D_CAPABILITY,
+  ENTERPRISE_OBSERVATORY_2D_ROUTE,
+  ENTERPRISE_OBSERVATORY_3D_CAPABILITY,
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_ROUTE,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID,
@@ -135,6 +138,14 @@ test("EOG capabilities remain catalog-discoverable through feature identity", ()
       featureId: EOG_3D_VIEWER_FEATURE_ID
     }]
   );
+  assert.equal(
+    catalog.findCapabilityProviders(ENTERPRISE_OBSERVATORY_2D_CAPABILITY).length,
+    1
+  );
+  assert.equal(
+    catalog.findCapabilityProviders(ENTERPRISE_OBSERVATORY_3D_CAPABILITY).length,
+    1
+  );
 });
 
 test("2D Viewer owns interactive read-only Workspaces; Observatory remains a peer plugin", () => {
@@ -218,4 +229,33 @@ test("3D Observatory is a peer Feature, not the EOG 3D Viewer product", () => {
   ).manifest;
   assert.equal(experience.packageId, ENTERPRISE_OBSERVATORY_PACKAGE_ID);
   assert.equal(experience.defaultRoute, ENTERPRISE_OBSERVATORY_3D_ROUTE);
+});
+
+
+test("EOG tool experiences stay callable without persistent navigation", () => {
+  const manifests = packages.flatMap(pkg =>
+    pkg.features.flatMap(feature =>
+      (feature.contributions ?? [])
+        .filter(item => item.kind === "eidos.experience")
+        .map(item => item.manifest)
+    )
+  );
+
+  assert.deepEqual(
+    manifests.flatMap(manifest => manifest.navigation ?? []),
+    []
+  );
+
+  const routes = manifests.flatMap(manifest =>
+    (manifest.routes ?? []).map(route => route.path)
+  );
+  for (const route of [
+    EOG_2D_DESIGNER_ROUTE,
+    EOG_2D_VIEWER_WORKSPACE_ROUTE,
+    EOG_3D_VIEWER_ROUTE,
+    ENTERPRISE_OBSERVATORY_2D_ROUTE,
+    ENTERPRISE_OBSERVATORY_3D_ROUTE
+  ]) {
+    assert.equal(routes.includes(route), true, route);
+  }
 });
