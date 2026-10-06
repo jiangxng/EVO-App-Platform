@@ -60,6 +60,11 @@ export type EnterpriseOperatingGraphViewMutationV010 =
       type: "PROJECTION_VISIBILITY_RESET";
     }
   | {
+      type: "PROJECTION_VISIBILITY_REPLACE";
+      hiddenNodeIds: string[];
+      hiddenEdgeIds: string[];
+    }
+  | {
       type: "CAMERA_SET";
       camera: EogViewCameraV010;
     };
