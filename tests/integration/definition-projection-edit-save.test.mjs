@@ -124,7 +124,7 @@ test("Definition Projection Viewer-to-Editor page exposes direct edit workflow",
   assert.equal(page.viewInteraction.localNodeDrag, true);
   assert.equal(page.viewInteraction.localSelectionHide, true);
   assert.equal(page.viewInteraction.localSelectionHideLabel, "从投影移除");
-  assert.equal(page.toolbarActions[0].label, "返回查看");
+  assert.equal(page.toolbarActions, undefined);
   assert.equal(page.initialCamera.scale, 1.1);
 });
 
