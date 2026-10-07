@@ -34,7 +34,7 @@ function copy(locale: "en" | "zh-CN") {
     ? {
         pageTitle: "登录 EVO",
         eyebrow: "我们的共同目标",
-        heroTitle: "把目标变成行动，把行动变成结果。",
+        heroTitle: "以客户为中心，以奋斗者为本。",
         heroBody: "每一项工作，都应该知道为什么做、由谁负责、进展到哪里。让信息透明、责任清晰、协作顺畅，让每个人都知道现在最重要的事情是什么。",
         valueOneTitle: "目标一致",
         valueOneBody: "理解公司的方向，也清楚自己的工作如何支持共同目标。",
@@ -65,7 +65,7 @@ function copy(locale: "en" | "zh-CN") {
     : {
         pageTitle: "Sign in to EVO",
         eyebrow: "Our shared goal",
-        heroTitle: "Turn goals into action, and action into results.",
+        heroTitle: "Customer-centric. Strivers at the core.",
         heroBody: "Every piece of work should have a clear purpose, owner and sense of progress. Keep information visible, responsibilities clear and collaboration moving so everyone knows what matters most now.",
         valueOneTitle: "Aligned goals",
         valueOneBody: "Understand where the company is going and how your work supports the shared goal.",
