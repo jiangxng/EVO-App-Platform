@@ -142,6 +142,30 @@ export const counterpartyPackage: PackageManifestV010 = {
           label: "Counterparties",
           route: COUNTERPARTY_DIRECTORY_ROUTE,
           order: 35
+        }, {
+          id: "evo-counterparty.customers.nav",
+          label: "Customers",
+          route: COUNTERPARTY_CUSTOMERS_ROUTE,
+          parentId: "evo-counterparty.nav",
+          order: 1
+        }, {
+          id: "evo-counterparty.suppliers.nav",
+          label: "Suppliers",
+          route: COUNTERPARTY_SUPPLIERS_ROUTE,
+          parentId: "evo-counterparty.nav",
+          order: 2
+        }, {
+          id: "evo-counterparty.my-customers.nav",
+          label: "My Customers",
+          route: COUNTERPARTY_MY_CUSTOMERS_ROUTE,
+          parentId: "evo-counterparty.nav",
+          order: 3
+        }, {
+          id: "evo-counterparty.my-suppliers.nav",
+          label: "My Suppliers",
+          route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
+          parentId: "evo-counterparty.nav",
+          order: 4
         }]
       }
     }, {
@@ -151,7 +175,11 @@ export const counterpartyPackage: PackageManifestV010 = {
         namespace: COUNTERPARTY_PACKAGE_ID,
         locale: "en",
         messages: {
-          "navigation.evo-counterparty.nav.label": "Counterparties"
+          "navigation.evo-counterparty.nav.label": "Counterparties",
+          "navigation.evo-counterparty.customers.nav.label": "Customers",
+          "navigation.evo-counterparty.suppliers.nav.label": "Suppliers",
+          "navigation.evo-counterparty.my-customers.nav.label": "My Customers",
+          "navigation.evo-counterparty.my-suppliers.nav.label": "My Suppliers"
         }
       }
     }, {
@@ -161,7 +189,11 @@ export const counterpartyPackage: PackageManifestV010 = {
         namespace: COUNTERPARTY_PACKAGE_ID,
         locale: "zh-CN",
         messages: {
-          "navigation.evo-counterparty.nav.label": "往来对象"
+          "navigation.evo-counterparty.nav.label": "往来对象",
+          "navigation.evo-counterparty.customers.nav.label": "客户",
+          "navigation.evo-counterparty.suppliers.nav.label": "供应商",
+          "navigation.evo-counterparty.my-customers.nav.label": "我的客户",
+          "navigation.evo-counterparty.my-suppliers.nav.label": "我的供应商"
         }
       }
     }]
