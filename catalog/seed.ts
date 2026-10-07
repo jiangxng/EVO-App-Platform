@@ -23,6 +23,9 @@ import {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
 import {
+  dataImportPackage
+} from "../apps/data-import/package.js";
+import {
   objectExtensionPackage
 } from "../apps/object-extension/package.js";
 import {
@@ -45,6 +48,9 @@ export {
 export {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
+export {
+  dataImportPackage
+} from "../apps/data-import/package.js";
 export {
   objectExtensionPackage
 } from "../apps/object-extension/package.js";
