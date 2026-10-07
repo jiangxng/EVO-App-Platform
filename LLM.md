@@ -78,6 +78,36 @@ Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modif
 For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. For independent manifest authoring, load `contracts/schema/plugin-package-v0.1.schema.json` and `contracts/schema/plugin-feature-v0.1.schema.json` first, then the plugin's own manifest and only its direct public contracts. Use `npm run plugin:validate -- <manifest.json>` for canonical semantic validation. Do not load or test the whole plugin portfolio by default.
 
 
+## Foundation Object Program authority
+
+Before adding fields, import, projection, responsibility, workbench, permissions or LLM adaptation behavior to Counterparty, Item, Warehouse/Location or another Foundation Object, read:
+
+- `docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md`
+- `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
+- `docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md`
+- `docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md` when enterprise-specific extension/adaptation is involved
+
+Permanent placement rule:
+
+```text
+domain semantics
+  -> owning Foundation Object Application plugin
+
+object-agnostic reusable mechanism
+  -> shared Foundation Object contract/module/package
+
+Human rendering primitive
+  -> Eidos
+
+persistent learning/reasoning method
+  -> Experience-Compiler
+
+BusinessData / Posting / Ledger / Replay deterministic runtime
+  -> EVO
+```
+
+Counterparty is the first reference object, not the owner of generic Foundation Object infrastructure. Shared contracts remain EXPERIMENTAL until a materially different second object (Item/Product) proves reuse.
+
 ## Current handoff / fresh-chat bootstrap
 
 For every fresh ChatGPT / LLM conversation, do not reconstruct current project state from chat memory.

@@ -479,7 +479,8 @@
     "legacy-dealer-counterparty-convergence-v0-1",
     "counterparty-core-edit-v0-1",
     "uidl-form-initial-value-v0-1",
-    "counterparty-relationship-roles-v0-2-merged"
+    "counterparty-relationship-roles-v0-2-merged",
+    "foundation-object-program-architecture-v0-1"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -500,12 +501,12 @@
   ],
   "firstReferenceApp": "trading-lite",
   "notes": "Proof A and Proof B remain user-confirmed locally. Proof C implementation is now CI-verified across EVO, Eidos and EVO-App-Platform: Eidos UIDL actions flow through ActionHost to App Manager /v1/actions; Trading Lite owns the mapping to EVO public capability discovery and POST /api/v1/commands; EVO PostgreSQL E2E proves public command → BusinessData → Posting → pending production/shipment + receivable balances. Local browser Proof C is now user-confirmed PASS. A public read/query result rendered back in Eidos remains. EVO posting semantics are now explicit: accepted business facts automatically enter the posting lifecycle; QUEUED means EVO-owned asynchronous continuation, not caller-triggered posting. Explicit Posting/PostingRun APIs remain reserved for re-posting, Replay, bulk/recovery and platform control. Recalculation is explicitly two-perspective: EVO internal recalculation rebuilds from EVO runtime cache/data, while Application recalculation is ordinary resubmission that EVO does not specially interpret. A governed scoped runtime-cache clear API is defined at EVO contract level but not yet implemented. Architecture correction: EVO target is a lightweight runtime plugin providing generic BusinessData→PostingRule→Ledger→Balance and runtime clear/export/recalculation capabilities. Identity, permissions, Application/Package lifecycle, capability discovery, rule lifecycle, finance/audit governance and higher-order engines default to Host/plugins. The current evo.core FOUNDATION_RUNTIME seed is Proof-B compatibility data, not a privileged platform-Core contract. The previously prepared local Proof C has now been user-confirmed PASS as a compatibility proof. The target EVO Ledger Runtime ingestion boundary is still generic BusinessDataSubmission rather than platform-owned /commands/capability orchestration. Architecture refinement: EVO does retain one minimal ApplicationAnchor/applicationId. BusinessData and current PostingRules must carry the same applicationId so EVO can route to the correct candidate rule set before condition evaluation. Rich Application lifecycle remains App Platform-owned. User-local Proof C evidence on 2026-09-24: Trading Lite Create Order returned ok=true with a real EVO commandExecutionId, businessDataId, postingInputId, postingSequence=4 and postingStatus=QUEUED. QUEUED is accepted as EVO-owned asynchronous posting continuation; no caller-side posting trigger was required.",
-  "shortTermMainline": "docs/roadmap/SHORT-TERM-MAINLINE-AGENT-APP-INSTALL-v0.1.md",
+  "shortTermMainline": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
   "referenceProofs": [
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "Projection now has a stable product home under Ledger Manager Business Definition detail. Through PR #403, a Human can explicitly choose the default Projection without changing Ledger Runtime or Business Definition payload semantics. Rename, Save/Save As, current-view thumbnails, projection-only pruning, restore-all, deep context navigation and default-view management are merged. The next bounded gate is authoring safety and recovery: selective restore/reset behavior plus an explicit unsaved-change guard, while mobile remains inspection-first and visual identity stays plugin-owned.",
+  "currentStep": "Current gate remains Counterparty Relationship Roles v0.2 Human browser validation. After Human pass, do not add generic mechanisms inside Counterparty. Proceed to FO-01: shared Foundation Object contracts + EffectiveObjectSchema compiler, then CP-03: enterprise extension + import-first vertical proof.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -658,7 +659,7 @@
       "copyOrigin": "TEMPLATE_COPY"
     }
   },
-  "shortTermMainlineStatus": "HISTORICAL_REFERENCE_ONLY",
+  "shortTermMainlineStatus": "ACTIVE",
   "crossProjectPrinciples": [
     "HUMAN_LLM_OPERABILITY_NO_DEVELOPER_DEPENDENCY",
     "LLM_PRIMARY_ENGINEERING_99_9_TARGET"
@@ -1782,8 +1783,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "counterparty-relationship-roles-v0-2-merged-2026-10-07",
-    "snapshotAt": "2026-10-07T01:08:53.000Z",
+    "snapshotId": "foundation-object-program-architecture-2026-10-07",
+    "snapshotAt": "2026-10-07T11:16:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -2804,7 +2805,11 @@
       "do not reopen Counterparty core edit as pending; Directory/Create/Detail/Edit/Archive are complete in production",
       "do not rename the product/domain to 往来; the canonical name is 往来对象 / Counterparty",
       "do not recreate Customer or Supplier as separate master identities; model them as roles/relationships on one stable Counterparty",
-      "do not copy legacy dealerLabelName as a comma-separated identity field"
+      "do not copy legacy dealerLabelName as a comma-separated identity field",
+      "Do not implement generic ImportJob/Staging/Mapping, enterprise custom-field registry, EffectiveObjectSchema compiler, generic Projection execution, Responsibility framework, Personal Workbench framework or LLM adaptation pipeline inside apps/counterparty.",
+      "Do not stabilize a shared Foundation Object contract from Counterparty evidence alone; Item/Product is the required second-object anti-overfit proof.",
+      "Do not start Item/Warehouse as separate bespoke stacks; they must consume the shared Foundation Object contracts created from the Counterparty vertical proof.",
+      "Do not expand Foundation Objects indefinitely before business use; after Counterparty + Item + Warehouse/Location, move the mainline into the Trading Reference Loop."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -2992,7 +2997,13 @@
       "state the next live gate as Counterparty current-master-data editing plus explicit relationship roles",
       "state Counterparty / 往来对象 v0.1 core master-data loop as production-complete through PR #417",
       "state Eidos PR #127 initialValue support as the generic edit-form mechanism used by Counterparty",
-      "state Counterparty Relationship Roles v0.2 as the current live milestone"
+      "state Counterparty Relationship Roles v0.2 as the current live milestone",
+      "state the Foundation Object Program as the active short-term mainline after the current Counterparty v0.2 Human validation gate",
+      "state Counterparty as the first Foundation Object reference implementation, not the owner of generic import/extension/projection/responsibility/workbench/adaptation infrastructure",
+      "state FO-01 Shared Foundation Object contracts + EffectiveObjectSchema compiler as the next implementation gate after Counterparty v0.2 Human pass",
+      "state shared Foundation Object contracts as EXPERIMENTAL until Item/Product provides the materially different second-object proof",
+      "state the program sequence as Counterparty -> Item/Product -> Warehouse/Location -> Trading Reference Loop rather than building every master-data object first",
+      "state generic Data Import, Enterprise Adaptation and Responsibility capabilities as separate reusable product/application capabilities, not Counterparty-private infrastructure"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4311,5 +4322,41 @@
       "ChatGPT product-specific MCP entitlement and UX",
       "future Grok callback/UI behavior"
     ]
+  },
+  "foundationObjectProgram": {
+    "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
+    "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+    "status": "ACTIVE",
+    "currentGate": "CP-02",
+    "currentGateMeaning": "Counterparty Relationship Roles v0.2 Human validation",
+    "nextGate": "FO-01",
+    "nextGateMeaning": "Shared Foundation Object contracts + EffectiveObjectSchema compiler",
+    "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
+    "sequence": [
+      "FO-00",
+      "CP-02",
+      "FO-01",
+      "CP-03",
+      "CP-04",
+      "CP-05",
+      "CP-06",
+      "CP-07",
+      "IT-01",
+      "WH-01",
+      "TR-01"
+    ],
+    "parallelAdaptationTrack": [
+      "AD-01",
+      "AD-02",
+      "AD-03",
+      "AD-04"
+    ],
+    "hardPlacementRule": {
+      "domainSemantics": "owning Foundation Object Application plugin",
+      "objectAgnosticMechanisms": "shared Foundation Object contract/module/package",
+      "humanRendering": "Eidos",
+      "persistentLearning": "Experience-Compiler",
+      "deterministicLedgerRuntime": "EVO"
+    }
   }
 }
