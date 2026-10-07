@@ -60,7 +60,8 @@ export const counterpartyPackage: PackageManifestV010 = {
     defaultActivation: true,
     requiresCapabilities: [
       "enterprise.directory",
-      ENTERPRISE_RESOURCE_CAPABILITY_V010
+      ENTERPRISE_RESOURCE_CAPABILITY_V010,
+      RESPONSIBILITY_CAPABILITY_V010
     ],
     providesCapabilities: [
       "enterprise.counterparty.directory",
