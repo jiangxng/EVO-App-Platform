@@ -7,9 +7,6 @@ import type {
   ResponsibilityAssignmentV010
 } from "../responsibility/repository.js";
 import {
-  legacyScopeFromRequestContextV010
-} from "../../manager/material-write-authorization.js";
-import {
   COUNTERPARTY_FIELD_READ_ACTION_V010,
   COUNTERPARTY_FIELD_RESOURCE_V010,
   COUNTERPARTY_READ_ACTION_V010,
@@ -47,7 +44,24 @@ export async function resolveCounterpartyReadAccessV010(input: {
     principalSubjectId,
     enterpriseRelationshipKind: input.enterpriseRelationshipKind
   });
-  const scope = legacyScopeFromRequestContextV010(input.requestContext);
+  const active = input.requestContext.context?.activeContext;
+  const enterprise = input.requestContext.context?.enterpriseContext;
+  const scope = active?.kind === "ENTERPRISE"
+    ? {
+        contractVersion: "0.1.0" as const,
+        enterpriseId: enterprise?.enterpriseId ?? active.enterpriseId,
+        ...(enterprise?.companyId
+          ? { companyId: enterprise.companyId }
+          : {}),
+        ...(enterprise?.workspaceId
+          ? { workspaceId: enterprise.workspaceId }
+          : {}),
+        userId: principalSubjectId
+      }
+    : {
+        contractVersion: "0.1.0" as const,
+        userId: principalSubjectId
+      };
 
   const counterparties: CounterpartySubjectV010[] = [];
   for (const item of input.counterparties) {
