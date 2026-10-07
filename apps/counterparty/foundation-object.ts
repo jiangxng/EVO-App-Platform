@@ -103,6 +103,12 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       default: "Counterparty code",
       translations: { "zh-CN": "往来编码" }
     },
+    description: {
+      default: "Enterprise-stable identifier used to identify and deduplicate the counterparty. Prefer an actual source-system code/key; a display name is not a substitute unless the source system intentionally uses names as codes.",
+      translations: {
+        "zh-CN": "企业内稳定识别并去重往来对象的编码。应优先使用源系统真实编码或键；除非源系统明确以名称作为编码，否则名称不能替代编码。"
+      }
+    },
     required: true,
     order: 10,
     surfaces: [
@@ -119,6 +125,12 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       default: "Display name",
       translations: { "zh-CN": "往来名称" }
     },
+    description: {
+      default: "Human-facing name used to identify the counterparty in business work. It may differ from the registered legal name.",
+      translations: {
+        "zh-CN": "业务工作中供人识别往来对象的显示名称，可以与法定登记名称不同。"
+      }
+    },
     required: true,
     order: 20,
     surfaces: [
@@ -134,6 +146,12 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
     label: {
       default: "Subject type",
       translations: { "zh-CN": "主体类型" }
+    },
+    description: {
+      default: "Identity form of the counterparty: an organization/legal entity or an individual person. This is not a customer/supplier category, product or service category, industry, relationship role, or other business classification.",
+      translations: {
+        "zh-CN": "往来对象的身份形态：机构/法人主体或个人。它不是客户/供应商分类、产品或服务分类、行业、关系角色或其他业务分类。"
+      }
     },
     required: true,
     order: 30,
@@ -164,6 +182,10 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       default: "Legal name",
       translations: { "zh-CN": "法定名称" }
     },
+    description: {
+      default: "Registered legal name of the counterparty when known.",
+      translations: { "zh-CN": "往来对象已知的法定登记名称。" }
+    },
     required: false,
     order: 40,
     surfaces: [
@@ -179,6 +201,10 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
     label: {
       default: "Tax identifier",
       translations: { "zh-CN": "税号 / 纳税识别号" }
+    },
+    description: {
+      default: "Official tax registration identifier. Do not map unrelated business codes here.",
+      translations: { "zh-CN": "官方税务登记识别号，不应映射无关的业务编码。" }
     },
     required: false,
     order: 50,
@@ -196,6 +222,10 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       default: "Country or region",
       translations: { "zh-CN": "国家或地区" }
     },
+    description: {
+      default: "Country or region associated with the counterparty identity or primary business location.",
+      translations: { "zh-CN": "与往来对象身份或主要经营所在地相关的国家或地区。" }
+    },
     required: false,
     order: 60,
     surfaces: [
@@ -211,6 +241,10 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
     label: {
       default: "Phone",
       translations: { "zh-CN": "联系电话" }
+    },
+    description: {
+      default: "Telephone or phone contact value only. Email addresses and payment instructions do not belong in this field.",
+      translations: { "zh-CN": "仅用于电话号码或电话联系方式。电子邮件地址、付款说明等信息不属于该字段。" }
     },
     required: false,
     order: 70,
@@ -228,6 +262,10 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       default: "Email",
       translations: { "zh-CN": "电子邮件" }
     },
+    description: {
+      default: "Electronic mail address for the counterparty.",
+      translations: { "zh-CN": "往来对象的电子邮件地址。" }
+    },
     required: false,
     order: 80,
     surfaces: [
@@ -243,6 +281,12 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
     label: {
       default: "Notes",
       translations: { "zh-CN": "备注" }
+    },
+    description: {
+      default: "Free-form explanatory notes. This is not a catch-all replacement for structured business fields, profiles, transactions, balances, or audit data.",
+      translations: {
+        "zh-CN": "自由文本说明。它不是结构化业务字段、档案、交易、余额或审计数据的通用替代存储。"
+      }
     },
     required: false,
     order: 90,
