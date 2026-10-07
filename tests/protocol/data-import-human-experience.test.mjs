@@ -8,6 +8,19 @@ import {
   suggestDataImportMappingV010
 } from "../../dist/apps/data-import/service.js";
 import {
+  createDataImportRepositoryV010
+} from "../../dist/apps/data-import/repository.js";
+import {
+  createDataImportServiceV010
+} from "../../dist/apps/data-import/service.js";
+import {
+  createDataImportActionHandlersV010
+} from "../../dist/apps/data-import/actions.js";
+import {
+  DATA_IMPORT_REVIEW_COMMAND_V010,
+  DATA_IMPORT_STAGE_FILE_COMMAND_V010
+} from "../../dist/apps/data-import/constants.js";
+import {
   createDataImportDirectoryPageV010,
   createDataImportMappingPageV010,
   createDataImportReviewPageV010,
@@ -44,6 +57,55 @@ import {
 
 const XLSX_BASE64 =
   "UEsDBBQAAAAIAM4wR11k+29epgAAANkAAAAPAAAAeGwvd29ya2Jvb2sueG1sNY7NCoMwEIRfJey9RnsoRdReSsFz2wdI46pBsyvZ9O/tG6GeZoZhmK86ffysXhjEMdVQZDkoJMudo6GG++2yO4KSaKgzMxPW8EWBU1O9OUwP5kmlOUkZahhjXEqtxY7ojWS8IKWu5+BNTDEMmvveWTyzfXqkqPd5ftABZxPTtYxuEWgqGRGj/FWR8enyuvoiYazadokSVChdMqHtCtBNpbeZ3riaH1BLAwQUAAAACADOMEddWv2Ca7EAAAAoAQAAGgAAAHhsL19yZWxzL3dvcmtib29rLnhtbC5yZWxzjc/JCsJADAbgVxlyt2k9iEinXkToVeoDDNN0oZ2Fybj07R08iAUPnkLyky+kPD7NLO4UeHRWQpHlIMhq1462l3Btzps9CI7Ktmp2liQsxHCsygvNKqYVHkbPIhmWJQwx+gMi64GM4sx5sinpXDAqpjb06JWeVE+4zfMdhm8D1qaoWwmhbgsQzeLpH9t13ajp5PTNkI0/TuDDhYkHophQFXqKEj4jxncpsqQCViWuPqxeUEsDBBQAAAAIAM4wR10ht7IB4wAAAM8BAAAYAAAAeGwvd29ya3NoZWV0cy9zaGVldDEueG1ss7GvyM1RKEstKs7Mz7NVMtQzUFJIzUvOT8nMS7dVCg1x07VQUiguScxLSczJz0u1VapMLVayt7Mpzy/KLs5ITS2xswFTLokliXZcNkX55QpFQGOU7GySQQxHQyWFElulzLyczLzU4JIioHhmsZ1Nid3TfQ3P5i59vmfa8wWNNvpAU/RB4vrJUH1O+PU9ndD7fPkGLPqccel7smP3k72Tn2/c/XReN6o+faCbES43grvcCIdJzgYGhthcjEv98ymbnrauedq/A5tzcWnyD3J39POMcgzx9PfD6lx9RKjb6CMiAwBQSwECFAMUAAAACADOMEddZPtvXqYAAADZAAAADwAAAAAAAAAAAAAAgAEAAAAAeGwvd29ya2Jvb2sueG1sUEsBAhQDFAAAAAgAzjBHXVr9gmuxAAAAKAEAABoAAAAAAAAAAAAAAIAB0wAAAHhsL19yZWxzL3dvcmtib29rLnhtbC5yZWxzUEsBAhQDFAAAAAgAzjBHXSG3sgHjAAAAzwEAABgAAAAAAAAAAAAAAIABvAEAAHhsL3dvcmtzaGVldHMvc2hlZXQxLnhtbFBLBQYAAAAAAwADAMsAAADVAgAAAAA=";
+
+
+function request(commandCode, values = {}) {
+  return {
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: commandCode,
+      inputVersion: "0.1.0"
+    },
+    values,
+    sourceInteractionId: "data-import-human-test",
+    actionId: commandCode,
+    requiresConfirmation: false
+  };
+}
+
+function platformContext() {
+  return {
+    contractVersion: "0.1.0",
+    principal: {
+      contractVersion: "0.1.0",
+      subjectId: "owner-a",
+      actorType: "HUMAN",
+      identityProviderId: "test.identity",
+      sessionId: "session-a"
+    },
+    scope: {
+      contractVersion: "0.1.0",
+      enterpriseId: "ent-a"
+    },
+    context: {
+      contractVersion: "0.1.0",
+      personalContext: {
+        contractVersion: "0.1.0",
+        kind: "PERSONAL",
+        contextId: "personal:owner-a",
+        ownerSubjectId: "owner-a"
+      },
+      activeContext: {
+        contractVersion: "0.1.0",
+        kind: "ENTERPRISE",
+        contextId: "enterprise-context:a",
+        enterpriseId: "ent-a"
+      }
+    },
+    correlationId: "data-import-human-test"
+  };
+}
 
 function targetFixture() {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
@@ -232,6 +294,105 @@ test("mapping and review pages keep validation and commit explicit", () => {
       && action.route === "/data-import/jobs/import-human-1/map"
     )
   );
+});
+
+
+test("Human file action stages XLSX, preserves suggested mapping and reaches dry-run review", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const counterparties = createCounterpartyRepositoryV010(resources);
+  const roles = createCounterpartyRoleRepositoryV010(resources, counterparties);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const values = createObjectExtensionValueRepositoryV010(resources);
+  const target = createCounterpartyImportTargetV010({
+    resources,
+    repository: counterparties,
+    roleRepository: roles,
+    extensionRepository: extensions,
+    extensionValueRepository: values
+  });
+  const repository = createDataImportRepositoryV010(resources);
+  const service = createDataImportServiceV010({
+    repository,
+    targets: [target]
+  });
+  let sequence = 0;
+  const handlers = createDataImportActionHandlersV010({
+    service,
+    repository,
+    targets: [target],
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "import-human-action-" + (++sequence),
+    now: () => new Date("2026-10-07T06:30:00.000Z")
+  });
+  const stageFile = handlers.find(
+    item => item.commandCode === DATA_IMPORT_STAGE_FILE_COMMAND_V010
+  );
+  const review = handlers.find(
+    item => item.commandCode === DATA_IMPORT_REVIEW_COMMAND_V010
+  );
+  assert.ok(stageFile);
+  assert.ok(review);
+
+  const bytes = Buffer.from(XLSX_BASE64, "base64");
+  const staged = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId: "counterparty.subject",
+      file: {
+        name: "往来对象.xlsx",
+        mediaType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        size: bytes.byteLength,
+        contentBase64: XLSX_BASE64
+      },
+      parameter__relationshipMode: "CUSTOMER"
+    }),
+    platformContext()
+  );
+
+  assert.equal(staged.ok, true);
+  assert.equal(
+    staged.result.navigateTo,
+    "/data-import/jobs/import-human-action-1/map"
+  );
+  const job = repository.get(
+    "enterprise-context:a",
+    "import-human-action-1"
+  );
+  assert.equal(job.source.kind, "XLSX");
+  assert.equal(job.targetParameters.relationshipMode, "CUSTOMER");
+  assert.deepEqual(job.mapping, [{
+    sourceColumn: "往来编码",
+    targetFieldId: "code"
+  }, {
+    sourceColumn: "往来名称",
+    targetFieldId: "displayName"
+  }, {
+    sourceColumn: "主体类型",
+    targetFieldId: "subjectType"
+  }]);
+
+  const reviewed = await review.execute(
+    request(DATA_IMPORT_REVIEW_COMMAND_V010, {
+      importJobId: job.importJobId,
+      map_0: "code",
+      map_1: "displayName",
+      map_2: "subjectType"
+    }),
+    platformContext()
+  );
+
+  assert.equal(reviewed.ok, true);
+  assert.equal(
+    reviewed.result.navigateTo,
+    "/data-import/jobs/import-human-action-1/review"
+  );
+  const ready = repository.get(
+    "enterprise-context:a",
+    "import-human-action-1"
+  );
+  assert.equal(ready.state, "DRY_RUN_READY");
+  assert.equal(ready.dryRun.validRows, 1);
+  assert.equal(counterparties.list("enterprise-context:a").length, 0);
 });
 
 test("Counterparty import target remains the first Foundation Object consumer, not a generic framework branch", () => {
