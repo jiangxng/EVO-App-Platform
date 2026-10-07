@@ -83,6 +83,13 @@ export interface DataImportServiceV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): DataImportJobV010;
+  updateMapping(input: {
+    contextId: string;
+    importJobId: string;
+    mapping: DataImportMappingV010[];
+    actorSubjectId: string;
+    recordedAt: string;
+  }): DataImportJobV010;
   dryRun(input: {
     contextId: string;
     importJobId: string;
@@ -154,6 +161,52 @@ export function createDataImportServiceV010(input: {
         job,
         actorSubjectId: stageInput.actorSubjectId,
         recordedAt: stageInput.recordedAt
+      });
+    },
+
+    updateMapping(mappingInput) {
+      const job = input.repository.get(
+        mappingInput.contextId,
+        mappingInput.importJobId
+      );
+      if (!job) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+      if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
+        throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+      }
+
+      const headers = new Set(job.source.headers);
+      const targetFields = new Set<string>();
+      const mapping = mappingInput.mapping.map(item => {
+        const sourceColumn = required(
+          item.sourceColumn,
+          "DATA_IMPORT_MAPPING_SOURCE_REQUIRED"
+        );
+        const targetFieldId = required(
+          item.targetFieldId,
+          "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
+        );
+        if (!headers.has(sourceColumn)) {
+          throw new Error("DATA_IMPORT_MAPPING_SOURCE_UNKNOWN");
+        }
+        if (targetFields.has(targetFieldId)) {
+          throw new Error("DATA_IMPORT_MAPPING_TARGET_DUPLICATE");
+        }
+        targetFields.add(targetFieldId);
+        return { sourceColumn, targetFieldId };
+      });
+
+      const next: DataImportJobV010 = {
+        ...job,
+        state: "STAGED",
+        mapping,
+        dryRun: undefined,
+        receipt: undefined
+      };
+      return input.repository.save({
+        contextId: mappingInput.contextId,
+        job: next,
+        actorSubjectId: mappingInput.actorSubjectId,
+        recordedAt: mappingInput.recordedAt
       });
     },
 
