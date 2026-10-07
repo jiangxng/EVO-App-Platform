@@ -96,8 +96,8 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     : "";
 
   const pageActions = (model.actions ?? [])
-    .map((action, index, actions) =>
-      actionButton(undefined, action, index === actions.length - 1)
+    .map(action =>
+      actionButton(undefined, action, action.primary === true)
     )
     .join("");
 
