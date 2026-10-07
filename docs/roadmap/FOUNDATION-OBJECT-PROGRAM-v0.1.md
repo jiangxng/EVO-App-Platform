@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-07  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** Counterparty Relationship Roles v0.2 Human validation  
+**Current entry gate:** CP-03 Counterparty Enterprise Extension + Import-first vertical proof  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -149,7 +149,7 @@ Exit:
 
 ## 6. CP-02 — Counterparty Relationship Roles v0.2
 
-**Current state:** implementation merged, CI-passed, deployed; Human browser validation pending.
+**Current state:** CLOSED_HUMAN_PASS. Production Human validation confirmed simultaneous CUSTOMER + SUPPLIER roles and independent role removal without deleting the Counterparty identity.
 
 Human acceptance:
 
@@ -218,8 +218,8 @@ Counterparty supplies an import target through a public contract.
 
 Acceptance:
 
-- 1,000-record demo import;
-- 10,000-record interaction/performance import;
+- 1,000-record demo import; **PASS via atomic full commit**
+- 10,000-record interaction/performance import; **stage/dry-run PASS; full commit remains optional follow-up certification**
 - customer-only / supplier-only / both roles;
 - extension-field mapping;
 - duplicate/code validation;
@@ -230,6 +230,20 @@ Acceptance:
 ### CP-03C — Test data
 
 Create deterministic CI fixture, 1k demo seed, 10k larger demo/import dataset, and source manifest for external RVC evidence.
+
+Current implementation evidence:
+
+- Object Extension governed public operations: PASS.
+- Generic CSV Data Import core + Counterparty import target: PASS.
+- EffectiveObjectSchema-driven core + extension mapping: PASS.
+- CUSTOMER/SUPPLIER role-aware import: PASS.
+- Enterprise Context extension-value sidecars: PASS.
+- Atomic Enterprise Resource transaction/bulk persistence: PASS.
+- Deterministic 1k full Counterparty commit: PASS.
+- Whole-batch rollback on commit failure: PASS.
+- 10k stage/dry-run: PASS.
+- XLSX source adapter: OPEN.
+- Eidos Human import mapping/review/dry-run/error experience: OPEN.
 
 Exit: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
