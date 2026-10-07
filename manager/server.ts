@@ -777,6 +777,7 @@ import {
 } from "../apps/enterprise-context-governance/constants.js";
 import {
   COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_ASSIGN_ROLE_COMMAND,
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_PAGE_SOURCE,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
@@ -784,6 +785,7 @@ import {
   COUNTERPARTY_EDIT_PAGE_SOURCE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
+  COUNTERPARTY_REMOVE_ROLE_COMMAND,
   COUNTERPARTY_UPDATE_COMMAND,
   parseCounterpartyDetailRouteV010,
   parseCounterpartyEditRouteV010
@@ -791,6 +793,9 @@ import {
 import {
   createCounterpartyRepositoryV010
 } from "../apps/counterparty/repository.js";
+import {
+  createCounterpartyRoleRepositoryV010
+} from "../apps/counterparty/roles.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -899,6 +904,11 @@ const enterpriseResourceRepository =
     : createMemoryEnterpriseResourceRepositoryV010();
 const counterpartyRepository =
   createCounterpartyRepositoryV010(enterpriseResourceRepository);
+const counterpartyRoleRepository =
+  createCounterpartyRoleRepositoryV010(
+    enterpriseResourceRepository,
+    counterpartyRepository
+  );
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -4101,7 +4111,9 @@ const actionRouter = createAppActionRouter(
     ...[
       COUNTERPARTY_CREATE_COMMAND,
       COUNTERPARTY_UPDATE_COMMAND,
-      COUNTERPARTY_ARCHIVE_COMMAND
+      COUNTERPARTY_ARCHIVE_COMMAND,
+      COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+      COUNTERPARTY_REMOVE_ROLE_COMMAND
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: COUNTERPARTY_PACKAGE_ID,
@@ -4111,6 +4123,7 @@ const actionRouter = createAppActionRouter(
           const module = await import("../apps/counterparty/actions.js");
           const handlers = module.createCounterpartyActionHandlersV010({
             repository: counterpartyRepository,
+            roleRepository: counterpartyRoleRepository,
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -5752,6 +5765,10 @@ const server = createServer(async (request, response) => {
               })
             : module.createCounterpartyDetailPageV010({
                 counterparty,
+                roles: counterpartyRoleRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
                 locale: requestedLocale(url)
               })
         );
