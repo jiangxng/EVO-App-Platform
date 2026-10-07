@@ -8,7 +8,7 @@ import {
 } from "./constants.js";
 
 /**
- * Product-level authorization baseline for Human Data Import operations.
+ * Product-level authorization baseline for Human and Personal Agent Data Import operations.
  *
  * This policy does not establish Enterprise Context ownership/admin membership.
  * Data Import handlers separately require an ACTIVE OWNER/ADMIN relationship
@@ -19,13 +19,13 @@ export const dataImportAuthorizationPolicyV010:
   HostStaticAuthorizationPolicyV010 = {
     contractVersion: "0.1.0",
     rules: [{
-      id: "evo.data-import.human",
+      id: "evo.data-import.operator",
       effect: "ALLOW",
       actions: [
         DATA_IMPORT_READ_ACTION_V010,
         DATA_IMPORT_WRITE_ACTION_V010
       ],
-      actorTypes: ["HUMAN"],
+      actorTypes: ["HUMAN", "AI"],
       resourceTypes: [DATA_IMPORT_AUTH_RESOURCE_V010]
     }]
   };
