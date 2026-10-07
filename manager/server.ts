@@ -774,6 +774,7 @@ import {
   ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
   objectExtensionPackage,
+  responsibilityPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
@@ -798,9 +799,13 @@ import {
   COUNTERPARTY_ASSIGN_ROLE_COMMAND,
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_PAGE_SOURCE,
+  COUNTERPARTY_CUSTOMERS_PAGE_SOURCE,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
   COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
   COUNTERPARTY_EDIT_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
   COUNTERPARTY_REMOVE_ROLE_COMMAND,
@@ -814,6 +819,29 @@ import {
 import {
   createCounterpartyRoleRepositoryV010
 } from "../apps/counterparty/roles.js";
+import {
+  counterpartyAuthorizationPolicyV010
+} from "../apps/counterparty/authorization.js";
+import {
+  resolveCounterpartyReadAccessV010
+} from "../apps/counterparty/access.js";
+import {
+  COUNTERPARTY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+  COUNTERPARTY_SUPPLIER_PROJECTION_V010,
+  projectCounterpartiesV010,
+  type CounterpartyProjectionIdV010
+} from "../apps/counterparty/projections.js";
+import {
+  RESPONSIBILITY_ARCHIVE_COMMAND_V010,
+  RESPONSIBILITY_ASSIGN_COMMAND_V010,
+  RESPONSIBILITY_FEATURE_ID,
+  RESPONSIBILITY_PACKAGE_ID
+} from "../apps/responsibility/constants.js";
+import {
+  createResponsibilityRepositoryV010
+} from "../apps/responsibility/repository.js";
 import {
   COUNTERPARTY_IMPORT_TARGET_V010,
   createCounterpartyImportTargetV010
@@ -938,6 +966,7 @@ const catalog = createPackageCatalog([
   ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
   objectExtensionPackage,
+  responsibilityPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
@@ -982,6 +1011,8 @@ const counterpartyRoleRepository =
     enterpriseResourceRepository,
     counterpartyRepository
   );
+const responsibilityRepository =
+  createResponsibilityRepositoryV010(enterpriseResourceRepository);
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
 const objectExtensionValueRepository =
@@ -1829,6 +1860,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   enterpriseContextGovernanceAuthorizationPolicyV010,
   eogDefinitionProjectionAuthorizationPolicyV010,
   dataImportAuthorizationPolicyV010,
+  counterpartyAuthorizationPolicyV010,
   objectExtensionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
