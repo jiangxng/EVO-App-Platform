@@ -359,28 +359,28 @@ export function createCounterpartyEditPageV010(input: {
       control: "text",
       required: true,
       readOnly: true,
-      defaultValue: subject.counterpartyId
+      initialValue: subject.counterpartyId
     }, {
       key: "code",
       label: text.code,
       semanticType: "counterparty-code",
       control: "text",
       required: true,
-      defaultValue: subject.code
+      initialValue: subject.code
     }, {
       key: "displayName",
       label: text.displayName,
       semanticType: "counterparty-display-name",
       control: "text",
       required: true,
-      defaultValue: subject.displayName
+      initialValue: subject.displayName
     }, {
       key: "subjectType",
       label: text.subjectType,
       semanticType: "counterparty-subject-type",
       control: "select",
       required: true,
-      defaultValue: subject.subjectType,
+      initialValue: subject.subjectType,
       options: [{
         value: "ORGANIZATION",
         label: text.organization
@@ -394,42 +394,42 @@ export function createCounterpartyEditPageV010(input: {
       semanticType: "counterparty-legal-name",
       control: "text",
       required: false,
-      defaultValue: subject.legalName ?? ""
+      initialValue: subject.legalName ?? ""
     }, {
       key: "taxIdentifier",
       label: text.taxIdentifier,
       semanticType: "tax-identifier",
       control: "text",
       required: false,
-      defaultValue: subject.taxIdentifier ?? ""
+      initialValue: subject.taxIdentifier ?? ""
     }, {
       key: "countryOrRegion",
       label: text.countryOrRegion,
       semanticType: "country-or-region",
       control: "text",
       required: false,
-      defaultValue: subject.countryOrRegion ?? ""
+      initialValue: subject.countryOrRegion ?? ""
     }, {
       key: "phone",
       label: text.phone,
       semanticType: "phone",
       control: "text",
       required: false,
-      defaultValue: subject.phone ?? ""
+      initialValue: subject.phone ?? ""
     }, {
       key: "email",
       label: text.email,
       semanticType: "email",
       control: "text",
       required: false,
-      defaultValue: subject.email ?? ""
+      initialValue: subject.email ?? ""
     }, {
       key: "notes",
       label: text.notes,
       semanticType: "notes",
       control: "text",
       required: false,
-      defaultValue: subject.notes ?? ""
+      initialValue: subject.notes ?? ""
     }],
     actions: [{
       id: "update",
