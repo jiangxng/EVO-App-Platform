@@ -118,7 +118,7 @@ function xmlText(value: string): string {
 function attr(fragment: string, name: string): string | undefined {
   const match = fragment.match(
     new RegExp(
-      "(?:^|\\s)" + name.replace(":", "\\:") + "=([\"'])(.*?)\\1",
+      "(?:^|\\s)" + name + "=([\"'])(.*?)\\1",
       "u"
     )
   );
