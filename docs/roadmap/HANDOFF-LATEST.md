@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `foundation-object-enterprise-context-data-plane-2026-10-07`  
-**Snapshot time:** `2026-10-07T11:28:00+08:00`  
+**Snapshot:** `foundation-object-fo01-implementation-2026-10-07`  
+**Snapshot time:** `2026-10-07T12:01:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -70,8 +70,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `6c47a342b02328cc69ed3ab9cecaf42c3823cee7`
-- Deployment: `90f244c8-3715-4c3a-9ced-419483f4ac34`
+- Commit: `5e8eb39b4fa56110de79814785ab3fd25d0a2e01`
+- Deployment: `4ea937e3-9942-4069-a8aa-8de65032cba2`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -102,6 +102,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #427 — MERGED_CI_PRODUCTION_PASS: FO-01 first implementation: shared Foundation Object descriptor/schema/extension contracts, deterministic EffectiveObjectSchema compiler, conformance testkit, Enterprise Context-backed Object Extension definition repository/package boundary, and Counterparty create/edit forms driven from the shared schema.
 - PR #419 — MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING: Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline.
 - PR #417 — MERGED_CI_PRODUCTION_PASS: Complete Counterparty v0.1 core master-data loop with in-place Edit and generic Eidos UIDL initial-value support.
 - PR #415 — MERGED_CI_PRODUCTION_PASS: Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows.
@@ -476,6 +477,8 @@ Not proved:
 - Do not treat Enterprise Context as the semantic owner of Counterparty, Item, Warehouse, Object Extension, Import, Responsibility or Projection merely because their resources are persisted there.
 - Do not bypass Enterprise Context Resource Library with a private durable Foundation Object database/store unless the public resource contract explicitly uses a governed TABLE/OBJECT/REFERENCE storage profile or provider reference.
 - Do not couple plugin uninstall to deletion of enterprise resources; purge is a separate explicit destructive lifecycle.
+- Do not repeat FO-01 shared descriptor/schema/extension contracts, EffectiveObjectSchema compiler, conformance testkit, or Counterparty schema integration; these are merged on main.
+- Do not advertise enterprise.object-extension.definition as an effective public capability until CP-03 supplies governed invocation/authorization; FO-01 intentionally created the package/repository boundary without a fake callable capability.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -692,6 +695,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Counterparty/Item/Warehouse durable enterprise resources as stored through Enterprise Resource public contracts rather than plugin-private durable stores
 - state plugin uninstall as not deleting Enterprise Context resources by default; reinstall/bind reattaches and migrates as required
 - state Object Extension as a separate reusable application semantic owner whose enterprise definitions/values persist in Enterprise Context
+- state FO-01 Shared Foundation Object contracts + EffectiveObjectSchema as already merged, CI-passed and production-deployed through PR #427 / commit 5e8eb39b4fa56110de79814785ab3fd25d0a2e01
+- state CP-02 Counterparty Relationship Roles Human browser validation as still open and not implicitly satisfied by FO-01 implementation
+- state CP-03 Enterprise Extension + Import-first vertical proof as the next implementation gate after CP-02 Human pass
+- state Object Extension definitions as enterprise-scoped resources persisted through Enterprise Context, with public mutation/invocation deliberately deferred to CP-03
+- state Counterparty create/edit form fields as now driven by EffectiveObjectSchema rather than a duplicated private field list
 
 No previous ChatGPT transcript is required.
 
