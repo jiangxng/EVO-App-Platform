@@ -577,6 +577,11 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization,
       minSidePanelWidth: 260,
       maxSidePanelWidth: 720,
+      resolveAgentActivity(capability) {
+        return !capability || capability === "agent.personal"
+          ? "enterprise-agent"
+          : undefined;
+      },
       mountGlobalControls(container) {
         const contextControl = document.createElement("label");
         contextControl.setAttribute("data-evo-context-control", "");
