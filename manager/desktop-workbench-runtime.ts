@@ -449,6 +449,21 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
           "aria-label",
           zh ? "退出当前 EVO 会话" : "Sign out of the current EVO session"
         );
+        logoutForm.style.marginTop = "var(--eidos-space-xs)";
+        logoutForm.style.paddingTop = "var(--eidos-space-md)";
+        logoutForm.style.borderTop = "1px solid var(--eidos-border)";
+        logoutButton.style.width = "100%";
+        logoutButton.style.minHeight = "var(--eidos-control-normal)";
+        logoutButton.style.border = "1px solid var(--eidos-border-strong)";
+        logoutButton.style.borderRadius = "var(--eidos-radius-md)";
+        logoutButton.style.padding = "0 var(--eidos-space-md)";
+        logoutButton.style.background = "var(--eidos-bg)";
+        logoutButton.style.color = "var(--eidos-danger)";
+        logoutButton.style.font = "inherit";
+        logoutButton.style.fontSize = "var(--eidos-font-compact)";
+        logoutButton.style.fontWeight = "600";
+        logoutButton.style.textAlign = "left";
+        logoutButton.style.cursor = "pointer";
         logoutForm.append(logoutButton);
         currentUserMenu.append(logoutForm);
       }
