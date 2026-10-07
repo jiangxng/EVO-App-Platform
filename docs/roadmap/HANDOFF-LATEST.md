@@ -3,61 +3,51 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03-xlsx-human-import-production-pass-2026-10-07`  
-**Snapshot time:** `2026-10-07T14:38:00+08:00`  
+**Snapshot:** `cp04-responsibility-projections-implementation-2026-10-07`  
+**Snapshot time:** `2026-10-07T23:29:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Counterparty Enterprise Extension + Import-first v0.3
+CP-04 Responsibility + Projections + data scope
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-relationship-roles-v0-2: MERGED_CI_DEPLOYED_HUMAN_PASS**
+**counterparty-enterprise-extension-import-v0-3: CLOSED_HUMAN_PASS**
 
-Counterparty Relationship Roles v0.2 is closed. CUSTOMER and SUPPLIER coexist on one stable Counterparty identity; Human production validation confirmed role coexistence and independent removal without deleting the remaining role or Counterparty identity.
+CP-03 is closed. Human production validation confirmed the Counterparty import journey, including field mapping, dry run and successful import; later Eidos list/breadcrumb/history refinements are already merged on main.
 
-Authority: `docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md`
+Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 419,
-  "mergeCommit": "6c47a342b02328cc69ed3ab9cecaf42c3823cee7",
-  "platformCI": "PASS",
-  "projectContinuityCI": "PASS",
-  "crossProjectEidosEvoCI": "PASS",
-  "railwayDeploymentId": "90f244c8-3715-4c3a-9ced-419483f4ac34",
-  "railwayDeploymentStatus": "SUCCESS",
   "humanBrowserValidation": "PASS",
   "humanValidationAt": "2026-10-07",
-  "simultaneousCustomerSupplier": true,
-  "independentRoleRemoval": true,
-  "counterpartyIdentityPreserved": true
+  "validatedImportRows": 172,
+  "failedRows": 0,
+  "designConvergencePr": 456,
+  "managementListBreadcrumbHistoryPr": 457
 }
 ```
 
 ## Current open live gate
 
-**counterparty-enterprise-extension-import-v0-3: MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION**
+**counterparty-responsibility-projections-v0-4: IMPLEMENTATION_PR_OPEN_CI**
 
-CP-03 implementation is complete enough for Human validation. XLSX and CSV upload, localized automatic field mapping through EffectiveObjectSchema, editable mapping review, dry-run review, explicit commit confirmation, error CSV download, atomic bulk persistence and deterministic 1k full commit are production-deployed. The remaining gate is Human browser validation of the import journey.
+CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.
 
 Acceptance:
 
-- Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.
-- Object Extension public read/write operations are governed through platform authorization and ActionHost/QueryHost rather than direct private repository access.
-- A realistic CustomerProfile extension such as channelDepositGrade can affect EffectiveObjectSchema without modifying Counterparty core schema.
-- Generic Data Import is implemented outside Counterparty and discovers/uses a public Counterparty import target.
-- CSV/XLSX import supports staging, mapping, validation, dry run, explicit commit, receipt and failed-row reporting.
-- Import maps both core Counterparty fields and enterprise extension fields through the same EffectiveObjectSchema contract.
-- Counterparty import remains enterprise-isolated and deterministic/idempotent or deterministically rejects duplicate commit.
-- 1k demo data and 10k import/performance data exist without bloating Git with large external corpus payloads.
-- No generic Import/Extension infrastructure is implemented inside apps/counterparty.
+- My Customers is not a client-side filter over all Counterparties.
+- Unauthorized records and fields never reach the Eidos page payload.
+- One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.
+- Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.
+- The projection path has deterministic 10k-record regression proof.
 
 ## Current production preview
 

@@ -14,6 +14,7 @@ export interface HostStaticAuthorizationRuleV010 {
   subjectIds?: string[];
   actorTypes?: PlatformActorType[];
   resourceTypes?: string[];
+  resourceIds?: string[];
   scope?: Omit<PlatformScopeV010, "contractVersion">;
 }
 
@@ -88,6 +89,7 @@ export function parseHostStaticAuthorizationPolicyV010(
       ...(cleanStrings(rule.subjectIds, "SUBJECT_IDS") ? { subjectIds: cleanStrings(rule.subjectIds, "SUBJECT_IDS") } : {}),
       ...(actorTypes ? { actorTypes } : {}),
       ...(cleanStrings(rule.resourceTypes, "RESOURCE_TYPES") ? { resourceTypes: cleanStrings(rule.resourceTypes, "RESOURCE_TYPES") } : {}),
+      ...(cleanStrings(rule.resourceIds, "RESOURCE_IDS") ? { resourceIds: cleanStrings(rule.resourceIds, "RESOURCE_IDS") } : {}),
       ...(cleanScope(rule.scope) ? { scope: cleanScope(rule.scope) } : {})
     } satisfies HostStaticAuthorizationRuleV010;
   });
@@ -127,6 +129,7 @@ function matchesRule(
     && matchList(rule.subjectIds, input.principal.subjectId)
     && matchList(rule.actorTypes, input.principal.actorType)
     && matchList(rule.resourceTypes, input.resource.type)
+    && matchList(rule.resourceIds, input.resource.id ?? "")
     && matchesScope(rule.scope, input.scope);
 }
 

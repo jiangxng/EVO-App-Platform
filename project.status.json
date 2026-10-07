@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Counterparty Enterprise Extension + Import-first v0.3",
+  "currentMilestone": "CP-04 Responsibility + Projections + data scope",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -483,7 +483,11 @@
     "foundation-object-program-architecture-v0-1",
     "foundation-object-effective-schema-fo01",
     "cp03-object-extension-public-capability",
-    "cp03-generic-data-import-counterparty-target"
+    "cp03-generic-data-import-counterparty-target",
+    "cp04-shared-responsibility-capability",
+    "cp04-counterparty-role-projections",
+    "cp04-server-side-record-field-data-scope",
+    "cp04-10k-projection-proof"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -509,7 +513,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "CP-03 implementation is now merged, CI-passed and production-deployed. XLSX staging and the Eidos Human import journey are present. Current gate is Human browser validation of CSV/XLSX upload -> auto-map -> adjust mapping -> dry run -> explicit commit/error download. Do not start CP-04 until this Human gate passes.",
+  "currentStep": "CP-03 Human import validation is closed PASS. CP-04 implementation is active in PR #458: shared Responsibility, Customers/Suppliers/My Customers/My Suppliers, server-side record/field data scope and 10k projection proof. Current gate is CI + merge, then Human browser validation.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1786,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03-xlsx-human-import-production-pass-2026-10-07",
-    "snapshotAt": "2026-10-07T14:38:00+08:00",
+    "snapshotId": "cp04-responsibility-projections-implementation-2026-10-07",
+    "snapshotAt": "2026-10-07T23:29:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1807,75 +1811,40 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "Counterparty Enterprise Extension + Import-first v0.3",
+      "milestone": "CP-04 Responsibility + Projections + data scope",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "counterparty-relationship-roles-v0-2",
-        "status": "MERGED_CI_DEPLOYED_HUMAN_PASS",
-        "summary": "Counterparty Relationship Roles v0.2 is closed. CUSTOMER and SUPPLIER coexist on one stable Counterparty identity; Human production validation confirmed role coexistence and independent removal without deleting the remaining role or Counterparty identity.",
-        "authority": "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
+        "id": "counterparty-enterprise-extension-import-v0-3",
+        "status": "CLOSED_HUMAN_PASS",
+        "summary": "CP-03 is closed. Human production validation confirmed the Counterparty import journey, including field mapping, dry run and successful import; later Eidos list/breadcrumb/history refinements are already merged on main.",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "evidence": {
-          "implementationPr": 419,
-          "mergeCommit": "6c47a342b02328cc69ed3ab9cecaf42c3823cee7",
-          "platformCI": "PASS",
-          "projectContinuityCI": "PASS",
-          "crossProjectEidosEvoCI": "PASS",
-          "railwayDeploymentId": "90f244c8-3715-4c3a-9ced-419483f4ac34",
-          "railwayDeploymentStatus": "SUCCESS",
           "humanBrowserValidation": "PASS",
           "humanValidationAt": "2026-10-07",
-          "simultaneousCustomerSupplier": true,
-          "independentRoleRemoval": true,
-          "counterpartyIdentityPreserved": true
+          "validatedImportRows": 172,
+          "failedRows": 0,
+          "designConvergencePr": 456,
+          "managementListBreadcrumbHistoryPr": 457
         }
       },
       "openGate": {
-        "id": "counterparty-enterprise-extension-import-v0-3",
-        "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
-        "summary": "CP-03 implementation is complete enough for Human validation. XLSX and CSV upload, localized automatic field mapping through EffectiveObjectSchema, editable mapping review, dry-run review, explicit commit confirmation, error CSV download, atomic bulk persistence and deterministic 1k full commit are production-deployed. The remaining gate is Human browser validation of the import journey.",
+        "id": "counterparty-responsibility-projections-v0-4",
+        "status": "IMPLEMENTATION_PR_OPEN_CI",
+        "summary": "CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.",
-          "Object Extension public read/write operations are governed through platform authorization and ActionHost/QueryHost rather than direct private repository access.",
-          "A realistic CustomerProfile extension such as channelDepositGrade can affect EffectiveObjectSchema without modifying Counterparty core schema.",
-          "Generic Data Import is implemented outside Counterparty and discovers/uses a public Counterparty import target.",
-          "CSV/XLSX import supports staging, mapping, validation, dry run, explicit commit, receipt and failed-row reporting.",
-          "Import maps both core Counterparty fields and enterprise extension fields through the same EffectiveObjectSchema contract.",
-          "Counterparty import remains enterprise-isolated and deterministic/idempotent or deterministically rejects duplicate commit.",
-          "1k demo data and 10k import/performance data exist without bloating Git with large external corpus payloads.",
-          "No generic Import/Extension infrastructure is implemented inside apps/counterparty."
+          "My Customers is not a client-side filter over all Counterparties.",
+          "Unauthorized records and fields never reach the Eidos page payload.",
+          "One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.",
+          "Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.",
+          "The projection path has deterministic 10k-record regression proof."
         ],
         "implementationEvidence": {
-          "fo01Pr": 427,
-          "fo01MergeCommit": "5e8eb39b4fa56110de79814785ab3fd25d0a2e01",
-          "objectExtensionPr": 430,
-          "objectExtensionMergeCommit": "2375ed61e260d8982ed5d25d34bb231f7f630729",
-          "dataImportPr": 431,
-          "dataImportMergeCommit": "c9bf76ad7584067d9d886bcd799848fd459963d4",
-          "platformCI": "PASS",
-          "projectContinuityCI": "PASS",
-          "crossProjectEidosEvoCI": "PASS",
-          "railwayDeploymentId": "2ccf155b-5b9e-44e4-acb2-3b7249491dbd",
-          "railwayDeploymentStatus": "SUCCESS",
-          "csvStageDryRunCommit": true,
-          "xlsx": true,
-          "extensionValues": true,
-          "roleAwareImport": true,
-          "tenThousandRowStageDryRun": true,
-          "tenThousandRowFullCommit": false,
-          "importHumanExperience": true,
-          "deterministicOneThousandDemoSeed": true,
-          "bulkImportPr": 433,
-          "bulkImportMergeCommit": "2015c4385142d03cb5d84b16826615988f4d8174",
-          "oneThousandRowFullCommit": true,
-          "atomicBatchCommit": true,
-          "atomicRollback": true,
-          "humanImportExperiencePr": 439,
-          "humanImportExperienceMergeCommit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
-          "xlsxFirstSheetAdapter": true,
-          "localizedHeaderAutoMapping": true,
-          "explicitCommitConfirmation": true,
-          "errorCsvDownload": true
+          "implementationPr": 458,
+          "platformCI": "PASS_ON_PREVIOUS_HEAD_AND_RERUNNING_ON_LATEST_HEAD",
+          "responsibilityCapability": "enterprise.responsibility",
+          "serverSideDataScope": true,
+          "tenThousandRecordProjectionProof": true
         }
       },
       "productionPreview": {
@@ -4413,10 +4382,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "CP-03",
-    "currentGateMeaning": "Enterprise Extension + Import-first Counterparty vertical proof",
-    "nextGate": "CP-04",
-    "nextGateMeaning": "Responsibility + Customers/Suppliers/My Customers/My Suppliers + data-scope permissions",
+    "currentGate": "CP-04",
+    "currentGateMeaning": "Responsibility + Customers/Suppliers/My Customers/My Suppliers + data-scope permissions",
+    "nextGate": "CP-05",
+    "nextGateMeaning": "Facets / Profiles / Contact / Address",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4496,7 +4465,7 @@
       ]
     },
     "cp03": {
-      "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
+      "status": "CLOSED_HUMAN_PASS",
       "objectExtensionCapability": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 430,
@@ -4543,10 +4512,8 @@
         "tenThousandRowStageDryRun": true,
         "tenThousandRowFullCommit": false
       },
-      "remaining": [
-        "Human browser validation of the production upload -> mapping -> dry-run -> commit journey for Counterparty using XLSX and/or CSV."
-      ],
-      "closureGate": "Close CP-03 only after Human production validation confirms the import experience is understandable and the end-to-end upload/mapping/dry-run/commit journey works. 10k stage/dry-run and deterministic 1k full atomic commit are already engineering evidence; 10k full commit is not a blocking Human UX gate.",
+      "remaining": [],
+      "closureGate": "CLOSED: Human production validation confirmed the Counterparty import journey.",
       "bulkPersistence": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 433,
@@ -4567,7 +4534,7 @@
         "oneThousandRowFullCommit": true
       },
       "humanImportExperience": {
-        "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
+        "status": "CLOSED_HUMAN_PASS",
         "implementationPr": 439,
         "mergeCommit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
         "platformCI": "PASS",
@@ -4585,8 +4552,30 @@
         "dryRunReviewPage": true,
         "explicitCommitConfirmation": true,
         "errorCsvDownload": true,
-        "xlsxArchiveSafetyLimits": true
-      }
+        "xlsxArchiveSafetyLimits": true,
+        "humanValidationAt": "2026-10-07",
+        "humanValidation": "PASS"
+      },
+      "humanValidationAt": "2026-10-07",
+      "humanValidation": "PASS"
+    },
+    "cp04": {
+      "status": "IMPLEMENTATION_PR_OPEN_CI_PASS",
+      "implementationPr": 458,
+      "platformCI": "PASS",
+      "responsibilityCapability": "enterprise.responsibility",
+      "projections": [
+        "Customers",
+        "Suppliers",
+        "My Customers",
+        "My Suppliers"
+      ],
+      "dataScopeFormula": "authorized data scope ∩ relationship role ∩ responsibility relation",
+      "serverSideRecordFiltering": true,
+      "serverSideFieldFiltering": true,
+      "identityDuplication": false,
+      "tenThousandRecordProjectionProof": true,
+      "humanValidation": "PENDING"
     }
   }
 }

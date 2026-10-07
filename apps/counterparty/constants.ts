@@ -7,6 +7,34 @@ export const COUNTERPARTY_DIRECTORY_PAGE_SOURCE =
   "app://evo-counterparty/pages/directory" as const;
 export const COUNTERPARTY_DIRECTORY_ROUTE = "/counterparties" as const;
 
+export const COUNTERPARTY_CUSTOMERS_PAGE_ID =
+  "evo-counterparty.customers" as const;
+export const COUNTERPARTY_CUSTOMERS_PAGE_SOURCE =
+  "app://evo-counterparty/pages/customers" as const;
+export const COUNTERPARTY_CUSTOMERS_ROUTE =
+  "/counterparties/customers" as const;
+
+export const COUNTERPARTY_SUPPLIERS_PAGE_ID =
+  "evo-counterparty.suppliers" as const;
+export const COUNTERPARTY_SUPPLIERS_PAGE_SOURCE =
+  "app://evo-counterparty/pages/suppliers" as const;
+export const COUNTERPARTY_SUPPLIERS_ROUTE =
+  "/counterparties/suppliers" as const;
+
+export const COUNTERPARTY_MY_CUSTOMERS_PAGE_ID =
+  "evo-counterparty.my-customers" as const;
+export const COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE =
+  "app://evo-counterparty/pages/my-customers" as const;
+export const COUNTERPARTY_MY_CUSTOMERS_ROUTE =
+  "/counterparties/my-customers" as const;
+
+export const COUNTERPARTY_MY_SUPPLIERS_PAGE_ID =
+  "evo-counterparty.my-suppliers" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE =
+  "app://evo-counterparty/pages/my-suppliers" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_ROUTE =
+  "/counterparties/my-suppliers" as const;
+
 export const COUNTERPARTY_CREATE_PAGE_ID =
   "evo-counterparty.create" as const;
 export const COUNTERPARTY_CREATE_PAGE_SOURCE =
