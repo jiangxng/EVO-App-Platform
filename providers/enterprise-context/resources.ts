@@ -111,9 +111,7 @@ function createRepository(
   let transactionDepth = 0;
 
   const readCurrent = (): EnterpriseResourceStoreSnapshotV010 =>
-    transactionSnapshot
-      ? clone(transactionSnapshot)
-      : read();
+    transactionSnapshot ?? read();
 
   const writeCurrent = (snapshot: EnterpriseResourceStoreSnapshotV010): void => {
     const valid = validateSnapshot(clone(snapshot));
