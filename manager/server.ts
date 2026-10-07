@@ -827,6 +827,9 @@ import {
   parseDataImportUploadRouteV010
 } from "../apps/data-import/constants.js";
 import {
+  dataImportAuthorizationPolicyV010
+} from "../apps/data-import/authorization.js";
+import {
   createDataImportRepositoryV010
 } from "../apps/data-import/repository.js";
 import {
@@ -1803,6 +1806,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   ),
   enterpriseContextGovernanceAuthorizationPolicyV010,
   eogDefinitionProjectionAuthorizationPolicyV010,
+  dataImportAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
