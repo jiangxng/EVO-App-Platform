@@ -9,41 +9,23 @@ import {
 import type {
   DataImportMappingV010,
   DataImportSourceV010,
-  DataImportJobV010
+  DataImportJobV010,
+  DataImportMappingOriginV010,
+  DataImportValueTransformV010
 } from "./types.js";
 import type {
   DataImportRepositoryV010
 } from "./repository.js";
+import {
+  dataImportTargetSchemaDigestV010,
+  type DataImportRecipeRepositoryV010
+} from "./recipe.js";
 
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
   return value.trim();
 }
 
-function digest(value: unknown): string {
-  return createHash("sha256")
-    .update(JSON.stringify(value))
-    .digest("hex");
-}
-
-function effectiveSchemaSemanticDigest(
-  schema: ReturnType<FoundationObjectImportTargetV010["describe"]>
-): string {
-  return digest({
-    contractVersion: schema.contractVersion,
-    objectType: schema.objectType,
-    ownerPackageId: schema.ownerPackageId,
-    baseSchemaRef: schema.baseSchemaRef,
-    activeRelationshipRoles: schema.activeRelationshipRoles,
-    fields: schema.fields.map(field => {
-      const {
-        resolvedLabel: _resolvedLabel,
-        ...semantic
-      } = field;
-      return semantic;
-    })
-  });
-}
 
 function targetMap(
   targets: readonly FoundationObjectImportTargetV010[]
@@ -61,13 +43,39 @@ function targetMap(
   return map;
 }
 
+function normalizedTransformValue(
+  value: FoundationObjectImportCellV010
+): string {
+  if (typeof value === "string") {
+    return "s:" + value.normalize("NFKC").trim().toLocaleLowerCase();
+  }
+  if (value === null) return "null";
+  return typeof value + ":" + String(value);
+}
+
+function transformedValue(
+  value: FoundationObjectImportCellV010,
+  transform: DataImportValueTransformV010 | undefined
+): FoundationObjectImportCellV010 {
+  if (!transform) return value;
+  if (transform.kind === "VALUE_MAP") {
+    const key = normalizedTransformValue(value);
+    const entry = transform.entries.find(item =>
+      normalizedTransformValue(item.source) === key
+    );
+    return entry ? entry.target : value;
+  }
+  return value;
+}
+
 function mappedValues(input: {
   sourceRow: Record<string, FoundationObjectImportCellV010>;
   mapping: DataImportMappingV010[];
 }): Record<string, FoundationObjectImportCellV010> {
   const values: Record<string, FoundationObjectImportCellV010> = {};
   for (const item of input.mapping) {
-    values[item.targetFieldId] = input.sourceRow[item.sourceColumn] ?? null;
+    const raw = input.sourceRow[item.sourceColumn] ?? null;
+    values[item.targetFieldId] = transformedValue(raw, item.transform);
   }
   return values;
 }
@@ -118,10 +126,41 @@ export interface DataImportServiceV010 {
     schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
     source: DataImportSourceV010;
   }): DataImportMappingV010[];
+  resolveInitialMapping(input: {
+    contextId: string;
+    targetId: string;
+    targetParameters?: DataImportJobV010["targetParameters"];
+    source: DataImportSourceV010;
+    schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
+  }): {
+    mapping: DataImportMappingV010[];
+    origin: "DETERMINISTIC" | "RECIPE";
+    recipeId?: string;
+  };
+  inspectMapping(input: {
+    contextId: string;
+    importJobId: string;
+    locale?: string;
+    sampleLimit?: number;
+  }): {
+    contractVersion: "0.1.0";
+    job: DataImportJobV010;
+    schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
+    sourceColumns: Array<{
+      sourceColumn: string;
+      sampleValues: FoundationObjectImportCellV010[];
+      mappedTargetFieldId?: string;
+      transform?: DataImportValueTransformV010;
+    }>;
+    unmappedColumns: string[];
+    rawSourcePreserved: true;
+  };
   updateMapping(input: {
     contextId: string;
     importJobId: string;
     mapping: DataImportMappingV010[];
+    mappingOrigin?: DataImportMappingOriginV010;
+    appliedRecipeId?: string;
     actorSubjectId: string;
     recordedAt: string;
   }): DataImportJobV010;
@@ -157,6 +196,7 @@ export interface DataImportServiceV010 {
 export function createDataImportServiceV010(input: {
   repository: DataImportRepositoryV010;
   targets: readonly FoundationObjectImportTargetV010[];
+  recipeRepository?: DataImportRecipeRepositoryV010;
 }): DataImportServiceV010 {
   const targets = targetMap(input.targets);
 
@@ -166,9 +206,113 @@ export function createDataImportServiceV010(input: {
     return target;
   }
 
+  function targetById(targetId: string): FoundationObjectImportTargetV010 {
+    const target = targets.get(targetId);
+    if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
+    return target;
+  }
+
+  function sampleLimit(value: number | undefined): number {
+    if (value === undefined) return 8;
+    if (!Number.isInteger(value) || value < 1 || value > 20) {
+      throw new Error("DATA_IMPORT_SAMPLE_LIMIT_INVALID");
+    }
+    return value;
+  }
+
   return {
     suggestMapping(mappingInput) {
       return suggestDataImportMappingV010(mappingInput);
+    },
+
+    resolveInitialMapping(mappingInput) {
+      const recipe = input.recipeRepository?.findBySource({
+        contextId: mappingInput.contextId,
+        targetId: mappingInput.targetId,
+        targetParameters: mappingInput.targetParameters,
+        source: mappingInput.source
+      });
+      if (
+        recipe
+        && recipe.targetSchemaDigest
+          === dataImportTargetSchemaDigestV010(mappingInput.schema)
+      ) {
+        const importable = new Set(
+          fieldsForSurfaceV010(mappingInput.schema, "IMPORT")
+            .filter(field => field.writable)
+            .map(field => field.fieldId)
+        );
+        if (recipe.mapping.every(item =>
+          mappingInput.source.headers.includes(item.sourceColumn)
+          && importable.has(item.targetFieldId)
+        )) {
+          return {
+            mapping: structuredClone(recipe.mapping),
+            origin: "RECIPE" as const,
+            recipeId: recipe.recipeId
+          };
+        }
+      }
+      return {
+        mapping: suggestDataImportMappingV010({
+          schema: mappingInput.schema,
+          source: mappingInput.source
+        }),
+        origin: "DETERMINISTIC" as const
+      };
+    },
+
+    inspectMapping(mappingInput) {
+      const job = input.repository.get(
+        mappingInput.contextId,
+        mappingInput.importJobId
+      );
+      if (!job) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+      const target = targetFor(job);
+      const schema = target.describe({
+        contextId: mappingInput.contextId,
+        locale: mappingInput.locale,
+        parameters: job.targetParameters
+      });
+      const current = new Map(
+        job.mapping.map(item => [item.sourceColumn, item] as const)
+      );
+      const limit = sampleLimit(mappingInput.sampleLimit);
+      const sourceColumns = job.source.headers.map(sourceColumn => {
+        const seen = new Set<string>();
+        const sampleValues: FoundationObjectImportCellV010[] = [];
+        for (const row of job.source.rows) {
+          const value = row[sourceColumn] ?? null;
+          const key = normalizedTransformValue(value);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          sampleValues.push(value);
+          if (sampleValues.length >= limit) break;
+        }
+        const mapped = current.get(sourceColumn);
+        return {
+          sourceColumn,
+          sampleValues,
+          ...(mapped
+            ? {
+                mappedTargetFieldId: mapped.targetFieldId,
+                ...(mapped.transform
+                  ? { transform: structuredClone(mapped.transform) }
+                  : {})
+              }
+            : {})
+        };
+      });
+      return {
+        contractVersion: "0.1.0" as const,
+        job: structuredClone(job),
+        schema: structuredClone(schema),
+        sourceColumns,
+        unmappedColumns: sourceColumns
+          .filter(item => !item.mappedTargetFieldId)
+          .map(item => item.sourceColumn),
+        rawSourcePreserved: true as const
+      };
     },
 
     updateMapping(mappingInput) {
@@ -184,6 +328,12 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        ...(mappingInput.mappingOrigin
+          ? { mappingOrigin: mappingInput.mappingOrigin }
+          : {}),
+        ...(mappingInput.appliedRecipeId
+          ? { appliedRecipeId: mappingInput.appliedRecipeId }
+          : {}),
         dryRun: undefined,
         receipt: undefined
       };
@@ -223,6 +373,12 @@ export function createDataImportServiceV010(input: {
         state: "STAGED",
         source: structuredClone(stageInput.source),
         mapping: structuredClone(stageInput.mapping),
+        ...(stageInput.mappingOrigin
+          ? { mappingOrigin: stageInput.mappingOrigin }
+          : {}),
+        ...(stageInput.appliedRecipeId
+          ? { appliedRecipeId: stageInput.appliedRecipeId }
+          : {}),
         stagedAt: stageInput.recordedAt,
         stagedBySubjectId: required(
           stageInput.actorSubjectId,
@@ -303,19 +459,44 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: invalidRows === 0 ? "DRY_RUN_READY" : "DRY_RUN_FAILED",
         dryRun: {
-          schemaDigest: effectiveSchemaSemanticDigest(schema),
+          schemaDigest: dataImportTargetSchemaDigestV010(schema),
           totalRows: rows.length,
           validRows: rows.length - invalidRows,
           invalidRows,
           rows
         }
       };
-      return input.repository.save({
+      const saved = input.repository.save({
         contextId: dryRunInput.contextId,
         job: next,
         actorSubjectId: dryRunInput.actorSubjectId,
         recordedAt: dryRunInput.recordedAt
       });
+      if (saved.state === "DRY_RUN_READY" && input.recipeRepository) {
+        const recipe = input.recipeRepository.recordSuccessful({
+          contextId: dryRunInput.contextId,
+          targetId: saved.targetId,
+          targetParameters: saved.targetParameters,
+          source: saved.source,
+          targetSchemaDigest: saved.dryRun!.schemaDigest,
+          mapping: saved.mapping,
+          importJobId: saved.importJobId,
+          actorSubjectId: dryRunInput.actorSubjectId,
+          recordedAt: dryRunInput.recordedAt
+        });
+        if (saved.appliedRecipeId !== recipe.recipeId) {
+          return input.repository.save({
+            contextId: dryRunInput.contextId,
+            job: {
+              ...saved,
+              appliedRecipeId: recipe.recipeId
+            },
+            actorSubjectId: dryRunInput.actorSubjectId,
+            recordedAt: dryRunInput.recordedAt
+          });
+        }
+      }
+      return saved;
     },
 
     commit(commitInput) {
@@ -336,7 +517,7 @@ export function createDataImportServiceV010(input: {
         parameters: job.targetParameters
       });
       if (
-        effectiveSchemaSemanticDigest(schema)
+        dataImportTargetSchemaDigestV010(schema)
         !== job.dryRun.schemaDigest
       ) {
         throw new Error("DATA_IMPORT_SCHEMA_CHANGED_AFTER_DRY_RUN");
