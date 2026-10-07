@@ -17,6 +17,7 @@
     "contracts/**/*.ts",
     "catalog/**/*.ts",
     "agents/**/*.ts",
+    "foundation/**/*.ts",
     "apps/**/*.ts",
     "providers/**/*.ts",
     "vendor/**/*.ts",
