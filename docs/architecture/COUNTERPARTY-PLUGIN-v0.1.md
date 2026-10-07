@@ -432,3 +432,61 @@ Relationship Roles v0.2 is complete only when:
 - AR/AP balances, aging, open items, settlement and reporting remain higher-layer derived concerns;
 - integration tests prove the identity/role lifecycle;
 - real-world validation can evolve without mirroring source schemas into production objects.
+
+
+## 19. Import, projection and workbench direction
+
+The first v0.1/v0.2 Counterparty UI proves identity and relationship-role semantics.
+It is **not** the target final daily Human experience.
+
+Legacy implementation evidence shows why a universal Counterparty edit form must not
+become the long-term design: identity, customer/supplier settings, responsibility,
+contacts, addresses, certificates, bank/tax data, logistics terms and derived annual
+or monthly totals were historically accumulated into one page and then hidden per
+implementation project.
+
+Counterparty now follows the general foundation-object experience authority:
+
+`docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md`
+
+Canonical direction:
+
+~~~text
+Counterparty Subject
+  = stable identity
+
+Relationship Role / Profile
+  = Customer / Supplier / other business relationship
+
+Related Facets
+  = Contacts / Addresses / Bank / Tax / Certificates / Attachments / ...
+
+Projection / Read Model
+  = balances / aging / sales / purchase / activity / risk / ...
+
+Experiences
+  = Registry / Customers / Suppliers / My Customers / My Suppliers /
+    Object Page / Import Workspace / Personal Workbench / Agent
+~~~
+
+Project initialization is expected to be import-first rather than manual-create-first.
+Manual Quick Create remains available for exceptions and daily incremental additions.
+
+The global Counterparty Registry is primarily an administrative/master-data surface.
+Ordinary business users should normally enter through role- and responsibility-aware
+projections such as Customers, Suppliers, My Customers and My Suppliers.
+
+Visibility is resolved from capability installation, Enterprise applicability,
+relationship role, authorization, shared projection and personal presentation state.
+Manual field hiding per customer project is not the target implementation model.
+
+"Hidden" is never a security boundary.
+
+The next product slices after v0.2 Human validation should prioritize:
+
+1. import/staging/mapping/dry-run/commit;
+2. deterministic demo/test data;
+3. responsibility relationships + role projections;
+4. permission-aware My Customers/My Suppliers;
+5. facet composition for business-proven Contact/Address/Profile needs;
+6. personal-workbench composition from governed Work and Projections.
