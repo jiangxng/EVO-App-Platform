@@ -6,6 +6,10 @@ import type {
   DataImportSourceV010
 } from "./types.js";
 
+const XLSX_MAX_ZIP_ENTRIES_V010 = 512;
+const XLSX_MAX_ENTRY_UNCOMPRESSED_BYTES_V010 = 32 * 1024 * 1024;
+const XLSX_MAX_TOTAL_UNCOMPRESSED_BYTES_V010 = 64 * 1024 * 1024;
+
 interface ZipEntryV010 {
   name: string;
   compression: number;
@@ -43,9 +47,16 @@ function zipEntries(bytes: Uint8Array): Map<string, ZipEntryV010> {
   if (eocd < 0) throw new Error("DATA_IMPORT_XLSX_ZIP_EOCD_NOT_FOUND");
 
   const totalEntries = u16(bytes, eocd + 10);
+  if (totalEntries < 1 || totalEntries > XLSX_MAX_ZIP_ENTRIES_V010) {
+    throw new Error("DATA_IMPORT_XLSX_ZIP_ENTRY_LIMIT_EXCEEDED");
+  }
   const centralOffset = u32(bytes, eocd + 16);
+  if (centralOffset >= bytes.length) {
+    throw new Error("DATA_IMPORT_XLSX_ZIP_CENTRAL_INVALID");
+  }
   const entries = new Map<string, ZipEntryV010>();
   let offset = centralOffset;
+  let totalUncompressedBytes = 0;
 
   for (let index = 0; index < totalEntries; index += 1) {
     if (u32(bytes, offset) !== 0x02014b50) {
@@ -58,6 +69,17 @@ function zipEntries(bytes: Uint8Array): Map<string, ZipEntryV010> {
     const extraLength = u16(bytes, offset + 30);
     const commentLength = u16(bytes, offset + 32);
     const localHeaderOffset = u32(bytes, offset + 42);
+    if (
+      uncompressedSize > XLSX_MAX_ENTRY_UNCOMPRESSED_BYTES_V010
+      || compressedSize > bytes.length
+      || localHeaderOffset >= bytes.length
+    ) {
+      throw new Error("DATA_IMPORT_XLSX_ZIP_ENTRY_SIZE_INVALID");
+    }
+    totalUncompressedBytes += uncompressedSize;
+    if (totalUncompressedBytes > XLSX_MAX_TOTAL_UNCOMPRESSED_BYTES_V010) {
+      throw new Error("DATA_IMPORT_XLSX_ZIP_TOTAL_SIZE_EXCEEDED");
+    }
     const name = decodeUtf8(
       bytes.subarray(offset + 46, offset + 46 + nameLength)
     ).replaceAll("\\", "/");
@@ -84,9 +106,21 @@ function readZipEntry(
   const nameLength = u16(bytes, offset + 26);
   const extraLength = u16(bytes, offset + 28);
   const start = offset + 30 + nameLength + extraLength;
-  const compressed = bytes.subarray(start, start + entry.compressedSize);
+  const end = start + entry.compressedSize;
+  if (start < 0 || end > bytes.length || end < start) {
+    throw new Error("DATA_IMPORT_XLSX_ZIP_ENTRY_BOUNDS_INVALID");
+  }
+  const compressed = bytes.subarray(start, end);
 
-  if (entry.compression === 0) return new Uint8Array(compressed);
+  if (entry.compression === 0) {
+    if (
+      entry.uncompressedSize !== 0
+      && compressed.byteLength !== entry.uncompressedSize
+    ) {
+      throw new Error("DATA_IMPORT_XLSX_ZIP_SIZE_MISMATCH");
+    }
+    return new Uint8Array(compressed);
+  }
   if (entry.compression !== 8) {
     throw new Error("DATA_IMPORT_XLSX_ZIP_COMPRESSION_UNSUPPORTED");
   }
