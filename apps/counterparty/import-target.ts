@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 import type {
+  EnterpriseResourceRepositoryV010
+} from "../../contracts/enterprise-resource.js";
+import type {
   FoundationObjectImportCellV010,
   FoundationObjectImportTargetParametersV010,
   FoundationObjectImportTargetV010,
@@ -124,6 +127,7 @@ function deterministicCounterpartyId(input: {
 }
 
 export function createCounterpartyImportTargetV010(input: {
+  resources: EnterpriseResourceRepositoryV010;
   repository: CounterpartyRepositoryV010;
   roleRepository: CounterpartyRoleRepositoryV010;
   extensionRepository: ObjectExtensionRepositoryV010;
@@ -146,7 +150,7 @@ export function createCounterpartyImportTargetV010(input: {
     });
   }
 
-  return {
+  const target: FoundationObjectImportTargetV010 = {
     contractVersion: "0.1.0",
     targetId: COUNTERPARTY_IMPORT_TARGET_V010,
     objectType: "counterparty.subject",
@@ -415,6 +419,30 @@ export function createCounterpartyImportTargetV010(input: {
         objectId: counterpartyId,
         displayKey: code
       };
+    },
+
+    commitPreparedRows(batchInput) {
+      if (!input.resources.transaction) {
+        throw new Error("ENTERPRISE_RESOURCE_TRANSACTION_REQUIRED");
+      }
+      const results = input.resources.transaction(() =>
+        batchInput.preparedRows.map(prepared =>
+          target.commitRow({
+            contextId: batchInput.contextId,
+            importJobId: batchInput.importJobId,
+            schema: batchInput.schema,
+            prepared,
+            parameters: batchInput.parameters,
+            actorSubjectId: batchInput.actorSubjectId,
+            recordedAt: batchInput.recordedAt
+          })
+        )
+      );
+      return {
+        semantics: "ATOMIC_BATCH",
+        results
+      };
     }
   };
+  return target;
 }
