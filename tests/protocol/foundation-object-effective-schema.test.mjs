@@ -23,7 +23,8 @@ import {
   OBJECT_EXTENSION_SCHEMA_V010
 } from "../../dist/apps/object-extension/repository.js";
 import {
-  objectExtensionPackage
+  objectExtensionPackage,
+  OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
 } from "../../dist/apps/object-extension/package.js";
 import {
   counterpartyCoreSchemaV010,
@@ -370,12 +371,31 @@ test("Object Extension definitions persist in Enterprise Context and remain isol
   );
 });
 
-test("Object Extension has an enterprise-scoped package boundary without advertising an unbound public capability", () => {
+test("Object Extension publishes governed capability operations after CP-03 wiring", () => {
   const feature = objectExtensionPackage.features[0];
-  assert.equal(feature.activationScope, "ENTERPRISE");
-  assert.equal(feature.defaultActivation, false);
+  assert.equal(feature.activationScope, "INSTALLATION");
+  assert.equal(feature.defaultActivation, true);
   assert.ok(
     feature.requiresCapabilities.includes("enterprise.resource.repository")
   );
-  assert.deepEqual(feature.providesCapabilities, []);
+  assert.ok(
+    feature.providesCapabilities.includes(
+      OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
+    )
+  );
+  const operations = feature.contributions
+    .filter(item => item.kind === "platform.capability-operation")
+    .map(item => item.operation);
+  assert.deepEqual(
+    operations.map(item => item.operationId).sort(),
+    [
+      "enterprise.object-extension.definition.archive",
+      "enterprise.object-extension.definition.list",
+      "enterprise.object-extension.definition.upsert"
+    ]
+  );
+  assert.equal(
+    operations.every(item => item.dataScope === "ENTERPRISE"),
+    true
+  );
 });

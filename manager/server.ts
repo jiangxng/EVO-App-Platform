@@ -798,6 +798,16 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../apps/counterparty/roles.js";
 import {
+  OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
+  OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
+  OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+  OBJECT_EXTENSION_FEATURE_ID,
+  OBJECT_EXTENSION_PACKAGE_ID
+} from "../apps/object-extension/constants.js";
+import {
+  createObjectExtensionRepositoryV010
+} from "../apps/object-extension/repository.js";
+import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
   LEDGER_MANAGER_FEATURE_ID,
@@ -911,6 +921,8 @@ const counterpartyRoleRepository =
     enterpriseResourceRepository,
     counterpartyRepository
   );
+const objectExtensionRepository =
+  createObjectExtensionRepositoryV010(enterpriseResourceRepository);
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -2162,6 +2174,21 @@ if (
     console.log("Activated EVO Counterparty plugin.");
   } catch (error) {
     console.error("Failed to activate EVO Counterparty plugin.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === OBJECT_EXTENSION_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(OBJECT_EXTENSION_PACKAGE_ID);
+    console.log("Activated EVO Object Extension application.");
+  } catch (error) {
+    console.error("Failed to activate EVO Object Extension application.", error);
   }
 }
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
@@ -4145,6 +4172,40 @@ const actionRouter = createAppActionRouter(
           );
           if (!handler) {
             throw new Error("COUNTERPARTY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
+      OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: OBJECT_EXTENSION_PACKAGE_ID,
+        featureId: OBJECT_EXTENSION_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/object-extension/actions.js");
+          const handlers = module.createObjectExtensionActionHandlersV010({
+            repository: objectExtensionRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("OBJECT_EXTENSION_HANDLER_NOT_FOUND");
           }
           return handler;
         }
