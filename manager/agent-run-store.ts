@@ -117,6 +117,7 @@ export function materializeAgentRunsV010(
     const input = payload.input as {
       message?: unknown;
       conversationHistory?: unknown;
+      interactionContext?: unknown;
       locale?: unknown;
       providerId?: unknown;
       modelId?: unknown;
@@ -125,6 +126,14 @@ export function materializeAgentRunsV010(
       typeof input.message !== "string"
       || !input.message.trim()
       || !Array.isArray(input.conversationHistory)
+      || (
+        input.interactionContext !== undefined
+        && (
+          input.interactionContext === null
+          || typeof input.interactionContext !== "object"
+          || Array.isArray(input.interactionContext)
+        )
+      )
       || typeof input.locale !== "string"
       || !input.locale.trim()
       || typeof input.providerId !== "string"
