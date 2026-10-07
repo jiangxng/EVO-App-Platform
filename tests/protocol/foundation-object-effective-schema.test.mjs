@@ -20,8 +20,7 @@ import {
   OBJECT_EXTENSION_SCHEMA_V010
 } from "../../dist/apps/object-extension/repository.js";
 import {
-  objectExtensionPackage,
-  OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
+  objectExtensionPackage
 } from "../../dist/apps/object-extension/package.js";
 import {
   counterpartyCoreSchemaV010,
@@ -355,16 +354,12 @@ test("Object Extension definitions persist in Enterprise Context and remain isol
   );
 });
 
-test("Object Extension is a separate enterprise-scoped application capability", () => {
+test("Object Extension has an enterprise-scoped package boundary without advertising an unbound public capability", () => {
   const feature = objectExtensionPackage.features[0];
   assert.equal(feature.activationScope, "ENTERPRISE");
   assert.equal(feature.defaultActivation, false);
   assert.ok(
     feature.requiresCapabilities.includes("enterprise.resource.repository")
   );
-  assert.ok(
-    feature.providesCapabilities.includes(
-      OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
-    )
-  );
+  assert.deepEqual(feature.providesCapabilities, []);
 });
