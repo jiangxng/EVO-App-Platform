@@ -6798,7 +6798,25 @@ const server = createServer(async (request, response) => {
 
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
-        const context = contextRegistry.resolve();
+        const requestedContext = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
+        );
+        const enterpriseContexts = contextRegistry.list().filter(
+          ref => ref.kind === "ENTERPRISE"
+        );
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: contextRegistry.list(),
+          store: enterpriseGovernanceStore
+        });
+        const effectiveContext =
+          requestedContext?.kind === "ENTERPRISE"
+            ? requestedContext
+            : defaultEnterpriseContext
+              ?? enterpriseContexts[0]
+              ?? requestedContext;
+        const context = contextRegistry.resolve(effectiveContext);
         const availableContexts = contextRegistry.list().map(ref => {
           const resolved = contextRegistry.resolve(ref);
           return {
