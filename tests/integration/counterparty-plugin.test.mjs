@@ -8,17 +8,23 @@ import {
   createCounterpartyRepositoryV010
 } from "../../dist/apps/counterparty/repository.js";
 import {
+  createCounterpartyRoleRepositoryV010
+} from "../../dist/apps/counterparty/roles.js";
+import {
   createCounterpartyActionHandlersV010
 } from "../../dist/apps/counterparty/actions.js";
 import {
   createCounterpartyDirectoryPageV010,
   createCounterpartyCreatePageV010,
+  createCounterpartyDetailPageV010,
   createCounterpartyEditPageV010
 } from "../../dist/apps/counterparty/page.js";
 import {
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_UPDATE_COMMAND,
-  COUNTERPARTY_ARCHIVE_COMMAND
+  COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+  COUNTERPARTY_REMOVE_ROLE_COMMAND
 } from "../../dist/apps/counterparty/constants.js";
 import {
   counterpartyPackage
@@ -75,6 +81,11 @@ function action(commandCode, values) {
 test("Counterparty package requires Enterprise Resource Library and exposes Chinese navigation", () => {
   const feature = counterpartyPackage.features[0];
   assert.ok(feature.requiresCapabilities.includes("enterprise.resource.repository"));
+  assert.ok(
+    feature.providesCapabilities.includes(
+      "enterprise.counterparty.relationship-role"
+    )
+  );
   const zh = feature.contributions.find(item =>
     item.kind === "eidos.localization-bundle"
     && item.bundle.locale === "zh-CN"
@@ -88,9 +99,14 @@ test("Counterparty package requires Enterprise Resource Library and exposes Chin
 test("Counterparty create persists into the active Enterprise Context only", async () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const repository = createCounterpartyRepositoryV010(resources);
+  const roleRepository = createCounterpartyRoleRepositoryV010(
+    resources,
+    repository
+  );
   let id = 0;
   const handlers = createCounterpartyActionHandlersV010({
     repository,
+    roleRepository,
     canManageEnterpriseContext: () => true,
     idFactory: () => "cp-" + (++id),
     now: () => new Date("2026-10-06T10:00:00.000Z")
@@ -134,6 +150,10 @@ test("Counterparty create persists into the active Enterprise Context only", asy
 test("Counterparty code is unique inside one Enterprise Context but may repeat in another", () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const repository = createCounterpartyRepositoryV010(resources);
+  const roleRepository = createCounterpartyRoleRepositoryV010(
+    resources,
+    repository
+  );
   const base = {
     contractVersion: "0.1.0",
     counterpartyId: "cp-a",
@@ -175,6 +195,10 @@ test("Counterparty code is unique inside one Enterprise Context but may repeat i
 test("Counterparty archive retains Enterprise Resource evidence but removes it from active directory", async () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const repository = createCounterpartyRepositoryV010(resources);
+  const roleRepository = createCounterpartyRoleRepositoryV010(
+    resources,
+    repository
+  );
   repository.save({
     contextId: "enterprise-context:a",
     subject: {
@@ -191,6 +215,7 @@ test("Counterparty archive retains Enterprise Resource evidence but removes it f
 
   const handlers = createCounterpartyActionHandlersV010({
     repository,
+    roleRepository,
     canManageEnterpriseContext: () => true,
     idFactory: () => "unused",
     now: () => new Date("2026-10-06T11:00:00.000Z")
@@ -247,6 +272,10 @@ test("Counterparty pages establish list-first management UX and a valid create f
 test("Counterparty edit preserves stable identity and updates the same Enterprise Resource", async () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const repository = createCounterpartyRepositoryV010(resources);
+  const roleRepository = createCounterpartyRoleRepositoryV010(
+    resources,
+    repository
+  );
   repository.save({
     contextId: "enterprise-context:a",
     subject: {
@@ -279,6 +308,7 @@ test("Counterparty edit preserves stable identity and updates the same Enterpris
 
   const handlers = createCounterpartyActionHandlersV010({
     repository,
+    roleRepository,
     canManageEnterpriseContext: () => true,
     idFactory: () => "unused",
     now: () => new Date("2026-10-07T00:05:00.000Z")
@@ -317,4 +347,163 @@ test("Counterparty edit preserves stable identity and updates the same Enterpris
   });
   assert.equal(raw.length, 1);
   assert.equal(raw[0].resourceId, "cp-1");
+});
+
+
+test("Counterparty supports simultaneous Customer and Supplier roles without duplicating identity", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createCounterpartyRepositoryV010(resources);
+  const roleRepository = createCounterpartyRoleRepositoryV010(
+    resources,
+    repository
+  );
+  repository.save({
+    contextId: "enterprise-context:a",
+    subject: {
+      contractVersion: "0.1.0",
+      counterpartyId: "cp-1",
+      code: "C001",
+      displayName: "ABC有限公司",
+      subjectType: "ORGANIZATION",
+      status: "ACTIVE"
+    },
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T01:00:00.000Z"
+  });
+
+  const handlers = createCounterpartyActionHandlersV010({
+    repository,
+    roleRepository,
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "unused",
+    now: () => new Date("2026-10-07T01:05:00.000Z")
+  });
+  const assign = handlers.find(
+    item => item.commandCode === COUNTERPARTY_ASSIGN_ROLE_COMMAND
+  );
+  const remove = handlers.find(
+    item => item.commandCode === COUNTERPARTY_REMOVE_ROLE_COMMAND
+  );
+
+  assert.equal((await assign.execute(
+    action(COUNTERPARTY_ASSIGN_ROLE_COMMAND, {
+      counterpartyId: "cp-1",
+      roleCode: "CUSTOMER"
+    }),
+    context()
+  )).ok, true);
+  assert.equal((await assign.execute(
+    action(COUNTERPARTY_ASSIGN_ROLE_COMMAND, {
+      counterpartyId: "cp-1",
+      roleCode: "SUPPLIER"
+    }),
+    context()
+  )).ok, true);
+
+  assert.deepEqual(
+    roleRepository.list("enterprise-context:a", "cp-1")
+      .map(role => role.roleCode),
+    ["CUSTOMER", "SUPPLIER"]
+  );
+  assert.equal(repository.list("enterprise-context:a").length, 1);
+  assert.equal(repository.get("enterprise-context:a", "cp-1").counterpartyId, "cp-1");
+  assert.equal(roleRepository.list("enterprise-context:b").length, 0);
+
+  const roleResources = resources.list({
+    contextId: "enterprise-context:a",
+    namespace: "evo.counterparty",
+    collectionId: "counterparty-roles",
+    resourceType: "counterparty.relationship-role",
+    lifecycleState: "ACTIVE"
+  });
+  assert.equal(roleResources.length, 2);
+  assert.equal(
+    roleResources.every(item =>
+      item.ownerPackageId === "evo-counterparty"
+      && item.schemaRef === "evo.counterparty.relationship-role/0.1.0"
+    ),
+    true
+  );
+
+  assert.equal((await remove.execute(
+    action(COUNTERPARTY_REMOVE_ROLE_COMMAND, {
+      counterpartyId: "cp-1",
+      roleCode: "CUSTOMER"
+    }),
+    context()
+  )).ok, true);
+
+  assert.deepEqual(
+    roleRepository.list("enterprise-context:a", "cp-1")
+      .map(role => role.roleCode),
+    ["SUPPLIER"]
+  );
+  assert.equal(repository.get("enterprise-context:a", "cp-1").status, "ACTIVE");
+  assert.equal(
+    resources.list({
+      contextId: "enterprise-context:a",
+      namespace: "evo.counterparty",
+      collectionId: "counterparty-roles",
+      resourceType: "counterparty.relationship-role",
+      lifecycleState: "ARCHIVED"
+    }).length,
+    1
+  );
+});
+
+test("Counterparty detail exposes relationship roles independently from master identity", () => {
+  const counterparty = {
+    contractVersion: "0.1.0",
+    counterpartyId: "cp-1",
+    code: "C001",
+    displayName: "ABC有限公司",
+    subjectType: "ORGANIZATION",
+    status: "ACTIVE"
+  };
+  const roles = [{
+    contractVersion: "0.1.0",
+    roleId: "cp-1.customer",
+    counterpartyId: "cp-1",
+    roleCode: "CUSTOMER"
+  }, {
+    contractVersion: "0.1.0",
+    roleId: "cp-1.supplier",
+    counterpartyId: "cp-1",
+    roleCode: "SUPPLIER"
+  }];
+
+  const page = createCounterpartyDetailPageV010({
+    counterparty,
+    roles,
+    locale: "zh-CN"
+  });
+  const item = page.items[0];
+
+  assert.deepEqual(item.badges, ["客户", "供应商"]);
+  assert.equal(item.metadata["关系角色"], "客户 · 供应商");
+  assert.equal(
+    item.secondaryActions.find(
+      action => action.id === "toggle-customer-role"
+    ).command,
+    COUNTERPARTY_REMOVE_ROLE_COMMAND
+  );
+  assert.equal(
+    item.secondaryActions.find(
+      action => action.id === "toggle-supplier-role"
+    ).command,
+    COUNTERPARTY_REMOVE_ROLE_COMMAND
+  );
+
+  const noRolePage = createCounterpartyDetailPageV010({
+    counterparty,
+    roles: [],
+    locale: "zh-CN"
+  });
+  assert.equal(noRolePage.items[0].metadata["关系角色"], "未设置");
+  assert.equal(
+    noRolePage.items[0].secondaryActions.find(
+      action => action.id === "toggle-customer-role"
+    ).command,
+    COUNTERPARTY_ASSIGN_ROLE_COMMAND
+  );
 });
