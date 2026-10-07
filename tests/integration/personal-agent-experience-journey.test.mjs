@@ -286,13 +286,44 @@ test("Personal Agent chat overlay keeps mature feedback and message actions", as
   assert.match(source, /chatUiTextV010/);
 });
 
-test("Personal Agent chat header preserves separate conversation and context hierarchy", async () => {
+test("Personal Agent chat header uses progressive disclosure for conversation controls", async () => {
   const source = await readFile(
     new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
     "utf8"
   );
 
-  assert.match(source, /gridTemplateRows = "auto auto"/);
+  assert.match(source, /data-eidos-chat-heading-group/);
   assert.match(source, /data-eidos-chat-thread-controls/);
+  assert.match(source, /data-eidos-chat-history-menu/);
+  assert.match(source, /data-eidos-chat-history-item/);
+  assert.match(source, /data-eidos-chat-more-menu/);
+  assert.match(source, /data-eidos-chat-archive-thread/);
   assert.match(source, /data-eidos-chat-context/);
+  assert.doesNotMatch(source, /threadControls\.append\(threadSelect, newThreadButton, archiveThreadButton\)/);
+});
+
+test("Personal Agent thinking state is transient and hidden after terminal progress", async () => {
+  const source = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /pendingIndicator\.style\.display = "none"/);
+  assert.match(source, /pendingIndicator\.style\.display = busy \? "flex" : "none"/);
+  assert.match(source, /\["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"\]/);
+  assert.match(source, /message => message\.id !== runProgressMessageId/);
+});
+
+test("Workbench suppresses a duplicate side chat while the workspace itself is chat", async () => {
+  const source = await readFile(
+    new URL("../../dist/manager/desktop-workbench-runtime.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /data-evo-workspace-chat-exclusive/);
+  assert.match(source, /data-eidos-workspace-content/);
+  assert.match(source, /data-eidos-side-panel-content/);
+  assert.match(source, /data-eidos-chat/);
+  assert.match(source, /MutationObserver/);
+  assert.match(source, /gridTemplateColumns/);
 });
