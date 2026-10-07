@@ -74,8 +74,16 @@ introducing a separate brand system:
 - reduced-motion support;
 - accessible names and focus treatment.
 
-The left-side graphic is semantic product framing built from ordinary layout
-primitives. It is not authoritative business data.
+The left-side cover speaks from the enterprise to its people, not from the
+platform vendor to the enterprise. The default copy is a neutral management
+template centered on aligned goals, clear ownership and continuous improvement.
+
+The cover is intentionally shaped as a future enterprise-configurable surface:
+an enterprise may later provide its own logo, background, headline, supporting
+message, management priorities and footer statement. Until that capability is
+governed and implemented, the Host renders the default template.
+
+The cover remains presentation content rather than operational business truth.
 
 ## Accessibility
 

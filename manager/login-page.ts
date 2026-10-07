@@ -33,9 +33,16 @@ function copy(locale: "en" | "zh-CN") {
   return locale === "zh-CN"
     ? {
         pageTitle: "登录 EVO",
-        eyebrow: "EVO 企业工作空间",
-        heroTitle: "一个入口，连接企业工作。",
-        heroBody: "安全进入应用、企业数据与智能能力。身份由组织策略统一管理。",
+        eyebrow: "我们的共同目标",
+        heroTitle: "以客户为中心，以奋斗者为本。",
+        heroBody: "每一项工作，都应该知道为什么做、由谁负责、进展到哪里。让信息透明、责任清晰、协作顺畅，让每个人都知道现在最重要的事情是什么。",
+        valueOneTitle: "目标一致",
+        valueOneBody: "理解公司的方向，也清楚自己的工作如何支持共同目标。",
+        valueTwoTitle: "责任清晰",
+        valueTwoBody: "明确负责人、时间和下一步，让事情持续向前推进。",
+        valueThreeTitle: "持续改善",
+        valueThreeBody: "用事实发现问题，用结果检验行动，让好的做法不断沉淀下来。",
+        coverFooter: "今天的每一步，都在推动企业向目标前进。",
         signInTitle: "登录到 EVO",
         signInBody: "选择你的身份方式继续。",
         available: "可用",
@@ -57,9 +64,16 @@ function copy(locale: "en" | "zh-CN") {
       }
     : {
         pageTitle: "Sign in to EVO",
-        eyebrow: "EVO enterprise workspace",
-        heroTitle: "One secure entry to your enterprise work.",
-        heroBody: "Access applications, enterprise data and intelligence through organization-governed identity.",
+        eyebrow: "Our shared goal",
+        heroTitle: "Customer-centric. Strivers at the core.",
+        heroBody: "Every piece of work should have a clear purpose, owner and sense of progress. Keep information visible, responsibilities clear and collaboration moving so everyone knows what matters most now.",
+        valueOneTitle: "Aligned goals",
+        valueOneBody: "Understand where the company is going and how your work supports the shared goal.",
+        valueTwoTitle: "Clear ownership",
+        valueTwoBody: "Make the owner, timing and next step clear so work keeps moving forward.",
+        valueThreeTitle: "Continuous improvement",
+        valueThreeBody: "Use facts to find problems and results to test actions, then keep what works.",
+        coverFooter: "Every step today moves the enterprise closer to its goals.",
         signInTitle: "Sign in to EVO",
         signInBody: "Choose an identity method to continue.",
         available: "Available",
@@ -266,12 +280,12 @@ a{color:inherit}
       <h1 id="evo-login-hero-title">${text.heroTitle}</h1>
       <p>${text.heroBody}</p>
       <div class="evo-login-visual" aria-hidden="true">
-        <div><strong>Applications</strong><span>Composable enterprise work</span></div>
-        <div><strong>Context</strong><span>Governed enterprise resources</span></div>
-        <div><strong>Intelligence</strong><span>Assistance with clear authority</span></div>
+        <div><strong>${text.valueOneTitle}</strong><span>${text.valueOneBody}</span></div>
+        <div><strong>${text.valueTwoTitle}</strong><span>${text.valueTwoBody}</span></div>
+        <div><strong>${text.valueThreeTitle}</strong><span>${text.valueThreeBody}</span></div>
       </div>
     </div>
-    <div class="evo-login-brand-footer">EVO · Enterprise software control plane</div>
+    <div class="evo-login-brand-footer">${text.coverFooter}</div>
   </section>
 
   <section class="evo-login-main" aria-labelledby="evo-login-title">
