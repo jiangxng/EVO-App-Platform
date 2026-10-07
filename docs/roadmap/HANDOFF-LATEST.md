@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `COUNTERPARTY-RELATIONSHIP-ROLES-V0-2-2026-10-07-01`  
-**Snapshot time:** `2026-10-07T08:25:00+08:00`  
+**Snapshot:** `counterparty-relationship-roles-v0-2-merged-2026-10-07`  
+**Snapshot time:** `2026-10-07T01:08:53.000Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -46,9 +46,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-relationship-roles-v0-2: READY**
+**counterparty-relationship-roles-v0-2: MERGED_CI_DEPLOYED_PENDING_HUMAN_VALIDATION**
 
-Introduce explicit multi-role relationships for one stable Counterparty identity, beginning with Customer and Supplier without duplicating master identities or moving role-specific settings into Counterparty core.
+Counterparty Relationship Roles v0.2 is merged through App Platform PR #419 and deployed to production. CUSTOMER and SUPPLIER are explicit enterprise-scoped relationship resources over one stable Counterparty identity. The remaining closure gate is Human browser validation; the milestone is not yet declared Human-validated/closed.
 
 Acceptance:
 
@@ -70,8 +70,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `747fa58ad2d61938a3171f05d0b53d9dd4e79f1b`
-- Deployment: `fb0bc536-9d46-48eb-ae13-1ced7e5601b5`
+- Commit: `6c47a342b02328cc69ed3ab9cecaf42c3823cee7`
+- Deployment: `90f244c8-3715-4c3a-9ced-419483f4ac34`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -102,6 +102,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #419 — MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING: Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline.
 - PR #417 — MERGED_CI_PRODUCTION_PASS: Complete Counterparty v0.1 core master-data loop with in-place Edit and generic Eidos UIDL initial-value support.
 - PR #415 — MERGED_CI_PRODUCTION_PASS: Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows.
 - PR #412 — MERGED_CI_PRODUCTION_PASS: Add fixed deterministic layered Auto layout to Definition Projection Editor and replace the growing action row with frequent actions plus More overflow.
@@ -673,13 +674,6 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Counterparty / 往来对象 v0.1 core master-data loop as production-complete through PR #417
 - state Eidos PR #127 initialValue support as the generic edit-form mechanism used by Counterparty
 - state Counterparty Relationship Roles v0.2 as the current live milestone
-
-- state App Platform PR #419 / merge 6c47a342b02328cc69ed3ab9cecaf42c3823cee7 as the merged Counterparty Relationship Roles v0.2 implementation
-- state Counterparty CUSTOMER and SUPPLIER as explicit Enterprise Context relationship resources under evo.counterparty/counterparty-roles, both referencing one stable counterpartyId
-- state Counterparty role assignment/removal as independent from Counterparty subject identity lifecycle and explicitly outside AR/AP/open-item/settlement ownership
-- state docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md as the active foundation-object/RVC program baseline for Counterparty then Item/Product and Warehouse/Location
-- state Railway Ledger Configurator deployment 90f244c8-3715-4c3a-9ced-419483f4ac34 / commit 6c47a342b02328cc69ed3ab9cecaf42c3823cee7 as SUCCESS
-- state Counterparty Relationship Roles v0.2 as merged, CI-passed and production-deployed but still awaiting Human browser validation before milestone closure
 
 No previous ChatGPT transcript is required.
 
