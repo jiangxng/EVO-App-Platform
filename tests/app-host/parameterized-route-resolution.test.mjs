@@ -65,6 +65,11 @@ test("App Host resolves parameterized routes after exact routes", async () => {
     "/data-import/new/counterparty.subject"
   );
   assert.equal(page?.page.id, "upload");
+  assert.equal(page?.route.path, "/data-import/new/:targetId");
+  assert.equal(
+    page?.requestPath,
+    "/data-import/new/counterparty.subject"
+  );
   assert.deepEqual(loaded, [{
     pageId: "upload",
     routePath: "/data-import/new/counterparty.subject"
