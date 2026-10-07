@@ -175,6 +175,11 @@ import {
 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  createPersonalAgentCapabilityToolRegistrationsV010,
+  PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,
+  personalAgentCapabilityRequestContextV010
+} from "../agents/enterprise-agent/capability-fabric-tools.js";
 import { createPersonalAgentQualityPageV010, createPersonalAgentQualityReviewPageV010 } from "./personal-agent-quality-page.js";
 import { createFileContextMemoryQualityStoreV010, createMemoryContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
 import { createFileContextMemoryFreshnessPolicyStoreV010, createMemoryContextMemoryFreshnessPolicyStoreV010 } from "./context-memory-freshness-policy-store.js";
@@ -647,7 +652,10 @@ import {
   legacyScopeFromRequestContextV010,
   type MaterialWriteAuthorizationInputV010
 } from "./material-write-authorization.js";
-import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
+import {
+  createCapabilityOperationActionPreExecuteV010,
+  listAuthorizedCapabilityOperationsV010
+} from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
@@ -842,6 +850,9 @@ import {
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
+import {
+  objectExtensionAuthorizationPolicyV010
+} from "../apps/object-extension/authorization.js";
 import {
   createObjectExtensionRepositoryV010
 } from "../apps/object-extension/repository.js";
@@ -1807,6 +1818,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   enterpriseContextGovernanceAuthorizationPolicyV010,
   eogDefinitionProjectionAuthorizationPolicyV010,
   dataImportAuthorizationPolicyV010,
+  objectExtensionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
@@ -3662,7 +3674,7 @@ function createPersonalAgentToolCatalogV010(
     searchHelp(query, helpContext) {
       return searchHelpV010(helpCorpus, query, locale, helpContext);
     },
-    async authorizeWrite(descriptor) {
+    async authorizeWrite(descriptor, args) {
       if (!requestContext) {
         return {
           allowed: false,
@@ -3670,6 +3682,40 @@ function createPersonalAgentToolCatalogV010(
           message: "Material WRITE requires a Host-resolved request context."
         };
       }
+
+      if (descriptor.id === PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID) {
+        const operationId =
+          typeof args.operationId === "string"
+            ? args.operationId.trim()
+            : "";
+        if (!operationId) {
+          return {
+            allowed: false,
+            code: "PERSONAL_AGENT_CAPABILITY_OPERATION_REQUIRED",
+            message: "A concrete Capability Operation is required before WRITE authorization."
+          };
+        }
+        const capabilityCatalog =
+          await listAuthorizedCapabilityOperationsV010({
+            manager,
+            authorizationProvider: resolveAuthorizationProvider(),
+            requestContext:
+              personalAgentCapabilityRequestContextV010(requestContext),
+            audience: "PERSONAL_AGENT"
+          });
+        const operation = capabilityCatalog.operations.find(item =>
+          item.operationId === operationId && item.effect === "WRITE"
+        );
+        return operation
+          ? { allowed: true }
+          : {
+              allowed: false,
+              code: "PERSONAL_AGENT_CAPABILITY_NOT_AUTHORIZED",
+              message:
+                "The requested WRITE Capability Operation is not currently authorized for Personal Agent."
+            };
+      }
+
       const current2dEditorWrite =
         descriptor.id === "enterprise.current_2d_editor.crop";
       const current2dEditorTarget = current2dEditorWrite
@@ -3790,6 +3836,14 @@ function createPersonalAgentToolCatalogV010(
           };
     }
   }, [
+    ...(requestContext
+      ? createPersonalAgentCapabilityToolRegistrationsV010({
+          manager,
+          actionRouter,
+          requestContext,
+          resolveAuthorizationProvider
+        })
+      : []),
     ...createEnterpriseOperatingGraphAgentToolRegistrationsV010({
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
