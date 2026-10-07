@@ -285,7 +285,7 @@ Exit requires a fixed known-answer test set and structured Human corrections.
 
 ## 10. CP-04 — Responsibility + Projections + data scope
 
-**Current state:** IMPLEMENTATION_PR_OPEN_CI_PASS (PR #458). CP-03 Human import validation is CLOSED_HUMAN_PASS.
+**Current state:** MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING (PR #458). CP-03 Human import validation is CLOSED_HUMAN_PASS. CP-04 is merged, deployed to production and awaiting Human validation.
 
 Create shared Responsibility capability.
 
