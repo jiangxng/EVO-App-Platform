@@ -15,6 +15,7 @@ import type {
 import {
   COUNTERPARTY_ARCHIVE_COMMAND,
   COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_UPDATE_COMMAND,
   COUNTERPARTY_DIRECTORY_ROUTE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
@@ -173,6 +174,95 @@ export function createCounterpartyActionHandlersV010(input: {
     }
   };
 
+  const update: AppActionHandler = {
+    packageId: COUNTERPARTY_PACKAGE_ID,
+    featureId: COUNTERPARTY_FEATURE_ID,
+    commandCode: COUNTERPARTY_UPDATE_COMMAND,
+    async execute(
+      request: AppActionRequestV010,
+      context?: PlatformRequestContextV010
+    ): Promise<AppActionExecutionResultV010> {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        const active = activeEnterpriseContext(context);
+        ensureManage(
+          context.principal,
+          active.contextId,
+          input.canManageEnterpriseContext
+        );
+        const counterpartyId = required(
+          request.values.counterpartyId,
+          "COUNTERPARTY_ID_REQUIRED"
+        );
+        const current = input.repository.get(
+          active.contextId,
+          counterpartyId
+        );
+        if (!current) throw new Error("COUNTERPARTY_NOT_FOUND");
+
+        const subjectType = required(
+          request.values.subjectType,
+          "COUNTERPARTY_SUBJECT_TYPE_REQUIRED"
+        ) as CounterpartySubjectTypeV010;
+        if (!["ORGANIZATION", "PERSON"].includes(subjectType)) {
+          throw new Error("COUNTERPARTY_SUBJECT_TYPE_INVALID");
+        }
+
+        const saved = input.repository.save({
+          contextId: active.contextId,
+          subject: {
+            contractVersion: "0.1.0",
+            counterpartyId,
+            code: required(
+              request.values.code,
+              "COUNTERPARTY_CODE_REQUIRED"
+            ),
+            displayName: required(
+              request.values.displayName,
+              "COUNTERPARTY_DISPLAY_NAME_REQUIRED"
+            ),
+            subjectType,
+            status: current.status,
+            ...(text(request.values.legalName)
+              ? { legalName: text(request.values.legalName) }
+              : {}),
+            ...(text(request.values.taxIdentifier)
+              ? { taxIdentifier: text(request.values.taxIdentifier) }
+              : {}),
+            ...(text(request.values.countryOrRegion)
+              ? { countryOrRegion: text(request.values.countryOrRegion) }
+              : {}),
+            ...(text(request.values.phone)
+              ? { phone: text(request.values.phone) }
+              : {}),
+            ...(text(request.values.email)
+              ? { email: text(request.values.email) }
+              : {}),
+            ...(text(request.values.notes)
+              ? { notes: text(request.values.notes) }
+              : {})
+          },
+          actorSubjectId: context.principal.subjectId,
+          recordedAt: now().toISOString()
+        });
+
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify({
+            message: "Counterparty updated.",
+            counterpartyId: saved.counterpartyId,
+            navigateTo: counterpartyDetailRouteV010(
+              saved.counterpartyId
+            )
+          })) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
   const archive: AppActionHandler = {
     packageId: COUNTERPARTY_PACKAGE_ID,
     featureId: COUNTERPARTY_FEATURE_ID,
@@ -214,5 +304,5 @@ export function createCounterpartyActionHandlersV010(input: {
     }
   };
 
-  return [create, archive];
+  return [create, update, archive];
 }
