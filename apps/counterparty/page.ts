@@ -39,6 +39,7 @@ function textFor(locale?: string) {
         search: "搜索编码或名称",
         empty: "还没有往来对象。",
         create: "新建往来对象",
+        import: "导入",
         createSummary: "建立一个新的企业往来主体。",
         organization: "机构",
         person: "个人",
@@ -83,6 +84,7 @@ function textFor(locale?: string) {
         search: "Search code or name",
         empty: "No counterparties yet.",
         create: "New counterparty",
+        import: "Import",
         createSummary: "Create a new enterprise counterparty identity.",
         organization: "Organization",
         person: "Person",
@@ -141,6 +143,7 @@ function relationshipRoleLabel(
 
 export function createCounterpartyDirectoryPageV010(input: {
   counterparties: readonly CounterpartySubjectV010[];
+  importRoute?: string;
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -152,14 +155,25 @@ export function createCounterpartyDirectoryPageV010(input: {
     id: "evo-counterparty.directory",
     title: text.title,
     description: text.description,
-    actions: [{
-      id: "create",
-      label: text.create,
-      type: "navigate",
-      route: COUNTERPARTY_CREATE_ROUTE,
-      requiresConfirmation: false,
-      primary: true
-    }],
+    actions: [
+      ...(input.importRoute
+        ? [{
+            id: "import",
+            label: text.import,
+            type: "navigate" as const,
+            route: input.importRoute,
+            requiresConfirmation: false
+          }]
+        : []),
+      {
+        id: "create",
+        label: text.create,
+        type: "navigate",
+        route: COUNTERPARTY_CREATE_ROUTE,
+        requiresConfirmation: false,
+        primary: true
+      }
+    ],
     search: {
       placeholder: text.search,
       ariaLabel: text.search,
