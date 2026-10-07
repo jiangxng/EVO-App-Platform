@@ -37,6 +37,11 @@ export interface FoundationObjectImportCommitResultV010 {
   displayKey?: string;
 }
 
+export interface FoundationObjectImportBatchCommitResultV010 {
+  rowNumber: number;
+  result: FoundationObjectImportCommitResultV010;
+}
+
 export interface FoundationObjectImportTargetV010 {
   contractVersion: "0.1.0";
   targetId: string;
@@ -64,4 +69,13 @@ export interface FoundationObjectImportTargetV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): FoundationObjectImportCommitResultV010;
+  commitBatch?(input: {
+    contextId: string;
+    importJobId: string;
+    schema: EffectiveObjectSchemaV010;
+    prepared: FoundationObjectImportPreparedRowV010[];
+    parameters?: FoundationObjectImportTargetParametersV010;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): FoundationObjectImportBatchCommitResultV010[];
 }
