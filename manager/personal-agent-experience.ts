@@ -249,6 +249,26 @@ export interface PersonalAgentContextOptionV010 {
   label: string;
 }
 
+export function resolvePersonalAgentActiveContextV010(input: {
+  requestedContext?: ActiveContextRefV010;
+  defaultEnterpriseContext?: ActiveContextRefV010;
+  availableContexts: readonly ActiveContextRefV010[];
+}): ActiveContextRefV010 | undefined {
+  const enterprises = input.availableContexts.filter(
+    context => context.kind === "ENTERPRISE"
+  );
+  if (enterprises.length > 0) {
+    if (input.requestedContext?.kind === "ENTERPRISE") {
+      return input.requestedContext;
+    }
+    if (input.defaultEnterpriseContext?.kind === "ENTERPRISE") {
+      return input.defaultEnterpriseContext;
+    }
+    return enterprises[0];
+  }
+  return input.requestedContext;
+}
+
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
   context: ResolvedContextSetV010,
