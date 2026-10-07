@@ -262,31 +262,32 @@ export function createDataImportServiceV010(input: {
         throw new Error("DATA_IMPORT_SCHEMA_CHANGED_AFTER_DRY_RUN");
       }
 
-      const receiptRows = job.dryRun.rows.map(row => {
-        if (!row.ok || !row.prepared) {
-          return {
-            rowNumber: row.rowNumber,
-            ok: false,
-            issues: row.issues.length > 0
-              ? row.issues
-              : [{
-                  code: "DATA_IMPORT_ROW_NOT_PREPARED",
-                  message: "Row was not prepared by dry run."
-                }]
-          };
-        }
+      let receiptRows;
+      if (target.commitPreparedRows) {
+        const preparedRows = job.dryRun.rows.map(row => {
+          if (!row.ok || !row.prepared) {
+            throw new Error("DATA_IMPORT_ROW_NOT_PREPARED");
+          }
+          return row.prepared;
+        });
         try {
-          const result = target.commitRow({
+          const batch = target.commitPreparedRows({
             contextId: commitInput.contextId,
             importJobId: job.importJobId,
             schema,
-            prepared: row.prepared,
+            preparedRows,
             parameters: job.targetParameters,
             actorSubjectId: commitInput.actorSubjectId,
             recordedAt: commitInput.recordedAt
           });
-          return {
-            rowNumber: row.rowNumber,
+          if (
+            batch.semantics !== "ATOMIC_BATCH"
+            || batch.results.length !== preparedRows.length
+          ) {
+            throw new Error("DATA_IMPORT_BATCH_RESULT_INVALID");
+          }
+          receiptRows = batch.results.map((result, index) => ({
+            rowNumber: preparedRows[index].rowNumber,
             ok: true,
             objectType: result.objectType,
             objectId: result.objectId,
@@ -294,21 +295,69 @@ export function createDataImportServiceV010(input: {
               ? { displayKey: result.displayKey }
               : {}),
             issues: []
-          };
+          }));
         } catch (error) {
-          const code = error instanceof Error
+          const cause = error instanceof Error
             ? error.message
-            : "DATA_IMPORT_COMMIT_ROW_FAILED";
-          return {
-            rowNumber: row.rowNumber,
+            : "DATA_IMPORT_ATOMIC_BATCH_FAILED";
+          receiptRows = preparedRows.map(prepared => ({
+            rowNumber: prepared.rowNumber,
             ok: false,
             issues: [{
-              code,
-              message: code
+              code: "DATA_IMPORT_ATOMIC_BATCH_FAILED",
+              message: cause
             }]
-          };
+          }));
         }
-      });
+      } else {
+        receiptRows = job.dryRun.rows.map(row => {
+          if (!row.ok || !row.prepared) {
+            return {
+              rowNumber: row.rowNumber,
+              ok: false,
+              issues: row.issues.length > 0
+                ? row.issues
+                : [{
+                    code: "DATA_IMPORT_ROW_NOT_PREPARED",
+                    message: "Row was not prepared by dry run."
+                  }]
+            };
+          }
+          try {
+            const result = target.commitRow({
+              contextId: commitInput.contextId,
+              importJobId: job.importJobId,
+              schema,
+              prepared: row.prepared,
+              parameters: job.targetParameters,
+              actorSubjectId: commitInput.actorSubjectId,
+              recordedAt: commitInput.recordedAt
+            });
+            return {
+              rowNumber: row.rowNumber,
+              ok: true,
+              objectType: result.objectType,
+              objectId: result.objectId,
+              ...(result.displayKey
+                ? { displayKey: result.displayKey }
+                : {}),
+              issues: []
+            };
+          } catch (error) {
+            const code = error instanceof Error
+              ? error.message
+              : "DATA_IMPORT_COMMIT_ROW_FAILED";
+            return {
+              rowNumber: row.rowNumber,
+              ok: false,
+              issues: [{
+                code,
+                message: code
+              }]
+            };
+          }
+        });
+      }
 
       const failedRows = receiptRows.filter(row => !row.ok).length;
       const next: DataImportJobV010 = {

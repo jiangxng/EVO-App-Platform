@@ -66,6 +66,7 @@ export interface EnterpriseResourcePutInputV010
 }
 
 export interface EnterpriseResourceRepositoryV010 {
+  transaction?<T>(work: () => T): T;
   get(
     address: EnterpriseResourceAddressV010
   ): EnterpriseResourceV010 | undefined;
@@ -75,6 +76,9 @@ export interface EnterpriseResourceRepositoryV010 {
   put(
     input: EnterpriseResourcePutInputV010
   ): EnterpriseResourceV010;
+  putMany?(
+    inputs: EnterpriseResourcePutInputV010[]
+  ): EnterpriseResourceV010[];
   archive(input: {
     address: EnterpriseResourceAddressV010;
     actorSubjectId: string;

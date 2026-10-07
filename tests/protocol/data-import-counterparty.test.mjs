@@ -81,6 +81,7 @@ function fixture() {
     createObjectExtensionValueRepositoryV010(resources);
   const importRepository = createDataImportRepositoryV010(resources);
   const target = createCounterpartyImportTargetV010({
+    resources,
     repository: counterpartyRepository,
     roleRepository,
     extensionRepository,

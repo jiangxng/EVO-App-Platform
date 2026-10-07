@@ -64,4 +64,16 @@ export interface FoundationObjectImportTargetV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): FoundationObjectImportCommitResultV010;
+  commitPreparedRows?(input: {
+    contextId: string;
+    importJobId: string;
+    schema: EffectiveObjectSchemaV010;
+    preparedRows: FoundationObjectImportPreparedRowV010[];
+    parameters?: FoundationObjectImportTargetParametersV010;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): {
+    semantics: "ATOMIC_BATCH";
+    results: FoundationObjectImportCommitResultV010[];
+  };
 }

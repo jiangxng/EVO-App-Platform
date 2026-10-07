@@ -35,6 +35,12 @@ export interface CounterpartyRepositoryV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): CounterpartySubjectV010;
+  saveMany(input: {
+    contextId: string;
+    subjects: CounterpartySubjectV010[];
+    actorSubjectId: string;
+    recordedAt: string;
+  }): CounterpartySubjectV010[];
   archive(input: {
     contextId: string;
     counterpartyId: string;
@@ -182,6 +188,68 @@ export function createCounterpartyRepositoryV010(
         recordedAt: input.recordedAt
       });
       return subjectFromPayload(saved.payload);
+    },
+
+    saveMany(input) {
+      const contextId = required(
+        input.contextId,
+        "COUNTERPARTY_CONTEXT_REQUIRED"
+      );
+      const subjects = input.subjects.map(assertCounterpartySubjectV010);
+      const existingCodes = new Map(
+        resources.list({
+          contextId,
+          namespace: COUNTERPARTY_NAMESPACE_V010,
+          collectionId: COUNTERPARTY_COLLECTION_V010,
+          resourceType: COUNTERPARTY_RESOURCE_TYPE_V010,
+          lifecycleState: "ACTIVE"
+        })
+          .map(resource => subjectFromPayload(resource.payload))
+          .map(subject => [
+            subject.code.toLocaleLowerCase(),
+            subject.counterpartyId
+          ])
+      );
+      const batchCodes = new Set<string>();
+      for (const subject of subjects) {
+        const code = subject.code.toLocaleLowerCase();
+        const existingId = existingCodes.get(code);
+        if (existingId && existingId !== subject.counterpartyId) {
+          throw new Error("COUNTERPARTY_CODE_DUPLICATE");
+        }
+        if (batchCodes.has(code)) {
+          throw new Error("COUNTERPARTY_CODE_DUPLICATE");
+        }
+        batchCodes.add(code);
+      }
+      if (!resources.putMany) {
+        return subjects.map(subject => this.save({
+          contextId,
+          subject,
+          actorSubjectId: input.actorSubjectId,
+          recordedAt: input.recordedAt
+        }));
+      }
+      const saved = resources.putMany(subjects.map(subject => ({
+        contextId,
+        namespace: COUNTERPARTY_NAMESPACE_V010,
+        collectionId: COUNTERPARTY_COLLECTION_V010,
+        resourceType: COUNTERPARTY_RESOURCE_TYPE_V010,
+        resourceId: subject.counterpartyId,
+        schemaRef: COUNTERPARTY_SCHEMA_V010,
+        ownerPackageId: "evo-counterparty",
+        storageKind: "DOCUMENT" as const,
+        payload: payloadOf(subject),
+        metadata: {
+          code: subject.code,
+          displayName: subject.displayName,
+          subjectType: subject.subjectType,
+          status: subject.status
+        },
+        actorSubjectId: input.actorSubjectId,
+        recordedAt: input.recordedAt
+      })));
+      return saved.map(resource => subjectFromPayload(resource.payload));
     },
 
     archive(input) {
