@@ -25,7 +25,9 @@ import type {
   DataImportServiceV010
 } from "./service.js";
 import type {
-  DataImportMappingV010
+  DataImportMappingV010,
+  DataImportMappingOriginV010,
+  DataImportValueMapEntryV010
 } from "./types.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
@@ -33,6 +35,8 @@ import {
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_FEATURE_ID,
   DATA_IMPORT_GET_COMMAND_V010,
+  DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+  DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_PACKAGE_ID,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
@@ -85,11 +89,63 @@ function ensureManage(
   }
 }
 
+function importCell(
+  value: JsonValue | undefined,
+  code: string
+): string | number | boolean | null {
+  if (
+    value === null
+    || typeof value === "string"
+    || typeof value === "number"
+    || typeof value === "boolean"
+  ) {
+    return value;
+  }
+  throw new Error(code);
+}
+
 function mapping(value: JsonValue | undefined): DataImportMappingV010[] {
   if (!Array.isArray(value)) throw new Error("DATA_IMPORT_MAPPING_REQUIRED");
   return value.map(item => {
     if (item === null || Array.isArray(item) || typeof item !== "object") {
       throw new Error("DATA_IMPORT_MAPPING_INVALID");
+    }
+    let transform: DataImportMappingV010["transform"];
+    if (item.transform !== undefined) {
+      if (
+        item.transform === null
+        || Array.isArray(item.transform)
+        || typeof item.transform !== "object"
+        || item.transform.kind !== "VALUE_MAP"
+        || !Array.isArray(item.transform.entries)
+        || item.transform.entries.length === 0
+      ) {
+        throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+      }
+      const entries: DataImportValueMapEntryV010[] =
+        item.transform.entries.map(entry => {
+          if (
+            entry === null
+            || Array.isArray(entry)
+            || typeof entry !== "object"
+          ) {
+            throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+          }
+          return {
+            source: importCell(
+              entry.source,
+              "DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_INVALID"
+            ),
+            target: importCell(
+              entry.target,
+              "DATA_IMPORT_MAPPING_TRANSFORM_TARGET_INVALID"
+            )
+          };
+        });
+      transform = {
+        kind: "VALUE_MAP",
+        entries
+      };
     }
     return {
       sourceColumn: required(
@@ -99,9 +155,16 @@ function mapping(value: JsonValue | undefined): DataImportMappingV010[] {
       targetFieldId: required(
         item.targetFieldId,
         "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
-      )
+      ),
+      ...(transform ? { transform } : {})
     };
   });
+}
+
+function mappingOrigin(
+  principal: PlatformPrincipalV010
+): DataImportMappingOriginV010 {
+  return principal.actorType === "AI" ? "AGENT" : "HUMAN";
 }
 
 function targetParameters(
@@ -298,28 +361,56 @@ export function createDataImportActionHandlersV010(input: {
           contextId: active.contextId,
           parameters
         });
-        const mapping = input.service.suggestMapping({
-          schema,
-          source
+        const initial = input.service.resolveInitialMapping({
+          contextId: active.contextId,
+          targetId,
+          ...(parameters ? { targetParameters: parameters } : {}),
+          source,
+          schema
         });
         const recordedAt = now().toISOString();
-        const job = input.service.stage({
+        let job = input.service.stage({
           contextId: active.contextId,
           importJobId: input.idFactory(),
           targetId,
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
-          mapping,
+          mapping: initial.mapping,
+          mappingOrigin: initial.origin,
+          ...(initial.recipeId
+            ? { appliedRecipeId: initial.recipeId }
+            : {}),
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
+        if (initial.origin === "RECIPE") {
+          job = input.service.dryRun({
+            contextId: active.contextId,
+            importJobId: job.importJobId,
+            actorSubjectId: context.principal.subjectId,
+            recordedAt
+          });
+        }
+        const recipeReady =
+          initial.origin === "RECIPE"
+          && job.state === "DRY_RUN_READY";
         return {
           ok: true,
           correlationId: context.correlationId,
           result: JSON.parse(JSON.stringify({
             contractVersion: "0.1.0",
-            message: "File staged. Review the field mapping before validation.",
-            navigateTo: dataImportMappingRouteV010(job.importJobId),
+            message: recipeReady
+              ? "A previously validated enterprise import recipe was applied and validation passed."
+              : initial.origin === "RECIPE"
+                ? "A previous import recipe was applied but needs review because validation found issues."
+                : "File staged. Review the field mapping before validation.",
+            navigateTo: recipeReady
+              ? dataImportReviewRouteV010(job.importJobId)
+              : dataImportMappingRouteV010(job.importJobId),
+            mappingOrigin: job.mappingOrigin,
+            ...(job.appliedRecipeId
+              ? { appliedRecipeId: job.appliedRecipeId }
+              : {}),
             job
           })) as JsonValue
         };
@@ -363,6 +454,7 @@ export function createDataImportActionHandlersV010(input: {
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
+          mappingOrigin: mappingOrigin(context.principal),
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
@@ -537,6 +629,103 @@ export function createDataImportActionHandlersV010(input: {
     }
   };
 
+  const inspectMapping: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        const active = activeEnterpriseContext(context);
+        ensureManage(
+          context.principal,
+          active.contextId,
+          input.canManageEnterpriseContext
+        );
+        const inspection = input.service.inspectMapping({
+          contextId: active.contextId,
+          importJobId: required(
+            request.values.importJobId,
+            "DATA_IMPORT_JOB_ID_REQUIRED"
+          ),
+          ...(text(request.values.locale)
+            ? { locale: text(request.values.locale) }
+            : {}),
+          ...(typeof request.values.sampleLimit === "number"
+            ? { sampleLimit: request.values.sampleLimit }
+            : {})
+        });
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify(inspection)) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
+  const applyMapping: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        const active = activeEnterpriseContext(context);
+        ensureManage(
+          context.principal,
+          active.contextId,
+          input.canManageEnterpriseContext
+        );
+        const importJobId = required(
+          request.values.importJobId,
+          "DATA_IMPORT_JOB_ID_REQUIRED"
+        );
+        const recordedAt = now().toISOString();
+        let job = input.service.updateMapping({
+          contextId: active.contextId,
+          importJobId,
+          mapping: mapping(request.values.mapping),
+          mappingOrigin: mappingOrigin(context.principal),
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        const shouldValidate = request.values.dryRun !== false;
+        if (shouldValidate) {
+          job = input.service.dryRun({
+            contextId: active.contextId,
+            importJobId,
+            ...(text(request.values.locale)
+              ? { locale: text(request.values.locale) }
+              : {}),
+            actorSubjectId: context.principal.subjectId,
+            recordedAt
+          });
+        }
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify({
+            contractVersion: "0.1.0",
+            message: shouldValidate
+              ? job.state === "DRY_RUN_READY"
+                ? "Mapping applied and validation passed."
+                : "Mapping applied; validation found issues."
+              : "Mapping applied.",
+            navigateTo: shouldValidate
+              ? dataImportReviewRouteV010(importJobId)
+              : dataImportMappingRouteV010(importJobId),
+            job
+          })) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
   const errorCsv: AppActionHandler = {
     packageId: DATA_IMPORT_PACKAGE_ID,
     featureId: DATA_IMPORT_FEATURE_ID,
@@ -580,5 +769,15 @@ export function createDataImportActionHandlersV010(input: {
     }
   };
 
-  return [stageFile, review, stageCsv, dryRun, commit, get, errorCsv];
+  return [
+    stageFile,
+    review,
+    stageCsv,
+    dryRun,
+    commit,
+    get,
+    inspectMapping,
+    applyMapping,
+    errorCsv
+  ];
 }

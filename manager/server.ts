@@ -823,6 +823,8 @@ import {
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_FEATURE_ID,
   DATA_IMPORT_GET_COMMAND_V010,
+  DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+  DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_MAPPING_PAGE_SOURCE,
   DATA_IMPORT_PACKAGE_ID,
   DATA_IMPORT_REVIEW_COMMAND_V010,
@@ -840,6 +842,9 @@ import {
 import {
   createDataImportRepositoryV010
 } from "../apps/data-import/repository.js";
+import {
+  createDataImportRecipeRepositoryV010
+} from "../apps/data-import/recipe.js";
 import {
   createDataImportServiceV010
 } from "../apps/data-import/service.js";
@@ -980,6 +985,8 @@ const objectExtensionValueRepository =
   createObjectExtensionValueRepositoryV010(enterpriseResourceRepository);
 const dataImportRepository =
   createDataImportRepositoryV010(enterpriseResourceRepository);
+const dataImportRecipeRepository =
+  createDataImportRecipeRepositoryV010(enterpriseResourceRepository);
 const counterpartyImportTarget =
   createCounterpartyImportTargetV010({
     resources: enterpriseResourceRepository,
@@ -992,6 +999,7 @@ const dataImportTargets = [counterpartyImportTarget] as const;
 const dataImportService =
   createDataImportServiceV010({
     repository: dataImportRepository,
+    recipeRepository: dataImportRecipeRepository,
     targets: dataImportTargets
   });
 const templateStoreStateFile =
@@ -4348,6 +4356,8 @@ const actionRouter = createAppActionRouter(
       DATA_IMPORT_DRY_RUN_COMMAND_V010,
       DATA_IMPORT_COMMIT_COMMAND_V010,
       DATA_IMPORT_GET_COMMAND_V010,
+      DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+      DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
       DATA_IMPORT_ERROR_CSV_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({

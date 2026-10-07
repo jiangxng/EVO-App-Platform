@@ -12,6 +12,10 @@ import {
   DATA_IMPORT_ERROR_CSV_OPERATION_V010,
   DATA_IMPORT_GET_COMMAND_V010,
   DATA_IMPORT_GET_OPERATION_V010,
+  DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+  DATA_IMPORT_MAPPING_APPLY_OPERATION_V010,
+  DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+  DATA_IMPORT_MAPPING_INSPECT_OPERATION_V010,
   DATA_IMPORT_READ_ACTION_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_OPERATION_V010,
@@ -19,6 +23,40 @@ import {
   DATA_IMPORT_STAGE_FILE_OPERATION_V010,
   DATA_IMPORT_WRITE_ACTION_V010
 } from "./constants.js";
+
+const mappingSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    additionalProperties: false,
+    required: ["sourceColumn", "targetFieldId"],
+    properties: {
+      sourceColumn: { type: "string", minLength: 1 },
+      targetFieldId: { type: "string", minLength: 1 },
+      transform: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "entries"],
+        properties: {
+          kind: { const: "VALUE_MAP" },
+          entries: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["source", "target"],
+              properties: {
+                source: {},
+                target: {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} as const;
 
 const importJobOutputSchema = {
   type: "object",
@@ -58,17 +96,7 @@ export const dataImportCapabilityContributionsV010:
           csv: { type: "string" },
           name: { type: "string" },
           targetParameters: { type: "object" },
-          mapping: {
-            type: "array",
-            items: {
-              type: "object",
-              required: ["sourceColumn", "targetFieldId"],
-              properties: {
-                sourceColumn: { type: "string", minLength: 1 },
-                targetFieldId: { type: "string", minLength: 1 }
-              }
-            }
-          }
+          mapping: mappingSchema
         }
       },
       outputSchema: importJobOutputSchema,
@@ -100,6 +128,112 @@ export const dataImportCapabilityContributionsV010:
       binding: { type: "ACTION_HOST", commandCode: DATA_IMPORT_STAGE_FILE_COMMAND_V010, inputVersion: "0.1.0" },
       exposure: ["HUMAN", "PERSONAL_AGENT"],
       writeSafety: { idempotency: "HOST_REQUIRED", receipt: "HOST_REQUIRED" }
+    }
+  }, {
+    kind: "platform.capability-operation",
+    operation: {
+      contractVersion: "0.1.0",
+      operationId: DATA_IMPORT_MAPPING_INSPECT_OPERATION_V010,
+      capability: DATA_IMPORT_CAPABILITY_V010,
+      operationVersion: "0.1.0",
+      title: "Inspect staged import mapping",
+      description:
+        "Reads the current staged import, source columns with bounded sample values, current mapping, value transforms, effective target schema and unmapped columns. Raw staged row values remain preserved even when a column is not mapped.",
+      effect: "READ",
+      dataScope: "ENTERPRISE",
+      authorization: {
+        action: DATA_IMPORT_READ_ACTION_V010,
+        resource: {
+          type: DATA_IMPORT_AUTH_RESOURCE_V010,
+          idSource: "INPUT",
+          inputKey: "importJobId"
+        }
+      },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["importJobId"],
+        properties: {
+          importJobId: { type: "string", minLength: 1 },
+          locale: { type: "string" },
+          sampleLimit: {
+            type: "integer",
+            minimum: 1,
+            maximum: 20
+          }
+        }
+      },
+      outputSchema: {
+        type: "object",
+        required: [
+          "contractVersion",
+          "job",
+          "schema",
+          "sourceColumns",
+          "unmappedColumns",
+          "rawSourcePreserved"
+        ],
+        properties: {
+          contractVersion: { const: "0.1.0" },
+          job: { type: "object" },
+          schema: { type: "object" },
+          sourceColumns: { type: "array" },
+          unmappedColumns: {
+            type: "array",
+            items: { type: "string" }
+          },
+          rawSourcePreserved: { const: true }
+        }
+      },
+      binding: {
+        type: "ACTION_HOST",
+        commandCode: DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+        inputVersion: "0.1.0"
+      },
+      exposure: ["HUMAN", "PERSONAL_AGENT"]
+    }
+  }, {
+    kind: "platform.capability-operation",
+    operation: {
+      contractVersion: "0.1.0",
+      operationId: DATA_IMPORT_MAPPING_APPLY_OPERATION_V010,
+      capability: DATA_IMPORT_CAPABILITY_V010,
+      operationVersion: "0.1.0",
+      title: "Apply staged import mapping",
+      description:
+        "Applies an explicit source-to-target mapping with optional deterministic VALUE_MAP transforms, then by default dry-runs the import. A successful dry-run records the mapping as an enterprise Import Recipe for deterministic reuse on later structurally equivalent imports.",
+      effect: "WRITE",
+      dataScope: "ENTERPRISE",
+      authorization: {
+        action: DATA_IMPORT_WRITE_ACTION_V010,
+        resource: {
+          type: DATA_IMPORT_AUTH_RESOURCE_V010,
+          idSource: "INPUT",
+          inputKey: "importJobId"
+        }
+      },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["importJobId", "mapping"],
+        properties: {
+          importJobId: { type: "string", minLength: 1 },
+          mapping: mappingSchema,
+          dryRun: { type: "boolean", default: true },
+          locale: { type: "string" }
+        }
+      },
+      outputSchema: importJobOutputSchema,
+      binding: {
+        type: "ACTION_HOST",
+        commandCode: DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+        inputVersion: "0.1.0"
+      },
+      exposure: ["HUMAN", "PERSONAL_AGENT"],
+      writeSafety: {
+        idempotency: "HOST_REQUIRED",
+        receipt: "HOST_REQUIRED"
+      }
     }
   }, {
     kind: "platform.capability-operation",

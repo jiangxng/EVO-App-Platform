@@ -19,10 +19,30 @@ export interface DataImportSourceV010 {
   rows: Array<Record<string, FoundationObjectImportCellV010>>;
 }
 
+export interface DataImportValueMapEntryV010 {
+  source: FoundationObjectImportCellV010;
+  target: FoundationObjectImportCellV010;
+}
+
+export interface DataImportValueMapTransformV010 {
+  kind: "VALUE_MAP";
+  entries: DataImportValueMapEntryV010[];
+}
+
+export type DataImportValueTransformV010 =
+  DataImportValueMapTransformV010;
+
 export interface DataImportMappingV010 {
   sourceColumn: string;
   targetFieldId: string;
+  transform?: DataImportValueTransformV010;
 }
+
+export type DataImportMappingOriginV010 =
+  | "DETERMINISTIC"
+  | "RECIPE"
+  | "HUMAN"
+  | "AGENT";
 
 export interface DataImportDryRunRowV010 {
   rowNumber: number;
@@ -64,6 +84,8 @@ export interface DataImportJobV010 {
   state: DataImportJobStateV010;
   source: DataImportSourceV010;
   mapping: DataImportMappingV010[];
+  mappingOrigin?: DataImportMappingOriginV010;
+  appliedRecipeId?: string;
   stagedAt: string;
   stagedBySubjectId: string;
   dryRun?: DataImportDryRunV010;
@@ -97,16 +119,56 @@ export function assertDataImportJobV010(
   if (headerSet.size !== headers.length) {
     throw new Error("DATA_IMPORT_SOURCE_HEADER_DUPLICATE");
   }
-  const mapping = value.mapping.map(item => ({
-    sourceColumn: required(
-      item.sourceColumn,
-      "DATA_IMPORT_MAPPING_SOURCE_REQUIRED"
-    ),
-    targetFieldId: required(
-      item.targetFieldId,
-      "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
-    )
-  }));
+  const mapping = value.mapping.map(item => {
+    const transform = item.transform;
+    let normalizedTransform: DataImportValueTransformV010 | undefined;
+    if (transform !== undefined) {
+      if (
+        transform === null
+        || typeof transform !== "object"
+        || transform.kind !== "VALUE_MAP"
+        || !Array.isArray(transform.entries)
+        || transform.entries.length === 0
+      ) {
+        throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+      }
+      const keys = new Set<string>();
+      const entries = transform.entries.map(entry => {
+        if (
+          entry === null
+          || typeof entry !== "object"
+          || !("source" in entry)
+          || !("target" in entry)
+        ) {
+          throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+        }
+        const key = JSON.stringify(entry.source);
+        if (keys.has(key)) {
+          throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_DUPLICATE");
+        }
+        keys.add(key);
+        return {
+          source: entry.source,
+          target: entry.target
+        };
+      });
+      normalizedTransform = {
+        kind: "VALUE_MAP",
+        entries
+      };
+    }
+    return {
+      sourceColumn: required(
+        item.sourceColumn,
+        "DATA_IMPORT_MAPPING_SOURCE_REQUIRED"
+      ),
+      targetFieldId: required(
+        item.targetFieldId,
+        "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
+      ),
+      ...(normalizedTransform ? { transform: normalizedTransform } : {})
+    };
+  });
   for (const item of mapping) {
     if (!headerSet.has(item.sourceColumn)) {
       throw new Error("DATA_IMPORT_MAPPING_SOURCE_UNKNOWN");
@@ -135,6 +197,12 @@ export function assertDataImportJobV010(
       rows: structuredClone(value.source.rows)
     },
     mapping,
+    ...(value.mappingOrigin
+      ? { mappingOrigin: value.mappingOrigin }
+      : {}),
+    ...(value.appliedRecipeId?.trim()
+      ? { appliedRecipeId: value.appliedRecipeId.trim() }
+      : {}),
     stagedAt: required(value.stagedAt, "DATA_IMPORT_STAGED_AT_REQUIRED"),
     stagedBySubjectId: required(
       value.stagedBySubjectId,
