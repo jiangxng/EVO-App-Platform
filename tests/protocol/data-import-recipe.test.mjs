@@ -278,6 +278,59 @@ test("mapping inspection exposes bounded samples and preserves unmapped raw colu
   assert.equal(contact.mappedTargetFieldId, undefined);
 });
 
+test("Data Import CONSTANT mapping represents a batch-wide target fact without abusing a source column", () => {
+  const { target, service } = fixture();
+  service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-constant-subject-type",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("constant.xlsx", "设备"),
+    mapping: [{
+      sourceColumn: "供应商编码",
+      targetFieldId: "code"
+    }, {
+      sourceColumn: "供应商名称",
+      targetFieldId: "displayName"
+    }, {
+      targetFieldId: "subjectType",
+      transform: {
+        kind: "CONSTANT",
+        value: "ORGANIZATION"
+      }
+    }],
+    mappingOrigin: "AGENT",
+    actorSubjectId: "agent-a",
+    recordedAt: "2026-10-07T08:05:00.000Z"
+  });
+
+  const ready = service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "import-constant-subject-type",
+    actorSubjectId: "agent-a",
+    recordedAt: "2026-10-07T08:06:00.000Z"
+  });
+  assert.equal(ready.state, "DRY_RUN_READY");
+  assert.equal(
+    ready.dryRun.rows[0].prepared.values.subjectType,
+    "ORGANIZATION"
+  );
+
+  const inspected = service.inspectMapping({
+    contextId: "enterprise-context:a",
+    importJobId: "import-constant-subject-type",
+    locale: "zh-CN"
+  });
+  assert.deepEqual(inspected.constantMappings, [{
+    targetFieldId: "subjectType",
+    transform: {
+      kind: "CONSTANT",
+      value: "ORGANIZATION"
+    }
+  }]);
+  assert.ok(inspected.unmappedColumns.includes("供应商类型"));
+});
+
 test("Agent enum VALUE_MAP accepts governed aliases and blocks unrelated semantic coercion", () => {
   const { target, service } = fixture();
   service.stage({

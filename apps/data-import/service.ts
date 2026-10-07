@@ -57,6 +57,9 @@ function transformedValue(
   transform: DataImportValueTransformV010 | undefined
 ): FoundationObjectImportCellV010 {
   if (!transform) return value;
+  if (transform.kind === "CONSTANT") {
+    return transform.value;
+  }
   if (transform.kind === "VALUE_MAP") {
     const key = normalizedTransformValue(value);
     const entry = transform.entries.find(item =>
@@ -73,6 +76,13 @@ function mappedValues(input: {
 }): Record<string, FoundationObjectImportCellV010> {
   const values: Record<string, FoundationObjectImportCellV010> = {};
   for (const item of input.mapping) {
+    if (item.transform?.kind === "CONSTANT") {
+      values[item.targetFieldId] = item.transform.value;
+      continue;
+    }
+    if (!item.sourceColumn) {
+      throw new Error("DATA_IMPORT_MAPPING_SOURCE_REQUIRED");
+    }
     const raw = input.sourceRow[item.sourceColumn] ?? null;
     values[item.targetFieldId] = transformedValue(raw, item.transform);
   }
@@ -211,6 +221,7 @@ export interface DataImportServiceV010 {
       mappedTargetFieldId?: string;
       transform?: DataImportValueTransformV010;
     }>;
+    constantMappings: DataImportMappingV010[];
     unmappedColumns: string[];
     rawSourcePreserved: true;
   };
@@ -298,7 +309,13 @@ export function createDataImportServiceV010(input: {
             .map(field => field.fieldId)
         );
         if (recipe.mapping.every(item =>
-          mappingInput.source.headers.includes(item.sourceColumn)
+          (
+            item.transform?.kind === "CONSTANT"
+            || (
+              Boolean(item.sourceColumn)
+              && mappingInput.source.headers.includes(item.sourceColumn!)
+            )
+          )
           && importable.has(item.targetFieldId)
         )) {
           return {
@@ -330,7 +347,9 @@ export function createDataImportServiceV010(input: {
         parameters: job.targetParameters
       });
       const current = new Map(
-        job.mapping.map(item => [item.sourceColumn, item] as const)
+        job.mapping
+          .filter(item => Boolean(item.sourceColumn))
+          .map(item => [item.sourceColumn!, item] as const)
       );
       const limit = sampleLimit(mappingInput.sampleLimit);
       const sourceColumns = job.source.headers.map(sourceColumn => {
@@ -363,6 +382,9 @@ export function createDataImportServiceV010(input: {
         job: structuredClone(job),
         schema: structuredClone(schema),
         sourceColumns,
+        constantMappings: job.mapping
+          .filter(item => item.transform?.kind === "CONSTANT")
+          .map(item => structuredClone(item)),
         unmappedColumns: sourceColumns
           .filter(item => !item.mappedTargetFieldId)
           .map(item => item.sourceColumn),

@@ -29,11 +29,21 @@ export interface DataImportValueMapTransformV010 {
   entries: DataImportValueMapEntryV010[];
 }
 
+export interface DataImportConstantTransformV010 {
+  kind: "CONSTANT";
+  value: FoundationObjectImportCellV010;
+}
+
 export type DataImportValueTransformV010 =
-  DataImportValueMapTransformV010;
+  | DataImportValueMapTransformV010
+  | DataImportConstantTransformV010;
 
 export interface DataImportMappingV010 {
-  sourceColumn: string;
+  /**
+   * Source column is required for direct and VALUE_MAP mappings.
+   * CONSTANT mappings intentionally have no source column.
+   */
+  sourceColumn?: string;
   targetFieldId: string;
   transform?: DataImportValueTransformV010;
 }
@@ -123,45 +133,62 @@ export function assertDataImportJobV010(
     const transform = item.transform;
     let normalizedTransform: DataImportValueTransformV010 | undefined;
     if (transform !== undefined) {
-      if (
-        transform === null
-        || typeof transform !== "object"
-        || transform.kind !== "VALUE_MAP"
-        || !Array.isArray(transform.entries)
-        || transform.entries.length === 0
-      ) {
+      if (transform === null || typeof transform !== "object") {
         throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
       }
-      const keys = new Set<string>();
-      const entries = transform.entries.map(entry => {
+      if (transform.kind === "VALUE_MAP") {
         if (
-          entry === null
-          || typeof entry !== "object"
-          || !("source" in entry)
-          || !("target" in entry)
+          !Array.isArray(transform.entries)
+          || transform.entries.length === 0
         ) {
           throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
         }
-        const key = JSON.stringify(entry.source);
-        if (keys.has(key)) {
-          throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_DUPLICATE");
-        }
-        keys.add(key);
-        return {
-          source: entry.source,
-          target: entry.target
+        const keys = new Set<string>();
+        const entries = transform.entries.map(entry => {
+          if (
+            entry === null
+            || typeof entry !== "object"
+            || !("source" in entry)
+            || !("target" in entry)
+          ) {
+            throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+          }
+          const key = JSON.stringify(entry.source);
+          if (keys.has(key)) {
+            throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_DUPLICATE");
+          }
+          keys.add(key);
+          return {
+            source: entry.source,
+            target: entry.target
+          };
+        });
+        normalizedTransform = {
+          kind: "VALUE_MAP",
+          entries
         };
-      });
-      normalizedTransform = {
-        kind: "VALUE_MAP",
-        entries
-      };
+      } else if (transform.kind === "CONSTANT") {
+        if (!("value" in transform)) {
+          throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+        }
+        normalizedTransform = {
+          kind: "CONSTANT",
+          value: transform.value
+        };
+      } else {
+        throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+      }
+    }
+    const sourceColumn = item.sourceColumn?.trim();
+    if (normalizedTransform?.kind === "CONSTANT") {
+      if (sourceColumn) {
+        throw new Error("DATA_IMPORT_CONSTANT_MAPPING_SOURCE_FORBIDDEN");
+      }
+    } else if (!sourceColumn) {
+      throw new Error("DATA_IMPORT_MAPPING_SOURCE_REQUIRED");
     }
     return {
-      sourceColumn: required(
-        item.sourceColumn,
-        "DATA_IMPORT_MAPPING_SOURCE_REQUIRED"
-      ),
+      ...(sourceColumn ? { sourceColumn } : {}),
       targetFieldId: required(
         item.targetFieldId,
         "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
@@ -170,7 +197,7 @@ export function assertDataImportJobV010(
     };
   });
   for (const item of mapping) {
-    if (!headerSet.has(item.sourceColumn)) {
+    if (item.sourceColumn && !headerSet.has(item.sourceColumn)) {
       throw new Error("DATA_IMPORT_MAPPING_SOURCE_UNKNOWN");
     }
   }

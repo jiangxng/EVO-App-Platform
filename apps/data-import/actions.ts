@@ -116,42 +116,64 @@ function mapping(value: JsonValue | undefined): DataImportMappingV010[] {
         item.transform === null
         || Array.isArray(item.transform)
         || typeof item.transform !== "object"
-        || item.transform.kind !== "VALUE_MAP"
-        || !Array.isArray(item.transform.entries)
-        || item.transform.entries.length === 0
       ) {
         throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
       }
-      const entries: DataImportValueMapEntryV010[] =
-        item.transform.entries.map(entry => {
-          if (
-            entry === null
-            || Array.isArray(entry)
-            || typeof entry !== "object"
-          ) {
-            throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
-          }
-          return {
-            source: importCell(
-              entry.source,
-              "DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_INVALID"
-            ),
-            target: importCell(
-              entry.target,
-              "DATA_IMPORT_MAPPING_TRANSFORM_TARGET_INVALID"
-            )
-          };
-        });
-      transform = {
-        kind: "VALUE_MAP",
-        entries
-      };
+      if (item.transform.kind === "VALUE_MAP") {
+        if (
+          !Array.isArray(item.transform.entries)
+          || item.transform.entries.length === 0
+        ) {
+          throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+        }
+        const entries: DataImportValueMapEntryV010[] =
+          item.transform.entries.map(entry => {
+            if (
+              entry === null
+              || Array.isArray(entry)
+              || typeof entry !== "object"
+            ) {
+              throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+            }
+            return {
+              source: importCell(
+                entry.source,
+                "DATA_IMPORT_MAPPING_TRANSFORM_SOURCE_INVALID"
+              ),
+              target: importCell(
+                entry.target,
+                "DATA_IMPORT_MAPPING_TRANSFORM_TARGET_INVALID"
+              )
+            };
+          });
+        transform = {
+          kind: "VALUE_MAP",
+          entries
+        };
+      } else if (item.transform.kind === "CONSTANT") {
+        transform = {
+          kind: "CONSTANT",
+          value: importCell(
+            item.transform.value,
+            "DATA_IMPORT_MAPPING_CONSTANT_VALUE_INVALID"
+          )
+        };
+      } else {
+        throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
+      }
     }
+
+    const sourceColumn = text(item.sourceColumn);
+    if (transform?.kind === "CONSTANT") {
+      if (sourceColumn) {
+        throw new Error("DATA_IMPORT_CONSTANT_MAPPING_SOURCE_FORBIDDEN");
+      }
+    } else if (!sourceColumn) {
+      throw new Error("DATA_IMPORT_MAPPING_SOURCE_REQUIRED");
+    }
+
     return {
-      sourceColumn: required(
-        item.sourceColumn,
-        "DATA_IMPORT_MAPPING_SOURCE_REQUIRED"
-      ),
+      ...(sourceColumn ? { sourceColumn } : {}),
       targetFieldId: required(
         item.targetFieldId,
         "DATA_IMPORT_MAPPING_TARGET_REQUIRED"

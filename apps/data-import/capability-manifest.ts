@@ -29,30 +29,40 @@ const mappingSchema = {
   items: {
     type: "object",
     additionalProperties: false,
-    required: ["sourceColumn", "targetFieldId"],
+    required: ["targetFieldId"],
     properties: {
       sourceColumn: { type: "string", minLength: 1 },
       targetFieldId: { type: "string", minLength: 1 },
       transform: {
-        type: "object",
-        additionalProperties: false,
-        required: ["kind", "entries"],
-        properties: {
-          kind: { const: "VALUE_MAP" },
-          entries: {
-            type: "array",
-            minItems: 1,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["source", "target"],
-              properties: {
-                source: {},
-                target: {}
+        oneOf: [{
+          type: "object",
+          additionalProperties: false,
+          required: ["kind", "entries"],
+          properties: {
+            kind: { const: "VALUE_MAP" },
+            entries: {
+              type: "array",
+              minItems: 1,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["source", "target"],
+                properties: {
+                  source: {},
+                  target: {}
+                }
               }
             }
           }
-        }
+        }, {
+          type: "object",
+          additionalProperties: false,
+          required: ["kind", "value"],
+          properties: {
+            kind: { const: "CONSTANT" },
+            value: {}
+          }
+        }]
       }
     }
   }
@@ -170,6 +180,7 @@ export const dataImportCapabilityContributionsV010:
           "job",
           "schema",
           "sourceColumns",
+          "constantMappings",
           "unmappedColumns",
           "rawSourcePreserved"
         ],
@@ -178,6 +189,7 @@ export const dataImportCapabilityContributionsV010:
           job: { type: "object" },
           schema: { type: "object" },
           sourceColumns: { type: "array" },
+          constantMappings: { type: "array" },
           unmappedColumns: {
             type: "array",
             items: { type: "string" }
@@ -201,7 +213,7 @@ export const dataImportCapabilityContributionsV010:
       operationVersion: "0.1.0",
       title: "Apply staged import mapping",
       description:
-        "Applies an explicit source-to-target mapping with optional deterministic VALUE_MAP transforms, then by default dry-runs the import. Agent-origin enum normalization is limited to governed aliases declared by the target schema; semantically unrelated coercions are rejected for Human review. Dry-run alone does not make a mapping reusable: a successful confirmed commit promotes the mapping to an enterprise Import Recipe.",
+        "Applies explicit source-to-target mappings, deterministic VALUE_MAP transforms, and target-wide CONSTANT values, then by default dry-runs the import. CONSTANT is for facts confirmed for the whole batch when no source column represents that target field; it must not be simulated by coercing an unrelated source column. Agent-origin enum normalization is limited to governed aliases declared by the target schema; semantically unrelated coercions are rejected for Human review. Dry-run alone does not make a mapping reusable: a successful confirmed commit promotes the mapping to an enterprise Import Recipe.",
       effect: "WRITE",
       dataScope: "ENTERPRISE",
       authorization: {
