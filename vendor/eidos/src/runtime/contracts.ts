@@ -1,11 +1,19 @@
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-export type UidlControl = "text" | "number" | "money" | "select" | "date" | "reference";
+export type UidlControl = "text" | "number" | "money" | "select" | "date" | "reference" | "file";
 export type UidlOptionValue = string | number | boolean;
 export interface UidlOption { value: UidlOptionValue; label: string }
+export interface UidlFileValueV010 {
+  name: string;
+  mediaType: string;
+  size: number;
+  contentBase64: string;
+}
 export interface UidlField {
   key: string; label: string; semanticType: string; control: UidlControl; required: boolean;
   readOnly?: boolean; initialValue?: UidlOptionValue; unit?: string; options?: UidlOption[];
+  accept?: string[];
+  maxBytes?: number;
   validation?: { min?: number; max?: number; pattern?: string };
 }
 export interface UidlAction { id: string; label: string; type: "submit" | "cancel"; command?: string; requiresConfirmation?: boolean }
