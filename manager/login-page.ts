@@ -90,8 +90,10 @@ function statusLabel(
   return text.planned;
 }
 
-function iconText(method: LoginMethodV010["id"]): string {
-  if (method === "google") return "G";
+function providerIcon(method: LoginMethodV010["id"]): string {
+  if (method === "google") {
+    return `<img src="https://developers.google.com/static/identity/images/g-logo.png" alt="" width="18" height="18">`;
+  }
   if (method === "microsoft") return "M";
   if (method === "enterprise-sso") return "SSO";
   return "@";
@@ -115,7 +117,7 @@ function providerButton(
     : ` type="button" disabled aria-disabled="true"`;
   const status = statusLabel(method.status, text);
   return `<${tag} class="evo-login-method" data-provider="${method.id}" data-status="${method.status}"${interaction}>
-    <span class="evo-login-provider-icon" aria-hidden="true">${iconText(method.id)}</span>
+    <span class="evo-login-provider-icon" aria-hidden="true">${providerIcon(method.id)}</span>
     <span class="evo-login-method-copy">
       <strong>${method.label}</strong>
       <small>${method.supportingText}</small>
@@ -126,31 +128,34 @@ function providerButton(
 
 export function defaultLoginMethodsV010(input: {
   googleAvailable: boolean;
+  locale?: string;
 }): readonly LoginMethodV010[] {
+  const locale = normalizedLocale(input.locale);
+  const zh = locale === "zh-CN";
   return [
     {
       id: "google",
-      label: "Google",
-      supportingText: "Google Workspace or Google account",
+      label: zh ? "使用 Google 继续" : "Continue with Google",
+      supportingText: zh ? "Google Workspace 或 Google 账号" : "Google Workspace or Google account",
       status: input.googleAvailable ? "AVAILABLE" : "ADMIN_CONFIGURATION_REQUIRED",
       ...(input.googleAvailable ? { actionPath: "/auth/login" } : {})
     },
     {
       id: "microsoft",
-      label: "Microsoft",
-      supportingText: "Work, school or Microsoft account",
+      label: zh ? "使用 Microsoft 继续" : "Continue with Microsoft",
+      supportingText: zh ? "工作、学校或 Microsoft 账号" : "Work, school or Microsoft account",
       status: "PLANNED"
     },
     {
       id: "enterprise-sso",
-      label: "Enterprise SSO",
-      supportingText: "Your organization's identity provider",
+      label: zh ? "企业 SSO" : "Enterprise SSO",
+      supportingText: zh ? "使用组织的身份提供商" : "Your organization's identity provider",
       status: "ADMIN_CONFIGURATION_REQUIRED"
     },
     {
       id: "email",
-      label: "Email",
-      supportingText: "Email-based or local account sign-in",
+      label: zh ? "使用邮箱继续" : "Continue with email",
+      supportingText: zh ? "邮箱或本地账号登录" : "Email-based or local account sign-in",
       status: "PLANNED"
     }
   ];
@@ -213,7 +218,7 @@ a{color:inherit}
 .evo-login-method:disabled{cursor:not-allowed;opacity:.68}
 .evo-login-method[data-status="PLANNED"],.evo-login-method[data-status="ADMIN_CONFIGURATION_REQUIRED"]{border-color:var(--eidos-border);background:var(--eidos-bg-subtle)}
 .evo-login-provider-icon{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--eidos-border);border-radius:9px;background:var(--eidos-bg);font-size:12px;font-weight:750;color:var(--eidos-fg-muted)}
-.evo-login-method[data-provider="google"] .evo-login-provider-icon{color:#1a73e8}
+.evo-login-provider-icon img{display:block;width:18px;height:18px;object-fit:contain}
 .evo-login-method[data-provider="microsoft"] .evo-login-provider-icon{color:#5e5e5e}
 .evo-login-method-copy{min-width:0}
 .evo-login-method-copy strong{display:block;font-size:13px;font-weight:650}
