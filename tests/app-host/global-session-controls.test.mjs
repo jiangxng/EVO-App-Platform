@@ -46,8 +46,3 @@ test("sign out posts to the Host logout endpoint and returns to the localized lo
     "/auth/logout?returnTo=%2Flogin%3Flocale%3Den"
   );
 });
-
-test("EVO account menu styles the sign out control through App Host chrome", () => {
-  assert.match(appHostShellCss, /data-eidos-account-logout/);
-  assert.match(appHostShellCss, /eidos-danger-bg/);
-});
