@@ -509,7 +509,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "CP-03 remains ACTIVE. Object Extension governance, generic Data Import core, atomic bulk persistence, rollback semantics and deterministic 1k full Counterparty commit are merged, CI-passed and production-deployed. Continue with XLSX adapter and Eidos import mapping/review experience; do not reopen CP-02 or repeat FO-01.",
+  "currentStep": "CP-03 implementation is now merged, CI-passed and production-deployed. XLSX staging and the Eidos Human import journey are present. Current gate is Human browser validation of CSV/XLSX upload -> auto-map -> adjust mapping -> dry run -> explicit commit/error download. Do not start CP-04 until this Human gate passes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1786,8 +1786,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03-bulk-import-production-pass-2026-10-07",
-    "snapshotAt": "2026-10-07T13:15:00+08:00",
+    "snapshotId": "cp03-xlsx-human-import-production-pass-2026-10-07",
+    "snapshotAt": "2026-10-07T14:38:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1831,8 +1831,8 @@
       },
       "openGate": {
         "id": "counterparty-enterprise-extension-import-v0-3",
-        "status": "ACTIVE_PARTIAL_IMPLEMENTATION",
-        "summary": "CP-03 remains active. Governed Object Extension operations, generic Data Import core, and atomic bulk Counterparty persistence are merged and production-deployed. A deterministic 1k Counterparty import now commits subjects, CUSTOMER/SUPPLIER roles and extension-value sidecars atomically through Enterprise Context; failures roll back the whole batch. Remaining closure work is XLSX and Human import mapping/review experience.",
+        "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
+        "summary": "CP-03 implementation is complete enough for Human validation. XLSX and CSV upload, localized automatic field mapping through EffectiveObjectSchema, editable mapping review, dry-run review, explicit commit confirmation, error CSV download, atomic bulk persistence and deterministic 1k full commit are production-deployed. The remaining gate is Human browser validation of the import journey.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.",
@@ -1855,21 +1855,27 @@
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
           "crossProjectEidosEvoCI": "PASS",
-          "railwayDeploymentId": "188baa33-6ca3-43a5-9d41-9185c4c363f6",
+          "railwayDeploymentId": "2ccf155b-5b9e-44e4-acb2-3b7249491dbd",
           "railwayDeploymentStatus": "SUCCESS",
           "csvStageDryRunCommit": true,
-          "xlsx": false,
+          "xlsx": true,
           "extensionValues": true,
           "roleAwareImport": true,
           "tenThousandRowStageDryRun": true,
           "tenThousandRowFullCommit": false,
-          "importHumanExperience": false,
-          "deterministicOneThousandDemoSeed": false,
+          "importHumanExperience": true,
+          "deterministicOneThousandDemoSeed": true,
           "bulkImportPr": 433,
           "bulkImportMergeCommit": "2015c4385142d03cb5d84b16826615988f4d8174",
           "oneThousandRowFullCommit": true,
           "atomicBatchCommit": true,
-          "atomicRollback": true
+          "atomicRollback": true,
+          "humanImportExperiencePr": 439,
+          "humanImportExperienceMergeCommit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
+          "xlsxFirstSheetAdapter": true,
+          "localizedHeaderAutoMapping": true,
+          "explicitCommitConfirmation": true,
+          "errorCsvDownload": true
         }
       },
       "productionPreview": {
@@ -1878,13 +1884,18 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "2015c4385142d03cb5d84b16826615988f4d8174",
-        "deploymentId": "188baa33-6ca3-43a5-9d41-9185c4c363f6",
+        "commit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
+        "deploymentId": "2ccf155b-5b9e-44e4-acb2-3b7249491dbd",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 439,
+        "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
+        "summary": "CP-03 XLSX + Human Import Experience: dependency-free XLSX first-sheet parser, CSV/XLSX file upload, localized EffectiveObjectSchema auto-mapping, editable mapping page, dry-run review, explicit commit confirmation, error CSV download and guarded archive expansion."
+      },
       {
         "pr": 433,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -2855,7 +2866,10 @@
       "Do not claim 10k full committed import is proven; only 10k stage + dry-run is currently certified.",
       "Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain.",
       "Do not reintroduce per-row physical Enterprise Resource snapshot writes for Counterparty bulk import; use the transaction/bulk persistence path added in PR #433.",
-      "Do not treat COMMITTED_WITH_ERRORS from an ATOMIC_BATCH target as partial success; for Counterparty atomic batches succeededRows must be zero when the batch rolls back."
+      "Do not treat COMMITTED_WITH_ERRORS from an ATOMIC_BATCH target as partial success; for Counterparty atomic batches succeededRows must be zero when the batch rolls back.",
+      "Do not add another Counterparty-private import UI; the generic Data Import Human experience is merged in PR #439.",
+      "Do not bypass the Data Import dry-run and explicit commit confirmation in Human flows.",
+      "Do not introduce a second XLSX parsing dependency/path; PR #439 provides the bounded first-sheet adapter behind the generic staged source model."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -3070,7 +3084,12 @@
       "state CP-02 as CLOSED_HUMAN_PASS based on user production validation",
       "state CP-03 atomic bulk persistence and deterministic 1k full Counterparty commit as merged/CI-passed/production-deployed through PR #433",
       "state Counterparty import commit semantics as ATOMIC_BATCH: any batch failure rolls back all imported Counterparty/Role/Extension resources",
-      "state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work"
+      "state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work",
+      "state PR #439 / commit 8876cedc259a2135a8c56d4721ea7b2f95901e6e as merged, CI-passed and production-deployed for CP-03 XLSX + Human Import Experience",
+      "state CP-03 as awaiting Human production validation rather than further core implementation",
+      "state CSV and XLSX as normalizing into the same staged Data Import source model",
+      "state import mapping as suggested from EffectiveObjectSchema field IDs and localized labels rather than Counterparty-specific spreadsheet hardcoding",
+      "state CP-04 as blocked until the CP-03 Human import journey passes"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4477,7 +4496,7 @@
       ]
     },
     "cp03": {
-      "status": "ACTIVE_PARTIAL_IMPLEMENTATION",
+      "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
       "objectExtensionCapability": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 430,
@@ -4525,11 +4544,9 @@
         "tenThousandRowFullCommit": false
       },
       "remaining": [
-        "Add XLSX source adapter while keeping CSV and XLSX behind the same staged source model.",
-        "Add Eidos import mapping/review/dry-run/error experience without moving import semantics into Eidos.",
-        "Run/record 10k full-commit certification after XLSX/Human experience integration if still useful as a release gate."
+        "Human browser validation of the production upload -> mapping -> dry-run -> commit journey for Counterparty using XLSX and/or CSV."
       ],
-      "closureGate": "Do not mark CP-03 closed until XLSX + Human import experience are present. Deterministic 1k full commit, atomic bulk persistence, rollback semantics, extension sidecars and 10k stage/dry-run are now proven.",
+      "closureGate": "Close CP-03 only after Human production validation confirms the import experience is understandable and the end-to-end upload/mapping/dry-run/commit journey works. 10k stage/dry-run and deterministic 1k full atomic commit are already engineering evidence; 10k full commit is not a blocking Human UX gate.",
       "bulkPersistence": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 433,
@@ -4548,6 +4565,27 @@
         "atomicRollbackOnFailure": true,
         "deterministicOneThousandDemoSeed": true,
         "oneThousandRowFullCommit": true
+      },
+      "humanImportExperience": {
+        "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
+        "implementationPr": 439,
+        "mergeCommit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "crossProjectEidosEvoCI": "PASS",
+        "railwayDeploymentId": "2ccf155b-5b9e-44e4-acb2-3b7249491dbd",
+        "railwayDeploymentStatus": "SUCCESS",
+        "xlsxFirstSheetAdapter": true,
+        "csvAndXlsxSameStagedSourceModel": true,
+        "localizedHeaderAutoMapping": true,
+        "effectiveObjectSchemaMapping": true,
+        "targetParameterMetadata": true,
+        "fileUploadControl": true,
+        "mappingReviewPage": true,
+        "dryRunReviewPage": true,
+        "explicitCommitConfirmation": true,
+        "errorCsvDownload": true,
+        "xlsxArchiveSafetyLimits": true
       }
     }
   }
