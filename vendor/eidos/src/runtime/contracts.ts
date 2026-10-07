@@ -30,6 +30,7 @@ export interface UidlAction {
   prompt?: string;
   agentCapability?: string;
   context?: Record<string, JsonValue>;
+  refreshSourceOnComplete?: boolean;
 }
 export interface UidlFormV011 {
   contractVersion: "0.1.1"; kind: "form"; id: string; title: string; purpose: "execute-command";
@@ -49,6 +50,7 @@ export interface FormRenderModelV010 {
     prompt: string;
     agentCapability?: string;
     context?: Record<string, JsonValue>;
+    refreshSourceOnComplete?: boolean;
   }>;
 }
 export interface ActionRequestV010 {
