@@ -481,7 +481,9 @@
     "uidl-form-initial-value-v0-1",
     "counterparty-relationship-roles-v0-2-merged",
     "foundation-object-program-architecture-v0-1",
-    "foundation-object-effective-schema-fo01"
+    "foundation-object-effective-schema-fo01",
+    "cp03-object-extension-public-capability",
+    "cp03-generic-data-import-counterparty-target"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -507,7 +509,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "CP-02 Counterparty Relationship Roles v0.2 Human validation PASSED on 2026-10-07. CP-03 is now the active implementation gate: Enterprise Extension + Import-first Counterparty vertical proof. FO-01 shared contracts/compiler are already merged and must not be repeated.",
+  "currentStep": "CP-03 remains ACTIVE. Object Extension governed public capability (PR #430) and generic Data Import core + Counterparty target (PR #431) are merged, CI-passed and production-deployed. Continue with CP-03 bulk commit/persistence scalability, XLSX adapter, Eidos import mapping/review experience, and deterministic 1k demo dataset before closing CP-03.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1784,8 +1786,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "counterparty-cp02-human-pass-cp03-start-2026-10-07",
-    "snapshotAt": "2026-10-07T12:05:00+08:00",
+    "snapshotId": "cp03-import-core-production-pass-2026-10-07",
+    "snapshotAt": "2026-10-07T12:33:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1829,8 +1831,8 @@
       },
       "openGate": {
         "id": "counterparty-enterprise-extension-import-v0-3",
-        "status": "ACTIVE_IMPLEMENTATION",
-        "summary": "CP-03 is the active gate. Prove enterprise-scoped Object Extension definitions and values plus a generic Import-first flow on Counterparty without moving generic infrastructure into the Counterparty plugin.",
+        "status": "ACTIVE_PARTIAL_IMPLEMENTATION",
+        "summary": "CP-03 remains active. Governed Object Extension operations and a generic Data Import core are now merged and production-deployed. Counterparty is the first neutral import target; CSV stage/dry-run/commit, EffectiveObjectSchema mapping, Customer/Supplier role assignment, extension-value sidecars, duplicate detection, schema-drift protection and 10k stage/dry-run are proven. Remaining closure work is bulk commit scalability, XLSX, Eidos import review/mapping experience, and deterministic 1k demo/commit evidence.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.",
@@ -1846,8 +1848,23 @@
         "implementationEvidence": {
           "fo01Pr": 427,
           "fo01MergeCommit": "5e8eb39b4fa56110de79814785ab3fd25d0a2e01",
-          "fo01Status": "MERGED_CI_PRODUCTION_PASS",
-          "cp03Status": "STARTED"
+          "objectExtensionPr": 430,
+          "objectExtensionMergeCommit": "2375ed61e260d8982ed5d25d34bb231f7f630729",
+          "dataImportPr": 431,
+          "dataImportMergeCommit": "c9bf76ad7584067d9d886bcd799848fd459963d4",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "crossProjectEidosEvoCI": "PASS",
+          "railwayDeploymentId": "3a959f0a-3576-4eed-b2a4-7ff05592bbf5",
+          "railwayDeploymentStatus": "SUCCESS",
+          "csvStageDryRunCommit": true,
+          "xlsx": false,
+          "extensionValues": true,
+          "roleAwareImport": true,
+          "tenThousandRowStageDryRun": true,
+          "tenThousandRowFullCommit": false,
+          "importHumanExperience": false,
+          "deterministicOneThousandDemoSeed": false
         }
       },
       "productionPreview": {
@@ -1856,13 +1873,23 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "5e8eb39b4fa56110de79814785ab3fd25d0a2e01",
-        "deploymentId": "4ea937e3-9942-4069-a8aa-8de65032cba2",
+        "commit": "c9bf76ad7584067d9d886bcd799848fd459963d4",
+        "deploymentId": "3a959f0a-3576-4eed-b2a4-7ff05592bbf5",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 431,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof."
+      },
+      {
+        "pr": 430,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "CP-03 Object Extension public capability: governed list/upsert/archive operations through ActionHost over Enterprise Context persisted definitions."
+      },
       {
         "pr": 419,
         "status": "HUMAN_PASS",
@@ -2813,7 +2840,10 @@
       "Do not repeat FO-01 shared descriptor/schema/extension contracts, EffectiveObjectSchema compiler, conformance testkit, or Counterparty schema integration; these are merged on main.",
       "Do not advertise enterprise.object-extension.definition as an effective public capability until CP-03 supplies governed invocation/authorization; FO-01 intentionally created the package/repository boundary without a fake callable capability.",
       "Do not ask for CP-02 Human validation again; it passed on 2026-10-07.",
-      "Do not reopen FO-01; shared Foundation Object contracts/compiler are already merged and production-deployed."
+      "Do not reopen FO-01; shared Foundation Object contracts/compiler are already merged and production-deployed.",
+      "Do not rebuild the Data Import core inside Counterparty; PR #431 already provides the generic app and neutral import-target contract.",
+      "Do not claim 10k full committed import is proven; only 10k stage + dry-run is currently certified.",
+      "Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -3020,7 +3050,11 @@
       "state Counterparty create/edit form fields as now driven by EffectiveObjectSchema rather than a duplicated private field list",
       "state CP-02 Counterparty Relationship Roles v0.2 as CLOSED with Human production validation PASS on 2026-10-07",
       "state CP-03 Enterprise Extension + Import-first Counterparty vertical proof as the active implementation gate",
-      "state CP-04 Responsibility + governed role projections/data scope as the next gate after CP-03"
+      "state CP-04 Responsibility + governed role projections/data scope as the next gate after CP-03",
+      "state CP-03 as partially implemented and still ACTIVE, not closed",
+      "state Object Extension public capability as merged in PR #430 and Data Import core + Counterparty target as merged in PR #431",
+      "state CSV stage/dry-run/commit, extension value sidecars, role-aware Counterparty import, schema drift guard and 10k stage/dry-run as already implemented",
+      "state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4425,6 +4459,63 @@
         "Removing a role does not delete the Counterparty identity.",
         "Current production UX was accepted by the user."
       ]
+    },
+    "cp03": {
+      "status": "ACTIVE_PARTIAL_IMPLEMENTATION",
+      "objectExtensionCapability": {
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 430,
+        "mergeCommit": "2375ed61e260d8982ed5d25d34bb231f7f630729",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "crossProjectEidosEvoCI": "PASS",
+        "railwayDeploymentId": "62560dea-3cd5-44e0-ad20-3233bf9b74f8",
+        "railwayDeploymentStatus": "SUCCESS",
+        "capability": "enterprise.object-extension.definition",
+        "operations": [
+          "enterprise.object-extension.definition.list",
+          "enterprise.object-extension.definition.upsert",
+          "enterprise.object-extension.definition.archive"
+        ],
+        "enterpriseContextGoverned": true
+      },
+      "dataImportCore": {
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 431,
+        "mergeCommit": "c9bf76ad7584067d9d886bcd799848fd459963d4",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "crossProjectEidosEvoCI": "PASS",
+        "railwayDeploymentId": "3a959f0a-3576-4eed-b2a4-7ff05592bbf5",
+        "railwayDeploymentStatus": "SUCCESS",
+        "capability": "enterprise.data-import",
+        "operations": [
+          "enterprise.data-import.stage-csv",
+          "enterprise.data-import.dry-run",
+          "enterprise.data-import.commit",
+          "enterprise.data-import.get",
+          "enterprise.data-import.error-csv"
+        ],
+        "neutralImportTargetContract": "contracts/foundation-object/import.ts",
+        "firstTarget": "counterparty.subject",
+        "extensionValueSidecars": true,
+        "roleAwareImport": true,
+        "effectiveObjectSchemaDriven": true,
+        "schemaDriftGuard": true,
+        "repeatedCommitBlocked": true,
+        "duplicateBatchDetection": true,
+        "enterpriseIsolation": true,
+        "tenThousandRowStageDryRun": true,
+        "tenThousandRowFullCommit": false
+      },
+      "remaining": [
+        "Add bulk/transaction persistence path so 1k/10k committed imports do not degrade into per-row full Enterprise Resource snapshot rewrite.",
+        "Add XLSX source adapter while keeping CSV and XLSX behind the same staged source model.",
+        "Add Eidos import mapping/review/dry-run/error experience without moving import semantics into Eidos.",
+        "Add deterministic 1k demo dataset/seed and committed import benchmark.",
+        "Decide/implement safe partial-failure semantics for bulk commit and receipts before 10k full-commit certification."
+      ],
+      "closureGate": "Do not mark CP-03 closed until XLSX + Human import experience + 1k committed demo/bulk persistence evidence are present; 10k stage/dry-run is already proven."
     }
   }
 }

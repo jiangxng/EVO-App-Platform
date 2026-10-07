@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `counterparty-cp02-human-pass-cp03-start-2026-10-07`  
-**Snapshot time:** `2026-10-07T12:05:00+08:00`  
+**Snapshot:** `cp03-import-core-production-pass-2026-10-07`  
+**Snapshot time:** `2026-10-07T12:33:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -43,9 +43,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-enterprise-extension-import-v0-3: ACTIVE_IMPLEMENTATION**
+**counterparty-enterprise-extension-import-v0-3: ACTIVE_PARTIAL_IMPLEMENTATION**
 
-CP-03 is the active gate. Prove enterprise-scoped Object Extension definitions and values plus a generic Import-first flow on Counterparty without moving generic infrastructure into the Counterparty plugin.
+CP-03 remains active. Governed Object Extension operations and a generic Data Import core are now merged and production-deployed. Counterparty is the first neutral import target; CSV stage/dry-run/commit, EffectiveObjectSchema mapping, Customer/Supplier role assignment, extension-value sidecars, duplicate detection, schema-drift protection and 10k stage/dry-run are proven. Remaining closure work is bulk commit scalability, XLSX, Eidos import review/mapping experience, and deterministic 1k demo/commit evidence.
 
 Acceptance:
 
@@ -66,8 +66,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `5e8eb39b4fa56110de79814785ab3fd25d0a2e01`
-- Deployment: `4ea937e3-9942-4069-a8aa-8de65032cba2`
+- Commit: `c9bf76ad7584067d9d886bcd799848fd459963d4`
+- Deployment: `3a959f0a-3576-4eed-b2a4-7ff05592bbf5`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -98,6 +98,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #431 — MERGED_CI_PRODUCTION_PASS: CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof.
+- PR #430 — MERGED_CI_PRODUCTION_PASS: CP-03 Object Extension public capability: governed list/upsert/archive operations through ActionHost over Enterprise Context persisted definitions.
 - PR #419 — HUMAN_PASS: Counterparty Relationship Roles v0.2 Human production validation passed on 2026-10-07: CUSTOMER + SUPPLIER coexistence and independent role removal preserve one stable Counterparty identity.
 - PR #427 — MERGED_CI_PRODUCTION_PASS: FO-01 first implementation: shared Foundation Object descriptor/schema/extension contracts, deterministic EffectiveObjectSchema compiler, conformance testkit, Enterprise Context-backed Object Extension definition repository/package boundary, and Counterparty create/edit forms driven from the shared schema.
 - PR #419 — MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING: Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline.
@@ -478,6 +480,9 @@ Not proved:
 - Do not advertise enterprise.object-extension.definition as an effective public capability until CP-03 supplies governed invocation/authorization; FO-01 intentionally created the package/repository boundary without a fake callable capability.
 - Do not ask for CP-02 Human validation again; it passed on 2026-10-07.
 - Do not reopen FO-01; shared Foundation Object contracts/compiler are already merged and production-deployed.
+- Do not rebuild the Data Import core inside Counterparty; PR #431 already provides the generic app and neutral import-target contract.
+- Do not claim 10k full committed import is proven; only 10k stage + dry-run is currently certified.
+- Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -702,6 +707,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state CP-02 Counterparty Relationship Roles v0.2 as CLOSED with Human production validation PASS on 2026-10-07
 - state CP-03 Enterprise Extension + Import-first Counterparty vertical proof as the active implementation gate
 - state CP-04 Responsibility + governed role projections/data scope as the next gate after CP-03
+- state CP-03 as partially implemented and still ACTIVE, not closed
+- state Object Extension public capability as merged in PR #430 and Data Import core + Counterparty target as merged in PR #431
+- state CSV stage/dry-run/commit, extension value sidecars, role-aware Counterparty import, schema drift guard and 10k stage/dry-run as already implemented
+- state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work
 
 No previous ChatGPT transcript is required.
 
