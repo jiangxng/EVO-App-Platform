@@ -709,7 +709,11 @@ export function createAppHost(source: ExperienceSource): AppHost {
     if (options?.signal?.aborted) {
       throw new DOMException("Route load aborted", "AbortError");
     }
-    return { ...resolved, definition };
+    return {
+      ...resolved,
+      requestPath: path,
+      definition
+    };
   };
 
   const subscribe = (listener: (snapshot: AppHostSnapshotV010) => void): (() => void) => {
