@@ -942,3 +942,34 @@ This baseline is considered successfully adopted when:
 - personal workspace composition uses the same governed projection definitions;
 - deterministic demo/test data exists in addition to large RVC evidence;
 - the same approach can be applied to Item and Warehouse.
+
+
+## 22. LLM-native enterprise adaptation companion
+
+The field-growth/import/facet/workbench model in this document is the first bounded
+domain used to prove the broader architecture defined by:
+
+`docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md`
+
+The important extension is that enterprise-specific requirements should not be
+implemented manually across storage, UI, import, permission and Agent surfaces.
+
+Target:
+
+~~~text
+customer evidence
+→ LLM semantic classification
+→ EnterpriseAdaptationPlan
+→ ObjectExtension / Profile / Projection definition
+→ deterministic compilation
+→ storage + validation + import + Experience + permission + Agent + tests
+→ Human review
+→ enterprise software version
+~~~
+
+Counterparty is the first proof surface. Item/Product and Warehouse/Location should
+reuse the same adaptation machinery instead of creating object-specific low-code
+systems.
+
+This companion architecture does not change the existing rule that truly new
+deterministic runtime semantics require separate EVO runtime governance.
