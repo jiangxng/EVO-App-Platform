@@ -227,6 +227,8 @@ async function collectFormValues(
   const values: Record<string, JsonValue> = {};
 
   for (const field of document.fields) {
+    if (field.readOnly) continue;
+
     const control = form.elements.namedItem(field.key);
     if (
       !(control instanceof HTMLInputElement)
