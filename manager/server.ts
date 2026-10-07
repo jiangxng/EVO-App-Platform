@@ -811,11 +811,20 @@ import {
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DRY_RUN_COMMAND_V010,
+  DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_FEATURE_ID,
   DATA_IMPORT_GET_COMMAND_V010,
+  DATA_IMPORT_MAPPING_PAGE_SOURCE,
   DATA_IMPORT_PACKAGE_ID,
-  DATA_IMPORT_STAGE_CSV_COMMAND_V010
+  DATA_IMPORT_REVIEW_COMMAND_V010,
+  DATA_IMPORT_REVIEW_PAGE_SOURCE,
+  DATA_IMPORT_STAGE_CSV_COMMAND_V010,
+  DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_UPLOAD_PAGE_SOURCE,
+  parseDataImportMappingRouteV010,
+  parseDataImportReviewRouteV010,
+  parseDataImportUploadRouteV010
 } from "../apps/data-import/constants.js";
 import {
   createDataImportRepositoryV010
@@ -965,10 +974,11 @@ const counterpartyImportTarget =
     extensionRepository: objectExtensionRepository,
     extensionValueRepository: objectExtensionValueRepository
   });
+const dataImportTargets = [counterpartyImportTarget] as const;
 const dataImportService =
   createDataImportServiceV010({
     repository: dataImportRepository,
-    targets: [counterpartyImportTarget]
+    targets: dataImportTargets
   });
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
@@ -4274,6 +4284,8 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+      DATA_IMPORT_REVIEW_COMMAND_V010,
       DATA_IMPORT_STAGE_CSV_COMMAND_V010,
       DATA_IMPORT_DRY_RUN_COMMAND_V010,
       DATA_IMPORT_COMMIT_COMMAND_V010,
@@ -4289,6 +4301,7 @@ const actionRouter = createAppActionRouter(
           const handlers = module.createDataImportActionHandlersV010({
             service: dataImportService,
             repository: dataImportRepository,
+            targets: dataImportTargets,
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -5967,6 +5980,112 @@ const server = createServer(async (request, response) => {
                 ),
                 locale: requestedLocale(url)
               })
+        );
+      }
+
+      if (
+        source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE
+        || source === DATA_IMPORT_UPLOAD_PAGE_SOURCE
+        || source === DATA_IMPORT_MAPPING_PAGE_SOURCE
+        || source === DATA_IMPORT_REVIEW_PAGE_SOURCE
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "DATA_IMPORT_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const module = await import("../apps/data-import/page.js");
+        const locale = requestedLocale(url);
+        const routeValue = url.searchParams.get("route")?.trim();
+
+        if (source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createDataImportDirectoryPageV010({
+              targets: dataImportTargets,
+              jobs: dataImportRepository.list(active.contextId),
+              locale
+            })
+          );
+        }
+
+        if (source === DATA_IMPORT_UPLOAD_PAGE_SOURCE) {
+          const targetId = parseDataImportUploadRouteV010(
+            routeValue || undefined
+          );
+          const target = dataImportTargets.find(item =>
+            item.targetId === targetId
+          );
+          if (!target) {
+            return json(response, 404, {
+              code: "DATA_IMPORT_TARGET_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createDataImportUploadPageV010({
+              target,
+              locale
+            })
+          );
+        }
+
+        const importJobId = source === DATA_IMPORT_MAPPING_PAGE_SOURCE
+          ? parseDataImportMappingRouteV010(routeValue || undefined)
+          : parseDataImportReviewRouteV010(routeValue || undefined);
+        if (!importJobId) {
+          return json(response, 400, {
+            code: "DATA_IMPORT_ROUTE_INVALID"
+          });
+        }
+        const job = dataImportRepository.get(active.contextId, importJobId);
+        if (!job) {
+          return json(response, 404, {
+            code: "DATA_IMPORT_JOB_NOT_FOUND"
+          });
+        }
+        if (source === DATA_IMPORT_MAPPING_PAGE_SOURCE) {
+          const target = dataImportTargets.find(item =>
+            item.targetId === job.targetId
+          );
+          if (!target) {
+            return json(response, 404, {
+              code: "DATA_IMPORT_TARGET_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createDataImportMappingPageV010({
+              job,
+              schema: target.describe({
+                contextId: active.contextId,
+                locale,
+                parameters: job.targetParameters
+              }),
+              locale
+            })
+          );
+        }
+        return json(
+          response,
+          200,
+          module.createDataImportReviewPageV010({
+            job,
+            locale
+          })
         );
       }
 
