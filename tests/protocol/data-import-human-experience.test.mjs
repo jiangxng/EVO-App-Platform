@@ -411,6 +411,127 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.equal(counterparties.list("enterprise-context:a").length, 0);
 });
 
+test("Human review preserves Agent CONSTANT and unchanged VALUE_MAP mappings", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const counterparties = createCounterpartyRepositoryV010(resources);
+  const roles = createCounterpartyRoleRepositoryV010(resources, counterparties);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const values = createObjectExtensionValueRepositoryV010(resources);
+  const target = createCounterpartyImportTargetV010({
+    resources,
+    repository: counterparties,
+    roleRepository: roles,
+    extensionRepository: extensions,
+    extensionValueRepository: values
+  });
+  const repository = createDataImportRepositoryV010(resources);
+  const service = createDataImportServiceV010({
+    repository,
+    targets: [target]
+  });
+  const handlers = createDataImportActionHandlersV010({
+    service,
+    repository,
+    targets: [target],
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "unused",
+    now: () => new Date("2026-10-07T07:30:00.000Z")
+  });
+  const review = handlers.find(
+    item => item.commandCode === DATA_IMPORT_REVIEW_COMMAND_V010
+  );
+  assert.ok(review);
+
+  service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-advanced-human-review",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: {
+      kind: "ROWS",
+      headers: ["供应商编码", "供应商名称", "供应商类型"],
+      rows: [{
+        供应商编码: "S001",
+        供应商名称: "甲供应商",
+        供应商类型: "设备"
+      }]
+    },
+    mapping: [],
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T07:20:00.000Z"
+  });
+
+  service.updateMapping({
+    contextId: "enterprise-context:a",
+    importJobId: "import-advanced-human-review",
+    mapping: [{
+      sourceColumn: "供应商编码",
+      targetFieldId: "code"
+    }, {
+      sourceColumn: "供应商名称",
+      targetFieldId: "displayName"
+    }, {
+      targetFieldId: "subjectType",
+      transform: {
+        kind: "CONSTANT",
+        value: "ORGANIZATION"
+      }
+    }],
+    mappingOrigin: "AGENT",
+    actorSubjectId: "agent-a",
+    recordedAt: "2026-10-07T07:21:00.000Z"
+  });
+
+  const schema = target.describe({
+    contextId: "enterprise-context:a",
+    locale: "zh-CN",
+    parameters: { relationshipMode: "SUPPLIER" }
+  });
+  const page = createDataImportMappingPageV010({
+    job: repository.get(
+      "enterprise-context:a",
+      "import-advanced-human-review"
+    ),
+    schema,
+    locale: "zh-CN"
+  });
+  const constantField = page.fields.find(
+    field => field.semanticType === "data-import-batch-constant"
+  );
+  assert.ok(constantField);
+  assert.equal(constantField.readOnly, true);
+  assert.equal(constantField.initialValue, "ORGANIZATION");
+  assert.match(constantField.label, /主体类型/);
+
+  const reviewed = await review.execute(
+    request(DATA_IMPORT_REVIEW_COMMAND_V010, {
+      importJobId: "import-advanced-human-review",
+      map_0: "code",
+      map_1: "displayName",
+      map_2: "__IGNORE__"
+    }),
+    platformContext()
+  );
+
+  assert.equal(reviewed.ok, true);
+  const ready = repository.get(
+    "enterprise-context:a",
+    "import-advanced-human-review"
+  );
+  assert.equal(ready.state, "DRY_RUN_READY");
+  assert.equal(ready.dryRun.validRows, 1);
+  assert.deepEqual(
+    ready.mapping.find(item => item.targetFieldId === "subjectType"),
+    {
+      targetFieldId: "subjectType",
+      transform: {
+        kind: "CONSTANT",
+        value: "ORGANIZATION"
+      }
+    }
+  );
+});
+
 test("Counterparty import target remains the first Foundation Object consumer, not a generic framework branch", () => {
   assert.equal(
     counterpartyFoundationObjectDescriptorV010.objectType,
