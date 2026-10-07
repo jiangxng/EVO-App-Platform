@@ -129,6 +129,12 @@ export function createCounterpartyImportTargetV010(input: {
   extensionRepository: ObjectExtensionRepositoryV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
 }): FoundationObjectImportTargetV010 {
+  const existingCodeCache = new Map<string, Set<string>>();
+  const extensionDefinitionCache = new Map<
+    string,
+    ReturnType<ObjectExtensionRepositoryV010["list"]>
+  >();
+
   function describe(contextId: string, locale?: string, parameters?: FoundationObjectImportTargetParametersV010) {
     return createCounterpartyEffectiveObjectSchemaV010({
       locale,
@@ -155,11 +161,7 @@ export function createCounterpartyImportTargetV010(input: {
     },
 
     validateRow(validateInput): FoundationObjectImportValidationV010 {
-      const schema = describe(
-        validateInput.contextId,
-        undefined,
-        validateInput.parameters
-      );
+      const schema = validateInput.schema;
       const importFields = fieldsForSurfaceV010(schema, "IMPORT")
         .filter(field => field.writable);
       const fieldMap = new Map(
@@ -246,11 +248,21 @@ export function createCounterpartyImportTargetV010(input: {
           });
         }
 
-        const duplicate = input.repository.list(validateInput.contextId)
-          .find(existing =>
-            existing.code.toLocaleLowerCase() === code.toLocaleLowerCase()
+        const cacheKey =
+          validateInput.contextId + "|" + validateInput.importJobId;
+        if (validateInput.rowNumber === 1 || !existingCodeCache.has(cacheKey)) {
+          existingCodeCache.set(
+            cacheKey,
+            new Set(
+              input.repository.list(validateInput.contextId)
+                .map(existing => existing.code.toLocaleLowerCase())
+            )
           );
-        if (duplicate) {
+        }
+        if (
+          existingCodeCache.get(cacheKey)
+            ?.has(code.toLocaleLowerCase())
+        ) {
           issues.push({
             code: "COUNTERPARTY_CODE_DUPLICATE",
             message: "Counterparty code already exists.",
@@ -336,10 +348,22 @@ export function createCounterpartyImportTargetV010(input: {
         });
       }
 
-      const definitions = input.extensionRepository.list(
-        commitInput.contextId,
-        "counterparty.subject"
-      );
+      const definitionCacheKey =
+        commitInput.contextId + "|" + commitInput.importJobId;
+      if (
+        commitInput.prepared.rowNumber === 1
+        || !extensionDefinitionCache.has(definitionCacheKey)
+      ) {
+        extensionDefinitionCache.set(
+          definitionCacheKey,
+          input.extensionRepository.list(
+            commitInput.contextId,
+            "counterparty.subject"
+          )
+        );
+      }
+      const definitions =
+        extensionDefinitionCache.get(definitionCacheKey) ?? [];
       const byFieldId = new Map(
         definitions.map(definition => [definition.fieldId, definition])
       );
