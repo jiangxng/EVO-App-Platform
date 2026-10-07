@@ -748,6 +748,7 @@ import {
 import {
   companyNotesPackage,
   counterpartyPackage,
+  dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -798,6 +799,24 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../apps/counterparty/roles.js";
 import {
+  createCounterpartyImportTargetV010
+} from "../apps/counterparty/import-target.js";
+import {
+  DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
+  DATA_IMPORT_ERROR_CSV_COMMAND_V010,
+  DATA_IMPORT_FEATURE_ID,
+  DATA_IMPORT_GET_COMMAND_V010,
+  DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_STAGE_CSV_COMMAND_V010
+} from "../apps/data-import/constants.js";
+import {
+  createDataImportRepositoryV010
+} from "../apps/data-import/repository.js";
+import {
+  createDataImportServiceV010
+} from "../apps/data-import/service.js";
+import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
@@ -807,6 +826,9 @@ import {
 import {
   createObjectExtensionRepositoryV010
 } from "../apps/object-extension/repository.js";
+import {
+  createObjectExtensionValueRepositoryV010
+} from "../apps/object-extension/values.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -867,6 +889,7 @@ import {
 const catalog = createPackageCatalog([
   companyNotesPackage,
   counterpartyPackage,
+  dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
   enterpriseObservatoryPackage,
@@ -923,6 +946,22 @@ const counterpartyRoleRepository =
   );
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
+const objectExtensionValueRepository =
+  createObjectExtensionValueRepositoryV010(enterpriseResourceRepository);
+const dataImportRepository =
+  createDataImportRepositoryV010(enterpriseResourceRepository);
+const counterpartyImportTarget =
+  createCounterpartyImportTargetV010({
+    repository: counterpartyRepository,
+    roleRepository: counterpartyRoleRepository,
+    extensionRepository: objectExtensionRepository,
+    extensionValueRepository: objectExtensionValueRepository
+  });
+const dataImportService =
+  createDataImportServiceV010({
+    repository: dataImportRepository,
+    targets: [counterpartyImportTarget]
+  });
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -2189,6 +2228,21 @@ if (
     console.log("Activated EVO Object Extension application.");
   } catch (error) {
     console.error("Failed to activate EVO Object Extension application.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === DATA_IMPORT_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(DATA_IMPORT_PACKAGE_ID);
+    console.log("Activated EVO Data Import application.");
+  } catch (error) {
+    console.error("Failed to activate EVO Data Import application.", error);
   }
 }
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
@@ -4206,6 +4260,46 @@ const actionRouter = createAppActionRouter(
           );
           if (!handler) {
             throw new Error("OBJECT_EXTENSION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      DATA_IMPORT_STAGE_CSV_COMMAND_V010,
+      DATA_IMPORT_DRY_RUN_COMMAND_V010,
+      DATA_IMPORT_COMMIT_COMMAND_V010,
+      DATA_IMPORT_GET_COMMAND_V010,
+      DATA_IMPORT_ERROR_CSV_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: DATA_IMPORT_PACKAGE_ID,
+        featureId: DATA_IMPORT_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/data-import/actions.js");
+          const handlers = module.createDataImportActionHandlersV010({
+            service: dataImportService,
+            repository: dataImportRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "import-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
           }
           return handler;
         }
