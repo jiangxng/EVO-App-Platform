@@ -4,6 +4,7 @@ import type {
 } from "./platform-services.js";
 import type {
   AgentConversationMessageV010,
+  AgentInteractionContextV010,
   AgentModelDecision,
   AgentToolObservation
 } from "../agents/enterprise-agent/contracts.js";
@@ -31,6 +32,12 @@ export type AgentRunEventTypeV010 =
 export interface AgentRunInputV010 {
   message: string;
   conversationHistory: AgentConversationMessageV010[];
+  /**
+   * Host-provided task/navigation coordinates captured when the Human
+   * launched a contextual Agent action. This is durable task context only
+   * and never authorization evidence.
+   */
+  interactionContext?: AgentInteractionContextV010;
   locale: string;
   providerId: string;
   modelId: string;
