@@ -252,16 +252,30 @@ test("Counterparty pages establish list-first management UX and a valid create f
       subjectType: "ORGANIZATION",
       status: "ACTIVE"
     }],
+    importRoute: "/data-import/new/counterparty.subject",
     locale: "zh-CN"
   });
   assert.equal(directory.layout, "list");
+  assert.equal(directory.density, "compact");
   assert.equal(directory.title, "往来对象");
   assert.equal(directory.items[0].title, "ABC有限公司");
-  assert.equal(directory.items.at(-1).id, "counterparty:create");
+  assert.equal(directory.items.length, 1);
+  assert.deepEqual(
+    directory.actions.map(action => [action.id, action.route, action.primary === true]),
+    [
+      ["import", "/data-import/new/counterparty.subject", false],
+      ["create", "/counterparties/new", true]
+    ]
+  );
 
   const form = createCounterpartyCreatePageV010("zh-CN");
   assert.equal(form.kind, "form");
   assert.equal(form.title, "新建往来对象");
+  assert.equal(form.description.includes("稳定主体身份"), true);
+  assert.deepEqual(
+    form.contextNavigation.items.map(item => [item.label, item.route]),
+    [["往来对象", "/counterparties"], ["新建往来对象", undefined]]
+  );
   assert.equal(
     form.fields.find(field => field.key === "subjectType").control,
     "select"
@@ -479,6 +493,13 @@ test("Counterparty detail exposes relationship roles independently from master i
   });
   const item = page.items[0];
 
+  assert.equal(page.density, "compact");
+  assert.deepEqual(
+    page.contextNavigation.items.map(entry => [entry.label, entry.route]),
+    [["往来对象", "/counterparties"], ["ABC有限公司", undefined]]
+  );
+  assert.equal(page.actions[0].id, "edit");
+  assert.equal(item.primaryAction, undefined);
   assert.deepEqual(item.badges, ["客户", "供应商"]);
   assert.equal(item.metadata["关系角色"], "客户 · 供应商");
   assert.equal(
