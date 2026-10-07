@@ -839,7 +839,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             : {}),
           source: {
             pageId: page.page.id,
-            route: page.route.path,
+            route: page.requestPath ?? page.route.path,
             actionId: action.id
           },
           ...(action.context
