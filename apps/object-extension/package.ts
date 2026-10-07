@@ -2,13 +2,20 @@ import type { PackageManifestV010 } from "../../contracts/package.js";
 import {
   ENTERPRISE_RESOURCE_CAPABILITY_V010
 } from "../../contracts/enterprise-resource.js";
+import {
+  objectExtensionCapabilityContributionsV010
+} from "./capability-manifest.js";
+import {
+  OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010,
+  OBJECT_EXTENSION_FEATURE_ID,
+  OBJECT_EXTENSION_PACKAGE_ID
+} from "./constants.js";
 
-export const OBJECT_EXTENSION_PACKAGE_ID =
-  "evo-object-extension" as const;
-export const OBJECT_EXTENSION_FEATURE_ID =
-  "evo-object-extension.default" as const;
-export const OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010 =
-  "enterprise.object-extension.definition" as const;
+export {
+  OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010,
+  OBJECT_EXTENSION_FEATURE_ID,
+  OBJECT_EXTENSION_PACKAGE_ID
+} from "./constants.js";
 
 export const objectExtensionPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
@@ -32,12 +39,16 @@ export const objectExtensionPackage: PackageManifestV010 = {
     featureId: OBJECT_EXTENSION_FEATURE_ID,
     packageId: OBJECT_EXTENSION_PACKAGE_ID,
     version: "0.1.0",
-    activationScope: "ENTERPRISE",
-    defaultActivation: false,
+    activationScope: "INSTALLATION",
+    defaultActivation: true,
     requiresCapabilities: [
       ENTERPRISE_RESOURCE_CAPABILITY_V010
     ],
-    providesCapabilities: [],
-    contributions: []
+    providesCapabilities: [
+      OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
+    ],
+    contributions: [
+      ...objectExtensionCapabilityContributionsV010
+    ]
   }]
 };
