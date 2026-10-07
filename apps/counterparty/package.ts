@@ -48,7 +48,8 @@ export const counterpartyPackage: PackageManifestV010 = {
       ENTERPRISE_RESOURCE_CAPABILITY_V010
     ],
     providesCapabilities: [
-      "enterprise.counterparty.directory"
+      "enterprise.counterparty.directory",
+      "enterprise.counterparty.relationship-role"
     ],
     contributions: [{
       kind: "eidos.experience",

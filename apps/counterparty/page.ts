@@ -4,11 +4,17 @@ import type {
 import type {
   CounterpartySubjectV010
 } from "./repository.js";
+import type {
+  CounterpartyRelationshipRoleCodeV010,
+  CounterpartyRelationshipRoleV010
+} from "./roles.js";
 import {
   COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_ASSIGN_ROLE_COMMAND,
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_ROUTE,
   COUNTERPARTY_DIRECTORY_ROUTE,
+  COUNTERPARTY_REMOVE_ROLE_COMMAND,
   COUNTERPARTY_UPDATE_COMMAND,
   counterpartyDetailRouteV010,
   counterpartyEditRouteV010
@@ -39,6 +45,16 @@ function textFor(locale?: string) {
         detailDescription:
           "这是当前企业上下文中的往来对象身份。应收、应付、核销与余额不属于此主数据。",
         edit: "编辑",
+        relationshipRoles: "关系角色",
+        noRelationshipRole: "未设置",
+        customer: "客户",
+        supplier: "供应商",
+        addCustomerRole: "设为客户",
+        removeCustomerRole: "取消客户角色",
+        addSupplierRole: "设为供应商",
+        removeSupplierRole: "取消供应商角色",
+        roleHelp:
+          "关系角色描述本企业与该往来对象的业务关系，不改变往来对象身份。",
         archive: "归档",
         archiveHelp: "从日常往来对象目录中移除，但保留企业资源记录。",
         back: "返回往来对象",
@@ -73,6 +89,16 @@ function textFor(locale?: string) {
         detailDescription:
           "This is the counterparty identity stored in the current Enterprise Context. Receivables, payables, settlement and balances are not part of this master data.",
         edit: "Edit",
+        relationshipRoles: "Relationship roles",
+        noRelationshipRole: "None",
+        customer: "Customer",
+        supplier: "Supplier",
+        addCustomerRole: "Assign Customer role",
+        removeCustomerRole: "Remove Customer role",
+        addSupplierRole: "Assign Supplier role",
+        removeSupplierRole: "Remove Supplier role",
+        roleHelp:
+          "Relationship roles describe how this enterprise relates to the counterparty without changing its identity.",
         archive: "Archive",
         archiveHelp:
           "Remove this counterparty from normal directories while retaining its enterprise resource record.",
@@ -94,6 +120,14 @@ function subjectTypeLabel(
 ): string {
   const text = textFor(locale);
   return value === "ORGANIZATION" ? text.organization : text.person;
+}
+
+function relationshipRoleLabel(
+  value: CounterpartyRelationshipRoleCodeV010,
+  locale?: string
+): string {
+  const text = textFor(locale);
+  return value === "CUSTOMER" ? text.customer : text.supplier;
 }
 
 export function createCounterpartyDirectoryPageV010(input: {
@@ -174,10 +208,19 @@ export function createCounterpartyDirectoryPageV010(input: {
 
 export function createCounterpartyDetailPageV010(input: {
   counterparty: CounterpartySubjectV010;
+  roles?: readonly CounterpartyRelationshipRoleV010[];
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const subject = input.counterparty;
+  const roles = [...(input.roles ?? [])]
+    .sort((a, b) => a.roleCode.localeCompare(b.roleCode));
+  const activeRoleCodes = new Set(
+    roles.map(role => role.roleCode)
+  );
+  const roleLabels = roles.map(role =>
+    relationshipRoleLabel(role.roleCode, input.locale)
+  );
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
@@ -189,6 +232,7 @@ export function createCounterpartyDetailPageV010(input: {
       id: subject.counterpartyId,
       title: subject.displayName,
       summary: subject.legalName || subject.code,
+      ...(roleLabels.length > 0 ? { badges: roleLabels } : {}),
       status: {
         label:
           subject.status === "ACTIVE"
@@ -205,6 +249,8 @@ export function createCounterpartyDetailPageV010(input: {
           subject.subjectType,
           input.locale
         ),
+        [text.relationshipRoles]:
+          roleLabels.join(" · ") || text.noRelationshipRole,
         ...(subject.legalName
           ? { [text.legalName]: subject.legalName }
           : {}),
@@ -230,6 +276,38 @@ export function createCounterpartyDetailPageV010(input: {
         type: "navigate",
         route: counterpartyEditRouteV010(subject.counterpartyId),
         requiresConfirmation: false
+      }, {
+        id: "toggle-customer-role",
+        label: activeRoleCodes.has("CUSTOMER")
+          ? text.removeCustomerRole
+          : text.addCustomerRole,
+        type: "command",
+        command: activeRoleCodes.has("CUSTOMER")
+          ? COUNTERPARTY_REMOVE_ROLE_COMMAND
+          : COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+        inputVersion: "0.1.0",
+        requiresConfirmation: activeRoleCodes.has("CUSTOMER"),
+        helpText: text.roleHelp,
+        values: {
+          counterpartyId: subject.counterpartyId,
+          roleCode: "CUSTOMER"
+        }
+      }, {
+        id: "toggle-supplier-role",
+        label: activeRoleCodes.has("SUPPLIER")
+          ? text.removeSupplierRole
+          : text.addSupplierRole,
+        type: "command",
+        command: activeRoleCodes.has("SUPPLIER")
+          ? COUNTERPARTY_REMOVE_ROLE_COMMAND
+          : COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+        inputVersion: "0.1.0",
+        requiresConfirmation: activeRoleCodes.has("SUPPLIER"),
+        helpText: text.roleHelp,
+        values: {
+          counterpartyId: subject.counterpartyId,
+          roleCode: "SUPPLIER"
+        }
       }, {
         id: "archive",
         label: text.archive,

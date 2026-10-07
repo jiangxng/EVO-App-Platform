@@ -1,7 +1,7 @@
 # EVO Counterparty / 往来对象 Plugin — Architecture v0.1
 
 **Status:** ACTIVE DESIGN BASELINE  
-**Date:** 2026-10-06  
+**Date:** 2026-10-06; v0.2 relationship refinement 2026-10-07  
 **Owner:** evo-counterparty  
 **Storage:** Enterprise Context Resource Library  
 **Namespace:** `evo.counterparty`
@@ -30,6 +30,24 @@ Ledger / Open Item / Settlement
 
 The Counterparty plugin MUST NOT become Accounts Receivable, Accounts Payable,
 cash settlement, matching, open-item accounting or a generic CRM.
+
+### Object admission rule
+
+Entity type alone does not make something a Counterparty.
+
+An employee, internal company, government body, bank, person or other entity becomes
+a Counterparty only when the current Enterprise needs to manage that entity as a
+business/economic/settlement counterparty.
+
+~~~text
+exists elsewhere in enterprise data
+!= automatically Counterparty
+
+participates in a governed counterparty relationship for this Enterprise
+-> Counterparty identity/relationship is justified
+~~~
+
+This prevents Counterparty from becoming an indiscriminate universal Party table.
 
 ## 2. Legacy archaeology
 
@@ -304,3 +322,113 @@ The v0.1 core is complete only when all of the following hold:
 - no AR/AP balance, settlement, matching, open-item or account logic is introduced;
 - Customer/Supplier remain future relationship roles, not separate identity records;
 - legacy Dealer fields beyond the core identity stay classified as extension resources instead of expanding the v0.1 subject payload.
+
+## 14. v0.2 Relationship Role resource
+
+The first relationship-role implementation keeps identity and relationship state as
+separate Enterprise Context resources.
+
+~~~text
+namespace      = evo.counterparty
+
+Counterparty Subject
+  collectionId = counterparties
+  resourceType = counterparty.subject
+
+Relationship Role
+  collectionId = counterparty-roles
+  resourceType = counterparty.relationship-role
+  schemaRef    = evo.counterparty.relationship-role/0.1.0
+~~~
+
+Initial governed role codes are CUSTOMER and SUPPLIER.
+
+Logical shape:
+
+~~~text
+CounterpartyRelationshipRoleV010
+  roleId
+  counterpartyId
+  roleCode
+~~~
+
+The role ID is deterministic inside the Enterprise Context for one counterpartyId +
+roleCode pair. Assigning a role is idempotent current-state relationship management;
+removing a role archives the relationship resource without archiving or replacing
+the Counterparty Subject.
+
+One subject may therefore be both Customer and Supplier at the same time.
+
+This v0.2 role resource deliberately does not contain credit limits, payment terms,
+pricing defaults, procurement lead time or other commercial settings. Those require
+a clear role/profile owner and lifecycle before they are admitted.
+
+## 15. Layered ownership — master data versus derived state
+
+Authoritative separation:
+
+~~~text
+Counterparty Subject
+        ↓
+Relationship Role / future Profile
+        ↓ referenced by
+BusinessData + committed snapshots
+        ↓
+EVO Runtime / domain deterministic engines
+        ↓
+Ledger / Allocation / Settlement
+        ↓
+Projection / Read Model
+        ↓
+Report / BI / Management Intelligence
+~~~
+
+Counterparty owns current reference identity and relationship semantics. It does not
+own receivable/payable balances, open-item amount, aging, settlement progress, cash
+collected/paid, customer profitability or supplier-spend summaries.
+
+Those are derived facts/projections/read models. A Human page may later compose such
+values next to Counterparty identity, but visual co-location does not move data
+authority into the Counterparty master record.
+
+## 16. External architecture comparison
+
+Mature enterprise architectures are comparison evidence, not EVO schema authority.
+Oracle Trading Community Architecture separates Party from business relationships;
+Customer is a Party with a selling relationship, while Customer Account carries
+relationship terms. Official references:
+
+- https://docs.oracle.com/en/cloud/saas/financials/26b/fairp/customer-and-party-structure.html
+- https://docs.oracle.com/cd/E26401_01/doc.122/e48950/T172155T172158.htm
+
+EVO adopts the useful identity-versus-relationship separation but does not introduce
+a universal global Party registry. The current boundary remains enterprise-scoped
+Counterparty -> explicit Relationship Role -> future role-owned Profile ->
+BusinessData / EVO Runtime / Projection.
+
+## 17. Real-world validation requirement
+
+Counterparty and the next foundation objects are governed by
+docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md.
+
+Counterparty design must be pressure-tested against large public legal-entity and
+real relationship datasets rather than only hand-written fixtures. Initial evidence
+families include GLEIF, Companies House, TED and USAspending.
+
+The corpus is evidence, not schema authority. Large source datasets remain outside
+Git; the repository stores source manifests, adapters, bounded deterministic
+fixtures and validation reports.
+
+## 18. v0.2 acceptance
+
+Relationship Roles v0.2 is complete only when:
+
+- one stable Counterparty can simultaneously hold CUSTOMER and SUPPLIER;
+- role assignment/removal never duplicates or deletes Counterparty identity;
+- roles are independent Enterprise Context resources keyed to counterpartyId;
+- roles are isolated by Enterprise Context and removal archives role evidence;
+- Counterparty detail exposes roles through Eidos without embedding Sales/Procurement workflow;
+- role-specific commercial settings remain outside Counterparty Subject;
+- AR/AP balances, aging, open items, settlement and reporting remain higher-layer derived concerns;
+- integration tests prove the identity/role lifecycle;
+- real-world validation can evolve without mirroring source schemas into production objects.
