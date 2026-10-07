@@ -98,7 +98,7 @@ const mapping = [{
   }
 }];
 
-test("successful dry-run records an enterprise Import Recipe with deterministic value transforms", () => {
+test("only a confirmed committed import becomes an auto-reusable enterprise Import Recipe", () => {
   const { target, recipes, service } = fixture();
   const inputSource = source("supplier-first.xlsx");
   const schema = target.describe({
@@ -129,7 +129,22 @@ test("successful dry-run records an enterprise Import Recipe with deterministic 
     ready.dryRun.rows[0].prepared.values.subjectType,
     "ORGANIZATION"
   );
-  assert.ok(ready.appliedRecipeId);
+  assert.equal(ready.appliedRecipeId, undefined);
+  assert.equal(recipes.findBySource({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: inputSource
+  }), undefined);
+
+  const committed = service.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "import-first",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T08:02:00.000Z"
+  });
+  assert.equal(committed.state, "COMMITTED");
+  assert.ok(committed.appliedRecipeId);
 
   const saved = recipes.findBySource({
     contextId: "enterprise-context:a",
@@ -138,9 +153,10 @@ test("successful dry-run records an enterprise Import Recipe with deterministic 
     source: inputSource
   });
   assert.ok(saved);
-  assert.equal(saved.recipeId, ready.appliedRecipeId);
+  assert.equal(saved.recipeId, committed.appliedRecipeId);
   assert.deepEqual(saved.mapping, mapping);
   assert.equal(saved.lastSuccessfulImportJobId, "import-first");
+  assert.equal(saved.confirmedAt, "2026-10-07T08:02:00.000Z");
 
   const initial = service.resolveInitialMapping({
     contextId: "enterprise-context:a",
@@ -196,6 +212,18 @@ test("Import Recipe fingerprint ignores filename and column order but remains en
     actorSubjectId: "owner-a",
     recordedAt: "2026-10-07T08:01:00.000Z"
   });
+  assert.equal(recipes.findBySource({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("two.xlsx")
+  }), undefined);
+  service.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "import-a",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T08:02:00.000Z"
+  });
 
   assert.ok(recipes.findBySource({
     contextId: "enterprise-context:a",
@@ -232,6 +260,10 @@ test("mapping inspection exposes bounded samples and preserves unmapped raw colu
 
   assert.equal(inspected.rawSourcePreserved, true);
   assert.deepEqual(inspected.unmappedColumns, ["联系人"]);
+  const subjectTypeField = inspected.schema.fields.find(
+    field => field.fieldId === "subjectType"
+  );
+  assert.match(subjectTypeField.resolvedDescription, /not a customer\/supplier category/i);
   const type = inspected.sourceColumns.find(
     item => item.sourceColumn === "供应商类型"
   );
