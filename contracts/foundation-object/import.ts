@@ -50,6 +50,7 @@ export interface FoundationObjectImportTargetV010 {
   validateRow(input: {
     contextId: string;
     importJobId: string;
+    schema: EffectiveObjectSchemaV010;
     rowNumber: number;
     values: Record<string, FoundationObjectImportCellV010>;
     parameters?: FoundationObjectImportTargetParametersV010;
@@ -57,6 +58,7 @@ export interface FoundationObjectImportTargetV010 {
   commitRow(input: {
     contextId: string;
     importJobId: string;
+    schema: EffectiveObjectSchemaV010;
     prepared: FoundationObjectImportPreparedRowV010;
     parameters?: FoundationObjectImportTargetParametersV010;
     actorSubjectId: string;
