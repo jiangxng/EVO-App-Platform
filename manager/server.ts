@@ -202,6 +202,7 @@ import {
   createPersonalAgentMemoryReviewPageV010,
   createPersonalAgentPluginStoreProductStateV010,
   evaluatePersonalAgentReadinessV010,
+  resolvePersonalAgentActiveContextV010,
   PERSONAL_AGENT_ROUTE,
   PERSONAL_AGENT_SETUP_ROUTE,
   PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
@@ -6802,20 +6803,17 @@ const server = createServer(async (request, response) => {
           request.headers,
           contextRegistry
         );
-        const enterpriseContexts = contextRegistry.list().filter(
-          ref => ref.kind === "ENTERPRISE"
-        );
+        const availableContextRefs = contextRegistry.list();
         const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
           principal: session.principal,
-          availableContexts: contextRegistry.list(),
+          availableContexts: availableContextRefs,
           store: enterpriseGovernanceStore
         });
-        const effectiveContext =
-          requestedContext?.kind === "ENTERPRISE"
-            ? requestedContext
-            : defaultEnterpriseContext
-              ?? enterpriseContexts[0]
-              ?? requestedContext;
+        const effectiveContext = resolvePersonalAgentActiveContextV010({
+          requestedContext,
+          defaultEnterpriseContext,
+          availableContexts: availableContextRefs
+        });
         const context = contextRegistry.resolve(effectiveContext);
         const availableContexts = contextRegistry.list().map(ref => {
           const resolved = contextRegistry.resolve(ref);
