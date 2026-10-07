@@ -33,6 +33,21 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   ) {
     throw new Error("EIDOS_CATALOG_ITEM_ACTIVATION_INVALID");
   }
+  if (
+    input.collectionTitle !== undefined
+    && !input.collectionTitle.trim()
+  ) {
+    throw new Error("EIDOS_CATALOG_COLLECTION_TITLE_INVALID");
+  }
+  if (
+    input.collectionDescription !== undefined
+    && (
+      !input.collectionDescription.trim()
+      || !input.collectionTitle?.trim()
+    )
+  ) {
+    throw new Error("EIDOS_CATALOG_COLLECTION_DESCRIPTION_INVALID");
+  }
   assertContextNavigationV010(input.contextNavigation);
   if (input.actions !== undefined) {
     if (!Array.isArray(input.actions)) {
