@@ -157,7 +157,8 @@ export function createCounterpartyDirectoryPageV010(input: {
       label: text.create,
       type: "navigate",
       route: COUNTERPARTY_CREATE_ROUTE,
-      requiresConfirmation: false
+      requiresConfirmation: false,
+      primary: true
     }],
     search: {
       placeholder: text.search,
