@@ -12,10 +12,12 @@ import {
 } from "../../dist/apps/counterparty/actions.js";
 import {
   createCounterpartyDirectoryPageV010,
-  createCounterpartyCreatePageV010
+  createCounterpartyCreatePageV010,
+  createCounterpartyEditPageV010
 } from "../../dist/apps/counterparty/page.js";
 import {
   COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_UPDATE_COMMAND,
   COUNTERPARTY_ARCHIVE_COMMAND
 } from "../../dist/apps/counterparty/constants.js";
 import {
@@ -239,4 +241,80 @@ test("Counterparty pages establish list-first management UX and a valid create f
     form.fields.find(field => field.key === "subjectType").control,
     "select"
   );
+});
+
+
+test("Counterparty edit preserves stable identity and updates the same Enterprise Resource", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createCounterpartyRepositoryV010(resources);
+  repository.save({
+    contextId: "enterprise-context:a",
+    subject: {
+      contractVersion: "0.1.0",
+      counterpartyId: "cp-1",
+      code: "C001",
+      displayName: "ABC有限公司",
+      subjectType: "ORGANIZATION",
+      status: "ACTIVE",
+      countryOrRegion: "中国"
+    },
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T00:00:00.000Z"
+  });
+
+  const editPage = createCounterpartyEditPageV010({
+    counterparty: repository.get("enterprise-context:a", "cp-1"),
+    locale: "zh-CN"
+  });
+  assert.equal(editPage.kind, "form");
+  assert.equal(editPage.title, "编辑往来对象");
+  assert.equal(
+    editPage.fields.find(field => field.key === "counterpartyId").initialValue,
+    "cp-1"
+  );
+  assert.equal(
+    editPage.fields.find(field => field.key === "displayName").initialValue,
+    "ABC有限公司"
+  );
+
+  const handlers = createCounterpartyActionHandlersV010({
+    repository,
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "unused",
+    now: () => new Date("2026-10-07T00:05:00.000Z")
+  });
+  const update = handlers.find(
+    item => item.commandCode === COUNTERPARTY_UPDATE_COMMAND
+  );
+  const result = await update.execute(
+    action(COUNTERPARTY_UPDATE_COMMAND, {
+      counterpartyId: "cp-1",
+      code: "C001",
+      displayName: "ABC国际有限公司",
+      subjectType: "ORGANIZATION",
+      legalName: "ABC国际有限公司",
+      taxIdentifier: "",
+      countryOrRegion: "中国",
+      phone: "",
+      email: "",
+      notes: "名称更新"
+    }),
+    context()
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(repository.list("enterprise-context:a").length, 1);
+  const saved = repository.get("enterprise-context:a", "cp-1");
+  assert.equal(saved.counterpartyId, "cp-1");
+  assert.equal(saved.displayName, "ABC国际有限公司");
+  assert.equal(saved.notes, "名称更新");
+
+  const raw = resources.list({
+    contextId: "enterprise-context:a",
+    namespace: "evo.counterparty",
+    collectionId: "counterparties",
+    resourceType: "counterparty.subject"
+  });
+  assert.equal(raw.length, 1);
+  assert.equal(raw[0].resourceId, "cp-1");
 });
