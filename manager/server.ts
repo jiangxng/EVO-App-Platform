@@ -636,7 +636,10 @@ import {
   requestSecurityHttpFailureV010,
   requireSameOriginForCookieMutationV010
 } from "./request-security.js";
-import { createAuthenticationFlowV010 } from "./authentication-flow.js";
+import {
+  createAuthenticationFlowV010,
+  normalizeAuthenticationReturnToV010
+} from "./authentication-flow.js";
 import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
 import {
@@ -656,6 +659,10 @@ import {
   appHostShellCss,
   createAppHostShellHtmlV010
 } from "./app-host-shell.js";
+import {
+  createLoginExperienceHtmlV010,
+  defaultLoginMethodsV010
+} from "./login-page.js";
 import {
   normalizeAssetRevisionV010,
   resolveBrowserAssetRequestV010
@@ -5064,7 +5071,7 @@ const server = createServer(async (request, response) => {
           response.statusCode = 303;
           response.setHeader(
             "location",
-            "/auth/login?returnTo=" + encodeURIComponent(returnTo)
+            "/login?returnTo=" + encodeURIComponent(returnTo)
           );
           return response.end();
         }
@@ -5187,6 +5194,37 @@ const server = createServer(async (request, response) => {
       return json(response, result.status, result.body);
     }
 
+    if (request.method === "GET" && url.pathname === "/login") {
+      response.setHeader("cache-control", "no-store");
+      const returnTo = normalizeAuthenticationReturnToV010(
+        url.searchParams.get("returnTo") ?? "/"
+      );
+      const locale = url.searchParams.get("locale")?.trim() || "en";
+      if (managedSessionEnabled) {
+        try {
+          resolveRequestIdentitySession(request);
+          response.statusCode = 303;
+          response.setHeader("location", returnTo);
+          return response.end();
+        } catch (error) {
+          const failure = requestAuthenticationHttpFailureV010(error);
+          if (!failure || failure.status !== 401) throw error;
+        }
+      }
+      response.statusCode = 200;
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      return response.end(createLoginExperienceHtmlV010({
+        assetRevision: appHostAssetRevision,
+        returnTo,
+        locale,
+        authenticationEnabled: managedSessionEnabled,
+        methods: defaultLoginMethodsV010({
+          googleAvailable: managedSessionEnabled,
+          locale
+        })
+      }));
+    }
+
     if (request.method === "GET" && url.pathname === "/auth/login") {
       if (!managedSessionEnabled) {
         return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
@@ -5286,7 +5324,7 @@ const server = createServer(async (request, response) => {
             response.setHeader("cache-control", "no-store");
             response.setHeader(
               "location",
-              "/auth/login?returnTo=" + encodeURIComponent("/")
+              "/login?returnTo=" + encodeURIComponent("/")
             );
             return response.end();
           }
