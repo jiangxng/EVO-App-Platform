@@ -5,12 +5,9 @@ import { readFile } from "node:fs/promises";
 import {
   createPersonalAgentChatPageV020,
   createPersonalAgentPluginStoreProductStateV010,
-  createPersonalAgentSetupPageV010
+  createPersonalAgentSetupPageV010,
+  resolvePersonalAgentActiveContextV010
 } from "../../dist/manager/personal-agent-experience.js";
-import {
-  createLocalizationRuntime,
-  localizeAppHostPageDefinition
-} from "../../dist/vendor/eidos/src/localization/index.js";
 import {
   createAppManagerActionHost
 } from "../../dist/vendor/eidos/src/app-host/app-manager-action-host.js";
@@ -227,6 +224,51 @@ test("Personal Agent shows resolved Context without a second Context selector", 
   assert.equal(definition.context.value, "ACME Japan");
   assert.equal(definition.context.selector, undefined);
 });
+
+test("Personal Agent context policy follows the current/default enterprise before Personal", () => {
+  const personal = {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:user-1"
+  };
+  const enterpriseA = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:a",
+    enterpriseId: "a"
+  };
+  const enterpriseB = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:b",
+    enterpriseId: "b"
+  };
+
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: enterpriseB,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseB
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseA
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      availableContexts: [personal]
+    }),
+    personal
+  );
+});
+
 
 test("Personal Agent chat transport exposes an abortable action execution path", async () => {
   let capturedSignal;
