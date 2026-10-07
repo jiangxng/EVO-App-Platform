@@ -13,7 +13,7 @@ export type DataImportJobStateV010 =
   | "COMMITTED_WITH_ERRORS";
 
 export interface DataImportSourceV010 {
-  kind: "CSV" | "ROWS";
+  kind: "CSV" | "XLSX" | "ROWS";
   name?: string;
   headers: string[];
   rows: Array<Record<string, FoundationObjectImportCellV010>>;
