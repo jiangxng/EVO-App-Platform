@@ -59,6 +59,8 @@ export interface CatalogBrowserV010 {
   description?: string;
   contextNavigation?: EidosContextNavigationV010;
   actions?: CatalogBrowserActionV010[];
+  collectionTitle?: string;
+  collectionDescription?: string;
   search?: {
     placeholder?: string;
     ariaLabel?: string;
