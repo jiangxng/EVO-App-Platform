@@ -6042,6 +6042,10 @@ const server = createServer(async (request, response) => {
 
       if (
         source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE
+        || source === COUNTERPARTY_CUSTOMERS_PAGE_SOURCE
+        || source === COUNTERPARTY_SUPPLIERS_PAGE_SOURCE
+        || source === COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE
+        || source === COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE
         || source === COUNTERPARTY_CREATE_PAGE_SOURCE
         || source === COUNTERPARTY_DETAIL_PAGE_SOURCE
         || source === COUNTERPARTY_EDIT_PAGE_SOURCE
@@ -6061,14 +6065,71 @@ const server = createServer(async (request, response) => {
             message: "Select an Enterprise Context first."
           });
         }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "counterparty-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const canManage = relationship?.kind === "OWNER"
+          || relationship?.kind === "ADMIN";
+        const allCounterparties =
+          counterpartyRepository.list(active.contextId);
+        const responsibilities = responsibilityRepository.list(
+          active.contextId,
+          { objectType: "counterparty.subject" }
+        );
+        const access = await resolveCounterpartyReadAccessV010({
+          authorizationProvider: resolveAuthorizationProvider(),
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind,
+          counterparties: allCounterparties,
+          responsibilities,
+          fieldIds: [
+            "displayName",
+            "code",
+            "subjectType",
+            "legalName",
+            "taxIdentifier",
+            "countryOrRegion",
+            "phone",
+            "email",
+            "notes"
+          ]
+        });
+        const authorizedCounterpartyIds = new Set(
+          access.counterparties.map(item => item.counterpartyId)
+        );
         const module = await import("../apps/counterparty/page.js");
+
         if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
           return json(
             response,
             200,
             module.createCounterpartyDirectoryPageV010({
-              counterparties:
-                counterpartyRepository.list(active.contextId),
+              counterparties: access.counterparties,
               ...(dataImportTargets.some(target =>
                 target.targetId === COUNTERPARTY_IMPORT_TARGET_V010
               )
@@ -6078,19 +6139,59 @@ const server = createServer(async (request, response) => {
                     )
                   }
                 : {}),
-              locale: requestedLocale(url)
+              locale,
+              readableFieldIds: access.readableFieldIds,
+              canManage
             })
           );
         }
-        if (source === COUNTERPARTY_CREATE_PAGE_SOURCE) {
+
+        const projectionId: CounterpartyProjectionIdV010 | undefined =
+          source === COUNTERPARTY_CUSTOMERS_PAGE_SOURCE
+            ? COUNTERPARTY_CUSTOMER_PROJECTION_V010
+            : source === COUNTERPARTY_SUPPLIERS_PAGE_SOURCE
+              ? COUNTERPARTY_SUPPLIER_PROJECTION_V010
+              : source === COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE
+                ? COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
+                : source === COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE
+                  ? COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+                  : undefined;
+
+        if (projectionId) {
+          const projected = projectCounterpartiesV010({
+            projectionId,
+            counterparties: access.counterparties,
+            roles: counterpartyRoleRepository.list(active.contextId),
+            responsibilities,
+            principalSubjectId: principal.subjectId,
+            authorizedCounterpartyIds
+          });
           return json(
             response,
             200,
-            module.createCounterpartyCreatePageV010(
-              requestedLocale(url)
-            )
+            module.createCounterpartyProjectionPageV010({
+              projectionId,
+              counterparties: projected,
+              locale,
+              readableFieldIds: access.readableFieldIds,
+              canManage
+            })
           );
         }
+
+        if (source === COUNTERPARTY_CREATE_PAGE_SOURCE) {
+          if (!canManage) {
+            return json(response, 403, {
+              code: "COUNTERPARTY_MANAGE_ROLE_REQUIRED"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createCounterpartyCreatePageV010(locale)
+          );
+        }
+
         const routeValue = url.searchParams.get("route")?.trim();
         const counterpartyId = source === COUNTERPARTY_EDIT_PAGE_SOURCE
           ? parseCounterpartyEditRouteV010(routeValue || undefined)
@@ -6104,9 +6205,17 @@ const server = createServer(async (request, response) => {
         }
         const counterparty =
           counterpartyRepository.get(active.contextId, counterpartyId);
-        if (!counterparty) {
+        if (
+          !counterparty
+          || !authorizedCounterpartyIds.has(counterpartyId)
+        ) {
           return json(response, 404, {
             code: "COUNTERPARTY_NOT_FOUND"
+          });
+        }
+        if (source === COUNTERPARTY_EDIT_PAGE_SOURCE && !canManage) {
+          return json(response, 403, {
+            code: "COUNTERPARTY_MANAGE_ROLE_REQUIRED"
           });
         }
         return json(
@@ -6115,7 +6224,7 @@ const server = createServer(async (request, response) => {
           source === COUNTERPARTY_EDIT_PAGE_SOURCE
             ? module.createCounterpartyEditPageV010({
                 counterparty,
-                locale: requestedLocale(url)
+                locale
               })
             : module.createCounterpartyDetailPageV010({
                 counterparty,
@@ -6123,7 +6232,9 @@ const server = createServer(async (request, response) => {
                   active.contextId,
                   counterpartyId
                 ),
-                locale: requestedLocale(url)
+                locale,
+                readableFieldIds: access.readableFieldIds,
+                canManage
               })
         );
       }
