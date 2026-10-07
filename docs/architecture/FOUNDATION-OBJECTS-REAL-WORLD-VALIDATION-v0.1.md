@@ -193,6 +193,23 @@ This is compatible with mature CQRS/read-model practice but EVO does not require
 particular CQRS framework. The design decision is about **authority separation**, not
 technology branding.
 
+## 5A. Human experience, import and workbench companion
+
+Foundation-object validation is not limited to domain shape and performance.
+
+The companion authority
+`docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md`
+defines how the same object is exposed through Registry, role projections, import,
+facet-based Object Pages and Personal Workbench composition.
+
+RVC and demo fixtures should therefore also pressure-test:
+
+- large import/mapping/error flows;
+- list/projection usability at realistic record counts;
+- role and permission intersection;
+- sparse/heterogeneous optional facet data;
+- custom-extension fields without core-schema expansion.
+
 ## 6. Real-World Validation Corpus (RVC)
 
 Foundation-object design MUST be pressure-tested with substantial real-world data.
