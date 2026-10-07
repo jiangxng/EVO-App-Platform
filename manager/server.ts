@@ -952,6 +952,7 @@ const dataImportRepository =
   createDataImportRepositoryV010(enterpriseResourceRepository);
 const counterpartyImportTarget =
   createCounterpartyImportTargetV010({
+    resources: enterpriseResourceRepository,
     repository: counterpartyRepository,
     roleRepository: counterpartyRoleRepository,
     extensionRepository: objectExtensionRepository,
