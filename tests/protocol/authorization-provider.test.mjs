@@ -30,6 +30,14 @@ import {
   DATA_IMPORT_READ_ACTION_V010,
   DATA_IMPORT_WRITE_ACTION_V010
 } from "../../dist/apps/data-import/constants.js";
+import {
+  objectExtensionAuthorizationPolicyV010
+} from "../../dist/apps/object-extension/authorization.js";
+import {
+  OBJECT_EXTENSION_DEFINITION_AUTH_RESOURCE_V010,
+  OBJECT_EXTENSION_DEFINITION_READ_ACTION_V010,
+  OBJECT_EXTENSION_DEFINITION_WRITE_ACTION_V010
+} from "../../dist/apps/object-extension/constants.js";
 
 const principal = {
   contractVersion: "0.1.0",
@@ -434,7 +442,34 @@ test("Data Import baseline admits Human read and write checks", async () => {
     assert.equal(decision.allowed, true);
     assert.deepEqual(
       decision.reasonCodes,
-      ["STATIC_POLICY_ALLOW", "evo.data-import.human"]
+      ["STATIC_POLICY_ALLOW", "evo.data-import.operator"]
+    );
+  }
+});
+
+test("Data Import baseline admits Personal Agent AI read and write checks", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      dataImportAuthorizationPolicyV010
+    )
+  );
+
+  for (const action of [
+    DATA_IMPORT_READ_ACTION_V010,
+    DATA_IMPORT_WRITE_ACTION_V010
+  ]) {
+    const decision = await provider.check({
+      ...check(action, DATA_IMPORT_AUTH_RESOURCE_V010),
+      principal: {
+        ...principal,
+        actorType: "AI"
+      }
+    });
+    assert.equal(decision.allowed, true);
+    assert.deepEqual(
+      decision.reasonCodes,
+      ["STATIC_POLICY_ALLOW", "evo.data-import.operator"]
     );
   }
 });
@@ -495,5 +530,66 @@ test("App Platform composes the Data Import baseline into Host authorization", a
   assert.match(
     source,
     /eogDefinitionProjectionAuthorizationPolicyV010,[\s\S]*dataImportAuthorizationPolicyV010,[\s\S]*ledgerManagerAuthorizationPolicyV010/
+  );
+});
+
+
+test("Object Extension baseline admits Human and Personal Agent AI operators", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      objectExtensionAuthorizationPolicyV010
+    )
+  );
+
+  for (const actorType of ["HUMAN", "AI"]) {
+    for (const action of [
+      OBJECT_EXTENSION_DEFINITION_READ_ACTION_V010,
+      OBJECT_EXTENSION_DEFINITION_WRITE_ACTION_V010
+    ]) {
+      const decision = await provider.check({
+        ...check(action, OBJECT_EXTENSION_DEFINITION_AUTH_RESOURCE_V010),
+        principal: {
+          ...principal,
+          actorType
+        }
+      });
+      assert.equal(decision.allowed, true);
+      assert.deepEqual(
+        decision.reasonCodes,
+        ["STATIC_POLICY_ALLOW", "evo.object-extension.operator"]
+      );
+    }
+  }
+});
+
+test("Object Extension baseline remains fail-closed for automation", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      objectExtensionAuthorizationPolicyV010
+    )
+  );
+  const decision = await provider.check({
+    ...check(
+      OBJECT_EXTENSION_DEFINITION_WRITE_ACTION_V010,
+      OBJECT_EXTENSION_DEFINITION_AUTH_RESOURCE_V010
+    ),
+    principal: {
+      ...principal,
+      actorType: "AUTOMATION"
+    }
+  });
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(decision.reasonCodes, ["STATIC_POLICY_NO_MATCH"]);
+});
+
+test("App Platform composes Object Extension authorization into Host policy", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+  assert.match(
+    source,
+    /dataImportAuthorizationPolicyV010,[\s\S]*objectExtensionAuthorizationPolicyV010,[\s\S]*ledgerManagerAuthorizationPolicyV010/
   );
 });
