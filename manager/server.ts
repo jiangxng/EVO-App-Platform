@@ -5219,7 +5219,8 @@ const server = createServer(async (request, response) => {
         locale,
         authenticationEnabled: managedSessionEnabled,
         methods: defaultLoginMethodsV010({
-          googleAvailable: managedSessionEnabled
+          googleAvailable: managedSessionEnabled,
+          locale
         })
       }));
     }
