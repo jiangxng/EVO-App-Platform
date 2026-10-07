@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp04-responsibility-projections-implementation-2026-10-07`  
-**Snapshot time:** `2026-10-07T23:29:00+08:00`  
+**Snapshot:** `cp04-responsibility-projections-production-validation-2026-10-08`  
+**Snapshot time:** `2026-10-08T07:53:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -37,9 +37,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-responsibility-projections-v0-4: IMPLEMENTATION_PR_OPEN_CI**
+**counterparty-responsibility-projections-v0-4: HUMAN_PRODUCTION_VALIDATION**
 
-CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.
+CP-04 implementation is merged, CI-passed and production-deployed. Human production validation is the remaining gate before CP-04 closure.
 
 Acceptance:
 
