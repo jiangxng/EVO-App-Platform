@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03-import-core-production-pass-2026-10-07`  
-**Snapshot time:** `2026-10-07T12:33:00+08:00`  
+**Snapshot:** `cp03-bulk-import-production-pass-2026-10-07`  
+**Snapshot time:** `2026-10-07T13:15:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -45,7 +45,7 @@ Evidence:
 
 **counterparty-enterprise-extension-import-v0-3: ACTIVE_PARTIAL_IMPLEMENTATION**
 
-CP-03 remains active. Governed Object Extension operations and a generic Data Import core are now merged and production-deployed. Counterparty is the first neutral import target; CSV stage/dry-run/commit, EffectiveObjectSchema mapping, Customer/Supplier role assignment, extension-value sidecars, duplicate detection, schema-drift protection and 10k stage/dry-run are proven. Remaining closure work is bulk commit scalability, XLSX, Eidos import review/mapping experience, and deterministic 1k demo/commit evidence.
+CP-03 remains active. Governed Object Extension operations, generic Data Import core, and atomic bulk Counterparty persistence are merged and production-deployed. A deterministic 1k Counterparty import now commits subjects, CUSTOMER/SUPPLIER roles and extension-value sidecars atomically through Enterprise Context; failures roll back the whole batch. Remaining closure work is XLSX and Human import mapping/review experience.
 
 Acceptance:
 
@@ -66,8 +66,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `c9bf76ad7584067d9d886bcd799848fd459963d4`
-- Deployment: `3a959f0a-3576-4eed-b2a4-7ff05592bbf5`
+- Commit: `2015c4385142d03cb5d84b16826615988f4d8174`
+- Deployment: `188baa33-6ca3-43a5-9d41-9185c4c363f6`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -98,6 +98,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #433 — MERGED_CI_PRODUCTION_PASS: CP-03 atomic bulk persistence: Enterprise Resource transaction/bulk put, domain-level Counterparty/Role/Extension batch writes, all-or-nothing import semantics, rollback proof and deterministic 1k full Counterparty import.
 - PR #431 — MERGED_CI_PRODUCTION_PASS: CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof.
 - PR #430 — MERGED_CI_PRODUCTION_PASS: CP-03 Object Extension public capability: governed list/upsert/archive operations through ActionHost over Enterprise Context persisted definitions.
 - PR #419 — HUMAN_PASS: Counterparty Relationship Roles v0.2 Human production validation passed on 2026-10-07: CUSTOMER + SUPPLIER coexistence and independent role removal preserve one stable Counterparty identity.
@@ -483,6 +484,8 @@ Not proved:
 - Do not rebuild the Data Import core inside Counterparty; PR #431 already provides the generic app and neutral import-target contract.
 - Do not claim 10k full committed import is proven; only 10k stage + dry-run is currently certified.
 - Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain.
+- Do not reintroduce per-row physical Enterprise Resource snapshot writes for Counterparty bulk import; use the transaction/bulk persistence path added in PR #433.
+- Do not treat COMMITTED_WITH_ERRORS from an ATOMIC_BATCH target as partial success; for Counterparty atomic batches succeededRows must be zero when the batch rolls back.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -711,6 +714,10 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Object Extension public capability as merged in PR #430 and Data Import core + Counterparty target as merged in PR #431
 - state CSV stage/dry-run/commit, extension value sidecars, role-aware Counterparty import, schema drift guard and 10k stage/dry-run as already implemented
 - state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work
+- state CP-02 as CLOSED_HUMAN_PASS based on user production validation
+- state CP-03 atomic bulk persistence and deterministic 1k full Counterparty commit as merged/CI-passed/production-deployed through PR #433
+- state Counterparty import commit semantics as ATOMIC_BATCH: any batch failure rolls back all imported Counterparty/Role/Extension resources
+- state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work
 
 No previous ChatGPT transcript is required.
 
