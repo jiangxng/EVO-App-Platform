@@ -201,7 +201,7 @@ export const dataImportCapabilityContributionsV010:
       operationVersion: "0.1.0",
       title: "Apply staged import mapping",
       description:
-        "Applies an explicit source-to-target mapping with optional deterministic VALUE_MAP transforms, then by default dry-runs the import. A successful dry-run records the mapping as an enterprise Import Recipe for deterministic reuse on later structurally equivalent imports.",
+        "Applies an explicit source-to-target mapping with optional deterministic VALUE_MAP transforms, then by default dry-runs the import. Agent-origin enum normalization is limited to governed aliases declared by the target schema; semantically unrelated coercions are rejected for Human review. Dry-run alone does not make a mapping reusable: a successful confirmed commit promotes the mapping to an enterprise Import Recipe.",
       effect: "WRITE",
       dataScope: "ENTERPRISE",
       authorization: {
