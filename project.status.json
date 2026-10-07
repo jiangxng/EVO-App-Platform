@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp04-responsibility-projections-implementation-2026-10-07",
-    "snapshotAt": "2026-10-07T23:29:00+08:00",
+    "snapshotId": "cp04-responsibility-projections-production-validation-2026-10-08",
+    "snapshotAt": "2026-10-08T07:53:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1829,8 +1829,8 @@
       },
       "openGate": {
         "id": "counterparty-responsibility-projections-v0-4",
-        "status": "IMPLEMENTATION_PR_OPEN_CI",
-        "summary": "CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.",
+        "status": "HUMAN_PRODUCTION_VALIDATION",
+        "summary": "CP-04 implementation is merged, CI-passed and production-deployed. Human production validation is the remaining gate before CP-04 closure.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "My Customers is not a client-side filter over all Counterparties.",
@@ -1841,10 +1841,13 @@
         ],
         "implementationEvidence": {
           "implementationPr": 458,
-          "platformCI": "PASS_ON_PREVIOUS_HEAD_AND_RERUNNING_ON_LATEST_HEAD",
+          "platformCI": "PASS",
           "responsibilityCapability": "enterprise.responsibility",
           "serverSideDataScope": true,
-          "tenThousandRecordProjectionProof": true
+          "tenThousandRecordProjectionProof": true,
+          "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+          "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+          "railwayDeploymentStatus": "SUCCESS"
         }
       },
       "productionPreview": {
@@ -4560,7 +4563,7 @@
       "humanValidation": "PASS"
     },
     "cp04": {
-      "status": "IMPLEMENTATION_PR_OPEN_CI_PASS",
+      "status": "MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING",
       "implementationPr": 458,
       "platformCI": "PASS",
       "responsibilityCapability": "enterprise.responsibility",
@@ -4575,7 +4578,10 @@
       "serverSideFieldFiltering": true,
       "identityDuplication": false,
       "tenThousandRecordProjectionProof": true,
-      "humanValidation": "PENDING"
+      "humanValidation": "PENDING",
+      "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+      "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+      "railwayDeploymentStatus": "SUCCESS"
     }
   }
 }
