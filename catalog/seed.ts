@@ -23,6 +23,9 @@ import {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
 import {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
+import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
 import {
@@ -42,6 +45,9 @@ export {
 export {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
+export {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
 export {
   ledgerManagerPackage
 } from "../apps/ledger-manager/package.js";
