@@ -9,8 +9,20 @@ import {
 } from "./capability-manifest.js";
 import {
   DATA_IMPORT_CAPABILITY_V010,
+  DATA_IMPORT_DIRECTORY_PAGE_ID,
+  DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
+  DATA_IMPORT_DIRECTORY_ROUTE,
   DATA_IMPORT_FEATURE_ID,
-  DATA_IMPORT_PACKAGE_ID
+  DATA_IMPORT_MAPPING_PAGE_ID,
+  DATA_IMPORT_MAPPING_PAGE_SOURCE,
+  DATA_IMPORT_MAPPING_ROUTE,
+  DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_REVIEW_PAGE_ID,
+  DATA_IMPORT_REVIEW_PAGE_SOURCE,
+  DATA_IMPORT_REVIEW_ROUTE,
+  DATA_IMPORT_UPLOAD_PAGE_ID,
+  DATA_IMPORT_UPLOAD_PAGE_SOURCE,
+  DATA_IMPORT_UPLOAD_ROUTE
 } from "./constants.js";
 
 export {
@@ -50,7 +62,79 @@ export const dataImportPackage: PackageManifestV010 = {
       DATA_IMPORT_CAPABILITY_V010
     ],
     contributions: [
-      ...dataImportCapabilityContributionsV010
+      ...dataImportCapabilityContributionsV010,
+      {
+        kind: "eidos.experience",
+        manifest: {
+          contractVersion: "0.1.0",
+          experienceId: DATA_IMPORT_PACKAGE_ID,
+          packageId: DATA_IMPORT_PACKAGE_ID,
+          featureId: DATA_IMPORT_FEATURE_ID,
+          defaultRoute: DATA_IMPORT_DIRECTORY_ROUTE,
+          pages: [{
+            id: DATA_IMPORT_DIRECTORY_PAGE_ID,
+            title: "Data Import",
+            source: DATA_IMPORT_DIRECTORY_PAGE_SOURCE
+          }, {
+            id: DATA_IMPORT_UPLOAD_PAGE_ID,
+            title: "Upload Data",
+            source: DATA_IMPORT_UPLOAD_PAGE_SOURCE
+          }, {
+            id: DATA_IMPORT_MAPPING_PAGE_ID,
+            title: "Map Fields",
+            source: DATA_IMPORT_MAPPING_PAGE_SOURCE
+          }, {
+            id: DATA_IMPORT_REVIEW_PAGE_ID,
+            title: "Review Import",
+            source: DATA_IMPORT_REVIEW_PAGE_SOURCE
+          }],
+          routes: [{
+            id: DATA_IMPORT_DIRECTORY_PAGE_ID,
+            path: DATA_IMPORT_DIRECTORY_ROUTE,
+            pageId: DATA_IMPORT_DIRECTORY_PAGE_ID
+          }, {
+            id: DATA_IMPORT_UPLOAD_PAGE_ID,
+            path: DATA_IMPORT_UPLOAD_ROUTE,
+            pageId: DATA_IMPORT_UPLOAD_PAGE_ID
+          }, {
+            id: DATA_IMPORT_MAPPING_PAGE_ID,
+            path: DATA_IMPORT_MAPPING_ROUTE,
+            pageId: DATA_IMPORT_MAPPING_PAGE_ID
+          }, {
+            id: DATA_IMPORT_REVIEW_PAGE_ID,
+            path: DATA_IMPORT_REVIEW_ROUTE,
+            pageId: DATA_IMPORT_REVIEW_PAGE_ID
+          }],
+          navigation: [{
+            id: "evo-data-import.nav",
+            label: "Data Import",
+            route: DATA_IMPORT_DIRECTORY_ROUTE,
+            order: 36
+          }]
+        }
+      },
+      {
+        kind: "eidos.localization-bundle",
+        bundle: {
+          contractVersion: "0.1.0",
+          namespace: DATA_IMPORT_PACKAGE_ID,
+          locale: "en",
+          messages: {
+            "navigation.evo-data-import.nav.label": "Data Import"
+          }
+        }
+      },
+      {
+        kind: "eidos.localization-bundle",
+        bundle: {
+          contractVersion: "0.1.0",
+          namespace: DATA_IMPORT_PACKAGE_ID,
+          locale: "zh-CN",
+          messages: {
+            "navigation.evo-data-import.nav.label": "数据导入"
+          }
+        }
+      }
     ]
   }]
 };
