@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  currentUserDisplayNameV010
+  currentUserDisplayNameV010,
+  currentUserLogoutActionV010
 } from "../../dist/manager/desktop-workbench-runtime.js";
 import {
   appHostShellCss
@@ -32,4 +33,21 @@ test("EVO global chrome styles current enterprise and current user controls", ()
   assert.match(appHostShellCss, /data-eidos-global-controls/);
   assert.match(appHostShellCss, /data-eidos-global-control-select/);
   assert.match(appHostShellCss, /data-eidos-account-control/);
+});
+
+
+test("sign out posts to the Host logout endpoint and returns to the localized login page", () => {
+  assert.equal(
+    currentUserLogoutActionV010("zh-CN"),
+    "/auth/logout?returnTo=%2Flogin%3Flocale%3Dzh-CN"
+  );
+  assert.equal(
+    currentUserLogoutActionV010("en-US"),
+    "/auth/logout?returnTo=%2Flogin%3Flocale%3Den"
+  );
+});
+
+test("EVO account menu styles the sign out control through App Host chrome", () => {
+  assert.match(appHostShellCss, /data-eidos-account-logout/);
+  assert.match(appHostShellCss, /eidos-danger-bg/);
 });
