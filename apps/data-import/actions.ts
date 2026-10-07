@@ -461,16 +461,39 @@ export function createDataImportActionHandlersV010(input: {
         );
         const current = input.repository.get(active.contextId, importJobId);
         if (!current) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+        const existingBySource = new Map(
+          current.mapping
+            .filter(item => Boolean(item.sourceColumn))
+            .map(item => [item.sourceColumn!, item] as const)
+        );
         const nextMapping: DataImportMappingV010[] = [];
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
           if (typeof value !== "string" || !value.trim()) return;
           if (value === "__IGNORE__") return;
-          nextMapping.push({
-            sourceColumn,
-            targetFieldId: value.trim()
-          });
+          const targetFieldId = value.trim();
+          const existing = existingBySource.get(sourceColumn);
+          nextMapping.push(
+            existing?.targetFieldId === targetFieldId
+              ? structuredClone(existing)
+              : {
+                  sourceColumn,
+                  targetFieldId
+                }
+          );
         });
+
+        const explicitlyMappedTargets = new Set(
+          nextMapping.map(item => item.targetFieldId)
+        );
+        for (const item of current.mapping) {
+          if (
+            item.transform?.kind === "CONSTANT"
+            && !explicitlyMappedTargets.has(item.targetFieldId)
+          ) {
+            nextMapping.push(structuredClone(item));
+          }
+        }
         const recordedAt = now().toISOString();
         input.service.updateMapping({
           contextId: active.contextId,
