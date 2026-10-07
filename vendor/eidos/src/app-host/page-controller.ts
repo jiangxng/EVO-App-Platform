@@ -939,6 +939,27 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const archiveThreadButton = threadControls
       ? document.createElement("button")
       : undefined;
+    const historyDetails = threadControls
+      ? document.createElement("details")
+      : undefined;
+    const historySummary = historyDetails
+      ? document.createElement("summary")
+      : undefined;
+    const historyMenu = historyDetails
+      ? document.createElement("div")
+      : undefined;
+    const historyList = historyMenu
+      ? document.createElement("div")
+      : undefined;
+    const moreDetails = threadControls
+      ? document.createElement("details")
+      : undefined;
+    const moreSummary = moreDetails
+      ? document.createElement("summary")
+      : undefined;
+    const moreMenu = moreDetails
+      ? document.createElement("div")
+      : undefined;
 
     if (
       chatHeader
@@ -946,60 +967,188 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       && threadSelect
       && newThreadButton
       && archiveThreadButton
+      && historyDetails
+      && historySummary
+      && historyMenu
+      && historyList
+      && moreDetails
+      && moreSummary
+      && moreMenu
     ) {
+      const compactControl = (element: HTMLElement): void => {
+        element.style.minHeight = "var(--eidos-control-compact)";
+        element.style.border = "1px solid var(--eidos-border)";
+        element.style.borderRadius = "var(--eidos-radius-md)";
+        element.style.padding = "0 var(--eidos-space-sm)";
+        element.style.background = "var(--eidos-bg)";
+        element.style.color = "var(--eidos-fg-muted)";
+        element.style.fontSize = "var(--eidos-font-meta)";
+      };
+      const floatingMenu = (element: HTMLElement): void => {
+        element.style.position = "absolute";
+        element.style.top = "calc(100% + var(--eidos-space-xs))";
+        element.style.right = "0";
+        element.style.zIndex = "20";
+        element.style.minWidth = "220px";
+        element.style.maxWidth = "min(360px, 82vw)";
+        element.style.padding = "var(--eidos-space-xs)";
+        element.style.border = "1px solid var(--eidos-border)";
+        element.style.borderRadius = "var(--eidos-radius-lg)";
+        element.style.background = "var(--eidos-bg)";
+        element.style.boxShadow = "var(--eidos-shadow-overlay)";
+      };
+
       threadControls.setAttribute("data-eidos-chat-thread-controls", "");
-      chatHeader.style.display = "grid";
-      chatHeader.style.gridTemplateColumns = "minmax(0,1fr) auto";
-      chatHeader.style.gridTemplateRows = "auto auto";
-      chatHeader.style.gap = "var(--eidos-space-sm) var(--eidos-space-md)";
-      chatHeader.style.padding = "var(--eidos-space-md) var(--eidos-space-lg)";
+      chatHeader.style.display = "flex";
+      chatHeader.style.alignItems = "center";
+      chatHeader.style.justifyContent = "space-between";
+      chatHeader.style.gap = "var(--eidos-space-md)";
+      chatHeader.style.padding = "var(--eidos-space-sm) var(--eidos-space-lg)";
+
       const heading = chatHeader.querySelector<HTMLElement>("h1");
-      if (heading) {
-        heading.style.gridColumn = "1";
-        heading.style.alignSelf = "center";
-      }
       const context = chatHeader.querySelector<HTMLElement>("[data-eidos-chat-context]");
+      const headingGroup = document.createElement("div");
+      headingGroup.setAttribute("data-eidos-chat-heading-group", "");
+      headingGroup.style.display = "grid";
+      headingGroup.style.gap = "2px";
+      headingGroup.style.minWidth = "0";
+      headingGroup.style.flex = "1 1 auto";
+
+      if (heading) {
+        heading.style.margin = "0";
+        heading.style.minWidth = "0";
+        heading.style.overflow = "hidden";
+        heading.style.textOverflow = "ellipsis";
+        heading.style.whiteSpace = "nowrap";
+        headingGroup.appendChild(heading);
+      }
+
       if (context) {
-        context.style.gridColumn = "1 / -1";
         context.style.display = "flex";
         context.style.alignItems = "center";
-        context.style.gap = "var(--eidos-space-sm)";
+        context.style.gap = "var(--eidos-space-xs)";
         context.style.minWidth = "0";
+        context.style.color = "var(--eidos-fg-muted)";
+        context.style.fontSize = "var(--eidos-font-meta)";
+        const contextLabel = context.querySelector<HTMLElement>("span");
+        if (contextLabel) {
+          contextLabel.style.position = "absolute";
+          contextLabel.style.width = "1px";
+          contextLabel.style.height = "1px";
+          contextLabel.style.padding = "0";
+          contextLabel.style.margin = "-1px";
+          contextLabel.style.overflow = "hidden";
+          contextLabel.style.clip = "rect(0,0,0,0)";
+          contextLabel.style.whiteSpace = "nowrap";
+          contextLabel.style.border = "0";
+        }
+        const contextSelect = context.querySelector<HTMLSelectElement>(
+          "[data-eidos-chat-context-selector]"
+        );
+        if (contextSelect) {
+          contextSelect.style.width = "auto";
+          contextSelect.style.minWidth = "72px";
+          contextSelect.style.maxWidth = "180px";
+          contextSelect.style.height = "28px";
+          contextSelect.style.border = "1px solid var(--eidos-border)";
+          contextSelect.style.borderRadius = "var(--eidos-radius-pill)";
+          contextSelect.style.padding = "0 var(--eidos-space-sm)";
+          contextSelect.style.background = "var(--eidos-bg-subtle)";
+          contextSelect.style.color = "var(--eidos-fg-muted)";
+        }
+        headingGroup.appendChild(context);
       }
-      threadControls.style.gridColumn = "2";
+
+      threadControls.style.width = "auto";
+      threadControls.style.flex = "0 0 auto";
       threadControls.style.display = "flex";
       threadControls.style.alignItems = "center";
       threadControls.style.gap = "var(--eidos-space-xs)";
-      threadSelect.style.minWidth = "140px";
-      threadSelect.style.maxWidth = "280px";
-      threadSelect.style.height = "var(--eidos-control-compact)";
-      threadSelect.style.border = "1px solid var(--eidos-border-strong)";
-      threadSelect.style.borderRadius = "var(--eidos-radius-sm)";
-      threadSelect.style.padding = "0 var(--eidos-space-sm)";
-      threadSelect.style.background = "var(--eidos-bg)";
-      threadSelect.style.color = "var(--eidos-fg)";
+      threadControls.style.position = "relative";
+
       threadSelect.setAttribute("data-eidos-chat-thread-selector", "");
       threadSelect.setAttribute(
         "aria-label",
         hostText("shell.chatHistory", "Conversation history")
       );
+      threadSelect.hidden = true;
+      threadSelect.style.display = "none";
+
       newThreadButton.type = "button";
       newThreadButton.setAttribute("data-eidos-chat-new-thread", "");
       newThreadButton.textContent = hostText("shell.chatNew", "New chat");
+      compactControl(newThreadButton);
+
+      historyDetails.setAttribute("data-eidos-chat-history", "");
+      historyDetails.style.position = "relative";
+      historySummary.setAttribute("data-eidos-chat-history-toggle", "");
+      historySummary.setAttribute(
+        "aria-label",
+        hostText("shell.chatHistory", "Conversation history")
+      );
+      historySummary.textContent = hostText("shell.chatHistory", "History");
+      historySummary.style.listStyle = "none";
+      historySummary.style.display = "flex";
+      historySummary.style.alignItems = "center";
+      historySummary.style.cursor = "pointer";
+      compactControl(historySummary);
+      historyMenu.setAttribute("data-eidos-chat-history-menu", "");
+      floatingMenu(historyMenu);
+      historyList.setAttribute("data-eidos-chat-history-list", "");
+      historyList.style.display = "grid";
+      historyList.style.gap = "2px";
+      historyList.style.maxHeight = "320px";
+      historyList.style.overflow = "auto";
+      historyMenu.append(threadSelect, historyList);
+      historyDetails.append(historySummary, historyMenu);
+
+      moreDetails.setAttribute("data-eidos-chat-more", "");
+      moreDetails.style.position = "relative";
+      moreSummary.setAttribute("data-eidos-chat-more-toggle", "");
+      moreSummary.setAttribute("aria-label", "More conversation actions");
+      moreSummary.title = "More conversation actions";
+      moreSummary.textContent = "⋯";
+      moreSummary.style.listStyle = "none";
+      moreSummary.style.display = "flex";
+      moreSummary.style.alignItems = "center";
+      moreSummary.style.justifyContent = "center";
+      moreSummary.style.cursor = "pointer";
+      moreSummary.style.width = "var(--eidos-control-compact)";
+      compactControl(moreSummary);
+      moreMenu.setAttribute("data-eidos-chat-more-menu", "");
+      floatingMenu(moreMenu);
+      moreMenu.style.minWidth = "150px";
+
       archiveThreadButton.type = "button";
       archiveThreadButton.setAttribute("data-eidos-chat-archive-thread", "");
       archiveThreadButton.textContent = hostText("shell.chatArchive", "Archive");
-      for (const button of [newThreadButton, archiveThreadButton]) {
-        button.style.minHeight = "var(--eidos-control-compact)";
-        button.style.border = "1px solid var(--eidos-border)";
-        button.style.borderRadius = "var(--eidos-radius-sm)";
-        button.style.padding = "0 var(--eidos-space-sm)";
-        button.style.background = "var(--eidos-bg)";
-        button.style.color = "var(--eidos-fg-muted)";
-        button.style.fontSize = "var(--eidos-font-meta)";
-      }
-      threadControls.append(threadSelect, newThreadButton, archiveThreadButton);
-      chatHeader.appendChild(threadControls);
+      archiveThreadButton.style.width = "100%";
+      archiveThreadButton.style.minHeight = "var(--eidos-control-compact)";
+      archiveThreadButton.style.border = "0";
+      archiveThreadButton.style.borderRadius = "var(--eidos-radius-sm)";
+      archiveThreadButton.style.padding = "0 var(--eidos-space-sm)";
+      archiveThreadButton.style.background = "transparent";
+      archiveThreadButton.style.color = "var(--eidos-fg)";
+      archiveThreadButton.style.fontSize = "var(--eidos-font-compact)";
+      archiveThreadButton.style.textAlign = "left";
+      moreMenu.appendChild(archiveThreadButton);
+      moreDetails.append(moreSummary, moreMenu);
+
+      threadControls.append(newThreadButton, historyDetails, moreDetails);
+      chatHeader.replaceChildren(headingGroup, threadControls);
+
+      const historyToggleHandler = () => {
+        if (historyDetails.open) moreDetails.open = false;
+      };
+      const moreToggleHandler = () => {
+        if (moreDetails.open) historyDetails.open = false;
+      };
+      historyDetails.addEventListener("toggle", historyToggleHandler);
+      moreDetails.addEventListener("toggle", moreToggleHandler);
+      listeners.push(
+        () => historyDetails.removeEventListener("toggle", historyToggleHandler),
+        () => moreDetails.removeEventListener("toggle", moreToggleHandler)
+      );
     }
 
     let runProgressMessageId: string | undefined;
@@ -1014,7 +1163,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       pendingIndicator.setAttribute("role", "status");
       pendingIndicator.setAttribute("aria-live", "polite");
       pendingIndicator.hidden = true;
-      pendingIndicator.style.display = "flex";
+      pendingIndicator.style.display = "none";
       pendingIndicator.style.alignItems = "center";
       pendingIndicator.style.gap = "var(--eidos-space-sm)";
       pendingIndicator.style.padding = "0 0 var(--eidos-space-md)";
@@ -1118,6 +1267,19 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const onRunProgress = async (progress: RunBackedChatProgressV010): Promise<void> => {
       persistRunId(progress.runId);
       if (definition.contractVersion !== "0.2.0") return;
+      const terminal = ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(
+        progress.state
+      );
+      if (terminal) {
+        if (runProgressMessageId) {
+          state.messages = state.messages.filter(
+            message => message.id !== runProgressMessageId
+          );
+          runProgressMessageId = undefined;
+          renderTranscript();
+        }
+        return;
+      }
       runProgressMessageId ??= "run-" + progress.runId;
       const next = runProgressMessageV020(runProgressMessageId, progress);
       const index = state.messages.findIndex(message => message.id === runProgressMessageId);
@@ -1214,7 +1376,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
       const setChatBusy = (busy: boolean): void => {
         runTransportInFlight = busy;
-        if (pendingIndicator) pendingIndicator.hidden = !busy;
+        if (pendingIndicator) {
+          pendingIndicator.hidden = !busy;
+          pendingIndicator.style.display = busy ? "flex" : "none";
+        }
         if (sendButton) {
           sendButton.hidden = busy;
           sendButton.disabled = busy || state.activeThreadState === "ARCHIVED";
@@ -1222,6 +1387,18 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (stopButton) stopButton.hidden = !busy;
         if (threadSelect) threadSelect.disabled = busy;
         if (newThreadButton) newThreadButton.disabled = busy;
+        if (historyDetails && historySummary) {
+          if (busy) historyDetails.open = false;
+          historySummary.setAttribute("aria-disabled", busy ? "true" : "false");
+          historySummary.style.pointerEvents = busy ? "none" : "";
+          historySummary.style.opacity = busy ? ".5" : "";
+        }
+        if (moreDetails && moreSummary) {
+          if (busy) moreDetails.open = false;
+          moreSummary.setAttribute("aria-disabled", busy ? "true" : "false");
+          moreSummary.style.pointerEvents = busy ? "none" : "";
+          moreSummary.style.opacity = busy ? ".5" : "";
+        }
         if (archiveThreadButton) {
           archiveThreadButton.disabled = busy || state.activeThreadState === "ARCHIVED";
         }
@@ -1230,7 +1407,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       if (stopButton) {
         const handler = () => {
           activeChatAbort?.abort();
-          if (pendingIndicator) pendingIndicator.hidden = true;
+          if (pendingIndicator) {
+            pendingIndicator.hidden = true;
+            pendingIndicator.style.display = "none";
+          }
         };
         stopButton.addEventListener("click", handler);
         listeners.push(() => stopButton.removeEventListener("click", handler));
@@ -1252,7 +1432,12 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       };
 
       const refreshThreadHistory = async (): Promise<void> => {
-        if (!threadBacked || !options.actionHost || !threadSelect) return;
+        if (
+          !threadBacked
+          || !options.actionHost
+          || !threadSelect
+          || !historyList
+        ) return;
         const listed = await listConversationThreadsV010({
           ...threadOptions(),
           includeArchived: true
@@ -1261,13 +1446,53 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
         const currentId = storedThreadId();
         threadSelect.replaceChildren();
+        historyList.replaceChildren();
+
+        if (listed.threads.length === 0) {
+          const empty = document.createElement("div");
+          empty.textContent = hostText("shell.chatUntitled", "New chat");
+          empty.style.padding = "var(--eidos-space-sm) var(--eidos-space-md)";
+          empty.style.color = "var(--eidos-fg-subtle)";
+          empty.style.fontSize = "var(--eidos-font-meta)";
+          historyList.appendChild(empty);
+        }
+
         for (const thread of listed.threads) {
+          const label = threadLabel(thread);
           const option = document.createElement("option");
           option.value = thread.threadId;
-          option.textContent = threadLabel(thread);
+          option.textContent = label;
           option.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
           option.selected = thread.threadId === currentId;
           threadSelect.appendChild(option);
+
+          const item = document.createElement("button");
+          item.type = "button";
+          item.setAttribute("data-eidos-chat-history-item", thread.threadId);
+          item.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
+          item.textContent = label;
+          item.style.width = "100%";
+          item.style.minHeight = "34px";
+          item.style.border = "0";
+          item.style.borderRadius = "var(--eidos-radius-sm)";
+          item.style.padding = "var(--eidos-space-sm) var(--eidos-space-md)";
+          item.style.background = thread.threadId === currentId
+            ? "var(--eidos-bg-selected)"
+            : "transparent";
+          item.style.color = thread.state === "ARCHIVED"
+            ? "var(--eidos-fg-subtle)"
+            : "var(--eidos-fg)";
+          item.style.fontSize = "var(--eidos-font-compact)";
+          item.style.textAlign = "left";
+          item.style.whiteSpace = "nowrap";
+          item.style.overflow = "hidden";
+          item.style.textOverflow = "ellipsis";
+          item.addEventListener("click", () => {
+            if (runTransportInFlight) return;
+            if (historyDetails) historyDetails.open = false;
+            void openThread(thread.threadId);
+          });
+          historyList.appendChild(item);
         }
         if (
           currentId
@@ -1408,6 +1633,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 return;
               }
               applyThread(archived.thread);
+              if (moreDetails) moreDetails.open = false;
               await refreshThreadHistory();
             } finally {
               runTransportInFlight = false;
