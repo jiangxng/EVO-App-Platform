@@ -19,8 +19,16 @@ export const COUNTERPARTY_DETAIL_PAGE_SOURCE =
   "app://evo-counterparty/pages/detail" as const;
 export const COUNTERPARTY_DETAIL_ROUTE = "/counterparties/detail" as const;
 
+export const COUNTERPARTY_EDIT_PAGE_ID =
+  "evo-counterparty.edit" as const;
+export const COUNTERPARTY_EDIT_PAGE_SOURCE =
+  "app://evo-counterparty/pages/edit" as const;
+export const COUNTERPARTY_EDIT_ROUTE = "/counterparties/edit" as const;
+
 export const COUNTERPARTY_CREATE_COMMAND =
   "counterparty.create" as const;
+export const COUNTERPARTY_UPDATE_COMMAND =
+  "counterparty.update" as const;
 export const COUNTERPARTY_ARCHIVE_COMMAND =
   "counterparty.archive" as const;
 
@@ -43,5 +51,25 @@ export function parseCounterpartyDetailRouteV010(
   if (!route?.trim() || !route.trim().startsWith("/")) return undefined;
   const url = new URL(route.trim(), "http://evo.local");
   if (url.pathname !== COUNTERPARTY_DETAIL_ROUTE) return undefined;
+  return url.searchParams.get("counterpartyId")?.trim() || undefined;
+}
+
+
+export function counterpartyEditRouteV010(
+  counterpartyId: string
+): string {
+  if (!counterpartyId.trim()) throw new Error("COUNTERPARTY_ID_REQUIRED");
+  const query = new URLSearchParams({
+    counterpartyId: counterpartyId.trim()
+  });
+  return `${COUNTERPARTY_EDIT_ROUTE}?${query.toString()}`;
+}
+
+export function parseCounterpartyEditRouteV010(
+  route: string | undefined
+): string | undefined {
+  if (!route?.trim() || !route.trim().startsWith("/")) return undefined;
+  const url = new URL(route.trim(), "http://evo.local");
+  if (url.pathname !== COUNTERPARTY_EDIT_ROUTE) return undefined;
   return url.searchParams.get("counterpartyId")?.trim() || undefined;
 }
