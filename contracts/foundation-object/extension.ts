@@ -61,7 +61,16 @@ export function assertObjectExtensionDefinitionV010(
       ...(option.label.translations
         ? { translations: { ...option.label.translations } }
         : {})
-    }
+    },
+    ...(option.aliases
+      ? {
+          aliases: [...new Set(
+            option.aliases.map(item =>
+              required(item, "OBJECT_EXTENSION_ENUM_ALIAS_INVALID")
+            )
+          )]
+        }
+      : {})
   }));
   if (value.valueType === "ENUM" && (!enumOptions || enumOptions.length === 0)) {
     throw new Error("OBJECT_EXTENSION_ENUM_OPTIONS_REQUIRED");
