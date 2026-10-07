@@ -36,7 +36,8 @@
     "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md",
     "docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md",
     "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
-    "docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md"
+    "docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md",
+    "docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md"
   ],
   "boundaryPolicy": "architecture.boundary-policy.json",
   "documentationPolicy": "documentation.policy.json",
