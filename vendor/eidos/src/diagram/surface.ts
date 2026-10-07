@@ -6,6 +6,14 @@ import type {
 import type {
   DiagramCameraTransformV010
 } from "./viewport.js";
+import type {
+  EidosContextNavigationItemV010,
+  EidosContextNavigationV010
+} from "../navigation/context-navigation.js";
+import {
+  assertContextNavigationV010,
+  renderContextNavigationV010
+} from "../navigation/context-navigation.js";
 import {
   layoutLayeredDiagramV010
 } from "./layered-layout.js";
@@ -106,15 +114,11 @@ export interface DiagramEditorToolbarActionV010 {
   primary?: boolean;
 }
 
-export interface DiagramEditorContextNavigationItemV010 {
-  id: string;
-  label: string;
-  route?: string;
-}
+export type DiagramEditorContextNavigationItemV010 =
+  EidosContextNavigationItemV010;
 
-export interface DiagramEditorContextNavigationV010 {
-  items: DiagramEditorContextNavigationItemV010[];
-}
+export type DiagramEditorContextNavigationV010 =
+  EidosContextNavigationV010;
 
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
@@ -249,6 +253,17 @@ function nonEmpty(value: unknown): value is string {
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function validContextNavigationV010(
+  value: DiagramEditorContextNavigationV010 | undefined
+): boolean {
+  try {
+    assertContextNavigationV010(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function validInspectorEditor(
@@ -408,23 +423,7 @@ export function isDiagramEditorPageV010(
       page.toolbarOverflowLabel === undefined
       || nonEmpty(page.toolbarOverflowLabel)
     )
-    && (
-      page.contextNavigation === undefined
-      || (
-        Array.isArray(page.contextNavigation.items)
-        && page.contextNavigation.items.length >= 2
-        && new Set(page.contextNavigation.items.map(item => item.id)).size
-          === page.contextNavigation.items.length
-        && page.contextNavigation.items.every(item =>
-          nonEmpty(item?.id)
-          && nonEmpty(item?.label)
-          && (
-            item.route === undefined
-            || (nonEmpty(item.route) && item.route.startsWith("/"))
-          )
-        )
-      )
-    )
+    && validContextNavigationV010(page.contextNavigation)
     && (
       page.initialCamera === undefined
       || (
@@ -825,26 +824,7 @@ function escapeHtml(value: unknown): string {
 function renderDiagramContextNavigationV010(
   page: DiagramEditorPageV010
 ): string {
-  const items = page.contextNavigation?.items ?? [];
-  if (items.length < 2) return "";
-
-  const desktop = items.map((item, index) => {
-    const current = index === items.length - 1;
-    const content = item.route
-      ? `<button type="button" data-eidos-diagram-context-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button>`
-      : `<span${current ? ' aria-current="page"' : ""}>${escapeHtml(item.label)}</span>`;
-    return `${index > 0 ? '<span data-eidos-context-separator aria-hidden="true">›</span>' : ""}${content}`;
-  }).join("");
-
-  const parent = [...items.slice(0, -1)].reverse().find(item => item.route);
-  const mobile = parent?.route
-    ? `<button type="button" data-eidos-diagram-context-route="${escapeHtml(parent.route)}" data-eidos-mobile-context-parent>‹ ${escapeHtml(parent.label)}</button>`
-    : "";
-
-  return `<nav data-eidos-diagram-context-navigation aria-label="Context navigation">
-<div data-eidos-context-navigation-desktop>${desktop}</div>
-<div data-eidos-context-navigation-mobile>${mobile}</div>
-</nav>`;
+  return renderContextNavigationV010(page.contextNavigation);
 }
 
 export function renderDiagramEditorPageShellToHtmlV010(
@@ -877,7 +857,7 @@ export function renderDiagramEditorPageShellToHtmlV010(
   line-height:1.25;
   font-weight:650;
 }
-[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-context-navigation]{
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation]{
   min-width:0;
   min-height:22px;
   color:var(--eidos-fg-muted,#5F6B76);
@@ -1250,11 +1230,12 @@ export function mountDiagramEditorPageV010(
 
   for (const button of Array.from(
     root.querySelectorAll<HTMLButtonElement>(
-      "[data-eidos-diagram-context-route]"
+      "[data-eidos-context-route]"
     )
   )) {
-    const onContextNavigate = (): void => {
-      const route = button.dataset.eidosDiagramContextRoute?.trim();
+    const onContextNavigate = (event: Event): void => {
+      event.stopPropagation();
+      const route = button.dataset.eidosContextRoute?.trim();
       if (route && options.onNavigate) void options.onNavigate(route);
     };
     button.addEventListener("click", onContextNavigate);
