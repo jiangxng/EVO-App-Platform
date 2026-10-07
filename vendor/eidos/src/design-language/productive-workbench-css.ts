@@ -531,20 +531,32 @@ form[data-eidos-id] [data-eidos-form-actions] button:not([data-eidos-primary="tr
 }
 [data-eidos-context-navigation]{
   min-width:0;min-height:22px;color:var(--eidos-fg-muted);
-  font-size:var(--eidos-font-meta);
+  font-size:var(--eidos-font-meta);line-height:1.4;
 }
 [data-eidos-context-navigation-desktop]{
   display:flex;align-items:center;gap:6px;min-width:0;
   white-space:nowrap;overflow:hidden;
 }
-[data-eidos-context-navigation-desktop] button,
+/* Context navigation follows the Ledger Runtime template-design workspace:
+   it is navigation metadata, never a second toolbar or page title. */
+form[data-eidos-id] [data-eidos-context-navigation] button,
+[data-eidos-capability="catalog-browser"] [data-eidos-context-navigation] button,
+[data-eidos-diagram-editor] [data-eidos-context-navigation] button,
 [data-eidos-context-navigation-mobile] button{
-  appearance:none;border:0;padding:0;background:transparent;
-  color:var(--eidos-fg-muted);font:inherit;cursor:pointer;
+  appearance:none!important;
+  min-height:0!important;height:auto!important;
+  border:0!important;border-radius:0!important;
+  padding:0!important;margin:0!important;
+  background:transparent!important;box-shadow:none!important;
+  color:var(--eidos-fg-muted)!important;
+  font:inherit!important;font-weight:400!important;line-height:1.4!important;
+  cursor:pointer;
 }
-[data-eidos-context-navigation-desktop] button:hover,
+form[data-eidos-id] [data-eidos-context-navigation] button:hover,
+[data-eidos-capability="catalog-browser"] [data-eidos-context-navigation] button:hover,
+[data-eidos-diagram-editor] [data-eidos-context-navigation] button:hover,
 [data-eidos-context-navigation-mobile] button:hover{
-  color:var(--eidos-primary);text-decoration:underline;
+  color:var(--eidos-primary)!important;text-decoration:underline;
 }
 [data-eidos-context-navigation-desktop] span[aria-current="page"]{
   color:var(--eidos-fg);font-weight:600;overflow:hidden;text-overflow:ellipsis;
@@ -561,62 +573,95 @@ form[data-eidos-id] [data-eidos-form-actions]{
   padding-top:var(--eidos-space-lg);border-top:1px solid var(--eidos-border);
 }
 
-/* Productive management lists: compact scanning instead of oversized cards. */
+/* Productive management lists: continuous, scannable rows.
+   Row activation is the default detail affordance; status is informative,
+   not a competing action. */
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"]{
   width:min(1180px,100%);border:0;border-radius:0;
   padding:0;background:transparent;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{
-  gap:var(--eidos-space-sm);margin-top:var(--eidos-space-xl);
+  display:block;margin-top:var(--eidos-space-xl);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);
+  overflow:hidden;background:var(--eidos-bg);
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
-  padding:var(--eidos-space-lg) var(--eidos-space-xl);
-  gap:var(--eidos-space-sm);box-shadow:none;
-  display:grid;grid-template-columns:minmax(0,1fr) auto;
-  grid-template-areas:
-    "header actions"
-    "summary actions"
-    "badges actions"
-    "metadata actions";
+  position:relative;
+  border:0;border-bottom:1px solid var(--eidos-border);
+  border-radius:0;
+  padding:var(--eidos-space-lg) 44px var(--eidos-space-lg) var(--eidos-space-xl);
+  gap:var(--eidos-space-sm);box-shadow:none;background:var(--eidos-bg);
+  display:grid;grid-template-columns:minmax(0,1fr);
   align-items:center;
 }
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]:last-child{
+  border-bottom:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]{
+  cursor:pointer;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]:hover{
+  background:var(--eidos-bg-hover);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:-2px;
+}
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>header{
-  grid-area:header;min-width:0;
+  min-width:0;display:flex;align-items:center;justify-content:space-between;
+  gap:var(--eidos-space-lg);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] h2{
+  font-size:var(--eidos-font-body);font-weight:650;line-height:1.35;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>p{
-  grid-area:summary;min-width:0;
+  margin:0;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-compact);line-height:1.45;
 }
-[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-badges]{
-  grid-area:badges;min-width:0;
-}
-[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-metadata]{
-  grid-area:metadata;min-width:0;
-}
-[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
-  grid-area:actions;align-self:center;margin-top:0;
-}
-[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] p{
-  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);line-height:1.45;
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-badges]:empty,
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer:empty{
+  display:none;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-metadata]{
   display:flex;align-items:center;flex-wrap:wrap;
-  gap:var(--eidos-space-xs) var(--eidos-space-lg);
+  gap:var(--eidos-space-xs) var(--eidos-space-lg);min-width:0;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-meta]{
-  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);
 }
-[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] footer{
-  margin-top:var(--eidos-space-xs);
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status]{
+  flex:0 0 auto;
+  border:0;border-radius:var(--eidos-radius-pill);
+  padding:2px 7px;
+  font-size:var(--eidos-font-meta);font-weight:500;line-height:1.35;
 }
-
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status][data-tone="positive"]{
+  color:var(--eidos-success);
+  background:color-mix(in srgb,var(--eidos-success-bg) 72%,transparent);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status][data-tone="neutral"]{
+  color:var(--eidos-fg-muted);background:var(--eidos-bg-subtle);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
+  justify-content:flex-start;margin-top:var(--eidos-space-xs);
+}
+[data-eidos-catalog-row-disclosure]{
+  position:absolute;right:var(--eidos-space-xl);top:50%;
+  transform:translateY(-50%);
+  color:var(--eidos-fg-subtle);font-size:1.25rem;line-height:1;
+  pointer-events:none;
+}
 @media (max-width:700px){
   [data-eidos-page-heading]{display:grid;grid-template-columns:minmax(0,1fr)}
   [data-eidos-page-actions]{justify-content:flex-start}
   [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
-    display:flex;flex-direction:column;align-items:stretch;
+    padding-right:38px;
+  }
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>header{
+    align-items:flex-start;
   }
   [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
-    align-self:stretch;justify-content:flex-start;margin-top:var(--eidos-space-xs);
+    justify-content:flex-start;margin-top:var(--eidos-space-xs);
   }
   [data-eidos-context-navigation-desktop]{display:none}
   [data-eidos-context-navigation-mobile]{
