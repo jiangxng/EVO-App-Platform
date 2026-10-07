@@ -20,6 +20,7 @@ import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.
 import {
   mountAppHostLoadedPage,
   type AppHostChatState,
+  type ContextualAgentInteractionV010,
   type MountedAppHostPage
 } from "../app-host/page-controller.js";
 import { renderAppHostPageToHtml } from "../app-host/page-renderer.js";
@@ -60,6 +61,13 @@ export interface WorkbenchShellOptions {
   minSidePanelWidth?: number;
   maxSidePanelWidth?: number;
   onActionResult?: Parameters<typeof mountAppHostLoadedPage>[0]["onActionResult"];
+  /**
+   * Host-owned resolver from a requested Agent capability to an installed
+   * side-route activity. Eidos does not hard-code a concrete Agent package.
+   */
+  resolveAgentActivity?: (
+    capability: string | undefined
+  ) => string | undefined;
   /**
    * Host-owned global chrome mounted beside built-in Workbench controls.
    * Eidos provides placement only and does not interpret Host/domain semantics.
@@ -484,6 +492,55 @@ export async function mountWorkbenchShell(
     sideContent.appendChild(list);
   }
 
+  async function handleContextualAgentAction(
+    interaction: ContextualAgentInteractionV010
+  ): Promise<void> {
+    const activityId =
+      options.resolveAgentActivity?.(interaction.agentCapability);
+    if (!activityId) {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_ACTIVITY_UNAVAILABLE");
+    }
+
+    const activity = activityById(activityId);
+    if (!activity || activity.kind !== "side-route") {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_ACTIVITY_INVALID");
+    }
+
+    if (
+      state.activeActivityId !== activityId
+      || !state.sidePanelVisible
+    ) {
+      state.activeActivityId = activityId;
+      state.sidePanelVisible = true;
+      persist();
+      updateLayoutAttributes();
+      renderActivities();
+      await renderSidePanel();
+    }
+
+    if (!sideMount?.submitChatPrompt) {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_CHAT_UNAVAILABLE");
+    }
+
+    await sideMount.submitChatPrompt(
+      interaction.prompt,
+      {
+        contractVersion: "0.1.0",
+        source: {
+          pageId: interaction.source.pageId,
+          route: interaction.source.route,
+          actionId: interaction.source.actionId
+        },
+        ...(interaction.agentCapability
+          ? { agentCapability: interaction.agentCapability }
+          : {}),
+        ...(interaction.context
+          ? { context: structuredClone(interaction.context) }
+          : {})
+      }
+    );
+  }
+
   async function renderSidePanel(): Promise<void> {
     const read = sideReadGate.begin();
     sideMount?.dispose();
@@ -558,6 +615,7 @@ export async function mountWorkbenchShell(
       localization,
       chatState,
       onNavigate: navigateWorkspace,
+      onAgentAction: handleContextualAgentAction,
       async onActionResult(result, page, renderHint) {
         await options.onActionResult?.(result, page, renderHint);
         const navigateTo = actionResultNavigateToV010(result);
@@ -651,6 +709,7 @@ export async function mountWorkbenchShell(
       actionHost: options.actionHost,
       localization,
       onNavigate: navigateWorkspace,
+      onAgentAction: handleContextualAgentAction,
       async onActionResult(result, page, renderHint) {
         await options.onActionResult?.(result, page, renderHint);
         const navigateTo = actionResultNavigateToV010(result);
