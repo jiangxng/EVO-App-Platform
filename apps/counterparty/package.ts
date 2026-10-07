@@ -3,6 +3,9 @@ import {
   ENTERPRISE_RESOURCE_CAPABILITY_V010
 } from "../../contracts/enterprise-resource.js";
 import {
+  RESPONSIBILITY_CAPABILITY_V010
+} from "../responsibility/constants.js";
+import {
   COUNTERPARTY_CREATE_PAGE_ID,
   COUNTERPARTY_CUSTOMERS_PAGE_ID,
   COUNTERPARTY_CUSTOMERS_PAGE_SOURCE,
