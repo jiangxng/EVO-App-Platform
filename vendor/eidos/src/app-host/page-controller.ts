@@ -164,16 +164,51 @@ export function bindDelegatedAppHostActionsV010(
   return () => container.removeEventListener("click", handler);
 }
 
-function collectFormValues(
+function arrayBufferToBase64V010(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length))
+    );
+  }
+  return globalThis.btoa(binary);
+}
+
+async function collectFormValues(
   form: HTMLFormElement,
   definition: unknown
-): Record<string, JsonValue> {
+): Promise<Record<string, JsonValue>> {
   const document = assertValidUidl(definition);
   const values: Record<string, JsonValue> = {};
 
   for (const field of document.fields) {
     const control = form.elements.namedItem(field.key);
-    if (!(control instanceof HTMLInputElement) && !(control instanceof HTMLSelectElement)) continue;
+    if (
+      !(control instanceof HTMLInputElement)
+      && !(control instanceof HTMLSelectElement)
+    ) {
+      continue;
+    }
+
+    if (field.control === "file" && control instanceof HTMLInputElement) {
+      const file = control.files?.[0];
+      if (!file) {
+        values[field.key] = "";
+        continue;
+      }
+      if (field.maxBytes !== undefined && file.size > field.maxBytes) {
+        throw new Error("EIDOS_FILE_TOO_LARGE");
+      }
+      values[field.key] = {
+        name: file.name,
+        mediaType: file.type || "application/octet-stream",
+        size: file.size,
+        contentBase64: arrayBufferToBase64V010(await file.arrayBuffer())
+      };
+      continue;
+    }
 
     const raw = control.value;
     if (raw === "") {
@@ -1564,7 +1599,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         actionStatus.textContent = hostText("shell.executing", "Executing…");
 
         try {
-          const values = collectFormValues(form, page.definition);
+          const values = await collectFormValues(form, page.definition);
           const execution = await executeAppHostPageAction(page, values, options.actionHost);
           actionStatus.textContent = execution.result.ok
             ? formatAppHostActionResultV010(execution.result.result)
@@ -1573,6 +1608,22 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 "Action failed: {message}",
                 { message: execution.result.error?.message ?? "Unknown action error" }
               );
+
+          const navigateTo =
+            execution.result.ok
+            && execution.result.result !== null
+            && typeof execution.result.result === "object"
+            && !Array.isArray(execution.result.result)
+            && typeof (execution.result.result as { navigateTo?: unknown }).navigateTo === "string"
+              ? (execution.result.result as { navigateTo: string }).navigateTo.trim()
+              : "";
+          if (navigateTo && options.onNavigate) {
+            if (!navigateTo.startsWith("/")) {
+              throw new Error("EIDOS_ACTION_NAVIGATE_TARGET_INVALID");
+            }
+            await options.onNavigate(navigateTo);
+          }
+
           await options.onActionResult?.(
             execution.result,
             page,
