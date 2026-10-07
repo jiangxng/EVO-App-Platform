@@ -674,6 +674,13 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Eidos PR #127 initialValue support as the generic edit-form mechanism used by Counterparty
 - state Counterparty Relationship Roles v0.2 as the current live milestone
 
+- state App Platform PR #419 / merge 6c47a342b02328cc69ed3ab9cecaf42c3823cee7 as the merged Counterparty Relationship Roles v0.2 implementation
+- state Counterparty CUSTOMER and SUPPLIER as explicit Enterprise Context relationship resources under evo.counterparty/counterparty-roles, both referencing one stable counterpartyId
+- state Counterparty role assignment/removal as independent from Counterparty subject identity lifecycle and explicitly outside AR/AP/open-item/settlement ownership
+- state docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md as the active foundation-object/RVC program baseline for Counterparty then Item/Product and Warehouse/Location
+- state Railway Ledger Configurator deployment 90f244c8-3715-4c3a-9ced-419483f4ac34 / commit 6c47a342b02328cc69ed3ab9cecaf42c3823cee7 as SUCCESS
+- state Counterparty Relationship Roles v0.2 as merged, CI-passed and production-deployed but still awaiting Human browser validation before milestone closure
+
 No previous ChatGPT transcript is required.
 
 ## State-layer distinction
