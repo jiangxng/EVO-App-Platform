@@ -562,13 +562,38 @@ form[data-eidos-id] [data-eidos-form-actions]{
 }
 
 /* Productive management lists: compact scanning instead of oversized cards. */
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"]{
+  width:min(1180px,100%);border:0;border-radius:0;
+  padding:0;background:transparent;
+}
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{
-  gap:var(--eidos-space-sm);
+  gap:var(--eidos-space-sm);margin-top:var(--eidos-space-xl);
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
   padding:var(--eidos-space-lg) var(--eidos-space-xl);
-  gap:var(--eidos-space-sm);
-  box-shadow:none;
+  gap:var(--eidos-space-sm);box-shadow:none;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:
+    "header actions"
+    "summary actions"
+    "badges actions"
+    "metadata actions";
+  align-items:center;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>header{
+  grid-area:header;min-width:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>p{
+  grid-area:summary;min-width:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-badges]{
+  grid-area:badges;min-width:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-metadata]{
+  grid-area:metadata;min-width:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
+  grid-area:actions;align-self:center;margin-top:0;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] p{
   margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);line-height:1.45;
@@ -587,6 +612,12 @@ form[data-eidos-id] [data-eidos-form-actions]{
 @media (max-width:700px){
   [data-eidos-page-heading]{display:grid;grid-template-columns:minmax(0,1fr)}
   [data-eidos-page-actions]{justify-content:flex-start}
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
+    display:flex;flex-direction:column;align-items:stretch;
+  }
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
+    align-self:stretch;justify-content:flex-start;margin-top:var(--eidos-space-xs);
+  }
   [data-eidos-context-navigation-desktop]{display:none}
   [data-eidos-context-navigation-mobile]{
     display:flex;align-items:center;min-height:28px;
