@@ -7,6 +7,9 @@ import type {
   ValidationResult
 } from "./contracts.js";
 import { isPlainObject, toJsonSnapshot } from "./json.js";
+import {
+  assertContextNavigationV010
+} from "../navigation/context-navigation.js";
 
 const controls = new Set([
   "text",
@@ -22,6 +25,8 @@ const docKeys = new Set([
   "kind",
   "id",
   "title",
+  "description",
+  "contextNavigation",
   "purpose",
   "command",
   "fields",
@@ -598,6 +603,36 @@ export function validateUidl(
     ));
   }
 
+  if (
+    document.description !== undefined
+    && !nonEmpty(document.description)
+  ) {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      "$.description",
+      "description must be non-empty when present"
+    ));
+  }
+
+  let contextNavigation:
+    import("../navigation/context-navigation.js").EidosContextNavigationV010
+    | undefined;
+  if (document.contextNavigation !== undefined) {
+    try {
+      contextNavigation = assertContextNavigationV010(
+        document.contextNavigation as import("../navigation/context-navigation.js").EidosContextNavigationV010
+      );
+    } catch (error) {
+      out.push(d(
+        "EIDOS_CONTEXT_NAVIGATION_INVALID",
+        "$.contextNavigation",
+        error instanceof Error
+          ? error.message
+          : "Context navigation is invalid"
+      ));
+    }
+  }
+
   let command: { code: string; inputVersion: string } | undefined;
   if (!isPlainObject(document.command)) {
     out.push(d(
@@ -754,6 +789,12 @@ export function validateUidl(
       kind: "form",
       id: document.id,
       title: document.title,
+      ...(nonEmpty(document.description)
+        ? { description: document.description }
+        : {}),
+      ...(contextNavigation
+        ? { contextNavigation }
+        : {}),
       purpose: "execute-command",
       command,
       fields,
