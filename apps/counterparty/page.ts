@@ -170,8 +170,10 @@ export function createCounterpartyDirectoryPageV010(input: {
   importRoute?: string;
   locale?: string;
   readableFieldIds?: readonly string[];
+  canManage?: boolean;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
+  const canManage = input.canManage ?? true;
   const readable = input.readableFieldIds
     ? new Set(input.readableFieldIds)
     : undefined;
@@ -186,7 +188,7 @@ export function createCounterpartyDirectoryPageV010(input: {
     title: text.title,
     description: text.description,
     actions: [
-      ...(input.importRoute
+      ...(canManage && input.importRoute
         ? [{
             id: "import",
             label: text.import,
@@ -195,14 +197,16 @@ export function createCounterpartyDirectoryPageV010(input: {
             requiresConfirmation: false
           }]
         : []),
-      {
-        id: "create",
-        label: text.create,
-        type: "navigate",
-        route: COUNTERPARTY_CREATE_ROUTE,
-        requiresConfirmation: false,
-        primary: true
-      }
+      ...(canManage
+        ? [{
+            id: "create",
+            label: text.create,
+            type: "navigate" as const,
+            route: COUNTERPARTY_CREATE_ROUTE,
+            requiresConfirmation: false,
+            primary: true
+          }]
+        : [])
     ],
     search: {
       placeholder: text.search,
@@ -277,6 +281,7 @@ export function createCounterpartyProjectionPageV010(input: {
   counterparties: readonly CounterpartySubjectV010[];
   locale?: string;
   readableFieldIds?: readonly string[];
+  canManage?: boolean;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const title = projectionTitleV010(
@@ -286,7 +291,8 @@ export function createCounterpartyProjectionPageV010(input: {
   const page = createCounterpartyDirectoryPageV010({
     counterparties: input.counterparties,
     locale: input.locale,
-    readableFieldIds: input.readableFieldIds
+    readableFieldIds: input.readableFieldIds,
+    canManage: input.canManage
   });
   return {
     ...page,
@@ -341,9 +347,16 @@ export function createCounterpartyDetailPageV010(input: {
   counterparty: CounterpartySubjectV010;
   roles?: readonly CounterpartyRelationshipRoleV010[];
   locale?: string;
+  readableFieldIds?: readonly string[];
+  canManage?: boolean;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const subject = input.counterparty;
+  const canManage = input.canManage ?? true;
+  const readable = input.readableFieldIds
+    ? new Set(input.readableFieldIds)
+    : undefined;
+  const canRead = (fieldId: string) => !readable || readable.has(fieldId);
   const roles = [...(input.roles ?? [])]
     .sort((a, b) => a.roleCode.localeCompare(b.roleCode));
   const activeRoleCodes = new Set(
@@ -370,17 +383,23 @@ export function createCounterpartyDetailPageV010(input: {
         label: subject.displayName
       }]
     },
-    actions: [{
-      id: "edit",
-      label: text.edit,
-      type: "navigate",
-      route: counterpartyEditRouteV010(subject.counterpartyId),
-      requiresConfirmation: false
-    }],
+    actions: canManage
+      ? [{
+          id: "edit",
+          label: text.edit,
+          type: "navigate",
+          route: counterpartyEditRouteV010(subject.counterpartyId),
+          requiresConfirmation: false
+        }]
+      : [],
     items: [{
       id: subject.counterpartyId,
       title: subject.displayName,
-      summary: subject.legalName || subject.code,
+      ...(canRead("legalName") && subject.legalName
+        ? { summary: subject.legalName }
+        : canRead("code")
+          ? { summary: subject.code }
+          : {}),
       ...(roleLabels.length > 0 ? { badges: roleLabels } : {}),
       status: {
         label:
@@ -393,26 +412,34 @@ export function createCounterpartyDetailPageV010(input: {
             : "neutral"
       },
       metadata: {
-        [text.code]: subject.code,
-        [text.subjectType]: subjectTypeLabel(
-          subject.subjectType,
-          input.locale
-        ),
+        ...(canRead("code") ? { [text.code]: subject.code } : {}),
+        ...(canRead("subjectType")
+          ? {
+              [text.subjectType]: subjectTypeLabel(
+                subject.subjectType,
+                input.locale
+              )
+            }
+          : {}),
         [text.relationshipRoles]:
           roleLabels.join(" · ") || text.noRelationshipRole,
-        ...(subject.legalName
+        ...(canRead("legalName") && subject.legalName
           ? { [text.legalName]: subject.legalName }
           : {}),
-        ...(subject.taxIdentifier
+        ...(canRead("taxIdentifier") && subject.taxIdentifier
           ? { [text.taxIdentifier]: subject.taxIdentifier }
           : {}),
-        ...(subject.countryOrRegion
+        ...(canRead("countryOrRegion") && subject.countryOrRegion
           ? { [text.countryOrRegion]: subject.countryOrRegion }
           : {}),
-        ...(subject.phone ? { [text.phone]: subject.phone } : {}),
-        ...(subject.email ? { [text.email]: subject.email } : {})
+        ...(canRead("phone") && subject.phone
+          ? { [text.phone]: subject.phone }
+          : {}),
+        ...(canRead("email") && subject.email
+          ? { [text.email]: subject.email }
+          : {})
       },
-      secondaryActions: [{
+      secondaryActions: canManage ? [{
         id: "toggle-customer-role",
         label: activeRoleCodes.has("CUSTOMER")
           ? text.removeCustomerRole
@@ -455,7 +482,7 @@ export function createCounterpartyDetailPageV010(input: {
         values: {
           counterpartyId: subject.counterpartyId
         }
-      }]
+      }] : []
     }]
   };
 }
