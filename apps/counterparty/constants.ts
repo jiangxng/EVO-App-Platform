@@ -31,6 +31,10 @@ export const COUNTERPARTY_UPDATE_COMMAND =
   "counterparty.update" as const;
 export const COUNTERPARTY_ARCHIVE_COMMAND =
   "counterparty.archive" as const;
+export const COUNTERPARTY_ASSIGN_ROLE_COMMAND =
+  "counterparty.role.assign" as const;
+export const COUNTERPARTY_REMOVE_ROLE_COMMAND =
+  "counterparty.role.remove" as const;
 
 export const COUNTERPARTY_WRITE_AUTHORIZATION_ACTION =
   "counterparty.write" as const;
