@@ -263,7 +263,7 @@ test("mapping inspection exposes bounded samples and preserves unmapped raw colu
   const subjectTypeField = inspected.schema.fields.find(
     field => field.fieldId === "subjectType"
   );
-  assert.match(subjectTypeField.resolvedDescription, /not a customer\/supplier category/i);
+  assert.match(subjectTypeField.resolvedDescription, /不是客户\/供应商分类/);
   const type = inspected.sourceColumns.find(
     item => item.sourceColumn === "供应商类型"
   );
