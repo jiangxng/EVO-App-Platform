@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   createPersonalAgentChatPageV020,
@@ -10,6 +11,9 @@ import {
   createLocalizationRuntime,
   localizeAppHostPageDefinition
 } from "../../dist/vendor/eidos/src/localization/index.js";
+import {
+  createAppManagerActionHost
+} from "../../dist/vendor/eidos/src/app-host/app-manager-action-host.js";
 import {
   enterpriseAgentPackage
 } from "../../dist/agents/enterprise-agent/package.js";
@@ -230,4 +234,65 @@ test("system-owned Personal context label localizes while enterprise display nam
   assert.equal(localized.context.selector.options[0].label, "个人");
   assert.equal(localized.context.selector.options[1].label, "ACME Japan");
   assert.doesNotMatch(localized.context.selector.options[0].label, /Preview User/);
+});
+
+
+test("Personal Agent chat transport exposes an abortable action execution path", async () => {
+  let capturedSignal;
+  const fetchImpl = async (_url, init) => {
+    capturedSignal = init.signal;
+    return await new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => {
+        reject(new DOMException("Aborted", "AbortError"));
+      }, { once: true });
+    });
+  };
+
+  const host = createAppManagerActionHost({
+    baseUrl: "https://example.test",
+    fetchImpl
+  });
+  const controller = new AbortController();
+  const pending = host.executeWithSignal({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "enterprise-agent.chat",
+      inputVersion: "0.1.0"
+    },
+    values: { message: "hello" },
+    sourceInteractionId: "enterprise-agent.home",
+    actionId: "chat.send",
+    requiresConfirmation: false
+  }, controller.signal);
+
+  controller.abort();
+  await assert.rejects(pending, error => error?.name === "AbortError");
+  assert.equal(capturedSignal, controller.signal);
+  assert.equal(capturedSignal.aborted, true);
+});
+
+test("Personal Agent chat overlay keeps mature feedback and message actions", async () => {
+  const source = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /data-eidos-chat-pending/);
+  assert.match(source, /data-eidos-chat-stop/);
+  assert.match(source, /data-eidos-chat-message-copy/);
+  assert.match(source, /data-eidos-chat-message-retry/);
+  assert.match(source, /AbortController/);
+  assert.match(source, /chatUiTextV010/);
+});
+
+test("Personal Agent chat header preserves separate conversation and context hierarchy", async () => {
+  const source = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /gridTemplateRows = "auto auto"/);
+  assert.match(source, /data-eidos-chat-thread-controls/);
+  assert.match(source, /data-eidos-chat-context/);
 });
