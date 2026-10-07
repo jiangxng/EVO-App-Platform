@@ -64,6 +64,14 @@ export function currentUserDisplayNameV010(
   return principal.displayName?.trim() || principal.subjectId;
 }
 
+export function currentUserLogoutActionV010(locale: string): string {
+  const normalizedLocale = locale.toLowerCase().startsWith("zh")
+    ? "zh-CN"
+    : "en";
+  const returnTo = "/login?locale=" + encodeURIComponent(normalizedLocale);
+  return "/auth/logout?returnTo=" + encodeURIComponent(returnTo);
+}
+
 async function loadBrowserContextOptionsV010(
   fetchImpl: typeof fetch
 ): Promise<{
@@ -428,6 +436,21 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         });
         textScaleControl.append(textScaleLabel, textScaleSelect);
         currentUserMenu.append(textScaleControl);
+
+        const logoutForm = document.createElement("form");
+        logoutForm.method = "post";
+        logoutForm.action = currentUserLogoutActionV010(activeLocale);
+        logoutForm.setAttribute("data-evo-current-user-logout", "");
+        logoutForm.setAttribute("data-eidos-account-logout", "");
+        const logoutButton = document.createElement("button");
+        logoutButton.type = "submit";
+        logoutButton.textContent = zh ? "退出登录" : "Sign out";
+        logoutButton.setAttribute(
+          "aria-label",
+          zh ? "退出当前 EVO 会话" : "Sign out of the current EVO session"
+        );
+        logoutForm.append(logoutButton);
+        currentUserMenu.append(logoutForm);
       }
     }
 
