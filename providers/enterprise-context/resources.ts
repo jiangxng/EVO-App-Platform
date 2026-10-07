@@ -118,7 +118,7 @@ function createRepository(
   const writeCurrent = (snapshot: EnterpriseResourceStoreSnapshotV010): void => {
     const valid = validateSnapshot(clone(snapshot));
     if (transactionSnapshot) {
-      transactionSnapshot = valid;
+      transactionSnapshot = clone(snapshot);
       return;
     }
     write(valid);
@@ -230,6 +230,65 @@ function createRepository(
         ]
       });
       return clone(next);
+    },
+
+    putMany(inputs: EnterpriseResourcePutInputV010[]) {
+      if (inputs.length === 0) return [];
+      const current = readCurrent();
+      const byKey = new Map(
+        current.resources.map(resource => [addressKey(resource), resource])
+      );
+      const results: EnterpriseResourceV010[] = [];
+      const inputKeys = new Set<string>();
+
+      for (const input of inputs) {
+        const key = addressKey(input);
+        if (inputKeys.has(key)) {
+          throw new Error("ENTERPRISE_RESOURCE_BATCH_DUPLICATE_ADDRESS");
+        }
+        inputKeys.add(key);
+        const previous = byKey.get(key);
+        const recordedAt = timestamp(
+          input.recordedAt,
+          "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"
+        );
+        const actorSubjectId = required(
+          input.actorSubjectId,
+          "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
+        );
+        const next = validateResource({
+          contractVersion: "0.1.0",
+          contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
+          namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
+          collectionId: required(
+            input.collectionId,
+            "ENTERPRISE_RESOURCE_COLLECTION_REQUIRED"
+          ),
+          resourceType: required(input.resourceType, "ENTERPRISE_RESOURCE_TYPE_REQUIRED"),
+          resourceId: required(input.resourceId, "ENTERPRISE_RESOURCE_ID_REQUIRED"),
+          schemaRef: required(input.schemaRef, "ENTERPRISE_RESOURCE_SCHEMA_REQUIRED"),
+          ...(input.ownerPackageId?.trim()
+            ? { ownerPackageId: input.ownerPackageId.trim() }
+            : {}),
+          storageKind: input.storageKind ?? "DOCUMENT",
+          ...(input.payload !== undefined ? { payload: clone(input.payload) } : {}),
+          ...(input.payloadRef?.trim() ? { payloadRef: input.payloadRef.trim() } : {}),
+          ...(input.metadata ? { metadata: clone(input.metadata) } : {}),
+          lifecycleState: "ACTIVE",
+          createdAt: previous?.createdAt ?? recordedAt,
+          createdBySubjectId: previous?.createdBySubjectId ?? actorSubjectId,
+          updatedAt: recordedAt,
+          updatedBySubjectId: actorSubjectId
+        });
+        byKey.set(key, next);
+        results.push(clone(next));
+      }
+
+      writeCurrent({
+        contractVersion: "0.1.0",
+        resources: [...byKey.values()]
+      });
+      return results;
     },
 
     archive(input) {
