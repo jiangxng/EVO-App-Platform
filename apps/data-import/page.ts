@@ -316,7 +316,8 @@ export function createDataImportMappingPageV010(input: {
         taskKind: "data-import.mapping",
         importJobId: input.job.importJobId,
         targetId: input.job.targetId
-      }
+      },
+      refreshSourceOnComplete: true
     }],
     metadata: {
       description: t.mappingDescription
