@@ -378,6 +378,12 @@ test("CP-04 projection path handles 10k records without duplicate identities", (
 });
 
 test("CP-04 role projections are discoverable under Counterparty navigation", () => {
+  assert.equal(
+    counterpartyPackage.features[0].requiresCapabilities.includes(
+      "enterprise.responsibility"
+    ),
+    true
+  );
   const experience = counterpartyPackage.features[0].contributions
     .find(item => item.kind === "eidos.experience").manifest;
   const children = experience.navigation
