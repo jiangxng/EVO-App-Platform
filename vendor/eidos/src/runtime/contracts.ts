@@ -5,7 +5,7 @@ export type UidlOptionValue = string | number | boolean;
 export interface UidlOption { value: UidlOptionValue; label: string }
 export interface UidlField {
   key: string; label: string; semanticType: string; control: UidlControl; required: boolean;
-  readOnly?: boolean; unit?: string; options?: UidlOption[];
+  readOnly?: boolean; initialValue?: UidlOptionValue; unit?: string; options?: UidlOption[];
   validation?: { min?: number; max?: number; pattern?: string };
 }
 export interface UidlAction { id: string; label: string; type: "submit" | "cancel"; command?: string; requiresConfirmation?: boolean }
