@@ -15,6 +15,8 @@ import {
   DATA_IMPORT_READ_ACTION_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_OPERATION_V010,
+  DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_STAGE_FILE_OPERATION_V010,
   DATA_IMPORT_WRITE_ACTION_V010
 } from "./constants.js";
 
@@ -80,6 +82,24 @@ export const dataImportCapabilityContributionsV010:
         idempotency: "HOST_REQUIRED",
         receipt: "HOST_REQUIRED"
       }
+    }
+  }, {
+    kind: "platform.capability-operation",
+    operation: {
+      contractVersion: "0.1.0",
+      operationId: DATA_IMPORT_STAGE_FILE_OPERATION_V010,
+      capability: DATA_IMPORT_CAPABILITY_V010,
+      operationVersion: "0.1.0",
+      title: "Stage spreadsheet import",
+      description: "Stages a CSV or XLSX file in the active Enterprise Context, suggests deterministic field mappings and requires Human review before dry-run/commit.",
+      effect: "WRITE",
+      dataScope: "ENTERPRISE",
+      authorization: { action: DATA_IMPORT_WRITE_ACTION_V010, resource: { type: DATA_IMPORT_AUTH_RESOURCE_V010, idSource: "DATA_SCOPE" } },
+      inputSchema: { type: "object", additionalProperties: true, required: ["targetId", "file"], properties: { targetId: { type: "string", minLength: 1 }, file: { type: "object", required: ["name", "mediaType", "size", "contentBase64"], properties: { name: { type: "string", minLength: 1 }, mediaType: { type: "string", minLength: 1 }, size: { type: "number" }, contentBase64: { type: "string", minLength: 1 } } } } },
+      outputSchema: importJobOutputSchema,
+      binding: { type: "ACTION_HOST", commandCode: DATA_IMPORT_STAGE_FILE_COMMAND_V010, inputVersion: "0.1.0" },
+      exposure: ["HUMAN", "PERSONAL_AGENT"],
+      writeSafety: { idempotency: "HOST_REQUIRED", receipt: "HOST_REQUIRED" }
     }
   }, {
     kind: "platform.capability-operation",
