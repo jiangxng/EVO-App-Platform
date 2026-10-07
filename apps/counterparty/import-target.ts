@@ -37,7 +37,18 @@ export const COUNTERPARTY_IMPORT_TARGET_V010 =
 function roles(
   parameters?: FoundationObjectImportTargetParametersV010
 ): CounterpartyRelationshipRoleCodeV010[] {
-  const values = parameters?.relationshipRoles ?? [];
+  const explicitMode = typeof parameters?.relationshipMode === "string"
+    ? parameters.relationshipMode.trim().toUpperCase()
+    : undefined;
+  const values = explicitMode
+    ? explicitMode === "BOTH"
+      ? ["CUSTOMER", "SUPPLIER"]
+      : explicitMode === "CUSTOMER" || explicitMode === "SUPPLIER"
+        ? [explicitMode]
+        : explicitMode === "NONE"
+          ? []
+          : (() => { throw new Error("COUNTERPARTY_IMPORT_ROLE_MODE_INVALID"); })()
+    : parameters?.relationshipRoles ?? [];
   const normalized = [...new Set(values.map(value => value.trim().toUpperCase()))];
   for (const value of normalized) {
     if (value !== "CUSTOMER" && value !== "SUPPLIER") {
@@ -153,6 +164,45 @@ export function createCounterpartyImportTargetV010(input: {
   const target: FoundationObjectImportTargetV010 = {
     contractVersion: "0.1.0",
     targetId: COUNTERPARTY_IMPORT_TARGET_V010,
+    label: {
+      default: "Counterparties",
+      translations: { "zh-CN": "往来对象" }
+    },
+    parameters: [{
+      key: "relationshipMode",
+      label: {
+        default: "Relationship role",
+        translations: { "zh-CN": "导入关系角色" }
+      },
+      required: true,
+      control: "select",
+      defaultValue: "NONE",
+      options: [{
+        value: "NONE",
+        label: {
+          default: "No role yet",
+          translations: { "zh-CN": "暂不设置角色" }
+        }
+      }, {
+        value: "CUSTOMER",
+        label: {
+          default: "Customer",
+          translations: { "zh-CN": "客户" }
+        }
+      }, {
+        value: "SUPPLIER",
+        label: {
+          default: "Supplier",
+          translations: { "zh-CN": "供应商" }
+        }
+      }, {
+        value: "BOTH",
+        label: {
+          default: "Customer + Supplier",
+          translations: { "zh-CN": "客户 + 供应商" }
+        }
+      }]
+    }],
     objectType: "counterparty.subject",
     ownerPackageId: "evo-counterparty",
 
