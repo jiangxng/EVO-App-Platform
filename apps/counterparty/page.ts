@@ -152,6 +152,7 @@ export function createCounterpartyDirectoryPageV010(input: {
     kind: "catalog-browser",
     layout: "list",
     density: "compact",
+    itemActivation: "primary-action",
     id: "evo-counterparty.directory",
     title: text.title,
     description: text.description,
@@ -182,10 +183,6 @@ export function createCounterpartyDirectoryPageV010(input: {
     items: input.counterparties.map(counterparty => ({
         id: counterparty.counterpartyId,
         title: counterparty.displayName,
-        summary: `${counterparty.code} · ${subjectTypeLabel(
-          counterparty.subjectType,
-          input.locale
-        )}`,
         status: {
           label:
             counterparty.status === "ACTIVE"
