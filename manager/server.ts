@@ -851,6 +851,9 @@ import {
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
 import {
+  objectExtensionAuthorizationPolicyV010
+} from "../apps/object-extension/authorization.js";
+import {
   createObjectExtensionRepositoryV010
 } from "../apps/object-extension/repository.js";
 import {
@@ -1815,6 +1818,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   enterpriseContextGovernanceAuthorizationPolicyV010,
   eogDefinitionProjectionAuthorizationPolicyV010,
   dataImportAuthorizationPolicyV010,
+  objectExtensionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
