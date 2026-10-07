@@ -72,7 +72,58 @@ function mappedValues(input: {
   return values;
 }
 
+function normalizedHeader(value: string): string {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
+}
+
+export function suggestDataImportMappingV010(input: {
+  schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
+  source: DataImportSourceV010;
+}): DataImportMappingV010[] {
+  const candidates = fieldsForSurfaceV010(input.schema, "IMPORT")
+    .filter(field => field.writable);
+  const byAlias = new Map<string, string[]>();
+  for (const field of candidates) {
+    for (const alias of [
+      field.fieldId,
+      field.resolvedLabel,
+      field.label.default
+    ]) {
+      const key = normalizedHeader(alias);
+      const existing = byAlias.get(key) ?? [];
+      if (!existing.includes(field.fieldId)) existing.push(field.fieldId);
+      byAlias.set(key, existing);
+    }
+  }
+
+  const usedTargets = new Set<string>();
+  const mapping: DataImportMappingV010[] = [];
+  for (const sourceColumn of input.source.headers) {
+    const matches = byAlias.get(normalizedHeader(sourceColumn)) ?? [];
+    const targetFieldId = matches.find(item => !usedTargets.has(item));
+    if (!targetFieldId) continue;
+    usedTargets.add(targetFieldId);
+    mapping.push({ sourceColumn, targetFieldId });
+  }
+  return mapping;
+}
+
 export interface DataImportServiceV010 {
+  suggestMapping(input: {
+    schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
+    source: DataImportSourceV010;
+  }): DataImportMappingV010[];
+  updateMapping(input: {
+    contextId: string;
+    importJobId: string;
+    mapping: DataImportMappingV010[];
+    actorSubjectId: string;
+    recordedAt: string;
+  }): DataImportJobV010;
   stage(input: {
     contextId: string;
     importJobId: string;
@@ -115,6 +166,34 @@ export function createDataImportServiceV010(input: {
   }
 
   return {
+    suggestMapping(mappingInput) {
+      return suggestDataImportMappingV010(mappingInput);
+    },
+
+    updateMapping(mappingInput) {
+      const job = input.repository.get(
+        mappingInput.contextId,
+        mappingInput.importJobId
+      );
+      if (!job) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+      if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
+        throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+      }
+      const next: DataImportJobV010 = {
+        ...job,
+        state: "STAGED",
+        mapping: structuredClone(mappingInput.mapping),
+        dryRun: undefined,
+        receipt: undefined
+      };
+      return input.repository.save({
+        contextId: mappingInput.contextId,
+        job: next,
+        actorSubjectId: mappingInput.actorSubjectId,
+        recordedAt: mappingInput.recordedAt
+      });
+    },
+
     stage(stageInput) {
       const contextId = required(
         stageInput.contextId,
