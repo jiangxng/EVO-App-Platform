@@ -82,6 +82,7 @@ For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`.
 
 Before adding fields, import, projection, responsibility, workbench, permissions or LLM adaptation behavior to Counterparty, Item, Warehouse/Location or another Foundation Object, read:
 
+- `docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md` (canonical persistence/container authority)
 - `docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md`
 - `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 - `docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md`
@@ -107,6 +108,8 @@ BusinessData / Posting / Ledger / Replay deterministic runtime
 ```
 
 Counterparty is the first reference object, not the owner of generic Foundation Object infrastructure. Shared contracts remain EXPERIMENTAL until a materially different second object (Item/Product) proves reuse.
+
+Enterprise Context is the persistent enterprise Resource Container / data plane. It provides scope, namespace, access, lifecycle and persistence; object/application plugins define resource semantics. Never move Foundation Object business meaning into Enterprise Context Core, and never bypass the Enterprise Resource boundary with an ungoverned private durable store.
 
 ## Current handoff / fresh-chat bootstrap
 
