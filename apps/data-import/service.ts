@@ -91,7 +91,8 @@ export function suggestDataImportMappingV010(input: {
     for (const alias of [
       field.fieldId,
       field.resolvedLabel,
-      field.label.default
+      field.label.default,
+      ...Object.values(field.label.translations ?? {})
     ]) {
       const key = normalizedHeader(alias);
       const existing = byAlias.get(key) ?? [];
