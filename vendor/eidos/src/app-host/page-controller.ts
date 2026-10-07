@@ -146,6 +146,18 @@ export interface AppHostActionRenderHintV010 {
   preserveMountedPage?: boolean;
 }
 
+export interface ContextualAgentInteractionV010 {
+  contractVersion: "0.1.0";
+  prompt: string;
+  agentCapability?: string;
+  source: {
+    pageId: string;
+    route: string;
+    actionId: string;
+  };
+  context?: Record<string, JsonValue>;
+}
+
 export interface MountAppHostPageOptions {
   page: AppHostLoadedPageV010;
   container: HTMLElement;
@@ -158,12 +170,20 @@ export interface MountAppHostPageOptions {
     page: AppHostLoadedPageV010,
     renderHint?: AppHostActionRenderHintV010
   ) => void | Promise<void>;
+  onAgentAction?: (
+    interaction: ContextualAgentInteractionV010,
+    page: AppHostLoadedPageV010
+  ) => void | Promise<void>;
   chatState?: AppHostChatState;
 }
 
 export interface MountedAppHostPage {
   resourceIds?: readonly string[];
   refresh?(): Promise<void>;
+  submitChatPrompt?(
+    prompt: string,
+    interactionContext?: Record<string, JsonValue>
+  ): Promise<void>;
   dispose(): void;
 }
 
@@ -791,6 +811,46 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   listeners.push(bindDelegatedAppHostActionsV010(container, executeHostAction));
 
   const definition = page.definition;
+
+  if (
+    definition !== null
+    && typeof definition === "object"
+    && !Array.isArray(definition)
+    && (definition as { kind?: unknown }).kind === "form"
+  ) {
+    const document = assertValidUidl(definition);
+    const agentButtons =
+      container.querySelectorAll<HTMLButtonElement>("[data-eidos-agent-action]");
+    for (const button of Array.from(agentButtons)) {
+      const actionId = button.dataset.eidosAgentAction?.trim();
+      const action = document.actions.find(item =>
+        item.type === "agent" && item.id === actionId
+      );
+      if (!action?.prompt) continue;
+
+      const handler = () => {
+        if (!options.onAgentAction) return;
+        void options.onAgentAction({
+          contractVersion: "0.1.0",
+          prompt: action.prompt!,
+          ...(action.agentCapability
+            ? { agentCapability: action.agentCapability }
+            : {}),
+          source: {
+            pageId: page.page.id,
+            route: page.route.path,
+            actionId: action.id
+          },
+          ...(action.context
+            ? { context: structuredClone(action.context) }
+            : {})
+        }, page);
+      };
+      button.addEventListener("click", handler);
+      listeners.push(() => button.removeEventListener("click", handler));
+    }
+  }
+
   if (isChatExperienceV010(definition) || isChatExperienceV020(definition)) {
     const state = options.chatState ?? { messages: [] };
     const transcript = container.querySelector<HTMLElement>("[data-eidos-chat-transcript]");
@@ -805,6 +865,12 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       element: HTMLElement;
     }>();
     let transcriptFrame: number | undefined;
+    let submitChatPrompt:
+      | ((
+          prompt: string,
+          interactionContext?: Record<string, JsonValue>
+        ) => Promise<void>)
+      | undefined;
 
     const patchTranscript = () => {
       if (!transcript) return;
@@ -1647,7 +1713,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       }
 
       if (threadBacked) void refreshThreadHistory();
-      const submit = async () => {
+      const submit = async (
+        interactionContext?: Record<string, JsonValue>
+      ) => {
         const message = textarea.value.trim();
         if (!message) return;
 
@@ -1707,7 +1775,14 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                   }))
                 }
               : {}),
-            ...contextValues()
+            ...contextValues(),
+            ...(interactionContext
+              ? {
+                  interactionContext: structuredClone(
+                    interactionContext
+                  )
+                }
+              : {})
           };
 
           const request = baseChatRequest(values);
@@ -1818,6 +1893,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         }
       };
 
+      submitChatPrompt = async (
+        prompt: string,
+        interactionContext?: Record<string, JsonValue>
+      ): Promise<void> => {
+        const normalized = prompt.trim();
+        if (!normalized) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_PROMPT_REQUIRED");
+        }
+        if (runTransportInFlight) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
+        }
+        textarea.value = normalized;
+        await submit(interactionContext);
+      };
+
       const recoverDurableRun = async (): Promise<void> => {
         if (!runBacked || !options.actionHost || runTransportInFlight) return;
         const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
@@ -1918,6 +2008,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     }
 
     return {
+      ...(submitChatPrompt ? { submitChatPrompt } : {}),
       dispose() {
         if (
           transcriptFrame !== undefined
