@@ -529,6 +529,21 @@ form[data-eidos-id] [data-eidos-form-actions] button[data-eidos-primary="true"]{
 form[data-eidos-id] [data-eidos-form-actions] button:not([data-eidos-primary="true"]):hover{
   background:var(--eidos-bg-hover);
 }
+
+[data-eidos-collection-heading]{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:var(--eidos-space-lg);
+  margin-top:var(--eidos-space-section);
+  padding-top:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);
+}
+[data-eidos-collection-heading] h2{
+  margin:0;font-size:var(--eidos-font-body);line-height:1.35;font-weight:650;
+}
+[data-eidos-collection-heading] p{
+  margin:4px 0 0;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);line-height:1.45;
+}
 [data-eidos-context-navigation]{
   min-width:0;min-height:22px;color:var(--eidos-fg-muted);
   font-size:var(--eidos-font-meta);line-height:1.4;
@@ -581,7 +596,7 @@ form[data-eidos-id] [data-eidos-form-actions]{
   padding:0;background:transparent;
 }
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{
-  display:block;margin-top:var(--eidos-space-xl);
+  display:block;margin-top:var(--eidos-space-md);
   border:1px solid var(--eidos-border);
   border-radius:var(--eidos-radius-md);
   overflow:hidden;background:var(--eidos-bg);
