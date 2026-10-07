@@ -107,6 +107,73 @@ function createRepository(
   read: () => EnterpriseResourceStoreSnapshotV010,
   write: (snapshot: EnterpriseResourceStoreSnapshotV010) => void
 ): EnterpriseResourceRepositoryV010 {
+  const buildPutResource = (
+    input: EnterpriseResourcePutInputV010,
+    previous?: EnterpriseResourceV010
+  ): EnterpriseResourceV010 => {
+    const recordedAt = timestamp(
+      input.recordedAt,
+      "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"
+    );
+    const actorSubjectId = required(
+      input.actorSubjectId,
+      "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
+    );
+    return validateResource({
+      contractVersion: "0.1.0",
+      contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
+      namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
+      collectionId: required(
+        input.collectionId,
+        "ENTERPRISE_RESOURCE_COLLECTION_REQUIRED"
+      ),
+      resourceType: required(input.resourceType, "ENTERPRISE_RESOURCE_TYPE_REQUIRED"),
+      resourceId: required(input.resourceId, "ENTERPRISE_RESOURCE_ID_REQUIRED"),
+      schemaRef: required(input.schemaRef, "ENTERPRISE_RESOURCE_SCHEMA_REQUIRED"),
+      ...(input.ownerPackageId?.trim()
+        ? { ownerPackageId: input.ownerPackageId.trim() }
+        : {}),
+      storageKind: input.storageKind ?? "DOCUMENT",
+      ...(input.payload !== undefined ? { payload: clone(input.payload) } : {}),
+      ...(input.payloadRef?.trim() ? { payloadRef: input.payloadRef.trim() } : {}),
+      ...(input.metadata ? { metadata: clone(input.metadata) } : {}),
+      lifecycleState: "ACTIVE",
+      createdAt: previous?.createdAt ?? recordedAt,
+      createdBySubjectId: previous?.createdBySubjectId ?? actorSubjectId,
+      updatedAt: recordedAt,
+      updatedBySubjectId: actorSubjectId
+    });
+  };
+
+  const putMany = (
+    inputs: readonly EnterpriseResourcePutInputV010[]
+  ): EnterpriseResourceV010[] => {
+    if (inputs.length === 0) return [];
+    const current = read();
+    const byKey = new Map(
+      current.resources.map(resource => [addressKey(resource), resource])
+    );
+    const batchKeys = new Set<string>();
+    const saved: EnterpriseResourceV010[] = [];
+
+    for (const input of inputs) {
+      const key = addressKey(input);
+      if (batchKeys.has(key)) {
+        throw new Error("ENTERPRISE_RESOURCE_BATCH_ADDRESS_DUPLICATE");
+      }
+      batchKeys.add(key);
+      const next = buildPutResource(input, byKey.get(key));
+      byKey.set(key, next);
+      saved.push(next);
+    }
+
+    write({
+      contractVersion: "0.1.0",
+      resources: [...byKey.values()]
+    });
+    return saved.map(clone);
+  };
+
   return {
     get(address) {
       const key = addressKey(address);
@@ -146,49 +213,11 @@ function createRepository(
     },
 
     put(input: EnterpriseResourcePutInputV010) {
-      const current = read();
-      const key = addressKey(input);
-      const previous = current.resources.find(item => addressKey(item) === key);
-      const recordedAt = timestamp(
-        input.recordedAt,
-        "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"
-      );
-      const actorSubjectId = required(
-        input.actorSubjectId,
-        "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
-      );
-      const next = validateResource({
-        contractVersion: "0.1.0",
-        contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
-        namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
-        collectionId: required(
-          input.collectionId,
-          "ENTERPRISE_RESOURCE_COLLECTION_REQUIRED"
-        ),
-        resourceType: required(input.resourceType, "ENTERPRISE_RESOURCE_TYPE_REQUIRED"),
-        resourceId: required(input.resourceId, "ENTERPRISE_RESOURCE_ID_REQUIRED"),
-        schemaRef: required(input.schemaRef, "ENTERPRISE_RESOURCE_SCHEMA_REQUIRED"),
-        ...(input.ownerPackageId?.trim()
-          ? { ownerPackageId: input.ownerPackageId.trim() }
-          : {}),
-        storageKind: input.storageKind ?? "DOCUMENT",
-        ...(input.payload !== undefined ? { payload: clone(input.payload) } : {}),
-        ...(input.payloadRef?.trim() ? { payloadRef: input.payloadRef.trim() } : {}),
-        ...(input.metadata ? { metadata: clone(input.metadata) } : {}),
-        lifecycleState: "ACTIVE",
-        createdAt: previous?.createdAt ?? recordedAt,
-        createdBySubjectId: previous?.createdBySubjectId ?? actorSubjectId,
-        updatedAt: recordedAt,
-        updatedBySubjectId: actorSubjectId
-      });
-      write({
-        contractVersion: "0.1.0",
-        resources: [
-          ...current.resources.filter(item => addressKey(item) !== key),
-          next
-        ]
-      });
-      return clone(next);
+      return putMany([input])[0];
+    },
+
+    putMany(inputs) {
+      return putMany(inputs);
     },
 
     archive(input) {
