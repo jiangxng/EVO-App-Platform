@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `counterparty-relationship-roles-v0-2-merged-2026-10-07`  
-**Snapshot time:** `2026-10-07T01:08:53.000Z`  
+**Snapshot:** `foundation-object-program-architecture-2026-10-07`  
+**Snapshot time:** `2026-10-07T11:16:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -469,6 +469,10 @@ Not proved:
 - do not rename the product/domain to 往来; the canonical name is 往来对象 / Counterparty
 - do not recreate Customer or Supplier as separate master identities; model them as roles/relationships on one stable Counterparty
 - do not copy legacy dealerLabelName as a comma-separated identity field
+- Do not implement generic ImportJob/Staging/Mapping, enterprise custom-field registry, EffectiveObjectSchema compiler, generic Projection execution, Responsibility framework, Personal Workbench framework or LLM adaptation pipeline inside apps/counterparty.
+- Do not stabilize a shared Foundation Object contract from Counterparty evidence alone; Item/Product is the required second-object anti-overfit proof.
+- Do not start Item/Warehouse as separate bespoke stacks; they must consume the shared Foundation Object contracts created from the Counterparty vertical proof.
+- Do not expand Foundation Objects indefinitely before business use; after Counterparty + Item + Warehouse/Location, move the mainline into the Trading Reference Loop.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -674,6 +678,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Counterparty / 往来对象 v0.1 core master-data loop as production-complete through PR #417
 - state Eidos PR #127 initialValue support as the generic edit-form mechanism used by Counterparty
 - state Counterparty Relationship Roles v0.2 as the current live milestone
+- state the Foundation Object Program as the active short-term mainline after the current Counterparty v0.2 Human validation gate
+- state Counterparty as the first Foundation Object reference implementation, not the owner of generic import/extension/projection/responsibility/workbench/adaptation infrastructure
+- state FO-01 Shared Foundation Object contracts + EffectiveObjectSchema compiler as the next implementation gate after Counterparty v0.2 Human pass
+- state shared Foundation Object contracts as EXPERIMENTAL until Item/Product provides the materially different second-object proof
+- state the program sequence as Counterparty -> Item/Product -> Warehouse/Location -> Trading Reference Loop rather than building every master-data object first
+- state generic Data Import, Enterprise Adaptation and Responsibility capabilities as separate reusable product/application capabilities, not Counterparty-private infrastructure
 
 No previous ChatGPT transcript is required.
 
