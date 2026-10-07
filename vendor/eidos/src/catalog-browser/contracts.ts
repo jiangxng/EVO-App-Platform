@@ -1,4 +1,7 @@
 import type { JsonValue } from "../runtime/contracts.js";
+import type {
+  EidosContextNavigationV010
+} from "../navigation/context-navigation.js";
 export type CatalogStatusTone = "neutral" | "positive" | "warning";
 
 export interface CatalogBrowserActionV010 {
@@ -14,6 +17,7 @@ export interface CatalogBrowserActionV010 {
   enabled?: boolean;
   disabledReason?: string;
   helpText?: string;
+  primary?: boolean;
   values?: Record<string, JsonValue>;
 }
 
@@ -44,9 +48,12 @@ export interface CatalogBrowserV010 {
    * list: management/work records where scanning and direct actions dominate.
    */
   layout?: "grid" | "list";
+  density?: "comfortable" | "compact";
   id: string;
   title: string;
   description?: string;
+  contextNavigation?: EidosContextNavigationV010;
+  actions?: CatalogBrowserActionV010[];
   search?: {
     placeholder?: string;
     ariaLabel?: string;

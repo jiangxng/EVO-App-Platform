@@ -1,4 +1,8 @@
 import type { CatalogBrowserV010 } from "./contracts.js";
+import {
+  assertContextNavigationV010,
+  renderContextNavigationV010
+} from "../navigation/context-navigation.js";
 
 function esc(value: unknown): string {
   return String(value ?? "")
@@ -16,6 +20,29 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   if (!input.id || !input.title || !Array.isArray(input.items)) {
     throw new Error("EIDOS_CATALOG_INVALID");
   }
+  if (
+    input.density !== undefined
+    && input.density !== "comfortable"
+    && input.density !== "compact"
+  ) {
+    throw new Error("EIDOS_CATALOG_DENSITY_INVALID");
+  }
+  assertContextNavigationV010(input.contextNavigation);
+  if (input.actions !== undefined) {
+    if (!Array.isArray(input.actions)) {
+      throw new Error("EIDOS_CATALOG_PAGE_ACTIONS_INVALID");
+    }
+    const actionIds = new Set<string>();
+    for (const action of input.actions) {
+      if (!action?.id?.trim() || !action.label?.trim()) {
+        throw new Error("EIDOS_CATALOG_PAGE_ACTION_INVALID");
+      }
+      if (actionIds.has(action.id)) {
+        throw new Error("EIDOS_CATALOG_PAGE_ACTION_DUPLICATE");
+      }
+      actionIds.add(action.id);
+    }
+  }
   const ids = new Set<string>();
   for (const item of input.items) {
     if (!item.id || !item.title) throw new Error("EIDOS_CATALOG_ITEM_INVALID");
@@ -28,7 +55,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   return input;
 }
 
-function actionButton(itemId: string, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean): string {
+function actionButton(itemId: string | undefined, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean): string {
   if (action.type === "download") {
     if (!action.href?.startsWith("/")) {
       throw new Error("EIDOS_CATALOG_DOWNLOAD_HREF_INVALID");
@@ -39,7 +66,7 @@ function actionButton(itemId: string, action: import("./contracts.js").CatalogBr
     const help = action.helpText
       ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>`
       : "";
-    return `<span data-eidos-action-wrap><a data-eidos-catalog-download="${esc(action.id)}" data-eidos-item-id="${esc(itemId)}" data-eidos-primary="${primary ? "true" : "false"}" href="${esc(action.href)}"${downloadName}>${esc(action.label)}</a>${help}</span>`;
+    return `<span data-eidos-action-wrap><a data-eidos-catalog-download="${esc(action.id)}"${itemId ? ` data-eidos-item-id="${esc(itemId)}"` : ""} data-eidos-primary="${primary ? "true" : "false"}" href="${esc(action.href)}"${downloadName}>${esc(action.label)}</a>${help}</span>`;
   }
   const command = action.command ? ` data-eidos-command="${esc(action.command)}"` : "";
   const values = action.values
@@ -51,7 +78,7 @@ function actionButton(itemId: string, action: import("./contracts.js").CatalogBr
   const disabled = enabled ? "" : " disabled";
   const reason = action.disabledReason ? ` data-eidos-disabled-reason="${esc(action.disabledReason)}" title="${esc(action.disabledReason)}"` : "";
   const help = action.helpText ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>` : "";
-  return `<span data-eidos-action-wrap><button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}" data-eidos-item-id="${esc(itemId)}" data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}${values}${reason}${disabled}>${esc(action.label)}</button>${help}</span>`;
+  return `<span data-eidos-action-wrap><button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}"${itemId ? ` data-eidos-item-id="${esc(itemId)}"` : ""} data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}${values}${reason}${disabled}>${esc(action.label)}</button>${help}</span>`;
 }
 
 export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
@@ -92,5 +119,25 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     ? `<p data-eidos-catalog-search-empty hidden>${esc(model.search.noResultsMessage ?? "No matching items.")}</p>`
     : "";
 
-  return `<section data-eidos-capability="catalog-browser" data-eidos-id="${esc(model.id)}" data-eidos-catalog-layout="${esc(model.layout ?? "grid")}"><header><h1>${esc(model.title)}</h1>${model.description ? `<p>${esc(model.description)}</p>` : ""}</header>${search}<div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>${noResults}</section>`;
+  const pageActions = (model.actions ?? [])
+    .map(action =>
+      actionButton(undefined, action, action.primary === true)
+    )
+    .join("");
+
+  return `<section data-eidos-capability="catalog-browser" data-eidos-id="${esc(model.id)}" data-eidos-catalog-layout="${esc(model.layout ?? "grid")}" data-eidos-catalog-density="${esc(model.density ?? "comfortable")}">
+<header data-eidos-page-header>
+${renderContextNavigationV010(model.contextNavigation)}
+<div data-eidos-page-heading>
+<div data-eidos-page-heading-copy>
+<h1>${esc(model.title)}</h1>
+${model.description ? `<p data-eidos-page-description>${esc(model.description)}</p>` : ""}
+</div>
+${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
+</div>
+</header>
+${search}
+<div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>
+${noResults}
+</section>`;
 }

@@ -118,7 +118,10 @@ for (const visualMarker of [
   "--eidos-primary:#2B6CB0",
   "--eidos-bg-selected:#EAF2FB",
   'data-eidos-workspace-mode="app"',
-  "data-eidos-activity-label"
+  "data-eidos-activity-label",
+  "data-eidos-page-heading",
+  "data-eidos-context-navigation",
+  'data-eidos-catalog-density="compact"'
 ]) {
   if (!eidosProductiveWorkbenchCss.includes(visualMarker)) {
     problems.push("Vendored Eidos business-office realization is incomplete: " + visualMarker);

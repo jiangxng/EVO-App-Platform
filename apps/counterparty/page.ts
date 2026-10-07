@@ -39,6 +39,7 @@ function textFor(locale?: string) {
         search: "搜索编码或名称",
         empty: "还没有往来对象。",
         create: "新建往来对象",
+        import: "导入",
         createSummary: "建立一个新的企业往来主体。",
         organization: "机构",
         person: "个人",
@@ -83,6 +84,7 @@ function textFor(locale?: string) {
         search: "Search code or name",
         empty: "No counterparties yet.",
         create: "New counterparty",
+        import: "Import",
         createSummary: "Create a new enterprise counterparty identity.",
         organization: "Organization",
         person: "Person",
@@ -141,6 +143,7 @@ function relationshipRoleLabel(
 
 export function createCounterpartyDirectoryPageV010(input: {
   counterparties: readonly CounterpartySubjectV010[];
+  importRoute?: string;
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -148,16 +151,35 @@ export function createCounterpartyDirectoryPageV010(input: {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     layout: "list",
+    density: "compact",
     id: "evo-counterparty.directory",
     title: text.title,
     description: text.description,
+    actions: [
+      ...(input.importRoute
+        ? [{
+            id: "import",
+            label: text.import,
+            type: "navigate" as const,
+            route: input.importRoute,
+            requiresConfirmation: false
+          }]
+        : []),
+      {
+        id: "create",
+        label: text.create,
+        type: "navigate",
+        route: COUNTERPARTY_CREATE_ROUTE,
+        requiresConfirmation: false,
+        primary: true
+      }
+    ],
     search: {
       placeholder: text.search,
       ariaLabel: text.search,
       noResultsMessage: text.empty
     },
-    items: [
-      ...input.counterparties.map(counterparty => ({
+    items: input.counterparties.map(counterparty => ({
         id: counterparty.counterpartyId,
         title: counterparty.displayName,
         summary: `${counterparty.code} · ${subjectTypeLabel(
@@ -197,20 +219,6 @@ export function createCounterpartyDirectoryPageV010(input: {
           requiresConfirmation: false
         }
       })),
-      {
-        id: "counterparty:create",
-        title: text.create,
-        summary: text.createSummary,
-        category: "ACTION",
-        primaryAction: {
-          id: "create",
-          label: text.create,
-          type: "navigate" as const,
-          route: COUNTERPARTY_CREATE_ROUTE,
-          requiresConfirmation: false
-        }
-      }
-    ],
     emptyMessage: text.empty
   };
 }
@@ -234,9 +242,27 @@ export function createCounterpartyDetailPageV010(input: {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     layout: "list",
+    density: "compact",
     id: "evo-counterparty.detail",
     title: subject.displayName,
     description: text.detailDescription,
+    contextNavigation: {
+      items: [{
+        id: "counterparties",
+        label: text.title,
+        route: COUNTERPARTY_DIRECTORY_ROUTE
+      }, {
+        id: "counterparty",
+        label: subject.displayName
+      }]
+    },
+    actions: [{
+      id: "edit",
+      label: text.edit,
+      type: "navigate",
+      route: counterpartyEditRouteV010(subject.counterpartyId),
+      requiresConfirmation: false
+    }],
     items: [{
       id: subject.counterpartyId,
       title: subject.displayName,
@@ -272,20 +298,7 @@ export function createCounterpartyDetailPageV010(input: {
         ...(subject.phone ? { [text.phone]: subject.phone } : {}),
         ...(subject.email ? { [text.email]: subject.email } : {})
       },
-      primaryAction: {
-        id: "back",
-        label: text.back,
-        type: "navigate",
-        route: COUNTERPARTY_DIRECTORY_ROUTE,
-        requiresConfirmation: false
-      },
       secondaryActions: [{
-        id: "edit",
-        label: text.edit,
-        type: "navigate",
-        route: counterpartyEditRouteV010(subject.counterpartyId),
-        requiresConfirmation: false
-      }, {
         id: "toggle-customer-role",
         label: activeRoleCodes.has("CUSTOMER")
           ? text.removeCustomerRole
@@ -366,6 +379,17 @@ export function createCounterpartyCreatePageV010(locale?: string) {
     kind: "form",
     id: "evo-counterparty.create",
     title: text.formTitle,
+    description: text.formDescription,
+    contextNavigation: {
+      items: [{
+        id: "counterparties",
+        label: text.title,
+        route: COUNTERPARTY_DIRECTORY_ROUTE
+      }, {
+        id: "create",
+        label: text.formTitle
+      }]
+    },
     purpose: "execute-command",
     command: {
       code: COUNTERPARTY_CREATE_COMMAND,
@@ -402,6 +426,21 @@ export function createCounterpartyEditPageV010(input: {
     kind: "form",
     id: "evo-counterparty.edit",
     title: text.editFormTitle,
+    description: text.formDescription,
+    contextNavigation: {
+      items: [{
+        id: "counterparties",
+        label: text.title,
+        route: COUNTERPARTY_DIRECTORY_ROUTE
+      }, {
+        id: "counterparty",
+        label: subject.displayName,
+        route: counterpartyDetailRouteV010(subject.counterpartyId)
+      }, {
+        id: "edit",
+        label: text.editFormTitle
+      }]
+    },
     purpose: "execute-command",
     command: {
       code: COUNTERPARTY_UPDATE_COMMAND,

@@ -488,6 +488,22 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   if (typeof rendered === "string") container.innerHTML = rendered;
   else container.replaceChildren(rendered);
 
+  const contextNavigationHandler = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>(
+      "[data-eidos-context-route]"
+    );
+    if (!button || !container.contains(button)) return;
+    const route = button.dataset.eidosContextRoute;
+    if (!route?.startsWith("/")) return;
+    void options.onNavigate?.(route);
+  };
+  container.addEventListener("click", contextNavigationHandler);
+  listeners.push(() =>
+    container.removeEventListener("click", contextNavigationHandler)
+  );
+
   if (isDiagramEditorPageV010(page.definition)) {
     if (!options.actionHost) {
       throw new Error("EIDOS_DIAGRAM_EDITOR_ACTION_HOST_REQUIRED");

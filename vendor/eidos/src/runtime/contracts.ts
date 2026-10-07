@@ -1,3 +1,4 @@
+import type { EidosContextNavigationV010 } from "../navigation/context-navigation.js";
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 export type UidlControl = "text" | "number" | "money" | "select" | "date" | "reference" | "file";
@@ -34,13 +35,17 @@ export interface UidlAction {
 }
 export interface UidlFormV011 {
   contractVersion: "0.1.1"; kind: "form"; id: string; title: string; purpose: "execute-command";
+  description?: string;
+  contextNavigation?: EidosContextNavigationV010;
   command: { code: string; inputVersion: string };
   fields: UidlField[]; actions: UidlAction[]; metadata?: Record<string, JsonValue>;
 }
 export interface RenderFieldV010 extends UidlField { inputName: string }
 export interface FormRenderModelV010 {
   modelVersion: "0.1.0"; sourceContractVersion: "0.1.1"; kind: "form";
-  id: string; title: string; command: { code: string; inputVersion: string };
+  id: string; title: string; description?: string;
+  contextNavigation?: EidosContextNavigationV010;
+  command: { code: string; inputVersion: string };
   fields: RenderFieldV010[];
   submitAction: { id: string; label: string; requiresConfirmation: boolean };
   cancelActions: Array<{ id: string; label: string }>;

@@ -9,6 +9,10 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
     kind: "form",
     id: doc.id,
     title: doc.title,
+    ...(doc.description ? { description: doc.description } : {}),
+    ...(doc.contextNavigation
+      ? { contextNavigation: structuredClone(doc.contextNavigation) }
+      : {}),
     command: { ...doc.command },
     fields: doc.fields.map(field => ({
       ...field,

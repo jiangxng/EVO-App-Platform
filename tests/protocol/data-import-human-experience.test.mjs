@@ -178,6 +178,12 @@ test("Data Import Human experience exposes target selection, file upload and tar
     target,
     locale: "zh-CN"
   });
+  assert.deepEqual(
+    upload.contextNavigation.items.map(item => [item.label, item.route]),
+    [["数据导入", "/data-import"], ["上传数据文件", undefined]]
+  );
+  assert.match(upload.description, /CSV \/ XLSX/);
+
   const file = upload.fields.find(field => field.key === "file");
   assert.equal(file.control, "file");
   assert.ok(file.accept.includes(".xlsx"));
@@ -191,6 +197,8 @@ test("Data Import Human experience exposes target selection, file upload and tar
   const html = renderToHtml(upload);
   assert.match(html, /type="file"/);
   assert.match(html, /\.xlsx/);
+  assert.match(html, /data-eidos-context-navigation/);
+  assert.match(html, /data-eidos-page-description/);
 
   const validated = validateValues(upload, {
     targetId: "counterparty.subject",
@@ -249,6 +257,11 @@ test("mapping and review pages keep validation and commit explicit", () => {
     locale: "zh-CN"
   });
   assert.equal(mappingPage.command.code, "data-import.review");
+  assert.deepEqual(
+    mappingPage.contextNavigation.items.map(item => [item.label, item.route]),
+    [["数据导入", "/data-import"], ["字段映射", undefined]]
+  );
+  assert.match(mappingPage.description, /确认每一列对应的 EVO 字段/);
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
@@ -298,14 +311,26 @@ test("mapping and review pages keep validation and commit explicit", () => {
     locale: "zh-CN"
   });
   const summary = reviewPage.items[0];
+  assert.equal(reviewPage.density, "compact");
+  assert.deepEqual(
+    reviewPage.contextNavigation.items.map(item => [item.label, item.route]),
+    [
+      ["数据导入", "/data-import"],
+      ["字段映射", "/data-import/jobs/import-human-1/map"],
+      ["导入预检查", undefined]
+    ]
+  );
   assert.equal(summary.status.label, "预检查通过");
+  assert.equal(summary.primaryAction, undefined);
+  assert.equal(summary.secondaryActions, undefined);
   assert.ok(
-    summary.secondaryActions.some(action =>
+    reviewPage.actions.some(action =>
       action.command === "data-import.commit"
+      && action.primary === true
     )
   );
   assert.ok(
-    summary.secondaryActions.some(action =>
+    reviewPage.actions.some(action =>
       action.type === "navigate"
       && action.route === "/data-import/jobs/import-human-1/map"
     )

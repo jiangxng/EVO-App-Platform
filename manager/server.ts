@@ -815,6 +815,7 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../apps/counterparty/roles.js";
 import {
+  COUNTERPARTY_IMPORT_TARGET_V010,
   createCounterpartyImportTargetV010
 } from "../apps/counterparty/import-target.js";
 import {
@@ -833,6 +834,7 @@ import {
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   DATA_IMPORT_UPLOAD_PAGE_SOURCE,
+  dataImportUploadRouteV010,
   parseDataImportMappingRouteV010,
   parseDataImportReviewRouteV010,
   parseDataImportUploadRouteV010
@@ -6002,6 +6004,15 @@ const server = createServer(async (request, response) => {
             module.createCounterpartyDirectoryPageV010({
               counterparties:
                 counterpartyRepository.list(active.contextId),
+              ...(dataImportTargets.some(target =>
+                target.targetId === COUNTERPARTY_IMPORT_TARGET_V010
+              )
+                ? {
+                    importRoute: dataImportUploadRouteV010(
+                      COUNTERPARTY_IMPORT_TARGET_V010
+                    )
+                  }
+                : {}),
               locale: requestedLocale(url)
             })
           );
