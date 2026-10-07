@@ -43,8 +43,10 @@ function text(locale?: string) {
         relationshipRole: "关系角色",
         mappingTitle: "字段映射",
         mappingDescription:
-          "确认每一列对应的 EVO 字段。系统已按字段 ID、中文/英文名称自动匹配，可忽略不需要的列。",
+          "确认每一列对应的 EVO 字段。系统已按字段 ID、中文/英文名称自动匹配，可忽略不需要的列。AI 设置的批次固定值和值转换会在下方显示，并在未被明确修改时保留。",
         ignore: "忽略此列",
+        batchConstant: "批次固定值",
+        valueTransform: "值转换",
         aiMap: "AI 自动匹配",
         aiMapPrompt: "帮我做字段映射",
         validate: "保存映射并预检查",
@@ -80,8 +82,10 @@ function text(locale?: string) {
         relationshipRole: "Relationship role",
         mappingTitle: "Field mapping",
         mappingDescription:
-          "Confirm how each source column maps to EVO fields. Matching by field ID and localized labels is suggested automatically.",
+          "Confirm how each source column maps to EVO fields. Matching by field ID and localized labels is suggested automatically. AI-provided batch constants and value transforms are shown below and are preserved unless explicitly replaced.",
         ignore: "Ignore this column",
+        batchConstant: "Batch constant",
+        valueTransform: "Value transform",
         aiMap: "AI auto-match",
         aiMapPrompt: "Help me map the fields for this import.",
         validate: "Save mapping and validate",
@@ -261,8 +265,46 @@ export function createDataImportMappingPageV010(input: {
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
     .filter(field => field.writable);
   const current = new Map(
-    input.job.mapping.map(item => [item.sourceColumn, item.targetFieldId])
+    input.job.mapping
+      .filter(item => Boolean(item.sourceColumn))
+      .map(item => [item.sourceColumn!, item.targetFieldId] as const)
   );
+  const fieldLabel = new Map(
+    importFields.map(field => [
+      field.fieldId,
+      field.resolvedLabel + " · " + field.fieldId
+    ] as const)
+  );
+  const advancedFields = input.job.mapping
+    .filter(item => Boolean(item.transform))
+    .map((item, index) => {
+      const label = fieldLabel.get(item.targetFieldId) ?? item.targetFieldId;
+      if (item.transform?.kind === "CONSTANT") {
+        return {
+          key: "advanced_" + index,
+          label: t.batchConstant + " · " + label,
+          semanticType: "data-import-batch-constant",
+          control: "text" as const,
+          required: false,
+          readOnly: true,
+          initialValue: String(item.transform.value ?? "")
+        };
+      }
+      return {
+        key: "advanced_" + index,
+        label: t.valueTransform + " · "
+          + (item.sourceColumn ?? "")
+          + " → " + label,
+        semanticType: "data-import-value-transform",
+        control: "text" as const,
+        required: false,
+        readOnly: true,
+        initialValue: item.transform.entries
+          .map(entry => String(entry.source ?? "")
+            + " → " + String(entry.target ?? ""))
+          .join("; ")
+      };
+    });
 
   return {
     contractVersion: "0.1.1" as const,
@@ -299,7 +341,7 @@ export function createDataImportMappingPageV010(input: {
         value: field.fieldId,
         label: field.resolvedLabel + " · " + field.fieldId
       }))]
-    }))],
+    })), ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,
