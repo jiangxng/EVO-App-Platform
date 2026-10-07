@@ -9,7 +9,9 @@ import {
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_ROUTE,
   COUNTERPARTY_DIRECTORY_ROUTE,
-  counterpartyDetailRouteV010
+  COUNTERPARTY_UPDATE_COMMAND,
+  counterpartyDetailRouteV010,
+  counterpartyEditRouteV010
 } from "./constants.js";
 
 function textFor(locale?: string) {
@@ -36,10 +38,12 @@ function textFor(locale?: string) {
         view: "查看",
         detailDescription:
           "这是当前企业上下文中的往来对象身份。应收、应付、核销与余额不属于此主数据。",
+        edit: "编辑",
         archive: "归档",
         archiveHelp: "从日常往来对象目录中移除，但保留企业资源记录。",
         back: "返回往来对象",
         formTitle: "新建往来对象",
+        editFormTitle: "编辑往来对象",
         formDescription:
           "先建立稳定主体身份。客户/供应商关系、银行账户、账期、信用额度等后续由关系/扩展部件维护。",
         displayName: "往来名称",
@@ -68,11 +72,13 @@ function textFor(locale?: string) {
         view: "View",
         detailDescription:
           "This is the counterparty identity stored in the current Enterprise Context. Receivables, payables, settlement and balances are not part of this master data.",
+        edit: "Edit",
         archive: "Archive",
         archiveHelp:
           "Remove this counterparty from normal directories while retaining its enterprise resource record.",
         back: "Back to counterparties",
         formTitle: "New counterparty",
+        editFormTitle: "Edit counterparty",
         formDescription:
           "Create the stable party identity first. Customer/Supplier roles, bank accounts, payment terms and credit profiles belong to later relationship/profile capabilities.",
         displayName: "Display name",
@@ -219,6 +225,12 @@ export function createCounterpartyDetailPageV010(input: {
         requiresConfirmation: false
       },
       secondaryActions: [{
+        id: "edit",
+        label: text.edit,
+        type: "navigate",
+        route: counterpartyEditRouteV010(subject.counterpartyId),
+        requiresConfirmation: false
+      }, {
         id: "archive",
         label: text.archive,
         type: "command",
@@ -318,6 +330,118 @@ export function createCounterpartyCreatePageV010(locale?: string) {
     metadata: {
       packageId: "evo-counterparty",
       featureId: "evo-counterparty.default",
+      description: text.formDescription
+    }
+  } as const;
+}
+
+
+export function createCounterpartyEditPageV010(input: {
+  counterparty: CounterpartySubjectV010;
+  locale?: string;
+}) {
+  const text = textFor(input.locale);
+  const subject = input.counterparty;
+  return {
+    contractVersion: "0.1.1",
+    kind: "form",
+    id: "evo-counterparty.edit",
+    title: text.editFormTitle,
+    purpose: "execute-command",
+    command: {
+      code: COUNTERPARTY_UPDATE_COMMAND,
+      inputVersion: "0.1.0"
+    },
+    fields: [{
+      key: "counterpartyId",
+      label: "ID",
+      semanticType: "counterparty-id",
+      control: "text",
+      required: true,
+      readOnly: true,
+      initialValue: subject.counterpartyId
+    }, {
+      key: "code",
+      label: text.code,
+      semanticType: "counterparty-code",
+      control: "text",
+      required: true,
+      initialValue: subject.code
+    }, {
+      key: "displayName",
+      label: text.displayName,
+      semanticType: "counterparty-display-name",
+      control: "text",
+      required: true,
+      initialValue: subject.displayName
+    }, {
+      key: "subjectType",
+      label: text.subjectType,
+      semanticType: "counterparty-subject-type",
+      control: "select",
+      required: true,
+      initialValue: subject.subjectType,
+      options: [{
+        value: "ORGANIZATION",
+        label: text.organization
+      }, {
+        value: "PERSON",
+        label: text.person
+      }]
+    }, {
+      key: "legalName",
+      label: text.legalName,
+      semanticType: "counterparty-legal-name",
+      control: "text",
+      required: false,
+      initialValue: subject.legalName ?? ""
+    }, {
+      key: "taxIdentifier",
+      label: text.taxIdentifier,
+      semanticType: "tax-identifier",
+      control: "text",
+      required: false,
+      initialValue: subject.taxIdentifier ?? ""
+    }, {
+      key: "countryOrRegion",
+      label: text.countryOrRegion,
+      semanticType: "country-or-region",
+      control: "text",
+      required: false,
+      initialValue: subject.countryOrRegion ?? ""
+    }, {
+      key: "phone",
+      label: text.phone,
+      semanticType: "phone",
+      control: "text",
+      required: false,
+      initialValue: subject.phone ?? ""
+    }, {
+      key: "email",
+      label: text.email,
+      semanticType: "email",
+      control: "text",
+      required: false,
+      initialValue: subject.email ?? ""
+    }, {
+      key: "notes",
+      label: text.notes,
+      semanticType: "notes",
+      control: "text",
+      required: false,
+      initialValue: subject.notes ?? ""
+    }],
+    actions: [{
+      id: "update",
+      label: text.save,
+      type: "submit",
+      command: COUNTERPARTY_UPDATE_COMMAND,
+      requiresConfirmation: false
+    }],
+    metadata: {
+      packageId: "evo-counterparty",
+      featureId: "evo-counterparty.default",
+      counterpartyId: subject.counterpartyId,
       description: text.formDescription
     }
   } as const;

@@ -230,8 +230,14 @@ First usable slice:
 往来对象
   ├─ 往来对象目录
   ├─ 新建往来对象
-  └─ 往来对象详情
+  ├─ 往来对象详情
+  ├─ 编辑往来对象
+  └─ 归档
 ```
+
+Editing preserves the stable `counterpartyId` and updates the same enterprise
+resource. It must not create a second Counterparty merely because code/name,
+contact facts, tax identity or subject presentation changes.
 
 Directory is a management list, not a card marketplace.
 
@@ -243,6 +249,10 @@ Initial search dimensions:
 - status.
 
 The UI should remain mobile-friendly from the first slice.
+
+The generic Eidos UIDL form contract supports initial values for edit journeys.
+Counterparty must reuse that platform form behavior rather than inventing a
+plugin-private edit-form renderer.
 
 ## 11. v0.1 non-goals
 
@@ -278,3 +288,19 @@ proven.
 9. Legacy Dealer is archaeological evidence, not a schema to copy.
 10. Stable `counterpartyId` is the canonical reference key; business code/name
     are mutable/displayable master facts and transaction snapshots where needed.
+
+
+## 13. v0.1 acceptance
+
+The v0.1 core is complete only when all of the following hold:
+
+- the product/navigation name is **往来对象 / Counterparty**;
+- Directory → Create → Detail → Edit → Archive forms one coherent Human journey;
+- create and edit both write into the current Enterprise Context Resource Library;
+- editing retains the same stable `counterpartyId`;
+- `code` is unique only within one Enterprise Context;
+- the same code may exist independently in another Enterprise Context;
+- archived resources remain as Enterprise Resource evidence but disappear from the ACTIVE directory;
+- no AR/AP balance, settlement, matching, open-item or account logic is introduced;
+- Customer/Supplier remain future relationship roles, not separate identity records;
+- legacy Dealer fields beyond the core identity stay classified as extension resources instead of expanding the v0.1 subject payload.

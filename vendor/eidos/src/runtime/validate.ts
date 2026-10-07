@@ -3,7 +3,7 @@ import { isPlainObject, toJsonSnapshot } from "./json.js";
 
 const controls = new Set(["text","number","money","select","date","reference"]);
 const docKeys = new Set(["contractVersion","kind","id","title","purpose","command","fields","actions","metadata"]);
-const fieldKeys = new Set(["key","label","semanticType","control","required","readOnly","unit","options","validation"]);
+const fieldKeys = new Set(["key","label","semanticType","control","required","readOnly","initialValue","unit","options","validation"]);
 const actionKeys = new Set(["id","label","type","command","requiresConfirmation"]);
 function d(code:string,path:string,message:string,fix?:string):Diagnostic{return {code,path,message,...(fix?{fix}:{})};}
 function nonEmpty(v:unknown):v is string{return typeof v==="string"&&v.length>0;}
@@ -12,7 +12,7 @@ function extraKeys(obj:Record<string,unknown>, allowed:Set<string>, path:string,
 function parseField(value: unknown, path: string, out: Diagnostic[]): UidlField | undefined {
   if (!isPlainObject(value)) { out.push(d("EIDOS_SCHEMA_TYPE",path,"Field must be an object")); return; }
   extraKeys(value, fieldKeys, path, out);
-  const {key,label,semanticType,control,required,readOnly,unit,options,validation}=value;
+  const {key,label,semanticType,control,required,readOnly,initialValue,unit,options,validation}=value;
   if(!nonEmpty(key)) out.push(d("EIDOS_SCHEMA_REQUIRED",`${path}.key`,`Field key must be a non-empty string`));
   if(!nonEmpty(label)) out.push(d("EIDOS_SCHEMA_REQUIRED",`${path}.label`,`Field label must be a non-empty string`));
   if(!nonEmpty(semanticType)) out.push(d("EIDOS_SCHEMA_REQUIRED",`${path}.semanticType`,`semanticType must be a non-empty string`));
@@ -46,7 +46,7 @@ function parseField(value: unknown, path: string, out: Diagnostic[]): UidlField 
     }
   }
   if(!nonEmpty(key)||!nonEmpty(label)||!nonEmpty(semanticType)||typeof control!=="string"||!controls.has(control)||typeof required!=="boolean") return;
-  return {key,label,semanticType,control:control as UidlField["control"],required,...(typeof readOnly==="boolean"?{readOnly}:{}),...(typeof unit==="string"?{unit}:{}),...(parsedOptions?{options:parsedOptions}:{}),...(parsedValidation?{validation:parsedValidation}:{})};
+  return {key,label,semanticType,control:control as UidlField["control"],required,...(typeof readOnly==="boolean"?{readOnly}:{}),...(["string","number","boolean"].includes(typeof initialValue)?{initialValue:initialValue as UidlOptionValue}:{}),...(typeof unit==="string"?{unit}:{}),...(parsedOptions?{options:parsedOptions}:{}),...(parsedValidation?{validation:parsedValidation}:{})};
 }
 
 function parseAction(value:unknown,path:string,out:Diagnostic[]):UidlAction|undefined{
