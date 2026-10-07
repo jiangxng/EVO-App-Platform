@@ -43,6 +43,7 @@ const definitionSchema = {
       enum: ["STRING", "NUMBER", "BOOLEAN", "DATE", "ENUM"]
     },
     label: { type: "object" },
+    description: { type: "object" },
     required: { type: "boolean" },
     order: { type: "number" },
     surfaces: { type: "array" }
