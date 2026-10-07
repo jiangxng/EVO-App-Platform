@@ -75,6 +75,9 @@ export interface EnterpriseResourceRepositoryV010 {
   put(
     input: EnterpriseResourcePutInputV010
   ): EnterpriseResourceV010;
+  putMany(
+    inputs: readonly EnterpriseResourcePutInputV010[]
+  ): EnterpriseResourceV010[];
   archive(input: {
     address: EnterpriseResourceAddressV010;
     actorSubjectId: string;
