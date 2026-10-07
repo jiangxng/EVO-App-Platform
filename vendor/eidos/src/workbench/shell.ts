@@ -539,6 +539,14 @@ export async function mountWorkbenchShell(
           : {})
       }
     );
+
+    if (
+      interaction.refreshSourceOnComplete === true
+      && workspaceMode === "app"
+      && state.workspaceTarget === interaction.source.route
+    ) {
+      await renderInternalWorkspace(state.workspaceTarget);
+    }
   }
 
   async function renderSidePanel(): Promise<void> {

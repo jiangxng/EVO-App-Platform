@@ -20,6 +20,7 @@ export interface ObjectExtensionDefinitionV010 {
   semanticType: string;
   valueType: FoundationObjectValueTypeV010;
   label: FoundationObjectLocalizedTextV010;
+  description?: FoundationObjectLocalizedTextV010;
   required: boolean;
   order: number;
   applicability?: ObjectExtensionApplicabilityV010;
@@ -92,6 +93,19 @@ export function assertObjectExtensionDefinitionV010(
         ? { translations: { ...value.label.translations } }
         : {})
     },
+    ...(value.description
+      ? {
+          description: {
+            default: required(
+              value.description.default,
+              "OBJECT_EXTENSION_DESCRIPTION_REQUIRED"
+            ),
+            ...(value.description.translations
+              ? { translations: { ...value.description.translations } }
+              : {})
+          }
+        }
+      : {}),
     required: Boolean(value.required),
     order: Number.isFinite(value.order) ? value.order : 1000,
     ...(roles && roles.length > 0

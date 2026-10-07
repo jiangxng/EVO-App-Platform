@@ -260,6 +260,7 @@ test("mapping and review pages keep validation and commit explicit", () => {
   assert.equal(agentAction.label, "AI 自动匹配");
   assert.equal(agentAction.prompt, "帮我做字段映射");
   assert.equal(agentAction.agentCapability, "agent.personal");
+  assert.equal(agentAction.refreshSourceOnComplete, true);
   assert.deepEqual(agentAction.context, {
     taskKind: "data-import.mapping",
     importJobId: "import-human-1",

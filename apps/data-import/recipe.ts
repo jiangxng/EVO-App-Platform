@@ -33,6 +33,13 @@ export interface DataImportRecipeV010 {
   createdBySubjectId: string;
   updatedAt: string;
   updatedBySubjectId: string;
+  /**
+   * Only confirmed recipes are eligible for automatic reuse.
+   * Legacy recipes written before Human-confirmation semantics remain readable
+   * but are intentionally ignored by findBySource until confirmed.
+   */
+  confirmedAt?: string;
+  confirmedBySubjectId?: string;
   lastSuccessfulImportJobId: string;
 }
 
@@ -95,6 +102,7 @@ export function dataImportTargetSchemaDigestV010(
     fields: schema.fields.map(field => {
       const {
         resolvedLabel: _resolvedLabel,
+        resolvedDescription: _resolvedDescription,
         ...semantic
       } = field;
       return semantic;
@@ -155,6 +163,12 @@ function fromPayload(
       value.updatedBySubjectId,
       "DATA_IMPORT_RECIPE_UPDATED_BY_REQUIRED"
     ),
+    ...(value.confirmedAt?.trim()
+      ? { confirmedAt: value.confirmedAt.trim() }
+      : {}),
+    ...(value.confirmedBySubjectId?.trim()
+      ? { confirmedBySubjectId: value.confirmedBySubjectId.trim() }
+      : {}),
     lastSuccessfulImportJobId: required(
       value.lastSuccessfulImportJobId,
       "DATA_IMPORT_RECIPE_JOB_REQUIRED"
@@ -190,7 +204,8 @@ export function createDataImportRecipeRepositoryV010(
   return {
     findBySource(input) {
       const fingerprint = dataImportSourceFingerprintV010(input);
-      return this.get(input.contextId, recipeIdFor(fingerprint));
+      const recipe = this.get(input.contextId, recipeIdFor(fingerprint));
+      return recipe?.confirmedAt ? recipe : undefined;
     },
 
     get(contextId, recipeId) {
@@ -249,6 +264,8 @@ export function createDataImportRecipeRepositoryV010(
           current?.createdBySubjectId ?? input.actorSubjectId,
         updatedAt: input.recordedAt,
         updatedBySubjectId: input.actorSubjectId,
+        confirmedAt: input.recordedAt,
+        confirmedBySubjectId: input.actorSubjectId,
         lastSuccessfulImportJobId: required(
           input.importJobId,
           "DATA_IMPORT_RECIPE_JOB_REQUIRED"
@@ -267,7 +284,8 @@ export function createDataImportRecipeRepositoryV010(
         metadata: {
           targetId: recipe.targetId,
           sourceFingerprint: recipe.sourceFingerprint,
-          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId
+          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId,
+          confirmedAt: recipe.confirmedAt ?? ""
         },
         actorSubjectId: input.actorSubjectId,
         recordedAt: input.recordedAt

@@ -50,7 +50,8 @@ const actionKeys = new Set([
   "requiresConfirmation",
   "prompt",
   "agentCapability",
-  "context"
+  "context",
+  "refreshSourceOnComplete"
 ]);
 
 function d(
@@ -454,6 +455,16 @@ function parseAction(
       "agentCapability must be non-empty when present"
     ));
   }
+  if (
+    value.refreshSourceOnComplete !== undefined
+    && typeof value.refreshSourceOnComplete !== "boolean"
+  ) {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      `${path}.refreshSourceOnComplete`,
+      "refreshSourceOnComplete must be boolean when present"
+    ));
+  }
   if (value.type === "agent" && !nonEmpty(value.prompt)) {
     out.push(d(
       "EIDOS_AGENT_ACTION_PROMPT_REQUIRED",
@@ -516,7 +527,10 @@ function parseAction(
     ...(nonEmpty(value.agentCapability)
       ? { agentCapability: value.agentCapability }
       : {}),
-    ...(parsedContext ? { context: parsedContext } : {})
+    ...(parsedContext ? { context: parsedContext } : {}),
+    ...(typeof value.refreshSourceOnComplete === "boolean"
+      ? { refreshSourceOnComplete: value.refreshSourceOnComplete }
+      : {})
   };
 }
 

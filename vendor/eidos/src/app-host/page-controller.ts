@@ -156,6 +156,7 @@ export interface ContextualAgentInteractionV010 {
     actionId: string;
   };
   context?: Record<string, JsonValue>;
+  refreshSourceOnComplete?: boolean;
 }
 
 export interface MountAppHostPageOptions {
@@ -843,6 +844,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           },
           ...(action.context
             ? { context: structuredClone(action.context) }
+            : {}),
+          ...(action.refreshSourceOnComplete === true
+            ? { refreshSourceOnComplete: true }
             : {})
         }, page);
       };

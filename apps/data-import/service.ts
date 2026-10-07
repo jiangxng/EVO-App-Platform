@@ -461,37 +461,12 @@ export function createDataImportServiceV010(input: {
           rows
         }
       };
-      const saved = input.repository.save({
+      return input.repository.save({
         contextId: dryRunInput.contextId,
         job: next,
         actorSubjectId: dryRunInput.actorSubjectId,
         recordedAt: dryRunInput.recordedAt
       });
-      if (saved.state === "DRY_RUN_READY" && input.recipeRepository) {
-        const recipe = input.recipeRepository.recordSuccessful({
-          contextId: dryRunInput.contextId,
-          targetId: saved.targetId,
-          targetParameters: saved.targetParameters,
-          source: saved.source,
-          targetSchemaDigest: saved.dryRun!.schemaDigest,
-          mapping: saved.mapping,
-          importJobId: saved.importJobId,
-          actorSubjectId: dryRunInput.actorSubjectId,
-          recordedAt: dryRunInput.recordedAt
-        });
-        if (saved.appliedRecipeId !== recipe.recipeId) {
-          return input.repository.save({
-            contextId: dryRunInput.contextId,
-            job: {
-              ...saved,
-              appliedRecipeId: recipe.recipeId
-            },
-            actorSubjectId: dryRunInput.actorSubjectId,
-            recordedAt: dryRunInput.recordedAt
-          });
-        }
-      }
-      return saved;
     },
 
     commit(commitInput) {
@@ -627,12 +602,37 @@ export function createDataImportServiceV010(input: {
           rows: receiptRows
         }
       };
-      return input.repository.save({
+      let saved = input.repository.save({
         contextId: commitInput.contextId,
         job: next,
         actorSubjectId: commitInput.actorSubjectId,
         recordedAt: commitInput.recordedAt
       });
+      if (saved.state === "COMMITTED" && input.recipeRepository) {
+        const recipe = input.recipeRepository.recordSuccessful({
+          contextId: commitInput.contextId,
+          targetId: saved.targetId,
+          targetParameters: saved.targetParameters,
+          source: saved.source,
+          targetSchemaDigest: saved.dryRun!.schemaDigest,
+          mapping: saved.mapping,
+          importJobId: saved.importJobId,
+          actorSubjectId: commitInput.actorSubjectId,
+          recordedAt: commitInput.recordedAt
+        });
+        if (saved.appliedRecipeId !== recipe.recipeId) {
+          saved = input.repository.save({
+            contextId: commitInput.contextId,
+            job: {
+              ...saved,
+              appliedRecipeId: recipe.recipeId
+            },
+            actorSubjectId: commitInput.actorSubjectId,
+            recordedAt: commitInput.recordedAt
+          });
+        }
+      }
+      return saved;
     },
 
     errorRowsCsv(errorInput) {

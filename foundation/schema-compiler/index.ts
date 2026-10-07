@@ -108,6 +108,19 @@ function assertCoreSchema(
           ? { translations: { ...field.label.translations } }
           : {})
       },
+      ...(field.description
+        ? {
+            description: {
+              default: required(
+                field.description.default,
+                "FOUNDATION_OBJECT_FIELD_DESCRIPTION_REQUIRED"
+              ),
+              ...(field.description.translations
+                ? { translations: { ...field.description.translations } }
+                : {})
+            }
+          }
+        : {}),
       surfaces: [...new Set(field.surfaces)],
       ...(field.enumOptions
         ? {
@@ -177,6 +190,9 @@ function effectiveField(
     source,
     ...(input?.extensionId ? { extensionId: input.extensionId } : {}),
     resolvedLabel: localizedTextV010(field.label, locale),
+    ...(field.description
+      ? { resolvedDescription: localizedTextV010(field.description, locale) }
+      : {}),
     readable: Boolean(authority.readable),
     writable: !field.readOnly && Boolean(authority.writable)
   };
@@ -228,6 +244,9 @@ export function compileEffectiveObjectSchemaV010(
         valueType: definition.valueType,
         control: definition.control ?? defaultControl(definition.valueType),
         label: definition.label,
+        ...(definition.description
+          ? { description: definition.description }
+          : {}),
         required: definition.required,
         order: definition.order,
         surfaces: [...surfaces],
