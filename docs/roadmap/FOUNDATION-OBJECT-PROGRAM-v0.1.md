@@ -242,10 +242,21 @@ Current implementation evidence:
 - Deterministic 1k full Counterparty commit: PASS.
 - Whole-batch rollback on commit failure: PASS.
 - 10k stage/dry-run: PASS.
-- XLSX source adapter: OPEN.
-- Eidos Human import mapping/review/dry-run/error experience: OPEN.
+- XLSX source adapter: **PASS — merged/CI/production through PR #439.**
+- Eidos Human import mapping/review/dry-run/error experience: **PASS — merged/CI/production through PR #439; Human production validation pending.**
 
-Exit: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
+Current Human gate:
+
+- Open Data Import in production.
+- Choose Counterparty.
+- Upload a representative XLSX or CSV.
+- Confirm automatic field mapping is understandable and adjust at least one mapping if useful.
+- Run dry-run and inspect summary/errors.
+- Commit only after an explicit confirmation.
+- Confirm imported Counterparty/roles/extensions appear as expected.
+- Confirm error CSV download is understandable when validation errors exist.
+
+Exit after Human production pass: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ## 9. AD-01 — Semantic classifier
 

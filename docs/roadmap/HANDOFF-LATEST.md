@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03-bulk-import-production-pass-2026-10-07`  
-**Snapshot time:** `2026-10-07T13:15:00+08:00`  
+**Snapshot:** `cp03-xlsx-human-import-production-pass-2026-10-07`  
+**Snapshot time:** `2026-10-07T14:38:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -43,9 +43,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-enterprise-extension-import-v0-3: ACTIVE_PARTIAL_IMPLEMENTATION**
+**counterparty-enterprise-extension-import-v0-3: MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION**
 
-CP-03 remains active. Governed Object Extension operations, generic Data Import core, and atomic bulk Counterparty persistence are merged and production-deployed. A deterministic 1k Counterparty import now commits subjects, CUSTOMER/SUPPLIER roles and extension-value sidecars atomically through Enterprise Context; failures roll back the whole batch. Remaining closure work is XLSX and Human import mapping/review experience.
+CP-03 implementation is complete enough for Human validation. XLSX and CSV upload, localized automatic field mapping through EffectiveObjectSchema, editable mapping review, dry-run review, explicit commit confirmation, error CSV download, atomic bulk persistence and deterministic 1k full commit are production-deployed. The remaining gate is Human browser validation of the import journey.
 
 Acceptance:
 
@@ -66,8 +66,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `2015c4385142d03cb5d84b16826615988f4d8174`
-- Deployment: `188baa33-6ca3-43a5-9d41-9185c4c363f6`
+- Commit: `8876cedc259a2135a8c56d4721ea7b2f95901e6e`
+- Deployment: `2ccf155b-5b9e-44e4-acb2-3b7249491dbd`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -98,6 +98,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #439 — MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION: CP-03 XLSX + Human Import Experience: dependency-free XLSX first-sheet parser, CSV/XLSX file upload, localized EffectiveObjectSchema auto-mapping, editable mapping page, dry-run review, explicit commit confirmation, error CSV download and guarded archive expansion.
 - PR #433 — MERGED_CI_PRODUCTION_PASS: CP-03 atomic bulk persistence: Enterprise Resource transaction/bulk put, domain-level Counterparty/Role/Extension batch writes, all-or-nothing import semantics, rollback proof and deterministic 1k full Counterparty import.
 - PR #431 — MERGED_CI_PRODUCTION_PASS: CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof.
 - PR #430 — MERGED_CI_PRODUCTION_PASS: CP-03 Object Extension public capability: governed list/upsert/archive operations through ActionHost over Enterprise Context persisted definitions.
@@ -486,6 +487,9 @@ Not proved:
 - Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain.
 - Do not reintroduce per-row physical Enterprise Resource snapshot writes for Counterparty bulk import; use the transaction/bulk persistence path added in PR #433.
 - Do not treat COMMITTED_WITH_ERRORS from an ATOMIC_BATCH target as partial success; for Counterparty atomic batches succeededRows must be zero when the batch rolls back.
+- Do not add another Counterparty-private import UI; the generic Data Import Human experience is merged in PR #439.
+- Do not bypass the Data Import dry-run and explicit commit confirmation in Human flows.
+- Do not introduce a second XLSX parsing dependency/path; PR #439 provides the bounded first-sheet adapter behind the generic staged source model.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -718,6 +722,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state CP-03 atomic bulk persistence and deterministic 1k full Counterparty commit as merged/CI-passed/production-deployed through PR #433
 - state Counterparty import commit semantics as ATOMIC_BATCH: any batch failure rolls back all imported Counterparty/Role/Extension resources
 - state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work
+- state PR #439 / commit 8876cedc259a2135a8c56d4721ea7b2f95901e6e as merged, CI-passed and production-deployed for CP-03 XLSX + Human Import Experience
+- state CP-03 as awaiting Human production validation rather than further core implementation
+- state CSV and XLSX as normalizing into the same staged Data Import source model
+- state import mapping as suggested from EffectiveObjectSchema field IDs and localized labels rather than Counterparty-specific spreadsheet hardcoding
+- state CP-04 as blocked until the CP-03 Human import journey passes
 
 No previous ChatGPT transcript is required.
 
