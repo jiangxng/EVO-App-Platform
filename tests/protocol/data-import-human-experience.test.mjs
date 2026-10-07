@@ -168,10 +168,18 @@ test("Data Import Human experience exposes target selection, file upload and tar
     locale: "zh-CN"
   });
   assert.equal(directory.title, "数据导入");
-  assert.equal(directory.items[0].title, "往来对象");
-  assert.equal(
-    directory.items[0].primaryAction.route,
-    "/data-import/new/counterparty.subject"
+  assert.equal(directory.density, "compact");
+  assert.equal(directory.itemActivation, "primary-action");
+  assert.equal(directory.collectionTitle, "导入历史");
+  assert.match(directory.collectionDescription, /过去的导入任务/);
+  assert.equal(directory.items.length, 0);
+  assert.deepEqual(
+    directory.actions.map(action => [
+      action.label,
+      action.route,
+      action.primary === true
+    ]),
+    [["导入往来对象", "/data-import/new/counterparty.subject", true]]
   );
 
   const upload = createDataImportUploadPageV010({
