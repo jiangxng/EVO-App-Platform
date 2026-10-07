@@ -142,4 +142,8 @@ test("Eidos contextual Agent transport stays product-neutral and auto-submits th
   assert.match(controller, /data-eidos-agent-action/);
   assert.match(controller, /interactionContext/);
   assert.match(controller, /await submit\(interactionContext\)/);
+  assert.match(
+    controller,
+    /interactionContext \? \{\} : contextValues\(\)/
+  );
 });
