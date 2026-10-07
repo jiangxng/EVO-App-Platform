@@ -509,7 +509,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "CP-03 remains ACTIVE. Object Extension governed public capability (PR #430) and generic Data Import core + Counterparty target (PR #431) are merged, CI-passed and production-deployed. Continue with CP-03 bulk commit/persistence scalability, XLSX adapter, Eidos import mapping/review experience, and deterministic 1k demo dataset before closing CP-03.",
+  "currentStep": "CP-03 remains ACTIVE. Object Extension governance, generic Data Import core, atomic bulk persistence, rollback semantics and deterministic 1k full Counterparty commit are merged, CI-passed and production-deployed. Continue with XLSX adapter and Eidos import mapping/review experience; do not reopen CP-02 or repeat FO-01.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1786,8 +1786,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03-import-core-production-pass-2026-10-07",
-    "snapshotAt": "2026-10-07T12:33:00+08:00",
+    "snapshotId": "cp03-bulk-import-production-pass-2026-10-07",
+    "snapshotAt": "2026-10-07T13:15:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1832,7 +1832,7 @@
       "openGate": {
         "id": "counterparty-enterprise-extension-import-v0-3",
         "status": "ACTIVE_PARTIAL_IMPLEMENTATION",
-        "summary": "CP-03 remains active. Governed Object Extension operations and a generic Data Import core are now merged and production-deployed. Counterparty is the first neutral import target; CSV stage/dry-run/commit, EffectiveObjectSchema mapping, Customer/Supplier role assignment, extension-value sidecars, duplicate detection, schema-drift protection and 10k stage/dry-run are proven. Remaining closure work is bulk commit scalability, XLSX, Eidos import review/mapping experience, and deterministic 1k demo/commit evidence.",
+        "summary": "CP-03 remains active. Governed Object Extension operations, generic Data Import core, and atomic bulk Counterparty persistence are merged and production-deployed. A deterministic 1k Counterparty import now commits subjects, CUSTOMER/SUPPLIER roles and extension-value sidecars atomically through Enterprise Context; failures roll back the whole batch. Remaining closure work is XLSX and Human import mapping/review experience.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.",
@@ -1855,7 +1855,7 @@
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
           "crossProjectEidosEvoCI": "PASS",
-          "railwayDeploymentId": "3a959f0a-3576-4eed-b2a4-7ff05592bbf5",
+          "railwayDeploymentId": "188baa33-6ca3-43a5-9d41-9185c4c363f6",
           "railwayDeploymentStatus": "SUCCESS",
           "csvStageDryRunCommit": true,
           "xlsx": false,
@@ -1864,7 +1864,12 @@
           "tenThousandRowStageDryRun": true,
           "tenThousandRowFullCommit": false,
           "importHumanExperience": false,
-          "deterministicOneThousandDemoSeed": false
+          "deterministicOneThousandDemoSeed": false,
+          "bulkImportPr": 433,
+          "bulkImportMergeCommit": "2015c4385142d03cb5d84b16826615988f4d8174",
+          "oneThousandRowFullCommit": true,
+          "atomicBatchCommit": true,
+          "atomicRollback": true
         }
       },
       "productionPreview": {
@@ -1873,13 +1878,18 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "c9bf76ad7584067d9d886bcd799848fd459963d4",
-        "deploymentId": "3a959f0a-3576-4eed-b2a4-7ff05592bbf5",
+        "commit": "2015c4385142d03cb5d84b16826615988f4d8174",
+        "deploymentId": "188baa33-6ca3-43a5-9d41-9185c4c363f6",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 433,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "CP-03 atomic bulk persistence: Enterprise Resource transaction/bulk put, domain-level Counterparty/Role/Extension batch writes, all-or-nothing import semantics, rollback proof and deterministic 1k full Counterparty import."
+      },
       {
         "pr": 431,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -2843,7 +2853,9 @@
       "Do not reopen FO-01; shared Foundation Object contracts/compiler are already merged and production-deployed.",
       "Do not rebuild the Data Import core inside Counterparty; PR #431 already provides the generic app and neutral import-target contract.",
       "Do not claim 10k full committed import is proven; only 10k stage + dry-run is currently certified.",
-      "Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain."
+      "Do not close CP-03 merely because CSV works; XLSX, Human import experience and committed demo/bulk persistence evidence remain.",
+      "Do not reintroduce per-row physical Enterprise Resource snapshot writes for Counterparty bulk import; use the transaction/bulk persistence path added in PR #433.",
+      "Do not treat COMMITTED_WITH_ERRORS from an ATOMIC_BATCH target as partial success; for Counterparty atomic batches succeededRows must be zero when the batch rolls back."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -3054,7 +3066,11 @@
       "state CP-03 as partially implemented and still ACTIVE, not closed",
       "state Object Extension public capability as merged in PR #430 and Data Import core + Counterparty target as merged in PR #431",
       "state CSV stage/dry-run/commit, extension value sidecars, role-aware Counterparty import, schema drift guard and 10k stage/dry-run as already implemented",
-      "state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work"
+      "state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work",
+      "state CP-02 as CLOSED_HUMAN_PASS based on user production validation",
+      "state CP-03 atomic bulk persistence and deterministic 1k full Counterparty commit as merged/CI-passed/production-deployed through PR #433",
+      "state Counterparty import commit semantics as ATOMIC_BATCH: any batch failure rolls back all imported Counterparty/Role/Extension resources",
+      "state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4509,13 +4525,30 @@
         "tenThousandRowFullCommit": false
       },
       "remaining": [
-        "Add bulk/transaction persistence path so 1k/10k committed imports do not degrade into per-row full Enterprise Resource snapshot rewrite.",
         "Add XLSX source adapter while keeping CSV and XLSX behind the same staged source model.",
         "Add Eidos import mapping/review/dry-run/error experience without moving import semantics into Eidos.",
-        "Add deterministic 1k demo dataset/seed and committed import benchmark.",
-        "Decide/implement safe partial-failure semantics for bulk commit and receipts before 10k full-commit certification."
+        "Run/record 10k full-commit certification after XLSX/Human experience integration if still useful as a release gate."
       ],
-      "closureGate": "Do not mark CP-03 closed until XLSX + Human import experience + 1k committed demo/bulk persistence evidence are present; 10k stage/dry-run is already proven."
+      "closureGate": "Do not mark CP-03 closed until XLSX + Human import experience are present. Deterministic 1k full commit, atomic bulk persistence, rollback semantics, extension sidecars and 10k stage/dry-run are now proven.",
+      "bulkPersistence": {
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 433,
+        "mergeCommit": "2015c4385142d03cb5d84b16826615988f4d8174",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "crossProjectEidosEvoCI": "PASS",
+        "railwayDeploymentId": "188baa33-6ca3-43a5-9d41-9185c4c363f6",
+        "railwayDeploymentStatus": "SUCCESS",
+        "enterpriseResourceTransaction": true,
+        "enterpriseResourceBulkPut": true,
+        "counterpartyBulkSubjectSave": true,
+        "counterpartyBulkRoleAssign": true,
+        "objectExtensionBulkValueSave": true,
+        "importCommitSemantics": "ATOMIC_BATCH",
+        "atomicRollbackOnFailure": true,
+        "deterministicOneThousandDemoSeed": true,
+        "oneThousandRowFullCommit": true
+      }
     }
   }
 }
