@@ -153,6 +153,9 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </div>
 </header>
 ${search}
+${model.collectionTitle
+  ? `<div data-eidos-collection-heading><div><h2>${esc(model.collectionTitle)}</h2>${model.collectionDescription ? `<p>${esc(model.collectionDescription)}</p>` : ""}</div></div>`
+  : ""}
 <div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>
 ${noResults}
 </section>`;
