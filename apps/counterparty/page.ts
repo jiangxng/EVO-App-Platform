@@ -22,12 +22,23 @@ import {
   COUNTERPARTY_ASSIGN_ROLE_COMMAND,
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_ROUTE,
+  COUNTERPARTY_CUSTOMERS_ROUTE,
   COUNTERPARTY_DIRECTORY_ROUTE,
+  COUNTERPARTY_MY_CUSTOMERS_ROUTE,
+  COUNTERPARTY_MY_SUPPLIERS_ROUTE,
   COUNTERPARTY_REMOVE_ROLE_COMMAND,
+  COUNTERPARTY_SUPPLIERS_ROUTE,
   COUNTERPARTY_UPDATE_COMMAND,
   counterpartyDetailRouteV010,
   counterpartyEditRouteV010
 } from "./constants.js";
+import {
+  COUNTERPARTY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+  COUNTERPARTY_SUPPLIER_PROJECTION_V010,
+  type CounterpartyProjectionIdV010
+} from "./projections.js";
 
 function textFor(locale?: string) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
@@ -75,7 +86,13 @@ function textFor(locale?: string) {
         displayName: "往来名称",
         legalName: "法定名称",
         notes: "备注",
-        save: "创建往来对象"
+        save: "创建往来对象",
+        customers: "客户",
+        suppliers: "供应商",
+        myCustomers: "我的客户",
+        mySuppliers: "我的供应商",
+        projectionDescription: "按业务关系与当前责任范围查看往来对象。",
+        projectionEmpty: "当前视图没有可查看的往来对象。"
       }
     : {
         title: "Counterparties",
@@ -121,7 +138,14 @@ function textFor(locale?: string) {
         displayName: "Display name",
         legalName: "Legal name",
         notes: "Notes",
-        save: "Create counterparty"
+        save: "Create counterparty",
+        customers: "Customers",
+        suppliers: "Suppliers",
+        myCustomers: "My Customers",
+        mySuppliers: "My Suppliers",
+        projectionDescription:
+          "View counterparties by business relationship and current responsibility scope.",
+        projectionEmpty: "No counterparties are visible in this view."
       };
 }
 
@@ -145,8 +169,13 @@ export function createCounterpartyDirectoryPageV010(input: {
   counterparties: readonly CounterpartySubjectV010[];
   importRoute?: string;
   locale?: string;
+  readableFieldIds?: readonly string[];
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
+  const readable = input.readableFieldIds
+    ? new Set(input.readableFieldIds)
+    : undefined;
+  const canRead = (fieldId: string) => !readable || readable.has(fieldId);
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
@@ -194,15 +223,21 @@ export function createCounterpartyDirectoryPageV010(input: {
               : "neutral" as const
         },
         metadata: {
-          [text.code]: counterparty.code,
-          [text.subjectType]: subjectTypeLabel(
-            counterparty.subjectType,
-            input.locale
-          ),
-          ...(counterparty.taxIdentifier
+          ...(canRead("code")
+            ? { [text.code]: counterparty.code }
+            : {}),
+          ...(canRead("subjectType")
+            ? {
+                [text.subjectType]: subjectTypeLabel(
+                  counterparty.subjectType,
+                  input.locale
+                )
+              }
+            : {}),
+          ...(canRead("taxIdentifier") && counterparty.taxIdentifier
             ? { [text.taxIdentifier]: counterparty.taxIdentifier }
             : {}),
-          ...(counterparty.countryOrRegion
+          ...(canRead("countryOrRegion") && counterparty.countryOrRegion
             ? { [text.countryOrRegion]: counterparty.countryOrRegion }
             : {})
         },
@@ -217,6 +252,88 @@ export function createCounterpartyDirectoryPageV010(input: {
         }
       })),
     emptyMessage: text.empty
+  };
+}
+
+function projectionTitleV010(
+  projectionId: CounterpartyProjectionIdV010,
+  locale?: string
+): string {
+  const text = textFor(locale);
+  switch (projectionId) {
+    case COUNTERPARTY_CUSTOMER_PROJECTION_V010:
+      return text.customers;
+    case COUNTERPARTY_SUPPLIER_PROJECTION_V010:
+      return text.suppliers;
+    case COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010:
+      return text.myCustomers;
+    case COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010:
+      return text.mySuppliers;
+  }
+}
+
+export function createCounterpartyProjectionPageV010(input: {
+  projectionId: CounterpartyProjectionIdV010;
+  counterparties: readonly CounterpartySubjectV010[];
+  locale?: string;
+  readableFieldIds?: readonly string[];
+}): CatalogBrowserV010 {
+  const text = textFor(input.locale);
+  const title = projectionTitleV010(
+    input.projectionId,
+    input.locale
+  );
+  const page = createCounterpartyDirectoryPageV010({
+    counterparties: input.counterparties,
+    locale: input.locale,
+    readableFieldIds: input.readableFieldIds
+  });
+  return {
+    ...page,
+    id: "evo-counterparty.projection." + input.projectionId,
+    title,
+    description: text.projectionDescription,
+    contextNavigation: {
+      items: [{
+        id: "counterparties",
+        label: text.title,
+        route: COUNTERPARTY_DIRECTORY_ROUTE
+      }, {
+        id: "projection",
+        label: title
+      }]
+    },
+    actions: [{
+      id: "customers",
+      label: text.customers,
+      type: "navigate",
+      route: COUNTERPARTY_CUSTOMERS_ROUTE,
+      requiresConfirmation: false
+    }, {
+      id: "suppliers",
+      label: text.suppliers,
+      type: "navigate",
+      route: COUNTERPARTY_SUPPLIERS_ROUTE,
+      requiresConfirmation: false
+    }, {
+      id: "my-customers",
+      label: text.myCustomers,
+      type: "navigate",
+      route: COUNTERPARTY_MY_CUSTOMERS_ROUTE,
+      requiresConfirmation: false
+    }, {
+      id: "my-suppliers",
+      label: text.mySuppliers,
+      type: "navigate",
+      route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
+      requiresConfirmation: false
+    }],
+    search: {
+      placeholder: text.search,
+      ariaLabel: text.search,
+      noResultsMessage: text.projectionEmpty
+    },
+    emptyMessage: text.projectionEmpty
   };
 }
 
