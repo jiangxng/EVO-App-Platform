@@ -17,6 +17,9 @@ import type {
   AgentToolCatalogV010,
   PersonalAgentReplyV010
 } from "./contracts.js";
+import {
+  parsePersonalAgentInteractionContextV010
+} from "./chat-action-handler.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
 import {
   drainResumableAgentRunV010,
@@ -376,6 +379,8 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           const history = dependencies.threadStore.conversationHistory({
             threadId
           });
+          const interactionContext =
+            parsePersonalAgentInteractionContextV010(request);
           let run = dependencies.runStore.create({
             runId,
             principalSubjectId: principal.subjectId,
@@ -386,6 +391,9 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             input: {
               message,
               conversationHistory: history,
+              ...(interactionContext
+                ? { interactionContext: structuredClone(interactionContext) }
+                : {}),
               locale: localeForRequest(request, message),
               providerId: resolved.provider.providerId,
               modelId: resolved.provider.modelId

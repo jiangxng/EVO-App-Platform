@@ -517,6 +517,13 @@ export function createResumableAgentRunExecutorV010(
                 )
               }
             : {}),
+          ...(run.input.interactionContext
+            ? {
+                interactionContext: structuredClone(
+                  run.input.interactionContext
+                )
+              }
+            : {}),
           tools: structuredClone(offeredTools),
           observations: structuredClone([
             ...run.observations,

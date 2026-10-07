@@ -135,6 +135,13 @@ test("Eidos contextual Agent transport stays product-neutral and auto-submits th
     ),
     "utf8"
   );
+  const threadChat = await readFile(
+    new URL(
+      "../../dist/vendor/eidos/src/app-host/personal-agent-thread-chat.js",
+      import.meta.url
+    ),
+    "utf8"
+  );
 
   assert.match(workbench, /resolveAgentActivity/);
   assert.match(workbench, /submitChatPrompt/);
@@ -146,4 +153,6 @@ test("Eidos contextual Agent transport stays product-neutral and auto-submits th
     controller,
     /interactionContext \? \{\} : contextValues\(\)/
   );
+  assert.match(threadChat, /interactionContext/);
+  assert.match(threadChat, /turnContextValues\(options\.request\)/);
 });

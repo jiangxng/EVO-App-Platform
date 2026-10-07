@@ -225,6 +225,71 @@ test("P1.6A primary chat path runs start/resume to a rich terminal reply", async
   assert.equal(runs[0].sliceCount, 2);
 });
 
+
+test("P1.6A durable run preserves work-surface interaction context for the model", async () => {
+  const providerInputs = [];
+  const provider = {
+    providerId: "test.llm",
+    modelId: "test-model",
+    async infer(input) {
+      providerInputs.push(structuredClone(input));
+      return {
+        contractVersion: "0.1.0",
+        providerId: "test.llm",
+        modelId: "test-model",
+        text: "used contextual task coordinates",
+        toolCalls: [],
+        usage: { inputTokens: 1, outputTokens: 1 },
+        finishReason: "stop"
+      };
+    }
+  };
+  const h = harness({
+    provider,
+    createToolCatalog() {
+      return {
+        list() { return []; },
+        async invoke() {
+          throw new Error("unexpected tool call");
+        }
+      };
+    }
+  });
+
+  const contextualRequest = request("帮我做字段映射");
+  contextualRequest.values.interactionContext = {
+    contractVersion: "0.1.0",
+    source: {
+      pageId: "evo-data-import.mapping",
+      route: "/data-import/jobs/import-ctx-1/map",
+      actionId: "ai-auto-map"
+    },
+    context: {
+      taskKind: "data-import.mapping",
+      importJobId: "import-ctx-1",
+      targetId: "counterparty.subject"
+    }
+  };
+
+  const execution = await executeRunBackedChatV010({
+    actionHost: h.actionHost,
+    request: contextualRequest
+  });
+
+  assert.equal(execution.runState, "SUCCEEDED");
+  const run = h.runStore.get(execution.runId);
+  assert.deepEqual(
+    run.input.interactionContext,
+    contextualRequest.values.interactionContext
+  );
+  assert.equal(providerInputs.length, 1);
+  const developer = providerInputs[0].messages.find(
+    message => message.role === "developer"
+  )?.content ?? "";
+  assert.match(developer, /import-ctx-1/);
+  assert.match(developer, /data-import\.mapping/);
+});
+
 test("P1.6A Host drain completes a WRITE turn in one client request and reconnect stays exactly-once", async () => {
   const manager = createAppManagerService(
     createPackageCatalog([]),
