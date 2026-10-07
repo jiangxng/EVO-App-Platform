@@ -68,7 +68,7 @@ test("login cover defaults to enterprise-to-employee messaging rather than platf
     authenticationEnabled: true,
     methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
   });
-  assert.match(zh, /把目标变成行动，把行动变成结果。/);
+  assert.match(zh, /以客户为中心，以奋斗者为本。/);
   assert.match(zh, /目标一致/);
   assert.match(zh, /责任清晰/);
   assert.match(zh, /持续改善/);
