@@ -1608,6 +1608,20 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 "Action failed: {message}",
                 { message: execution.result.error?.message ?? "Unknown action error" }
               );
+          const navigateTo =
+            execution.result.ok
+            && execution.result.result !== null
+            && typeof execution.result.result === "object"
+            && !Array.isArray(execution.result.result)
+            && typeof (execution.result.result as { navigateTo?: unknown }).navigateTo === "string"
+              ? (execution.result.result as { navigateTo: string }).navigateTo.trim()
+              : "";
+          if (navigateTo && options.onNavigate) {
+            if (!navigateTo.startsWith("/")) {
+              throw new Error("EIDOS_ACTION_NAVIGATE_TARGET_INVALID");
+            }
+            await options.onNavigate(navigateTo);
+          }
           await options.onActionResult?.(
             execution.result,
             page,
