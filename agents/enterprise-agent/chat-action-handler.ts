@@ -13,6 +13,7 @@ import type {
 } from "../../contracts/platform-services.js";
 import type {
   AgentConversationMessageV010,
+  AgentInteractionContextV010,
   AgentToolCatalogV010
 } from "./contracts.js";
 import { createEnterpriseAgentRuntime } from "./runtime.js";
@@ -61,6 +62,27 @@ function localeForRequest(
 export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGES = 16;
 export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_CHARACTERS = 24_000;
 export const PERSONAL_AGENT_CONVERSATION_HISTORY_MAX_MESSAGE_CHARACTERS = 8_000;
+export const PERSONAL_AGENT_INTERACTION_CONTEXT_MAX_CHARACTERS = 16_000;
+
+export function parsePersonalAgentInteractionContextV010(
+  request: AppActionRequestV010
+): AgentInteractionContextV010 | undefined {
+  const raw = request.values.interactionContext;
+  if (raw === undefined) return undefined;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("PERSONAL_AGENT_INTERACTION_CONTEXT_INVALID");
+  }
+
+  const serialized = JSON.stringify(raw);
+  if (
+    serialized.length
+    > PERSONAL_AGENT_INTERACTION_CONTEXT_MAX_CHARACTERS
+  ) {
+    throw new Error("PERSONAL_AGENT_INTERACTION_CONTEXT_TOO_LARGE");
+  }
+
+  return JSON.parse(serialized) as AgentInteractionContextV010;
+}
 
 export function parsePersonalAgentConversationHistoryV010(
   request: AppActionRequestV010
@@ -214,8 +236,11 @@ export function createEnterpriseAgentChatActionHandler(
       }
 
       let conversationHistory: AgentConversationMessageV010[];
+      let interactionContext: AgentInteractionContextV010 | undefined;
       try {
         conversationHistory = parsePersonalAgentConversationHistoryV010(request);
+        interactionContext =
+          parsePersonalAgentInteractionContextV010(request);
       } catch (error) {
         return {
           ok: false,
@@ -223,7 +248,7 @@ export function createEnterpriseAgentChatActionHandler(
             code: errorCode(error),
             message: error instanceof Error
               ? error.message
-              : "Conversation history validation failed."
+              : "Conversation/interaction context validation failed."
           }
         };
       }
@@ -247,7 +272,8 @@ export function createEnterpriseAgentChatActionHandler(
         message.trim(),
         context,
         principal,
-        conversationHistory
+        conversationHistory,
+        interactionContext
       );
       if (dependencies.qualityEvidenceStore) {
         dependencies.qualityEvidenceStore.append(createHostObservedQualityEvidenceV010({

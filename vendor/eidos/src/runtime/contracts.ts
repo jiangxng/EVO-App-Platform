@@ -16,7 +16,21 @@ export interface UidlField {
   maxBytes?: number;
   validation?: { min?: number; max?: number; pattern?: string };
 }
-export interface UidlAction { id: string; label: string; type: "submit" | "cancel"; command?: string; requiresConfirmation?: boolean }
+export interface UidlAction {
+  id: string;
+  label: string;
+  type: "submit" | "cancel" | "agent";
+  command?: string;
+  requiresConfirmation?: boolean;
+  /**
+   * Human-visible instruction for a contextual Agent action.
+   * The Host decides which installed Agent surface handles the requested
+   * capability; Eidos does not depend on a concrete Agent implementation.
+   */
+  prompt?: string;
+  agentCapability?: string;
+  context?: Record<string, JsonValue>;
+}
 export interface UidlFormV011 {
   contractVersion: "0.1.1"; kind: "form"; id: string; title: string; purpose: "execute-command";
   command: { code: string; inputVersion: string };
@@ -29,6 +43,13 @@ export interface FormRenderModelV010 {
   fields: RenderFieldV010[];
   submitAction: { id: string; label: string; requiresConfirmation: boolean };
   cancelActions: Array<{ id: string; label: string }>;
+  agentActions: Array<{
+    id: string;
+    label: string;
+    prompt: string;
+    agentCapability?: string;
+    context?: Record<string, JsonValue>;
+  }>;
 }
 export interface ActionRequestV010 {
   contractVersion: "0.1.0"; type: "command";

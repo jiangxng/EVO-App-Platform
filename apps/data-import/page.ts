@@ -45,6 +45,8 @@ function text(locale?: string) {
         mappingDescription:
           "确认每一列对应的 EVO 字段。系统已按字段 ID、中文/英文名称自动匹配，可忽略不需要的列。",
         ignore: "忽略此列",
+        aiMap: "AI 自动匹配",
+        aiMapPrompt: "帮我做字段映射",
         validate: "保存映射并预检查",
         reviewTitle: "导入预检查",
         ready: "预检查通过",
@@ -80,6 +82,8 @@ function text(locale?: string) {
         mappingDescription:
           "Confirm how each source column maps to EVO fields. Matching by field ID and localized labels is suggested automatically.",
         ignore: "Ignore this column",
+        aiMap: "AI auto-match",
+        aiMapPrompt: "Help me map the fields for this import.",
         validate: "Save mapping and validate",
         reviewTitle: "Import review",
         ready: "Validation passed",
@@ -302,6 +306,17 @@ export function createDataImportMappingPageV010(input: {
       type: "submit" as const,
       command: DATA_IMPORT_REVIEW_COMMAND_V010,
       requiresConfirmation: false
+    }, {
+      id: "ai-auto-map",
+      label: t.aiMap,
+      type: "agent" as const,
+      prompt: t.aiMapPrompt,
+      agentCapability: "agent.personal",
+      context: {
+        taskKind: "data-import.mapping",
+        importJobId: input.job.importJobId,
+        targetId: input.job.targetId
+      }
     }],
     metadata: {
       description: t.mappingDescription
