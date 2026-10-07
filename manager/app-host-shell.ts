@@ -5,7 +5,36 @@ function safeAssetRevision(value: string): string {
   return normalized || "dev";
 }
 
-export const appHostShellCss = eidosProductiveWorkbenchCss;
+export const appHostShellCss = eidosProductiveWorkbenchCss + `
+[data-eidos-account-logout]{
+  margin-top:var(--eidos-space-xs);
+  padding-top:var(--eidos-space-md);
+  border-top:1px solid var(--eidos-border);
+}
+[data-eidos-account-logout] button{
+  width:100%;
+  min-height:var(--eidos-control-normal);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);
+  padding:0 var(--eidos-space-md);
+  background:var(--eidos-bg);
+  color:var(--eidos-fg);
+  font:inherit;
+  font-size:var(--eidos-font-compact);
+  font-weight:600;
+  text-align:left;
+  cursor:pointer;
+}
+[data-eidos-account-logout] button:hover{
+  border-color:color-mix(in srgb,var(--eidos-danger) 35%,var(--eidos-border-strong));
+  background:var(--eidos-danger-bg);
+  color:var(--eidos-danger);
+}
+[data-eidos-account-logout] button:focus-visible{
+  outline:2px solid var(--eidos-focus);
+  outline-offset:2px;
+}
+`;
 
 
 export function createAppHostShellHtmlV010(assetRevision: string): string {
