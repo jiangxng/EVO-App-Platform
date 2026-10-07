@@ -87,6 +87,11 @@ export interface AppHostSnapshotV010 {
 }
 
 export interface AppHostLoadedPageV010 extends AppHostResolvedRouteV010 {
+  /**
+   * Concrete path used to load this page. Unlike route.path, this preserves
+   * dynamic parameters and query coordinates from the active work surface.
+   */
+  requestPath?: string;
   definition: unknown;
 }
 
