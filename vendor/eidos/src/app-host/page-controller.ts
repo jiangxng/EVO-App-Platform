@@ -585,6 +585,53 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
 
+  const activateCatalogRow = (
+    row: HTMLElement,
+    event: Event
+  ): void => {
+    const route = row.dataset.eidosCatalogRowRoute;
+    if (!route?.startsWith("/")) return;
+    if (event instanceof MouseEvent) {
+      const target = event.target;
+      if (
+        target instanceof Element
+        && target.closest(
+          "button,a,input,select,textarea,summary,[role=button]"
+        )
+      ) {
+        return;
+      }
+    }
+    void options.onNavigate?.(route);
+  };
+
+  const onCatalogRowClick = (event: MouseEvent): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const row = target.closest<HTMLElement>(
+      "[data-eidos-catalog-row-route]"
+    );
+    if (!row || !container.contains(row)) return;
+    activateCatalogRow(row, event);
+  };
+  const onCatalogRowKeyDown = (event: KeyboardEvent): void => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const row = target.closest<HTMLElement>(
+      "[data-eidos-catalog-row-route]"
+    );
+    if (!row || !container.contains(row) || target !== row) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    activateCatalogRow(row, event);
+  };
+  container.addEventListener("click", onCatalogRowClick);
+  container.addEventListener("keydown", onCatalogRowKeyDown);
+  listeners.push(() => {
+    container.removeEventListener("click", onCatalogRowClick);
+    container.removeEventListener("keydown", onCatalogRowKeyDown);
+  });
+
   let actionStatus: HTMLPreElement | undefined;
 
   const ensureActionStatus = (): HTMLPreElement => {
