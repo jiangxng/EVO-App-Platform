@@ -422,7 +422,8 @@ export function createDataImportReviewPageV010(input: {
       command: DATA_IMPORT_COMMIT_COMMAND_V010,
       inputVersion: "0.1.0",
       requiresConfirmation: true,
-      values: { importJobId: job.importJobId }
+      values: { importJobId: job.importJobId },
+      primary: true
     } as never);
   }
   if ((dryRun?.invalidRows ?? 0) > 0) {
