@@ -9,6 +9,9 @@ import {
   COUNTERPARTY_DETAIL_PAGE_ID,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
   COUNTERPARTY_DETAIL_ROUTE,
+  COUNTERPARTY_EDIT_PAGE_ID,
+  COUNTERPARTY_EDIT_PAGE_SOURCE,
+  COUNTERPARTY_EDIT_ROUTE,
   COUNTERPARTY_DIRECTORY_PAGE_ID,
   COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
   COUNTERPARTY_DIRECTORY_ROUTE,
@@ -67,6 +70,10 @@ export const counterpartyPackage: PackageManifestV010 = {
           id: COUNTERPARTY_DETAIL_PAGE_ID,
           title: "Counterparty",
           source: COUNTERPARTY_DETAIL_PAGE_SOURCE
+        }, {
+          id: COUNTERPARTY_EDIT_PAGE_ID,
+          title: "Edit Counterparty",
+          source: COUNTERPARTY_EDIT_PAGE_SOURCE
         }],
         routes: [{
           id: COUNTERPARTY_DIRECTORY_PAGE_ID,
@@ -80,6 +87,10 @@ export const counterpartyPackage: PackageManifestV010 = {
           id: COUNTERPARTY_DETAIL_PAGE_ID,
           path: COUNTERPARTY_DETAIL_ROUTE,
           pageId: COUNTERPARTY_DETAIL_PAGE_ID
+        }, {
+          id: COUNTERPARTY_EDIT_PAGE_ID,
+          path: COUNTERPARTY_EDIT_ROUTE,
+          pageId: COUNTERPARTY_EDIT_PAGE_ID
         }],
         navigation: [{
           id: "evo-counterparty.nav",
