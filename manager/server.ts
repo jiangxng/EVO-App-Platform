@@ -756,6 +756,8 @@ import {
   evoFoundationPackage,
   ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
+  objectExtensionPackage,
+  objectExtensionPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
