@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type {
   FoundationObjectImportCellV010,
   FoundationObjectImportTargetV010
@@ -171,6 +170,8 @@ export interface DataImportServiceV010 {
     targetParameters?: DataImportJobV010["targetParameters"];
     source: DataImportSourceV010;
     mapping: DataImportMappingV010[];
+    mappingOrigin?: DataImportMappingOriginV010;
+    appliedRecipeId?: string;
     actorSubjectId: string;
     recordedAt: string;
   }): DataImportJobV010;
@@ -202,12 +203,6 @@ export function createDataImportServiceV010(input: {
 
   function targetFor(job: DataImportJobV010): FoundationObjectImportTargetV010 {
     const target = targets.get(job.targetId);
-    if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
-    return target;
-  }
-
-  function targetById(targetId: string): FoundationObjectImportTargetV010 {
-    const target = targets.get(targetId);
     if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
     return target;
   }
