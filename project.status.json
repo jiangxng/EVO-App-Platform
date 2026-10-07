@@ -513,7 +513,7 @@
     "company-notes-no-evo",
     "trading-lite-with-evo-dependency"
   ],
-  "currentStep": "CP-03 Human import validation is closed PASS. CP-04 implementation is active in PR #458: shared Responsibility, Customers/Suppliers/My Customers/My Suppliers, server-side record/field data scope and 10k projection proof. Current gate is CI + merge, then Human browser validation.",
+  "currentStep": "CP-04 is merged with all CI checks passing. Current gate is Human production/browser validation of Customers, Suppliers, My Customers and My Suppliers, including responsibility assignment and effective data-scope behavior. Do not start CP-05 until this Human gate closes.",
   "localMvpRunbook": "docs/roadmap/LOCAL-MVP-RUN-v0.1.md",
   "localProofs": {
     "companyNotesNoEvo": {
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp04-responsibility-projections-implementation-2026-10-07",
-    "snapshotAt": "2026-10-07T23:29:00+08:00",
+    "snapshotId": "cp04-merged-ci-pass-2026-10-07",
+    "snapshotAt": "2026-10-07T23:36:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1829,19 +1829,24 @@
       },
       "openGate": {
         "id": "counterparty-responsibility-projections-v0-4",
-        "status": "IMPLEMENTATION_PR_OPEN_CI",
-        "summary": "CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.",
+        "status": "MERGED_CI_PASS_PENDING_HUMAN_VALIDATION",
+        "summary": "CP-04 is merged in PR #458 with all 43 pull-request checks passing. Shared Responsibility and the four governed Counterparty projections are now on main; the remaining gate is Human production/browser validation.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "My Customers is not a client-side filter over all Counterparties.",
           "Unauthorized records and fields never reach the Eidos page payload.",
           "One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.",
           "Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.",
-          "The projection path has deterministic 10k-record regression proof."
+          "The projection path has deterministic 10k-record regression proof.",
+          "Human production/browser validation confirms the four projections and responsibility-scoped visibility are understandable and correct."
         ],
         "implementationEvidence": {
           "implementationPr": 458,
-          "platformCI": "PASS_ON_PREVIOUS_HEAD_AND_RERUNNING_ON_LATEST_HEAD",
+          "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "crossProjectEidosEvoCI": "PASS",
+          "pullRequestChecks": 43,
           "responsibilityCapability": "enterprise.responsibility",
           "serverSideDataScope": true,
           "tenThousandRecordProjectionProof": true
@@ -1860,6 +1865,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 458,
+        "status": "MERGED_CI_PASS_PENDING_HUMAN_VALIDATION",
+        "summary": "CP-04 Responsibility + governed Counterparty projections: shared Responsibility capability, Customers/Suppliers/My Customers/My Suppliers, server-governed data scope and 10k projection proof."
+      },
       {
         "pr": 439,
         "status": "MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION",
@@ -4560,7 +4570,7 @@
       "humanValidation": "PASS"
     },
     "cp04": {
-      "status": "IMPLEMENTATION_PR_OPEN_CI_PASS",
+      "status": "MERGED_CI_PASS_PENDING_HUMAN_VALIDATION",
       "implementationPr": 458,
       "platformCI": "PASS",
       "responsibilityCapability": "enterprise.responsibility",
@@ -4575,7 +4585,15 @@
       "serverSideFieldFiltering": true,
       "identityDuplication": false,
       "tenThousandRecordProjectionProof": true,
-      "humanValidation": "PENDING"
+      "humanValidation": "PENDING",
+      "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+      "projectContinuityCI": "PASS",
+      "crossProjectEidosEvoCI": "PASS",
+      "allPullRequestChecks": 43,
+      "remaining": [
+        "Human production/browser validation of Customers, Suppliers, My Customers and My Suppliers.",
+        "Human validation that responsibility-scoped views expose the expected records without leaking unauthorized records or fields."
+      ]
     }
   }
 }
