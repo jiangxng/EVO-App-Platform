@@ -102,6 +102,7 @@ export function dataImportTargetSchemaDigestV010(
     fields: schema.fields.map(field => {
       const {
         resolvedLabel: _resolvedLabel,
+        resolvedDescription: _resolvedDescription,
         ...semantic
       } = field;
       return semantic;
