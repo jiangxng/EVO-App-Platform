@@ -1775,7 +1775,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                   }))
                 }
               : {}),
-            ...contextValues(),
+            ...(interactionContext ? {} : contextValues()),
             ...(interactionContext
               ? {
                   interactionContext: structuredClone(
