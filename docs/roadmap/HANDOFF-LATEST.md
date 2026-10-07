@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `foundation-object-fo01-implementation-2026-10-07`  
-**Snapshot time:** `2026-10-07T12:01:00+08:00`  
+**Snapshot:** `counterparty-cp02-human-pass-cp03-start-2026-10-07`  
+**Snapshot time:** `2026-10-07T12:05:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Counterparty Relationship Roles v0.2
+Counterparty Enterprise Extension + Import-first v0.3
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-core-master-data-v0-1: MERGED_CI_PRODUCTION_PASS**
+**counterparty-relationship-roles-v0-2: MERGED_CI_DEPLOYED_HUMAN_PASS**
 
-Counterparty / 往来对象 v0.1 core master-data loop is complete in production. Directory, Create, Detail, Edit and Archive all operate on Enterprise Context Resource Library resources. Editing preserves stable counterpartyId and updates the same enterprise resource. Eidos UIDL gained generic initial-value support so edit forms remain platform-generic rather than Counterparty-specific.
+Counterparty Relationship Roles v0.2 is closed. CUSTOMER and SUPPLIER coexist on one stable Counterparty identity; Human production validation confirmed role coexistence and independent removal without deleting the remaining role or Counterparty identity.
 
 Authority: `docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md`
 
@@ -26,42 +26,38 @@ Evidence:
 
 ```json
 {
-  "initialPluginPr": 415,
-  "editCompletionPr": 417,
-  "editMergeCommit": "747fa58ad2d61938a3171f05d0b53d9dd4e79f1b",
-  "eidosInitialValuePr": 127,
-  "eidosMergeCommit": "ee08061c89701f10cd9f21cf7b496a9ed24ebd24",
+  "implementationPr": 419,
+  "mergeCommit": "6c47a342b02328cc69ed3ab9cecaf42c3823cee7",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "fb0bc536-9d46-48eb-ae13-1ced7e5601b5",
+  "crossProjectEidosEvoCI": "PASS",
+  "railwayDeploymentId": "90f244c8-3715-4c3a-9ced-419483f4ac34",
   "railwayDeploymentStatus": "SUCCESS",
-  "stableCounterpartyIdOnEdit": true,
-  "enterpriseContextStorage": true,
-  "namespace": "evo.counterparty",
-  "collection": "counterparties",
-  "customerSupplierAsRoles": true,
-  "arApSettlementOwnership": false
+  "humanBrowserValidation": "PASS",
+  "humanValidationAt": "2026-10-07",
+  "simultaneousCustomerSupplier": true,
+  "independentRoleRemoval": true,
+  "counterpartyIdentityPreserved": true
 }
 ```
 
 ## Current open live gate
 
-**counterparty-relationship-roles-v0-2: MERGED_CI_DEPLOYED_PENDING_HUMAN_VALIDATION**
+**counterparty-enterprise-extension-import-v0-3: ACTIVE_IMPLEMENTATION**
 
-Counterparty Relationship Roles v0.2 is merged through App Platform PR #419 and deployed to production. CUSTOMER and SUPPLIER are explicit enterprise-scoped relationship resources over one stable Counterparty identity. The remaining closure gate is Human browser validation; the milestone is not yet declared Human-validated/closed.
+CP-03 is the active gate. Prove enterprise-scoped Object Extension definitions and values plus a generic Import-first flow on Counterparty without moving generic infrastructure into the Counterparty plugin.
 
 Acceptance:
 
-- One Counterparty may hold multiple simultaneous relationship roles, including Customer and Supplier.
-- Relationship roles are stored as explicit Enterprise Context resources/capabilities and not as a comma-separated label field.
-- Assigning or removing a relationship role never creates or deletes the underlying Counterparty identity.
-- Role resources reference the stable counterpartyId and remain enterprise-scoped.
-- Customer/Supplier role assignment is visible from Counterparty detail without turning Counterparty into Sales or Procurement workflow.
-- Role-specific commercial settings such as sales credit limits or supplier settlement terms are not placed on Counterparty core and may evolve in separate role/profile resources.
-- Legacy dealerLabelName values are treated as migration hints into explicit role resources, not copied as identity semantics.
-- Historical BusinessData continues to preserve committed snapshots and is not rewritten by role/master-data changes.
-- AR/AP balances, open items, settlement and matching remain outside Counterparty ownership.
-- Desktop and mobile Counterparty detail remain readable as roles grow.
+- Object Extension definitions are enterprise-scoped, namespaced, versioned, target declared semantic slots, and persist through Enterprise Context.
+- Object Extension public read/write operations are governed through platform authorization and ActionHost/QueryHost rather than direct private repository access.
+- A realistic CustomerProfile extension such as channelDepositGrade can affect EffectiveObjectSchema without modifying Counterparty core schema.
+- Generic Data Import is implemented outside Counterparty and discovers/uses a public Counterparty import target.
+- CSV/XLSX import supports staging, mapping, validation, dry run, explicit commit, receipt and failed-row reporting.
+- Import maps both core Counterparty fields and enterprise extension fields through the same EffectiveObjectSchema contract.
+- Counterparty import remains enterprise-isolated and deterministic/idempotent or deterministically rejects duplicate commit.
+- 1k demo data and 10k import/performance data exist without bloating Git with large external corpus payloads.
+- No generic Import/Extension infrastructure is implemented inside apps/counterparty.
 
 ## Current production preview
 
@@ -102,6 +98,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #419 — HUMAN_PASS: Counterparty Relationship Roles v0.2 Human production validation passed on 2026-10-07: CUSTOMER + SUPPLIER coexistence and independent role removal preserve one stable Counterparty identity.
 - PR #427 — MERGED_CI_PRODUCTION_PASS: FO-01 first implementation: shared Foundation Object descriptor/schema/extension contracts, deterministic EffectiveObjectSchema compiler, conformance testkit, Enterprise Context-backed Object Extension definition repository/package boundary, and Counterparty create/edit forms driven from the shared schema.
 - PR #419 — MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING: Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline.
 - PR #417 — MERGED_CI_PRODUCTION_PASS: Complete Counterparty v0.1 core master-data loop with in-place Edit and generic Eidos UIDL initial-value support.
@@ -479,6 +476,8 @@ Not proved:
 - Do not couple plugin uninstall to deletion of enterprise resources; purge is a separate explicit destructive lifecycle.
 - Do not repeat FO-01 shared descriptor/schema/extension contracts, EffectiveObjectSchema compiler, conformance testkit, or Counterparty schema integration; these are merged on main.
 - Do not advertise enterprise.object-extension.definition as an effective public capability until CP-03 supplies governed invocation/authorization; FO-01 intentionally created the package/repository boundary without a fake callable capability.
+- Do not ask for CP-02 Human validation again; it passed on 2026-10-07.
+- Do not reopen FO-01; shared Foundation Object contracts/compiler are already merged and production-deployed.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -700,6 +699,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state CP-03 Enterprise Extension + Import-first vertical proof as the next implementation gate after CP-02 Human pass
 - state Object Extension definitions as enterprise-scoped resources persisted through Enterprise Context, with public mutation/invocation deliberately deferred to CP-03
 - state Counterparty create/edit form fields as now driven by EffectiveObjectSchema rather than a duplicated private field list
+- state CP-02 Counterparty Relationship Roles v0.2 as CLOSED with Human production validation PASS on 2026-10-07
+- state CP-03 Enterprise Extension + Import-first Counterparty vertical proof as the active implementation gate
+- state CP-04 Responsibility + governed role projections/data scope as the next gate after CP-03
 
 No previous ChatGPT transcript is required.
 
