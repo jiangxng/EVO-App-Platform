@@ -107,10 +107,51 @@ function createRepository(
   read: () => EnterpriseResourceStoreSnapshotV010,
   write: (snapshot: EnterpriseResourceStoreSnapshotV010) => void
 ): EnterpriseResourceRepositoryV010 {
+  let transactionSnapshot: EnterpriseResourceStoreSnapshotV010 | undefined;
+  let transactionDepth = 0;
+
+  const readCurrent = (): EnterpriseResourceStoreSnapshotV010 =>
+    transactionSnapshot
+      ? clone(transactionSnapshot)
+      : read();
+
+  const writeCurrent = (snapshot: EnterpriseResourceStoreSnapshotV010): void => {
+    const valid = validateSnapshot(clone(snapshot));
+    if (transactionSnapshot) {
+      transactionSnapshot = valid;
+      return;
+    }
+    write(valid);
+  };
+
   return {
+    transaction<T>(work: () => T): T {
+      if (transactionSnapshot) {
+        transactionDepth += 1;
+        try {
+          return work();
+        } finally {
+          transactionDepth -= 1;
+        }
+      }
+      transactionSnapshot = validateSnapshot(clone(read()));
+      transactionDepth = 1;
+      try {
+        const result = work();
+        const committed = validateSnapshot(clone(transactionSnapshot));
+        transactionDepth = 0;
+        transactionSnapshot = undefined;
+        write(committed);
+        return result;
+      } catch (error) {
+        transactionDepth = 0;
+        transactionSnapshot = undefined;
+        throw error;
+      }
+    },
     get(address) {
       const key = addressKey(address);
-      const resource = read().resources.find(item => addressKey(item) === key);
+      const resource = readCurrent().resources.find(item => addressKey(item) === key);
       return resource ? clone(resource) : undefined;
     },
 
@@ -119,7 +160,7 @@ function createRepository(
         input.contextId,
         "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"
       );
-      return read().resources
+      return readCurrent().resources
         .filter(item =>
           item.contextId === contextId
           && (input.namespace === undefined || item.namespace === input.namespace)
@@ -146,7 +187,7 @@ function createRepository(
     },
 
     put(input: EnterpriseResourcePutInputV010) {
-      const current = read();
+      const current = readCurrent();
       const key = addressKey(input);
       const previous = current.resources.find(item => addressKey(item) === key);
       const recordedAt = timestamp(
@@ -181,7 +222,7 @@ function createRepository(
         updatedAt: recordedAt,
         updatedBySubjectId: actorSubjectId
       });
-      write({
+      writeCurrent({
         contractVersion: "0.1.0",
         resources: [
           ...current.resources.filter(item => addressKey(item) !== key),
@@ -192,7 +233,7 @@ function createRepository(
     },
 
     archive(input) {
-      const current = read();
+      const current = readCurrent();
       const key = addressKey(input.address);
       const previous = current.resources.find(item => addressKey(item) === key);
       if (!previous) throw new Error("ENTERPRISE_RESOURCE_NOT_FOUND");
@@ -208,7 +249,7 @@ function createRepository(
           "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
         )
       });
-      write({
+      writeCurrent({
         contractVersion: "0.1.0",
         resources: current.resources.map(item =>
           addressKey(item) === key ? next : item
