@@ -781,9 +781,12 @@ import {
   COUNTERPARTY_CREATE_PAGE_SOURCE,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
   COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
+  COUNTERPARTY_EDIT_PAGE_SOURCE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
-  parseCounterpartyDetailRouteV010
+  COUNTERPARTY_UPDATE_COMMAND,
+  parseCounterpartyDetailRouteV010,
+  parseCounterpartyEditRouteV010
 } from "../apps/counterparty/constants.js";
 import {
   createCounterpartyRepositoryV010
@@ -4097,6 +4100,7 @@ const actionRouter = createAppActionRouter(
     ),
     ...[
       COUNTERPARTY_CREATE_COMMAND,
+      COUNTERPARTY_UPDATE_COMMAND,
       COUNTERPARTY_ARCHIVE_COMMAND
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
@@ -5682,6 +5686,7 @@ const server = createServer(async (request, response) => {
         source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE
         || source === COUNTERPARTY_CREATE_PAGE_SOURCE
         || source === COUNTERPARTY_DETAIL_PAGE_SOURCE
+        || source === COUNTERPARTY_EDIT_PAGE_SOURCE
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -5720,11 +5725,14 @@ const server = createServer(async (request, response) => {
           );
         }
         const routeValue = url.searchParams.get("route")?.trim();
-        const counterpartyId =
-          parseCounterpartyDetailRouteV010(routeValue || undefined);
+        const counterpartyId = source === COUNTERPARTY_EDIT_PAGE_SOURCE
+          ? parseCounterpartyEditRouteV010(routeValue || undefined)
+          : parseCounterpartyDetailRouteV010(routeValue || undefined);
         if (!counterpartyId) {
           return json(response, 400, {
-            code: "COUNTERPARTY_DETAIL_ROUTE_INVALID"
+            code: source === COUNTERPARTY_EDIT_PAGE_SOURCE
+              ? "COUNTERPARTY_EDIT_ROUTE_INVALID"
+              : "COUNTERPARTY_DETAIL_ROUTE_INVALID"
           });
         }
         const counterparty =
@@ -5737,10 +5745,15 @@ const server = createServer(async (request, response) => {
         return json(
           response,
           200,
-          module.createCounterpartyDetailPageV010({
-            counterparty,
-            locale: requestedLocale(url)
-          })
+          source === COUNTERPARTY_EDIT_PAGE_SOURCE
+            ? module.createCounterpartyEditPageV010({
+                counterparty,
+                locale: requestedLocale(url)
+              })
+            : module.createCounterpartyDetailPageV010({
+                counterparty,
+                locale: requestedLocale(url)
+              })
         );
       }
 
