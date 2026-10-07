@@ -5,12 +5,9 @@ import { readFile } from "node:fs/promises";
 import {
   createPersonalAgentChatPageV020,
   createPersonalAgentPluginStoreProductStateV010,
-  createPersonalAgentSetupPageV010
+  createPersonalAgentSetupPageV010,
+  resolvePersonalAgentActiveContextV010
 } from "../../dist/manager/personal-agent-experience.js";
-import {
-  createLocalizationRuntime,
-  localizeAppHostPageDefinition
-} from "../../dist/vendor/eidos/src/localization/index.js";
 import {
   createAppManagerActionHost
 } from "../../dist/vendor/eidos/src/app-host/app-manager-action-host.js";
@@ -168,13 +165,14 @@ test("Personal Agent first-class locale bundles keep exact key parity", () => {
   }
 });
 
-test("system-owned Personal context label localizes while enterprise display names remain data", () => {
+test("Personal Agent shows resolved Context without a second Context selector", () => {
   const context = {
     contractVersion: "0.1.0",
     activeContext: {
       contractVersion: "0.1.0",
-      kind: "PERSONAL",
-      contextId: "personal:preview-user"
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme"
     },
     personalContext: {
       contractVersion: "0.1.0",
@@ -182,6 +180,13 @@ test("system-owned Personal context label localizes while enterprise display nam
       contextId: "personal:preview-user",
       ownerSubjectId: "preview-user",
       displayName: "Preview User"
+    },
+    enterpriseContext: {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme",
+      displayName: "ACME Japan"
     }
   };
   const definition = createPersonalAgentChatPageV020(
@@ -215,25 +220,53 @@ test("system-owned Personal context label localizes while enterprise display nam
     ]
   );
 
-  const bundles = enterpriseAgentPackage.features[0].contributions
-    .filter(contribution => contribution.kind === "eidos.localization-bundle")
-    .map(contribution => contribution.bundle);
-  const page = {
-    experienceId: "enterprise-agent",
-    packageId: "enterprise-agent",
-    featureId: "enterprise-agent.default",
-    route: { id: "enterprise-agent.home", path: "/enterprise-agent", pageId: "enterprise-agent.home" },
-    page: { id: "enterprise-agent.home", title: "Personal Agent", source: "memory://personal-agent" },
-    definition
-  };
-  const localized = localizeAppHostPageDefinition(
-    page,
-    createLocalizationRuntime(bundles, { locale: "zh-CN", fallbackLocales: ["en"] })
-  );
+  assert.equal(definition.context.label, "Current enterprise");
+  assert.equal(definition.context.value, "ACME Japan");
+  assert.equal(definition.context.selector, undefined);
+});
 
-  assert.equal(localized.context.selector.options[0].label, "个人");
-  assert.equal(localized.context.selector.options[1].label, "ACME Japan");
-  assert.doesNotMatch(localized.context.selector.options[0].label, /Preview User/);
+test("Personal Agent context policy follows the current/default enterprise before Personal", () => {
+  const personal = {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:user-1"
+  };
+  const enterpriseA = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:a",
+    enterpriseId: "a"
+  };
+  const enterpriseB = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:b",
+    enterpriseId: "b"
+  };
+
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: enterpriseB,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseB
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseA
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      availableContexts: [personal]
+    }),
+    personal
+  );
 });
 
 
