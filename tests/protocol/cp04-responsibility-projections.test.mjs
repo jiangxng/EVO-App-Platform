@@ -30,6 +30,9 @@ import {
   createCounterpartyProjectionPageV010
 } from "../../dist/apps/counterparty/page.js";
 import {
+  counterpartyPackage
+} from "../../dist/apps/counterparty/package.js";
+import {
   resolveCounterpartyReadAccessV010
 } from "../../dist/apps/counterparty/access.js";
 import {
@@ -372,4 +375,18 @@ test("CP-04 projection path handles 10k records without duplicate identities", (
     result.length
   );
   assert.ok(elapsed < 2_000, "10k projection should remain interactive");
+});
+
+test("CP-04 role projections are discoverable under Counterparty navigation", () => {
+  const experience = counterpartyPackage.features[0].contributions
+    .find(item => item.kind === "eidos.experience").manifest;
+  const children = experience.navigation
+    .filter(item => item.parentId === "evo-counterparty.nav")
+    .map(item => [item.label, item.route]);
+  assert.deepEqual(children, [
+    ["Customers", "/counterparties/customers"],
+    ["Suppliers", "/counterparties/suppliers"],
+    ["My Customers", "/counterparties/my-customers"],
+    ["My Suppliers", "/counterparties/my-suppliers"]
+  ]);
 });
