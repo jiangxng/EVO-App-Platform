@@ -87,6 +87,66 @@ function normalizedHeader(value: string): string {
     .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
 }
 
+function normalizedSemanticAlias(value: unknown): string | undefined {
+  if (
+    typeof value !== "string"
+    && typeof value !== "number"
+    && typeof value !== "boolean"
+  ) {
+    return undefined;
+  }
+  return String(value)
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
+}
+
+function assertAgentMappingSemanticSafety(input: {
+  schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
+  mapping: DataImportMappingV010[];
+  mappingOrigin?: DataImportMappingOriginV010;
+}): void {
+  if (input.mappingOrigin !== "AGENT") return;
+  const byId = new Map(
+    input.schema.fields.map(field => [field.fieldId, field] as const)
+  );
+
+  for (const item of input.mapping) {
+    if (!item.transform || item.transform.kind !== "VALUE_MAP") continue;
+    const field = byId.get(item.targetFieldId);
+    if (!field || field.valueType !== "ENUM" || !field.enumOptions) continue;
+
+    const options = new Map(field.enumOptions.map(option => [
+      normalizedSemanticAlias(option.value),
+      option
+    ] as const));
+
+    for (const entry of item.transform.entries) {
+      const targetKey = normalizedSemanticAlias(entry.target);
+      const option = targetKey ? options.get(targetKey) : undefined;
+      if (!option) continue;
+
+      const accepted = new Set(
+        [
+          option.value,
+          option.label.default,
+          ...Object.values(option.label.translations ?? {}),
+          ...(option.aliases ?? [])
+        ]
+          .map(normalizedSemanticAlias)
+          .filter((value): value is string => Boolean(value))
+      );
+      const sourceKey = normalizedSemanticAlias(entry.source);
+      if (!sourceKey || !accepted.has(sourceKey)) {
+        throw new Error(
+          "DATA_IMPORT_AGENT_ENUM_VALUE_MAP_REQUIRES_HUMAN_REVIEW"
+        );
+      }
+    }
+  }
+}
+
 export function suggestDataImportMappingV010(input: {
   schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
   source: DataImportSourceV010;
@@ -319,6 +379,16 @@ export function createDataImportServiceV010(input: {
       if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
         throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
       }
+      const target = targetFor(job);
+      const schema = target.describe({
+        contextId: mappingInput.contextId,
+        parameters: job.targetParameters
+      });
+      assertAgentMappingSemanticSafety({
+        schema,
+        mapping: mappingInput.mapping,
+        mappingOrigin: mappingInput.mappingOrigin
+      });
       const next: DataImportJobV010 = {
         ...job,
         state: "STAGED",
