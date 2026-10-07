@@ -257,7 +257,10 @@ test("Counterparty pages establish list-first management UX and a valid create f
   });
   assert.equal(directory.layout, "list");
   assert.equal(directory.density, "compact");
+  assert.equal(directory.itemActivation, "primary-action");
   assert.equal(directory.title, "往来对象");
+  assert.equal(directory.items[0].summary, undefined);
+  assert.equal(directory.items[0].primaryAction.id, "view");
   assert.equal(directory.items[0].title, "ABC有限公司");
   assert.equal(directory.items.length, 1);
   assert.deepEqual(

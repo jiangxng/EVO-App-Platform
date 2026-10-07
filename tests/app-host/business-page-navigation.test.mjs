@@ -63,9 +63,12 @@ test("Eidos catalog pages expose compact management density and page actions", (
     kind: "catalog-browser",
     layout: "list",
     density: "compact",
+    itemActivation: "primary-action",
     id: "test.catalog",
     title: "Records",
     description: "Manage business records.",
+    collectionTitle: "History",
+    collectionDescription: "Previous business operations.",
     contextNavigation: {
       items: [{
         id: "root",
@@ -95,12 +98,22 @@ test("Eidos catalog pages expose compact management density and page actions", (
       status: {
         label: "Active",
         tone: "positive"
+      },
+      primaryAction: {
+        id: "open",
+        label: "Open",
+        type: "navigate",
+        route: "/records/r1"
       }
     }]
   });
 
   assert.match(html, /data-eidos-catalog-density="compact"/);
   assert.match(html, /data-eidos-page-actions/);
+  assert.match(html, /data-eidos-collection-heading/);
+  assert.match(html, />History<\/h2>/);
+  assert.match(html, /data-eidos-catalog-row-route="\/records\/r1"/);
+  assert.doesNotMatch(html, /data-eidos-catalog-action="open"/);
   assert.match(html, /data-eidos-route="\/records\/new"/);
   assert.match(
     html,
@@ -121,6 +134,9 @@ test("shared business-page navigation uses Eidos-owned responsive realization", 
 
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-page-heading/);
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-context-navigation-desktop/);
+  assert.match(eidosProductiveWorkbenchCss, /min-height:0!important/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-collection-heading/);
+  assert.match(eidosProductiveWorkbenchCss, /data-eidos-catalog-row-disclosure/);
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-catalog-density="compact"/);
   assert.match(eidosProductiveWorkbenchCss, /@media \(max-width:700px\)/);
 });

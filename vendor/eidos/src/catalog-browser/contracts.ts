@@ -49,11 +49,18 @@ export interface CatalogBrowserV010 {
    */
   layout?: "grid" | "list";
   density?: "comfortable" | "compact";
+  /**
+   * Makes the item's primary navigate action the row-level navigation affordance.
+   * Use for management lists with one obvious destination; secondary actions remain explicit.
+   */
+  itemActivation?: "primary-action";
   id: string;
   title: string;
   description?: string;
   contextNavigation?: EidosContextNavigationV010;
   actions?: CatalogBrowserActionV010[];
+  collectionTitle?: string;
+  collectionDescription?: string;
   search?: {
     placeholder?: string;
     ariaLabel?: string;

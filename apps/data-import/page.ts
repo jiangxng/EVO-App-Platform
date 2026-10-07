@@ -35,8 +35,11 @@ function text(locale?: string) {
           "通过预检查、字段映射和明确确认，把 CSV / XLSX 数据安全导入当前企业。原始文件不会绕过业务对象校验。",
         chooseTarget: "选择要导入的数据对象",
         import: "开始导入",
+        importTarget: (name: string) => "导入" + name,
         recent: "最近导入",
-        noJobs: "还没有导入任务。",
+        history: "导入历史",
+        historyDescription: "查看过去的导入任务、处理状态和结果。",
+        noJobs: "还没有导入历史。",
         uploadTitle: "上传数据文件",
         file: "CSV / XLSX 文件",
         stage: "读取文件并映射字段",
@@ -74,8 +77,11 @@ function text(locale?: string) {
           "Safely import CSV / XLSX data into the current enterprise through explicit mapping, dry run and confirmation. Files never bypass domain validation.",
         chooseTarget: "Choose data to import",
         import: "Start import",
+        importTarget: (name: string) => "Import " + name,
         recent: "Recent imports",
-        noJobs: "No import jobs yet.",
+        history: "Import history",
+        historyDescription: "Review previous import jobs, processing status and results.",
+        noJobs: "No import history yet.",
         uploadTitle: "Upload data file",
         file: "CSV / XLSX file",
         stage: "Read file and map fields",
@@ -138,21 +144,17 @@ export function createDataImportDirectoryPageV010(input: {
   locale?: string;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
-  const targetItems = input.targets.map(target => ({
-    id: "target:" + target.targetId,
-    title: localizedTextV010(target.label, input.locale),
-    summary: target.objectType,
-    category: t.chooseTarget,
-    metadata: {
-      [t.target]: target.targetId
-    },
-    primaryAction: {
-      id: "import",
-      label: t.import,
+  const importActions = input.targets.map(target => {
+    const label = localizedTextV010(target.label, input.locale);
+    return {
+      id: "import:" + target.targetId,
+      label: t.importTarget(label),
       type: "navigate" as const,
-      route: dataImportUploadRouteV010(target.targetId)
-    }
-  }));
+      route: dataImportUploadRouteV010(target.targetId),
+      requiresConfirmation: false,
+      ...(input.targets.length === 1 ? { primary: true } : {})
+    };
+  });
   const jobItems = [...input.jobs]
     .slice(0, 20)
     .map(job => {
@@ -182,10 +184,15 @@ export function createDataImportDirectoryPageV010(input: {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     layout: "list",
+    density: "compact",
+    itemActivation: "primary-action",
     id: "evo-data-import.directory",
     title: t.title,
     description: t.description,
-    items: [...targetItems, ...jobItems],
+    actions: importActions,
+    collectionTitle: t.history,
+    collectionDescription: t.historyDescription,
+    items: jobItems,
     emptyMessage: t.noJobs
   };
 }
