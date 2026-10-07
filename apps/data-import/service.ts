@@ -169,6 +169,7 @@ export function createDataImportServiceV010(input: {
         const validation = target.validateRow({
           contextId: dryRunInput.contextId,
           importJobId: job.importJobId,
+          schema,
           rowNumber,
           values: mappedValues({
             sourceRow,
@@ -256,6 +257,7 @@ export function createDataImportServiceV010(input: {
           const result = target.commitRow({
             contextId: commitInput.contextId,
             importJobId: job.importJobId,
+            schema,
             prepared: row.prepared,
             parameters: job.targetParameters,
             actorSubjectId: commitInput.actorSubjectId,
