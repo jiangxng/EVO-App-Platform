@@ -66,6 +66,12 @@ export interface ObjectExtensionValueRepositoryV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): ObjectExtensionValueSetV010;
+  saveMany(input: {
+    contextId: string;
+    valueSets: ObjectExtensionValueSetV010[];
+    actorSubjectId: string;
+    recordedAt: string;
+  }): ObjectExtensionValueSetV010[];
   archive(input: {
     contextId: string;
     valueSet: ObjectExtensionValueSetV010;
@@ -171,6 +177,50 @@ export function createObjectExtensionValueRepositoryV010(
         recordedAt: input.recordedAt
       });
       return fromPayload(saved.payload);
+    },
+
+    saveMany(input) {
+      const contextId = required(
+        input.contextId,
+        "OBJECT_EXTENSION_VALUE_CONTEXT_REQUIRED"
+      );
+      const valueSets = input.valueSets.map(assertObjectExtensionValueSetV010);
+      const seen = new Set<string>();
+      for (const valueSet of valueSets) {
+        const id = valueResourceId(valueSet);
+        if (seen.has(id)) {
+          throw new Error("OBJECT_EXTENSION_VALUE_DUPLICATE_IN_BATCH");
+        }
+        seen.add(id);
+      }
+      if (!resources.putMany) {
+        return valueSets.map(valueSet => this.save({
+          contextId,
+          valueSet,
+          actorSubjectId: input.actorSubjectId,
+          recordedAt: input.recordedAt
+        }));
+      }
+      const saved = resources.putMany(valueSets.map(valueSet => ({
+        contextId,
+        namespace: "evo.object-extension",
+        collectionId: OBJECT_EXTENSION_VALUE_COLLECTION_V010,
+        resourceType: OBJECT_EXTENSION_VALUE_RESOURCE_TYPE_V010,
+        resourceId: valueResourceId(valueSet),
+        schemaRef: OBJECT_EXTENSION_VALUE_SCHEMA_V010,
+        ownerPackageId: "evo-object-extension",
+        storageKind: "DOCUMENT" as const,
+        payload: payloadOf(valueSet),
+        metadata: {
+          objectType: valueSet.targetRef.objectType,
+          objectId: valueSet.targetRef.objectId,
+          slot: valueSet.targetRef.slot,
+          extensionNamespace: valueSet.namespace
+        },
+        actorSubjectId: input.actorSubjectId,
+        recordedAt: input.recordedAt
+      })));
+      return saved.map(resource => fromPayload(resource.payload));
     },
 
     archive(input) {
