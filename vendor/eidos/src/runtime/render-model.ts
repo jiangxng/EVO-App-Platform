@@ -35,6 +35,9 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
           : {}),
         ...(action.context
           ? { context: structuredClone(action.context) }
+          : {}),
+        ...(action.refreshSourceOnComplete === true
+          ? { refreshSourceOnComplete: true }
           : {})
       }))
   };
