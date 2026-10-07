@@ -756,6 +756,7 @@ import {
   evoFoundationPackage,
   ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
+  objectExtensionPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
@@ -865,6 +866,7 @@ const catalog = createPackageCatalog([
   externalAgentGovernancePackage,
   ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
+  objectExtensionPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,

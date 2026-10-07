@@ -1,6 +1,12 @@
 import type {
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
+import {
+  fieldsForSurfaceV010,
+  localizedTextV010,
+  type EffectiveObjectSchemaV010,
+  type FoundationObjectFieldSurfaceV010
+} from "../../contracts/foundation-object/schema.js";
 import type {
   CounterpartySubjectV010
 } from "./repository.js";
@@ -8,6 +14,9 @@ import type {
   CounterpartyRelationshipRoleCodeV010,
   CounterpartyRelationshipRoleV010
 } from "./roles.js";
+import {
+  createCounterpartyEffectiveObjectSchemaV010
+} from "./foundation-object.js";
 import {
   COUNTERPARTY_ARCHIVE_COMMAND,
   COUNTERPARTY_ASSIGN_ROLE_COMMAND,
@@ -324,6 +333,32 @@ export function createCounterpartyDetailPageV010(input: {
   };
 }
 
+function counterpartyFormFieldsV010(input: {
+  schema: EffectiveObjectSchemaV010;
+  surface: Extract<FoundationObjectFieldSurfaceV010, "CREATE" | "EDIT">;
+  initialValues?: Record<string, string>;
+}) {
+  return fieldsForSurfaceV010(input.schema, input.surface).map(field => ({
+    key: field.fieldId,
+    label: field.resolvedLabel,
+    semanticType: field.semanticType,
+    control: field.control,
+    required: field.required,
+    ...(field.readOnly ? { readOnly: true } : {}),
+    ...(input.initialValues && field.fieldId in input.initialValues
+      ? { initialValue: input.initialValues[field.fieldId] }
+      : {}),
+    ...(field.enumOptions
+      ? {
+          options: field.enumOptions.map(option => ({
+            value: option.value,
+            label: localizedTextV010(option.label, input.schema.locale)
+          }))
+        }
+      : {})
+  }));
+}
+
 export function createCounterpartyCreatePageV010(locale?: string) {
   const text = textFor(locale);
   return {
@@ -336,68 +371,10 @@ export function createCounterpartyCreatePageV010(locale?: string) {
       code: COUNTERPARTY_CREATE_COMMAND,
       inputVersion: "0.1.0"
     },
-    fields: [{
-      key: "code",
-      label: text.code,
-      semanticType: "counterparty-code",
-      control: "text",
-      required: true
-    }, {
-      key: "displayName",
-      label: text.displayName,
-      semanticType: "counterparty-display-name",
-      control: "text",
-      required: true
-    }, {
-      key: "subjectType",
-      label: text.subjectType,
-      semanticType: "counterparty-subject-type",
-      control: "select",
-      required: true,
-      options: [{
-        value: "ORGANIZATION",
-        label: text.organization
-      }, {
-        value: "PERSON",
-        label: text.person
-      }]
-    }, {
-      key: "legalName",
-      label: text.legalName,
-      semanticType: "counterparty-legal-name",
-      control: "text",
-      required: false
-    }, {
-      key: "taxIdentifier",
-      label: text.taxIdentifier,
-      semanticType: "tax-identifier",
-      control: "text",
-      required: false
-    }, {
-      key: "countryOrRegion",
-      label: text.countryOrRegion,
-      semanticType: "country-or-region",
-      control: "text",
-      required: false
-    }, {
-      key: "phone",
-      label: text.phone,
-      semanticType: "phone",
-      control: "text",
-      required: false
-    }, {
-      key: "email",
-      label: text.email,
-      semanticType: "email",
-      control: "text",
-      required: false
-    }, {
-      key: "notes",
-      label: text.notes,
-      semanticType: "notes",
-      control: "text",
-      required: false
-    }],
+    fields: counterpartyFormFieldsV010({
+      schema: createCounterpartyEffectiveObjectSchemaV010({ locale }),
+      surface: "CREATE"
+    }),
     actions: [{
       id: "create",
       label: text.save,
@@ -430,85 +407,24 @@ export function createCounterpartyEditPageV010(input: {
       code: COUNTERPARTY_UPDATE_COMMAND,
       inputVersion: "0.1.0"
     },
-    fields: [{
-      key: "counterpartyId",
-      label: "ID",
-      semanticType: "counterparty-id",
-      control: "text",
-      required: true,
-      readOnly: true,
-      initialValue: subject.counterpartyId
-    }, {
-      key: "code",
-      label: text.code,
-      semanticType: "counterparty-code",
-      control: "text",
-      required: true,
-      initialValue: subject.code
-    }, {
-      key: "displayName",
-      label: text.displayName,
-      semanticType: "counterparty-display-name",
-      control: "text",
-      required: true,
-      initialValue: subject.displayName
-    }, {
-      key: "subjectType",
-      label: text.subjectType,
-      semanticType: "counterparty-subject-type",
-      control: "select",
-      required: true,
-      initialValue: subject.subjectType,
-      options: [{
-        value: "ORGANIZATION",
-        label: text.organization
-      }, {
-        value: "PERSON",
-        label: text.person
-      }]
-    }, {
-      key: "legalName",
-      label: text.legalName,
-      semanticType: "counterparty-legal-name",
-      control: "text",
-      required: false,
-      initialValue: subject.legalName ?? ""
-    }, {
-      key: "taxIdentifier",
-      label: text.taxIdentifier,
-      semanticType: "tax-identifier",
-      control: "text",
-      required: false,
-      initialValue: subject.taxIdentifier ?? ""
-    }, {
-      key: "countryOrRegion",
-      label: text.countryOrRegion,
-      semanticType: "country-or-region",
-      control: "text",
-      required: false,
-      initialValue: subject.countryOrRegion ?? ""
-    }, {
-      key: "phone",
-      label: text.phone,
-      semanticType: "phone",
-      control: "text",
-      required: false,
-      initialValue: subject.phone ?? ""
-    }, {
-      key: "email",
-      label: text.email,
-      semanticType: "email",
-      control: "text",
-      required: false,
-      initialValue: subject.email ?? ""
-    }, {
-      key: "notes",
-      label: text.notes,
-      semanticType: "notes",
-      control: "text",
-      required: false,
-      initialValue: subject.notes ?? ""
-    }],
+    fields: counterpartyFormFieldsV010({
+      schema: createCounterpartyEffectiveObjectSchemaV010({
+        locale: input.locale
+      }),
+      surface: "EDIT",
+      initialValues: {
+        counterpartyId: subject.counterpartyId,
+        code: subject.code,
+        displayName: subject.displayName,
+        subjectType: subject.subjectType,
+        legalName: subject.legalName ?? "",
+        taxIdentifier: subject.taxIdentifier ?? "",
+        countryOrRegion: subject.countryOrRegion ?? "",
+        phone: subject.phone ?? "",
+        email: subject.email ?? "",
+        notes: subject.notes ?? ""
+      }
+    }),
     actions: [{
       id: "update",
       label: text.save,
