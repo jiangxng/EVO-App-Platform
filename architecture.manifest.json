@@ -39,7 +39,7 @@
     "docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md",
     "docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md",
     "docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md",
-    "docs/architecture/ENTERPRISE-CONVERGENCE-AND-MODERNIZATION-v0.1.md"
+    "docs/architecture/ENTERPRISE-OPERATING-MODEL-TRANSFORMATION-v0.1.md"
   ],
   "boundaryPolicy": "architecture.boundary-policy.json",
   "documentationPolicy": "documentation.policy.json",
