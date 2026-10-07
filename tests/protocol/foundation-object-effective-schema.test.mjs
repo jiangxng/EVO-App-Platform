@@ -13,6 +13,9 @@ import {
   compileEffectiveObjectSchemaV010
 } from "../../dist/foundation/schema-compiler/index.js";
 import {
+  assertFoundationObjectConformanceV010
+} from "../../dist/foundation/testkit/index.js";
+import {
   createObjectExtensionRepositoryV010,
   OBJECT_EXTENSION_COLLECTION_V010,
   OBJECT_EXTENSION_NAMESPACE_V010,
@@ -72,6 +75,19 @@ function channelDepositGrade(extensionId = "enterprise-x.customer.channel-deposi
     agentWritable: true
   };
 }
+
+test("Counterparty satisfies the reusable Foundation Object conformance boundary", () => {
+  const report = assertFoundationObjectConformanceV010({
+    descriptor: counterpartyFoundationObjectDescriptorV010,
+    coreSchema: counterpartyCoreSchemaV010
+  });
+  assert.equal(report.objectType, "counterparty.subject");
+  assert.equal(report.schemaRef, "evo.counterparty/0.1.0");
+  assert.equal(report.fieldCount, 10);
+  assert.equal(report.extensionSlotCount, 3);
+  assert.ok(report.surfaces.includes("IMPORT"));
+  assert.ok(report.surfaces.includes("AGENT_READ"));
+});
 
 test("Counterparty core forms are rendered from one EffectiveObjectSchema without semantic loss", () => {
   const effective = createCounterpartyEffectiveObjectSchemaV010({
