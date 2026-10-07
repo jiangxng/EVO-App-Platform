@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `COUNTERPARTY-ENTERPRISE-RESOURCE-V0-1-2026-10-06-01`  
-**Snapshot time:** `2026-10-07T00:15:00+08:00`  
+**Snapshot:** `COUNTERPARTY-RELATIONSHIP-ROLES-V0-2-2026-10-07-01`  
+**Snapshot time:** `2026-10-07T08:25:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-Counterparty / Enterprise Resource Library v0.1
+Counterparty Relationship Roles v0.2
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-enterprise-context-v0-1: MERGED_CI_PRODUCTION_PASS**
+**counterparty-core-master-data-v0-1: MERGED_CI_PRODUCTION_PASS**
 
-The first Counterparty / 往来对象 slice is live. PR #415 introduced the provider-neutral Enterprise Resource Library and the first-party evo-counterparty plugin. Counterparty identity is stored inside the active Enterprise Context under evo.counterparty, with directory, create, detail and archive flows. Legacy Asloop Dealer semantics were converged without copying the legacy mega-record: Customer/Supplier/etc. remain explicit future roles/relationships rather than duplicate identities.
+Counterparty / 往来对象 v0.1 core master-data loop is complete in production. Directory, Create, Detail, Edit and Archive all operate on Enterprise Context Resource Library resources. Editing preserves stable counterpartyId and updates the same enterprise resource. Eidos UIDL gained generic initial-value support so edit forms remain platform-generic rather than Counterparty-specific.
 
 Authority: `docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md`
 
@@ -26,19 +26,19 @@ Evidence:
 
 ```json
 {
-  "appPlatformPr": 415,
-  "mergeCommit": "f45237972ffb667cc4b4faae4f05615628454d5c",
+  "initialPluginPr": 415,
+  "editCompletionPr": 417,
+  "editMergeCommit": "747fa58ad2d61938a3171f05d0b53d9dd4e79f1b",
+  "eidosInitialValuePr": 127,
+  "eidosMergeCommit": "ee08061c89701f10cd9f21cf7b496a9ed24ebd24",
   "platformCI": "PASS",
-  "crossProjectCI": "PASS",
-  "railwayDeploymentId": "4fcd9619-6510-4dbd-b4ac-4bbe80577140",
+  "projectContinuityCI": "PASS",
+  "railwayDeploymentId": "fb0bc536-9d46-48eb-ae13-1ced7e5601b5",
   "railwayDeploymentStatus": "SUCCESS",
-  "enterpriseResourceLibrary": true,
-  "resourceCapability": "enterprise.resource.repository",
+  "stableCounterpartyIdOnEdit": true,
+  "enterpriseContextStorage": true,
   "namespace": "evo.counterparty",
   "collection": "counterparties",
-  "resourceType": "counterparty.subject",
-  "enterpriseIsolationTest": "PASS",
-  "archiveNotDelete": "PASS",
   "customerSupplierAsRoles": true,
   "arApSettlementOwnership": false
 }
@@ -46,20 +46,22 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-edit-and-relationship-roles-v0-2: READY**
+**counterparty-relationship-roles-v0-2: READY**
 
-Extend Counterparty from create/read/archive into governed current-master-data editing and explicit relationship roles, while preserving one stable Counterparty identity across Customer/Supplier/etc. roles.
+Introduce explicit multi-role relationships for one stable Counterparty identity, beginning with Customer and Supplier without duplicating master identities or moving role-specific settings into Counterparty core.
 
 Acceptance:
 
-- An existing Counterparty can be edited in place as current master data without creating a second Counterparty identity.
-- Counterparty editing remains scoped to the selected Enterprise Context through the Enterprise Resource Library and preserves the stable counterpartyId.
-- Customer, Supplier and other business meanings are represented as explicit relationship-role resources or capabilities, not as duplicate Counterparty master records and not as a comma-separated dealerLabelName-style field.
-- One Counterparty may carry multiple simultaneous roles, such as Customer and Supplier.
-- Role-specific settings such as sales credit, supplier settlement terms or procurement defaults do not become fields on Counterparty core.
-- Historical BusinessData keeps reference identity plus committed snapshots and is not rewritten when current Counterparty master data changes.
-- Counterparty continues not to own AR/AP balances, open items, settlement, matching or cash collection/payment workflows.
-- The detail/edit experience remains usable on desktop and mobile.
+- One Counterparty may hold multiple simultaneous relationship roles, including Customer and Supplier.
+- Relationship roles are stored as explicit Enterprise Context resources/capabilities and not as a comma-separated label field.
+- Assigning or removing a relationship role never creates or deletes the underlying Counterparty identity.
+- Role resources reference the stable counterpartyId and remain enterprise-scoped.
+- Customer/Supplier role assignment is visible from Counterparty detail without turning Counterparty into Sales or Procurement workflow.
+- Role-specific commercial settings such as sales credit limits or supplier settlement terms are not placed on Counterparty core and may evolve in separate role/profile resources.
+- Legacy dealerLabelName values are treated as migration hints into explicit role resources, not copied as identity semantics.
+- Historical BusinessData continues to preserve committed snapshots and is not rewritten by role/master-data changes.
+- AR/AP balances, open items, settlement and matching remain outside Counterparty ownership.
+- Desktop and mobile Counterparty detail remain readable as roles grow.
 
 ## Current production preview
 
@@ -68,8 +70,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `f45237972ffb667cc4b4faae4f05615628454d5c`
-- Deployment: `4fcd9619-6510-4dbd-b4ac-4bbe80577140`
+- Commit: `747fa58ad2d61938a3171f05d0b53d9dd4e79f1b`
+- Deployment: `fb0bc536-9d46-48eb-ae13-1ced7e5601b5`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -100,6 +102,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #417 — MERGED_CI_PRODUCTION_PASS: Complete Counterparty v0.1 core master-data loop with in-place Edit and generic Eidos UIDL initial-value support.
 - PR #415 — MERGED_CI_PRODUCTION_PASS: Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows.
 - PR #412 — MERGED_CI_PRODUCTION_PASS: Add fixed deterministic layered Auto layout to Definition Projection Editor and replace the growing action row with frequent actions plus More overflow.
 - PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; current-editor tools work while chat context remains Personal.
@@ -461,6 +464,10 @@ Not proved:
 - do not store Counterparty domain data in a private plugin file/database outside the Enterprise Context Resource Library
 - do not move AR/AP balances, open-item accounting, settlement, matching, collection or payment workflows into the Counterparty plugin
 - do not mechanically copy the legacy Asloop Dealer mega-record; preserve semantics through explicit identity, role and profile resources
+- do not reopen Counterparty core edit as pending; Directory/Create/Detail/Edit/Archive are complete in production
+- do not rename the product/domain to 往来; the canonical name is 往来对象 / Counterparty
+- do not recreate Customer or Supplier as separate master identities; model them as roles/relationships on one stable Counterparty
+- do not copy legacy dealerLabelName as a comma-separated identity field
 
 ## Fresh ChatGPT / LLM startup
 
@@ -663,6 +670,9 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state legacy Asloop Dealer as design lineage that validates shared identity + role semantics but must not be copied mechanically
 - state Counterparty as identity/master-data scope only and explicitly outside AR/AP/open-item/settlement ownership
 - state the next live gate as Counterparty current-master-data editing plus explicit relationship roles
+- state Counterparty / 往来对象 v0.1 core master-data loop as production-complete through PR #417
+- state Eidos PR #127 initialValue support as the generic edit-form mechanism used by Counterparty
+- state Counterparty Relationship Roles v0.2 as the current live milestone
 
 No previous ChatGPT transcript is required.
 
