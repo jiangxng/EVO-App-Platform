@@ -58,6 +58,105 @@ EVO
   deterministic BusinessData -> Posting/Ledger/Balance/Replay runtime
 ~~~
 
+### 2.1 Enterprise Context is the persistent data plane
+
+The canonical Enterprise Context authority is:
+
+`docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`
+
+Foundation Object architecture MUST preserve its central rule:
+
+> **Enterprise Context provides space. Plugins define what resources in that space mean.**
+
+A useful mental model remains:
+
+~~~text
+Docker Volume
+  = workload-independent persistent storage boundary
+
+Enterprise Context
+  = plugin/application-independent enterprise persistent resource boundary
+~~~
+
+The analogy is logical, not physical. Enterprise Context is not one database or one
+JSON table.
+
+For Foundation Objects:
+
+~~~text
+Counterparty / Item / Warehouse plugin
+  owns semantic meaning, validation, commands and queries
+        |
+        | Enterprise Resource public contract
+        v
+Enterprise Context Resource Library
+  owns enterprise scope, namespace, addressing, access, lifecycle,
+  provenance and persistence boundary
+        |
+        +-- DOCUMENT
+        +-- TABLE
+        +-- OBJECT
+        +-- REFERENCE
+~~~
+
+Plugin lifecycle and enterprise data lifecycle remain separate:
+
+~~~text
+uninstall Counterparty plugin
+  != delete evo.counterparty resources
+
+reinstall + bind
+  -> attach existing namespace/resources
+  -> validate/migrate schema when required
+~~~
+
+Enterprise Context Core MUST NOT understand Customer, Supplier, Item, Warehouse,
+ImportJob business meaning, custom-field semantics or Projection semantics merely
+because those resources are stored inside it.
+
+### 2.2 Durable-state placement
+
+Default durable placement for this program:
+
+| State | Durable authority / location | Semantic owner |
+| --- | --- | --- |
+| Counterparty Subject / Roles / Profiles | Enterprise Context Resource Library, `evo.counterparty` | Counterparty plugin |
+| Item / Product resources | Enterprise Context Resource Library, object namespace | Item plugin |
+| Warehouse / Location resources | Enterprise Context Resource Library, object namespace | Warehouse plugin |
+| ObjectExtensionDefinition + extension values | Enterprise Context Resource Library, dedicated extension namespace | Object Extension application |
+| Import Mapping Profiles / committed receipts / enterprise import policy | Enterprise Context Resource Library, import namespace | Data Import application |
+| Large/transient staging payload | object/reference/provider storage addressed from enterprise-scoped ImportJob; retention policy explicit | Data Import application |
+| ResponsibilityAssignment | Enterprise Context Resource Library, responsibility namespace | Responsibility application |
+| shared enterprise Projection/View definitions | Enterprise Context Resource Library, projection namespace or owning domain resource | Projection/owning application |
+| personal saved layout/favorites/presentation preference | Personal Context | Personal/workbench capability |
+| shared templates | Template Store | Template Store |
+| EC learned industry knowledge / adaptation methods | Experience-Compiler | Experience-Compiler |
+| BusinessData / Posting / Ledger runtime facts | EVO Runtime or owning deterministic runtime boundary | EVO / owning runtime |
+| derived projection cache/materialization | owning Projection/provider implementation; rebuildable, not master truth | Projection/provider |
+
+The Resource Library is the enterprise persistence boundary even when payload bytes are
+stored through TABLE/OBJECT/REFERENCE profiles or a replaceable provider.
+
+### 2.3 Container ownership versus semantic ownership
+
+Use the word "owns" precisely.
+
+~~~text
+Enterprise Context owns:
+  enterprise persistence/isolation/access/resource lifecycle boundary
+
+Plugin/Application owns:
+  schema meaning
+  business invariants
+  domain lifecycle
+  commands/queries
+  interpretation/version semantics
+~~~
+
+Therefore "enterprise-owned truth stored in Enterprise Context" MUST NOT be shortened
+into "Enterprise Context understands/owns the business semantic."
+
+
 ## 3. What belongs inside a Foundation Object plugin
 
 A domain object plugin owns only semantics specific to that object.
@@ -112,6 +211,7 @@ foundation/
   testkit/
 
 apps/
+  object-extension/
   data-import/
   enterprise-adaptation/
   responsibility/
@@ -260,7 +360,10 @@ table.
 
 ## 8. Enterprise custom-field authority
 
-Enterprise-specific extension definitions are enterprise-owned governed definitions.
+Enterprise-specific extension definitions are enterprise-owned governed resources
+persisted inside the Enterprise Context Resource Library. Their semantics are owned by
+the dedicated Object Extension application, not by Enterprise Context Core and not by
+Counterparty.
 
 Candidate logical contract:
 
@@ -294,6 +397,17 @@ Rules:
 6. promotion to shared semantics requires separate evidence.
 
 ## 9. Extension value storage
+
+The reusable Object Extension capability is an independent application boundary:
+
+~~~text
+apps/object-extension
+  owns ObjectExtensionDefinition semantics
+  owns extension-value validation/lifecycle
+  persists enterprise definitions/values through Enterprise Resource contracts
+~~~
+
+Enterprise Context supplies persistence/isolation only.
 
 The semantic model MUST NOT require one SQL column per enterprise-specific field.
 
@@ -736,12 +850,15 @@ enter the Trading Reference Loop.
 9. Responsibility is an explicit relation, not a generic "owner" column.
 10. Personal Workbench is composition over governed capabilities/projections.
 11. Eidos renders; it does not own business semantics.
-12. Experience-Compiler learns/proposes; Enterprise Context owns accepted truth.
+12. Experience-Compiler learns/proposes; accepted enterprise resources persist in Enterprise Context while semantic authority remains with the owning plugin/application.
 13. EVO Runtime remains deterministic business-fact/ledger infrastructure.
 14. No generic contract is stabilized solely from one object's needs.
 15. Item is the required second-object validation before declaring the framework stable.
 16. Shared infrastructure must remain usable by future unknown industries without
     requiring those industries to fork App Platform Core.
+17. Enterprise Context is the durable enterprise resource boundary for Foundation Object state; it does not own Foundation Object semantics.
+18. Plugin uninstall does not delete its enterprise resources by default.
+19. Foundation Object plugins and generic applications persist durable enterprise state through Enterprise Resource public contracts rather than private ungoverned stores.
 
 ## 26. One-line architecture
 

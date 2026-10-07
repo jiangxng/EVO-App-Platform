@@ -55,6 +55,42 @@ Repository state wins over conversation memory.
 
 Each milestone below has a stable ID. Future chats continue from the first non-closed gate; they do not restart the program from discussion.
 
+## 3A. Enterprise Context persistence invariant
+
+All milestones in this roadmap obey the canonical Enterprise Context Resource
+Container architecture.
+
+~~~text
+plugin/application
+  defines semantics
+        ↓
+Enterprise Resource contract
+        ↓
+Enterprise Context Resource Library
+  stores durable enterprise-owned resources
+~~~
+
+Counterparty, Item and Warehouse MUST NOT introduce private durable stores that bypass
+the Enterprise Context persistence/access boundary.
+
+Likewise, Enterprise Context MUST NOT absorb the business semantics of those objects.
+
+Shared capabilities introduced by this roadmap use their own namespaces/resources:
+
+~~~text
+Object Extension
+Data Import
+Responsibility
+Projection definitions
+Enterprise Adaptation drafts/plans
+~~~
+
+where the state is enterprise-owned and durable.
+
+Personal-only layout/preferences remain Personal Context. Runtime BusinessData/Ledger
+facts remain with EVO/owning deterministic runtime. Experience-Compiler learning
+remains with EC.
+
 ## 4. Milestone map
 
 ~~~text
@@ -133,6 +169,7 @@ Exit state: COUNTERPARTY_V0_2_HUMAN_PASS
 Implement:
 
 - contracts/foundation-object/*;
+- Object Extension application package boundary (durable state via Enterprise Context);
 - FoundationObjectDescriptorV010;
 - ObjectExtensionDefinitionV010 draft contract;
 - EffectiveObjectSchemaV010;

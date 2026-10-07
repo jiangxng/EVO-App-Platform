@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `foundation-object-program-architecture-2026-10-07`  
-**Snapshot time:** `2026-10-07T11:16:00+08:00`  
+**Snapshot:** `foundation-object-enterprise-context-data-plane-2026-10-07`  
+**Snapshot time:** `2026-10-07T11:28:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -473,6 +473,9 @@ Not proved:
 - Do not stabilize a shared Foundation Object contract from Counterparty evidence alone; Item/Product is the required second-object anti-overfit proof.
 - Do not start Item/Warehouse as separate bespoke stacks; they must consume the shared Foundation Object contracts created from the Counterparty vertical proof.
 - Do not expand Foundation Objects indefinitely before business use; after Counterparty + Item + Warehouse/Location, move the mainline into the Trading Reference Loop.
+- Do not treat Enterprise Context as the semantic owner of Counterparty, Item, Warehouse, Object Extension, Import, Responsibility or Projection merely because their resources are persisted there.
+- Do not bypass Enterprise Context Resource Library with a private durable Foundation Object database/store unless the public resource contract explicitly uses a governed TABLE/OBJECT/REFERENCE storage profile or provider reference.
+- Do not couple plugin uninstall to deletion of enterprise resources; purge is a separate explicit destructive lifecycle.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -684,6 +687,11 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state shared Foundation Object contracts as EXPERIMENTAL until Item/Product provides the materially different second-object proof
 - state the program sequence as Counterparty -> Item/Product -> Warehouse/Location -> Trading Reference Loop rather than building every master-data object first
 - state generic Data Import, Enterprise Adaptation and Responsibility capabilities as separate reusable product/application capabilities, not Counterparty-private infrastructure
+- state Enterprise Context as the canonical thin persistent enterprise Resource Container/data plane for Foundation Object durable resources, analogous to a Docker Volume at the logical lifecycle boundary
+- state the permanent rule exactly: Enterprise Context provides space; plugins/applications define what stored resources mean
+- state Counterparty/Item/Warehouse durable enterprise resources as stored through Enterprise Resource public contracts rather than plugin-private durable stores
+- state plugin uninstall as not deleting Enterprise Context resources by default; reinstall/bind reattaches and migrates as required
+- state Object Extension as a separate reusable application semantic owner whose enterprise definitions/values persist in Enterprise Context
 
 No previous ChatGPT transcript is required.
 
