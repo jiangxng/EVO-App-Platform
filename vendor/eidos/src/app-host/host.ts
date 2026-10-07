@@ -95,6 +95,21 @@ function routeLookupPath(path: string): string {
   return queryIndex >= 0 ? path.slice(0, queryIndex) : path;
 }
 
+function routePatternMatches(pattern: string, path: string): boolean {
+  if (pattern === path) return true;
+
+  const patternSegments = pattern.split("/");
+  const pathSegments = path.split("/");
+  if (patternSegments.length !== pathSegments.length) return false;
+
+  return patternSegments.every((segment, index) => {
+    if (segment.startsWith(":")) {
+      return segment.length > 1 && pathSegments[index].length > 0;
+    }
+    return segment === pathSegments[index];
+  });
+}
+
 export function validateEffectiveExperienceManifest(
   value: unknown,
   index = 0
@@ -657,7 +672,9 @@ export function createAppHost(source: ExperienceSource): AppHost {
 
   const resolveRoute = (path: string): AppHostResolvedRouteV010 | undefined => {
     const lookupPath = routeLookupPath(path);
-    const route = snapshot.routes.find(item => item.path === lookupPath);
+    const route =
+      snapshot.routes.find(item => item.path === lookupPath)
+      ?? snapshot.routes.find(item => routePatternMatches(item.path, lookupPath));
     if (!route) return undefined;
     const page = snapshot.pages.find(item => item.id === route.pageId);
     if (!page) return undefined;
