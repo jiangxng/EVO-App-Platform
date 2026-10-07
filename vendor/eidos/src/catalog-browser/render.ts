@@ -27,6 +27,12 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   ) {
     throw new Error("EIDOS_CATALOG_DENSITY_INVALID");
   }
+  if (
+    input.itemActivation !== undefined
+    && input.itemActivation !== "primary-action"
+  ) {
+    throw new Error("EIDOS_CATALOG_ITEM_ACTIVATION_INVALID");
+  }
   assertContextNavigationV010(input.contextNavigation);
   if (input.actions !== undefined) {
     if (!Array.isArray(input.actions)) {
@@ -94,10 +100,20 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     const thumbnail = item.thumbnail
       ? `<div data-eidos-catalog-thumbnail><img src="${esc(item.thumbnail.src)}" alt="${esc(item.thumbnail.alt)}" loading="lazy" decoding="async"></div>`
       : "";
+    const rowPrimary =
+      model.itemActivation === "primary-action"
+      && item.primaryAction?.type === "navigate"
+      && item.primaryAction.enabled !== false
+      && Boolean(item.primaryAction.route);
     const actions = [
       ...(item.secondaryActions ?? []).map(a => actionButton(item.id, a, false)),
-      ...(item.primaryAction ? [actionButton(item.id, item.primaryAction, true)] : [])
+      ...(!rowPrimary && item.primaryAction
+        ? [actionButton(item.id, item.primaryAction, true)]
+        : [])
     ].join("");
+    const rowAttributes = rowPrimary
+      ? ` data-eidos-catalog-row-route="${esc(item.primaryAction!.route)}" role="link" tabindex="0" aria-label="${esc(item.primaryAction!.label + ": " + item.title)}"`
+      : "";
 
     const searchText = [
       item.title,
@@ -109,7 +125,7 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
       ...Object.entries(item.metadata ?? {}).flatMap(([key, value]) => [key, String(value ?? "")])
     ].join(" ").toLocaleLowerCase();
 
-    return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}">${thumbnail}<header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer></article>`;
+    return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}"${rowAttributes}>${thumbnail}<header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer>${rowPrimary ? '<span data-eidos-catalog-row-disclosure aria-hidden="true">›</span>' : ""}</article>`;
   }).join("");
 
   const search = model.search
