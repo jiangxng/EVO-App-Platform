@@ -278,8 +278,12 @@ export function createDataImportMappingPageV010(input: {
   const advancedFields = input.job.mapping
     .filter(item => Boolean(item.transform))
     .map((item, index) => {
+      const transform = item.transform;
+      if (!transform) {
+        throw new Error("DATA_IMPORT_ADVANCED_MAPPING_TRANSFORM_REQUIRED");
+      }
       const label = fieldLabel.get(item.targetFieldId) ?? item.targetFieldId;
-      if (item.transform?.kind === "CONSTANT") {
+      if (transform.kind === "CONSTANT") {
         return {
           key: "advanced_" + index,
           label: t.batchConstant + " · " + label,
@@ -287,7 +291,7 @@ export function createDataImportMappingPageV010(input: {
           control: "text" as const,
           required: false,
           readOnly: true,
-          initialValue: String(item.transform.value ?? "")
+          initialValue: String(transform.value ?? "")
         };
       }
       return {
@@ -299,7 +303,7 @@ export function createDataImportMappingPageV010(input: {
         control: "text" as const,
         required: false,
         readOnly: true,
-        initialValue: item.transform.entries
+        initialValue: transform.entries
           .map(entry => String(entry.source ?? "")
             + " → " + String(entry.target ?? ""))
           .join("; ")
