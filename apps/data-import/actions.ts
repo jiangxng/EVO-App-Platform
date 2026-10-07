@@ -316,12 +316,12 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: {
+          result: JSON.parse(JSON.stringify({
             contractVersion: "0.1.0",
             message: "File staged. Review the field mapping before validation.",
             navigateTo: dataImportMappingRouteV010(job.importJobId),
             job
-          }
+          })) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
@@ -375,14 +375,14 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: {
+          result: JSON.parse(JSON.stringify({
             contractVersion: "0.1.0",
             message: job.state === "DRY_RUN_READY"
               ? "Validation passed. Review the result and confirm import."
               : "Validation found issues. Review errors before importing.",
             navigateTo: dataImportReviewRouteV010(importJobId),
             job
-          }
+          })) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
