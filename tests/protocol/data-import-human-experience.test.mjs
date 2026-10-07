@@ -253,6 +253,21 @@ test("mapping and review pages keep validation and commit explicit", () => {
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
   );
+  const agentAction = mappingPage.actions.find(
+    action => action.type === "agent"
+  );
+  assert.ok(agentAction);
+  assert.equal(agentAction.label, "AI 自动匹配");
+  assert.equal(agentAction.prompt, "帮我做字段映射");
+  assert.equal(agentAction.agentCapability, "agent.personal");
+  assert.deepEqual(agentAction.context, {
+    taskKind: "data-import.mapping",
+    importJobId: "import-human-1",
+    targetId: "counterparty.subject"
+  });
+  const mappingHtml = renderToHtml(mappingPage);
+  assert.match(mappingHtml, /data-eidos-agent-action="ai-auto-map"/);
+  assert.match(mappingHtml, />AI 自动匹配<\/button>/);
 
   const reviewPage = createDataImportReviewPageV010({
     job: {
