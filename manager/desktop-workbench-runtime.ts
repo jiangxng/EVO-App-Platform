@@ -72,6 +72,42 @@ export function currentUserLogoutActionV010(locale: string): string {
   return "/auth/logout?returnTo=" + encodeURIComponent(returnTo);
 }
 
+export function applyExclusiveChatWorkspacePresentationV010(
+  root: HTMLElement
+): boolean {
+  const workspaceHasChat = Boolean(
+    root.querySelector(
+      "[data-eidos-workspace-content] > [data-eidos-chat]"
+    )
+  );
+  const sidePanelHasChat = Boolean(
+    root.querySelector(
+      "[data-eidos-side-panel-content] > [data-eidos-chat]"
+    )
+  );
+  const exclusive = workspaceHasChat && sidePanelHasChat;
+  const sidePanel = root.querySelector<HTMLElement>("[data-eidos-side-panel]");
+  const splitter = root.querySelector<HTMLElement>("[data-eidos-workbench-splitter]");
+  const workspace = root.querySelector<HTMLElement>("[data-eidos-workspace]");
+
+  if (exclusive) {
+    root.setAttribute("data-evo-workspace-chat-exclusive", "true");
+    root.style.gridTemplateColumns =
+      "var(--eidos-activity-width) 0 0 minmax(0,1fr)";
+    if (sidePanel) sidePanel.style.display = "none";
+    if (splitter) splitter.style.display = "none";
+    if (workspace) workspace.style.gridColumn = "2 / 5";
+    return true;
+  }
+
+  root.removeAttribute("data-evo-workspace-chat-exclusive");
+  root.style.removeProperty("grid-template-columns");
+  sidePanel?.style.removeProperty("display");
+  splitter?.style.removeProperty("display");
+  workspace?.style.removeProperty("grid-column");
+  return false;
+}
+
 async function loadBrowserContextOptionsV010(
   fetchImpl: typeof fetch
 ): Promise<{
@@ -694,6 +730,34 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     });
 
     await refreshContextControlV010();
+
+    const workbenchRoot = document.querySelector<HTMLElement>(
+      '[data-eidos-app-host-layout="workbench"]'
+    );
+    let chatWorkspaceObserver: MutationObserver | undefined;
+    if (workbenchRoot) {
+      const syncChatWorkspace = () => {
+        applyExclusiveChatWorkspacePresentationV010(workbenchRoot);
+      };
+      const workspaceContent = workbenchRoot.querySelector<HTMLElement>(
+        "[data-eidos-workspace-content]"
+      );
+      const sideContent = workbenchRoot.querySelector<HTMLElement>(
+        "[data-eidos-side-panel-content]"
+      );
+      chatWorkspaceObserver = new MutationObserver(syncChatWorkspace);
+      if (workspaceContent) {
+        chatWorkspaceObserver.observe(workspaceContent, {
+          childList: true
+        });
+      }
+      if (sideContent) {
+        chatWorkspaceObserver.observe(sideContent, {
+          childList: true
+        });
+      }
+      syncChatWorkspace();
+    }
   
     const realtime = createFetchSseRealtimeSourceV010({
       url: () => window.location.origin + "/v1/events",
@@ -736,6 +800,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         }
         unsubscribeRealtime();
         realtime.dispose();
+        chatWorkspaceObserver?.disconnect();
         workbench?.dispose();
         host.dispose();
       }
