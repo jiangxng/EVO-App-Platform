@@ -22,6 +22,14 @@ import {
   EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
   eogDefinitionProjectionAuthorizationPolicyV010
 } from "../../dist/apps/eog-2d-designer/authorization.js";
+import {
+  dataImportAuthorizationPolicyV010
+} from "../../dist/apps/data-import/authorization.js";
+import {
+  DATA_IMPORT_AUTH_RESOURCE_V010,
+  DATA_IMPORT_READ_ACTION_V010,
+  DATA_IMPORT_WRITE_ACTION_V010
+} from "../../dist/apps/data-import/constants.js";
 
 const principal = {
   contractVersion: "0.1.0",
@@ -404,5 +412,88 @@ test("App Platform composes the EOG projection baseline into Host authorization"
   assert.match(
     source,
     /type:\s*EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010/
+  );
+});
+
+
+test("Data Import baseline admits Human read and write checks", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      dataImportAuthorizationPolicyV010
+    )
+  );
+
+  for (const action of [
+    DATA_IMPORT_READ_ACTION_V010,
+    DATA_IMPORT_WRITE_ACTION_V010
+  ]) {
+    const decision = await provider.check(
+      check(action, DATA_IMPORT_AUTH_RESOURCE_V010)
+    );
+    assert.equal(decision.allowed, true);
+    assert.deepEqual(
+      decision.reasonCodes,
+      ["STATIC_POLICY_ALLOW", "evo.data-import.human"]
+    );
+  }
+});
+
+test("deployment explicit deny overrides Data Import baseline", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      {
+        contractVersion: "0.1.0",
+        rules: [{
+          id: "deployment-deny-data-import",
+          effect: "DENY",
+          actions: [DATA_IMPORT_WRITE_ACTION_V010],
+          actorTypes: ["HUMAN"],
+          resourceTypes: [DATA_IMPORT_AUTH_RESOURCE_V010]
+        }]
+      },
+      dataImportAuthorizationPolicyV010
+    )
+  );
+
+  const decision = await provider.check(
+    check(DATA_IMPORT_WRITE_ACTION_V010, DATA_IMPORT_AUTH_RESOURCE_V010)
+  );
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(
+    decision.reasonCodes,
+    [
+      "STATIC_POLICY_EXPLICIT_DENY",
+      "deployment-deny-data-import"
+    ]
+  );
+});
+
+test("Data Import baseline remains fail-closed for non-Human actors", async () => {
+  const provider = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(
+      { contractVersion: "0.1.0", rules: [] },
+      dataImportAuthorizationPolicyV010
+    )
+  );
+
+  const decision = await provider.check({
+    ...check(DATA_IMPORT_WRITE_ACTION_V010, DATA_IMPORT_AUTH_RESOURCE_V010),
+    principal: {
+      ...principal,
+      actorType: "AUTOMATION"
+    }
+  });
+  assert.equal(decision.allowed, false);
+  assert.deepEqual(decision.reasonCodes, ["STATIC_POLICY_NO_MATCH"]);
+});
+
+test("App Platform composes the Data Import baseline into Host authorization", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(new URL("../../manager/server.ts", import.meta.url), "utf8")
+  );
+  assert.match(
+    source,
+    /eogDefinitionProjectionAuthorizationPolicyV010,[\s\S]*dataImportAuthorizationPolicyV010,[\s\S]*ledgerManagerAuthorizationPolicyV010/
   );
 });
