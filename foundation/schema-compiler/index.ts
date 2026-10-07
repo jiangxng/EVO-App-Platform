@@ -137,7 +137,18 @@ function assertCoreSchema(
                 ...(option.label.translations
                   ? { translations: { ...option.label.translations } }
                   : {})
-              }
+              },
+              ...(option.aliases
+                ? {
+                    aliases: [...new Set(
+                      option.aliases
+                        .map(item => required(
+                          item,
+                          "FOUNDATION_OBJECT_FIELD_ENUM_ALIAS_INVALID"
+                        ))
+                    )]
+                  }
+                : {})
             }))
           }
         : {})
