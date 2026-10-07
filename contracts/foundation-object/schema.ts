@@ -31,6 +31,11 @@ export interface FoundationObjectLocalizedTextV010 {
 export interface FoundationObjectEnumOptionV010 {
   value: string;
   label: FoundationObjectLocalizedTextV010;
+  /**
+   * Governed import aliases that are semantically equivalent to this option.
+   * Agents may normalize these values without Human review.
+   */
+  aliases?: string[];
 }
 
 export interface FoundationObjectFieldDefinitionV010 {
