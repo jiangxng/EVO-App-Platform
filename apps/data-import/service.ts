@@ -309,7 +309,13 @@ export function createDataImportServiceV010(input: {
             .map(field => field.fieldId)
         );
         if (recipe.mapping.every(item =>
-          mappingInput.source.headers.includes(item.sourceColumn)
+          (
+            item.transform?.kind === "CONSTANT"
+            || (
+              Boolean(item.sourceColumn)
+              && mappingInput.source.headers.includes(item.sourceColumn!)
+            )
+          )
           && importable.has(item.targetFieldId)
         )) {
           return {
