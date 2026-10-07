@@ -40,6 +40,11 @@ export interface FoundationObjectFieldDefinitionV010 {
   valueType: FoundationObjectValueTypeV010;
   control: FoundationObjectFieldControlV010;
   label: FoundationObjectLocalizedTextV010;
+  /**
+   * Business meaning of the field. This is part of the governed schema
+   * contract and is intended for Humans, Agents and integration tooling.
+   */
+  description?: FoundationObjectLocalizedTextV010;
   required: boolean;
   readOnly?: boolean;
   order: number;
@@ -64,6 +69,7 @@ export interface EffectiveFoundationObjectFieldV010
   source: EffectiveFieldSourceV010;
   extensionId?: string;
   resolvedLabel: string;
+  resolvedDescription?: string;
   readable: boolean;
   writable: boolean;
 }
@@ -102,14 +108,20 @@ export function importColumnsFromEffectiveSchemaV010(
 ): Array<{
   fieldId: string;
   label: string;
+  semanticType: string;
   valueType: FoundationObjectValueTypeV010;
   required: boolean;
+  description?: string;
 }> {
   return fieldsForSurfaceV010(schema, "IMPORT").map(field => ({
     fieldId: field.fieldId,
     label: field.resolvedLabel,
+    semanticType: field.semanticType,
     valueType: field.valueType,
-    required: field.required
+    required: field.required,
+    ...(field.resolvedDescription
+      ? { description: field.resolvedDescription }
+      : {})
   }));
 }
 
