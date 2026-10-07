@@ -37,9 +37,7 @@ export const objectExtensionPackage: PackageManifestV010 = {
     requiresCapabilities: [
       ENTERPRISE_RESOURCE_CAPABILITY_V010
     ],
-    providesCapabilities: [
-      OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
-    ],
+    providesCapabilities: [],
     contributions: []
   }]
 };
