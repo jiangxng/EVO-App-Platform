@@ -491,6 +491,114 @@ form[data-eidos-id] button,
   cursor:not-allowed;opacity:.5;
 }
 
+/* Shared business-page hierarchy and context navigation.
+   Mirrors the 2D Workspace breadcrumb language without plugin-owned CSS. */
+[data-eidos-page-header]{display:grid;gap:var(--eidos-space-sm)}
+[data-eidos-page-heading]{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:var(--eidos-space-section);min-width:0;
+}
+[data-eidos-page-heading-copy]{min-width:0}
+form[data-eidos-id] [data-eidos-page-heading] h1,
+[data-eidos-capability="catalog-browser"] [data-eidos-page-heading] h1{
+  margin:0;font-size:var(--eidos-font-page);line-height:1.25;letter-spacing:-.015em;
+}
+[data-eidos-page-description]{
+  margin:var(--eidos-space-sm) 0 0;max-width:760px;
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);line-height:1.55;
+}
+[data-eidos-page-actions]{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:var(--eidos-space-sm);flex-wrap:wrap;flex:0 0 auto;
+}
+[data-eidos-page-actions] [data-eidos-action-wrap]{display:block}
+[data-eidos-page-actions] button,
+[data-eidos-page-actions] [data-eidos-catalog-download]{
+  min-height:var(--eidos-control-normal);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);
+  padding:0 var(--eidos-space-lg);
+}
+[data-eidos-page-actions] button[data-eidos-primary="true"],
+[data-eidos-page-actions] [data-eidos-catalog-download][data-eidos-primary="true"],
+form[data-eidos-id] [data-eidos-form-actions] button[data-eidos-primary="true"]{
+  border-color:var(--eidos-primary);background:var(--eidos-primary);
+  color:var(--eidos-primary-fg);
+}
+[data-eidos-page-actions] button:not([data-eidos-primary="true"]):hover,
+form[data-eidos-id] [data-eidos-form-actions] button:not([data-eidos-primary="true"]):hover{
+  background:var(--eidos-bg-hover);
+}
+[data-eidos-context-navigation]{
+  min-width:0;min-height:22px;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);
+}
+[data-eidos-context-navigation-desktop]{
+  display:flex;align-items:center;gap:6px;min-width:0;
+  white-space:nowrap;overflow:hidden;
+}
+[data-eidos-context-navigation-desktop] button,
+[data-eidos-context-navigation-mobile] button{
+  appearance:none;border:0;padding:0;background:transparent;
+  color:var(--eidos-fg-muted);font:inherit;cursor:pointer;
+}
+[data-eidos-context-navigation-desktop] button:hover,
+[data-eidos-context-navigation-mobile] button:hover{
+  color:var(--eidos-primary);text-decoration:underline;
+}
+[data-eidos-context-navigation-desktop] span[aria-current="page"]{
+  color:var(--eidos-fg);font-weight:600;overflow:hidden;text-overflow:ellipsis;
+}
+[data-eidos-context-separator]{
+  color:color-mix(in srgb,var(--eidos-fg-muted) 58%,transparent);
+}
+[data-eidos-context-navigation-mobile]{display:none}
+
+form[data-eidos-id] [data-eidos-form-fields]{margin-top:var(--eidos-space-md)}
+form[data-eidos-id] [data-eidos-form-actions]{
+  display:flex;justify-content:flex-end;align-items:center;gap:var(--eidos-space-sm);
+  flex-wrap:wrap;margin-top:var(--eidos-space-section);
+  padding-top:var(--eidos-space-lg);border-top:1px solid var(--eidos-border);
+}
+
+/* Productive management lists: compact scanning instead of oversized cards. */
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{
+  gap:var(--eidos-space-sm);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
+  padding:var(--eidos-space-lg) var(--eidos-space-xl);
+  gap:var(--eidos-space-sm);
+  box-shadow:none;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);line-height:1.45;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-metadata]{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:var(--eidos-space-xs) var(--eidos-space-lg);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-meta]{
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] footer{
+  margin-top:var(--eidos-space-xs);
+}
+
+@media (max-width:700px){
+  [data-eidos-page-heading]{display:grid;grid-template-columns:minmax(0,1fr)}
+  [data-eidos-page-actions]{justify-content:flex-start}
+  [data-eidos-context-navigation-desktop]{display:none}
+  [data-eidos-context-navigation-mobile]{
+    display:flex;align-items:center;min-height:28px;
+  }
+  form[data-eidos-id] [data-eidos-form-actions]{
+    justify-content:stretch;
+  }
+  form[data-eidos-id] [data-eidos-form-actions] button{
+    flex:1 1 auto;min-height:var(--eidos-touch-target);
+  }
+}
+
 [data-eidos-capability="catalog-detail"]{
   width:min(1180px,100%);margin:0 auto;display:grid;
   grid-template-columns:minmax(0,1.45fr) minmax(280px,.85fr);
