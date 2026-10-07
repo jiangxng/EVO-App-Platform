@@ -164,13 +164,33 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       label: {
         default: "Organization",
         translations: { "zh-CN": "机构" }
-      }
+      },
+      aliases: [
+        "organization",
+        "organisation",
+        "company",
+        "corporation",
+        "legal entity",
+        "机构",
+        "组织",
+        "企业",
+        "公司",
+        "法人",
+        "法人主体"
+      ]
     }, {
       value: "PERSON",
       label: {
         default: "Person",
         translations: { "zh-CN": "个人" }
-      }
+      },
+      aliases: [
+        "person",
+        "individual",
+        "natural person",
+        "个人",
+        "自然人"
+      ]
     }]
   }, {
     fieldId: "legalName",

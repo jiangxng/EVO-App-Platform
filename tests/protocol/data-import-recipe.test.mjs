@@ -278,6 +278,76 @@ test("mapping inspection exposes bounded samples and preserves unmapped raw colu
   assert.equal(contact.mappedTargetFieldId, undefined);
 });
 
+test("Agent enum VALUE_MAP accepts governed aliases and blocks unrelated semantic coercion", () => {
+  const { target, service } = fixture();
+  service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-agent-semantic-guard",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("semantic-guard.xlsx", "设备"),
+    mapping: [],
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T08:10:00.000Z"
+  });
+
+  assert.doesNotThrow(() => service.updateMapping({
+    contextId: "enterprise-context:a",
+    importJobId: "import-agent-semantic-guard",
+    mapping: [{
+      sourceColumn: "供应商类型",
+      targetFieldId: "subjectType",
+      transform: {
+        kind: "VALUE_MAP",
+        entries: [{
+          source: "企业",
+          target: "ORGANIZATION"
+        }, {
+          source: "个人",
+          target: "PERSON"
+        }]
+      }
+    }],
+    mappingOrigin: "AGENT",
+    actorSubjectId: "agent-a",
+    recordedAt: "2026-10-07T08:11:00.000Z"
+  }));
+
+  assert.throws(() => service.updateMapping({
+    contextId: "enterprise-context:a",
+    importJobId: "import-agent-semantic-guard",
+    mapping: [{
+      sourceColumn: "供应商类型",
+      targetFieldId: "subjectType",
+      transform: {
+        kind: "VALUE_MAP",
+        entries: [{
+          source: "设备",
+          target: "ORGANIZATION"
+        }, {
+          source: "物流",
+          target: "ORGANIZATION"
+        }]
+      }
+    }],
+    mappingOrigin: "AGENT",
+    actorSubjectId: "agent-a",
+    recordedAt: "2026-10-07T08:12:00.000Z"
+  }), /DATA_IMPORT_AGENT_ENUM_VALUE_MAP_REQUIRES_HUMAN_REVIEW/);
+
+  const inspected = service.inspectMapping({
+    contextId: "enterprise-context:a",
+    importJobId: "import-agent-semantic-guard",
+    locale: "zh-CN"
+  });
+  assert.equal(
+    inspected.sourceColumns.find(
+      item => item.sourceColumn === "供应商类型"
+    )?.transform?.entries[0]?.source,
+    "企业"
+  );
+});
+
 test("unknown source enum values remain visible to validation instead of being silently coerced", () => {
   const { target, service } = fixture();
   service.stage({

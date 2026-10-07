@@ -149,6 +149,7 @@ test("Eidos contextual Agent transport stays product-neutral and auto-submits th
   assert.match(workbench, /renderInternalWorkspace\(state\.workspaceTarget\)/);
   assert.doesNotMatch(workbench, /enterprise-agent/);
   assert.match(controller, /data-eidos-agent-action/);
+  assert.match(controller, /page\.requestPath \?\? page\.route\.path/);
   assert.match(controller, /interactionContext/);
   assert.match(controller, /await submit\(interactionContext\)/);
   assert.match(
