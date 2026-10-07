@@ -66,6 +66,7 @@ export interface EnterpriseResourcePutInputV010
 }
 
 export interface EnterpriseResourceRepositoryV010 {
+  transaction?<T>(work: () => T): T;
   get(
     address: EnterpriseResourceAddressV010
   ): EnterpriseResourceV010 | undefined;
