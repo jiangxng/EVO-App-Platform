@@ -26,6 +26,25 @@ function digest(value: unknown): string {
     .digest("hex");
 }
 
+function effectiveSchemaSemanticDigest(
+  schema: ReturnType<FoundationObjectImportTargetV010["describe"]>
+): string {
+  return digest({
+    contractVersion: schema.contractVersion,
+    objectType: schema.objectType,
+    ownerPackageId: schema.ownerPackageId,
+    baseSchemaRef: schema.baseSchemaRef,
+    activeRelationshipRoles: schema.activeRelationshipRoles,
+    fields: schema.fields.map(field => {
+      const {
+        resolvedLabel: _resolvedLabel,
+        ...semantic
+      } = field;
+      return semantic;
+    })
+  });
+}
+
 function targetMap(
   targets: readonly FoundationObjectImportTargetV010[]
 ): Map<string, FoundationObjectImportTargetV010> {
@@ -204,7 +223,7 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: invalidRows === 0 ? "DRY_RUN_READY" : "DRY_RUN_FAILED",
         dryRun: {
-          schemaDigest: digest(schema),
+          schemaDigest: effectiveSchemaSemanticDigest(schema),
           totalRows: rows.length,
           validRows: rows.length - invalidRows,
           invalidRows,
@@ -236,7 +255,10 @@ export function createDataImportServiceV010(input: {
         contextId: commitInput.contextId,
         parameters: job.targetParameters
       });
-      if (digest(schema) !== job.dryRun.schemaDigest) {
+      if (
+        effectiveSchemaSemanticDigest(schema)
+        !== job.dryRun.schemaDigest
+      ) {
         throw new Error("DATA_IMPORT_SCHEMA_CHANGED_AFTER_DRY_RUN");
       }
 
