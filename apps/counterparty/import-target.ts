@@ -425,19 +425,136 @@ export function createCounterpartyImportTargetV010(input: {
       if (!input.resources.transaction) {
         throw new Error("ENTERPRISE_RESOURCE_TRANSACTION_REQUIRED");
       }
-      const results = input.resources.transaction(() =>
-        batchInput.preparedRows.map(prepared =>
-          target.commitRow({
+
+      const roleCodes = roles(batchInput.parameters);
+      const definitions = input.extensionRepository.list(
+        batchInput.contextId,
+        "counterparty.subject"
+      );
+      const definitionByFieldId = new Map(
+        definitions.map(definition => [definition.fieldId, definition])
+      );
+
+      const subjects: CounterpartySubjectV010[] = [];
+      const assignments: Array<{
+        counterpartyId: string;
+        roleCode: CounterpartyRelationshipRoleCodeV010;
+      }> = [];
+      const valueSets: Parameters<
+        ObjectExtensionValueRepositoryV010["save"]
+      >[0]["valueSet"][] = [];
+      const results = [];
+
+      for (const prepared of batchInput.preparedRows) {
+        const code = textValue(prepared.values, "code");
+        const displayName = textValue(prepared.values, "displayName");
+        const subjectType = textValue(prepared.values, "subjectType");
+        if (!code || !displayName || !subjectType) {
+          throw new Error("COUNTERPARTY_IMPORT_PREPARED_ROW_INVALID");
+        }
+        const counterpartyId = deterministicCounterpartyId({
+          contextId: batchInput.contextId,
+          importJobId: batchInput.importJobId,
+          rowNumber: prepared.rowNumber,
+          code
+        });
+        subjects.push(assertCounterpartySubjectV010({
+          contractVersion: "0.1.0",
+          counterpartyId,
+          code,
+          displayName,
+          subjectType: subjectType as CounterpartySubjectV010["subjectType"],
+          status: "ACTIVE",
+          ...(textValue(prepared.values, "legalName")
+            ? { legalName: textValue(prepared.values, "legalName") }
+            : {}),
+          ...(textValue(prepared.values, "taxIdentifier")
+            ? { taxIdentifier: textValue(prepared.values, "taxIdentifier") }
+            : {}),
+          ...(textValue(prepared.values, "countryOrRegion")
+            ? { countryOrRegion: textValue(prepared.values, "countryOrRegion") }
+            : {}),
+          ...(textValue(prepared.values, "phone")
+            ? { phone: textValue(prepared.values, "phone") }
+            : {}),
+          ...(textValue(prepared.values, "email")
+            ? { email: textValue(prepared.values, "email") }
+            : {}),
+          ...(textValue(prepared.values, "notes")
+            ? { notes: textValue(prepared.values, "notes") }
+            : {})
+        }));
+
+        for (const roleCode of roleCodes) {
+          assignments.push({ counterpartyId, roleCode });
+        }
+
+        const grouped = new Map<string, {
+          slot: string;
+          namespace: string;
+          values: Record<string, FoundationObjectImportCellV010>;
+        }>();
+        for (const [fieldId, value] of Object.entries(prepared.values)) {
+          const definition = definitionByFieldId.get(fieldId);
+          if (!definition) continue;
+          const key = definition.targetSlot + "|" + definition.namespace;
+          const group = grouped.get(key) ?? {
+            slot: definition.targetSlot,
+            namespace: definition.namespace,
+            values: {}
+          };
+          group.values[fieldId] = value;
+          grouped.set(key, group);
+        }
+        for (const group of grouped.values()) {
+          valueSets.push({
+            contractVersion: "0.1.0",
+            targetRef: {
+              objectType: "counterparty.subject",
+              objectId: counterpartyId,
+              slot: group.slot
+            },
+            namespace: group.namespace,
+            values: group.values,
+            provenance: {
+              source: "IMPORT",
+              sourceRef: batchInput.importJobId
+            }
+          });
+        }
+
+        results.push({
+          objectType: "counterparty.subject",
+          objectId: counterpartyId,
+          displayKey: code
+        });
+      }
+
+      input.resources.transaction(() => {
+        input.repository.saveMany({
+          contextId: batchInput.contextId,
+          subjects,
+          actorSubjectId: batchInput.actorSubjectId,
+          recordedAt: batchInput.recordedAt
+        });
+        if (assignments.length > 0) {
+          input.roleRepository.assignMany({
             contextId: batchInput.contextId,
-            importJobId: batchInput.importJobId,
-            schema: batchInput.schema,
-            prepared,
-            parameters: batchInput.parameters,
+            assignments,
             actorSubjectId: batchInput.actorSubjectId,
             recordedAt: batchInput.recordedAt
-          })
-        )
-      );
+          });
+        }
+        if (valueSets.length > 0) {
+          input.extensionValueRepository.saveMany({
+            contextId: batchInput.contextId,
+            valueSets,
+            actorSubjectId: batchInput.actorSubjectId,
+            recordedAt: batchInput.recordedAt
+          });
+        }
+      });
+
       return {
         semantics: "ATOMIC_BATCH",
         results
