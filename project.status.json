@@ -478,7 +478,8 @@
     "counterparty-directory-create-detail-archive-v0-1",
     "legacy-dealer-counterparty-convergence-v0-1",
     "counterparty-core-edit-v0-1",
-    "uidl-form-initial-value-v0-1"
+    "uidl-form-initial-value-v0-1",
+    "counterparty-relationship-roles-v0-2-merged"
   ],
   "notYetImplemented": [
     "durable-lifecycle-persistence",
@@ -1781,8 +1782,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "COUNTERPARTY-RELATIONSHIP-ROLES-V0-2-2026-10-07-01",
-    "snapshotAt": "2026-10-07T08:25:00+08:00",
+    "snapshotId": "counterparty-relationship-roles-v0-2-merged-2026-10-07",
+    "snapshotAt": "2026-10-07T01:08:53.000Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1829,8 +1830,8 @@
       },
       "openGate": {
         "id": "counterparty-relationship-roles-v0-2",
-        "status": "READY",
-        "summary": "Introduce explicit multi-role relationships for one stable Counterparty identity, beginning with Customer and Supplier without duplicating master identities or moving role-specific settings into Counterparty core.",
+        "status": "MERGED_CI_DEPLOYED_PENDING_HUMAN_VALIDATION",
+        "summary": "Counterparty Relationship Roles v0.2 is merged through App Platform PR #419 and deployed to production. CUSTOMER and SUPPLIER are explicit enterprise-scoped relationship resources over one stable Counterparty identity. The remaining closure gate is Human browser validation; the milestone is not yet declared Human-validated/closed.",
         "authority": "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
         "acceptance": [
           "One Counterparty may hold multiple simultaneous relationship roles, including Customer and Supplier.",
@@ -1843,7 +1844,23 @@
           "Historical BusinessData continues to preserve committed snapshots and is not rewritten by role/master-data changes.",
           "AR/AP balances, open items, settlement and matching remain outside Counterparty ownership.",
           "Desktop and mobile Counterparty detail remain readable as roles grow."
-        ]
+        ],
+        "implementationEvidence": {
+          "implementationPr": 419,
+          "mergeCommit": "6c47a342b02328cc69ed3ab9cecaf42c3823cee7",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "crossProjectEidosEvoCI": "PASS",
+          "railwayDeploymentId": "90f244c8-3715-4c3a-9ced-419483f4ac34",
+          "railwayDeploymentStatus": "SUCCESS",
+          "resourceType": "counterparty.relationship-role",
+          "collection": "counterparty-roles",
+          "initialRoles": [
+            "CUSTOMER",
+            "SUPPLIER"
+          ],
+          "humanBrowserValidation": "PENDING"
+        }
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1851,13 +1868,18 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "747fa58ad2d61938a3171f05d0b53d9dd4e79f1b",
-        "deploymentId": "fb0bc536-9d46-48eb-ae13-1ced7e5601b5",
+        "commit": "6c47a342b02328cc69ed3ab9cecaf42c3823cee7",
+        "deploymentId": "90f244c8-3715-4c3a-9ced-419483f4ac34",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 419,
+        "status": "MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING",
+        "summary": "Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline."
+      },
       {
         "pr": 417,
         "status": "MERGED_CI_PRODUCTION_PASS",
