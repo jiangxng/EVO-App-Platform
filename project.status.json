@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "Counterparty Relationship Roles v0.2",
+  "currentMilestone": "Counterparty Enterprise Extension + Import-first v0.3",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
