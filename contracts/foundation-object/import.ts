@@ -1,5 +1,6 @@
 import type {
-  EffectiveObjectSchemaV010
+  EffectiveObjectSchemaV010,
+  FoundationObjectLocalizedTextV010
 } from "./schema.js";
 
 export type FoundationObjectImportCellV010 =
@@ -37,9 +38,25 @@ export interface FoundationObjectImportCommitResultV010 {
   displayKey?: string;
 }
 
+export interface FoundationObjectImportTargetParameterOptionV010 {
+  value: string;
+  label: FoundationObjectLocalizedTextV010;
+}
+
+export interface FoundationObjectImportTargetParameterV010 {
+  key: string;
+  label: FoundationObjectLocalizedTextV010;
+  required: boolean;
+  control: "select";
+  defaultValue?: string;
+  options: FoundationObjectImportTargetParameterOptionV010[];
+}
+
 export interface FoundationObjectImportTargetV010 {
   contractVersion: "0.1.0";
   targetId: string;
+  label: FoundationObjectLocalizedTextV010;
+  parameters?: FoundationObjectImportTargetParameterV010[];
   objectType: string;
   ownerPackageId: string;
   describe(input: {
