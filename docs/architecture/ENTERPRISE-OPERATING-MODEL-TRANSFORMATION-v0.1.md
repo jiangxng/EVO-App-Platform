@@ -1,9 +1,9 @@
-# EVO Enterprise Convergence & Modernization Architecture v0.1
+# EVO Enterprise Operating Model Transformation Architecture v0.1
 
 **Status:** ACTIVE DESIGN BASELINE  
 **Date:** 2026-10-07  
 **Owner:** EVO-App-Platform, collaborating through public contracts with Experience-Compiler, Eidos and EVO  
-**Purpose:** define EVO adoption as semantic convergence and modernization, not a one-to-one legacy-system migration
+**Purpose:** define EVO adoption as enterprise operating-model transformation, where archaeology, rationalization, harmonization, governance, redesign, compilation and transition replace one-to-one legacy-system migration
 
 ## 1. Core proposition
 
@@ -14,26 +14,52 @@ When an enterprise adopts EVO, the project should not primarily ask:
 The project should ask:
 
 > Which parts of the old system represent durable business truth, which parts are
-> duplicated/accidental/derived/obsolete, and how should the enterprise converge them
-> into a smaller, clearer, governed EVO model?
+> duplicated/accidental/derived/obsolete, what should be preserved, reorganized,
+> normalized, redesigned or retired, and how should the result become a clearer,
+> governed EVO operating model?
 
 Canonical distinction:
 
 ~~~text
 Migration
-= move records/configuration from source to target
+= move data/configuration/workloads from source to target
 
-Convergence
-= preserve validated business meaning
-  + reduce accidental complexity
-  + normalize duplicate/inconsistent semantics
-  + externalize derived state
-  + retain legitimate enterprise differentiation
-  + produce an enterprise-owned software version
+Operating Model Transformation
+= understand what the enterprise actually does
+  + preserve validated business meaning
+  + rationalize accumulated complexity
+  + harmonize inconsistent semantics where appropriate
+  + clean/govern data
+  + redesign processes where value justifies it
+  + preserve explicit enterprise differentiation
+  + recompose Human/Agent experience
+  + compile the accepted target model into an enterprise-owned software version
+  + transition data and operations into that version
 ~~~
 
-Migration is therefore an execution step inside convergence, not the governing design
-principle.
+Migration is only one execution step near the end. "Convergence" remains a useful
+operator for some duplicated or inconsistent semantics, but it is not the umbrella
+name for the whole adoption journey.
+
+## 1.1 Transformation vocabulary
+
+No single verb is sufficient. EVO deliberately separates these actions:
+
+| Action | Chinese working term | Meaning |
+| --- | --- | --- |
+| DISCOVER | 考古 / 盘点 / 梳理 | recover how the enterprise actually works from people, data, screens, SOPs and code |
+| RATIONALIZE | 整理 / 取舍 / 去冗余 | decide what still has business value and remove accidental complexity |
+| HARMONIZE | 归一 / 协调 / 收敛 | align duplicated or inconsistent meanings/codes where one governed meaning is justified |
+| GOVERN | 治理 / 清理 | improve data quality, ownership, permissions, identifiers and provenance |
+| REDESIGN | 重构 / 优化 / 流程再造 | change objects, responsibilities or end-to-end processes when the current operating model is genuinely suboptimal |
+| EXTEND | 保留差异 / 显式扩展 | preserve legitimate industry/enterprise differentiation as governed semantics |
+| RECOMPOSE | 重组 / 再编排 | compose objects, capabilities, projections, workbenches and Agent/Human experiences around the target way of working |
+| COMPILE | 编译 | turn accepted semantic definitions into storage, validation, import, UI, permissions, Agent contracts and tests |
+| TRANSITION | 切换 / 迁移 | move accepted data and operations into the activated target version |
+
+The umbrella is **Enterprise Operating Model Transformation / 企业运营模型重塑**.
+"BPR / 流程再造" is one possible REDESIGN technique, not the default treatment for
+every process.
 
 ## 2. External evidence: recurring enterprise-software pain
 
@@ -211,12 +237,12 @@ is performed without first deciding whether the source concept should be:
 - retired;
 - archived only.
 
-## 4. EVO response: convergence, not homogenization
+## 4. EVO response: transformation without homogenization
 
-"Convergence" MUST NOT mean forcing every enterprise into one rigid standard.
+Transformation MUST NOT mean forcing every enterprise into one rigid standard.
 
-EVO should converge **accidental complexity** while preserving **intentional
-differentiation**.
+EVO should rationalize and harmonize **accidental complexity** while preserving and
+explicitly modeling **intentional differentiation**.
 
 Converge:
 
@@ -245,9 +271,9 @@ Canonical principle:
 
 > **Standardize what is accidental; model explicitly what is differentiating.**
 
-## 5. Convergence operators
+## 5. Transformation operators
 
-Every discovered legacy concept should receive an explicit convergence decision.
+Every discovered legacy concept should receive an explicit transformation disposition.
 
 ### REUSE
 
@@ -341,7 +367,7 @@ mutable stored balance
 → immutable effects + rebuildable Projection
 ~~~
 
-## 6. Convergence pipeline
+## 6. Transformation pipeline
 
 ~~~text
 Legacy enterprise evidence
@@ -352,7 +378,7 @@ LLM business archaeology
         ↓
 Concept clustering + usage analysis
         ↓
-Convergence decisions
+Transformation dispositions
   REUSE / MERGE / SPLIT / RECLASSIFY /
   NORMALIZE / EXTEND / RETIRE / ARCHIVE / REBUILD
         ↓
@@ -371,10 +397,10 @@ enterprise software version
 activation
 ~~~
 
-This pipeline makes source-to-target mapping an output of semantic convergence rather
+This pipeline makes source-to-target mapping an output of target operating-model design rather
 than the first design activity.
 
-## 7. Convergence Workspace product direction
+## 7. Transformation Workspace product direction
 
 EVO should eventually expose convergence as a first-class Human/Agent product
 experience.
@@ -382,7 +408,7 @@ experience.
 Candidate experience:
 
 ~~~text
-EVO Convergence Workspace
+EVO Transformation Workspace
 
 Evidence
   3 Excel files
@@ -457,7 +483,7 @@ LLM can continuously ask:
 "Which records contradict this interpretation?"
 ~~~
 
-The convergence output then passes through deterministic platform contracts.
+The transformation proposal then passes through deterministic platform contracts.
 
 ## 9. Source evidence is never target authority
 
@@ -486,7 +512,7 @@ old workaround is ugly
 
 It may encode a real edge case that must be recovered explicitly.
 
-## 10. Migration as a convergence by-product
+## 10. Migration as a transformation by-product
 
 Only after convergence do we generate technical migration.
 
@@ -501,7 +527,7 @@ source:
   handler
   payWay
 
-convergence:
+target transformation:
   dealerCode/name
     → Counterparty
 
@@ -524,7 +550,7 @@ then:
 
 This avoids faithfully importing the mistakes of the old system.
 
-## 11. Data-quality convergence
+## 11. Data governance and normalization
 
 Migration should actively improve the enterprise model.
 
@@ -546,11 +572,15 @@ Candidate checks:
 LLM can prioritize anomalies, but deterministic rules and Human review decide material
 corrections.
 
-## 12. Process convergence
+## 12. Process review, improvement and redesign
 
 The same approach applies to workflow/process.
 
-Each legacy step should be classified as:
+Not every process should be radically redesigned. IBM's BPR definition is intentionally
+radical; EVO therefore treats full process reengineering as one high-change option,
+alongside preserve, simplify and incremental improvement.
+
+Each legacy step should first be classified as:
 
 ~~~text
 BUSINESS_REQUIRED
@@ -580,8 +610,8 @@ The new system must not preserve the delay simply because users are accustomed t
 SAP's modern clean-core guidance emphasizes standardizing non-differentiating
 processes while extending where differentiation matters.
 
-EVO should adopt the same economic insight but implement it through semantic
-convergence.
+EVO should adopt the same economic insight but implement it through operating-model
+transformation.
 
 ~~~text
 commodity/common need
@@ -616,7 +646,7 @@ The key EVO difference is downstream:
 ~~~text
 Power Apps-style evidence/plan experience
         ↓
-EVO semantic convergence
+EVO operating-model transformation
         ↓
 EnterpriseAdaptationPlan
         ↓
@@ -629,7 +659,7 @@ AI does not receive authority to freely invent production semantics.
 
 ## 15. Relationship to Template Store
 
-Template Store provides a convergence accelerator.
+Template Store provides a transformation accelerator.
 
 ~~~text
 legacy enterprise evidence
@@ -653,7 +683,7 @@ This is preferable to starting from either:
 ## 16. Relationship to Experience-Compiler
 
 Experience-Compiler should learn the **methods and reusable semantic patterns** of
-successful convergence:
+successful target transformation:
 
 - common source-system mappings;
 - recurring legacy anti-patterns;
@@ -667,7 +697,7 @@ successful convergence:
 It must not convert private customer records into shared knowledge without explicit
 governance.
 
-## 17. Human role in convergence
+## 17. Human role in transformation
 
 Humans remain decisive where meaning cannot be proven from evidence.
 
@@ -715,12 +745,12 @@ Therefore the migration project is not simply:
 
 It becomes:
 
-> **"Use EVO to converge the enterprise's accumulated digital operating model into a
-> cleaner, explicit and continuously adaptable form."**
+> **"Use EVO to understand, reorganize and reshape the enterprise's accumulated
+> digital operating model into a clearer, explicit and continuously adaptable form."**
 
-## 19. Convergence acceptance
+## 19. Transformation acceptance
 
-A convergence project is not complete merely because row counts match.
+An EVO transformation project is not complete merely because row counts match.
 
 Evidence should include:
 
@@ -739,7 +769,7 @@ Evidence should include:
 
 ## 20. Metrics
 
-Useful convergence metrics:
+Useful transformation metrics:
 
 ~~~text
 Semantic reuse %
@@ -765,8 +795,8 @@ The goal is maximizing semantic clarity while preserving business value.
 ## 21. Hard invariants
 
 1. Legacy physical schema is evidence, not target authority.
-2. Migration is subordinate to semantic convergence.
-3. Convergence removes accidental complexity but preserves justified differentiation.
+2. Migration is subordinate to operating-model transformation.
+3. Transformation rationalizes accidental complexity while preserving justified differentiation.
 4. Every material source concept receives an explicit disposition.
 5. Derived values do not become master truth merely because the old system stored
    them that way.
@@ -780,11 +810,12 @@ The goal is maximizing semantic clarity while preserving business value.
 12. Historical BusinessData/runtime truth is not rewritten solely to fit a new model.
 13. Enterprise differentiation should become explicit extension semantics instead of
    hidden Core customization.
-14. A successful EVO adoption should leave the enterprise easier to understand and
-   change than before migration.
+14. A successful EVO adoption should leave the enterprise easier to understand,
+   operate and change than before the transformation.
 
 ## 22. One-line target
 
-> **EVO adoption is a semantic convergence event: preserve what the business truly is,
-> discard or reclassify what history accidentally accumulated, and compile the result
-> into a cleaner enterprise software version that can keep evolving.**
+> **EVO adoption is an enterprise operating-model transformation: understand what the
+> business truly is, rationalize what history accidentally accumulated, redesign where
+> value requires it, preserve meaningful differentiation, and compile the accepted
+> result into a cleaner enterprise software version that can keep evolving.**
