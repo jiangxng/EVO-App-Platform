@@ -58,3 +58,22 @@ test("login experience can honestly represent an unconfigured authentication dep
   assert.doesNotMatch(html, /href="\/auth\/login/);
   assert.match(html, /ADMIN_CONFIGURATION_REQUIRED/);
 });
+
+
+test("login cover defaults to enterprise-to-employee messaging rather than platform technology messaging", () => {
+  const zh = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+  assert.match(zh, /把目标变成行动，把行动变成结果。/);
+  assert.match(zh, /目标一致/);
+  assert.match(zh, /责任清晰/);
+  assert.match(zh, /持续改善/);
+  assert.match(zh, /今天的每一步，都在推动企业向目标前进。/);
+  assert.doesNotMatch(zh, />Applications</);
+  assert.doesNotMatch(zh, />Context</);
+  assert.doesNotMatch(zh, />Intelligence</);
+});
