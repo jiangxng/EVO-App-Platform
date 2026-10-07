@@ -252,7 +252,7 @@ export interface PersonalAgentContextOptionV010 {
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
   context: ResolvedContextSetV010,
-  availableContexts: readonly PersonalAgentContextOptionV010[],
+  _availableContexts: readonly PersonalAgentContextOptionV010[],
   followUps: readonly PersonalAgentFollowUpV010[] = []
 ): ChatExperienceV020 {
   const contextLabel = context.activeContext.kind === "PERSONAL"
@@ -274,19 +274,10 @@ export function createPersonalAgentChatPageV020(
       disabled: readiness.state !== "ready" && readiness.state !== "degraded"
     },
     context: {
-      label: "Current context",
-      value: contextLabel,
-      selector: {
-        key: "activeContext",
-        ariaLabel: "Choose context",
-        selectedId: context.activeContext.contextId,
-        options: availableContexts.map(item => ({
-          id: item.ref.contextId,
-          label: item.ref.kind === "PERSONAL" ? "Personal" : item.label,
-          ...(item.ref.kind === "PERSONAL" ? { localizationKey: "personal" } : {}),
-          value: structuredClone(item.ref)
-        }))
-      }
+      label: context.activeContext.kind === "ENTERPRISE"
+        ? "Current enterprise"
+        : "Current context",
+      value: contextLabel
     },
     readiness: {
       state: readiness.state,
