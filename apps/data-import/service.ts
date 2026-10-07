@@ -316,7 +316,7 @@ export function createDataImportServiceV010(input: {
       const failed = dryRows.filter(row => !row.ok);
       const escape = (value: string) =>
         /[",\n\r]/u.test(value)
-          ? """ + value.replaceAll(""", """") + """
+          ? '"' + value.replaceAll('"', '""') + '"'
           : value;
       const lines = [[
         "rowNumber",
