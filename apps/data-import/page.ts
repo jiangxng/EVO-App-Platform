@@ -203,6 +203,17 @@ export function createDataImportUploadPageV010(input: {
       input.target.label,
       input.locale
     ),
+    description: t.description,
+    contextNavigation: {
+      items: [{
+        id: "data-import",
+        label: t.title,
+        route: DATA_IMPORT_DIRECTORY_ROUTE
+      }, {
+        id: "upload",
+        label: t.uploadTitle
+      }]
+    },
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -315,6 +326,17 @@ export function createDataImportMappingPageV010(input: {
     kind: "form" as const,
     id: "evo-data-import.mapping",
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
+    description: t.mappingDescription,
+    contextNavigation: {
+      items: [{
+        id: "data-import",
+        label: t.title,
+        route: DATA_IMPORT_DIRECTORY_ROUTE
+      }, {
+        id: "mapping",
+        label: t.mappingTitle
+      }]
+    },
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,
@@ -382,6 +404,11 @@ export function createDataImportReviewPageV010(input: {
   const receipt = job.receipt;
 
   const summaryActions = [{
+    id: "back",
+    label: t.back,
+    type: "navigate" as const,
+    route: DATA_IMPORT_DIRECTORY_ROUTE
+  }, {
     id: "remap",
     label: t.remap,
     type: "navigate" as const,
@@ -426,13 +453,6 @@ export function createDataImportReviewPageV010(input: {
         [t.failedRows]: receipt.failedRows
       } : {})
     },
-    primaryAction: {
-      id: "back",
-      label: t.back,
-      type: "navigate",
-      route: DATA_IMPORT_DIRECTORY_ROUTE
-    },
-    secondaryActions: summaryActions
   }];
 
   for (const row of (dryRun?.rows ?? []).slice(0, 30)) {
@@ -458,9 +478,25 @@ export function createDataImportReviewPageV010(input: {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     layout: "list",
+    density: "compact",
     id: "evo-data-import.review",
     title: t.reviewTitle,
     description: t.description,
+    contextNavigation: {
+      items: [{
+        id: "data-import",
+        label: t.title,
+        route: DATA_IMPORT_DIRECTORY_ROUTE
+      }, {
+        id: "mapping",
+        label: t.mappingTitle,
+        route: dataImportMappingRouteV010(job.importJobId)
+      }, {
+        id: "review",
+        label: t.reviewTitle
+      }]
+    },
+    actions: summaryActions,
     items
   };
 }
