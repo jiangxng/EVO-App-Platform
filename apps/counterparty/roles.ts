@@ -42,6 +42,15 @@ export interface CounterpartyRoleRepositoryV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): CounterpartyRelationshipRoleV010;
+  assignMany(input: {
+    contextId: string;
+    assignments: Array<{
+      counterpartyId: string;
+      roleCode: CounterpartyRelationshipRoleCodeV010;
+    }>;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): CounterpartyRelationshipRoleV010[];
   archive(input: {
     contextId: string;
     counterpartyId: string;
@@ -207,6 +216,60 @@ export function createCounterpartyRoleRepositoryV010(
         recordedAt: input.recordedAt
       });
       return roleFromPayload(saved.payload);
+    },
+
+    assignMany(input) {
+      const contextId = required(
+        input.contextId,
+        "COUNTERPARTY_CONTEXT_REQUIRED"
+      );
+      const assignments = input.assignments.map(item => ({
+        counterpartyId: required(
+          item.counterpartyId,
+          "COUNTERPARTY_ID_REQUIRED"
+        ),
+        roleCode: roleCode(item.roleCode)
+      }));
+      const seen = new Set<string>();
+      const roles = assignments.map(item => {
+        if (!counterparties.get(contextId, item.counterpartyId)) {
+          throw new Error("COUNTERPARTY_NOT_FOUND");
+        }
+        const key = item.counterpartyId + "|" + item.roleCode;
+        if (seen.has(key)) {
+          throw new Error("COUNTERPARTY_ROLE_DUPLICATE_IN_BATCH");
+        }
+        seen.add(key);
+        return assertRole({
+          contractVersion: "0.1.0",
+          roleId: roleId(item.counterpartyId, item.roleCode),
+          counterpartyId: item.counterpartyId,
+          roleCode: item.roleCode
+        });
+      });
+      if (!resources.putMany) {
+        return roles.map(role => this.assign({
+          contextId,
+          counterpartyId: role.counterpartyId,
+          roleCode: role.roleCode,
+          actorSubjectId: input.actorSubjectId,
+          recordedAt: input.recordedAt
+        }));
+      }
+      const saved = resources.putMany(roles.map(role => ({
+        ...address(contextId, role.counterpartyId, role.roleCode),
+        schemaRef: COUNTERPARTY_ROLE_SCHEMA_V010,
+        ownerPackageId: "evo-counterparty",
+        storageKind: "DOCUMENT" as const,
+        payload: payloadOf(role),
+        metadata: {
+          counterpartyId: role.counterpartyId,
+          roleCode: role.roleCode
+        },
+        actorSubjectId: input.actorSubjectId,
+        recordedAt: input.recordedAt
+      })));
+      return saved.map(resource => roleFromPayload(resource.payload));
     },
 
     archive(input) {
