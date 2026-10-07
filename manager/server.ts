@@ -4351,6 +4351,39 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      RESPONSIBILITY_ASSIGN_COMMAND_V010,
+      RESPONSIBILITY_ARCHIVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: RESPONSIBILITY_PACKAGE_ID,
+        featureId: RESPONSIBILITY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/responsibility/actions.js");
+          const handlers = module.createResponsibilityActionHandlersV010({
+            repository: responsibilityRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("RESPONSIBILITY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010
