@@ -1,5 +1,6 @@
 import type { CatalogBrowserV010 } from "./contracts.js";
 import {
+  assertContextNavigationV010,
   renderContextNavigationV010
 } from "../navigation/context-navigation.js";
 
@@ -18,6 +19,29 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   }
   if (!input.id || !input.title || !Array.isArray(input.items)) {
     throw new Error("EIDOS_CATALOG_INVALID");
+  }
+  if (
+    input.density !== undefined
+    && input.density !== "comfortable"
+    && input.density !== "compact"
+  ) {
+    throw new Error("EIDOS_CATALOG_DENSITY_INVALID");
+  }
+  assertContextNavigationV010(input.contextNavigation);
+  if (input.actions !== undefined) {
+    if (!Array.isArray(input.actions)) {
+      throw new Error("EIDOS_CATALOG_PAGE_ACTIONS_INVALID");
+    }
+    const actionIds = new Set<string>();
+    for (const action of input.actions) {
+      if (!action?.id?.trim() || !action.label?.trim()) {
+        throw new Error("EIDOS_CATALOG_PAGE_ACTION_INVALID");
+      }
+      if (actionIds.has(action.id)) {
+        throw new Error("EIDOS_CATALOG_PAGE_ACTION_DUPLICATE");
+      }
+      actionIds.add(action.id);
+    }
   }
   const ids = new Set<string>();
   for (const item of input.items) {
