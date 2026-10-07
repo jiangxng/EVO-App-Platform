@@ -938,20 +938,20 @@ Long-term target:
 > convergence, while EVO compiles the accepted understanding into governed software.**
 
 
-## 28. Enterprise convergence companion
+## 28. Enterprise operating-model transformation companion
 
 The enterprise adaptation pipeline is also the mechanism by which a legacy enterprise
-converges into EVO.
+reorganizes and reshapes its operating model into EVO.
 
 Companion authority:
 
-`docs/architecture/ENTERPRISE-CONVERGENCE-AND-MODERNIZATION-v0.1.md`
+`docs/architecture/ENTERPRISE-OPERATING-MODEL-TRANSFORMATION-v0.1.md`
 
 Canonical relationship:
 
 ~~~text
 legacy evidence
-→ semantic convergence
+→ discover / rationalize / harmonize / redesign
 → EnterpriseAdaptationPlan
 → import/migration mappings
 → enterprise-owned software version
@@ -960,8 +960,8 @@ legacy evidence
 Migration is therefore generated from an accepted target semantic model rather than
 used as the source of target architecture.
 
-The adaptation agent should explicitly classify source concepts with convergence
-operators such as REUSE, MERGE, SPLIT, RECLASSIFY, NORMALIZE, EXTEND, RETIRE,
+The adaptation agent should explicitly classify source concepts with transformation
+dispositions such as REUSE, MERGE, SPLIT, RECLASSIFY, NORMALIZE, EXTEND, RETIRE,
 ARCHIVE and REBUILD.
 
 This keeps the fast-response LLM advantage while preventing a one-to-one recreation
