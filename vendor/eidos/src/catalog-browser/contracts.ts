@@ -17,6 +17,7 @@ export interface CatalogBrowserActionV010 {
   enabled?: boolean;
   disabledReason?: string;
   helpText?: string;
+  primary?: boolean;
   values?: Record<string, JsonValue>;
 }
 
