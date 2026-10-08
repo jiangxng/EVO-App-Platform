@@ -206,3 +206,62 @@ test("AF-02 compressor failure falls back to recent raw Conversation without cor
   assert.equal(result.includedRecentMessageCount, 4);
   assert.equal((await store.get("conversation-thread:af02")).messages.length, 20);
 });
+
+
+test("AF-02 checkpoint envelope is included in the hard context budget", async () => {
+  const store = await threadWithMessages(12, 50);
+  const artifacts = createMemoryConversationContextArtifactStoreV010();
+  const assembler = createConversationContextAssemblerV010({
+    artifactStore: artifacts,
+    compressor: {
+      async compress(input) {
+        const content = "S".repeat(980);
+        return {
+          contractVersion: "0.1.0",
+          summaryId: "conversation-summary:budget-envelope",
+          threadId: input.threadId,
+          artifactVersion: input.artifactVersion,
+          sourceMessageIds: input.messages.map(message => message.messageId),
+          sourceFirstMessageId: input.messages[0].messageId,
+          sourceLastMessageId: input.messages.at(-1).messageId,
+          sourceMessageCount: input.messages.length,
+          sourceCharacterCount: input.messages.reduce(
+            (sum, message) => sum + message.content.length,
+            0
+          ),
+          content,
+          activeGoals: [],
+          decisions: [],
+          unresolvedQuestions: [],
+          relevantToolOutcomes: [],
+          provenance: {
+            strategy: "DETERMINISTIC_EXTRACTIVE",
+            policyId: input.policy.policyId,
+            policyVersion: input.policy.version,
+            generatedAt: input.generatedAt
+          }
+        };
+      }
+    },
+    policy: {
+      contractVersion: "0.1.0",
+      policyId: "af02-budget-envelope",
+      version: "1",
+      directHistoryMaxMessages: 4,
+      directHistoryMaxCharacters: 1_000,
+      recentTailMessages: 2,
+      summaryMaxCharacters: 980
+    }
+  });
+
+  const result = await assembler.assemble({
+    threadId: "conversation-thread:af02",
+    threadStore: store,
+    now: "2026-10-08T09:55:00.000Z"
+  });
+
+  assert.equal(result.mode, "COMPRESSED");
+  assert.ok(result.totalCharacters <= 1_000);
+  assert.equal(result.messages[0].content.length, 1_000);
+  assert.equal(result.includedRecentMessageCount, 0);
+});
