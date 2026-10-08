@@ -13,4 +13,5 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/manager/assets ./dist/manager/assets
 COPY --from=build /app/help ./help
+COPY --from=build /app/tools/cp03d-cross-structure-production-proof.mjs ./tools/cp03d-cross-structure-production-proof.mjs
 CMD ["node","dist/manager/server.js"]
