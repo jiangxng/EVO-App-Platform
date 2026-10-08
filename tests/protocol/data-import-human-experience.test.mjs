@@ -605,6 +605,190 @@ test("CP-03D first confirmed import teaches a recipe and second same-structure i
   assert.equal(secondHistory.metadata["未映射列"], "备注");
 });
 
+test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a different table structure", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const counterparties = createCounterpartyRepositoryV010(resources);
+  const roles = createCounterpartyRoleRepositoryV010(resources, counterparties);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const values = createObjectExtensionValueRepositoryV010(resources);
+  const target = createCounterpartyImportTargetV010({
+    resources,
+    repository: counterparties,
+    roleRepository: roles,
+    extensionRepository: extensions,
+    extensionValueRepository: values
+  });
+  const repository = createDataImportRepositoryV010(resources);
+  const recipes = createDataImportRecipeRepositoryV010(resources);
+  const service = createDataImportServiceV010({
+    repository,
+    recipeRepository: recipes,
+    targets: [target]
+  });
+
+  const learned = new Map();
+  let recordSequence = 0;
+  const experienceAdvisor = {
+    async recordSuccessful(input) {
+      const key = [input.tenantId, input.targetId, input.sourceColumn].join("|");
+      learned.set(key, input.targetFieldId);
+      const n = ++recordSequence;
+      return {
+        observationRecordId: "observation-" + n,
+        patternRecordId: "pattern-" + n
+      };
+    },
+    async recommend(input) {
+      return input.sourceColumns.flatMap(sourceColumn => {
+        const key = [input.tenantId, input.targetId, sourceColumn].join("|");
+        const targetFieldId = learned.get(key);
+        if (!targetFieldId || !input.availableTargetFieldIds.includes(targetFieldId)) {
+          return [];
+        }
+        return [{
+          sourceColumn,
+          targetFieldId,
+          confidence: 0.90,
+          supportCount: 1,
+          conflictCount: 0,
+          supportingRecordIds: ["pattern-known"],
+          rationale: "Prior Human-confirmed successful import",
+          advisoryOnly: true
+        }];
+      });
+    }
+  };
+
+  let sequence = 0;
+  const handlers = createDataImportActionHandlersV010({
+    service,
+    repository,
+    targets: [target],
+    experienceAdvisor,
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "import-ec-learning-" + (++sequence),
+    now: () => new Date("2026-10-08T01:30:00.000Z")
+  });
+  const stageFile = handlers.find(
+    item => item.commandCode === DATA_IMPORT_STAGE_FILE_COMMAND_V010
+  );
+  const review = handlers.find(
+    item => item.commandCode === DATA_IMPORT_REVIEW_COMMAND_V010
+  );
+  const commit = handlers.find(
+    item => item.commandCode === DATA_IMPORT_COMMIT_COMMAND_V010
+  );
+
+  const csvFile = (name, headers, row) => {
+    const csv = [headers.join(","), row.join(",")].join("\n");
+    return {
+      name,
+      mediaType: "text/csv",
+      size: Buffer.byteLength(csv),
+      contentBase64: Buffer.from(csv).toString("base64")
+    };
+  };
+
+  const firstStage = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId: "counterparty.subject",
+      file: csvFile(
+        "legacy-a.csv",
+        ["名称", "编码", "主体"],
+        ["第一客户", "EC-C001", "ORGANIZATION"]
+      ),
+      parameter__relationshipMode: "CUSTOMER"
+    }),
+    platformContext()
+  );
+  assert.equal(firstStage.ok, true);
+
+  const firstReview = await review.execute(
+    request(DATA_IMPORT_REVIEW_COMMAND_V010, {
+      importJobId: "import-ec-learning-1",
+      map_0: "displayName",
+      map_1: "code",
+      map_2: "subjectType"
+    }),
+    platformContext()
+  );
+  assert.equal(firstReview.ok, true);
+
+  const firstCommit = await commit.execute(
+    request(DATA_IMPORT_COMMIT_COMMAND_V010, {
+      importJobId: "import-ec-learning-1"
+    }),
+    platformContext()
+  );
+  assert.equal(firstCommit.ok, true);
+
+  const first = repository.get(
+    "enterprise-context:a",
+    "import-ec-learning-1"
+  );
+  assert.equal(first.state, "COMMITTED");
+  assert.equal(first.mappingOrigin, "HUMAN");
+  assert.equal(first.experienceLearning.status, "RECORDED");
+  assert.equal(first.experienceLearning.learnedMappings, 3);
+  assert.equal(
+    learned.get("ent-a|counterparty.subject|编码"),
+    "code"
+  );
+
+  const secondStage = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId: "counterparty.subject",
+      file: csvFile(
+        "legacy-b.csv",
+        ["联系电话", "编码", "客户名称", "主体类型"],
+        ["13800138000", "EC-C002", "第二客户", "ORGANIZATION"]
+      ),
+      parameter__relationshipMode: "CUSTOMER"
+    }),
+    platformContext()
+  );
+  assert.equal(secondStage.ok, true);
+  assert.equal(
+    secondStage.result.navigateTo,
+    "/data-import/jobs/import-ec-learning-2/map"
+  );
+  assert.match(secondStage.result.message, /Experience Compiler/);
+
+  const second = repository.get(
+    "enterprise-context:a",
+    "import-ec-learning-2"
+  );
+  const learnedCode = second.mapping.find(
+    item => item.sourceColumn === "编码"
+  );
+  assert.equal(learnedCode.targetFieldId, "code");
+  assert.equal(learnedCode.advisory.source, "EXPERIENCE_COMPILER");
+  assert.equal(learnedCode.advisory.confidence, 0.90);
+  assert.equal(second.mappingOrigin, "DETERMINISTIC");
+
+  const schema = target.describe({
+    contextId: "enterprise-context:a",
+    locale: "zh-CN",
+    parameters: { relationshipMode: "CUSTOMER" }
+  });
+  const mappingPage = createDataImportMappingPageV010({
+    job: second,
+    schema,
+    locale: "zh-CN"
+  });
+  assert.match(mappingPage.description, /Experience Compiler/);
+  assert.equal(
+    mappingPage.fields.find(field => field.key === "map_1").initialValue,
+    "code"
+  );
+  const advisoryField = mappingPage.fields.find(
+    field => field.semanticType === "data-import-ec-recommendation"
+  );
+  assert.ok(advisoryField);
+  assert.match(advisoryField.initialValue, /编码 → 往来编码 · code/);
+  assert.match(advisoryField.initialValue, /90%/);
+});
+
 test("Human review preserves Agent CONSTANT and unchanged VALUE_MAP mappings", async () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const counterparties = createCounterpartyRepositoryV010(resources);
