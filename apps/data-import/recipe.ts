@@ -364,7 +364,7 @@ export function createDataImportRecipeRepositoryV010(
         metadata: {
           targetId: recipe.targetId,
           sourceFingerprint: recipe.sourceFingerprint,
-          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId,
+          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId ?? "",
           confirmedAt: recipe.confirmedAt ?? ""
         },
         actorSubjectId: input.actorSubjectId,
