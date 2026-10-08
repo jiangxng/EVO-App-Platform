@@ -85,7 +85,14 @@ function text(locale?: string) {
         evidenceDescription:
           "原始表头和行数据保留在本次导入记录中；未映射列不会因为本次未使用而被丢弃。成功确认导入后，可沉淀为企业导入规则供同结构文件复用。",
         recipeAppliedDescription:
-          "系统已复用此前确认成功的企业导入规则并完成预检查。你可以直接核对结果；只有需要调整时才重新映射或请求 AI 辅助。"
+          "系统已复用此前确认成功的企业导入规则并完成预检查。你可以直接核对结果；只有需要调整时才重新映射或请求 AI 辅助。",
+        ecRecommendation: "EC 经验建议",
+        ecRecommendationDescription:
+          "Experience Compiler 根据以前由人工确认并成功导入的经验给出了字段建议。建议仍需你确认，EC 不会直接执行导入。",
+        ecSupport: "成功经验",
+        ecLearning: "EC 学习",
+        ecLearningRecorded: "已记录",
+        ecLearningUnavailable: "暂未记录"
       }
     : {
         title: "Data Import",
@@ -143,7 +150,14 @@ function text(locale?: string) {
         evidenceDescription:
           "Original headers and row values remain preserved with this import job. Unmapped columns are not discarded. A successful confirmed import can become an enterprise import recipe for later files with the same structure.",
         recipeAppliedDescription:
-          "A previously confirmed enterprise import recipe was reused and validation has already run. Review the result directly; remap or ask AI only when an adjustment is needed."
+          "A previously confirmed enterprise import recipe was reused and validation has already run. Review the result directly; remap or ask AI only when an adjustment is needed.",
+        ecRecommendation: "EC experience recommendation",
+        ecRecommendationDescription:
+          "Experience Compiler suggested fields from prior Human-confirmed successful imports. You still confirm the mapping; EC never executes the import.",
+        ecSupport: "successful experience(s)",
+        ecLearning: "EC learning",
+        ecLearningRecorded: "Recorded",
+        ecLearningUnavailable: "Not recorded"
       };
 }
 
@@ -212,7 +226,16 @@ function importEvidenceMetadata(
     [t.unmappedColumns]: unmapped.length > 0
       ? unmapped.join(zh(locale) ? "、" : ", ")
       : t.none,
-    [t.sourceEvidence]: t.preserved
+    [t.sourceEvidence]: t.preserved,
+    ...(job.experienceLearning
+      ? {
+          [t.ecLearning]:
+            job.experienceLearning.status === "RECORDED"
+              ? t.ecLearningRecorded + " · "
+                + job.experienceLearning.learnedMappings
+              : t.ecLearningUnavailable
+        }
+      : {})
   };
 }
 
@@ -372,6 +395,25 @@ export function createDataImportMappingPageV010(input: {
       field.resolvedLabel + " · " + field.fieldId
     ] as const)
   );
+  const advisoryFields = input.job.mapping
+    .filter(item => Boolean(item.advisory))
+    .map((item, index) => {
+      const advisory = item.advisory!;
+      const label = fieldLabel.get(item.targetFieldId) ?? item.targetFieldId;
+      return {
+        key: "advisory_" + index,
+        label: t.ecRecommendation + " · " + (item.sourceColumn ?? ""),
+        semanticType: "data-import-ec-recommendation",
+        control: "text" as const,
+        required: false,
+        readOnly: true,
+        initialValue:
+          (item.sourceColumn ?? "")
+          + " → " + label
+          + " · " + Math.round(advisory.confidence * 100) + "%"
+          + " · " + advisory.supportCount + " " + t.ecSupport
+      };
+    });
   const advancedFields = input.job.mapping
     .filter(item => Boolean(item.transform))
     .map((item, index) => {
@@ -414,7 +456,9 @@ export function createDataImportMappingPageV010(input: {
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
-      : t.mappingDescription,
+      : advisoryFields.length > 0
+        ? t.ecRecommendationDescription + " " + t.mappingDescription
+        : t.mappingDescription,
     contextNavigation: {
       items: [{
         id: "data-import",
@@ -455,7 +499,7 @@ export function createDataImportMappingPageV010(input: {
         value: field.fieldId,
         label: field.resolvedLabel + " · " + field.fieldId
       }))]
-    })), ...advancedFields],
+    })), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,
