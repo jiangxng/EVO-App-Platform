@@ -69,7 +69,23 @@ function text(locale?: string) {
         back: "返回数据导入",
         row: "第 {n} 行",
         source: "来源",
-        target: "目标对象"
+        target: "目标对象",
+        mappingSource: "映射来源",
+        deterministicMapping: "系统规则",
+        recipeMapping: "已学习规则",
+        humanMapping: "人工确认",
+        agentMapping: "AI 辅助",
+        explicitMapping: "显式映射",
+        learnedRule: "导入规则",
+        sourceEvidence: "原始来源",
+        preserved: "已保留",
+        unmappedColumns: "未映射列",
+        none: "无",
+        evidenceTitle: "来源与学习证据",
+        evidenceDescription:
+          "原始表头和行数据保留在本次导入记录中；未映射列不会因为本次未使用而被丢弃。成功确认导入后，可沉淀为企业导入规则供同结构文件复用。",
+        recipeAppliedDescription:
+          "系统已复用此前确认成功的企业导入规则并完成预检查。你可以直接核对结果；只有需要调整时才重新映射或请求 AI 辅助。"
       }
     : {
         title: "Data Import",
@@ -111,7 +127,23 @@ function text(locale?: string) {
         back: "Back to Data Import",
         row: "Row {n}",
         source: "Source",
-        target: "Target"
+        target: "Target",
+        mappingSource: "Mapping source",
+        deterministicMapping: "System rules",
+        recipeMapping: "Learned recipe",
+        humanMapping: "Human confirmed",
+        agentMapping: "AI assisted",
+        explicitMapping: "Explicit mapping",
+        learnedRule: "Import recipe",
+        sourceEvidence: "Source evidence",
+        preserved: "Preserved",
+        unmappedColumns: "Unmapped columns",
+        none: "None",
+        evidenceTitle: "Source and learning evidence",
+        evidenceDescription:
+          "Original headers and row values remain preserved with this import job. Unmapped columns are not discarded. A successful confirmed import can become an enterprise import recipe for later files with the same structure.",
+        recipeAppliedDescription:
+          "A previously confirmed enterprise import recipe was reused and validation has already run. Review the result directly; remap or ask AI only when an adjustment is needed."
       };
 }
 
@@ -136,6 +168,52 @@ function stateLabel(job: DataImportJobV010, locale?: string): {
     default:
       return { label: "STAGED", tone: "neutral" };
   }
+}
+
+function mappingSourceLabel(
+  job: DataImportJobV010,
+  locale?: string
+): string {
+  const t = text(locale);
+  switch (job.mappingOrigin) {
+    case "RECIPE":
+      return t.recipeMapping;
+    case "HUMAN":
+      return t.humanMapping;
+    case "AGENT":
+      return t.agentMapping;
+    case "DETERMINISTIC":
+      return t.deterministicMapping;
+    default:
+      return t.explicitMapping;
+  }
+}
+
+function unmappedSourceColumns(job: DataImportJobV010): string[] {
+  const mapped = new Set(
+    job.mapping
+      .map(item => item.sourceColumn)
+      .filter((value): value is string => Boolean(value))
+  );
+  return job.source.headers.filter(header => !mapped.has(header));
+}
+
+function importEvidenceMetadata(
+  job: DataImportJobV010,
+  locale?: string
+): Record<string, string | number | boolean> {
+  const t = text(locale);
+  const unmapped = unmappedSourceColumns(job);
+  return {
+    [t.mappingSource]: mappingSourceLabel(job, locale),
+    ...(job.appliedRecipeId
+      ? { [t.learnedRule]: job.appliedRecipeId }
+      : {}),
+    [t.unmappedColumns]: unmapped.length > 0
+      ? unmapped.join(zh(locale) ? "、" : ", ")
+      : t.none,
+    [t.sourceEvidence]: t.preserved
+  };
 }
 
 export function createDataImportDirectoryPageV010(input: {
@@ -167,7 +245,8 @@ export function createDataImportDirectoryPageV010(input: {
         status,
         metadata: {
           [t.totalRows]: job.source.rows.length,
-          [t.source]: job.source.name ?? job.source.kind
+          [t.source]: job.source.name ?? job.source.kind,
+          ...importEvidenceMetadata(job, input.locale)
         },
         primaryAction: {
           id: "open",
@@ -333,7 +412,9 @@ export function createDataImportMappingPageV010(input: {
     kind: "form" as const,
     id: "evo-data-import.mapping",
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
-    description: t.mappingDescription,
+    description: input.job.mappingOrigin === "RECIPE"
+      ? t.recipeAppliedDescription
+      : t.mappingDescription,
     contextNavigation: {
       items: [{
         id: "data-import",
@@ -395,7 +476,10 @@ export function createDataImportMappingPageV010(input: {
       refreshSourceOnComplete: true
     }],
     metadata: {
-      description: t.mappingDescription
+      description: input.job.mappingOrigin === "RECIPE"
+        ? t.recipeAppliedDescription
+        : t.mappingDescription,
+      ...importEvidenceMetadata(input.job, input.locale)
     }
   };
 }
@@ -459,8 +543,22 @@ export function createDataImportReviewPageV010(input: {
       ...(receipt ? {
         [t.succeededRows]: receipt.succeededRows,
         [t.failedRows]: receipt.failedRows
-      } : {})
+      } : {}),
+      ...importEvidenceMetadata(job, input.locale)
     },
+  }, {
+    id: "evidence",
+    title: t.evidenceTitle,
+    summary: t.evidenceDescription,
+    status: {
+      label: t.preserved,
+      tone: "neutral"
+    },
+    metadata: {
+      [t.source]: job.source.name ?? job.source.kind,
+      [t.totalRows]: job.source.rows.length,
+      ...importEvidenceMetadata(job, input.locale)
+    }
   }];
 
   for (const row of (dryRun?.rows ?? []).slice(0, 30)) {
@@ -489,7 +587,9 @@ export function createDataImportReviewPageV010(input: {
     density: "compact",
     id: "evo-data-import.review",
     title: t.reviewTitle,
-    description: t.description,
+    description: job.mappingOrigin === "RECIPE"
+      ? t.recipeAppliedDescription
+      : t.description,
     contextNavigation: {
       items: [{
         id: "data-import",

@@ -170,6 +170,62 @@ test("only a confirmed committed import becomes an auto-reusable enterprise Impo
   assert.deepEqual(initial.mapping, mapping);
 });
 
+test("CP-03D schema drift does not silently reuse a stale Import Recipe", () => {
+  const { target, service } = fixture();
+  const inputSource = source("supplier-schema-first.xlsx");
+  const schema = target.describe({
+    contextId: "enterprise-context:a",
+    parameters: { relationshipMode: "SUPPLIER" }
+  });
+
+  service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-schema-first",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: inputSource,
+    mapping,
+    mappingOrigin: "HUMAN",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-08T00:10:00.000Z"
+  });
+  service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "import-schema-first",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-08T00:11:00.000Z"
+  });
+  service.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "import-schema-first",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-08T00:12:00.000Z"
+  });
+
+  const reused = service.resolveInitialMapping({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("same-structure-before-drift.xlsx"),
+    schema
+  });
+  assert.equal(reused.origin, "RECIPE");
+
+  const changedSchema = {
+    ...schema,
+    baseSchemaRef: schema.baseSchemaRef + "#changed"
+  };
+  const fallback = service.resolveInitialMapping({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("same-structure-after-drift.xlsx"),
+    schema: changedSchema
+  });
+  assert.equal(fallback.origin, "DETERMINISTIC");
+  assert.equal(fallback.recipeId, undefined);
+});
+
 test("Import Recipe fingerprint ignores filename and column order but remains enterprise and purpose scoped", () => {
   const a = dataImportSourceFingerprintV010({
     targetId: "counterparty.subject",
