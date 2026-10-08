@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-03D Data Import learning + reuse closure  
+**Current entry gate:** CP-03D Data Import learning + reuse closure (same-structure precheck reuse HUMAN PASS; cross-structure EC validation remains open)  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -369,7 +369,7 @@ Exit requires Human production proof of:
 2. successful outcome is visibly recorded as EC experience;
 3. a different-structure second file receives the previously learned semantic recommendation (first hard example: `编码 -> Counterparty.code`);
 4. recommendation provenance/confidence is understandable and Human-correctable;
-5. same-structure Recipe still takes the deterministic fast path without unnecessary EC/AI;
+5. same-structure Recipe takes the deterministic fast path without unnecessary EC/AI; this path is HUMAN PASS in production, including save-mapping -> precheck -> no-import -> later same-structure reuse;
 6. EC unavailable leaves Data Import usable;
 7. stale/incompatible target semantics fail safely;
 8. unmapped/source evidence remains recoverable;
