@@ -152,7 +152,7 @@ test("DeepSeek Responses Provider maps EVO inference and tool calls without prov
 test("DeepSeek inference times out before the browser request boundary", async () => {
   const provider = createDeepSeekResponsesLlmProvider({
     apiKey: "deepseek-test-key",
-    inferenceTimeoutMs: 10,
+    inferenceTimeoutMs: 1000,
     fetchImpl: async (_url, init) => new Promise((resolve, reject) => {
       init.signal.addEventListener("abort", () => {
         const error = new Error("aborted");
