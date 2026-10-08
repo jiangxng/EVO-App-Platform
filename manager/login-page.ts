@@ -46,7 +46,8 @@ function copy(locale: "en" | "zh-CN") {
         valueThreeTitle: "持续改善",
         valueThreeBody: "用事实发现问题，用结果检验行动，让好的做法不断沉淀下来。",
         coverFooter: "今天的每一步，都在推动企业向目标前进。",
-        demoEyebrow: "全球云通信 · AIoT",
+        demoEyebrow: "全球云通信与AIoT平台",
+        demoTopline: "全球连接 · 云端智能 · 让世界更近",
         demoHeroBody: "以全球连接能力与云端智能，帮助企业打通人与设备、连接全球市场，让业务在世界各地稳定运行。",
         demoMetricOneValue: "50+",
         demoMetricOneLabel: "业务落地国家和地区",
@@ -94,7 +95,8 @@ function copy(locale: "en" | "zh-CN") {
         valueThreeTitle: "Continuous improvement",
         valueThreeBody: "Use facts to find problems and results to test actions, then keep what works.",
         coverFooter: "Every step today moves the enterprise closer to its goals.",
-        demoEyebrow: "Global Cloud Connectivity · AIoT",
+        demoEyebrow: "Global Cloud Connectivity & AIoT",
+        demoTopline: "Global connectivity · Cloud intelligence · Bring the world closer",
         demoHeroBody: "Connect people, devices and global markets through worldwide connectivity and cloud intelligence so business can operate reliably wherever it goes.",
         demoMetricOneValue: "50+",
         demoMetricOneLabel: "markets with live business",
@@ -229,10 +231,16 @@ export function createLoginExperienceHtmlV010(
   const skinHref = "/login?returnTo=" + encodeURIComponent(returnTo)
     + "&locale=" + encodeURIComponent(locale)
     + "&skin=" + encodeURIComponent(switchSkin);
+  const standardHref = "/login?returnTo=" + encodeURIComponent(returnTo)
+    + "&locale=" + encodeURIComponent(locale)
+    + "&skin=standard";
+  const demoHref = "/login?returnTo=" + encodeURIComponent(returnTo)
+    + "&locale=" + encodeURIComponent(locale)
+    + "&skin=demo";
   const skinLabel = skin === "demo" ? text.standardMode : text.demoMode;
   const skinAria = skin === "demo" ? text.switchToStandard : text.switchToDemo;
   const brandMark = skin === "demo"
-    ? `<img class="evo-login-customer-logo" src="https://manuals.plus/wp-content/uploads/2024/12/TUGE-TECHNOLOGIES-Logo.jpg" alt="TUGE TECHNOLOGIES">`
+    ? `<img class="evo-login-customer-logo" src="/login-assets/tuge-logo-reference.webp" alt="途鸽 TUGE GROUP">`
     : `<span class="evo-login-mark" aria-hidden="true">E</span><span>EVO</span>`;
   const heroBody = skin === "demo" ? text.demoHeroBody : text.heroBody;
   const coverFooter = skin === "demo" ? text.demoFooter : text.coverFooter;
@@ -241,10 +249,6 @@ export function createLoginExperienceHtmlV010(
         <div><strong>${text.demoMetricOneValue}</strong><span>${text.demoMetricOneLabel}</span></div>
         <div><strong>${text.demoMetricTwoValue}</strong><span>${text.demoMetricTwoLabel}</span></div>
         <div><strong>${text.demoMetricThreeValue}</strong><span>${text.demoMetricThreeLabel}</span></div>
-      </div>
-      <div class="evo-login-demo-tags" aria-hidden="true">
-        <span>${text.demoTagOne}</span><span>${text.demoTagTwo}</span>
-        <span>${text.demoTagThree}</span><span>${text.demoTagFour}</span>
       </div>`
     : `<div class="evo-login-visual" aria-hidden="true">
         <div><strong>${text.valueOneTitle}</strong><span>${text.valueOneBody}</span></div>
@@ -253,15 +257,28 @@ export function createLoginExperienceHtmlV010(
       </div>`;
   const demoScene = skin === "demo"
     ? `<div class="evo-login-demo-scene" aria-hidden="true">
-        <div class="evo-login-demo-orbit orbit-a"></div>
-        <div class="evo-login-demo-orbit orbit-b"></div>
-        <div class="evo-login-demo-orbit orbit-c"></div>
-        <div class="evo-login-demo-globe">
-          <span class="node node-a"></span><span class="node node-b"></span>
-          <span class="node node-c"></span><span class="node node-d"></span>
-          <span class="node node-e"></span>
+        <img class="evo-login-demo-art" src="/login-assets/tuge-global-connectivity-demo.webp" alt="">
+        <div class="evo-login-demo-art-wash"></div>
+        <div class="evo-login-demo-tags">
+          <span class="tag-a">${text.demoTagOne}</span>
+          <span class="tag-b">${text.demoTagTwo}</span>
+          <span class="tag-c">${text.demoTagThree}</span>
+          <span class="tag-d">${text.demoTagFour}</span>
         </div>
       </div>`
+    : "";
+  const demoTopbar = skin === "demo"
+    ? `<header class="evo-login-demo-topbar">
+        <div class="evo-login-demo-logo">${brandMark}</div>
+        <div class="evo-login-demo-topline">${text.demoTopline}</div>
+        <div class="evo-login-demo-top-actions">
+          <a class="evo-login-demo-language" href="${switchHref}" hreflang="${switchLocale}">◎ ${switchLabel}</a>
+          <nav class="evo-login-demo-skins" aria-label="${skinAria}">
+            <a href="${standardHref}" data-active="${skin === "standard"}">${text.standardMode}版</a>
+            <a href="${demoHref}" data-active="${skin === "demo"}">${text.demoMode}版</a>
+          </nav>
+        </div>
+      </header>`
     : "";
   const methods = options.methods
     .map(method => providerButton(method, returnTo, locale, text))
@@ -330,59 +347,64 @@ a{color:inherit}
 .evo-login-skin-toggle{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--eidos-fg-subtle);text-decoration:none;padding:5px 8px;border:1px solid color-mix(in srgb,var(--eidos-border) 70%,transparent);border-radius:999px;background:transparent}
 .evo-login-skin-toggle:hover{color:var(--eidos-fg-muted);background:var(--eidos-bg-hover)}
 .evo-login-skin-dot{width:6px;height:6px;border-radius:50%;background:var(--eidos-border-strong);box-shadow:0 0 0 2px var(--eidos-bg)}
-.evo-login-customer-logo{display:block;max-width:250px;max-height:72px;width:auto;height:auto;object-fit:contain;object-position:left center;filter:none;mix-blend-mode:normal}
-.evo-login-demo-metrics{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;max-width:650px;margin-top:34px}
-.evo-login-demo-metrics>div{padding:0 24px;border-left:1px solid rgba(20,71,130,.18)}
+.evo-login-customer-logo{display:block;width:auto;height:auto;max-width:252px;max-height:74px;object-fit:contain;object-position:left center;filter:none;transform:none}
+.evo-login-demo-topbar{position:absolute;z-index:10;top:0;left:0;right:0;height:116px;display:grid;grid-template-columns:minmax(290px,1fr) minmax(320px,1fr) minmax(360px,1fr);align-items:center;padding:18px clamp(34px,4vw,72px);pointer-events:none}
+.evo-login-demo-logo,.evo-login-demo-topline,.evo-login-demo-top-actions{pointer-events:auto}
+.evo-login-demo-logo{justify-self:start}
+.evo-login-demo-topline{justify-self:center;color:#6782a7;font-size:12px;letter-spacing:.32em;white-space:nowrap}
+.evo-login-demo-top-actions{justify-self:end;display:flex;align-items:center;gap:14px}
+.evo-login-demo-language{color:#536b8a;font-size:12px;text-decoration:none;padding:7px 4px}
+.evo-login-demo-skins{display:flex;padding:2px;border:1px solid rgba(118,151,191,.22);border-radius:999px;background:rgba(255,255,255,.48);box-shadow:0 8px 24px rgba(63,111,165,.05)}
+.evo-login-demo-skins a{min-width:66px;padding:7px 12px;border-radius:999px;color:#71839b;font-size:11px;text-align:center;text-decoration:none}
+.evo-login-demo-skins a[data-active="true"]{background:rgba(255,255,255,.92);color:#1f6fdf;box-shadow:0 4px 14px rgba(45,112,202,.12)}
+.evo-login-demo-metrics{position:relative;z-index:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:680px;margin-top:32px}
+.evo-login-demo-metrics>div{min-height:58px;padding:0 28px;border-left:1px solid rgba(49,102,162,.18)}
 .evo-login-demo-metrics>div:first-child{padding-left:0;border-left:0}
-.evo-login-demo-metrics strong{display:block;font-size:30px;line-height:1;color:#1769d2}
-.evo-login-demo-metrics span{display:block;margin-top:8px;color:#536b89;font-size:11px;line-height:1.5}
-.evo-login-demo-tags{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:8px;max-width:640px;margin-top:28px}
-.evo-login-demo-tags span{padding:7px 11px;border:1px solid rgba(31,111,235,.18);border-radius:999px;background:rgba(255,255,255,.52);color:#315d91;font-size:11px;backdrop-filter:blur(8px)}
-.evo-login-demo-scene{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.evo-login-demo-globe{position:absolute;width:min(66vw,880px);aspect-ratio:1;left:-9vw;bottom:-48%;border-radius:50%;background:
-  radial-gradient(circle at 62% 30%,rgba(255,255,255,.78) 0 1.5%,transparent 1.8%),
-  radial-gradient(circle at 38% 45%,rgba(255,255,255,.68) 0 1%,transparent 1.3%),
-  radial-gradient(circle at 70% 52%,rgba(255,255,255,.75) 0 1.1%,transparent 1.4%),
-  repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.16) 0 1px,transparent 1px 58px),
-  repeating-conic-gradient(from 0deg,rgba(255,255,255,.15) 0 1deg,transparent 1deg 22deg),
-  radial-gradient(circle at 43% 34%,#79bff5 0 22%,#2c7bd3 44%,#0d4b99 70%,#08376f 100%);
-  box-shadow:0 -24px 90px rgba(67,148,231,.25),inset 0 0 70px rgba(255,255,255,.2)}
-.evo-login-demo-globe:after{content:"";position:absolute;inset:-3%;border-radius:50%;border:1px solid rgba(111,186,255,.7);box-shadow:0 0 22px rgba(67,150,240,.55),0 0 80px rgba(67,150,240,.22)}
-.evo-login-demo-orbit{position:absolute;border:1px solid rgba(56,137,226,.22);border-radius:50%;transform:rotate(-10deg)}
-.evo-login-demo-orbit.orbit-a{width:72%;height:25%;left:2%;bottom:23%}
-.evo-login-demo-orbit.orbit-b{width:61%;height:18%;left:10%;bottom:32%;transform:rotate(8deg)}
-.evo-login-demo-orbit.orbit-c{width:56%;height:15%;left:18%;bottom:18%;transform:rotate(-24deg)}
-.evo-login-demo-globe .node{position:absolute;width:8px;height:8px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#3f9cf4;box-shadow:0 0 0 5px rgba(72,160,242,.12),0 0 18px rgba(72,160,242,.8)}
-.evo-login-demo-globe .node-a{left:48%;top:19%}.evo-login-demo-globe .node-b{left:64%;top:27%}.evo-login-demo-globe .node-c{left:56%;top:41%}.evo-login-demo-globe .node-d{left:76%;top:38%}.evo-login-demo-globe .node-e{left:42%;top:52%}
-.evo-login-shell[data-login-skin="demo"]{grid-template-columns:minmax(0,1.24fr) minmax(430px,.76fr);background:#eef6ff}
-.evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding:clamp(34px,4.6vw,70px);background:
-  radial-gradient(circle at 18% 18%,rgba(255,255,255,.95),transparent 28%),
-  radial-gradient(circle at 70% 12%,rgba(166,213,255,.34),transparent 35%),
-  linear-gradient(145deg,#f8fbff 0%,#e4f1ff 58%,#cfe7ff 100%);color:#0b2240}
+.evo-login-demo-metrics strong{display:block;color:#1269dc;font-size:30px;line-height:1;font-weight:760;letter-spacing:-.02em}
+.evo-login-demo-metrics span{display:block;margin-top:9px;color:#506a8c;font-size:11px;line-height:1.45}
+.evo-login-demo-scene{position:absolute;z-index:1;left:0;right:0;bottom:0;height:58%;overflow:hidden;pointer-events:none}
+.evo-login-demo-art{position:absolute;left:-4%;bottom:-4%;width:108%;height:108%;object-fit:cover;object-position:58% 55%;filter:saturate(.92) brightness(1.06);opacity:.96}
+.evo-login-demo-art-wash{position:absolute;inset:0;background:linear-gradient(180deg,#eaf5ff 0%,rgba(234,245,255,.70) 16%,rgba(234,245,255,.06) 48%,rgba(211,232,252,.08) 100%)}
+.evo-login-demo-tags span{position:absolute;z-index:3;padding:8px 14px;border:1px solid rgba(255,255,255,.62);border-radius:8px;background:linear-gradient(180deg,rgba(79,153,239,.70),rgba(49,119,207,.58));color:#fff;font-size:11px;box-shadow:0 8px 24px rgba(24,90,168,.18);backdrop-filter:blur(10px)}
+.evo-login-demo-tags .tag-a{left:7%;top:47%}.evo-login-demo-tags .tag-b{left:50%;top:35%}.evo-login-demo-tags .tag-c{left:68%;top:57%}.evo-login-demo-tags .tag-d{left:8%;top:76%}
+.evo-login-shell[data-login-skin="demo"]{position:relative;grid-template-columns:minmax(0,1.23fr) minmax(430px,.77fr);min-height:100vh;background:#eaf5ff}
+.evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding:150px clamp(44px,4.4vw,74px) 54px;background:linear-gradient(145deg,#f9fcff 0%,#edf7ff 37%,#dceeff 100%);color:#0a2240}
 .evo-login-shell[data-login-skin="demo"] .evo-login-brand:after{display:none}
-.evo-login-shell[data-login-skin="demo"] .evo-login-wordmark{z-index:3}
-.evo-login-shell[data-login-skin="demo"] .evo-login-hero{z-index:3;max-width:720px;margin:10vh 0 auto}
-.evo-login-shell[data-login-skin="demo"] .evo-login-eyebrow{color:#3a6698;letter-spacing:.08em}
-.evo-login-shell[data-login-skin="demo"] .evo-login-hero h1{max-width:720px;color:#071a36;font-size:clamp(40px,4.5vw,64px)}
-.evo-login-shell[data-login-skin="demo"] .evo-login-hero>p:last-of-type{max-width:650px;color:#516b89;font-size:16px}
-.evo-login-shell[data-login-skin="demo"] .evo-login-brand-footer{z-index:3;color:#4d6887}
-.evo-login-shell[data-login-skin="demo"] .evo-login-main{background:linear-gradient(180deg,#edf6ff 0%,#e6f1ff 100%);padding:clamp(26px,4vw,56px)}
-.evo-login-shell[data-login-skin="demo"] .evo-login-card{width:min(470px,100%);padding:34px 34px 30px;border:1px solid rgba(143,176,215,.34);border-radius:24px;background:rgba(255,255,255,.92);box-shadow:0 24px 70px rgba(60,108,164,.15);backdrop-filter:blur(14px)}
-.evo-login-shell[data-login-skin="demo"] .evo-login-card-header{margin-bottom:34px}
-.evo-login-shell[data-login-skin="demo"] .evo-login-method{border-color:#d5e0ed}
+.evo-login-shell[data-login-skin="demo"] .evo-login-wordmark{display:none}
+.evo-login-shell[data-login-skin="demo"] .evo-login-hero{z-index:4;max-width:760px;margin:0;padding-top:5vh}
+.evo-login-shell[data-login-skin="demo"] .evo-login-eyebrow{margin-bottom:16px;color:#315d92;font-size:13px;letter-spacing:.02em;text-transform:none}
+.evo-login-shell[data-login-skin="demo"] .evo-login-hero h1{max-width:750px;color:#071b39;font-size:clamp(45px,4vw,66px);line-height:1.08;letter-spacing:-.04em}
+.evo-login-shell[data-login-skin="demo"] .evo-login-hero>p:last-of-type{max-width:680px;margin-top:20px;color:#526d8d;font-size:15px;line-height:1.8}
+.evo-login-shell[data-login-skin="demo"] .evo-login-brand-footer{z-index:5;margin-top:auto;color:#365f8b;font-size:12px}
+.evo-login-shell[data-login-skin="demo"] .evo-login-main{padding:136px clamp(38px,4vw,68px) 48px;background:linear-gradient(180deg,#eaf5ff 0%,#e2f0ff 100%);align-items:center}
+.evo-login-shell[data-login-skin="demo"] .evo-login-card{width:min(500px,100%);padding:42px 40px 34px;border:1px solid rgba(126,159,198,.30);border-radius:24px;background:rgba(255,255,255,.95);box-shadow:0 26px 70px rgba(42,91,148,.14);backdrop-filter:blur(16px)}
+.evo-login-shell[data-login-skin="demo"] .evo-login-card-header{display:none}
+.evo-login-shell[data-login-skin="demo"] .evo-login-card h2{font-size:31px;color:#132842}
+.evo-login-shell[data-login-skin="demo"] .evo-login-lead{margin-bottom:30px}
+.evo-login-shell[data-login-skin="demo"] .evo-login-methods{gap:10px}
+.evo-login-shell[data-login-skin="demo"] .evo-login-method{min-height:58px;border-color:#d5e1ee;border-radius:10px;background:#fff}
+.evo-login-shell[data-login-skin="demo"] .evo-login-method[data-status="PLANNED"],.evo-login-shell[data-login-skin="demo"] .evo-login-method[data-status="ADMIN_CONFIGURATION_REQUIRED"]{background:#f8fbfe}
 .evo-login-shell[data-login-skin="demo"] .evo-login-method[href]:hover{border-color:#2475dd;box-shadow:0 0 0 3px rgba(36,117,221,.08)}
-.evo-login-shell[data-login-skin="demo"] .evo-login-skin-dot{background:#2d7fe1}
+.evo-login-shell[data-login-skin="demo"] .evo-login-registration{margin-top:24px}
+.evo-login-shell[data-login-skin="demo"] .evo-login-trust{margin-top:28px}
 @media(max-width:900px){
   .evo-login-shell{grid-template-columns:1fr}
   .evo-login-brand{min-height:auto;padding:24px 24px 28px}
   .evo-login-hero{margin:44px 0 0}
   .evo-login-hero h1{font-size:34px}
   .evo-login-hero>p:last-of-type{font-size:14px}
-  .evo-login-visual,.evo-login-demo-metrics,.evo-login-demo-tags,.evo-login-brand-footer{display:none}
-  .evo-login-demo-scene{opacity:.62}
-  .evo-login-customer-logo{max-width:210px;max-height:58px}
-  .evo-login-shell[data-login-skin="demo"] .evo-login-hero{margin:44px 0 0}
+  .evo-login-visual,.evo-login-demo-metrics,.evo-login-brand-footer{display:none}
+  .evo-login-demo-topbar{height:84px;grid-template-columns:1fr auto;padding:14px 22px}
+  .evo-login-demo-topline{display:none}
+  .evo-login-customer-logo{max-width:190px;max-height:54px}
+  .evo-login-demo-top-actions{gap:7px}
+  .evo-login-demo-language{display:none}
+  .evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding:104px 24px 32px;min-height:460px}
+  .evo-login-shell[data-login-skin="demo"] .evo-login-hero{margin:0;padding-top:18px}
+  .evo-login-shell[data-login-skin="demo"] .evo-login-demo-scene{height:48%;opacity:.82}
+  .evo-login-demo-tags{display:none}
   .evo-login-main{padding:30px 24px 46px;align-items:flex-start}
+  .evo-login-shell[data-login-skin="demo"] .evo-login-main{padding-top:28px}
   .evo-login-shell[data-login-skin="demo"] .evo-login-card{padding:28px 24px}
   .evo-login-card-header{margin-bottom:28px}
 }
@@ -400,6 +422,7 @@ a{color:inherit}
 </head>
 <body>
 <main class="evo-login-shell" data-login-skin="${skin}">
+  ${demoTopbar}
   <section class="evo-login-brand" aria-labelledby="evo-login-hero-title">
     <div class="evo-login-wordmark">${brandMark}</div>
     <div class="evo-login-hero">
