@@ -1,9 +1,9 @@
 # EVO Foundation Object Program Roadmap v0.1
 
 **Status:** ACTIVE SHORT-TERM MAINLINE  
-**Date:** 2026-10-07  
+**Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-03 Counterparty Enterprise Extension + Import-first vertical proof  
+**Current entry gate:** CP-05 Counterparty Facets / Profiles / related resources  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -243,20 +243,11 @@ Current implementation evidence:
 - Whole-batch rollback on commit failure: PASS.
 - 10k stage/dry-run: PASS.
 - XLSX source adapter: **PASS — merged/CI/production through PR #439.**
-- Eidos Human import mapping/review/dry-run/error experience: **PASS — merged/CI/production through PR #439; Human production validation pending.**
+- Eidos Human import mapping/review/dry-run/error experience: **PASS — merged/CI/production through PR #439; Human production validation PASS on 2026-10-07.**
 
-Current Human gate:
+Human gate: **CLOSED_HUMAN_PASS on 2026-10-07.**
 
-- Open Data Import in production.
-- Choose Counterparty.
-- Upload a representative XLSX or CSV.
-- Confirm automatic field mapping is understandable and adjust at least one mapping if useful.
-- Run dry-run and inspect summary/errors.
-- Commit only after an explicit confirmation.
-- Confirm imported Counterparty/roles/extensions appear as expected.
-- Confirm error CSV download is understandable when validation errors exist.
-
-Exit after Human production pass: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
+Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ## 9. AD-01 — Semantic classifier
 
@@ -285,7 +276,7 @@ Exit requires a fixed known-answer test set and structured Human corrections.
 
 ## 10. CP-04 — Responsibility + Projections + data scope
 
-**Current state:** MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING (PR #458). CP-03 Human import validation is CLOSED_HUMAN_PASS. CP-04 is merged, deployed to production and awaiting Human validation.
+**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08.
 
 Create shared Responsibility capability.
 
@@ -310,6 +301,8 @@ Acceptance:
 - projections do not duplicate identities;
 - list/search remains responsive at 10k demo records.
 
+Product-direction note: `docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md`. Customer/Supplier role lists are governed operational views and future analytics entry points; raw master-data counts are not treated as primary management outcomes.
+
 ## 11. AD-02 — EnterpriseAdaptationPlan preview
 
 Once extensions/import/projections are deterministic, add machine-readable EnterpriseAdaptationPlan Draft.
@@ -321,6 +314,8 @@ No activation from free-form chat.
 Exit: Human can approve/reject semantic changes without reading a source-code diff.
 
 ## 12. CP-05 — Facets / Profiles / related resources
+
+**Current state:** ACTIVE after CP-04 Human closure on 2026-10-08.
 
 Add only business-proven concepts.
 
