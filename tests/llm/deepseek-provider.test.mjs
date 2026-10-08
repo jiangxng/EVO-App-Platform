@@ -149,6 +149,28 @@ test("DeepSeek Responses Provider maps EVO inference and tool calls without prov
   });
 });
 
+test("DeepSeek inference times out before the browser request boundary", async () => {
+  const provider = createDeepSeekResponsesLlmProvider({
+    apiKey: "deepseek-test-key",
+    inferenceTimeoutMs: 1000,
+    fetchImpl: async (_url, init) => new Promise((resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        const error = new Error("aborted");
+        error.name = "AbortError";
+        reject(error);
+      }, { once: true });
+    })
+  });
+
+  await assert.rejects(
+    () => provider.infer({
+      contractVersion: "0.1.0",
+      messages: [{ role: "user", content: "slow request" }]
+    }),
+    /DEEPSEEK_PROVIDER_INFERENCE_TIMEOUT/
+  );
+});
+
 test("DeepSeek Responses Provider maps output text to generic LLM response", async () => {
   const provider = createDeepSeekResponsesLlmProvider({
     apiKey: "deepseek-test-key",
