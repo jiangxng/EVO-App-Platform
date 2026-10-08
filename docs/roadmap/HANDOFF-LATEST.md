@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-ec-human-validation-ready-personal-agent-idempotent-2026-10-08`  
-**Snapshot time:** `2026-10-08T11:00:00+08:00`  
+**Snapshot:** `cp03d-ai-native-agent-state-context-constitution-2026-10-08`  
+**Snapshot time:** `2026-10-08T11:25:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -63,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `df6e5521e381da3051957a330088ca2c7d4a6699`
-- Deployment: `bdc41631-c093-41fe-a557-ab5e08706953`
+- Commit: `e4a9610d749b08c4cf84c4fc5dd1c1b38fff68df`
+- Deployment: `87856d27-70b8-449a-9465-cbc45c872313`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +95,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #471 — MERGED_CI_PRODUCTION_PASS: Personal Agent refresh now shows an explicit conversation-loading state while durable thread history is restored instead of presenting a misleading empty conversation.
+- PR #469 — MERGED_CI_PRODUCTION_PASS: Contextual Agent actions such as Data Import AI auto-match stage the Human-visible turn immediately and serialize transport behind initial durable thread recovery.
 - PR #467 — MERGED_CI_PRODUCTION_PASS: Personal Agent chat turns are idempotent: duplicate submits are suppressed, durable thread.send reuses the original run by clientTurnId, concurrent resume is single-flight, and DeepSeek/request timing is bounded below the browser timeout.
 - PR #465 — MERGED_CI_PRODUCTION_SUPERSEDED_BY_467: Initial Personal Agent browser-timeout mitigation; superseded by PR #467 turn idempotency and single-flight resume hardening.
 - PR #463 — MERGED_CI_PRODUCTION_PASS: Make Experience Compiler the Data Import learning authority; record App Platform production deployment and EC deployment boundary.
@@ -501,6 +503,10 @@ Not proved:
 - Do not close CP-03D until production proves Human correction -> EC experience -> different-structure semantic reuse end to end.
 - Do not diagnose repeated Personal Agent replies as four independent tasks when they share one user turn; turn-level idempotency and single-flight resume are now required behavior.
 - Do not reintroduce AGENT_RUN_RESUME_CONFLICT as a user-facing normal recovery path; concurrent resume must join the in-flight durable slice.
+- Do not equate AI-native with JSONL, JSON-first storage, vector databases, or sending all available context to the model.
+- Do not use Conversation history as a substitute for durable Working State, Personal Context Memory or Experience Compiler learning.
+- Do not overwrite or discard raw Conversation solely because a model context window is full; compression must be derived, versioned, traceable and regenerable subject to retention policy.
+- Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -737,7 +743,13 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state App Platform PR #462 / commit be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1 as merged, all CI-passed and production-deployed at Railway fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee
 - state the first hard EC learning proof as 编码 -> Counterparty.code learned from a Human-confirmed successful import and reused in a different overall table structure
 - state EC as optional/advisory: its absence or timeout must not make Data Import unavailable
-- state CP-03D Human production proof as blocked only by Railway refusing a new independent EC service at the current resource-plan limit
+- state CP-03D Human production proof as ready: independent Experience Compiler and App Platform EC wiring are both production-deployed; remaining gate is Human end-to-end validation
+- state docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md as the active project constitution for Personal Agent state, long-context management, Context Assembly, Memory, EC learning integration and storage decisions
+- state AI-native as explicit governed durable model-independent state/context architecture rather than JSONL-first storage
+- state Conversation, Working State, Personal Context Memory and EC learning as distinct semantic layers that must not be collapsed
+- state raw conversation as source evidence and summaries/checkpoints as derived versioned regenerable artifacts
+- state current file-backed Conversation JSONL as transitional compatibility debt with PostgreSQL as the target authority, while JSONL remains valid for logs/export/migration/evaluation
+- state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence
 
 No previous ChatGPT transcript is required.
 

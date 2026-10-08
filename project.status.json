@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03d-ec-human-validation-ready-personal-agent-idempotent-2026-10-08",
-    "snapshotAt": "2026-10-08T11:00:00+08:00",
+    "snapshotId": "cp03d-ai-native-agent-state-context-constitution-2026-10-08",
+    "snapshotAt": "2026-10-08T11:25:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1889,13 +1889,23 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "df6e5521e381da3051957a330088ca2c7d4a6699",
-        "deploymentId": "bdc41631-c093-41fe-a557-ab5e08706953",
+        "commit": "e4a9610d749b08c4cf84c4fc5dd1c1b38fff68df",
+        "deploymentId": "87856d27-70b8-449a-9465-cbc45c872313",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
     },
     "recentMainline": [
+      {
+        "pr": 471,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Personal Agent refresh now shows an explicit conversation-loading state while durable thread history is restored instead of presenting a misleading empty conversation."
+      },
+      {
+        "pr": 469,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Contextual Agent actions such as Data Import AI auto-match stage the Human-visible turn immediately and serialize transport behind initial durable thread recovery."
+      },
       {
         "pr": 467,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -2916,7 +2926,11 @@
       "Do not use core-schema label matches such as 国家或地区 -> countryOrRegion as evidence that EC learned semantics.",
       "Do not close CP-03D until production proves Human correction -> EC experience -> different-structure semantic reuse end to end.",
       "Do not diagnose repeated Personal Agent replies as four independent tasks when they share one user turn; turn-level idempotency and single-flight resume are now required behavior.",
-      "Do not reintroduce AGENT_RUN_RESUME_CONFLICT as a user-facing normal recovery path; concurrent resume must join the in-flight durable slice."
+      "Do not reintroduce AGENT_RUN_RESUME_CONFLICT as a user-facing normal recovery path; concurrent resume must join the in-flight durable slice.",
+      "Do not equate AI-native with JSONL, JSON-first storage, vector databases, or sending all available context to the model.",
+      "Do not use Conversation history as a substitute for durable Working State, Personal Context Memory or Experience Compiler learning.",
+      "Do not overwrite or discard raw Conversation solely because a model context window is full; compression must be derived, versioned, traceable and regenerable subject to retention policy.",
+      "Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -3136,7 +3150,13 @@
       "state App Platform PR #462 / commit be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1 as merged, all CI-passed and production-deployed at Railway fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee",
       "state the first hard EC learning proof as 编码 -> Counterparty.code learned from a Human-confirmed successful import and reused in a different overall table structure",
       "state EC as optional/advisory: its absence or timeout must not make Data Import unavailable",
-      "state CP-03D Human production proof as blocked only by Railway refusing a new independent EC service at the current resource-plan limit"
+      "state CP-03D Human production proof as ready: independent Experience Compiler and App Platform EC wiring are both production-deployed; remaining gate is Human end-to-end validation",
+      "state docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md as the active project constitution for Personal Agent state, long-context management, Context Assembly, Memory, EC learning integration and storage decisions",
+      "state AI-native as explicit governed durable model-independent state/context architecture rather than JSONL-first storage",
+      "state Conversation, Working State, Personal Context Memory and EC learning as distinct semantic layers that must not be collapsed",
+      "state raw conversation as source evidence and summaries/checkpoints as derived versioned regenerable artifacts",
+      "state current file-backed Conversation JSONL as transitional compatibility debt with PostgreSQL as the target authority, while JSONL remains valid for logs/export/migration/evaluation",
+      "state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4735,6 +4755,25 @@
         "enterprise extensions can target declared Profile slots",
         "object page composes facets progressively through Eidos"
       ]
+    }
+  },
+  "architectureConstitutions": {
+    "aiNativeAgentStateContext": {
+      "status": "ACTIVE_PROJECT_CONSTITUTION",
+      "effectiveAt": "2026-10-08",
+      "authority": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+      "principles": [
+        "AI-native means explicit governed durable model-independent state and context assembly; it does not imply JSONL-first storage.",
+        "Conversation, Working State, Context Assembly, Personal Context Memory, enterprise/runtime evidence and EC learning remain distinct layers.",
+        "Raw conversation/source evidence is preserved subject to retention; summaries/checkpoints are derived, versioned, traceable and regenerable.",
+        "Model requests receive minimum sufficient authorized context rather than all available history/memory/knowledge.",
+        "Durable queryable Personal Agent product state should converge on mature PostgreSQL-backed storage; JSONL remains for logs/export/migration/evaluation.",
+        "LLM Providers are replaceable reasoning engines and do not own durable state, memory, learning or business truth.",
+        "Agent capabilities must progressively include durable conversation, long-context compression, durable Working State/Runs, idempotency, Context Assembly, governed Personal Memory, retrieval, tool discovery, verification, provenance, failure recovery and EC learning evidence."
+      ],
+      "currentConversationJsonl": "TRANSITIONAL_COMPATIBILITY_DEBT",
+      "targetConversationAuthority": "POSTGRESQL",
+      "executionMode": "INCREMENTAL_LONG_TERM_PROGRAM_NON_BLOCKING_TO_CURRENT_CP03D_UNLESS_REQUIRED_BY_ACTIVE_WORK"
     }
   }
 }
