@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-agent-foundation-debt-route-2026-10-08`  
-**Snapshot time:** `2026-10-08T11:45:00+08:00`  
+**Snapshot:** `cp03d-precheck-reuse-human-pass-2026-10-08`  
+**Snapshot time:** `2026-10-08T15:53:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**counterparty-responsibility-projections-v0-4: CLOSED_HUMAN_PASS**
+**counterparty-data-import-precheck-reuse-v0-3d-1: CLOSED_HUMAN_PASS**
 
-CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Basic list/projection presentation is accepted. The long-term BI idea is documented separately and is not near-term scope.
+CP-03D same-structure mapping reuse is Human-validated in production. A Human can save/confirm field mapping, reach successful precheck without importing business data, and a later same-structure upload automatically reuses that mapping. Historical precheck-only mappings created before Recipe persistence are also reusable when current target/purpose/schema compatibility still holds. This closes the same-structure Recipe sub-slice only; full CP-03D remains open for cross-structure Experience Compiler learning/recommendation validation.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,35 +26,37 @@ Evidence:
 
 ```json
 {
-  "implementationPr": 458,
-  "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+  "futureValidatedMappingPr": 475,
+  "futureValidatedMappingMergeCommit": "eb6f55905a1758d2344f060b2d535b8b2c1b02c1",
+  "historicalPrecheckCompatibilityPr": 476,
+  "historicalPrecheckCompatibilityMergeCommit": "0bd314025ba24aa0e040f33c1608479bcdced135",
   "platformCI": "PASS",
-  "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+  "projectContinuityCI": "PASS",
+  "railwayDeploymentId": "a5876f2b-5d70-4e42-a96a-4b17d292f909",
   "railwayDeploymentStatus": "SUCCESS",
   "humanValidationAt": "2026-10-08",
   "humanValidation": "PASS",
-  "longTermBiReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
+  "validatedScenario": "save mapping -> precheck pass -> no business import -> same-structure upload reuses mapping",
+  "cp03dOverallClosed": false
 }
 ```
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_PRODUCTION_VALIDATION_READY**
+**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_CROSS_STRUCTURE_EC_VALIDATION_REQUIRED**
 
-CP-03D EC-backed import learning is fully deployed. Experience Compiler and App Platform are both production-healthy, App Platform is wired to EC over Railway private networking, and the remaining gate is Human end-to-end proof of first correction -> EC experience -> different-structure semantic reuse.
+CP-03D same-structure Recipe reuse has passed Human production validation, including the precheck-only path and historical compatibility. The remaining CP-03D gate is the Experience Compiler learning loop: a successful committed Human-confirmed mapping must become scoped EC experience and a later differently structured file must receive the learned semantic recommendation for Human review.
 
 Acceptance:
 
-- A first import can be Human-corrected, dry-run validated and committed through the ordinary deterministic Data Import path.
-- Only a Human-confirmed mapping from a successful committed import is eligible to become persistent mapping experience in Experience Compiler.
-- Experience Compiler persists tenant-scoped, target-object-scoped mapping experience with provenance back to the successful EVO import job; one enterprise experience does not become global truth.
-- A later file with a different overall table structure can reuse prior semantic experience such as 编码 -> Counterparty.code even when the whole-file Import Recipe fingerprint does not match.
-- EC recommendations remain advisory, expose confidence/evidence for Human review, and never directly commit or mutate Counterparty operational truth.
-- Equal conflicting learned evidence fails closed instead of silently choosing a mapping.
-- Same-structure confirmed Import Recipe reuse remains the cheaper deterministic fast path and avoids unnecessary EC/LLM work.
-- If EC is absent, unavailable or times out, Data Import falls back to existing deterministic mapping and Human review without becoming unavailable.
-- Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.
-- Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end.
+- A first representative import is Human-corrected, dry-run validated and successfully committed through the ordinary deterministic Data Import path.
+- The successful Human-confirmed mapping is visibly recorded as scoped Experience Compiler experience with provenance.
+- A later file with a different overall table structure receives the previously learned semantic recommendation, such as 编码 -> Counterparty.code, without relying on whole-file Recipe fingerprint reuse.
+- The EC recommendation exposes confidence/evidence, remains Human-correctable, and never commits operational truth directly.
+- Equal conflicting learned evidence fails closed rather than silently selecting a mapping.
+- EC unavailable or timed out leaves Data Import usable through deterministic mapping and Human review.
+- Unmapped/source evidence remains recoverable and import function/history experiences remain separated.
+- Human production validation confirms the full first successful commit -> EC learning -> different-structure recommendation -> Human confirmation loop.
 
 ## Current production preview
 
@@ -63,8 +65,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `1d11626530098525b747f92aa5bac3b885601091`
-- Deployment: `53c2c1cc-023b-481c-b7f7-e36e09129584`
+- Commit: `0bd314025ba24aa0e040f33c1608479bcdced135`
+- Deployment: `a5876f2b-5d70-4e42-a96a-4b17d292f909`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +97,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.
+- PR #475 — MERGED_CI_PRODUCTION_PASS: Human-confirmed mappings become reusable after successful precheck without requiring business-data commit; later successful commit only adds stronger outcome evidence.
+- PR #474 — MERGED_CI_PRODUCTION_PASS: Added compatibility reuse for Human-confirmed successful imports created before persistent Import Recipes.
 - PR #472 — MERGED_CI_PRODUCTION_PASS: Adopted the AI-Native Agent State & Context Constitution as project authority: AI-native is governed durable model-independent state/context architecture, not JSONL-first storage.
 - PR #471 — MERGED_CI_PRODUCTION_PASS: Personal Agent refresh now shows an explicit conversation-loading state while durable thread history is restored instead of presenting a misleading empty conversation.
 - PR #469 — MERGED_CI_PRODUCTION_PASS: Contextual Agent actions such as Data Import AI auto-match stage the Human-visible turn immediately and serialize transport behind initial durable thread recovery.
