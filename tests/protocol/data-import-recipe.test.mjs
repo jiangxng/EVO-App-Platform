@@ -178,6 +178,61 @@ test("Human-confirmed successful precheck becomes reusable before commit and com
   assert.equal(successfulRecipe.confirmedAt, "2026-10-07T08:02:00.000Z");
 });
 
+test("CP-03D reuses historical Human-confirmed prechecks created before Recipe persistence", () => {
+  const {
+    target,
+    repository,
+    recipes
+  } = fixture();
+  const legacyService = createDataImportServiceV010({
+    repository,
+    targets: [target]
+  });
+  const inputSource = source("legacy-precheck-before-recipes.xlsx");
+  const schema = target.describe({
+    contextId: "enterprise-context:a",
+    parameters: { relationshipMode: "SUPPLIER" }
+  });
+
+  legacyService.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "legacy-precheck-only",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: inputSource,
+    mapping,
+    mappingOrigin: "HUMAN",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T06:00:00.000Z"
+  });
+  const ready = legacyService.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "legacy-precheck-only",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T06:01:00.000Z"
+  });
+  assert.equal(ready.state, "DRY_RUN_READY");
+  assert.equal(ready.appliedRecipeId, undefined);
+  assert.equal(recipes.list("enterprise-context:a").length, 0);
+
+  const upgradedService = createDataImportServiceV010({
+    repository,
+    recipeRepository: recipes,
+    targets: [target]
+  });
+  const initial = upgradedService.resolveInitialMapping({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("same-structure-after-upgrade.xlsx"),
+    schema
+  });
+
+  assert.equal(initial.origin, "RECIPE");
+  assert.equal(initial.recipeId, undefined);
+  assert.deepEqual(initial.mapping, mapping);
+});
+
 test("CP-03D reuses Human-confirmed successful imports created before Recipe persistence", () => {
   const {
     target,
