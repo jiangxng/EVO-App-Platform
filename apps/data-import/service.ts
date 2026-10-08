@@ -16,6 +16,7 @@ import type {
   DataImportRepositoryV010
 } from "./repository.js";
 import {
+  dataImportSourceFingerprintV010,
   dataImportTargetSchemaDigestV010,
   type DataImportRecipeRepositoryV010
 } from "./recipe.js";
@@ -292,23 +293,15 @@ export function createDataImportServiceV010(input: {
     },
 
     resolveInitialMapping(mappingInput) {
-      const recipe = input.recipeRepository?.findBySource({
-        contextId: mappingInput.contextId,
-        targetId: mappingInput.targetId,
-        targetParameters: mappingInput.targetParameters,
-        source: mappingInput.source
-      });
-      if (
-        recipe
-        && recipe.targetSchemaDigest
-          === dataImportTargetSchemaDigestV010(mappingInput.schema)
-      ) {
-        const importable = new Set(
-          fieldsForSurfaceV010(mappingInput.schema, "IMPORT")
-            .filter(field => field.writable)
-            .map(field => field.fieldId)
-        );
-        if (recipe.mapping.every(item =>
+      const targetSchemaDigest =
+        dataImportTargetSchemaDigestV010(mappingInput.schema);
+      const importable = new Set(
+        fieldsForSurfaceV010(mappingInput.schema, "IMPORT")
+          .filter(field => field.writable)
+          .map(field => field.fieldId)
+      );
+      const mappingIsReusable = (mapping: DataImportMappingV010[]) =>
+        mapping.every(item =>
           (
             item.transform?.kind === "CONSTANT"
             || (
@@ -317,14 +310,60 @@ export function createDataImportServiceV010(input: {
             )
           )
           && importable.has(item.targetFieldId)
-        )) {
-          return {
-            mapping: structuredClone(recipe.mapping),
-            origin: "RECIPE" as const,
-            recipeId: recipe.recipeId
-          };
-        }
+        );
+
+      const recipe = input.recipeRepository?.findBySource({
+        contextId: mappingInput.contextId,
+        targetId: mappingInput.targetId,
+        targetParameters: mappingInput.targetParameters,
+        source: mappingInput.source
+      });
+      if (
+        recipe
+        && recipe.targetSchemaDigest === targetSchemaDigest
+        && mappingIsReusable(recipe.mapping)
+      ) {
+        return {
+          mapping: structuredClone(recipe.mapping),
+          origin: "RECIPE" as const,
+          recipeId: recipe.recipeId
+        };
       }
+
+      // Compatibility path for successful Human-confirmed imports that predate
+      // persistent Import Recipes. Repository history is durable evidence; if
+      // the target, purpose, source structure and schema still match exactly,
+      // reuse that confirmed mapping. The next successful commit will persist
+      // it as a normal Recipe through recordSuccessful().
+      const sourceFingerprint = dataImportSourceFingerprintV010({
+        targetId: mappingInput.targetId,
+        targetParameters: mappingInput.targetParameters,
+        source: mappingInput.source
+      });
+      const historical = input.repository
+        .list(mappingInput.contextId)
+        .find(job =>
+          job.state === "COMMITTED"
+          && job.mappingOrigin === "HUMAN"
+          && job.targetId === mappingInput.targetId
+          && job.dryRun?.schemaDigest === targetSchemaDigest
+          && dataImportSourceFingerprintV010({
+            targetId: job.targetId,
+            targetParameters: job.targetParameters,
+            source: job.source
+          }) === sourceFingerprint
+          && mappingIsReusable(job.mapping)
+        );
+      if (historical) {
+        return {
+          mapping: structuredClone(historical.mapping),
+          origin: "RECIPE" as const,
+          ...(historical.appliedRecipeId
+            ? { recipeId: historical.appliedRecipeId }
+            : {})
+        };
+      }
+
       return {
         mapping: suggestDataImportMappingV010({
           schema: mappingInput.schema,

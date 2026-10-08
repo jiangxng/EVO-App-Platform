@@ -170,6 +170,67 @@ test("only a confirmed committed import becomes an auto-reusable enterprise Impo
   assert.deepEqual(initial.mapping, mapping);
 });
 
+test("CP-03D reuses Human-confirmed successful imports created before Recipe persistence", () => {
+  const {
+    target,
+    repository,
+    recipes
+  } = fixture();
+  const legacyService = createDataImportServiceV010({
+    repository,
+    targets: [target]
+  });
+  const inputSource = source("legacy-confirmed-before-recipes.xlsx");
+  const schema = target.describe({
+    contextId: "enterprise-context:a",
+    parameters: { relationshipMode: "SUPPLIER" }
+  });
+
+  legacyService.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "legacy-confirmed-import",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: inputSource,
+    mapping,
+    mappingOrigin: "HUMAN",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T07:00:00.000Z"
+  });
+  legacyService.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "legacy-confirmed-import",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T07:01:00.000Z"
+  });
+  const legacyCommitted = legacyService.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "legacy-confirmed-import",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-07T07:02:00.000Z"
+  });
+  assert.equal(legacyCommitted.state, "COMMITTED");
+  assert.equal(legacyCommitted.appliedRecipeId, undefined);
+  assert.equal(recipes.list("enterprise-context:a").length, 0);
+
+  const upgradedService = createDataImportServiceV010({
+    repository,
+    recipeRepository: recipes,
+    targets: [target]
+  });
+  const initial = upgradedService.resolveInitialMapping({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("same-structure-after-upgrade.xlsx"),
+    schema
+  });
+
+  assert.equal(initial.origin, "RECIPE");
+  assert.equal(initial.recipeId, undefined);
+  assert.deepEqual(initial.mapping, mapping);
+});
+
 test("CP-03D schema drift does not silently reuse a stale Import Recipe", () => {
   const { target, service } = fixture();
   const inputSource = source("supplier-schema-first.xlsx");
