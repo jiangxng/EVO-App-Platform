@@ -5362,6 +5362,8 @@ const server = createServer(async (request, response) => {
       && (
         url.pathname === "/login-assets/tuge-logo-reference.webp"
         || url.pathname === "/login-assets/tuge-global-connectivity-demo.webp"
+        || url.pathname === "/login-assets/tuge-logo-final.png"
+        || url.pathname === "/login-assets/tuge-login-background-final.jpg"
       )
     ) {
       const assetName = url.pathname.split("/").at(-1);
@@ -5377,7 +5379,14 @@ const server = createServer(async (request, response) => {
           .digest("base64url") + "\"";
         response.setHeader("etag", etag);
         response.setHeader("cache-control", "public, max-age=3600");
-        response.setHeader("content-type", "image/webp");
+        response.setHeader(
+          "content-type",
+          assetName.endsWith(".png")
+            ? "image/png"
+            : assetName.endsWith(".jpg") || assetName.endsWith(".jpeg")
+              ? "image/jpeg"
+              : "image/webp"
+        );
         if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
           transportTraffic.recordNotModified();
           response.statusCode = 304;
