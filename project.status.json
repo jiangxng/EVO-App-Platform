@@ -1816,7 +1816,7 @@
       "lastClosedLiveSlice": {
         "id": "counterparty-responsibility-projections-v0-4",
         "status": "CLOSED_HUMAN_PASS",
-        "summary": "CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience and explicitly reframed these lists as governed operational/analytics entry points rather than management KPIs by themselves.",
+        "summary": "CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience. A separate long-term BI reference records that these lists may later serve as optional analysis entry points; this does not create near-term Foundation Object scope.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "evidence": {
           "implementationPr": 458,
@@ -4576,7 +4576,7 @@
       "railwayDeploymentStatus": "SUCCESS",
       "humanValidationAt": "2026-10-08",
       "productDirectionReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md",
-      "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. These views are governed operational and future analytics entry points; raw Customer/Supplier counts are not treated as primary management outcomes."
+      "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
     },
     "cp05": {
       "status": "ACTIVE",
@@ -4592,8 +4592,7 @@
         "Supplier-only data is absent when SUPPLIER role does not apply",
         "enterprise extensions can target declared Profile slots",
         "object page composes facets progressively through Eidos"
-      ],
-      "analyticsDirectionReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
+      ]
     }
   }
 }
