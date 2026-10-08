@@ -56,19 +56,6 @@ Acceptance:
 - Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.
 - Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end.
 
-## Queued execution route
-
-Authority: `docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md`
-
-Status: `QUEUED_BEHIND_CP03D`
-
-- CP-03D Human production validation
-- AF-01 Conversation PostgreSQL Authority
-- AF-02 Long-context v0.1
-- CP-05 Facets / Profiles / related resources
-
-Rule: Do not start AF-01 as the mainline until CP-03D closes. After AF-02 passes, resume CP-05.
-
 ## Current production preview
 
 - Platform: RAILWAY
