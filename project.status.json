@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "CP-03D Data Import learning + reuse closure",
+  "currentMilestone": "AF-01 Conversation PostgreSQL Authority",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03d-cross-structure-backend-proof-2026-10-08",
-    "snapshotAt": "2026-10-08T16:18:00+08:00",
+    "snapshotId": "af01-conversation-postgres-authority-active-2026-10-08",
+    "snapshotAt": "2026-10-08T18:05:00+09:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1811,124 +1811,65 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "CP-03D Data Import learning + reuse closure",
+      "milestone": "AF-01 Conversation PostgreSQL Authority",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "counterparty-data-import-cross-structure-ec-backend-v0-3d-2",
-        "status": "CLOSED_PRODUCTION_PROOF",
-        "summary": "CP-03D cross-structure EC backend loop is production-proved with an isolated proof tenant and in-memory operational data. A Human-origin first import was dry-run validated and committed, three mappings were recorded by the real production Experience Compiler, and a differently structured second file received those mappings from EC with provenance/confidence while whole-file Recipe reuse was explicitly absent. The remaining CP-03D gate is Human UX confirmation of the recommendation presentation and correction/confirmation experience.",
+        "id": "counterparty-data-import-learning-reuse-v0-3d",
+        "status": "CLOSED_HUMAN_PASS",
+        "summary": "CP-03/CP-03D is closed at the intended Data Import foundation boundary. Human validation passed same-structure saved-mapping reuse without requiring business-data commit; the real production Experience Compiler learning loop was independently proved across a differently structured second file with Recipe reuse absent, confidence/provenance present and advisory-only semantics. The Human explicitly accepted that recommendation-presentation styling is not a meaningful remaining gate at this stage. Rich Counterparty business modeling and destination coverage for Contact, Address, CustomerProfile, SupplierProfile and other domain fields remain intentional CP-05 through CP-07 work and do not reopen CP-03.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "evidence": {
-          "appPlatformProofPr": 478,
-          "appPlatformProofMergeCommit": "28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67",
-          "firstProofDeploymentId": "c4743f72-6b0a-40a6-9bf6-6df3321e8692",
-          "firstProofResult": "FAILED_EXPECTED_GATE",
-          "discoveredProductionDefect": "Experience Compiler SQLite connection thread-affinity caused HTTP 500 on mapping experience/recommendation endpoints",
-          "experienceCompilerFixPr": 8,
-          "experienceCompilerFixMergeCommit": "2ce89420643a9f08e60301fa6d9424705ef70c1e",
-          "experienceCompilerCI": "PASS",
-          "experienceCompilerDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
-          "experienceCompilerDeploymentStatus": "SUCCESS",
-          "proofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
-          "proofDeploymentStatus": "SUCCESS",
-          "proofResult": "PASS",
-          "firstStructureHeaders": [
-            "旧客户名称",
-            "旧客户编码",
-            "旧主体分类",
-            "来源备注"
+          "humanScopeDecisionAt": "2026-10-08",
+          "humanScopeDecision": "PASS_CLOSE_CP03_CP03D",
+          "sameStructureHumanValidation": "PASS",
+          "sameStructurePrs": [
+            475,
+            476,
+            477
           ],
-          "secondStructureHeaders": [
-            "联系电话",
-            "旧客户编码",
-            "开户银行",
-            "旧客户名称",
-            "旧主体分类"
-          ],
-          "wholeFileRecipeReused": false,
-          "learnedMappings": 3,
+          "crossStructureBackendProductionProof": "PASS",
+          "crossStructureProofPr": 478,
+          "crossStructureProofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
+          "experienceCompilerProductionFixPr": 8,
+          "experienceCompilerProductionFixDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
+          "wholeFileRecipeReusedInCrossStructureProof": false,
+          "learnedMappingCount": 3,
           "recommendationConfidence": 0.9,
-          "recommendationSupportCount": 1,
-          "recommendationConflictCount": 0,
           "recommendationProvenancePresent": true,
-          "advisoryOnly": true,
-          "humanReviewRequired": true,
-          "operationalBusinessDataPersisted": false
+          "recommendationAdvisoryOnly": true,
+          "deferredToCp05Cp07": [
+            "Contact and Address child-resource modeling",
+            "CustomerProfile and SupplierProfile semantics",
+            "richer business-field destination coverage",
+            "Counterparty full maturity and representative business-data completeness"
+          ]
         }
       },
       "openGate": {
-        "id": "counterparty-data-import-learning-reuse-closure-v0-3d",
-        "status": "HUMAN_UX_CONFIRMATION_REQUIRED",
-        "summary": "The full CP-03D backend learning loop is now production-proved: successful Human-origin commit -> real EC persistent experience -> differently structured second file -> EC advisory recommendations without Recipe reuse. The only remaining gate is Human UX confirmation in the actual Data Import experience: the recommendation/source/evidence is understandable, editable and confirmable, and no operational write occurs before Human confirmation.",
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "id": "af01-conversation-postgres-authority",
+        "status": "ACTIVE_DARK_ADAPTER_AND_MIGRATION",
+        "summary": "AF-01 is now the active mainline gate. Replace file-backed Conversation JSONL as production authority with an App Platform-owned PostgreSQL schema through a controlled dark-adapter, migration-integrity, cutover and restart-recovery sequence. Do not change Conversation semantics, weaken Agent turn idempotency, or create indefinite dual-write.",
+        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
         "acceptance": [
-          "In the actual Data Import UI, a differently structured follow-up file visibly receives the expected learned EC field recommendations.",
-          "The Human can distinguish learned/advisory mapping from deterministic whole-file Recipe reuse.",
-          "Recommendation evidence/confidence is understandable enough to support review rather than appearing as unexplained automation.",
-          "The Human can correct or reject an EC recommendation before validation/commit.",
-          "No operational business-data write occurs merely because EC recommended a mapping.",
-          "Human production confirmation closes CP-03D and releases AF-01 as the next mainline gate."
+          "Versioned PostgreSQL schema/migrations exist for Conversation threads, messages and append-only event evidence.",
+          "Conversation writes are awaited transactionally so a successful Host action cannot outrun durable database commit.",
+          "Existing production conversation-threads.jsonl can be imported idempotently with thread/message/event counts and source-event integrity verified.",
+          "PostgreSQL supports scoped thread listing and bounded conversation-history reads without whole-file reconstruction.",
+          "Production first deploys the PostgreSQL adapter dark while JSONL remains authoritative.",
+          "Controlled cutover preserves all existing production Conversation history and exact thread/message/run identities.",
+          "Browser refresh and service restart restore the same authoritative thread from PostgreSQL.",
+          "Existing clientTurnId idempotency and single-flight Agent Run recovery still pass after cutover.",
+          "JSONL is removed from the authoritative runtime path after cutover validation and retained only as bounded migration/export evidence."
         ],
         "implementationEvidence": {
-          "experienceCompilerPr": 7,
-          "experienceCompilerMergeCommit": "63c2304b6b54fa40a63996b3c3736b8ad4277c1e",
-          "experienceCompilerCI": "PASS",
-          "appPlatformPr": 462,
-          "appPlatformMergeCommit": "be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1",
-          "appPlatformCI": "PASS",
-          "projectContinuityCI": "PASS",
-          "appPlatformRailwayDeploymentId": "fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee",
-          "appPlatformRailwayDeploymentStatus": "SUCCESS",
-          "crossStructureSemanticReuseProtocolProof": true,
-          "ecAdvisoryRuntimeOptional": true,
-          "ecFailureFallbackProof": true,
-          "recipeFastPathPreserved": true,
-          "experienceCompilerProductionDeployment": "SUCCESS",
-          "experienceCompilerServiceId": "472c1e8d-94ff-4e58-8bb0-bb06e6efe8b1",
-          "experienceCompilerDeploymentId": "6bc36f41-c76f-41db-aae3-3643534b9911",
-          "experienceCompilerDeploymentStatus": "SUCCESS",
-          "experienceCompilerVolumeId": "b8d746a5-0b95-4ace-b7cf-6ac5cae40096",
-          "experienceCompilerVolumeMount": "/data",
-          "experienceCompilerHealthCheck": "GET /health -> 200 OK",
-          "experienceCompilerPrivateEndpoint": "experience-compiler.railway.internal:8000",
-          "appPlatformEcWiringVariable": "APP_PLATFORM_EC_ADVISORY_BASE_URL",
-          "appPlatformEcWiringConfigured": true,
-          "appPlatformEcWiringDeploymentId": "38c63eb9-cce6-444f-837f-cf4e919a5e10",
-          "appPlatformEcWiringDeploymentStatus": "SUCCESS",
-          "personalAgentTurnIdempotencyPr": 467,
-          "personalAgentTurnIdempotencyMergeCommit": "df6e5521e381da3051957a330088ca2c7d4a6699",
-          "personalAgentTurnIdempotencyCI": "PASS",
-          "personalAgentTurnIdempotencyDeploymentId": "bdc41631-c093-41fe-a557-ab5e08706953",
-          "personalAgentTurnIdempotencyDeploymentStatus": "SUCCESS",
-          "personalAgentDuplicateSubmitSuppressed": true,
-          "personalAgentThreadSendIdempotentByClientTurnId": true,
-          "personalAgentConcurrentResumeSingleFlight": true,
-          "sameStructurePrecheckReuseHumanValidation": "PASS",
-          "sameStructurePrecheckReuseHumanValidationAt": "2026-10-08",
-          "saveMappingPrecheckRecipePr": 475,
-          "saveMappingPrecheckRecipeMergeCommit": "eb6f55905a1758d2344f060b2d535b8b2c1b02c1",
-          "historicalPrecheckReusePr": 476,
-          "historicalPrecheckReuseMergeCommit": "0bd314025ba24aa0e040f33c1608479bcdced135",
-          "latestValidatedDeploymentId": "a5876f2b-5d70-4e42-a96a-4b17d292f909",
-          "latestValidatedDeploymentStatus": "SUCCESS",
-          "crossStructureProductionBackendProof": "PASS",
-          "crossStructureProductionBackendProofAt": "2026-10-08",
-          "appPlatformProofPr": 478,
-          "appPlatformProofMergeCommit": "28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67",
-          "firstBlockedProofDeploymentId": "c4743f72-6b0a-40a6-9bf6-6df3321e8692",
-          "firstBlockedProofDiagnostic": "DATA_IMPORT_EC_HTTP_500",
-          "experienceCompilerThreadSafetyFixPr": 8,
-          "experienceCompilerThreadSafetyFixMergeCommit": "2ce89420643a9f08e60301fa6d9424705ef70c1e",
-          "experienceCompilerThreadSafetyFixCI": "PASS",
-          "experienceCompilerFixedDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
-          "experienceCompilerFixedDeploymentStatus": "SUCCESS",
-          "crossStructureProofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
-          "crossStructureProofDeploymentStatus": "SUCCESS",
-          "wholeFileRecipeReusedInCrossStructureProof": false,
-          "learnedMappingCountInCrossStructureProof": 3,
-          "recommendationConfidenceInCrossStructureProof": 0.9,
-          "recommendationProvenancePresent": true,
-          "recommendationAdvisoryOnly": true
+          "draftPr": 481,
+          "branch": "af01/conversation-postgres-authority",
+          "existingRailwayPostgresService": true,
+          "targetSchema": "app_platform_conversation",
+          "darkAuthorityDefault": "JSONL",
+          "postgresAuthorityMode": "POSTGRES",
+          "migrationTool": "tools/af01-conversation-postgres-migrate.mjs",
+          "productionCutoverPerformed": false
         },
         "blocker": null
       },
@@ -1945,17 +1886,27 @@
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
-        "status": "QUEUED_BEHIND_CP03D",
+        "status": "ACTIVE_AF01",
         "sequence": [
-          "CP-03D Human production validation",
           "AF-01 Conversation PostgreSQL Authority",
           "AF-02 Long-context v0.1",
-          "CP-05 Facets / Profiles / related resources"
+          "CP-05 Facets / Profiles / related resources",
+          "CP-06 Workbench + Agent composition",
+          "CP-07 Counterparty maturity gate"
         ],
-        "rule": "Do not start AF-01 as the mainline until CP-03D closes. After AF-02 passes, resume CP-05."
+        "rule": "Finish AF-01 and AF-02 as bounded foundation debt gates, then resume Counterparty business-model maturity at CP-05. Do not reopen CP-03 for CP-05/CP-07 domain modeling."
       }
     },
     "recentMainline": [
+      {
+        "pr": 481,
+        "status": "DRAFT_AF01_ACTIVE",
+        "summary": "AF-01 starts with a dark PostgreSQL Conversation authority, awaitable persistence boundary, versioned schema migration and JSONL-to-PostgreSQL integrity tooling; production authority remains JSONL until controlled cutover proof."
+      },
+      {
+        "status": "HUMAN_SCOPE_DECISION",
+        "summary": "Human accepted CP-03/CP-03D closure at the Data Import foundation boundary. Rich Counterparty field/domain modeling is deferred to CP-05 through CP-07 rather than expanding CP-03 indefinitely."
+      },
       {
         "pr": 478,
         "status": "MERGED_PRODUCTION_BACKEND_PROOF_PASS",
@@ -4574,10 +4525,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "CP-03D",
-    "currentGateMeaning": "Data Import learned recipe + repeat-import product closure",
-    "nextGate": "CP-05",
-    "nextGateMeaning": "Facets / Profiles / Contact / Address",
+    "currentGate": "AF-01",
+    "currentGateMeaning": "Interposed Agent foundation gate: Conversation PostgreSQL Authority",
+    "nextGate": "AF-02",
+    "nextGateMeaning": "Long-context v0.1 before CP-05 resumes",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4657,7 +4608,7 @@
       ]
     },
     "cp03": {
-      "status": "ACTIVE_PRODUCT_CLOSURE",
+      "status": "CLOSED_HUMAN_PASS",
       "objectExtensionCapability": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 430,
@@ -4705,7 +4656,7 @@
         "tenThousandRowFullCommit": false
       },
       "remaining": [],
-      "closureGate": "OPEN: Human production validation only. Prove first Human correction -> successful commit -> EC experience -> different-structure second import semantic recommendation. Same-structure Import Recipe remains the deterministic fast path.",
+      "closureGate": "CLOSED: Human accepted CP-03/CP-03D at the Data Import foundation boundary after same-structure Human validation and cross-structure EC production proof. Rich Counterparty field/domain modeling continues in CP-05 through CP-07.",
       "bulkPersistence": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 433,
@@ -4748,10 +4699,10 @@
         "humanValidationAt": "2026-10-07",
         "humanValidation": "PASS"
       },
-      "humanValidationAt": "2026-10-07",
-      "humanValidation": "PENDING_EC_BACKED_PRODUCTION_PROOF",
+      "humanValidationAt": "2026-10-08",
+      "humanValidation": "PASS",
       "importLearningReuseClosure": {
-        "status": "EC_AND_APP_PRODUCTION_DEPLOYED_HUMAN_PENDING",
+        "status": "CLOSED_HUMAN_PASS",
         "implementedEvidence": [
           "Import Recipe repository and enterprise-scoped source fingerprint remain the same-structure deterministic reuse path.",
           "Only Human-confirmed successful imports become auto-reusable Recipes.",
@@ -4763,21 +4714,14 @@
           "Schema digest/available-target checks keep stale target fields from being recommended.",
           "Mapping inspection exposes unmapped columns and raw source preservation."
         ],
-        "remainingProductProof": [
-          "Human-validate first import correction and successful commit creates EC experience.",
-          "Human-validate a different-structure second file reuses field semantic experience such as 编码 -> Counterparty.code.",
-          "Human-validate EC confidence/provenance is understandable and recommendation remains correctable.",
-          "Human-validate EC outage leaves Data Import usable.",
-          "Human-validate same-structure Recipe still bypasses unnecessary EC/AI work.",
-          "Human-validate unmapped/source evidence remains recoverable and history/function separation remains clear."
-        ],
+        "remainingProductProof": [],
         "implementationPr": 460,
         "mergeCommit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
         "platformCI": "PASS",
         "projectContinuityCI": "PASS",
         "railwayDeploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
         "railwayDeploymentStatus": "SUCCESS",
-        "humanValidation": "PENDING",
+        "humanValidation": "PASS",
         "learningOwner": "Experience Compiler",
         "recipeRole": "Deterministic whole-file execution artifact/cache, not the persistent learning owner.",
         "experienceCompiler": {
@@ -4807,7 +4751,8 @@
           "environmentVariable": "APP_PLATFORM_EC_ADVISORY_BASE_URL",
           "configuredInProduction": true,
           "privateBaseUrl": "http://experience-compiler.railway.internal:8000"
-        }
+        },
+        "closureNote": "Recommendation presentation styling was explicitly judged non-gating by Human. Backend learning/reuse is production-proved; richer business-field persistence semantics are CP-05 through CP-07 scope."
       }
     },
     "cp04": {
@@ -4881,19 +4826,19 @@
     }
   },
   "agentFoundationDebtRetirement": {
-    "status": "ROUTE_ACCEPTED_WAITING_FOR_CP03D",
+    "status": "ACTIVE_AF01",
     "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
     "constitution": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
     "sequence": [
       {
         "id": "CP-03D",
-        "status": "ACTIVE_HUMAN_VALIDATION_READY",
+        "status": "CLOSED_HUMAN_PASS",
         "exit": "COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS"
       },
       {
         "id": "AF-01",
         "title": "Conversation PostgreSQL Authority",
-        "status": "QUEUED",
+        "status": "ACTIVE",
         "exit": "PERSONAL_AGENT_CONVERSATION_POSTGRES_AUTHORITY_PASS",
         "scope": "Migrate server-authoritative Conversation from JSONL compatibility storage to PostgreSQL with versioned migrations, history import/integrity proof, bounded reads/pagination, controlled cutover and no indefinite dual-write."
       },
