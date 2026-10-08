@@ -5,6 +5,7 @@ import type {
 } from "../../actions/contracts.js";
 import type { AgentRunStoreV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type { ConversationThreadStoreV010 } from "../../contracts/conversation-thread.js";
+import type { ConversationContextAssemblerV010 } from "../../contracts/conversation-context.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
 import type {
   ActiveContextRefV010,
@@ -32,6 +33,7 @@ import {
 
 export interface ThreadBackedAgentTurnDependenciesV010 {
   threadStore: ConversationThreadStoreV010;
+  contextAssembler?: ConversationContextAssemblerV010;
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
   resolveLlmProvider(): {
@@ -482,9 +484,17 @@ export function createThreadBackedAgentTurnActionHandlersV010(
 
           const runId = "agent-run:" + dependencies.runId();
           const createdAt = now(dependencies);
-          const history = await dependencies.threadStore.conversationHistory({
-            threadId
-          });
+          const assembledContext = dependencies.contextAssembler
+            ? await dependencies.contextAssembler.assemble({
+                threadId,
+                threadStore: dependencies.threadStore,
+                now: createdAt
+              })
+            : undefined;
+          const history = assembledContext?.messages
+            ?? await dependencies.threadStore.conversationHistory({
+              threadId
+            });
           const interactionContext =
             parsePersonalAgentInteractionContextV010(request);
           let run = dependencies.runStore.create({
