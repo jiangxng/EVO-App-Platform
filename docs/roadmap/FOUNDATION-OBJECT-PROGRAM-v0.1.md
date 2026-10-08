@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** AF-01 Conversation PostgreSQL Authority (CP-03/CP-03D CLOSED_HUMAN_PASS; bounded Agent foundation route active before CP-05)  
+**Current entry gate:** AF-02 Long-context v0.1 (AF-01 CLOSED_PRODUCTION_PASS; return to CP-05 after AF-02)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -460,7 +460,7 @@ Exit: Human can approve/reject semantic changes without reading a source-code di
 
 ## 12. CP-05 — Facets / Profiles / related resources
 
-**Current state:** QUEUED_AFTER_AF02. CP-03D is CLOSED_HUMAN_PASS. AF-01 is ACTIVE, AF-02 follows, then CP-05 resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
+**Current state:** QUEUED_AFTER_AF02. CP-03D is CLOSED_HUMAN_PASS and AF-01 is CLOSED_PRODUCTION_PASS. AF-02 is ACTIVE; after AF-02 closes, CP-05 resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
 
 Add only business-proven concepts.
 

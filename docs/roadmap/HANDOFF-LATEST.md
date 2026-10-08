@@ -3,73 +3,63 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `af01-conversation-postgres-authority-active-2026-10-08`  
-**Snapshot time:** `2026-10-08T18:05:00+09:00`  
+**Snapshot:** `af01-closed-af02-active-2026-10-08`  
+**Snapshot time:** `2026-10-08T17:31:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-AF-01 Conversation PostgreSQL Authority
+AF-02 Long-context v0.1
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-data-import-learning-reuse-v0-3d: CLOSED_HUMAN_PASS**
+**af01-conversation-postgres-authority: CLOSED_PRODUCTION_PASS**
 
-CP-03/CP-03D is closed at the intended Data Import foundation boundary. Human validation passed same-structure saved-mapping reuse without requiring business-data commit; the real production Experience Compiler learning loop was independently proved across a differently structured second file with Recipe reuse absent, confidence/provenance present and advisory-only semantics. The Human explicitly accepted that recommendation-presentation styling is not a meaningful remaining gate at this stage. Rich Counterparty business modeling and destination coverage for Contact, Address, CustomerProfile, SupplierProfile and other domain fields remain intentional CP-05 through CP-07 work and do not reopen CP-03.
+AF-01 is closed. Production Conversation authority has moved from JSONL compatibility storage to PostgreSQL under the App Platform-owned app_platform_conversation schema. Existing JSONL history was imported with matching source/target digest (10 threads, 74 messages, 87 events), a temporary JSONL_MIRROR_POSTGRES phase completed without mirror errors, authority then cut to POSTGRES, and a production redeploy/restart recovered successfully without JSONL startup migration. JSONL is no longer the production Conversation authority.
 
-Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
+Authority: `docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "humanScopeDecisionAt": "2026-10-08",
-  "humanScopeDecision": "PASS_CLOSE_CP03_CP03D",
-  "sameStructureHumanValidation": "PASS",
-  "sameStructurePrs": [
-    475,
-    476,
-    477
-  ],
-  "crossStructureBackendProductionProof": "PASS",
-  "crossStructureProofPr": 478,
-  "crossStructureProofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
-  "experienceCompilerProductionFixPr": 8,
-  "experienceCompilerProductionFixDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
-  "wholeFileRecipeReusedInCrossStructureProof": false,
-  "learnedMappingCount": 3,
-  "recommendationConfidence": 0.9,
-  "recommendationProvenancePresent": true,
-  "recommendationAdvisoryOnly": true,
-  "deferredToCp05Cp07": [
-    "Contact and Address child-resource modeling",
-    "CustomerProfile and SupplierProfile semantics",
-    "richer business-field destination coverage",
-    "Counterparty full maturity and representative business-data completeness"
-  ]
+  "implementationPr": 481,
+  "implementationMergeCommit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
+  "ci": "PASS",
+  "migrationSourceThreadCount": 10,
+  "migrationSourceMessageCount": 74,
+  "migrationSourceEventCount": 87,
+  "migrationDigest": "687546f442aec6aad730444fe5d711d4d7651fe9a891b3a8c7d9e5b19525072c",
+  "mirrorDeploymentId": "9340d2ba-b701-457b-bfac-e781ac0e8ce9",
+  "mirrorErrors": 0,
+  "postgresAuthorityDeploymentId": "0a4534ef-f808-448b-9812-4cd27e8a88a2",
+  "postgresAuthorityDeploymentStatus": "SUCCESS",
+  "restartProofDeploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
+  "restartProofStatus": "SUCCESS",
+  "productionAuthority": "POSTGRES",
+  "jsonlAuthorityRemoved": true
 }
 ```
 
 ## Current open live gate
 
-**af01-conversation-postgres-authority: ACTIVE_DARK_ADAPTER_AND_MIGRATION**
+**af02-long-context-v0-1: ACTIVE_IMPLEMENTATION**
 
-AF-01 is now the active mainline gate. Replace file-backed Conversation JSONL as production authority with an App Platform-owned PostgreSQL schema through a controlled dark-adapter, migration-integrity, cutover and restart-recovery sequence. Do not change Conversation semantics, weaken Agent turn idempotency, or create indefinite dual-write.
+AF-02 is the active mainline gate. Add source-preserving long-context compression and bounded Context Assembly without replacing raw Conversation, promoting summaries into Memory/EC, or building the full future Context Compiler.
 
 Acceptance:
 
-- Versioned PostgreSQL schema/migrations exist for Conversation threads, messages and append-only event evidence.
-- Conversation writes are awaited transactionally so a successful Host action cannot outrun durable database commit.
-- Existing production conversation-threads.jsonl can be imported idempotently with thread/message/event counts and source-event integrity verified.
-- PostgreSQL supports scoped thread listing and bounded conversation-history reads without whole-file reconstruction.
-- Production first deploys the PostgreSQL adapter dark while JSONL remains authoritative.
-- Controlled cutover preserves all existing production Conversation history and exact thread/message/run identities.
-- Browser refresh and service restart restore the same authoritative thread from PostgreSQL.
-- Existing clientTurnId idempotency and single-flight Agent Run recovery still pass after cutover.
-- JSONL is removed from the authoritative runtime path after cutover validation and retained only as bounded migration/export evidence.
+- A deliberately long test thread exceeds the normal direct-history budget while the model request remains bounded.
+- Deterministic conversation segments and versioned summary artifacts identify covered source messages/ranges.
+- Every model-generated summary records compression-policy, provider/model and prompt provenance.
+- Checkpoint artifacts preserve active goals, decisions, unresolved questions and relevant tool outcomes.
+- Older relevant context can be recovered from source-backed summaries/checkpoints and original messages remain retrievable.
+- A changed compression policy can regenerate a new summary version without overwriting earlier summaries.
+- Compression/provider failure leaves raw Conversation authoritative and uncorrupted.
+- Short conversations remain on the simple recent-history path without unnecessary compression.
 
 ## Current production preview
 
@@ -78,8 +68,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67`
-- Deployment: `4986760a-9c70-4719-adec-41ff57773e1a`
+- Commit: `bc5557ef0a08f66f34b1b9807382c4f482c98dc7`
+- Deployment: `f017924b-20d3-4430-a790-7798b598ecf2`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -110,8 +100,7 @@ Not proved:
 
 ## Recent mainline changes
 
-- PR #481 — DRAFT_AF01_ACTIVE: AF-01 starts with a dark PostgreSQL Conversation authority, awaitable persistence boundary, versioned schema migration and JSONL-to-PostgreSQL integrity tooling; production authority remains JSONL until controlled cutover proof.
-- PR #481 — HUMAN_SCOPE_DECISION: Human accepted CP-03/CP-03D closure at the Data Import foundation boundary. Rich Counterparty field/domain modeling is deferred to CP-05 through CP-07 rather than expanding CP-03 indefinitely.
+- PR #481 — MERGED_CI_PRODUCTION_PASS: AF-01 PostgreSQL Conversation authority implemented and production-cut over after digest-verified migration and mirror phase; restart recovery passed.
 - PR #478 — MERGED_PRODUCTION_BACKEND_PROOF_PASS: Added and executed an isolated production CP-03D proof: first Human-origin successful import recorded real EC experience and a differently structured second file received EC advisory mappings with confidence/provenance while Recipe reuse was absent. The proof also exposed the EC SQLite worker-thread defect before the final successful rerun.
 - PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.
 - PR #475 — MERGED_CI_PRODUCTION_PASS: Human-confirmed mappings become reusable after successful precheck without requiring business-data commit; later successful commit only adds stronger outcome evidence.

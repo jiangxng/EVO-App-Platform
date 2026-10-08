@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "AF-01 Conversation PostgreSQL Authority",
+  "currentMilestone": "AF-02 Long-context v0.1",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "af01-conversation-postgres-authority-active-2026-10-08",
-    "snapshotAt": "2026-10-08T18:05:00+09:00",
+    "snapshotId": "af01-closed-af02-active-2026-10-08",
+    "snapshotAt": "2026-10-08T17:31:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1811,66 +1811,47 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "AF-01 Conversation PostgreSQL Authority",
+      "milestone": "AF-02 Long-context v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "counterparty-data-import-learning-reuse-v0-3d",
-        "status": "CLOSED_HUMAN_PASS",
-        "summary": "CP-03/CP-03D is closed at the intended Data Import foundation boundary. Human validation passed same-structure saved-mapping reuse without requiring business-data commit; the real production Experience Compiler learning loop was independently proved across a differently structured second file with Recipe reuse absent, confidence/provenance present and advisory-only semantics. The Human explicitly accepted that recommendation-presentation styling is not a meaningful remaining gate at this stage. Rich Counterparty business modeling and destination coverage for Contact, Address, CustomerProfile, SupplierProfile and other domain fields remain intentional CP-05 through CP-07 work and do not reopen CP-03.",
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "id": "af01-conversation-postgres-authority",
+        "status": "CLOSED_PRODUCTION_PASS",
+        "summary": "AF-01 is closed. Production Conversation authority has moved from JSONL compatibility storage to PostgreSQL under the App Platform-owned app_platform_conversation schema. Existing JSONL history was imported with matching source/target digest (10 threads, 74 messages, 87 events), a temporary JSONL_MIRROR_POSTGRES phase completed without mirror errors, authority then cut to POSTGRES, and a production redeploy/restart recovered successfully without JSONL startup migration. JSONL is no longer the production Conversation authority.",
+        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
         "evidence": {
-          "humanScopeDecisionAt": "2026-10-08",
-          "humanScopeDecision": "PASS_CLOSE_CP03_CP03D",
-          "sameStructureHumanValidation": "PASS",
-          "sameStructurePrs": [
-            475,
-            476,
-            477
-          ],
-          "crossStructureBackendProductionProof": "PASS",
-          "crossStructureProofPr": 478,
-          "crossStructureProofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
-          "experienceCompilerProductionFixPr": 8,
-          "experienceCompilerProductionFixDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
-          "wholeFileRecipeReusedInCrossStructureProof": false,
-          "learnedMappingCount": 3,
-          "recommendationConfidence": 0.9,
-          "recommendationProvenancePresent": true,
-          "recommendationAdvisoryOnly": true,
-          "deferredToCp05Cp07": [
-            "Contact and Address child-resource modeling",
-            "CustomerProfile and SupplierProfile semantics",
-            "richer business-field destination coverage",
-            "Counterparty full maturity and representative business-data completeness"
-          ]
+          "implementationPr": 481,
+          "implementationMergeCommit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
+          "ci": "PASS",
+          "migrationSourceThreadCount": 10,
+          "migrationSourceMessageCount": 74,
+          "migrationSourceEventCount": 87,
+          "migrationDigest": "687546f442aec6aad730444fe5d711d4d7651fe9a891b3a8c7d9e5b19525072c",
+          "mirrorDeploymentId": "9340d2ba-b701-457b-bfac-e781ac0e8ce9",
+          "mirrorErrors": 0,
+          "postgresAuthorityDeploymentId": "0a4534ef-f808-448b-9812-4cd27e8a88a2",
+          "postgresAuthorityDeploymentStatus": "SUCCESS",
+          "restartProofDeploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
+          "restartProofStatus": "SUCCESS",
+          "productionAuthority": "POSTGRES",
+          "jsonlAuthorityRemoved": true
         }
       },
       "openGate": {
-        "id": "af01-conversation-postgres-authority",
-        "status": "ACTIVE_DARK_ADAPTER_AND_MIGRATION",
-        "summary": "AF-01 is now the active mainline gate. Replace file-backed Conversation JSONL as production authority with an App Platform-owned PostgreSQL schema through a controlled dark-adapter, migration-integrity, cutover and restart-recovery sequence. Do not change Conversation semantics, weaken Agent turn idempotency, or create indefinite dual-write.",
+        "id": "af02-long-context-v0-1",
+        "status": "ACTIVE_IMPLEMENTATION",
+        "summary": "AF-02 is the active mainline gate. Add source-preserving long-context compression and bounded Context Assembly without replacing raw Conversation, promoting summaries into Memory/EC, or building the full future Context Compiler.",
         "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
         "acceptance": [
-          "Versioned PostgreSQL schema/migrations exist for Conversation threads, messages and append-only event evidence.",
-          "Conversation writes are awaited transactionally so a successful Host action cannot outrun durable database commit.",
-          "Existing production conversation-threads.jsonl can be imported idempotently with thread/message/event counts and source-event integrity verified.",
-          "PostgreSQL supports scoped thread listing and bounded conversation-history reads without whole-file reconstruction.",
-          "Production first deploys the PostgreSQL adapter dark while JSONL remains authoritative.",
-          "Controlled cutover preserves all existing production Conversation history and exact thread/message/run identities.",
-          "Browser refresh and service restart restore the same authoritative thread from PostgreSQL.",
-          "Existing clientTurnId idempotency and single-flight Agent Run recovery still pass after cutover.",
-          "JSONL is removed from the authoritative runtime path after cutover validation and retained only as bounded migration/export evidence."
+          "A deliberately long test thread exceeds the normal direct-history budget while the model request remains bounded.",
+          "Deterministic conversation segments and versioned summary artifacts identify covered source messages/ranges.",
+          "Every model-generated summary records compression-policy, provider/model and prompt provenance.",
+          "Checkpoint artifacts preserve active goals, decisions, unresolved questions and relevant tool outcomes.",
+          "Older relevant context can be recovered from source-backed summaries/checkpoints and original messages remain retrievable.",
+          "A changed compression policy can regenerate a new summary version without overwriting earlier summaries.",
+          "Compression/provider failure leaves raw Conversation authoritative and uncorrupted.",
+          "Short conversations remain on the simple recent-history path without unnecessary compression."
         ],
-        "implementationEvidence": {
-          "draftPr": 481,
-          "branch": "af01/conversation-postgres-authority",
-          "existingRailwayPostgresService": true,
-          "targetSchema": "app_platform_conversation",
-          "darkAuthorityDefault": "JSONL",
-          "postgresAuthorityMode": "POSTGRES",
-          "migrationTool": "tools/af01-conversation-postgres-migrate.mjs",
-          "productionCutoverPerformed": false
-        },
+        "implementationEvidence": {},
         "blocker": null
       },
       "productionPreview": {
@@ -1879,8 +1860,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67",
-        "deploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
+        "commit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
+        "deploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
@@ -1900,13 +1881,8 @@
     "recentMainline": [
       {
         "pr": 481,
-        "status": "DRAFT_AF01_ACTIVE",
-        "summary": "AF-01 starts with a dark PostgreSQL Conversation authority, awaitable persistence boundary, versioned schema migration and JSONL-to-PostgreSQL integrity tooling; production authority remains JSONL until controlled cutover proof."
-      },
-      {
-        "status": "HUMAN_SCOPE_DECISION",
-        "summary": "Human accepted CP-03/CP-03D closure at the Data Import foundation boundary. Rich Counterparty field/domain modeling is deferred to CP-05 through CP-07 rather than expanding CP-03 indefinitely.",
-        "pr": 481
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "AF-01 PostgreSQL Conversation authority implemented and production-cut over after digest-verified migration and mirror phase; restart recovery passed."
       },
       {
         "pr": 478,
@@ -4526,10 +4502,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "AF-01",
-    "currentGateMeaning": "Interposed Agent foundation gate: Conversation PostgreSQL Authority",
-    "nextGate": "AF-02",
-    "nextGateMeaning": "Long-context v0.1 before CP-05 resumes",
+    "currentGate": "AF-02",
+    "currentGateMeaning": "Interposed Agent foundation gate: Long-context v0.1",
+    "nextGate": "CP-05",
+    "nextGateMeaning": "Facets / Profiles / Contact / Address",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4827,7 +4803,7 @@
     }
   },
   "agentFoundationDebtRetirement": {
-    "status": "ACTIVE_AF01",
+    "status": "ACTIVE_AF02",
     "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
     "constitution": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
     "sequence": [
@@ -4839,14 +4815,14 @@
       {
         "id": "AF-01",
         "title": "Conversation PostgreSQL Authority",
-        "status": "ACTIVE",
+        "status": "CLOSED_PRODUCTION_PASS",
         "exit": "PERSONAL_AGENT_CONVERSATION_POSTGRES_AUTHORITY_PASS",
         "scope": "Migrate server-authoritative Conversation from JSONL compatibility storage to PostgreSQL with versioned migrations, history import/integrity proof, bounded reads/pagination, controlled cutover and no indefinite dual-write."
       },
       {
         "id": "AF-02",
         "title": "Long-context v0.1",
-        "status": "QUEUED",
+        "status": "ACTIVE",
         "exit": "PERSONAL_AGENT_LONG_CONTEXT_V01_PASS",
         "scope": "Add source-preserving segmentation, versioned summaries, checkpoints, compression provenance, bounded token budget and a minimal Context Assembly seam without building the full future Context Compiler."
       },

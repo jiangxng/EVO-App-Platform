@@ -19,9 +19,9 @@ The approved sequence is:
 ~~~text
 CP-03D CLOSED_HUMAN_PASS
         ↓
-AF-01 Conversation PostgreSQL Authority — ACTIVE
+AF-01 Conversation PostgreSQL Authority — CLOSED_PRODUCTION_PASS
         ↓
-AF-02 Long-context v0.1
+AF-02 Long-context v0.1 — ACTIVE
         ↓
 CP-05 Foundation Object mainline resumes
 ~~~
@@ -53,7 +53,7 @@ Exit state:
 
 `COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS`
 
-AF-01 is now the active mainline gate.
+AF-01 is CLOSED_PRODUCTION_PASS. AF-02 is now the active mainline gate.
 
 ## 4. AF-01 — Conversation PostgreSQL Authority
 
@@ -234,10 +234,9 @@ Then answer from repository evidence:
 ~~~text
 CP-03D is CLOSED_HUMAN_PASS.
 
-If AF-01 is open:
-continue Conversation PostgreSQL Authority.
+AF-01 is CLOSED_PRODUCTION_PASS.
 
-If AF-01 is closed but AF-02 is open:
+If AF-02 is open:
 continue Long-context v0.1.
 
 If AF-01 and AF-02 are closed:
