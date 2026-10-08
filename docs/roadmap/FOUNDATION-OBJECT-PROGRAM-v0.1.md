@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-05 Counterparty Facets / Profiles / related resources  
+**Current entry gate:** CP-03D Data Import learning + reuse closure  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -249,6 +249,59 @@ Human gate: **CLOSED_HUMAN_PASS on 2026-10-07.**
 
 Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
+### CP-03D — Import learning + reuse product closure
+
+**Current state:** ACTIVE.
+
+The earlier Human import pass proved that CSV/XLSX can be mapped, dry-run, confirmed and committed. It did **not** close the later product requirement that repeated enterprise imports become learned, reusable and auditable.
+
+The closure loop is:
+
+~~~text
+first import
+→ inspect source
+→ deterministic mapping where possible
+→ bounded Agent semantic assistance where needed
+→ Human review/correction
+→ dry run
+→ explicit confirmation
+→ atomic commit
+→ save confirmed enterprise Import Recipe + receipt/evidence
+
+same-structure later import
+→ detect confirmed Import Recipe
+→ reuse mapping/value transforms by default
+→ do not call AI again unless safe reuse fails or Human requests help
+→ dry run
+→ Human confirmation
+→ commit
+→ updated receipt/history/evidence
+~~~
+
+Hard requirements:
+
+- confirmed successful imports may become reusable recipes; unconfirmed guesses may not;
+- recipe reuse is enterprise/target/purpose scoped;
+- schema drift or incompatible source changes must fall back to review;
+- unmapped columns are not discarded;
+- original source evidence, headers and row values remain recoverable for later interpretation/migration;
+- Import function entry and Import history/review are separate UX concerns;
+- history must make recipe reuse, corrections and outcomes auditable;
+- repeated imports should become cheaper and more deterministic over time rather than repeatedly invoking an LLM.
+
+Current implementation already contains much of the substrate (recipe repository, fingerprinting, confirmed-recipe reuse, schema-digest guard, mapping inspection, unmapped-column visibility, raw-source preservation signal and Agent semantic guards). CP-03D is therefore a **product closure and Human end-to-end proof**, not a rewrite of Data Import.
+
+Exit requires Human production proof of:
+
+1. first representative import through correction and successful commit;
+2. confirmed recipe persistence;
+3. second same-structure import automatically reusing the recipe without unnecessary AI;
+4. safe fallback when recipe/source/schema no longer match;
+5. recoverable unmapped/source evidence;
+6. clearly separated function and history experiences.
+
+Exit state: COUNTERPARTY_IMPORT_LEARNING_REUSE_LOOP_PASS
+
 ## 9. AD-01 — Semantic classifier
 
 Starts after CP-03 contracts exist.
@@ -276,7 +329,7 @@ Exit requires a fixed known-answer test set and structured Human corrections.
 
 ## 10. CP-04 — Responsibility + Projections + data scope
 
-**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08.
+**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08. CP-03D remains the first non-closed product gate because the later Import learning/reuse closure requirement is still open.
 
 Create shared Responsibility capability.
 
