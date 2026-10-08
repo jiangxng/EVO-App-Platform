@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03d-import-learning-reuse-production-validation-2026-10-08",
-    "snapshotAt": "2026-10-08T08:30:00+08:00",
+    "snapshotId": "cp03d-ec-data-import-learning-service-blocked-2026-10-08",
+    "snapshotAt": "2026-10-08T09:31:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1831,28 +1831,43 @@
       },
       "openGate": {
         "id": "counterparty-data-import-learning-reuse-closure-v0-3d",
-        "status": "HUMAN_PRODUCTION_VALIDATION",
-        "summary": "CP-03D implementation is merged, CI-passed and production-deployed. The remaining gate is Human end-to-end proof of first-import learning, second same-structure recipe reuse, evidence preservation and safe fallback behavior.",
+        "status": "EC_PRODUCTION_SERVICE_BLOCKED_HUMAN_PENDING",
+        "summary": "CP-03D now includes the real EVO -> Experience Compiler -> EVO learning boundary. EC and App Platform implementations are merged and CI-passed; App Platform is production-deployed. Human production proof is blocked only because Railway currently refuses provisioning the independent EC service at the account resource limit. Data Import remains fully operable without EC.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.",
-          "A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.",
-          "A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.",
-          "Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.",
-          "Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.",
-          "Import function entry and import-history/review experience remain clearly separated in the UI.",
-          "Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end."
+          "A first import can be Human-corrected, dry-run validated and committed through the ordinary deterministic Data Import path.",
+          "Only a Human-confirmed mapping from a successful committed import is eligible to become persistent mapping experience in Experience Compiler.",
+          "Experience Compiler persists tenant-scoped, target-object-scoped mapping experience with provenance back to the successful EVO import job; one enterprise experience does not become global truth.",
+          "A later file with a different overall table structure can reuse prior semantic experience such as 编码 -> Counterparty.code even when the whole-file Import Recipe fingerprint does not match.",
+          "EC recommendations remain advisory, expose confidence/evidence for Human review, and never directly commit or mutate Counterparty operational truth.",
+          "Equal conflicting learned evidence fails closed instead of silently choosing a mapping.",
+          "Same-structure confirmed Import Recipe reuse remains the cheaper deterministic fast path and avoids unnecessary EC/LLM work.",
+          "If EC is absent, unavailable or times out, Data Import falls back to existing deterministic mapping and Human review without becoming unavailable.",
+          "Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.",
+          "Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end."
         ],
         "implementationEvidence": {
-          "implementationPr": 460,
-          "mergeCommit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
-          "platformCI": "PASS",
+          "experienceCompilerPr": 7,
+          "experienceCompilerMergeCommit": "63c2304b6b54fa40a63996b3c3736b8ad4277c1e",
+          "experienceCompilerCI": "PASS",
+          "appPlatformPr": 462,
+          "appPlatformMergeCommit": "be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1",
+          "appPlatformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "railwayDeploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
-          "railwayDeploymentStatus": "SUCCESS",
-          "learnedRecipeReuseProtocolProof": true,
-          "staleRecipeSchemaDriftFallbackProof": true,
-          "sourceEvidenceVisibleInHumanExperience": true
+          "appPlatformRailwayDeploymentId": "fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee",
+          "appPlatformRailwayDeploymentStatus": "SUCCESS",
+          "crossStructureSemanticReuseProtocolProof": true,
+          "ecAdvisoryRuntimeOptional": true,
+          "ecFailureFallbackProof": true,
+          "recipeFastPathPreserved": true,
+          "experienceCompilerProductionDeployment": "BLOCKED_RESOURCE_LIMIT"
+        },
+        "blocker": {
+          "id": "railway-ec-service-resource-limit",
+          "kind": "EXTERNAL_INFRASTRUCTURE_QUOTA",
+          "status": "BLOCKING_HUMAN_PRODUCTION_PROOF",
+          "detail": "Railway rejected creation of both a new Experience Compiler project and a new Experience Compiler service in the existing empty preview project with: Free plan resource provision limit exceeded. A free service/resource slot or plan upgrade is required before the independent EC advisory API can be deployed.",
+          "workaroundRejected": "Do not embed EC into EVO/App Platform merely to bypass the quota; EC must remain an independent optional advisory service."
         }
       },
       "productionPreview": {
@@ -1861,8 +1876,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
-        "deploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
+        "commit": "be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1",
+        "deploymentId": "fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -4521,7 +4536,7 @@
         "tenThousandRowFullCommit": false
       },
       "remaining": [],
-      "closureGate": "OPEN: complete and Human-validate first-import -> confirmed Import Recipe -> second same-structure import reuse, evidence preservation and separated history/function UX.",
+      "closureGate": "OPEN: deploy the independent Experience Compiler advisory service, wire APP_PLATFORM_EC_ADVISORY_BASE_URL, then Human-validate first correction -> EC learning -> different-structure semantic reuse. Same-structure Import Recipe remains the deterministic fast path.",
       "bulkPersistence": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 433,
@@ -4565,24 +4580,29 @@
         "humanValidation": "PASS"
       },
       "humanValidationAt": "2026-10-07",
-      "humanValidation": "PARTIAL_PREVIOUS_IMPORT_PASS_NOT_FULL_REUSE_LOOP",
+      "humanValidation": "PARTIAL_PREVIOUS_IMPORT_PASS_EC_LEARNING_PRODUCTION_PROOF_PENDING",
       "importLearningReuseClosure": {
-        "status": "MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING",
+        "status": "EC_AND_APP_IMPLEMENTED_CI_PASS_APP_DEPLOYED_EC_SERVICE_BLOCKED_HUMAN_PENDING",
         "implementedEvidence": [
-          "Import Recipe repository and enterprise-scoped source fingerprint exist.",
-          "Only Human-confirmed successful imports become auto-reusable recipes.",
-          "Recipe reuse checks target schema digest and source compatibility.",
-          "Recipe mapping can include direct mappings, VALUE_MAP transforms and CONSTANT mappings.",
-          "Mapping inspection exposes unmapped columns and declares raw source preservation.",
-          "Agent-origin mapping has semantic safety guards."
+          "Import Recipe repository and enterprise-scoped source fingerprint remain the same-structure deterministic reuse path.",
+          "Only Human-confirmed successful imports become auto-reusable Recipes.",
+          "Experience Compiler PR #7 adds tenant/object-scoped persistent Data Import mapping experience with provenance, conflict-safe advisory recommendation and an independent HTTP API.",
+          "App Platform PR #462 submits successful Human-confirmed mappings to EC and consults EC only when deterministic Recipe reuse did not already resolve the import.",
+          "A protocol test proves 编码 -> Counterparty.code can be learned from file A and recommended in structurally different file B.",
+          "EC recommendation provenance/confidence is carried into the mapping experience for Human review.",
+          "EC is optional: absence/timeouts preserve ordinary deterministic mapping and Human review.",
+          "Schema digest/available-target checks keep stale target fields from being recommended.",
+          "Mapping inspection exposes unmapped columns and raw source preservation."
         ],
         "remainingProductProof": [
-          "Human-validate first import through correction and commit.",
-          "Human-validate that successful commit visibly becomes reusable enterprise recipe.",
-          "Human-validate second same-structure import automatically applies recipe without unnecessary AI.",
-          "Human-validate stale/incompatible recipe falls back to review.",
-          "Human-validate unmapped/source evidence remains recoverable.",
-          "Human-validate import function and import history are clearly separated."
+          "Provision an independent Experience Compiler production service; Railway currently blocks new resources at the plan limit.",
+          "Wire APP_PLATFORM_EC_ADVISORY_BASE_URL to that service without making EC a runtime prerequisite.",
+          "Human-validate first import correction and successful commit creates EC experience.",
+          "Human-validate a different-structure second file reuses field semantic experience such as 编码 -> Counterparty.code.",
+          "Human-validate EC confidence/provenance is understandable and recommendation remains correctable.",
+          "Human-validate EC outage leaves Data Import usable.",
+          "Human-validate same-structure Recipe still bypasses unnecessary EC/AI work.",
+          "Human-validate unmapped/source evidence remains recoverable and history/function separation remains clear."
         ],
         "implementationPr": 460,
         "mergeCommit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
@@ -4590,7 +4610,30 @@
         "projectContinuityCI": "PASS",
         "railwayDeploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
         "railwayDeploymentStatus": "SUCCESS",
-        "humanValidation": "PENDING"
+        "humanValidation": "PENDING_EC_PRODUCTION_SERVICE",
+        "learningOwner": "Experience Compiler",
+        "recipeRole": "Deterministic whole-file execution artifact/cache, not the persistent learning owner.",
+        "experienceCompiler": {
+          "repository": "jiangxng/Experience-Compiler",
+          "implementationPr": 7,
+          "mergeCommit": "63c2304b6b54fa40a63996b3c3736b8ad4277c1e",
+          "ci": "PASS",
+          "apiRoutes": [
+            "POST /v1/data-import/mapping-experiences",
+            "POST /v1/data-import/mapping-recommendations"
+          ],
+          "productionDeployment": "BLOCKED_RAILWAY_RESOURCE_LIMIT"
+        },
+        "appPlatformIntegration": {
+          "implementationPr": 462,
+          "mergeCommit": "be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "railwayDeploymentId": "fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee",
+          "railwayDeploymentStatus": "SUCCESS",
+          "environmentVariable": "APP_PLATFORM_EC_ADVISORY_BASE_URL",
+          "configuredInProduction": false
+        }
       }
     },
     "cp04": {
