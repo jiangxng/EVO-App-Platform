@@ -85,6 +85,9 @@ import {
   type PostgresConversationAuthorityV010
 } from "./conversation-postgres-store.js";
 import {
+  createMirroredConversationThreadStoreV010
+} from "./conversation-mirror-store.js";
+import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
 import {
@@ -1372,6 +1375,7 @@ const configuredConversationAuthority =
   || "JSONL";
 if (
   configuredConversationAuthority !== "JSONL"
+  && configuredConversationAuthority !== "JSONL_MIRROR_POSTGRES"
   && configuredConversationAuthority !== "POSTGRES"
 ) {
   throw new Error("CONVERSATION_AUTHORITY_INVALID");
@@ -1393,7 +1397,7 @@ if (conversationDatabaseUrl) {
     });
 }
 if (
-  configuredConversationAuthority === "POSTGRES"
+  configuredConversationAuthority !== "JSONL"
   && !conversationPostgresAuthority
 ) {
   throw new Error("CONVERSATION_POSTGRES_DATABASE_URL_REQUIRED");
@@ -1406,10 +1410,50 @@ const compatibilityConversationThreadStore =
     eventStore: conversationThreadEventStore,
     eventId: randomUUID
   });
+const migrateJsonlOnStartup =
+  process.env.APP_PLATFORM_CONVERSATION_MIGRATE_JSONL_ON_STARTUP?.trim()
+    .toLowerCase() === "true";
+if (
+  conversationPostgresAuthority
+  && conversationThreadFile
+  && (
+    configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+    || migrateJsonlOnStartup
+  )
+) {
+  const migrated = await conversationPostgresAuthority.importEvents(
+    conversationThreadEventStore.listEvents()
+  );
+  console.log(
+    "CONVERSATION_POSTGRES_STARTUP_MIGRATION_PASS",
+    JSON.stringify({
+      authority: configuredConversationAuthority,
+      sourceEventCount: migrated.sourceEventCount,
+      sourceThreadCount: migrated.sourceThreadCount,
+      sourceMessageCount: migrated.sourceMessageCount,
+      sourceDigest: migrated.sourceDigest,
+      target: migrated.target
+    })
+  );
+}
 const conversationThreadStore =
   configuredConversationAuthority === "POSTGRES"
     ? conversationPostgresAuthority!.store
-    : compatibilityConversationThreadStore;
+    : configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+      ? createMirroredConversationThreadStoreV010({
+          primary: compatibilityConversationThreadStore,
+          postgres: conversationPostgresAuthority!,
+          onMirrorError(error, threadId) {
+            console.error(
+              "CONVERSATION_POSTGRES_MIRROR_FAILED",
+              JSON.stringify({
+                threadId,
+                error: error instanceof Error ? error.message : String(error)
+              })
+            );
+          }
+        })
+      : compatibilityConversationThreadStore;
 const configuredConversationRetentionDays =
   process.env.APP_PLATFORM_CONVERSATION_RETENTION_DAYS?.trim();
 const conversationRetentionDays = Number(
