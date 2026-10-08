@@ -592,12 +592,41 @@ export function createDataImportServiceV010(input: {
           rows
         }
       };
-      return input.repository.save({
+      let saved = input.repository.save({
         contextId: dryRunInput.contextId,
         job: next,
         actorSubjectId: dryRunInput.actorSubjectId,
         recordedAt: dryRunInput.recordedAt
       });
+      if (
+        saved.state === "DRY_RUN_READY"
+        && saved.mappingOrigin === "HUMAN"
+        && input.recipeRepository
+      ) {
+        const recipe = input.recipeRepository.recordValidated({
+          contextId: dryRunInput.contextId,
+          targetId: saved.targetId,
+          targetParameters: saved.targetParameters,
+          source: saved.source,
+          targetSchemaDigest: saved.dryRun!.schemaDigest,
+          mapping: saved.mapping,
+          importJobId: saved.importJobId,
+          actorSubjectId: dryRunInput.actorSubjectId,
+          recordedAt: dryRunInput.recordedAt
+        });
+        if (saved.appliedRecipeId !== recipe.recipeId) {
+          saved = input.repository.save({
+            contextId: dryRunInput.contextId,
+            job: {
+              ...saved,
+              appliedRecipeId: recipe.recipeId
+            },
+            actorSubjectId: dryRunInput.actorSubjectId,
+            recordedAt: dryRunInput.recordedAt
+          });
+        }
+      }
+      return saved;
     },
 
     commit(commitInput) {

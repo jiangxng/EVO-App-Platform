@@ -98,7 +98,7 @@ const mapping = [{
   }
 }];
 
-test("only a confirmed committed import becomes an auto-reusable enterprise Import Recipe", () => {
+test("Human-confirmed successful precheck becomes reusable before commit and commit adds success evidence", () => {
   const { target, recipes, service } = fixture();
   const inputSource = source("supplier-first.xlsx");
   const schema = target.describe({
@@ -129,13 +129,33 @@ test("only a confirmed committed import becomes an auto-reusable enterprise Impo
     ready.dryRun.rows[0].prepared.values.subjectType,
     "ORGANIZATION"
   );
-  assert.equal(ready.appliedRecipeId, undefined);
-  assert.equal(recipes.findBySource({
+  assert.ok(ready.appliedRecipeId);
+
+  const validatedRecipe = recipes.findBySource({
     contextId: "enterprise-context:a",
     targetId: target.targetId,
     targetParameters: { relationshipMode: "SUPPLIER" },
     source: inputSource
-  }), undefined);
+  });
+  assert.ok(validatedRecipe);
+  assert.equal(validatedRecipe.recipeId, ready.appliedRecipeId);
+  assert.deepEqual(validatedRecipe.mapping, mapping);
+  assert.equal(validatedRecipe.lastValidatedImportJobId, "import-first");
+  assert.equal(validatedRecipe.lastSuccessfulImportJobId, undefined);
+  assert.equal(validatedRecipe.confirmedAt, "2026-10-07T08:01:00.000Z");
+
+  // Exact user path: no commit/import has happened. A second upload with the
+  // same structure must already reuse the Human-confirmed validated mapping.
+  const beforeCommitReuse = service.resolveInitialMapping({
+    contextId: "enterprise-context:a",
+    targetId: target.targetId,
+    targetParameters: { relationshipMode: "SUPPLIER" },
+    source: source("same-structure-before-any-import.xlsx"),
+    schema
+  });
+  assert.equal(beforeCommitReuse.origin, "RECIPE");
+  assert.equal(beforeCommitReuse.recipeId, validatedRecipe.recipeId);
+  assert.deepEqual(beforeCommitReuse.mapping, mapping);
 
   const committed = service.commit({
     contextId: "enterprise-context:a",
@@ -144,30 +164,18 @@ test("only a confirmed committed import becomes an auto-reusable enterprise Impo
     recordedAt: "2026-10-07T08:02:00.000Z"
   });
   assert.equal(committed.state, "COMMITTED");
-  assert.ok(committed.appliedRecipeId);
+  assert.equal(committed.appliedRecipeId, validatedRecipe.recipeId);
 
-  const saved = recipes.findBySource({
+  const successfulRecipe = recipes.findBySource({
     contextId: "enterprise-context:a",
     targetId: target.targetId,
     targetParameters: { relationshipMode: "SUPPLIER" },
     source: inputSource
   });
-  assert.ok(saved);
-  assert.equal(saved.recipeId, committed.appliedRecipeId);
-  assert.deepEqual(saved.mapping, mapping);
-  assert.equal(saved.lastSuccessfulImportJobId, "import-first");
-  assert.equal(saved.confirmedAt, "2026-10-07T08:02:00.000Z");
-
-  const initial = service.resolveInitialMapping({
-    contextId: "enterprise-context:a",
-    targetId: target.targetId,
-    targetParameters: { relationshipMode: "SUPPLIER" },
-    source: source("completely-different-file-name.xlsx"),
-    schema
-  });
-  assert.equal(initial.origin, "RECIPE");
-  assert.equal(initial.recipeId, saved.recipeId);
-  assert.deepEqual(initial.mapping, mapping);
+  assert.ok(successfulRecipe);
+  assert.equal(successfulRecipe.lastValidatedImportJobId, "import-first");
+  assert.equal(successfulRecipe.lastSuccessfulImportJobId, "import-first");
+  assert.equal(successfulRecipe.confirmedAt, "2026-10-07T08:02:00.000Z");
 });
 
 test("CP-03D reuses Human-confirmed successful imports created before Recipe persistence", () => {

@@ -34,13 +34,15 @@ export interface DataImportRecipeV010 {
   updatedAt: string;
   updatedBySubjectId: string;
   /**
-   * Only confirmed recipes are eligible for automatic reuse.
-   * Legacy recipes written before Human-confirmation semantics remain readable
-   * but are intentionally ignored by findBySource until confirmed.
+   * Human-confirmed mappings are eligible for automatic same-structure reuse
+   * after a successful dry run. A later successful commit adds stronger
+   * business-outcome evidence without being required merely to remember the
+   * Human's field mapping.
    */
   confirmedAt?: string;
   confirmedBySubjectId?: string;
-  lastSuccessfulImportJobId: string;
+  lastValidatedImportJobId?: string;
+  lastSuccessfulImportJobId?: string;
 }
 
 function required(value: string, code: string): string {
@@ -169,10 +171,12 @@ function fromPayload(
     ...(value.confirmedBySubjectId?.trim()
       ? { confirmedBySubjectId: value.confirmedBySubjectId.trim() }
       : {}),
-    lastSuccessfulImportJobId: required(
-      value.lastSuccessfulImportJobId,
-      "DATA_IMPORT_RECIPE_JOB_REQUIRED"
-    )
+    ...(value.lastValidatedImportJobId?.trim()
+      ? { lastValidatedImportJobId: value.lastValidatedImportJobId.trim() }
+      : {}),
+    ...(value.lastSuccessfulImportJobId?.trim()
+      ? { lastSuccessfulImportJobId: value.lastSuccessfulImportJobId.trim() }
+      : {})
   };
 }
 
@@ -185,6 +189,17 @@ export interface DataImportRecipeRepositoryV010 {
   }): DataImportRecipeV010 | undefined;
   get(contextId: string, recipeId: string): DataImportRecipeV010 | undefined;
   list(contextId: string, targetId?: string): DataImportRecipeV010[];
+  recordValidated(input: {
+    contextId: string;
+    targetId: string;
+    targetParameters?: FoundationObjectImportTargetParametersV010;
+    source: Pick<DataImportSourceV010, "headers">;
+    targetSchemaDigest: string;
+    mapping: DataImportMappingV010[];
+    importJobId: string;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): DataImportRecipeV010;
   recordSuccessful(input: {
     contextId: string;
     targetId: string;
@@ -237,6 +252,68 @@ export function createDataImportRecipeRepositoryV010(
         );
     },
 
+    recordValidated(input) {
+      const sourceFingerprint = dataImportSourceFingerprintV010({
+        targetId: input.targetId,
+        targetParameters: input.targetParameters,
+        source: input.source
+      });
+      const recipeId = recipeIdFor(sourceFingerprint);
+      const current = this.get(input.contextId, recipeId);
+      const recipe: DataImportRecipeV010 = {
+        contractVersion: "0.1.0",
+        recipeId,
+        targetId: required(input.targetId, "DATA_IMPORT_TARGET_ID_REQUIRED"),
+        ...(input.targetParameters
+          ? { targetParameters: structuredClone(input.targetParameters) }
+          : {}),
+        sourceFingerprint,
+        sourceHeaders: [...input.source.headers],
+        targetSchemaDigest: required(
+          input.targetSchemaDigest,
+          "DATA_IMPORT_RECIPE_SCHEMA_DIGEST_REQUIRED"
+        ),
+        mapping: structuredClone(input.mapping),
+        createdAt: current?.createdAt ?? input.recordedAt,
+        createdBySubjectId:
+          current?.createdBySubjectId ?? input.actorSubjectId,
+        updatedAt: input.recordedAt,
+        updatedBySubjectId: input.actorSubjectId,
+        confirmedAt: input.recordedAt,
+        confirmedBySubjectId: input.actorSubjectId,
+        lastValidatedImportJobId: required(
+          input.importJobId,
+          "DATA_IMPORT_RECIPE_JOB_REQUIRED"
+        ),
+        ...(current?.lastSuccessfulImportJobId
+          ? { lastSuccessfulImportJobId: current.lastSuccessfulImportJobId }
+          : {})
+      };
+      const saved = resources.put({
+        contextId: required(input.contextId, "DATA_IMPORT_CONTEXT_REQUIRED"),
+        namespace: "evo.data-import",
+        collectionId: DATA_IMPORT_RECIPE_COLLECTION_V010,
+        resourceType: DATA_IMPORT_RECIPE_RESOURCE_TYPE_V010,
+        resourceId: recipe.recipeId,
+        schemaRef: DATA_IMPORT_RECIPE_SCHEMA_V010,
+        ownerPackageId: "evo-data-import",
+        storageKind: "DOCUMENT",
+        payload: payloadOf(recipe),
+        metadata: {
+          targetId: recipe.targetId,
+          sourceFingerprint: recipe.sourceFingerprint,
+          lastValidatedImportJobId: recipe.lastValidatedImportJobId ?? "",
+          ...(recipe.lastSuccessfulImportJobId
+            ? { lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId }
+            : {}),
+          confirmedAt: recipe.confirmedAt ?? ""
+        },
+        actorSubjectId: input.actorSubjectId,
+        recordedAt: input.recordedAt
+      });
+      return fromPayload(saved.payload);
+    },
+
     recordSuccessful(input) {
       const sourceFingerprint = dataImportSourceFingerprintV010({
         targetId: input.targetId,
@@ -266,6 +343,9 @@ export function createDataImportRecipeRepositoryV010(
         updatedBySubjectId: input.actorSubjectId,
         confirmedAt: input.recordedAt,
         confirmedBySubjectId: input.actorSubjectId,
+        ...(current?.lastValidatedImportJobId
+          ? { lastValidatedImportJobId: current.lastValidatedImportJobId }
+          : {}),
         lastSuccessfulImportJobId: required(
           input.importJobId,
           "DATA_IMPORT_RECIPE_JOB_REQUIRED"
@@ -284,7 +364,7 @@ export function createDataImportRecipeRepositoryV010(
         metadata: {
           targetId: recipe.targetId,
           sourceFingerprint: recipe.sourceFingerprint,
-          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId,
+          lastSuccessfulImportJobId: recipe.lastSuccessfulImportJobId ?? "",
           confirmedAt: recipe.confirmedAt ?? ""
         },
         actorSubjectId: input.actorSubjectId,
