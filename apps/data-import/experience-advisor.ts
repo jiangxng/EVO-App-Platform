@@ -202,13 +202,14 @@ export function createHttpDataImportExperienceAdvisorV010(input: {
       if (value === null || typeof value !== "object" || Array.isArray(value)) {
         throw new Error("DATA_IMPORT_EC_EXPERIENCE_RESPONSE_INVALID");
       }
+      const response = value as Record<string, unknown>;
       return {
         observationRecordId: requiredString(
-          value.observationRecordId,
+          response.observationRecordId,
           "DATA_IMPORT_EC_OBSERVATION_ID_INVALID"
         ),
         patternRecordId: requiredString(
-          value.patternRecordId,
+          response.patternRecordId,
           "DATA_IMPORT_EC_PATTERN_ID_INVALID"
         )
       };
