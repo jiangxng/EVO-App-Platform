@@ -38,6 +38,15 @@ export type DataImportValueTransformV010 =
   | DataImportValueMapTransformV010
   | DataImportConstantTransformV010;
 
+export interface DataImportMappingAdvisoryV010 {
+  source: "EXPERIENCE_COMPILER";
+  confidence: number;
+  supportCount: number;
+  conflictCount: number;
+  supportingRecordIds: string[];
+  rationale: string;
+}
+
 export interface DataImportMappingV010 {
   /**
    * Source column is required for direct and VALUE_MAP mappings.
@@ -46,6 +55,7 @@ export interface DataImportMappingV010 {
   sourceColumn?: string;
   targetFieldId: string;
   transform?: DataImportValueTransformV010;
+  advisory?: DataImportMappingAdvisoryV010;
 }
 
 export type DataImportMappingOriginV010 =
@@ -86,6 +96,15 @@ export interface DataImportCommitReceiptV010 {
   rows: DataImportCommitRowReceiptV010[];
 }
 
+export interface DataImportExperienceLearningV010 {
+  status: "RECORDED" | "UNAVAILABLE" | "NOT_ELIGIBLE";
+  recordedAt: string;
+  learnedMappings: number;
+  observationRecordIds?: string[];
+  patternRecordIds?: string[];
+  diagnostic?: string;
+}
+
 export interface DataImportJobV010 {
   contractVersion: "0.1.0";
   importJobId: string;
@@ -100,6 +119,7 @@ export interface DataImportJobV010 {
   stagedBySubjectId: string;
   dryRun?: DataImportDryRunV010;
   receipt?: DataImportCommitReceiptV010;
+  experienceLearning?: DataImportExperienceLearningV010;
 }
 
 function required(value: string, code: string): string {
@@ -179,6 +199,41 @@ export function assertDataImportJobV010(
         throw new Error("DATA_IMPORT_MAPPING_TRANSFORM_INVALID");
       }
     }
+    let normalizedAdvisory: DataImportMappingAdvisoryV010 | undefined;
+    if (item.advisory !== undefined) {
+      if (
+        item.advisory === null
+        || typeof item.advisory !== "object"
+        || item.advisory.source !== "EXPERIENCE_COMPILER"
+        || typeof item.advisory.confidence !== "number"
+        || item.advisory.confidence < 0
+        || item.advisory.confidence > 1
+        || typeof item.advisory.supportCount !== "number"
+        || !Number.isInteger(item.advisory.supportCount)
+        || item.advisory.supportCount < 1
+        || typeof item.advisory.conflictCount !== "number"
+        || !Number.isInteger(item.advisory.conflictCount)
+        || item.advisory.conflictCount < 0
+        || !Array.isArray(item.advisory.supportingRecordIds)
+        || item.advisory.supportingRecordIds.length === 0
+        || !item.advisory.supportingRecordIds.every(value =>
+          typeof value === "string" && Boolean(value.trim())
+        )
+        || typeof item.advisory.rationale !== "string"
+        || !item.advisory.rationale.trim()
+      ) {
+        throw new Error("DATA_IMPORT_MAPPING_ADVISORY_INVALID");
+      }
+      normalizedAdvisory = {
+        source: "EXPERIENCE_COMPILER",
+        confidence: item.advisory.confidence,
+        supportCount: item.advisory.supportCount,
+        conflictCount: item.advisory.conflictCount,
+        supportingRecordIds:
+          item.advisory.supportingRecordIds.map(value => value.trim()),
+        rationale: item.advisory.rationale.trim()
+      };
+    }
     const sourceColumn = item.sourceColumn?.trim();
     if (normalizedTransform?.kind === "CONSTANT") {
       if (sourceColumn) {
@@ -193,7 +248,8 @@ export function assertDataImportJobV010(
         item.targetFieldId,
         "DATA_IMPORT_MAPPING_TARGET_REQUIRED"
       ),
-      ...(normalizedTransform ? { transform: normalizedTransform } : {})
+      ...(normalizedTransform ? { transform: normalizedTransform } : {}),
+      ...(normalizedAdvisory ? { advisory: normalizedAdvisory } : {})
     };
   });
   for (const item of mapping) {
@@ -207,6 +263,39 @@ export function assertDataImportJobV010(
   ) {
     throw new Error("DATA_IMPORT_MAPPING_TARGET_DUPLICATE");
   }
+  let experienceLearning: DataImportExperienceLearningV010 | undefined;
+  if (value.experienceLearning) {
+    const item = value.experienceLearning;
+    if (
+      !["RECORDED", "UNAVAILABLE", "NOT_ELIGIBLE"].includes(item.status)
+      || typeof item.recordedAt !== "string"
+      || !item.recordedAt.trim()
+      || typeof item.learnedMappings !== "number"
+      || !Number.isInteger(item.learnedMappings)
+      || item.learnedMappings < 0
+    ) {
+      throw new Error("DATA_IMPORT_EXPERIENCE_LEARNING_INVALID");
+    }
+    experienceLearning = {
+      status: item.status,
+      recordedAt: item.recordedAt.trim(),
+      learnedMappings: item.learnedMappings,
+      ...(item.observationRecordIds
+        ? { observationRecordIds: item.observationRecordIds.map(value =>
+            required(value, "DATA_IMPORT_EC_OBSERVATION_ID_INVALID")
+          ) }
+        : {}),
+      ...(item.patternRecordIds
+        ? { patternRecordIds: item.patternRecordIds.map(value =>
+            required(value, "DATA_IMPORT_EC_PATTERN_ID_INVALID")
+          ) }
+        : {}),
+      ...(item.diagnostic?.trim()
+        ? { diagnostic: item.diagnostic.trim() }
+        : {})
+    };
+  }
+
   return {
     contractVersion: "0.1.0",
     importJobId: required(value.importJobId, "DATA_IMPORT_JOB_ID_REQUIRED"),
@@ -236,6 +325,7 @@ export function assertDataImportJobV010(
       "DATA_IMPORT_STAGED_BY_REQUIRED"
     ),
     ...(value.dryRun ? { dryRun: structuredClone(value.dryRun) } : {}),
-    ...(value.receipt ? { receipt: structuredClone(value.receipt) } : {})
+    ...(value.receipt ? { receipt: structuredClone(value.receipt) } : {}),
+    ...(experienceLearning ? { experienceLearning } : {})
   };
 }

@@ -880,6 +880,9 @@ import {
   createDataImportServiceV010
 } from "../apps/data-import/service.js";
 import {
+  createHttpDataImportExperienceAdvisorV010
+} from "../apps/data-import/experience-advisor.js";
+import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
@@ -1036,6 +1039,14 @@ const dataImportService =
     recipeRepository: dataImportRecipeRepository,
     targets: dataImportTargets
   });
+const experienceCompilerAdvisoryBaseUrl =
+  process.env.APP_PLATFORM_EC_ADVISORY_BASE_URL?.trim();
+const dataImportExperienceAdvisor = experienceCompilerAdvisoryBaseUrl
+  ? createHttpDataImportExperienceAdvisorV010({
+      baseUrl: experienceCompilerAdvisoryBaseUrl,
+      token: process.env.APP_PLATFORM_EC_ADVISORY_TOKEN?.trim()
+    })
+  : undefined;
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -4438,6 +4449,9 @@ const actionRouter = createAppActionRouter(
             service: dataImportService,
             repository: dataImportRepository,
             targets: dataImportTargets,
+            ...(dataImportExperienceAdvisor
+              ? { experienceAdvisor: dataImportExperienceAdvisor }
+              : {}),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
