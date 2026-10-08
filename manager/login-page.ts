@@ -274,8 +274,8 @@ export function createLoginExperienceHtmlV010(
         <div class="evo-login-demo-top-actions">
           <a class="evo-login-demo-language" href="${switchHref}" hreflang="${switchLocale}">◎ ${switchLabel}</a>
           <nav class="evo-login-demo-skins" aria-label="${skinAria}">
-            <a href="${standardHref}" data-active="${skin === "standard"}">${text.standardMode}版</a>
-            <a href="${demoHref}" data-active="${skin === "demo"}">${text.demoMode}版</a>
+            <a href="${standardHref}" data-active="false">${text.standardMode}版</a>
+            <a href="${demoHref}" data-active="true">${text.demoMode}版</a>
           </nav>
         </div>
       </header>`
