@@ -100,6 +100,10 @@ function turnContextValues(
   if (interactionContext !== undefined) {
     values.interactionContext = structuredClone(interactionContext);
   }
+  const clientTurnId = request.values.clientTurnId;
+  if (clientTurnId !== undefined) {
+    values.clientTurnId = structuredClone(clientTurnId);
+  }
   return values;
 }
 
