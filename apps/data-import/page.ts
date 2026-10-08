@@ -289,9 +289,7 @@ export function createDataImportUploadPageV010(input: {
       input.target.label,
       input.locale
     ),
-    description: job.mappingOrigin === "RECIPE"
-      ? t.recipeAppliedDescription
-      : t.description,
+    description: t.description,
     contextNavigation: {
       items: [{
         id: "data-import",
