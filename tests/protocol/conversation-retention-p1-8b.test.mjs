@@ -57,11 +57,11 @@ function createThread(store, id, createdAt) {
   });
 }
 
-test("retention preview never marks ACTIVE thread purge-eligible", () => {
+test("retention preview never marks ACTIVE thread purge-eligible", async () => {
   const store = threadStore();
   createThread(store, "thread:active", "2020-01-01T00:00:00.000Z");
 
-  const preview = previewConversationRetentionV010({
+  const preview = await previewConversationRetentionV010({
     threadStore: store,
     principalSubjectId: principal.subjectId,
     context: context.activeContext,
@@ -80,7 +80,7 @@ test("retention preview never marks ACTIVE thread purge-eligible", () => {
   assert.equal(preview.items[0].deadline, undefined);
 });
 
-test("retention clock begins at archivedAt and preview is deterministic", () => {
+test("retention clock begins at archivedAt and preview is deterministic", async () => {
   const store = threadStore();
   createThread(store, "thread:old", "2026-01-01T00:00:00.000Z");
   createThread(store, "thread:new", "2026-01-01T00:00:00.000Z");
@@ -96,7 +96,7 @@ test("retention clock begins at archivedAt and preview is deterministic", () => 
     archivedBySubjectId: principal.subjectId
   });
 
-  const preview = previewConversationRetentionV010({
+  const preview = await previewConversationRetentionV010({
     threadStore: store,
     principalSubjectId: principal.subjectId,
     context: context.activeContext,
@@ -169,10 +169,10 @@ test("retention preview action is scoped and remains READ-only simulation", asyn
   assert.deepEqual(store.events("thread:one"), beforeEvents);
 });
 
-test("retention preview rejects invalid candidate days", () => {
+test("retention preview rejects invalid candidate days", async () => {
   const store = threadStore();
   for (const days of [0, -1, 1.5, 36501]) {
-    assert.throws(
+    await assert.rejects(
       () => previewConversationRetentionV010({
         threadStore: store,
         principalSubjectId: principal.subjectId,
