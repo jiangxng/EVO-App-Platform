@@ -154,6 +154,11 @@ test("Eidos contextual Agent transport stays product-neutral and auto-submits th
   assert.match(controller, /stageUserTurn\(normalized\)/);
   assert.match(controller, /if \(initialRecoveryPromise\) \{\s*await initialRecoveryPromise;/);
   assert.match(controller, /await submit\(interactionContext, staged\)/);
+  assert.match(controller, /loadingConversation/);
+  assert.match(controller, /正在加载对话/);
+  assert.match(controller, /suppressEmptyState = true/);
+  assert.match(controller, /setChatBusy\(true, "loadingConversation"\)/);
+  assert.match(controller, /suppressEmptyState = false/);
   assert.match(
     controller,
     /interactionContext \? \{\} : contextValues\(\)/
