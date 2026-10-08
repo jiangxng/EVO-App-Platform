@@ -61,12 +61,22 @@ interface AbortableActionHostV010 extends ActionHost {
 
 function chatUiTextV010(
   localization: LocalizationRuntime | undefined,
-  key: "thinking" | "stop" | "stopped" | "copy" | "copied" | "retry"
+  key:
+    | "thinking"
+    | "loadingConversation"
+    | "stop"
+    | "stopped"
+    | "copy"
+    | "copied"
+    | "retry"
 ): string {
   const locale = localization?.getContext().locale.toLowerCase() ?? "en";
   const zh = locale.startsWith("zh");
   const ja = locale.startsWith("ja");
   if (key === "thinking") return zh ? "正在思考…" : ja ? "考えています…" : "Thinking…";
+  if (key === "loadingConversation") {
+    return zh ? "正在加载对话…" : ja ? "会話を読み込んでいます…" : "Loading conversation…";
+  }
   if (key === "stop") return zh ? "停止" : ja ? "停止" : "Stop";
   if (key === "stopped") return zh ? "已停止当前响应。" : ja ? "現在の応答を停止しました。" : "Stopped the current response.";
   if (key === "copy") return zh ? "复制" : ja ? "コピー" : "Copy";
@@ -1029,7 +1039,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
       if (state.messages.length === 0 && initialEmptyState) {
         const currentEmpty = transcript.querySelector("[data-eidos-chat-empty]");
-        if (!currentEmpty) transcript.appendChild(initialEmptyState.cloneNode(true));
+        if (suppressEmptyState) {
+          currentEmpty?.remove();
+        } else if (!currentEmpty) {
+          transcript.appendChild(initialEmptyState.cloneNode(true));
+        }
       }
 
       if (pendingIndicator && pendingIndicator.parentElement === transcript) {
@@ -1289,11 +1303,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     let runProgressMessageId: string | undefined;
     let runTransportInFlight = false;
     let initialRecoveryPromise: Promise<void> | undefined;
+    let suppressEmptyState = false;
     let activeChatAbort: AbortController | undefined;
 
     const pendingIndicator = transcript
       ? document.createElement("div")
       : undefined;
+    let pendingLabel: HTMLSpanElement | undefined;
     if (pendingIndicator && transcript) {
       pendingIndicator.setAttribute("data-eidos-chat-pending", "");
       pendingIndicator.setAttribute("role", "status");
@@ -1310,10 +1326,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       dot.setAttribute("aria-hidden", "true");
       dot.style.fontSize = ".625rem";
       dot.style.color = "var(--eidos-primary)";
-      const label = document.createElement("span");
-      label.setAttribute("data-eidos-chat-pending-label", "");
-      label.textContent = chatUiTextV010(localization, "thinking");
-      pendingIndicator.append(dot, label);
+      pendingLabel = document.createElement("span");
+      pendingLabel.setAttribute("data-eidos-chat-pending-label", "");
+      pendingLabel.textContent = chatUiTextV010(localization, "thinking");
+      pendingIndicator.append(dot, pendingLabel);
       transcript.appendChild(pendingIndicator);
     }
 
@@ -1510,9 +1526,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         composerActions.appendChild(stopButton);
       }
 
-      const setChatBusy = (busy: boolean): void => {
+      const setChatBusy = (
+        busy: boolean,
+        pendingText: "thinking" | "loadingConversation" = "thinking"
+      ): void => {
         runTransportInFlight = busy;
         if (pendingIndicator) {
+          if (pendingLabel && busy) {
+            pendingLabel.textContent = chatUiTextV010(localization, pendingText);
+          }
           pendingIndicator.hidden = !busy;
           pendingIndicator.style.display = busy ? "flex" : "none";
         }
@@ -2012,7 +2034,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       const recoverDurableRun = async (): Promise<void> => {
         if (!runBacked || !options.actionHost || runTransportInFlight) return;
         const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        runTransportInFlight = true;
+        suppressEmptyState = true;
+        setChatBusy(true, "loadingConversation");
+        renderTranscript();
         if (button) button.disabled = true;
         try {
           const request = baseChatRequest(contextValues(), "chat.recover");
@@ -2073,7 +2097,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             }
           }, false);
         } finally {
-          runTransportInFlight = false;
+          suppressEmptyState = false;
+          setChatBusy(false);
+          renderTranscript();
           if (button) button.disabled = false;
         }
       };
