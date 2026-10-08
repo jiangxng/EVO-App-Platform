@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03d-ai-native-agent-state-context-constitution-2026-10-08",
-    "snapshotAt": "2026-10-08T11:25:00+08:00",
+    "snapshotId": "cp03d-agent-foundation-debt-route-2026-10-08",
+    "snapshotAt": "2026-10-08T11:45:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1889,13 +1889,29 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "e4a9610d749b08c4cf84c4fc5dd1c1b38fff68df",
-        "deploymentId": "87856d27-70b8-449a-9465-cbc45c872313",
+        "commit": "1d11626530098525b747f92aa5bac3b885601091",
+        "deploymentId": "53c2c1cc-023b-481c-b7f7-e36e09129584",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
+      },
+      "nextExecutionRoute": {
+        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
+        "status": "QUEUED_BEHIND_CP03D",
+        "sequence": [
+          "CP-03D Human production validation",
+          "AF-01 Conversation PostgreSQL Authority",
+          "AF-02 Long-context v0.1",
+          "CP-05 Facets / Profiles / related resources"
+        ],
+        "rule": "Do not start AF-01 as the mainline until CP-03D closes. After AF-02 passes, resume CP-05."
       }
     },
     "recentMainline": [
+      {
+        "pr": 472,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Adopted the AI-Native Agent State & Context Constitution as project authority: AI-native is governed durable model-independent state/context architecture, not JSONL-first storage."
+      },
       {
         "pr": 471,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -2930,7 +2946,10 @@
       "Do not equate AI-native with JSONL, JSON-first storage, vector databases, or sending all available context to the model.",
       "Do not use Conversation history as a substitute for durable Working State, Personal Context Memory or Experience Compiler learning.",
       "Do not overwrite or discard raw Conversation solely because a model context window is full; compression must be derived, versioned, traceable and regenerable subject to retention policy.",
-      "Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement."
+      "Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement.",
+      "Do not jump directly from CP-03D to CP-05; execute AF-01 and AF-02 first according to the accepted bounded debt-retirement route.",
+      "Do not expand AF-01/AF-02 into an open-ended Personal Agent rewrite before CP-05.",
+      "Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -3156,7 +3175,13 @@
       "state Conversation, Working State, Personal Context Memory and EC learning as distinct semantic layers that must not be collapsed",
       "state raw conversation as source evidence and summaries/checkpoints as derived versioned regenerable artifacts",
       "state current file-backed Conversation JSONL as transitional compatibility debt with PostgreSQL as the target authority, while JSONL remains valid for logs/export/migration/evaluation",
-      "state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence"
+      "state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence",
+      "state the post-CP-03D execution route as CP-03D Human validation -> AF-01 Conversation PostgreSQL Authority -> AF-02 Long-context v0.1 -> CP-05",
+      "state docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md as the authority for the bounded debt-retirement sequence",
+      "state AF-01 as queued until CP-03D closes and as a controlled Conversation JSONL -> PostgreSQL authority migration with history integrity proof and no indefinite dual-write",
+      "state AF-02 as a bounded long-context foundation slice with source-preserving versioned summaries/checkpoints and minimal Context Assembly rather than a full Agent framework rewrite",
+      "state CP-05 as queued after AF-02, not the immediate next execution gate after CP-03D",
+      "state full Working State, full Context Compiler, broad Memory migration, vector retrieval and automatic Personal Agent -> EC learning as explicitly deferred before CP-05 unless a concrete blocker appears"
     ],
     "liveValidation": {
       "status": "LIVE_PASS",
@@ -4741,7 +4766,7 @@
       "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
     },
     "cp05": {
-      "status": "ACTIVE",
+      "status": "QUEUED_AFTER_AF02",
       "scope": [
         "Contact",
         "Address",
@@ -4754,6 +4779,16 @@
         "Supplier-only data is absent when SUPPLIER role does not apply",
         "enterprise extensions can target declared Profile slots",
         "object page composes facets progressively through Eidos"
+      ],
+      "entryCondition": "CP-03D CLOSED_HUMAN_PASS + AF-01 PASS + AF-02 PASS"
+    },
+    "interposedExecutionRoute": {
+      "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
+      "after": "CP-03D",
+      "before": "CP-05",
+      "gates": [
+        "AF-01",
+        "AF-02"
       ]
     }
   },
@@ -4775,5 +4810,48 @@
       "targetConversationAuthority": "POSTGRESQL",
       "executionMode": "INCREMENTAL_LONG_TERM_PROGRAM_NON_BLOCKING_TO_CURRENT_CP03D_UNLESS_REQUIRED_BY_ACTIVE_WORK"
     }
+  },
+  "agentFoundationDebtRetirement": {
+    "status": "ROUTE_ACCEPTED_WAITING_FOR_CP03D",
+    "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
+    "constitution": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "sequence": [
+      {
+        "id": "CP-03D",
+        "status": "ACTIVE_HUMAN_VALIDATION_READY",
+        "exit": "COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS"
+      },
+      {
+        "id": "AF-01",
+        "title": "Conversation PostgreSQL Authority",
+        "status": "QUEUED",
+        "exit": "PERSONAL_AGENT_CONVERSATION_POSTGRES_AUTHORITY_PASS",
+        "scope": "Migrate server-authoritative Conversation from JSONL compatibility storage to PostgreSQL with versioned migrations, history import/integrity proof, bounded reads/pagination, controlled cutover and no indefinite dual-write."
+      },
+      {
+        "id": "AF-02",
+        "title": "Long-context v0.1",
+        "status": "QUEUED",
+        "exit": "PERSONAL_AGENT_LONG_CONTEXT_V01_PASS",
+        "scope": "Add source-preserving segmentation, versioned summaries, checkpoints, compression provenance, bounded token budget and a minimal Context Assembly seam without building the full future Context Compiler."
+      },
+      {
+        "id": "CP-05",
+        "title": "Facets / Profiles / related resources",
+        "status": "QUEUED_AFTER_AF02",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md"
+      }
+    ],
+    "explicitlyDeferredBeforeCp05": [
+      "migrate every Agent Run/event JSONL to PostgreSQL",
+      "migrate all Context Memory persistence",
+      "full generic Working State product model",
+      "full Context Compiler",
+      "semantic/vector retrieval",
+      "automatic Personal Agent to EC learning",
+      "global/cross-enterprise learning",
+      "multi-agent orchestration",
+      "large-scale autonomous planning framework"
+    ]
   }
 }
