@@ -210,7 +210,7 @@ function importEvidenceMetadata(
       ? { [t.learnedRule]: job.appliedRecipeId }
       : {}),
     [t.unmappedColumns]: unmapped.length > 0
-      ? unmapped.join("、")
+      ? unmapped.join(zh(locale) ? "、" : ", ")
       : t.none,
     [t.sourceEvidence]: t.preserved
   };
@@ -589,7 +589,9 @@ export function createDataImportReviewPageV010(input: {
     density: "compact",
     id: "evo-data-import.review",
     title: t.reviewTitle,
-    description: t.description,
+    description: job.mappingOrigin === "RECIPE"
+      ? t.recipeAppliedDescription
+      : t.description,
     contextNavigation: {
       items: [{
         id: "data-import",
