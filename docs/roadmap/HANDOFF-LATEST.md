@@ -3,14 +3,14 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp04-closed-cp05-active-2026-10-08`  
-**Snapshot time:** `2026-10-08T08:12:00+08:00`  
+**Snapshot:** `cp03d-import-closure-cp04-closed-2026-10-08`  
+**Snapshot time:** `2026-10-08T08:32:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-05 Facets / Profiles / related resources
+CP-03D Data Import learning + reuse closure
 ACTIVE
 ```
 
@@ -18,7 +18,7 @@ ACTIVE
 
 **counterparty-responsibility-projections-v0-4: CLOSED_HUMAN_PASS**
 
-CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience. A separate long-term BI reference records that these lists may later serve as optional analysis entry points; this does not create near-term Foundation Object scope.
+CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Basic list/projection presentation is accepted. The long-term BI idea is documented separately and is not near-term scope.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -33,23 +33,25 @@ Evidence:
   "railwayDeploymentStatus": "SUCCESS",
   "humanValidationAt": "2026-10-08",
   "humanValidation": "PASS",
-  "productDirectionReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
+  "longTermBiReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
 }
 ```
 
 ## Current open live gate
 
-**counterparty-facets-profiles-v0-5: ACTIVE**
+**counterparty-data-import-learning-reuse-closure-v0-3d: ACTIVE**
 
-CP-05 is the current gate. Add only business-proven Counterparty facets/profiles, beginning with repeatable Contact/Address and role-scoped CustomerProfile/SupplierProfile, while keeping identity stable and progressively composing the object page through Eidos.
+CP-03 core import mechanics are implemented, but the product loop is not closed. Finish and Human-validate learned Import Recipe reuse, evidence preservation and the repeat-import experience before advancing the Foundation Object mainline.
 
 Acceptance:
 
-- Repeatable Contact/Address are child resources, not flattened fields.
-- Customer-only data is absent when CUSTOMER role does not apply.
-- Supplier-only data is absent when SUPPLIER role does not apply.
-- Enterprise extensions can target declared Profile slots.
-- Object page composes facets progressively through Eidos.
+- First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.
+- A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.
+- A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.
+- Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.
+- Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.
+- Import function entry and import-history/review experience remain clearly separated in the UI.
+- Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end.
 
 ## Current production preview
 
