@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-ai-native-agent-state-context-constitution-2026-10-08`  
-**Snapshot time:** `2026-10-08T11:25:00+08:00`  
+**Snapshot:** `cp03d-agent-foundation-debt-route-2026-10-08`  
+**Snapshot time:** `2026-10-08T11:45:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -56,6 +56,19 @@ Acceptance:
 - Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.
 - Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end.
 
+## Queued execution route
+
+Authority: `docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md`
+
+Status: `QUEUED_BEHIND_CP03D`
+
+- CP-03D Human production validation
+- AF-01 Conversation PostgreSQL Authority
+- AF-02 Long-context v0.1
+- CP-05 Facets / Profiles / related resources
+
+Rule: Do not start AF-01 as the mainline until CP-03D closes. After AF-02 passes, resume CP-05.
+
 ## Current production preview
 
 - Platform: RAILWAY
@@ -63,8 +76,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `e4a9610d749b08c4cf84c4fc5dd1c1b38fff68df`
-- Deployment: `87856d27-70b8-449a-9465-cbc45c872313`
+- Commit: `1d11626530098525b747f92aa5bac3b885601091`
+- Deployment: `53c2c1cc-023b-481c-b7f7-e36e09129584`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +108,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #472 — MERGED_CI_PRODUCTION_PASS: Adopted the AI-Native Agent State & Context Constitution as project authority: AI-native is governed durable model-independent state/context architecture, not JSONL-first storage.
 - PR #471 — MERGED_CI_PRODUCTION_PASS: Personal Agent refresh now shows an explicit conversation-loading state while durable thread history is restored instead of presenting a misleading empty conversation.
 - PR #469 — MERGED_CI_PRODUCTION_PASS: Contextual Agent actions such as Data Import AI auto-match stage the Human-visible turn immediately and serialize transport behind initial durable thread recovery.
 - PR #467 — MERGED_CI_PRODUCTION_PASS: Personal Agent chat turns are idempotent: duplicate submits are suppressed, durable thread.send reuses the original run by clientTurnId, concurrent resume is single-flight, and DeepSeek/request timing is bounded below the browser timeout.
@@ -507,6 +521,9 @@ Not proved:
 - Do not use Conversation history as a substitute for durable Working State, Personal Context Memory or Experience Compiler learning.
 - Do not overwrite or discard raw Conversation solely because a model context window is full; compression must be derived, versioned, traceable and regenerable subject to retention policy.
 - Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement.
+- Do not jump directly from CP-03D to CP-05; execute AF-01 and AF-02 first according to the accepted bounded debt-retirement route.
+- Do not expand AF-01/AF-02 into an open-ended Personal Agent rewrite before CP-05.
+- Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -750,6 +767,12 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state raw conversation as source evidence and summaries/checkpoints as derived versioned regenerable artifacts
 - state current file-backed Conversation JSONL as transitional compatibility debt with PostgreSQL as the target authority, while JSONL remains valid for logs/export/migration/evaluation
 - state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence
+- state the post-CP-03D execution route as CP-03D Human validation -> AF-01 Conversation PostgreSQL Authority -> AF-02 Long-context v0.1 -> CP-05
+- state docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md as the authority for the bounded debt-retirement sequence
+- state AF-01 as queued until CP-03D closes and as a controlled Conversation JSONL -> PostgreSQL authority migration with history integrity proof and no indefinite dual-write
+- state AF-02 as a bounded long-context foundation slice with source-preserving versioned summaries/checkpoints and minimal Context Assembly rather than a full Agent framework rewrite
+- state CP-05 as queued after AF-02, not the immediate next execution gate after CP-03D
+- state full Working State, full Context Compiler, broad Memory migration, vector retrieval and automatic Personal Agent -> EC learning as explicitly deferred before CP-05 unless a concrete blocker appears
 
 No previous ChatGPT transcript is required.
 
