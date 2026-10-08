@@ -393,7 +393,6 @@ export async function createPostgresConversationAuthorityV010(input: {
         request.archivedBySubjectId,
         "CONVERSATION_THREAD_ARCHIVED_BY_REQUIRED"
       );
-      let alreadyArchived = false;
       await sql.begin(async tx => {
         const rows = await tx<Record<string, unknown>[]> `
           SELECT *
@@ -403,7 +402,6 @@ export async function createPostgresConversationAuthorityV010(input: {
         `;
         if (rows.length === 0) throw new Error("CONVERSATION_THREAD_NOT_FOUND");
         if (rows[0].state === "ARCHIVED") {
-          alreadyArchived = true;
           return;
         }
         const newEventId = "conversation-thread-event:" + eventId();
