@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import postgres from "postgres";
 import type {
   ConversationMessageRoleV010,
@@ -273,20 +273,19 @@ export async function createPostgresConversationAuthorityV010(input: {
     });
   }
 
-  async function readThreadWith(
-    executor: typeof sql,
+  async function readThread(
     threadId: string
   ): Promise<ConversationThreadV010 | undefined> {
-    const rows = await executor<Record<string, unknown>[]> `
+    const rows = await sql<Record<string, unknown>[]> `
       SELECT *
-      FROM ${executor(schema)}.threads
+      FROM ${sql(schema)}.threads
       WHERE thread_id = ${threadId}
     `;
     if (rows.length === 0) return undefined;
     const row = rows[0];
-    const messageRows = await executor<Record<string, unknown>[]> `
+    const messageRows = await sql<Record<string, unknown>[]> `
       SELECT *
-      FROM ${executor(schema)}.messages
+      FROM ${sql(schema)}.messages
       WHERE thread_id = ${threadId}
       ORDER BY created_at ASC, event_id ASC
     `;
@@ -328,7 +327,7 @@ export async function createPostgresConversationAuthorityV010(input: {
     };
   }
 
-  const eventId = () => crypto.randomUUID();
+  const eventId = () => randomUUID();
 
   const store: ConversationThreadStoreV010 = {
     async create(request) {
@@ -384,7 +383,7 @@ export async function createPostgresConversationAuthorityV010(input: {
         }
         throw error;
       }
-      return (await readThreadWith(sql, id))!;
+      return (await readThread(id))!;
     },
 
     async archive(request) {
@@ -394,7 +393,7 @@ export async function createPostgresConversationAuthorityV010(input: {
         request.archivedBySubjectId,
         "CONVERSATION_THREAD_ARCHIVED_BY_REQUIRED"
       );
-      let existing: ConversationThreadV010 | undefined;
+      let alreadyArchived = false;
       await sql.begin(async tx => {
         const rows = await tx<Record<string, unknown>[]> `
           SELECT *
@@ -404,7 +403,7 @@ export async function createPostgresConversationAuthorityV010(input: {
         `;
         if (rows.length === 0) throw new Error("CONVERSATION_THREAD_NOT_FOUND");
         if (rows[0].state === "ARCHIVED") {
-          existing = await readThreadWith(tx as typeof sql, id);
+          alreadyArchived = true;
           return;
         }
         const newEventId = "conversation-thread-event:" + eventId();
@@ -428,7 +427,9 @@ export async function createPostgresConversationAuthorityV010(input: {
           WHERE thread_id = ${id}
         `;
       });
-      return existing ?? (await readThreadWith(sql, id))!;
+      const archived = await readThread(id);
+      if (!archived) throw new Error("CONVERSATION_THREAD_NOT_FOUND");
+      return archived;
     },
 
     async appendMessage(request) {
@@ -511,7 +512,7 @@ export async function createPostgresConversationAuthorityV010(input: {
           WHERE thread_id = ${id}
         `;
       });
-      return (await readThreadWith(sql, id))!;
+      return (await readThread(id))!;
     },
 
     async get(threadId) {
@@ -543,7 +544,7 @@ export async function createPostgresConversationAuthorityV010(input: {
       `;
       const values: ConversationThreadV010[] = [];
       for (const row of rows) {
-        const thread = await readThreadWith(sql, row.thread_id);
+        const thread = await readThread(row.thread_id);
         if (thread) values.push(thread);
       }
       return values;
@@ -646,6 +647,18 @@ export async function createPostgresConversationAuthorityV010(input: {
       event => event.type === "MESSAGE_APPENDED"
     ).length;
     const sourceDigest = eventDigest(ordered);
+
+    if (ordered.length === 0) {
+      const target = await integrity();
+      return {
+        sourceEventCount: 0,
+        sourceThreadCount: 0,
+        sourceMessageCount: 0,
+        sourceDigest,
+        target,
+        imported: true
+      };
+    }
 
     await sql.begin(async tx => {
       for (const event of ordered) {
