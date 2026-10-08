@@ -11,12 +11,16 @@ import {
   createDataImportRepositoryV010
 } from "../../dist/apps/data-import/repository.js";
 import {
+  createDataImportRecipeRepositoryV010
+} from "../../dist/apps/data-import/recipe.js";
+import {
   createDataImportServiceV010
 } from "../../dist/apps/data-import/service.js";
 import {
   createDataImportActionHandlersV010
 } from "../../dist/apps/data-import/actions.js";
 import {
+  DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010
 } from "../../dist/apps/data-import/constants.js";
@@ -442,6 +446,163 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.equal(ready.state, "DRY_RUN_READY");
   assert.equal(ready.dryRun.validRows, 1);
   assert.equal(counterparties.list("enterprise-context:a").length, 0);
+});
+
+test("CP-03D first confirmed import teaches a recipe and second same-structure import reuses it without remapping", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const counterparties = createCounterpartyRepositoryV010(resources);
+  const roles = createCounterpartyRoleRepositoryV010(resources, counterparties);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const values = createObjectExtensionValueRepositoryV010(resources);
+  const target = createCounterpartyImportTargetV010({
+    resources,
+    repository: counterparties,
+    roleRepository: roles,
+    extensionRepository: extensions,
+    extensionValueRepository: values
+  });
+  const repository = createDataImportRepositoryV010(resources);
+  const recipes = createDataImportRecipeRepositoryV010(resources);
+  const service = createDataImportServiceV010({
+    repository,
+    recipeRepository: recipes,
+    targets: [target]
+  });
+  let sequence = 0;
+  const handlers = createDataImportActionHandlersV010({
+    service,
+    repository,
+    targets: [target],
+    canManageEnterpriseContext: () => true,
+    idFactory: () => "import-learning-" + (++sequence),
+    now: () => new Date("2026-10-08T00:00:00.000Z")
+  });
+  const stageFile = handlers.find(
+    item => item.commandCode === DATA_IMPORT_STAGE_FILE_COMMAND_V010
+  );
+  const review = handlers.find(
+    item => item.commandCode === DATA_IMPORT_REVIEW_COMMAND_V010
+  );
+  const commit = handlers.find(
+    item => item.commandCode === DATA_IMPORT_COMMIT_COMMAND_V010
+  );
+  assert.ok(stageFile);
+  assert.ok(review);
+  assert.ok(commit);
+
+  const csvFile = (name, code, displayName) => {
+    const csv = [
+      "往来编码,往来名称,主体类型,备注",
+      [code, displayName, "ORGANIZATION", "保留原始备注"].join(",")
+    ].join("\n");
+    return {
+      name,
+      mediaType: "text/csv",
+      size: Buffer.byteLength(csv),
+      contentBase64: Buffer.from(csv).toString("base64")
+    };
+  };
+
+  const firstStage = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId: "counterparty.subject",
+      file: csvFile("客户首批.csv", "C101", "首批客户"),
+      parameter__relationshipMode: "CUSTOMER"
+    }),
+    platformContext()
+  );
+  assert.equal(firstStage.ok, true);
+  assert.equal(
+    firstStage.result.navigateTo,
+    "/data-import/jobs/import-learning-1/map"
+  );
+
+  const firstReview = await review.execute(
+    request(DATA_IMPORT_REVIEW_COMMAND_V010, {
+      importJobId: "import-learning-1",
+      map_0: "code",
+      map_1: "displayName",
+      map_2: "subjectType",
+      map_3: "__IGNORE__"
+    }),
+    platformContext()
+  );
+  assert.equal(firstReview.ok, true);
+
+  const firstCommit = await commit.execute(
+    request(DATA_IMPORT_COMMIT_COMMAND_V010, {
+      importJobId: "import-learning-1"
+    }),
+    platformContext()
+  );
+  assert.equal(firstCommit.ok, true);
+
+  const first = repository.get(
+    "enterprise-context:a",
+    "import-learning-1"
+  );
+  assert.equal(first.state, "COMMITTED");
+  assert.equal(first.mappingOrigin, "HUMAN");
+  assert.ok(first.appliedRecipeId);
+  assert.ok(recipes.get(
+    "enterprise-context:a",
+    first.appliedRecipeId
+  ));
+
+  const secondStage = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId: "counterparty.subject",
+      file: csvFile("客户次批.csv", "C102", "次批客户"),
+      parameter__relationshipMode: "CUSTOMER"
+    }),
+    platformContext()
+  );
+  assert.equal(secondStage.ok, true);
+  assert.equal(
+    secondStage.result.navigateTo,
+    "/data-import/jobs/import-learning-2/review"
+  );
+  assert.equal(secondStage.result.mappingOrigin, "RECIPE");
+  assert.equal(secondStage.result.appliedRecipeId, first.appliedRecipeId);
+
+  const second = repository.get(
+    "enterprise-context:a",
+    "import-learning-2"
+  );
+  assert.equal(second.state, "DRY_RUN_READY");
+  assert.equal(second.mappingOrigin, "RECIPE");
+  assert.equal(second.appliedRecipeId, first.appliedRecipeId);
+  assert.equal(
+    second.mapping.some(item => item.sourceColumn === "备注"),
+    false
+  );
+
+  const reviewPage = createDataImportReviewPageV010({
+    job: second,
+    locale: "zh-CN"
+  });
+  assert.match(reviewPage.description, /已复用此前确认成功的企业导入规则/);
+  const summary = reviewPage.items.find(item => item.id === "summary");
+  assert.equal(summary.metadata["映射来源"], "已学习规则");
+  assert.equal(summary.metadata["导入规则"], first.appliedRecipeId);
+  assert.equal(summary.metadata["未映射列"], "备注");
+  assert.equal(summary.metadata["原始来源"], "已保留");
+
+  const evidence = reviewPage.items.find(item => item.id === "evidence");
+  assert.ok(evidence);
+  assert.match(evidence.summary, /未映射列不会.*丢弃/);
+
+  const directory = createDataImportDirectoryPageV010({
+    targets: [target],
+    jobs: repository.list("enterprise-context:a"),
+    locale: "zh-CN"
+  });
+  const secondHistory = directory.items.find(
+    item => item.id === "job:import-learning-2"
+  );
+  assert.equal(secondHistory.metadata["映射来源"], "已学习规则");
+  assert.equal(secondHistory.metadata["导入规则"], first.appliedRecipeId);
+  assert.equal(secondHistory.metadata["未映射列"], "备注");
 });
 
 test("Human review preserves Agent CONSTANT and unchanged VALUE_MAP mappings", async () => {
