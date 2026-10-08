@@ -14,4 +14,5 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/manager/assets ./dist/manager/assets
 COPY --from=build /app/help ./help
 COPY --from=build /app/tools/cp03d-cross-structure-production-proof.mjs ./tools/cp03d-cross-structure-production-proof.mjs
+COPY --from=build /app/tools/af01-conversation-postgres-migrate.mjs ./tools/af01-conversation-postgres-migrate.mjs
 CMD ["node","dist/manager/server.js"]

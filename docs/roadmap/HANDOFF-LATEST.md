@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-cross-structure-backend-proof-2026-10-08`  
-**Snapshot time:** `2026-10-08T16:18:00+08:00`  
+**Snapshot:** `af01-conversation-postgres-authority-active-2026-10-08`  
+**Snapshot time:** `2026-10-08T18:05:00+09:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-03D Data Import learning + reuse closure
+AF-01 Conversation PostgreSQL Authority
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-data-import-cross-structure-ec-backend-v0-3d-2: CLOSED_PRODUCTION_PROOF**
+**counterparty-data-import-learning-reuse-v0-3d: CLOSED_HUMAN_PASS**
 
-CP-03D cross-structure EC backend loop is production-proved with an isolated proof tenant and in-memory operational data. A Human-origin first import was dry-run validated and committed, three mappings were recorded by the real production Experience Compiler, and a differently structured second file received those mappings from EC with provenance/confidence while whole-file Recipe reuse was explicitly absent. The remaining CP-03D gate is Human UX confirmation of the recommendation presentation and correction/confirmation experience.
+CP-03/CP-03D is closed at the intended Data Import foundation boundary. Human validation passed same-structure saved-mapping reuse without requiring business-data commit; the real production Experience Compiler learning loop was independently proved across a differently structured second file with Recipe reuse absent, confidence/provenance present and advisory-only semantics. The Human explicitly accepted that recommendation-presentation styling is not a meaningful remaining gate at this stage. Rich Counterparty business modeling and destination coverage for Contact, Address, CustomerProfile, SupplierProfile and other domain fields remain intentional CP-05 through CP-07 work and do not reopen CP-03.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,58 +26,50 @@ Evidence:
 
 ```json
 {
-  "appPlatformProofPr": 478,
-  "appPlatformProofMergeCommit": "28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67",
-  "firstProofDeploymentId": "c4743f72-6b0a-40a6-9bf6-6df3321e8692",
-  "firstProofResult": "FAILED_EXPECTED_GATE",
-  "discoveredProductionDefect": "Experience Compiler SQLite connection thread-affinity caused HTTP 500 on mapping experience/recommendation endpoints",
-  "experienceCompilerFixPr": 8,
-  "experienceCompilerFixMergeCommit": "2ce89420643a9f08e60301fa6d9424705ef70c1e",
-  "experienceCompilerCI": "PASS",
-  "experienceCompilerDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
-  "experienceCompilerDeploymentStatus": "SUCCESS",
-  "proofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
-  "proofDeploymentStatus": "SUCCESS",
-  "proofResult": "PASS",
-  "firstStructureHeaders": [
-    "旧客户名称",
-    "旧客户编码",
-    "旧主体分类",
-    "来源备注"
+  "humanScopeDecisionAt": "2026-10-08",
+  "humanScopeDecision": "PASS_CLOSE_CP03_CP03D",
+  "sameStructureHumanValidation": "PASS",
+  "sameStructurePrs": [
+    475,
+    476,
+    477
   ],
-  "secondStructureHeaders": [
-    "联系电话",
-    "旧客户编码",
-    "开户银行",
-    "旧客户名称",
-    "旧主体分类"
-  ],
-  "wholeFileRecipeReused": false,
-  "learnedMappings": 3,
+  "crossStructureBackendProductionProof": "PASS",
+  "crossStructureProofPr": 478,
+  "crossStructureProofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
+  "experienceCompilerProductionFixPr": 8,
+  "experienceCompilerProductionFixDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
+  "wholeFileRecipeReusedInCrossStructureProof": false,
+  "learnedMappingCount": 3,
   "recommendationConfidence": 0.9,
-  "recommendationSupportCount": 1,
-  "recommendationConflictCount": 0,
   "recommendationProvenancePresent": true,
-  "advisoryOnly": true,
-  "humanReviewRequired": true,
-  "operationalBusinessDataPersisted": false
+  "recommendationAdvisoryOnly": true,
+  "deferredToCp05Cp07": [
+    "Contact and Address child-resource modeling",
+    "CustomerProfile and SupplierProfile semantics",
+    "richer business-field destination coverage",
+    "Counterparty full maturity and representative business-data completeness"
+  ]
 }
 ```
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_UX_CONFIRMATION_REQUIRED**
+**af01-conversation-postgres-authority: ACTIVE_DARK_ADAPTER_AND_MIGRATION**
 
-The full CP-03D backend learning loop is now production-proved: successful Human-origin commit -> real EC persistent experience -> differently structured second file -> EC advisory recommendations without Recipe reuse. The only remaining gate is Human UX confirmation in the actual Data Import experience: the recommendation/source/evidence is understandable, editable and confirmable, and no operational write occurs before Human confirmation.
+AF-01 is now the active mainline gate. Replace file-backed Conversation JSONL as production authority with an App Platform-owned PostgreSQL schema through a controlled dark-adapter, migration-integrity, cutover and restart-recovery sequence. Do not change Conversation semantics, weaken Agent turn idempotency, or create indefinite dual-write.
 
 Acceptance:
 
-- In the actual Data Import UI, a differently structured follow-up file visibly receives the expected learned EC field recommendations.
-- The Human can distinguish learned/advisory mapping from deterministic whole-file Recipe reuse.
-- Recommendation evidence/confidence is understandable enough to support review rather than appearing as unexplained automation.
-- The Human can correct or reject an EC recommendation before validation/commit.
-- No operational business-data write occurs merely because EC recommended a mapping.
-- Human production confirmation closes CP-03D and releases AF-01 as the next mainline gate.
+- Versioned PostgreSQL schema/migrations exist for Conversation threads, messages and append-only event evidence.
+- Conversation writes are awaited transactionally so a successful Host action cannot outrun durable database commit.
+- Existing production conversation-threads.jsonl can be imported idempotently with thread/message/event counts and source-event integrity verified.
+- PostgreSQL supports scoped thread listing and bounded conversation-history reads without whole-file reconstruction.
+- Production first deploys the PostgreSQL adapter dark while JSONL remains authoritative.
+- Controlled cutover preserves all existing production Conversation history and exact thread/message/run identities.
+- Browser refresh and service restart restore the same authoritative thread from PostgreSQL.
+- Existing clientTurnId idempotency and single-flight Agent Run recovery still pass after cutover.
+- JSONL is removed from the authoritative runtime path after cutover validation and retained only as bounded migration/export evidence.
 
 ## Current production preview
 
@@ -118,6 +110,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #481 — DRAFT_AF01_ACTIVE: AF-01 starts with a dark PostgreSQL Conversation authority, awaitable persistence boundary, versioned schema migration and JSONL-to-PostgreSQL integrity tooling; production authority remains JSONL until controlled cutover proof.
+- PR #481 — HUMAN_SCOPE_DECISION: Human accepted CP-03/CP-03D closure at the Data Import foundation boundary. Rich Counterparty field/domain modeling is deferred to CP-05 through CP-07 rather than expanding CP-03 indefinitely.
 - PR #478 — MERGED_PRODUCTION_BACKEND_PROOF_PASS: Added and executed an isolated production CP-03D proof: first Human-origin successful import recorded real EC experience and a differently structured second file received EC advisory mappings with confidence/provenance while Recipe reuse was absent. The proof also exposed the EC SQLite worker-thread defect before the final successful rerun.
 - PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.
 - PR #475 — MERGED_CI_PRODUCTION_PASS: Human-confirmed mappings become reusable after successful precheck without requiring business-data commit; later successful commit only adds stronger outcome evidence.
@@ -528,7 +522,7 @@ Not proved:
 - Do not store EC-learned import semantics in Enterprise Context merely because Enterprise Context persists business resources.
 - Do not embed Experience Compiler into EVO/App Platform to bypass the current Railway resource quota; EC must remain an independent optional advisory service.
 - Do not use core-schema label matches such as 国家或地区 -> countryOrRegion as evidence that EC learned semantics.
-- Do not close CP-03D until production proves Human correction -> EC experience -> different-structure semantic reuse end to end.
+- Do not reopen CP-03D for Contact, Address, CustomerProfile, SupplierProfile or richer Counterparty domain modeling; Human accepted CP-03D closure and those semantics belong to CP-05 through CP-07.
 - Do not diagnose repeated Personal Agent replies as four independent tasks when they share one user turn; turn-level idempotency and single-flight resume are now required behavior.
 - Do not reintroduce AGENT_RUN_RESUME_CONFLICT as a user-facing normal recovery path; concurrent resume must join the in-flight durable slice.
 - Do not equate AI-native with JSONL, JSON-first storage, vector databases, or sending all available context to the model.
@@ -767,23 +761,23 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state CSV and XLSX as normalizing into the same staged Data Import source model
 - state import mapping as suggested from EffectiveObjectSchema field IDs and localized labels rather than Counterparty-specific spreadsheet hardcoding
 - state CP-04 Responsibility + Projections as CLOSED_HUMAN_PASS and do not reopen it because CP-03D was later refined
-- state CP-03D Data Import learning + reuse closure as the current open gate before CP-05
+- state CP-03D Data Import learning + reuse closure as CLOSED_HUMAN_PASS and AF-01 Conversation PostgreSQL Authority as the current open gate
 - state Experience Compiler as the persistent learning owner for Data Import experience; EVO owns deterministic import execution and Eidos owns Human presentation
 - state Import Recipe as the same-structure deterministic fast path/cache, not the learning system
 - state Experience-Compiler PR #7 / commit 63c2304b6b54fa40a63996b3c3736b8ad4277c1e as merged and CI-passed for tenant/object-scoped mapping experience and advisory recommendation
 - state App Platform PR #462 / commit be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1 as merged, all CI-passed and production-deployed at Railway fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee
 - state the first hard EC learning proof as 编码 -> Counterparty.code learned from a Human-confirmed successful import and reused in a different overall table structure
 - state EC as optional/advisory: its absence or timeout must not make Data Import unavailable
-- state CP-03D Human production proof as ready: independent Experience Compiler and App Platform EC wiring are both production-deployed; remaining gate is Human end-to-end validation
+- state CP-03D as closed after same-structure Human validation plus cross-structure real-EC production proof, with recommendation presentation explicitly non-gating at this stage
 - state docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md as the active project constitution for Personal Agent state, long-context management, Context Assembly, Memory, EC learning integration and storage decisions
 - state AI-native as explicit governed durable model-independent state/context architecture rather than JSONL-first storage
 - state Conversation, Working State, Personal Context Memory and EC learning as distinct semantic layers that must not be collapsed
 - state raw conversation as source evidence and summaries/checkpoints as derived versioned regenerable artifacts
 - state current file-backed Conversation JSONL as transitional compatibility debt with PostgreSQL as the target authority, while JSONL remains valid for logs/export/migration/evaluation
 - state Personal Agent foundation growth as an incremental long-term program including durable conversation, long-context compression, Working State/Runs, idempotency, Context Assembly, governed memory, retrieval, tool discovery, verification, provenance, recovery and EC evidence
-- state the post-CP-03D execution route as CP-03D Human validation -> AF-01 Conversation PostgreSQL Authority -> AF-02 Long-context v0.1 -> CP-05
+- state the active execution route as AF-01 Conversation PostgreSQL Authority -> AF-02 Long-context v0.1 -> CP-05
 - state docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md as the authority for the bounded debt-retirement sequence
-- state AF-01 as queued until CP-03D closes and as a controlled Conversation JSONL -> PostgreSQL authority migration with history integrity proof and no indefinite dual-write
+- state AF-01 as ACTIVE and describe its controlled Conversation JSONL -> PostgreSQL authority migration with history integrity proof and no indefinite dual-write
 - state AF-02 as a bounded long-context foundation slice with source-preserving versioned summaries/checkpoints and minimal Context Assembly rather than a full Agent framework rewrite
 - state CP-05 as queued after AF-02, not the immediate next execution gate after CP-03D
 - state full Working State, full Context Compiler, broad Memory migration, vector retrieval and automatic Personal Agent -> EC learning as explicitly deferred before CP-05 unless a concrete blocker appears

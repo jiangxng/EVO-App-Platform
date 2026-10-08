@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-03D Data Import learning + reuse closure (backend cross-structure EC loop PRODUCTION PASS; final Human UX confirmation remains)  
+**Current entry gate:** AF-01 Conversation PostgreSQL Authority (CP-03/CP-03D CLOSED_HUMAN_PASS; bounded Agent foundation route active before CP-05)  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -257,7 +257,7 @@ Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ### CP-03D — Import learning + reuse product closure
 
-**Current state:** EC + App Platform IMPLEMENTED / CI PASS / PRODUCTION DEPLOYED. Same-structure mapping reuse is HUMAN PASS. The cross-structure backend loop is PRODUCTION PASS against the real EC service after fixing a production SQLite worker-thread defect. Only final Human UX confirmation of the learned recommendation/review experience remains before CP-03D closes.
+**Current state:** CLOSED_HUMAN_PASS. Same-structure saved-mapping reuse passed Human production validation, and the cross-structure backend learning loop passed against the real production Experience Compiler after fixing the SQLite worker-thread defect. The Human explicitly accepted that recommendation-presentation styling is not a meaningful remaining gate at this stage. CP-03/CP-03D therefore closes at the Data Import foundation boundary.
 
 The earlier Data Import work proved two useful but different mechanisms:
 
@@ -363,19 +363,18 @@ Production deployment is now live:
 - App Platform EC wiring deployment: `38c63eb9-cce6-444f-837f-cf4e919a5e10` — SUCCESS
 - `APP_PLATFORM_EC_ADVISORY_BASE_URL` points to the EC private endpoint.
 
-Exit requires Human production proof of:
+Closure evidence:
 
-1. first representative import through Human correction and successful commit;
-2. successful outcome is visibly recorded as EC experience;
-3. a different-structure second file receives the previously learned semantic recommendation (first hard example: `编码 -> Counterparty.code`);
-4. recommendation provenance/confidence is understandable and Human-correctable;
-5. same-structure Recipe takes the deterministic fast path without unnecessary EC/AI; this path is HUMAN PASS in production, including save-mapping -> precheck -> no-import -> later same-structure reuse;
-6. EC unavailable leaves Data Import usable;
-7. stale/incompatible target semantics fail safely;
-8. unmapped/source evidence remains recoverable;
-9. Import function and Import history remain clearly separated.
+1. same-structure Recipe reuse is HUMAN PASS in production, including save-mapping -> precheck -> no-import -> later same-structure reuse;
+2. a real production proof completed Human-origin dry run + commit -> EC experience -> differently structured second-file recommendation;
+3. the second proof explicitly showed whole-file Recipe reuse was absent;
+4. recommendations carried confidence/provenance, remained advisory-only and did not directly write operational truth;
+5. EC failure fallback, stale-target safety and source evidence are covered by implementation/protocol evidence;
+6. Human scope decision on 2026-10-08 closed recommendation-presentation styling as a non-gating concern for this milestone.
 
-Exit state: COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS
+Boundary note: CP-03 closure does **not** claim that every legacy Counterparty source column already has a mature domain model. Repeatable Contact/Address resources, CustomerProfile/SupplierProfile semantics, richer field destinations and full representative business-data completeness remain CP-05 through CP-07 work. Those later semantics must not reopen CP-03.
+
+Exit state: COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS — CLOSED_HUMAN_PASS
 
 ### Interposed execution route before CP-05
 
@@ -422,7 +421,7 @@ Exit requires a fixed known-answer test set and structured Human corrections.
 
 ## 10. CP-04 — Responsibility + Projections + data scope
 
-**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08. CP-03D remains the first non-closed product gate because the later Import learning/reuse closure requirement is still open.
+**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08. CP-03D is also now CLOSED_HUMAN_PASS; AF-01 is the active interposed gate.
 
 Create shared Responsibility capability.
 
@@ -461,7 +460,7 @@ Exit: Human can approve/reject semantic changes without reading a source-code di
 
 ## 12. CP-05 — Facets / Profiles / related resources
 
-**Current state:** QUEUED_AFTER_AF02. CP-04 is already closed; CP-03D remains the active gate. After CP-03D closes, execute AF-01 and AF-02 from the Agent foundation debt-retirement route, then start CP-05.
+**Current state:** QUEUED_AFTER_AF02. CP-03D is CLOSED_HUMAN_PASS. AF-01 is ACTIVE, AF-02 follows, then CP-05 resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
 
 Add only business-proven concepts.
 

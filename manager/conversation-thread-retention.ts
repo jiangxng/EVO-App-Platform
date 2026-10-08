@@ -21,17 +21,17 @@ function validatePolicy(
   }
 }
 
-export function previewConversationRetentionV010(input: {
+export async function previewConversationRetentionV010(input: {
   threadStore: ConversationThreadStoreV010;
   principalSubjectId: string;
   context: ActiveContextRefV010;
   candidatePolicy: ConversationRetentionCandidatePolicyV010;
   policySource?: ConversationRetentionPolicySourceV010;
   now?: Date;
-}): ConversationRetentionPreviewResultV010 {
+}): Promise<ConversationRetentionPreviewResultV010> {
   validatePolicy(input.candidatePolicy);
   const now = input.now ?? new Date();
-  const visible = input.threadStore.list({
+  const visible = await input.threadStore.list({
     principalSubjectId: input.principalSubjectId,
     context: input.context,
     includeArchived: true,

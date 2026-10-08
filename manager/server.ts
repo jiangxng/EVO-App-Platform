@@ -81,6 +81,13 @@ import {
   createMemoryConversationThreadEventStoreV010
 } from "./conversation-thread-store.js";
 import {
+  createPostgresConversationAuthorityV010,
+  type PostgresConversationAuthorityV010
+} from "./conversation-postgres-store.js";
+import {
+  createMirroredConversationThreadStoreV010
+} from "./conversation-mirror-store.js";
+import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
 import {
@@ -1363,13 +1370,90 @@ const agentRunStore = createAgentRunStoreV010({
 const conversationThreadFile =
   process.env.APP_PLATFORM_CONVERSATION_THREAD_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "conversation-threads.jsonl") : undefined);
+const configuredConversationAuthority =
+  process.env.APP_PLATFORM_CONVERSATION_AUTHORITY?.trim().toUpperCase()
+  || "JSONL";
+if (
+  configuredConversationAuthority !== "JSONL"
+  && configuredConversationAuthority !== "JSONL_MIRROR_POSTGRES"
+  && configuredConversationAuthority !== "POSTGRES"
+) {
+  throw new Error("CONVERSATION_AUTHORITY_INVALID");
+}
+const conversationDatabaseUrl =
+  process.env.APP_PLATFORM_CONVERSATION_DATABASE_URL?.trim();
+const conversationPostgresSchema =
+  process.env.APP_PLATFORM_CONVERSATION_POSTGRES_SCHEMA?.trim();
+let conversationPostgresAuthority:
+  | PostgresConversationAuthorityV010
+  | undefined;
+if (conversationDatabaseUrl) {
+  conversationPostgresAuthority =
+    await createPostgresConversationAuthorityV010({
+      connectionString: conversationDatabaseUrl,
+      ...(conversationPostgresSchema
+        ? { schema: conversationPostgresSchema }
+        : {})
+    });
+}
+if (
+  configuredConversationAuthority !== "JSONL"
+  && !conversationPostgresAuthority
+) {
+  throw new Error("CONVERSATION_POSTGRES_DATABASE_URL_REQUIRED");
+}
 const conversationThreadEventStore = conversationThreadFile
   ? createJsonlConversationThreadEventStoreV010(conversationThreadFile)
   : createMemoryConversationThreadEventStoreV010();
-const conversationThreadStore = createConversationThreadStoreV010({
-  eventStore: conversationThreadEventStore,
-  eventId: randomUUID
-});
+const compatibilityConversationThreadStore =
+  createConversationThreadStoreV010({
+    eventStore: conversationThreadEventStore,
+    eventId: randomUUID
+  });
+const migrateJsonlOnStartup =
+  process.env.APP_PLATFORM_CONVERSATION_MIGRATE_JSONL_ON_STARTUP?.trim()
+    .toLowerCase() === "true";
+if (
+  conversationPostgresAuthority
+  && conversationThreadFile
+  && (
+    configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+    || migrateJsonlOnStartup
+  )
+) {
+  const migrated = await conversationPostgresAuthority.importEvents(
+    conversationThreadEventStore.listEvents()
+  );
+  console.log(
+    "CONVERSATION_POSTGRES_STARTUP_MIGRATION_PASS",
+    JSON.stringify({
+      authority: configuredConversationAuthority,
+      sourceEventCount: migrated.sourceEventCount,
+      sourceThreadCount: migrated.sourceThreadCount,
+      sourceMessageCount: migrated.sourceMessageCount,
+      sourceDigest: migrated.sourceDigest,
+      target: migrated.target
+    })
+  );
+}
+const conversationThreadStore =
+  configuredConversationAuthority === "POSTGRES"
+    ? conversationPostgresAuthority!.store
+    : configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+      ? createMirroredConversationThreadStoreV010({
+          primary: compatibilityConversationThreadStore,
+          postgres: conversationPostgresAuthority!,
+          onMirrorError(error, threadId) {
+            console.error(
+              "CONVERSATION_POSTGRES_MIRROR_FAILED",
+              JSON.stringify({
+                threadId,
+                error: error instanceof Error ? error.message : String(error)
+              })
+            );
+          }
+        })
+      : compatibilityConversationThreadStore;
 const configuredConversationRetentionDays =
   process.env.APP_PLATFORM_CONVERSATION_RETENTION_DAYS?.trim();
 const conversationRetentionDays = Number(
