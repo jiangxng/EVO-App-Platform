@@ -251,7 +251,9 @@ export async function drainResumableAgentRunV010(
   options: DrainResumableAgentRunOptionsV010 = {}
 ): Promise<DrainResumableAgentRunResultV010> {
   const maxAdvances = Math.max(1, Math.trunc(options.maxAdvances ?? 12));
-  const maxElapsedMs = Math.max(1_000, options.maxElapsedMs ?? 90_000);
+  // Keep one Host action comfortably below the browser/proxy request timeout.
+  // Longer work remains durable and is resumed by the run-backed client.
+  const maxElapsedMs = Math.max(1_000, options.maxElapsedMs ?? 35_000);
   const startedAt = Date.now();
 
   let advanceCount = 0;
