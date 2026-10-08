@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-03D Data Import learning + reuse closure (same-structure precheck reuse HUMAN PASS; cross-structure EC validation remains open)  
+**Current entry gate:** CP-03D Data Import learning + reuse closure (backend cross-structure EC loop PRODUCTION PASS; final Human UX confirmation remains)  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -257,7 +257,7 @@ Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ### CP-03D — Import learning + reuse product closure
 
-**Current state:** EC + App Platform IMPLEMENTED / CI PASS / PRODUCTION DEPLOYED; Human end-to-end production proof pending.
+**Current state:** EC + App Platform IMPLEMENTED / CI PASS / PRODUCTION DEPLOYED. Same-structure mapping reuse is HUMAN PASS. The cross-structure backend loop is PRODUCTION PASS against the real EC service after fixing a production SQLite worker-thread defect. Only final Human UX confirmation of the learned recommendation/review experience remains before CP-03D closes.
 
 The earlier Data Import work proved two useful but different mechanisms:
 

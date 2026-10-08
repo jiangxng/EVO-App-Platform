@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-precheck-reuse-human-pass-2026-10-08`  
-**Snapshot time:** `2026-10-08T15:53:00+08:00`  
+**Snapshot:** `cp03d-cross-structure-backend-proof-2026-10-08`  
+**Snapshot time:** `2026-10-08T16:18:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**counterparty-data-import-precheck-reuse-v0-3d-1: CLOSED_HUMAN_PASS**
+**counterparty-data-import-cross-structure-ec-backend-v0-3d-2: CLOSED_PRODUCTION_PROOF**
 
-CP-03D same-structure mapping reuse is Human-validated in production. A Human can save/confirm field mapping, reach successful precheck without importing business data, and a later same-structure upload automatically reuses that mapping. Historical precheck-only mappings created before Recipe persistence are also reusable when current target/purpose/schema compatibility still holds. This closes the same-structure Recipe sub-slice only; full CP-03D remains open for cross-structure Experience Compiler learning/recommendation validation.
+CP-03D cross-structure EC backend loop is production-proved with an isolated proof tenant and in-memory operational data. A Human-origin first import was dry-run validated and committed, three mappings were recorded by the real production Experience Compiler, and a differently structured second file received those mappings from EC with provenance/confidence while whole-file Recipe reuse was explicitly absent. The remaining CP-03D gate is Human UX confirmation of the recommendation presentation and correction/confirmation experience.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,37 +26,58 @@ Evidence:
 
 ```json
 {
-  "futureValidatedMappingPr": 475,
-  "futureValidatedMappingMergeCommit": "eb6f55905a1758d2344f060b2d535b8b2c1b02c1",
-  "historicalPrecheckCompatibilityPr": 476,
-  "historicalPrecheckCompatibilityMergeCommit": "0bd314025ba24aa0e040f33c1608479bcdced135",
-  "platformCI": "PASS",
-  "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "a5876f2b-5d70-4e42-a96a-4b17d292f909",
-  "railwayDeploymentStatus": "SUCCESS",
-  "humanValidationAt": "2026-10-08",
-  "humanValidation": "PASS",
-  "validatedScenario": "save mapping -> precheck pass -> no business import -> same-structure upload reuses mapping",
-  "cp03dOverallClosed": false
+  "appPlatformProofPr": 478,
+  "appPlatformProofMergeCommit": "28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67",
+  "firstProofDeploymentId": "c4743f72-6b0a-40a6-9bf6-6df3321e8692",
+  "firstProofResult": "FAILED_EXPECTED_GATE",
+  "discoveredProductionDefect": "Experience Compiler SQLite connection thread-affinity caused HTTP 500 on mapping experience/recommendation endpoints",
+  "experienceCompilerFixPr": 8,
+  "experienceCompilerFixMergeCommit": "2ce89420643a9f08e60301fa6d9424705ef70c1e",
+  "experienceCompilerCI": "PASS",
+  "experienceCompilerDeploymentId": "f7c5b80e-e843-449d-9dd7-8ae2cff95f39",
+  "experienceCompilerDeploymentStatus": "SUCCESS",
+  "proofDeploymentId": "4986760a-9c70-4719-adec-41ff57773e1a",
+  "proofDeploymentStatus": "SUCCESS",
+  "proofResult": "PASS",
+  "firstStructureHeaders": [
+    "旧客户名称",
+    "旧客户编码",
+    "旧主体分类",
+    "来源备注"
+  ],
+  "secondStructureHeaders": [
+    "联系电话",
+    "旧客户编码",
+    "开户银行",
+    "旧客户名称",
+    "旧主体分类"
+  ],
+  "wholeFileRecipeReused": false,
+  "learnedMappings": 3,
+  "recommendationConfidence": 0.9,
+  "recommendationSupportCount": 1,
+  "recommendationConflictCount": 0,
+  "recommendationProvenancePresent": true,
+  "advisoryOnly": true,
+  "humanReviewRequired": true,
+  "operationalBusinessDataPersisted": false
 }
 ```
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_CROSS_STRUCTURE_EC_VALIDATION_REQUIRED**
+**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_UX_CONFIRMATION_REQUIRED**
 
-CP-03D same-structure Recipe reuse has passed Human production validation, including the precheck-only path and historical compatibility. The remaining CP-03D gate is the Experience Compiler learning loop: a successful committed Human-confirmed mapping must become scoped EC experience and a later differently structured file must receive the learned semantic recommendation for Human review.
+The full CP-03D backend learning loop is now production-proved: successful Human-origin commit -> real EC persistent experience -> differently structured second file -> EC advisory recommendations without Recipe reuse. The only remaining gate is Human UX confirmation in the actual Data Import experience: the recommendation/source/evidence is understandable, editable and confirmable, and no operational write occurs before Human confirmation.
 
 Acceptance:
 
-- A first representative import is Human-corrected, dry-run validated and successfully committed through the ordinary deterministic Data Import path.
-- The successful Human-confirmed mapping is visibly recorded as scoped Experience Compiler experience with provenance.
-- A later file with a different overall table structure receives the previously learned semantic recommendation, such as 编码 -> Counterparty.code, without relying on whole-file Recipe fingerprint reuse.
-- The EC recommendation exposes confidence/evidence, remains Human-correctable, and never commits operational truth directly.
-- Equal conflicting learned evidence fails closed rather than silently selecting a mapping.
-- EC unavailable or timed out leaves Data Import usable through deterministic mapping and Human review.
-- Unmapped/source evidence remains recoverable and import function/history experiences remain separated.
-- Human production validation confirms the full first successful commit -> EC learning -> different-structure recommendation -> Human confirmation loop.
+- In the actual Data Import UI, a differently structured follow-up file visibly receives the expected learned EC field recommendations.
+- The Human can distinguish learned/advisory mapping from deterministic whole-file Recipe reuse.
+- Recommendation evidence/confidence is understandable enough to support review rather than appearing as unexplained automation.
+- The Human can correct or reject an EC recommendation before validation/commit.
+- No operational business-data write occurs merely because EC recommended a mapping.
+- Human production confirmation closes CP-03D and releases AF-01 as the next mainline gate.
 
 ## Current production preview
 
@@ -65,8 +86,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `0bd314025ba24aa0e040f33c1608479bcdced135`
-- Deployment: `a5876f2b-5d70-4e42-a96a-4b17d292f909`
+- Commit: `28e95b5092b8d6a21cde3bfb81f5b6e1e7fbbf67`
+- Deployment: `4986760a-9c70-4719-adec-41ff57773e1a`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -97,6 +118,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #478 — MERGED_PRODUCTION_BACKEND_PROOF_PASS: Added and executed an isolated production CP-03D proof: first Human-origin successful import recorded real EC experience and a differently structured second file received EC advisory mappings with confidence/provenance while Recipe reuse was absent. The proof also exposed the EC SQLite worker-thread defect before the final successful rerun.
 - PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.
 - PR #475 — MERGED_CI_PRODUCTION_PASS: Human-confirmed mappings become reusable after successful precheck without requiring business-data commit; later successful commit only adds stronger outcome evidence.
 - PR #474 — MERGED_CI_PRODUCTION_PASS: Added compatibility reuse for Human-confirmed successful imports created before persistent Import Recipes.
