@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-ec-data-import-learning-service-blocked-2026-10-08`  
-**Snapshot time:** `2026-10-08T09:31:00+08:00`  
+**Snapshot:** `cp03d-ec-data-import-learning-production-ready-2026-10-08`  
+**Snapshot time:** `2026-10-08T10:05:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -39,9 +39,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: EC_PRODUCTION_SERVICE_BLOCKED_HUMAN_PENDING**
+**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_PRODUCTION_VALIDATION_READY**
 
-CP-03D now includes the real EVO -> Experience Compiler -> EVO learning boundary. EC and App Platform implementations are merged and CI-passed; App Platform is production-deployed. Human production proof is blocked only because Railway currently refuses provisioning the independent EC service at the account resource limit. Data Import remains fully operable without EC.
+CP-03D EC-backed import learning is fully deployed. Experience Compiler and App Platform are both production-healthy, App Platform is wired to EC over Railway private networking, and the remaining gate is Human end-to-end proof of first correction -> EC experience -> different-structure semantic reuse.
 
 Acceptance:
 
@@ -63,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1`
-- Deployment: `fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee`
+- Commit: `0d0d61782228eb9951913bc96f561bd4c512ce52`
+- Deployment: `38c63eb9-cce6-444f-837f-cf4e919a5e10`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,7 +95,8 @@ Not proved:
 
 ## Recent mainline changes
 
-- PR #462 — MERGED_CI_PRODUCTION_PASS_EC_SERVICE_PENDING: CP-03D Experience Compiler integration: successful Human-confirmed import mappings can become EC experience; structurally different later files can receive scoped EC recommendations; EC is optional/advisory and App Platform is production-deployed.
+- PR #463 — MERGED_CI_PRODUCTION_PASS: Make Experience Compiler the Data Import learning authority; record App Platform production deployment and EC deployment boundary.
+- PR #462 — MERGED_CI_PRODUCTION_PASS: Integrate optional EC advisory learning into Data Import; successful Human-confirmed mappings feed EC and different-structure imports can reuse scoped semantic experience.
 - PR #461 — MERGED_CI_PRODUCTION_PASS: Continuity advanced CP-03D to production validation while preserving CP-04 as CLOSED_HUMAN_PASS.
 - PR #460 — MERGED_CI_PRODUCTION_PASS: CP-03D whole-file Import Recipe closure: learned Recipe provenance/evidence UI, second same-structure reuse proof and stale-schema fallback proof.
 - PR #458 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-04 Responsibility + governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope; Human validation passed.
