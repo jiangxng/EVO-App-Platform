@@ -5357,6 +5357,39 @@ const server = createServer(async (request, response) => {
       return json(response, result.status, result.body);
     }
 
+    if (
+      request.method === "GET"
+      && (
+        url.pathname === "/login-assets/tuge-logo-reference.webp"
+        || url.pathname === "/login-assets/tuge-global-connectivity-demo.webp"
+      )
+    ) {
+      const assetName = url.pathname.split("/").at(-1);
+      if (!assetName) {
+        return json(response, 404, { code: "LOGIN_ASSET_NOT_FOUND" });
+      }
+      try {
+        const bytes = await readFile(
+          fileURLToPath(new URL("./assets/" + assetName, import.meta.url))
+        );
+        const etag = "\"" + createHash("sha256")
+          .update(bytes)
+          .digest("base64url") + "\"";
+        response.setHeader("etag", etag);
+        response.setHeader("cache-control", "public, max-age=3600");
+        response.setHeader("content-type", "image/webp");
+        if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+          transportTraffic.recordNotModified();
+          response.statusCode = 304;
+          return response.end();
+        }
+        response.statusCode = 200;
+        return response.end(bytes);
+      } catch {
+        return json(response, 404, { code: "LOGIN_ASSET_NOT_FOUND" });
+      }
+    }
+
     if (request.method === "GET" && url.pathname === "/login") {
       response.setHeader("cache-control", "no-store");
       const returnTo = normalizeAuthenticationReturnToV010(

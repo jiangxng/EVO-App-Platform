@@ -90,7 +90,8 @@ test("standard login remains the default and only exposes a subtle demo-skin swi
 
   assert.match(html, /data-login-skin="standard"/);
   assert.match(html, /以客户为中心，以奋斗者为本。/);
-  assert.doesNotMatch(html, /TUGE-TECHNOLOGIES-Logo\.jpg/);
+  assert.doesNotMatch(html, /\/login-assets\/tuge-logo-reference\.webp/);
+  assert.doesNotMatch(html, /\/login-assets\/tuge-global-connectivity-demo\.webp/);
   assert.match(html, /class="evo-login-skin-toggle"/);
   assert.match(html, /skin=demo/);
 });
@@ -111,9 +112,17 @@ test("demo login keeps the approved headline while changing only enterprise cove
   assert.match(html, /50\+/);
   assert.match(html, /200\+/);
   assert.match(html, /1000\+/);
-  assert.match(html, /TUGE-TECHNOLOGIES-Logo\.jpg/);
-  assert.match(html, /filter:none;mix-blend-mode:normal/);
+  assert.match(html, /\/login-assets\/tuge-logo-reference\.webp/);
+  assert.match(html, /\/login-assets\/tuge-global-connectivity-demo\.webp/);
+  assert.match(html, /alt="途鸽 TUGE GROUP"/);
+  assert.match(html, /全球连接 · 云端智能 · 让世界更近/);
+  assert.match(html, /evo-login-demo-topbar/);
+  assert.match(html, /evo-login-demo-art/);
+  assert.match(html, /filter:none;transform:none/);
+  assert.doesNotMatch(html, /manuals\.plus/);
+  assert.doesNotMatch(html, /TUGE TECHNOLOGIES/);
   assert.match(html, /skin=standard/);
+  assert.match(html, /skin=demo/);
   assert.match(html, /Continue with Google|使用 Google 继续/);
 });
 
@@ -128,4 +137,23 @@ test("locale switching preserves the selected login skin", () => {
   });
 
   assert.match(html, /locale=en&amp;skin=demo|locale=en&skin=demo/);
+});
+
+
+test("TUGE demo visual assets are local presentation assets and do not replace authentication semantics", () => {
+  const html = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    skin: "demo",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  assert.match(html, /以客户为中心，以奋斗者为本。/);
+  assert.match(html, /\/auth\/login\?returnTo=/);
+  assert.match(html, /data-provider="google" data-status="AVAILABLE"/);
+  assert.match(html, /data-provider="microsoft" data-status="PLANNED"/);
+  assert.match(html, /data-provider="enterprise-sso" data-status="ADMIN_CONFIGURATION_REQUIRED"/);
+  assert.match(html, /data-provider="email" data-status="PLANNED"/);
 });
