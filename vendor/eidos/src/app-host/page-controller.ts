@@ -1785,6 +1785,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       const submit = async (
         interactionContext?: Record<string, JsonValue>
       ) => {
+        if (runTransportInFlight) return;
         const message = textarea.value.trim();
         if (!message) return;
 
@@ -1792,15 +1793,17 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           ? createChatConversationHistoryV010(state.messages)
           : [];
 
+        const clientTurnId =
+          `user-${Date.now()}-${state.messages.length}`;
         state.messages.push(definition.contractVersion === "0.2.0"
           ? {
-              id: `user-${Date.now()}-${state.messages.length}`,
+              id: clientTurnId,
               contractVersion: "0.2.0",
               role: "user",
               parts: [{ type: "text", text: message }]
             }
           : {
-              id: `user-${Date.now()}-${state.messages.length}`,
+              id: clientTurnId,
               role: "user",
               text: message
             });
@@ -1836,6 +1839,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           const values: Record<string, JsonValue> = {
             [definition.composer.key]: message,
             message,
+            clientTurnId,
             ...(definition.contractVersion === "0.2.0" && conversationHistory.length
               ? {
                   conversationHistory: conversationHistory.map(item => ({

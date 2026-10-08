@@ -61,7 +61,7 @@ export function createDeepSeekResponsesLlmProvider(
 
   const baseUrl = normalizedBaseUrl(options.baseUrl);
   const modelId = options.model?.trim() || "deepseek-flash";
-  const inferenceTimeoutMs = options.inferenceTimeoutMs ?? 50_000;
+  const inferenceTimeoutMs = options.inferenceTimeoutMs ?? 30_000;
   if (
     !Number.isFinite(inferenceTimeoutMs)
     || inferenceTimeoutMs < 1_000

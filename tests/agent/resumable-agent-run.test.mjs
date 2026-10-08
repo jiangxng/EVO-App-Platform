@@ -373,16 +373,18 @@ test("resume rechecks Principal and Context scope", async () => {
   );
 });
 
-test("concurrent resume is rejected while one slice is active", async () => {
+test("concurrent resume joins the same in-flight slice without duplicate inference", async () => {
   const store = memoryStore();
   createRun(store);
 
   let release;
+  let inferenceCount = 0;
   const gate = new Promise(resolve => { release = resolve; });
   const provider = {
     providerId: "test.llm",
     modelId: "test-model",
     async infer() {
+      inferenceCount += 1;
       await gate;
       return {
         contractVersion: "0.1.0",
@@ -406,18 +408,18 @@ test("concurrent resume is rejected while one slice is active", async () => {
   });
   await new Promise(resolve => setTimeout(resolve, 0));
 
-  await assert.rejects(
-    () => runExecutor.resume({
-      runId: "agent-run:test",
-      principal,
-      context
-    }),
-    /AGENT_RUN_RESUME_CONFLICT/
-  );
+  const second = runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
 
   release();
-  const completed = await first;
-  assert.equal(completed.run.state, "SUCCEEDED");
+  const [firstCompleted, secondCompleted] = await Promise.all([first, second]);
+  assert.equal(firstCompleted.run.state, "SUCCEEDED");
+  assert.equal(secondCompleted.run.state, "SUCCEEDED");
+  assert.equal(firstCompleted.run.runId, secondCompleted.run.runId);
+  assert.equal(inferenceCount, 1);
 });
 
 test("indeterminate resumed WRITE blocks the run fail-closed", async () => {
