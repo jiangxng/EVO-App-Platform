@@ -88,6 +88,12 @@ import {
   createMirroredConversationThreadStoreV010
 } from "./conversation-mirror-store.js";
 import {
+  createPostgresConversationContextArtifactStoreV010
+} from "./conversation-context-postgres-store.js";
+import {
+  createConversationContextAssemblerV010
+} from "./conversation-context-assembly.js";
+import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
 import {
@@ -1454,6 +1460,20 @@ const conversationThreadStore =
           }
         })
       : compatibilityConversationThreadStore;
+
+const conversationContextArtifactStore = conversationDatabaseUrl
+  ? await createPostgresConversationContextArtifactStoreV010({
+      connectionString: conversationDatabaseUrl,
+      ...(conversationPostgresSchema
+        ? { schema: conversationPostgresSchema }
+        : {})
+    })
+  : undefined;
+const conversationContextAssembler = conversationContextArtifactStore
+  ? createConversationContextAssemblerV010({
+      artifactStore: conversationContextArtifactStore
+    })
+  : undefined;
 const configuredConversationRetentionDays =
   process.env.APP_PLATFORM_CONVERSATION_RETENTION_DAYS?.trim();
 const conversationRetentionDays = Number(
@@ -4828,6 +4848,9 @@ const actionRouter = createAppActionRouter(
     }),
     ...createThreadBackedAgentTurnActionHandlersV010({
       threadStore: conversationThreadStore,
+      ...(conversationContextAssembler
+        ? { contextAssembler: conversationContextAssembler }
+        : {}),
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
       resolveLlmProvider,
