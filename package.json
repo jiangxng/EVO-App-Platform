@@ -73,6 +73,7 @@
     "typescript": "^5.9.0"
   },
   "dependencies": {
-    "sigstore": "5.0.0"
+    "sigstore": "5.0.0",
+    "postgres": "3.4.9"
   }
 }
