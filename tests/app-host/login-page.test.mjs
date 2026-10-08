@@ -41,7 +41,9 @@ test("login experience preserves the local-return boundary", () => {
 
   assert.doesNotMatch(html, /evil\.example/);
   assert.match(html, /登录到 EVO/);
-  assert.match(html, /创建账号/);
+  assert.match(html, /欢迎登录/);
+  assert.match(html, /账号 \/ 邮箱/);
+  assert.match(html, /密码/);
   assert.match(html, /returnTo=%2F/);
 });
 
@@ -72,6 +74,7 @@ test("login cover defaults to enterprise-to-employee messaging rather than platf
   assert.match(zh, /目标一致/);
   assert.match(zh, /责任清晰/);
   assert.match(zh, /持续改善/);
+  assert.match(zh, /账号密码登录功能尚未启用/);
   assert.match(zh, /今天的每一步，都在推动企业向目标前进。/);
   assert.doesNotMatch(zh, />Applications</);
   assert.doesNotMatch(zh, />Context</);
@@ -92,7 +95,7 @@ test("standard login remains the default and only exposes a subtle demo-skin swi
   assert.match(html, /以客户为中心，以奋斗者为本。/);
   assert.doesNotMatch(html, /\/login-assets\/tuge-logo-reference\.webp/);
   assert.doesNotMatch(html, /\/login-assets\/tuge-global-connectivity-demo\.webp/);
-  assert.match(html, /class="evo-login-skin-toggle"/);
+  assert.match(html, /class="evo-login-demo-skins"/);
   assert.match(html, /skin=demo/);
 });
 
@@ -114,7 +117,7 @@ test("demo login keeps the approved headline while changing only enterprise cove
   assert.match(html, /1000\+/);
   assert.match(html, /\/login-assets\/tuge-logo-reference\.webp/);
   assert.match(html, /\/login-assets\/tuge-global-connectivity-demo\.webp/);
-  assert.match(html, /alt="途鸽 TUGE GROUP"/);
+  assert.match(html, /alt="途鸽科技"/);
   assert.match(html, /全球连接 · 云端智能 · 让世界更近/);
   assert.match(html, /evo-login-demo-topbar/);
   assert.match(html, /evo-login-demo-art/);
@@ -156,4 +159,56 @@ test("TUGE demo visual assets are local presentation assets and do not replace a
   assert.match(html, /data-provider="microsoft" data-status="PLANNED"/);
   assert.match(html, /data-provider="enterprise-sso" data-status="ADMIN_CONFIGURATION_REQUIRED"/);
   assert.match(html, /data-provider="email" data-status="PLANNED"/);
+});
+
+
+test("final login card presents planned credential capabilities disabled while Google stays real", () => {
+  const html = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    skin: "demo",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  assert.match(html, /id="evo-login-account"[^>]*disabled aria-disabled="true"/);
+  assert.match(html, /id="evo-login-password"[^>]*disabled aria-disabled="true"/);
+  assert.match(html, /type="checkbox" disabled aria-disabled="true"/);
+  assert.match(html, /evo-login-primary-disabled[^>]*disabled aria-disabled="true"/);
+  assert.match(html, /忘记密码？/);
+  assert.match(html, /更多登录方式，敬请期待/);
+  assert.match(html, /href="\/auth\/login\?returnTo=/);
+  assert.match(html, /使用 Google 继续/);
+});
+
+test("standard and demo share the final reference login card but TUGE assets remain demo-only", () => {
+  const standard = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    skin: "standard",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+  const demo = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    skin: "demo",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  for (const html of [standard, demo]) {
+    assert.match(html, /evo-login-final-card/);
+    assert.match(html, /欢迎登录/);
+    assert.match(html, /账号 \/ 邮箱/);
+    assert.match(html, /evo-login-primary-disabled/);
+  }
+  assert.doesNotMatch(standard, /tuge-login-background\.webp/);
+  assert.doesNotMatch(standard, /tuge-logo-transparent\.webp/);
+  assert.match(demo, /tuge-login-background\.webp/);
+  assert.match(demo, /tuge-logo-transparent\.webp/);
+  assert.match(demo, /以客户为中心，以奋斗者为本。/);
 });
