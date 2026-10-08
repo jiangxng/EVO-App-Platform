@@ -240,7 +240,7 @@ export function createLoginExperienceHtmlV010(
   const skinLabel = skin === "demo" ? text.standardMode : text.demoMode;
   const skinAria = skin === "demo" ? text.switchToStandard : text.switchToDemo;
   const brandMark = skin === "demo"
-    ? `<img class="evo-login-customer-logo" src="/login-assets/tuge-logo-reference.webp" alt="途鸽 TUGE GROUP">`
+    ? `<img class="evo-login-customer-logo" src="/login-assets/tuge-logo-transparent.webp" alt="途鸽 TUGE GROUP">`
     : `<span class="evo-login-mark" aria-hidden="true">E</span><span>EVO</span>`;
   const heroBody = skin === "demo" ? text.demoHeroBody : text.heroBody;
   const coverFooter = skin === "demo" ? text.demoFooter : text.coverFooter;
@@ -257,7 +257,7 @@ export function createLoginExperienceHtmlV010(
       </div>`;
   const demoScene = skin === "demo"
     ? `<div class="evo-login-demo-scene" aria-hidden="true">
-        <img class="evo-login-demo-art" src="/login-assets/tuge-global-connectivity-demo.webp" alt="">
+        <img class="evo-login-demo-art" src="/login-assets/tuge-login-background.webp" alt="">
         <div class="evo-login-demo-art-wash"></div>
         <div class="evo-login-demo-tags">
           <span class="tag-a">${text.demoTagOne}</span>
@@ -267,20 +267,22 @@ export function createLoginExperienceHtmlV010(
         </div>
       </div>`
     : "";
-  const demoTopbar = skin === "demo"
-    ? `<header class="evo-login-demo-topbar">
+  const demoTopbar = `<header class="evo-login-demo-topbar">
         <div class="evo-login-demo-logo">${brandMark}</div>
-        <div class="evo-login-demo-topline">${text.demoTopline}</div>
+        <div class="evo-login-demo-topline">${skin === "demo" ? text.demoTopline : (locale === "zh-CN" ? "让目标、责任与结果清晰连接" : "Connect goals, ownership and results")}</div>
         <div class="evo-login-demo-top-actions">
           <a class="evo-login-demo-language" href="${switchHref}" hreflang="${switchLocale}">◎ ${switchLabel}</a>
           <nav class="evo-login-demo-skins" aria-label="${skinAria}">
-            <a href="${standardHref}" data-active="false">${text.standardMode}版</a>
-            <a href="${demoHref}" data-active="true">${text.demoMode}版</a>
+            <a href="${standardHref}"${skin === "standard" ? ' aria-current="page"' : ""}>${locale === "zh-CN" ? "标准版" : "Standard"}</a>
+            <a href="${demoHref}"${skin === "demo" ? ' aria-current="page"' : ""}>${locale === "zh-CN" ? "演示版" : "Demo"}</a>
           </nav>
         </div>
-      </header>`
-    : "";
+      </header>`;
   const methods = options.methods
+    .map(method => providerButton(method, returnTo, locale, text))
+    .join("");
+  const googleMethod = options.methods
+    .filter(method => method.id === "google")
     .map(method => providerButton(method, returnTo, locale, text))
     .join("");
 
@@ -417,6 +419,69 @@ a{color:inherit}
   .evo-login-registration-row{align-items:flex-start;flex-direction:column}
   .evo-login-trust{grid-template-columns:1fr}
 }
+/* Final reference layout shared by Standard and Demo */
+.evo-login-shell{position:relative;grid-template-columns:minmax(0,1.16fr) minmax(430px,.84fr);background:#eaf4ff}
+.evo-login-demo-topbar{display:grid}
+.evo-login-demo-logo .evo-login-mark{color:#fff;background:#2169b4;border-color:#2169b4}
+.evo-login-demo-logo>span:last-child{color:#17385b;font-size:20px;font-weight:760}
+.evo-login-demo-skins a[aria-current="page"]{background:#fff;color:#176be0;box-shadow:0 4px 14px rgba(45,112,202,.12)}
+.evo-login-shell[data-login-skin="standard"] .evo-login-brand{padding:150px clamp(44px,4.4vw,74px) 54px;background:linear-gradient(145deg,#fbfdff 0%,#edf7ff 47%,#dcefff 100%);color:#0b2240}
+.evo-login-shell[data-login-skin="standard"] .evo-login-brand:after{width:780px;height:780px;right:auto;left:-270px;bottom:-530px;border-color:rgba(42,117,201,.14);box-shadow:0 0 0 90px rgba(55,136,218,.035),0 0 0 180px rgba(55,136,218,.022)}
+.evo-login-shell[data-login-skin="standard"] .evo-login-wordmark{display:none}
+.evo-login-shell[data-login-skin="standard"] .evo-login-hero{max-width:760px;margin:0;padding-top:5vh}
+.evo-login-shell[data-login-skin="standard"] .evo-login-eyebrow{color:#315d92;letter-spacing:.02em;text-transform:none}
+.evo-login-shell[data-login-skin="standard"] .evo-login-hero h1{max-width:750px;color:#071b39;font-size:clamp(45px,4vw,66px);line-height:1.08;letter-spacing:-.04em}
+.evo-login-shell[data-login-skin="standard"] .evo-login-hero>p:last-of-type{max-width:680px;color:#526d8d;font-size:15px}
+.evo-login-shell[data-login-skin="standard"] .evo-login-visual{max-width:690px;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:34px}
+.evo-login-shell[data-login-skin="standard"] .evo-login-visual div{min-height:62px;padding:0 28px;border:0;border-left:1px solid rgba(49,102,162,.18);border-radius:0;background:transparent;backdrop-filter:none}
+.evo-login-shell[data-login-skin="standard"] .evo-login-visual div:first-child{padding-left:0;border-left:0}
+.evo-login-shell[data-login-skin="standard"] .evo-login-visual strong{color:#174e83;font-size:14px}
+.evo-login-shell[data-login-skin="standard"] .evo-login-visual span{color:#627b98;font-size:11px;line-height:1.55}
+.evo-login-shell[data-login-skin="standard"] .evo-login-brand-footer{color:#3d648c}
+.evo-login-shell[data-login-skin="demo"] .evo-login-demo-scene{height:74%}
+.evo-login-shell[data-login-skin="demo"] .evo-login-demo-art{left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;filter:none;opacity:1}
+.evo-login-shell[data-login-skin="demo"] .evo-login-demo-art-wash{background:linear-gradient(180deg,#edf7ff 0%,rgba(237,247,255,.92) 11%,rgba(237,247,255,.48) 29%,rgba(237,247,255,.04) 58%,transparent 100%)}
+.evo-login-main{padding:132px clamp(38px,4vw,68px) 48px;background:linear-gradient(180deg,#eaf5ff 0%,#e1efff 100%)}
+.evo-login-final-card{width:min(510px,100%);padding:42px 40px 34px;border:1px solid rgba(126,158,196,.30);border-radius:24px;background:rgba(255,255,255,.965);box-shadow:0 26px 72px rgba(44,91,147,.15);backdrop-filter:blur(16px)}
+.evo-login-final-card .evo-login-lead{margin:10px 0 22px;color:#627892}
+.evo-login-final-card h2{color:#102743;font-size:32px}
+.evo-login-coming-soon{display:inline-flex;margin-bottom:12px;padding:4px 8px;border-radius:999px;background:#f1f6fb;color:#7890a9;font-size:10px}
+.evo-login-credential-field{display:grid;gap:8px;margin-top:16px}
+.evo-login-credential-field label{color:#243b57;font-size:13px;font-weight:650}
+.evo-login-input-wrap{position:relative}
+.evo-login-input-wrap input{width:100%;height:54px;border:1px solid #d3dfec;border-radius:10px;padding:0 46px;color:#8b9caf;background:#f9fbfd;outline:none}
+.evo-login-input-wrap input:disabled{cursor:not-allowed;opacity:1}
+.evo-login-input-wrap input::placeholder{color:#a8b5c4}
+.evo-login-input-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:#8297b0;font-size:17px}
+.evo-login-password-eye{position:absolute;right:15px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#889bb2;font-size:17px;cursor:not-allowed}
+.evo-login-credential-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:17px 0}
+.evo-login-remember{display:flex;align-items:center;gap:8px;color:#5a708b;font-size:12px}
+.evo-login-remember input{width:18px;height:18px}
+.evo-login-text-action{border:0;background:transparent;color:#9aacbf;font-size:12px;padding:0;cursor:not-allowed}
+.evo-login-primary-disabled{width:100%;height:56px;border:0;border-radius:9px;background:linear-gradient(90deg,#78acf0,#8ab8f2);color:rgba(255,255,255,.94);font-size:16px;font-weight:700;letter-spacing:.12em;cursor:not-allowed;opacity:.72}
+.evo-login-divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:#93a4b7;font-size:11px}
+.evo-login-divider:before,.evo-login-divider:after{content:"";height:1px;flex:1;background:#dce5ef}
+.evo-login-final-google .evo-login-method{min-height:52px;display:flex;align-items:center;justify-content:center;gap:12px;border-color:#d5e0ec;border-radius:9px;background:#fff}
+.evo-login-final-google .evo-login-method-copy strong{font-size:13px}
+.evo-login-final-google .evo-login-method-copy small,.evo-login-final-google .evo-login-status{display:none}
+.evo-login-final-google .evo-login-provider-icon{width:auto;height:auto;border:0;background:transparent}
+.evo-login-more-methods{margin-top:18px;padding:16px;border:1px dashed #d9e3ee;border-radius:10px;background:#fbfdff;text-align:center}
+.evo-login-more-icons{display:flex;justify-content:center;gap:12px;margin-bottom:8px}
+.evo-login-more-icons span{display:grid;place-items:center;min-width:28px;height:28px;padding:0 5px;border-radius:7px;background:#f0f4f8;color:#a0afbf;font-size:10px;font-weight:700}
+.evo-login-more-methods p{margin:0;color:#9babbc;font-size:11px}
+.evo-login-final-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:26px;padding-top:20px;border-top:1px solid #e1e8f0;color:#75889f;font-size:11px}
+.evo-login-final-footer>div{display:flex;align-items:center;gap:8px}
+.evo-login-final-footer button{border:0;background:transparent;color:#9aabba;font-size:11px;padding:0;cursor:not-allowed}
+@media(max-width:900px){
+  .evo-login-shell[data-login-skin="standard"] .evo-login-brand{padding:104px 24px 32px;min-height:460px}
+  .evo-login-shell[data-login-skin="standard"] .evo-login-hero{margin:0;padding-top:18px}
+  .evo-login-main{padding:30px 24px 46px}
+  .evo-login-final-card{padding:28px 24px}
+}
+@media(max-width:520px){
+  .evo-login-final-footer{align-items:flex-start;flex-direction:column}
+}
+
 @media(prefers-reduced-motion:reduce){.evo-login-method{transition:none}}
 </style>
 </head>
@@ -436,35 +501,59 @@ a{color:inherit}
   </section>
 
   <section class="evo-login-main" aria-labelledby="evo-login-title">
-    <div class="evo-login-card">
-      <div class="evo-login-card-header">
-        <a class="evo-login-skin-toggle" href="${skinHref}" aria-label="${skinAria}" title="${skinAria}">
-          <span class="evo-login-skin-dot" aria-hidden="true"></span><span>${skinLabel}</span>
-        </a>
-        <a class="evo-login-locale" href="${switchHref}" hreflang="${switchLocale}">${switchLabel}</a>
-      </div>
-      <h2 id="evo-login-title">${text.signInTitle}</h2>
-      <p class="evo-login-lead">${text.signInBody}</p>
+    <div class="evo-login-card evo-login-final-card">
+      <h2 id="evo-login-title">${locale === "zh-CN" ? "欢迎登录" : "Welcome"}</h2>
+      <p class="evo-login-lead">${skin === "demo"
+        ? (locale === "zh-CN" ? "登录企业工作空间，开启全球连接新可能。" : "Sign in to your enterprise workspace and unlock global connectivity.")
+        : (locale === "zh-CN" ? "登录 EVO 企业工作空间，继续你的工作。" : "Sign in to your EVO enterprise workspace and continue your work.")}</p>
       ${options.authenticationEnabled ? "" : `<p class="evo-login-unavailable" role="status">${text.authenticationUnavailable}</p>`}
-      <div class="evo-login-methods" aria-label="${text.signInTitle}">
-        ${methods}
-      </div>
+      <span class="evo-login-coming-soon">${locale === "zh-CN" ? "账号密码登录功能尚未启用" : "Account and password sign-in is not enabled yet"}</span>
 
-      <section class="evo-login-registration" aria-labelledby="evo-registration-title">
-        <div class="evo-login-registration-row">
-          <div>
-            <h3 id="evo-registration-title">${text.noRegistrationTitle}</h3>
-            <p>${text.noRegistrationBody}</p>
-          </div>
-          <button class="evo-login-create" type="button" disabled aria-disabled="true" title="${text.registrationPlanned}">${text.createAccount}</button>
+      <div class="evo-login-credential-field">
+        <label for="evo-login-account">${locale === "zh-CN" ? "账号 / 邮箱" : "Account / Email"}</label>
+        <div class="evo-login-input-wrap">
+          <span class="evo-login-input-icon" aria-hidden="true">✉</span>
+          <input id="evo-login-account" type="email" autocomplete="username"
+            placeholder="${locale === "zh-CN" ? "请输入账号或邮箱" : "Enter account or email"}"
+            disabled aria-disabled="true">
         </div>
-      </section>
-
-      <div class="evo-login-trust">
-        <article><strong>${text.security}</strong><p>${text.securityBody}</p></article>
-        <article><strong>${text.access}</strong><p>${text.accessBody}</p></article>
-        <article><strong>${text.flexible}</strong><p>${text.flexibleBody}</p></article>
       </div>
+
+      <div class="evo-login-credential-field">
+        <label for="evo-login-password">${locale === "zh-CN" ? "密码" : "Password"}</label>
+        <div class="evo-login-input-wrap">
+          <span class="evo-login-input-icon" aria-hidden="true">▣</span>
+          <input id="evo-login-password" type="password" autocomplete="current-password"
+            placeholder="${locale === "zh-CN" ? "请输入密码" : "Enter password"}"
+            disabled aria-disabled="true">
+          <button class="evo-login-password-eye" type="button" disabled aria-disabled="true"
+            title="${text.planned}">◉</button>
+        </div>
+      </div>
+
+      <div class="evo-login-credential-row">
+        <label class="evo-login-remember"><input type="checkbox" disabled aria-disabled="true">
+          <span>${locale === "zh-CN" ? "记住我" : "Remember me"}</span></label>
+        <button class="evo-login-text-action" type="button" disabled aria-disabled="true"
+          title="${text.planned}">${locale === "zh-CN" ? "忘记密码？" : "Forgot password?"}</button>
+      </div>
+
+      <button class="evo-login-primary-disabled" type="button" disabled aria-disabled="true"
+        title="${text.planned}">${locale === "zh-CN" ? "登 录" : "Sign in"} →</button>
+
+      <div class="evo-login-divider"><span>${locale === "zh-CN" ? "或" : "or"}</span></div>
+      <div class="evo-login-final-google">${googleMethod}</div>
+
+      <div class="evo-login-more-methods" aria-disabled="true">
+        <div class="evo-login-more-icons" aria-hidden="true"><span>M</span><span>SSO</span><span>•••</span></div>
+        <p>${locale === "zh-CN" ? "更多登录方式，敬请期待" : "More sign-in methods coming soon"}</p>
+      </div>
+
+      <footer class="evo-login-final-footer">
+        <div><span>${locale === "zh-CN" ? "还没有账号？" : "New to EVO?"}</span>
+          <button type="button" disabled aria-disabled="true" title="${text.planned}">${locale === "zh-CN" ? "联系我们" : "Contact us"}</button></div>
+        <button type="button" disabled aria-disabled="true" title="${text.planned}">${locale === "zh-CN" ? "帮助中心" : "Help center"}</button>
+      </footer>
     </div>
   </section>
 </main>
