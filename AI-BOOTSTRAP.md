@@ -80,6 +80,8 @@ Target ownership:
 
 Existing Enterprise Context Memory / SOP / Observatory implementations are preserved compatibility assets where noted; do not mistake historical implementation location for target ownership.
 
+For Personal Agent state, long conversations, memory, Context Assembly, Agent Runs, retrieval, EC learning evidence or storage decisions, `docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md` is the project constitution. AI-native is a semantic/governance architecture, not a JSON/JSONL storage mandate. Keep Conversation, Working State, Personal Context Memory and EC learning distinct; preserve source evidence; treat summaries as derived/versioned; prefer mature production storage for durable queryable state; keep models replaceable.
+
 ## Human authority rule
 
 The user has delegated ordinary engineering leadership and execution to the LLM.
