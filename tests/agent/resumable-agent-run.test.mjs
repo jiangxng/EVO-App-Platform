@@ -945,6 +945,38 @@ test("Host drain completes an ordinary multi-slice run without client round trip
   assert.equal(result.exhaustedBudget, false);
 });
 
+test("Host drain default time budget pauses work before a long browser request", async () => {
+  let calls = 0;
+  const fakeExecutor = {
+    async resume() {
+      calls += 1;
+      await new Promise(resolve => setTimeout(resolve, 20));
+      return {
+        contractVersion: "0.1.0",
+        advanced: true,
+        run: {
+          runId: "agent-run:time-budget",
+          state: "PAUSED"
+        }
+      };
+    }
+  };
+
+  const result = await drainResumableAgentRunV010(
+    fakeExecutor,
+    {
+      runId: "agent-run:time-budget",
+      principal,
+      context
+    },
+    { maxElapsedMs: 30 }
+  );
+
+  assert.ok(calls >= 1);
+  assert.equal(result.run.state, "PAUSED");
+  assert.equal(result.exhaustedBudget, true);
+});
+
 test("Host drain remains bounded and leaves a durable PAUSED run for recovery", async () => {
   const states = [
     { state: "PAUSED", advanced: true },
