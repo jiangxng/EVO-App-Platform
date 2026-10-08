@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "CP-04 Responsibility + Projections + data scope",
+  "currentMilestone": "CP-03D Data Import learning + reuse closure",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp04-responsibility-projections-implementation-2026-10-07",
-    "snapshotAt": "2026-10-07T23:29:00+08:00",
+    "snapshotId": "cp03d-import-closure-cp04-closed-2026-10-08",
+    "snapshotAt": "2026-10-08T08:32:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1811,41 +1811,38 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "CP-04 Responsibility + Projections + data scope",
+      "milestone": "CP-03D Data Import learning + reuse closure",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "counterparty-enterprise-extension-import-v0-3",
+        "id": "counterparty-responsibility-projections-v0-4",
         "status": "CLOSED_HUMAN_PASS",
-        "summary": "CP-03 is closed. Human production validation confirmed the Counterparty import journey, including field mapping, dry run and successful import; later Eidos list/breadcrumb/history refinements are already merged on main.",
+        "summary": "CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Basic list/projection presentation is accepted. The long-term BI idea is documented separately and is not near-term scope.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "evidence": {
-          "humanBrowserValidation": "PASS",
-          "humanValidationAt": "2026-10-07",
-          "validatedImportRows": 172,
-          "failedRows": 0,
-          "designConvergencePr": 456,
-          "managementListBreadcrumbHistoryPr": 457
+          "implementationPr": 458,
+          "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+          "platformCI": "PASS",
+          "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+          "railwayDeploymentStatus": "SUCCESS",
+          "humanValidationAt": "2026-10-08",
+          "humanValidation": "PASS",
+          "longTermBiReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
         }
       },
       "openGate": {
-        "id": "counterparty-responsibility-projections-v0-4",
-        "status": "IMPLEMENTATION_PR_OPEN_CI",
-        "summary": "CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.",
+        "id": "counterparty-data-import-learning-reuse-closure-v0-3d",
+        "status": "ACTIVE",
+        "summary": "CP-03 core import mechanics are implemented, but the product loop is not closed. Finish and Human-validate learned Import Recipe reuse, evidence preservation and the repeat-import experience before advancing the Foundation Object mainline.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "My Customers is not a client-side filter over all Counterparties.",
-          "Unauthorized records and fields never reach the Eidos page payload.",
-          "One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.",
-          "Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.",
-          "The projection path has deterministic 10k-record regression proof."
-        ],
-        "implementationEvidence": {
-          "implementationPr": 458,
-          "platformCI": "PASS_ON_PREVIOUS_HEAD_AND_RERUNNING_ON_LATEST_HEAD",
-          "responsibilityCapability": "enterprise.responsibility",
-          "serverSideDataScope": true,
-          "tenThousandRecordProjectionProof": true
-        }
+          "First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.",
+          "A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.",
+          "A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.",
+          "Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.",
+          "Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.",
+          "Import function entry and import-history/review experience remain clearly separated in the UI.",
+          "Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end."
+        ]
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1853,8 +1850,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "8876cedc259a2135a8c56d4721ea7b2f95901e6e",
-        "deploymentId": "2ccf155b-5b9e-44e4-acb2-3b7249491dbd",
+        "commit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+        "deploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -4382,8 +4379,8 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "CP-04",
-    "currentGateMeaning": "Responsibility + Customers/Suppliers/My Customers/My Suppliers + data-scope permissions",
+    "currentGate": "CP-03D",
+    "currentGateMeaning": "Data Import learned recipe + repeat-import product closure",
     "nextGate": "CP-05",
     "nextGateMeaning": "Facets / Profiles / Contact / Address",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
@@ -4465,7 +4462,7 @@
       ]
     },
     "cp03": {
-      "status": "CLOSED_HUMAN_PASS",
+      "status": "ACTIVE_PRODUCT_CLOSURE",
       "objectExtensionCapability": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 430,
@@ -4513,7 +4510,7 @@
         "tenThousandRowFullCommit": false
       },
       "remaining": [],
-      "closureGate": "CLOSED: Human production validation confirmed the Counterparty import journey.",
+      "closureGate": "OPEN: complete and Human-validate first-import -> confirmed Import Recipe -> second same-structure import reuse, evidence preservation and separated history/function UX.",
       "bulkPersistence": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 433,
@@ -4557,10 +4554,29 @@
         "humanValidation": "PASS"
       },
       "humanValidationAt": "2026-10-07",
-      "humanValidation": "PASS"
+      "humanValidation": "PARTIAL_PREVIOUS_IMPORT_PASS_NOT_FULL_REUSE_LOOP",
+      "importLearningReuseClosure": {
+        "status": "ACTIVE",
+        "implementedEvidence": [
+          "Import Recipe repository and enterprise-scoped source fingerprint exist.",
+          "Only Human-confirmed successful imports become auto-reusable recipes.",
+          "Recipe reuse checks target schema digest and source compatibility.",
+          "Recipe mapping can include direct mappings, VALUE_MAP transforms and CONSTANT mappings.",
+          "Mapping inspection exposes unmapped columns and declares raw source preservation.",
+          "Agent-origin mapping has semantic safety guards."
+        ],
+        "remainingProductProof": [
+          "Human-validate first import through correction and commit.",
+          "Human-validate that successful commit visibly becomes reusable enterprise recipe.",
+          "Human-validate second same-structure import automatically applies recipe without unnecessary AI.",
+          "Human-validate stale/incompatible recipe falls back to review.",
+          "Human-validate unmapped/source evidence remains recoverable.",
+          "Human-validate import function and import history are clearly separated."
+        ]
+      }
     },
     "cp04": {
-      "status": "IMPLEMENTATION_PR_OPEN_CI_PASS",
+      "status": "CLOSED_HUMAN_PASS",
       "implementationPr": 458,
       "platformCI": "PASS",
       "responsibilityCapability": "enterprise.responsibility",
@@ -4575,7 +4591,29 @@
       "serverSideFieldFiltering": true,
       "identityDuplication": false,
       "tenThousandRecordProjectionProof": true,
-      "humanValidation": "PENDING"
+      "humanValidation": "PASS",
+      "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+      "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+      "railwayDeploymentStatus": "SUCCESS",
+      "humanValidationAt": "2026-10-08",
+      "productDirectionReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md",
+      "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
+    },
+    "cp05": {
+      "status": "ACTIVE",
+      "scope": [
+        "Contact",
+        "Address",
+        "CustomerProfile",
+        "SupplierProfile"
+      ],
+      "acceptance": [
+        "repeatable Contact/Address are child resources, not flattened fields",
+        "Customer-only data is absent when CUSTOMER role does not apply",
+        "Supplier-only data is absent when SUPPLIER role does not apply",
+        "enterprise extensions can target declared Profile slots",
+        "object page composes facets progressively through Eidos"
+      ]
     }
   }
 }

@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp04-responsibility-projections-implementation-2026-10-07`  
-**Snapshot time:** `2026-10-07T23:29:00+08:00`  
+**Snapshot:** `cp03d-import-closure-cp04-closed-2026-10-08`  
+**Snapshot time:** `2026-10-08T08:32:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-04 Responsibility + Projections + data scope
+CP-03D Data Import learning + reuse closure
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-enterprise-extension-import-v0-3: CLOSED_HUMAN_PASS**
+**counterparty-responsibility-projections-v0-4: CLOSED_HUMAN_PASS**
 
-CP-03 is closed. Human production validation confirmed the Counterparty import journey, including field mapping, dry run and successful import; later Eidos list/breadcrumb/history refinements are already merged on main.
+CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Basic list/projection presentation is accepted. The long-term BI idea is documented separately and is not near-term scope.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,28 +26,32 @@ Evidence:
 
 ```json
 {
-  "humanBrowserValidation": "PASS",
-  "humanValidationAt": "2026-10-07",
-  "validatedImportRows": 172,
-  "failedRows": 0,
-  "designConvergencePr": 456,
-  "managementListBreadcrumbHistoryPr": 457
+  "implementationPr": 458,
+  "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+  "platformCI": "PASS",
+  "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+  "railwayDeploymentStatus": "SUCCESS",
+  "humanValidationAt": "2026-10-08",
+  "humanValidation": "PASS",
+  "longTermBiReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
 }
 ```
 
 ## Current open live gate
 
-**counterparty-responsibility-projections-v0-4: IMPLEMENTATION_PR_OPEN_CI**
+**counterparty-data-import-learning-reuse-closure-v0-3d: ACTIVE**
 
-CP-04 is active in PR #458. Shared Responsibility remains independent from Counterparty identity, while Counterparty provides Customers, Suppliers, My Customers and My Suppliers through server-governed data scope.
+CP-03 core import mechanics are implemented, but the product loop is not closed. Finish and Human-validate learned Import Recipe reuse, evidence preservation and the repeat-import experience before advancing the Foundation Object mainline.
 
 Acceptance:
 
-- My Customers is not a client-side filter over all Counterparties.
-- Unauthorized records and fields never reach the Eidos page payload.
-- One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.
-- Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.
-- The projection path has deterministic 10k-record regression proof.
+- First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.
+- A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.
+- A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.
+- Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.
+- Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.
+- Import function entry and import-history/review experience remain clearly separated in the UI.
+- Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end.
 
 ## Current production preview
 
@@ -56,8 +60,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `8876cedc259a2135a8c56d4721ea7b2f95901e6e`
-- Deployment: `2ccf155b-5b9e-44e4-acb2-3b7249491dbd`
+- Commit: `fd2a2782c0e0522c010ae63ea6af0997ee647b28`
+- Deployment: `ded808c6-318c-4da3-84bc-88878de87026`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 

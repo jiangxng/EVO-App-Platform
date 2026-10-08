@@ -1,9 +1,9 @@
 # EVO Foundation Object Program Roadmap v0.1
 
 **Status:** ACTIVE SHORT-TERM MAINLINE  
-**Date:** 2026-10-07  
+**Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-03 Counterparty Enterprise Extension + Import-first vertical proof  
+**Current entry gate:** CP-03D Data Import learning + reuse closure  
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -243,20 +243,64 @@ Current implementation evidence:
 - Whole-batch rollback on commit failure: PASS.
 - 10k stage/dry-run: PASS.
 - XLSX source adapter: **PASS — merged/CI/production through PR #439.**
-- Eidos Human import mapping/review/dry-run/error experience: **PASS — merged/CI/production through PR #439; Human production validation pending.**
+- Eidos Human import mapping/review/dry-run/error experience: **PASS — merged/CI/production through PR #439; Human production validation PASS on 2026-10-07.**
 
-Current Human gate:
+Human gate: **CLOSED_HUMAN_PASS on 2026-10-07.**
 
-- Open Data Import in production.
-- Choose Counterparty.
-- Upload a representative XLSX or CSV.
-- Confirm automatic field mapping is understandable and adjust at least one mapping if useful.
-- Run dry-run and inspect summary/errors.
-- Commit only after an explicit confirmation.
-- Confirm imported Counterparty/roles/extensions appear as expected.
-- Confirm error CSV download is understandable when validation errors exist.
+Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
-Exit after Human production pass: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
+### CP-03D — Import learning + reuse product closure
+
+**Current state:** ACTIVE.
+
+The earlier Human import pass proved that CSV/XLSX can be mapped, dry-run, confirmed and committed. It did **not** close the later product requirement that repeated enterprise imports become learned, reusable and auditable.
+
+The closure loop is:
+
+~~~text
+first import
+→ inspect source
+→ deterministic mapping where possible
+→ bounded Agent semantic assistance where needed
+→ Human review/correction
+→ dry run
+→ explicit confirmation
+→ atomic commit
+→ save confirmed enterprise Import Recipe + receipt/evidence
+
+same-structure later import
+→ detect confirmed Import Recipe
+→ reuse mapping/value transforms by default
+→ do not call AI again unless safe reuse fails or Human requests help
+→ dry run
+→ Human confirmation
+→ commit
+→ updated receipt/history/evidence
+~~~
+
+Hard requirements:
+
+- confirmed successful imports may become reusable recipes; unconfirmed guesses may not;
+- recipe reuse is enterprise/target/purpose scoped;
+- schema drift or incompatible source changes must fall back to review;
+- unmapped columns are not discarded;
+- original source evidence, headers and row values remain recoverable for later interpretation/migration;
+- Import function entry and Import history/review are separate UX concerns;
+- history must make recipe reuse, corrections and outcomes auditable;
+- repeated imports should become cheaper and more deterministic over time rather than repeatedly invoking an LLM.
+
+Current implementation already contains much of the substrate (recipe repository, fingerprinting, confirmed-recipe reuse, schema-digest guard, mapping inspection, unmapped-column visibility, raw-source preservation signal and Agent semantic guards). CP-03D is therefore a **product closure and Human end-to-end proof**, not a rewrite of Data Import.
+
+Exit requires Human production proof of:
+
+1. first representative import through correction and successful commit;
+2. confirmed recipe persistence;
+3. second same-structure import automatically reusing the recipe without unnecessary AI;
+4. safe fallback when recipe/source/schema no longer match;
+5. recoverable unmapped/source evidence;
+6. clearly separated function and history experiences.
+
+Exit state: COUNTERPARTY_IMPORT_LEARNING_REUSE_LOOP_PASS
 
 ## 9. AD-01 — Semantic classifier
 
@@ -285,7 +329,7 @@ Exit requires a fixed known-answer test set and structured Human corrections.
 
 ## 10. CP-04 — Responsibility + Projections + data scope
 
-**Current state:** IMPLEMENTATION_PR_OPEN_CI_PASS (PR #458). CP-03 Human import validation is CLOSED_HUMAN_PASS.
+**Current state:** CLOSED_HUMAN_PASS (PR #458). Implementation is merged, CI-passed and production-deployed. Human product validation closed CP-04 on 2026-10-08. CP-03D remains the first non-closed product gate because the later Import learning/reuse closure requirement is still open.
 
 Create shared Responsibility capability.
 
@@ -310,6 +354,8 @@ Acceptance:
 - projections do not duplicate identities;
 - list/search remains responsive at 10k demo records.
 
+Long-term BI reference only: `docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md`. It records that Customer/Supplier role lists may later act as optional analysis entry points. This is non-gating and adds no CP-05/CP-06 requirement.
+
 ## 11. AD-02 — EnterpriseAdaptationPlan preview
 
 Once extensions/import/projections are deterministic, add machine-readable EnterpriseAdaptationPlan Draft.
@@ -321,6 +367,8 @@ No activation from free-form chat.
 Exit: Human can approve/reject semantic changes without reading a source-code diff.
 
 ## 12. CP-05 — Facets / Profiles / related resources
+
+**Current state:** ACTIVE after CP-04 Human closure on 2026-10-08.
 
 Add only business-proven concepts.
 
