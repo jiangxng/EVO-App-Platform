@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-import-learning-reuse-production-validation-2026-10-08`  
-**Snapshot time:** `2026-10-08T08:30:00+08:00`  
+**Snapshot:** `cp03d-ec-data-import-learning-service-blocked-2026-10-08`  
+**Snapshot time:** `2026-10-08T09:31:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -39,19 +39,22 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_PRODUCTION_VALIDATION**
+**counterparty-data-import-learning-reuse-closure-v0-3d: EC_PRODUCTION_SERVICE_BLOCKED_HUMAN_PENDING**
 
-CP-03D implementation is merged, CI-passed and production-deployed. The remaining gate is Human end-to-end proof of first-import learning, second same-structure recipe reuse, evidence preservation and safe fallback behavior.
+CP-03D now includes the real EVO -> Experience Compiler -> EVO learning boundary. EC and App Platform implementations are merged and CI-passed; App Platform is production-deployed. Human production proof is blocked only because Railway currently refuses provisioning the independent EC service at the account resource limit. Data Import remains fully operable without EC.
 
 Acceptance:
 
-- First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.
-- A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.
-- A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.
-- Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.
-- Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.
-- Import function entry and import-history/review experience remain clearly separated in the UI.
-- Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end.
+- A first import can be Human-corrected, dry-run validated and committed through the ordinary deterministic Data Import path.
+- Only a Human-confirmed mapping from a successful committed import is eligible to become persistent mapping experience in Experience Compiler.
+- Experience Compiler persists tenant-scoped, target-object-scoped mapping experience with provenance back to the successful EVO import job; one enterprise experience does not become global truth.
+- A later file with a different overall table structure can reuse prior semantic experience such as 编码 -> Counterparty.code even when the whole-file Import Recipe fingerprint does not match.
+- EC recommendations remain advisory, expose confidence/evidence for Human review, and never directly commit or mutate Counterparty operational truth.
+- Equal conflicting learned evidence fails closed instead of silently choosing a mapping.
+- Same-structure confirmed Import Recipe reuse remains the cheaper deterministic fast path and avoids unnecessary EC/LLM work.
+- If EC is absent, unavailable or times out, Data Import falls back to existing deterministic mapping and Human review without becoming unavailable.
+- Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.
+- Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end.
 
 ## Current production preview
 
@@ -60,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `7ab55fbf21b2b0d5d82b26445231e48031fa5ad2`
-- Deployment: `cea1d85b-8967-4b1c-b3c0-608ff5f559c3`
+- Commit: `be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1`
+- Deployment: `fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -92,6 +95,10 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #462 — MERGED_CI_PRODUCTION_PASS_EC_SERVICE_PENDING: CP-03D Experience Compiler integration: successful Human-confirmed import mappings can become EC experience; structurally different later files can receive scoped EC recommendations; EC is optional/advisory and App Platform is production-deployed.
+- PR #461 — MERGED_CI_PRODUCTION_PASS: Continuity advanced CP-03D to production validation while preserving CP-04 as CLOSED_HUMAN_PASS.
+- PR #460 — MERGED_CI_PRODUCTION_PASS: CP-03D whole-file Import Recipe closure: learned Recipe provenance/evidence UI, second same-structure reuse proof and stale-schema fallback proof.
+- PR #458 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-04 Responsibility + governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope; Human validation passed.
 - PR #439 — MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION: CP-03 XLSX + Human Import Experience: dependency-free XLSX first-sheet parser, CSV/XLSX file upload, localized EffectiveObjectSchema auto-mapping, editable mapping page, dry-run review, explicit commit confirmation, error CSV download and guarded archive expansion.
 - PR #433 — MERGED_CI_PRODUCTION_PASS: CP-03 atomic bulk persistence: Enterprise Resource transaction/bulk put, domain-level Counterparty/Role/Extension batch writes, all-or-nothing import semantics, rollback proof and deterministic 1k full Counterparty import.
 - PR #431 — MERGED_CI_PRODUCTION_PASS: CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof.
@@ -484,6 +491,11 @@ Not proved:
 - Do not add another Counterparty-private import UI; the generic Data Import Human experience is merged in PR #439.
 - Do not bypass the Data Import dry-run and explicit commit confirmation in Human flows.
 - Do not introduce a second XLSX parsing dependency/path; PR #439 provides the bounded first-sheet adapter behind the generic staged source model.
+- Do not treat Import Recipe as the persistent learning owner; Recipe is the deterministic whole-file execution artifact/cache while Experience Compiler owns persistent advisory learning.
+- Do not store EC-learned import semantics in Enterprise Context merely because Enterprise Context persists business resources.
+- Do not embed Experience Compiler into EVO/App Platform to bypass the current Railway resource quota; EC must remain an independent optional advisory service.
+- Do not use core-schema label matches such as 国家或地区 -> countryOrRegion as evidence that EC learned semantics.
+- Do not close CP-03D until production proves Human correction -> EC experience -> different-structure semantic reuse end to end.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -702,25 +714,25 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state Object Extension as a separate reusable application semantic owner whose enterprise definitions/values persist in Enterprise Context
 - state FO-01 Shared Foundation Object contracts + EffectiveObjectSchema as already merged, CI-passed and production-deployed through PR #427 / commit 5e8eb39b4fa56110de79814785ab3fd25d0a2e01
 - state CP-02 Counterparty Relationship Roles Human browser validation as still open and not implicitly satisfied by FO-01 implementation
-- state CP-03 Enterprise Extension + Import-first vertical proof as the next implementation gate after CP-02 Human pass
 - state Object Extension definitions as enterprise-scoped resources persisted through Enterprise Context, with public mutation/invocation deliberately deferred to CP-03
 - state Counterparty create/edit form fields as now driven by EffectiveObjectSchema rather than a duplicated private field list
 - state CP-02 Counterparty Relationship Roles v0.2 as CLOSED with Human production validation PASS on 2026-10-07
-- state CP-03 Enterprise Extension + Import-first Counterparty vertical proof as the active implementation gate
-- state CP-04 Responsibility + governed role projections/data scope as the next gate after CP-03
-- state CP-03 as partially implemented and still ACTIVE, not closed
 - state Object Extension public capability as merged in PR #430 and Data Import core + Counterparty target as merged in PR #431
 - state CSV stage/dry-run/commit, extension value sidecars, role-aware Counterparty import, schema drift guard and 10k stage/dry-run as already implemented
-- state XLSX adapter, Eidos import mapping/review experience, bulk committed-import scalability and deterministic 1k demo seed as remaining CP-03 work
 - state CP-02 as CLOSED_HUMAN_PASS based on user production validation
-- state CP-03 atomic bulk persistence and deterministic 1k full Counterparty commit as merged/CI-passed/production-deployed through PR #433
 - state Counterparty import commit semantics as ATOMIC_BATCH: any batch failure rolls back all imported Counterparty/Role/Extension resources
-- state XLSX adapter and Eidos Human import mapping/review experience as the remaining CP-03 closure work
 - state PR #439 / commit 8876cedc259a2135a8c56d4721ea7b2f95901e6e as merged, CI-passed and production-deployed for CP-03 XLSX + Human Import Experience
-- state CP-03 as awaiting Human production validation rather than further core implementation
 - state CSV and XLSX as normalizing into the same staged Data Import source model
 - state import mapping as suggested from EffectiveObjectSchema field IDs and localized labels rather than Counterparty-specific spreadsheet hardcoding
-- state CP-04 as blocked until the CP-03 Human import journey passes
+- state CP-04 Responsibility + Projections as CLOSED_HUMAN_PASS and do not reopen it because CP-03D was later refined
+- state CP-03D Data Import learning + reuse closure as the current open gate before CP-05
+- state Experience Compiler as the persistent learning owner for Data Import experience; EVO owns deterministic import execution and Eidos owns Human presentation
+- state Import Recipe as the same-structure deterministic fast path/cache, not the learning system
+- state Experience-Compiler PR #7 / commit 63c2304b6b54fa40a63996b3c3736b8ad4277c1e as merged and CI-passed for tenant/object-scoped mapping experience and advisory recommendation
+- state App Platform PR #462 / commit be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1 as merged, all CI-passed and production-deployed at Railway fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee
+- state the first hard EC learning proof as 编码 -> Counterparty.code learned from a Human-confirmed successful import and reused in a different overall table structure
+- state EC as optional/advisory: its absence or timeout must not make Data Import unavailable
+- state CP-03D Human production proof as blocked only by Railway refusing a new independent EC service at the current resource-plan limit
 
 No previous ChatGPT transcript is required.
 
