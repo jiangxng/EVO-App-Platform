@@ -13,6 +13,9 @@ import type {
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
 import {
+  fieldsForSurfaceV010
+} from "../../contracts/foundation-object/schema.js";
+import {
   parseCsvSourceV010
 } from "./csv.js";
 import {
@@ -24,6 +27,12 @@ import type {
 import type {
   DataImportServiceV010
 } from "./service.js";
+import type {
+  DataImportExperienceAdvisorV010
+} from "./experience-advisor.js";
+import {
+  dataImportTargetSchemaDigestV010
+} from "./recipe.js";
 import type {
   DataImportMappingV010,
   DataImportMappingOriginV010,
@@ -350,9 +359,13 @@ export function createDataImportActionHandlersV010(input: {
     contextId: string
   ): boolean;
   idFactory(): string;
+  experienceAdvisor?: DataImportExperienceAdvisorV010;
+  experienceRecommendationMinimumConfidence?: number;
   now?: () => Date;
 }): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
+  const experienceRecommendationMinimumConfidence =
+    input.experienceRecommendationMinimumConfidence ?? 0.85;
 
   const targetMap = new Map(
     input.targets.map(target => [target.targetId, target] as const)
@@ -390,6 +403,67 @@ export function createDataImportActionHandlersV010(input: {
           source,
           schema
         });
+        const targetSchemaDigest = dataImportTargetSchemaDigestV010(schema);
+        const availableTargetFieldIds = fieldsForSurfaceV010(schema, "IMPORT")
+          .filter(field => field.writable)
+          .map(field => field.fieldId);
+        const availableTargetFieldIdSet = new Set(availableTargetFieldIds);
+        const resolvedMapping = structuredClone(initial.mapping);
+        let experienceRecommendationCount = 0;
+
+        if (initial.origin !== "RECIPE" && input.experienceAdvisor) {
+          try {
+            const recommendations = await input.experienceAdvisor.recommend({
+              tenantId: active.enterpriseId,
+              targetId,
+              ...(parameters ? { targetParameters: parameters } : {}),
+              sourceColumns: [...source.headers],
+              availableTargetFieldIds,
+              targetSchemaDigest
+            });
+            const usedSources = new Set(
+              resolvedMapping
+                .map(item => item.sourceColumn)
+                .filter((value): value is string => Boolean(value))
+            );
+            const usedTargets = new Set(
+              resolvedMapping.map(item => item.targetFieldId)
+            );
+            for (const recommendation of recommendations) {
+              if (
+                recommendation.confidence
+                  < experienceRecommendationMinimumConfidence
+                || !source.headers.includes(recommendation.sourceColumn)
+                || !availableTargetFieldIdSet.has(
+                  recommendation.targetFieldId
+                )
+                || usedSources.has(recommendation.sourceColumn)
+                || usedTargets.has(recommendation.targetFieldId)
+              ) {
+                continue;
+              }
+              resolvedMapping.push({
+                sourceColumn: recommendation.sourceColumn,
+                targetFieldId: recommendation.targetFieldId,
+                advisory: {
+                  source: "EXPERIENCE_COMPILER",
+                  confidence: recommendation.confidence,
+                  supportCount: recommendation.supportCount,
+                  conflictCount: recommendation.conflictCount,
+                  supportingRecordIds:
+                    [...recommendation.supportingRecordIds],
+                  rationale: recommendation.rationale
+                }
+              });
+              usedSources.add(recommendation.sourceColumn);
+              usedTargets.add(recommendation.targetFieldId);
+              experienceRecommendationCount += 1;
+            }
+          } catch {
+            // EC is advisory. Import remains fully operable when EC is absent.
+          }
+        }
+
         const recordedAt = now().toISOString();
         let job = input.service.stage({
           contextId: active.contextId,
@@ -397,7 +471,7 @@ export function createDataImportActionHandlersV010(input: {
           targetId,
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
-          mapping: initial.mapping,
+          mapping: resolvedMapping,
           mappingOrigin: initial.origin,
           ...(initial.recipeId
             ? { appliedRecipeId: initial.recipeId }
@@ -425,7 +499,9 @@ export function createDataImportActionHandlersV010(input: {
               ? "A previously validated enterprise import recipe was applied and validation passed."
               : initial.origin === "RECIPE"
                 ? "A previous import recipe was applied but needs review because validation found issues."
-                : "File staged. Review the field mapping before validation.",
+                : experienceRecommendationCount > 0
+                  ? "File staged. Experience Compiler recommendations were applied for Human review."
+                  : "File staged. Review the field mapping before validation.",
             navigateTo: recipeReady
               ? dataImportReviewRouteV010(job.importJobId)
               : dataImportMappingRouteV010(job.importJobId),
@@ -624,15 +700,79 @@ export function createDataImportActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
-        const job = input.service.commit({
+        const recordedAt = now().toISOString();
+        let job = input.service.commit({
           contextId: active.contextId,
           importJobId: required(
             request.values.importJobId,
             "DATA_IMPORT_JOB_ID_REQUIRED"
           ),
           actorSubjectId: context.principal.subjectId,
-          recordedAt: now().toISOString()
+          recordedAt
         });
+
+        if (
+          job.state === "COMMITTED"
+          && job.mappingOrigin === "HUMAN"
+          && input.experienceAdvisor
+        ) {
+          const sourceMappings = job.mapping.filter(
+            item => Boolean(item.sourceColumn)
+              && item.transform?.kind !== "CONSTANT"
+          );
+          try {
+            const learned = await Promise.all(sourceMappings.map(item =>
+              input.experienceAdvisor!.recordSuccessful({
+                tenantId: active.enterpriseId,
+                targetId: job.targetId,
+                ...(job.targetParameters
+                  ? { targetParameters: job.targetParameters }
+                  : {}),
+                sourceColumn: item.sourceColumn!,
+                targetFieldId: item.targetFieldId,
+                sourceHeaders: [...job.source.headers],
+                importJobId: job.importJobId,
+                targetSchemaDigest: job.dryRun!.schemaDigest,
+                observedAt: recordedAt
+              })
+            ));
+            job = input.repository.save({
+              contextId: active.contextId,
+              job: {
+                ...job,
+                experienceLearning: {
+                  status: "RECORDED",
+                  recordedAt,
+                  learnedMappings: learned.length,
+                  observationRecordIds:
+                    learned.map(item => item.observationRecordId),
+                  patternRecordIds:
+                    learned.map(item => item.patternRecordId)
+                }
+              },
+              actorSubjectId: context.principal.subjectId,
+              recordedAt
+            });
+          } catch (error) {
+            job = input.repository.save({
+              contextId: active.contextId,
+              job: {
+                ...job,
+                experienceLearning: {
+                  status: "UNAVAILABLE",
+                  recordedAt,
+                  learnedMappings: 0,
+                  diagnostic: error instanceof Error
+                    ? error.message
+                    : "DATA_IMPORT_EC_LEARNING_UNAVAILABLE"
+                }
+              },
+              actorSubjectId: context.principal.subjectId,
+              recordedAt
+            });
+          }
+        }
+
         return {
           ok: true,
           correlationId: context.correlationId,
