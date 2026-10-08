@@ -251,56 +251,119 @@ Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ### CP-03D — Import learning + reuse product closure
 
-**Current state:** MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING (PR #460). The learning/reuse experience and protocol proof are deployed; Human end-to-end production validation remains open.
+**Current state:** EC + App Platform IMPLEMENTED / CI PASS; App Platform production deployed; independent EC production service blocked by Railway resource quota; Human end-to-end proof pending.
 
-The earlier Human import pass proved that CSV/XLSX can be mapped, dry-run, confirmed and committed. It did **not** close the later product requirement that repeated enterprise imports become learned, reusable and auditable.
+The earlier Data Import work proved two useful but different mechanisms:
+
+- deterministic field matching from the current target schema;
+- whole-file Import Recipe reuse when the later source structure is compatible.
+
+Neither mechanism by itself is the persistent learning capability. A later Human test exposed the missing behavior: a source field such as `编码` had been Human-mapped to `Counterparty.code` before, but a structurally different later file did not reuse that experience.
+
+The authority boundary is now explicit:
+
+~~~text
+EVO / Data Import
+  deterministic source handling
+  target schema
+  mapping execution
+  dry run
+  Human correction / confirmation
+  commit
+  receipt / evidence
+  Import Recipe deterministic cache
+        |
+        | successful Human-confirmed experience
+        v
+Experience Compiler
+  persistent advisory experience
+  provenance
+  scoped learning
+  contradiction handling
+  recommendation
+        |
+        | advisory recommendation + confidence + evidence
+        v
+EVO / Eidos Human review
+  Human may accept or correct
+  deterministic execution remains owned by EVO
+~~~
+
+**Experience Compiler is the learning owner.** Enterprise Context is not a substitute learning store, and Import Recipe is not the learning system. Recipe remains an executable whole-file artifact/cache for formats that are already known and stable.
 
 The closure loop is:
 
 ~~~text
-first import
-→ inspect source
+first unfamiliar import
 → deterministic mapping where possible
-→ bounded Agent semantic assistance where needed
+→ optional Agent/EC assistance for unresolved semantics
 → Human review/correction
 → dry run
 → explicit confirmation
 → atomic commit
-→ save confirmed enterprise Import Recipe + receipt/evidence
+→ Recipe may be compiled for same-structure reuse
+→ successful Human-confirmed mapping evidence is submitted to EC
+→ EC persists scoped experience with provenance
 
 same-structure later import
-→ detect confirmed Import Recipe
-→ reuse mapping/value transforms by default
-→ do not call AI again unless safe reuse fails or Human requests help
-→ dry run
-→ Human confirmation
-→ commit
-→ updated receipt/history/evidence
+→ confirmed Recipe fast path
+→ no unnecessary EC/LLM call
+→ dry run / Human confirmation / commit
+
+different-structure later import
+→ Recipe does not match
+→ deterministic mapping resolves what it safely can
+→ EC receives unresolved/current source terms + target schema
+→ EC may recommend mappings from prior scoped experience
+→ recommendation includes confidence/evidence and remains Human-correctable
+→ EVO validates and executes deterministically
+→ successful outcome returns new evidence to EC
 ~~~
 
 Hard requirements:
 
-- confirmed successful imports may become reusable recipes; unconfirmed guesses may not;
-- recipe reuse is enterprise/target/purpose scoped;
-- schema drift or incompatible source changes must fall back to review;
-- unmapped columns are not discarded;
-- original source evidence, headers and row values remain recoverable for later interpretation/migration;
-- Import function entry and Import history/review are separate UX concerns;
-- history must make recipe reuse, corrections and outcomes auditable;
-- repeated imports should become cheaper and more deterministic over time rather than repeatedly invoking an LLM.
+- EC learns only from a final Human-confirmed mapping whose dry run passed and commit succeeded;
+- one tenant/object experience does not silently become global truth;
+- learned experience is at least tenant + target-object scoped;
+- equal conflicting experience fails closed;
+- EC recommendations are advisory only and cannot commit or mutate operational truth;
+- EC may disappear or time out without making Data Import unavailable;
+- the target field must still exist and be importable before an EC recommendation can be applied;
+- same-structure Recipe reuse remains the cheaper deterministic fast path;
+- unmapped columns and original source evidence are preserved;
+- Import function entry and Import history/review remain separate UX concerns;
+- recommendation provenance/confidence and learning outcome must remain auditable.
 
-Current implementation now includes the substrate and Human-facing evidence required for closure: recipe repository, fingerprinting, confirmed-recipe reuse, schema-digest guard, mapping inspection, unmapped-column visibility, raw-source preservation, Agent semantic guards, mapping provenance/history display, and protocol proof that a second same-structure import reuses the learned recipe without remapping/AI. CP-03D remains open only for Human end-to-end production validation.
+Implemented evidence:
+
+- Experience Compiler PR #7 merged at `63c2304b6b54fa40a63996b3c3736b8ad4277c1e`, CI PASS.
+- EC exposes versioned advisory endpoints for mapping experience intake and mapping recommendations.
+- App Platform PR #462 merged at `be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1`, all required CI PASS.
+- App Platform production deployment `fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee` is SUCCESS.
+- Protocol proof demonstrates:
+  - file A Human-confirms `编码 -> Counterparty.code`;
+  - commit succeeds and EC experience is recorded;
+  - file B has a different overall column structure;
+  - `编码` is recommended again as `Counterparty.code` from EC experience rather than whole-file Recipe reuse.
+- App Platform consults EC only when configured and catches EC failure/timeouts so normal import remains available.
+
+Current infrastructure blocker:
+
+Railway currently rejects provisioning the independent Experience Compiler service with `Free plan resource provision limit exceeded`. This is an external deployment quota, not an architecture or code failure. Do **not** embed EC into EVO/App Platform to bypass the quota.
 
 Exit requires Human production proof of:
 
-1. first representative import through correction and successful commit;
-2. confirmed recipe persistence;
-3. second same-structure import automatically reusing the recipe without unnecessary AI;
-4. safe fallback when recipe/source/schema no longer match;
-5. recoverable unmapped/source evidence;
-6. clearly separated function and history experiences.
+1. first representative import through Human correction and successful commit;
+2. successful outcome is visibly recorded as EC experience;
+3. a different-structure second file receives the previously learned semantic recommendation (first hard example: `编码 -> Counterparty.code`);
+4. recommendation provenance/confidence is understandable and Human-correctable;
+5. same-structure Recipe still takes the deterministic fast path without unnecessary EC/AI;
+6. EC unavailable leaves Data Import usable;
+7. stale/incompatible target semantics fail safely;
+8. unmapped/source evidence remains recoverable;
+9. Import function and Import history remain clearly separated.
 
-Exit state: COUNTERPARTY_IMPORT_LEARNING_REUSE_LOOP_PASS
+Exit state: COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS
 
 ## 9. AD-01 — Semantic classifier
 
