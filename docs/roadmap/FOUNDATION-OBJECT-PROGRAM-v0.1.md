@@ -251,7 +251,7 @@ Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ### CP-03D — Import learning + reuse product closure
 
-**Current state:** EC + App Platform IMPLEMENTED / CI PASS; App Platform production deployed; independent EC production service blocked by Railway resource quota; Human end-to-end proof pending.
+**Current state:** EC + App Platform IMPLEMENTED / CI PASS / PRODUCTION DEPLOYED; Human end-to-end production proof pending.
 
 The earlier Data Import work proved two useful but different mechanisms:
 
@@ -347,9 +347,15 @@ Implemented evidence:
   - `编码` is recommended again as `Counterparty.code` from EC experience rather than whole-file Recipe reuse.
 - App Platform consults EC only when configured and catches EC failure/timeouts so normal import remains available.
 
-Current infrastructure blocker:
+Production deployment is now live:
 
-Railway currently rejects provisioning the independent Experience Compiler service with `Free plan resource provision limit exceeded`. This is an external deployment quota, not an architecture or code failure. Do **not** embed EC into EVO/App Platform to bypass the quota.
+- Experience Compiler service: `472c1e8d-94ff-4e58-8bb0-bb06e6efe8b1`
+- EC deployment: `6bc36f41-c76f-41db-aae3-3643534b9911` — SUCCESS
+- EC persistent volume: `b8d746a5-0b95-4ace-b7cf-6ac5cae40096` mounted at `/data`
+- EC private endpoint: `experience-compiler.railway.internal:8000`
+- Railway health proof: `GET /health -> 200 OK`
+- App Platform EC wiring deployment: `38c63eb9-cce6-444f-837f-cf4e919a5e10` — SUCCESS
+- `APP_PLATFORM_EC_ADVISORY_BASE_URL` points to the EC private endpoint.
 
 Exit requires Human production proof of:
 
