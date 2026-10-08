@@ -411,7 +411,7 @@ export async function createPostgresConversationAuthorityV010(input: {
             event_id, thread_id, event_type, occurred_at, payload
           ) VALUES (
             ${newEventId}, ${id}, 'THREAD_ARCHIVED',
-            ${archivedAt}, ${tx.json(payload)}
+            ${archivedAt}, ${JSON.stringify(payload)}::jsonb
           )
         `;
         await tx`
@@ -501,7 +501,7 @@ export async function createPostgresConversationAuthorityV010(input: {
             event_id, thread_id, event_type, occurred_at, payload
           ) VALUES (
             ${newEventId}, ${id}, 'MESSAGE_APPENDED',
-            ${createdAt}, ${tx.json(payload)}
+            ${createdAt}, ${JSON.stringify(payload)}::jsonb
           )
         `;
         await tx`
