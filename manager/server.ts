@@ -5363,6 +5363,9 @@ const server = createServer(async (request, response) => {
         url.searchParams.get("returnTo") ?? "/"
       );
       const locale = url.searchParams.get("locale")?.trim() || "en";
+      const skin = url.searchParams.get("skin") === "demo"
+        ? "demo"
+        : "standard";
       if (managedSessionEnabled) {
         try {
           resolveRequestIdentitySession(request);
@@ -5380,6 +5383,7 @@ const server = createServer(async (request, response) => {
         assetRevision: appHostAssetRevision,
         returnTo,
         locale,
+        skin,
         authenticationEnabled: managedSessionEnabled,
         methods: defaultLoginMethodsV010({
           googleAvailable: managedSessionEnabled,

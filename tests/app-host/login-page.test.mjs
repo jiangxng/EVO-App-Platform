@@ -77,3 +77,55 @@ test("login cover defaults to enterprise-to-employee messaging rather than platf
   assert.doesNotMatch(zh, />Context</);
   assert.doesNotMatch(zh, />Intelligence</);
 });
+
+
+test("standard login remains the default and only exposes a subtle demo-skin switch", () => {
+  const html = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  assert.match(html, /data-login-skin="standard"/);
+  assert.match(html, /以客户为中心，以奋斗者为本。/);
+  assert.doesNotMatch(html, /TUGE-TECHNOLOGIES-Logo\.jpg/);
+  assert.match(html, /class="evo-login-skin-toggle"/);
+  assert.match(html, /skin=demo/);
+});
+
+test("demo login keeps the approved headline while changing only enterprise cover presentation", () => {
+  const html = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/enterprise-agent",
+    locale: "zh-CN",
+    skin: "demo",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  assert.match(html, /data-login-skin="demo"/);
+  assert.match(html, /以客户为中心，以奋斗者为本。/);
+  assert.match(html, /全球云通信 · AIoT/);
+  assert.match(html, /50\+/);
+  assert.match(html, /200\+/);
+  assert.match(html, /1000\+/);
+  assert.match(html, /TUGE-TECHNOLOGIES-Logo\.jpg/);
+  assert.match(html, /filter:none;mix-blend-mode:normal/);
+  assert.match(html, /skin=standard/);
+  assert.match(html, /Continue with Google|使用 Google 继续/);
+});
+
+test("locale switching preserves the selected login skin", () => {
+  const html = createLoginExperienceHtmlV010({
+    assetRevision: "rev",
+    returnTo: "/",
+    locale: "zh-CN",
+    skin: "demo",
+    authenticationEnabled: true,
+    methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+  });
+
+  assert.match(html, /locale=en&amp;skin=demo|locale=en&skin=demo/);
+});
