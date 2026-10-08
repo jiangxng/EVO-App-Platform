@@ -301,7 +301,7 @@ Acceptance:
 - projections do not duplicate identities;
 - list/search remains responsive at 10k demo records.
 
-Product-direction note: `docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md`. Customer/Supplier role lists are governed operational views and future analytics entry points; raw master-data counts are not treated as primary management outcomes.
+Long-term BI reference only: `docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md`. It records that Customer/Supplier role lists may later act as optional analysis entry points. This is non-gating and adds no CP-05/CP-06 requirement.
 
 ## 11. AD-02 — EnterpriseAdaptationPlan preview
 
