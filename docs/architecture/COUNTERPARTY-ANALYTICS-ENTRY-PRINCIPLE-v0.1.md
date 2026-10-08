@@ -3,7 +3,7 @@
 **Status:** REFERENCE / FUTURE PRODUCT DIRECTION  
 **Date:** 2026-10-08  
 **Program:** Foundation Object Program  
-**Related gates:** CP-04 closed direction, CP-05/CP-06 and future analytics/observatory work  
+**Related scope:** Long-term BI / management analytics direction. Not a CP-05/CP-06 gate or near-term delivery dependency.  
 **Canonical object:** Counterparty / 往来对象
 
 ## 1. Purpose
@@ -12,7 +12,7 @@ This note records a product/architecture conclusion reached at CP-04 closure:
 
 > Counterparty lists and role projections are necessary operational views, but raw counts such as "number of customers" or "number of suppliers" are rarely the management outcome users care about. Their higher-value role is to become governed entry points into customer health, activity, risk, supplier performance and supply-chain stability analysis.
 
-This document is a future reference. It does **not** expand CP-04 scope or require immediate dashboard implementation.
+This document is a long-term BI / management analytics reference. It does **not** expand CP-04 scope, does **not** add CP-05/CP-06 acceptance criteria, and must not be used as a near-term delivery dependency.
 
 ## 2. External product comparison
 
@@ -192,14 +192,16 @@ Future health/risk/activity projections can build on this substrate without dupl
 
 ## 8. Future use
 
-Use this note when designing:
+Use this note only when the product enters a dedicated BI / management analytics line.
 
-- CP-05 profiles/facets;
-- CP-06 Personal Workbench and Agent composition;
+Potential future consumers may include:
+
 - customer/supplier analytics;
-- management dashboards;
-- EOG/Observatory overlays where relationship health affects operating flow;
-- industry-specific Experience Compiler adaptations.
+- management dashboards and scorecards;
+- operational observability/analysis surfaces where relationship health affects operating flow;
+- industry-specific analytical models and Experience Compiler knowledge.
+
+This note is deliberately **non-gating** for Foundation Object milestones. CP-05, CP-06 and other near-term object/application milestones proceed from their own business acceptance criteria and must not inherit BI features from this document.
 
 Preferred product questions should move from:
 
