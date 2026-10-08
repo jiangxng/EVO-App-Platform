@@ -18,7 +18,7 @@ ACTIVE
 
 **counterparty-responsibility-projections-v0-4: CLOSED_HUMAN_PASS**
 
-CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience and explicitly reframed these lists as governed operational/analytics entry points rather than management KPIs by themselves.
+CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience. A separate long-term BI reference records that these lists may later serve as optional analysis entry points; this does not create near-term Foundation Object scope.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
