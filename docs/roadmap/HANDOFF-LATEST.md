@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-ec-data-import-learning-production-ready-2026-10-08`  
-**Snapshot time:** `2026-10-08T10:05:00+08:00`  
+**Snapshot:** `cp03d-ec-human-validation-ready-personal-agent-idempotent-2026-10-08`  
+**Snapshot time:** `2026-10-08T11:00:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -63,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `0d0d61782228eb9951913bc96f561bd4c512ce52`
-- Deployment: `38c63eb9-cce6-444f-837f-cf4e919a5e10`
+- Commit: `df6e5521e381da3051957a330088ca2c7d4a6699`
+- Deployment: `bdc41631-c093-41fe-a557-ab5e08706953`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +95,8 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #467 — MERGED_CI_PRODUCTION_PASS: Personal Agent chat turns are idempotent: duplicate submits are suppressed, durable thread.send reuses the original run by clientTurnId, concurrent resume is single-flight, and DeepSeek/request timing is bounded below the browser timeout.
+- PR #465 — MERGED_CI_PRODUCTION_SUPERSEDED_BY_467: Initial Personal Agent browser-timeout mitigation; superseded by PR #467 turn idempotency and single-flight resume hardening.
 - PR #463 — MERGED_CI_PRODUCTION_PASS: Make Experience Compiler the Data Import learning authority; record App Platform production deployment and EC deployment boundary.
 - PR #462 — MERGED_CI_PRODUCTION_PASS: Integrate optional EC advisory learning into Data Import; successful Human-confirmed mappings feed EC and different-structure imports can reuse scoped semantic experience.
 - PR #461 — MERGED_CI_PRODUCTION_PASS: Continuity advanced CP-03D to production validation while preserving CP-04 as CLOSED_HUMAN_PASS.
@@ -497,6 +499,8 @@ Not proved:
 - Do not embed Experience Compiler into EVO/App Platform to bypass the current Railway resource quota; EC must remain an independent optional advisory service.
 - Do not use core-schema label matches such as 国家或地区 -> countryOrRegion as evidence that EC learned semantics.
 - Do not close CP-03D until production proves Human correction -> EC experience -> different-structure semantic reuse end to end.
+- Do not diagnose repeated Personal Agent replies as four independent tasks when they share one user turn; turn-level idempotency and single-flight resume are now required behavior.
+- Do not reintroduce AGENT_RUN_RESUME_CONFLICT as a user-facing normal recovery path; concurrent resume must join the in-flight durable slice.
 
 ## Fresh ChatGPT / LLM startup
 
