@@ -17,9 +17,9 @@ The project must repay debt that would otherwise make later Agent/context capabi
 The approved sequence is:
 
 ~~~text
-CP-03D Human production validation
+CP-03D CLOSED_HUMAN_PASS
         ↓
-AF-01 Conversation PostgreSQL Authority
+AF-01 Conversation PostgreSQL Authority — ACTIVE
         ↓
 AF-02 Long-context v0.1
         ↓
@@ -41,28 +41,19 @@ All work in this route MUST obey:
 - model/provider replacement must not erase durable state;
 - no migration may weaken authorization, provenance, idempotency or Human authority.
 
-## 3. Gate 0 — Close CP-03D first
+## 3. Gate 0 — CP-03D closure
 
-**Current gate:** `CP-03D Data Import learning + reuse closure`
+**Status:** `CLOSED_HUMAN_PASS` on 2026-10-08.
 
-Do not begin AF-01 as the mainline while CP-03D Human validation is still open.
+Closure evidence includes same-structure Recipe Human validation and a real production Experience Compiler proof where a successful Human-origin import produced scoped EC experience and a differently structured second file received advisory recommendations without whole-file Recipe reuse. The Human explicitly accepted recommendation-presentation styling as non-gating for this milestone.
 
-Required final Human proof remains:
-
-1. first unfamiliar import receives Human correction;
-2. dry run passes and commit succeeds;
-3. Experience Compiler records the confirmed successful mapping experience;
-4. a second file with a different overall structure receives the learned semantic recommendation;
-5. Human can inspect/correct the EC recommendation;
-6. same-structure Import Recipe remains the deterministic fast path;
-7. EC unavailability does not make Data Import unavailable;
-8. unmapped/source evidence remains recoverable.
+Rich Counterparty domain modeling such as Contact, Address, CustomerProfile, SupplierProfile and broader legacy-field destination coverage remains CP-05 through CP-07 scope and does not reopen CP-03D.
 
 Exit state:
 
 `COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS`
 
-After that exit is recorded, set the active milestone to AF-01.
+AF-01 is now the active mainline gate.
 
 ## 4. AF-01 — Conversation PostgreSQL Authority
 
@@ -241,10 +232,9 @@ A new ChatGPT / LLM session continuing this route MUST read:
 Then answer from repository evidence:
 
 ~~~text
-Is CP-03D still open?
-If yes: finish CP-03D Human production validation first.
+CP-03D is CLOSED_HUMAN_PASS.
 
-If CP-03D is closed but AF-01 is open:
+If AF-01 is open:
 continue Conversation PostgreSQL Authority.
 
 If AF-01 is closed but AF-02 is open:
