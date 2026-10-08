@@ -104,6 +104,12 @@ CP-03  Enterprise Extension + Import-first vertical proof
   ↓
 CP-04  Responsibility + role projections + data-scope permissions
   ↓
+CP-03D Import learning + reuse Human closure
+  ↓
+AF-01  Conversation PostgreSQL Authority
+  ↓
+AF-02  Long-context v0.1
+  ↓
 CP-05  Facets / Profiles / Contact / Address
   ↓
 CP-06  Workbench + Agent composition
@@ -371,6 +377,24 @@ Exit requires Human production proof of:
 
 Exit state: COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS
 
+### Interposed execution route before CP-05
+
+After CP-03D closes, the Foundation Object Program pauses for two bounded Agent-foundation debt gates before CP-05 begins:
+
+~~~text
+CP-03D CLOSED
+  ↓
+AF-01 Conversation PostgreSQL Authority
+  ↓
+AF-02 Long-context v0.1
+  ↓
+CP-05
+~~~
+
+Authority: `docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md`.
+
+This does **not** reopen CP-04 and does **not** turn Personal Agent foundation work into an open-ended rewrite. AF-01 and AF-02 have explicit exit criteria; once both pass, return to CP-05.
+
 ## 9. AD-01 — Semantic classifier
 
 Starts after CP-03 contracts exist.
@@ -437,7 +461,7 @@ Exit: Human can approve/reject semantic changes without reading a source-code di
 
 ## 12. CP-05 — Facets / Profiles / related resources
 
-**Current state:** ACTIVE after CP-04 Human closure on 2026-10-08.
+**Current state:** QUEUED_AFTER_AF02. CP-04 is already closed; CP-03D remains the active gate. After CP-03D closes, execute AF-01 and AF-02 from the Agent foundation debt-retirement route, then start CP-05.
 
 Add only business-proven concepts.
 
