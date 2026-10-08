@@ -1811,7 +1811,7 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "AF-01 Conversation PostgreSQL Authority",
+      "milestone": "AF-02 Long-context v0.1",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
         "id": "af01-conversation-postgres-authority",
