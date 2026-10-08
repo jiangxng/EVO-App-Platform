@@ -561,5 +561,35 @@
       "platform": "CONTROL_PLANE",
       "components": "DIRECT_CONTRACT_BOUND_DATA_PLANE"
     }
+  },
+  "aiNativeAgentStateContext": {
+    "status": "ACTIVE_PROJECT_CONSTITUTION",
+    "authority": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "aiNativeMeaning": "EXPLICIT_GOVERNED_DURABLE_MODEL_INDEPENDENT_STATE_AND_CONTEXT_NOT_JSONL",
+    "stateClasses": [
+      "CONVERSATION",
+      "WORKING_STATE",
+      "CONTEXT_ASSEMBLY",
+      "PERSONAL_CONTEXT_MEMORY",
+      "ENTERPRISE_RUNTIME_EVIDENCE",
+      "EXPERIENCE_COMPILER"
+    ],
+    "rawConversation": "PRESERVE_AS_SOURCE_EVIDENCE_SUBJECT_TO_RETENTION",
+    "compression": "DERIVED_VERSIONED_TRACEABLE_REGENERABLE",
+    "contextAssembly": "MINIMUM_SUFFICIENT_AUTHORIZED_TOKEN_BUDGETED",
+    "durableRuns": "REQUIRED",
+    "idempotency": "REQUIRED",
+    "modelIndependence": "REQUIRED",
+    "humanAuthority": "REQUIRED",
+    "storage": {
+      "durableQueryableProductState": "POSTGRESQL_PREFERRED",
+      "flexiblePayload": "POSTGRESQL_JSONB_WHERE_BOUNDED",
+      "jsonl": "LOG_EXPORT_MIGRATION_EVALUATION_NOT_PRODUCT_DATABASE_AUTHORITY",
+      "semanticRetrieval": "MEASURED_NEED_BEFORE_VECTOR_ADOPTION",
+      "experimentalTechnology": "ISOLATED_REPLACEABLE_NON_AUTHORITATIVE_UNLESS_GRADUATED"
+    },
+    "conversationJsonlCurrentStatus": "TRANSITIONAL_COMPATIBILITY_DEBT",
+    "conversationTargetAuthority": "POSTGRESQL",
+    "execution": "INCREMENTAL_LONG_TERM_PROGRAM"
   }
 }
