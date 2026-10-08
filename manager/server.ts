@@ -5360,8 +5360,8 @@ const server = createServer(async (request, response) => {
     if (
       request.method === "GET"
       && (
-        url.pathname === "/login-assets/tuge-logo-reference.webp"
-        || url.pathname === "/login-assets/tuge-global-connectivity-demo.webp"
+        url.pathname === "/login-assets/tuge-logo-transparent.webp"
+        || url.pathname === "/login-assets/tuge-login-background.webp"
       )
     ) {
       const assetName = url.pathname.split("/").at(-1);
