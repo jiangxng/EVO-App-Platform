@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `af01-closed-af02-active-2026-10-08`  
-**Snapshot time:** `2026-10-08T17:31:00+08:00`  
+**Snapshot:** `af02-closed-cp05-active-2026-10-08`  
+**Snapshot time:** `2026-10-08T17:53:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-AF-02 Long-context v0.1
+CP-05 Facets / Profiles / related resources
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**af01-conversation-postgres-authority: CLOSED_PRODUCTION_PASS**
+**af02-long-context-v0-1: CLOSED_PRODUCTION_PASS**
 
-AF-01 is closed. Production Conversation authority has moved from JSONL compatibility storage to PostgreSQL under the App Platform-owned app_platform_conversation schema. Existing JSONL history was imported with matching source/target digest (10 threads, 74 messages, 87 events), a temporary JSONL_MIRROR_POSTGRES phase completed without mirror errors, authority then cut to POSTGRES, and a production redeploy/restart recovered successfully without JSONL startup migration. JSONL is no longer the production Conversation authority.
+AF-02 Long-context v0.1 is closed with production proof. Raw PostgreSQL Conversation remains authoritative; long threads use source-backed versioned summary/checkpoint artifacts plus recent raw turns through a bounded Context Assembly seam, while short conversations remain direct. Compression failure falls back to recent raw Conversation without corrupting source history.
 
 Authority: `docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md`
 
@@ -26,40 +26,44 @@ Evidence:
 
 ```json
 {
-  "implementationPr": 481,
-  "implementationMergeCommit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
-  "ci": "PASS",
-  "migrationSourceThreadCount": 10,
-  "migrationSourceMessageCount": 74,
-  "migrationSourceEventCount": 87,
-  "migrationDigest": "687546f442aec6aad730444fe5d711d4d7651fe9a891b3a8c7d9e5b19525072c",
-  "mirrorDeploymentId": "9340d2ba-b701-457b-bfac-e781ac0e8ce9",
-  "mirrorErrors": 0,
-  "postgresAuthorityDeploymentId": "0a4534ef-f808-448b-9812-4cd27e8a88a2",
-  "postgresAuthorityDeploymentStatus": "SUCCESS",
-  "restartProofDeploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
-  "restartProofStatus": "SUCCESS",
-  "productionAuthority": "POSTGRES",
-  "jsonlAuthorityRemoved": true
+  "implementationPr": 483,
+  "implementationMergeCommit": "007095e618113a00800b474aa128932d42df2ed4",
+  "productionProofPr": 484,
+  "productionProofMergeCommit": "93c5eb590c8c8b59da530493761957b07a3c9d40",
+  "hardBudgetFixPr": 485,
+  "hardBudgetFixMergeCommit": "bea5f9675241890af502c02ee44b46a0692e1a7d",
+  "policyScopedVersionFixPr": 486,
+  "policyScopedVersionFixMergeCommit": "8bff1a626b1efbf3212577ed762c29d5b79a57b6",
+  "finalProofDeploymentId": "58b916f8-8b92-4236-9ac0-f08b6fbf37ec",
+  "finalProofDeploymentStatus": "SUCCESS",
+  "longSourceMessageCount": 30,
+  "summarizedSourceMessageCount": 26,
+  "contextCharacters": 6000,
+  "contextBudget": 6000,
+  "policyRegeneration": true,
+  "failureFallback": "FALLBACK_RECENT",
+  "rawMessagesRetained": 30,
+  "shortConversationMode": "DIRECT",
+  "postgresSchema": "app_platform_conversation",
+  "rawConversationOverwritten": false
 }
 ```
 
 ## Current open live gate
 
-**af02-long-context-v0-1: ACTIVE_IMPLEMENTATION**
+**cp05-counterparty-facets-profiles-related-resources: ACTIVE_IMPLEMENTATION**
 
-AF-02 is the active mainline gate. Add source-preserving long-context compression and bounded Context Assembly without replacing raw Conversation, promoting summaries into Memory/EC, or building the full future Context Compiler.
+CP-05 is the active Foundation Object gate. Add business-proven Counterparty facets/profiles and related resources—starting with repeatable Contact and Address plus CustomerProfile/SupplierProfile—without flattening repeatable resources into the Counterparty identity or moving domain semantics into Enterprise Context Core.
 
 Acceptance:
 
-- A deliberately long test thread exceeds the normal direct-history budget while the model request remains bounded.
-- Deterministic conversation segments and versioned summary artifacts identify covered source messages/ranges.
-- Every model-generated summary records compression-policy, provider/model and prompt provenance.
-- Checkpoint artifacts preserve active goals, decisions, unresolved questions and relevant tool outcomes.
-- Older relevant context can be recovered from source-backed summaries/checkpoints and original messages remain retrievable.
-- A changed compression policy can regenerate a new summary version without overwriting earlier summaries.
-- Compression/provider failure leaves raw Conversation authoritative and uncorrupted.
-- Short conversations remain on the simple recent-history path without unnecessary compression.
+- Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields.
+- CustomerProfile data exists only where CUSTOMER role semantics apply; SupplierProfile data exists only where SUPPLIER role semantics apply.
+- Enterprise Object Extension definitions can target declared Profile slots without replacing stable domain semantics.
+- Effective object schema and Data Import can address supported facet/profile fields through explicit semantic destinations.
+- Eidos Counterparty object pages compose identity, roles, profiles, contacts and addresses progressively without creating a second app shell.
+- Representative imported Counterparty business data can be traced to its persisted core/profile/contact/address/extension destination.
+- Removing one relationship role does not delete unrelated identity or child-resource history.
 
 ## Current production preview
 
@@ -68,8 +72,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `bc5557ef0a08f66f34b1b9807382c4f482c98dc7`
-- Deployment: `f017924b-20d3-4430-a790-7798b598ecf2`
+- Commit: `8bff1a626b1efbf3212577ed762c29d5b79a57b6`
+- Deployment: `58b916f8-8b92-4236-9ac0-f08b6fbf37ec`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -100,6 +104,10 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #486 — MERGED_CI_PRODUCTION_PROOF_PASS: AF-02 production proof passed after policy-scoped summary version migration; bounded context, policy regeneration, fallback, raw-source retention and short direct path are proven.
+- PR #485 — MERGED_CI_PRODUCTION_GATE_FIX: AF-02 hard context budget includes the rendered checkpoint envelope; production proof verified exact 6000/6000 cap.
+- PR #484 — MERGED_PRODUCTION_PROOF: Added isolated PostgreSQL AF-02 long-context production proof.
+- PR #483 — MERGED_CI_PRODUCTION_PASS: Added source-preserving bounded Context Assembly, versioned summary/checkpoint artifacts and PostgreSQL persistence.
 - PR #481 — MERGED_CI_PRODUCTION_PASS: AF-01 PostgreSQL Conversation authority implemented and production-cut over after digest-verified migration and mirror phase; restart recovery passed.
 - PR #478 — MERGED_PRODUCTION_BACKEND_PROOF_PASS: Added and executed an isolated production CP-03D proof: first Human-origin successful import recorded real EC experience and a differently structured second file received EC advisory mappings with confidence/provenance while Recipe reuse was absent. The proof also exposed the EC SQLite worker-thread defect before the final successful rerun.
 - PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.

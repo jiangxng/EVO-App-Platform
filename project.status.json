@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "AF-02 Long-context v0.1",
+  "currentMilestone": "CP-05 Facets / Profiles / related resources",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "af01-closed-af02-active-2026-10-08",
-    "snapshotAt": "2026-10-08T17:31:00+08:00",
+    "snapshotId": "af02-closed-cp05-active-2026-10-08",
+    "snapshotAt": "2026-10-08T17:53:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1811,45 +1811,49 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "AF-02 Long-context v0.1",
+      "milestone": "CP-05 Facets / Profiles / related resources",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "af01-conversation-postgres-authority",
+        "id": "af02-long-context-v0-1",
         "status": "CLOSED_PRODUCTION_PASS",
-        "summary": "AF-01 is closed. Production Conversation authority has moved from JSONL compatibility storage to PostgreSQL under the App Platform-owned app_platform_conversation schema. Existing JSONL history was imported with matching source/target digest (10 threads, 74 messages, 87 events), a temporary JSONL_MIRROR_POSTGRES phase completed without mirror errors, authority then cut to POSTGRES, and a production redeploy/restart recovered successfully without JSONL startup migration. JSONL is no longer the production Conversation authority.",
+        "summary": "AF-02 Long-context v0.1 is closed with production proof. Raw PostgreSQL Conversation remains authoritative; long threads use source-backed versioned summary/checkpoint artifacts plus recent raw turns through a bounded Context Assembly seam, while short conversations remain direct. Compression failure falls back to recent raw Conversation without corrupting source history.",
         "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
         "evidence": {
-          "implementationPr": 481,
-          "implementationMergeCommit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
-          "ci": "PASS",
-          "migrationSourceThreadCount": 10,
-          "migrationSourceMessageCount": 74,
-          "migrationSourceEventCount": 87,
-          "migrationDigest": "687546f442aec6aad730444fe5d711d4d7651fe9a891b3a8c7d9e5b19525072c",
-          "mirrorDeploymentId": "9340d2ba-b701-457b-bfac-e781ac0e8ce9",
-          "mirrorErrors": 0,
-          "postgresAuthorityDeploymentId": "0a4534ef-f808-448b-9812-4cd27e8a88a2",
-          "postgresAuthorityDeploymentStatus": "SUCCESS",
-          "restartProofDeploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
-          "restartProofStatus": "SUCCESS",
-          "productionAuthority": "POSTGRES",
-          "jsonlAuthorityRemoved": true
+          "implementationPr": 483,
+          "implementationMergeCommit": "007095e618113a00800b474aa128932d42df2ed4",
+          "productionProofPr": 484,
+          "productionProofMergeCommit": "93c5eb590c8c8b59da530493761957b07a3c9d40",
+          "hardBudgetFixPr": 485,
+          "hardBudgetFixMergeCommit": "bea5f9675241890af502c02ee44b46a0692e1a7d",
+          "policyScopedVersionFixPr": 486,
+          "policyScopedVersionFixMergeCommit": "8bff1a626b1efbf3212577ed762c29d5b79a57b6",
+          "finalProofDeploymentId": "58b916f8-8b92-4236-9ac0-f08b6fbf37ec",
+          "finalProofDeploymentStatus": "SUCCESS",
+          "longSourceMessageCount": 30,
+          "summarizedSourceMessageCount": 26,
+          "contextCharacters": 6000,
+          "contextBudget": 6000,
+          "policyRegeneration": true,
+          "failureFallback": "FALLBACK_RECENT",
+          "rawMessagesRetained": 30,
+          "shortConversationMode": "DIRECT",
+          "postgresSchema": "app_platform_conversation",
+          "rawConversationOverwritten": false
         }
       },
       "openGate": {
-        "id": "af02-long-context-v0-1",
+        "id": "cp05-counterparty-facets-profiles-related-resources",
         "status": "ACTIVE_IMPLEMENTATION",
-        "summary": "AF-02 is the active mainline gate. Add source-preserving long-context compression and bounded Context Assembly without replacing raw Conversation, promoting summaries into Memory/EC, or building the full future Context Compiler.",
-        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
+        "summary": "CP-05 is the active Foundation Object gate. Add business-proven Counterparty facets/profiles and related resources—starting with repeatable Contact and Address plus CustomerProfile/SupplierProfile—without flattening repeatable resources into the Counterparty identity or moving domain semantics into Enterprise Context Core.",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "A deliberately long test thread exceeds the normal direct-history budget while the model request remains bounded.",
-          "Deterministic conversation segments and versioned summary artifacts identify covered source messages/ranges.",
-          "Every model-generated summary records compression-policy, provider/model and prompt provenance.",
-          "Checkpoint artifacts preserve active goals, decisions, unresolved questions and relevant tool outcomes.",
-          "Older relevant context can be recovered from source-backed summaries/checkpoints and original messages remain retrievable.",
-          "A changed compression policy can regenerate a new summary version without overwriting earlier summaries.",
-          "Compression/provider failure leaves raw Conversation authoritative and uncorrupted.",
-          "Short conversations remain on the simple recent-history path without unnecessary compression."
+          "Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields.",
+          "CustomerProfile data exists only where CUSTOMER role semantics apply; SupplierProfile data exists only where SUPPLIER role semantics apply.",
+          "Enterprise Object Extension definitions can target declared Profile slots without replacing stable domain semantics.",
+          "Effective object schema and Data Import can address supported facet/profile fields through explicit semantic destinations.",
+          "Eidos Counterparty object pages compose identity, roles, profiles, contacts and addresses progressively without creating a second app shell.",
+          "Representative imported Counterparty business data can be traced to its persisted core/profile/contact/address/extension destination.",
+          "Removing one relationship role does not delete unrelated identity or child-resource history."
         ],
         "implementationEvidence": {},
         "blocker": null
@@ -1860,8 +1864,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "bc5557ef0a08f66f34b1b9807382c4f482c98dc7",
-        "deploymentId": "f017924b-20d3-4430-a790-7798b598ecf2",
+        "commit": "8bff1a626b1efbf3212577ed762c29d5b79a57b6",
+        "deploymentId": "58b916f8-8b92-4236-9ac0-f08b6fbf37ec",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
@@ -1879,6 +1883,26 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 486,
+        "status": "MERGED_CI_PRODUCTION_PROOF_PASS",
+        "summary": "AF-02 production proof passed after policy-scoped summary version migration; bounded context, policy regeneration, fallback, raw-source retention and short direct path are proven."
+      },
+      {
+        "pr": 485,
+        "status": "MERGED_CI_PRODUCTION_GATE_FIX",
+        "summary": "AF-02 hard context budget includes the rendered checkpoint envelope; production proof verified exact 6000/6000 cap."
+      },
+      {
+        "pr": 484,
+        "status": "MERGED_PRODUCTION_PROOF",
+        "summary": "Added isolated PostgreSQL AF-02 long-context production proof."
+      },
+      {
+        "pr": 483,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Added source-preserving bounded Context Assembly, versioned summary/checkpoint artifacts and PostgreSQL persistence."
+      },
       {
         "pr": 481,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -4502,10 +4526,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "AF-02",
-    "currentGateMeaning": "Interposed Agent foundation gate: Long-context v0.1",
-    "nextGate": "CP-05",
-    "nextGateMeaning": "Facets / Profiles / Contact / Address",
+    "currentGate": "CP-05",
+    "currentGateMeaning": "Facets / Profiles / Contact / Address",
+    "nextGate": "CP-06",
+    "nextGateMeaning": "Workbench + Agent composition",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4757,7 +4781,7 @@
       "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
     },
     "cp05": {
-      "status": "QUEUED_AFTER_AF02",
+      "status": "ACTIVE",
       "scope": [
         "Contact",
         "Address",
@@ -4771,7 +4795,7 @@
         "enterprise extensions can target declared Profile slots",
         "object page composes facets progressively through Eidos"
       ],
-      "entryCondition": "CP-03D CLOSED_HUMAN_PASS + AF-01 PASS + AF-02 PASS"
+      "entryCondition": "SATISFIED: CP-03D CLOSED_HUMAN_PASS + AF-01 CLOSED_PRODUCTION_PASS + AF-02 CLOSED_PRODUCTION_PASS"
     },
     "interposedExecutionRoute": {
       "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
@@ -4803,7 +4827,7 @@
     }
   },
   "agentFoundationDebtRetirement": {
-    "status": "ACTIVE_AF02",
+    "status": "CLOSED_RETURNED_TO_CP05",
     "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
     "constitution": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
     "sequence": [
@@ -4822,14 +4846,14 @@
       {
         "id": "AF-02",
         "title": "Long-context v0.1",
-        "status": "ACTIVE",
+        "status": "CLOSED_PRODUCTION_PASS",
         "exit": "PERSONAL_AGENT_LONG_CONTEXT_V01_PASS",
         "scope": "Add source-preserving segmentation, versioned summaries, checkpoints, compression provenance, bounded token budget and a minimal Context Assembly seam without building the full future Context Compiler."
       },
       {
         "id": "CP-05",
         "title": "Facets / Profiles / related resources",
-        "status": "QUEUED_AFTER_AF02",
+        "status": "ACTIVE",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md"
       }
     ],

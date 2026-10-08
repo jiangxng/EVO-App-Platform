@@ -21,7 +21,7 @@ CP-03D CLOSED_HUMAN_PASS
         ↓
 AF-01 Conversation PostgreSQL Authority — CLOSED_PRODUCTION_PASS
         ↓
-AF-02 Long-context v0.1 — ACTIVE
+AF-02 Long-context v0.1 — CLOSED_PRODUCTION_PASS
         ↓
 CP-05 Foundation Object mainline resumes
 ~~~
@@ -53,7 +53,7 @@ Exit state:
 
 `COUNTERPARTY_IMPORT_EC_LEARNING_REUSE_LOOP_PASS`
 
-AF-01 is CLOSED_PRODUCTION_PASS. AF-02 is now the active mainline gate.
+AF-01 and AF-02 are CLOSED_PRODUCTION_PASS. The bounded Agent foundation debt route is complete; mainline returns to CP-05.
 
 ## 4. AF-01 — Conversation PostgreSQL Authority
 

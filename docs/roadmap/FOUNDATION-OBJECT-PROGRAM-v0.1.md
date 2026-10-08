@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** AF-02 Long-context v0.1 (AF-01 CLOSED_PRODUCTION_PASS; return to CP-05 after AF-02)
+**Current entry gate:** CP-05 Facets / Profiles / related resources (AF-01 and AF-02 CLOSED_PRODUCTION_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -460,7 +460,7 @@ Exit: Human can approve/reject semantic changes without reading a source-code di
 
 ## 12. CP-05 — Facets / Profiles / related resources
 
-**Current state:** QUEUED_AFTER_AF02. CP-03D is CLOSED_HUMAN_PASS and AF-01 is CLOSED_PRODUCTION_PASS. AF-02 is ACTIVE; after AF-02 closes, CP-05 resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
+**Current state:** ACTIVE. CP-03D is CLOSED_HUMAN_PASS and AF-01/AF-02 are CLOSED_PRODUCTION_PASS. CP-05 now resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
 
 Add only business-proven concepts.
 
