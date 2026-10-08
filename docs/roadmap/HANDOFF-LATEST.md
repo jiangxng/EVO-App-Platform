@@ -10,7 +10,7 @@
 ## Current milestone
 
 ```text
-AF-01 Conversation PostgreSQL Authority
+AF-02 Long-context v0.1
 ACTIVE
 ```
 
