@@ -265,3 +265,44 @@ test("AF-02 checkpoint envelope is included in the hard context budget", async (
   assert.equal(result.messages[0].content.length, 1_000);
   assert.equal(result.includedRecentMessageCount, 0);
 });
+
+
+test("AF-02 summary artifact versions are scoped by compression policy version", async () => {
+  const store = await threadWithMessages(14, 25);
+  const artifacts = createMemoryConversationContextArtifactStoreV010();
+
+  for (const version of ["policy-v1", "policy-v2"]) {
+    const assembler = createConversationContextAssemblerV010({
+      artifactStore: artifacts,
+      policy: {
+        contractVersion: "0.1.0",
+        policyId: "af02-policy-scope",
+        version,
+        directHistoryMaxMessages: 4,
+        directHistoryMaxCharacters: 2_000,
+        recentTailMessages: 2,
+        summaryMaxCharacters: 700
+      }
+    });
+    const result = await assembler.assemble({
+      threadId: "conversation-thread:af02",
+      threadStore: store,
+      now: "2026-10-08T09:56:00.000Z"
+    });
+    assert.equal(result.mode, "COMPRESSED");
+  }
+
+  const v1 = await artifacts.latestSummary({
+    threadId: "conversation-thread:af02",
+    policyId: "af02-policy-scope",
+    policyVersion: "policy-v1"
+  });
+  const v2 = await artifacts.latestSummary({
+    threadId: "conversation-thread:af02",
+    policyId: "af02-policy-scope",
+    policyVersion: "policy-v2"
+  });
+  assert.equal(v1.artifactVersion, 1);
+  assert.equal(v2.artifactVersion, 1);
+  assert.notEqual(v1.summaryId, v2.summaryId);
+});
