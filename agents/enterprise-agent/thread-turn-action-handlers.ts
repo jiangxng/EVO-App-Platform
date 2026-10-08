@@ -181,6 +181,27 @@ function stringValue(
   return value.trim();
 }
 
+function clientTurnIdForRequest(
+  request: AppActionRequestV010
+): string | undefined {
+  const value = request.values.clientTurnId;
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== "string"
+    || !value.trim()
+    || value.length > 240
+  ) {
+    throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_INVALID");
+  }
+  return value.trim();
+}
+
+function turnSourceActionId(clientTurnId: string | undefined): string {
+  return clientTurnId
+    ? "enterprise-agent.thread.send:" + clientTurnId
+    : "enterprise-agent.thread.send";
+}
+
 function localeForRequest(
   request: AppActionRequestV010,
   message = ""
@@ -334,6 +355,44 @@ function verifyRunBelongsToThread(
   }
 }
 
+async function presentTurnResult(
+  dependencies: ThreadBackedAgentTurnDependenciesV010,
+  request: AppActionRequestV010,
+  threadId: string,
+  run: AgentRunV010,
+  principal: PlatformPrincipalV010,
+  context: ResolvedContextSetV010,
+  requestContext: PlatformRequestContextV010 | undefined
+): Promise<AppActionExecutionResultV010> {
+  const thread = await ensureAssistantMessage(
+    dependencies,
+    threadId,
+    run,
+    principal,
+    context,
+    requestContext
+  );
+  const parts = run.state === "SUCCEEDED"
+    ? await terminalPresentation(
+        dependencies,
+        run,
+        principal,
+        context,
+        requestContext
+      )
+    : undefined;
+  return success(request, {
+    thread,
+    run,
+    ...(run.state === "SUCCEEDED" && run.finalMessage
+      ? {
+          message: run.finalMessage,
+          ...(parts ? { messageParts: parts } : {})
+        }
+      : {})
+  });
+}
+
 export function createThreadBackedAgentTurnActionHandlersV010(
   dependencies: ThreadBackedAgentTurnDependenciesV010
 ): AppActionHandler[] {
@@ -374,6 +433,53 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             );
           }
 
+          const clientTurnId = clientTurnIdForRequest(request);
+          const sourceActionId = turnSourceActionId(clientTurnId);
+          const existingRun = clientTurnId
+            ? dependencies.runStore.list({
+                principalSubjectId: principal.subjectId,
+                context: context.activeContext,
+                limit: 100
+              }).find(candidate =>
+                candidate.sourceInteractionId === threadId
+                && candidate.sourceActionId === sourceActionId
+              )
+            : undefined;
+
+          if (existingRun) {
+            if (existingRun.input.message !== message) {
+              throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+            }
+            const resumed = ["READY", "PAUSED", "RUNNING"].includes(
+              existingRun.state
+            )
+              ? await drainResumableAgentRunV010(
+                  dependencies.runExecutor,
+                  {
+                    runId: existingRun.runId,
+                    principal,
+                    context,
+                    requestContext
+                  }
+                )
+              : {
+                  contractVersion: "0.1.0" as const,
+                  run: existingRun,
+                  advanced: false,
+                  advanceCount: 0,
+                  exhaustedBudget: false
+                };
+            return presentTurnResult(
+              dependencies,
+              request,
+              threadId,
+              resumed.run,
+              principal,
+              context,
+              requestContext
+            );
+          }
+
           const runId = "agent-run:" + dependencies.runId();
           const createdAt = now(dependencies);
           const history = dependencies.threadStore.conversationHistory({
@@ -387,7 +493,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             principalActorType: principal.actorType,
             context: structuredClone(context.activeContext),
             sourceInteractionId: threadId,
-            sourceActionId: "enterprise-agent.thread.send",
+            sourceActionId,
             input: {
               message,
               conversationHistory: history,
@@ -409,7 +515,10 @@ export function createThreadBackedAgentTurnActionHandlersV010(
               role: "USER",
               content: message,
               createdAt,
-              runId
+              runId,
+              ...(clientTurnId
+                ? { presentation: { clientTurnId } }
+                : {})
             });
           }
 
@@ -423,33 +532,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             }
           );
           run = resumed.run;
-          const thread = await ensureAssistantMessage(
+          return presentTurnResult(
             dependencies,
+            request,
             threadId,
             run,
             principal,
             context,
             requestContext
           );
-          const parts = run.state === "SUCCEEDED"
-            ? await terminalPresentation(
-                dependencies,
-                run,
-                principal,
-                context,
-                requestContext
-              )
-            : undefined;
-          return success(request, {
-            thread,
-            run,
-            ...(run.state === "SUCCEEDED" && run.finalMessage
-              ? {
-                  message: run.finalMessage,
-                  ...(parts ? { messageParts: parts } : {})
-                }
-              : {})
-          });
         } catch (error) {
           return failure(request, error);
         }
@@ -493,33 +584,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
               requestContext
             }
           );
-          const nextThread = await ensureAssistantMessage(
+          return presentTurnResult(
             dependencies,
+            request,
             threadId,
             resumed.run,
             principal,
             context,
             requestContext
           );
-          const parts = resumed.run.state === "SUCCEEDED"
-            ? await terminalPresentation(
-                dependencies,
-                resumed.run,
-                principal,
-                context,
-                requestContext
-              )
-            : undefined;
-          return success(request, {
-            thread: nextThread,
-            run: resumed.run,
-            ...(resumed.run.state === "SUCCEEDED" && resumed.run.finalMessage
-              ? {
-                  message: resumed.run.finalMessage,
-                  ...(parts ? { messageParts: parts } : {})
-                }
-              : {})
-          });
         } catch (error) {
           return failure(request, error);
         }
