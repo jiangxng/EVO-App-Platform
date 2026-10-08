@@ -330,11 +330,12 @@ export function createDataImportServiceV010(input: {
         };
       }
 
-      // Compatibility path for successful Human-confirmed imports that predate
-      // persistent Import Recipes. Repository history is durable evidence; if
-      // the target, purpose, source structure and schema still match exactly,
-      // reuse that confirmed mapping. The next successful commit will persist
-      // it as a normal Recipe through recordSuccessful().
+      // Compatibility path for Human-confirmed mappings that predate
+      // persistent Import Recipes. A successful dry run is sufficient evidence
+      // for same-structure mapping reuse even when business data was never
+      // committed. Repository history is durable evidence; if the target,
+      // purpose, source structure and schema still match exactly, reuse it.
+      // The next Human-confirmed dry run will persist it as a normal Recipe.
       const sourceFingerprint = dataImportSourceFingerprintV010({
         targetId: mappingInput.targetId,
         targetParameters: mappingInput.targetParameters,
@@ -343,7 +344,10 @@ export function createDataImportServiceV010(input: {
       const historical = input.repository
         .list(mappingInput.contextId)
         .find(job =>
-          job.state === "COMMITTED"
+          (
+            job.state === "COMMITTED"
+            || job.state === "DRY_RUN_READY"
+          )
           && job.mappingOrigin === "HUMAN"
           && job.targetId === mappingInput.targetId
           && job.dryRun?.schemaDigest === targetSchemaDigest
