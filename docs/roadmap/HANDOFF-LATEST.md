@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-import-learning-reuse-production-validation-2026-10-08`  
-**Snapshot time:** `2026-10-08T08:30:00+08:00`  
+**Snapshot:** `cp03d-ec-data-import-learning-service-blocked-2026-10-08`  
+**Snapshot time:** `2026-10-08T09:31:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -39,19 +39,22 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_PRODUCTION_VALIDATION**
+**counterparty-data-import-learning-reuse-closure-v0-3d: EC_PRODUCTION_SERVICE_BLOCKED_HUMAN_PENDING**
 
-CP-03D implementation is merged, CI-passed and production-deployed. The remaining gate is Human end-to-end proof of first-import learning, second same-structure recipe reuse, evidence preservation and safe fallback behavior.
+CP-03D now includes the real EVO -> Experience Compiler -> EVO learning boundary. EC and App Platform implementations are merged and CI-passed; App Platform is production-deployed. Human production proof is blocked only because Railway currently refuses provisioning the independent EC service at the account resource limit. Data Import remains fully operable without EC.
 
 Acceptance:
 
-- First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.
-- A successful Human-confirmed import persists an enterprise-scoped Import Recipe that captures reusable mapping/value transforms and is auditable.
-- A second import with the same structure reuses the confirmed Import Recipe by default and does not call AI again unless the recipe cannot safely apply or Human asks for assistance.
-- Schema drift or incompatible source changes fail safe into review rather than silently reusing a stale recipe.
-- Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.
-- Import function entry and import-history/review experience remain clearly separated in the UI.
-- Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end.
+- A first import can be Human-corrected, dry-run validated and committed through the ordinary deterministic Data Import path.
+- Only a Human-confirmed mapping from a successful committed import is eligible to become persistent mapping experience in Experience Compiler.
+- Experience Compiler persists tenant-scoped, target-object-scoped mapping experience with provenance back to the successful EVO import job; one enterprise experience does not become global truth.
+- A later file with a different overall table structure can reuse prior semantic experience such as 编码 -> Counterparty.code even when the whole-file Import Recipe fingerprint does not match.
+- EC recommendations remain advisory, expose confidence/evidence for Human review, and never directly commit or mutate Counterparty operational truth.
+- Equal conflicting learned evidence fails closed instead of silently choosing a mapping.
+- Same-structure confirmed Import Recipe reuse remains the cheaper deterministic fast path and avoids unnecessary EC/LLM work.
+- If EC is absent, unavailable or times out, Data Import falls back to existing deterministic mapping and Human review without becoming unavailable.
+- Unmapped columns and original source evidence remain preserved and recoverable; import function entry and import history/review stay separate.
+- Human production validation proves first Human correction -> EC experience -> different-structure second import recommendation -> Human confirmation end to end.
 
 ## Current production preview
 
@@ -60,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `7ab55fbf21b2b0d5d82b26445231e48031fa5ad2`
-- Deployment: `cea1d85b-8967-4b1c-b3c0-608ff5f559c3`
+- Commit: `be1e33bc0bb8b7ec220f04ad1589d97171e9c7d1`
+- Deployment: `fa2d9ffb-46e7-4b7f-bb61-6b4b4351c7ee`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
