@@ -282,17 +282,20 @@ export function createConversationContextAssemblerV010(input: {
           });
         }
 
+        const checkpointContent =
+          "[Conversation checkpoint " + summary.provenance.policyVersion + "]\n"
+          + summary.content;
         const budgetForRecent = Math.max(
-          1,
-          policy.directHistoryMaxCharacters - summary.content.length
+          0,
+          policy.directHistoryMaxCharacters - checkpointContent.length
         );
-        const recentMessages = directMessages(recent, budgetForRecent);
+        const recentMessages = budgetForRecent > 0
+          ? directMessages(recent, budgetForRecent)
+          : [];
         const messages = [
           {
             role: "assistant" as const,
-            content:
-              "[Conversation checkpoint " + summary.provenance.policyVersion + "]\n"
-              + summary.content
+            content: checkpointContent.slice(0, policy.directHistoryMaxCharacters)
           },
           ...recentMessages
         ];
