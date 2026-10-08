@@ -88,8 +88,17 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
         unresolved_questions jsonb NOT NULL,
         relevant_tool_outcomes jsonb NOT NULL,
         provenance jsonb NOT NULL,
-        generated_at timestamptz NOT NULL,
-        UNIQUE(thread_id, artifact_version)
+        generated_at timestamptz NOT NULL
+      )
+    `);
+    await tx.unsafe(`
+      ALTER TABLE "${schema}".context_summaries
+      DROP CONSTRAINT IF EXISTS context_summaries_thread_id_artifact_version_key
+    `);
+    await tx.unsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS context_summaries_thread_policy_artifact_version_uidx
+      ON "${schema}".context_summaries(
+        thread_id, policy_id, policy_version, artifact_version
       )
     `);
     await tx.unsafe(`
@@ -110,6 +119,11 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
     await tx`
       INSERT INTO ${tx(schema)}.schema_migrations(version)
       VALUES ('0002_long_context_v01')
+      ON CONFLICT (version) DO NOTHING
+    `;
+    await tx`
+      INSERT INTO ${tx(schema)}.schema_migrations(version)
+      VALUES ('0003_long_context_policy_scoped_versions')
       ON CONFLICT (version) DO NOTHING
     `;
   });
