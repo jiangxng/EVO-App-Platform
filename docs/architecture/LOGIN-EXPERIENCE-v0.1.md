@@ -85,6 +85,23 @@ governed and implemented, the Host renders the default template.
 
 The cover remains presentation content rather than operational business truth.
 
+## Enterprise cover skins
+
+The Host may expose multiple presentation skins for demo or enterprise-branding
+purposes without changing authentication behavior. The standard skin remains
+the default. Alternate skins are selected explicitly and must preserve the same
+identity-method truth and return-to boundary.
+
+Customer brand assets are immutable inputs. A customer logo must be displayed
+from the supplied/original image asset without redrawing, recoloring, filtering,
+cropping, stretching, or substituting typography. Layout may control only
+placement, maximum dimensions and surrounding whitespace.
+
+The TUGE demo skin is a demonstration-only cover that uses TUGE's published
+global-connectivity / AIoT themes and public footprint metrics while preserving
+the approved enterprise headline. Its decorative globe/network artwork is an
+EVO-owned presentation element; it is not part of the customer logo.
+
 ## Accessibility
 
 The login experience preserves a low-cognitive-load path through federated
