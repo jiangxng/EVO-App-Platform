@@ -1288,6 +1288,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
     let runProgressMessageId: string | undefined;
     let runTransportInFlight = false;
+    let initialRecoveryPromise: Promise<void> | undefined;
     let activeChatAbort: AbortController | undefined;
 
     const pendingIndicator = transcript
@@ -1782,33 +1783,47 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       }
 
       if (threadBacked) void refreshThreadHistory();
-      const submit = async (
-        interactionContext?: Record<string, JsonValue>
+
+      const stageUserTurn = (
+        message: string,
+        clientTurnId = `user-${Date.now()}-${state.messages.length}`
       ) => {
-        if (runTransportInFlight) return;
-        const message = textarea.value.trim();
-        if (!message) return;
-
-        const conversationHistory = definition.contractVersion === "0.2.0"
-          ? createChatConversationHistoryV010(state.messages)
-          : [];
-
-        const clientTurnId =
-          `user-${Date.now()}-${state.messages.length}`;
-        state.messages.push(definition.contractVersion === "0.2.0"
-          ? {
-              id: clientTurnId,
-              contractVersion: "0.2.0",
-              role: "user",
-              parts: [{ type: "text", text: message }]
-            }
-          : {
-              id: clientTurnId,
-              role: "user",
-              text: message
-            });
+        if (!state.messages.some(item => item.id === clientTurnId)) {
+          state.messages.push(definition.contractVersion === "0.2.0"
+            ? {
+                id: clientTurnId,
+                contractVersion: "0.2.0",
+                role: "user",
+                parts: [{ type: "text", text: message }]
+              }
+            : {
+                id: clientTurnId,
+                role: "user",
+                text: message
+              });
+        }
         textarea.value = "";
         renderTranscript();
+        return { message, clientTurnId };
+      };
+
+      const submit = async (
+        interactionContext?: Record<string, JsonValue>,
+        stagedTurn?: { message: string; clientTurnId: string }
+      ) => {
+        if (runTransportInFlight) return;
+        const message = stagedTurn?.message ?? textarea.value.trim();
+        if (!message) return;
+        const clientTurnId = stagedTurn?.clientTurnId
+          ?? `user-${Date.now()}-${state.messages.length}`;
+
+        const conversationHistory = definition.contractVersion === "0.2.0"
+          ? createChatConversationHistoryV010(
+              state.messages.filter(item => item.id !== clientTurnId)
+            )
+          : [];
+
+        stageUserTurn(message, clientTurnId);
 
         if (!options.actionHost) {
           state.messages.push(definition.contractVersion === "0.2.0"
@@ -1974,11 +1989,24 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (!normalized) {
           throw new Error("EIDOS_CONTEXTUAL_AGENT_PROMPT_REQUIRED");
         }
+        if (runTransportInFlight && !initialRecoveryPromise) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
+        }
+
+        // Contextual actions should feel sent immediately. If this Chat surface
+        // is still reconciling a durable thread from a fresh mount, stage the
+        // Human-visible turn first, then serialize the actual send behind that
+        // initial recovery. A stale recovery transcript may replace local
+        // state, so restage the same client turn before transport if needed.
+        const staged = stageUserTurn(normalized);
+        if (initialRecoveryPromise) {
+          await initialRecoveryPromise;
+          stageUserTurn(staged.message, staged.clientTurnId);
+        }
         if (runTransportInFlight) {
           throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
         }
-        textarea.value = normalized;
-        await submit(interactionContext);
+        await submit(interactionContext, staged);
       };
 
       const recoverDurableRun = async (): Promise<void> => {
@@ -2051,7 +2079,20 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       };
 
       if (runBacked) {
-        void recoverDurableRun();
+        const recovery = recoverDurableRun();
+        initialRecoveryPromise = recovery;
+        void recovery.then(
+          () => {
+            if (initialRecoveryPromise === recovery) {
+              initialRecoveryPromise = undefined;
+            }
+          },
+          () => {
+            if (initialRecoveryPromise === recovery) {
+              initialRecoveryPromise = undefined;
+            }
+          }
+        );
       }
 
       const submitHandler = (event: SubmitEvent) => {
