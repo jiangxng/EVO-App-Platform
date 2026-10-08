@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp03d-import-closure-cp04-closed-2026-10-08",
-    "snapshotAt": "2026-10-08T08:32:00+08:00",
+    "snapshotId": "cp03d-import-learning-reuse-production-validation-2026-10-08",
+    "snapshotAt": "2026-10-08T08:30:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1831,8 +1831,8 @@
       },
       "openGate": {
         "id": "counterparty-data-import-learning-reuse-closure-v0-3d",
-        "status": "ACTIVE",
-        "summary": "CP-03 core import mechanics are implemented, but the product loop is not closed. Finish and Human-validate learned Import Recipe reuse, evidence preservation and the repeat-import experience before advancing the Foundation Object mainline.",
+        "status": "HUMAN_PRODUCTION_VALIDATION",
+        "summary": "CP-03D implementation is merged, CI-passed and production-deployed. The remaining gate is Human end-to-end proof of first-import learning, second same-structure recipe reuse, evidence preservation and safe fallback behavior.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
           "First representative CSV/XLSX import supports inspect/mapping, deterministic rules, bounded Agent assistance when needed, dry run, correction, explicit confirmation, atomic commit and clear result/error receipt.",
@@ -1842,7 +1842,18 @@
           "Unmapped columns and original source evidence remain preserved and recoverable; import does not discard unknown enterprise information.",
           "Import function entry and import-history/review experience remain clearly separated in the UI.",
           "Human production validation proves the first-import -> learned recipe -> second-import reuse loop end to end."
-        ]
+        ],
+        "implementationEvidence": {
+          "implementationPr": 460,
+          "mergeCommit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "railwayDeploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
+          "railwayDeploymentStatus": "SUCCESS",
+          "learnedRecipeReuseProtocolProof": true,
+          "staleRecipeSchemaDriftFallbackProof": true,
+          "sourceEvidenceVisibleInHumanExperience": true
+        }
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1850,8 +1861,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
-        "deploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+        "commit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
+        "deploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       }
@@ -4556,7 +4567,7 @@
       "humanValidationAt": "2026-10-07",
       "humanValidation": "PARTIAL_PREVIOUS_IMPORT_PASS_NOT_FULL_REUSE_LOOP",
       "importLearningReuseClosure": {
-        "status": "ACTIVE",
+        "status": "MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING",
         "implementedEvidence": [
           "Import Recipe repository and enterprise-scoped source fingerprint exist.",
           "Only Human-confirmed successful imports become auto-reusable recipes.",
@@ -4572,7 +4583,14 @@
           "Human-validate stale/incompatible recipe falls back to review.",
           "Human-validate unmapped/source evidence remains recoverable.",
           "Human-validate import function and import history are clearly separated."
-        ]
+        ],
+        "implementationPr": 460,
+        "mergeCommit": "7ab55fbf21b2b0d5d82b26445231e48031fa5ad2",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "railwayDeploymentId": "cea1d85b-8967-4b1c-b3c0-608ff5f559c3",
+        "railwayDeploymentStatus": "SUCCESS",
+        "humanValidation": "PENDING"
       }
     },
     "cp04": {

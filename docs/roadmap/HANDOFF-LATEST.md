@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp03d-import-closure-cp04-closed-2026-10-08`  
-**Snapshot time:** `2026-10-08T08:32:00+08:00`  
+**Snapshot:** `cp03d-import-learning-reuse-production-validation-2026-10-08`  
+**Snapshot time:** `2026-10-08T08:30:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -39,9 +39,9 @@ Evidence:
 
 ## Current open live gate
 
-**counterparty-data-import-learning-reuse-closure-v0-3d: ACTIVE**
+**counterparty-data-import-learning-reuse-closure-v0-3d: HUMAN_PRODUCTION_VALIDATION**
 
-CP-03 core import mechanics are implemented, but the product loop is not closed. Finish and Human-validate learned Import Recipe reuse, evidence preservation and the repeat-import experience before advancing the Foundation Object mainline.
+CP-03D implementation is merged, CI-passed and production-deployed. The remaining gate is Human end-to-end proof of first-import learning, second same-structure recipe reuse, evidence preservation and safe fallback behavior.
 
 Acceptance:
 
@@ -60,8 +60,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `fd2a2782c0e0522c010ae63ea6af0997ee647b28`
-- Deployment: `ded808c6-318c-4da3-84bc-88878de87026`
+- Commit: `7ab55fbf21b2b0d5d82b26445231e48031fa5ad2`
+- Deployment: `cea1d85b-8967-4b1c-b3c0-608ff5f559c3`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 

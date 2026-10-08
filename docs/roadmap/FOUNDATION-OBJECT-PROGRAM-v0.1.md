@@ -251,7 +251,7 @@ Exit state: COUNTERPARTY_IMPORT_EXTENSION_VERTICAL_PASS
 
 ### CP-03D — Import learning + reuse product closure
 
-**Current state:** ACTIVE.
+**Current state:** MERGED_CI_PRODUCTION_PASS_HUMAN_PENDING (PR #460). The learning/reuse experience and protocol proof are deployed; Human end-to-end production validation remains open.
 
 The earlier Human import pass proved that CSV/XLSX can be mapped, dry-run, confirmed and committed. It did **not** close the later product requirement that repeated enterprise imports become learned, reusable and auditable.
 
@@ -289,7 +289,7 @@ Hard requirements:
 - history must make recipe reuse, corrections and outcomes auditable;
 - repeated imports should become cheaper and more deterministic over time rather than repeatedly invoking an LLM.
 
-Current implementation already contains much of the substrate (recipe repository, fingerprinting, confirmed-recipe reuse, schema-digest guard, mapping inspection, unmapped-column visibility, raw-source preservation signal and Agent semantic guards). CP-03D is therefore a **product closure and Human end-to-end proof**, not a rewrite of Data Import.
+Current implementation now includes the substrate and Human-facing evidence required for closure: recipe repository, fingerprinting, confirmed-recipe reuse, schema-digest guard, mapping inspection, unmapped-column visibility, raw-source preservation, Agent semantic guards, mapping provenance/history display, and protocol proof that a second same-structure import reuses the learned recipe without remapping/AI. CP-03D remains open only for Human end-to-end production validation.
 
 Exit requires Human production proof of:
 
