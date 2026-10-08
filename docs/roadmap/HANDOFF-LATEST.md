@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp04-responsibility-projections-production-validation-2026-10-08`  
-**Snapshot time:** `2026-10-08T07:53:00+08:00`  
+**Snapshot:** `cp04-closed-cp05-active-2026-10-08`  
+**Snapshot time:** `2026-10-08T08:12:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-04 Responsibility + Projections + data scope
+CP-05 Facets / Profiles / related resources
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**counterparty-enterprise-extension-import-v0-3: CLOSED_HUMAN_PASS**
+**counterparty-responsibility-projections-v0-4: CLOSED_HUMAN_PASS**
 
-CP-03 is closed. Human production validation confirmed the Counterparty import journey, including field mapping, dry run and successful import; later Eidos list/breadcrumb/history refinements are already merged on main.
+CP-04 is closed. Responsibility, governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope are merged, CI-passed and production-deployed. Human product validation accepted the basic projection/list experience and explicitly reframed these lists as governed operational/analytics entry points rather than management KPIs by themselves.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,28 +26,30 @@ Evidence:
 
 ```json
 {
-  "humanBrowserValidation": "PASS",
-  "humanValidationAt": "2026-10-07",
-  "validatedImportRows": 172,
-  "failedRows": 0,
-  "designConvergencePr": 456,
-  "managementListBreadcrumbHistoryPr": 457
+  "implementationPr": 458,
+  "mergeCommit": "fd2a2782c0e0522c010ae63ea6af0997ee647b28",
+  "platformCI": "PASS",
+  "railwayDeploymentId": "ded808c6-318c-4da3-84bc-88878de87026",
+  "railwayDeploymentStatus": "SUCCESS",
+  "humanValidationAt": "2026-10-08",
+  "humanValidation": "PASS",
+  "productDirectionReference": "docs/architecture/COUNTERPARTY-ANALYTICS-ENTRY-PRINCIPLE-v0.1.md"
 }
 ```
 
 ## Current open live gate
 
-**counterparty-responsibility-projections-v0-4: HUMAN_PRODUCTION_VALIDATION**
+**counterparty-facets-profiles-v0-5: ACTIVE**
 
-CP-04 implementation is merged, CI-passed and production-deployed. Human production validation is the remaining gate before CP-04 closure.
+CP-05 is the current gate. Add only business-proven Counterparty facets/profiles, beginning with repeatable Contact/Address and role-scoped CustomerProfile/SupplierProfile, while keeping identity stable and progressively composing the object page through Eidos.
 
 Acceptance:
 
-- My Customers is not a client-side filter over all Counterparties.
-- Unauthorized records and fields never reach the Eidos page payload.
-- One Counterparty may carry different sales and procurement responsibility assignments without duplicating identity.
-- Customers/Suppliers/My Customers/My Suppliers are derived projections over the same stable Counterparty identities.
-- The projection path has deterministic 10k-record regression proof.
+- Repeatable Contact/Address are child resources, not flattened fields.
+- Customer-only data is absent when CUSTOMER role does not apply.
+- Supplier-only data is absent when SUPPLIER role does not apply.
+- Enterprise extensions can target declared Profile slots.
+- Object page composes facets progressively through Eidos.
 
 ## Current production preview
 
@@ -56,8 +58,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `8876cedc259a2135a8c56d4721ea7b2f95901e6e`
-- Deployment: `2ccf155b-5b9e-44e4-acb2-3b7249491dbd`
+- Commit: `fd2a2782c0e0522c010ae63ea6af0997ee647b28`
+- Deployment: `ded808c6-318c-4da3-84bc-88878de87026`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
