@@ -130,13 +130,13 @@ function sameContext(
     );
 }
 
-function threadForScope(
+async function threadForScope(
   dependencies: ThreadBackedAgentTurnDependenciesV010,
   threadId: string,
   principal: PlatformPrincipalV010,
   context: ResolvedContextSetV010
 ) {
-  const thread = dependencies.threadStore.get(threadId);
+  const thread = await dependencies.threadStore.get(threadId);
   if (
     !thread
     || thread.principalSubjectId !== principal.subjectId
@@ -304,7 +304,7 @@ async function ensureAssistantMessage(
   context: ResolvedContextSetV010,
   requestContext: PlatformRequestContextV010 | undefined
 ) {
-  const thread = threadForScope(
+  const thread = await threadForScope(
     dependencies,
     threadId,
     principal,
@@ -334,7 +334,7 @@ async function ensureAssistantMessage(
     context,
     requestContext
   );
-  return dependencies.threadStore.appendMessage({
+  return await dependencies.threadStore.appendMessage({
     threadId,
     messageId: assistantMessageId(run.runId),
     role: "ASSISTANT",
@@ -414,7 +414,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           );
           const threadId = stringValue(request, "threadId");
           const message = stringValue(request, "message");
-          const scopedThread = threadForScope(
+          const scopedThread = await threadForScope(
             dependencies,
             threadId,
             principal,
@@ -482,7 +482,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
 
           const runId = "agent-run:" + dependencies.runId();
           const createdAt = now(dependencies);
-          const history = dependencies.threadStore.conversationHistory({
+          const history = await dependencies.threadStore.conversationHistory({
             threadId
           });
           const interactionContext =
@@ -507,9 +507,9 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             createdAt
           });
 
-          const threadBeforeMessage = dependencies.threadStore.get(threadId)!;
+          const threadBeforeMessage = (await dependencies.threadStore.get(threadId))!;
           if (!threadBeforeMessage.messages.some(item => item.runId === runId && item.role === "USER")) {
-            dependencies.threadStore.appendMessage({
+            await dependencies.threadStore.appendMessage({
               threadId,
               messageId: userMessageId(runId),
               role: "USER",
@@ -558,7 +558,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           );
           const threadId = stringValue(request, "threadId");
           const runId = stringValue(request, "runId");
-          const thread = threadForScope(
+          const thread = await threadForScope(
             dependencies,
             threadId,
             principal,
