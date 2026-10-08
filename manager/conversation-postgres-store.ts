@@ -372,7 +372,7 @@ export async function createPostgresConversationAuthorityV010(input: {
               event_id, thread_id, event_type, occurred_at, payload
             ) VALUES (
               ${newEventId}, ${id}, 'THREAD_CREATED',
-              ${createdAt}, ${tx.json(payload)}
+              ${createdAt}, ${JSON.stringify(payload)}::jsonb
             )
           `;
         });
@@ -486,7 +486,7 @@ export async function createPostgresConversationAuthorityV010(input: {
               ${messageId}, ${id}, '0.1.0', ${request.role}, ${content},
               ${createdAt}, ${request.runId?.trim() || null},
               ${request.replyToMessageId?.trim() || null},
-              ${request.presentation ? tx.json(request.presentation) : null},
+              ${request.presentation ? JSON.stringify(request.presentation) : null}::jsonb,
               ${newEventId}
             )
           `;
@@ -514,8 +514,7 @@ export async function createPostgresConversationAuthorityV010(input: {
     },
 
     async get(threadId) {
-      return readThreadWith(
-        sql,
+      return readThread(
         required(threadId, "CONVERSATION_THREAD_ID_REQUIRED")
       );
     },
@@ -704,8 +703,8 @@ export async function createPostgresConversationAuthorityV010(input: {
               ${event.payload.createdAt}, ${event.payload.runId ?? null},
               ${event.payload.replyToMessageId ?? null},
               ${event.payload.presentation
-                ? tx.json(event.payload.presentation)
-                : null},
+                ? JSON.stringify(event.payload.presentation)
+                : null}::jsonb,
               ${event.eventId}
             )
             ON CONFLICT (message_id) DO NOTHING
@@ -733,7 +732,7 @@ export async function createPostgresConversationAuthorityV010(input: {
             event_id, thread_id, event_type, occurred_at, payload
           ) VALUES (
             ${event.eventId}, ${event.threadId}, ${event.type},
-            ${event.occurredAt}, ${tx.json(event.payload)}
+            ${event.occurredAt}, ${JSON.stringify(event.payload)}::jsonb
           )
         `;
       }
