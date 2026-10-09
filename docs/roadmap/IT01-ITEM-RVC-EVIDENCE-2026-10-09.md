@@ -1,6 +1,6 @@
 # IT-01 Item Real-World RVC Evidence — 2026-10-09
 
-**Status:** PASS  
+**Status:** CLOSED_PRODUCTION_PASS  
 **Program:** Foundation Object Program / IT-01 Item/Product second-object proof  
 **Source class:** real-world external product data + standards  
 **Purpose:** retain durable Item anti-overfit evidence after GitHub Actions artifacts expire.
@@ -257,3 +257,15 @@ The second-object gate has achieved its purpose:
 
 Recommendation: **close IT-01 after PR #538 is merged and production deployment
 passes; activate WH-01 Warehouse/Location third-object proof.**
+
+
+## Production closure
+
+- PR #538 merged to `main`
+- merge commit: `139ad94c13909a1f47c73d081742a5a6a870eef5`
+- final Platform CI: PASS
+- final Project Continuity CI: PASS
+- final Open Food Facts real-data workflow: PASS
+- Railway deployment: `ca33d2da-7de7-483a-b584-1d71d38f84d1` — SUCCESS
+- IT-01 exit: **CLOSED_PRODUCTION_PASS**
+- next gate: **WH-01 Warehouse/Location third-object proof**
