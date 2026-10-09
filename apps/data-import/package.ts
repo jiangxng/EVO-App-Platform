@@ -20,6 +20,7 @@ import {
   DATA_IMPORT_REVIEW_PAGE_ID,
   DATA_IMPORT_REVIEW_PAGE_SOURCE,
   DATA_IMPORT_REVIEW_ROUTE,
+  DATA_IMPORT_STAGE_FILE_OPERATION_V010,
   DATA_IMPORT_UPLOAD_PAGE_ID,
   DATA_IMPORT_UPLOAD_PAGE_SOURCE,
   DATA_IMPORT_UPLOAD_ROUTE
@@ -63,6 +64,19 @@ export const dataImportPackage: PackageManifestV010 = {
     ],
     contributions: [
       ...dataImportCapabilityContributionsV010,
+      {
+        kind: "eidos.workbench-home-item",
+        item: {
+          contractVersion: "0.1.0",
+          id: "evo-data-import.workbench.import",
+          title: "Data Import",
+          description: "Upload, map, validate and commit governed business data.",
+          section: "FIXED_CAPABILITIES",
+          route: DATA_IMPORT_DIRECTORY_ROUTE,
+          capabilityOperationId: DATA_IMPORT_STAGE_FILE_OPERATION_V010,
+          order: 60
+        }
+      },
       {
         kind: "eidos.experience",
         manifest: {
