@@ -48,6 +48,12 @@ async function json(response) {
   return body;
 }
 
+function metric(body, code) {
+  const found = body.observations?.find(item => item.metricCode === code);
+  assert.ok(found, "missing runtime observation metric " + code);
+  return Number(found.value);
+}
+
 async function applicationEventCount(enterpriseId, applicationId) {
   const body = await json(await fetch(
     baseUrl + "/api/v1/runtime-observations/query",
