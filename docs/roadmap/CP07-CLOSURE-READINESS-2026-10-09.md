@@ -52,11 +52,11 @@ Observed 1M deterministic performance result:
 
 The 100k run is real-world RVC evidence. The 1M run is scale/resource evidence only and does not claim production database or browser rendering performance.
 
-## Safe integration order
+## Safe integration route
 
-The current work is intentionally stacked and must not be flattened by guessing.
+A reconciled complete Draft integration candidate now exists as **PR #519** targeting `main`. It contains the full stacked lineage plus the sibling PR #515 10k proof that was not present in the #516/#517/#518 ancestry. The preferred route is to validate #519 as the complete candidate and let the mainline owner window decide the actual merge. The original stack remains the audit trail.
 
-Recommended integration order:
+Original evidence lineage:
 
 1. PR #510 — close CP-06 Human gate / activate CP-07 continuity;
 2. PR #511 — CP-07A RVC evidence harness;
@@ -68,7 +68,7 @@ Recommended integration order:
 8. PR #517 — CP-07F 1M performance proof + durable scale evidence;
 9. final CP-07 continuity closure PR after final mainline CI.
 
-After each parent stack layer lands, retarget the next child PR to the actual current mainline before merge. Do not merge stale parent assumptions mechanically.
+Do not mechanically merge the original stack one by one if PR #519 has already been validated as the reconciled candidate. If the mainline owner chooses the original stack instead, retarget each child to the actual current mainline and re-run CI as needed.
 
 ## Final closure actions after integration
 
