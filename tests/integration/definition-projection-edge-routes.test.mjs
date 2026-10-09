@@ -70,3 +70,40 @@ test("projection schema rejects unknown route enums and duplicated edge override
     undefined
   );
 });
+
+test("explicit control points and fixed node anchors survive projection-to-Viewer roundtrip", () => {
+  const original = [{edgeId:"relation-a",pathKind:"rounded-orthogonal",
+    sourceAnchor:"right",targetAnchor:"left",
+    waypoints:[{x:-30,y:160},{x:220,y:160}]}];
+  const normalized = assertTemplateProjectionGalleryV010(gallery(original));
+  assert.deepEqual(normalized.projections[0].view.edgePaths, original);
+  const projected = applyDefinitionProjectionV010({diagram,gallery:normalized});
+  const edge=projected.diagram2d.edges[0];
+  assert.equal(edge.source,"a");
+  assert.equal(edge.target,"b");
+  assert.equal(edge.arrow,"end");
+  assert.equal(edge.sourceAnchor,"right");
+  assert.equal(edge.targetAnchor,"left");
+  assert.deepEqual(edge.waypoints,original[0].waypoints);
+  const viewer=projectReadOnly2dArtifactStateV010({
+    resourceId:"graph:viewer",revision:1,lifecycleState:"PUBLISHED",title:"Graph",
+    diagram2d:projected.diagram2d,notice:"Ready"
+  });
+  assert.deepEqual(viewer.edges[0].waypoints,original[0].waypoints);
+  assert.equal(viewer.edges[0].sourceAnchor,"right");
+  assert.equal(viewer.edges[0].targetAnchor,"left");
+  assert.equal(validateDiagramEditorStateV010(viewer).ok,true);
+});
+test("invalid waypoint metadata is rejected, never silently lost or interpreted as business endpoints", () => {
+  for(const bad of [
+    {pathKind:"straight",waypoints:[{x:1,y:2}]},
+    {pathKind:"curve",waypoints:[{x:Infinity,y:2}]},
+    {pathKind:"curve",waypoints:[{x:1e10,y:2}]},
+    {pathKind:"orthogonal",sourceAnchor:"inside"},
+    {pathKind:"curve",waypoints:Array.from({length:25},(_,i)=>({x:i,y:i}))}
+  ]){
+    assert.throws(()=>assertTemplateProjectionGalleryV010(gallery([
+      {edgeId:"relation-a",...bad}
+    ])),/EDGE_PATH_INVALID/);
+  }
+});
