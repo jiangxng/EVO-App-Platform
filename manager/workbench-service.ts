@@ -111,8 +111,44 @@ export function createWorkbenchServiceV010(input: {
           })
         : undefined;
 
+    const locale = context.locale?.trim() || "en";
+    const bundles = input.manager.listEffectiveLocalizationBundles();
+    const packageItems = input.manager.listEffectiveWorkbenchHomeItems()
+      .map(item => {
+        const localization = item.localization;
+        if (!localization) return item;
+        const bundle =
+          bundles.find(candidate =>
+            candidate.namespace === localization.namespace
+            && candidate.locale === locale
+          )
+          ?? bundles.find(candidate =>
+            candidate.namespace === localization.namespace
+            && candidate.locale.toLowerCase()
+              === locale.toLowerCase()
+          )
+          ?? bundles.find(candidate =>
+            candidate.namespace === localization.namespace
+            && candidate.locale === "en"
+          );
+        if (!bundle) return item;
+        return {
+          ...item,
+          title:
+            bundle.messages[localization.titleKey]
+            ?? item.title,
+          ...(localization.descriptionKey
+            ? {
+                description:
+                  bundle.messages[localization.descriptionKey]
+                  ?? item.description
+              }
+            : {})
+        };
+      });
+
     const composition = composeWorkbenchHomeV010({
-      packageItems: input.manager.listEffectiveWorkbenchHomeItems(),
+      packageItems,
       authorizedCapabilityOperationIds: authorizedIds,
       enterpriseRoleDefault,
       personalPreference: personalWorkbenchLayerV010(personal)
