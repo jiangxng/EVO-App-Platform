@@ -5497,7 +5497,7 @@ const server = createServer(async (request, response) => {
         url.pathname === "/login-assets/tuge-logo-reference.webp"
         || url.pathname === "/login-assets/tuge-global-connectivity-demo.webp"
         || url.pathname === "/login-assets/tuge-logo-final.png"
-        || url.pathname === "/login-assets/tuge-login-background-final.jpg"
+        || url.pathname === "/login-assets/tuge-login-background-final.png"
       )
     ) {
       const assetName = url.pathname.split("/").at(-1);
