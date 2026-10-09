@@ -68,12 +68,23 @@ export interface CounterpartyAddressV010 {
   notes?: string;
 }
 
+export type CounterpartyProfileValueV010 =
+  | string
+  | number
+  | boolean
+  | null;
+
 export interface CounterpartyRelationshipProfileV010 {
   contractVersion: "0.1.0";
   profileId: string;
   counterpartyId: string;
   roleCode: CounterpartyRelationshipRoleCodeV010;
   status: "ACTIVE" | "INACTIVE";
+  /**
+   * Domain-owned profile values. Field semantics are declared by the
+   * Counterparty EffectiveObjectSchema; enterprise extensions remain sidecars.
+   */
+  values?: Record<string, CounterpartyProfileValueV010>;
 }
 
 export interface CounterpartyContactRepositoryV010 {
@@ -237,6 +248,51 @@ function assertAddress(value: CounterpartyAddressV010): CounterpartyAddressV010 
   };
 }
 
+const CUSTOMER_PROFILE_FIELDS_V010 = new Set([
+  "customerLevel",
+  "customerSource",
+  "salesRegion"
+]);
+
+const SUPPLIER_PROFILE_FIELDS_V010 = new Set([
+  "supplierClassification",
+  "procurementRegion"
+]);
+
+function normalizedProfileValues(
+  roleCode: CounterpartyRelationshipRoleCodeV010,
+  values: Record<string, CounterpartyProfileValueV010> | undefined
+): Record<string, CounterpartyProfileValueV010> {
+  const allowed = roleCode === "CUSTOMER"
+    ? CUSTOMER_PROFILE_FIELDS_V010
+    : SUPPLIER_PROFILE_FIELDS_V010;
+  const normalized: Record<string, CounterpartyProfileValueV010> = {};
+  for (const [key, raw] of Object.entries(values ?? {})) {
+    if (!allowed.has(key)) {
+      throw new Error("COUNTERPARTY_PROFILE_FIELD_INVALID");
+    }
+    if (raw === null) continue;
+    if (typeof raw === "string") {
+      const value = raw.trim();
+      if (value) normalized[key] = value;
+      continue;
+    }
+    if (typeof raw === "number") {
+      if (!Number.isFinite(raw)) {
+        throw new Error("COUNTERPARTY_PROFILE_VALUE_INVALID");
+      }
+      normalized[key] = raw;
+      continue;
+    }
+    if (typeof raw === "boolean") {
+      normalized[key] = raw;
+      continue;
+    }
+    throw new Error("COUNTERPARTY_PROFILE_VALUE_INVALID");
+  }
+  return normalized;
+}
+
 function assertProfile(
   value: CounterpartyRelationshipProfileV010
 ): CounterpartyRelationshipProfileV010 {
@@ -258,7 +314,8 @@ function assertProfile(
     profileId: required(value.profileId, "COUNTERPARTY_PROFILE_ID_REQUIRED"),
     counterpartyId,
     roleCode: value.roleCode,
-    status: value.status
+    status: value.status,
+    values: normalizedProfileValues(value.roleCode, value.values)
   };
 }
 

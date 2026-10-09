@@ -84,8 +84,8 @@ test("Counterparty satisfies the reusable Foundation Object conformance boundary
   });
   assert.equal(report.objectType, "counterparty.subject");
   assert.equal(report.schemaRef, "evo.counterparty/0.1.0");
-  assert.equal(report.fieldCount, 10);
-  assert.equal(report.extensionSlotCount, 3);
+  assert.equal(report.fieldCount, 19);
+  assert.equal(report.extensionSlotCount, 5);
   assert.ok(report.surfaces.includes("IMPORT"));
   assert.ok(report.surfaces.includes("AGENT_READ"));
 });

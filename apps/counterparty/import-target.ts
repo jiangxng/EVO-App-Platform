@@ -10,7 +10,8 @@ import type {
 } from "../../contracts/foundation-object/import.js";
 import {
   fieldsForSurfaceV010,
-  type EffectiveFoundationObjectFieldV010
+  type EffectiveFoundationObjectFieldV010,
+  type EffectiveObjectSchemaV010
 } from "../../contracts/foundation-object/schema.js";
 import type {
   ObjectExtensionRepositoryV010
@@ -30,6 +31,12 @@ import type {
   CounterpartyRelationshipRoleCodeV010,
   CounterpartyRoleRepositoryV010
 } from "./roles.js";
+import type {
+  CounterpartyAddressRepositoryV010,
+  CounterpartyContactRepositoryV010,
+  CounterpartyProfileRepositoryV010,
+  CounterpartyProfileValueV010
+} from "./facets.js";
 
 export const COUNTERPARTY_IMPORT_TARGET_V010 =
   "counterparty.subject" as const;
@@ -137,10 +144,137 @@ function deterministicCounterpartyId(input: {
   return "cp-import-" + digest;
 }
 
+function deterministicRelatedId(input: {
+  kind: "contact" | "address";
+  contextId: string;
+  importJobId: string;
+  rowNumber: number;
+  counterpartyId: string;
+  groupId: string;
+}): string {
+  const digest = createHash("sha256")
+    .update([
+      input.kind,
+      input.contextId,
+      input.importJobId,
+      String(input.rowNumber),
+      input.counterpartyId,
+      input.groupId
+    ].join("|"))
+    .digest("hex")
+    .slice(0, 24);
+  return "cp-" + input.kind + "-import-" + digest;
+}
+
+interface CounterpartySemanticDestinationsV010 {
+  profiles: Map<
+    CounterpartyRelationshipRoleCodeV010,
+    Record<string, CounterpartyProfileValueV010>
+  >;
+  related: Map<string, {
+    resourceType: string;
+    groupId: string;
+    values: Record<string, FoundationObjectImportCellV010>;
+  }>;
+}
+
+function semanticDestinationsV010(
+  schema: EffectiveObjectSchemaV010,
+  values: Record<string, FoundationObjectImportCellV010>
+): CounterpartySemanticDestinationsV010 {
+  const fields = new Map(schema.fields.map(field => [field.fieldId, field]));
+  const profiles = new Map<
+    CounterpartyRelationshipRoleCodeV010,
+    Record<string, CounterpartyProfileValueV010>
+  >();
+  const related = new Map<string, {
+    resourceType: string;
+    groupId: string;
+    values: Record<string, FoundationObjectImportCellV010>;
+  }>();
+
+  for (const [fieldId, value] of Object.entries(values)) {
+    if (blank(value)) continue;
+    const destination = fields.get(fieldId)?.destination;
+    if (!destination) continue;
+
+    if (destination.kind === "PROFILE_FIELD") {
+      const roleCode = destination.relationshipRole;
+      if (roleCode !== "CUSTOMER" && roleCode !== "SUPPLIER") {
+        throw new Error("COUNTERPARTY_IMPORT_PROFILE_DESTINATION_INVALID");
+      }
+      const target = profiles.get(roleCode) ?? {};
+      target[destination.fieldPath] = value as CounterpartyProfileValueV010;
+      profiles.set(roleCode, target);
+      continue;
+    }
+
+    if (destination.kind === "RELATED_RESOURCE_FIELD") {
+      const groupId = destination.groupId?.trim();
+      if (!groupId) {
+        throw new Error("COUNTERPARTY_IMPORT_RELATED_GROUP_REQUIRED");
+      }
+      const key = destination.resourceType + "|" + groupId;
+      const target = related.get(key) ?? {
+        resourceType: destination.resourceType,
+        groupId,
+        values: {}
+      };
+      target.values[destination.fieldPath] = value;
+      related.set(key, target);
+    }
+  }
+
+  return { profiles, related };
+}
+
+function semanticDestinationValidationIssuesV010(
+  destinations: CounterpartySemanticDestinationsV010
+): FoundationObjectImportValidationV010["issues"] {
+  const issues: FoundationObjectImportValidationV010["issues"] = [];
+  for (const related of destinations.related.values()) {
+    if (related.resourceType === "counterparty.contact") {
+      const displayName = related.values.displayName;
+      if (blank(displayName)) {
+        issues.push({
+          code: "COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED",
+          message: "Primary Contact fields require a primary Contact name.",
+          fieldId: "primaryContactName"
+        });
+      }
+      const email = related.values.email;
+      if (
+        !blank(email)
+        && !/^\S+@\S+\.\S+$/u.test(String(email).trim())
+      ) {
+        issues.push({
+          code: "COUNTERPARTY_CONTACT_EMAIL_INVALID",
+          message: "Primary Contact email is invalid.",
+          fieldId: "primaryContactEmail"
+        });
+      }
+    }
+    if (
+      related.resourceType === "counterparty.address"
+      && blank(related.values.line1)
+    ) {
+      issues.push({
+        code: "COUNTERPARTY_IMPORT_ADDRESS_LINE1_REQUIRED",
+        message: "Primary Address fields require the primary address line.",
+        fieldId: "primaryAddressLine1"
+      });
+    }
+  }
+  return issues;
+}
+
 export function createCounterpartyImportTargetV010(input: {
   resources: EnterpriseResourceRepositoryV010;
   repository: CounterpartyRepositoryV010;
   roleRepository: CounterpartyRoleRepositoryV010;
+  contactRepository?: CounterpartyContactRepositoryV010;
+  addressRepository?: CounterpartyAddressRepositoryV010;
+  profileRepository?: CounterpartyProfileRepositoryV010;
   extensionRepository: ObjectExtensionRepositoryV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
 }): FoundationObjectImportTargetV010 {
@@ -159,6 +293,129 @@ export function createCounterpartyImportTargetV010(input: {
         "counterparty.subject"
       )
     });
+  }
+
+  function persistSemanticResources(write: {
+    contextId: string;
+    importJobId: string;
+    rowNumber: number;
+    counterpartyId: string;
+    schema: EffectiveObjectSchemaV010;
+    values: Record<string, FoundationObjectImportCellV010>;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): void {
+    const destinations = semanticDestinationsV010(write.schema, write.values);
+
+    for (const [roleCode, values] of destinations.profiles) {
+      if (!input.profileRepository) {
+        throw new Error("COUNTERPARTY_IMPORT_PROFILE_REPOSITORY_REQUIRED");
+      }
+      input.profileRepository.save({
+        contextId: write.contextId,
+        profile: {
+          contractVersion: "0.1.0",
+          profileId:
+            write.counterpartyId + "." + roleCode.toLocaleLowerCase(),
+          counterpartyId: write.counterpartyId,
+          roleCode,
+          status: "ACTIVE",
+          values
+        },
+        actorSubjectId: write.actorSubjectId,
+        recordedAt: write.recordedAt
+      });
+    }
+
+    for (const related of destinations.related.values()) {
+      if (related.resourceType === "counterparty.contact") {
+        if (!input.contactRepository) {
+          throw new Error("COUNTERPARTY_IMPORT_CONTACT_REPOSITORY_REQUIRED");
+        }
+        const displayName = textValue(related.values, "displayName");
+        if (!displayName) {
+          throw new Error("COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED");
+        }
+        input.contactRepository.save({
+          contextId: write.contextId,
+          contact: {
+            contractVersion: "0.1.0",
+            contactId: deterministicRelatedId({
+              kind: "contact",
+              contextId: write.contextId,
+              importJobId: write.importJobId,
+              rowNumber: write.rowNumber,
+              counterpartyId: write.counterpartyId,
+              groupId: related.groupId
+            }),
+            counterpartyId: write.counterpartyId,
+            displayName,
+            status: "ACTIVE",
+            ...(textValue(related.values, "title")
+              ? { title: textValue(related.values, "title") }
+              : {}),
+            ...(textValue(related.values, "phone")
+              ? { phone: textValue(related.values, "phone") }
+              : {}),
+            ...(textValue(related.values, "email")
+              ? { email: textValue(related.values, "email") }
+              : {}),
+            isPrimary: true
+          },
+          actorSubjectId: write.actorSubjectId,
+          recordedAt: write.recordedAt
+        });
+        continue;
+      }
+
+      if (related.resourceType === "counterparty.address") {
+        if (!input.addressRepository) {
+          throw new Error("COUNTERPARTY_IMPORT_ADDRESS_REPOSITORY_REQUIRED");
+        }
+        const line1 = textValue(related.values, "line1");
+        if (!line1) {
+          throw new Error("COUNTERPARTY_IMPORT_ADDRESS_LINE1_REQUIRED");
+        }
+        input.addressRepository.save({
+          contextId: write.contextId,
+          address: {
+            contractVersion: "0.1.0",
+            addressId: deterministicRelatedId({
+              kind: "address",
+              contextId: write.contextId,
+              importJobId: write.importJobId,
+              rowNumber: write.rowNumber,
+              counterpartyId: write.counterpartyId,
+              groupId: related.groupId
+            }),
+            counterpartyId: write.counterpartyId,
+            purpose: "OTHER",
+            status: "ACTIVE",
+            line1,
+            ...(textValue(related.values, "city")
+              ? { city: textValue(related.values, "city") }
+              : {}),
+            ...(textValue(related.values, "region")
+              ? { region: textValue(related.values, "region") }
+              : {}),
+            ...(textValue(related.values, "postalCode")
+              ? { postalCode: textValue(related.values, "postalCode") }
+              : {}),
+            ...(textValue(related.values, "countryOrRegion")
+              ? {
+                  countryOrRegion: textValue(
+                    related.values,
+                    "countryOrRegion"
+                  )
+                }
+              : {}),
+            isPrimary: true
+          },
+          actorSubjectId: write.actorSubjectId,
+          recordedAt: write.recordedAt
+        });
+      }
+    }
   }
 
   const target: FoundationObjectImportTargetV010 = {
@@ -257,6 +514,19 @@ export function createCounterpartyImportTargetV010(input: {
             fieldId
           });
         }
+      }
+
+      try {
+        issues.push(
+          ...semanticDestinationValidationIssuesV010(
+            semanticDestinationsV010(schema, normalizedValues)
+          )
+        );
+      } catch (error) {
+        const code = error instanceof Error
+          ? error.message
+          : "COUNTERPARTY_IMPORT_DESTINATION_INVALID";
+        issues.push({ code, message: code });
       }
 
       const code = textValue(normalizedValues, "code");
@@ -401,6 +671,17 @@ export function createCounterpartyImportTargetV010(input: {
           recordedAt: commitInput.recordedAt
         });
       }
+
+      persistSemanticResources({
+        contextId: commitInput.contextId,
+        importJobId: commitInput.importJobId,
+        rowNumber: commitInput.prepared.rowNumber,
+        counterpartyId,
+        schema: commitInput.schema,
+        values: commitInput.prepared.values,
+        actorSubjectId: commitInput.actorSubjectId,
+        recordedAt: commitInput.recordedAt
+      });
 
       const definitionCacheKey =
         commitInput.contextId + "|" + commitInput.importJobId;
@@ -591,6 +872,20 @@ export function createCounterpartyImportTargetV010(input: {
           input.roleRepository.assignMany({
             contextId: batchInput.contextId,
             assignments,
+            actorSubjectId: batchInput.actorSubjectId,
+            recordedAt: batchInput.recordedAt
+          });
+        }
+        for (let index = 0; index < batchInput.preparedRows.length; index += 1) {
+          const prepared = batchInput.preparedRows[index];
+          const subject = subjects[index];
+          persistSemanticResources({
+            contextId: batchInput.contextId,
+            importJobId: batchInput.importJobId,
+            rowNumber: prepared.rowNumber,
+            counterpartyId: subject.counterpartyId,
+            schema: batchInput.schema,
+            values: prepared.values,
             actorSubjectId: batchInput.actorSubjectId,
             recordedAt: batchInput.recordedAt
           });

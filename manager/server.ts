@@ -833,6 +833,11 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../apps/counterparty/roles.js";
 import {
+  createCounterpartyAddressRepositoryV010,
+  createCounterpartyContactRepositoryV010,
+  createCounterpartyProfileRepositoryV010
+} from "../apps/counterparty/facets.js";
+import {
   counterpartyAuthorizationPolicyV010
 } from "../apps/counterparty/authorization.js";
 import {
@@ -1027,6 +1032,22 @@ const counterpartyRoleRepository =
     enterpriseResourceRepository,
     counterpartyRepository
   );
+const counterpartyContactRepository =
+  createCounterpartyContactRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository
+  });
+const counterpartyAddressRepository =
+  createCounterpartyAddressRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository
+  });
+const counterpartyProfileRepository =
+  createCounterpartyProfileRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository,
+    roleRepository: counterpartyRoleRepository
+  });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
 const objectExtensionRepository =
@@ -1042,6 +1063,9 @@ const counterpartyImportTarget =
     resources: enterpriseResourceRepository,
     repository: counterpartyRepository,
     roleRepository: counterpartyRoleRepository,
+    contactRepository: counterpartyContactRepository,
+    addressRepository: counterpartyAddressRepository,
+    profileRepository: counterpartyProfileRepository,
     extensionRepository: objectExtensionRepository,
     extensionValueRepository: objectExtensionValueRepository
   });

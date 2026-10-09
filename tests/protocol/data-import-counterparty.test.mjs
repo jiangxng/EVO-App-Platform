@@ -11,6 +11,11 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../../dist/apps/counterparty/roles.js";
 import {
+  createCounterpartyAddressRepositoryV010,
+  createCounterpartyContactRepositoryV010,
+  createCounterpartyProfileRepositoryV010
+} from "../../dist/apps/counterparty/facets.js";
+import {
   createCounterpartyImportTargetV010
 } from "../../dist/apps/counterparty/import-target.js";
 import {
@@ -76,6 +81,19 @@ function fixture() {
     resources,
     counterpartyRepository
   );
+  const contactRepository = createCounterpartyContactRepositoryV010({
+    resources,
+    counterpartyRepository
+  });
+  const addressRepository = createCounterpartyAddressRepositoryV010({
+    resources,
+    counterpartyRepository
+  });
+  const profileRepository = createCounterpartyProfileRepositoryV010({
+    resources,
+    counterpartyRepository,
+    roleRepository
+  });
   const extensionRepository = createObjectExtensionRepositoryV010(resources);
   const extensionValueRepository =
     createObjectExtensionValueRepositoryV010(resources);
@@ -84,6 +102,9 @@ function fixture() {
     resources,
     repository: counterpartyRepository,
     roleRepository,
+    contactRepository,
+    addressRepository,
+    profileRepository,
     extensionRepository,
     extensionValueRepository
   });
@@ -95,6 +116,9 @@ function fixture() {
     resources,
     counterpartyRepository,
     roleRepository,
+    contactRepository,
+    addressRepository,
+    profileRepository,
     extensionRepository,
     extensionValueRepository,
     importRepository,
@@ -384,6 +408,239 @@ test("Data Import can stage and dry-run 10k Counterparty rows without committing
   assert.equal(
     f.counterpartyRepository.list("enterprise-context:a").length,
     0
+  );
+});
+
+test("CP-05 EffectiveObjectSchema exposes role-scoped semantic destinations", () => {
+  const f = fixture();
+  const none = f.target.describe({
+    contextId: "enterprise-context:a",
+    parameters: { relationshipMode: "NONE" }
+  });
+  assert.equal(
+    none.fields.some(field => field.fieldId === "customerLevel"),
+    false
+  );
+  assert.equal(
+    none.fields.some(field => field.fieldId === "supplierClassification"),
+    false
+  );
+
+  const customer = f.target.describe({
+    contextId: "enterprise-context:a",
+    parameters: { relationshipMode: "CUSTOMER" }
+  });
+  const customerLevel = customer.fields.find(
+    field => field.fieldId === "customerLevel"
+  );
+  assert.equal(customerLevel.destination.kind, "PROFILE_FIELD");
+  assert.equal(customerLevel.destination.resourceType, "counterparty.profile");
+  assert.equal(customerLevel.destination.relationshipRole, "CUSTOMER");
+  assert.equal(
+    customer.fields.some(field => field.fieldId === "supplierClassification"),
+    false
+  );
+
+  const contact = customer.fields.find(
+    field => field.fieldId === "primaryContactPhone"
+  );
+  assert.equal(contact.destination.kind, "RELATED_RESOURCE_FIELD");
+  assert.equal(contact.destination.resourceType, "counterparty.contact");
+  assert.equal(contact.destination.groupId, "primary-contact");
+});
+
+test("CP-05 Data Import persists profile contact and address fields to their semantic resources", () => {
+  const f = fixture();
+  f.service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-cp05-semantic-destinations",
+    targetId: "counterparty.subject",
+    targetParameters: {
+      relationshipMode: "BOTH"
+    },
+    source: parseCsvSourceV010({
+      name: "counterparty-facets.csv",
+      csv: [
+        "code,name,type,customerLevel,customerSource,salesRegion,supplierClass,procurementRegion,contactName,contactTitle,contactPhone,contactEmail,address,addressCity,addressRegion,addressPostal,addressCountry",
+        "CP500,语义目标公司,ORGANIZATION,A,展会,华东,战略供应商,华南,张三,经理,13800000000,zhang@example.com,南京西路100号,上海,上海,200040,中国"
+      ].join("\n")
+    }),
+    mapping: [{
+      sourceColumn: "code",
+      targetFieldId: "code"
+    }, {
+      sourceColumn: "name",
+      targetFieldId: "displayName"
+    }, {
+      sourceColumn: "type",
+      targetFieldId: "subjectType"
+    }, {
+      sourceColumn: "customerLevel",
+      targetFieldId: "customerLevel"
+    }, {
+      sourceColumn: "customerSource",
+      targetFieldId: "customerSource"
+    }, {
+      sourceColumn: "salesRegion",
+      targetFieldId: "salesRegion"
+    }, {
+      sourceColumn: "supplierClass",
+      targetFieldId: "supplierClassification"
+    }, {
+      sourceColumn: "procurementRegion",
+      targetFieldId: "procurementRegion"
+    }, {
+      sourceColumn: "contactName",
+      targetFieldId: "primaryContactName"
+    }, {
+      sourceColumn: "contactTitle",
+      targetFieldId: "primaryContactTitle"
+    }, {
+      sourceColumn: "contactPhone",
+      targetFieldId: "primaryContactPhone"
+    }, {
+      sourceColumn: "contactEmail",
+      targetFieldId: "primaryContactEmail"
+    }, {
+      sourceColumn: "address",
+      targetFieldId: "primaryAddressLine1"
+    }, {
+      sourceColumn: "addressCity",
+      targetFieldId: "primaryAddressCity"
+    }, {
+      sourceColumn: "addressRegion",
+      targetFieldId: "primaryAddressRegion"
+    }, {
+      sourceColumn: "addressPostal",
+      targetFieldId: "primaryAddressPostalCode"
+    }, {
+      sourceColumn: "addressCountry",
+      targetFieldId: "primaryAddressCountryOrRegion"
+    }],
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T01:00:00.000Z"
+  });
+
+  const dryRun = f.service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "import-cp05-semantic-destinations",
+    locale: "zh-CN",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T01:01:00.000Z"
+  });
+  assert.equal(dryRun.state, "DRY_RUN_READY");
+  assert.equal(dryRun.dryRun.validRows, 1);
+
+  const committed = f.service.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "import-cp05-semantic-destinations",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T01:02:00.000Z"
+  });
+  assert.equal(committed.state, "COMMITTED");
+
+  const subject = f.counterpartyRepository.list("enterprise-context:a")[0];
+  assert.equal(subject.code, "CP500");
+  assert.equal(subject.phone, undefined);
+  assert.equal(subject.email, undefined);
+  assert.equal(subject.countryOrRegion, undefined);
+
+  assert.deepEqual(
+    f.roleRepository.list("enterprise-context:a", subject.counterpartyId)
+      .map(role => role.roleCode)
+      .sort(),
+    ["CUSTOMER", "SUPPLIER"]
+  );
+
+  const customerProfile = f.profileRepository.get(
+    "enterprise-context:a",
+    subject.counterpartyId,
+    "CUSTOMER"
+  );
+  assert.deepEqual(customerProfile.values, {
+    customerLevel: "A",
+    customerSource: "展会",
+    salesRegion: "华东"
+  });
+
+  const supplierProfile = f.profileRepository.get(
+    "enterprise-context:a",
+    subject.counterpartyId,
+    "SUPPLIER"
+  );
+  assert.deepEqual(supplierProfile.values, {
+    supplierClassification: "战略供应商",
+    procurementRegion: "华南"
+  });
+
+  const contacts = f.contactRepository.list(
+    "enterprise-context:a",
+    subject.counterpartyId
+  );
+  assert.equal(contacts.length, 1);
+  assert.equal(contacts[0].displayName, "张三");
+  assert.equal(contacts[0].title, "经理");
+  assert.equal(contacts[0].phone, "13800000000");
+  assert.equal(contacts[0].email, "zhang@example.com");
+  assert.equal(contacts[0].isPrimary, true);
+
+  const addresses = f.addressRepository.list(
+    "enterprise-context:a",
+    subject.counterpartyId
+  );
+  assert.equal(addresses.length, 1);
+  assert.equal(addresses[0].line1, "南京西路100号");
+  assert.equal(addresses[0].city, "上海");
+  assert.equal(addresses[0].region, "上海");
+  assert.equal(addresses[0].postalCode, "200040");
+  assert.equal(addresses[0].countryOrRegion, "中国");
+  assert.equal(addresses[0].isPrimary, true);
+});
+
+test("CP-05 Data Import fails dry-run when related-resource identity is incomplete", () => {
+  const f = fixture();
+  f.service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "import-cp05-contact-invalid",
+    targetId: "counterparty.subject",
+    targetParameters: {
+      relationshipMode: "CUSTOMER"
+    },
+    source: parseCsvSourceV010({
+      csv: [
+        "code,name,type,phone",
+        "CP501,缺联系人名称公司,ORGANIZATION,13800000000"
+      ].join("\n")
+    }),
+    mapping: [{
+      sourceColumn: "code",
+      targetFieldId: "code"
+    }, {
+      sourceColumn: "name",
+      targetFieldId: "displayName"
+    }, {
+      sourceColumn: "type",
+      targetFieldId: "subjectType"
+    }, {
+      sourceColumn: "phone",
+      targetFieldId: "primaryContactPhone"
+    }],
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T01:10:00.000Z"
+  });
+
+  const dryRun = f.service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "import-cp05-contact-invalid",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T01:11:00.000Z"
+  });
+  assert.equal(dryRun.state, "DRY_RUN_FAILED");
+  assert.equal(
+    dryRun.dryRun.rows[0].issues.some(
+      issue => issue.code === "COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED"
+    ),
+    true
   );
 });
 

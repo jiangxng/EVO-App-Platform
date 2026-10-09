@@ -38,6 +38,40 @@ export interface FoundationObjectEnumOptionV010 {
   aliases?: string[];
 }
 
+export interface FoundationObjectFieldApplicabilityV010 {
+  /**
+   * The field exists only when at least one of these relationship roles is
+   * active for the object/import scenario.
+   */
+  relationshipRoles?: string[];
+}
+
+export type FoundationObjectFieldDestinationKindV010 =
+  | "OBJECT_FIELD"
+  | "PROFILE_FIELD"
+  | "RELATED_RESOURCE_FIELD";
+
+export interface FoundationObjectFieldDestinationV010 {
+  kind: FoundationObjectFieldDestinationKindV010;
+  /**
+   * Semantic resource type owned by the domain plugin.
+   * Example: counterparty.profile / counterparty.contact.
+   */
+  resourceType: string;
+  /**
+   * Field path inside the semantic destination resource.
+   * This is not a database column name.
+   */
+  fieldPath: string;
+  cardinality: "ONE" | "MANY";
+  relationshipRole?: string;
+  /**
+   * Groups several import columns into one related-resource instance.
+   * Example: primary-contact name/phone/email.
+   */
+  groupId?: string;
+}
+
 export interface FoundationObjectFieldDefinitionV010 {
   fieldId: string;
   slotId: string;
@@ -55,6 +89,8 @@ export interface FoundationObjectFieldDefinitionV010 {
   order: number;
   surfaces: FoundationObjectFieldSurfaceV010[];
   enumOptions?: FoundationObjectEnumOptionV010[];
+  applicability?: FoundationObjectFieldApplicabilityV010;
+  destination?: FoundationObjectFieldDestinationV010;
 }
 
 export interface FoundationObjectCoreSchemaV010 {
