@@ -78,3 +78,61 @@ test("core lifecycle prevents disabling a capability provider with an active dep
   assert.ok(plan.blockers.some(blocker => blocker.code === "ACTIVE_DEPENDENT_CAPABILITY"));
   assert.throws(() => manager.disable("fixture-provider"), /DISABLE_BLOCKED/);
 });
+
+
+test("core lifecycle upgrade requires approval for newly requested required permissions", () => {
+  const upgradedProvider = {
+    ...structuredClone(provider),
+    version: "0.2.0",
+    permissions: [{
+      id: "fixture.write",
+      label: "Fixture write",
+      risk: "MEDIUM",
+      required: true
+    }],
+    features: provider.features.map(feature => ({
+      ...structuredClone(feature),
+      version: "0.2.0"
+    }))
+  };
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({
+    packageId: provider.packageId,
+    version: "0.1.0",
+    installedAt: "2026-10-09T00:00:00.000Z",
+    trustApproved: true,
+    grantedPermissions: []
+  });
+  store.saveActiveFeature({
+    featureId: provider.features[0].featureId,
+    packageId: provider.packageId,
+    version: "0.1.0",
+    activatedAt: "2026-10-09T00:00:00.000Z"
+  });
+
+  const manager = createAppManagerService(
+    createPackageCatalog([upgradedProvider]),
+    store,
+    () => new Date("2026-10-09T00:01:00.000Z")
+  );
+  const plan = manager.planUpgrade(provider.packageId);
+  assert.deepEqual(plan.blockers, []);
+  assert.equal(plan.requiresUserApproval, true);
+  assert.deepEqual(
+    plan.requestedPermissions.map(permission => permission.id),
+    ["fixture.write"]
+  );
+  assert.throws(
+    () => manager.upgrade(provider.packageId),
+    /UPGRADE_PERMISSION_APPROVAL_REQUIRED/
+  );
+
+  const snapshot = manager.upgrade(provider.packageId, {
+    approvedPermissions: ["fixture.write"]
+  });
+  assert.equal(snapshot.installedPackages[0].version, "0.2.0");
+  assert.deepEqual(snapshot.installedPackages[0].grantedPermissions, [
+    "fixture.write"
+  ]);
+  assert.equal(snapshot.activeFeatures[0].version, "0.2.0");
+});
