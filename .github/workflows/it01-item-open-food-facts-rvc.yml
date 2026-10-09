@@ -1,0 +1,123 @@
+name: IT-01E Open Food Facts Item RVC
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/it01-item-open-food-facts-rvc.yml
+      - tools/item-rvc-open-food-facts.mjs
+      - tests/protocol/it01-item-rvc-open-food-facts.test.mjs
+      - docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  open-food-facts-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build --silent
+      - run: node --test tests/protocol/it01-item-rvc-open-food-facts.test.mjs
+
+      - name: Download official Open Food Facts random sample
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz"
+          curl --fail --location --retry 3 --retry-all-errors             --connect-timeout 20 --max-time 300             -A "EVO-App-Platform-IT01-RVC/0.1 (engineering validation)"             "$url" -o /tmp/off-products.jsonl.gz
+          gzip -t /tmp/off-products.jsonl.gz
+          sha256sum /tmp/off-products.jsonl.gz | tee /tmp/off-products.jsonl.gz.sha256
+          gzip -dc /tmp/off-products.jsonl.gz > /tmp/off-products.jsonl
+          test -s /tmp/off-products.jsonl
+
+      - name: Build auditable OFF manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(awk '{print $1}' /tmp/off-products.jsonl.gz.sha256)"
+          retrieved_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > /tmp/off.manifest.json <<JSON
+          {
+            "contractVersion": "0.1.0",
+            "sourceId": "open-food-facts",
+            "sourceUrl": "https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz",
+            "retrievedAt": "$retrieved_at",
+            "sourceVersion": "daily random-modulo-1000 JSONL export sample",
+            "license": "Open Database License (ODbL); individual contents Database Contents License",
+            "attributionRequirements": "Attribute Open Food Facts and retain source URL/source identity in RVC evidence.",
+            "redistributionConstraints": "Raw OFF sample remains external to Git; EVO commits only adapter, tests and derived evidence.",
+            "adapterVersion": "item-open-food-facts-jsonl-v0.1",
+            "contentDigest": "sha256:$digest",
+            "sampling": {
+              "method": "FIRST_N",
+              "limit": 10000
+            }
+          }
+          JSON
+
+      - name: Run real-world Item RVC
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/item-rvc-open-food-facts.mjs             --manifest /tmp/off.manifest.json             --input /tmp/off-products.jsonl             --report /tmp/item-rvc-off-report.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const report = JSON.parse(
+            readFileSync("/tmp/item-rvc-off-report.json", "utf8")
+          );
+          if (report.evidence.totalRows < 1000) {
+            throw new Error(
+              `ITEM_RVC_SAMPLE_TOO_SMALL: ${report.evidence.totalRows}`
+            );
+          }
+          if (report.evidence.validJsonRows < report.evidence.totalRows * 0.99) {
+            throw new Error(
+              `ITEM_RVC_VALID_JSON_RATE_TOO_LOW: ${report.evidence.validJsonRows}/${report.evidence.totalRows}`
+            );
+          }
+          if (report.evidence.rowsWithCode < report.evidence.validJsonRows * 0.95) {
+            throw new Error(
+              `ITEM_RVC_CODE_COVERAGE_TOO_LOW: ${report.evidence.rowsWithCode}/${report.evidence.validJsonRows}`
+            );
+          }
+          console.log(JSON.stringify({
+            totalRows: report.evidence.totalRows,
+            validJsonRows: report.evidence.validJsonRows,
+            gtinLikeCodes: report.evidence.gtinLikeCodes,
+            nonGtinLikeCodes: report.evidence.nonGtinLikeCodes,
+            sameCommercialDescriptionDifferentCode:
+              report.evidence.sameCommercialDescriptionDifferentCode,
+            rowsWithMultipleCategories:
+              report.evidence.rowsWithMultipleCategories,
+            rowsWithMultipleBrands:
+              report.evidence.rowsWithMultipleBrands,
+            rowsWithMultiplePackagingTags:
+              report.evidence.rowsWithMultiplePackagingTags,
+            rowsWithSourceQuantityUnit:
+              report.evidence.rowsWithSourceQuantityUnit,
+            rowsWithRec20Candidate:
+              report.evidence.rowsWithRec20Candidate,
+            rowsPerSecond: report.performance.rowsPerSecond
+          }, null, 2));
+          NODE
+
+      - name: Upload derived RVC evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: it01-item-open-food-facts-rvc
+          path: |
+            /tmp/off.manifest.json
+            /tmp/item-rvc-off-report.json
+            /tmp/off-products.jsonl.gz.sha256
+          retention-days: 7
