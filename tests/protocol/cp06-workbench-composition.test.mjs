@@ -61,20 +61,28 @@ test("CP-06 Workbench composes package defaults without duplicating business dat
   assert.deepEqual(
     page.items.map(item => [
       item.id,
-      item.primaryAction.route
+      item.primaryAction.type,
+      item.primaryAction.command,
+      item.primaryAction.values?.itemId
     ]),
     [
       [
         "enterprise-agent.workbench.my-work",
-        "/enterprise-agent/follow-ups"
+        "command",
+        "workbench.item.open",
+        "enterprise-agent.workbench.my-work"
       ],
       [
         "evo-counterparty.workbench.my-customers",
-        "/counterparties/my-customers"
+        "command",
+        "workbench.item.open",
+        "evo-counterparty.workbench.my-customers"
       ],
       [
         "enterprise-agent.workbench.agent",
-        "/enterprise-agent"
+        "command",
+        "workbench.item.open",
+        "enterprise-agent.workbench.agent"
       ]
     ]
   );

@@ -523,6 +523,51 @@ export function validatePluginManifestV010(
         }
       }
 
+      if (contribution.kind === "eidos.workbench-home-item") {
+        const item = contribution.item;
+        if (!idPattern.test(item.id)) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_ID_INVALID",
+            `${contributionPath}.item.id`,
+            "Workbench home item id must be a stable lowercase identifier."
+          );
+        }
+        if (!item.title.trim()) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_TITLE_REQUIRED",
+            `${contributionPath}.item.title`,
+            "Workbench home item title is required."
+          );
+        }
+        if (!item.route.trim() || !item.route.startsWith("/")) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_ROUTE_INVALID",
+            `${contributionPath}.item.route`,
+            "Workbench home item route must be an absolute application route."
+          );
+        }
+        if (
+          item.localization
+          && item.localization.namespace !== pkg.packageId
+        ) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_LOCALIZATION_NAMESPACE_MISMATCH",
+            `${contributionPath}.item.localization.namespace`,
+            "Workbench home item localization namespace must equal owning Package id."
+          );
+        }
+        if (
+          item.capabilityOperationId
+          && !packageOperationIds.includes(item.capabilityOperationId)
+        ) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_CAPABILITY_OPERATION_NOT_OWNED",
+            `${contributionPath}.item.capabilityOperationId`,
+            "A capability-bound Workbench item must reference an operation declared by the same Package."
+          );
+        }
+      }
+
       if (contribution.kind === "eidos.settings") {
         const settings = contribution.settings;
         if (settings.namespace !== pkg.packageId) {

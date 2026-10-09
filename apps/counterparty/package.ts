@@ -87,7 +87,12 @@ export const counterpartyPackage: PackageManifestV010 = {
           route: COUNTERPARTY_MY_CUSTOMERS_ROUTE,
           capabilityOperationId:
             COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010,
-          order: 20
+          order: 20,
+          localization: {
+            namespace: COUNTERPARTY_PACKAGE_ID,
+            titleKey: "workbench.my-customers.title",
+            descriptionKey: "workbench.my-customers.description"
+          }
         }
       }, {
         kind: "eidos.workbench-home-item",
@@ -100,7 +105,12 @@ export const counterpartyPackage: PackageManifestV010 = {
           route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
           capabilityOperationId:
             COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010,
-          order: 30
+          order: 30,
+          localization: {
+            namespace: COUNTERPARTY_PACKAGE_ID,
+            titleKey: "workbench.my-suppliers.title",
+            descriptionKey: "workbench.my-suppliers.description"
+          }
         }
       }, {
       kind: "eidos.experience",
@@ -218,7 +228,11 @@ export const counterpartyPackage: PackageManifestV010 = {
           "navigation.evo-counterparty.customers.nav.label": "Customers",
           "navigation.evo-counterparty.suppliers.nav.label": "Suppliers",
           "navigation.evo-counterparty.my-customers.nav.label": "My Customers",
-          "navigation.evo-counterparty.my-suppliers.nav.label": "My Suppliers"
+          "navigation.evo-counterparty.my-suppliers.nav.label": "My Suppliers",
+          "workbench.my-customers.title": "My Customers",
+          "workbench.my-customers.description": "Customers assigned to your governed sales responsibility scope.",
+          "workbench.my-suppliers.title": "My Suppliers",
+          "workbench.my-suppliers.description": "Suppliers assigned to your governed procurement responsibility scope."
         }
       }
     }, {
@@ -232,7 +246,11 @@ export const counterpartyPackage: PackageManifestV010 = {
           "navigation.evo-counterparty.customers.nav.label": "客户",
           "navigation.evo-counterparty.suppliers.nav.label": "供应商",
           "navigation.evo-counterparty.my-customers.nav.label": "我的客户",
-          "navigation.evo-counterparty.my-suppliers.nav.label": "我的供应商"
+          "navigation.evo-counterparty.my-suppliers.nav.label": "我的供应商",
+          "workbench.my-customers.title": "我的客户",
+          "workbench.my-customers.description": "当前销售责任范围内由你负责的客户。",
+          "workbench.my-suppliers.title": "我的供应商",
+          "workbench.my-suppliers.description": "当前采购责任范围内由你负责的供应商。"
         }
       }
     }]
