@@ -89,3 +89,140 @@ TR-01C  contract maturity + Foundation Object Program exit review
 
 Selected object-neutral Foundation Object contracts remain **STABLE_CANDIDATE** until
 the real trading loops complete without incompatible evidence.
+
+
+## TR-01A1 — Purchase / Receipt cross-project composition
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+This slice does not implement procurement accounting inside App Platform.
+
+App Platform owns:
+
+- resolving an ACTIVE Supplier-role Counterparty;
+- resolving ACTIVE Item and Warehouse authority;
+- stable runtime Application bindings;
+- business intent composition and idempotency/correlation identity;
+- passing an explicit Receipt `FULFILLS` relation.
+
+EVO owns:
+
+- BusinessData persistence;
+- immutable BusinessData relation persistence;
+- PostingRule evaluation;
+- `pending_purchase`, `payable` and `inventory` ledger facts/balances;
+- derived WorkItem state.
+
+Runtime binding:
+
+```text
+application:trading-reference.purchase-order
+  -> EVO applicationId purchase_order
+
+application:trading-reference.goods-receipt
+  -> EVO applicationId inventory_movement
+```
+
+Authoritative master-data references are stable IDs:
+
+```text
+supplier  = Counterparty.counterpartyId
+productId = Item.itemId
+warehouse = Warehouse.warehouseId
+```
+
+Human-facing code/display-name values are copied only as historical snapshots in
+BusinessData payload and do not become transaction-owned master-data authority.
+
+Receipt lineage:
+
+```text
+Purchase Order BusinessData
+        |
+        | FULFILLS
+        v
+Goods Receipt BusinessData
+```
+
+EVO direct BusinessData relation support is pinned to:
+
+```text
+jiangxng/EVO main
+PR #103
+merge 184811a1b25aa6563b03439758663f04fa4d6319
+```
+
+Cross-project certification uses only public EVO HTTP boundaries:
+
+- `POST /api/v1/business-data`;
+- `POST /api/v1/runtime-observations/query`;
+- `GET /api/v1/work-items`.
+
+Expected economic result for a full 10-unit / CNY 125 receipt:
+
+```text
+after Purchase Order:
+pending_purchase +10
+payable          +125
+inventory         unchanged
+RECEIVE Work      open
+PAY Work          open
+
+after full Receipt:
+pending_purchase  back to baseline
+payable          +125
+inventory         +10 / +125
+RECEIVE Work      closed
+PAY Work          still open
+```
+
+No App Platform code writes LedgerEntry, LedgerBalance, WorkItem or EVO database
+tables directly.
+
+
+## TR-01A sub-gates
+
+TR-01A is intentionally not closed by the first positive purchase loop alone.
+
+### TR-01A1 — positive purchase loop + replay
+
+Status: **IMPLEMENTED / CROSS-PROJECT CI PENDING**
+
+Evidence target:
+
+- Supplier-role Counterparty + Item + Warehouse are resolved through their owning public contracts;
+- Purchase Order and Goods Receipt are submitted as immutable BusinessData facts;
+- Receipt carries explicit `FULFILLS` lineage to the Purchase Order fact;
+- EVO public dimension-filtered CURRENT LedgerBalance read proves:
+  - `pending_purchase = 0` after full receipt,
+  - `payable = 125`,
+  - `inventory quantity = 10`,
+  - `inventory amount = 125`,
+  - inventory dimensions retain the Item, Warehouse, order and Supplier references;
+- Work closes RECEIVE after full receipt while PAY remains open;
+- deterministic replay is certified by the pinned EVO mainline's isolated replay certifications. The current pin includes EVO PR #105, whose `tr01-purchase-receipt-reversal` certification proves Purchase -> Receipt -> Reversal full replay and whose normal EEL-C02 certification remains green. These isolated replay certifications intentionally do not share the already-mutated App Platform cross-project database.
+
+Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level Position API. It is a ledger-wide observation surface and correctly fails closed when units/currencies cannot be represented as one aggregate. TR-01A1 instead uses EVO's public dimension-filtered LedgerBalance read boundary introduced by EVO PR #104.
+
+### TR-01A2 — purchase receipt correction / reversal
+
+Status: **REQUIRED / NOT YET IMPLEMENTED**
+
+A correction must be a new immutable business occurrence. It must not mutate the
+Purchase Order or prior Goods Receipt.
+
+The minimum reversal semantics are:
+
+```text
+original Purchase Order remains unchanged
+original Goods Receipt remains unchanged
++ new receipt-reversal fact
+→ pending_purchase +reversed quantity
+→ inventory -reversed quantity / -reversed cost
+→ payable unchanged (the payable originated from Purchase Order approval)
+```
+
+The reversal fact must carry explicit lineage to the Goods Receipt it reverses and
+must replay deterministically in EVO.
+
+Do not mark TR-01A closed and do not start TR-01B merely because TR-01A1 passes.
