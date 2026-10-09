@@ -10,6 +10,10 @@ export const WORKSPACE_HOME_PACKAGE_ID_V010 =
   "evo-app-platform" as const;
 export const WORKSPACE_HOME_FEATURE_ID_V010 =
   "evo-workspace-home.system" as const;
+export function isHostWorkbenchFeatureV010(featureId: string): boolean {
+  return featureId === WORKSPACE_HOME_FEATURE_ID_V010;
+}
+
 export const workspaceHomePageSource =
   "app://evo-app-platform/pages/workspace-home";
 
