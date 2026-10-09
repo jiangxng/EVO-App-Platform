@@ -191,6 +191,7 @@ export const itemCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
 export function createItemEffectiveObjectSchemaV010(input: {
   locale?: string;
   itemKind?: ItemKindV010;
+  applicabilityMode?: "EFFECTIVE" | "DISCOVERY";
   extensions?: readonly ObjectExtensionDefinitionV010[];
   authorizeField?: FoundationObjectFieldAuthorizationV010;
 } = {}): EffectiveObjectSchemaV010 {
@@ -198,6 +199,7 @@ export function createItemEffectiveObjectSchemaV010(input: {
     descriptor: itemFoundationObjectDescriptorV010,
     coreSchema: itemCoreSchemaV010,
     locale: input.locale,
+    applicabilityMode: input.applicabilityMode,
     ...(input.itemKind
       ? { activeQualifiers: { "item.kind": [input.itemKind] } }
       : {}),
