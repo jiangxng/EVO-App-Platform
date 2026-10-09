@@ -199,3 +199,18 @@ test("final TUGE demo uses the user-supplied local logo and background assets", 
   assert.match(html, /filter:none;transform:none/);
   assert.match(html, /evo-login-demo-art[^\n]*filter:none/);
 });
+
+
+test("build emits login assets at the runtime path used by Railpack", async () => {
+  const logo = await stat(
+    new URL("../../dist/manager/assets/tuge-logo-final.png", import.meta.url)
+  );
+  const background = await stat(
+    new URL("../../dist/manager/assets/tuge-login-background-final.jpg", import.meta.url)
+  );
+
+  assert.ok(logo.isFile());
+  assert.ok(background.isFile());
+  assert.ok(logo.size > 0);
+  assert.ok(background.size > 0);
+});
