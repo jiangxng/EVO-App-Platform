@@ -2173,6 +2173,29 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 
+const workbenchService = createWorkbenchServiceV010({
+  manager,
+  personalState: personalWorkbenchStateStore,
+  enterpriseRoleLayer({ contextId, relationshipKind }) {
+    return workbenchEnterpriseRoleDefaults.layer(
+      contextId,
+      relationshipKind
+    );
+  },
+  resolveRelationshipKind(context) {
+    const active = context.context?.activeContext;
+    if (!active || active.kind !== "ENTERPRISE") return undefined;
+    return (
+      resolveEnterpriseContextRelationshipProvider()
+        ?.listForPrincipal(context.principal) ?? []
+    ).find(item =>
+      item.contextId === active.contextId
+      && item.state === "ACTIVE"
+    )?.kind;
+  },
+  resolveAuthorizationProvider
+});
+
 const eog2dStartupSnapshot = manager.getSnapshot();
 if (
   eog2dStartupSnapshot.installedPackages.some(
@@ -4178,6 +4201,9 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
 
 const actionRouter = createAppActionRouter(
   [
+    ...createWorkbenchActionHandlersV010({
+      service: workbenchService
+    }),
     ...createEnterpriseOperatingGraphActionHandlersV010({
       service: enterpriseOperatingGraphService,
       resolveAuthorizationProvider
@@ -7603,24 +7629,12 @@ const server = createServer(async (request, response) => {
           ...partialContext,
           scope: legacyScopeFromRequestContextV010(partialContext)
         };
-        const authorized = await listAuthorizedCapabilityOperationsV010({
-          manager,
-          authorizationProvider: resolveAuthorizationProvider(),
-          requestContext,
-          audience: "HUMAN"
-        });
-        const composition = composeWorkbenchHomeV010({
-          packageItems: manager.listEffectiveWorkbenchHomeItems(),
-          authorizedCapabilityOperationIds: new Set(
-            authorized.operations.map(item => item.operationId)
-          )
-        });
         return json(
           response,
           200,
           createWorkspaceHomePageV010(
             requestedLocale(url),
-            composition.items
+            await workbenchService.resolve(requestContext)
           )
         );
       }
