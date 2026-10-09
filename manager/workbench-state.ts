@@ -170,7 +170,10 @@ export function createEnterpriseRoleWorkbenchDefaultRepositoryV010(
     layer(
       contextId: string,
       kind: EnterpriseContextRelationshipKindV010
-    ): WorkbenchCompositionLayerV010 | undefined {
+    ): {
+      layerId: "ENTERPRISE_ROLE_DEFAULT";
+      preferences: WorkbenchItemPreferenceV010[];
+    } | undefined {
       const value = this.get(contextId, kind);
       return value
         ? {
