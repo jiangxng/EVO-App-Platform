@@ -4506,6 +4506,41 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+      COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import(
+            "../apps/counterparty/projection-actions.js"
+          );
+          const handlers =
+            module.createCounterpartyProjectionActionHandlersV010({
+              service: counterpartyProjectionService,
+              resolveEnterpriseRelationshipKind(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).find(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                )?.kind;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       RESPONSIBILITY_ASSIGN_COMMAND_V010,
       RESPONSIBILITY_ARCHIVE_COMMAND_V010
     ].map(commandCode =>
@@ -6357,22 +6392,20 @@ const server = createServer(async (request, response) => {
                   : undefined;
 
         if (projectionId) {
-          const projected = projectCounterpartiesV010({
+          const projection = await counterpartyProjectionService.read({
+            contextId: active.contextId,
             projectionId,
-            counterparties: access.counterparties,
-            roles: counterpartyRoleRepository.list(active.contextId),
-            responsibilities,
-            principalSubjectId: principal.subjectId,
-            authorizedCounterpartyIds
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
           });
           return json(
             response,
             200,
             module.createCounterpartyProjectionPageV010({
               projectionId,
-              counterparties: projected,
+              counterparties: projection.counterparties,
               locale,
-              readableFieldIds: access.readableFieldIds,
+              readableFieldIds: projection.readableFieldIds,
               canManage
             })
           );
