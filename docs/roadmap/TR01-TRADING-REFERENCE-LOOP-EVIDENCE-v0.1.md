@@ -193,7 +193,7 @@ Evidence target:
 - Supplier-role Counterparty + Item + Warehouse are resolved through their owning public contracts;
 - Purchase Order and Goods Receipt are submitted as immutable BusinessData facts;
 - Receipt carries explicit `FULFILLS` lineage to the Purchase Order fact;
-- EVO PostgreSQL order-scoped ledger state proves:
+- EVO public dimension-filtered CURRENT LedgerBalance read proves:
   - `pending_purchase = 0` after full receipt,
   - `payable = 125`,
   - `inventory quantity = 10`,
@@ -202,9 +202,7 @@ Evidence target:
 - Work closes RECEIVE after full receipt while PAY remains open;
 - EVO's authoritative `validate:eel-c02-full-replay` certification runs in the same cross-project workflow and must report deterministic replay.
 
-Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level
-Position API. It is a ledger-wide observation surface and correctly fails closed when
-units/currencies cannot be represented as one aggregate.
+Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level Position API. It is a ledger-wide observation surface and correctly fails closed when units/currencies cannot be represented as one aggregate. TR-01A1 instead uses EVO's public dimension-filtered LedgerBalance read boundary introduced by EVO PR #104.
 
 ### TR-01A2 — purchase receipt correction / reversal
 
