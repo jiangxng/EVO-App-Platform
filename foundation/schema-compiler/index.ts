@@ -444,6 +444,9 @@ export function compileEffectiveObjectSchemaV010(
         required: definition.required,
         order: definition.order,
         surfaces: [...surfaces],
+        ...(definition.applicability
+          ? { applicability: definition.applicability }
+          : {}),
         ...(definition.enumOptions
           ? { enumOptions: definition.enumOptions }
           : {})
