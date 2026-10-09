@@ -4955,6 +4955,30 @@
         "physicalProductionMigrationPerformed": false,
         "freshLegacyRepositoryFullTextCensus": false,
         "limitation": "Asloop-Backend is accessible but currently lacks a GitHub code-search index; this report uses the already accepted project archaeology and requires an exact source-specific inventory before any future production migration."
+      },
+      "upgradeCompatibility": {
+        "status": "IMPLEMENTED_CI_PENDING",
+        "architecture": "docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md",
+        "protocolTest": "tests/protocol/cp07-counterparty-upgrade-compatibility.test.mjs",
+        "coreLifecycleTest": "tests/manager/core-manager.test.mjs",
+        "appManagerApi": [
+          "planUpgrade",
+          "upgrade"
+        ],
+        "appHostRoutes": [
+          "/v1/upgrade/plan",
+          "/v1/upgrade"
+        ],
+        "pluginStoreAction": "app-platform.upgrade-package",
+        "proves": [
+          "side-effect-free upgrade planning",
+          "newer-version-only transition",
+          "Host compatibility and dependency blocking",
+          "new required permissions require approval",
+          "active Feature removal blocks upgrade",
+          "Counterparty Enterprise Context resources survive Package lifecycle version upgrade",
+          "Package version does not implicitly rewrite Counterparty resource schemaRef"
+        ]
       }
     }
   },
