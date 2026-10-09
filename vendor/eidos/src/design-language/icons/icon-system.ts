@@ -83,6 +83,14 @@ export const eidosIconDefinitionsV010 = {
       c(14,10.5,.8,true,true)
     ]
   },
+  newChat: {
+    viewBox: "0 0 24 24",
+    nodes: [
+      p("M5 5h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H9l-4 3v-3a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z"),
+      l(15.5,4.5,15.5,9.5,true),
+      l(13,7,18,7,true)
+    ]
+  },
   browser: {
     viewBox: "0 0 24 24",
     nodes: [r(3,4,18,16,2), l(3,9,21,9), c(6,6.5,.7,true,true), c(9,6.5,.7,true,true), c(12,6.5,.7,true,true)]
@@ -105,6 +113,10 @@ export const eidosIconDefinitionsV010 = {
   history: {
     viewBox: "0 0 24 24",
     nodes: [p("M5.5 7A8 8 0 1 1 4 14"), poly("3 5 5.5 7.2 8 5"), l(12,8,12,12,true), l(12,12,15,14,true)]
+  },
+  moreHorizontal: {
+    viewBox: "0 0 24 24",
+    nodes: [c(6,12,1,false,true), c(12,12,1,false,true), c(18,12,1,false,true)]
   },
   activity: {
     viewBox: "0 0 24 24",
@@ -179,6 +191,9 @@ export const eidosIconAliasesV010 = {
   plugin: "plugins",
   "extension-manager": "plugins",
   "play-run": "play",
+  "new-chat": "newChat",
+  more: "moreHorizontal",
+  "more-horizontal": "moreHorizontal",
   "arrow-right": "arrowRight",
   "external-link": "externalLink"
 } as const satisfies Record<string, EidosIconName>;
