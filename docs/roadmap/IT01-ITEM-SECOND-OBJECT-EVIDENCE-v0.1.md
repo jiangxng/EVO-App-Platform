@@ -362,3 +362,54 @@ deliberately left open: Product, SKU, variant, GTIN/barcode, UOM and category. I
 also decide how to handle the lifecycle-aware Data Import target registry debt and the
 row-dynamic qualifier import limitation before Foundation Object contracts are reviewed
 for maturity.
+
+
+## IT-01E platform finding resolution — lifecycle-aware Data Import targets
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+IT-01D found that Host Data Import target discovery was static:
+
+```text
+Host startup -> construct Counterparty target -> dataImportTargets[]
+```
+
+That model could not expose Item import without also making an inactive or
+uninstalled Item implementation visible to Data Import. It conflicted with PR #509:
+
+```text
+Discover metadata cheaply.
+Load implementation only when lifecycle and use require it.
+```
+
+IT-01E introduces `platform.data-import-target` as a lightweight Package/Feature
+contribution.
+
+The AppManager returns only contributions whose owning features are currently active.
+The contribution carries only:
+
+- target identity;
+- object type;
+- localized display metadata;
+- a Host factory binding reference.
+
+The Host resolves the implementation only when Data Import is actually opened or
+invoked. Counterparty and Item target factories are dynamically imported at that
+point. An inactive target disappears immediately from discovery and Data Import
+fails closed for staged jobs whose owning target is no longer active.
+
+This deliberately does **not** turn target implementations into Host startup
+dependencies and does not statically register Item merely to make it visible.
+
+Evidence:
+
+- `contracts/package.ts` — `platform.data-import-target` contribution contract;
+- `manager/service.ts` — lifecycle-filtered effective target discovery;
+- `manager/server.ts` — use-time lazy factory resolution;
+- `apps/counterparty/package.ts` / `apps/item/package.ts` — target declarations;
+- `apps/data-import/service.ts` — current-lifecycle target resolution support;
+- `tests/manager/core-manager.test.mjs` — enable/disable target visibility;
+- `tests/protocol/data-import-target-lifecycle.test.mjs` — fail-closed target removal.
+
+This resolves the IT-01D `lifecycle-aware-import-target-registry` platform debt
+subject to CI and production validation.

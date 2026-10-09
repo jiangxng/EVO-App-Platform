@@ -77,6 +77,22 @@ export const counterpartyPackage: PackageManifestV010 = {
     contributions: [
       ...counterpartyProjectionCapabilityContributionsV010,
       {
+        kind: "platform.data-import-target",
+        target: {
+          contractVersion: "0.1.0",
+          targetId: "counterparty.subject",
+          objectType: "counterparty.subject",
+          label: {
+            default: "Counterparties",
+            translations: { "zh-CN": "往来对象" }
+          },
+          binding: {
+            type: "HOST_FACTORY",
+            ref: "evo-counterparty.import-target.v0.1"
+          }
+        }
+      },
+      {
         kind: "eidos.workbench-home-item",
         item: {
           contractVersion: "0.1.0",
