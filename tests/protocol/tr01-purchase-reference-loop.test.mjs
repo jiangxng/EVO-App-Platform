@@ -213,6 +213,91 @@ test("TR-01A submits stable master-data references and explicit FULFILLS receipt
   }
 });
 
+test("TR-01A2 reverses a receipt by appending a new immutable REVERSES fact", async () => {
+  const state = setup();
+  state.roles.assign({
+    contextId: state.contextId,
+    counterpartyId: "cp-supplier-1",
+    roleCode: "SUPPLIER",
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-10T00:01:00.000Z"
+  });
+
+  const purchase = await state.service.approvePurchaseOrder({
+    target,
+    selection: selection(state.contextId),
+    orderNo: "PO-REV-001",
+    quantity: 10,
+    unitPrice: "12.50",
+    totalAmount: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T01:00:00.000Z",
+    correlationId: "TR01:PO-REV-001",
+    idempotencyKey: "tr01:po:rev:001"
+  });
+  const receipt = await state.service.receivePurchaseOrder({
+    target,
+    selection: selection(state.contextId),
+    purchaseBusinessDataId: purchase.submission.businessDataId,
+    orderNo: "PO-REV-001",
+    receiptNo: "GR-REV-001",
+    quantity: 10,
+    totalCost: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T02:00:00.000Z",
+    correlationId: "TR01:GR-REV-001",
+    idempotencyKey: "tr01:gr:rev:001"
+  });
+
+  const beforeReversal = structuredClone(state.submissions);
+
+  const reversal = await state.service.reversePurchaseReceipt({
+    target,
+    selection: selection(state.contextId),
+    receiptBusinessDataId: receipt.submission.businessDataId,
+    orderNo: "PO-REV-001",
+    originalReceiptNo: "GR-REV-001",
+    reversalNo: "GRR-REV-001",
+    quantity: 10,
+    totalCost: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T03:00:00.000Z",
+    correlationId: "TR01:GRR-REV-001",
+    idempotencyKey: "tr01:grr:rev:001"
+  });
+
+  assert.equal(reversal.submission.businessDataId, "bd-3");
+  assert.equal(state.submissions.length, 3);
+  assert.deepEqual(state.submissions.slice(0, 2), beforeReversal);
+
+  const reversalInput = state.submissions[2];
+  assert.equal(reversalInput.applicationId, "inventory_movement");
+  assert.equal(reversalInput.businessDataType, "goods_receipt.reversed");
+  assert.equal(reversalInput.businessObjectKey, "GRR-REV-001");
+  assert.equal(reversalInput.causationId, "bd-2");
+  assert.deepEqual(reversalInput.relation, {
+    fromBusinessDataId: "bd-2",
+    relationType: "REVERSES"
+  });
+  assert.equal(
+    reversalInput.payload.movementType,
+    "PURCHASE_RECEIPT_REVERSAL"
+  );
+  assert.equal(reversalInput.payload.originalReceiptNo, "GR-REV-001");
+  assert.equal(reversalInput.payload.orderNo, "PO-REV-001");
+  assert.equal(reversalInput.payload.supplier, "cp-supplier-1");
+  assert.equal(reversalInput.payload.productId, "item-1");
+  assert.equal(reversalInput.payload.warehouse, "warehouse-1");
+  assert.equal(reversalInput.payload.quantity, 10);
+  assert.equal(reversalInput.payload.totalCost, "125.00");
+
+  for (const input of state.submissions) {
+    assert.equal("inventoryQuantity" in input.payload, false);
+    assert.equal("payableBalance" in input.payload, false);
+    assert.equal("onHand" in input.payload, false);
+  }
+});
+
 test("TR-01A fails before EVO submission when Item or Warehouse authority is absent", async () => {
   const state = setup();
   state.roles.assign({
