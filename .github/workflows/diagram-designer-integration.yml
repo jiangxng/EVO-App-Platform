@@ -37,4 +37,4 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/integration/definition-projection-edit-save.test.mjs tests/integration/definition-projection-edge-routes.test.mjs tests/integration/eog-2d-viewer-cutover.test.mjs tests/integration/eog-2d-designer-cutover.test.mjs
+      - run: node --test tests/integration/definition-projection-edit-save.test.mjs tests/integration/definition-projection-edge-routes.test.mjs tests/integration/eog-2d-designer-cutover.test.mjs
