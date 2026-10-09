@@ -17,8 +17,12 @@ import {
   WORKBENCH_ITEM_FAVORITE_SET_COMMAND_V010
 } from "../../dist/manager/workbench-actions.js";
 import {
-  createWorkspaceHomePageV010
+  createWorkspaceHomePageV010,
+  isHostWorkbenchFeatureV010
 } from "../../dist/manager/workspace-home-page.js";
+import {
+  createAppActionRouter
+} from "../../dist/actions/router.js";
 
 function context(actorType = "HUMAN") {
   return {
@@ -440,4 +444,50 @@ test("CP-06 Workbench action handler records Recent and returns package-owned ro
     (await personal.get("personal:user-a", "user-a")).recentItemIds,
     ["my-customers"]
   );
+});
+
+
+test("CP-06 Action Router treats Host Workbench feature as active without weakening package feature checks", async () => {
+  const service = {
+    async open() {
+      return {
+        itemId: "my-customers",
+        route: "/counterparties/my-customers"
+      };
+    },
+    async favorite() {
+      throw new Error("UNUSED");
+    },
+    async setPersonalPreferences() {
+      throw new Error("UNUSED");
+    },
+    async resolve() {
+      throw new Error("UNUSED");
+    }
+  };
+  const handlers = createWorkbenchActionHandlersV010({
+    service,
+    now: () => new Date("2026-10-09T02:41:00.000Z")
+  });
+  const router = createAppActionRouter(
+    handlers,
+    featureId => isHostWorkbenchFeatureV010(featureId)
+  );
+
+  const result = await router.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: WORKBENCH_ITEM_OPEN_COMMAND_V010,
+      inputVersion: "0.1.0"
+    },
+    values: { itemId: "my-customers" },
+    sourceInteractionId: "cp06-router",
+    actionId: WORKBENCH_ITEM_OPEN_COMMAND_V010,
+    requiresConfirmation: false
+  }, context());
+
+  assert.equal(result.ok, true);
+  assert.equal(result.result.navigateTo, "/counterparties/my-customers");
+  assert.equal(isHostWorkbenchFeatureV010("not-a-host-feature"), false);
 });
