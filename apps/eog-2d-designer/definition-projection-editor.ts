@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { diagramEdgeGeometryV010 } from "../../vendor/eidos/src/diagram/edge-paths.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -691,6 +692,7 @@ function thumbnailFromCapturedView(
   const visibleIds = new Set(visible.map(item => item.node.id));
   const byId = new Map(visible.map(item => [item.node.id, item] as const));
 
+  const pathByEdgeId = new Map((captured.edgePaths ?? []).map(item => [item.edgeId, item.pathKind] as const));
   const edgeSvg = diagram.edges
     .filter(edge =>
       !hiddenEdges.has(edge.id)
@@ -704,7 +706,12 @@ function thumbnailFromCapturedView(
       const y1 = (source.y + source.height / 2) * scaleY;
       const x2 = (target.x + target.width / 2) * scaleX;
       const y2 = (target.y + target.height / 2) * scaleY;
-      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#94a3b8" stroke-opacity=".48" stroke-width="1.25"/>`;
+      const path = diagramEdgeGeometryV010(
+        { x: x1, y: y1 },
+        { x: x2, y: y2 },
+        pathByEdgeId.get(edge.id) ?? edge.pathKind ?? "straight"
+      );
+      return `<path d="${xml(path.d)}" fill="none" stroke="#94a3b8" stroke-opacity=".48" stroke-width="1.25"/>`;
     })
     .join("");
 
