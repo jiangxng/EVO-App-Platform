@@ -594,3 +594,20 @@ Key observed result:
 The maturity recommendation is **selected object-neutral contracts =>
 STABLE_CANDIDATE**, while Item/Product/SKU/variant/trade-identifier/UOM/
 classification semantics remain domain-owned and EXPERIMENTAL.
+
+
+## IT-01 closure record
+
+- final implementation / RVC PR: #538
+- main merge commit: `139ad94c13909a1f47c73d081742a5a6a870eef5`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Open Food Facts real-data RVC workflow: PASS
+- Railway deployment: `ca33d2da-7de7-483a-b584-1d71d38f84d1` — SUCCESS
+- durable RVC evidence: `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`
+- contract maturity: selected object-neutral contracts => **STABLE_CANDIDATE**
+- next gate: **WH-01 Warehouse/Location third-object proof**
+
+IT-01 is closed. Do not reopen Item domain semantics merely to make them look complete;
+Product/SKU/variant/trade identifiers/UOM/classification remain domain-owned until
+real business evidence requires their explicit models.
