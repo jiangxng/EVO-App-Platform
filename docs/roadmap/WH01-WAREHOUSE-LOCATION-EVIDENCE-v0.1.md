@@ -1,6 +1,6 @@
 # WH-01 Warehouse/Location Third-Object Evidence v0.1
 
-**Status:** WH-01A MERGED_CI_PRODUCTION_PASS / WH-01B ACTIVE  
+**Status:** WH-01A + WH-01B MERGED_CI_PRODUCTION_PASS / WH-01C ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -147,7 +147,7 @@ moving Warehouse hierarchy semantics into shared Foundation Object contracts.
 
 ## WH-01B — hierarchical Data Import
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 WH-01B reuses the accepted generic Data Import target/service pipeline without
 changing a shared STABLE_CANDIDATE Foundation Object contract.
@@ -242,3 +242,16 @@ Evidence:
 
 After WH-01B passes CI/production, WH-01C should compose Responsibility, Projection
 and Eidos navigation from the same authoritative Warehouse/Location resources.
+
+
+## WH-01B production evidence
+
+- implementation PR: #542
+- main merge commit: `9f3e65e84d521f2e6ea23aba31dc64525c3aa224`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Railway deployment: `c2011371-4309-4982-9062-90cb98a166a9` — SUCCESS
+
+WH-01B is closed. WH-01C is the active slice and will compose Warehouse/Location
+Responsibility, Authorization, derived Projection, Eidos and shared Human/Agent read
+authority without adding Inventory Position state to Warehouse.
