@@ -1,9 +1,9 @@
 name: CP-07 Counterparty Real RVC
 
 on:
-  push:
+  pull_request:
     branches:
-      - cp07/real-rvc-companies-house-20261009
+      - cp07/package-upgrade-compatibility-20261009
     paths:
       - .github/workflows/cp07-counterparty-real-rvc.yml
 
