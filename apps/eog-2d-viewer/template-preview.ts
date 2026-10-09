@@ -164,6 +164,7 @@ export function projectReadOnly2dArtifactStateV010(input: {
       kind: edge.kind,
       ...(edge.label ? { label: edge.label } : {}),
       ...(edge.arrow ? { arrow: edge.arrow } : {}),
+      ...(edge.pathKind ? { pathKind: edge.pathKind } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }
