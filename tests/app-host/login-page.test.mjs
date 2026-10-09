@@ -244,3 +244,19 @@ test("build emits valid login assets at the runtime path used by Railpack", asyn
     [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
   );
 });
+
+test("mobile login surfaces preserve distinct standard and demo layouts", () => {
+  for (const skin of ["standard", "demo"]) {
+    const html = createLoginExperienceHtmlV010({
+      assetRevision: "mobile", returnTo: "/enterprise-agent", locale: "zh-CN", skin,
+      authenticationEnabled: true,
+      methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
+    });
+    assert.match(html, /@media\(max-width:600px\)/);
+    assert.match(html, /@media\(max-width:360px\)/);
+    assert.match(html, /min-height:100dvh/);
+    assert.match(html, /env\(safe-area-inset-bottom\)/);
+    assert.match(html, /\/auth\/login\?returnTo=%2Fenterprise-agent&locale=zh-CN/);
+    assert.match(html, new RegExp('data-login-skin="' + skin + '"'));
+  }
+});
