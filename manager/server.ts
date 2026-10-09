@@ -818,6 +818,8 @@ import {
   COUNTERPARTY_EDIT_PAGE_SOURCE,
   COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
   COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+  COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
   COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
@@ -851,9 +853,11 @@ import {
   COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
   COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
-  projectCounterpartiesV010,
   type CounterpartyProjectionIdV010
 } from "../apps/counterparty/projections.js";
+import {
+  createCounterpartyProjectionServiceV010
+} from "../apps/counterparty/projection-service.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -1053,6 +1057,15 @@ const counterpartyProfileRepository =
   });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
+const counterpartyProjectionService =
+  createCounterpartyProjectionServiceV010({
+    repository: counterpartyRepository,
+    roleRepository: counterpartyRoleRepository,
+    responsibilityRepository,
+    resolveAuthorizationProvider,
+    fieldIds: () =>
+      counterpartyCoreSchemaV010.fields.map(field => field.fieldId)
+  });
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
 const objectExtensionValueRepository =
@@ -4493,6 +4506,41 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+      COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import(
+            "../apps/counterparty/projection-actions.js"
+          );
+          const handlers =
+            module.createCounterpartyProjectionActionHandlersV010({
+              service: counterpartyProjectionService,
+              resolveEnterpriseRelationshipKind(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).find(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                )?.kind;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       RESPONSIBILITY_ASSIGN_COMMAND_V010,
       RESPONSIBILITY_ARCHIVE_COMMAND_V010
     ].map(commandCode =>
@@ -6344,22 +6392,20 @@ const server = createServer(async (request, response) => {
                   : undefined;
 
         if (projectionId) {
-          const projected = projectCounterpartiesV010({
+          const projection = await counterpartyProjectionService.read({
+            contextId: active.contextId,
             projectionId,
-            counterparties: access.counterparties,
-            roles: counterpartyRoleRepository.list(active.contextId),
-            responsibilities,
-            principalSubjectId: principal.subjectId,
-            authorizedCounterpartyIds
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
           });
           return json(
             response,
             200,
             module.createCounterpartyProjectionPageV010({
               projectionId,
-              counterparties: projected,
+              counterparties: projection.counterparties,
               locale,
-              readableFieldIds: access.readableFieldIds,
+              readableFieldIds: projection.readableFieldIds,
               canManage
             })
           );

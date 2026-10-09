@@ -105,3 +105,15 @@ export function parseCounterpartyEditRouteV010(
   if (url.pathname !== COUNTERPARTY_EDIT_ROUTE) return undefined;
   return url.searchParams.get("counterpartyId")?.trim() || undefined;
 }
+
+
+export const COUNTERPARTY_PROJECTION_CAPABILITY_V010 =
+  "enterprise.counterparty.projection" as const;
+export const COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010 =
+  "counterparty.projection.my-customers.read" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010 =
+  "counterparty.projection.my-suppliers.read" as const;
+export const COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010 =
+  "counterparty.projection.my-customers.read" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010 =
+  "counterparty.projection.my-suppliers.read" as const;
