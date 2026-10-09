@@ -74,7 +74,12 @@ export const dataImportPackage: PackageManifestV010 = {
           section: "FIXED_CAPABILITIES",
           route: DATA_IMPORT_DIRECTORY_ROUTE,
           capabilityOperationId: DATA_IMPORT_STAGE_FILE_OPERATION_V010,
-          order: 60
+          order: 60,
+          localization: {
+            namespace: DATA_IMPORT_PACKAGE_ID,
+            titleKey: "workbench.import.title",
+            descriptionKey: "workbench.import.description"
+          }
         }
       },
       {
@@ -134,7 +139,9 @@ export const dataImportPackage: PackageManifestV010 = {
           namespace: DATA_IMPORT_PACKAGE_ID,
           locale: "en",
           messages: {
-            "navigation.evo-data-import.nav.label": "Data Import"
+            "navigation.evo-data-import.nav.label": "Data Import",
+            "workbench.import.title": "Data Import",
+            "workbench.import.description": "Upload, map, validate and commit governed business data."
           }
         }
       },
@@ -145,7 +152,9 @@ export const dataImportPackage: PackageManifestV010 = {
           namespace: DATA_IMPORT_PACKAGE_ID,
           locale: "zh-CN",
           messages: {
-            "navigation.evo-data-import.nav.label": "数据导入"
+            "navigation.evo-data-import.nav.label": "数据导入",
+            "workbench.import.title": "数据导入",
+            "workbench.import.description": "上传、映射、校验并提交受治理的业务数据。"
           }
         }
       }
