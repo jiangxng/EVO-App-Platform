@@ -2,6 +2,7 @@ import type {
   EidosLocalizationBundleContributionV010,
   EidosSettingsContributionV010,
   EidosWorkbenchActivityContributionV010,
+  EidosWorkbenchHomeItemContributionV010,
   ExperienceContributionV010,
   PackageManifestV010,
   PlatformCapabilityOperationContributionV010,
@@ -39,6 +40,7 @@ function contributionContractVersion(
     | ExperienceContributionV010
     | EidosLocalizationBundleContributionV010
     | EidosWorkbenchActivityContributionV010
+    | EidosWorkbenchHomeItemContributionV010
     | EidosSettingsContributionV010
     | PlatformServiceProviderContributionV010
     | PlatformCapabilityOperationContributionV010
@@ -50,6 +52,8 @@ function contributionContractVersion(
       return contribution.bundle.contractVersion;
     case "eidos.workbench-activity":
       return contribution.activity.contractVersion;
+    case "eidos.workbench-home-item":
+      return contribution.item.contractVersion;
     case "eidos.settings":
       return contribution.settings.contractVersion;
     case "platform.service-provider":
