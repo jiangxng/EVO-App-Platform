@@ -68,6 +68,22 @@ export const itemPackage: PackageManifestV010 = {
     contributions: [
       ...itemProjectionCapabilityContributionsV010,
       {
+        kind: "platform.data-import-target",
+        target: {
+          contractVersion: "0.1.0",
+          targetId: "item.subject",
+          objectType: "item.subject",
+          label: {
+            default: "Items",
+            translations: { "zh-CN": "物料 / 项目" }
+          },
+          binding: {
+            type: "HOST_FACTORY",
+            ref: "evo-item.import-target.v0.1"
+          }
+        }
+      },
+      {
         kind: "eidos.workbench-home-item",
         item: {
           contractVersion: "0.1.0",
