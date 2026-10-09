@@ -1337,6 +1337,7 @@ export function mountDiagramEditorPageV010(
     for (const id of state?.hiddenEdgeIds ?? []) locallyHiddenEdgeIds.add(id);
   };
   const navigationPointers = new Map<number, { x: number; y: number }>();
+  let cancelActiveNodeDrag: (() => void) | undefined;
   let panLast: { x: number; y: number } | undefined;
   let pinchStartDistance: number | undefined;
   let pinchLastDistance: number | undefined;
@@ -2720,6 +2721,7 @@ export function mountDiagramEditorPageV010(
               x: event.clientX,
               y: event.clientY
             });
+            if (navigationPointers.size >= 2) cancelActiveNodeDrag?.();
             const touchDragEligible =
               selected?.kind === "node"
               && selected.id === node.id
@@ -2777,7 +2779,11 @@ export function mountDiagramEditorPageV010(
             }, 0);
           };
 
+          cancelActiveNodeDrag = cancelForNavigation;
           const pointerMove = (move: PointerEvent) => {
+            if (isTouch && navigationPointers.has(move.pointerId)) {
+              navigationPointers.set(move.pointerId, { x: move.clientX, y: move.clientY });
+            }
             if (isTouch && navigationPointers.size >= 2) {
               cancelForNavigation();
               return;
@@ -2802,6 +2808,7 @@ export function mountDiagramEditorPageV010(
           };
 
           const pointerUp = (up: PointerEvent) => {
+            if (cancelActiveNodeDrag === cancelForNavigation) cancelActiveNodeDrag = undefined;
             element.removeEventListener("lostpointercapture", lostCapture);
             if (element.hasPointerCapture(up.pointerId)) {
               element.releasePointerCapture(up.pointerId);
@@ -2940,6 +2947,9 @@ export function mountDiagramEditorPageV010(
         x: event.clientX,
         y: event.clientY
       });
+      if (event.pointerType === "touch" && navigationPointers.size >= 2) {
+        cancelActiveNodeDrag?.();
+      }
       const points = [...navigationPointers.values()];
       if (points.length === 1) {
         panLast = points[0];
@@ -3076,6 +3086,7 @@ export function mountDiagramEditorPageV010(
     canvas.addEventListener("pointerup", pointerUp);
     canvas.addEventListener("pointercancel", pointerUp);
     const onBlur = (): void => {
+      cancelActiveNodeDrag?.();
       removeMarquee();
       navigationPointers.clear();
       panLast = undefined;
