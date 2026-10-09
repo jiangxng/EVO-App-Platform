@@ -680,3 +680,6 @@ Counterparty is the first proof, Item is the first anti-overfit proof, Warehouse
 
 
 > WH-01 current slice (2026-10-09): WH-01B hierarchical Data Import is MERGED_CI_PRODUCTION_PASS via PR #542; WH-01C Responsibility / Projection / Eidos composition is the current slice. Shared STABLE_CANDIDATE contracts remain reuse-by-default.
+
+
+> WH-01 current slice (2026-10-09): WH-01C Responsibility / Projection / Eidos composition is MERGED_CI_PRODUCTION_PASS via PR #544; WH-01D real Warehouse/Location RVC is the current closure slice before TR-01.
