@@ -692,6 +692,30 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             }
           }
         },
+        {
+          kind: "eidos.workbench-home-item",
+          item: {
+            contractVersion: "0.1.0",
+            id: "enterprise-agent.workbench.my-work",
+            title: "My Work",
+            description: "Open Personal Agent follow-ups and governed review work.",
+            section: "MY_WORK",
+            route: "/enterprise-agent/follow-ups",
+            order: 10
+          }
+        },
+        {
+          kind: "eidos.workbench-home-item",
+          item: {
+            contractVersion: "0.1.0",
+            id: "enterprise-agent.workbench.agent",
+            title: "Personal Agent",
+            description: "Reason, search and operate through the same Host-governed capabilities.",
+            section: "PERSONAL_AGENT",
+            route: "/enterprise-agent",
+            order: 90
+          }
+        },
         ...([
           ["en", enMessages],
           ["zh-CN", zhCnMessages],

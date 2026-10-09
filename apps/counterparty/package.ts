@@ -19,9 +19,11 @@ import {
   COUNTERPARTY_MY_CUSTOMERS_PAGE_ID,
   COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
   COUNTERPARTY_MY_CUSTOMERS_ROUTE,
+  COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010,
   COUNTERPARTY_MY_SUPPLIERS_PAGE_ID,
   COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
   COUNTERPARTY_MY_SUPPLIERS_ROUTE,
+  COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
   COUNTERPARTY_DETAIL_ROUTE,
   COUNTERPARTY_EDIT_PAGE_ID,
@@ -75,6 +77,32 @@ export const counterpartyPackage: PackageManifestV010 = {
     contributions: [
       ...counterpartyProjectionCapabilityContributionsV010,
       {
+        kind: "eidos.workbench-home-item",
+        item: {
+          contractVersion: "0.1.0",
+          id: "evo-counterparty.workbench.my-customers",
+          title: "My Customers",
+          description: "Customers assigned to your governed sales responsibility scope.",
+          section: "MY_BUSINESS_OBJECTS",
+          route: COUNTERPARTY_MY_CUSTOMERS_ROUTE,
+          capabilityOperationId:
+            COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010,
+          order: 20
+        }
+      }, {
+        kind: "eidos.workbench-home-item",
+        item: {
+          contractVersion: "0.1.0",
+          id: "evo-counterparty.workbench.my-suppliers",
+          title: "My Suppliers",
+          description: "Suppliers assigned to your governed procurement responsibility scope.",
+          section: "MY_BUSINESS_OBJECTS",
+          route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
+          capabilityOperationId:
+            COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010,
+          order: 30
+        }
+      }, {
       kind: "eidos.experience",
       manifest: {
         contractVersion: "0.1.0",

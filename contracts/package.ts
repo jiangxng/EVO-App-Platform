@@ -191,6 +191,31 @@ export interface EidosWorkbenchActivityContributionV010 {
   };
 }
 
+export interface EidosWorkbenchHomeItemContributionV010 {
+  kind: "eidos.workbench-home-item";
+  item: {
+    contractVersion: "0.1.0";
+    id: string;
+    title: string;
+    description?: string;
+    section:
+      | "MY_WORK"
+      | "MY_BUSINESS_OBJECTS"
+      | "OPERATIONAL_PROJECTIONS"
+      | "FIXED_CAPABILITIES"
+      | "PERSONAL_AGENT";
+    route: string;
+    capabilityOperationId?: string;
+    order?: number;
+    localization?: {
+      namespace: string;
+      titleKey: string;
+      descriptionKey?: string;
+    };
+  };
+}
+
+
 export type SettingValueV010 = string | number | boolean;
 
 export interface EidosSettingsContributionV010 {
@@ -280,6 +305,7 @@ export type FeatureContributionV010 =
   | ExperienceContributionV010
   | EidosLocalizationBundleContributionV010
   | EidosWorkbenchActivityContributionV010
+  | EidosWorkbenchHomeItemContributionV010
   | EidosSettingsContributionV010
   | PlatformServiceProviderContributionV010
   | PlatformCapabilityOperationContributionV010;

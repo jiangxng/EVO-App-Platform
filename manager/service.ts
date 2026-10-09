@@ -8,6 +8,7 @@ import type {
   PlatformServiceProviderContributionV010,
   EidosLocalizationBundleContributionV010,
   EidosWorkbenchActivityContributionV010,
+  EidosWorkbenchHomeItemContributionV010,
   EidosSettingsContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
@@ -52,6 +53,7 @@ export interface AppManagerService {
   listEffectiveCapabilityOperations(capability?: string): Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
   listEffectiveWorkbenchActivities(): Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }>;
+  listEffectiveWorkbenchHomeItems(): Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }>;
   listInstalledSettings(packageId?: string): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
@@ -758,6 +760,46 @@ export function createAppManagerService(
     );
   }
 
+  function listEffectiveWorkbenchHomeItems(): Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }> = [];
+    const ids = new Set<string>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "eidos.workbench-home-item") continue;
+
+        const homeItem = structuredClone(contribution.item);
+        if (ids.has(homeItem.id)) {
+          throw new Error(`WORKBENCH_HOME_ITEM_ID_CONFLICT: ${homeItem.id}`);
+        }
+        ids.add(homeItem.id);
+
+        if (
+          homeItem.localization
+          && homeItem.localization.namespace !== item.packageId
+        ) {
+          throw new Error(
+            `WORKBENCH_HOME_ITEM_LOCALIZATION_NAMESPACE_MISMATCH: ${homeItem.localization.namespace} != ${item.packageId}`
+          );
+        }
+
+        result.push({
+          ...homeItem,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      (a.order ?? 0) - (b.order ?? 0)
+      || a.id.localeCompare(b.id)
+    );
+  }
+
   function listInstalledSettings(
     packageId?: string
   ): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }> {
@@ -821,6 +863,7 @@ export function createAppManagerService(
     listEffectiveCapabilityOperations,
     listEffectiveLocalizationBundles,
     listEffectiveWorkbenchActivities,
+    listEffectiveWorkbenchHomeItems,
     listInstalledSettings,
     loadExperiencePage
   };
