@@ -205,6 +205,7 @@ export interface EidosWorkbenchHomeItemContributionV010 {
       | "FIXED_CAPABILITIES"
       | "PERSONAL_AGENT";
     route: string;
+    capabilityOperationId?: string;
     order?: number;
     localization?: {
       namespace: string;
