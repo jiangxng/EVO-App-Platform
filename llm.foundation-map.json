@@ -38,7 +38,8 @@
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
     "enterpriseContextOwnership": "CI_VERIFIED_P0_8_TRANSFER_LIFECYCLE",
     "enterpriseRelationships": "CI_VERIFIED_P0_8",
-    "projectContinuity": "AUTHORITATIVE_BOOTSTRAP_CI_ENFORCED"
+    "projectContinuity": "AUTHORITATIVE_BOOTSTRAP_CI_ENFORCED",
+    "foundationObjectContracts": "STABLE_CANDIDATE_AFTER_IT01_SECOND_OBJECT_PROOF"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -605,5 +606,15 @@
     "af01Exit": "PERSONAL_AGENT_CONVERSATION_POSTGRES_AUTHORITY_PASS",
     "af02Exit": "PERSONAL_AGENT_LONG_CONTEXT_V01_PASS",
     "fullAgentRewriteBeforeCp05": false
+  },
+  "foundationObjectProgram": {
+    "status": "WH01_ACTIVE",
+    "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+    "currentGate": "WH-01 Warehouse/Location third-object proof",
+    "secondObjectProof": "IT-01 CLOSED_PRODUCTION_PASS",
+    "maturity": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE",
+    "maturityEvidence": "docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md",
+    "hardSeparation": "Warehouse = where; Inventory Position = what Item is there and how much",
+    "next": "TR-01 Trading Reference Loop"
   }
 }
