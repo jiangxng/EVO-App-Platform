@@ -200,7 +200,7 @@ Evidence target:
   - `inventory amount = 125`,
   - inventory dimensions retain the Item, Warehouse, order and Supplier references;
 - Work closes RECEIVE after full receipt while PAY remains open;
-- EVO's authoritative `validate:eel-c02-full-replay` certification runs in the same cross-project workflow and must report deterministic replay.
+- deterministic replay is certified by the pinned EVO mainline's isolated replay certifications. The current pin includes EVO PR #105, whose `tr01-purchase-receipt-reversal` certification proves Purchase -> Receipt -> Reversal full replay and whose normal EEL-C02 certification remains green. These isolated replay certifications intentionally do not share the already-mutated App Platform cross-project database.
 
 Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level Position API. It is a ledger-wide observation surface and correctly fails closed when units/currencies cannot be represented as one aggregate. TR-01A1 instead uses EVO's public dimension-filtered LedgerBalance read boundary introduced by EVO PR #104.
 
