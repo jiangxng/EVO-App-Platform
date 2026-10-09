@@ -6,6 +6,7 @@ import type {
   PackageManifestV010,
   PlatformSnapshotV010,
   PlatformCapabilityOperationContributionV010,
+  PlatformDataImportTargetContributionV010,
   PlatformServiceProviderContributionV010,
   EidosLocalizationBundleContributionV010,
   EidosWorkbenchActivityContributionV010,
@@ -62,6 +63,7 @@ export interface AppManagerService {
   uninstall(packageId: string): PlatformSnapshotV010;
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
+  listEffectiveDataImportTargets(): Array<PlatformDataImportTargetContributionV010["target"] & { packageId: string; featureId: string }>;
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
   listEffectiveCapabilityOperations(capability?: string): Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
@@ -858,6 +860,50 @@ export function createAppManagerService(
     });
   }
 
+  function listEffectiveDataImportTargets(): Array<
+    PlatformDataImportTargetContributionV010["target"]
+    & { packageId: string; featureId: string }
+  > {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<
+      PlatformDataImportTargetContributionV010["target"]
+      & { packageId: string; featureId: string }
+    > = [];
+    const ids = new Map<string, { packageId: string; featureId: string }>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "platform.data-import-target") continue;
+        const target = structuredClone(contribution.target);
+        const previous = ids.get(target.targetId);
+        if (previous) {
+          throw new Error(
+            `DATA_IMPORT_TARGET_ID_CONFLICT: ${target.targetId} is contributed by `
+            + `${previous.packageId}/${previous.featureId} and `
+            + `${item.packageId}/${item.featureId}`
+          );
+        }
+        ids.set(target.targetId, {
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+        result.push({
+          ...target,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      a.targetId.localeCompare(b.targetId)
+      || a.packageId.localeCompare(b.packageId)
+      || a.featureId.localeCompare(b.featureId)
+    );
+  }
+
   function listEffectiveServiceProviders(
     capability?: string
   ): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }> {
@@ -1116,6 +1162,7 @@ export function createAppManagerService(
     uninstall,
     getSnapshot,
     listEffectiveExperiences,
+    listEffectiveDataImportTargets,
     listEffectiveServiceProviders,
     listEffectiveCapabilityOperations,
     listEffectiveLocalizationBundles,
