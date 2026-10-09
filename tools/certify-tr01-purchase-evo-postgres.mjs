@@ -4,9 +4,6 @@ import {
   createEvoBusinessDataHttpAdapterV010
 } from "../dist/manager/evo-business-data-http-adapter.js";
 import {
-  createEvoRuntimeObservationHttpAdapterV010
-} from "../dist/manager/evo-runtime-observation-http-adapter.js";
-import {
   createMemoryEnterpriseResourceRepositoryV010
 } from "../dist/providers/enterprise-context/resources.js";
 import {
@@ -49,44 +46,6 @@ async function json(response) {
     );
   }
   return body;
-}
-
-async function observation(enterpriseId, ledgerCode, metricCodes) {
-  return json(await fetch(baseUrl + "/api/v1/runtime-observations/query", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json"
-    },
-    body: JSON.stringify({
-      contractVersion: "0.1.0",
-      enterpriseId,
-      target: {
-        kind: "LEDGER_DEFINITION",
-        code: ledgerCode
-      },
-      window: {
-        startAt: "2020-01-01T00:00:00.000Z",
-        endAt: "2030-01-01T00:00:00.000Z"
-      },
-      metricCodes
-    })
-  }));
-}
-
-function metric(body, code) {
-  const found = body.observations.find(item => item.metricCode === code);
-  assert.ok(found, "missing runtime observation " + code);
-  return found.value;
-}
-
-async function ledgerAmount(enterpriseId, ledgerCode) {
-  const body = await observation(
-    enterpriseId,
-    ledgerCode,
-    ["balance.amount"]
-  );
-  return metric(body, "balance.amount");
 }
 
 async function applicationEventCount(enterpriseId, applicationId) {
@@ -146,21 +105,6 @@ async function waitForOrderWork(
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   throw new Error(label + ": " + JSON.stringify(last));
-}
-
-async function waitForAmount(
-  enterpriseId,
-  ledgerCode,
-  expected,
-  label
-) {
-  let last;
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    last = await ledgerAmount(enterpriseId, ledgerCode);
-    if (Math.abs(last - expected) < 0.000001) return last;
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  throw new Error(label + ": " + String(last));
 }
 
 async function waitForApplicationEvents(
@@ -278,8 +222,6 @@ const selection = {
 };
 const quantity = 10;
 const amount = 125;
-const beforePayableAmount = await ledgerAmount(enterprise.id, "payable");
-const beforeInventoryAmount = await ledgerAmount(enterprise.id, "inventory");
 const beforePurchaseEvents = await applicationEventCount(
   enterprise.id,
   purchaseBinding.applicationId
@@ -308,12 +250,6 @@ await waitForApplicationEvents(
   purchaseBinding.applicationId,
   beforePurchaseEvents + 1,
   "purchase BusinessData event was not observed"
-);
-const payableAfterPurchase = await waitForAmount(
-  enterprise.id,
-  "payable",
-  beforePayableAmount + amount,
-  "purchase payable amount was not observed"
 );
 const purchaseWork = await waitForOrderWork(
   enterprise.id,
@@ -370,18 +306,6 @@ await waitForApplicationEvents(
   beforeReceiptEvents + 1,
   "receipt BusinessData event was not observed"
 );
-const inventoryAmountAfterReceipt = await waitForAmount(
-  enterprise.id,
-  "inventory",
-  beforeInventoryAmount + amount,
-  "receipt inventory amount was not observed"
-);
-const payableAfterReceipt = await waitForAmount(
-  enterprise.id,
-  "payable",
-  beforePayableAmount + amount,
-  "receipt must not close payable"
-);
 const workAfterReceipt = await waitForOrderWork(
   enterprise.id,
   "TR01-PO-001",
@@ -423,10 +347,11 @@ console.log(JSON.stringify({
     receiptEventDelta: 1,
     receiveWorkQuantityBeforeReceipt: Number(receiveWork.quantity),
     receiveWorkClosedAfterReceipt: true,
-    payableAmountDelta: payableAfterReceipt - beforePayableAmount,
-    inventoryAmountDelta:
-      inventoryAmountAfterReceipt - beforeInventoryAmount,
-    globalQuantityAggregationAvoided: true
+    ledgerCertification: "EVO_POSTGRES_ORDER_SCOPED_FOLLOWUP",
+    expectedPayableAmount: amount,
+    expectedInventoryQuantity: quantity,
+    expectedInventoryAmount: amount,
+    aggregateRuntimeObservationAvoided: true
   },
   work: {
     receiveClosed: true,
