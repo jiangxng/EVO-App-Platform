@@ -255,3 +255,107 @@ and Eidos navigation from the same authoritative Warehouse/Location resources.
 WH-01B is closed. WH-01C is the active slice and will compose Warehouse/Location
 Responsibility, Authorization, derived Projection, Eidos and shared Human/Agent read
 authority without adding Inventory Position state to Warehouse.
+
+
+## WH-01C — Responsibility / Projection / Eidos composition
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+WH-01C reuses the Item-proven governance pattern without copying Item semantics.
+
+### Responsibility is business scope, not permission
+
+The Warehouse-owned responsibility type is:
+
+```text
+WAREHOUSE_STEWARD
+```
+
+`warehouse.my-stewardship` first intersects normal Warehouse authorization and only
+then filters to active WAREHOUSE_STEWARD assignments for the current principal.
+
+Responsibility therefore cannot grant a Warehouse that authorization denied.
+
+### One derived read authority
+
+The Warehouse Projection Service composes, at read time:
+
+```text
+Warehouse identity
++ active Warehouse Location hierarchy
++ Enterprise Extension values
++ Responsibility assignments
++ Authorization decisions
+→ Warehouse Projection
+```
+
+No `evo.warehouse-projection` enterprise resource is persisted.
+
+The same Projection Service is used by:
+
+- Eidos Human pages;
+- platform capability operations exposed to Personal Agent;
+- Automation.
+
+### Eidos experience
+
+The package contributes:
+
+- Warehouse Directory;
+- My Warehouses;
+- Warehouse Detail;
+- Workbench Home: My Warehouses;
+- localization bundles;
+- lifecycle-aware `warehouse.location` Data Import target metadata.
+
+Warehouse Detail derives readable hierarchy paths from the authoritative
+parentLocationId/code structure. Those paths are display/navigation structure and are
+not persisted identity.
+
+### Lifecycle / lazy-loading rule
+
+`evo-warehouse` is catalog-discoverable without loading its implementation.
+
+The Host resolves Warehouse repositories, hierarchy, projection service, page module,
+projection action handlers and Data Import target only after the Warehouse feature is
+active and the corresponding capability/page/import target is actually used.
+
+Feature deactivation or package uninstall clears the cached Warehouse runtime.
+
+This preserves PR #509:
+
+```text
+Discover metadata cheaply.
+Load implementation only when lifecycle and use require it.
+```
+
+### Inventory separation remains hard
+
+Warehouse projection and Eidos payloads contain structure and responsibility only.
+
+They do not contain:
+
+- itemId;
+- on-hand quantity;
+- available quantity;
+- reserved quantity;
+- inventory balance;
+- ledger balance.
+
+Inventory Position remains a separate later trading/inventory authority.
+
+Evidence:
+
+- `apps/warehouse/access.ts`
+- `apps/warehouse/authorization.ts`
+- `apps/warehouse/projections.ts`
+- `apps/warehouse/projection-service.ts`
+- `apps/warehouse/projection-actions.ts`
+- `apps/warehouse/page.ts`
+- `apps/warehouse/capability-manifest.ts`
+- `apps/warehouse/package.ts`
+- `tests/protocol/wh01-warehouse-projection-eidos.test.mjs`
+- lifecycle/lazy Host wiring in `manager/server.ts`
+
+After WH-01C production passes, WH-01D should use real warehouse/location evidence to
+pressure naming, hierarchy depth, codes and structural assumptions before TR-01.
