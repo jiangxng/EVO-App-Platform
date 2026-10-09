@@ -191,3 +191,85 @@ test("IT-01B Item repository does not depend on Counterparty implementation or h
     assert.equal(fields.includes(forbidden), false);
   }
 });
+
+
+test("IT-01E Item saveMany validates code ownership once and persists the batch", () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createItemRepositoryV010(resources);
+
+  const saved = repository.saveMany({
+    contextId: "enterprise-context:batch",
+    items: Array.from({ length: 250 }, (_, index) => item({
+      itemId: "batch-item-" + String(index + 1),
+      code: "BATCH-" + String(index + 1).padStart(4, "0"),
+      displayName: "Batch Item " + String(index + 1)
+    })),
+    actorSubjectId: "batch-owner",
+    recordedAt: "2026-10-09T12:40:00.000Z"
+  });
+
+  assert.equal(saved.length, 250);
+  assert.equal(repository.list("enterprise-context:batch").length, 250);
+
+  assert.throws(() => repository.saveMany({
+    contextId: "enterprise-context:batch",
+    items: [
+      item({
+        itemId: "batch-new-1",
+        code: "batch-0001",
+        displayName: "Conflicts with existing"
+      }),
+      item({
+        itemId: "batch-new-2",
+        code: "BATCH-9999",
+        displayName: "Would otherwise be valid"
+      })
+    ],
+    actorSubjectId: "batch-owner",
+    recordedAt: "2026-10-09T12:41:00.000Z"
+  }), /ITEM_CODE_DUPLICATE/);
+
+  assert.equal(
+    repository.get("enterprise-context:batch", "batch-new-2"),
+    undefined
+  );
+  assert.equal(repository.list("enterprise-context:batch").length, 250);
+});
+
+test("IT-01E Item saveMany preserves archived identity and code reservations", () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createItemRepositoryV010(resources);
+
+  repository.save({
+    contextId: "enterprise-context:archive-batch",
+    item: item(),
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-09T12:42:00.000Z"
+  });
+  repository.archive({
+    contextId: "enterprise-context:archive-batch",
+    itemId: "item-1",
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-09T12:43:00.000Z"
+  });
+
+  assert.throws(() => repository.saveMany({
+    contextId: "enterprise-context:archive-batch",
+    items: [item({
+      itemId: "item-2",
+      code: "item-001",
+      displayName: "Reuse archived code"
+    })],
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-09T12:44:00.000Z"
+  }), /ITEM_CODE_DUPLICATE/);
+
+  assert.throws(() => repository.saveMany({
+    contextId: "enterprise-context:archive-batch",
+    items: [item({
+      displayName: "Reactivate archived identity"
+    })],
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-09T12:45:00.000Z"
+  }), /ITEM_ARCHIVED/);
+});
