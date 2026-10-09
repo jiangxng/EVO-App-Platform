@@ -7,6 +7,15 @@ import type {
 } from "./schema.js";
 
 export interface ObjectExtensionApplicabilityV010 {
+  /**
+   * Object-neutral applicability dimensions. Values are semantic codes and
+   * are normalized case-insensitively by the Foundation Object compiler.
+   */
+  qualifiers?: Record<string, string[]>;
+  /**
+   * Counterparty v0.1 compatibility alias. New object types must use
+   * qualifiers instead of introducing another object-specific key.
+   */
   relationshipRoles?: string[];
 }
 
@@ -51,6 +60,21 @@ export function assertObjectExtensionDefinitionV010(
   }
   const roles = value.applicability?.relationshipRoles
     ?.map(item => required(item, "OBJECT_EXTENSION_ROLE_INVALID").toUpperCase());
+  const qualifierEntries = Object.entries(
+    value.applicability?.qualifiers ?? {}
+  )
+    .map(([dimension, values]) => [
+      required(dimension, "OBJECT_EXTENSION_QUALIFIER_DIMENSION_INVALID")
+        .toLocaleLowerCase(),
+      [...new Set(values.map(item =>
+        required(item, "OBJECT_EXTENSION_QUALIFIER_VALUE_INVALID")
+          .toLocaleUpperCase()
+      ))].sort()
+    ] as const)
+    .sort(([a], [b]) => a.localeCompare(b));
+  const qualifiers = qualifierEntries.length > 0
+    ? Object.fromEntries(qualifierEntries)
+    : undefined;
   const enumOptions = value.enumOptions?.map(option => ({
     value: required(option.value, "OBJECT_EXTENSION_ENUM_VALUE_REQUIRED"),
     label: {
@@ -117,8 +141,15 @@ export function assertObjectExtensionDefinitionV010(
       : {}),
     required: Boolean(value.required),
     order: Number.isFinite(value.order) ? value.order : 1000,
-    ...(roles && roles.length > 0
-      ? { applicability: { relationshipRoles: [...new Set(roles)].sort() } }
+    ...((roles && roles.length > 0) || qualifiers
+      ? {
+          applicability: {
+            ...(qualifiers ? { qualifiers } : {}),
+            ...(roles && roles.length > 0
+              ? { relationshipRoles: [...new Set(roles)].sort() }
+              : {})
+          }
+        }
       : {}),
     ...(value.control ? { control: value.control } : {}),
     ...(enumOptions ? { enumOptions } : {}),
