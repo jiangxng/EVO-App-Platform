@@ -10,7 +10,8 @@ import type {
 } from "../../contracts/foundation-object/import.js";
 import {
   fieldsForSurfaceV010,
-  type EffectiveFoundationObjectFieldV010
+  type EffectiveFoundationObjectFieldV010,
+  type EffectiveObjectSchemaV010
 } from "../../contracts/foundation-object/schema.js";
 import type {
   ObjectExtensionRepositoryV010
@@ -30,6 +31,12 @@ import type {
   CounterpartyRelationshipRoleCodeV010,
   CounterpartyRoleRepositoryV010
 } from "./roles.js";
+import type {
+  CounterpartyAddressRepositoryV010,
+  CounterpartyContactRepositoryV010,
+  CounterpartyProfileRepositoryV010,
+  CounterpartyProfileValueV010
+} from "./facets.js";
 
 export const COUNTERPARTY_IMPORT_TARGET_V010 =
   "counterparty.subject" as const;
@@ -141,6 +148,9 @@ export function createCounterpartyImportTargetV010(input: {
   resources: EnterpriseResourceRepositoryV010;
   repository: CounterpartyRepositoryV010;
   roleRepository: CounterpartyRoleRepositoryV010;
+  contactRepository?: CounterpartyContactRepositoryV010;
+  addressRepository?: CounterpartyAddressRepositoryV010;
+  profileRepository?: CounterpartyProfileRepositoryV010;
   extensionRepository: ObjectExtensionRepositoryV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
 }): FoundationObjectImportTargetV010 {
