@@ -92,7 +92,7 @@ test("standard login remains the default and only exposes a subtle demo-skin swi
   assert.match(html, /data-login-skin="standard"/);
   assert.match(html, /以客户为中心，以奋斗者为本。/);
   assert.doesNotMatch(html, /\/login-assets\/tuge-logo-final\.png/);
-  assert.doesNotMatch(html, /\/login-assets\/tuge-login-background-final\.jpg/);
+  assert.doesNotMatch(html, /\/login-assets\/tuge-login-background-final\.png/);
   assert.match(html, /class="evo-login-skin-toggle"/);
   assert.match(html, /skin=demo/);
 });
@@ -114,7 +114,7 @@ test("demo login keeps the approved headline while changing only enterprise cove
   assert.match(html, /200\+/);
   assert.match(html, /1000\+/);
   assert.match(html, /\/login-assets\/tuge-logo-final\.png/);
-  assert.match(html, /\/login-assets\/tuge-login-background-final\.jpg/);
+  assert.match(html, /\/login-assets\/tuge-login-background-final\.png/);
   assert.match(html, /alt="途鸽科技"/);
   assert.match(html, /全球连接 · 云端智能 · 让世界更近/);
   assert.match(html, /evo-login-demo-topbar/);
@@ -193,8 +193,8 @@ test("final TUGE demo uses the user-supplied local logo and background assets", 
     methods: defaultLoginMethodsV010({ googleAvailable: true, locale: "zh-CN" })
   });
 
-  assert.match(html, /\/login-assets\/tuge-logo-final\.png/);
-  assert.match(html, /\/login-assets\/tuge-login-background-final\.jpg/);
+  assert.match(html, /\/login-assets\/tuge-logo-final\.png\?rev=rev/);
+  assert.match(html, /\/login-assets\/tuge-login-background-final\.png\?rev=rev/);
   assert.doesNotMatch(html, /tuge-logo-reference\.webp/);
   assert.doesNotMatch(html, /tuge-global-connectivity-demo\.webp/);
   assert.match(html, /filter:none;transform:none/);

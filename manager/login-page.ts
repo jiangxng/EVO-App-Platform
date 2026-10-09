@@ -269,8 +269,9 @@ export function createLoginExperienceHtmlV010(
     + "&skin=demo";
   const skinLabel = skin === "demo" ? text.standardMode : text.demoMode;
   const skinAria = skin === "demo" ? text.switchToStandard : text.switchToDemo;
+  const loginAssetRevision = encodeURIComponent(options.assetRevision);
   const brandMark = skin === "demo"
-    ? `<img class="evo-login-customer-logo" src="/login-assets/tuge-logo-final.png" alt="途鸽科技">`
+    ? `<img class="evo-login-customer-logo" src="/login-assets/tuge-logo-final.png?rev=${loginAssetRevision}" alt="途鸽科技">`
     : `<span class="evo-login-mark" aria-hidden="true">E</span><span>EVO</span>`;
   const heroBody = skin === "demo" ? text.demoHeroBody : text.heroBody;
   const coverFooter = skin === "demo" ? text.demoFooter : text.coverFooter;
@@ -287,7 +288,7 @@ export function createLoginExperienceHtmlV010(
       </div>`;
   const demoScene = skin === "demo"
     ? `<div class="evo-login-demo-scene" aria-hidden="true">
-        <img class="evo-login-demo-art" src="/login-assets/tuge-login-background-final.png" alt="">
+        <img class="evo-login-demo-art" src="/login-assets/tuge-login-background-final.png?rev=${loginAssetRevision}" alt="">
         <div class="evo-login-demo-art-wash"></div>
         <div class="evo-login-demo-tags">
           <span class="tag-a">${text.demoTagOne}</span>
