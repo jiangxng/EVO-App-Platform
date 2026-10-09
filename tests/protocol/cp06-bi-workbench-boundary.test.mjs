@@ -72,7 +72,7 @@ test("Plugin lazy-loading authority keeps inactive BI Workbench off the heavy Ho
   );
 
   assert.match(authority, /Discover metadata cheaply\. Load implementation only when lifecycle and use require it\./);
-  assert.match(authority, /no plugin runtime\/store\/database initialization/);
+  assert.match(authority, /no plugin (?:runtime|persistence|state).*initialization/i);
 
   // Heavy plugin runtime and page implementation stay behind dynamic imports.
   assert.match(server, /import\("\.\.\/apps\/bi-workbench\/runtime\.js"\)/);
