@@ -516,6 +516,19 @@ export function createCounterpartyImportTargetV010(input: {
         }
       }
 
+      try {
+        issues.push(
+          ...semanticDestinationValidationIssuesV010(
+            semanticDestinationsV010(schema, normalizedValues)
+          )
+        );
+      } catch (error) {
+        const code = error instanceof Error
+          ? error.message
+          : "COUNTERPARTY_IMPORT_DESTINATION_INVALID";
+        issues.push({ code, message: code });
+      }
+
       const code = textValue(normalizedValues, "code");
       const displayName = textValue(normalizedValues, "displayName");
       const subjectType = textValue(normalizedValues, "subjectType");
@@ -658,6 +671,17 @@ export function createCounterpartyImportTargetV010(input: {
           recordedAt: commitInput.recordedAt
         });
       }
+
+      persistSemanticResources({
+        contextId: commitInput.contextId,
+        importJobId: commitInput.importJobId,
+        rowNumber: commitInput.prepared.rowNumber,
+        counterpartyId,
+        schema: commitInput.schema,
+        values: commitInput.prepared.values,
+        actorSubjectId: commitInput.actorSubjectId,
+        recordedAt: commitInput.recordedAt
+      });
 
       const definitionCacheKey =
         commitInput.contextId + "|" + commitInput.importJobId;
@@ -848,6 +872,20 @@ export function createCounterpartyImportTargetV010(input: {
           input.roleRepository.assignMany({
             contextId: batchInput.contextId,
             assignments,
+            actorSubjectId: batchInput.actorSubjectId,
+            recordedAt: batchInput.recordedAt
+          });
+        }
+        for (let index = 0; index < batchInput.preparedRows.length; index += 1) {
+          const prepared = batchInput.preparedRows[index];
+          const subject = subjects[index];
+          persistSemanticResources({
+            contextId: batchInput.contextId,
+            importJobId: batchInput.importJobId,
+            rowNumber: prepared.rowNumber,
+            counterpartyId: subject.counterpartyId,
+            schema: batchInput.schema,
+            values: prepared.values,
             actorSubjectId: batchInput.actorSubjectId,
             recordedAt: batchInput.recordedAt
           });
