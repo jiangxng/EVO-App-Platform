@@ -347,6 +347,7 @@ body{font-family:var(--eidos-font-family);color:var(--eidos-fg);background:var(-
 a{color:inherit}
 .evo-login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(420px,.92fr)}
 .evo-login-brand{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(32px,5vw,72px);color:#fff}
+.evo-login-shell:not([data-login-skin="demo"]) .evo-login-brand{background:linear-gradient(145deg,#18344f 0%,#214d75 52%,#2b6cb0 100%)}
 .evo-login-brand:after{content:"";position:absolute;width:520px;height:520px;right:-180px;bottom:-220px;border:1px solid rgba(255,255,255,.18);border-radius:50%;box-shadow:0 0 0 72px rgba(255,255,255,.035),0 0 0 144px rgba(255,255,255,.025)}
 .evo-login-wordmark{position:relative;z-index:1;display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:720;letter-spacing:.01em}
 .evo-login-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(255,255,255,.34);border-radius:10px;background:rgba(255,255,255,.11);font-size:16px;font-weight:750}
