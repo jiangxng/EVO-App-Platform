@@ -8,16 +8,20 @@ import type {
   ItemSubjectV010
 } from "./repository.js";
 
-export const ITEM_DIRECTORY_PROJECTION_V010 =
-  "item.directory" as const;
-export const ITEM_MY_ITEMS_PROJECTION_V010 =
-  "item.my-stewardship" as const;
+import {
+  ITEM_DIRECTORY_PROJECTION_V010,
+  ITEM_MY_ITEMS_PROJECTION_V010,
+  type ItemProjectionIdV010
+} from "./constants.js";
+
+export {
+  ITEM_DIRECTORY_PROJECTION_V010,
+  ITEM_MY_ITEMS_PROJECTION_V010,
+  type ItemProjectionIdV010
+} from "./constants.js";
+
 export const ITEM_STEWARD_RESPONSIBILITY_V010 =
   "ITEM_STEWARD" as const;
-
-export type ItemProjectionIdV010 =
-  | typeof ITEM_DIRECTORY_PROJECTION_V010
-  | typeof ITEM_MY_ITEMS_PROJECTION_V010;
 
 export function itemAuthorizedDataScopeV010(input: {
   items: readonly ItemSubjectV010[];
