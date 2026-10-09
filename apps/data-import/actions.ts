@@ -353,7 +353,8 @@ function jobResult(job: unknown): JsonValue {
 export function createDataImportActionHandlersV010(input: {
   service: DataImportServiceV010;
   repository: DataImportRepositoryV010;
-  targets: readonly FoundationObjectImportTargetV010[];
+  targets?: readonly FoundationObjectImportTargetV010[];
+  resolveTargets?: () => readonly FoundationObjectImportTargetV010[];
   canManageEnterpriseContext(
     principal: PlatformPrincipalV010,
     contextId: string
@@ -367,8 +368,11 @@ export function createDataImportActionHandlersV010(input: {
   const experienceRecommendationMinimumConfidence =
     input.experienceRecommendationMinimumConfidence ?? 0.85;
 
-  const targetMap = new Map(
-    input.targets.map(target => [target.targetId, target] as const)
+  const currentTargets = () =>
+    input.resolveTargets?.() ?? input.targets ?? [];
+
+  const currentTargetMap = () => new Map(
+    currentTargets().map(target => [target.targetId, target] as const)
   );
 
   const stageFile: AppActionHandler = {
@@ -388,7 +392,7 @@ export function createDataImportActionHandlersV010(input: {
           request.values.targetId,
           "DATA_IMPORT_TARGET_ID_REQUIRED"
         );
-        const target = targetMap.get(targetId);
+        const target = currentTargetMap().get(targetId);
         if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
         const source = sourceFromUploadedFile(request.values.file);
         const parameters = targetParametersFromForm(target, request.values);
