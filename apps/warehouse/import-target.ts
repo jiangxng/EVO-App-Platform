@@ -292,9 +292,6 @@ export function createWarehouseLocationImportTargetV010(input: {
     },
 
     validateRow(validateInput): FoundationObjectImportValidationV010 {
-      const fieldMap = new Map(
-        validateInput.schema.fields.map(field => [field.fieldId, field])
-      );
       const values: Record<string, FoundationObjectImportCellV010> = {};
       const issues: FoundationObjectImportValidationV010["issues"] = [];
 
