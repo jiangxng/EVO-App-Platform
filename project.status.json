@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "af02-closed-cp05-active-2026-10-08",
-    "snapshotAt": "2026-10-08T17:53:00+08:00",
+    "snapshotId": "cp05-technical-pass-human-gate-2026-10-09",
+    "snapshotAt": "2026-10-09T09:48:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1812,7 +1812,7 @@
     ],
     "current": {
       "milestone": "CP-05 Facets / Profiles / related resources",
-      "milestoneStatus": "ACTIVE",
+      "milestoneStatus": "AWAITING_HUMAN_VALIDATION",
       "lastClosedLiveSlice": {
         "id": "af02-long-context-v0-1",
         "status": "CLOSED_PRODUCTION_PASS",
@@ -1843,20 +1843,34 @@
       },
       "openGate": {
         "id": "cp05-counterparty-facets-profiles-related-resources",
-        "status": "ACTIVE_IMPLEMENTATION",
-        "summary": "CP-05 is the active Foundation Object gate. Add business-proven Counterparty facets/profiles and related resources—starting with repeatable Contact and Address plus CustomerProfile/SupplierProfile—without flattening repeatable resources into the Counterparty identity or moving domain semantics into Enterprise Context Core.",
+        "status": "AWAITING_HUMAN_VALIDATION",
+        "summary": "CP-05 technical acceptance is implemented, CI-passed and deployed. Repeatable Contact/Address, role-scoped Customer/Supplier Profiles, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct resources, and progressive Eidos object-page composition are all live. The remaining gate is Human visual/product confirmation of the Counterparty detail composition; do not start CP-06 until this gate is accepted.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields.",
-          "CustomerProfile data exists only where CUSTOMER role semantics apply; SupplierProfile data exists only where SUPPLIER role semantics apply.",
-          "Enterprise Object Extension definitions can target declared Profile slots without replacing stable domain semantics.",
-          "Effective object schema and Data Import can address supported facet/profile fields through explicit semantic destinations.",
-          "Eidos Counterparty object pages compose identity, roles, profiles, contacts and addresses progressively without creating a second app shell.",
-          "Representative imported Counterparty business data can be traced to its persisted core/profile/contact/address/extension destination.",
-          "Removing one relationship role does not delete unrelated identity or child-resource history."
+          "Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields. PASS via PR #488.",
+          "CustomerProfile data is effective only where CUSTOMER role semantics apply; SupplierProfile data is effective only where SUPPLIER role semantics apply. PASS via role-aware schema/import/page tests in PR #491/#492.",
+          "Enterprise Object Extension definitions can target declared Customer/Supplier Profile slots without replacing stable domain semantics. PASS; existing Object Extension contract remains compatible.",
+          "EffectiveObjectSchema and Data Import address supported profile/contact/address fields through explicit semantic destinations. PASS via PR #491 end-to-end stage/dry-run/commit/readback proof.",
+          "Eidos Counterparty object page composes identity/roles, role profiles, repeatable Contacts and Addresses progressively without a second shell. PASS technically via PR #492; Human visual confirmation remains open.",
+          "Representative imported Counterparty data is traceable to core/profile/contact/address/extension destinations. PASS in protocol tests; no production business data was mutated solely for proof.",
+          "Removing a relationship role does not delete Counterparty identity or unrelated Contact/Address history; inactive role-specific profile data is not surfaced without the role. PASS by resource/page invariants."
         ],
-        "implementationEvidence": {},
-        "blocker": null
+        "implementationEvidence": {
+          "resourceBoundaryPr": 488,
+          "resourceBoundaryCommit": "082b9fb9d1bfea47d568082e746bfa5227e054e0",
+          "semanticImportPr": 491,
+          "semanticImportCommit": "7d951f713df4d9dbe7be2a468e017e67556582d1",
+          "semanticImportDeploymentId": "d88513a1-fb4a-45fb-a95e-9be04d59d2ae",
+          "semanticImportDeploymentStatus": "SUCCESS",
+          "eidosCompositionPr": 492,
+          "eidosCompositionCommit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
+          "eidosCompositionDeploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
+          "eidosCompositionDeploymentStatus": "SUCCESS",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "humanValidation": "PENDING"
+        },
+        "blocker": "Human visual/product confirmation of the deployed Counterparty detail facet composition."
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1864,25 +1878,39 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "8bff1a626b1efbf3212577ed762c29d5b79a57b6",
-        "deploymentId": "58b916f8-8b92-4236-9ac0-f08b6fbf37ec",
+        "commit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
+        "deploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
-        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
-        "status": "ACTIVE_AF01",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "status": "CP05_AWAITING_HUMAN_VALIDATION",
         "sequence": [
-          "AF-01 Conversation PostgreSQL Authority",
-          "AF-02 Long-context v0.1",
-          "CP-05 Facets / Profiles / related resources",
+          "CP-05 Human visual/product validation",
           "CP-06 Workbench + Agent composition",
-          "CP-07 Counterparty maturity gate"
+          "CP-07 Counterparty maturity gate",
+          "IT-01 Item/Product second-object proof"
         ],
-        "rule": "Finish AF-01 and AF-02 as bounded foundation debt gates, then resume Counterparty business-model maturity at CP-05. Do not reopen CP-03 for CP-05/CP-07 domain modeling."
+        "rule": "Do not repeat AF-01/AF-02 or reopen CP-03. Close CP-05 only after Human accepts the deployed Counterparty facet composition; then proceed to CP-06."
       }
     },
     "recentMainline": [
+      {
+        "pr": 492,
+        "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
+        "summary": "CP-05 Eidos detail composition now progressively renders role-scoped Customer/Supplier Profiles plus repeatable Contact/Address resources under the existing Counterparty object page with server-side field filtering."
+      },
+      {
+        "pr": 491,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "CP-05 EffectiveObjectSchema now carries role applicability and explicit semantic destinations; Data Import writes built-in Profile/Contact/Address values to their domain resources instead of flattening them into Counterparty identity."
+      },
+      {
+        "pr": 488,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "CP-05 established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile resource boundaries in Enterprise Context."
+      },
       {
         "pr": 486,
         "status": "MERGED_CI_PRODUCTION_PROOF_PASS",
@@ -4527,7 +4555,7 @@
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
     "currentGate": "CP-05",
-    "currentGateMeaning": "Facets / Profiles / Contact / Address",
+    "currentGateMeaning": "Facets / Profiles / Contact / Address — awaiting Human visual/product validation",
     "nextGate": "CP-06",
     "nextGateMeaning": "Workbench + Agent composition",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
@@ -4781,7 +4809,7 @@
       "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
     },
     "cp05": {
-      "status": "ACTIVE",
+      "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
       "scope": [
         "Contact",
         "Address",
@@ -4795,7 +4823,15 @@
         "enterprise extensions can target declared Profile slots",
         "object page composes facets progressively through Eidos"
       ],
-      "entryCondition": "SATISFIED: CP-03D CLOSED_HUMAN_PASS + AF-01 CLOSED_PRODUCTION_PASS + AF-02 CLOSED_PRODUCTION_PASS"
+      "entryCondition": "SATISFIED: CP-03D CLOSED_HUMAN_PASS + AF-01 CLOSED_PRODUCTION_PASS + AF-02 CLOSED_PRODUCTION_PASS",
+      "implementationEvidence": {
+        "resourceBoundaryPr": 488,
+        "semanticImportPr": 491,
+        "eidosCompositionPr": 492,
+        "productionDeploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
+        "productionDeploymentStatus": "SUCCESS",
+        "humanValidation": "PENDING"
+      }
     },
     "interposedExecutionRoute": {
       "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
