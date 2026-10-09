@@ -3,15 +3,15 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `af02-closed-cp05-active-2026-10-08`  
-**Snapshot time:** `2026-10-08T17:53:00+08:00`  
+**Snapshot:** `cp05-technical-pass-human-gate-2026-10-09`  
+**Snapshot time:** `2026-10-09T09:48:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
 CP-05 Facets / Profiles / related resources
-ACTIVE
+AWAITING_HUMAN_VALIDATION
 ```
 
 ## Latest closed live slice
@@ -51,19 +51,19 @@ Evidence:
 
 ## Current open live gate
 
-**cp05-counterparty-facets-profiles-related-resources: ACTIVE_IMPLEMENTATION**
+**cp05-counterparty-facets-profiles-related-resources: AWAITING_HUMAN_VALIDATION**
 
-CP-05 is the active Foundation Object gate. Add business-proven Counterparty facets/profiles and related resources—starting with repeatable Contact and Address plus CustomerProfile/SupplierProfile—without flattening repeatable resources into the Counterparty identity or moving domain semantics into Enterprise Context Core.
+CP-05 technical acceptance is implemented, CI-passed and deployed. Repeatable Contact/Address, role-scoped Customer/Supplier Profiles, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct resources, and progressive Eidos object-page composition are all live. The remaining gate is Human visual/product confirmation of the Counterparty detail composition; do not start CP-06 until this gate is accepted.
 
 Acceptance:
 
-- Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields.
-- CustomerProfile data exists only where CUSTOMER role semantics apply; SupplierProfile data exists only where SUPPLIER role semantics apply.
-- Enterprise Object Extension definitions can target declared Profile slots without replacing stable domain semantics.
-- Effective object schema and Data Import can address supported facet/profile fields through explicit semantic destinations.
-- Eidos Counterparty object pages compose identity, roles, profiles, contacts and addresses progressively without creating a second app shell.
-- Representative imported Counterparty business data can be traced to its persisted core/profile/contact/address/extension destination.
-- Removing one relationship role does not delete unrelated identity or child-resource history.
+- Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields. PASS via PR #488.
+- CustomerProfile data is effective only where CUSTOMER role semantics apply; SupplierProfile data is effective only where SUPPLIER role semantics apply. PASS via role-aware schema/import/page tests in PR #491/#492.
+- Enterprise Object Extension definitions can target declared Customer/Supplier Profile slots without replacing stable domain semantics. PASS; existing Object Extension contract remains compatible.
+- EffectiveObjectSchema and Data Import address supported profile/contact/address fields through explicit semantic destinations. PASS via PR #491 end-to-end stage/dry-run/commit/readback proof.
+- Eidos Counterparty object page composes identity/roles, role profiles, repeatable Contacts and Addresses progressively without a second shell. PASS technically via PR #492; Human visual confirmation remains open.
+- Representative imported Counterparty data is traceable to core/profile/contact/address/extension destinations. PASS in protocol tests; no production business data was mutated solely for proof.
+- Removing a relationship role does not delete Counterparty identity or unrelated Contact/Address history; inactive role-specific profile data is not surfaced without the role. PASS by resource/page invariants.
 
 ## Current production preview
 
@@ -72,8 +72,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `8bff1a626b1efbf3212577ed762c29d5b79a57b6`
-- Deployment: `58b916f8-8b92-4236-9ac0-f08b6fbf37ec`
+- Commit: `fb757f753820cfbe99c7db226e6a8ee8d1c4c712`
+- Deployment: `cf40433d-a8a3-480b-ba24-bdddc33e026c`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -104,6 +104,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #492 — MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN: CP-05 Eidos detail composition now progressively renders role-scoped Customer/Supplier Profiles plus repeatable Contact/Address resources under the existing Counterparty object page with server-side field filtering.
+- PR #491 — MERGED_CI_PRODUCTION_PASS: CP-05 EffectiveObjectSchema now carries role applicability and explicit semantic destinations; Data Import writes built-in Profile/Contact/Address values to their domain resources instead of flattening them into Counterparty identity.
+- PR #488 — MERGED_CI_PRODUCTION_PASS: CP-05 established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile resource boundaries in Enterprise Context.
 - PR #486 — MERGED_CI_PRODUCTION_PROOF_PASS: AF-02 production proof passed after policy-scoped summary version migration; bounded context, policy regeneration, fallback, raw-source retention and short direct path are proven.
 - PR #485 — MERGED_CI_PRODUCTION_GATE_FIX: AF-02 hard context budget includes the rendered checkpoint envelope; production proof verified exact 6000/6000 cap.
 - PR #484 — MERGED_PRODUCTION_PROOF: Added isolated PostgreSQL AF-02 long-context production proof.
