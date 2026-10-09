@@ -287,7 +287,7 @@ export function createLoginExperienceHtmlV010(
       </div>`;
   const demoScene = skin === "demo"
     ? `<div class="evo-login-demo-scene" aria-hidden="true">
-        <img class="evo-login-demo-art" src="/login-assets/tuge-login-background-final.jpg" alt="">
+        <img class="evo-login-demo-art" src="/login-assets/tuge-login-background-final.png" alt="">
         <div class="evo-login-demo-art-wash"></div>
         <div class="evo-login-demo-tags">
           <span class="tag-a">${text.demoTagOne}</span>
