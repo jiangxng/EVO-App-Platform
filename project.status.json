@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "WH-01 Warehouse/Location third-object proof",
+  "currentMilestone": "TR-01 Trading Reference Loop",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "wh01c-closed-wh01d-active-2026-10-09",
-    "snapshotAt": "2026-10-09T22:59:00+08:00",
+    "snapshotId": "wh01-closed-tr01a-active-2026-10-10",
+    "snapshotAt": "2026-10-10T07:28:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1814,36 +1814,39 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "WH-01 Warehouse/Location third-object proof",
+      "milestone": "TR-01 Trading Reference Loop",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "wh01c-warehouse-projection-responsibility-eidos",
+        "id": "wh01d-real-warehouse-location-rvc",
         "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "WH-01C completed the governed Warehouse/Location read-product slice. WAREHOUSE_STEWARD Responsibility remains separate from authorization, Warehouse Projection is derived/non-authoritative, Human Eidos and Personal Agent/Automation share WarehouseProjectionService, lifecycle-aware Warehouse runtime/import stays lazy, and all Warehouse read surfaces remain free of Inventory Position quantities.",
+        "summary": "WH-01 closed after real Overture warehouse/facility RVC proved the Warehouse=where boundary against 5,000 external warehouse building features. External building identifiers/names/geometry remain provenance-bearing facility evidence rather than enterprise Warehouse identity or operational Zone/Location/Bin authority; no Inventory Position quantity leaked into Warehouse. Shared STABLE_CANDIDATE Foundation Object contracts required no third-object compatibility change.",
         "authority": "docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md",
         "evidence": {
-          "implementationPr": 544,
-          "mergeCommit": "f47890b5823ad7389625563d5a6f0c62eb220fdb",
-          "combinedCI": "34/34 PASS",
+          "implementationPr": 546,
+          "mergeCommit": "0397a31f341a101756af5572f36d52390703c1a7",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "crossProjectCI": "PASS",
-          "railwayDeploymentId": "60a02755-b544-48cf-907c-95e3feddd56f",
-          "railwayDeploymentStatus": "SUCCESS"
+          "realWorldRvcWorkflow": "PASS",
+          "sampleRows": 5000,
+          "distinctExternalIds": 5000,
+          "missingName": 4903,
+          "productionDeploymentId": "235335b8-44e3-4da4-9682-6cb75c70bcb6",
+          "productionDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "wh01d-real-warehouse-location-rvc",
+        "id": "tr01a-purchase-reference-loop",
         "status": "ACTIVE",
-        "summary": "WH-01D is the active third-object closure slice: pressure Warehouse/Location assumptions with real external place/facility evidence, preserve Warehouse=where / Inventory Position=what+how much, and produce the WH-01 exit recommendation before TR-01.",
-        "authority": "docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md",
+        "summary": "TR-01A is the active real-business proof: compose Supplier Counterparty + Item + Warehouse/Location into Purchase Order → Receipt → Inventory Position → Payable using existing BusinessData/Ledger/public contracts. Do not add more Foundation Objects as the mainline.",
+        "authority": "docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md",
         "acceptance": [
-          "use real external warehouse/facility/location evidence with auditable provenance",
-          "pressure Warehouse identity/code/name/address/external identifier assumptions without making source identifiers enterprise authority",
-          "pressure Zone/Location/Bin depth/naming/path assumptions and explicitly bound external evidence that cannot map to internal WMS hierarchy",
-          "confirm Warehouse remains where and still carries no Inventory Position quantities",
-          "retain shared STABLE_CANDIDATE Foundation Object contracts unless concrete third-object incompatibility evidence requires change",
-          "produce an explicit WH-01 exit recommendation before TR-01"
+          "Reference existing Supplier-role Counterparty, Item and Warehouse/Location authorities without copying them into transaction-owned master data.",
+          "Represent Receipt as an immutable new business occurrence rather than mutating Purchase Order history.",
+          "Drive Inventory Position from inventory movement/ledger facts, not Warehouse fields.",
+          "Drive Payable/open-item state through posting facts/rules rather than embedding financial balance authority in Purchase Order.",
+          "Keep BusinessData snapshots/revisions deterministic, replayable and compatible with EVO runtime binding.",
+          "Expose Work/Projection/Workbench as derived operational views over authoritative facts.",
+          "Prove the purchase loop before implementing the inverse sales loop."
         ]
       },
       "productionPreview": {
@@ -1852,23 +1855,28 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "f47890b5823ad7389625563d5a6f0c62eb220fdb",
-        "deploymentId": "60a02755-b544-48cf-907c-95e3feddd56f",
+        "commit": "0397a31f341a101756af5572f36d52390703c1a7",
+        "deploymentId": "235335b8-44e3-4da4-9682-6cb75c70bcb6",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
-        "authority": "docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md",
-        "status": "WH01D_ACTIVE",
+        "authority": "docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md",
+        "status": "TR01A_ACTIVE",
         "sequence": [
-          "WH-01D real Warehouse/Location RVC",
-          "Close WH-01 if structural evidence remains compatible",
-          "TR-01 Trading Reference Loop"
+          "TR-01A Purchase Order → Receipt → Inventory Position → Payable",
+          "TR-01B Sales Order → Shipment → Inventory Position → Receivable → Receipt/Settlement",
+          "TR-01 contract maturity / Foundation Object Program exit review"
         ],
-        "rule": "Do not reopen WH-01A through WH-01C without concrete incompatibility evidence. WH-01D must use external evidence and must not infer inventory quantities from place/facility datasets."
+        "rule": "Stop object-first expansion. Reuse Counterparty, Item and Warehouse/Location public contracts. Trading facts are append-only/replayable, projections and worklists are derived, and Warehouse never owns inventory quantity."
       }
     },
     "recentMainline": [
+      {
+        "pr": 546,
+        "status": "MERGED_CI_RVC_PRODUCTION_PASS",
+        "summary": "WH-01D completed real Overture warehouse/facility RVC over 5,000 external warehouse building features; Platform/Continuity/RVC CI passed and Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 is SUCCESS."
+      },
       {
         "pr": 544,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -3088,12 +3096,17 @@
       "Do not put inventory quantity/on-hand/availability into Warehouse master data during WH-01; Warehouse is where, Inventory Position is what Item is there and how much.",
       "Do not casually redesign STABLE_CANDIDATE Foundation Object contracts in WH-01; require concrete third-object incompatibility evidence.",
       "Do not reopen WH-01A or introduce a generic hierarchy framework from Warehouse alone; warehouse.location hierarchy remains domain-owned until a second structurally hierarchical consumer proves a shared abstraction.",
-      "Do not put on-hand, available, reserved or ledger quantities into Warehouse or Warehouse Location master data; Inventory Position owns what Item is there and how much."
+      "Do not put on-hand, available, reserved or ledger quantities into Warehouse or Warehouse Location master data; Inventory Position owns what Item is there and how much.",
+      "Do not reopen WH-01 or infer Inventory Position quantities from Warehouse/facility data; WH-01 closed with real Overture RVC and Warehouse remains where only.",
+      "Do not continue adding Foundation Objects as the mainline during TR-01; pressure existing Counterparty, Item and Warehouse/Location through real business operations.",
+      "Do not mutate historical Purchase Order/Receipt/Shipment facts to represent later state; state changes are new business/ledger facts and projections are derived."
     ],
     "freshSessionAcceptance": [
+      "state WH-01 Warehouse/Location third-object proof as CLOSED_PRODUCTION_PASS after PR #546 / main commit 0397a31f341a101756af5572f36d52390703c1a7 / Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 SUCCESS and 5,000-row Overture real facility RVC PASS",
+      "state TR-01A Purchase Order → Receipt → Inventory Position → Payable as the current active Foundation Object Program slice",
+      "state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE through TR-01; promote to STABLE only after real trading loop evidence",
+      "state current production Ledger Configurator as App Platform PR #546 merge commit 0397a31f341a101756af5572f36d52390703c1a7 / Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 SUCCESS",
       "state WH-01C Warehouse Responsibility / Projection / Eidos composition as MERGED_CI_PRODUCTION_PASS via PR #544 / main commit f47890b5823ad7389625563d5a6f0c62eb220fdb / Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f SUCCESS after 34/34 combined CI",
-      "state WH-01D real Warehouse/Location RVC as the current active slice",
-      "state current production Ledger Configurator as App Platform PR #544 merge commit f47890b5823ad7389625563d5a6f0c62eb220fdb / Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f SUCCESS",
       "state WH-01B hierarchical Warehouse Location Data Import as MERGED_CI_PRODUCTION_PASS via PR #542 / main commit 9f3e65e84d521f2e6ea23aba31dc64525c3aa224 / Railway deployment c2011371-4309-4982-9062-90cb98a166a9 SUCCESS",
       "state WH-01A Warehouse identity + Location hierarchy as MERGED_CI_PRODUCTION_PASS via PR #540 / main commit 4f9490b24792836db5d070bd8b2b2767809f3bda / Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 SUCCESS",
       "state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS",
@@ -3209,7 +3222,6 @@
       "state immediate Grant-revocation cutoff as live-proven: a fresh Grok /mcp request returned 401 while the connector remained configured",
       "state the Grok first-consent browser-return stall as a known Web+Mobile client UX interoperability issue, not an unresolved authorization gate",
       "state External Agent WRITE, additional non-Ledger external projections and ChatGPT product-specific entitlement/UX as future expansion rather than foundation blockers",
-      "state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS",
       "state EOG 2D/3D Responsibility Convergence v0.1 as the active milestone",
       "state Enterprise Context as the authoritative Enterprise Graph Definition lifecycle/persistence owner",
       "state Eidos 2D Core and 3D Core as reusable business-semantic-free frontend framework capabilities",
@@ -4664,11 +4676,11 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "WH-01",
-    "currentGateMeaning": "Warehouse/Location third-object structural proof; reuse the Item-corrected object-neutral contracts and change shared STABLE_CANDIDATE contracts only on concrete incompatibility evidence",
-    "nextGate": "TR-01",
-    "nextGateMeaning": "Trading Reference Loop after Counterparty + Item + Warehouse/Location proofs",
-    "contractMaturityRule": "Counterparty + materially different Item evidence has promoted selected object-neutral Foundation Object contracts to STABLE_CANDIDATE. WH-01 must reuse them by default and may reopen a shared contract only with concrete third-object incompatibility evidence.",
+    "currentGate": "TR-01",
+    "currentGateMeaning": "Trading Reference Loop / real-business proof across Counterparty, Item, Warehouse, BusinessData, Ledger and Work/Workbench boundaries",
+    "nextGate": "PROGRAM-EXIT",
+    "nextGateMeaning": "Foundation Object Program exit decision after real purchase/sales trading loops and contract maturity review",
+    "contractMaturityRule": "Counterparty + Item + Warehouse have passed identity/schema/import/projection/responsibility and real-data compatibility evidence. Selected object-neutral Foundation Object contracts remain STABLE_CANDIDATE through TR-01; promote to STABLE only after real trading operations do not expose incompatible cross-object or BusinessData/Ledger boundary requirements.",
     "sequence": [
       "FO-00",
       "CP-02",
@@ -5352,7 +5364,7 @@
       }
     },
     "wh01": {
-      "status": "ACTIVE",
+      "status": "CLOSED_PRODUCTION_PASS",
       "purpose": "Prove the corrected Foundation Object architecture against structural place/location semantics and hierarchy before entering real trading operations.",
       "entryCondition": "SATISFIED: IT-01 CLOSED_PRODUCTION_PASS",
       "acceptance": [
@@ -5367,7 +5379,7 @@
       ],
       "nextGate": "TR-01 Trading Reference Loop",
       "contractChangePolicy": "EVIDENCE_REQUIRED_TO_REOPEN_STABLE_CANDIDATE",
-      "currentSlice": "WH-01D real Warehouse/Location RVC",
+      "currentSlice": "CLOSED: WH-01D real Warehouse/Location RVC",
       "wh01a": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 540,
@@ -5426,18 +5438,71 @@
         ]
       },
       "wh01d": {
-        "status": "ACTIVE",
-        "purpose": "Pressure Warehouse identity and structural location hierarchy with real external place/facility evidence, then decide whether WH-01 is structurally complete enough to enter TR-01.",
-        "acceptance": [
-          "use real external warehouse/facility/location evidence with auditable provenance",
-          "pressure Warehouse identity/code/name/address/external identifier assumptions without making source identifiers enterprise authority",
-          "pressure Zone/Location/Bin depth/naming/path assumptions and explicitly bound external evidence that cannot map to internal WMS hierarchy",
-          "confirm Warehouse remains where and still carries no Inventory Position quantities",
-          "retain shared STABLE_CANDIDATE Foundation Object contracts unless concrete third-object incompatibility evidence requires change",
-          "produce an explicit WH-01 exit recommendation before TR-01"
-        ],
-        "nextGate": "TR-01 Trading Reference Loop"
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 546,
+        "mergeCommit": "0397a31f341a101756af5572f36d52390703c1a7",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "realWorldRvcWorkflow": "PASS",
+        "railwayDeploymentId": "235335b8-44e3-4da4-9682-6cb75c70bcb6",
+        "railwayDeploymentStatus": "SUCCESS",
+        "source": "Overture Maps Buildings 2026-09-23.1 / class=warehouse",
+        "sampleRows": 5000,
+        "distinctExternalIds": 5000,
+        "duplicateExternalIds": 0,
+        "missingName": 4903,
+        "heightPresent": 4997,
+        "floorCountPresent": 60,
+        "rowsPerSecond": 146771,
+        "sourceDigest": "sha256:da80e1818a89aa7cf5d5ca1722bf982891ba7fa002165439ac98f8ef2ccb198a",
+        "proves": [
+          "External building/GERS identifiers are evidence/provenance and are not enterprise warehouseId.",
+          "External facility names are too sparse to be enterprise Warehouse naming authority.",
+          "Physical building/building-part structure is not operational Zone/Location/Bin hierarchy authority.",
+          "Geometry/height/floors remain facility evidence and never become Inventory Position quantities.",
+          "Warehouse remains where; Inventory Position remains what Item is there and how much.",
+          "Shared STABLE_CANDIDATE Foundation Object contracts required no third-object compatibility change."
+        ]
+      },
+      "closedAt": "2026-10-10",
+      "closureEvidence": {
+        "implementationPr": 546,
+        "mergeCommit": "0397a31f341a101756af5572f36d52390703c1a7",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "realWorldRvcWorkflow": "PASS",
+        "productionDeploymentId": "235335b8-44e3-4da4-9682-6cb75c70bcb6",
+        "productionDeploymentStatus": "SUCCESS",
+        "authority": "docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md"
       }
+    },
+    "tr01": {
+      "status": "ACTIVE",
+      "purpose": "Stop object-first expansion and prove Counterparty, Item and Warehouse/Location in real purchase and sales operations while pressuring BusinessData, Ledger, Projection, Work and Personal Workbench boundaries.",
+      "entryCondition": "SATISFIED: WH-01 CLOSED_PRODUCTION_PASS",
+      "currentSlice": "TR-01A purchase-side reference loop",
+      "acceptance": [
+        "Purchase Order references one Supplier-role Counterparty, Item lines and destination Warehouse/Location without duplicating those master-data authorities.",
+        "Receipt is a new immutable business occurrence that reduces open-to-receive work and creates inventory movement facts; it does not mutate Item or Warehouse master data.",
+        "Inventory Position is derived from inventory ledger/facts and remains separate from Warehouse master data.",
+        "Payable/open-item effects are derived through governed posting rules/facts rather than embedded into Purchase Order master/state records.",
+        "BusinessData snapshot/revision semantics remain deterministic and replayable across the loop.",
+        "Projection/Work/Personal Workbench surfaces are derived views over authoritative business/ledger facts and do not become a second transaction authority.",
+        "After purchase-side proof, run the inverse Sales Order → Shipment → Inventory → Receivable → Receipt/Settlement loop.",
+        "Use real cross-object business operations to decide whether selected STABLE_CANDIDATE Foundation Object contracts may become STABLE."
+      ],
+      "slices": {
+        "tr01a": {
+          "status": "ACTIVE",
+          "purpose": "Purchase Order → Receipt → Inventory Position → Payable minimal reference loop",
+          "nextSlice": "TR-01B sales-side reference loop"
+        },
+        "tr01b": {
+          "status": "PLANNED",
+          "purpose": "Sales Order → Shipment → Inventory Position → Receivable → Receipt/Settlement inverse reference loop"
+        }
+      },
+      "nextGate": "PROGRAM-EXIT"
     }
   },
   "architectureConstitutions": {
