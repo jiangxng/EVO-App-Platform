@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-07 Counterparty maturity gate (CP-06 CLOSED_HUMAN_PASS)
+**Current entry gate:** IT-01 Item/Product second-object proof (CP-07 CLOSED_PRODUCTION_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -519,7 +519,7 @@ Acceptance:
 
 **Evidence authority:** `docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md`
 
-**Current state:** EVIDENCE COMPLETE / AWAITING MAINLINE INTEGRATION. CP-06 is CLOSED_HUMAN_PASS. All defined CP-07 maturity evidence has passed; CP-07 remains open only until the reconciled evidence stack is integrated into main and final closure continuity is recorded. Do not start Item/Product from branch-only evidence.
+**Current state:** CLOSED_PRODUCTION_PASS. PR #519 merged the reconciled CP-07 evidence stack to main at `8e0f379184110ac87ce0cd8e125cc2c51b99a2c7`; the combined candidate was 42/42 CI PASS and Railway production deployment `f681b927-2685-4d66-8654-299e0374c347` is SUCCESS. Do not reopen CP-07; IT-01 is now active.
 
 Before calling Counterparty a mature Foundation Object:
 
@@ -539,6 +539,8 @@ Before calling Counterparty a mature Foundation Object:
 This means the Foundation Object mechanism is proven deeply enough to move to a second object, not that every possible Counterparty feature exists.
 
 ## 16. IT-01 — Item/Product second-object proof
+
+**Current state:** ACTIVE. CP-07 is CLOSED_PRODUCTION_PASS. Item/Product is now the materially different second-object anti-overfit proof; shared Foundation Object contracts remain EXPERIMENTAL until this gate provides compatibility evidence.
 
 Purpose: validate shared architecture against a materially different object.
 

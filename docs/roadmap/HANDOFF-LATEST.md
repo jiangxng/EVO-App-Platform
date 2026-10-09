@@ -3,61 +3,57 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp07-evidence-complete-integration-candidate-2026-10-09`  
-**Snapshot time:** `2026-10-09T17:34:00+08:00`  
+**Snapshot:** `cp07-closed-it01-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T18:23:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-07 Counterparty maturity gate
-READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION
+IT-01 Item/Product second-object proof
+ACTIVE
 ```
 
 ## Latest closed live slice
 
-**cp06-personal-workbench-agent-composition: CLOSED_HUMAN_PASS**
+**cp07-counterparty-maturity-gate: CLOSED_PRODUCTION_PASS**
 
-CP-06 is closed with Human product validation. Workspace remains the independent optional evo-bi-workbench application plugin in the BI / Insight Experience Layer; Counterparty, Data Import and Personal Agent contribute governed items through shared contracts; Host retains generic lifecycle, authorization, Contribution discovery and lazy dispatch only. The install/use-driven lazy-resource rule is now platform authority through PR #509.
+CP-07 is closed after the reconciled Counterparty maturity evidence stack merged through PR #519, the complete candidate passed 42/42 combined CI, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 reached SUCCESS on main commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7. Evidence includes 10k full committed Demo continuity, 100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation and package upgrade compatibility.
 
-Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
+Authority: `docs/roadmap/CP07-CLOSURE-READINESS-2026-10-09.md`
 
 Evidence:
 
 ```json
 {
-  "sharedProjectionPr": 497,
-  "workbenchCompositionPr": 498,
-  "workbenchStatePr": 499,
-  "hostActionFixPr": 500,
-  "biWorkbenchExtractionPr": 504,
-  "biWorkbenchExtractionCommit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
-  "lazyResourceAuthorityPr": 509,
-  "lazyResourceAuthorityCommit": "a1c45b8161ac7cdbeb330ce2651e423852f71c45",
-  "humanValidationDeploymentId": "c5af79be-904f-4cdc-8aa6-9f2b5a84e99f",
-  "humanValidationDeploymentStatus": "SUCCESS",
+  "integrationPr": 519,
+  "mergeCommit": "8e0f379184110ac87ce0cd8e125cc2c51b99a2c7",
+  "combinedCI": "42/42 PASS",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "humanValidation": "PASS",
-  "humanValidationAt": "2026-10-09"
+  "crossProjectCI": "PASS",
+  "tenThousandDemo": "PASS via PR #515",
+  "real100kRvc": "PASS via PR #516 / workflow run 37912406474",
+  "oneMillionPerformance": "PASS via PR #517 / workflow run 37912688857",
+  "railwayDeploymentId": "f681b927-2685-4d66-8654-299e0374c347",
+  "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**cp07-counterparty-maturity-gate: READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION**
+**it01-item-product-second-object-proof: ACTIVE**
 
-All currently defined CP-07 maturity evidence is complete: 10k full committed Demo continuity, >=100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation evidence and package upgrade compatibility. CP-07 remains open only because the complete evidence stack is not yet integrated into main and final mainline closure continuity has not been recorded.
+IT-01 is the active Foundation Object anti-overfit gate. Item/Product must reuse the generic contracts proven by Counterparty while exposing materially different semantics; shared Foundation Object contracts remain EXPERIMENTAL until this second-object proof succeeds.
 
 Acceptance:
 
-- 10k full committed Demo continuity: PASS via PR #515.
-- 100k real-world Companies House RVC: PASS via PR #516 validation run 37912406474.
-- 1M deterministic performance pressure: PASS via PR #517 run 37912688857.
-- Sensitive-field isolation and legacy transformation evidence: PASS/COMPLETE via PR #512.
-- Controlled package upgrade/version compatibility: PASS via PR #513.
-- Complete combined integration candidate exists as Draft PR #519 and must pass combined CI before any mainline merge.
-- After the complete stack is on main, record final CP-07 closure continuity before starting IT-01.
+- Establish explicit Item/Product/SKU/Service, variant, UOM, barcode/GTIN and category boundaries.
+- Reuse FoundationObjectDescriptor and EffectiveObjectSchema rather than creating an Item-specific parallel framework.
+- Reuse Enterprise Extensions, Data Import, Projection and Responsibility where applicable.
+- Do not add Counterparty-specific branches to shared infrastructure.
+- Use Open Food Facts and other real Item datasets for external pressure evidence.
+- Only after materially different second-object evidence may shared Foundation Object contracts move from EXPERIMENTAL toward STABLE.
 
 ## Current production preview
 
@@ -66,8 +62,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `a1c45b8161ac7cdbeb330ce2651e423852f71c45`
-- Deployment: `c5af79be-904f-4cdc-8aa6-9f2b5a84e99f`
+- Commit: `8e0f379184110ac87ce0cd8e125cc2c51b99a2c7`
+- Deployment: `f681b927-2685-4d66-8654-299e0374c347`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -98,6 +94,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #519 — MERGED_CI_PRODUCTION_PASS: Integrated the complete reconciled CP-07 maturity evidence stack; 42/42 combined candidate CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 is SUCCESS.
 - PR #509 — MERGED_CI_PRODUCTION_PASS: Promoted install/use-driven plugin lazy resource loading to platform architecture authority; current production runs the #509 mainline successfully.
 - PR #504 — MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN: Extracted Workspace from Host into optional evo-bi-workbench plugin; /workspace is plugin-owned, runtime/state are lazy, Host default routing is based on active Experiences, and current production was explicitly migrated to the plugin.
 - PR #500 — MERGED_CI_PRODUCTION_PASS: Fixed Host Workbench action feature gating so Workbench commands execute through the real ActionRouter feature gate while preserving item-level reauthorization.
@@ -536,8 +533,9 @@ Not proved:
 - Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.
 - Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.
 - Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.
-- Do not report CP-07 100k RVC or 1M performance as pending; both evidence runs passed on 2026-10-09 and are retained in docs/roadmap/CP07-COUNTERPARTY-SCALE-EVIDENCE-2026-10-09.md.
-- Do not start IT-01 from the Draft integration candidate alone; CP-07 must first be integrated into main and final closure continuity recorded.
+- Do not reopen CP-07 or ask for its 10k/100k/1M maturity evidence again; CP-07 closed on 2026-10-09 after PR #519 merged, 42/42 combined CI passed, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded.
+- Do not stabilize shared Foundation Object contracts from Counterparty alone; IT-01 Item/Product is the required materially different second-object anti-overfit proof.
+- Do not copy Counterparty semantics into Item/Product shared infrastructure; reuse only object-agnostic contracts and extract/converge generic mechanisms when second-object evidence requires it.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -557,9 +555,10 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded
+- state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization
+- state current production Ledger Configurator as App Platform PR #519 merge commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7 / Railway deployment f681b927-2685-4d66-8654-299e0374c347 SUCCESS
 - state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
-- state CP-07 Counterparty maturity gate as the current active Foundation Object Program gate before Item/Product
-- state current production Ledger Configurator as App Platform PR #509 merge commit a1c45b8161ac7cdbeb330ce2651e423852f71c45 / Railway deployment c5af79be-904f-4cdc-8aa6-9f2b5a84e99f SUCCESS
 - state Personal Agent P1.8 as verified and production-closed
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
 - state Semantic Graph as coordinate-free and DIAGRAM_2D/SPATIAL_3D View State as durable presentation state with independent revisions
