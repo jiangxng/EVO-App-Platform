@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `wh01b-closed-wh01c-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T22:42:00+08:00`  
+**Snapshot:** `wh01c-closed-wh01d-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T22:59:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**wh01b-hierarchical-data-import: MERGED_CI_PRODUCTION_PASS**
+**wh01c-warehouse-projection-responsibility-eidos: MERGED_CI_PRODUCTION_PASS**
 
-WH-01B proved order-independent hierarchical Warehouse Location import through the existing generic Data Import pipeline. The Warehouse-owned path resolver combines existing and same-batch hierarchy, topologically orders the internal atomic write plan, fails orphan/duplicate/invariant violations closed, and preserves locationId as durable identity without introducing Inventory Position quantities or shared hierarchy contracts.
+WH-01C completed the governed Warehouse/Location read-product slice. WAREHOUSE_STEWARD Responsibility remains separate from authorization, Warehouse Projection is derived/non-authoritative, Human Eidos and Personal Agent/Automation share WarehouseProjectionService, lifecycle-aware Warehouse runtime/import stays lazy, and all Warehouse read surfaces remain free of Inventory Position quantities.
 
 Authority: `docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md`
 
@@ -26,30 +26,31 @@ Evidence:
 
 ```json
 {
-  "implementationPr": 542,
-  "mergeCommit": "9f3e65e84d521f2e6ea23aba31dc64525c3aa224",
+  "implementationPr": 544,
+  "mergeCommit": "f47890b5823ad7389625563d5a6f0c62eb220fdb",
+  "combinedCI": "34/34 PASS",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "c2011371-4309-4982-9062-90cb98a166a9",
+  "crossProjectCI": "PASS",
+  "railwayDeploymentId": "60a02755-b544-48cf-907c-95e3feddd56f",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**wh01c-warehouse-projection-responsibility-eidos: ACTIVE**
+**wh01d-real-warehouse-location-rvc: ACTIVE**
 
-WH-01C is the active third-object product slice: compose Warehouse/Location Responsibility, Authorization, derived Projection and Eidos/Agent read experiences from one authoritative data path while keeping inventory quantities outside Warehouse.
+WH-01D is the active third-object closure slice: pressure Warehouse/Location assumptions with real external place/facility evidence, preserve Warehouse=where / Inventory Position=what+how much, and produce the WH-01 exit recommendation before TR-01.
 
 Acceptance:
 
-- Warehouse Responsibility filters business scope and never grants authorization by itself
-- Warehouse directory and My Warehouses projections derive only from authoritative Warehouse/Location/Extension/Responsibility state
-- Human Eidos and Personal Agent/Automation consume the same Warehouse projection service
-- location hierarchy is returned as structural navigation beneath authorized Warehouse records
-- Workspace remains owned by evo-bi-workbench and Warehouse contributes governed workbench content only
-- Warehouse package/runtime remains lifecycle-gated and lazy
-- projection payload contains no on-hand, availability, reserved quantity, inventory balance or ledger balance
+- use real external warehouse/facility/location evidence with auditable provenance
+- pressure Warehouse identity/code/name/address/external identifier assumptions without making source identifiers enterprise authority
+- pressure Zone/Location/Bin depth/naming/path assumptions and explicitly bound external evidence that cannot map to internal WMS hierarchy
+- confirm Warehouse remains where and still carries no Inventory Position quantities
+- retain shared STABLE_CANDIDATE Foundation Object contracts unless concrete third-object incompatibility evidence requires change
+- produce an explicit WH-01 exit recommendation before TR-01
 
 ## Current production preview
 
@@ -58,8 +59,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `9f3e65e84d521f2e6ea23aba31dc64525c3aa224`
-- Deployment: `c2011371-4309-4982-9062-90cb98a166a9`
+- Commit: `f47890b5823ad7389625563d5a6f0c62eb220fdb`
+- Deployment: `60a02755-b544-48cf-907c-95e3feddd56f`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -90,6 +91,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #544 — MERGED_CI_PRODUCTION_PASS: WH-01C completed lifecycle-gated Warehouse Responsibility/Authorization/Projection/Eidos composition with shared Human/Agent read authority; 34/34 CI passed and Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f is SUCCESS.
 - PR #542 — MERGED_CI_PRODUCTION_PASS: WH-01B proved order-independent hierarchical Warehouse Location Data Import on unchanged STABLE_CANDIDATE contracts; Platform/Continuity CI passed and Railway deployment c2011371-4309-4982-9062-90cb98a166a9 is SUCCESS.
 - PR #540 — MERGED_CI_PRODUCTION_PASS: WH-01A established Enterprise Context-backed Warehouse identity and structural Zone/Location/Bin hierarchy on unchanged STABLE_CANDIDATE Foundation Object contracts; Platform/Continuity CI passed and Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 is SUCCESS.
 - PR #538 — MERGED_CI_RVC_PRODUCTION_PASS: IT-01E completed real Open Food Facts Item RVC and the second-object contract maturity review; 20k real rows and 1k generic imports passed, Item batch persistence improved ~4.9x, and Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 is SUCCESS.
@@ -581,9 +583,10 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state WH-01C Warehouse Responsibility / Projection / Eidos composition as MERGED_CI_PRODUCTION_PASS via PR #544 / main commit f47890b5823ad7389625563d5a6f0c62eb220fdb / Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f SUCCESS after 34/34 combined CI
+- state WH-01D real Warehouse/Location RVC as the current active slice
+- state current production Ledger Configurator as App Platform PR #544 merge commit f47890b5823ad7389625563d5a6f0c62eb220fdb / Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f SUCCESS
 - state WH-01B hierarchical Warehouse Location Data Import as MERGED_CI_PRODUCTION_PASS via PR #542 / main commit 9f3e65e84d521f2e6ea23aba31dc64525c3aa224 / Railway deployment c2011371-4309-4982-9062-90cb98a166a9 SUCCESS
-- state WH-01C Responsibility / Projection / Eidos composition as the current active slice
-- state current production Ledger Configurator as App Platform PR #542 merge commit 9f3e65e84d521f2e6ea23aba31dc64525c3aa224 / Railway deployment c2011371-4309-4982-9062-90cb98a166a9 SUCCESS
 - state WH-01A Warehouse identity + Location hierarchy as MERGED_CI_PRODUCTION_PASS via PR #540 / main commit 4f9490b24792836db5d070bd8b2b2767809f3bda / Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 SUCCESS
 - state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
 - state WH-01 Warehouse/Location third-object proof as the current active Foundation Object Program gate
