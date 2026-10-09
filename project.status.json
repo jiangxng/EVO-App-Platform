@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "CP-06 Personal Workbench + Agent",
+  "currentMilestone": "CP-07 Counterparty maturity gate",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp06-bi-workbench-plugin-human-gate-2026-10-09",
-    "snapshotAt": "2026-10-09T12:58:00+08:00",
+    "snapshotId": "cp06-closed-cp07-active-2026-10-09",
+    "snapshotAt": "2026-10-09T16:26:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1814,24 +1814,24 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "CP-06 Personal Workbench + Agent",
-      "milestoneStatus": "AWAITING_HUMAN_VALIDATION",
+      "milestone": "CP-07 Counterparty maturity gate",
+      "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "cp05-counterparty-facets-profiles-related-resources",
+        "id": "cp06-personal-workbench-agent-composition",
         "status": "CLOSED_HUMAN_PASS",
-        "summary": "CP-05 is closed with Human production validation. Counterparty now keeps repeatable Contact and Address as child resources, role-scoped CustomerProfile/SupplierProfile data outside identity, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct domain resources, and progressive Eidos detail composition without a second shell.",
+        "summary": "CP-06 is closed with Human product validation. Workspace remains the independent optional evo-bi-workbench application plugin in the BI / Insight Experience Layer; Counterparty, Data Import and Personal Agent contribute governed items through shared contracts; Host retains generic lifecycle, authorization, Contribution discovery and lazy dispatch only. The install/use-driven lazy-resource rule is now platform authority through PR #509.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "evidence": {
-          "resourceBoundaryPr": 488,
-          "resourceBoundaryCommit": "082b9fb9d1bfea47d568082e746bfa5227e054e0",
-          "semanticImportPr": 491,
-          "semanticImportCommit": "7d951f713df4d9dbe7be2a468e017e67556582d1",
-          "eidosCompositionPr": 492,
-          "eidosCompositionCommit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
-          "statusPr": 493,
-          "statusCommit": "5acd870c60d1d1e4492b2b2265e733206721d5cc",
-          "productionDeploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
-          "productionDeploymentStatus": "SUCCESS",
+          "sharedProjectionPr": 497,
+          "workbenchCompositionPr": 498,
+          "workbenchStatePr": 499,
+          "hostActionFixPr": 500,
+          "biWorkbenchExtractionPr": 504,
+          "biWorkbenchExtractionCommit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
+          "lazyResourceAuthorityPr": 509,
+          "lazyResourceAuthorityCommit": "a1c45b8161ac7cdbeb330ce2651e423852f71c45",
+          "humanValidationDeploymentId": "c5af79be-904f-4cdc-8aa6-9f2b5a84e99f",
+          "humanValidationDeploymentStatus": "SUCCESS",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
           "humanValidation": "PASS",
@@ -1839,37 +1839,19 @@
         }
       },
       "openGate": {
-        "id": "cp06-personal-workbench-agent-composition",
-        "status": "AWAITING_HUMAN_VALIDATION",
-        "summary": "CP-06 technical acceptance remains production-passed after the Human-directed ownership correction: Workspace is now the independent optional evo-bi-workbench application plugin in the BI / Insight Experience Layer, not App Platform Host Core and not Counterparty. Counterparty/Data Import/Personal Agent continue to contribute governed items through eidos.workbench-home-item. Host no longer publishes or hard-codes /workspace and the BI Workbench runtime/PostgreSQL state initialize only when the plugin is installed, active and opened. Remaining gate: Human product validation of the deployed plugin-owned Workspace.",
+        "id": "cp07-counterparty-maturity-gate",
+        "status": "ACTIVE",
+        "summary": "CP-07 is the active Counterparty maturity gate. The goal is to pressure-test and document the already accepted Foundation Object vertical before moving to Item/Product, not to reopen closed Counterparty semantics or grow a monolithic Counterparty framework.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "Workspace ownership is the optional evo-bi-workbench plugin; App Platform Host retains only generic lifecycle, authorization, contribution discovery and routing. PASS via PR #504.",
-          "Without BI Workbench installed/active, /workspace is not an effective Experience and browser bootstrap does not hard-code it. PASS via PR #504 generic effective-Experience default-route resolver and boundary tests.",
-          "BI Workbench runtime and Personal Workbench PostgreSQL adapter are lazy: they initialize only after the active plugin page/action is used. PASS via PR #504 implementation/boundary tests.",
-          "Package default -> enterprise/role default -> personal preference layering is deterministic. PASS via PR #498/#499 and preserved by #504.",
-          "Personalization can hide/reorder only authorized items and cannot expand authority. PASS via PR #498/#499 and preserved by #504.",
-          "My Customers and My Suppliers reuse the same governed Counterparty projection contracts used by Human application views. PASS via PR #497.",
-          "Personal Agent opens/queries the same governed Counterparty projection Capability Operations and has no private Counterparty read path. PASS via PR #497.",
-          "Common deterministic actions remain fixed package Capability Operations; Data Import remains a contributing fixed capability rather than chat-only behavior. PASS via PR #499/#504.",
-          "Human production validation confirms the plugin-owned Workspace composition/navigation remains understandable and useful after extraction."
-        ],
-        "implementationEvidence": {
-          "sharedProjectionPr": 497,
-          "workbenchCompositionPr": 498,
-          "workbenchStatePr": 499,
-          "hostActionFixPr": 500,
-          "biWorkbenchExtractionPr": 504,
-          "biWorkbenchExtractionCommit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
-          "productionDeploymentId": "3a5d926b-63a0-48f7-974a-2daf35a68342",
-          "productionDeploymentStatus": "SUCCESS",
-          "productionMigration": "evo-bi-workbench explicitly installed once through EVO_BI_WORKBENCH_AUTOINSTALL=1; operator flag then disabled to 0; lifecycle installation persists.",
-          "platformCI": "PASS",
-          "projectContinuityCI": "PASS",
-          "humanArchitectureDecision": "PASS: Workspace must be an independent plugin and belongs to BI / Insight Experience Layer.",
-          "humanProductValidation": "PENDING"
-        },
-        "blocker": "Human product validation of the deployed plugin-owned Workspace after the CP-06D ownership extraction."
+          "Preserve the already accepted identity, role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent contracts without reopening closed gates.",
+          "10k representative demo data passes the Counterparty experience and governed projections.",
+          ">=100k RVC integration pressure test passes with bounded, observable behavior.",
+          "Run a 1M+ performance test where practical and record limits instead of guessing.",
+          "Permission and sensitive-field tests prove server-side record/field scope remains fail-closed under scale.",
+          "Produce a legacy-field transformation report for realistic migration pressure.",
+          "Produce upgrade/version compatibility evidence sufficient to proceed to the materially different Item/Product proof."
+        ]
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1877,25 +1859,29 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
-        "deploymentId": "3a5d926b-63a0-48f7-974a-2daf35a68342",
+        "commit": "a1c45b8161ac7cdbeb330ce2651e423852f71c45",
+        "deploymentId": "c5af79be-904f-4cdc-8aa6-9f2b5a84e99f",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "status": "CP06_AWAITING_HUMAN_VALIDATION_AFTER_BI_PLUGIN_EXTRACTION",
+        "status": "CP07_ACTIVE",
         "sequence": [
-          "CP-06 Human validation of plugin-owned Workspace",
-          "CP-07 Counterparty maturity gate",
+          "CP-07 Counterparty maturity / demo / RVC pressure gate",
           "IT-01 Item/Product second-object proof",
           "WH-01 Warehouse/Location proof",
           "TR-01 Transaction object proof"
         ],
-        "rule": "Do not reopen CP-03 or CP-05. Do not move Workspace back into App Platform Host or Counterparty. Close CP-06 only after Human accepts the deployed independent BI Workbench plugin experience."
+        "rule": "Do not reopen CP-03, CP-05 or CP-06. Do not move Workspace back into App Platform Host or Counterparty. CP-07 must pressure-test and document Counterparty maturity, then hand shared contracts to Item/Product as the materially different second-object proof."
       }
     },
     "recentMainline": [
+      {
+        "pr": 509,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Promoted install/use-driven plugin lazy resource loading to platform architecture authority; current production runs the #509 mainline successfully."
+      },
       {
         "pr": 504,
         "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
@@ -4586,10 +4572,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "CP-06",
-    "currentGateMeaning": "Independent BI Workbench plugin + Agent composition — awaiting Human product validation",
-    "nextGate": "CP-07",
-    "nextGateMeaning": "Counterparty maturity gate",
+    "currentGate": "CP-07",
+    "currentGateMeaning": "Counterparty maturity / demo / RVC pressure gate",
+    "nextGate": "IT-01",
+    "nextGateMeaning": "Item/Product second-object proof",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4878,7 +4864,7 @@
       ]
     },
     "cp06": {
-      "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
+      "status": "CLOSED_HUMAN_PASS",
       "scope": [
         "Personal Workbench layering",
         "My Work",
@@ -4903,13 +4889,35 @@
         "hostActionFixPr": 500,
         "productionDeploymentId": "3a5d926b-63a0-48f7-974a-2daf35a68342",
         "productionDeploymentStatus": "SUCCESS",
-        "humanValidation": "PENDING",
+        "humanValidation": "PASS",
         "biWorkbenchExtractionPr": 504,
         "biWorkbenchExtractionCommit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
-        "humanArchitectureDecision": "PASS"
+        "humanArchitectureDecision": "PASS",
+        "humanValidationAt": "2026-10-09",
+        "humanValidationCommit": "a1c45b8161ac7cdbeb330ce2651e423852f71c45",
+        "humanValidationDeploymentId": "c5af79be-904f-4cdc-8aa6-9f2b5a84e99f",
+        "humanValidationDeploymentStatus": "SUCCESS",
+        "lazyResourceAuthorityPr": 509
       },
       "owner": "evo-bi-workbench optional application plugin",
-      "layer": "BI / Insight Experience Layer"
+      "layer": "BI / Insight Experience Layer",
+      "humanValidation": "PASS",
+      "humanValidationAt": "2026-10-09"
+    },
+    "cp07": {
+      "status": "ACTIVE",
+      "purpose": "Counterparty maturity / demo / RVC pressure gate before the materially different Item/Product second-object proof.",
+      "acceptance": [
+        "preserve identity, relationship-role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent passes",
+        "10k demo data pass",
+        ">=100k RVC integration pressure test",
+        "1M+ performance test where practical",
+        "permission and sensitive-field tests",
+        "legacy-field transformation report",
+        "upgrade/version compatibility evidence"
+      ],
+      "entryCondition": "SATISFIED: CP-06 CLOSED_HUMAN_PASS",
+      "nextGate": "IT-01 Item/Product second-object proof"
     }
   },
   "architectureConstitutions": {
