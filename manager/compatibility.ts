@@ -27,6 +27,15 @@ function compare(a: VersionTriple, b: VersionTriple): number {
   return a.major - b.major || a.minor - b.minor || a.patch - b.patch;
 }
 
+export function compareSemanticVersionsV010(
+  left: string,
+  right: string
+): number | undefined {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  return a && b ? compare(a, b) : undefined;
+}
+
 function satisfiesComparator(version: VersionTriple, expression: string): boolean {
   const trimmed = expression.trim();
   if (!trimmed || trimmed === "*") return true;
