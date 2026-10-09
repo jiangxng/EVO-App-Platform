@@ -192,3 +192,87 @@ export function personalWorkbenchLayerV010(
       }
     : undefined;
 }
+
+
+export function createMemoryPersonalWorkbenchStateStoreV010(
+  seed: PersonalWorkbenchStateV010[] = []
+): PersonalWorkbenchStateStoreV010 {
+  const states = new Map(
+    seed.map(item => [
+      item.personalContextId + "|" + item.subjectId,
+      structuredClone(item)
+    ])
+  );
+  const key = (personalContextId: string, subjectId: string) =>
+    required(personalContextId, "WORKBENCH_PERSONAL_CONTEXT_ID_REQUIRED")
+    + "|"
+    + required(subjectId, "WORKBENCH_SUBJECT_ID_REQUIRED");
+
+  return {
+    async get(personalContextId, subjectId) {
+      const value = states.get(key(personalContextId, subjectId));
+      return value ? structuredClone(value) : undefined;
+    },
+    async put(state) {
+      const value = {
+        ...structuredClone(state),
+        personalContextId: required(
+          state.personalContextId,
+          "WORKBENCH_PERSONAL_CONTEXT_ID_REQUIRED"
+        ),
+        subjectId: required(state.subjectId, "WORKBENCH_SUBJECT_ID_REQUIRED"),
+        preferences: normalizedPreferences(state.preferences ?? []),
+        favoriteItemIds: [...new Set(state.favoriteItemIds ?? [])],
+        recentItemIds: [...new Set(state.recentItemIds ?? [])],
+        updatedAt: required(state.updatedAt, "WORKBENCH_UPDATED_AT_REQUIRED")
+      };
+      states.set(key(value.personalContextId, value.subjectId), value);
+      return structuredClone(value);
+    },
+    async recordRecent(input) {
+      const limit = input.limit ?? 8;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
+        throw new Error("WORKBENCH_RECENT_LIMIT_INVALID");
+      }
+      const current =
+        await this.get(input.personalContextId, input.subjectId)
+        ?? {
+          contractVersion: "0.1.0" as const,
+          personalContextId: input.personalContextId,
+          subjectId: input.subjectId,
+          preferences: [],
+          favoriteItemIds: [],
+          recentItemIds: [],
+          updatedAt: input.updatedAt
+        };
+      return this.put({
+        ...current,
+        recentItemIds: [
+          input.itemId,
+          ...current.recentItemIds.filter(id => id !== input.itemId)
+        ].slice(0, limit),
+        updatedAt: input.updatedAt
+      });
+    },
+    async setFavorite(input) {
+      const current =
+        await this.get(input.personalContextId, input.subjectId)
+        ?? {
+          contractVersion: "0.1.0" as const,
+          personalContextId: input.personalContextId,
+          subjectId: input.subjectId,
+          preferences: [],
+          favoriteItemIds: [],
+          recentItemIds: [],
+          updatedAt: input.updatedAt
+        };
+      return this.put({
+        ...current,
+        favoriteItemIds: input.favorite
+          ? [...new Set([...current.favoriteItemIds, input.itemId])]
+          : current.favoriteItemIds.filter(id => id !== input.itemId),
+        updatedAt: input.updatedAt
+      });
+    }
+  };
+}
