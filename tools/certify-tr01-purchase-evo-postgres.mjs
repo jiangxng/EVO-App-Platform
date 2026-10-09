@@ -75,6 +75,62 @@ async function applicationEventCount(enterpriseId, applicationId) {
   return metric(body, "event.count");
 }
 
+async function ledgerBalances(
+  enterpriseId,
+  ledgerCode,
+  dimensions
+) {
+  const params = new URLSearchParams({
+    enterprise_id: enterpriseId,
+    limit: "100"
+  });
+  for (const [key, value] of Object.entries(dimensions)) {
+    params.set("dimension." + key, String(value));
+  }
+  return json(await fetch(
+    baseUrl
+      + "/api/v1/ledgers/"
+      + encodeURIComponent(ledgerCode)
+      + "/balances?"
+      + params.toString(),
+    { headers: { accept: "application/json" } }
+  ));
+}
+
+function singleBalance(body, label) {
+  assert.equal(
+    body.truncated,
+    false,
+    label + " balance query must not truncate"
+  );
+  assert.equal(
+    body.items.length,
+    1,
+    label + " must resolve exactly one dimension balance: "
+      + JSON.stringify(body.items)
+  );
+  return body.items[0];
+}
+
+async function waitForBalance(
+  enterpriseId,
+  ledgerCode,
+  dimensions,
+  predicate,
+  label
+) {
+  let last;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const body = await ledgerBalances(enterpriseId, ledgerCode, dimensions);
+    if (body.items.length === 1 && predicate(body.items[0])) {
+      return body.items[0];
+    }
+    last = body;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error(label + ": " + JSON.stringify(last));
+}
+
 async function openWorkItems(enterpriseId) {
   return json(await fetch(
     baseUrl
@@ -251,6 +307,29 @@ await waitForApplicationEvents(
   beforePurchaseEvents + 1,
   "purchase BusinessData event was not observed"
 );
+const pendingAfterPurchase = await waitForBalance(
+  enterprise.id,
+  "pending_purchase",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item => Math.abs(Number(item.quantity) - quantity) < 0.000001,
+  "purchase pending quantity was not observed"
+);
+const payableAfterPurchase = await waitForBalance(
+  enterprise.id,
+  "payable",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01"
+  },
+  item => Math.abs(Number(item.amount) - amount) < 0.000001,
+  "purchase payable amount was not observed"
+);
 const purchaseWork = await waitForOrderWork(
   enterprise.id,
   "TR01-PO-001",
@@ -306,6 +385,43 @@ await waitForApplicationEvents(
   beforeReceiptEvents + 1,
   "receipt BusinessData event was not observed"
 );
+const inventoryAfterReceipt = await waitForBalance(
+  enterprise.id,
+  "inventory",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item =>
+    Math.abs(Number(item.quantity) - quantity) < 0.000001
+    && Math.abs(Number(item.amount) - amount) < 0.000001,
+  "receipt inventory position was not observed"
+);
+const pendingAfterReceipt = await waitForBalance(
+  enterprise.id,
+  "pending_purchase",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item => Math.abs(Number(item.quantity)) < 0.000001,
+  "receipt did not close pending purchase"
+);
+const payableAfterReceipt = await waitForBalance(
+  enterprise.id,
+  "payable",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01"
+  },
+  item => Math.abs(Number(item.amount) - amount) < 0.000001,
+  "receipt must leave payable open"
+);
 const workAfterReceipt = await waitForOrderWork(
   enterprise.id,
   "TR01-PO-001",
@@ -347,10 +463,14 @@ console.log(JSON.stringify({
     receiptEventDelta: 1,
     receiveWorkQuantityBeforeReceipt: Number(receiveWork.quantity),
     receiveWorkClosedAfterReceipt: true,
-    ledgerCertification: "EVO_POSTGRES_ORDER_SCOPED_FOLLOWUP",
-    expectedPayableAmount: amount,
-    expectedInventoryQuantity: quantity,
-    expectedInventoryAmount: amount,
+    ledgerCertification: "EVO_PUBLIC_DIMENSION_FILTERED_LEDGER_BALANCE",
+    pendingPurchaseQuantityBeforeReceipt: Number(pendingAfterPurchase.quantity),
+    pendingPurchaseQuantityAfterReceipt: Number(pendingAfterReceipt.quantity),
+    payableAmountAfterPurchase: Number(payableAfterPurchase.amount),
+    payableAmountAfterReceipt: Number(payableAfterReceipt.amount),
+    inventoryQuantityAfterReceipt: Number(inventoryAfterReceipt.quantity),
+    inventoryAmountAfterReceipt: Number(inventoryAfterReceipt.amount),
+    inventoryDimensions: inventoryAfterReceipt.dimensions,
     aggregateRuntimeObservationAvoided: true
   },
   work: {
