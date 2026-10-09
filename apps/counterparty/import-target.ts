@@ -295,6 +295,129 @@ export function createCounterpartyImportTargetV010(input: {
     });
   }
 
+  function persistSemanticResources(write: {
+    contextId: string;
+    importJobId: string;
+    rowNumber: number;
+    counterpartyId: string;
+    schema: EffectiveObjectSchemaV010;
+    values: Record<string, FoundationObjectImportCellV010>;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): void {
+    const destinations = semanticDestinationsV010(write.schema, write.values);
+
+    for (const [roleCode, values] of destinations.profiles) {
+      if (!input.profileRepository) {
+        throw new Error("COUNTERPARTY_IMPORT_PROFILE_REPOSITORY_REQUIRED");
+      }
+      input.profileRepository.save({
+        contextId: write.contextId,
+        profile: {
+          contractVersion: "0.1.0",
+          profileId:
+            write.counterpartyId + "." + roleCode.toLocaleLowerCase(),
+          counterpartyId: write.counterpartyId,
+          roleCode,
+          status: "ACTIVE",
+          values
+        },
+        actorSubjectId: write.actorSubjectId,
+        recordedAt: write.recordedAt
+      });
+    }
+
+    for (const related of destinations.related.values()) {
+      if (related.resourceType === "counterparty.contact") {
+        if (!input.contactRepository) {
+          throw new Error("COUNTERPARTY_IMPORT_CONTACT_REPOSITORY_REQUIRED");
+        }
+        const displayName = textValue(related.values, "displayName");
+        if (!displayName) {
+          throw new Error("COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED");
+        }
+        input.contactRepository.save({
+          contextId: write.contextId,
+          contact: {
+            contractVersion: "0.1.0",
+            contactId: deterministicRelatedId({
+              kind: "contact",
+              contextId: write.contextId,
+              importJobId: write.importJobId,
+              rowNumber: write.rowNumber,
+              counterpartyId: write.counterpartyId,
+              groupId: related.groupId
+            }),
+            counterpartyId: write.counterpartyId,
+            displayName,
+            status: "ACTIVE",
+            ...(textValue(related.values, "title")
+              ? { title: textValue(related.values, "title") }
+              : {}),
+            ...(textValue(related.values, "phone")
+              ? { phone: textValue(related.values, "phone") }
+              : {}),
+            ...(textValue(related.values, "email")
+              ? { email: textValue(related.values, "email") }
+              : {}),
+            isPrimary: true
+          },
+          actorSubjectId: write.actorSubjectId,
+          recordedAt: write.recordedAt
+        });
+        continue;
+      }
+
+      if (related.resourceType === "counterparty.address") {
+        if (!input.addressRepository) {
+          throw new Error("COUNTERPARTY_IMPORT_ADDRESS_REPOSITORY_REQUIRED");
+        }
+        const line1 = textValue(related.values, "line1");
+        if (!line1) {
+          throw new Error("COUNTERPARTY_IMPORT_ADDRESS_LINE1_REQUIRED");
+        }
+        input.addressRepository.save({
+          contextId: write.contextId,
+          address: {
+            contractVersion: "0.1.0",
+            addressId: deterministicRelatedId({
+              kind: "address",
+              contextId: write.contextId,
+              importJobId: write.importJobId,
+              rowNumber: write.rowNumber,
+              counterpartyId: write.counterpartyId,
+              groupId: related.groupId
+            }),
+            counterpartyId: write.counterpartyId,
+            purpose: "OTHER",
+            status: "ACTIVE",
+            line1,
+            ...(textValue(related.values, "city")
+              ? { city: textValue(related.values, "city") }
+              : {}),
+            ...(textValue(related.values, "region")
+              ? { region: textValue(related.values, "region") }
+              : {}),
+            ...(textValue(related.values, "postalCode")
+              ? { postalCode: textValue(related.values, "postalCode") }
+              : {}),
+            ...(textValue(related.values, "countryOrRegion")
+              ? {
+                  countryOrRegion: textValue(
+                    related.values,
+                    "countryOrRegion"
+                  )
+                }
+              : {}),
+            isPrimary: true
+          },
+          actorSubjectId: write.actorSubjectId,
+          recordedAt: write.recordedAt
+        });
+      }
+    }
+  }
+
   const target: FoundationObjectImportTargetV010 = {
     contractVersion: "0.1.0",
     targetId: COUNTERPARTY_IMPORT_TARGET_V010,
