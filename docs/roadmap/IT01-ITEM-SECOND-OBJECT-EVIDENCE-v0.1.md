@@ -467,7 +467,7 @@ Production closure: PR #534 merged at `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`
 
 ## IT-01E real-world RVC — Open Food Facts + standards
 
-Status: **IMPLEMENTED / REAL-DATA CI PENDING**.
+Status: **REAL_DATA_CI_PASS / MERGE_PENDING**.
 
 ### Source strategy
 
@@ -571,3 +571,26 @@ Evidence implementation:
 - `tools/item-rvc-open-food-facts.mjs`
 - `tests/protocol/it01-item-open-food-facts-rvc.test.mjs`
 - `.github/workflows/it01-item-open-food-facts-rvc.yml`
+
+
+### IT-01E real-world RVC result
+
+Real-data CI is PASS. Durable evidence and the contract maturity recommendation are
+retained in:
+
+- `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`
+
+Key observed result:
+
+- 20,000 Open Food Facts records from snapshot
+  `65ceac3fa350b90dc3abea5cddbaa2a2370e73de`;
+- 19,984 valid GTIN check-digit candidates and 16 invalid candidates;
+- 5,291 duplicate display-name candidates;
+- 6,897 rows without package quantity;
+- 1,000 / 1,000 adapted rows committed through generic Item Data Import;
+- batch persistence improved the same 1,000-row workload from ~31 rows/sec to
+  ~152 rows/sec without weakening archive/code-reservation invariants.
+
+The maturity recommendation is **selected object-neutral contracts =>
+STABLE_CANDIDATE**, while Item/Product/SKU/variant/trade-identifier/UOM/
+classification semantics remain domain-owned and EXPERIMENTAL.
