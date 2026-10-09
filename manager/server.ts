@@ -699,6 +699,7 @@ import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
   createWorkspaceHomePageV010,
+  isHostWorkbenchFeatureV010,
   workspaceHomeExperienceManifest,
   workspaceHomePageSource
 } from "./workspace-home-page.js";
@@ -5039,7 +5040,11 @@ const actionRouter = createAppActionRouter(
       resolveRuntimeTarget: resolveTradingLiteEvoRuntimeTarget
     })
   ],
-  featureId => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === featureId),
+  featureId =>
+    isHostWorkbenchFeatureV010(featureId)
+    || manager.getSnapshot().activeFeatures.some(
+      feature => feature.featureId === featureId
+    ),
   createCapabilityOperationActionPreExecuteV010({
     manager,
     resolveAuthorizationProvider
