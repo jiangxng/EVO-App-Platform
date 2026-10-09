@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("TR-01A cross-project certification pins the EVO direct-relation merge", async () => {
+test("TR-01A cross-project certification pins the EVO dimension-filtered Ledger read merge", async () => {
   const source = await readFile(
     ".github/workflows/cross-project-evo-business-data.yml",
     "utf8"
@@ -10,7 +10,7 @@ test("TR-01A cross-project certification pins the EVO direct-relation merge", as
 
   assert.equal(
     source.includes(
-      "EVO_CERTIFIED_COMMIT: 184811a1b25aa6563b03439758663f04fa4d6319"
+      "EVO_CERTIFIED_COMMIT: 2964288fc192dd9cea10a1a9d20b4a87d6599628"
     ),
     true
   );
@@ -34,6 +34,7 @@ test("TR-01A certification uses App Platform authorities and public EVO APIs onl
   assert.equal(source.includes("createEvoBusinessDataHttpAdapterV010"), true);
   assert.equal(source.includes("/api/v1/runtime-observations/query"), true);
   assert.equal(source.includes("/api/v1/work-items"), true);
+  assert.equal(source.includes("/api/v1/ledgers/"), true);
   assert.equal(source.includes("../evo/"), false);
   assert.equal(source.includes("node_modules/"), false);
   assert.equal(source.includes("business_object_link"), false);
