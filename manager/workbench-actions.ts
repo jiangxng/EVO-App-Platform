@@ -13,6 +13,10 @@ import type {
 import type {
   WorkbenchServiceV010
 } from "./workbench-service.js";
+import {
+  WORKSPACE_HOME_FEATURE_ID_V010,
+  WORKSPACE_HOME_PACKAGE_ID_V010
+} from "./workspace-home-page.js";
 
 export const WORKBENCH_ITEM_OPEN_COMMAND_V010 =
   "workbench.item.open" as const;
@@ -65,8 +69,8 @@ export function createWorkbenchActionHandlersV010(input: {
   const now = input.now ?? (() => new Date());
 
   const open: AppActionHandler = {
-    packageId: "evo-app-platform",
-    featureId: "evo-workspace-home.system",
+    packageId: WORKSPACE_HOME_PACKAGE_ID_V010,
+    featureId: WORKSPACE_HOME_FEATURE_ID_V010,
     commandCode: WORKBENCH_ITEM_OPEN_COMMAND_V010,
     async execute(request, context) {
       try {
@@ -91,8 +95,8 @@ export function createWorkbenchActionHandlersV010(input: {
   };
 
   const favorite: AppActionHandler = {
-    packageId: "evo-app-platform",
-    featureId: "evo-workspace-home.system",
+    packageId: WORKSPACE_HOME_PACKAGE_ID_V010,
+    featureId: WORKSPACE_HOME_FEATURE_ID_V010,
     commandCode: WORKBENCH_ITEM_FAVORITE_SET_COMMAND_V010,
     async execute(request, context) {
       try {
@@ -123,8 +127,8 @@ export function createWorkbenchActionHandlersV010(input: {
   };
 
   const preferences: AppActionHandler = {
-    packageId: "evo-app-platform",
-    featureId: "evo-workspace-home.system",
+    packageId: WORKSPACE_HOME_PACKAGE_ID_V010,
+    featureId: WORKSPACE_HOME_FEATURE_ID_V010,
     commandCode: WORKBENCH_PERSONAL_PREFERENCES_SET_COMMAND_V010,
     async execute(request, context) {
       try {
