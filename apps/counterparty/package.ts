@@ -32,6 +32,7 @@ import {
   COUNTERPARTY_DIRECTORY_ROUTE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
+  COUNTERPARTY_PROJECTION_CAPABILITY_V010,
   COUNTERPARTY_SUPPLIERS_PAGE_ID,
   COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
   COUNTERPARTY_SUPPLIERS_ROUTE
@@ -68,7 +69,8 @@ export const counterpartyPackage: PackageManifestV010 = {
     ],
     providesCapabilities: [
       "enterprise.counterparty.directory",
-      "enterprise.counterparty.relationship-role"
+      "enterprise.counterparty.relationship-role",
+      COUNTERPARTY_PROJECTION_CAPABILITY_V010
     ],
     contributions: [
       ...counterpartyProjectionCapabilityContributionsV010,
