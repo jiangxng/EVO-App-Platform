@@ -659,6 +659,56 @@ Capabilities.
 
 It is not one giant dashboard and not a personal copy of enterprise data.
 
+### 13.0 Ownership: BI / Workbench is an optional plugin
+
+Workspace is **not** App Platform Host Core and is **not** owned by Counterparty.
+
+The permanent ownership rule is:
+
+~~~text
+App Platform Host
+  minimal lifecycle / authorization / Contribution registry / routing
+        |
+        v
+EVO BI Workbench plugin
+  owns /workspace Experience
+  owns Workbench composition semantics
+  owns Enterprise/role workspace defaults
+  owns Personal layout / Favorites / Recent presentation state
+        ^
+        |
+        +-- Counterparty contributes My Customers / My Suppliers
+        +-- Data Import contributes fixed Import capability
+        +-- Personal Agent contributes My Work / Agent entry
+        +-- future Finance / Inventory / Manufacturing / other plugins contribute their own items
+~~~
+
+This places Workspace in the **BI / Insight Experience Layer**: a compositional
+decision/work surface over governed Work, Projections, metrics, exceptions and
+deterministic Capabilities. It does not become the authority for the underlying
+business objects, ledger facts or tasks.
+
+The BI Workbench package is optional. A deployment that does not install/activate it
+must not publish `/workspace`, initialize Workbench persistence, or require a
+Workspace runtime merely to start App Host.
+
+Current v0.1 loading rule:
+
+~~~text
+browser bootstrap
+→ fetch lightweight effective Experience manifests
+→ choose a default route from currently active Experiences
+→ only if BI Workbench is installed + active + opened:
+     load BI Workbench server runtime
+     initialize its Personal Workbench state adapter
+     compose authorized contributed items
+~~~
+
+The Host must never hard-code `/workspace` as an unconditional default route.
+Card-/projection-level finer-grained lazy data loading is a later BI performance
+optimization; plugin-level install/activate/open lazy loading is the current
+required boundary.
+
 Recommended composition:
 
 ~~~text
@@ -703,13 +753,18 @@ Later layers may change presentation but MUST NOT expand data authority.
 
 ### 13.2 Where state lives
 
-Candidate ownership:
+Canonical ownership:
 
-- package default workspace: Package/Feature definition;
-- enterprise shared role/workspace definition: Enterprise Context;
-- personal saved layout/filter/favorites: Personal Context;
+- package default Workbench contributions: contributing Package/Feature definition;
+- Workspace shell/composition semantics: optional EVO BI Workbench plugin;
+- enterprise/relationship-role workspace defaults: BI Workbench-owned resources persisted through Enterprise Context;
+- personal layout/Favorites/Recent: BI Workbench-owned Personal Workbench state keyed by Personal Context + Principal;
 - business object and responsibility truth: Enterprise Context/domain plugins;
-- derived runtime projections: owning domain/projection providers.
+- derived runtime projections: owning domain/projection providers;
+- authorization and active Package/Feature lifecycle: App Platform Host.
+
+Presentation state never becomes business authority, and uninstalling/disabling BI
+Workbench must not delete contributing business data or projection definitions.
 
 ## 14. List-first daily UX
 
