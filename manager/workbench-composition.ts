@@ -42,14 +42,14 @@ export function composeWorkbenchHomeV010(input: {
     !item.capabilityOperationId
     || input.authorizedCapabilityOperationIds?.has(item.capabilityOperationId)
   );
-  const byId = new Map(
+  const byId = new Map<string, EffectiveWorkbenchHomeItemV010>(
     authorized.map(item => [
       item.id,
       {
         ...structuredClone(item),
         effectiveOrder: item.order ?? 0,
         hidden: false
-      } satisfies EffectiveWorkbenchHomeItemV010
+      } as EffectiveWorkbenchHomeItemV010
     ])
   );
   const rejected = new Set<string>();
