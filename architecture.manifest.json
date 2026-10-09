@@ -41,7 +41,8 @@
     "docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md",
     "docs/architecture/ENTERPRISE-OPERATING-MODEL-TRANSFORMATION-v0.1.md",
     "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
-    "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md"
+    "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "docs/architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md"
   ],
   "boundaryPolicy": "architecture.boundary-policy.json",
   "documentationPolicy": "documentation.policy.json",
