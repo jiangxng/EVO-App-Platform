@@ -34,6 +34,15 @@ export interface CompileEffectiveObjectSchemaInputV010 {
   descriptor: FoundationObjectDescriptorV010;
   coreSchema: FoundationObjectCoreSchemaV010;
   extensions?: readonly ObjectExtensionDefinitionV010[];
+  /**
+   * Object-neutral applicability dimensions for the current object scenario.
+   * Dimension names and values are matched case-insensitively.
+   */
+  activeQualifiers?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * Counterparty v0.1 compatibility input. New Foundation Objects should use
+   * activeQualifiers.
+   */
   activeRelationshipRoles?: readonly string[];
   locale?: string;
   authorizeField?: FoundationObjectFieldAuthorizationV010;
@@ -42,6 +51,68 @@ export interface CompileEffectiveObjectSchemaInputV010 {
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
   return value.trim();
+}
+
+function normalizedQualifierRecord(
+  value: Record<string, string[]> | undefined,
+  dimensionCode: string,
+  valueCode: string
+): Record<string, string[]> | undefined {
+  const entries = Object.entries(value ?? {})
+    .map(([dimension, values]) => [
+      required(dimension, dimensionCode).toLocaleLowerCase(),
+      [...new Set(values.map(item =>
+        required(item, valueCode).toLocaleUpperCase()
+      ))].sort()
+    ] as const)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function activeQualifierMap(
+  value: Readonly<Record<string, readonly string[]>> | undefined
+): Map<string, Set<string>> {
+  const result = new Map<string, Set<string>>();
+  for (const [dimension, values] of Object.entries(value ?? {})) {
+    const key = required(
+      dimension,
+      "FOUNDATION_OBJECT_ACTIVE_QUALIFIER_DIMENSION_INVALID"
+    ).toLocaleLowerCase();
+    result.set(key, new Set(values.map(item =>
+      required(
+        item,
+        "FOUNDATION_OBJECT_ACTIVE_QUALIFIER_VALUE_INVALID"
+      ).toLocaleUpperCase()
+    )));
+  }
+  return result;
+}
+
+function qualifierSnapshot(
+  value: Map<string, Set<string>>
+): Record<string, string[]> | undefined {
+  const entries = [...value.entries()]
+    .map(([dimension, values]) => [
+      dimension,
+      [...values].sort()
+    ] as const)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function qualifiersApply(
+  configured: Record<string, string[]> | undefined,
+  active: Map<string, Set<string>>
+): boolean {
+  for (const [dimension, values] of Object.entries(configured ?? {})) {
+    const current = active.get(dimension.toLocaleLowerCase());
+    if (!current || !values.some(value =>
+      current.has(value.toLocaleUpperCase())
+    )) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function defaultControl(
@@ -155,6 +226,19 @@ function assertCoreSchema(
       ...(field.applicability
         ? {
             applicability: {
+              ...(normalizedQualifierRecord(
+                field.applicability.qualifiers,
+                "FOUNDATION_OBJECT_FIELD_QUALIFIER_DIMENSION_INVALID",
+                "FOUNDATION_OBJECT_FIELD_QUALIFIER_VALUE_INVALID"
+              )
+                ? {
+                    qualifiers: normalizedQualifierRecord(
+                      field.applicability.qualifiers,
+                      "FOUNDATION_OBJECT_FIELD_QUALIFIER_DIMENSION_INVALID",
+                      "FOUNDATION_OBJECT_FIELD_QUALIFIER_VALUE_INVALID"
+                    )
+                  }
+                : {}),
               ...(field.applicability.relationshipRoles
                 ? {
                     relationshipRoles: [...new Set(
@@ -164,7 +248,7 @@ function assertCoreSchema(
                           "FOUNDATION_OBJECT_FIELD_RELATIONSHIP_ROLE_INVALID"
                         ).toUpperCase()
                       )
-                    )]
+                    )].sort()
                   }
                 : {})
             }
@@ -216,22 +300,37 @@ function assertCoreSchema(
   };
 }
 
-function rolesApply(
+function extensionApplicabilityApplies(
   definition: ObjectExtensionDefinitionV010,
-  activeRoles: Set<string>
+  activeRoles: Set<string>,
+  activeQualifiers: Map<string, Set<string>>
 ): boolean {
   const requiredRoles = definition.applicability?.relationshipRoles ?? [];
-  if (requiredRoles.length === 0) return true;
-  return requiredRoles.some(role => activeRoles.has(role.toUpperCase()));
+  if (
+    requiredRoles.length > 0
+    && !requiredRoles.some(role => activeRoles.has(role.toUpperCase()))
+  ) {
+    return false;
+  }
+  return qualifiersApply(
+    definition.applicability?.qualifiers,
+    activeQualifiers
+  );
 }
 
-function coreFieldRolesApply(
+function coreFieldApplicabilityApplies(
   field: FoundationObjectFieldDefinitionV010,
-  activeRoles: Set<string>
+  activeRoles: Set<string>,
+  activeQualifiers: Map<string, Set<string>>
 ): boolean {
   const requiredRoles = field.applicability?.relationshipRoles ?? [];
-  if (requiredRoles.length === 0) return true;
-  return requiredRoles.some(role => activeRoles.has(role.toUpperCase()));
+  if (
+    requiredRoles.length > 0
+    && !requiredRoles.some(role => activeRoles.has(role.toUpperCase()))
+  ) {
+    return false;
+  }
+  return qualifiersApply(field.applicability?.qualifiers, activeQualifiers);
 }
 
 function effectiveField(
@@ -279,6 +378,8 @@ export function compileEffectiveObjectSchemaV010(
       required(role, "FOUNDATION_OBJECT_RELATIONSHIP_ROLE_INVALID").toUpperCase()
     )
   );
+  const activeQualifiers = activeQualifierMap(input.activeQualifiers);
+  const activeQualifierRecord = qualifierSnapshot(activeQualifiers);
   const authorize = input.authorizeField ?? (() => ({
     readable: true,
     writable: true
@@ -288,7 +389,13 @@ export function compileEffectiveObjectSchemaV010(
   );
 
   const coreFields = core.fields
-    .filter(field => coreFieldRolesApply(field, activeRoles))
+    .filter(field =>
+      coreFieldApplicabilityApplies(
+        field,
+        activeRoles,
+        activeQualifiers
+      )
+    )
     .map(field =>
       effectiveField(field, "CORE", locale, authorize)
     );
@@ -296,7 +403,13 @@ export function compileEffectiveObjectSchemaV010(
   const extensionFields = [...(input.extensions ?? [])]
     .map(assertObjectExtensionDefinitionV010)
     .filter(definition => definition.targetObjectType === descriptor.objectType)
-    .filter(definition => rolesApply(definition, activeRoles))
+    .filter(definition =>
+      extensionApplicabilityApplies(
+        definition,
+        activeRoles,
+        activeQualifiers
+      )
+    )
     .map(definition => {
       const slot = slots.get(definition.targetSlot);
       if (!slot) throw new Error("OBJECT_EXTENSION_TARGET_SLOT_UNKNOWN");
@@ -370,6 +483,9 @@ export function compileEffectiveObjectSchemaV010(
     baseSchemaRef: core.schemaRef,
     locale,
     activeRelationshipRoles: [...activeRoles].sort(),
+    ...(activeQualifierRecord
+      ? { activeQualifiers: activeQualifierRecord }
+      : {}),
     fields
   };
 }
