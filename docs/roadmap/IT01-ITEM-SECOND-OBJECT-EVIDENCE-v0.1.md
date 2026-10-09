@@ -414,3 +414,50 @@ Evidence:
 This resolves the IT-01D `lifecycle-aware-import-target-registry` platform debt.
 
 Production closure: PR #532 merged at `07ae77f1f9f94b9860b29c20f858bd059b23c502`; 35/35 CI passed and Railway deployment `c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d` reached SUCCESS.
+
+
+## IT-01E platform finding resolution — row-dynamic qualifier-aware import
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+IT-01C intentionally exposed a second-object limitation: the Data Import job schema
+was compiled before any row existed, so fields whose applicability depended on
+`item.kind` could not participate in mapping for a mixed GOODS/SERVICE file.
+
+The resolution is object-neutral and has two schema modes:
+
+```text
+EFFECTIVE
+= apply the active qualifier/role context and return fields that are actually valid now
+
+DISCOVERY
+= retain conditionally-applicable governed fields so mapping/discovery can see
+  every possible field before row context exists
+```
+
+The shared Foundation Object compiler owns these modes. It does not know
+`itemKind`, GOODS or SERVICE.
+
+Item owns the row semantic:
+
+1. Item target `describe()` returns DISCOVERY schema for mapping.
+2. Each row normalizes its own `itemKind`.
+3. Item recompiles an EFFECTIVE schema for that row.
+4. A conditionally-applicable mapped field:
+   - is accepted and normalized when applicable;
+   - is ignored when not applicable and blank;
+   - fails closed with `DATA_IMPORT_FIELD_NOT_APPLICABLE` when nonblank.
+
+This allows one import job to contain GOODS and SERVICE rows without making
+GOODS-only enterprise extensions globally visible as writable Item fields.
+
+Evidence:
+
+- `foundation/schema-compiler/index.ts`
+- `apps/item/foundation-object.ts`
+- `apps/item/import-target.ts`
+- `tests/protocol/it01-item-data-import.test.mjs`
+
+The same DISCOVERY/EFFECTIVE mechanism is available to future Foundation Objects.
+No Item-specific qualifier key is added to the shared Data Import or Foundation
+Object contracts.

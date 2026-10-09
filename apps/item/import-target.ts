@@ -151,13 +151,30 @@ export function createItemImportTargetV010(input: {
 }): FoundationObjectImportTargetV010 {
   const existingCodeCache = new Map<string, Set<string>>();
 
+  function extensions(contextId: string) {
+    return input.extensionRepository.list(
+      contextId,
+      ITEM_RESOURCE_TYPE_V010
+    );
+  }
+
   function describe(contextId: string, locale?: string) {
     return createItemEffectiveObjectSchemaV010({
       locale,
-      extensions: input.extensionRepository.list(
-        contextId,
-        ITEM_RESOURCE_TYPE_V010
-      )
+      applicabilityMode: "DISCOVERY",
+      extensions: extensions(contextId)
+    });
+  }
+
+  function rowSchema(inputRow: {
+    contextId: string;
+    locale?: string;
+    itemKind?: ItemKindV010;
+  }) {
+    return createItemEffectiveObjectSchemaV010({
+      locale: inputRow.locale,
+      itemKind: inputRow.itemKind,
+      extensions: extensions(inputRow.contextId)
     });
   }
 
@@ -176,16 +193,73 @@ export function createItemImportTargetV010(input: {
     },
 
     validateRow(validateInput): FoundationObjectImportValidationV010 {
-      const importFields = fieldsForSurfaceV010(validateInput.schema, "IMPORT")
-        .filter(field => field.writable);
-      const fieldMap = new Map(
-        importFields.map(field => [field.fieldId, field])
+      const discoveryFields = fieldsForSurfaceV010(
+        validateInput.schema,
+        "IMPORT"
+      ).filter(field => field.writable);
+      const discoveryMap = new Map(
+        discoveryFields.map(field => [field.fieldId, field])
       );
-      const normalizedValues: Record<string, FoundationObjectImportCellV010> = {};
       const issues: FoundationObjectImportValidationV010["issues"] = [];
 
-      for (const field of importFields) {
-        const raw = validateInput.values[field.fieldId];
+      for (const fieldId of Object.keys(validateInput.values)) {
+        if (!discoveryMap.has(fieldId)) {
+          issues.push({
+            code: "DATA_IMPORT_FIELD_NOT_IMPORTABLE",
+            message: "Mapped field is not importable.",
+            fieldId
+          });
+        }
+      }
+
+      const kindField = discoveryMap.get("itemKind");
+      let resolvedItemKind: ItemKindV010 | undefined;
+      if (kindField) {
+        const rawKind = validateInput.values.itemKind;
+        if (!foundationObjectImportCellBlankV010(rawKind)) {
+          try {
+            const normalizedKind =
+              normalizeFoundationObjectImportCellV010(kindField, rawKind);
+            if (
+              normalizedKind === "GOODS"
+              || normalizedKind === "SERVICE"
+            ) {
+              resolvedItemKind = normalizedKind;
+            }
+          } catch {
+            // The normal field validation below emits the governed enum error.
+          }
+        }
+      }
+
+      const effectiveSchema = rowSchema({
+        contextId: validateInput.contextId,
+        locale: validateInput.schema.locale,
+        itemKind: resolvedItemKind
+      });
+      const effectiveFields = fieldsForSurfaceV010(
+        effectiveSchema,
+        "IMPORT"
+      ).filter(field => field.writable);
+      const effectiveMap = new Map(
+        effectiveFields.map(field => [field.fieldId, field])
+      );
+      const normalizedValues: Record<string, FoundationObjectImportCellV010> = {};
+
+      for (const discoveryField of discoveryFields) {
+        const raw = validateInput.values[discoveryField.fieldId];
+        const field = effectiveMap.get(discoveryField.fieldId);
+        if (!field) {
+          if (!foundationObjectImportCellBlankV010(raw)) {
+            issues.push({
+              code: "DATA_IMPORT_FIELD_NOT_APPLICABLE",
+              message:
+                "Mapped field is not applicable to this row's object qualifiers.",
+              fieldId: discoveryField.fieldId
+            });
+          }
+          continue;
+        }
         if (field.required && foundationObjectImportCellBlankV010(raw)) {
           issues.push({
             code: "DATA_IMPORT_REQUIRED_VALUE_MISSING",
@@ -203,16 +277,6 @@ export function createItemImportTargetV010(input: {
             ? error.message
             : "DATA_IMPORT_VALUE_INVALID";
           issues.push({ code, message: code, fieldId: field.fieldId });
-        }
-      }
-
-      for (const fieldId of Object.keys(validateInput.values)) {
-        if (!fieldMap.has(fieldId)) {
-          issues.push({
-            code: "DATA_IMPORT_FIELD_NOT_IMPORTABLE",
-            message: "Mapped field is not importable.",
-            fieldId
-          });
         }
       }
 

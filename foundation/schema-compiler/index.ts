@@ -35,6 +35,12 @@ export interface CompileEffectiveObjectSchemaInputV010 {
   coreSchema: FoundationObjectCoreSchemaV010;
   extensions?: readonly ObjectExtensionDefinitionV010[];
   /**
+   * EFFECTIVE applies the current qualifier/role context.
+   * DISCOVERY retains conditionally-applicable fields so mapping/schema
+   * discovery can expose every governed possibility before row context exists.
+   */
+  applicabilityMode?: "EFFECTIVE" | "DISCOVERY";
+  /**
    * Object-neutral applicability dimensions for the current object scenario.
    * Dimension names and values are matched case-insensitively.
    */
@@ -373,6 +379,7 @@ export function compileEffectiveObjectSchemaV010(
   const descriptor = assertFoundationObjectDescriptorV010(input.descriptor);
   const core = assertCoreSchema(input.coreSchema, descriptor);
   const locale = input.locale?.trim() || "en";
+  const applicabilityMode = input.applicabilityMode ?? "EFFECTIVE";
   const activeRoles = new Set(
     (input.activeRelationshipRoles ?? []).map(role =>
       required(role, "FOUNDATION_OBJECT_RELATIONSHIP_ROLE_INVALID").toUpperCase()
@@ -390,7 +397,8 @@ export function compileEffectiveObjectSchemaV010(
 
   const coreFields = core.fields
     .filter(field =>
-      coreFieldApplicabilityApplies(
+      applicabilityMode === "DISCOVERY"
+      || coreFieldApplicabilityApplies(
         field,
         activeRoles,
         activeQualifiers
@@ -404,7 +412,8 @@ export function compileEffectiveObjectSchemaV010(
     .map(assertObjectExtensionDefinitionV010)
     .filter(definition => definition.targetObjectType === descriptor.objectType)
     .filter(definition =>
-      extensionApplicabilityApplies(
+      applicabilityMode === "DISCOVERY"
+      || extensionApplicabilityApplies(
         definition,
         activeRoles,
         activeQualifiers
@@ -435,6 +444,9 @@ export function compileEffectiveObjectSchemaV010(
         required: definition.required,
         order: definition.order,
         surfaces: [...surfaces],
+        ...(definition.applicability
+          ? { applicability: definition.applicability }
+          : {}),
         ...(definition.enumOptions
           ? { enumOptions: definition.enumOptions }
           : {})

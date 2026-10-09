@@ -292,7 +292,7 @@ test("IT-01C rolls back Item business writes when extension-value batch commit f
   );
 });
 
-test("IT-01C records the current job-level schema boundary for qualifier-dependent Item extensions", () => {
+test("IT-01E resolves qualifier-dependent Item import per row from one discovery schema", () => {
   const h = harness();
   h.extensionRepository.save({
     contextId: "enterprise-context:a",
@@ -318,10 +318,175 @@ test("IT-01C records the current job-level schema boundary for qualifier-depende
   });
   assert.equal(
     schema.fields.some(field => field.fieldId === "goodsHandlingClass"),
-    false
-  );
-  assert.equal(
-    schema.fields.some(field => field.fieldId === "commodityClass"),
     true
   );
+  assert.deepEqual(
+    schema.fields.find(field => field.fieldId === "goodsHandlingClass")
+      ?.applicability,
+    {
+      qualifiers: {
+        "item.kind": ["GOODS"]
+      }
+    }
+  );
+
+  const mixedSource = {
+    kind: "ROWS",
+    name: "mixed-items",
+    headers: [
+      "code",
+      "displayName",
+      "itemKind",
+      "baseUomCode",
+      "goodsHandlingClass"
+    ],
+    rows: [{
+      code: "ITEM-GOODS-1",
+      displayName: "Green Tea",
+      itemKind: "GOODS",
+      baseUomCode: "C62",
+      goodsHandlingClass: "AMBIENT"
+    }, {
+      code: "ITEM-SVC-1",
+      displayName: "Installation",
+      itemKind: "SERVICE",
+      baseUomCode: "E48",
+      goodsHandlingClass: ""
+    }]
+  };
+  const mapping = h.service.suggestMapping({
+    schema,
+    source: mixedSource
+  });
+  assert.ok(mapping.some(item =>
+    item.targetFieldId === "goodsHandlingClass"
+  ));
+
+  h.service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "job-row-qualified",
+    targetId: ITEM_IMPORT_TARGET_V010,
+    source: mixedSource,
+    mapping,
+    mappingOrigin: "DETERMINISTIC",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T10:57:00.000Z"
+  });
+  const dry = h.service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "job-row-qualified",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T10:58:00.000Z"
+  });
+
+  assert.equal(dry.state, "DRY_RUN_READY");
+  assert.equal(dry.dryRun.invalidRows, 0);
+  assert.equal(
+    dry.dryRun.rows[0].prepared.values.goodsHandlingClass,
+    "AMBIENT"
+  );
+  assert.equal(
+    Object.hasOwn(
+      dry.dryRun.rows[1].prepared.values,
+      "goodsHandlingClass"
+    ),
+    false
+  );
+
+  const committed = h.service.commit({
+    contextId: "enterprise-context:a",
+    importJobId: "job-row-qualified",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T10:59:00.000Z"
+  });
+  assert.equal(committed.state, "COMMITTED");
+
+  const goods = h.itemRepository.list("enterprise-context:a")
+    .find(item => item.code === "ITEM-GOODS-1");
+  const service = h.itemRepository.list("enterprise-context:a")
+    .find(item => item.code === "ITEM-SVC-1");
+  assert.deepEqual(
+    h.extensionValueRepository.listForObject({
+      contextId: "enterprise-context:a",
+      objectType: ITEM_RESOURCE_TYPE_V010,
+      objectId: goods.itemId
+    })[0].values,
+    { goodsHandlingClass: "AMBIENT" }
+  );
+  assert.equal(
+    h.extensionValueRepository.listForObject({
+      contextId: "enterprise-context:a",
+      objectType: ITEM_RESOURCE_TYPE_V010,
+      objectId: service.itemId
+    }).length,
+    0
+  );
+});
+
+test("IT-01E rejects a nonblank qualifier-dependent field when it is not applicable to that row", () => {
+  const h = harness();
+  h.extensionRepository.save({
+    contextId: "enterprise-context:a",
+    definition: extensionDefinition({
+      extensionId: "enterprise.demo.item.goods-only-invalid",
+      fieldId: "goodsHandlingClass",
+      semanticType: "goods-handling-class",
+      order: 30,
+      label: { default: "Goods handling class" },
+      applicability: {
+        qualifiers: {
+          "item.kind": ["GOODS"]
+        }
+      }
+    }),
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T11:00:00.000Z"
+  });
+
+  const src = {
+    kind: "ROWS",
+    name: "service-with-goods-field",
+    headers: [
+      "code",
+      "displayName",
+      "itemKind",
+      "baseUomCode",
+      "goodsHandlingClass"
+    ],
+    rows: [{
+      code: "ITEM-SVC-BAD",
+      displayName: "Service with invalid goods attribute",
+      itemKind: "SERVICE",
+      baseUomCode: "E48",
+      goodsHandlingClass: "AMBIENT"
+    }]
+  };
+  const schema = h.target.describe({
+    contextId: "enterprise-context:a",
+    locale: "en"
+  });
+  const mapping = h.service.suggestMapping({ schema, source: src });
+  h.service.stage({
+    contextId: "enterprise-context:a",
+    importJobId: "job-row-qualified-invalid",
+    targetId: ITEM_IMPORT_TARGET_V010,
+    source: src,
+    mapping,
+    mappingOrigin: "DETERMINISTIC",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T11:01:00.000Z"
+  });
+  const dry = h.service.dryRun({
+    contextId: "enterprise-context:a",
+    importJobId: "job-row-qualified-invalid",
+    actorSubjectId: "owner-a",
+    recordedAt: "2026-10-09T11:02:00.000Z"
+  });
+
+  assert.equal(dry.state, "DRY_RUN_FAILED");
+  assert.ok(dry.dryRun.rows[0].issues.some(issue =>
+    issue.code === "DATA_IMPORT_FIELD_NOT_APPLICABLE"
+    && issue.fieldId === "goodsHandlingClass"
+  ));
+  assert.equal(h.itemRepository.list("enterprise-context:a").length, 0);
 });
