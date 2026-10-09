@@ -178,6 +178,15 @@ test("final TUGE demo card stages future local login controls as disabled while 
   assert.match(html, /记住我/);
   assert.match(html, /忘记密码？/);
   assert.match(html, /更多登录方式，敬请期待/);
+  assert.match(html, /data-demo-method-icon="microsoft"/);
+  assert.match(html, /data-demo-method-icon="apple"/);
+  assert.match(html, /data-demo-method-icon="sso"/);
+  assert.doesNotMatch(html, /title="Microsoft">M<\/button>/);
+  assert.doesNotMatch(html, /title="Apple">A<\/button>/);
+  assert.doesNotMatch(html, /title="Enterprise SSO">SSO<\/button>/);
+  assert.match(html, /background:#d2eaff/);
+  assert.match(html, /evo-login-demo-art[^\n]*height:100%/);
+  assert.doesNotMatch(html, /evo-login-demo-art[^\n]*width:100%/);
   assert.match(html, /联系我们/);
   assert.match(html, /帮助中心/);
   assert.match(html, /class="evo-login-demo-google" href="\/auth\/login\?returnTo=/);
