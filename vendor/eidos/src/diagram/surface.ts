@@ -2618,10 +2618,12 @@ export function mountDiagramEditorPageV010(
         target.style.touchAction = "none";
         target.style.cursor = kind === "point"
           ? "move" : axis === "x" ? "ew-resize" : "ns-resize";
+        target.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); });
         target.addEventListener("pointerdown", (event: PointerEvent) => {
           if (event.pointerType !== "touch" && event.button !== 0) return;
           // Preserve the first pointer's position for the canvas pinch baseline.
           if (event.pointerType === "touch" && navigationPointers.size > 0) {
+            navigationPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
             cancelActiveRouteDrag?.();
             return;
           }
@@ -2654,6 +2656,7 @@ export function mountDiagramEditorPageV010(
             if (!active) return;
             active = false;
             resetPreview();
+            if (isTouch && navigationPointers.size < 2) navigationPointers.delete(pointerId);
             cleanup();
           };
           const onMove = (move: PointerEvent): void => {
@@ -2694,6 +2697,8 @@ export function mountDiagramEditorPageV010(
             active = false;
             if (isTouch) navigationPointers.delete(pointerId);
             cleanup();
+            suppressNextCanvasClick = true;
+            window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
             if (!moved) return;
             checkpoint();
             edge.waypoints = current;
