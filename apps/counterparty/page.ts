@@ -395,6 +395,10 @@ export function createCounterpartyProjectionPageV010(input: {
 export function createCounterpartyDetailPageV010(input: {
   counterparty: CounterpartySubjectV010;
   roles?: readonly CounterpartyRelationshipRoleV010[];
+  customerProfile?: CounterpartyRelationshipProfileV010;
+  supplierProfile?: CounterpartyRelationshipProfileV010;
+  contacts?: readonly CounterpartyContactV010[];
+  addresses?: readonly CounterpartyAddressV010[];
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
@@ -414,6 +418,145 @@ export function createCounterpartyDetailPageV010(input: {
   const roleLabels = roles.map(role =>
     relationshipRoleLabel(role.roleCode, input.locale)
   );
+
+  const facetItems: CatalogBrowserV010["items"] = [];
+
+  const customerProfileReadable = [
+    "customerLevel",
+    "customerSource",
+    "salesRegion"
+  ].some(canRead);
+  if (activeRoleCodes.has("CUSTOMER") && customerProfileReadable) {
+    const values = input.customerProfile?.values ?? {};
+    const metadata = {
+      ...(canRead("customerLevel") && values.customerLevel
+        ? { [text.customerLevel]: String(values.customerLevel) }
+        : {}),
+      ...(canRead("customerSource") && values.customerSource
+        ? { [text.customerSource]: String(values.customerSource) }
+        : {}),
+      ...(canRead("salesRegion") && values.salesRegion
+        ? { [text.salesRegion]: String(values.salesRegion) }
+        : {})
+    };
+    facetItems.push({
+      id: subject.counterpartyId + ":customer-profile",
+      title: text.customerProfile,
+      category: text.customerProfile,
+      ...(Object.keys(metadata).length === 0
+        ? { summary: text.profileEmpty }
+        : {}),
+      metadata
+    });
+  }
+
+  const supplierProfileReadable = [
+    "supplierClassification",
+    "procurementRegion"
+  ].some(canRead);
+  if (activeRoleCodes.has("SUPPLIER") && supplierProfileReadable) {
+    const values = input.supplierProfile?.values ?? {};
+    const metadata = {
+      ...(canRead("supplierClassification") && values.supplierClassification
+        ? {
+            [text.supplierClassification]:
+              String(values.supplierClassification)
+          }
+        : {}),
+      ...(canRead("procurementRegion") && values.procurementRegion
+        ? { [text.procurementRegion]: String(values.procurementRegion) }
+        : {})
+    };
+    facetItems.push({
+      id: subject.counterpartyId + ":supplier-profile",
+      title: text.supplierProfile,
+      category: text.supplierProfile,
+      ...(Object.keys(metadata).length === 0
+        ? { summary: text.profileEmpty }
+        : {}),
+      metadata
+    });
+  }
+
+  const contactReadable = [
+    "primaryContactName",
+    "primaryContactTitle",
+    "primaryContactPhone",
+    "primaryContactEmail"
+  ].some(canRead);
+  if (contactReadable) {
+    for (const contact of input.contacts ?? []) {
+      const metadata = {
+        ...(canRead("primaryContactTitle") && contact.title
+          ? { [text.contactTitle]: contact.title }
+          : {}),
+        ...(canRead("primaryContactPhone") && contact.phone
+          ? { [text.phone]: contact.phone }
+          : {}),
+        ...(canRead("primaryContactEmail") && contact.email
+          ? { [text.email]: contact.email }
+          : {})
+      };
+      facetItems.push({
+        id: subject.counterpartyId + ":contact:" + contact.contactId,
+        title: canRead("primaryContactName")
+          ? contact.displayName
+          : text.contacts,
+        category: text.contacts,
+        ...(contact.department && canRead("primaryContactTitle")
+          ? { summary: contact.department }
+          : {}),
+        ...(contact.isPrimary ? { badges: [text.primary] } : {}),
+        metadata
+      });
+    }
+  }
+
+  const addressReadable = [
+    "primaryAddressLine1",
+    "primaryAddressCity",
+    "primaryAddressRegion",
+    "primaryAddressPostalCode",
+    "primaryAddressCountryOrRegion"
+  ].some(canRead);
+  if (addressReadable) {
+    for (const address of input.addresses ?? []) {
+      const purposeLabel =
+        address.purpose === "REGISTERED"
+          ? text.registered
+          : address.purpose === "BILLING"
+            ? text.billing
+            : address.purpose === "SHIPPING"
+              ? text.shipping
+              : text.other;
+      const metadata = {
+        [text.addressPurpose]: purposeLabel,
+        ...(canRead("primaryAddressCity") && address.city
+          ? { [text.addressCity]: address.city }
+          : {}),
+        ...(canRead("primaryAddressRegion") && address.region
+          ? { [text.addressRegion]: address.region }
+          : {}),
+        ...(canRead("primaryAddressPostalCode") && address.postalCode
+          ? { [text.addressPostalCode]: address.postalCode }
+          : {}),
+        ...(canRead("primaryAddressCountryOrRegion")
+          && address.countryOrRegion
+          ? { [text.addressCountryOrRegion]: address.countryOrRegion }
+          : {})
+      };
+      facetItems.push({
+        id: subject.counterpartyId + ":address:" + address.addressId,
+        title: canRead("primaryAddressLine1")
+          ? address.line1
+          : text.addresses,
+        category: text.addresses,
+        ...(address.isPrimary ? { badges: [text.primary] } : {}),
+        metadata
+      });
+    }
+  }
+
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
@@ -532,7 +675,7 @@ export function createCounterpartyDetailPageV010(input: {
           counterpartyId: subject.counterpartyId
         }
       }] : []
-    }]
+    }, ...facetItems]
   };
 }
 
