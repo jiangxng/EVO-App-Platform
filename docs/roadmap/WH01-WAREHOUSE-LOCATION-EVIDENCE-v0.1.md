@@ -1,6 +1,6 @@
 # WH-01 Warehouse/Location Third-Object Evidence v0.1
 
-**Status:** WH-01A IMPLEMENTED / CI PENDING  
+**Status:** WH-01A MERGED_CI_PRODUCTION_PASS / WH-01B ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -130,3 +130,16 @@ After WH-01A passes CI/production:
 
 Do not create Inventory Position inside Warehouse merely to make the demo look more
 complete.
+
+
+## WH-01A production evidence
+
+- implementation PR: #540
+- main merge commit: `4f9490b24792836db5d070bd8b2b2767809f3bda`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Railway deployment: `a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1` — SUCCESS
+
+WH-01A is closed. WH-01B is the active slice and must prove order-independent
+hierarchical Data Import through the existing generic Data Import contracts without
+moving Warehouse hierarchy semantics into shared Foundation Object contracts.
