@@ -97,21 +97,6 @@ async function ledgerBalances(
   ));
 }
 
-function singleBalance(body, label) {
-  assert.equal(
-    body.truncated,
-    false,
-    label + " balance query must not truncate"
-  );
-  assert.equal(
-    body.items.length,
-    1,
-    label + " must resolve exactly one dimension balance: "
-      + JSON.stringify(body.items)
-  );
-  return body.items[0];
-}
-
 async function waitForBalance(
   enterpriseId,
   ledgerCode,
