@@ -374,3 +374,102 @@ pressure naming, hierarchy depth, codes and structural assumptions before TR-01.
 WH-01C is closed. WH-01D is the active closure slice and will pressure Warehouse
 identity and Location hierarchy with real external place/facility evidence before
 TR-01.
+
+
+## WH-01D — real Warehouse / facility RVC
+
+Status: **IMPLEMENTED / REAL-DATA CI PENDING**.
+
+### External evidence source
+
+WH-01D uses Overture Maps Buildings release `2026-09-23.1`, schema v2.0.0.
+
+The real-data workflow selects `class = warehouse` building features from four
+bounded logistics-heavy regions and retains at most 5,000 rows:
+
+- Los Angeles;
+- Chicago;
+- Dallas–Fort Worth;
+- Rotterdam–Antwerp.
+
+The sample must contain at least 1,000 real warehouse-class building features to count
+as useful pressure evidence.
+
+Raw source records are ephemeral CI input only. The repository retains only source
+manifest/provenance, sample SHA-256 and derived evidence.
+
+Official evidence semantics:
+
+- Overture Building `id` may be a GERS feature identifier;
+- Building geometry is a physical building footprint;
+- `height`, `num_floors` and `has_parts` describe physical structure;
+- BuildingPart represents a physical part of a larger building, not an operational
+  Warehouse Zone/Location/Bin;
+- OSM warehouse tagging distinguishes warehouse buildings/facilities from enterprise
+  operational identities and explicitly allows one warehouse to span multiple
+  buildings or one building to contain multiple warehouses;
+- GS1 GLN is another external supply-chain location identifier and therefore further
+  supports keeping external location identifiers separate from `warehouseId`.
+
+References:
+
+- Overture 2026-09-23 release:
+  https://docs.overturemaps.org/blog/2026/09/23/release-notes/
+- Overture Buildings data access:
+  https://docs.overturemaps.org/guides/buildings/
+- Overture Building schema:
+  https://docs.overturemaps.org/schema/reference/buildings/building/
+- Overture BuildingPart schema:
+  https://docs.overturemaps.org/schema/reference/buildings/building_part/
+- OpenStreetMap warehouse semantics:
+  https://wiki.openstreetmap.org/wiki/Tag:industrial=warehouse
+- GS1 GLN:
+  https://support.gs1.org/support/solutions/articles/43000734322-what-is-a-global-location-number-gln-
+
+### RVC decision rules before seeing the data
+
+The workflow must not equate a public map feature with enterprise Warehouse identity.
+
+These rules are fail-closed:
+
+```text
+Overture/GERS building id != warehouseId
+building name != required enterprise Warehouse displayName authority
+building/building-part hierarchy != Zone / Location / Bin authority
+geometry != Inventory Position
+height / floors != stock quantity
+```
+
+Permitted conclusion:
+
+```text
+external facility evidence
+  (identifier scheme/value + source + geometry/physical attributes)
+may relate to
+enterprise Warehouse identity
+```
+
+The relation is evidence/provenance, not identity replacement.
+
+### Why this is a third-object structural pressure test
+
+Counterparty proved role-heavy identity.
+Item proved semantic qualifiers, import, trade identifiers and UOM boundaries.
+Warehouse now pressures a different shape:
+
+- place identity;
+- physical structure;
+- parent/child operational hierarchy;
+- navigation paths;
+- external geospatial/location identifiers;
+- strict separation from Inventory Position quantities.
+
+No new shared hierarchy abstraction is permitted merely because Warehouse needs a
+tree. The shared STABLE_CANDIDATE contracts should change only if the real RVC exposes
+a concrete incompatibility.
+
+Evidence implementation:
+
+- `tools/warehouse-rvc-overture.mjs`
+- `tests/protocol/wh01-warehouse-overture-rvc.test.mjs`
+- `.github/workflows/wh01-warehouse-overture-rvc.yml`
