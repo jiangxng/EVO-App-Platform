@@ -281,6 +281,23 @@ export interface PlatformCapabilityOperationContributionV010 {
   };
 }
 
+export interface PlatformDataImportTargetContributionV010 {
+  kind: "platform.data-import-target";
+  target: {
+    contractVersion: "0.1.0";
+    targetId: string;
+    objectType: string;
+    label: {
+      default: string;
+      translations?: Record<string, string>;
+    };
+    binding: {
+      type: "HOST_FACTORY";
+      ref: string;
+    };
+  };
+}
+
 export interface PlatformServiceProviderContributionV010 {
   kind: "platform.service-provider";
   provider: {
@@ -307,6 +324,7 @@ export type FeatureContributionV010 =
   | EidosWorkbenchActivityContributionV010
   | EidosWorkbenchHomeItemContributionV010
   | EidosSettingsContributionV010
+  | PlatformDataImportTargetContributionV010
   | PlatformServiceProviderContributionV010
   | PlatformCapabilityOperationContributionV010;
 
