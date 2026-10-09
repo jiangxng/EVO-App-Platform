@@ -463,3 +463,134 @@ No Item-specific qualifier key is added to the shared Data Import or Foundation
 Object contracts.
 
 Production closure: PR #534 merged at `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`; Platform CI and Project Continuity CI passed and Railway deployment `b16708e5-b17b-4151-99d1-4803880880b3` reached SUCCESS.
+
+
+## IT-01E real-world RVC — Open Food Facts + standards
+
+Status: **REAL_DATA_CI_PASS / MERGE_PENDING**.
+
+### Source strategy
+
+IT-01E uses the verified Open Food Facts organization dataset:
+
+- dataset: `openfoodfacts/product-database`;
+- current source is resolved to a concrete Hugging Face dataset snapshot SHA at CI time;
+- RVC reads only selected columns from the Parquet source using range/column access;
+- 20,000 rows with non-empty source `code` are retained as an ephemeral CI sample;
+- raw source rows are neither committed to Git nor uploaded as evidence artifacts;
+- only a manifest, sample SHA-256 and derived RVC report are retained.
+
+Open Food Facts documents its exported `code` as the product barcode field; it may
+contain EAN-13 values, store-internal codes, and Open Food Facts-assigned identifiers
+for products without a barcode. This is exactly why source `code` is pressure
+evidence rather than an EVO Item identity rule.
+
+Source references:
+
+- Open Food Facts verified dataset:
+  https://huggingface.co/datasets/openfoodfacts/product-database
+- Open Food Facts exported data fields:
+  https://github.com/openfoodfacts/openfoodfacts-server/blob/main/html/data-fields.txt
+- GS1 GTIN definition:
+  https://support.gs1.org/support/solutions/articles/43000734404-what-is-the-global-trade-item-number-gtin-
+- UN/CEFACT Recommendation 20:
+  https://unece.org/trade/documents/2021/06/uncefact-rec20-0
+
+### Two-layer RVC
+
+The evidence intentionally separates raw external semantics from EVO adaptation.
+
+**Layer 1 — raw semantic pressure**
+
+The analyzer measures:
+
+- source code numeric/non-numeric shapes;
+- GTIN-8/12/13/14 shape candidates and actual GS1 check-digit validity;
+- repeated external codes and repeated display-name candidates;
+- missing product names, quantity, brand, category and country evidence;
+- common package quantity unit tokens;
+- the subset of observed quantity units with explicit UN/CEFACT Rec20 mappings.
+
+**Layer 2 — generic EVO import pressure**
+
+Up to 1,000 unique source records with a usable product name are adapted into an
+ephemeral Enterprise Context and committed through the existing generic Item Data
+Import path.
+
+The adapter is intentionally explicit:
+
+```text
+enterprise Item code
+= deterministic RVC-only surrogate
+!= Open Food Facts code / GTIN
+
+itemKind
+= GOODS
+
+baseUomCode
+= C62 ("one") only as an RVC pipeline assumption:
+  one external product record is treated as one operational unit
+
+Open Food Facts code
+= preserved as external trade-item identifier evidence
+  in item.trade-profile Enterprise Extension values
+```
+
+Package quantity text, source brands and source categories are also preserved as
+external evidence extensions rather than promoted into core Item identity.
+
+### Semantic decision rules before seeing the results
+
+IT-01E will not treat a passing pipeline as proof that source fields belong in the
+core Item identity.
+
+The maturity review must preserve these distinctions unless real evidence disproves
+them:
+
+1. **Enterprise Item identity** — durable identity chosen by the enterprise.
+2. **External trade-item identifier** — scheme + value evidence such as GTIN/barcode,
+   separate from `itemId` and enterprise Item code.
+3. **Product / variant / SKU** — optional enterprise/business relationships whose
+   exact meaning must not be inferred from an external product database.
+4. **Category** — governed classification/taxonomy relation, potentially many-to-many,
+   not a scalar identity field.
+5. **Base UOM** — enterprise operational quantity unit referencing governed codes;
+   external package quantity is separate measure evidence.
+
+GS1 defines GTIN as identifying a trade item that can be priced, ordered or invoiced,
+with different trade items receiving separate GTINs. That supports a trade-item
+identifier layer, not a universal EVO Item primary-key rule.
+
+UN/CEFACT Rec20 provides governed unit codes such as `GRM` (gram), `KGM`
+(kilogram), `MLT` (millilitre), `LTR` (litre) and `C62` (one/unit). The RVC
+records observed mappings but does not infer that a package label such as `400 g`
+must become the enterprise Item's `baseUomCode`.
+
+Evidence implementation:
+
+- `tools/item-rvc-open-food-facts.mjs`
+- `tests/protocol/it01-item-open-food-facts-rvc.test.mjs`
+- `.github/workflows/it01-item-open-food-facts-rvc.yml`
+
+
+### IT-01E real-world RVC result
+
+Real-data CI is PASS. Durable evidence and the contract maturity recommendation are
+retained in:
+
+- `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`
+
+Key observed result:
+
+- 20,000 Open Food Facts records from snapshot
+  `65ceac3fa350b90dc3abea5cddbaa2a2370e73de`;
+- 19,984 valid GTIN check-digit candidates and 16 invalid candidates;
+- 5,291 duplicate display-name candidates;
+- 6,897 rows without package quantity;
+- 1,000 / 1,000 adapted rows committed through generic Item Data Import;
+- batch persistence improved the same 1,000-row workload from ~31 rows/sec to
+  ~152 rows/sec without weakening archive/code-reservation invariants.
+
+The maturity recommendation is **selected object-neutral contracts =>
+STABLE_CANDIDATE**, while Item/Product/SKU/variant/trade-identifier/UOM/
+classification semantics remain domain-owned and EXPERIMENTAL.

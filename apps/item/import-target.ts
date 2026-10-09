@@ -417,14 +417,12 @@ export function createItemImportTargetV010(input: {
       );
 
       input.resources.transaction(() => {
-        for (const item of items) {
-          input.repository.save({
-            contextId: batchInput.contextId,
-            item,
-            actorSubjectId: batchInput.actorSubjectId,
-            recordedAt: batchInput.recordedAt
-          });
-        }
+        input.repository.saveMany({
+          contextId: batchInput.contextId,
+          items,
+          actorSubjectId: batchInput.actorSubjectId,
+          recordedAt: batchInput.recordedAt
+        });
         if (valueSets.length > 0) {
           input.extensionValueRepository.saveMany({
             contextId: batchInput.contextId,

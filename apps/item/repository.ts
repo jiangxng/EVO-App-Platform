@@ -30,6 +30,12 @@ export interface ItemRepositoryV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): ItemSubjectV010;
+  saveMany(input: {
+    contextId: string;
+    items: ItemSubjectV010[];
+    actorSubjectId: string;
+    recordedAt: string;
+  }): ItemSubjectV010[];
   archive(input: {
     contextId: string;
     itemId: string;
@@ -93,6 +99,33 @@ function itemAddress(contextId: string, itemId: string) {
   };
 }
 
+function resourcePutInput(input: {
+  contextId: string;
+  item: ItemSubjectV010;
+  actorSubjectId: string;
+  recordedAt: string;
+}) {
+  return {
+    contextId: input.contextId,
+    namespace: ITEM_NAMESPACE_V010,
+    collectionId: ITEM_COLLECTION_V010,
+    resourceType: ITEM_RESOURCE_TYPE_V010,
+    resourceId: input.item.itemId,
+    schemaRef: ITEM_SCHEMA_V010,
+    ownerPackageId: "evo-item",
+    storageKind: "DOCUMENT" as const,
+    payload: payloadOf(input.item),
+    metadata: {
+      code: input.item.code,
+      displayName: input.item.displayName,
+      itemKind: input.item.itemKind,
+      baseUomCode: input.item.baseUomCode
+    },
+    actorSubjectId: input.actorSubjectId,
+    recordedAt: input.recordedAt
+  };
+}
+
 export function createItemRepositoryV010(
   resources: EnterpriseResourceRepositoryV010
 ): ItemRepositoryV010 {
@@ -120,55 +153,77 @@ export function createItemRepositoryV010(
     },
 
     save(input) {
+      const saved = this.saveMany({
+        contextId: input.contextId,
+        items: [input.item],
+        actorSubjectId: input.actorSubjectId,
+        recordedAt: input.recordedAt
+      });
+      return saved[0];
+    },
+
+    saveMany(input) {
       const contextId = required(input.contextId, "ITEM_CONTEXT_REQUIRED");
-      const item = assertItemSubjectV010(input.item);
-      const address = itemAddress(contextId, item.itemId);
-      const existingIdentity = resources.get(address);
+      const items = input.items.map(assertItemSubjectV010);
+      if (items.length === 0) return [];
 
-      if (existingIdentity?.lifecycleState === "ARCHIVED") {
-        throw new Error("ITEM_ARCHIVED");
-      }
-
-      const duplicateCode = resources.list({
+      const existingResources = resources.list({
         contextId,
         namespace: ITEM_NAMESPACE_V010,
         collectionId: ITEM_COLLECTION_V010,
         resourceType: ITEM_RESOURCE_TYPE_V010
-      })
-        .map(resource => ({
-          lifecycleState: resource.lifecycleState,
-          item: itemFromPayload(resource.payload)
-        }))
-        .find(existing =>
-          existing.item.itemId !== item.itemId
-          && existing.item.code.toLocaleLowerCase()
-            === item.code.toLocaleLowerCase()
-        );
+      });
+      const existingById = new Map(
+        existingResources.map(resource => [
+          resource.resourceId,
+          {
+            lifecycleState: resource.lifecycleState,
+            item: itemFromPayload(resource.payload)
+          }
+        ])
+      );
+      const codeOwners = new Map(
+        existingResources.map(resource => {
+          const existing = itemFromPayload(resource.payload);
+          return [existing.code.toLocaleLowerCase(), existing.itemId] as const;
+        })
+      );
+      const batchIds = new Set<string>();
+      const batchCodes = new Map<string, string>();
 
-      if (duplicateCode) {
-        throw new Error("ITEM_CODE_DUPLICATE");
+      for (const item of items) {
+        if (batchIds.has(item.itemId)) {
+          throw new Error("ITEM_ID_DUPLICATE_IN_BATCH");
+        }
+        batchIds.add(item.itemId);
+
+        const existingIdentity = existingById.get(item.itemId);
+        if (existingIdentity?.lifecycleState === "ARCHIVED") {
+          throw new Error("ITEM_ARCHIVED");
+        }
+
+        const code = item.code.toLocaleLowerCase();
+        const existingOwner = codeOwners.get(code);
+        if (existingOwner && existingOwner !== item.itemId) {
+          throw new Error("ITEM_CODE_DUPLICATE");
+        }
+        const batchOwner = batchCodes.get(code);
+        if (batchOwner && batchOwner !== item.itemId) {
+          throw new Error("ITEM_CODE_DUPLICATE");
+        }
+        batchCodes.set(code, item.itemId);
       }
 
-      const saved = resources.put({
+      const inputs = items.map(item => resourcePutInput({
         contextId,
-        namespace: ITEM_NAMESPACE_V010,
-        collectionId: ITEM_COLLECTION_V010,
-        resourceType: ITEM_RESOURCE_TYPE_V010,
-        resourceId: item.itemId,
-        schemaRef: ITEM_SCHEMA_V010,
-        ownerPackageId: "evo-item",
-        storageKind: "DOCUMENT",
-        payload: payloadOf(item),
-        metadata: {
-          code: item.code,
-          displayName: item.displayName,
-          itemKind: item.itemKind,
-          baseUomCode: item.baseUomCode
-        },
+        item,
         actorSubjectId: input.actorSubjectId,
         recordedAt: input.recordedAt
-      });
-      return itemFromPayload(saved.payload);
+      }));
+      const saved = resources.putMany
+        ? resources.putMany(inputs)
+        : inputs.map(resource => resources.put(resource));
+      return saved.map(resource => itemFromPayload(resource.payload));
     },
 
     archive(input) {
