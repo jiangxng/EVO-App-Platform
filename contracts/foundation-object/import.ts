@@ -16,7 +16,10 @@ export interface FoundationObjectImportIssueV010 {
 }
 
 export interface FoundationObjectImportTargetParametersV010 {
-  relationshipRoles?: string[];
+  /**
+   * Object-owned import parameters. The shared contract intentionally does
+   * not name Counterparty, Item or any other domain semantic.
+   */
   [key: string]: string | number | boolean | string[] | undefined;
 }
 
