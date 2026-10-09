@@ -782,6 +782,7 @@ import {
   companyNotesPackage,
   counterpartyPackage,
   itemPackage,
+  warehousePackage,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -884,6 +885,21 @@ import {
 import {
   itemAuthorizationPolicyV010
 } from "../apps/item/authorization.js";
+import {
+  WAREHOUSE_DETAIL_PAGE_SOURCE,
+  WAREHOUSE_DIRECTORY_PAGE_SOURCE,
+  WAREHOUSE_DIRECTORY_PROJECTION_V010,
+  WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
+  WAREHOUSE_FEATURE_ID,
+  WAREHOUSE_MY_PAGE_SOURCE,
+  WAREHOUSE_MY_PROJECTION_V010,
+  WAREHOUSE_MY_READ_COMMAND_V010,
+  WAREHOUSE_PACKAGE_ID,
+  parseWarehouseDetailRouteV010
+} from "../apps/warehouse/constants.js";
+import {
+  warehouseAuthorizationPolicyV010
+} from "../apps/warehouse/authorization.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -1010,6 +1026,7 @@ const catalog = createPackageCatalog([
   companyNotesPackage,
   counterpartyPackage,
   itemPackage,
+  warehousePackage,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -2026,6 +2043,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   dataImportAuthorizationPolicyV010,
   counterpartyAuthorizationPolicyV010,
   itemAuthorizationPolicyV010,
+  warehouseAuthorizationPolicyV010,
   objectExtensionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
@@ -2145,6 +2163,17 @@ let itemRuntimePromise:
     }>
   | undefined;
 
+let warehouseRuntimePromise:
+  | Promise<{
+      repository:
+        import("../apps/warehouse/repository.js").WarehouseRepositoryV010;
+      locationRepository:
+        import("../apps/warehouse/locations.js").WarehouseLocationRepositoryV010;
+      projectionService:
+        import("../apps/warehouse/projection-service.js").WarehouseProjectionServiceV010;
+    }>
+  | undefined;
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -2176,6 +2205,9 @@ const manager = createAppManagerService(
       }
       if (event.packageId === ITEM_PACKAGE_ID) {
         itemRuntimePromise = undefined;
+      }
+      if (event.packageId === WAREHOUSE_PACKAGE_ID) {
+        warehouseRuntimePromise = undefined;
       }
     }
   },
@@ -2219,6 +2251,55 @@ async function resolveItemRuntimeV010() {
   return itemRuntimePromise;
 }
 
+function warehouseFeatureActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(feature =>
+    feature.packageId === WAREHOUSE_PACKAGE_ID
+    && feature.featureId === WAREHOUSE_FEATURE_ID
+  );
+}
+
+async function resolveWarehouseRuntimeV010() {
+  if (!warehouseFeatureActiveV010()) {
+    throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
+  }
+  warehouseRuntimePromise ??= Promise.all([
+    import("../apps/warehouse/repository.js"),
+    import("../apps/warehouse/locations.js"),
+    import("../apps/warehouse/projection-service.js"),
+    import("../apps/warehouse/foundation-object.js")
+  ]).then(([
+    repositoryModule,
+    locationsModule,
+    projectionModule,
+    foundationModule
+  ]) => {
+    const repository = repositoryModule.createWarehouseRepositoryV010(
+      enterpriseResourceRepository
+    );
+    const locationRepository =
+      locationsModule.createWarehouseLocationRepositoryV010(
+        enterpriseResourceRepository
+      );
+    return {
+      repository,
+      locationRepository,
+      projectionService:
+        projectionModule.createWarehouseProjectionServiceV010({
+          repository,
+          locationRepository,
+          responsibilityRepository,
+          extensionValueRepository: objectExtensionValueRepository,
+          resolveAuthorizationProvider,
+          fieldIds: () =>
+            foundationModule.warehouseCoreSchemaV010.fields.map(
+              field => field.fieldId
+            )
+        })
+    };
+  });
+  return warehouseRuntimePromise;
+}
+
 const dataImportTargetPromises = new Map<
   string,
   Promise<FoundationObjectImportTargetV010>
@@ -2260,6 +2341,19 @@ Promise<FoundationObjectImportTargetV010[]> {
             repository: runtime.repository,
             extensionRepository: objectExtensionRepository,
             extensionValueRepository: objectExtensionValueRepository
+          })
+        );
+      } else if (
+        ref === "evo-warehouse.location-import-target.v0.1"
+      ) {
+        pending = Promise.all([
+          import("../apps/warehouse/import-target.js"),
+          resolveWarehouseRuntimeV010()
+        ]).then(([module, runtime]) =>
+          module.createWarehouseLocationImportTargetV010({
+            resources: enterpriseResourceRepository,
+            warehouseRepository: runtime.repository,
+            locationRepository: runtime.locationRepository
           })
         );
       } else {
@@ -4819,6 +4913,42 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
+      WAREHOUSE_MY_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: WAREHOUSE_PACKAGE_ID,
+        featureId: WAREHOUSE_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/warehouse/projection-actions.js"),
+            resolveWarehouseRuntimeV010()
+          ]);
+          const handlers =
+            module.createWarehouseProjectionActionHandlersV010({
+              service: runtime.projectionService,
+              resolveEnterpriseRelationshipKind(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).find(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                )?.kind;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("WAREHOUSE_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       RESPONSIBILITY_ASSIGN_COMMAND_V010,
       RESPONSIBILITY_ARCHIVE_COMMAND_V010
     ].map(commandCode =>
@@ -6936,6 +7066,122 @@ const server = createServer(async (request, response) => {
                 readableFieldIds: directory.readableFieldIds,
                 canManage
               })
+        );
+      }
+
+      if (
+        source === WAREHOUSE_DIRECTORY_PAGE_SOURCE
+        || source === WAREHOUSE_MY_PAGE_SOURCE
+        || source === WAREHOUSE_DETAIL_PAGE_SOURCE
+      ) {
+        if (!warehouseFeatureActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "WAREHOUSE_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "warehouse-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const runtime = await resolveWarehouseRuntimeV010();
+        const module = await import("../apps/warehouse/page.js");
+
+        if (
+          source === WAREHOUSE_DIRECTORY_PAGE_SOURCE
+          || source === WAREHOUSE_MY_PAGE_SOURCE
+        ) {
+          const projectionId =
+            source === WAREHOUSE_MY_PAGE_SOURCE
+              ? WAREHOUSE_MY_PROJECTION_V010
+              : WAREHOUSE_DIRECTORY_PROJECTION_V010;
+          const projection = await runtime.projectionService.read({
+            contextId: active.contextId,
+            projectionId,
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
+          });
+          return json(
+            response,
+            200,
+            module.createWarehouseProjectionPageV010({
+              projectionId,
+              records: projection.warehouses,
+              locale,
+              readableFieldIds: projection.readableFieldIds
+            })
+          );
+        }
+
+        const routeValue = url.searchParams.get("route")?.trim();
+        const warehouseId = parseWarehouseDetailRouteV010(
+          routeValue || undefined
+        );
+        if (!warehouseId) {
+          return json(response, 400, {
+            code: "WAREHOUSE_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const directory = await runtime.projectionService.read({
+          contextId: active.contextId,
+          projectionId: WAREHOUSE_DIRECTORY_PROJECTION_V010,
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind
+        });
+        const record = directory.warehouses.find(
+          candidate => candidate.warehouse.warehouseId === warehouseId
+        );
+        if (!record) {
+          return json(response, 404, {
+            code: "WAREHOUSE_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          module.createWarehouseDetailPageV010({
+            record,
+            locale,
+            readableFieldIds: directory.readableFieldIds
+          })
         );
       }
 
