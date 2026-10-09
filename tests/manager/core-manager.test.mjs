@@ -136,3 +136,59 @@ test("core lifecycle upgrade requires approval for newly requested required perm
   ]);
   assert.equal(snapshot.activeFeatures[0].version, "0.2.0");
 });
+
+
+test("data import target contributions are visible only while their owning feature is active", () => {
+  const targetPackage = {
+    contractVersion: "0.1.0",
+    packageId: "fixture-import-owner",
+    displayName: "Fixture Import Owner",
+    version: "0.1.0",
+    type: "APPLICATION",
+    features: [{
+      contractVersion: "0.1.0",
+      featureId: "fixture-import-owner.default",
+      packageId: "fixture-import-owner",
+      version: "0.1.0",
+      activationScope: "INSTALLATION",
+      defaultActivation: true,
+      contributions: [{
+        kind: "platform.data-import-target",
+        target: {
+          contractVersion: "0.1.0",
+          targetId: "fixture.subject",
+          objectType: "fixture.subject",
+          label: { default: "Fixtures" },
+          binding: {
+            type: "HOST_FACTORY",
+            ref: "fixture.import-target.v0.1"
+          }
+        }
+      }]
+    }]
+  };
+  const manager = createAppManagerService(
+    createPackageCatalog([targetPackage]),
+    createMemoryLifecycleStore(),
+    () => new Date("2026-10-09T12:00:00.000Z")
+  );
+
+  assert.deepEqual(manager.listEffectiveDataImportTargets(), []);
+
+  manager.install("fixture-import-owner");
+  assert.deepEqual(manager.listEffectiveDataImportTargets(), [{
+    contractVersion: "0.1.0",
+    targetId: "fixture.subject",
+    objectType: "fixture.subject",
+    label: { default: "Fixtures" },
+    binding: {
+      type: "HOST_FACTORY",
+      ref: "fixture.import-target.v0.1"
+    },
+    packageId: "fixture-import-owner",
+    featureId: "fixture-import-owner.default"
+  }]);
+
+  manager.disable("fixture-import-owner");
+  assert.deepEqual(manager.listEffectiveDataImportTargets(), []);
+});
