@@ -14,6 +14,11 @@ import type {
   CounterpartyRelationshipRoleCodeV010,
   CounterpartyRelationshipRoleV010
 } from "./roles.js";
+import type {
+  CounterpartyAddressV010,
+  CounterpartyContactV010,
+  CounterpartyRelationshipProfileV010
+} from "./facets.js";
 import {
   createCounterpartyEffectiveObjectSchemaV010
 } from "./foundation-object.js";
@@ -92,7 +97,29 @@ function textFor(locale?: string) {
         myCustomers: "我的客户",
         mySuppliers: "我的供应商",
         projectionDescription: "按业务关系与当前责任范围查看往来对象。",
-        projectionEmpty: "当前视图没有可查看的往来对象。"
+        projectionEmpty: "当前视图没有可查看的往来对象。",
+        customerProfile: "客户资料",
+        supplierProfile: "供应商资料",
+        profileEmpty: "该关系角色暂未维护更多资料。",
+        contacts: "联系人",
+        addresses: "地址",
+        contactTitle: "职位",
+        contactDepartment: "部门",
+        addressPurpose: "用途",
+        addressCity: "城市",
+        addressRegion: "省/州/区域",
+        addressPostalCode: "邮编",
+        addressCountryOrRegion: "国家或地区",
+        primary: "主要",
+        registered: "注册地址",
+        billing: "账单地址",
+        shipping: "收货地址",
+        other: "其他地址",
+        customerLevel: "客户等级",
+        customerSource: "客户来源",
+        salesRegion: "销售区域",
+        supplierClassification: "供应商分类",
+        procurementRegion: "采购区域"
       }
     : {
         title: "Counterparties",
@@ -145,7 +172,29 @@ function textFor(locale?: string) {
         mySuppliers: "My Suppliers",
         projectionDescription:
           "View counterparties by business relationship and current responsibility scope.",
-        projectionEmpty: "No counterparties are visible in this view."
+        projectionEmpty: "No counterparties are visible in this view.",
+        customerProfile: "Customer profile",
+        supplierProfile: "Supplier profile",
+        profileEmpty: "No additional profile data has been maintained for this relationship yet.",
+        contacts: "Contacts",
+        addresses: "Addresses",
+        contactTitle: "Title",
+        contactDepartment: "Department",
+        addressPurpose: "Purpose",
+        addressCity: "City",
+        addressRegion: "Region",
+        addressPostalCode: "Postal code",
+        addressCountryOrRegion: "Country or region",
+        primary: "Primary",
+        registered: "Registered",
+        billing: "Billing",
+        shipping: "Shipping",
+        other: "Other",
+        customerLevel: "Customer level",
+        customerSource: "Customer source",
+        salesRegion: "Sales region",
+        supplierClassification: "Supplier classification",
+        procurementRegion: "Procurement region"
       };
 }
 
