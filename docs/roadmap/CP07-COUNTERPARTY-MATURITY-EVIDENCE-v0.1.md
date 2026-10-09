@@ -38,7 +38,7 @@ name. CP-07 adds evidence only where maturity is still genuinely open.
 
 ## CP-07B — Sensitive-field + legacy transformation evidence
 
-Sensitive-field pressure extends the earlier tax-field proof across core identity,
+Sensitive-field pressure is **CI PASS via PR #512** and extends the earlier tax-field proof across core identity,
 Customer/Supplier Profiles, Contact and Address data. The protocol test denies those
 field IDs at the existing server authorization boundary and proves their values never
 reach the Eidos detail payload. Denying `displayName` also fails the Counterparty
