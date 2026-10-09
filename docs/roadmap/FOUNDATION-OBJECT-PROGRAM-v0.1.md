@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** WH-01 Warehouse/Location third-object proof (IT-01 CLOSED_PRODUCTION_PASS)
+**Current entry gate:** TR-01 Trading Reference Loop (WH-01 CLOSED_PRODUCTION_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -564,7 +564,7 @@ After Item passes, shared contracts may move from EXPERIMENTAL toward STABLE if 
 
 ## 17. WH-01 — Warehouse/Location third-object proof
 
-**Current state:** ACTIVE. IT-01 is CLOSED_PRODUCTION_PASS. Warehouse/Location is now the structural third-object proof over STABLE_CANDIDATE shared contracts.
+**Current state:** CLOSED_PRODUCTION_PASS. PR #546 completed real Overture warehouse/facility RVC with unchanged STABLE_CANDIDATE shared contracts; Railway production deployment `235335b8-44e3-4da4-9682-6cb75c70bcb6` is SUCCESS. TR-01 is active.
 
 Validate Warehouse stable identity, Zone/Location/Bin structure, hierarchical imports, responsibility, physical/facility facets and operational projections.
 
@@ -580,6 +580,8 @@ Do not put on-hand balance into Warehouse master data.
 Use real WMS/public warehouse/location evidence.
 
 ## 18. TR-01 — Trading Reference Loop
+
+**Current state:** ACTIVE. WH-01 is CLOSED_PRODUCTION_PASS. TR-01A purchase-side reference loop is the current slice.
 
 After three Foundation Object proofs, stop adding objects as the mainline.
 
