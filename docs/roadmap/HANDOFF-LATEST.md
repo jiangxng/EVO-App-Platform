@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `it01-closed-wh01-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T20:45:00+08:00`  
+**Snapshot:** `wh01a-closed-wh01b-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T22:31:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,45 +16,39 @@ ACTIVE
 
 ## Latest closed live slice
 
-**it01-item-product-second-object-proof: CLOSED_PRODUCTION_PASS**
+**wh01a-warehouse-identity-location-hierarchy: MERGED_CI_PRODUCTION_PASS**
 
-IT-01 is closed after Item proved the shared Foundation Object architecture as a materially different second object. PR #538 added real Open Food Facts/GS1/UN-CEFACT RVC, corrected Item batch persistence exposed by real-data pressure, retained explicit Product/SKU/variant/GTIN/UOM/category boundaries, and produced the contract maturity decision. Final main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 passed Platform CI, Project Continuity CI and the real-data RVC workflow; Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 reached SUCCESS.
+WH-01A established Warehouse as the third Foundation Object consumer and kept structural location hierarchy domain-owned. Warehouse identity and Zone/Location/Bin resources persist through Enterprise Context, hierarchy invariants fail closed, and no inventory quantities or balances are stored in Warehouse master data. Shared STABLE_CANDIDATE contracts were reused unchanged.
 
-Authority: `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`
+Authority: `docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 538,
-  "mergeCommit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
+  "implementationPr": 540,
+  "mergeCommit": "4f9490b24792836db5d070bd8b2b2767809f3bda",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "realDataRvcWorkflow": "PASS",
-  "offSnapshot": "65ceac3fa350b90dc3abea5cddbaa2a2370e73de",
-  "offSampleRows": 20000,
-  "realImportRows": "1000/1000 COMMITTED",
-  "importThroughputImprovement": "31 -> 152 rows/sec (~4.9x)",
-  "contractMaturity": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE",
-  "railwayDeploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
+  "railwayDeploymentId": "a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**wh01-warehouse-location-third-object-proof: ACTIVE**
+**wh01b-hierarchical-data-import: ACTIVE**
 
-WH-01 is the active third-object structural proof. Warehouse/Location must reuse the Counterparty+Item-corrected Foundation Object contracts, prove hierarchy/import/responsibility/projection semantics, and keep master-data place identity strictly separate from inventory position and balances.
+WH-01B is the active third-object slice: prove order-independent hierarchical Warehouse Location import through the existing generic Data Import contracts while keeping hierarchy semantics domain-owned and inventory state out of Warehouse.
 
 Acceptance:
 
-- Establish Warehouse identity and Zone/Location/Bin hierarchy without embedding inventory quantities.
-- Reuse the shared Foundation Object descriptor/effective schema/extensions/import/projection/responsibility contracts.
-- Prove hierarchical Data Import and durable Enterprise Context persistence.
-- Use real WMS/public warehouse/location evidence for identifier and hierarchy pressure.
-- Keep Warehouse = where and Inventory Position = what Item is there and how much.
-- Treat shared STABLE_CANDIDATE contracts as reuse-by-default and document concrete compatibility evidence before changing them.
+- reuse generic Data Import target/service pipeline without changing STABLE_CANDIDATE shared contracts
+- import Warehouse Location hierarchy through domain-owned path semantics
+- resolve same-batch parent/child references independent of source row ordering
+- resolve existing parent hierarchy plus same-batch hierarchy deterministically
+- reject orphan parents, cycles, warehouse mismatches and sibling code collisions atomically
+- persist durable Enterprise Context location identities without inventory quantity fields
 
 ## Current production preview
 
@@ -63,8 +57,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `139ad94c13909a1f47c73d081742a5a6a870eef5`
-- Deployment: `ca33d2da-7de7-483a-b584-1d71d38f84d1`
+- Commit: `4f9490b24792836db5d070bd8b2b2767809f3bda`
+- Deployment: `a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +89,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #540 — MERGED_CI_PRODUCTION_PASS: WH-01A established Enterprise Context-backed Warehouse identity and structural Zone/Location/Bin hierarchy on unchanged STABLE_CANDIDATE Foundation Object contracts; Platform/Continuity CI passed and Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 is SUCCESS.
 - PR #538 — MERGED_CI_RVC_PRODUCTION_PASS: IT-01E completed real Open Food Facts Item RVC and the second-object contract maturity review; 20k real rows and 1k generic imports passed, Item batch persistence improved ~4.9x, and Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 is SUCCESS.
 - PR #534 — MERGED_CI_PRODUCTION_PASS: Resolved row-dynamic qualifier-aware Item import through generic DISCOVERY/EFFECTIVE schema modes; Platform/Continuity CI passed and Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 is SUCCESS.
 - PR #532 — MERGED_CI_PRODUCTION_PASS: Resolved lifecycle-aware Data Import target discovery/loading; 35/35 CI passed and Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d is SUCCESS.
@@ -563,6 +558,8 @@ Not proved:
 - Do not infer enterprise baseUomCode from package quantity text; base UOM is governed operational UOM, external package measure is separate evidence.
 - Do not put inventory quantity/on-hand/availability into Warehouse master data during WH-01; Warehouse is where, Inventory Position is what Item is there and how much.
 - Do not casually redesign STABLE_CANDIDATE Foundation Object contracts in WH-01; require concrete third-object incompatibility evidence.
+- Do not reopen WH-01A or introduce a generic hierarchy framework from Warehouse alone; warehouse.location hierarchy remains domain-owned until a second structurally hierarchical consumer proves a shared abstraction.
+- Do not put on-hand, available, reserved or ledger quantities into Warehouse or Warehouse Location master data; Inventory Position owns what Item is there and how much.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -582,11 +579,13 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state WH-01A Warehouse identity + Location hierarchy as MERGED_CI_PRODUCTION_PASS via PR #540 / main commit 4f9490b24792836db5d070bd8b2b2767809f3bda / Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 SUCCESS
+- state WH-01B hierarchical Data Import as the current active slice
+- state current production Ledger Configurator as App Platform PR #540 merge commit 4f9490b24792836db5d070bd8b2b2767809f3bda / Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 SUCCESS
 - state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
 - state WH-01 Warehouse/Location third-object proof as the current active Foundation Object Program gate
 - state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE after Counterparty + Item proof, while Item/Product/SKU/variant/trade-identifier/UOM/classification semantics remain domain-owned/EXPERIMENTAL
 - state Warehouse = where and Inventory Position = what Item is there and how much; Warehouse master data must not own stock balances
-- state current production Ledger Configurator as App Platform PR #538 merge commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
 - state IT-01E row-dynamic qualifier-aware import as MERGED_CI_PRODUCTION_PASS via PR #534 / main commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state both IT-01E platform gaps (lifecycle-aware import targets and row-dynamic qualifier import) as closed before real-world Item RVC
 - state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI
