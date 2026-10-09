@@ -4,21 +4,27 @@ on:
   pull_request:
     paths:
       - "apps/trading-lite/**"
+      - "apps/trading-reference/**"
       - "contracts/evo-business-data.ts"
       - "contracts/evo-ledger-runtime-application-id.ts"
       - "manager/evo-business-data-http-adapter.ts"
       - "providers/application-runtime-binding/**"
       - "tools/certify-trading-lite-evo-postgres.mjs"
+      - "tools/certify-tr01-purchase-evo-postgres.mjs"
+      - "tests/protocol/tr01-evo-cross-project-certification.test.mjs"
       - ".github/workflows/cross-project-evo-business-data.yml"
   push:
     branches: [main]
     paths:
       - "apps/trading-lite/**"
+      - "apps/trading-reference/**"
       - "contracts/evo-business-data.ts"
       - "contracts/evo-ledger-runtime-application-id.ts"
       - "manager/evo-business-data-http-adapter.ts"
       - "providers/application-runtime-binding/**"
       - "tools/certify-trading-lite-evo-postgres.mjs"
+      - "tools/certify-tr01-purchase-evo-postgres.mjs"
+      - "tests/protocol/tr01-evo-cross-project-certification.test.mjs"
       - ".github/workflows/cross-project-evo-business-data.yml"
   workflow_dispatch:
 
@@ -32,7 +38,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: 04103a006fa6c0805ea52c0b05a5cbf172eaae78
+  EVO_CERTIFIED_COMMIT: 184811a1b25aa6563b03439758663f04fa4d6319
   EVO_BASE_URL: http://127.0.0.1:3000
   NODE_ENV: test
   LOG_LEVEL: silent
@@ -113,8 +119,11 @@ jobs:
             exit 1
           fi
 
-      - name: Certify App Platform -> EVO -> PostgreSQL -> Ledger
+      - name: Certify Trading Lite -> EVO -> PostgreSQL -> Ledger
         run: node tools/certify-trading-lite-evo-postgres.mjs
+
+      - name: Certify TR-01A Purchase -> Receipt -> Ledger -> Work
+        run: node tools/certify-tr01-purchase-evo-postgres.mjs
 
       - name: Show EVO logs on failure
         if: failure()
