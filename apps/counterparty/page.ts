@@ -503,9 +503,6 @@ export function createCounterpartyDetailPageV010(input: {
           ? contact.displayName
           : text.contacts,
         category: text.contacts,
-        ...(contact.department && canRead("primaryContactTitle")
-          ? { summary: contact.department }
-          : {}),
         ...(contact.isPrimary ? { badges: [text.primary] } : {}),
         metadata
       });
