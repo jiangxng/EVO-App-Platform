@@ -144,6 +144,130 @@ function deterministicCounterpartyId(input: {
   return "cp-import-" + digest;
 }
 
+function deterministicRelatedId(input: {
+  kind: "contact" | "address";
+  contextId: string;
+  importJobId: string;
+  rowNumber: number;
+  counterpartyId: string;
+  groupId: string;
+}): string {
+  const digest = createHash("sha256")
+    .update([
+      input.kind,
+      input.contextId,
+      input.importJobId,
+      String(input.rowNumber),
+      input.counterpartyId,
+      input.groupId
+    ].join("|"))
+    .digest("hex")
+    .slice(0, 24);
+  return "cp-" + input.kind + "-import-" + digest;
+}
+
+interface CounterpartySemanticDestinationsV010 {
+  profiles: Map<
+    CounterpartyRelationshipRoleCodeV010,
+    Record<string, CounterpartyProfileValueV010>
+  >;
+  related: Map<string, {
+    resourceType: string;
+    groupId: string;
+    values: Record<string, FoundationObjectImportCellV010>;
+  }>;
+}
+
+function semanticDestinationsV010(
+  schema: EffectiveObjectSchemaV010,
+  values: Record<string, FoundationObjectImportCellV010>
+): CounterpartySemanticDestinationsV010 {
+  const fields = new Map(schema.fields.map(field => [field.fieldId, field]));
+  const profiles = new Map<
+    CounterpartyRelationshipRoleCodeV010,
+    Record<string, CounterpartyProfileValueV010>
+  >();
+  const related = new Map<string, {
+    resourceType: string;
+    groupId: string;
+    values: Record<string, FoundationObjectImportCellV010>;
+  }>();
+
+  for (const [fieldId, value] of Object.entries(values)) {
+    if (blank(value)) continue;
+    const destination = fields.get(fieldId)?.destination;
+    if (!destination) continue;
+
+    if (destination.kind === "PROFILE_FIELD") {
+      const roleCode = destination.relationshipRole;
+      if (roleCode !== "CUSTOMER" && roleCode !== "SUPPLIER") {
+        throw new Error("COUNTERPARTY_IMPORT_PROFILE_DESTINATION_INVALID");
+      }
+      const target = profiles.get(roleCode) ?? {};
+      target[destination.fieldPath] = value as CounterpartyProfileValueV010;
+      profiles.set(roleCode, target);
+      continue;
+    }
+
+    if (destination.kind === "RELATED_RESOURCE_FIELD") {
+      const groupId = destination.groupId?.trim();
+      if (!groupId) {
+        throw new Error("COUNTERPARTY_IMPORT_RELATED_GROUP_REQUIRED");
+      }
+      const key = destination.resourceType + "|" + groupId;
+      const target = related.get(key) ?? {
+        resourceType: destination.resourceType,
+        groupId,
+        values: {}
+      };
+      target.values[destination.fieldPath] = value;
+      related.set(key, target);
+    }
+  }
+
+  return { profiles, related };
+}
+
+function semanticDestinationValidationIssuesV010(
+  destinations: CounterpartySemanticDestinationsV010
+): FoundationObjectImportValidationV010["issues"] {
+  const issues: FoundationObjectImportValidationV010["issues"] = [];
+  for (const related of destinations.related.values()) {
+    if (related.resourceType === "counterparty.contact") {
+      const displayName = related.values.displayName;
+      if (blank(displayName)) {
+        issues.push({
+          code: "COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED",
+          message: "Primary Contact fields require a primary Contact name.",
+          fieldId: "primaryContactName"
+        });
+      }
+      const email = related.values.email;
+      if (
+        !blank(email)
+        && !/^\S+@\S+\.\S+$/u.test(String(email).trim())
+      ) {
+        issues.push({
+          code: "COUNTERPARTY_CONTACT_EMAIL_INVALID",
+          message: "Primary Contact email is invalid.",
+          fieldId: "primaryContactEmail"
+        });
+      }
+    }
+    if (
+      related.resourceType === "counterparty.address"
+      && blank(related.values.line1)
+    ) {
+      issues.push({
+        code: "COUNTERPARTY_IMPORT_ADDRESS_LINE1_REQUIRED",
+        message: "Primary Address fields require the primary address line.",
+        fieldId: "primaryAddressLine1"
+      });
+    }
+  }
+  return issues;
+}
+
 export function createCounterpartyImportTargetV010(input: {
   resources: EnterpriseResourceRepositoryV010;
   repository: CounterpartyRepositoryV010;
