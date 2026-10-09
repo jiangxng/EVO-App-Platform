@@ -178,3 +178,53 @@ PAY Work          still open
 
 No App Platform code writes LedgerEntry, LedgerBalance, WorkItem or EVO database
 tables directly.
+
+
+## TR-01A sub-gates
+
+TR-01A is intentionally not closed by the first positive purchase loop alone.
+
+### TR-01A1 — positive purchase loop + replay
+
+Status: **IMPLEMENTED / CROSS-PROJECT CI PENDING**
+
+Evidence target:
+
+- Supplier-role Counterparty + Item + Warehouse are resolved through their owning public contracts;
+- Purchase Order and Goods Receipt are submitted as immutable BusinessData facts;
+- Receipt carries explicit `FULFILLS` lineage to the Purchase Order fact;
+- EVO PostgreSQL order-scoped ledger state proves:
+  - `pending_purchase = 0` after full receipt,
+  - `payable = 125`,
+  - `inventory quantity = 10`,
+  - `inventory amount = 125`,
+  - inventory dimensions retain the Item, Warehouse, order and Supplier references;
+- Work closes RECEIVE after full receipt while PAY remains open;
+- EVO's authoritative `validate:eel-c02-full-replay` certification runs in the same cross-project workflow and must report deterministic replay.
+
+Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level
+Position API. It is a ledger-wide observation surface and correctly fails closed when
+units/currencies cannot be represented as one aggregate.
+
+### TR-01A2 — purchase receipt correction / reversal
+
+Status: **REQUIRED / NOT YET IMPLEMENTED**
+
+A correction must be a new immutable business occurrence. It must not mutate the
+Purchase Order or prior Goods Receipt.
+
+The minimum reversal semantics are:
+
+```text
+original Purchase Order remains unchanged
+original Goods Receipt remains unchanged
++ new receipt-reversal fact
+→ pending_purchase +reversed quantity
+→ inventory -reversed quantity / -reversed cost
+→ payable unchanged (the payable originated from Purchase Order approval)
+```
+
+The reversal fact must carry explicit lineage to the Goods Receipt it reverses and
+must replay deterministically in EVO.
+
+Do not mark TR-01A closed and do not start TR-01B merely because TR-01A1 passes.
