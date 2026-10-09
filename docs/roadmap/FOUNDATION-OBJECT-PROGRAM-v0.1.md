@@ -540,7 +540,7 @@ This means the Foundation Object mechanism is proven deeply enough to move to a 
 
 ## 16. IT-01 — Item/Product second-object proof
 
-**Current state:** ACTIVE. IT-01A through IT-01D are MERGED_CI_PRODUCTION_PASS; IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until IT-01E evidence and the contract maturity review complete.
+**Current state:** ACTIVE. IT-01A through IT-01D are MERGED_CI_PRODUCTION_PASS; IT-01E has also production-closed lifecycle-aware import-target discovery and row-dynamic qualifier-aware import. Real-world Open Food Facts/standards RVC and the contract maturity review are now the remaining IT-01 work. Shared Foundation Object contracts remain EXPERIMENTAL until that evidence completes.
 
 Evidence authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
