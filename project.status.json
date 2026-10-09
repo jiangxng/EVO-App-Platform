@@ -4921,7 +4921,18 @@
         "upgrade/version compatibility evidence"
       ],
       "entryCondition": "SATISFIED: CP-06 CLOSED_HUMAN_PASS",
-      "nextGate": "IT-01 Item/Product second-object proof"
+      "nextGate": "IT-01 Item/Product second-object proof",
+      "evidenceAuthority": "docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md",
+      "rvcHarness": {
+        "status": "IMPLEMENTED_CI_PENDING",
+        "command": "npm run rvc:counterparty:gleif",
+        "tool": "tools/counterparty-rvc-gleif.mjs",
+        "protocolTest": "tests/protocol/cp07-counterparty-rvc.test.mjs",
+        "firstSource": "GLEIF Golden Copy Level 1 CSV",
+        "sourceDataCommittedToGit": false,
+        "real100kRvcRun": "PENDING",
+        "real1mPerformanceRun": "PENDING"
+      }
     }
   },
   "architectureConstitutions": {
