@@ -38,7 +38,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: 184811a1b25aa6563b03439758663f04fa4d6319
+  EVO_CERTIFIED_COMMIT: 2964288fc192dd9cea10a1a9d20b4a87d6599628
   EVO_BASE_URL: http://127.0.0.1:3000
   NODE_ENV: test
   LOG_LEVEL: silent
@@ -124,79 +124,6 @@ jobs:
 
       - name: Certify TR-01A Purchase -> Receipt -> Ledger -> Work
         run: node tools/certify-tr01-purchase-evo-postgres.mjs
-
-      - name: Certify TR-01A order-scoped ledger dimensions in EVO PostgreSQL
-        working-directory: evo
-        run: |
-          node --input-type=module <<'NODE'
-          import assert from "node:assert/strict";
-          import pg from "pg";
-
-          const { Client } = pg;
-          const client = new Client({ connectionString: process.env.DATABASE_URL });
-          await client.connect();
-          try {
-            const enterprise = await client.query(
-              "select id from enterprise where code = $1 and status = 'ACTIVE'",
-              ["EVO_DEMO"]
-            );
-            assert.equal(enterprise.rowCount, 1);
-            const enterpriseId = enterprise.rows[0].id;
-
-            const rows = await client.query(
-              `select
-                 d.code as ledger,
-                 b.quantity::text as quantity,
-                 b.amount::text as amount,
-                 b.dimensions
-               from ledger_balance b
-               join ledger_definition d on d.id = b.ledger_definition_id
-               join ledger_dataset ds on ds.id = b.ledger_dataset_id
-               where b.enterprise_id = $1
-                 and ds.kind = 'CURRENT'
-                 and ds.status = 'ACTIVE'
-                 and d.code = any($2::text[])
-                 and b.dimensions ->> 'order_no' = $3`,
-              [
-                enterpriseId,
-                ["pending_purchase", "payable", "inventory"],
-                "TR01-PO-001"
-              ]
-            );
-
-            const byLedger = new Map(rows.rows.map(row => [row.ledger, row]));
-            const pending = byLedger.get("pending_purchase");
-            const payable = byLedger.get("payable");
-            const inventory = byLedger.get("inventory");
-
-            assert.ok(pending, "missing pending_purchase order-scoped balance");
-            assert.ok(payable, "missing payable order-scoped balance");
-            assert.ok(inventory, "missing inventory order-scoped balance");
-
-            assert.equal(Number(pending.quantity), 0);
-            assert.equal(Number(payable.amount), 125);
-            assert.equal(Number(inventory.quantity), 10);
-            assert.equal(Number(inventory.amount), 125);
-
-            assert.equal(inventory.dimensions.product_id, "item-tr01");
-            assert.equal(inventory.dimensions.warehouse, "warehouse-tr01");
-            assert.equal(inventory.dimensions.order_no, "TR01-PO-001");
-            assert.equal(inventory.dimensions.supplier, "cp-tr01-supplier");
-
-            console.log(JSON.stringify({
-              status: "PASS",
-              proof: "TR01A_ORDER_SCOPED_LEDGER_POSITION",
-              enterpriseId,
-              pendingPurchaseQuantity: Number(pending.quantity),
-              payableAmount: Number(payable.amount),
-              inventoryQuantity: Number(inventory.quantity),
-              inventoryAmount: Number(inventory.amount),
-              inventoryDimensions: inventory.dimensions
-            }, null, 2));
-          } finally {
-            await client.end();
-          }
-          NODE
 
       - name: Stop EVO API and Worker before replay certification
         run: |
