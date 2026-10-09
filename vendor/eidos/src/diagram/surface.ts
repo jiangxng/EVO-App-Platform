@@ -15,6 +15,12 @@ import {
   renderContextNavigationV010
 } from "../navigation/context-navigation.js";
 import {
+  diagramEdgeGeometryV010,
+  isDiagramEdgePathKindV010,
+  type DiagramEdgePathKindV010
+} from "./edge-paths.js";
+import { diagramNodesIntersectingRectV010 } from "./selection.js";
+import {
   layoutLayeredDiagramV010
 } from "./layered-layout.js";
 import {
@@ -46,6 +52,8 @@ export interface DiagramEditorViewInteractionV010 {
   zoom?: boolean;
   pan?: boolean;
   localNodeDrag?: boolean;
+  /** Permits local presentation-only connector shape changes, captured on explicit Save. */
+  localEdgePathEdit?: boolean;
   localSelectionHide?: boolean;
   localSelectionHideLabel?: string;
   localSelectionHideNotice?: string;
@@ -123,6 +131,7 @@ export type DiagramEditorContextNavigationV010 =
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
+  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010 }>;
   viewport?: {
     width: number;
     height: number;
@@ -182,6 +191,8 @@ export interface DiagramEditorEdgeV010 {
   kind: string;
   label?: string;
   style?: DiagramEditorEdgeStyleV010;
+  /** A presentation route, independent of dashed texture and semantic arrow direction. */
+  pathKind?: DiagramEdgePathKindV010;
   arrow?: DiagramEditorEdgeArrowV010;
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
@@ -458,6 +469,10 @@ export function isDiagramEditorPageV010(
           || typeof page.viewInteraction.localNodeDrag === "boolean"
         )
         && (
+          page.viewInteraction.localEdgePathEdit === undefined
+          || typeof page.viewInteraction.localEdgePathEdit === "boolean"
+        )
+        && (
           page.viewInteraction.localSelectionHide === undefined
           || typeof page.viewInteraction.localSelectionHide === "boolean"
         )
@@ -632,6 +647,8 @@ export function validateDiagramEditorStateV010(
       || !nonEmpty(edge?.kind)
       || (edge.style !== undefined
         && !["solid", "dashed"].includes(edge.style))
+      || (edge.pathKind !== undefined
+        && !isDiagramEdgePathKindV010(edge.pathKind))
       || (edge.arrow !== undefined
         && !["none", "start", "end", "both"].includes(edge.arrow))
     ) {
@@ -1158,6 +1175,8 @@ function nodeBoundaryPoint(
   };
 }
 
+let diagramEditorInstanceSequence = 0;
+
 export function mountDiagramEditorPageV010(
   options: MountDiagramEditorPageOptionsV010
 ): MountedDiagramEditorPageV010 {
@@ -1204,6 +1223,16 @@ export function mountDiagramEditorPageV010(
   let disposed = false;
   let state: DiagramEditorStateV010 | undefined;
   let selected: { kind: "node" | "edge"; id: string } | undefined;
+  const selectedNodeIds = new Set<string>();
+  let canvasTool: "SELECT" | "PAN" = "SELECT";
+  let spaceHeld = false;
+  let wheelInputMode: "MOUSE" | "TRACKPAD" = "MOUSE";
+  try {
+    wheelInputMode = window.localStorage.getItem("eidos.diagram.wheelMode") === "TRACKPAD"
+      ? "TRACKPAD" : "MOUSE";
+  } catch { /* Private browsing may disable storage; mouse stays the default. */ }
+  let suppressNextCanvasClick = false;
+  let canvasClickHandlerInstalled = false;
   let selectionInspection:
     DiagramEditorSelectionInspectionV010 | undefined;
   let selectionReadGeneration = 0;
@@ -1212,7 +1241,62 @@ export function mountDiagramEditorPageV010(
   let followsFitToCanvas = page.initialCamera === undefined;
   let stageElement: HTMLElement | undefined;
   let suppressNextNodeClick = false;
+  const arrowMarkerId = "eidos-diagram-arrow-" + (++diagramEditorInstanceSequence);
   const locallyHiddenNodeIds = new Set<string>();
+  type ViewSnapshot = {
+    positions: Array<{ id: string; x: number; y: number }>;
+    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010 }>;
+    hiddenNodeIds: string[];
+    hiddenEdgeIds: string[];
+  };
+  const undoHistory: ViewSnapshot[] = [];
+  const redoHistory: ViewSnapshot[] = [];
+  const captureSnapshot = (): ViewSnapshot => ({
+    positions: (state?.nodes ?? []).map(node => ({ id: node.id, x: node.x, y: node.y })),
+    edgePaths: (state?.edges ?? []).map(edge => ({ id: edge.id, pathKind: edge.pathKind })),
+    hiddenNodeIds: [...locallyHiddenNodeIds],
+    hiddenEdgeIds: [...locallyHiddenEdgeIds]
+  });
+  const checkpoint = (): void => {
+    undoHistory.push(captureSnapshot());
+    if (undoHistory.length > 50) undoHistory.shift();
+    redoHistory.length = 0;
+  };
+  const restoreSnapshot = (snapshot: ViewSnapshot): void => {
+    for (const node of state?.nodes ?? []) {
+      const position = snapshot.positions.find(item => item.id === node.id);
+      if (position) { node.x = position.x; node.y = position.y; }
+    }
+    for (const edge of state?.edges ?? []) {
+      const previous = snapshot.edgePaths.find(item => item.id === edge.id);
+      if (previous) {
+        if (previous.pathKind === undefined) delete edge.pathKind;
+        else edge.pathKind = previous.pathKind;
+      }
+    }
+    locallyHiddenNodeIds.clear();
+    locallyHiddenEdgeIds.clear();
+    for (const id of snapshot.hiddenNodeIds) locallyHiddenNodeIds.add(id);
+    for (const id of snapshot.hiddenEdgeIds) locallyHiddenEdgeIds.add(id);
+    selected = undefined;
+    selectedNodeIds.clear();
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    report("View adjusted locally. Save to persist changes.");
+  };
+  const undoView = (): void => {
+    const previous = undoHistory.pop();
+    if (!previous) return;
+    redoHistory.push(captureSnapshot());
+    restoreSnapshot(previous);
+  };
+  const redoView = (): void => {
+    const next = redoHistory.pop();
+    if (!next) return;
+    undoHistory.push(captureSnapshot());
+    restoreSnapshot(next);
+  };
   const locallyHiddenEdgeIds = new Set<string>();
   const syncLocalVisibilityFromState = (): void => {
     locallyHiddenNodeIds.clear();
@@ -1270,6 +1354,9 @@ export function mountDiagramEditorPageV010(
     }
     const previousSelection = selected;
     state = stateFromResult(result.result);
+    undoHistory.length = 0;
+    redoHistory.length = 0;
+    selectedNodeIds.clear();
     syncLocalVisibilityFromState();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
@@ -1337,7 +1424,7 @@ export function mountDiagramEditorPageV010(
   };
 
   const matchingActions = (): DiagramEditorActionV010[] => {
-    if (!state) return [];
+    if (!state || selectedNodeIds.size > 1) return [];
     return (state.actions ?? []).filter(action => {
       if (!action.target || action.target.kind === "graph") {
         return selected === undefined;
@@ -1372,6 +1459,8 @@ export function mountDiagramEditorPageV010(
         ? {
             hiddenNodeIds: [...locallyHiddenNodeIds],
             hiddenEdgeIds: [...locallyHiddenEdgeIds],
+            edgePaths: (state.edges ?? []).filter(edge => edge.pathKind !== undefined)
+              .map(edge => ({ edgeId: edge.id, pathKind: edge.pathKind! })),
             viewport: {
               width: Math.max(1, canvas.clientWidth),
               height: Math.max(1, canvas.clientHeight)
@@ -1398,6 +1487,9 @@ export function mountDiagramEditorPageV010(
       return;
     }
     state = stateFromResult(result.result);
+    undoHistory.length = 0;
+    redoHistory.length = 0;
+    selectedNodeIds.clear();
     syncLocalVisibilityFromState();
     selected = selectionStillExists(previousSelection)
       ? previousSelection
@@ -1534,6 +1626,7 @@ export function mountDiagramEditorPageV010(
         placement
       ] as const)
     );
+    checkpoint();
     for (const node of state.nodes) {
       const placement = placementByNode.get(node.id);
       if (!placement) continue;
@@ -1541,6 +1634,7 @@ export function mountDiagramEditorPageV010(
       node.y = placement.y;
     }
     selected = undefined;
+    selectedNodeIds.clear();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
     render();
@@ -1557,6 +1651,50 @@ export function mountDiagramEditorPageV010(
     viewControls.replaceChildren();
     selectionActions.replaceChildren();
     if (!state) return;
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      for (const option of [
+        { id: "SELECT", label: "Select", title: "Select or marquee nodes (V)" },
+        { id: "PAN", label: "Hand", title: "Pan the canvas (H)" }
+      ] as const) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.label;
+        button.title = option.title;
+        button.setAttribute("data-eidos-diagram-tool", option.id);
+        button.setAttribute("aria-pressed", String(canvasTool === option.id));
+        button.onclick = () => {
+          canvasTool = option.id;
+          canvas.style.cursor = canvasTool === "PAN" ? "grab" : "crosshair";
+          renderActions();
+        };
+        toolbar.appendChild(button);
+      }
+      const wheelButton = document.createElement("button");
+      wheelButton.type = "button";
+      wheelButton.textContent = wheelInputMode === "MOUSE" ? "Mouse" : "Trackpad";
+      wheelButton.title = "Switch between mouse-wheel zoom and trackpad two-finger pan";
+      wheelButton.setAttribute("data-eidos-diagram-wheel-mode", wheelInputMode);
+      wheelButton.onclick = () => {
+        wheelInputMode = wheelInputMode === "MOUSE" ? "TRACKPAD" : "MOUSE";
+        try { window.localStorage.setItem("eidos.diagram.wheelMode", wheelInputMode); }
+        catch { /* Preference remains usable for this mount. */ }
+        renderActions();
+      };
+      toolbar.appendChild(wheelButton);
+      for (const option of [
+        { label: "Undo", key: "undo", enabled: undoHistory.length > 0, action: undoView },
+        { label: "Redo", key: "redo", enabled: redoHistory.length > 0, action: redoView }
+      ]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.label;
+        button.disabled = !option.enabled;
+        button.setAttribute("data-eidos-diagram-history", option.key);
+        button.onclick = option.action;
+        toolbar.appendChild(button);
+      }
+    }
 
     const overflowButtons: HTMLButtonElement[] = [];
     const placeToolbarButton = (
@@ -1585,6 +1723,10 @@ export function mountDiagramEditorPageV010(
     }
 
     const clearSelectionOnCanvasClick = (event: MouseEvent): void => {
+    if (suppressNextCanvasClick) {
+      suppressNextCanvasClick = false;
+      return;
+    }
     const target = event.target as Element | null;
     if (
       target?.closest?.("[data-eidos-diagram-node]")
@@ -1595,10 +1737,11 @@ export function mountDiagramEditorPageV010(
     }
     clearSelection();
   };
-  canvas.addEventListener("click", clearSelectionOnCanvasClick);
-  listeners.push(() =>
-    canvas.removeEventListener("click", clearSelectionOnCanvasClick)
-  );
+  if (!canvasClickHandlerInstalled) {
+    canvas.addEventListener("click", clearSelectionOnCanvasClick);
+    listeners.push(() => canvas.removeEventListener("click", clearSelectionOnCanvasClick));
+    canvasClickHandlerInstalled = true;
+  }
 
   if (page.viewInteraction?.zoom) {
       const addViewButton = (
@@ -1657,9 +1800,11 @@ export function mountDiagramEditorPageV010(
       button.disabled =
         locallyHiddenNodeIds.size === 0 && locallyHiddenEdgeIds.size === 0;
       button.onclick = () => {
+        checkpoint();
         locallyHiddenNodeIds.clear();
         locallyHiddenEdgeIds.clear();
         selected = undefined;
+        selectedNodeIds.clear();
         selectionInspection = undefined;
         selectionReadGeneration += 1;
         render();
@@ -1775,8 +1920,9 @@ export function mountDiagramEditorPageV010(
   };
 
   function clearSelection(): void {
-    if (!selected && !selectionInspection) return;
+    if (!selected && !selectionInspection && selectedNodeIds.size === 0) return;
     selected = undefined;
+    selectedNodeIds.clear();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
     render();
@@ -1791,12 +1937,16 @@ export function mountDiagramEditorPageV010(
     ) {
       return;
     }
-    if (selected.kind === "node") {
+    checkpoint();
+    if (selectedNodeIds.size > 1) {
+      for (const id of selectedNodeIds) locallyHiddenNodeIds.add(id);
+    } else if (selected.kind === "node") {
       locallyHiddenNodeIds.add(selected.id);
     } else {
       locallyHiddenEdgeIds.add(selected.id);
     }
     selected = undefined;
+    selectedNodeIds.clear();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
     render();
@@ -1929,7 +2079,8 @@ export function mountDiagramEditorPageV010(
     );
 
   const inspectSelection = async (): Promise<void> => {
-    if (!state || !selected || !page.selectionReadCommand || disposed) return;
+    if (!state || !selected || !page.selectionReadCommand || disposed
+      || selectedNodeIds.size > 1) return;
     const target = { ...selected };
     const generation = ++selectionReadGeneration;
     selectionInspection = undefined;
@@ -1967,6 +2118,12 @@ export function mountDiagramEditorPageV010(
       return;
     }
     const item = selectedItem();
+    if (selectedNodeIds.size > 1) {
+      selectionText.textContent = selectedNodeIds.size + " nodes selected";
+      renderSelectionProperties(undefined);
+      renderActions();
+      return;
+    }
     selectionText.textContent = item
       ? [
           item.label,
@@ -1982,6 +2139,39 @@ export function mountDiagramEditorPageV010(
     } catch (error) {
       report(error instanceof Error ? error.message : String(error));
       renderSelectionProperties(item?.properties);
+    }
+    if (selected.kind === "edge" && page.viewInteraction?.localEdgePathEdit === true) {
+      const edge = state.edges.find(item => item.id === selected!.id);
+      if (edge) {
+        const control = document.createElement("label");
+        control.textContent = "Connector path (presentation only)";
+        control.style.display = "grid";
+        control.style.gap = "6px";
+        control.style.marginTop = "14px";
+        const select = document.createElement("select");
+        select.setAttribute("data-eidos-diagram-edge-path-kind", edge.id);
+        for (const [kind, label] of [
+          ["straight", "Straight"],
+          ["orthogonal", "Orthogonal"],
+          ["rounded-orthogonal", "Rounded orthogonal"],
+          ["curve", "Curve"]
+        ] as const) {
+          const option = document.createElement("option");
+          option.value = kind;
+          option.textContent = label;
+          select.appendChild(option);
+        }
+        select.value = edge.pathKind ?? "straight";
+        select.onchange = () => {
+          if (!isDiagramEdgePathKindV010(select.value) || select.value === (edge.pathKind ?? "straight")) return;
+          checkpoint();
+          edge.pathKind = select.value;
+          render();
+          report("Connector presentation updated locally. Save the projection to persist.");
+        };
+        control.appendChild(select);
+        selectionProperties.appendChild(control);
+      }
     }
     renderActions();
   };
@@ -2028,7 +2218,7 @@ export function mountDiagramEditorPageV010(
 
     const defs = svgElement("defs");
     const markerEnd = svgElement("marker");
-    markerEnd.setAttribute("id", "eidos-diagram-arrow-end");
+    markerEnd.setAttribute("id", arrowMarkerId);
     markerEnd.setAttribute("viewBox", "0 0 10 10");
     markerEnd.setAttribute("refX", "9");
     markerEnd.setAttribute("refY", "5");
@@ -2044,6 +2234,11 @@ export function mountDiagramEditorPageV010(
 
     const renderedNodes = visibleNodes();
     const renderedEdges = visibleEdges();
+    const liveEdges = new Map<string, {
+      hit: SVGPathElement;
+      visual: SVGPathElement;
+      label?: SVGTextElement;
+    }>();
     const focusedNodeIds = new Set<string>();
     const selectedNodeId = selected?.kind === "node" ? selected.id : undefined;
     const selectedEdgeId = selected?.kind === "edge" ? selected.id : undefined;
@@ -2052,6 +2247,13 @@ export function mountDiagramEditorPageV010(
       for (const edge of renderedEdges) {
         if (edge.source === selectedNodeId) focusedNodeIds.add(edge.target);
         if (edge.target === selectedNodeId) focusedNodeIds.add(edge.source);
+      }
+    }
+    for (const id of selectedNodeIds) {
+      focusedNodeIds.add(id);
+      for (const edge of renderedEdges) {
+        if (edge.source === id) focusedNodeIds.add(edge.target);
+        if (edge.target === id) focusedNodeIds.add(edge.source);
       }
     }
     if (selectedEdgeId) {
@@ -2070,17 +2272,17 @@ export function mountDiagramEditorPageV010(
       const targetCenter = nodeCenter(target);
       const a = nodeBoundaryPoint(source, targetCenter);
       const b = nodeBoundaryPoint(target, sourceCenter);
-      const hit = svgElement("line");
-      hit.setAttribute("x1", String(a.x));
-      hit.setAttribute("y1", String(a.y));
-      hit.setAttribute("x2", String(b.x));
-      hit.setAttribute("y2", String(b.y));
+      const geometry = diagramEdgeGeometryV010(a, b, edge.pathKind);
+      const hit = svgElement("path");
+      hit.setAttribute("d", geometry.d);
+      hit.setAttribute("fill", "none");
       hit.setAttribute("stroke", "transparent");
       hit.setAttribute("stroke-width", "18");
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
       hit.setAttribute("data-eidos-diagram-edge", edge.id);
       hit.addEventListener("click", () => {
+        selectedNodeIds.clear();
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
         render();
@@ -2089,15 +2291,14 @@ export function mountDiagramEditorPageV010(
       });
       svg.appendChild(hit);
 
-      const line = svgElement("line");
-      line.setAttribute("x1", String(a.x));
-      line.setAttribute("y1", String(a.y));
-      line.setAttribute("x2", String(b.x));
-      line.setAttribute("y2", String(b.y));
+      const line = svgElement("path");
+      line.setAttribute("d", geometry.d);
+      line.setAttribute("fill", "none");
       const edgeSelected = selectedEdgeId === edge.id;
       const edgeConnected =
         Boolean(selectedNodeId)
-        && (edge.source === selectedNodeId || edge.target === selectedNodeId);
+        && (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+          || edge.source === selectedNodeId || edge.target === selectedNodeId);
       const edgeFocused = edgeSelected || edgeConnected;
       const edgeDimmed = Boolean(selected) && !edgeFocused;
       line.setAttribute(
@@ -2119,13 +2320,15 @@ export function mountDiagramEditorPageV010(
         line.setAttribute("stroke-dasharray", "8 6");
       }
       if (edge.arrow === "end" || edge.arrow === "both") {
-        line.setAttribute("marker-end", "url(#eidos-diagram-arrow-end)");
+        line.setAttribute("marker-end", "url(#" + arrowMarkerId + ")");
       }
       if (edge.arrow === "start" || edge.arrow === "both") {
-        line.setAttribute("marker-start", "url(#eidos-diagram-arrow-end)");
+        line.setAttribute("marker-start", "url(#" + arrowMarkerId + ")");
       }
+      line.setAttribute("data-eidos-diagram-edge-visual", edge.id);
       line.style.pointerEvents = "none";
       svg.appendChild(line);
+      liveEdges.set(edge.id, { hit, visual: line });
 
       const edgeCaption = [
         edge.label,
@@ -2142,8 +2345,9 @@ export function mountDiagramEditorPageV010(
         );
       if (showEdgeCaption) {
         const label = svgElement("text");
-        label.setAttribute("x", String((a.x + b.x) / 2));
-        label.setAttribute("y", String((a.y + b.y) / 2 - 8));
+        label.setAttribute("x", String(geometry.label.x));
+        label.setAttribute("y", String(geometry.label.y - 8));
+        label.setAttribute("data-eidos-diagram-edge-label", edge.id);
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "11");
         label.setAttribute("fill", "var(--eidos-fg-muted,#5F6B76)");
@@ -2155,8 +2359,37 @@ export function mountDiagramEditorPageV010(
         label.textContent = edgeCaption;
         label.style.pointerEvents = "none";
         svg.appendChild(label);
+        liveEdges.get(edge.id)!.label = label;
       }
     }
+
+    // Preview only the incident edges during drag; keep pointer capture and the
+    // rest of the canvas mounted until the gesture commits or cancels.
+    const previewIncidentEdges = (
+      positions: ReadonlyMap<string, { x: number; y: number }>
+    ): void => {
+      if (positions.size === 0) return;
+      const byId = new Map(renderedNodes.map(node => [node.id, node] as const));
+      for (const edge of renderedEdges) {
+        if (!positions.has(edge.source) && !positions.has(edge.target)) continue;
+        const sourceNode = byId.get(edge.source);
+        const targetNode = byId.get(edge.target);
+        if (!sourceNode || !targetNode) continue;
+        const source = { ...sourceNode, ...positions.get(edge.source) };
+        const target = { ...targetNode, ...positions.get(edge.target) };
+        const a = nodeBoundaryPoint(source, nodeCenter(target));
+        const b = nodeBoundaryPoint(target, nodeCenter(source));
+        const route = diagramEdgeGeometryV010(a, b, edge.pathKind);
+        const elements = liveEdges.get(edge.id);
+        if (!elements) continue;
+        elements.hit.setAttribute("d", route.d);
+        elements.visual.setAttribute("d", route.d);
+        if (elements.label) {
+          elements.label.setAttribute("x", String(route.label.x));
+          elements.label.setAttribute("y", String(route.label.y - 8));
+        }
+      }
+    };
 
     stage.appendChild(svg);
 
@@ -2203,8 +2436,9 @@ export function mountDiagramEditorPageV010(
         node.detail ?? node.kind,
         ...observationText(node.observations)
       ].filter(Boolean).join("\n");
-      const nodeSelected = selectedNodeId === node.id;
-      const nodeFocused = !selected || focusedNodeIds.has(node.id);
+      const nodeSelected = selectedNodeIds.has(node.id) || selectedNodeId === node.id;
+      const nodeFocused = !selected || selectedNodeIds.has(node.id)
+        || focusedNodeIds.has(node.id);
       element.style.position = "absolute";
       element.style.left = node.x + "px";
       element.style.top = node.y + "px";
@@ -2239,20 +2473,32 @@ export function mountDiagramEditorPageV010(
       element.style.touchAction = localViewDrag || persistentDrag ? "none" : "auto";
       element.style.zIndex = "2";
 
-      element.addEventListener("click", () => {
+      element.addEventListener("click", event => {
         if (suppressNextNodeClick) {
           suppressNextNodeClick = false;
           return;
         }
-        selected = { kind: "node", id: node.id };
+        if (event.shiftKey && page.viewInteraction?.localNodeDrag === true) {
+          if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
+          else selectedNodeIds.add(node.id);
+          const last = [...selectedNodeIds].at(-1);
+          selected = last ? { kind: "node", id: last } : undefined;
+        } else {
+          selectedNodeIds.clear();
+          selectedNodeIds.add(node.id);
+          selected = { kind: "node", id: node.id };
+        }
         selectionInspection = undefined;
+        selectionReadGeneration += 1;
         render();
         canvas.focus({ preventScroll: true });
-        void inspectSelection();
+        if (selectedNodeIds.size === 1) void inspectSelection();
       });
 
       if (localViewDrag || persistentDrag) {
         const pointerDown = (event: PointerEvent) => {
+          if (event.pointerType !== "touch" && event.button !== 0) return;
+          if (spaceHeld || canvasTool === "PAN") return;
           const isTouch = event.pointerType === "touch";
           if (isTouch) {
             navigationPointers.set(event.pointerId, {
@@ -2275,6 +2521,33 @@ export function mountDiagramEditorPageV010(
           const startY = event.clientY;
           const originalX = node.x;
           const originalY = node.y;
+          const members = localViewDrag && selectedNodeIds.has(node.id)
+            ? renderedNodes.filter(item => selectedNodeIds.has(item.id))
+            : [node];
+          const initial = new Map(members.map(item => [item.id, {
+            x: item.x, y: item.y
+          }] as const));
+          const membersElements = new Map(members.map(item => [
+            item.id,
+            stage.querySelector<HTMLElement>(
+              `[data-eidos-diagram-node="${CSS.escape(item.id)}"]`
+            )
+          ] as const));
+          const movedPositions = (dx: number, dy: number) =>
+            new Map(members.map(item => [item.id, {
+              x: item.x + dx,
+              y: item.y + dy
+            }] as const));
+          const showPositions = (positions: ReadonlyMap<string, { x: number; y: number }>) => {
+            for (const [id, position] of positions) {
+              const target = membersElements.get(id);
+              if (target) {
+                target.style.left = position.x + "px";
+                target.style.top = position.y + "px";
+              }
+            }
+            previewIncidentEdges(positions);
+          };
           let moved = false;
           let cancelledByNavigation = false;
 
@@ -2282,8 +2555,7 @@ export function mountDiagramEditorPageV010(
             if (cancelledByNavigation) return;
             cancelledByNavigation = true;
             moved = false;
-            element.style.left = originalX + "px";
-            element.style.top = originalY + "px";
+            showPositions(initial);
             suppressNextNodeClick = true;
             window.setTimeout(() => {
               suppressNextNodeClick = false;
@@ -2299,35 +2571,41 @@ export function mountDiagramEditorPageV010(
             const screenDeltaX = move.clientX - startX;
             const screenDeltaY = move.clientY - startY;
             if (
+              !moved && Math.hypot(screenDeltaX, screenDeltaY) < (isTouch ? touchDragThresholdPx : 4)
+            ) return;
+            if (
               isTouch
               && !moved
               && Math.hypot(screenDeltaX, screenDeltaY) < touchDragThresholdPx
             ) {
               return;
             }
-            const nextX =
-              originalX + screenDeltaX / camera.scale;
-            const nextY =
-              originalY + screenDeltaY / camera.scale;
+            const nextX = originalX + screenDeltaX / camera.scale;
+            const nextY = originalY + screenDeltaY / camera.scale;
             moved = true;
-            element.style.left = nextX + "px";
-            element.style.top = nextY + "px";
+            showPositions(movedPositions(nextX - originalX, nextY - originalY));
           };
 
           const pointerUp = (up: PointerEvent) => {
+            element.removeEventListener("lostpointercapture", lostCapture);
             if (element.hasPointerCapture(up.pointerId)) {
               element.releasePointerCapture(up.pointerId);
             }
             element.removeEventListener("pointermove", pointerMove);
             element.removeEventListener("pointerup", pointerUp);
-            element.removeEventListener("pointercancel", pointerUp);
+            element.removeEventListener("pointercancel", pointerCancel);
             if (cancelledByNavigation || !moved) return;
             suppressNextNodeClick = true;
             const x = Number.parseFloat(element.style.left);
             const y = Number.parseFloat(element.style.top);
-            if (localViewDrag && (node.readOnly || !page.operationCommand)) {
-              node.x = x;
-              node.y = y;
+            if (localViewDrag && (node.readOnly || !page.operationCommand || members.length > 1)) {
+              checkpoint();
+              const dx = x - originalX;
+              const dy = y - originalY;
+              for (const item of members) {
+                item.x += dx;
+                item.y += dy;
+              }
               render();
               window.setTimeout(() => {
                 suppressNextNodeClick = false;
@@ -2346,9 +2624,17 @@ export function mountDiagramEditorPageV010(
             );
           };
 
+          const pointerCancel = (event: PointerEvent): void => {
+            cancelForNavigation();
+            pointerUp(event);
+          };
+          const lostCapture = (event: PointerEvent): void => {
+            pointerCancel(event);
+          };
           element.addEventListener("pointermove", pointerMove);
           element.addEventListener("pointerup", pointerUp);
-          element.addEventListener("pointercancel", pointerUp);
+          element.addEventListener("pointercancel", pointerCancel);
+          element.addEventListener("lostpointercapture", lostCapture);
         };
         element.addEventListener("pointerdown", pointerDown);
       }
@@ -2366,7 +2652,8 @@ export function mountDiagramEditorPageV010(
   if (page.viewInteraction?.zoom || page.viewInteraction?.pan) {
     canvas.style.touchAction = "none";
     if (page.viewInteraction?.pan) {
-      canvas.style.cursor = "grab";
+      canvas.style.cursor = page.viewInteraction?.localNodeDrag && canvasTool === "SELECT"
+        ? "crosshair" : "grab";
     }
 
     const canvasPoint = (clientX: number, clientY: number) => {
@@ -2382,10 +2669,29 @@ export function mountDiagramEditorPageV010(
       b: { x: number; y: number }
     ): number => Math.hypot(b.x - a.x, b.y - a.y);
 
+    let marquee: {
+      pointerId: number;
+      start: { x: number; y: number };
+      current: { x: number; y: number };
+      additive: boolean;
+      moved: boolean;
+      element: HTMLDivElement;
+    } | undefined;
+
+    const removeMarquee = (): void => {
+      marquee?.element.remove();
+      marquee = undefined;
+    };
+
     const pointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null;
+      const mouse = event.pointerType === "mouse" || event.pointerType === "pen";
+      const primary = event.button === 0;
+      const wantsMarquee = mouse && primary
+        && page.viewInteraction?.localNodeDrag === true
+        && canvasTool === "SELECT" && !spaceHeld;
       if (
-        event.pointerType !== "touch"
+        mouse && primary && !spaceHeld && canvasTool !== "PAN"
         && (
           target?.closest?.("[data-eidos-diagram-node]")
           || target?.closest?.("[data-eidos-diagram-edge]")
@@ -2393,11 +2699,22 @@ export function mountDiagramEditorPageV010(
       ) {
         return;
       }
-      if (!page.viewInteraction?.pan && event.pointerType !== "touch") {
-        return;
-      }
+      if (mouse && !primary && event.button !== 1 && event.button !== 2) return;
+      if (!wantsMarquee && !page.viewInteraction?.pan && event.pointerType !== "touch") return;
       event.preventDefault();
       canvas.setPointerCapture(event.pointerId);
+      if (wantsMarquee) {
+        const anchor = canvasPoint(event.clientX, event.clientY);
+        const element = document.createElement("div");
+        element.setAttribute("data-eidos-diagram-marquee", "");
+        element.style.cssText = "position:absolute;z-index:9;pointer-events:none;border:1px solid var(--eidos-primary,#2B6CB0);background:color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 75%,transparent);";
+        canvas.appendChild(element);
+        marquee = {
+          pointerId: event.pointerId, start: anchor, current: anchor,
+          additive: event.shiftKey, moved: false, element
+        };
+        return;
+      }
       navigationPointers.set(event.pointerId, {
         x: event.clientX,
         y: event.clientY
@@ -2418,6 +2735,19 @@ export function mountDiagramEditorPageV010(
     };
 
     const pointerMove = (event: PointerEvent) => {
+      if (marquee?.pointerId === event.pointerId) {
+        event.preventDefault();
+        const current = canvasPoint(event.clientX, event.clientY);
+        marquee.current = current;
+        if (Math.hypot(current.x - marquee.start.x, current.y - marquee.start.y) >= 4) marquee.moved = true;
+        if (marquee.moved) {
+          marquee.element.style.left = Math.min(current.x, marquee.start.x) + "px";
+          marquee.element.style.top = Math.min(current.y, marquee.start.y) + "px";
+          marquee.element.style.width = Math.abs(current.x - marquee.start.x) + "px";
+          marquee.element.style.height = Math.abs(current.y - marquee.start.y) + "px";
+        }
+        return;
+      }
       if (!navigationPointers.has(event.pointerId)) return;
       event.preventDefault();
       navigationPointers.set(event.pointerId, {
@@ -2475,6 +2805,34 @@ export function mountDiagramEditorPageV010(
     };
 
     const pointerUp = (event: PointerEvent) => {
+      if (marquee?.pointerId === event.pointerId) {
+        const box = marquee;
+        removeMarquee();
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        if (event.type === "pointerup" && box.moved) {
+          const minX = Math.min(box.start.x, box.current.x);
+          const maxX = Math.max(box.start.x, box.current.x);
+          const minY = Math.min(box.start.y, box.current.y);
+          const maxY = Math.max(box.start.y, box.current.y);
+          const ids = diagramNodesIntersectingRectV010(visibleNodes(), {
+            x: (minX - camera.translateX) / camera.scale,
+            y: (minY - camera.translateY) / camera.scale,
+            width: (maxX - minX) / camera.scale,
+            height: (maxY - minY) / camera.scale
+          });
+          if (!box.additive) selectedNodeIds.clear();
+          for (const id of ids) selectedNodeIds.add(id);
+          const last = [...selectedNodeIds].at(-1);
+          selected = last ? { kind: "node", id: last } : undefined;
+          selectionInspection = undefined;
+          selectionReadGeneration += 1;
+          suppressNextCanvasClick = true;
+          render();
+          canvas.focus({ preventScroll: true });
+          window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+        }
+        return;
+      }
       navigationPointers.delete(event.pointerId);
       if (canvas.hasPointerCapture(event.pointerId)) {
         canvas.releasePointerCapture(event.pointerId);
@@ -2487,7 +2845,8 @@ export function mountDiagramEditorPageV010(
       }
       panLast = points.length === 1 ? points[0] : undefined;
       if (points.length === 0) {
-        canvas.style.cursor = page.viewInteraction?.pan ? "grab" : "";
+        canvas.style.cursor = page.viewInteraction?.localNodeDrag && canvasTool === "SELECT"
+          ? "crosshair" : (page.viewInteraction?.pan ? "grab" : "");
       }
     };
 
@@ -2495,6 +2854,13 @@ export function mountDiagramEditorPageV010(
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
     canvas.addEventListener("pointercancel", pointerUp);
+    const onBlur = (): void => {
+      removeMarquee();
+      navigationPointers.clear();
+      panLast = undefined;
+      spaceHeld = false;
+    };
+    window.addEventListener("blur", onBlur);
     const lostPointerCapture = (event: PointerEvent) => {
       if (!navigationPointers.has(event.pointerId)) return;
       navigationPointers.delete(event.pointerId);
@@ -2512,6 +2878,7 @@ export function mountDiagramEditorPageV010(
       () => canvas.removeEventListener("pointermove", pointerMove),
       () => canvas.removeEventListener("pointerup", pointerUp),
       () => canvas.removeEventListener("pointercancel", pointerUp),
+      () => window.removeEventListener("blur", onBlur),
       () => canvas.removeEventListener("lostpointercapture", lostPointerCapture)
     );
   }
@@ -2519,14 +2886,19 @@ export function mountDiagramEditorPageV010(
   if (page.viewInteraction?.zoom) {
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
-      const anchor = (() => {
-        const rect = canvas.getBoundingClientRect();
-        return {
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top
-        };
-      })();
-      const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const deltaUnit = event.deltaMode === 1 ? 16
+        : event.deltaMode === 2 ? Math.max(1, canvas.clientHeight) : 1;
+      const dx = event.deltaX * deltaUnit;
+      const dy = event.deltaY * deltaUnit;
+      if (wheelInputMode === "TRACKPAD" && !event.ctrlKey) {
+        followsFitToCanvas = false;
+        camera = panDiagramCameraByScreenDeltaV010(camera, { x: -dx, y: -dy });
+        applyCameraTransform();
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const factor = Math.max(0.5, Math.min(2, Math.exp(-dy * 0.002)));
       applyZoomAt(camera.scale * factor, anchor);
     };
     canvas.addEventListener("wheel", wheel, { passive: false });
@@ -2545,12 +2917,53 @@ export function mountDiagramEditorPageV010(
 
   const keydownHandler = (event: KeyboardEvent): void => {
     const target = event.target;
+    const focus = document.activeElement;
+    if (focus && focus !== canvas && !focus.closest?.("[data-eidos-diagram-node]")) return;
     if (
       target instanceof HTMLInputElement
       || target instanceof HTMLTextAreaElement
       || target instanceof HTMLSelectElement
       || (target instanceof HTMLElement && target.isContentEditable)
     ) {
+      return;
+    }
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (ctrl && !event.altKey && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redoView(); else undoView();
+        return;
+      }
+      if (ctrl && !event.altKey && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redoView();
+        return;
+      }
+      if (ctrl && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        selectedNodeIds.clear();
+        for (const node of visibleNodes()) selectedNodeIds.add(node.id);
+        const last = [...selectedNodeIds].at(-1);
+        selected = last ? { kind: "node", id: last } : undefined;
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        render();
+        return;
+      }
+      if (!ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "v") {
+        canvasTool = "SELECT"; renderActions(); return;
+      }
+      if (!ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "h") {
+        canvasTool = "PAN"; renderActions(); return;
+      }
+    }
+
+    if (page.viewInteraction?.localNodeDrag === true && event.code === "Space"
+      && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      spaceHeld = true;
+      canvas.style.cursor = "grab";
       return;
     }
 
@@ -2579,6 +2992,7 @@ export function mountDiagramEditorPageV010(
       const node = state.nodes.find(item => item.id === selected!.id);
       if (!node) return;
       event.preventDefault();
+      checkpoint();
       const step = event.shiftKey ? 10 : 1;
       if (event.key === "ArrowLeft") node.x -= step;
       if (event.key === "ArrowRight") node.x += step;
@@ -2632,7 +3046,15 @@ export function mountDiagramEditorPageV010(
     }
   };
   root.addEventListener("keydown", keydownHandler);
+  const keyupHandler = (event: KeyboardEvent): void => {
+    if (event.code === "Space" && spaceHeld) {
+      spaceHeld = false;
+      canvas.style.cursor = canvasTool === "SELECT" ? "crosshair" : "grab";
+    }
+  };
+  window.addEventListener("keyup", keyupHandler);
   listeners.push(() => root.removeEventListener("keydown", keydownHandler));
+  listeners.push(() => window.removeEventListener("keyup", keyupHandler));
 
   void load(
     page.readPresets?.find(preset =>
