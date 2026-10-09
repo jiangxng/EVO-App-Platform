@@ -94,6 +94,33 @@ CI uses only a tiny deterministic fixture to verify the adapter, provenance cont
 and report semantics. A real >=100k run must use an external source file and a
 fully populated source manifest.
 
+## CP-07C — Package upgrade / version compatibility
+
+The compatibility audit found that the architecture required Package upgrade but the
+App Manager exposed only install/enable/disable/uninstall. CP-07 therefore treats
+upgrade as a real maturity gap rather than declaring compatibility by documentation.
+
+The bounded platform correction adds a side-effect-free upgrade plan and explicit
+upgrade transition. It checks newer-version ordering, Host compatibility, runtime and
+integrity admission, newly requested permissions/trust, active Feature continuity and
+post-upgrade dependencies.
+
+Counterparty proof uses an installed `0.1.0` lifecycle record and a compatible
+`0.1.1` catalog manifest. The upgrade advances Package/Feature lifecycle versions
+while the Counterparty Enterprise Context resource and its
+`evo.counterparty/0.1.0` data schema remain unchanged. Downgrade, incompatible Host
+requirements and removal of an active Counterparty Feature are blocked.
+
+Evidence:
+
+- `tests/protocol/cp07-counterparty-upgrade-compatibility.test.mjs`
+- `tests/manager/core-manager.test.mjs`
+- Plugin Store `Upgrade` action and App Host `/v1/upgrade/plan` + `/v1/upgrade`
+- architecture rule in
+  `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md`
+
+Status: **IMPLEMENTED, CI pending**.
+
 ## Closure rule
 
 CP-07 closes only when the remaining real-volume, sensitive-data, migration and
