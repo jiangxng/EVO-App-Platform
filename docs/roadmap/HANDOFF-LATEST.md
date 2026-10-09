@@ -3,22 +3,22 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp06-bi-workbench-plugin-human-gate-2026-10-09`  
-**Snapshot time:** `2026-10-09T12:58:00+08:00`  
+**Snapshot:** `cp06-closed-cp07-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T16:26:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-CP-06 Personal Workbench + Agent
-AWAITING_HUMAN_VALIDATION
+CP-07 Counterparty maturity gate
+ACTIVE
 ```
 
 ## Latest closed live slice
 
-**cp05-counterparty-facets-profiles-related-resources: CLOSED_HUMAN_PASS**
+**cp06-personal-workbench-agent-composition: CLOSED_HUMAN_PASS**
 
-CP-05 is closed with Human production validation. Counterparty now keeps repeatable Contact and Address as child resources, role-scoped CustomerProfile/SupplierProfile data outside identity, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct domain resources, and progressive Eidos detail composition without a second shell.
+CP-06 is closed with Human product validation. Workspace remains the independent optional evo-bi-workbench application plugin in the BI / Insight Experience Layer; Counterparty, Data Import and Personal Agent contribute governed items through shared contracts; Host retains generic lifecycle, authorization, Contribution discovery and lazy dispatch only. The install/use-driven lazy-resource rule is now platform authority through PR #509.
 
 Authority: `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -26,16 +26,16 @@ Evidence:
 
 ```json
 {
-  "resourceBoundaryPr": 488,
-  "resourceBoundaryCommit": "082b9fb9d1bfea47d568082e746bfa5227e054e0",
-  "semanticImportPr": 491,
-  "semanticImportCommit": "7d951f713df4d9dbe7be2a468e017e67556582d1",
-  "eidosCompositionPr": 492,
-  "eidosCompositionCommit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
-  "statusPr": 493,
-  "statusCommit": "5acd870c60d1d1e4492b2b2265e733206721d5cc",
-  "productionDeploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
-  "productionDeploymentStatus": "SUCCESS",
+  "sharedProjectionPr": 497,
+  "workbenchCompositionPr": 498,
+  "workbenchStatePr": 499,
+  "hostActionFixPr": 500,
+  "biWorkbenchExtractionPr": 504,
+  "biWorkbenchExtractionCommit": "5441babc7ee92463827c9caedc96a79e68d8f74f",
+  "lazyResourceAuthorityPr": 509,
+  "lazyResourceAuthorityCommit": "a1c45b8161ac7cdbeb330ce2651e423852f71c45",
+  "humanValidationDeploymentId": "c5af79be-904f-4cdc-8aa6-9f2b5a84e99f",
+  "humanValidationDeploymentStatus": "SUCCESS",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
   "humanValidation": "PASS",
@@ -45,21 +45,19 @@ Evidence:
 
 ## Current open live gate
 
-**cp06-personal-workbench-agent-composition: AWAITING_HUMAN_VALIDATION**
+**cp07-counterparty-maturity-gate: ACTIVE**
 
-CP-06 technical acceptance remains production-passed after the Human-directed ownership correction: Workspace is now the independent optional evo-bi-workbench application plugin in the BI / Insight Experience Layer, not App Platform Host Core and not Counterparty. Counterparty/Data Import/Personal Agent continue to contribute governed items through eidos.workbench-home-item. Host no longer publishes or hard-codes /workspace and the BI Workbench runtime/PostgreSQL state initialize only when the plugin is installed, active and opened. Remaining gate: Human product validation of the deployed plugin-owned Workspace.
+CP-07 is the active Counterparty maturity gate. The goal is to pressure-test and document the already accepted Foundation Object vertical before moving to Item/Product, not to reopen closed Counterparty semantics or grow a monolithic Counterparty framework.
 
 Acceptance:
 
-- Workspace ownership is the optional evo-bi-workbench plugin; App Platform Host retains only generic lifecycle, authorization, contribution discovery and routing. PASS via PR #504.
-- Without BI Workbench installed/active, /workspace is not an effective Experience and browser bootstrap does not hard-code it. PASS via PR #504 generic effective-Experience default-route resolver and boundary tests.
-- BI Workbench runtime and Personal Workbench PostgreSQL adapter are lazy: they initialize only after the active plugin page/action is used. PASS via PR #504 implementation/boundary tests.
-- Package default -> enterprise/role default -> personal preference layering is deterministic. PASS via PR #498/#499 and preserved by #504.
-- Personalization can hide/reorder only authorized items and cannot expand authority. PASS via PR #498/#499 and preserved by #504.
-- My Customers and My Suppliers reuse the same governed Counterparty projection contracts used by Human application views. PASS via PR #497.
-- Personal Agent opens/queries the same governed Counterparty projection Capability Operations and has no private Counterparty read path. PASS via PR #497.
-- Common deterministic actions remain fixed package Capability Operations; Data Import remains a contributing fixed capability rather than chat-only behavior. PASS via PR #499/#504.
-- Human production validation confirms the plugin-owned Workspace composition/navigation remains understandable and useful after extraction.
+- Preserve the already accepted identity, role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent contracts without reopening closed gates.
+- 10k representative demo data passes the Counterparty experience and governed projections.
+- >=100k RVC integration pressure test passes with bounded, observable behavior.
+- Run a 1M+ performance test where practical and record limits instead of guessing.
+- Permission and sensitive-field tests prove server-side record/field scope remains fail-closed under scale.
+- Produce a legacy-field transformation report for realistic migration pressure.
+- Produce upgrade/version compatibility evidence sufficient to proceed to the materially different Item/Product proof.
 
 ## Current production preview
 
@@ -68,8 +66,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `5441babc7ee92463827c9caedc96a79e68d8f74f`
-- Deployment: `3a5d926b-63a0-48f7-974a-2daf35a68342`
+- Commit: `a1c45b8161ac7cdbeb330ce2651e423852f71c45`
+- Deployment: `c5af79be-904f-4cdc-8aa6-9f2b5a84e99f`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -100,6 +98,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #509 — MERGED_CI_PRODUCTION_PASS: Promoted install/use-driven plugin lazy resource loading to platform architecture authority; current production runs the #509 mainline successfully.
 - PR #504 — MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN: Extracted Workspace from Host into optional evo-bi-workbench plugin; /workspace is plugin-owned, runtime/state are lazy, Host default routing is based on active Experiences, and current production was explicitly migrated to the plugin.
 - PR #500 — MERGED_CI_PRODUCTION_PASS: Fixed Host Workbench action feature gating so Workbench commands execute through the real ActionRouter feature gate while preserving item-level reauthorization.
 - PR #499 — MERGED_CI_PRODUCTION_PASS: Persisted governed Enterprise/role Workbench defaults plus personal preferences, Favorites and Recent; Workbench opens reauthorize before recording Recent; Data Import remains a fixed capability.
