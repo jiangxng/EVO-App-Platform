@@ -237,3 +237,109 @@ Evidence:
 IT-01C is closed. IT-01D is the active slice and must prove Item through the existing
 Projection, Responsibility, Eidos Experience and Workbench Contribution boundaries
 without creating a parallel Item authority or moving Workspace ownership.
+
+
+## IT-01D — Projection, Responsibility and Eidos product slice
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+IT-01D makes Item a real governed application surface without creating a parallel
+business-data authority or moving Workspace ownership into Item.
+
+### Responsibility semantic
+
+The second-object responsibility is:
+
+```text
+ITEM_STEWARD
+```
+
+It means responsibility for maintaining/governing the Item master identity.
+
+It does **not** mean:
+
+- sales ownership;
+- procurement ownership;
+- inventory ownership;
+- authorization to read the Item;
+- ownership of Workspace / Personal Workbench.
+
+Responsibility and authorization remain separate. A normal Item directory projection
+is authorization-filtered independently of stewardship. `My Items` is then a further
+derived filter over authorized Items with active `ITEM_STEWARD` responsibility for
+the current principal.
+
+### Derived projection authority
+
+`ItemProjectionServiceV010` derives one read model from:
+
+- authoritative Item identity;
+- shared Responsibility assignments;
+- Enterprise Object Extension values;
+- Authorization Provider decisions.
+
+No `evo.item-projection` resources are persisted. Projection output is derived and
+regenerable.
+
+The same service is consumed by:
+
+- Human Eidos pages;
+- Personal Agent / Automation capability operations.
+
+### Eidos experience
+
+The Item package contributes:
+
+- Items directory;
+- My Items;
+- New Item;
+- Item detail;
+- Item edit;
+- Workbench `My Items` contribution.
+
+Create/Edit forms are generated from `EffectiveObjectSchema` instead of defining a
+parallel Item form schema.
+
+Workbench remains owned by `evo-bi-workbench`; Item contributes only governed content.
+
+### Install/use-driven loading
+
+The Host knows only lightweight Item package/constants/authorization metadata at
+startup.
+
+Item repository, projection service, pages and action implementations are resolved
+only when the Item feature is active and used. Deactivation/uninstall clears the lazy
+runtime reference.
+
+The package is added to Catalog but is not force-installed by IT-01D.
+
+### Second-object platform finding: Data Import target lifecycle
+
+IT-01C proved `createItemImportTargetV010` against the generic Data Import service,
+but the current Host has no lifecycle-aware import-target contribution/registry.
+Counterparty's historical target is statically registered in Host.
+
+IT-01D deliberately does **not** copy that static registration for Item because doing
+so would expose an Item import target even when the Item package is not installed or
+active, violating the install/use-driven loading rule established by PR #509.
+
+Therefore:
+
+- Item import contract/runtime proof remains valid;
+- Item import is not yet exposed through Host Data Import UI;
+- a lifecycle-aware import-target registry/contribution is now explicit platform debt
+  revealed by the second object;
+- this gap must be resolved before Item import is declared product-reachable.
+
+### Evidence
+
+- `apps/item/projections.ts`
+- `apps/item/access.ts`
+- `apps/item/projection-service.ts`
+- `apps/item/projection-actions.ts`
+- `apps/item/actions.ts`
+- `apps/item/page.ts`
+- `apps/item/capability-manifest.ts`
+- `apps/item/package.ts`
+- `tests/protocol/it01-item-projection-eidos.test.mjs`
+- lifecycle-gated Host wiring in `manager/server.ts`
