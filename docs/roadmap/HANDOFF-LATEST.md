@@ -565,7 +565,11 @@ A fresh session must read, in order:
 
 The repository state wins over ChatGPT Memory, model memory, prior assistant summaries and dated handoff guesses.
 
+A dated handoff is historical evidence unless `project.status.json.handoff` points to it.
+
 ## Fresh-session continuity acceptance
+
+A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
 - state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI
 - state row-dynamic qualifier-aware Item import as the current active IT-01E sub-slice
@@ -812,3 +816,22 @@ The repository state wins over ChatGPT Memory, model memory, prior assistant sum
 - state full Working State, full Context Compiler, broad Memory migration, vector retrieval and automatic Personal Agent -> EC learning as explicitly deferred before CP-05 unless a concrete blocker appears
 
 No previous ChatGPT transcript is required.
+
+## State-layer distinction
+
+```text
+Conversation History
+= current-chat discourse continuity
+
+ChatGPT / model Memory
+= selective cross-chat assistance, not authoritative project state
+
+Context Memory
+= governed product-level durable knowledge
+
+Project Status + HANDOFF-LATEST
+= authoritative engineering-project continuity
+
+Host READ
+= current runtime/platform truth
+```
