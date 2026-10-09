@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp06-closed-cp07-active-2026-10-09",
-    "snapshotAt": "2026-10-09T16:26:00+08:00",
+    "snapshotId": "cp07-evidence-complete-integration-candidate-2026-10-09",
+    "snapshotAt": "2026-10-09T17:34:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1815,7 +1815,7 @@
     ],
     "current": {
       "milestone": "CP-07 Counterparty maturity gate",
-      "milestoneStatus": "ACTIVE",
+      "milestoneStatus": "READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION",
       "lastClosedLiveSlice": {
         "id": "cp06-personal-workbench-agent-composition",
         "status": "CLOSED_HUMAN_PASS",
@@ -1840,18 +1840,19 @@
       },
       "openGate": {
         "id": "cp07-counterparty-maturity-gate",
-        "status": "ACTIVE",
-        "summary": "CP-07 is the active Counterparty maturity gate. The goal is to pressure-test and document the already accepted Foundation Object vertical before moving to Item/Product, not to reopen closed Counterparty semantics or grow a monolithic Counterparty framework.",
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "status": "READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION",
+        "summary": "All currently defined CP-07 maturity evidence is complete: 10k full committed Demo continuity, >=100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation evidence and package upgrade compatibility. CP-07 remains open only because the complete evidence stack is not yet integrated into main and final mainline closure continuity has not been recorded.",
+        "authority": "docs/roadmap/CP07-CLOSURE-READINESS-2026-10-09.md",
         "acceptance": [
-          "Preserve the already accepted identity, role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent contracts without reopening closed gates.",
-          "10k representative demo data passes the Counterparty experience and governed projections.",
-          ">=100k RVC integration pressure test passes with bounded, observable behavior.",
-          "Run a 1M+ performance test where practical and record limits instead of guessing.",
-          "Permission and sensitive-field tests prove server-side record/field scope remains fail-closed under scale.",
-          "Produce a legacy-field transformation report for realistic migration pressure.",
-          "Produce upgrade/version compatibility evidence sufficient to proceed to the materially different Item/Product proof."
-        ]
+          "10k full committed Demo continuity: PASS via PR #515.",
+          "100k real-world Companies House RVC: PASS via PR #516 validation run 37912406474.",
+          "1M deterministic performance pressure: PASS via PR #517 run 37912688857.",
+          "Sensitive-field isolation and legacy transformation evidence: PASS/COMPLETE via PR #512.",
+          "Controlled package upgrade/version compatibility: PASS via PR #513.",
+          "Complete combined integration candidate exists as Draft PR #519 and must pass combined CI before any mainline merge.",
+          "After the complete stack is on main, record final CP-07 closure continuity before starting IT-01."
+        ],
+        "blocker": "Combined evidence stack is not yet integrated into main; final mainline closure continuity remains required."
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1865,15 +1866,17 @@
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "status": "CP07_ACTIVE",
+        "authority": "docs/roadmap/CP07-CLOSURE-READINESS-2026-10-09.md",
+        "status": "CP07_READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION",
         "sequence": [
-          "CP-07 Counterparty maturity / demo / RVC pressure gate",
-          "IT-01 Item/Product second-object proof",
+          "Validate Draft PR #519 combined CI",
+          "Integrate the reconciled CP-07 evidence stack into main under the mainline owner window",
+          "Record final mainline CP-07 closure continuity",
+          "Start IT-01 Item/Product second-object proof",
           "WH-01 Warehouse/Location proof",
           "TR-01 Transaction object proof"
         ],
-        "rule": "Do not reopen CP-03, CP-05 or CP-06. Do not move Workspace back into App Platform Host or Counterparty. CP-07 must pressure-test and document Counterparty maturity, then hand shared contracts to Item/Product as the materially different second-object proof."
+        "rule": "Do not reopen CP-02 through CP-06. Do not start IT-01 from branch-only evidence. CP-07 closes only after the reconciled evidence stack is on main and final mainline continuity is recorded."
       }
     },
     "recentMainline": [
@@ -3017,7 +3020,9 @@
       "Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.",
       "Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.",
       "Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.",
-      "Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active."
+      "Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.",
+      "Do not report CP-07 100k RVC or 1M performance as pending; both evidence runs passed on 2026-10-09 and are retained in docs/roadmap/CP07-COUNTERPARTY-SCALE-EVIDENCE-2026-10-09.md.",
+      "Do not start IT-01 from the Draft integration candidate alone; CP-07 must first be integrated into main and final closure continuity recorded."
     ],
     "freshSessionAcceptance": [
       "state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin",
@@ -4577,9 +4582,9 @@
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
     "currentGate": "CP-07",
-    "currentGateMeaning": "Counterparty maturity / demo / RVC pressure gate",
+    "currentGateMeaning": "Counterparty maturity evidence complete; awaiting combined mainline integration and final closure continuity",
     "nextGate": "IT-01",
-    "nextGateMeaning": "Item/Product second-object proof",
+    "nextGateMeaning": "Item/Product second-object proof after CP-07 mainline closure",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4909,7 +4914,7 @@
       "humanValidationAt": "2026-10-09"
     },
     "cp07": {
-      "status": "ACTIVE",
+      "status": "READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION",
       "purpose": "Counterparty maturity / demo / RVC pressure gate before the materially different Item/Product second-object proof.",
       "acceptance": [
         "preserve identity, relationship-role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent passes",
@@ -4924,14 +4929,42 @@
       "nextGate": "IT-01 Item/Product second-object proof",
       "evidenceAuthority": "docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md",
       "rvcHarness": {
-        "status": "IMPLEMENTED_CI_PENDING",
+        "status": "EVIDENCE_PASS",
         "command": "npm run rvc:counterparty:gleif",
         "tool": "tools/counterparty-rvc-gleif.mjs",
         "protocolTest": "tests/protocol/cp07-counterparty-rvc.test.mjs",
         "firstSource": "GLEIF Golden Copy Level 1 CSV",
         "sourceDataCommittedToGit": false,
-        "real100kRvcRun": "PENDING",
-        "real1mPerformanceRun": "PENDING"
+        "real100kRvcRun": {
+          "status": "PASS",
+          "source": "UK Companies House Free Company Data Product",
+          "sourceShard": "BasicCompanyData-2026-10-01-part1_7.zip",
+          "validationPr": 516,
+          "workflowRunId": 37912406474,
+          "totalRows": 100000,
+          "validSubjects": 100000,
+          "invalidSubjects": 0,
+          "duplicateExternalIds": 0,
+          "duplicateNameCandidates": 17,
+          "missingCountryOrRegion": 21504,
+          "rowsPerSecond": 79202,
+          "durableEvidence": "docs/roadmap/CP07-COUNTERPARTY-SCALE-EVIDENCE-2026-10-09.md"
+        },
+        "real1mPerformanceRun": {
+          "status": "PASS",
+          "corpus": "deterministic synthetic Counterparty-shaped CSV",
+          "pr": 517,
+          "workflowRunId": 37912688857,
+          "totalRows": 1000000,
+          "validSubjects": 1000000,
+          "invalidSubjects": 0,
+          "duplicateExternalIds": 0,
+          "elapsedMs": 3189.04,
+          "rowsPerSecond": 313574,
+          "maxRssKb": 248480,
+          "durableEvidence": "docs/roadmap/CP07-COUNTERPARTY-SCALE-EVIDENCE-2026-10-09.md",
+          "limitation": "Scale/resource proof only; not production PostgreSQL or browser-rendering proof."
+        }
       },
       "sensitiveFieldTests": {
         "status": "IMPLEMENTED_CI_PASS",
@@ -4982,6 +5015,37 @@
         "pr": 513,
         "platformCI": "PASS",
         "projectContinuityCI": "PASS"
+      },
+      "demo10k": {
+        "status": "CI_PASS",
+        "pr": 515,
+        "protocolTest": "tests/protocol/cp07-counterparty-10k-demo.test.mjs",
+        "proves": [
+          "10,000 deterministic Demo rows stage and dry-run successfully",
+          "10,000 rows commit atomically into Enterprise Context-backed Counterparty resources",
+          "CUSTOMER roles and extension values persist for the committed batch",
+          "the governed Customer projection returns the same 10,000 stable identities"
+        ],
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS"
+      },
+      "integrationCandidate": {
+        "status": "DRAFT_CI_VALIDATION",
+        "pr": 519,
+        "branch": "cp07/integration-candidate-20261009",
+        "target": "main",
+        "containsEvidenceStack": [
+          510,
+          511,
+          512,
+          513,
+          514,
+          516,
+          515,
+          517,
+          518
+        ],
+        "mergesMain": false
       }
     }
   },
