@@ -143,7 +143,7 @@ Item identity persistence before Data Import/package/UI expansion.
 
 ## IT-01B — Enterprise Context identity repository
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 The Item repository persists `item.subject` through the same Enterprise Resource
 contract used by the first Foundation Object, while deliberately avoiding a hidden
@@ -178,3 +178,49 @@ IT-01B still does not introduce Product/SKU/variant/GTIN/category semantics.
 
 IT-01B is closed. IT-01C is the active slice and must prove generic Data Import as a
 real second-object capability rather than creating an Item-specific import subsystem.
+
+
+## IT-01C — Generic Data Import second-object proof
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+IT-01C removes another Counterparty-first leak from shared Foundation Object contracts:
+`FoundationObjectImportTargetParametersV010` is now an object-neutral parameter bag.
+Counterparty still interprets its own `relationshipMode` /
+`relationshipRoles` compatibility values inside the Counterparty target; the shared
+contract no longer names them.
+
+The previously Counterparty-local import cell normalization logic is also now shared
+through `foundation/import-values.ts`, and both Counterparty and Item consume it.
+
+Item uses the existing generic Data Import service:
+
+```text
+stage -> dry-run -> schema digest -> atomic batch commit -> receipt
+```
+
+The Item target proves:
+
+- deterministic mapping over Item core fields plus unconditional Enterprise Extensions;
+- case-insensitive batch dedupe before business writes;
+- schema-drift rejection between dry-run and commit;
+- atomic rollback when extension-value persistence fails;
+- extension provenance retained as IMPORT + importJobId;
+- deterministic imported Item identities.
+
+### Deliberate current limitation
+
+The current Data Import target contract resolves one `EffectiveObjectSchema` per import
+job. Therefore an extension whose applicability depends on a row value such as
+`item.kind = GOODS` is **not** exposed by the Item import target unless the job itself
+has an active qualifier context.
+
+IT-01C does not pretend row-dynamic qualifier schemas are solved. The current proof
+uses an unconditional Item extension for real second-object extension import and keeps
+row-dynamic qualifier resolution as a later bounded design problem.
+
+Evidence:
+
+- `foundation/import-values.ts`
+- `apps/item/import-target.ts`
+- `tests/protocol/it01-item-data-import.test.mjs`
