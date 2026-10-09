@@ -33,8 +33,7 @@ name. CP-07 adds evidence only where maturity is still genuinely open.
 ## Open maturity evidence
 
 - >=100k real-world RVC integration pressure test;
-- 1M+ performance pressure test where practical;
-- upgrade/version compatibility evidence.
+- 1M+ performance pressure test where practical.
 
 ## CP-07B — Sensitive-field + legacy transformation evidence
 
@@ -119,7 +118,7 @@ Evidence:
 - architecture rule in
   `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md`
 
-Status: **IMPLEMENTED, CI pending**.
+Status: **IMPLEMENTED_CI_PASS via PR #513**. Platform CI and Project Continuity CI passed after the canonical App Host/Plugin Store upgrade path and Counterparty compatibility proof were added.
 
 ## Closure rule
 
