@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `it01a-closed-it01b-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T18:36:00+08:00`  
+**Snapshot:** `it01b-closed-it01c-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T18:43:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**it01a-item-second-object-schema-anti-overfit: MERGED_CI_PRODUCTION_PASS**
+**it01b-item-enterprise-context-identity: MERGED_CI_PRODUCTION_PASS**
 
-IT-01A established Item as the materially different second Foundation Object consumer and corrected a Counterparty-first overfit in shared applicability. Generic qualifier dimensions now support new object semantics while Counterparty relationshipRoles remains an explicit compatibility path. The first Item identity is intentionally limited to itemId/code/displayName/itemKind/baseUomCode/description and does not prematurely collapse Product/SKU/variant/GTIN/category into one identity.
+IT-01B persisted the materially different Item identity through Enterprise Context Resource contracts without copying Counterparty payload lifecycle semantics. Item code uniqueness is enterprise-scoped and case-insensitive, archive preserves historical identity, archived identities cannot be silently reactivated, and archived codes cannot be silently reused.
 
 Authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
@@ -26,28 +26,29 @@ Evidence:
 
 ```json
 {
-  "implementationPr": 522,
-  "mergeCommit": "d9ad7b6cb194096f04aa58979af27e0af99d157d",
+  "implementationPr": 524,
+  "mergeCommit": "7dbe34f706fdf4dd27d60997127cc5766002b1de",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "3aa0e5fb-139a-492f-be63-41b1b9255c9b",
+  "railwayDeploymentId": "d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**it01b-item-enterprise-context-identity: ACTIVE**
+**it01c-item-generic-data-import: ACTIVE**
 
-IT-01B is the current slice: persist stable Item identity through Enterprise Context Resource contracts with deterministic code uniqueness and archive lifecycle. This slice proves durable second-object identity without yet adding Data Import, GTIN/SKU/variant semantics, or Eidos product experience.
+IT-01C is the current slice: make Item the second real consumer of generic Data Import and Enterprise Object Extensions. The goal is to remove remaining Counterparty vocabulary from shared import contracts and prove deterministic stage/dry-run/atomic commit for Item.
 
 Acceptance:
 
-- Persist Item identity in Enterprise Context through the shared Enterprise Resource boundary.
-- Enforce case-insensitive code uniqueness within an Enterprise Context while preserving cross-enterprise isolation.
-- Treat archive as lifecycle state rather than physical deletion or identity rewrite.
-- Keep the Item repository independent of Counterparty implementation.
-- Keep Product/SKU/variant/GTIN/category outside this slice.
+- Remove Counterparty relationship-role vocabulary from the shared import-parameter contract while retaining Counterparty compatibility in its own target.
+- Reuse EffectiveObjectSchema and Object Extension definitions for Item import.
+- Prove deterministic mapping, dry-run and commit for Item core fields.
+- Prove atomic batch commit persists Item resources and extension values together.
+- Fail closed on duplicate Item code and schema changes after dry-run.
+- Keep Product/SKU/variant/GTIN/category outside IT-01C.
 
 ## Current production preview
 
@@ -56,8 +57,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `d9ad7b6cb194096f04aa58979af27e0af99d157d`
-- Deployment: `3aa0e5fb-139a-492f-be63-41b1b9255c9b`
+- Commit: `7dbe34f706fdf4dd27d60997127cc5766002b1de`
+- Deployment: `d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -88,6 +89,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #524 — MERGED_CI_PRODUCTION_PASS: IT-01B added Enterprise Context-backed Item identity persistence with enterprise-scoped code uniqueness and archive-preserving deterministic lifecycle; Platform/Continuity CI and Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 passed.
 - PR #522 — MERGED_CI_PRODUCTION_PASS: IT-01A added the minimal Item second-object schema and object-neutral applicability qualifiers while preserving Counterparty compatibility; Platform/Continuity CI and Railway production deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b passed.
 - PR #519 — MERGED_CI_PRODUCTION_PASS: Integrated the complete reconciled CP-07 maturity evidence stack; 42/42 combined candidate CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 is SUCCESS.
 - PR #509 — MERGED_CI_PRODUCTION_PASS: Promoted install/use-driven plugin lazy resource loading to platform architecture authority; current production runs the #509 mainline successfully.
@@ -533,6 +535,8 @@ Not proved:
 - Do not ask for CP-06 Human product validation again; it passed on 2026-10-09. CP-07 is also CLOSED_PRODUCTION_PASS and IT-01 is active.
 - Do not reopen IT-01A or replace generic applicability qualifiers with a new Item-specific applicability key; Item is the proof that new objects must use object-neutral qualifier dimensions.
 - Do not put GTIN/SKU/variant/category into the initial Item identity merely to make the model look complete; those boundaries require later real-world Item evidence.
+- Do not reopen IT-01B or add a duplicate Item payload lifecycle status; Enterprise Resource ACTIVE/ARCHIVED is the current Item identity lifecycle authority.
+- Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -552,10 +556,11 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as MERGED_CI_PRODUCTION_PASS via PR #524 / main commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS
+- state IT-01C generic Data Import reuse with Item target as the current active slice inside IT-01
+- state current production Ledger Configurator as App Platform PR #524 merge commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS
 - state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
-- state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as the current active slice inside IT-01
 - state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt
-- state current production Ledger Configurator as App Platform PR #522 merge commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
 - state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded
 - state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization
 - state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
