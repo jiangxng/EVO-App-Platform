@@ -535,6 +535,7 @@ Not proved:
 - Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.
 - Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.
 - Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.
+- Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -554,6 +555,9 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
+- state CP-07 Counterparty maturity gate as the current active Foundation Object Program gate before Item/Product
+- state current production Ledger Configurator as App Platform PR #509 merge commit a1c45b8161ac7cdbeb330ce2651e423852f71c45 / Railway deployment c5af79be-904f-4cdc-8aa6-9f2b5a84e99f SUCCESS
 - state Personal Agent P1.8 as verified and production-closed
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
 - state Semantic Graph as coordinate-free and DIAGRAM_2D/SPATIAL_3D View State as durable presentation state with independent revisions
