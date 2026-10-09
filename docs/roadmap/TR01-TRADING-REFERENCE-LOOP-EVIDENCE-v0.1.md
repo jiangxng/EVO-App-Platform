@@ -89,3 +89,92 @@ TR-01C  contract maturity + Foundation Object Program exit review
 
 Selected object-neutral Foundation Object contracts remain **STABLE_CANDIDATE** until
 the real trading loops complete without incompatible evidence.
+
+
+## TR-01A1 — Purchase / Receipt cross-project composition
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+This slice does not implement procurement accounting inside App Platform.
+
+App Platform owns:
+
+- resolving an ACTIVE Supplier-role Counterparty;
+- resolving ACTIVE Item and Warehouse authority;
+- stable runtime Application bindings;
+- business intent composition and idempotency/correlation identity;
+- passing an explicit Receipt `FULFILLS` relation.
+
+EVO owns:
+
+- BusinessData persistence;
+- immutable BusinessData relation persistence;
+- PostingRule evaluation;
+- `pending_purchase`, `payable` and `inventory` ledger facts/balances;
+- derived WorkItem state.
+
+Runtime binding:
+
+```text
+application:trading-reference.purchase-order
+  -> EVO applicationId purchase_order
+
+application:trading-reference.goods-receipt
+  -> EVO applicationId inventory_movement
+```
+
+Authoritative master-data references are stable IDs:
+
+```text
+supplier  = Counterparty.counterpartyId
+productId = Item.itemId
+warehouse = Warehouse.warehouseId
+```
+
+Human-facing code/display-name values are copied only as historical snapshots in
+BusinessData payload and do not become transaction-owned master-data authority.
+
+Receipt lineage:
+
+```text
+Purchase Order BusinessData
+        |
+        | FULFILLS
+        v
+Goods Receipt BusinessData
+```
+
+EVO direct BusinessData relation support is pinned to:
+
+```text
+jiangxng/EVO main
+PR #103
+merge 184811a1b25aa6563b03439758663f04fa4d6319
+```
+
+Cross-project certification uses only public EVO HTTP boundaries:
+
+- `POST /api/v1/business-data`;
+- `POST /api/v1/runtime-observations/query`;
+- `GET /api/v1/work-items`.
+
+Expected economic result for a full 10-unit / CNY 125 receipt:
+
+```text
+after Purchase Order:
+pending_purchase +10
+payable          +125
+inventory         unchanged
+RECEIVE Work      open
+PAY Work          open
+
+after full Receipt:
+pending_purchase  back to baseline
+payable          +125
+inventory         +10 / +125
+RECEIVE Work      closed
+PAY Work          still open
+```
+
+No App Platform code writes LedgerEntry, LedgerBalance, WorkItem or EVO database
+tables directly.
