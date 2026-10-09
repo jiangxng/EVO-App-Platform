@@ -894,10 +894,6 @@ import {
   createResponsibilityRepositoryV010
 } from "../apps/responsibility/repository.js";
 import {
-  COUNTERPARTY_IMPORT_TARGET_V010,
-  createCounterpartyImportTargetV010
-} from "../apps/counterparty/import-target.js";
-import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
@@ -930,6 +926,9 @@ import {
 import {
   createDataImportServiceV010
 } from "../apps/data-import/service.js";
+import type {
+  FoundationObjectImportTargetV010
+} from "../contracts/foundation-object/import.js";
 import {
   createHttpDataImportExperienceAdvisorV010
 } from "../apps/data-import/experience-advisor.js";
@@ -1102,24 +1101,6 @@ const dataImportRepository =
   createDataImportRepositoryV010(enterpriseResourceRepository);
 const dataImportRecipeRepository =
   createDataImportRecipeRepositoryV010(enterpriseResourceRepository);
-const counterpartyImportTarget =
-  createCounterpartyImportTargetV010({
-    resources: enterpriseResourceRepository,
-    repository: counterpartyRepository,
-    roleRepository: counterpartyRoleRepository,
-    contactRepository: counterpartyContactRepository,
-    addressRepository: counterpartyAddressRepository,
-    profileRepository: counterpartyProfileRepository,
-    extensionRepository: objectExtensionRepository,
-    extensionValueRepository: objectExtensionValueRepository
-  });
-const dataImportTargets = [counterpartyImportTarget] as const;
-const dataImportService =
-  createDataImportServiceV010({
-    repository: dataImportRepository,
-    recipeRepository: dataImportRecipeRepository,
-    targets: dataImportTargets
-  });
 const experienceCompilerAdvisoryBaseUrl =
   process.env.APP_PLATFORM_EC_ADVISORY_BASE_URL?.trim();
 const dataImportExperienceAdvisor = experienceCompilerAdvisoryBaseUrl
@@ -2236,6 +2217,73 @@ async function resolveItemRuntimeV010() {
     };
   });
   return itemRuntimePromise;
+}
+
+const dataImportTargetPromises = new Map<
+  string,
+  Promise<FoundationObjectImportTargetV010>
+>();
+
+async function resolveEffectiveDataImportTargetsV010():
+Promise<FoundationObjectImportTargetV010[]> {
+  const contributions = manager.listEffectiveDataImportTargets();
+  const activeRefs = new Set(
+    contributions.map(contribution => contribution.binding.ref)
+  );
+  for (const ref of [...dataImportTargetPromises.keys()]) {
+    if (!activeRefs.has(ref)) dataImportTargetPromises.delete(ref);
+  }
+
+  const targets = await Promise.all(contributions.map(contribution => {
+    const ref = contribution.binding.ref;
+    let pending = dataImportTargetPromises.get(ref);
+    if (!pending) {
+      if (ref === "evo-counterparty.import-target.v0.1") {
+        pending = import("../apps/counterparty/import-target.js")
+          .then(module => module.createCounterpartyImportTargetV010({
+            resources: enterpriseResourceRepository,
+            repository: counterpartyRepository,
+            roleRepository: counterpartyRoleRepository,
+            contactRepository: counterpartyContactRepository,
+            addressRepository: counterpartyAddressRepository,
+            profileRepository: counterpartyProfileRepository,
+            extensionRepository: objectExtensionRepository,
+            extensionValueRepository: objectExtensionValueRepository
+          }));
+      } else if (ref === "evo-item.import-target.v0.1") {
+        pending = Promise.all([
+          import("../apps/item/import-target.js"),
+          resolveItemRuntimeV010()
+        ]).then(([module, runtime]) =>
+          module.createItemImportTargetV010({
+            resources: enterpriseResourceRepository,
+            repository: runtime.repository,
+            extensionRepository: objectExtensionRepository,
+            extensionValueRepository: objectExtensionValueRepository
+          })
+        );
+      } else {
+        throw new Error(
+          "DATA_IMPORT_TARGET_FACTORY_NOT_REGISTERED: " + ref
+        );
+      }
+      dataImportTargetPromises.set(ref, pending);
+    }
+    return pending.then(target => {
+      if (
+        target.targetId !== contribution.targetId
+        || target.objectType !== contribution.objectType
+      ) {
+        throw new Error(
+          "DATA_IMPORT_TARGET_CONTRIBUTION_MISMATCH: "
+          + contribution.targetId
+        );
+      }
+      return target;
+    });
+  }));
+
+  return targets.sort((a, b) => a.targetId.localeCompare(b.targetId));
 }
 
 function biWorkbenchActiveV010(): boolean {
@@ -4854,6 +4902,13 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/data-import/actions.js");
+          const dataImportTargets =
+            await resolveEffectiveDataImportTargetsV010();
+          const dataImportService = createDataImportServiceV010({
+            repository: dataImportRepository,
+            recipeRepository: dataImportRecipeRepository,
+            targets: dataImportTargets
+          });
           const handlers = module.createDataImportActionHandlersV010({
             service: dataImportService,
             repository: dataImportRepository,
@@ -6605,12 +6660,12 @@ const server = createServer(async (request, response) => {
             200,
             module.createCounterpartyDirectoryPageV010({
               counterparties: access.counterparties,
-              ...(dataImportTargets.some(target =>
-                target.targetId === COUNTERPARTY_IMPORT_TARGET_V010
+              ...(manager.listEffectiveDataImportTargets().some(target =>
+                target.targetId === "counterparty.subject"
               )
                 ? {
                     importRoute: dataImportUploadRouteV010(
-                      COUNTERPARTY_IMPORT_TARGET_V010
+                      "counterparty.subject"
                     )
                   }
                 : {}),
@@ -6906,6 +6961,8 @@ const server = createServer(async (request, response) => {
           });
         }
         const module = await import("../apps/data-import/page.js");
+        const dataImportTargets =
+          await resolveEffectiveDataImportTargetsV010();
         const locale = requestedLocale(url);
         const routeValue = url.searchParams.get("route")?.trim();
 
