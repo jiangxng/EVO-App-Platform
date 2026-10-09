@@ -1,6 +1,6 @@
 # IT-01 Item/Product Second-Object Evidence v0.1
 
-**Status:** IT-01A + IT-01B + IT-01C MERGED_CI_PRODUCTION_PASS / IT-01D ACTIVE  
+**Status:** IT-01A + IT-01B + IT-01C + IT-01D MERGED_CI_PRODUCTION_PASS / IT-01E ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -241,7 +241,7 @@ without creating a parallel Item authority or moving Workspace ownership.
 
 ## IT-01D — Projection, Responsibility and Eidos product slice
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 IT-01D makes Item a real governed application surface without creating a parallel
 business-data authority or moving Workspace ownership into Item.
@@ -343,3 +343,22 @@ Therefore:
 - `apps/item/package.ts`
 - `tests/protocol/it01-item-projection-eidos.test.mjs`
 - lifecycle-gated Host wiring in `manager/server.ts`
+
+
+## IT-01D production evidence
+
+- implementation PR: #530
+- main merge commit: `ea3594f06625803883b7fd6dddcc878feb8bdc99`
+- combined CI: 34/34 PASS
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Cross Project Trading Lite / Eidos Browser / EVO CI: PASS
+- Railway deployment: `bb543f4b-fb43-4d4e-a515-c83eb46ff992` — SUCCESS
+
+IT-01D is closed. IT-01E is active.
+
+IT-01E must now use real-world Item/product evidence to pressure the semantics that were
+deliberately left open: Product, SKU, variant, GTIN/barcode, UOM and category. It must
+also decide how to handle the lifecycle-aware Data Import target registry debt and the
+row-dynamic qualifier import limitation before Foundation Object contracts are reviewed
+for maturity.
