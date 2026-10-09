@@ -285,6 +285,32 @@ Current Railway single-replica adapter may use a mounted durable state file behi
 Do not wait for the human to enumerate ordinary lifecycle closure. For an installable Package, default completeness includes discovery, side-effect-free plan, dependency resolution, install, enable, disable, uninstall, dependency-safe blocking, persistent lifecycle state, and upgrade when a newer compatible catalog version exists. Each transition must update effective Capabilities/Contributions/Experiences consistently and be regression-tested through the canonical App Host path.
 
 
+## Plugin Lazy Resource Loading Rule
+
+Before changing plugin startup, browser bootstrap, runtime initialization, database/store wiring or optional application loading, read:
+
+`docs/architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md`
+
+Canonical rule:
+
+```text
+catalog metadata discovery
+→ lightweight and declarative
+
+not installed / not active
+→ no effective Experience
+→ no plugin runtime/store/database initialization
+→ no plugin-specific browser resource loading
+
+installed + active but unused interactive plugin
+→ keep heavy implementation lazy where feasible
+
+surface opened / capability invoked
+→ load the owning implementation on demand
+```
+
+App Platform Host may eagerly own only generic lifecycle, authorization, Contribution discovery and lazy dispatch mechanisms. First-party status does not justify eager plugin runtime loading. Background initialization requires an explicit active Feature/runtime reason.
+
 ## Plugin-First Extension Rule
 
 For every new EVO App Platform requirement, the first architectural question is:
