@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   composeWorkbenchHomeV010
-} from "../../dist/manager/workbench-composition.js";
+} from "../../dist/apps/bi-workbench/composition.js";
 import {
   createWorkspaceHomePageV010
-} from "../../dist/manager/workspace-home-page.js";
+} from "../../dist/apps/bi-workbench/page.js";
 import {
   counterpartyPackage
 } from "../../dist/apps/counterparty/package.js";
@@ -16,6 +16,9 @@ import {
 import {
   enterpriseAgentPackage
 } from "../../dist/agents/enterprise-agent/package.js";
+import {
+  biWorkbenchPackage
+} from "../../dist/apps/bi-workbench/package.js";
 
 function homeItems(pkg) {
   return pkg.features.flatMap(feature =>
@@ -191,4 +194,19 @@ test("CP-06 preferences cannot replace a package-owned route or title", () => {
   assert.equal(composition.items[0].title, "Package title");
   assert.equal(composition.items[0].route, "/package-route");
   assert.equal(composition.items[0].effectiveOrder, 1);
+});
+
+
+test("CP-06 BI Workbench is an independent optional package rather than a Host system Experience", () => {
+  assert.equal(biWorkbenchPackage.packageId, "evo-bi-workbench");
+  assert.equal(biWorkbenchPackage.type, "APPLICATION");
+  const feature = biWorkbenchPackage.features[0];
+  assert.equal(feature.featureId, "evo-bi-workbench.default");
+  assert.equal(feature.defaultActivation, true);
+  const experience = feature.contributions.find(
+    item => item.kind === "eidos.experience"
+  );
+  assert.ok(experience);
+  assert.equal(experience.manifest.defaultRoute, "/workspace");
+  assert.equal(experience.manifest.packageId, "evo-bi-workbench");
 });

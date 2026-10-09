@@ -70,6 +70,35 @@ function validManifests(raw: unknown[]): EffectiveExperienceManifestV010[] {
   });
 }
 
+
+export function resolveBrowserDefaultExperienceRouteV010(
+  raw: unknown[],
+  fallback = "/store"
+): string {
+  const candidates = validManifests(raw)
+    .filter(manifest => Boolean(manifest.defaultRoute?.trim()))
+    .map(manifest => {
+      const navigationOrder = Math.min(
+        ...((manifest.navigation ?? []).map(item =>
+          Number.isFinite(item.order ?? Number.NaN)
+            ? (item.order ?? 10_000)
+            : 10_000
+        )),
+        10_000
+      );
+      return {
+        route: manifest.defaultRoute,
+        navigationOrder,
+        experienceId: manifest.experienceId
+      };
+    })
+    .sort((a, b) =>
+      a.navigationOrder - b.navigationOrder
+      || a.experienceId.localeCompare(b.experienceId)
+    );
+  return candidates[0]?.route ?? fallback;
+}
+
 function owningManifest(
   manifests: EffectiveExperienceManifestV010[],
   path: string

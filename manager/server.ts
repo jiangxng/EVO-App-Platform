@@ -698,24 +698,13 @@ import {
 import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
-  createWorkspaceHomePageV010,
-  isHostWorkbenchFeatureV010,
-  workspaceHomeExperienceManifest,
-  workspaceHomePageSource
-} from "./workspace-home-page.js";
-import {
-  createEnterpriseRoleWorkbenchDefaultRepositoryV010,
-  createMemoryPersonalWorkbenchStateStoreV010
-} from "./workbench-state.js";
-import {
-  createPostgresPersonalWorkbenchStateStoreV010
-} from "./workbench-postgres-store.js";
-import {
-  createWorkbenchServiceV010
-} from "./workbench-service.js";
-import {
   createWorkbenchActionHandlersV010
-} from "./workbench-actions.js";
+} from "../apps/bi-workbench/actions.js";
+import {
+  BI_WORKBENCH_FEATURE_ID_V010,
+  BI_WORKBENCH_HOME_PAGE_SOURCE_V010,
+  BI_WORKBENCH_PACKAGE_ID_V010
+} from "../apps/bi-workbench/package.js";
 import {
   createSettingsExperienceManifest,
   createSettingsGroupPage,
@@ -789,6 +778,7 @@ import {
   secretAuditEventV010
 } from "./secret-governance.js";
 import {
+  biWorkbenchPackage,
   companyNotesPackage,
   counterpartyPackage,
   dataImportPackage,
@@ -995,6 +985,7 @@ import {
 } from "../apps/template-store/package.js";
 
 const catalog = createPackageCatalog([
+  biWorkbenchPackage,
   companyNotesPackage,
   counterpartyPackage,
   dataImportPackage,
@@ -1071,10 +1062,6 @@ const counterpartyProfileRepository =
   });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
-const workbenchEnterpriseRoleDefaults =
-  createEnterpriseRoleWorkbenchDefaultRepositoryV010(
-    enterpriseResourceRepository
-  );
 const counterpartyProjectionService =
   createCounterpartyProjectionServiceV010({
     repository: counterpartyRepository,
@@ -1448,19 +1435,6 @@ const conversationDatabaseUrl =
   process.env.APP_PLATFORM_CONVERSATION_DATABASE_URL?.trim();
 const conversationPostgresSchema =
   process.env.APP_PLATFORM_CONVERSATION_POSTGRES_SCHEMA?.trim();
-const workbenchDatabaseUrl =
-  process.env.APP_PLATFORM_WORKBENCH_DATABASE_URL?.trim()
-  || conversationDatabaseUrl;
-const workbenchPostgresSchema =
-  process.env.APP_PLATFORM_WORKBENCH_POSTGRES_SCHEMA?.trim();
-const personalWorkbenchStateStore = workbenchDatabaseUrl
-  ? await createPostgresPersonalWorkbenchStateStoreV010({
-      connectionString: workbenchDatabaseUrl,
-      ...(workbenchPostgresSchema
-        ? { schema: workbenchPostgresSchema }
-        : {})
-    })
-  : createMemoryPersonalWorkbenchStateStoreV010();
 let conversationPostgresAuthority:
   | PostgresConversationAuthorityV010
   | undefined;
@@ -2142,6 +2116,22 @@ const retiredLocalization = retireExperimentalPackageV010(
 if (retiredLocalization.changed) {
   console.log("Retired obsolete experimental package", JSON.stringify(retiredLocalization));
 }
+let biWorkbenchRuntimePromise:
+  | Promise<import("../apps/bi-workbench/runtime.js").BiWorkbenchRuntimeV010>
+  | undefined;
+
+async function disposeBiWorkbenchRuntimeV010(): Promise<void> {
+  const current = biWorkbenchRuntimePromise;
+  biWorkbenchRuntimePromise = undefined;
+  if (!current) return;
+  try {
+    const runtime = await current;
+    await runtime.close();
+  } catch (error) {
+    console.error("Failed to dispose BI Workbench runtime.", error);
+  }
+}
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -2168,34 +2158,69 @@ const manager = createAppManagerService(
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
+      if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
+        void disposeBiWorkbenchRuntimeV010();
+      }
     }
   },
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
 
-const workbenchService = createWorkbenchServiceV010({
-  manager,
-  personalState: personalWorkbenchStateStore,
-  enterpriseRoleLayer({ contextId, relationshipKind }) {
-    return workbenchEnterpriseRoleDefaults.layer(
-      contextId,
-      relationshipKind
-    );
-  },
-  resolveRelationshipKind(context) {
-    const active = context.context?.activeContext;
-    if (!active || active.kind !== "ENTERPRISE") return undefined;
-    return (
-      resolveEnterpriseContextRelationshipProvider()
-        ?.listForPrincipal(context.principal) ?? []
-    ).find(item =>
-      item.contextId === active.contextId
-      && item.state === "ACTIVE"
-    )?.kind;
-  },
-  resolveAuthorizationProvider
-});
+function biWorkbenchActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === BI_WORKBENCH_FEATURE_ID_V010
+  );
+}
+
+async function resolveBiWorkbenchRuntimeV010() {
+  if (!biWorkbenchActiveV010()) {
+    throw new Error("BI_WORKBENCH_NOT_ACTIVE");
+  }
+  if (!biWorkbenchRuntimePromise) {
+    biWorkbenchRuntimePromise = import("../apps/bi-workbench/runtime.js")
+      .then(module => module.createBiWorkbenchRuntimeV010({
+        manager,
+        enterpriseResources: enterpriseResourceRepository,
+        databaseUrl:
+          process.env.EVO_BI_WORKBENCH_DATABASE_URL?.trim()
+          || process.env.APP_PLATFORM_WORKBENCH_DATABASE_URL?.trim()
+          || conversationDatabaseUrl,
+        postgresSchema:
+          process.env.EVO_BI_WORKBENCH_POSTGRES_SCHEMA?.trim(),
+        legacyPostgresSchema:
+          process.env.APP_PLATFORM_WORKBENCH_POSTGRES_SCHEMA?.trim()
+          || "app_platform_workbench",
+        resolveRelationshipKind(context) {
+          const active = context.context?.activeContext;
+          if (!active || active.kind !== "ENTERPRISE") return undefined;
+          return (
+            resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(context.principal) ?? []
+          ).find(item =>
+            item.contextId === active.contextId
+            && item.state === "ACTIVE"
+          )?.kind;
+        },
+        resolveAuthorizationProvider
+      }));
+  }
+  return biWorkbenchRuntimePromise;
+}
+
+if (
+  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1"
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === BI_WORKBENCH_PACKAGE_ID_V010
+  )
+) {
+  try {
+    manager.install(BI_WORKBENCH_PACKAGE_ID_V010);
+    console.log("Activated optional EVO BI Workbench plugin by explicit operator configuration.");
+  } catch (error) {
+    console.error("Failed to activate optional EVO BI Workbench plugin.", error);
+  }
+}
 
 const eog2dStartupSnapshot = manager.getSnapshot();
 if (
@@ -4203,7 +4228,9 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
 const actionRouter = createAppActionRouter(
   [
     ...createWorkbenchActionHandlersV010({
-      service: workbenchService
+      async resolveService() {
+        return (await resolveBiWorkbenchRuntimeV010()).service;
+      }
     }),
     ...createEnterpriseOperatingGraphActionHandlersV010({
       service: enterpriseOperatingGraphService,
@@ -5041,8 +5068,7 @@ const actionRouter = createAppActionRouter(
     })
   ],
   featureId =>
-    isHostWorkbenchFeatureV010(featureId)
-    || manager.getSnapshot().activeFeatures.some(
+    manager.getSnapshot().activeFeatures.some(
       feature => feature.featureId === featureId
     ),
   createCapabilityOperationActionPreExecuteV010({
@@ -6231,7 +6257,6 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return jsonVersioned(request, response, 200, [
-        workspaceHomeExperienceManifest,
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager),
         createProviderManagerExperienceManifest(manager),
@@ -7609,7 +7634,7 @@ const server = createServer(async (request, response) => {
           relationships: resolveEnterpriseContextRelationshipProvider()
         }));
       }
-      if (source === workspaceHomePageSource) {
+      if (source === BI_WORKBENCH_HOME_PAGE_SOURCE_V010) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
         const resolved = contextRegistry.resolve(
@@ -7634,12 +7659,19 @@ const server = createServer(async (request, response) => {
           ...partialContext,
           scope: legacyScopeFromRequestContextV010(partialContext)
         };
+        if (!biWorkbenchActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const runtime = await resolveBiWorkbenchRuntimeV010();
+        const module = await import("../apps/bi-workbench/page.js");
         return json(
           response,
           200,
-          createWorkspaceHomePageV010(
+          module.createWorkspaceHomePageV010(
             requestedLocale(url),
-            await workbenchService.resolve(requestContext)
+            await runtime.service.resolve(requestContext)
           )
         );
       }

@@ -7,19 +7,21 @@ import {
 import {
   createEnterpriseRoleWorkbenchDefaultRepositoryV010,
   createMemoryPersonalWorkbenchStateStoreV010
-} from "../../dist/manager/workbench-state.js";
+} from "../../dist/apps/bi-workbench/state.js";
 import {
   createWorkbenchServiceV010
-} from "../../dist/manager/workbench-service.js";
+} from "../../dist/apps/bi-workbench/service.js";
 import {
-  createWorkbenchActionHandlersV010,
-  WORKBENCH_ITEM_OPEN_COMMAND_V010,
-  WORKBENCH_ITEM_FAVORITE_SET_COMMAND_V010
-} from "../../dist/manager/workbench-actions.js";
+  createWorkbenchActionHandlersV010
+} from "../../dist/apps/bi-workbench/actions.js";
 import {
-  createWorkspaceHomePageV010,
-  isHostWorkbenchFeatureV010
-} from "../../dist/manager/workspace-home-page.js";
+  BI_WORKBENCH_FEATURE_ID_V010,
+  BI_WORKBENCH_ITEM_OPEN_COMMAND_V010 as WORKBENCH_ITEM_OPEN_COMMAND_V010,
+  BI_WORKBENCH_ITEM_FAVORITE_SET_COMMAND_V010 as WORKBENCH_ITEM_FAVORITE_SET_COMMAND_V010
+} from "../../dist/apps/bi-workbench/constants.js";
+import {
+  createWorkspaceHomePageV010
+} from "../../dist/apps/bi-workbench/page.js";
 import {
   createAppActionRouter
 } from "../../dist/actions/router.js";
@@ -421,7 +423,7 @@ test("CP-06 Workbench action handler records Recent and returns package-owned ro
     resolveAuthorizationProvider: provider
   });
   const open = createWorkbenchActionHandlersV010({
-    service,
+    resolveService: async () => service,
     now: () => new Date("2026-10-09T02:40:00.000Z")
   }).find(item => item.commandCode === WORKBENCH_ITEM_OPEN_COMMAND_V010);
 
@@ -447,7 +449,7 @@ test("CP-06 Workbench action handler records Recent and returns package-owned ro
 });
 
 
-test("CP-06 Action Router treats Host Workbench feature as active without weakening package feature checks", async () => {
+test("CP-06 Action Router executes Workbench actions only while the BI Workbench plugin feature is active", async () => {
   const service = {
     async open() {
       return {
@@ -466,12 +468,12 @@ test("CP-06 Action Router treats Host Workbench feature as active without weaken
     }
   };
   const handlers = createWorkbenchActionHandlersV010({
-    service,
+    resolveService: async () => service,
     now: () => new Date("2026-10-09T02:41:00.000Z")
   });
   const router = createAppActionRouter(
     handlers,
-    featureId => isHostWorkbenchFeatureV010(featureId)
+    featureId => featureId === BI_WORKBENCH_FEATURE_ID_V010
   );
 
   const result = await router.execute({
@@ -489,5 +491,22 @@ test("CP-06 Action Router treats Host Workbench feature as active without weaken
 
   assert.equal(result.ok, true);
   assert.equal(result.result.navigateTo, "/counterparties/my-customers");
-  assert.equal(isHostWorkbenchFeatureV010("not-a-host-feature"), false);
+
+  const inactiveRouter = createAppActionRouter(
+    handlers,
+    () => false
+  );
+  const blocked = await inactiveRouter.execute({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: WORKBENCH_ITEM_OPEN_COMMAND_V010,
+      inputVersion: "0.1.0"
+    },
+    values: { itemId: "my-customers" },
+    sourceInteractionId: "cp06-router-disabled",
+    actionId: WORKBENCH_ITEM_OPEN_COMMAND_V010,
+    requiresConfirmation: false
+  }, context());
+  assert.equal(blocked.ok, false);
 });
