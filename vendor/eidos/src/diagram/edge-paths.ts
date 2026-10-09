@@ -3,6 +3,8 @@
  * This module owns presentation only: it never mutates graph topology or business direction.
  * Absence of an explicit pathKind is the legacy straight-line presentation.
  */
+import { routeDiagramOrthogonalV010, type DiagramRouteObstacleV010 } from "./obstacle-routing.js";
+
 export type DiagramEdgePathKindV010 =
   | "straight"
   | "orthogonal"
@@ -18,6 +20,14 @@ export interface DiagramEdgeGeometryV010 {
   d: string;
   label: DiagramEdgePointV010;
   kind: DiagramEdgePathKindV010;
+  /** True when obstacle avoidance could not find a safe route within the bounded budget. */
+  congested?: boolean;
+}
+
+export interface DiagramEdgeGeometryOptionsV010 {
+  /** Bounding boxes of visible, unrelated nodes, in the same world coordinates. */
+  obstacles?: readonly DiagramRouteObstacleV010[];
+  clearance?: number;
 }
 
 const permittedKinds: readonly DiagramEdgePathKindV010[] = [
@@ -105,7 +115,8 @@ function roundedPath(points: readonly DiagramEdgePointV010[]): string {
 export function diagramEdgeGeometryV010(
   start: DiagramEdgePointV010,
   end: DiagramEdgePointV010,
-  requestedKind: DiagramEdgePathKindV010 = "straight"
+  requestedKind: DiagramEdgePathKindV010 = "straight",
+  options?: DiagramEdgeGeometryOptionsV010
 ): DiagramEdgeGeometryV010 {
   if (![start.x, start.y, end.x, end.y].every(Number.isFinite)) {
     throw new Error("EIDOS_DIAGRAM_EDGE_COORDINATES_INVALID");
@@ -143,12 +154,17 @@ export function diagramEdgeGeometryV010(
       label
     };
   }
-  const corners = elbowPoints(start, end);
+  const obstacles = options?.obstacles ?? [];
+  const routed = obstacles.length > 0
+    ? routeDiagramOrthogonalV010(start, end, obstacles, options?.clearance)
+    : undefined;
+  const corners = routed ?? elbowPoints(start, end);
   return {
     kind: requestedKind,
     d: requestedKind === "orthogonal"
       ? corners.map((p, i) => (i === 0 ? "M " : "L ") + point(p)).join(" ")
       : roundedPath(corners),
-    label: halfwayOnSegments(corners)
+    label: halfwayOnSegments(corners),
+    ...(obstacles.length > 0 && !routed ? { congested: true } : {})
   };
 }
