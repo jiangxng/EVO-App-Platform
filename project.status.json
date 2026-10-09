@@ -4934,7 +4934,7 @@
         "real1mPerformanceRun": "PENDING"
       },
       "sensitiveFieldTests": {
-        "status": "IMPLEMENTED_CI_PENDING",
+        "status": "IMPLEMENTED_CI_PASS",
         "protocolTest": "tests/protocol/cp07-counterparty-sensitive-fields.test.mjs",
         "coverage": [
           "core tax/phone/email field denial",
@@ -4943,7 +4943,10 @@
           "Address line/city/region/postal/country denial",
           "displayName denial fails the Counterparty record read closed"
         ],
-        "newAuthorizationFramework": false
+        "newAuthorizationFramework": false,
+        "pr": 512,
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS"
       },
       "legacyTransformationReport": {
         "status": "COMPLETE",
