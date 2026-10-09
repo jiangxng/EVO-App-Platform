@@ -460,7 +460,7 @@ Exit: Human can approve/reject semantic changes without reading a source-code di
 
 ## 12. CP-05 — Facets / Profiles / related resources
 
-**Current state:** ACTIVE. CP-03D is CLOSED_HUMAN_PASS and AF-01/AF-02 are CLOSED_PRODUCTION_PASS. CP-05 now resumes with Contact, Address, CustomerProfile, SupplierProfile and richer Counterparty business-field destinations.
+**Current state:** MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN. Contact/Address child resources, role-scoped CustomerProfile/SupplierProfile, explicit EffectiveObjectSchema semantic destinations, Data Import persistence and progressive Eidos detail composition are implemented and deployed through PRs #488/#491/#492. Remaining gate: Human visual/product confirmation of the deployed Counterparty detail composition. Do not start CP-06 until this confirmation closes CP-05.
 
 Add only business-proven concepts.
 
