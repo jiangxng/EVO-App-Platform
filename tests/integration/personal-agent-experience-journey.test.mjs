@@ -319,11 +319,17 @@ test("Personal Agent chat overlay keeps mature feedback and message actions", as
   assert.match(source, /chatUiTextV010/);
 });
 
-test("Personal Agent chat header uses progressive disclosure for conversation controls", async () => {
-  const source = await readFile(
-    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
-    "utf8"
-  );
+test("Personal Agent chat header uses Eidos Workbench chrome and progressive disclosure", async () => {
+  const [source, designLanguage] = await Promise.all([
+    readFile(
+      new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+      "utf8"
+    ),
+    readFile(
+      new URL("../../dist/vendor/eidos/src/design-language/productive-workbench-css.js", import.meta.url),
+      "utf8"
+    )
+  ]);
 
   assert.match(source, /data-eidos-chat-heading-group/);
   assert.match(source, /data-eidos-chat-thread-controls/);
@@ -332,7 +338,21 @@ test("Personal Agent chat header uses progressive disclosure for conversation co
   assert.match(source, /data-eidos-chat-more-menu/);
   assert.match(source, /data-eidos-chat-archive-thread/);
   assert.match(source, /data-eidos-chat-context/);
+  assert.match(source, /createEidosIconElement/);
+  assert.match(source, /"newChat"/);
+  assert.match(source, /"history"/);
+  assert.match(source, /"moreHorizontal"/);
+  assert.match(source, /data-eidos-chat-toolbar-label/);
+  assert.doesNotMatch(source, /moreSummary\.textContent = "⋯"/);
   assert.doesNotMatch(source, /threadControls\.append\(threadSelect, newThreadButton, archiveThreadButton\)/);
+
+  assert.match(
+    designLanguage,
+    /data-eidos-workspace-content\]:has\(> \[data-eidos-chat\]\)/
+  );
+  assert.match(designLanguage, /data-eidos-chat-new-thread/);
+  assert.match(designLanguage, /data-eidos-chat-history-toggle/);
+  assert.match(designLanguage, /data-eidos-chat-more-toggle/);
 });
 
 test("Personal Agent thinking state is transient and hidden after terminal progress", async () => {

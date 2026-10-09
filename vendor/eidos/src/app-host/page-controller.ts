@@ -13,6 +13,7 @@ import {
   isSettingsEditorV020,
   type SettingsFieldV010
 } from "../settings/index.js";
+import { createEidosIconElement } from "../design-language/icons/icon-system.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import {
@@ -1126,12 +1127,28 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     ) {
       const compactControl = (element: HTMLElement): void => {
         element.style.minHeight = "var(--eidos-control-compact)";
-        element.style.border = "1px solid var(--eidos-border)";
-        element.style.borderRadius = "var(--eidos-radius-md)";
-        element.style.padding = "0 var(--eidos-space-sm)";
-        element.style.background = "var(--eidos-bg)";
+        element.style.border = "0";
+        element.style.borderRadius = "var(--eidos-radius-sm)";
+        element.style.padding = "0 var(--eidos-space-md)";
+        element.style.background = "transparent";
         element.style.color = "var(--eidos-fg-muted)";
         element.style.fontSize = "var(--eidos-font-meta)";
+      };
+      const setToolbarControlContent = (
+        element: HTMLElement,
+        iconName: "newChat" | "history" | "moreHorizontal",
+        label: string,
+        iconOnly = false
+      ): void => {
+        element.replaceChildren();
+        const icon = createEidosIconElement(iconName, { size: 16 });
+        if (icon) element.appendChild(icon);
+        if (!iconOnly) {
+          const labelElement = document.createElement("span");
+          labelElement.setAttribute("data-eidos-chat-toolbar-label", "");
+          labelElement.textContent = label;
+          element.appendChild(labelElement);
+        }
       };
       const floatingMenu = (element: HTMLElement): void => {
         element.style.position = "absolute";
@@ -1152,14 +1169,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       chatHeader.style.alignItems = "center";
       chatHeader.style.justifyContent = "space-between";
       chatHeader.style.gap = "var(--eidos-space-md)";
-      chatHeader.style.padding = "var(--eidos-space-sm) var(--eidos-space-lg)";
+      chatHeader.style.padding = "0 var(--eidos-space-xl)";
 
       const heading = chatHeader.querySelector<HTMLElement>("h1");
       const context = chatHeader.querySelector<HTMLElement>("[data-eidos-chat-context]");
       const headingGroup = document.createElement("div");
       headingGroup.setAttribute("data-eidos-chat-heading-group", "");
-      headingGroup.style.display = "grid";
-      headingGroup.style.gap = "2px";
+      headingGroup.style.display = "flex";
+      headingGroup.style.alignItems = "center";
+      headingGroup.style.gap = "var(--eidos-space-md)";
       headingGroup.style.minWidth = "0";
       headingGroup.style.flex = "1 1 auto";
 
@@ -1223,19 +1241,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       threadSelect.hidden = true;
       threadSelect.style.display = "none";
 
+      const newThreadLabel = hostText("shell.chatNew", "New chat");
       newThreadButton.type = "button";
       newThreadButton.setAttribute("data-eidos-chat-new-thread", "");
-      newThreadButton.textContent = hostText("shell.chatNew", "New chat");
+      newThreadButton.setAttribute("aria-label", newThreadLabel);
+      newThreadButton.title = newThreadLabel;
+      setToolbarControlContent(newThreadButton, "newChat", newThreadLabel);
       compactControl(newThreadButton);
 
       historyDetails.setAttribute("data-eidos-chat-history", "");
       historyDetails.style.position = "relative";
       historySummary.setAttribute("data-eidos-chat-history-toggle", "");
-      historySummary.setAttribute(
-        "aria-label",
-        hostText("shell.chatHistory", "Conversation history")
-      );
-      historySummary.textContent = hostText("shell.chatHistory", "History");
+      const historyLabel = hostText("shell.chatHistory", "Conversation history");
+      historySummary.setAttribute("aria-label", historyLabel);
+      historySummary.title = historyLabel;
+      setToolbarControlContent(historySummary, "history", historyLabel);
       historySummary.style.listStyle = "none";
       historySummary.style.display = "flex";
       historySummary.style.alignItems = "center";
@@ -1254,9 +1274,10 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       moreDetails.setAttribute("data-eidos-chat-more", "");
       moreDetails.style.position = "relative";
       moreSummary.setAttribute("data-eidos-chat-more-toggle", "");
-      moreSummary.setAttribute("aria-label", "More conversation actions");
-      moreSummary.title = "More conversation actions";
-      moreSummary.textContent = "⋯";
+      const moreLabel = "More conversation actions";
+      moreSummary.setAttribute("aria-label", moreLabel);
+      moreSummary.title = moreLabel;
+      setToolbarControlContent(moreSummary, "moreHorizontal", moreLabel, true);
       moreSummary.style.listStyle = "none";
       moreSummary.style.display = "flex";
       moreSummary.style.alignItems = "center";
