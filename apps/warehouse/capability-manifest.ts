@@ -90,4 +90,3 @@ export const warehouseProjectionCapabilityContributionsV010:
         "Read Warehouses for which the current principal carries active WAREHOUSE_STEWARD responsibility, intersected with normal Warehouse authorization."
     })
   ];
-}
