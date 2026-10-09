@@ -144,7 +144,7 @@ Evidence:
 - adds no new Counterparty storage, projection or authorization mechanism;
 - does not mutate Railway production data.
 
-Status: **IMPLEMENTED_CI_PENDING via CP-07E**.
+Status: **CI_PASS via PR #515**. Platform CI and Project Continuity CI passed with the 10k full-commit + governed projection proof.
 
 ## Closure rule
 
