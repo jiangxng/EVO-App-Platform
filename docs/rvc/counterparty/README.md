@@ -9,8 +9,7 @@ Official download API:
 
 `https://goldencopy.gleif.org/api/v2/golden-copies/publishes/lei2/latest.csv`
 
-GLEIF publishes Golden Copy files in CSV/JSON/XML and provides LEI data under CC0.
-The run manifest must still record the exact retrieval time/version used for evidence.
+GLEIF publishes Golden Copy files in CSV/JSON/XML and provides LEI data under CC0. The download endpoint may return a ZIP archive via redirect; extract the CSV before passing it to the runner. The run manifest must still record the exact retrieval time/version used for evidence.
 
 ## Manifest
 
