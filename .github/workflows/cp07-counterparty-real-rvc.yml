@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          csv_name="$(unzip -Z1 /tmp/companies-house.zip | awk 'BEGIN { IGNORECASE=1 } /\\.csv$/ && first == "" { first=$0 } END { print first }')"
+          csv_name="$(unzip -Z1 /tmp/companies-house.zip | awk 'BEGIN { IGNORECASE=1 } /\.csv$/ && first == "" { first=$0 } END { print first }')"
           test -n "$csv_name"
           unzip -p /tmp/companies-house.zip "$csv_name" > /tmp/companies-house.csv
           digest="$(awk '{print $1}' /tmp/companies-house.zip.sha256)"
