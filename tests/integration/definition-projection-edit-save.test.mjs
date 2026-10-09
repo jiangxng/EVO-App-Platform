@@ -239,6 +239,7 @@ test("Saving a projection overwrites presentation state without creating a defin
   const hiddenEdgeId = readResult.result.edges.find(
     edge => edge.source !== hiddenNodeId && edge.target !== hiddenNodeId
   )?.id;
+  const styledEdgeId = readResult.result.edges[0].id;
   const placements = nodes
     .filter(node => node.id !== hiddenNodeId)
     .map((node, index) => ({
@@ -260,6 +261,7 @@ test("Saving a projection overwrites presentation state without creating a defin
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
           ...(hiddenEdgeId ? { hiddenEdgeIds: [hiddenEdgeId] } : {}),
+          edgePaths: [{ edgeId: styledEdgeId, pathKind: "rounded-orthogonal" }],
           viewport: { width: 1180, height: 640 },
           placements,
           camera: {
@@ -305,6 +307,9 @@ test("Saving a projection overwrites presentation state without creating a defin
     translateY: -12
   });
   assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
+  assert.deepEqual(projection.view.edgePaths, [
+    { edgeId: styledEdgeId, pathKind: "rounded-orthogonal" }
+  ]);
   assert.match(projection.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
   assert.match(projection.thumbnail.alt, /投影缩略图$/);
   if (hiddenEdgeId) {
@@ -318,6 +323,14 @@ test("Saving a projection overwrites presentation state without creating a defin
     projectionId
   });
   assert.ok(projected?.diagram2d);
+  const fullProjection = source.get({
+    enterpriseId: "ent-a", definitionId: "ledger:main",
+    definitionRevision: 0, projectionId, includeHidden: true
+  });
+  assert.equal(
+    fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).pathKind,
+    "rounded-orthogonal"
+  );
   assert.equal(
     projected.diagram2d.nodes.some(node => node.id === hiddenNodeId),
     false
