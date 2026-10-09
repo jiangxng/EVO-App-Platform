@@ -23,6 +23,9 @@ import {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
 import {
+  itemPackage
+} from "../apps/item/package.js";
+import {
   biWorkbenchPackage
 } from "../apps/bi-workbench/package.js";
 import {
@@ -54,6 +57,9 @@ export {
 export {
   counterpartyPackage
 } from "../apps/counterparty/package.js";
+export {
+  itemPackage
+} from "../apps/item/package.js";
 export {
   biWorkbenchPackage
 } from "../apps/bi-workbench/package.js";

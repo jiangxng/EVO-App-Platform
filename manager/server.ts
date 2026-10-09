@@ -781,6 +781,7 @@ import {
   biWorkbenchPackage,
   companyNotesPackage,
   counterpartyPackage,
+  itemPackage,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -862,6 +863,27 @@ import {
 import {
   createCounterpartyProjectionServiceV010
 } from "../apps/counterparty/projection-service.js";
+import {
+  ITEM_ARCHIVE_COMMAND,
+  ITEM_CREATE_COMMAND,
+  ITEM_CREATE_PAGE_SOURCE,
+  ITEM_DETAIL_PAGE_SOURCE,
+  ITEM_DIRECTORY_PAGE_SOURCE,
+  ITEM_DIRECTORY_PROJECTION_V010,
+  ITEM_DIRECTORY_READ_COMMAND_V010,
+  ITEM_EDIT_PAGE_SOURCE,
+  ITEM_FEATURE_ID,
+  ITEM_MY_ITEMS_PAGE_SOURCE,
+  ITEM_MY_ITEMS_PROJECTION_V010,
+  ITEM_MY_ITEMS_READ_COMMAND_V010,
+  ITEM_PACKAGE_ID,
+  ITEM_UPDATE_COMMAND,
+  parseItemDetailRouteV010,
+  parseItemEditRouteV010
+} from "../apps/item/constants.js";
+import {
+  itemAuthorizationPolicyV010
+} from "../apps/item/authorization.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -988,6 +1010,7 @@ const catalog = createPackageCatalog([
   biWorkbenchPackage,
   companyNotesPackage,
   counterpartyPackage,
+  itemPackage,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -2021,6 +2044,7 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   eogDefinitionProjectionAuthorizationPolicyV010,
   dataImportAuthorizationPolicyV010,
   counterpartyAuthorizationPolicyV010,
+  itemAuthorizationPolicyV010,
   objectExtensionAuthorizationPolicyV010,
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
@@ -2132,6 +2156,14 @@ async function disposeBiWorkbenchRuntimeV010(): Promise<void> {
   }
 }
 
+let itemRuntimePromise:
+  | Promise<{
+      repository: import("../apps/item/repository.js").ItemRepositoryV010;
+      projectionService:
+        import("../apps/item/projection-service.js").ItemProjectionServiceV010;
+    }>
+  | undefined;
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -2161,11 +2193,50 @@ const manager = createAppManagerService(
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
+      if (event.packageId === ITEM_PACKAGE_ID) {
+        itemRuntimePromise = undefined;
+      }
     }
   },
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+
+function itemFeatureActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(feature =>
+    feature.packageId === ITEM_PACKAGE_ID
+    && feature.featureId === ITEM_FEATURE_ID
+  );
+}
+
+async function resolveItemRuntimeV010() {
+  if (!itemFeatureActiveV010()) {
+    throw new Error("ITEM_FEATURE_NOT_ACTIVE");
+  }
+  itemRuntimePromise ??= Promise.all([
+    import("../apps/item/repository.js"),
+    import("../apps/item/projection-service.js"),
+    import("../apps/item/foundation-object.js")
+  ]).then(([repositoryModule, projectionModule, foundationModule]) => {
+    const repository = repositoryModule.createItemRepositoryV010(
+      enterpriseResourceRepository
+    );
+    return {
+      repository,
+      projectionService: projectionModule.createItemProjectionServiceV010({
+        repository,
+        responsibilityRepository,
+        extensionValueRepository: objectExtensionValueRepository,
+        resolveAuthorizationProvider,
+        fieldIds: () =>
+          foundationModule.itemCoreSchemaV010.fields.map(
+            field => field.fieldId
+          )
+      })
+    };
+  });
+  return itemRuntimePromise;
+}
 
 function biWorkbenchActiveV010(): boolean {
   return manager.getSnapshot().activeFeatures.some(
@@ -4625,6 +4696,81 @@ const actionRouter = createAppActionRouter(
       })
     ),
     ...[
+      ITEM_CREATE_COMMAND,
+      ITEM_UPDATE_COMMAND,
+      ITEM_ARCHIVE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ITEM_PACKAGE_ID,
+        featureId: ITEM_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/item/actions.js"),
+            resolveItemRuntimeV010()
+          ]);
+          const handlers = module.createItemActionHandlersV010({
+            repository: runtime.repository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "item-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("ITEM_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      ITEM_DIRECTORY_READ_COMMAND_V010,
+      ITEM_MY_ITEMS_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ITEM_PACKAGE_ID,
+        featureId: ITEM_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/item/projection-actions.js"),
+            resolveItemRuntimeV010()
+          ]);
+          const handlers = module.createItemProjectionActionHandlersV010({
+            service: runtime.projectionService,
+            resolveEnterpriseRelationshipKind(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).find(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+              )?.kind;
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("ITEM_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
       RESPONSIBILITY_ASSIGN_COMMAND_V010,
       RESPONSIBILITY_ARCHIVE_COMMAND_V010
     ].map(commandCode =>
@@ -6579,6 +6725,160 @@ const server = createServer(async (request, response) => {
                 ),
                 locale,
                 readableFieldIds: access.readableFieldIds,
+                canManage
+              })
+        );
+      }
+
+      if (
+        source === ITEM_DIRECTORY_PAGE_SOURCE
+        || source === ITEM_MY_ITEMS_PAGE_SOURCE
+        || source === ITEM_CREATE_PAGE_SOURCE
+        || source === ITEM_DETAIL_PAGE_SOURCE
+        || source === ITEM_EDIT_PAGE_SOURCE
+      ) {
+        if (!itemFeatureActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "ITEM_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "item-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const canManage = relationship?.kind === "OWNER"
+          || relationship?.kind === "ADMIN";
+        const runtime = await resolveItemRuntimeV010();
+        const module = await import("../apps/item/page.js");
+
+        if (
+          source === ITEM_DIRECTORY_PAGE_SOURCE
+          || source === ITEM_MY_ITEMS_PAGE_SOURCE
+        ) {
+          const projectionId =
+            source === ITEM_MY_ITEMS_PAGE_SOURCE
+              ? ITEM_MY_ITEMS_PROJECTION_V010
+              : ITEM_DIRECTORY_PROJECTION_V010;
+          const projection = await runtime.projectionService.read({
+            contextId: active.contextId,
+            projectionId,
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
+          });
+          return json(
+            response,
+            200,
+            source === ITEM_DIRECTORY_PAGE_SOURCE
+              ? module.createItemDirectoryPageV010({
+                  records: projection.items,
+                  locale,
+                  readableFieldIds: projection.readableFieldIds,
+                  canManage
+                })
+              : module.createItemProjectionPageV010({
+                  projectionId,
+                  records: projection.items,
+                  locale,
+                  readableFieldIds: projection.readableFieldIds,
+                  canManage
+                })
+          );
+        }
+
+        if (source === ITEM_CREATE_PAGE_SOURCE) {
+          if (!canManage) {
+            return json(response, 403, {
+              code: "ITEM_MANAGE_ROLE_REQUIRED"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createItemCreatePageV010(locale)
+          );
+        }
+
+        const routeValue = url.searchParams.get("route")?.trim();
+        const itemId = source === ITEM_EDIT_PAGE_SOURCE
+          ? parseItemEditRouteV010(routeValue || undefined)
+          : parseItemDetailRouteV010(routeValue || undefined);
+        if (!itemId) {
+          return json(response, 400, {
+            code: source === ITEM_EDIT_PAGE_SOURCE
+              ? "ITEM_EDIT_ROUTE_INVALID"
+              : "ITEM_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const directory = await runtime.projectionService.read({
+          contextId: active.contextId,
+          projectionId: ITEM_DIRECTORY_PROJECTION_V010,
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind
+        });
+        const record = directory.items.find(
+          candidate => candidate.item.itemId === itemId
+        );
+        if (!record) {
+          return json(response, 404, {
+            code: "ITEM_NOT_FOUND"
+          });
+        }
+        if (source === ITEM_EDIT_PAGE_SOURCE && !canManage) {
+          return json(response, 403, {
+            code: "ITEM_MANAGE_ROLE_REQUIRED"
+          });
+        }
+        return json(
+          response,
+          200,
+          source === ITEM_EDIT_PAGE_SOURCE
+            ? module.createItemEditPageV010({
+                item: record.item,
+                locale
+              })
+            : module.createItemDetailPageV010({
+                record,
+                locale,
+                readableFieldIds: directory.readableFieldIds,
                 canManage
               })
         );
