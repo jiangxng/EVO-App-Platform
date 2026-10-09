@@ -1,6 +1,6 @@
 # IT-01 Item/Product Second-Object Evidence v0.1
 
-**Status:** IT-01A IMPLEMENTED / CI PENDING  
+**Status:** IT-01A MERGED_CI_PRODUCTION_PASS / IT-01B ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -127,3 +127,15 @@ After IT-01A CI passes:
    can move from EXPERIMENTAL toward STABLE.
 
 Do not stabilize contracts merely because IT-01A compiles.
+
+
+## IT-01A production evidence
+
+- implementation PR: #522
+- main merge commit: `d9ad7b6cb194096f04aa58979af27e0af99d157d`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Railway deployment: `3aa0e5fb-139a-492f-be63-41b1b9255c9b` — SUCCESS
+
+IT-01A is closed. IT-01B is the active slice and will add Enterprise Context-backed
+Item identity persistence before Data Import/package/UI expansion.

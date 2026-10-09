@@ -540,7 +540,9 @@ This means the Foundation Object mechanism is proven deeply enough to move to a 
 
 ## 16. IT-01 — Item/Product second-object proof
 
-**Current state:** ACTIVE. CP-07 is CLOSED_PRODUCTION_PASS. Item/Product is now the materially different second-object anti-overfit proof; shared Foundation Object contracts remain EXPERIMENTAL until this gate provides compatibility evidence.
+**Current state:** ACTIVE. IT-01A is MERGED_CI_PRODUCTION_PASS through PR #522; IT-01B Item Enterprise Context repository + deterministic identity lifecycle is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until the full materially different Item proof completes.
+
+Evidence authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
 Purpose: validate shared architecture against a materially different object.
 

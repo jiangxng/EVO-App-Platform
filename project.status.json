@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp07-closed-it01-active-2026-10-09",
-    "snapshotAt": "2026-10-09T18:23:00+08:00",
+    "snapshotId": "it01a-closed-it01b-active-2026-10-09",
+    "snapshotAt": "2026-10-09T18:36:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1817,36 +1817,30 @@
       "milestone": "IT-01 Item/Product second-object proof",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "cp07-counterparty-maturity-gate",
-        "status": "CLOSED_PRODUCTION_PASS",
-        "summary": "CP-07 is closed after the reconciled Counterparty maturity evidence stack merged through PR #519, the complete candidate passed 42/42 combined CI, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 reached SUCCESS on main commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7. Evidence includes 10k full committed Demo continuity, 100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation and package upgrade compatibility.",
-        "authority": "docs/roadmap/CP07-CLOSURE-READINESS-2026-10-09.md",
+        "id": "it01a-item-second-object-schema-anti-overfit",
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "IT-01A established Item as the materially different second Foundation Object consumer and corrected a Counterparty-first overfit in shared applicability. Generic qualifier dimensions now support new object semantics while Counterparty relationshipRoles remains an explicit compatibility path. The first Item identity is intentionally limited to itemId/code/displayName/itemKind/baseUomCode/description and does not prematurely collapse Product/SKU/variant/GTIN/category into one identity.",
+        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
         "evidence": {
-          "integrationPr": 519,
-          "mergeCommit": "8e0f379184110ac87ce0cd8e125cc2c51b99a2c7",
-          "combinedCI": "42/42 PASS",
+          "implementationPr": 522,
+          "mergeCommit": "d9ad7b6cb194096f04aa58979af27e0af99d157d",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "crossProjectCI": "PASS",
-          "tenThousandDemo": "PASS via PR #515",
-          "real100kRvc": "PASS via PR #516 / workflow run 37912406474",
-          "oneMillionPerformance": "PASS via PR #517 / workflow run 37912688857",
-          "railwayDeploymentId": "f681b927-2685-4d66-8654-299e0374c347",
+          "railwayDeploymentId": "3aa0e5fb-139a-492f-be63-41b1b9255c9b",
           "railwayDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "it01-item-product-second-object-proof",
+        "id": "it01b-item-enterprise-context-identity",
         "status": "ACTIVE",
-        "summary": "IT-01 is the active Foundation Object anti-overfit gate. Item/Product must reuse the generic contracts proven by Counterparty while exposing materially different semantics; shared Foundation Object contracts remain EXPERIMENTAL until this second-object proof succeeds.",
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "summary": "IT-01B is the current slice: persist stable Item identity through Enterprise Context Resource contracts with deterministic code uniqueness and archive lifecycle. This slice proves durable second-object identity without yet adding Data Import, GTIN/SKU/variant semantics, or Eidos product experience.",
+        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
         "acceptance": [
-          "Establish explicit Item/Product/SKU/Service, variant, UOM, barcode/GTIN and category boundaries.",
-          "Reuse FoundationObjectDescriptor and EffectiveObjectSchema rather than creating an Item-specific parallel framework.",
-          "Reuse Enterprise Extensions, Data Import, Projection and Responsibility where applicable.",
-          "Do not add Counterparty-specific branches to shared infrastructure.",
-          "Use Open Food Facts and other real Item datasets for external pressure evidence.",
-          "Only after materially different second-object evidence may shared Foundation Object contracts move from EXPERIMENTAL toward STABLE."
+          "Persist Item identity in Enterprise Context through the shared Enterprise Resource boundary.",
+          "Enforce case-insensitive code uniqueness within an Enterprise Context while preserving cross-enterprise isolation.",
+          "Treat archive as lifecycle state rather than physical deletion or identity rewrite.",
+          "Keep the Item repository independent of Counterparty implementation.",
+          "Keep Product/SKU/variant/GTIN/category outside this slice."
         ]
       },
       "productionPreview": {
@@ -1855,23 +1849,32 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "8e0f379184110ac87ce0cd8e125cc2c51b99a2c7",
-        "deploymentId": "f681b927-2685-4d66-8654-299e0374c347",
+        "commit": "d9ad7b6cb194096f04aa58979af27e0af99d157d",
+        "deploymentId": "3aa0e5fb-139a-492f-be63-41b1b9255c9b",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
-        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "status": "IT01_ACTIVE",
+        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
+        "status": "IT01B_ACTIVE",
         "sequence": [
-          "IT-01 Item/Product second-object proof",
+          "IT-01B Item Enterprise Context repository + deterministic identity lifecycle",
+          "IT-01C generic Data Import reuse with Item target",
+          "IT-01D Item projections/responsibility + governed Eidos experience",
+          "IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure",
+          "IT-01 contract maturity review",
           "WH-01 Warehouse/Location third-object proof",
           "TR-01 Trading Reference Loop"
         ],
-        "rule": "Do not reopen CP-02 through CP-07. Treat Counterparty as first-object evidence, not a template to copy mechanically. IT-01 must pressure generic Foundation Object contracts with materially different Item/Product semantics before any stabilization decision."
+        "rule": "Do not reopen CP-07 or IT-01A. New Foundation Objects use object-neutral qualifiers rather than new object-specific applicability keys. Keep shared Foundation Object contracts EXPERIMENTAL until the full materially different Item proof is complete."
       }
     },
     "recentMainline": [
+      {
+        "pr": 522,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "IT-01A added the minimal Item second-object schema and object-neutral applicability qualifiers while preserving Counterparty compatibility; Platform/Continuity CI and Railway production deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b passed."
+      },
       {
         "pr": 519,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -3017,15 +3020,20 @@
       "Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.",
       "Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.",
       "Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.",
-      "Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.",
       "Do not reopen CP-07 or ask for its 10k/100k/1M maturity evidence again; CP-07 closed on 2026-10-09 after PR #519 merged, 42/42 combined CI passed, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded.",
       "Do not stabilize shared Foundation Object contracts from Counterparty alone; IT-01 Item/Product is the required materially different second-object anti-overfit proof.",
-      "Do not copy Counterparty semantics into Item/Product shared infrastructure; reuse only object-agnostic contracts and extract/converge generic mechanisms when second-object evidence requires it."
+      "Do not copy Counterparty semantics into Item/Product shared infrastructure; reuse only object-agnostic contracts and extract/converge generic mechanisms when second-object evidence requires it.",
+      "Do not ask for CP-06 Human product validation again; it passed on 2026-10-09. CP-07 is also CLOSED_PRODUCTION_PASS and IT-01 is active.",
+      "Do not reopen IT-01A or replace generic applicability qualifiers with a new Item-specific applicability key; Item is the proof that new objects must use object-neutral qualifier dimensions.",
+      "Do not put GTIN/SKU/variant/category into the initial Item identity merely to make the model look complete; those boundaries require later real-world Item evidence."
     ],
     "freshSessionAcceptance": [
+      "state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS",
+      "state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as the current active slice inside IT-01",
+      "state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt",
+      "state current production Ledger Configurator as App Platform PR #522 merge commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS",
       "state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded",
       "state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization",
-      "state current production Ledger Configurator as App Platform PR #519 merge commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7 / Railway deployment f681b927-2685-4d66-8654-299e0374c347 SUCCESS",
       "state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin",
       "state Personal Agent P1.8 as verified and production-closed",
       "state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140",
@@ -4581,7 +4589,7 @@
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
     "currentGate": "IT-01",
-    "currentGateMeaning": "Item/Product second-object proof / materially different Foundation Object anti-overfit validation",
+    "currentGateMeaning": "Item/Product second-object proof; IT-01A schema anti-overfit proof passed, IT-01B Item Enterprise Context identity persistence is active",
     "nextGate": "WH-01",
     "nextGateMeaning": "Warehouse/Location third-object structural proof after Item/Product",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
@@ -5066,7 +5074,38 @@
         "use the second-object evidence to decide whether shared Foundation Object contracts may move from EXPERIMENTAL toward STABLE"
       ],
       "nextGate": "WH-01 Warehouse/Location third-object proof",
-      "contractMaturityDecision": "PENDING_ITEM_SECOND_OBJECT_EVIDENCE"
+      "contractMaturityDecision": "PENDING_ITEM_SECOND_OBJECT_EVIDENCE",
+      "evidenceAuthority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
+      "currentSlice": "IT-01B Item Enterprise Context repository + deterministic identity lifecycle",
+      "it01a": {
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 522,
+        "mergeCommit": "d9ad7b6cb194096f04aa58979af27e0af99d157d",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "railwayDeploymentId": "3aa0e5fb-139a-492f-be63-41b1b9255c9b",
+        "railwayDeploymentStatus": "SUCCESS",
+        "proves": [
+          "Item is a materially different second Foundation Object consumer with no Counterparty/Customer/Supplier semantics in its descriptor/core schema.",
+          "Foundation Object applicability now supports object-neutral qualifier dimensions.",
+          "Counterparty relationshipRoles remains a v0.1 compatibility path while new objects use generic qualifiers.",
+          "A GOODS-only Item enterprise extension is present for item.kind=GOODS and absent for SERVICE.",
+          "The initial Item identity deliberately does not lock Product/SKU/variant/GTIN/category into the same identity."
+        ]
+      },
+      "it01b": {
+        "status": "ACTIVE",
+        "purpose": "Persist stable Item identity in Enterprise Context with deterministic, object-owned lifecycle before Data Import/package/UI expansion.",
+        "acceptance": [
+          "enterprise-scoped Item identity persists through Enterprise Resource contracts",
+          "itemId is stable and code uniqueness is enforced case-insensitively within one Enterprise Context",
+          "archive is lifecycle state, not physical delete",
+          "separate Enterprise Contexts may use the same Item code independently",
+          "repository owns Item semantics and does not depend on Counterparty implementation",
+          "no Product/SKU/variant/GTIN/category semantics are prematurely introduced"
+        ],
+        "nextSlice": "IT-01C generic Data Import reuse with Item target"
+      }
     }
   },
   "architectureConstitutions": {

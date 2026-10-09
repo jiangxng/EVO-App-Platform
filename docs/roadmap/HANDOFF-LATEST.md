@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp07-closed-it01-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T18:23:00+08:00`  
+**Snapshot:** `it01a-closed-it01b-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T18:36:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,44 +16,38 @@ ACTIVE
 
 ## Latest closed live slice
 
-**cp07-counterparty-maturity-gate: CLOSED_PRODUCTION_PASS**
+**it01a-item-second-object-schema-anti-overfit: MERGED_CI_PRODUCTION_PASS**
 
-CP-07 is closed after the reconciled Counterparty maturity evidence stack merged through PR #519, the complete candidate passed 42/42 combined CI, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 reached SUCCESS on main commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7. Evidence includes 10k full committed Demo continuity, 100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation and package upgrade compatibility.
+IT-01A established Item as the materially different second Foundation Object consumer and corrected a Counterparty-first overfit in shared applicability. Generic qualifier dimensions now support new object semantics while Counterparty relationshipRoles remains an explicit compatibility path. The first Item identity is intentionally limited to itemId/code/displayName/itemKind/baseUomCode/description and does not prematurely collapse Product/SKU/variant/GTIN/category into one identity.
 
-Authority: `docs/roadmap/CP07-CLOSURE-READINESS-2026-10-09.md`
+Authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "integrationPr": 519,
-  "mergeCommit": "8e0f379184110ac87ce0cd8e125cc2c51b99a2c7",
-  "combinedCI": "42/42 PASS",
+  "implementationPr": 522,
+  "mergeCommit": "d9ad7b6cb194096f04aa58979af27e0af99d157d",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "crossProjectCI": "PASS",
-  "tenThousandDemo": "PASS via PR #515",
-  "real100kRvc": "PASS via PR #516 / workflow run 37912406474",
-  "oneMillionPerformance": "PASS via PR #517 / workflow run 37912688857",
-  "railwayDeploymentId": "f681b927-2685-4d66-8654-299e0374c347",
+  "railwayDeploymentId": "3aa0e5fb-139a-492f-be63-41b1b9255c9b",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**it01-item-product-second-object-proof: ACTIVE**
+**it01b-item-enterprise-context-identity: ACTIVE**
 
-IT-01 is the active Foundation Object anti-overfit gate. Item/Product must reuse the generic contracts proven by Counterparty while exposing materially different semantics; shared Foundation Object contracts remain EXPERIMENTAL until this second-object proof succeeds.
+IT-01B is the current slice: persist stable Item identity through Enterprise Context Resource contracts with deterministic code uniqueness and archive lifecycle. This slice proves durable second-object identity without yet adding Data Import, GTIN/SKU/variant semantics, or Eidos product experience.
 
 Acceptance:
 
-- Establish explicit Item/Product/SKU/Service, variant, UOM, barcode/GTIN and category boundaries.
-- Reuse FoundationObjectDescriptor and EffectiveObjectSchema rather than creating an Item-specific parallel framework.
-- Reuse Enterprise Extensions, Data Import, Projection and Responsibility where applicable.
-- Do not add Counterparty-specific branches to shared infrastructure.
-- Use Open Food Facts and other real Item datasets for external pressure evidence.
-- Only after materially different second-object evidence may shared Foundation Object contracts move from EXPERIMENTAL toward STABLE.
+- Persist Item identity in Enterprise Context through the shared Enterprise Resource boundary.
+- Enforce case-insensitive code uniqueness within an Enterprise Context while preserving cross-enterprise isolation.
+- Treat archive as lifecycle state rather than physical deletion or identity rewrite.
+- Keep the Item repository independent of Counterparty implementation.
+- Keep Product/SKU/variant/GTIN/category outside this slice.
 
 ## Current production preview
 
@@ -62,8 +56,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `8e0f379184110ac87ce0cd8e125cc2c51b99a2c7`
-- Deployment: `f681b927-2685-4d66-8654-299e0374c347`
+- Commit: `d9ad7b6cb194096f04aa58979af27e0af99d157d`
+- Deployment: `3aa0e5fb-139a-492f-be63-41b1b9255c9b`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -94,6 +88,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #522 — MERGED_CI_PRODUCTION_PASS: IT-01A added the minimal Item second-object schema and object-neutral applicability qualifiers while preserving Counterparty compatibility; Platform/Continuity CI and Railway production deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b passed.
 - PR #519 — MERGED_CI_PRODUCTION_PASS: Integrated the complete reconciled CP-07 maturity evidence stack; 42/42 combined candidate CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 is SUCCESS.
 - PR #509 — MERGED_CI_PRODUCTION_PASS: Promoted install/use-driven plugin lazy resource loading to platform architecture authority; current production runs the #509 mainline successfully.
 - PR #504 — MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN: Extracted Workspace from Host into optional evo-bi-workbench plugin; /workspace is plugin-owned, runtime/state are lazy, Host default routing is based on active Experiences, and current production was explicitly migrated to the plugin.
@@ -532,10 +527,12 @@ Not proved:
 - Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.
 - Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.
 - Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.
-- Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.
 - Do not reopen CP-07 or ask for its 10k/100k/1M maturity evidence again; CP-07 closed on 2026-10-09 after PR #519 merged, 42/42 combined CI passed, and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded.
 - Do not stabilize shared Foundation Object contracts from Counterparty alone; IT-01 Item/Product is the required materially different second-object anti-overfit proof.
 - Do not copy Counterparty semantics into Item/Product shared infrastructure; reuse only object-agnostic contracts and extract/converge generic mechanisms when second-object evidence requires it.
+- Do not ask for CP-06 Human product validation again; it passed on 2026-10-09. CP-07 is also CLOSED_PRODUCTION_PASS and IT-01 is active.
+- Do not reopen IT-01A or replace generic applicability qualifiers with a new Item-specific applicability key; Item is the proof that new objects must use object-neutral qualifier dimensions.
+- Do not put GTIN/SKU/variant/category into the initial Item identity merely to make the model look complete; those boundaries require later real-world Item evidence.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -555,9 +552,12 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
+- state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as the current active slice inside IT-01
+- state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt
+- state current production Ledger Configurator as App Platform PR #522 merge commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
 - state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded
 - state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization
-- state current production Ledger Configurator as App Platform PR #519 merge commit 8e0f379184110ac87ce0cd8e125cc2c51b99a2c7 / Railway deployment f681b927-2685-4d66-8654-299e0374c347 SUCCESS
 - state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
 - state Personal Agent P1.8 as verified and production-closed
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
