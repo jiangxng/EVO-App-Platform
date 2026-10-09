@@ -116,23 +116,28 @@ export async function createPostgresPersonalWorkbenchStateStoreV010(input: {
     return structuredClone(state);
   };
 
-  return {
-    async get(personalContextId, subjectId) {
-      const rows = await sql<Record<string, unknown>[]> `
-        SELECT *
-        FROM ${sql(schema)}.personal_state
-        WHERE personal_context_id = ${required(
-          personalContextId,
-          "WORKBENCH_PERSONAL_CONTEXT_ID_REQUIRED"
+  const getState = async (
+    personalContextId: string,
+    subjectId: string
+  ): Promise<PersonalWorkbenchStateV010 | undefined> => {
+    const rows = await sql<Record<string, unknown>[]> `
+      SELECT *
+      FROM ${sql(schema)}.personal_state
+      WHERE personal_context_id = ${required(
+        personalContextId,
+        "WORKBENCH_PERSONAL_CONTEXT_ID_REQUIRED"
+      )}
+        AND subject_id = ${required(
+          subjectId,
+          "WORKBENCH_SUBJECT_ID_REQUIRED"
         )}
-          AND subject_id = ${required(
-            subjectId,
-            "WORKBENCH_SUBJECT_ID_REQUIRED"
-          )}
-        LIMIT 1
-      `;
-      return rows[0] ? rowToState(rows[0]) : undefined;
-    },
+      LIMIT 1
+    `;
+    return rows[0] ? rowToState(rows[0]) : undefined;
+  };
+
+  return {
+    get: getState,
 
     async put(state) {
       return save({
@@ -155,7 +160,7 @@ export async function createPostgresPersonalWorkbenchStateStoreV010(input: {
         throw new Error("WORKBENCH_RECENT_LIMIT_INVALID");
       }
       const current =
-        await this.get(request.personalContextId, request.subjectId)
+        await getState(request.personalContextId, request.subjectId)
         ?? initial(
           request.personalContextId,
           request.subjectId,
@@ -174,7 +179,7 @@ export async function createPostgresPersonalWorkbenchStateStoreV010(input: {
 
     async setFavorite(request) {
       const current =
-        await this.get(request.personalContextId, request.subjectId)
+        await getState(request.personalContextId, request.subjectId)
         ?? initial(
           request.personalContextId,
           request.subjectId,
