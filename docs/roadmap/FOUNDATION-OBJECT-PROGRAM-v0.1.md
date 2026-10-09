@@ -540,7 +540,7 @@ This means the Foundation Object mechanism is proven deeply enough to move to a 
 
 ## 16. IT-01 — Item/Product second-object proof
 
-**Current state:** ACTIVE. IT-01A through IT-01C are MERGED_CI_PRODUCTION_PASS; IT-01D Item projections/responsibility + governed Eidos experience is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until the full materially different Item proof completes.
+**Current state:** ACTIVE. IT-01A through IT-01D are MERGED_CI_PRODUCTION_PASS; IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until IT-01E evidence and the contract maturity review complete.
 
 Evidence authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
