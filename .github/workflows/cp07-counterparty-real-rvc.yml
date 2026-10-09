@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - cp07/package-upgrade-compatibility-20261009
+      - cp07/real-rvc-companies-house-20261009
     paths:
       - .github/workflows/cp07-counterparty-real-rvc.yml
 
@@ -41,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          csv_name="$(unzip -Z1 /tmp/companies-house.zip | grep -Ei '\\.csv$' | head -n 1)"
+          csv_name="$(unzip -Z1 /tmp/companies-house.zip | awk 'BEGIN { IGNORECASE=1 } /\\.csv$/ && first == "" { first=$0 } END { print first }')"
           test -n "$csv_name"
           unzip -p /tmp/companies-house.zip "$csv_name" > /tmp/companies-house.csv
           digest="$(awk '{print $1}' /tmp/companies-house.zip.sha256)"
