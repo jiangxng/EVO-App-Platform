@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { diagramEdgeGeometryV010 } from "../../vendor/eidos/src/diagram/edge-paths.js";
+import { diagramEdgeAnchorPointV010, diagramManualEdgeGeometryV010 } from "../../vendor/eidos/src/diagram/edge-waypoints.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -26,6 +27,7 @@ import type {
 import {
   TEMPLATE_PROJECTION_GALLERY_MAX_ITEMS_V010,
   type TemplateProjectionGalleryItemV010,
+  type TemplateProjectionEdgePathV010,
   type TemplateProjectionGalleryV010,
   type TemplateProjectionPlacementV010,
   type TemplateProjectionThumbnailV010
@@ -378,6 +380,9 @@ function editorState(input: {
       ...(edge.label ? { label: edge.label } : {}),
       ...(edge.arrow ? { arrow: edge.arrow } : {}),
       ...(edge.pathKind ? { pathKind: edge.pathKind } : {}),
+      ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+      ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
+      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }
@@ -512,7 +517,7 @@ function parsedHiddenIds(
 function parsedViewState(value: JsonValue | undefined): {
   hiddenNodeIds: string[];
   hiddenEdgeIds: string[];
-  edgePaths?: Array<{ edgeId: string; pathKind: "straight" | "orthogonal" | "rounded-orthogonal" | "curve" }>;
+  edgePaths?: TemplateProjectionEdgePathV010[];
   viewport?: {
     width: number;
     height: number;
@@ -536,7 +541,7 @@ function parsedViewState(value: JsonValue | undefined): {
     raw.hiddenEdgeIds,
     "DEFINITION_PROJECTION_HIDDEN_EDGE_IDS_INVALID"
   );
-  let edgePaths: Array<{ edgeId: string; pathKind: "straight" | "orthogonal" | "rounded-orthogonal" | "curve" }> | undefined;
+  let edgePaths: TemplateProjectionEdgePathV010[] | undefined;
   if (raw.edgePaths !== undefined) {
     if (!Array.isArray(raw.edgePaths) || raw.edgePaths.length > 10000) {
       throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
@@ -550,9 +555,34 @@ function parsedViewState(value: JsonValue | undefined): {
         || !["straight", "orthogonal", "rounded-orthogonal", "curve"].includes(String(path.pathKind))) {
         throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
       }
+      const kind = path.pathKind as TemplateProjectionEdgePathV010["pathKind"];
+      const sideSet = ["auto", "left", "right", "top", "bottom"];
+      if ((path.sourceAnchor !== undefined && !sideSet.includes(String(path.sourceAnchor)))
+        || (path.targetAnchor !== undefined && !sideSet.includes(String(path.targetAnchor)))
+        || (path.waypoints !== undefined && (!Array.isArray(path.waypoints)
+          || path.waypoints.length > 24 || (kind === "straight" && path.waypoints.length > 0)))) {
+        throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+      }
+      const waypoints = (path.waypoints as JsonValue[] | undefined)?.map(p => {
+        if (!p || typeof p !== "object" || Array.isArray(p)) {
+          throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+        }
+        const point = p as Record<string, JsonValue>;
+        if (typeof point.x !== "number" || typeof point.y !== "number"
+          || !Number.isFinite(point.x) || !Number.isFinite(point.y)
+          || Math.abs(point.x) > 10000000 || Math.abs(point.y) > 10000000) {
+          throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+        }
+        return { x: point.x, y: point.y };
+      });
       return {
         edgeId: path.edgeId.trim(),
-        pathKind: path.pathKind as "straight" | "orthogonal" | "rounded-orthogonal" | "curve"
+        pathKind: kind,
+        ...(waypoints?.length ? { waypoints } : {}),
+        ...(path.sourceAnchor && path.sourceAnchor !== "auto"
+          ? { sourceAnchor: path.sourceAnchor as TemplateProjectionEdgePathV010["sourceAnchor"] } : {}),
+        ...(path.targetAnchor && path.targetAnchor !== "auto"
+          ? { targetAnchor: path.targetAnchor as TemplateProjectionEdgePathV010["targetAnchor"] } : {})
       };
     });
     if (new Set(edgePaths.map(item => item.edgeId)).size !== edgePaths.length) {
@@ -692,7 +722,7 @@ function thumbnailFromCapturedView(
   const visibleIds = new Set(visible.map(item => item.node.id));
   const byId = new Map(visible.map(item => [item.node.id, item] as const));
 
-  const pathByEdgeId = new Map((captured.edgePaths ?? []).map(item => [item.edgeId, item.pathKind] as const));
+  const pathByEdgeId = new Map((captured.edgePaths ?? []).map(item => [item.edgeId, item] as const));
   const edgeSvg = diagram.edges
     .filter(edge =>
       !hiddenEdges.has(edge.id)
@@ -706,11 +736,24 @@ function thumbnailFromCapturedView(
       const y1 = (source.y + source.height / 2) * scaleY;
       const x2 = (target.x + target.width / 2) * scaleX;
       const y2 = (target.y + target.height / 2) * scaleY;
-      const path = diagramEdgeGeometryV010(
-        { x: x1, y: y1 },
-        { x: x2, y: y2 },
-        pathByEdgeId.get(edge.id) ?? edge.pathKind ?? "straight"
-      );
+      const override = pathByEdgeId.get(edge.id);
+      const kind = override?.pathKind ?? edge.pathKind ?? "straight";
+      const sourcePoint = diagramEdgeAnchorPointV010({
+        x: source.x * scaleX, y: source.y * scaleY,
+        width: source.width * scaleX, height: source.height * scaleY
+      }, override?.sourceAnchor ?? edge.sourceAnchor ?? "auto") ?? { x: x1, y: y1 };
+      const targetPoint = diagramEdgeAnchorPointV010({
+        x: target.x * scaleX, y: target.y * scaleY,
+        width: target.width * scaleX, height: target.height * scaleY
+      }, override?.targetAnchor ?? edge.targetAnchor ?? "auto") ?? { x: x2, y: y2 };
+      const points = override?.waypoints ?? edge.waypoints;
+      const transformed = points?.map(p => ({
+        x: (p.x * captured.camera.scale + captured.camera.translateX) * scaleX,
+        y: (p.y * captured.camera.scale + captured.camera.translateY) * scaleY
+      }));
+      const path = transformed?.length
+        ? diagramManualEdgeGeometryV010(sourcePoint, targetPoint, { pathKind: kind, waypoints: transformed })
+        : diagramEdgeGeometryV010(sourcePoint, targetPoint, kind);
       return `<path d="${xml(path.d)}" fill="none" stroke="#94a3b8" stroke-opacity=".48" stroke-width="1.25"/>`;
     })
     .join("");
@@ -844,7 +887,7 @@ function mergeProjection(
       ...(hiddenNodeIds.length ? { hiddenNodeIds } : {}),
       ...(hiddenEdgeIds.length ? { hiddenEdgeIds } : {}),
       ...((captured.edgePaths ?? current.view.edgePaths)?.length
-        ? { edgePaths: (captured.edgePaths ?? current.view.edgePaths)!.map(item => ({ ...item })) }
+        ? { edgePaths: (captured.edgePaths ?? current.view.edgePaths)!.map(item => ({ ...item, ...(item.waypoints ? { waypoints: item.waypoints.map(p => ({ ...p })) } : {}) })) }
         : {}),
       placements: [...placementMap.values()],
       camera: { ...captured.camera }
@@ -986,7 +1029,7 @@ function saveProjectionAsNew(
         ? { hiddenEdgeIds: [...new Set(captured.hiddenEdgeIds)] }
         : {}),
       ...((captured.edgePaths ?? source.view.edgePaths)?.length
-        ? { edgePaths: (captured.edgePaths ?? source.view.edgePaths)!.map(item => ({ ...item })) }
+        ? { edgePaths: (captured.edgePaths ?? source.view.edgePaths)!.map(item => ({ ...item, ...(item.waypoints ? { waypoints: item.waypoints.map(p => ({ ...p })) } : {}) })) }
         : {}),
       placements: captured.placements
         .filter(item => !hiddenNodes.has(item.nodeId))
