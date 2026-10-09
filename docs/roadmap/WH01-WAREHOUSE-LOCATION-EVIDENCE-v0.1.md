@@ -259,7 +259,7 @@ authority without adding Inventory Position state to Warehouse.
 
 ## WH-01C — Responsibility / Projection / Eidos composition
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 WH-01C reuses the Item-proven governance pattern without copying Item semantics.
 
@@ -359,3 +359,18 @@ Evidence:
 
 After WH-01C production passes, WH-01D should use real warehouse/location evidence to
 pressure naming, hierarchy depth, codes and structural assumptions before TR-01.
+
+
+## WH-01C production evidence
+
+- implementation PR: #544
+- main merge commit: `f47890b5823ad7389625563d5a6f0c62eb220fdb`
+- combined CI: 34/34 PASS
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Cross Project Trading Lite Eidos Browser EVO CI: PASS
+- Railway deployment: `60a02755-b544-48cf-907c-95e3feddd56f` — SUCCESS
+
+WH-01C is closed. WH-01D is the active closure slice and will pressure Warehouse
+identity and Location hierarchy with real external place/facility evidence before
+TR-01.
