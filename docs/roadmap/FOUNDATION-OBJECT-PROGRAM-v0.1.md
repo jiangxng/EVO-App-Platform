@@ -480,9 +480,9 @@ Acceptance:
 
 ## 13. CP-06 — Personal Workbench + Agent
 
-**Current state:** MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN. Shared governed Counterparty projections, package-contributed Workbench composition, Enterprise/role defaults, personal preferences, Favorites/Recent, fixed capability entries and Personal Agent projection reuse are implemented and deployed through PRs #497-#500. The remaining gate is Human product validation of the deployed Workspace composition/navigation. Do not start CP-07 until that confirmation.
+**Current state:** MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN. Shared governed Counterparty projections, package-contributed Workbench composition, Enterprise/role defaults, personal preferences, Favorites/Recent, fixed capability entries and Personal Agent projection reuse are implemented through PRs #497-#500. PR #504 then applies the Human-directed ownership correction: Workspace is the independent optional `evo-bi-workbench` application plugin in the BI / Insight Experience Layer, not App Platform Host Core and not Counterparty. Production deployment `3a5d926b-63a0-48f7-974a-2daf35a68342` is SUCCESS. The remaining gate is Human product validation of the plugin-owned Workspace composition/navigation. Do not start CP-07 until that confirmation.
 
-Counterparty contributes to, but does not own, Personal Workbench.
+Counterparty contributes to, but does not own, Personal Workbench. App Platform Host also does not own Workbench semantics; it owns only generic Package/Feature lifecycle, authorization, Contribution discovery and routing.
 
 First shared workbench proof: My Work, My Customers, My Suppliers, Recent/Favorites, authorized exception projections, fixed capabilities and Personal Agent.
 
