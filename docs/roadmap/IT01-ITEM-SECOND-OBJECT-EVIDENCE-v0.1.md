@@ -463,3 +463,60 @@ No Item-specific qualifier key is added to the shared Data Import or Foundation
 Object contracts.
 
 Production closure: PR #534 merged at `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`; Platform CI and Project Continuity CI passed and Railway deployment `b16708e5-b17b-4151-99d1-4803880880b3` reached SUCCESS.
+
+
+## IT-01E real-world RVC — Open Food Facts
+
+Status: **IMPLEMENTED / REAL-WORLD CI PENDING**.
+
+The RVC uses the Open Food Facts official random-modulo-1000 JSONL development
+sample. Raw public data is downloaded only inside CI and is not committed.
+
+The analyzer is deliberately not an OFF importer. It measures evidence that can
+invalidate or refine the Item model:
+
+- barcode/source-code shape and GTIN-like length distribution;
+- non-GTIN-like source identifiers;
+- duplicate source codes;
+- same commercial description appearing under different codes;
+- multi-valued categories, brands and packaging;
+- source quantity-unit diversity;
+- source quantity units that have an obvious UN/CEFACT Recommendation 20
+  normalization candidate;
+- malformed/sparse public rows without treating the source schema as EVO authority.
+
+### Decision rules under pressure
+
+The RVC starts from these falsifiable architecture positions:
+
+1. **EVO `itemId` is enterprise identity, not an OFF barcode/source key.**
+   OFF `code` remains source identity/provenance.
+2. **GTIN is an external trade-item identifier.**
+   Numeric 8/12/13/14-length shape is only a candidate signal; true GTIN
+   semantics/validation are separate from source-key shape.
+3. **Separately traded variants become separate Items.**
+   If a variant is independently priced, ordered or invoiced, it needs its own
+   Item/trade-item identity. Product may group Items but does not replace them.
+4. **SKU is enterprise policy, not universal external identity.**
+   An enterprise may intentionally use its Item code as SKU, but the shared
+   Foundation Object contract does not hard-code that equivalence.
+5. **Brand/category/packaging are classification/attribute dimensions.**
+   Multi-valued source evidence must not alter durable Item identity.
+6. **`baseUomCode` is governed.**
+   OFF quantity-unit text is evidence only. EVO should reference governed unit
+   codes (for example UN/CEFACT Recommendation 20) rather than preserve free
+   source text as canonical UOM authority.
+
+The real CI run must retain source URL, retrieval time, source digest, licensing
+metadata, adapter version and derived report. The report must contain at least
+1,000 real rows and >=99% valid JSON before it can be used as IT-01 maturity
+evidence.
+
+Evidence implementation:
+
+- `tools/item-rvc-open-food-facts.mjs`
+- `tests/protocol/it01-item-rvc-open-food-facts.test.mjs`
+- `.github/workflows/it01-item-open-food-facts-rvc.yml`
+
+Raw OFF data is external evidence and never becomes EVO master data or schema
+authority.
