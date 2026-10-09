@@ -519,7 +519,7 @@ Acceptance:
 
 **Evidence authority:** `docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md`
 
-**Current state:** ACTIVE. CP-06 is CLOSED_HUMAN_PASS. Pressure-test and document the accepted Counterparty/Foundation Object vertical before starting Item/Product; do not reopen closed Counterparty semantics merely to add more features.
+**Current state:** EVIDENCE COMPLETE / AWAITING MAINLINE INTEGRATION. CP-06 is CLOSED_HUMAN_PASS. All defined CP-07 maturity evidence has passed; CP-07 remains open only until the reconciled evidence stack is integrated into main and final closure continuity is recorded. Do not start Item/Product from branch-only evidence.
 
 Before calling Counterparty a mature Foundation Object:
 
