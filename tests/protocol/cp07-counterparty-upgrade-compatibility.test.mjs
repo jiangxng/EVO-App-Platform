@@ -255,6 +255,6 @@ test("CP-07 exposes the available Counterparty upgrade through Plugin Store and 
   assert.match(server, /app-platform\.upgrade-package/);
   assert.match(server, /\/v1\/upgrade\/plan/);
   assert.match(server, /\/v1\/upgrade/);
-  assert.match(server, /manager\.planUpgrade\(body\.packageId\)/);
+  assert.match(server, /upgradePlanWithDigest\(body\.packageId\)/);
   assert.match(server, /manager\.upgrade\(body\.packageId/);
 });
