@@ -1,6 +1,6 @@
 # IT-01 Item/Product Second-Object Evidence v0.1
 
-**Status:** IT-01A MERGED_CI_PRODUCTION_PASS / IT-01B ACTIVE  
+**Status:** IT-01A + IT-01B MERGED_CI_PRODUCTION_PASS / IT-01C ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -166,3 +166,15 @@ Evidence:
 - `tests/protocol/it01-item-repository.test.mjs`
 
 IT-01B still does not introduce Product/SKU/variant/GTIN/category semantics.
+
+
+## IT-01B production evidence
+
+- implementation PR: #524
+- main merge commit: `7dbe34f706fdf4dd27d60997127cc5766002b1de`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Railway deployment: `d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58` — SUCCESS
+
+IT-01B is closed. IT-01C is the active slice and must prove generic Data Import as a
+real second-object capability rather than creating an Item-specific import subsystem.
