@@ -1,0 +1,116 @@
+name: CP-07 Counterparty Real RVC
+
+on:
+  push:
+    branches:
+      - cp07/real-rvc-companies-house-20261009
+    paths:
+      - .github/workflows/cp07-counterparty-real-rvc.yml
+
+permissions:
+  contents: read
+
+jobs:
+  companies-house-100k:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build --silent
+
+      - name: Download official Companies House public snapshot shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://download.companieshouse.gov.uk/BasicCompanyData-2026-10-01-part1_7.zip"
+          curl --fail --location --retry 3 --retry-all-errors \
+            --connect-timeout 20 --max-time 300 \
+            "$url" -o /tmp/companies-house.zip
+          unzip -t /tmp/companies-house.zip >/dev/null
+          sha256sum /tmp/companies-house.zip | tee /tmp/companies-house.zip.sha256
+          unzip -Z1 /tmp/companies-house.zip | head -n 5
+
+      - name: Extract CSV and build auditable manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          csv_name="$(unzip -Z1 /tmp/companies-house.zip | grep -Ei '\\.csv$' | head -n 1)"
+          test -n "$csv_name"
+          unzip -p /tmp/companies-house.zip "$csv_name" > /tmp/companies-house.csv
+          digest="$(awk '{print $1}' /tmp/companies-house.zip.sha256)"
+          retrieved_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > /tmp/companies-house.manifest.json <<JSON
+          {
+            "contractVersion": "0.1.0",
+            "sourceId": "uk-companies-house-basic-company-data",
+            "sourceUrl": "https://download.companieshouse.gov.uk/BasicCompanyData-2026-10-01-part1_7.zip",
+            "retrievedAt": "$retrieved_at",
+            "sourceVersion": "2026-10-01 part1_7",
+            "license": "Companies House Free Company Data Product public-data licence metadata",
+            "attributionRequirements": "Retain Companies House source identity and source URL in EVO RVC evidence.",
+            "redistributionConstraints": "Original source archive remains external to Git; EVO commits only derived evidence.",
+            "adapterVersion": "counterparty-public-company-csv-v0.1",
+            "contentDigest": "sha256:$digest",
+            "sampling": {
+              "method": "FIRST_N",
+              "limit": 100000
+            },
+            "fieldMap": {
+              "externalId": "CompanyNumber",
+              "legalName": "CompanyName",
+              "countryOrRegion": "RegAddress.Country",
+              "jurisdiction": "CountryOfOrigin",
+              "entityStatus": "CompanyStatus"
+            }
+          }
+          JSON
+          cat /tmp/companies-house.manifest.json
+
+      - name: Run real 100k Counterparty RVC
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/counterparty-rvc-gleif.mjs \
+            --manifest /tmp/companies-house.manifest.json \
+            --input /tmp/companies-house.csv \
+            --report /tmp/counterparty-rvc-report.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const report = JSON.parse(readFileSync("/tmp/counterparty-rvc-report.json", "utf8"));
+          if (report.evidence.totalRows !== 100000) {
+            throw new Error(`RVC_ROW_COUNT_INVALID: ${report.evidence.totalRows}`);
+          }
+          if (report.evidence.validationBand !== "INTEGRATION") {
+            throw new Error(`RVC_BAND_INVALID: ${report.evidence.validationBand}`);
+          }
+          if (report.evidence.validSubjects < 99000) {
+            throw new Error(`RVC_VALID_SUBJECT_RATE_TOO_LOW: ${report.evidence.validSubjects}`);
+          }
+          console.log(JSON.stringify({
+            totalRows: report.evidence.totalRows,
+            validationBand: report.evidence.validationBand,
+            validSubjects: report.evidence.validSubjects,
+            invalidSubjects: report.evidence.invalidSubjects,
+            duplicateExternalIds: report.evidence.duplicateExternalIds,
+            duplicateNameCandidates: report.evidence.duplicateNameCandidates,
+            missingCountryOrRegion: report.evidence.missingCountryOrRegion,
+            rowsPerSecond: report.performance.rowsPerSecond
+          }, null, 2));
+          NODE
+
+      - name: Upload derived evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp07-counterparty-real-rvc-companies-house-100k
+          path: |
+            /tmp/companies-house.manifest.json
+            /tmp/counterparty-rvc-report.json
+            /tmp/companies-house.zip.sha256
+          retention-days: 7
