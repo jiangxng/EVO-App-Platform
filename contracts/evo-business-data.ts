@@ -2,6 +2,18 @@ import type { JsonValue } from "../actions/contracts.js";
 
 export const EVO_BUSINESS_DATA_ADAPTER_VERSION_V010 = "0.1.0" as const;
 
+export type EvoBusinessDataRelationTypeV010 =
+  | "CAUSES"
+  | "FULFILLS"
+  | "ALLOCATES_TO"
+  | "DERIVES_FROM"
+  | "REFERENCES";
+
+export interface EvoBusinessDataSubmissionRelationV010 {
+  fromBusinessDataId: string;
+  relationType: EvoBusinessDataRelationTypeV010;
+}
+
 export interface EvoBusinessDataSubmissionV010 {
   contractVersion: typeof EVO_BUSINESS_DATA_ADAPTER_VERSION_V010;
   scopeKey: string;
@@ -13,6 +25,7 @@ export interface EvoBusinessDataSubmissionV010 {
   correlationId: string;
   idempotencyKey: string;
   causationId?: string;
+  relation?: EvoBusinessDataSubmissionRelationV010;
   expectedBusinessVersion?: string;
   postingPriority?: number;
 }
