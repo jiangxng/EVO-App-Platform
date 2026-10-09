@@ -703,8 +703,18 @@ import {
   workspaceHomePageSource
 } from "./workspace-home-page.js";
 import {
-  composeWorkbenchHomeV010
-} from "./workbench-composition.js";
+  createEnterpriseRoleWorkbenchDefaultRepositoryV010,
+  createMemoryPersonalWorkbenchStateStoreV010
+} from "./workbench-state.js";
+import {
+  createPostgresPersonalWorkbenchStateStoreV010
+} from "./workbench-postgres-store.js";
+import {
+  createWorkbenchServiceV010
+} from "./workbench-service.js";
+import {
+  createWorkbenchActionHandlersV010
+} from "./workbench-actions.js";
 import {
   createSettingsExperienceManifest,
   createSettingsGroupPage,
@@ -1060,6 +1070,10 @@ const counterpartyProfileRepository =
   });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
+const workbenchEnterpriseRoleDefaults =
+  createEnterpriseRoleWorkbenchDefaultRepositoryV010(
+    enterpriseResourceRepository
+  );
 const counterpartyProjectionService =
   createCounterpartyProjectionServiceV010({
     repository: counterpartyRepository,
@@ -1433,6 +1447,19 @@ const conversationDatabaseUrl =
   process.env.APP_PLATFORM_CONVERSATION_DATABASE_URL?.trim();
 const conversationPostgresSchema =
   process.env.APP_PLATFORM_CONVERSATION_POSTGRES_SCHEMA?.trim();
+const workbenchDatabaseUrl =
+  process.env.APP_PLATFORM_WORKBENCH_DATABASE_URL?.trim()
+  || conversationDatabaseUrl;
+const workbenchPostgresSchema =
+  process.env.APP_PLATFORM_WORKBENCH_POSTGRES_SCHEMA?.trim();
+const personalWorkbenchStateStore = workbenchDatabaseUrl
+  ? await createPostgresPersonalWorkbenchStateStoreV010({
+      connectionString: workbenchDatabaseUrl,
+      ...(workbenchPostgresSchema
+        ? { schema: workbenchPostgresSchema }
+        : {})
+    })
+  : createMemoryPersonalWorkbenchStateStoreV010();
 let conversationPostgresAuthority:
   | PostgresConversationAuthorityV010
   | undefined;
