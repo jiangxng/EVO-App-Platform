@@ -1,8 +1,8 @@
 # CP-07 Counterparty Closure Readiness — 2026-10-09
 
-**Status:** READY_TO_CLOSE_AFTER_STACK_INTEGRATION  
+**Status:** CLOSED_PRODUCTION_PASS  
 **Program:** EVO Foundation Object Program  
-**Current authoritative main state:** CP-07 remains ACTIVE until the evidence stack is merged and final mainline CI/continuity is recorded.
+**Current authoritative main state:** CP-07 is closed. PR #519 merged the reconciled evidence stack to `main` at `8e0f379184110ac87ce0cd8e125cc2c51b99a2c7`; the combined candidate passed 42/42 CI and Railway deployment `f681b927-2685-4d66-8654-299e0374c347` reached SUCCESS. IT-01 is the active next gate.
 
 ## Closure assessment
 
@@ -70,7 +70,7 @@ Original evidence lineage:
 
 Do not mechanically merge the original stack one by one if PR #519 has already been validated as the reconciled candidate. If the mainline owner chooses the original stack instead, retarget each child to the actual current mainline and re-run CI as needed.
 
-## Final closure actions after integration
+## Closure result
 
 Only after the stack is present on `main` and final CI passes:
 
@@ -89,3 +89,13 @@ Only after the stack is present on `main` and final CI passes:
 - do not merge `main` from this B-class improvement window unless the Human explicitly changes the division of work.
 
 No additional CP-07 product feature is required by the currently defined maturity gate.
+
+
+## Final closure record
+
+- integration PR: #519
+- main merge commit: `8e0f379184110ac87ce0cd8e125cc2c51b99a2c7`
+- combined candidate CI: 42/42 PASS
+- Railway deployment: `f681b927-2685-4d66-8654-299e0374c347` — SUCCESS
+- closed state: `CLOSED_PRODUCTION_PASS`
+- next active gate: `IT-01 Item/Product second-object proof`
