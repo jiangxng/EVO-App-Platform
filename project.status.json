@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "CP-05 Facets / Profiles / related resources",
+  "currentMilestone": "CP-06 Personal Workbench + Agent",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp05-technical-pass-human-gate-2026-10-09",
-    "snapshotAt": "2026-10-09T09:48:00+08:00",
+    "snapshotId": "cp05-closed-cp06-active-2026-10-09",
+    "snapshotAt": "2026-10-09T09:54:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1811,66 +1811,45 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "CP-05 Facets / Profiles / related resources",
-      "milestoneStatus": "AWAITING_HUMAN_VALIDATION",
+      "milestone": "CP-06 Personal Workbench + Agent",
+      "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "af02-long-context-v0-1",
-        "status": "CLOSED_PRODUCTION_PASS",
-        "summary": "AF-02 Long-context v0.1 is closed with production proof. Raw PostgreSQL Conversation remains authoritative; long threads use source-backed versioned summary/checkpoint artifacts plus recent raw turns through a bounded Context Assembly seam, while short conversations remain direct. Compression failure falls back to recent raw Conversation without corrupting source history.",
-        "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
-        "evidence": {
-          "implementationPr": 483,
-          "implementationMergeCommit": "007095e618113a00800b474aa128932d42df2ed4",
-          "productionProofPr": 484,
-          "productionProofMergeCommit": "93c5eb590c8c8b59da530493761957b07a3c9d40",
-          "hardBudgetFixPr": 485,
-          "hardBudgetFixMergeCommit": "bea5f9675241890af502c02ee44b46a0692e1a7d",
-          "policyScopedVersionFixPr": 486,
-          "policyScopedVersionFixMergeCommit": "8bff1a626b1efbf3212577ed762c29d5b79a57b6",
-          "finalProofDeploymentId": "58b916f8-8b92-4236-9ac0-f08b6fbf37ec",
-          "finalProofDeploymentStatus": "SUCCESS",
-          "longSourceMessageCount": 30,
-          "summarizedSourceMessageCount": 26,
-          "contextCharacters": 6000,
-          "contextBudget": 6000,
-          "policyRegeneration": true,
-          "failureFallback": "FALLBACK_RECENT",
-          "rawMessagesRetained": 30,
-          "shortConversationMode": "DIRECT",
-          "postgresSchema": "app_platform_conversation",
-          "rawConversationOverwritten": false
-        }
-      },
-      "openGate": {
         "id": "cp05-counterparty-facets-profiles-related-resources",
-        "status": "AWAITING_HUMAN_VALIDATION",
-        "summary": "CP-05 technical acceptance is implemented, CI-passed and deployed. Repeatable Contact/Address, role-scoped Customer/Supplier Profiles, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct resources, and progressive Eidos object-page composition are all live. The remaining gate is Human visual/product confirmation of the Counterparty detail composition; do not start CP-06 until this gate is accepted.",
+        "status": "CLOSED_HUMAN_PASS",
+        "summary": "CP-05 is closed with Human production validation. Counterparty now keeps repeatable Contact and Address as child resources, role-scoped CustomerProfile/SupplierProfile data outside identity, explicit EffectiveObjectSchema semantic destinations, Data Import persistence into the correct domain resources, and progressive Eidos detail composition without a second shell.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "acceptance": [
-          "Contact and Address are repeatable child resources owned by the Counterparty domain, not flattened core identity fields. PASS via PR #488.",
-          "CustomerProfile data is effective only where CUSTOMER role semantics apply; SupplierProfile data is effective only where SUPPLIER role semantics apply. PASS via role-aware schema/import/page tests in PR #491/#492.",
-          "Enterprise Object Extension definitions can target declared Customer/Supplier Profile slots without replacing stable domain semantics. PASS; existing Object Extension contract remains compatible.",
-          "EffectiveObjectSchema and Data Import address supported profile/contact/address fields through explicit semantic destinations. PASS via PR #491 end-to-end stage/dry-run/commit/readback proof.",
-          "Eidos Counterparty object page composes identity/roles, role profiles, repeatable Contacts and Addresses progressively without a second shell. PASS technically via PR #492; Human visual confirmation remains open.",
-          "Representative imported Counterparty data is traceable to core/profile/contact/address/extension destinations. PASS in protocol tests; no production business data was mutated solely for proof.",
-          "Removing a relationship role does not delete Counterparty identity or unrelated Contact/Address history; inactive role-specific profile data is not surfaced without the role. PASS by resource/page invariants."
-        ],
-        "implementationEvidence": {
+        "evidence": {
           "resourceBoundaryPr": 488,
           "resourceBoundaryCommit": "082b9fb9d1bfea47d568082e746bfa5227e054e0",
           "semanticImportPr": 491,
           "semanticImportCommit": "7d951f713df4d9dbe7be2a468e017e67556582d1",
-          "semanticImportDeploymentId": "d88513a1-fb4a-45fb-a95e-9be04d59d2ae",
-          "semanticImportDeploymentStatus": "SUCCESS",
           "eidosCompositionPr": 492,
           "eidosCompositionCommit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
-          "eidosCompositionDeploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
-          "eidosCompositionDeploymentStatus": "SUCCESS",
+          "statusPr": 493,
+          "statusCommit": "5acd870c60d1d1e4492b2b2265e733206721d5cc",
+          "productionDeploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
+          "productionDeploymentStatus": "SUCCESS",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "humanValidation": "PENDING"
-        },
-        "blocker": "Human visual/product confirmation of the deployed Counterparty detail facet composition."
+          "humanValidation": "PASS",
+          "humanValidationAt": "2026-10-09"
+        }
+      },
+      "openGate": {
+        "id": "cp06-personal-workbench-agent-composition",
+        "status": "ACTIVE_IMPLEMENTATION",
+        "summary": "CP-06 is the active Foundation Object gate. Prove that Counterparty contributes governed projections and deterministic actions into Personal Workbench while Personal Agent opens/queries the same projection contracts as the Human UI. Counterparty does not own Workbench, personalization cannot expand authority, and common deterministic actions remain fixed capabilities rather than becoming chat-only.",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "acceptance": [
+          "Package default, enterprise/role default and personal preference layers compose deterministically for the Workbench.",
+          "Personalization can reorder/hide allowed content but cannot expand authorization or reveal records outside governed data scope.",
+          "My Customers and My Suppliers in Workbench reuse the same Counterparty projection contracts used by Human application views.",
+          "Personal Agent opens/queries the same governed projection contracts rather than using a private Counterparty read path.",
+          "Common deterministic Counterparty actions remain fixed capability operations available to Human UI and Agent; they are not chat-only.",
+          "The first shared Workbench proof covers My Work, My Customers, My Suppliers and bounded Recent/Favorites/authorized exception composition without making Counterparty the Workbench owner."
+        ],
+        "implementationEvidence": {},
+        "blocker": null
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1878,38 +1857,44 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "fb757f753820cfbe99c7db226e6a8ee8d1c4c712",
-        "deploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
+        "commit": "5acd870c60d1d1e4492b2b2265e733206721d5cc",
+        "deploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "status": "CP05_AWAITING_HUMAN_VALIDATION",
+        "status": "CP06_ACTIVE",
         "sequence": [
-          "CP-05 Human visual/product validation",
           "CP-06 Workbench + Agent composition",
           "CP-07 Counterparty maturity gate",
-          "IT-01 Item/Product second-object proof"
+          "IT-01 Item/Product second-object proof",
+          "WH-01 Warehouse/Location proof",
+          "TR-01 Transaction object proof"
         ],
-        "rule": "Do not repeat AF-01/AF-02 or reopen CP-03. Close CP-05 only after Human accepts the deployed Counterparty facet composition; then proceed to CP-06."
+        "rule": "Do not reopen CP-03 or CP-05. Counterparty contributes projections/capabilities to shared Workbench and Agent surfaces but does not own those platform-level surfaces."
       }
     },
     "recentMainline": [
       {
+        "pr": 493,
+        "status": "MERGED_CI_PRODUCTION_HUMAN_PASS",
+        "summary": "CP-05 deployed facet/profile composition was Human validated and is now closed; mainline advances to CP-06."
+      },
+      {
         "pr": 492,
-        "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
-        "summary": "CP-05 Eidos detail composition now progressively renders role-scoped Customer/Supplier Profiles plus repeatable Contact/Address resources under the existing Counterparty object page with server-side field filtering."
+        "status": "MERGED_CI_PRODUCTION_HUMAN_PASS",
+        "summary": "Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience."
       },
       {
         "pr": 491,
         "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "CP-05 EffectiveObjectSchema now carries role applicability and explicit semantic destinations; Data Import writes built-in Profile/Contact/Address values to their domain resources instead of flattening them into Counterparty identity."
+        "summary": "EffectiveObjectSchema semantic destinations route Data Import into Counterparty Profile/Contact/Address resources instead of flattening them into identity."
       },
       {
         "pr": 488,
         "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "CP-05 established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile resource boundaries in Enterprise Context."
+        "summary": "Established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile boundaries."
       },
       {
         "pr": 486,
@@ -2998,7 +2983,8 @@
       "Do not adopt experimental AI infrastructure as production authority when mature replaceable technology satisfies the requirement.",
       "Do not jump directly from CP-03D to CP-05; execute AF-01 and AF-02 first according to the accepted bounded debt-retirement route.",
       "Do not expand AF-01/AF-02 into an open-ended Personal Agent rewrite before CP-05.",
-      "Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route."
+      "Do not migrate every JSON/JSONL store merely for consistency; migrate only authoritative product state justified by the constitution and route.",
+      "Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts."
     ],
     "freshSessionAcceptance": [
       "state Personal Agent P1.8 as verified and production-closed",
@@ -4554,10 +4540,10 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "CP-05",
-    "currentGateMeaning": "Facets / Profiles / Contact / Address — awaiting Human visual/product validation",
-    "nextGate": "CP-06",
-    "nextGateMeaning": "Workbench + Agent composition",
+    "currentGate": "CP-06",
+    "currentGateMeaning": "Personal Workbench + Agent composition",
+    "nextGate": "CP-07",
+    "nextGateMeaning": "Counterparty maturity gate",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
     "sequence": [
       "FO-00",
@@ -4809,7 +4795,7 @@
       "closureNote": "Basic role projection/list presentation is accepted as sufficient for CP-04. The long-term idea of using these governed lists as optional BI/management-analysis entry points is recorded separately and is not a CP-05/CP-06 requirement or near-term delivery dependency."
     },
     "cp05": {
-      "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
+      "status": "CLOSED_HUMAN_PASS",
       "scope": [
         "Contact",
         "Address",
@@ -4828,10 +4814,13 @@
         "resourceBoundaryPr": 488,
         "semanticImportPr": 491,
         "eidosCompositionPr": 492,
-        "productionDeploymentId": "cf40433d-a8a3-480b-ba24-bdddc33e026c",
+        "productionDeploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
         "productionDeploymentStatus": "SUCCESS",
-        "humanValidation": "PENDING"
-      }
+        "humanValidation": "PASS",
+        "humanValidationAt": "2026-10-09"
+      },
+      "humanValidation": "PASS",
+      "humanValidationAt": "2026-10-09"
     },
     "interposedExecutionRoute": {
       "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
@@ -4841,6 +4830,26 @@
         "AF-01",
         "AF-02"
       ]
+    },
+    "cp06": {
+      "status": "ACTIVE",
+      "scope": [
+        "Personal Workbench layering",
+        "My Work",
+        "My Customers",
+        "My Suppliers",
+        "Recent/Favorites",
+        "authorized exception projections",
+        "shared fixed capabilities",
+        "Personal Agent projection reuse"
+      ],
+      "acceptance": [
+        "Package default -> enterprise/role default -> personal preference layering",
+        "personalization cannot expand authority",
+        "Agent opens/queries the same projection contracts as Human UI",
+        "common deterministic actions remain fixed capabilities, not Agent-only behavior"
+      ],
+      "entryCondition": "SATISFIED: CP-05 CLOSED_HUMAN_PASS"
     }
   },
   "architectureConstitutions": {
