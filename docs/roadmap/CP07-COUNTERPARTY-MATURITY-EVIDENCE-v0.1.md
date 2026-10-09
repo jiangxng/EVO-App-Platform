@@ -34,9 +34,29 @@ name. CP-07 adds evidence only where maturity is still genuinely open.
 
 - >=100k real-world RVC integration pressure test;
 - 1M+ performance pressure test where practical;
-- deeper permission/sensitive-facet pressure beyond the already-proven tax field case;
-- legacy-field transformation report;
 - upgrade/version compatibility evidence.
+
+## CP-07B — Sensitive-field + legacy transformation evidence
+
+Sensitive-field pressure extends the earlier tax-field proof across core identity,
+Customer/Supplier Profiles, Contact and Address data. The protocol test denies those
+field IDs at the existing server authorization boundary and proves their values never
+reach the Eidos detail payload. Denying `displayName` also fails the Counterparty
+read closed rather than returning a partially identifying record.
+
+Protocol evidence:
+
+`tests/protocol/cp07-counterparty-sensitive-fields.test.mjs`
+
+Legacy transformation evidence:
+
+`docs/roadmap/CP07-COUNTERPARTY-LEGACY-TRANSFORMATION-v0.1.md`
+
+The legacy report classifies the accepted Asloop archaeology into identity, roles,
+profiles, child resources, responsibilities, peer facets, projections and governed
+extension/review paths. It explicitly does not claim that customer production data
+has already been migrated or that the currently unindexed legacy repository received
+a new exhaustive full-tree census.
 
 ## CP-07A — RVC executable evidence harness
 
