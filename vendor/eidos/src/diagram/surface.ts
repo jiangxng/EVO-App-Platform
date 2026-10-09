@@ -2335,7 +2335,10 @@ export function mountDiagramEditorPageV010(
           anchor.value = edge[field] ?? "auto";
           anchor.onchange = () => editRoute(() => {
             if (anchor.value === "auto") delete edge[field];
-            else edge[field] = anchor.value as DiagramEdgeAnchorSideV010;
+            else {
+              edge.pathKind ??= "straight";
+              edge[field] = anchor.value as DiagramEdgeAnchorSideV010;
+            }
           });
           row.appendChild(anchor);
           selectionProperties.appendChild(row);
