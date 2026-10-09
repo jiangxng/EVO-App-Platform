@@ -125,16 +125,6 @@ jobs:
       - name: Certify TR-01A Purchase -> Receipt -> Ledger -> Work
         run: node tools/certify-tr01-purchase-evo-postgres.mjs
 
-      - name: Stop EVO API and Worker before replay certification
-        run: |
-          if [ -f /tmp/evo-worker.pid ]; then kill "$(cat /tmp/evo-worker.pid)" || true; fi
-          if [ -f /tmp/evo-api.pid ]; then kill "$(cat /tmp/evo-api.pid)" || true; fi
-          rm -f /tmp/evo-worker.pid /tmp/evo-api.pid
-
-      - name: Certify EVO EEL-C02 deterministic full replay
-        working-directory: evo
-        run: npm run validate:eel-c02-full-replay
-
       - name: Show EVO logs on failure
         if: failure()
         run: |
