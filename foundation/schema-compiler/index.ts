@@ -151,6 +151,56 @@ function assertCoreSchema(
                 : {})
             }))
           }
+        : {}),
+      ...(field.applicability
+        ? {
+            applicability: {
+              ...(field.applicability.relationshipRoles
+                ? {
+                    relationshipRoles: [...new Set(
+                      field.applicability.relationshipRoles.map(role =>
+                        required(
+                          role,
+                          "FOUNDATION_OBJECT_FIELD_RELATIONSHIP_ROLE_INVALID"
+                        ).toUpperCase()
+                      )
+                    )]
+                  }
+                : {})
+            }
+          }
+        : {}),
+      ...(field.destination
+        ? {
+            destination: {
+              kind: field.destination.kind,
+              resourceType: required(
+                field.destination.resourceType,
+                "FOUNDATION_OBJECT_FIELD_DESTINATION_RESOURCE_TYPE_REQUIRED"
+              ),
+              fieldPath: required(
+                field.destination.fieldPath,
+                "FOUNDATION_OBJECT_FIELD_DESTINATION_FIELD_PATH_REQUIRED"
+              ),
+              cardinality: field.destination.cardinality,
+              ...(field.destination.relationshipRole
+                ? {
+                    relationshipRole: required(
+                      field.destination.relationshipRole,
+                      "FOUNDATION_OBJECT_FIELD_DESTINATION_ROLE_INVALID"
+                    ).toUpperCase()
+                  }
+                : {}),
+              ...(field.destination.groupId
+                ? {
+                    groupId: required(
+                      field.destination.groupId,
+                      "FOUNDATION_OBJECT_FIELD_DESTINATION_GROUP_INVALID"
+                    )
+                  }
+                : {})
+            }
+          }
         : {})
     };
   });
@@ -171,6 +221,15 @@ function rolesApply(
   activeRoles: Set<string>
 ): boolean {
   const requiredRoles = definition.applicability?.relationshipRoles ?? [];
+  if (requiredRoles.length === 0) return true;
+  return requiredRoles.some(role => activeRoles.has(role.toUpperCase()));
+}
+
+function coreFieldRolesApply(
+  field: FoundationObjectFieldDefinitionV010,
+  activeRoles: Set<string>
+): boolean {
+  const requiredRoles = field.applicability?.relationshipRoles ?? [];
   if (requiredRoles.length === 0) return true;
   return requiredRoles.some(role => activeRoles.has(role.toUpperCase()));
 }
@@ -228,9 +287,11 @@ export function compileEffectiveObjectSchemaV010(
     descriptor.extensionSlots.map(slot => [slot.slotId, slot])
   );
 
-  const coreFields = core.fields.map(field =>
-    effectiveField(field, "CORE", locale, authorize)
-  );
+  const coreFields = core.fields
+    .filter(field => coreFieldRolesApply(field, activeRoles))
+    .map(field =>
+      effectiveField(field, "CORE", locale, authorize)
+    );
 
   const extensionFields = [...(input.extensions ?? [])]
     .map(assertObjectExtensionDefinitionV010)
