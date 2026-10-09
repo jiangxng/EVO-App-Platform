@@ -21,6 +21,13 @@ import {
 } from "./edge-paths.js";
 import { diagramNodesIntersectingRectV010 } from "./selection.js";
 import {
+  diagramEdgeAnchorPointV010,
+  diagramManualEdgeGeometryV010,
+  diagramTranslateWaypointsV010,
+  validDiagramEdgePathOverrideV010,
+  type DiagramEdgeAnchorSideV010
+} from "./edge-waypoints.js";
+import {
   diagramOffsetNodeAttachmentV010,
   diagramParallelLaneOffsetsV010,
   diagramSelfLoopGeometryV010
@@ -136,7 +143,7 @@ export type DiagramEditorContextNavigationV010 =
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
-  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010 }>;
+  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
   viewport?: {
     width: number;
     height: number;
@@ -198,6 +205,10 @@ export interface DiagramEditorEdgeV010 {
   style?: DiagramEditorEdgeStyleV010;
   /** A presentation route, independent of dashed texture and semantic arrow direction. */
   pathKind?: DiagramEdgePathKindV010;
+  /** Explicit presentation-only manual points, never graph connection endpoints. */
+  waypoints?: Array<{ x: number; y: number }>;
+  sourceAnchor?: DiagramEdgeAnchorSideV010;
+  targetAnchor?: DiagramEdgeAnchorSideV010;
   arrow?: DiagramEditorEdgeArrowV010;
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
@@ -654,6 +665,11 @@ export function validateDiagramEditorStateV010(
         && !["solid", "dashed"].includes(edge.style))
       || (edge.pathKind !== undefined
         && !isDiagramEdgePathKindV010(edge.pathKind))
+      || ((edge.waypoints !== undefined || edge.sourceAnchor !== undefined || edge.targetAnchor !== undefined)
+        && !validDiagramEdgePathOverrideV010({
+          pathKind: edge.pathKind ?? "straight", waypoints: edge.waypoints,
+          sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+        }))
       || (edge.arrow !== undefined
         && !["none", "start", "end", "both"].includes(edge.arrow))
     ) {
@@ -1250,7 +1266,7 @@ export function mountDiagramEditorPageV010(
   const locallyHiddenNodeIds = new Set<string>();
   type ViewSnapshot = {
     positions: Array<{ id: string; x: number; y: number }>;
-    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010 }>;
+    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
     hiddenNodeIds: string[];
     hiddenEdgeIds: string[];
   };
@@ -1258,7 +1274,12 @@ export function mountDiagramEditorPageV010(
   const redoHistory: ViewSnapshot[] = [];
   const captureSnapshot = (): ViewSnapshot => ({
     positions: (state?.nodes ?? []).map(node => ({ id: node.id, x: node.x, y: node.y })),
-    edgePaths: (state?.edges ?? []).map(edge => ({ id: edge.id, pathKind: edge.pathKind })),
+    edgePaths: (state?.edges ?? []).map(edge => ({
+      id: edge.id, pathKind: edge.pathKind,
+      ...(edge.waypoints ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+      ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
+      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {})
+    })),
     hiddenNodeIds: [...locallyHiddenNodeIds],
     hiddenEdgeIds: [...locallyHiddenEdgeIds]
   });
@@ -1277,6 +1298,12 @@ export function mountDiagramEditorPageV010(
       if (previous) {
         if (previous.pathKind === undefined) delete edge.pathKind;
         else edge.pathKind = previous.pathKind;
+        if (previous.waypoints === undefined) delete edge.waypoints;
+        else edge.waypoints = previous.waypoints.map(p => ({ ...p }));
+        if (previous.sourceAnchor === undefined) delete edge.sourceAnchor;
+        else edge.sourceAnchor = previous.sourceAnchor;
+        if (previous.targetAnchor === undefined) delete edge.targetAnchor;
+        else edge.targetAnchor = previous.targetAnchor;
       }
     }
     locallyHiddenNodeIds.clear();
@@ -1465,7 +1492,12 @@ export function mountDiagramEditorPageV010(
             hiddenNodeIds: [...locallyHiddenNodeIds],
             hiddenEdgeIds: [...locallyHiddenEdgeIds],
             edgePaths: (state.edges ?? []).filter(edge => edge.pathKind !== undefined)
-              .map(edge => ({ edgeId: edge.id, pathKind: edge.pathKind! })),
+              .map(edge => ({
+                edgeId: edge.id, pathKind: edge.pathKind!,
+                ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+                ...(edge.sourceAnchor && edge.sourceAnchor !== "auto" ? { sourceAnchor: edge.sourceAnchor } : {}),
+                ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {})
+              })),
             viewport: {
               width: Math.max(1, canvas.clientWidth),
               height: Math.max(1, canvas.clientHeight)
@@ -2171,11 +2203,142 @@ export function mountDiagramEditorPageV010(
           if (!isDiagramEdgePathKindV010(select.value) || select.value === (edge.pathKind ?? "straight")) return;
           checkpoint();
           edge.pathKind = select.value;
+          if (select.value === "straight") delete edge.waypoints;
           render();
           report("Connector presentation updated locally. Save the projection to persist.");
         };
         control.appendChild(select);
         selectionProperties.appendChild(control);
+
+        // Controls work with a mouse, keyboard or touch; no tiny SVG handle is required.
+        const editRoute = (action: () => void): void => {
+          checkpoint();
+          action();
+          followsFitToCanvas = false;
+          render();
+          report("Connector route adjusted locally. Save the projection to persist.");
+        };
+        if ((edge.pathKind ?? "straight") !== "straight") {
+          const waypointPanel = document.createElement("div");
+          waypointPanel.setAttribute("data-eidos-diagram-waypoint-controls", edge.id);
+          waypointPanel.style.display = "grid";
+          waypointPanel.style.gap = "8px";
+          waypointPanel.style.marginTop = "12px";
+          const heading = document.createElement("strong");
+          heading.textContent = "Path points";
+          waypointPanel.appendChild(heading);
+          const addPoint = document.createElement("button");
+          addPoint.type = "button";
+          addPoint.textContent = "Add path point";
+          addPoint.disabled = (edge.waypoints?.length ?? 0) >= 24;
+          addPoint.onclick = () => {
+            const source = state!.nodes.find(node => node.id === edge.source);
+            const target = state!.nodes.find(node => node.id === edge.target);
+            if (!source || !target) return;
+            const sx = source.x + source.width / 2, sy = source.y + source.height / 2;
+            const tx = target.x + target.width / 2, ty = target.y + target.height / 2;
+            editRoute(() => {
+              edge.waypoints = [...(edge.waypoints ?? []), { x: (sx + tx) / 2, y: (sy + ty) / 2 }];
+            });
+          };
+          waypointPanel.appendChild(addPoint);
+          for (const [index, position] of (edge.waypoints ?? []).entries()) {
+            const line = document.createElement("div");
+            line.style.display = "flex";
+            line.style.flexWrap = "wrap";
+            line.style.alignItems = "center";
+            line.style.gap = "6px";
+            const text = document.createElement("span");
+            text.textContent = "Point " + (index + 1);
+            line.appendChild(text);
+            for (const [label, axis, delta] of [
+              ["Left", "x", -10], ["Right", "x", 10], ["Up", "y", -10], ["Down", "y", 10]
+            ] as const) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.textContent = label;
+              button.setAttribute("aria-label", label + " path point " + (index + 1) + " by 10");
+              button.style.minHeight = "44px";
+              button.onclick = () => editRoute(() => {
+                const next = (edge.waypoints ?? []).map(p => ({ ...p }));
+                const item = next[index]!;
+                item[axis] = Math.max(-10000000, Math.min(10000000, item[axis] + delta));
+                edge.waypoints = next;
+              });
+              line.appendChild(button);
+            }
+            for (const axis of ["x", "y"] as const) {
+              const label = document.createElement("label");
+              label.textContent = axis.toUpperCase();
+              const input = document.createElement("input");
+              input.type = "number";
+              input.step = "1";
+              input.min = "-10000000";
+              input.max = "10000000";
+              input.value = String(position[axis]);
+              input.style.width = "82px";
+              input.onchange = () => {
+                const n = Number(input.value);
+                if (!Number.isFinite(n) || Math.abs(n) > 10000000) {
+                  input.value = String(position[axis]); return;
+                }
+                editRoute(() => {
+                  const next = (edge.waypoints ?? []).map(p => ({ ...p }));
+                  next[index]![axis] = n;
+                  edge.waypoints = next;
+                });
+              };
+              label.appendChild(input);
+              line.appendChild(label);
+            }
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.textContent = "Remove";
+            remove.style.minHeight = "44px";
+            remove.onclick = () => editRoute(() => {
+              edge.waypoints = (edge.waypoints ?? []).filter((_, i) => i !== index);
+              if (!edge.waypoints.length) delete edge.waypoints;
+            });
+            line.appendChild(remove);
+            waypointPanel.appendChild(line);
+          }
+          const reset = document.createElement("button");
+          reset.type = "button";
+          reset.textContent = "Restore automatic routing";
+          reset.style.minHeight = "44px";
+          reset.disabled = !(edge.waypoints?.length || edge.sourceAnchor || edge.targetAnchor);
+          reset.onclick = () => editRoute(() => {
+            delete edge.waypoints;
+            delete edge.sourceAnchor;
+            delete edge.targetAnchor;
+          });
+          waypointPanel.appendChild(reset);
+          selectionProperties.appendChild(waypointPanel);
+        }
+        for (const [field, label] of [
+          ["sourceAnchor", "Source attachment"],
+          ["targetAnchor", "Target attachment"]
+        ] as const) {
+          const row = document.createElement("label");
+          row.textContent = label;
+          row.style.display = "grid";
+          row.style.gap = "6px";
+          const anchor = document.createElement("select");
+          anchor.setAttribute("data-eidos-diagram-anchor", field);
+          for (const side of ["auto", "left", "right", "top", "bottom"] as const) {
+            const option = document.createElement("option");
+            option.value = side;
+            option.textContent = side;
+            anchor.appendChild(option);
+          }
+          anchor.value = edge[field] ?? "auto";
+          anchor.onchange = () => editRoute(() => {
+            if (anchor.value === "auto") delete edge[field];
+            else edge[field] = anchor.value as DiagramEdgeAnchorSideV010;
+          });
+          row.appendChild(anchor);
+          selectionProperties.appendChild(row);
+        }
       }
     }
     renderActions();
@@ -2281,17 +2444,24 @@ export function mountDiagramEditorPageV010(
       const lane = laneOffsets.get(edge.id) ?? 0;
       const a0 = nodeBoundaryPoint(source, targetCenter);
       const b0 = nodeBoundaryPoint(target, sourceCenter);
-      const a = edge.pathKind !== undefined && edge.source !== edge.target
-        ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0;
-      const b = edge.pathKind !== undefined && edge.source !== edge.target
-        ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0;
+      const a = diagramEdgeAnchorPointV010(source, edge.sourceAnchor ?? "auto")
+        ?? (edge.pathKind !== undefined && edge.source !== edge.target
+          ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0);
+      const b = diagramEdgeAnchorPointV010(target, edge.targetAnchor ?? "auto")
+        ?? (edge.pathKind !== undefined && edge.source !== edge.target
+          ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0);
       const routeObstacles = edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal"
         ? renderedNodes.filter(node => node.id !== edge.source && node.id !== edge.target)
           .map(node => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
         : [];
       const geometry = edge.source === edge.target
         ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane)
-        : diagramEdgeGeometryV010(a, b, edge.pathKind, { obstacles: routeObstacles });
+        : edge.waypoints?.length
+          ? diagramManualEdgeGeometryV010(a, b, {
+              pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
+              sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+            })
+          : diagramEdgeGeometryV010(a, b, edge.pathKind, { obstacles: routeObstacles });
       const hit = svgElement("path");
       hit.setAttribute("d", geometry.d);
       hit.setAttribute("fill", "none");
@@ -2405,14 +2575,26 @@ export function mountDiagramEditorPageV010(
         const lane = laneOffsets.get(edge.id) ?? 0;
         const a0 = nodeBoundaryPoint(source, targetCenter);
         const b0 = nodeBoundaryPoint(target, sourceCenter);
-        const a = edge.pathKind !== undefined && edge.source !== edge.target
-          ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0;
-        const b = edge.pathKind !== undefined && edge.source !== edge.target
-          ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0;
+        const a = diagramEdgeAnchorPointV010(source, edge.sourceAnchor ?? "auto")
+          ?? (edge.pathKind !== undefined && edge.source !== edge.target
+            ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0);
+        const b = diagramEdgeAnchorPointV010(target, edge.targetAnchor ?? "auto")
+          ?? (edge.pathKind !== undefined && edge.source !== edge.target
+            ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0);
         // Drag preview stays lightweight; the committed render evaluates obstacles.
+        const movedSource = positions.get(edge.source), movedTarget = positions.get(edge.target);
+        const translated = movedSource && movedTarget
+          && Math.abs(movedSource.x - sourceNode.x - (movedTarget.x - targetNode.x)) < 0.001
+          && Math.abs(movedSource.y - sourceNode.y - (movedTarget.y - targetNode.y)) < 0.001;
+        const points = translated && edge.waypoints?.length
+          ? diagramTranslateWaypointsV010(edge.waypoints,
+              movedSource!.x - sourceNode.x, movedSource!.y - sourceNode.y)
+          : edge.waypoints;
         const route = edge.source === edge.target
           ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane)
-          : diagramEdgeGeometryV010(a, b, edge.pathKind);
+          : points?.length
+            ? diagramManualEdgeGeometryV010(a, b, { pathKind: edge.pathKind ?? "orthogonal", waypoints: points })
+            : diagramEdgeGeometryV010(a, b, edge.pathKind);
         const elements = liveEdges.get(edge.id);
         if (!elements) continue;
         elements.hit.setAttribute("d", route.d);
