@@ -87,15 +87,16 @@ function homeInput(
     | readonly EffectiveWorkbenchHomeItemV010[]
     | WorkbenchResolvedHomeV010
 ): WorkbenchResolvedHomeV010 {
-  return Array.isArray(value)
-    ? {
-        contractVersion: "0.1.0",
-        items: [...value],
-        favorites: [],
-        recent: [],
-        rejectedPreferenceItemIds: []
-      }
-    : value;
+  if (Array.isArray(value)) {
+    return {
+      contractVersion: "0.1.0",
+      items: [...value] as EffectiveWorkbenchHomeItemV010[],
+      favorites: [],
+      recent: [],
+      rejectedPreferenceItemIds: []
+    };
+  }
+  return value as WorkbenchResolvedHomeV010;
 }
 
 export function createWorkspaceHomePageV010(
