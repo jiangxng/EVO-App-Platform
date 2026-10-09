@@ -677,3 +677,6 @@ Do not:
 The program is successful when a new enterprise can present business/data evidence and EVO can respond mostly through reuse, enterprise definitions, generated imports, projections, workbench composition and bounded new Applications rather than bespoke database/backend/page/import/permission/Agent implementations.
 
 Counterparty is the first proof, Item is the first anti-overfit proof, Warehouse is the structural proof, and Trading Loop is the real-business proof.
+
+
+> WH-01 current slice (2026-10-09): WH-01B hierarchical Data Import is MERGED_CI_PRODUCTION_PASS via PR #542; WH-01C Responsibility / Projection / Eidos composition is the current slice. Shared STABLE_CANDIDATE contracts remain reuse-by-default.
