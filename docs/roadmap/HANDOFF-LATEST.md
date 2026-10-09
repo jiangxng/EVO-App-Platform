@@ -3,15 +3,15 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp05-closed-cp06-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T09:54:00+08:00`  
+**Snapshot:** `cp06-technical-pass-human-gate-2026-10-09`  
+**Snapshot time:** `2026-10-09T10:53:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
 CP-06 Personal Workbench + Agent
-ACTIVE
+AWAITING_HUMAN_VALIDATION
 ```
 
 ## Latest closed live slice
@@ -45,18 +45,20 @@ Evidence:
 
 ## Current open live gate
 
-**cp06-personal-workbench-agent-composition: ACTIVE_IMPLEMENTATION**
+**cp06-personal-workbench-agent-composition: AWAITING_HUMAN_VALIDATION**
 
-CP-06 is the active Foundation Object gate. Prove that Counterparty contributes governed projections and deterministic actions into Personal Workbench while Personal Agent opens/queries the same projection contracts as the Human UI. Counterparty does not own Workbench, personalization cannot expand authority, and common deterministic actions remain fixed capabilities rather than becoming chat-only.
+CP-06 technical acceptance is implemented, CI-passed and deployed. Human Counterparty projections and Personal Agent share one governed projection service and Capability Operation path; Personal Workbench is composed from active package contributions, current authorization, enterprise/relationship-role defaults and personal preferences; Favorites/Recent store only stable authorized Workbench item IDs; fixed capabilities remain package-owned operations. The remaining gate is Human product validation of the deployed Workspace composition and navigation. Do not start CP-07 until this confirmation.
 
 Acceptance:
 
-- Package default, enterprise/role default and personal preference layers compose deterministically for the Workbench.
-- Personalization can reorder/hide allowed content but cannot expand authorization or reveal records outside governed data scope.
-- My Customers and My Suppliers in Workbench reuse the same Counterparty projection contracts used by Human application views.
-- Personal Agent opens/queries the same governed projection contracts rather than using a private Counterparty read path.
-- Common deterministic Counterparty actions remain fixed capability operations available to Human UI and Agent; they are not chat-only.
-- The first shared Workbench proof covers My Work, My Customers, My Suppliers and bounded Recent/Favorites/authorized exception composition without making Counterparty the Workbench owner.
+- Package default -> enterprise/role default -> personal preference layering is deterministic. PASS via PR #498/#499.
+- Personalization can hide/reorder only authorized items and cannot expand authority. PASS via resolver/service tests in PR #498/#499.
+- My Customers and My Suppliers reuse the same governed Counterparty projection contracts used by Human application views. PASS via PR #497.
+- Personal Agent opens/queries the same governed Counterparty projection Capability Operations and has no private Counterparty read path. PASS via PR #497.
+- Common deterministic actions remain fixed package Capability Operations; Data Import is contributed to Workbench through its existing capability instead of chat-only behavior. PASS via PR #499.
+- My Work, My Customers, My Suppliers, Personal Agent, fixed capabilities, Favorites and Recent are composed by shared Workbench infrastructure. PASS via PR #498/#499.
+- Host-owned Workbench actions execute through ActionRouter feature gating without bypassing authorization. PASS via PR #500.
+- Human production validation confirms the Workspace composition/navigation is understandable and useful enough to close CP-06.
 
 ## Current production preview
 
@@ -65,8 +67,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `5acd870c60d1d1e4492b2b2265e733206721d5cc`
-- Deployment: `10662ea6-5c4f-4201-9d0f-a952c3dc71cb`
+- Commit: `a417781095ec2c665cd50fb6b8677e93cbfa7b70`
+- Deployment: `b8124716-ef2b-45e5-8a58-4fd7cd85f48f`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -97,6 +99,10 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #500 — MERGED_CI_PRODUCTION_PASS: Fixed Host Workbench action feature gating so Workbench commands execute through the real ActionRouter feature gate while preserving item-level reauthorization.
+- PR #499 — MERGED_CI_PRODUCTION_PASS: Persisted governed Enterprise/role Workbench defaults plus personal preferences, Favorites and Recent; Workbench opens reauthorize before recording Recent; Data Import remains a fixed capability.
+- PR #498 — MERGED_CI_PRODUCTION_PASS: Added active-package Workbench contributions and deterministic Package -> Enterprise/role -> Personal composition; unauthorized preference items cannot expand authority.
+- PR #497 — MERGED_CI_PRODUCTION_PASS: Human UI and Personal Agent now share the same governed Counterparty My Customers/My Suppliers projection service and Capability Operations.
 - PR #493 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-05 deployed facet/profile composition was Human validated and is now closed; mainline advances to CP-06.
 - PR #492 — MERGED_CI_PRODUCTION_HUMAN_PASS: Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience.
 - PR #491 — MERGED_CI_PRODUCTION_PASS: EffectiveObjectSchema semantic destinations route Data Import into Counterparty Profile/Contact/Address resources instead of flattening them into identity.

@@ -480,7 +480,7 @@ Acceptance:
 
 ## 13. CP-06 — Personal Workbench + Agent
 
-**Current state:** ACTIVE. CP-05 is CLOSED_HUMAN_PASS. The first gate is shared Workbench composition using existing governed Counterparty projections and fixed capabilities; do not create a Counterparty-owned Workbench or Agent-private read path.
+**Current state:** MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN. Shared governed Counterparty projections, package-contributed Workbench composition, Enterprise/role defaults, personal preferences, Favorites/Recent, fixed capability entries and Personal Agent projection reuse are implemented and deployed through PRs #497-#500. The remaining gate is Human product validation of the deployed Workspace composition/navigation. Do not start CP-07 until that confirmation.
 
 Counterparty contributes to, but does not own, Personal Workbench.
 

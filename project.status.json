@@ -1790,8 +1790,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "cp05-closed-cp06-active-2026-10-09",
-    "snapshotAt": "2026-10-09T09:54:00+08:00",
+    "snapshotId": "cp06-technical-pass-human-gate-2026-10-09",
+    "snapshotAt": "2026-10-09T10:53:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1812,7 +1812,7 @@
     ],
     "current": {
       "milestone": "CP-06 Personal Workbench + Agent",
-      "milestoneStatus": "ACTIVE",
+      "milestoneStatus": "AWAITING_HUMAN_VALIDATION",
       "lastClosedLiveSlice": {
         "id": "cp05-counterparty-facets-profiles-related-resources",
         "status": "CLOSED_HUMAN_PASS",
@@ -1837,19 +1837,38 @@
       },
       "openGate": {
         "id": "cp06-personal-workbench-agent-composition",
-        "status": "ACTIVE_IMPLEMENTATION",
-        "summary": "CP-06 is the active Foundation Object gate. Prove that Counterparty contributes governed projections and deterministic actions into Personal Workbench while Personal Agent opens/queries the same projection contracts as the Human UI. Counterparty does not own Workbench, personalization cannot expand authority, and common deterministic actions remain fixed capabilities rather than becoming chat-only.",
+        "status": "AWAITING_HUMAN_VALIDATION",
+        "summary": "CP-06 technical acceptance is implemented, CI-passed and deployed. Human Counterparty projections and Personal Agent share one governed projection service and Capability Operation path; Personal Workbench is composed from active package contributions, current authorization, enterprise/relationship-role defaults and personal preferences; Favorites/Recent store only stable authorized Workbench item IDs; fixed capabilities remain package-owned operations. The remaining gate is Human product validation of the deployed Workspace composition and navigation. Do not start CP-07 until this confirmation.",
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "Package default, enterprise/role default and personal preference layers compose deterministically for the Workbench.",
-          "Personalization can reorder/hide allowed content but cannot expand authorization or reveal records outside governed data scope.",
-          "My Customers and My Suppliers in Workbench reuse the same Counterparty projection contracts used by Human application views.",
-          "Personal Agent opens/queries the same governed projection contracts rather than using a private Counterparty read path.",
-          "Common deterministic Counterparty actions remain fixed capability operations available to Human UI and Agent; they are not chat-only.",
-          "The first shared Workbench proof covers My Work, My Customers, My Suppliers and bounded Recent/Favorites/authorized exception composition without making Counterparty the Workbench owner."
+          "Package default -> enterprise/role default -> personal preference layering is deterministic. PASS via PR #498/#499.",
+          "Personalization can hide/reorder only authorized items and cannot expand authority. PASS via resolver/service tests in PR #498/#499.",
+          "My Customers and My Suppliers reuse the same governed Counterparty projection contracts used by Human application views. PASS via PR #497.",
+          "Personal Agent opens/queries the same governed Counterparty projection Capability Operations and has no private Counterparty read path. PASS via PR #497.",
+          "Common deterministic actions remain fixed package Capability Operations; Data Import is contributed to Workbench through its existing capability instead of chat-only behavior. PASS via PR #499.",
+          "My Work, My Customers, My Suppliers, Personal Agent, fixed capabilities, Favorites and Recent are composed by shared Workbench infrastructure. PASS via PR #498/#499.",
+          "Host-owned Workbench actions execute through ActionRouter feature gating without bypassing authorization. PASS via PR #500.",
+          "Human production validation confirms the Workspace composition/navigation is understandable and useful enough to close CP-06."
         ],
-        "implementationEvidence": {},
-        "blocker": null
+        "implementationEvidence": {
+          "sharedProjectionPr": 497,
+          "sharedProjectionCommit": "dea5d78315b51083a5d5274ce28d86850723b4ff",
+          "sharedProjectionDeploymentId": "ed698ac5-9416-4eae-979b-ebd38d73df39",
+          "workbenchCompositionPr": 498,
+          "workbenchCompositionCommit": "d3f1aecaaa7c0709f5ea06c976ef6feb7d5fcf1d",
+          "workbenchCompositionDeploymentId": "eb73573a-003d-4aad-af48-477416f6e9dc",
+          "workbenchStatePr": 499,
+          "workbenchStateCommit": "e4ae338525a7faed4f651e8d550e8d71459ac5ae",
+          "workbenchStateDeploymentId": "aaeb0dca-58ed-4408-a491-3bc3e04e3944",
+          "hostActionFixPr": 500,
+          "hostActionFixCommit": "a417781095ec2c665cd50fb6b8677e93cbfa7b70",
+          "hostActionFixDeploymentId": "b8124716-ef2b-45e5-8a58-4fd7cd85f48f",
+          "productionDeploymentStatus": "SUCCESS",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "humanValidation": "PENDING"
+        },
+        "blocker": "Human product validation of the deployed Workspace composition/navigation."
       },
       "productionPreview": {
         "platform": "RAILWAY",
@@ -1857,25 +1876,45 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "5acd870c60d1d1e4492b2b2265e733206721d5cc",
-        "deploymentId": "10662ea6-5c4f-4201-9d0f-a952c3dc71cb",
+        "commit": "a417781095ec2c665cd50fb6b8677e93cbfa7b70",
+        "deploymentId": "b8124716-ef2b-45e5-8a58-4fd7cd85f48f",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
-        "status": "CP06_ACTIVE",
+        "status": "CP06_AWAITING_HUMAN_VALIDATION",
         "sequence": [
-          "CP-06 Workbench + Agent composition",
+          "CP-06 Human Workbench validation",
           "CP-07 Counterparty maturity gate",
           "IT-01 Item/Product second-object proof",
           "WH-01 Warehouse/Location proof",
           "TR-01 Transaction object proof"
         ],
-        "rule": "Do not reopen CP-03 or CP-05. Counterparty contributes projections/capabilities to shared Workbench and Agent surfaces but does not own those platform-level surfaces."
+        "rule": "Do not reopen CP-03 or CP-05. Close CP-06 only after Human accepts the deployed shared Workbench composition; then proceed to CP-07."
       }
     },
     "recentMainline": [
+      {
+        "pr": 500,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Fixed Host Workbench action feature gating so Workbench commands execute through the real ActionRouter feature gate while preserving item-level reauthorization."
+      },
+      {
+        "pr": 499,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Persisted governed Enterprise/role Workbench defaults plus personal preferences, Favorites and Recent; Workbench opens reauthorize before recording Recent; Data Import remains a fixed capability."
+      },
+      {
+        "pr": 498,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Added active-package Workbench contributions and deterministic Package -> Enterprise/role -> Personal composition; unauthorized preference items cannot expand authority."
+      },
+      {
+        "pr": 497,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Human UI and Personal Agent now share the same governed Counterparty My Customers/My Suppliers projection service and Capability Operations."
+      },
       {
         "pr": 493,
         "status": "MERGED_CI_PRODUCTION_HUMAN_PASS",
@@ -4541,7 +4580,7 @@
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
     "currentGate": "CP-06",
-    "currentGateMeaning": "Personal Workbench + Agent composition",
+    "currentGateMeaning": "Personal Workbench + Agent composition — awaiting Human product validation",
     "nextGate": "CP-07",
     "nextGateMeaning": "Counterparty maturity gate",
     "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
@@ -4832,7 +4871,7 @@
       ]
     },
     "cp06": {
-      "status": "ACTIVE",
+      "status": "MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN",
       "scope": [
         "Personal Workbench layering",
         "My Work",
@@ -4849,7 +4888,16 @@
         "Agent opens/queries the same projection contracts as Human UI",
         "common deterministic actions remain fixed capabilities, not Agent-only behavior"
       ],
-      "entryCondition": "SATISFIED: CP-05 CLOSED_HUMAN_PASS"
+      "entryCondition": "SATISFIED: CP-05 CLOSED_HUMAN_PASS",
+      "implementationEvidence": {
+        "sharedProjectionPr": 497,
+        "workbenchCompositionPr": 498,
+        "workbenchStatePr": 499,
+        "hostActionFixPr": 500,
+        "productionDeploymentId": "b8124716-ef2b-45e5-8a58-4fd7cd85f48f",
+        "productionDeploymentStatus": "SUCCESS",
+        "humanValidation": "PENDING"
+      }
     }
   },
   "architectureConstitutions": {
