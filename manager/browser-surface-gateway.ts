@@ -80,7 +80,9 @@ export function resolveBrowserDefaultExperienceRouteV010(
     .map(manifest => {
       const navigationOrder = Math.min(
         ...((manifest.navigation ?? []).map(item =>
-          Number.isFinite(item.order) ? item.order : 10_000
+          Number.isFinite(item.order ?? Number.NaN)
+            ? (item.order ?? 10_000)
+            : 10_000
         )),
         10_000
       );
