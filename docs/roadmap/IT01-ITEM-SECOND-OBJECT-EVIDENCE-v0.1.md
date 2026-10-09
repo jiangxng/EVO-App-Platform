@@ -411,5 +411,6 @@ Evidence:
 - `tests/manager/core-manager.test.mjs` — enable/disable target visibility;
 - `tests/protocol/data-import-target-lifecycle.test.mjs` — fail-closed target removal.
 
-This resolves the IT-01D `lifecycle-aware-import-target-registry` platform debt
-subject to CI and production validation.
+This resolves the IT-01D `lifecycle-aware-import-target-registry` platform debt.
+
+Production closure: PR #532 merged at `07ae77f1f9f94b9860b29c20f858bd059b23c502`; 35/35 CI passed and Railway deployment `c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d` reached SUCCESS.
