@@ -32,6 +32,13 @@ export const ITEM_ARCHIVE_COMMAND = "item.archive" as const;
 
 export const ITEM_PROJECTION_CAPABILITY_V010 =
   "enterprise.item.projection" as const;
+export const ITEM_DIRECTORY_PROJECTION_V010 =
+  "item.directory" as const;
+export const ITEM_MY_ITEMS_PROJECTION_V010 =
+  "item.my-stewardship" as const;
+export type ItemProjectionIdV010 =
+  | typeof ITEM_DIRECTORY_PROJECTION_V010
+  | typeof ITEM_MY_ITEMS_PROJECTION_V010;
 export const ITEM_DIRECTORY_READ_COMMAND_V010 =
   "item.projection.directory.read" as const;
 export const ITEM_MY_ITEMS_READ_COMMAND_V010 =
