@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** IT-01 Item/Product second-object proof (CP-07 CLOSED_PRODUCTION_PASS)
+**Current entry gate:** WH-01 Warehouse/Location third-object proof (IT-01 CLOSED_PRODUCTION_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -540,7 +540,7 @@ This means the Foundation Object mechanism is proven deeply enough to move to a 
 
 ## 16. IT-01 — Item/Product second-object proof
 
-**Current state:** ACTIVE. IT-01A through IT-01D are MERGED_CI_PRODUCTION_PASS; IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until IT-01E evidence and the contract maturity review complete.
+**Current state:** CLOSED_PRODUCTION_PASS. PR #538 completed real Open Food Facts/standards RVC, the Item second-object compatibility proof and production validation. Selected object-neutral Foundation Object contracts are now STABLE_CANDIDATE; Item domain semantics remain EXPERIMENTAL/domain-owned. WH-01 is active.
 
 Evidence authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
@@ -560,9 +560,11 @@ Mandatory architecture acceptance:
 
 Use Open Food Facts and other real Item datasets for pressure evidence.
 
-After Item passes, shared contracts may move from EXPERIMENTAL toward STABLE if compatibility evidence supports it.
+After Item passes, shared contracts may move from EXPERIMENTAL toward STABLE if compatibility evidence supports it. **Decision:** selected object-neutral contracts are STABLE_CANDIDATE after IT-01; WH-01 must reuse them by default and may reopen them only on concrete third-object incompatibility evidence. See `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`.
 
 ## 17. WH-01 — Warehouse/Location third-object proof
+
+**Current state:** ACTIVE. IT-01 is CLOSED_PRODUCTION_PASS. Warehouse/Location is now the structural third-object proof over STABLE_CANDIDATE shared contracts.
 
 Validate Warehouse stable identity, Zone/Location/Bin structure, hierarchical imports, responsibility, physical/facility facets and operational projections.
 

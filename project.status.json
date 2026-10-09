@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "EVO-App-Platform",
   "status": "PLUGIN_PLATFORM_MAINLINE",
-  "currentMilestone": "IT-01 Item/Product second-object proof",
+  "currentMilestone": "WH-01 Warehouse/Location third-object proof",
   "implemented": [
     "repository-bootstrap",
     "responsibility-boundary",
@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "it01e-platform-gaps-closed-rvc-active-2026-10-09",
-    "snapshotAt": "2026-10-09T20:23:00+08:00",
+    "snapshotId": "it01-closed-wh01-active-2026-10-09",
+    "snapshotAt": "2026-10-09T20:45:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1814,35 +1814,40 @@
       "llm.foundation-map.json"
     ],
     "current": {
-      "milestone": "IT-01 Item/Product second-object proof",
+      "milestone": "WH-01 Warehouse/Location third-object proof",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "it01e-row-dynamic-qualifier-import",
-        "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "IT-01E resolved the row-dynamic qualifier import limitation generically. Foundation Object schema compilation now has EFFECTIVE and DISCOVERY applicability modes; Item import discovers conditional fields before row context exists, then validates each row against its own effective qualifier context. Mixed GOODS/SERVICE imports can map GOODS-only extensions without leaking them onto SERVICE rows.",
-        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
+        "id": "it01-item-product-second-object-proof",
+        "status": "CLOSED_PRODUCTION_PASS",
+        "summary": "IT-01 is closed after Item proved the shared Foundation Object architecture as a materially different second object. PR #538 added real Open Food Facts/GS1/UN-CEFACT RVC, corrected Item batch persistence exposed by real-data pressure, retained explicit Product/SKU/variant/GTIN/UOM/category boundaries, and produced the contract maturity decision. Final main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 passed Platform CI, Project Continuity CI and the real-data RVC workflow; Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 reached SUCCESS.",
+        "authority": "docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md",
         "evidence": {
-          "implementationPr": 534,
-          "mergeCommit": "9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac",
+          "implementationPr": 538,
+          "mergeCommit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "railwayDeploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
+          "realDataRvcWorkflow": "PASS",
+          "offSnapshot": "65ceac3fa350b90dc3abea5cddbaa2a2370e73de",
+          "offSampleRows": 20000,
+          "realImportRows": "1000/1000 COMMITTED",
+          "importThroughputImprovement": "31 -> 152 rows/sec (~4.9x)",
+          "contractMaturity": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE",
+          "railwayDeploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
           "railwayDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "it01e-real-world-item-rvc-semantic-boundaries",
+        "id": "wh01-warehouse-location-third-object-proof",
         "status": "ACTIVE",
-        "summary": "IT-01E remains active with both platform gaps now closed. The current sub-slice is real-world Item RVC using Open Food Facts plus GS1/UN/CEFACT evidence to settle Item/Product/SKU/variant/GTIN/UOM/category boundaries and produce the Foundation Object contract maturity recommendation.",
-        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
+        "summary": "WH-01 is the active third-object structural proof. Warehouse/Location must reuse the Counterparty+Item-corrected Foundation Object contracts, prove hierarchy/import/responsibility/projection semantics, and keep master-data place identity strictly separate from inventory position and balances.",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
         "acceptance": [
-          "Use Open Food Facts and/or another real-world corpus as external Item RVC evidence.",
-          "Decide enterprise Item vs Product/SKU/variant/trade-item semantics from evidence instead of naming preference.",
-          "Treat GTIN according to GS1 trade-item semantics and UOM according to governed unit-code evidence.",
-          "Pressure schema/extensions/import/projection/lifecycle with real data at useful scale.",
-          "Resolve or explicitly bound row-dynamic qualifier import behavior.",
-          "Resolve or explicitly bound lifecycle-aware import-target contribution/registry before declaring Item import product-reachable.",
-          "Produce an explicit Foundation Object contract maturity recommendation before moving to WH-01."
+          "Establish Warehouse identity and Zone/Location/Bin hierarchy without embedding inventory quantities.",
+          "Reuse the shared Foundation Object descriptor/effective schema/extensions/import/projection/responsibility contracts.",
+          "Prove hierarchical Data Import and durable Enterprise Context persistence.",
+          "Use real WMS/public warehouse/location evidence for identifier and hierarchy pressure.",
+          "Keep Warehouse = where and Inventory Position = what Item is there and how much.",
+          "Treat shared STABLE_CANDIDATE contracts as reuse-by-default and document concrete compatibility evidence before changing them."
         ]
       },
       "productionPreview": {
@@ -1851,25 +1856,27 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac",
-        "deploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
+        "commit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
+        "deploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
-        "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
-        "status": "IT01E_REAL_WORLD_RVC_ACTIVE",
+        "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+        "status": "WH01_ACTIVE",
         "sequence": [
-          "Run Open Food Facts / GS1 / UN/CEFACT real-world Item RVC",
-          "Settle Item vs Product/SKU/variant/GTIN/UOM/category boundaries from evidence",
-          "Produce IT-01 Foundation Object contract maturity recommendation",
           "WH-01 Warehouse/Location third-object proof",
           "TR-01 Trading Reference Loop"
         ],
-        "rule": "Do not reopen IT-01A through IT-01D, lifecycle-aware import-target discovery, or row-dynamic qualifier import. Real-world RVC must keep external identifiers/classifications separate from enterprise Item identity unless evidence proves otherwise."
+        "rule": "Do not reopen CP-02 through CP-07 or IT-01 without new concrete compatibility evidence. WH-01 must reuse STABLE_CANDIDATE object-neutral contracts, preserve Warehouse=where / Inventory Position=what+how-much separation, and avoid storing stock balances in Warehouse master data."
       }
     },
     "recentMainline": [
+      {
+        "pr": 538,
+        "status": "MERGED_CI_RVC_PRODUCTION_PASS",
+        "summary": "IT-01E completed real Open Food Facts Item RVC and the second-object contract maturity review; 20k real rows and 1k generic imports passed, Item batch persistence improved ~4.9x, and Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 is SUCCESS."
+      },
       {
         "pr": 534,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -3054,32 +3061,37 @@
       "Do not reopen IT-01B or add a duplicate Item payload lifecycle status; Enterprise Resource ACTIVE/ARCHIVED is the current Item identity lifecycle authority.",
       "Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts.",
       "Do not reopen IT-01C or create an Item-only Data Import framework; Item now consumes the generic Data Import target/service path.",
-      "Do not claim row-dynamic qualifier-dependent import schemas are solved; IT-01C records the current job-level EffectiveObjectSchema limitation explicitly.",
       "Do not turn Item Projection into a new business-data authority in IT-01D; projections remain derived from authoritative Item/Extension/Responsibility data.",
       "Do not move Workspace ownership into Item; evo-bi-workbench remains the optional BI / Insight Experience owner.",
       "Do not reopen IT-01D; its lifecycle-gated Item Projection/Responsibility/Eidos product slice passed 34/34 CI and production deployment on 2026-10-09.",
       "Do not treat ITEM_STEWARD Responsibility as Item authorization; it filters My Items only after normal Authorization Provider decisions.",
-      "Do not statically register the IT-01C Item import target in Host; a lifecycle-aware import-target registry/contribution is required before product exposure.",
       "Do not force-install evo-item merely because it is present in Catalog; PR #509 install/use-driven lifecycle rules remain authoritative.",
       "Do not reopen the lifecycle-aware Data Import target registry debt; PR #532 resolved it with active-feature metadata discovery and use-time lazy target implementation loading.",
       "Do not reopen row-dynamic qualifier-aware Item import; PR #534 resolved it with shared DISCOVERY/EFFECTIVE applicability modes and per-row effective validation.",
-      "Do not treat Open Food Facts barcode/code, GTIN, category, brand or packaging fields as EVO Item primary identity during IT-01E RVC; they are external identifiers/classifications until evidence says otherwise."
+      "Do not treat Open Food Facts barcode/code, GTIN, category, brand or packaging fields as EVO Item primary identity during IT-01E RVC; they are external identifiers/classifications until evidence says otherwise.",
+      "Do not reopen IT-01 or rerun its Open Food Facts RVC without new compatibility evidence; IT-01 closed on 2026-10-09 after PR #538, real-data CI and production deployment passed.",
+      "Do not make GTIN/barcode a universal Item primary key; external trade-item identifiers remain scheme+value evidence separate from enterprise Item identity.",
+      "Do not add universal Product/SKU/variant/category core fields from naming preference; those remain domain relations/classifications until business evidence requires them.",
+      "Do not infer enterprise baseUomCode from package quantity text; base UOM is governed operational UOM, external package measure is separate evidence.",
+      "Do not put inventory quantity/on-hand/availability into Warehouse master data during WH-01; Warehouse is where, Inventory Position is what Item is there and how much.",
+      "Do not casually redesign STABLE_CANDIDATE Foundation Object contracts in WH-01; require concrete third-object incompatibility evidence."
     ],
     "freshSessionAcceptance": [
+      "state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS",
+      "state WH-01 Warehouse/Location third-object proof as the current active Foundation Object Program gate",
+      "state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE after Counterparty + Item proof, while Item/Product/SKU/variant/trade-identifier/UOM/classification semantics remain domain-owned/EXPERIMENTAL",
+      "state Warehouse = where and Inventory Position = what Item is there and how much; Warehouse master data must not own stock balances",
+      "state current production Ledger Configurator as App Platform PR #538 merge commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS",
       "state IT-01E row-dynamic qualifier-aware import as MERGED_CI_PRODUCTION_PASS via PR #534 / main commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS",
       "state both IT-01E platform gaps (lifecycle-aware import targets and row-dynamic qualifier import) as closed before real-world Item RVC",
-      "state real-world Open Food Facts / GS1 / UN/CEFACT Item RVC as the current active IT-01E sub-slice",
-      "state current production Ledger Configurator as App Platform PR #534 merge commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS",
       "state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI",
       "state IT-01D Item projections/responsibility + governed Eidos experience as MERGED_CI_PRODUCTION_PASS via PR #530 / main commit ea3594f06625803883b7fd6dddcc878feb8bdc99 / Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 SUCCESS after 34/34 CI",
-      "state IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure as the current active slice inside IT-01",
       "state Item import Host exposure as intentionally pending a lifecycle-aware Data Import target registry; do not statically register the Item target merely to make it visible",
       "state IT-01C generic Data Import reuse with Item target as MERGED_CI_PRODUCTION_PASS via PR #528 / main commit 8639fc0914e33d4040b92a1541679557f97c9cee / Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 SUCCESS",
       "state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as MERGED_CI_PRODUCTION_PASS via PR #524 / main commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS",
       "state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS",
       "state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt",
       "state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded",
-      "state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization",
       "state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin",
       "state Personal Agent P1.8 as verified and production-closed",
       "state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140",
@@ -4634,11 +4646,11 @@
     "authority": "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
     "roadmap": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
     "status": "ACTIVE",
-    "currentGate": "IT-01",
-    "currentGateMeaning": "Item/Product second-object proof; IT-01A schema anti-overfit proof passed, IT-01B Item Enterprise Context identity persistence is active",
-    "nextGate": "WH-01",
-    "nextGateMeaning": "Warehouse/Location third-object structural proof after Item/Product",
-    "contractMaturityRule": "Shared Foundation Object contracts remain EXPERIMENTAL after Counterparty and require Item/Product as the materially different second-object proof before being considered stable.",
+    "currentGate": "WH-01",
+    "currentGateMeaning": "Warehouse/Location third-object structural proof; reuse the Item-corrected object-neutral contracts and change shared STABLE_CANDIDATE contracts only on concrete incompatibility evidence",
+    "nextGate": "TR-01",
+    "nextGateMeaning": "Trading Reference Loop after Counterparty + Item + Warehouse/Location proofs",
+    "contractMaturityRule": "Counterparty + materially different Item evidence has promoted selected object-neutral Foundation Object contracts to STABLE_CANDIDATE. WH-01 must reuse them by default and may reopen a shared contract only with concrete third-object incompatibility evidence.",
     "sequence": [
       "FO-00",
       "CP-02",
@@ -4700,8 +4712,25 @@
       "counterpartyFormUsesEffectiveObjectSchema": true,
       "extensionDefinitionsPersistInEnterpriseContext": true,
       "publicObjectExtensionInvocation": "DEFERRED_TO_CP_03",
-      "contractMaturity": "EXPERIMENTAL",
-      "secondObjectStabilityGate": "IT-01 Item/Product"
+      "contractMaturity": "STABLE_CANDIDATE_AFTER_IT01",
+      "secondObjectStabilityGate": "SATISFIED: IT-01 CLOSED_PRODUCTION_PASS",
+      "stableCandidateContracts": [
+        "FoundationObjectDescriptorV010 object/slot ownership model",
+        "FoundationObject core/effective schema separation",
+        "object-neutral applicability qualifiers",
+        "DISCOVERY/EFFECTIVE schema compilation modes",
+        "Object Extension definition/value boundaries",
+        "generic Foundation Object Data Import target/service pipeline",
+        "Enterprise Resource persistence boundary",
+        "Projection + Responsibility + Authorization separation pattern"
+      ],
+      "stableCandidateDoesNotInclude": [
+        "Counterparty relationshipRoles compatibility keys as universal semantics",
+        "Item/Product/SKU/variant/trade-identifier semantics",
+        "Item UOM/catalog/classification domain model",
+        "source-specific RVC adapters",
+        "object-specific Responsibility codes"
+      ]
     },
     "cp02": {
       "status": "CLOSED_HUMAN_PASS",
@@ -5107,7 +5136,7 @@
       }
     },
     "it01": {
-      "status": "ACTIVE",
+      "status": "CLOSED_PRODUCTION_PASS",
       "purpose": "Prove the shared Foundation Object architecture against a materially different Item/Product object before any contract stabilization.",
       "entryCondition": "SATISFIED: CP-07 CLOSED_PRODUCTION_PASS",
       "acceptance": [
@@ -5120,9 +5149,9 @@
         "use the second-object evidence to decide whether shared Foundation Object contracts may move from EXPERIMENTAL toward STABLE"
       ],
       "nextGate": "WH-01 Warehouse/Location third-object proof",
-      "contractMaturityDecision": "PENDING_ITEM_SECOND_OBJECT_EVIDENCE",
+      "contractMaturityDecision": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE_DOMAIN_SEMANTICS_REMAIN_EXPERIMENTAL",
       "evidenceAuthority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
-      "currentSlice": "IT-01E real-world Item RVC + semantic boundary pressure",
+      "currentSlice": "CLOSED: IT-01E real-world Item RVC + contract maturity decision",
       "it01a": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 522,
@@ -5197,7 +5226,7 @@
         "finding": "The current Host Data Import target registry is not lifecycle-aware. IT-01C Item import remains contract/runtime-proven but is intentionally not statically exposed in Host until a lifecycle-aware import-target contribution/registry exists."
       },
       "it01e": {
-        "status": "ACTIVE",
+        "status": "MERGED_CI_PRODUCTION_PASS",
         "purpose": "Pressure the Item model with real-world product data and standards to decide Product/SKU/variant/GTIN/UOM/category boundaries and determine whether shared Foundation Object contracts are ready to move toward STABLE.",
         "acceptance": [
           "use Open Food Facts and/or another real-world Item corpus as external RVC evidence rather than synthetic-only examples",
@@ -5227,6 +5256,39 @@
           "projectContinuityCI": "PASS",
           "railwayDeploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
           "railwayDeploymentStatus": "SUCCESS"
+        },
+        "realWorldRvc": {
+          "status": "PASS",
+          "implementationPr": 538,
+          "mergeCommit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
+          "source": "Open Food Facts product-database",
+          "sourceSnapshot": "65ceac3fa350b90dc3abea5cddbaa2a2370e73de",
+          "sampleRows": 20000,
+          "sampleContentDigest": "sha256:6b8793b66bed44de09f158605e5ca6f7e9c040294d1ad3814c64082244a30218",
+          "validGtinChecksumCandidates": 19984,
+          "invalidGtinChecksumCandidates": 16,
+          "duplicateNameCandidates": 5291,
+          "missingQuantity": 6897,
+          "realImportRows": 1000,
+          "realImportCommitted": 1000,
+          "realImportFailed": 0,
+          "initialRowsPerSecond": 31,
+          "optimizedRowsPerSecond": 152,
+          "performanceImprovementApprox": "4.9x",
+          "platformCI": "PASS",
+          "projectContinuityCI": "PASS",
+          "realDataWorkflow": "PASS",
+          "railwayDeploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
+          "railwayDeploymentStatus": "SUCCESS",
+          "durableEvidence": "docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md"
+        },
+        "semanticDecisions": {
+          "enterpriseItemIdentity": "itemId/item code remain enterprise-owned; external identifiers are not primary identity",
+          "gtinBarcode": "scheme + value external/trade identifier evidence; not universal Item primary key",
+          "productSkuVariant": "not universal core Item fields; introduce only when enterprise/trading semantics prove grouping/sellable-stock-unit/variant relations",
+          "category": "governed taxonomy/classification relation; not scalar core identity",
+          "brand": "commercial/descriptive evidence; not core identity",
+          "baseUom": "enterprise operational UOM referencing governed Rec20-compatible codes; package quantity remains separate measure evidence"
         }
       },
       "secondObjectFindings": [
@@ -5258,7 +5320,35 @@
           "railwayDeploymentStatus": "SUCCESS",
           "resolution": "Foundation Object schema compilation now supports EFFECTIVE and DISCOVERY applicability modes. Item Data Import maps against DISCOVERY schema and validates each row against an EFFECTIVE schema derived from that row's qualifiers; non-applicable nonblank values fail closed."
         }
-      ]
+      ],
+      "closedAt": "2026-10-09",
+      "closureEvidence": {
+        "implementationPr": 538,
+        "mergeCommit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "realWorldRvcWorkflow": "PASS",
+        "productionDeploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
+        "productionDeploymentStatus": "SUCCESS",
+        "rvcEvidence": "docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md"
+      }
+    },
+    "wh01": {
+      "status": "ACTIVE",
+      "purpose": "Prove the corrected Foundation Object architecture against structural place/location semantics and hierarchy before entering real trading operations.",
+      "entryCondition": "SATISFIED: IT-01 CLOSED_PRODUCTION_PASS",
+      "acceptance": [
+        "define stable Warehouse identity separately from Zone/Location/Bin hierarchy",
+        "reuse FoundationObjectDescriptor, EffectiveObjectSchema, Enterprise Extensions, generic Data Import, Projection and Responsibility",
+        "prove hierarchical import and enterprise-scoped durable location identity through Enterprise Context",
+        "compose physical/facility facets and operational projections without creating a Warehouse-specific parallel framework",
+        "preserve the hard separation Warehouse = where; Inventory Position = what Item is there and how much",
+        "do not store on-hand quantity, availability or ledger balances in Warehouse master data",
+        "use real WMS/public warehouse/location evidence to pressure hierarchy and identifier assumptions",
+        "treat shared STABLE_CANDIDATE contracts as reuse-by-default; reopen only on concrete Warehouse incompatibility evidence"
+      ],
+      "nextGate": "TR-01 Trading Reference Loop",
+      "contractChangePolicy": "EVIDENCE_REQUIRED_TO_REOPEN_STABLE_CANDIDATE"
     }
   },
   "architectureConstitutions": {
