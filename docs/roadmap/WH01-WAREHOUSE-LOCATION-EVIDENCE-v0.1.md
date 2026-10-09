@@ -1,6 +1,6 @@
 # WH-01 Warehouse/Location Third-Object Evidence v0.1
 
-**Status:** WH-01A + WH-01B MERGED_CI_PRODUCTION_PASS / WH-01C ACTIVE  
+**Status:** CLOSED_PRODUCTION_PASS
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -473,3 +473,35 @@ Evidence implementation:
 - `tools/warehouse-rvc-overture.mjs`
 - `tests/protocol/wh01-warehouse-overture-rvc.test.mjs`
 - `.github/workflows/wh01-warehouse-overture-rvc.yml`
+
+
+## WH-01D production closure — 2026-10-10
+
+Real Overture warehouse/facility RVC completed through PR #546.
+
+Evidence:
+
+- main merge commit: `0397a31f341a101756af5572f36d52390703c1a7`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- WH-01D Overture Warehouse RVC workflow: PASS
+- Railway deployment: `235335b8-44e3-4da4-9682-6cb75c70bcb6` — SUCCESS
+- Overture release: `2026-09-23.1`
+- sampled warehouse building rows: 5,000
+- distinct external IDs: 5,000
+- missing names: 4,903
+- height present: 4,997
+- floor count present: 60
+- analyzer throughput: 146,771 rows/sec
+- sample SHA-256: `da80e1818a89aa7cf5d5ca1722bf982891ba7fa002165439ac98f8ef2ccb198a`
+
+Closure decision:
+
+- external building/GERS identifiers remain provenance-bearing facility evidence, not `warehouseId`;
+- external names cannot be required Warehouse naming authority;
+- building/building-part geometry is not operational Zone/Location/Bin hierarchy authority;
+- geometry, height and floors never become Inventory Position quantity;
+- Warehouse remains **where** and Inventory Position remains **what Item is there and how much**;
+- no shared STABLE_CANDIDATE Foundation Object contract required a WH-01 compatibility change.
+
+WH-01 is closed. TR-01 is the active next program gate.
