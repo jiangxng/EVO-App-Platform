@@ -261,7 +261,8 @@ test("Saving a projection overwrites presentation state without creating a defin
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
           ...(hiddenEdgeId ? { hiddenEdgeIds: [hiddenEdgeId] } : {}),
-          edgePaths: [{ edgeId: styledEdgeId, pathKind: "rounded-orthogonal" }],
+          edgePaths: [{ edgeId: styledEdgeId, pathKind: "rounded-orthogonal",
+            sourceAnchor: "right", targetAnchor: "left", waypoints: [{ x: -60, y: 120 }, { x: 90, y: 120 }] }],
           viewport: { width: 1180, height: 640 },
           placements,
           camera: {
@@ -308,7 +309,9 @@ test("Saving a projection overwrites presentation state without creating a defin
   });
   assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
   assert.deepEqual(projection.view.edgePaths, [
-    { edgeId: styledEdgeId, pathKind: "rounded-orthogonal" }
+    { edgeId: styledEdgeId, pathKind: "rounded-orthogonal",
+      sourceAnchor: "right", targetAnchor: "left",
+      waypoints: [{ x: -60, y: 120 }, { x: 90, y: 120 }] }
   ]);
   assert.match(projection.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
   assert.match(projection.thumbnail.alt, /投影缩略图$/);
@@ -331,6 +334,12 @@ test("Saving a projection overwrites presentation state without creating a defin
     fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).pathKind,
     "rounded-orthogonal"
   );
+  assert.deepEqual(
+    fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).waypoints,
+    [{ x: -60, y: 120 }, { x: 90, y: 120 }]
+  );
+  assert.equal(fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).sourceAnchor, "right");
+  assert.equal(fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).targetAnchor, "left");
   assert.equal(
     projected.diagram2d.nodes.some(node => node.id === hiddenNodeId),
     false
