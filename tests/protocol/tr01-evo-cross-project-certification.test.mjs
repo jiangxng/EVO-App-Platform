@@ -10,7 +10,7 @@ test("TR-01A cross-project certification pins the EVO dimension-filtered Ledger 
 
   assert.equal(
     source.includes(
-      "EVO_CERTIFIED_COMMIT: 2964288fc192dd9cea10a1a9d20b4a87d6599628"
+      "EVO_CERTIFIED_COMMIT: 2311022640aa108a6baf3db44d9b26bd3e3ad623"
     ),
     true
   );
