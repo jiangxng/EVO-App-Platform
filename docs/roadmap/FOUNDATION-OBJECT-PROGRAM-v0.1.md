@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** CP-06 Personal Workbench + Agent (CP-05 CLOSED_HUMAN_PASS)
+**Current entry gate:** CP-07 Counterparty maturity gate (CP-06 CLOSED_HUMAN_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -480,7 +480,7 @@ Acceptance:
 
 ## 13. CP-06 — Personal Workbench + Agent
 
-**Current state:** MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN. Shared governed Counterparty projections, package-contributed Workbench composition, Enterprise/role defaults, personal preferences, Favorites/Recent, fixed capability entries and Personal Agent projection reuse are implemented through PRs #497-#500. PR #504 then applies the Human-directed ownership correction: Workspace is the independent optional `evo-bi-workbench` application plugin in the BI / Insight Experience Layer, not App Platform Host Core and not Counterparty. Production deployment `3a5d926b-63a0-48f7-974a-2daf35a68342` is SUCCESS. The remaining gate is Human product validation of the plugin-owned Workspace composition/navigation. Do not start CP-07 until that confirmation.
+**Current state:** CLOSED_HUMAN_PASS. Shared governed Counterparty projections, package-contributed Workbench composition, Enterprise/role defaults, personal preferences, Favorites/Recent, fixed capability entries and Personal Agent projection reuse are implemented. Workspace is the independent optional `evo-bi-workbench` application plugin in the BI / Insight Experience Layer. Human product validation passed on 2026-10-09 against the current production mainline; PR #509 also makes install/use-driven plugin lazy resource loading a platform authority.
 
 Counterparty contributes to, but does not own, Personal Workbench. App Platform Host also does not own Workbench semantics; it owns only generic Package/Feature lifecycle, authorization, Contribution discovery and routing.
 
@@ -516,6 +516,10 @@ Acceptance:
 - semantic diff is versioned in Enterprise Context.
 
 ## 15. CP-07 — Counterparty maturity gate
+
+**Evidence authority:** `docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md`
+
+**Current state:** EVIDENCE COMPLETE / AWAITING MAINLINE INTEGRATION. CP-06 is CLOSED_HUMAN_PASS. All defined CP-07 maturity evidence has passed; CP-07 remains open only until the reconciled evidence stack is integrated into main and final closure continuity is recorded. Do not start Item/Product from branch-only evidence.
 
 Before calling Counterparty a mature Foundation Object:
 

@@ -1,6 +1,9 @@
 import type { PackageManifestV010, PlatformSnapshotV010 } from "../contracts/package.js";
 import { EVO_PLUGIN_PROTOCOL_VERSION } from "../contracts/plugin-protocol.js";
-import { evaluatePackageCompatibility } from "./compatibility.js";
+import {
+  compareSemanticVersionsV010,
+  evaluatePackageCompatibility
+} from "./compatibility.js";
 import {
   inspectPluginRuntimeV010,
   type PluginRuntimeStatusV010
@@ -130,6 +133,10 @@ export function createPluginStorePage(
       .map(pkg => {
         const isInstalled = installed.has(pkg.packageId);
         const installedRecord = snapshot.installedPackages.find(item => item.packageId === pkg.packageId);
+        const upgradeComparison = installedRecord
+          ? compareSemanticVersionsV010(pkg.version, installedRecord.version)
+          : undefined;
+        const hasUpgrade = upgradeComparison !== undefined && upgradeComparison > 0;
         const activeFeatureIds = new Set(
           snapshot.activeFeatures
             .filter(feature => feature.packageId === pkg.packageId)
@@ -325,6 +332,15 @@ export function createPluginStorePage(
                       }
                     } : {}),
                     secondaryActions: [
+                      ...(hasUpgrade ? [{
+                        id: "upgrade",
+                        label: `Upgrade to ${pkg.version}`,
+                        type: "command" as const,
+                        command: "app-platform.upgrade-package",
+                        inputVersion: "0.1.0",
+                        requiresConfirmation: true,
+                        helpText: `Upgrade installed version ${installedRecord?.version ?? ""} to catalog version ${pkg.version} after compatibility and dependency checks.`
+                      }] : []),
                       ...(settingsRoute ? [{
                         id: "configure",
                         label: "Configure",
@@ -358,6 +374,15 @@ export function createPluginStorePage(
                       inputVersion: "0.1.0"
                     },
                     secondaryActions: [
+                      ...(hasUpgrade ? [{
+                        id: "upgrade",
+                        label: `Upgrade to ${pkg.version}`,
+                        type: "command" as const,
+                        command: "app-platform.upgrade-package",
+                        inputVersion: "0.1.0",
+                        requiresConfirmation: true,
+                        helpText: `Upgrade installed version ${installedRecord?.version ?? ""} to catalog version ${pkg.version} after compatibility and dependency checks.`
+                      }] : []),
                       ...(settingsRoute ? [{
                         id: "configure",
                         label: "Configure",

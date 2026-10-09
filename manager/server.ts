@@ -5239,6 +5239,15 @@ function installPlanWithDigest(packageId: string) {
   return { ...plan, planDigest };
 }
 
+function upgradePlanWithDigest(packageId: string) {
+  const plan = manager.planUpgrade(packageId);
+  const snapshot = manager.getSnapshot();
+  const planDigest = createHash("sha256")
+    .update(JSON.stringify({ plan, snapshot }))
+    .digest("hex");
+  return { ...plan, planDigest };
+}
+
 const EOG_REALTIME_WRITE_COMMANDS = new Set([
   "enterprise-operating-graph.create",
   "enterprise-operating-graph.operation.apply",
@@ -8215,6 +8224,58 @@ const server = createServer(async (request, response) => {
         });
       }
 
+      if (action.command.code === "app-platform.plan-upgrade") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = upgradePlanWithDigest(itemId);
+        return json(response, 200, {
+          ok: plan.blockers.length === 0,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "UPGRADE_PLAN",
+            packageId: itemId,
+            plan
+          }))
+        });
+      }
+
+      if (action.command.code === "app-platform.upgrade-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = upgradePlanWithDigest(itemId);
+        if (plan.blockers.length > 0) {
+          return json(response, 409, {
+            ok: false,
+            error: {
+              code: "UPGRADE_BLOCKED",
+              message: JSON.stringify(plan.blockers),
+              details: JSON.parse(JSON.stringify(plan))
+            }
+          });
+        }
+        const confirmed = action.values.confirmed === true;
+        const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
+        const snapshot = manager.upgrade(itemId, {
+          trustApproved: confirmed,
+          approvedPermissions: confirmed
+            ? target?.permissions?.map(permission => permission.id) ?? []
+            : []
+        });
+        return json(response, 200, {
+          ok: true,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "UPGRADED",
+            packageId: itemId,
+            plan,
+            snapshot,
+            effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+          }))
+        });
+      }
+
       if (action.command.code === "app-platform.enable-package") {
         if (!itemId) {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
@@ -8450,6 +8511,33 @@ const server = createServer(async (request, response) => {
       });
       return json(response, 200, {
         snapshot,
+        effectiveExperiences: manager.listEffectiveExperiences()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/upgrade/plan") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      return json(response, 200, upgradePlanWithDigest(body.packageId));
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/upgrade") {
+      const body = await readJson(request) as {
+        packageId?: string;
+        trustApproved?: boolean;
+        approvedPermissions?: string[];
+      };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      const plan = upgradePlanWithDigest(body.packageId);
+      if (plan.blockers.length > 0) {
+        return json(response, 409, { code: "UPGRADE_BLOCKED", plan });
+      }
+      return json(response, 200, {
+        plan,
+        snapshot: manager.upgrade(body.packageId, {
+          trustApproved: body.trustApproved === true,
+          approvedPermissions: body.approvedPermissions ?? []
+        }),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }

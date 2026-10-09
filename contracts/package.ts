@@ -402,3 +402,21 @@ export interface PackageLifecyclePlanV010 {
   blockers: Array<{ code: string; message: string }>;
   sideEffectFree: true;
 }
+
+export interface PackageUpgradePlanV010 {
+  contractVersion: "0.1.0";
+  operation: "UPGRADE";
+  packageId: string;
+  fromVersion: string;
+  toVersion: string;
+  updateFeatures: Array<{
+    featureId: string;
+    fromVersion: string;
+    toVersion: string;
+  }>;
+  blockers: Array<{ code: string; message: string }>;
+  requestedPermissions?: PluginPermissionV010[];
+  requiresTrustApproval?: boolean;
+  requiresUserApproval?: boolean;
+  sideEffectFree: true;
+}

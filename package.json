@@ -67,7 +67,8 @@
     "test:external-agent:mcp": "npm run build && node --test tests/external-agent/mcp-modern-core.test.mjs tests/external-agent/mcp-protected-resource.test.mjs tests/external-agent/mcp-capability-projection.test.mjs tests/external-agent/mcp-product-adapter.test.mjs tests/external-agent/cline-local-mcp-adapter.test.mjs",
     "test:plugin:template-store": "npm run build && node --test tests/integration/template-store-plugin.test.mjs tests/integration/template-store-copy-action.test.mjs tests/integration/template-store-download.test.mjs tests/integration/template-store-2d-preview.test.mjs tests/protocol/template-store-transfer-boundary.test.mjs tests/protocol/template-store-file-repository.test.mjs tests/protocol/plugin-resource-lazy-loading.test.mjs tests/actions/lazy-handler.test.mjs tests/protocol/template-store-exported-bootstrap-seed.test.mjs",
     "test:plugin:counterparty": "npm run build && node --test tests/protocol/enterprise-resource-library.test.mjs tests/protocol/foundation-object-effective-schema.test.mjs tests/protocol/cp04-responsibility-projections.test.mjs tests/integration/counterparty-plugin.test.mjs",
-    "postbuild": "node tools/copy-login-assets.mjs"
+    "postbuild": "node tools/copy-login-assets.mjs",
+    "rvc:counterparty:gleif": "npm run build --silent && node tools/counterparty-rvc-gleif.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
