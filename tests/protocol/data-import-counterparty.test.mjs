@@ -11,6 +11,11 @@ import {
   createCounterpartyRoleRepositoryV010
 } from "../../dist/apps/counterparty/roles.js";
 import {
+  createCounterpartyAddressRepositoryV010,
+  createCounterpartyContactRepositoryV010,
+  createCounterpartyProfileRepositoryV010
+} from "../../dist/apps/counterparty/facets.js";
+import {
   createCounterpartyImportTargetV010
 } from "../../dist/apps/counterparty/import-target.js";
 import {
@@ -76,6 +81,19 @@ function fixture() {
     resources,
     counterpartyRepository
   );
+  const contactRepository = createCounterpartyContactRepositoryV010({
+    resources,
+    counterpartyRepository
+  });
+  const addressRepository = createCounterpartyAddressRepositoryV010({
+    resources,
+    counterpartyRepository
+  });
+  const profileRepository = createCounterpartyProfileRepositoryV010({
+    resources,
+    counterpartyRepository,
+    roleRepository
+  });
   const extensionRepository = createObjectExtensionRepositoryV010(resources);
   const extensionValueRepository =
     createObjectExtensionValueRepositoryV010(resources);
@@ -84,6 +102,9 @@ function fixture() {
     resources,
     repository: counterpartyRepository,
     roleRepository,
+    contactRepository,
+    addressRepository,
+    profileRepository,
     extensionRepository,
     extensionValueRepository
   });
@@ -95,6 +116,9 @@ function fixture() {
     resources,
     counterpartyRepository,
     roleRepository,
+    contactRepository,
+    addressRepository,
+    profileRepository,
     extensionRepository,
     extensionValueRepository,
     importRepository,
