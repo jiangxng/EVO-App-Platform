@@ -531,3 +531,113 @@ test("Counterparty detail exposes relationship roles independently from master i
     COUNTERPARTY_ASSIGN_ROLE_COMMAND
   );
 });
+
+
+test("CP-05 Counterparty detail progressively composes role profiles Contacts and Addresses", () => {
+  const counterparty = {
+    contractVersion: "0.1.0",
+    counterpartyId: "cp-facet-1",
+    code: "CF001",
+    displayName: "分面示例有限公司",
+    subjectType: "ORGANIZATION",
+    status: "ACTIVE"
+  };
+  const page = createCounterpartyDetailPageV010({
+    counterparty,
+    roles: [{
+      contractVersion: "0.1.0",
+      roleId: "cp-facet-1.customer",
+      counterpartyId: "cp-facet-1",
+      roleCode: "CUSTOMER"
+    }],
+    customerProfile: {
+      contractVersion: "0.1.0",
+      profileId: "cp-facet-1.customer",
+      counterpartyId: "cp-facet-1",
+      roleCode: "CUSTOMER",
+      status: "ACTIVE",
+      values: {
+        customerLevel: "A",
+        customerSource: "展会",
+        salesRegion: "华东"
+      }
+    },
+    // A Supplier profile must never surface without the SUPPLIER relationship role.
+    supplierProfile: {
+      contractVersion: "0.1.0",
+      profileId: "cp-facet-1.supplier",
+      counterpartyId: "cp-facet-1",
+      roleCode: "SUPPLIER",
+      status: "ACTIVE",
+      values: {
+        supplierClassification: "战略",
+        procurementRegion: "华南"
+      }
+    },
+    contacts: [{
+      contractVersion: "0.1.0",
+      contactId: "contact-1",
+      counterpartyId: "cp-facet-1",
+      displayName: "张三",
+      status: "ACTIVE",
+      title: "销售经理",
+      phone: "13800000000",
+      email: "hidden@example.com",
+      isPrimary: true
+    }],
+    addresses: [{
+      contractVersion: "0.1.0",
+      addressId: "address-1",
+      counterpartyId: "cp-facet-1",
+      purpose: "OTHER",
+      status: "ACTIVE",
+      line1: "南京西路100号",
+      city: "上海",
+      countryOrRegion: "中国",
+      isPrimary: true
+    }],
+    locale: "zh-CN",
+    readableFieldIds: [
+      "displayName",
+      "code",
+      "subjectType",
+      "customerLevel",
+      "primaryContactName",
+      "primaryContactTitle",
+      "primaryContactPhone",
+      "primaryAddressLine1",
+      "primaryAddressCity"
+    ]
+  });
+
+  assert.equal(page.items[0].id, "cp-facet-1");
+  const ids = page.items.map(item => item.id);
+  assert.ok(ids.includes("cp-facet-1:customer-profile"));
+  assert.equal(ids.includes("cp-facet-1:supplier-profile"), false);
+  assert.ok(ids.includes("cp-facet-1:contact:contact-1"));
+  assert.ok(ids.includes("cp-facet-1:address:address-1"));
+
+  const customer = page.items.find(
+    item => item.id === "cp-facet-1:customer-profile"
+  );
+  assert.equal(customer.metadata["客户等级"], "A");
+  assert.equal(customer.metadata["客户来源"], undefined);
+  assert.equal(customer.metadata["销售区域"], undefined);
+
+  const contact = page.items.find(
+    item => item.id === "cp-facet-1:contact:contact-1"
+  );
+  assert.equal(contact.title, "张三");
+  assert.equal(contact.metadata["职位"], "销售经理");
+  assert.equal(contact.metadata["联系电话"], "13800000000");
+  assert.equal(contact.metadata["电子邮件"], undefined);
+  assert.deepEqual(contact.badges, ["主要"]);
+
+  const address = page.items.find(
+    item => item.id === "cp-facet-1:address:address-1"
+  );
+  assert.equal(address.title, "南京西路100号");
+  assert.equal(address.metadata["城市"], "上海");
+  assert.equal(address.metadata["国家或地区"], undefined);
+  assert.deepEqual(address.badges, ["主要"]);
+});
