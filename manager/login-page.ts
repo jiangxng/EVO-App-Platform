@@ -494,6 +494,46 @@ a{color:inherit}
   .evo-login-registration-row{align-items:flex-start;flex-direction:column}
   .evo-login-trust{grid-template-columns:1fr}
 }
+@media(max-width:600px){
+ .evo-login-shell{min-height:100dvh;grid-template-columns:minmax(0,1fr)}
+ .evo-login-shell:not([data-login-skin="demo"]) .evo-login-brand{padding:20px 20px 22px}
+ .evo-login-shell:not([data-login-skin="demo"]) .evo-login-hero{margin:20px 0 0}
+ .evo-login-shell:not([data-login-skin="demo"]) .evo-login-hero h1{font-size:clamp(25px,7vw,32px);line-height:1.15}
+ .evo-login-shell:not([data-login-skin="demo"]) .evo-login-hero>p:last-of-type{margin-top:12px;font-size:13px;line-height:1.55}
+ .evo-login-shell:not([data-login-skin="demo"]) .evo-login-main{padding:22px 20px max(32px,env(safe-area-inset-bottom))}
+ .evo-login-card-header{margin-bottom:20px}
+ .evo-login-method{min-height:54px;gap:9px}
+ .evo-login-method-copy strong{overflow-wrap:anywhere}
+ .evo-login-shell[data-login-skin="demo"]{padding-inline:0;grid-template-columns:minmax(0,1fr);overflow:clip}
+ .evo-login-demo-topbar{height:76px;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 16px}
+ .evo-login-customer-logo{max-width:min(39vw,150px);max-height:58px}
+ .evo-login-demo-skins a{min-width:48px;padding:7px 9px}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-brand{min-height:0;padding:92px 20px 28px}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-hero{padding-top:0}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-eyebrow{margin-bottom:9px;font-size:13px}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-hero h1{font-size:clamp(27px,7.4vw,36px);line-height:1.16}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-hero>p:last-of-type{margin-top:12px;font-size:13px;line-height:1.55}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-demo-scene{opacity:.45}
+ .evo-login-demo-art{max-width:none}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-main{padding:0 14px max(28px,env(safe-area-inset-bottom))}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-card{padding:26px 20px;border-radius:20px}
+ .evo-login-demo-title{font-size:27px}
+ .evo-login-demo-subtitle{margin-bottom:20px}
+ .evo-login-demo-field{margin-top:15px}
+ .evo-login-demo-input{height:50px;font-size:16px}
+ .evo-login-demo-row{margin:14px 0 18px}
+ .evo-login-demo-primary{height:50px}
+ .evo-login-demo-divider{margin:20px 0}
+ .evo-login-demo-google{min-height:50px;height:auto;padding:10px}
+ .evo-login-demo-footer{flex-wrap:wrap;gap:12px;margin-top:20px;padding-top:18px}
+}
+@media(max-width:360px){
+ .evo-login-demo-topbar{padding-inline:12px}
+ .evo-login-demo-skins a{min-width:42px;padding-inline:7px}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding-inline:16px}
+ .evo-login-shell[data-login-skin="demo"] .evo-login-card{padding-inline:16px}
+ .evo-login-status{font-size:9px;padding-inline:5px}
+}
 @media(prefers-reduced-motion:reduce){.evo-login-method{transition:none}}
 </style>
 </head>
