@@ -90,6 +90,10 @@ test("standard login remains the default and only exposes a subtle demo-skin swi
   });
 
   assert.match(html, /data-login-skin="standard"/);
+  assert.match(
+    html,
+    /\.evo-login-shell:not\(\[data-login-skin="demo"\]\) \.evo-login-brand\{background:linear-gradient\(145deg,#18344f 0%,#214d75 52%,#2b6cb0 100%\)\}/
+  );
   assert.match(html, /以客户为中心，以奋斗者为本。/);
   assert.doesNotMatch(html, /\/login-assets\/tuge-logo-final\.png/);
   assert.doesNotMatch(html, /\/login-assets\/tuge-login-background-final\.png/);
