@@ -818,6 +818,8 @@ import {
   COUNTERPARTY_EDIT_PAGE_SOURCE,
   COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
   COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+  COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
   COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
@@ -851,9 +853,11 @@ import {
   COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
   COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
-  projectCounterpartiesV010,
   type CounterpartyProjectionIdV010
 } from "../apps/counterparty/projections.js";
+import {
+  createCounterpartyProjectionServiceV010
+} from "../apps/counterparty/projection-service.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -1053,6 +1057,15 @@ const counterpartyProfileRepository =
   });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
+const counterpartyProjectionService =
+  createCounterpartyProjectionServiceV010({
+    repository: counterpartyRepository,
+    roleRepository: counterpartyRoleRepository,
+    responsibilityRepository,
+    resolveAuthorizationProvider,
+    fieldIds: () =>
+      counterpartyCoreSchemaV010.fields.map(field => field.fieldId)
+  });
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
 const objectExtensionValueRepository =
