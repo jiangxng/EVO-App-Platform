@@ -3,53 +3,58 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `it01e-platform-gaps-closed-rvc-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T20:23:00+08:00`  
+**Snapshot:** `it01-closed-wh01-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T20:45:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-IT-01 Item/Product second-object proof
+WH-01 Warehouse/Location third-object proof
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**it01e-row-dynamic-qualifier-import: MERGED_CI_PRODUCTION_PASS**
+**it01-item-product-second-object-proof: CLOSED_PRODUCTION_PASS**
 
-IT-01E resolved the row-dynamic qualifier import limitation generically. Foundation Object schema compilation now has EFFECTIVE and DISCOVERY applicability modes; Item import discovers conditional fields before row context exists, then validates each row against its own effective qualifier context. Mixed GOODS/SERVICE imports can map GOODS-only extensions without leaking them onto SERVICE rows.
+IT-01 is closed after Item proved the shared Foundation Object architecture as a materially different second object. PR #538 added real Open Food Facts/GS1/UN-CEFACT RVC, corrected Item batch persistence exposed by real-data pressure, retained explicit Product/SKU/variant/GTIN/UOM/category boundaries, and produced the contract maturity decision. Final main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 passed Platform CI, Project Continuity CI and the real-data RVC workflow; Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 reached SUCCESS.
 
-Authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
+Authority: `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 534,
-  "mergeCommit": "9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac",
+  "implementationPr": 538,
+  "mergeCommit": "139ad94c13909a1f47c73d081742a5a6a870eef5",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
+  "realDataRvcWorkflow": "PASS",
+  "offSnapshot": "65ceac3fa350b90dc3abea5cddbaa2a2370e73de",
+  "offSampleRows": 20000,
+  "realImportRows": "1000/1000 COMMITTED",
+  "importThroughputImprovement": "31 -> 152 rows/sec (~4.9x)",
+  "contractMaturity": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE",
+  "railwayDeploymentId": "ca33d2da-7de7-483a-b584-1d71d38f84d1",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**it01e-real-world-item-rvc-semantic-boundaries: ACTIVE**
+**wh01-warehouse-location-third-object-proof: ACTIVE**
 
-IT-01E remains active with both platform gaps now closed. The current sub-slice is real-world Item RVC using Open Food Facts plus GS1/UN/CEFACT evidence to settle Item/Product/SKU/variant/GTIN/UOM/category boundaries and produce the Foundation Object contract maturity recommendation.
+WH-01 is the active third-object structural proof. Warehouse/Location must reuse the Counterparty+Item-corrected Foundation Object contracts, prove hierarchy/import/responsibility/projection semantics, and keep master-data place identity strictly separate from inventory position and balances.
 
 Acceptance:
 
-- Use Open Food Facts and/or another real-world corpus as external Item RVC evidence.
-- Decide enterprise Item vs Product/SKU/variant/trade-item semantics from evidence instead of naming preference.
-- Treat GTIN according to GS1 trade-item semantics and UOM according to governed unit-code evidence.
-- Pressure schema/extensions/import/projection/lifecycle with real data at useful scale.
-- Resolve or explicitly bound row-dynamic qualifier import behavior.
-- Resolve or explicitly bound lifecycle-aware import-target contribution/registry before declaring Item import product-reachable.
-- Produce an explicit Foundation Object contract maturity recommendation before moving to WH-01.
+- Establish Warehouse identity and Zone/Location/Bin hierarchy without embedding inventory quantities.
+- Reuse the shared Foundation Object descriptor/effective schema/extensions/import/projection/responsibility contracts.
+- Prove hierarchical Data Import and durable Enterprise Context persistence.
+- Use real WMS/public warehouse/location evidence for identifier and hierarchy pressure.
+- Keep Warehouse = where and Inventory Position = what Item is there and how much.
+- Treat shared STABLE_CANDIDATE contracts as reuse-by-default and document concrete compatibility evidence before changing them.
 
 ## Current production preview
 
@@ -58,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`
-- Deployment: `b16708e5-b17b-4151-99d1-4803880880b3`
+- Commit: `139ad94c13909a1f47c73d081742a5a6a870eef5`
+- Deployment: `ca33d2da-7de7-483a-b584-1d71d38f84d1`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -90,6 +95,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #538 — MERGED_CI_RVC_PRODUCTION_PASS: IT-01E completed real Open Food Facts Item RVC and the second-object contract maturity review; 20k real rows and 1k generic imports passed, Item batch persistence improved ~4.9x, and Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 is SUCCESS.
 - PR #534 — MERGED_CI_PRODUCTION_PASS: Resolved row-dynamic qualifier-aware Item import through generic DISCOVERY/EFFECTIVE schema modes; Platform/Continuity CI passed and Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 is SUCCESS.
 - PR #532 — MERGED_CI_PRODUCTION_PASS: Resolved lifecycle-aware Data Import target discovery/loading; 35/35 CI passed and Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d is SUCCESS.
 - PR #530 — MERGED_CI_PRODUCTION_PASS: IT-01D completed lifecycle-gated Item Projection/Responsibility/Eidos composition with shared Human/Agent projection authority; 34/34 CI passed and Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 is SUCCESS.
@@ -543,16 +549,20 @@ Not proved:
 - Do not reopen IT-01B or add a duplicate Item payload lifecycle status; Enterprise Resource ACTIVE/ARCHIVED is the current Item identity lifecycle authority.
 - Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts.
 - Do not reopen IT-01C or create an Item-only Data Import framework; Item now consumes the generic Data Import target/service path.
-- Do not claim row-dynamic qualifier-dependent import schemas are solved; IT-01C records the current job-level EffectiveObjectSchema limitation explicitly.
 - Do not turn Item Projection into a new business-data authority in IT-01D; projections remain derived from authoritative Item/Extension/Responsibility data.
 - Do not move Workspace ownership into Item; evo-bi-workbench remains the optional BI / Insight Experience owner.
 - Do not reopen IT-01D; its lifecycle-gated Item Projection/Responsibility/Eidos product slice passed 34/34 CI and production deployment on 2026-10-09.
 - Do not treat ITEM_STEWARD Responsibility as Item authorization; it filters My Items only after normal Authorization Provider decisions.
-- Do not statically register the IT-01C Item import target in Host; a lifecycle-aware import-target registry/contribution is required before product exposure.
 - Do not force-install evo-item merely because it is present in Catalog; PR #509 install/use-driven lifecycle rules remain authoritative.
 - Do not reopen the lifecycle-aware Data Import target registry debt; PR #532 resolved it with active-feature metadata discovery and use-time lazy target implementation loading.
 - Do not reopen row-dynamic qualifier-aware Item import; PR #534 resolved it with shared DISCOVERY/EFFECTIVE applicability modes and per-row effective validation.
 - Do not treat Open Food Facts barcode/code, GTIN, category, brand or packaging fields as EVO Item primary identity during IT-01E RVC; they are external identifiers/classifications until evidence says otherwise.
+- Do not reopen IT-01 or rerun its Open Food Facts RVC without new compatibility evidence; IT-01 closed on 2026-10-09 after PR #538, real-data CI and production deployment passed.
+- Do not make GTIN/barcode a universal Item primary key; external trade-item identifiers remain scheme+value evidence separate from enterprise Item identity.
+- Do not add universal Product/SKU/variant/category core fields from naming preference; those remain domain relations/classifications until business evidence requires them.
+- Do not infer enterprise baseUomCode from package quantity text; base UOM is governed operational UOM, external package measure is separate evidence.
+- Do not put inventory quantity/on-hand/availability into Warehouse master data during WH-01; Warehouse is where, Inventory Position is what Item is there and how much.
+- Do not casually redesign STABLE_CANDIDATE Foundation Object contracts in WH-01; require concrete third-object incompatibility evidence.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -572,20 +582,21 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
+- state WH-01 Warehouse/Location third-object proof as the current active Foundation Object Program gate
+- state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE after Counterparty + Item proof, while Item/Product/SKU/variant/trade-identifier/UOM/classification semantics remain domain-owned/EXPERIMENTAL
+- state Warehouse = where and Inventory Position = what Item is there and how much; Warehouse master data must not own stock balances
+- state current production Ledger Configurator as App Platform PR #538 merge commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
 - state IT-01E row-dynamic qualifier-aware import as MERGED_CI_PRODUCTION_PASS via PR #534 / main commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state both IT-01E platform gaps (lifecycle-aware import targets and row-dynamic qualifier import) as closed before real-world Item RVC
-- state real-world Open Food Facts / GS1 / UN/CEFACT Item RVC as the current active IT-01E sub-slice
-- state current production Ledger Configurator as App Platform PR #534 merge commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI
 - state IT-01D Item projections/responsibility + governed Eidos experience as MERGED_CI_PRODUCTION_PASS via PR #530 / main commit ea3594f06625803883b7fd6dddcc878feb8bdc99 / Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 SUCCESS after 34/34 CI
-- state IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure as the current active slice inside IT-01
 - state Item import Host exposure as intentionally pending a lifecycle-aware Data Import target registry; do not statically register the Item target merely to make it visible
 - state IT-01C generic Data Import reuse with Item target as MERGED_CI_PRODUCTION_PASS via PR #528 / main commit 8639fc0914e33d4040b92a1541679557f97c9cee / Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 SUCCESS
 - state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as MERGED_CI_PRODUCTION_PASS via PR #524 / main commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS
 - state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
 - state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt
 - state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded
-- state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization
 - state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
 - state Personal Agent P1.8 as verified and production-closed
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
