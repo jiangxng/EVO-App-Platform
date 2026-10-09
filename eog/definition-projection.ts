@@ -436,7 +436,7 @@ export function applyDefinitionProjectionV010(input: {
         : { ...node };
     });
   const visibleNodeIds = new Set(nodes.map(node => node.id));
-  const routeByEdgeId = new Map((projection.view.edgePaths ?? []).map(item => [item.edgeId, item.pathKind] as const));
+  const routeByEdgeId = new Map((projection.view.edgePaths ?? []).map(item => [item.edgeId, item] as const));
   const edges = input.diagram.edges
     .filter(edge =>
       (input.includeHidden === true || !hiddenEdges.has(edge.id))
@@ -445,7 +445,12 @@ export function applyDefinitionProjectionV010(input: {
     )
     .map(edge => ({
       ...edge,
-      ...(routeByEdgeId.has(edge.id) ? { pathKind: routeByEdgeId.get(edge.id)! } : {})
+      ...(routeByEdgeId.has(edge.id) ? {
+        pathKind: routeByEdgeId.get(edge.id)!.pathKind,
+        ...(routeByEdgeId.get(edge.id)!.waypoints?.length ? { waypoints: routeByEdgeId.get(edge.id)!.waypoints!.map(p => ({ ...p })) } : {}),
+        ...(routeByEdgeId.get(edge.id)!.sourceAnchor ? { sourceAnchor: routeByEdgeId.get(edge.id)!.sourceAnchor } : {}),
+        ...(routeByEdgeId.get(edge.id)!.targetAnchor ? { targetAnchor: routeByEdgeId.get(edge.id)!.targetAnchor } : {})
+      } : {})
     }));
 
   return {
