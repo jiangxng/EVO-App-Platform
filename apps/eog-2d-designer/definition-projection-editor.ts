@@ -376,6 +376,7 @@ function editorState(input: {
       kind: edge.kind,
       ...(edge.label ? { label: edge.label } : {}),
       ...(edge.arrow ? { arrow: edge.arrow } : {}),
+      ...(edge.pathKind ? { pathKind: edge.pathKind } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }
@@ -475,6 +476,7 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       zoom: true,
       pan: true,
       localNodeDrag: true,
+      localEdgePathEdit: true,
       localSelectionHide: true,
       localSelectionHideLabel: text.removeFromProjection,
       localSelectionHideNotice: text.removedFromProjection,
@@ -509,6 +511,7 @@ function parsedHiddenIds(
 function parsedViewState(value: JsonValue | undefined): {
   hiddenNodeIds: string[];
   hiddenEdgeIds: string[];
+  edgePaths?: Array<{ edgeId: string; pathKind: "straight" | "orthogonal" | "rounded-orthogonal" | "curve" }>;
   viewport?: {
     width: number;
     height: number;
@@ -532,6 +535,29 @@ function parsedViewState(value: JsonValue | undefined): {
     raw.hiddenEdgeIds,
     "DEFINITION_PROJECTION_HIDDEN_EDGE_IDS_INVALID"
   );
+  let edgePaths: Array<{ edgeId: string; pathKind: "straight" | "orthogonal" | "rounded-orthogonal" | "curve" }> | undefined;
+  if (raw.edgePaths !== undefined) {
+    if (!Array.isArray(raw.edgePaths) || raw.edgePaths.length > 10000) {
+      throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+    }
+    edgePaths = raw.edgePaths.map(value => {
+      if (value === null || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+      }
+      const path = value as Record<string, JsonValue>;
+      if (typeof path.edgeId !== "string" || !path.edgeId.trim()
+        || !["straight", "orthogonal", "rounded-orthogonal", "curve"].includes(String(path.pathKind))) {
+        throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+      }
+      return {
+        edgeId: path.edgeId.trim(),
+        pathKind: path.pathKind as "straight" | "orthogonal" | "rounded-orthogonal" | "curve"
+      };
+    });
+    if (new Set(edgePaths.map(item => item.edgeId)).size !== edgePaths.length) {
+      throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+    }
+  }
   let viewport: { width: number; height: number } | undefined;
   if (raw.viewport !== undefined) {
     if (
@@ -605,6 +631,7 @@ function parsedViewState(value: JsonValue | undefined): {
   return {
     hiddenNodeIds,
     hiddenEdgeIds,
+    ...(edgePaths ? { edgePaths } : {}),
     ...(viewport ? { viewport } : {}),
     placements,
     camera: {
@@ -772,6 +799,9 @@ function mergeProjection(
   );
   if (index < 0) throw new Error("DEFINITION_PROJECTION_NOT_FOUND");
   const current = next.projections[index] as TemplateProjectionGalleryItemV010;
+  if (captured.edgePaths?.some(item => !diagram.edges.some(edge => edge.id === item.edgeId))) {
+    throw new Error("DEFINITION_PROJECTION_EDGE_PATH_UNKNOWN_RELATION");
+  }
   const hiddenNodeIds = [...new Set(captured.hiddenNodeIds)];
   const hiddenEdgeIds = [...new Set(captured.hiddenEdgeIds)];
   const hiddenNodes = new Set(hiddenNodeIds);
@@ -791,6 +821,7 @@ function mergeProjection(
   const {
     hiddenNodeIds: _previousHiddenNodeIds,
     hiddenEdgeIds: _previousHiddenEdgeIds,
+    edgePaths: _previousEdgePaths,
     ...currentView
   } = current.view;
   next.projections[index] = {
@@ -805,6 +836,9 @@ function mergeProjection(
       ...currentView,
       ...(hiddenNodeIds.length ? { hiddenNodeIds } : {}),
       ...(hiddenEdgeIds.length ? { hiddenEdgeIds } : {}),
+      ...((captured.edgePaths ?? current.view.edgePaths)?.length
+        ? { edgePaths: (captured.edgePaths ?? current.view.edgePaths)!.map(item => ({ ...item })) }
+        : {}),
       placements: [...placementMap.values()],
       camera: { ...captured.camera }
     }
@@ -943,6 +977,9 @@ function saveProjectionAsNew(
         : {}),
       ...(captured.hiddenEdgeIds.length
         ? { hiddenEdgeIds: [...new Set(captured.hiddenEdgeIds)] }
+        : {}),
+      ...((captured.edgePaths ?? source.view.edgePaths)?.length
+        ? { edgePaths: (captured.edgePaths ?? source.view.edgePaths)!.map(item => ({ ...item })) }
         : {}),
       placements: captured.placements
         .filter(item => !hiddenNodes.has(item.nodeId))
