@@ -838,6 +838,9 @@ import {
   createCounterpartyProfileRepositoryV010
 } from "../apps/counterparty/facets.js";
 import {
+  counterpartyCoreSchemaV010
+} from "../apps/counterparty/foundation-object.js";
+import {
   counterpartyAuthorizationPolicyV010
 } from "../apps/counterparty/authorization.js";
 import {
@@ -6298,17 +6301,9 @@ const server = createServer(async (request, response) => {
           enterpriseRelationshipKind: relationship?.kind,
           counterparties: allCounterparties,
           responsibilities,
-          fieldIds: [
-            "displayName",
-            "code",
-            "subjectType",
-            "legalName",
-            "taxIdentifier",
-            "countryOrRegion",
-            "phone",
-            "email",
-            "notes"
-          ]
+          fieldIds: counterpartyCoreSchemaV010.fields.map(
+            field => field.fieldId
+          )
         });
         const authorizedCounterpartyIds = new Set(
           access.counterparties.map(item => item.counterpartyId)
@@ -6420,6 +6415,24 @@ const server = createServer(async (request, response) => {
             : module.createCounterpartyDetailPageV010({
                 counterparty,
                 roles: counterpartyRoleRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
+                customerProfile: counterpartyProfileRepository.get(
+                  active.contextId,
+                  counterpartyId,
+                  "CUSTOMER"
+                ),
+                supplierProfile: counterpartyProfileRepository.get(
+                  active.contextId,
+                  counterpartyId,
+                  "SUPPLIER"
+                ),
+                contacts: counterpartyContactRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
+                addresses: counterpartyAddressRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
