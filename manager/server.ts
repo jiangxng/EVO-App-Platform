@@ -703,6 +703,9 @@ import {
   workspaceHomePageSource
 } from "./workspace-home-page.js";
 import {
+  composeWorkbenchHomeV010
+} from "./workbench-composition.js";
+import {
   createSettingsExperienceManifest,
   createSettingsGroupPage,
   createSettingsIndexPage,
@@ -7549,10 +7552,49 @@ const server = createServer(async (request, response) => {
         }));
       }
       if (source === workspaceHomePageSource) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const partialContext: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "workspace-home-" + randomUUID(),
+          locale: requestedLocale(url)
+        };
+        const requestContext: PlatformRequestContextV010 = {
+          ...partialContext,
+          scope: legacyScopeFromRequestContextV010(partialContext)
+        };
+        const authorized = await listAuthorizedCapabilityOperationsV010({
+          manager,
+          authorizationProvider: resolveAuthorizationProvider(),
+          requestContext,
+          audience: "HUMAN"
+        });
+        const composition = composeWorkbenchHomeV010({
+          packageItems: manager.listEffectiveWorkbenchHomeItems(),
+          authorizedCapabilityOperationIds: new Set(
+            authorized.operations.map(item => item.operationId)
+          )
+        });
         return json(
           response,
           200,
-          createWorkspaceHomePageV010(requestedLocale(url))
+          createWorkspaceHomePageV010(
+            requestedLocale(url),
+            composition.items
+          )
         );
       }
       if (source === settingsIndexPageSource) {
