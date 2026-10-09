@@ -4932,6 +4932,26 @@
         "sourceDataCommittedToGit": false,
         "real100kRvcRun": "PENDING",
         "real1mPerformanceRun": "PENDING"
+      },
+      "sensitiveFieldTests": {
+        "status": "IMPLEMENTED_CI_PENDING",
+        "protocolTest": "tests/protocol/cp07-counterparty-sensitive-fields.test.mjs",
+        "coverage": [
+          "core tax/phone/email field denial",
+          "Customer/Supplier Profile field denial",
+          "Contact name/title/phone/email denial",
+          "Address line/city/region/postal/country denial",
+          "displayName denial fails the Counterparty record read closed"
+        ],
+        "newAuthorizationFramework": false
+      },
+      "legacyTransformationReport": {
+        "status": "COMPLETE",
+        "document": "docs/roadmap/CP07-COUNTERPARTY-LEGACY-TRANSFORMATION-v0.1.md",
+        "archaeologyAuthority": "docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md",
+        "physicalProductionMigrationPerformed": false,
+        "freshLegacyRepositoryFullTextCensus": false,
+        "limitation": "Asloop-Backend is accessible but currently lacks a GitHub code-search index; this report uses the already accepted project archaeology and requires an exact source-specific inventory before any future production migration."
       }
     }
   },
