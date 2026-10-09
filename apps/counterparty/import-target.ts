@@ -10,9 +10,12 @@ import type {
 } from "../../contracts/foundation-object/import.js";
 import {
   fieldsForSurfaceV010,
-  type EffectiveFoundationObjectFieldV010,
   type EffectiveObjectSchemaV010
 } from "../../contracts/foundation-object/schema.js";
+import {
+  foundationObjectImportCellBlankV010,
+  normalizeFoundationObjectImportCellV010
+} from "../../foundation/import-values.js";
 import type {
   ObjectExtensionRepositoryV010
 } from "../object-extension/repository.js";
@@ -55,7 +58,9 @@ function roles(
         : explicitMode === "NONE"
           ? []
           : (() => { throw new Error("COUNTERPARTY_IMPORT_ROLE_MODE_INVALID"); })()
-    : parameters?.relationshipRoles ?? [];
+    : Array.isArray(parameters?.relationshipRoles)
+      ? parameters.relationshipRoles
+      : [];
   const normalized = [...new Set(values.map(value => value.trim().toUpperCase()))];
   for (const value of normalized) {
     if (value !== "CUSTOMER" && value !== "SUPPLIER") {
@@ -63,57 +68,6 @@ function roles(
     }
   }
   return normalized as CounterpartyRelationshipRoleCodeV010[];
-}
-
-function blank(value: FoundationObjectImportCellV010 | undefined): boolean {
-  return value === null
-    || value === undefined
-    || (typeof value === "string" && !value.trim());
-}
-
-function normalizeCell(
-  field: EffectiveFoundationObjectFieldV010,
-  value: FoundationObjectImportCellV010 | undefined
-): FoundationObjectImportCellV010 {
-  if (blank(value)) return null;
-
-  switch (field.valueType) {
-    case "STRING":
-      return typeof value === "string"
-        ? value.trim()
-        : String(value);
-    case "NUMBER": {
-      const number = typeof value === "number"
-        ? value
-        : Number(String(value).trim());
-      if (!Number.isFinite(number)) {
-        throw new Error("DATA_IMPORT_VALUE_NUMBER_INVALID");
-      }
-      return number;
-    }
-    case "BOOLEAN": {
-      if (typeof value === "boolean") return value;
-      const normalized = String(value).trim().toLowerCase();
-      if (["true", "1", "yes", "y"].includes(normalized)) return true;
-      if (["false", "0", "no", "n"].includes(normalized)) return false;
-      throw new Error("DATA_IMPORT_VALUE_BOOLEAN_INVALID");
-    }
-    case "DATE": {
-      const normalized = String(value).trim();
-      if (!Number.isFinite(Date.parse(normalized))) {
-        throw new Error("DATA_IMPORT_VALUE_DATE_INVALID");
-      }
-      return normalized;
-    }
-    case "ENUM": {
-      const normalized = String(value).trim();
-      const match = field.enumOptions?.find(option =>
-        option.value.toLocaleLowerCase() === normalized.toLocaleLowerCase()
-      );
-      if (!match) throw new Error("DATA_IMPORT_VALUE_ENUM_INVALID");
-      return match.value;
-    }
-  }
 }
 
 function textValue(
@@ -194,7 +148,7 @@ function semanticDestinationsV010(
   }>();
 
   for (const [fieldId, value] of Object.entries(values)) {
-    if (blank(value)) continue;
+    if (foundationObjectImportCellBlankV010(value)) continue;
     const destination = fields.get(fieldId)?.destination;
     if (!destination) continue;
 
@@ -235,7 +189,7 @@ function semanticDestinationValidationIssuesV010(
   for (const related of destinations.related.values()) {
     if (related.resourceType === "counterparty.contact") {
       const displayName = related.values.displayName;
-      if (blank(displayName)) {
+      if (foundationObjectImportCellBlankV010(displayName)) {
         issues.push({
           code: "COUNTERPARTY_IMPORT_CONTACT_NAME_REQUIRED",
           message: "Primary Contact fields require a primary Contact name.",
@@ -244,7 +198,7 @@ function semanticDestinationValidationIssuesV010(
       }
       const email = related.values.email;
       if (
-        !blank(email)
+        !foundationObjectImportCellBlankV010(email)
         && !/^\S+@\S+\.\S+$/u.test(String(email).trim())
       ) {
         issues.push({
@@ -256,7 +210,7 @@ function semanticDestinationValidationIssuesV010(
     }
     if (
       related.resourceType === "counterparty.address"
-      && blank(related.values.line1)
+      && foundationObjectImportCellBlankV010(related.values.line1)
     ) {
       issues.push({
         code: "COUNTERPARTY_IMPORT_ADDRESS_LINE1_REQUIRED",
@@ -483,7 +437,7 @@ export function createCounterpartyImportTargetV010(input: {
 
       for (const field of importFields) {
         const raw = validateInput.values[field.fieldId];
-        if (field.required && blank(raw)) {
+        if (field.required && foundationObjectImportCellBlankV010(raw)) {
           issues.push({
             code: "DATA_IMPORT_REQUIRED_VALUE_MISSING",
             message: "Required import value is missing.",
@@ -493,7 +447,7 @@ export function createCounterpartyImportTargetV010(input: {
         }
         if (raw === undefined) continue;
         try {
-          normalizedValues[field.fieldId] = normalizeCell(field, raw);
+          normalizedValues[field.fieldId] = normalizeFoundationObjectImportCellV010(field, raw);
         } catch (error) {
           const code = error instanceof Error
             ? error.message
