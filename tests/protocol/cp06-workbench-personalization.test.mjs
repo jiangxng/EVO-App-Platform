@@ -473,7 +473,7 @@ test("CP-06 Action Router executes Workbench actions only while the BI Workbench
   });
   const router = createAppActionRouter(
     handlers,
-    featureId => isHostWorkbenchFeatureV010(featureId)
+    featureId => featureId === BI_WORKBENCH_FEATURE_ID_V010
   );
 
   const result = await router.execute({
