@@ -143,3 +143,102 @@ complete.
 WH-01A is closed. WH-01B is the active slice and must prove order-independent
 hierarchical Data Import through the existing generic Data Import contracts without
 moving Warehouse hierarchy semantics into shared Foundation Object contracts.
+
+
+## WH-01B — hierarchical Data Import
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+WH-01B reuses the accepted generic Data Import target/service pipeline without
+changing a shared STABLE_CANDIDATE Foundation Object contract.
+
+The import target is domain-owned:
+
+```text
+targetId = warehouse.location
+ownerPackageId = evo-warehouse
+```
+
+Import columns:
+
+```text
+warehouseCode
+path
+displayName
+locationKind = ZONE | LOCATION | BIN
+description?
+```
+
+### Why path is an import reference, not identity
+
+External files should not need EVO `locationId` values merely to express a physical
+hierarchy.
+
+Example:
+
+```text
+WH-A | ZONE-A
+WH-A | ZONE-A/01
+WH-A | ZONE-A/01/BIN-01
+```
+
+The path consists of operational sibling codes. It is normalized only for import
+resolution and is **not** persisted as the durable identity. `locationId` remains
+the stable Enterprise Context resource identity.
+
+This preserves the WH-01A rule that display/navigation paths are derived structure,
+not identity.
+
+### Order-independent same-batch resolution
+
+Source row order is not hierarchy authority. A child may appear before its parent.
+
+At atomic commit time the Warehouse target:
+
+1. resolves active Warehouse codes;
+2. indexes the existing active hierarchy by normalized operational path;
+3. indexes all same-batch paths;
+4. verifies every parent path exists either in the existing hierarchy or the batch;
+5. sorts only the internal write plan by path depth;
+6. writes parents before children inside one Enterprise Resource transaction;
+7. maps results back to original source row order.
+
+Thus file order does not change business meaning.
+
+### Failure model
+
+The target fails closed for:
+
+- unknown active Warehouse code;
+- invalid/empty path segments;
+- duplicate normalized path inside one batch;
+- orphan parent path;
+- existing hierarchy corruption;
+- sibling code collision, archived code reservation or other WH-01A repository
+  invariant;
+- missing Enterprise Resource transaction support.
+
+A batch-level hierarchy failure becomes one atomic Data Import failure receipt; no
+partial Warehouse Location resources remain.
+
+### No generic hierarchy abstraction yet
+
+The path resolver belongs to `evo-warehouse`.
+
+WH-01B does **not** add:
+
+- `parentId` to the generic Foundation Object descriptor;
+- a shared tree/path framework;
+- a generic hierarchy import contract;
+- any inventory quantity field.
+
+One third-object domain is insufficient evidence for a universal hierarchy
+abstraction.
+
+Evidence:
+
+- `apps/warehouse/import-target.ts`
+- `tests/protocol/wh01-warehouse-location-import.test.mjs`
+
+After WH-01B passes CI/production, WH-01C should compose Responsibility, Projection
+and Eidos navigation from the same authoritative Warehouse/Location resources.
