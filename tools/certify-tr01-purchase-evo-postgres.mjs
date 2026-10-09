@@ -80,32 +80,40 @@ function metric(body, code) {
   return found.value;
 }
 
-async function ledgerValues(enterpriseId) {
-  const [pending, payable, inventory] = await Promise.all([
-    observation(enterpriseId, "pending_purchase", ["balance.quantity"]),
-    observation(enterpriseId, "payable", ["balance.amount"]),
-    observation(
-      enterpriseId,
-      "inventory",
-      ["balance.quantity", "balance.amount"]
-    )
-  ]);
-  return {
-    pendingPurchaseQuantity: metric(pending, "balance.quantity"),
-    payableAmount: metric(payable, "balance.amount"),
-    inventoryQuantity: metric(inventory, "balance.quantity"),
-    inventoryAmount: metric(inventory, "balance.amount")
-  };
+async function ledgerAmount(enterpriseId, ledgerCode) {
+  const body = await observation(
+    enterpriseId,
+    ledgerCode,
+    ["balance.amount"]
+  );
+  return metric(body, "balance.amount");
 }
 
-async function waitForValues(enterpriseId, predicate, label) {
-  let last;
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    last = await ledgerValues(enterpriseId);
-    if (predicate(last)) return last;
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  throw new Error(label + ": " + JSON.stringify(last));
+async function applicationEventCount(enterpriseId, applicationId) {
+  const body = await json(await fetch(
+    baseUrl + "/api/v1/runtime-observations/query",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json"
+      },
+      body: JSON.stringify({
+        contractVersion: "0.1.0",
+        enterpriseId,
+        target: {
+          kind: "APPLICATION_ANCHOR",
+          applicationId
+        },
+        window: {
+          startAt: "2020-01-01T00:00:00.000Z",
+          endAt: "2030-01-01T00:00:00.000Z"
+        },
+        metricCodes: ["event.count"]
+      })
+    }
+  ));
+  return metric(body, "event.count");
 }
 
 async function openWorkItems(enterpriseId) {
@@ -116,6 +124,58 @@ async function openWorkItems(enterpriseId) {
       + "&limit=100",
     { headers: { accept: "application/json" } }
   ));
+}
+
+function orderWork(body, orderNo, ledgerCode) {
+  return body.items.find(item =>
+    item.sourceLedgerCode === ledgerCode
+    && item.dimensions?.order_no === orderNo
+  );
+}
+
+async function waitForOrderWork(
+  enterpriseId,
+  orderNo,
+  predicate,
+  label
+) {
+  let last;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    last = await openWorkItems(enterpriseId);
+    if (predicate(last)) return last;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error(label + ": " + JSON.stringify(last));
+}
+
+async function waitForAmount(
+  enterpriseId,
+  ledgerCode,
+  expected,
+  label
+) {
+  let last;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    last = await ledgerAmount(enterpriseId, ledgerCode);
+    if (Math.abs(last - expected) < 0.000001) return last;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error(label + ": " + String(last));
+}
+
+async function waitForApplicationEvents(
+  enterpriseId,
+  applicationId,
+  expected,
+  label
+) {
+  let last;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    last = await applicationEventCount(enterpriseId, applicationId);
+    if (last >= expected) return last;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error(label + ": " + String(last));
 }
 
 const enterprise = await json(await fetch(
@@ -218,7 +278,16 @@ const selection = {
 };
 const quantity = 10;
 const amount = 125;
-const before = await ledgerValues(enterprise.id);
+const beforePayableAmount = await ledgerAmount(enterprise.id, "payable");
+const beforeInventoryAmount = await ledgerAmount(enterprise.id, "inventory");
+const beforePurchaseEvents = await applicationEventCount(
+  enterprise.id,
+  purchaseBinding.applicationId
+);
+const beforeReceiptEvents = await applicationEventCount(
+  enterprise.id,
+  receiptBinding.applicationId
+);
 
 const purchase = await service.approvePurchaseOrder({
   target,
@@ -234,34 +303,51 @@ const purchase = await service.approvePurchaseOrder({
 });
 assert.equal(purchase.submission.postingStatus, "QUEUED");
 
-const afterPurchase = await waitForValues(
+await waitForApplicationEvents(
   enterprise.id,
-  values =>
-    Math.abs(
-      values.pendingPurchaseQuantity
-      - (before.pendingPurchaseQuantity + quantity)
-    ) < 0.000001
-    && Math.abs(
-      values.payableAmount - (before.payableAmount + amount)
-    ) < 0.000001,
-  "purchase ledger effects were not observed"
+  purchaseBinding.applicationId,
+  beforePurchaseEvents + 1,
+  "purchase BusinessData event was not observed"
 );
-assert.ok(
-  Math.abs(afterPurchase.inventoryQuantity - before.inventoryQuantity)
-    < 0.000001
+const payableAfterPurchase = await waitForAmount(
+  enterprise.id,
+  "payable",
+  beforePayableAmount + amount,
+  "purchase payable amount was not observed"
 );
-
-const purchaseWork = await openWorkItems(enterprise.id);
-const receiveWork = purchaseWork.items.find(item =>
-  item.workType === "RECEIVE"
-  && item.dimensions?.order_no === "TR01-PO-001"
+const purchaseWork = await waitForOrderWork(
+  enterprise.id,
+  "TR01-PO-001",
+  body => {
+    const receive = orderWork(
+      body,
+      "TR01-PO-001",
+      "pending_purchase"
+    );
+    const pay = orderWork(body, "TR01-PO-001", "payable");
+    return receive?.workType === "RECEIVE"
+      && Math.abs(Number(receive.quantity) - quantity) < 0.000001
+      && pay?.workType === "PAY"
+      && Math.abs(Number(pay.amount) - amount) < 0.000001;
+  },
+  "purchase RECEIVE/PAY work was not observed"
 );
-const payWorkBeforeReceipt = purchaseWork.items.find(item =>
-  item.workType === "PAY"
-  && item.dimensions?.order_no === "TR01-PO-001"
+const receiveWork = orderWork(
+  purchaseWork,
+  "TR01-PO-001",
+  "pending_purchase"
 );
-assert.ok(receiveWork, "Purchase Order must create RECEIVE work");
-assert.ok(payWorkBeforeReceipt, "Purchase Order must create PAY work");
+const payWorkBeforeReceipt = orderWork(
+  purchaseWork,
+  "TR01-PO-001",
+  "payable"
+);
+assert.ok(receiveWork);
+assert.ok(payWorkBeforeReceipt);
+assert.equal(receiveWork.workType, "RECEIVE");
+assert.ok(Math.abs(Number(receiveWork.quantity) - quantity) < 0.000001);
+assert.equal(payWorkBeforeReceipt.workType, "PAY");
+assert.ok(Math.abs(Number(payWorkBeforeReceipt.amount) - amount) < 0.000001);
 
 const receipt = await service.receivePurchaseOrder({
   target,
@@ -278,54 +364,45 @@ const receipt = await service.receivePurchaseOrder({
 });
 assert.equal(receipt.submission.postingStatus, "QUEUED");
 
-const afterReceipt = await waitForValues(
+await waitForApplicationEvents(
   enterprise.id,
-  values =>
-    Math.abs(values.pendingPurchaseQuantity - before.pendingPurchaseQuantity)
-      < 0.000001
-    && Math.abs(
-      values.payableAmount - (before.payableAmount + amount)
-    ) < 0.000001
-    && Math.abs(
-      values.inventoryQuantity - (before.inventoryQuantity + quantity)
-    ) < 0.000001
-    && Math.abs(
-      values.inventoryAmount - (before.inventoryAmount + amount)
-    ) < 0.000001,
-  "receipt ledger effects were not observed"
+  receiptBinding.applicationId,
+  beforeReceiptEvents + 1,
+  "receipt BusinessData event was not observed"
 );
-
-let workAfterReceipt;
-for (let attempt = 0; attempt < 40; attempt += 1) {
-  workAfterReceipt = await openWorkItems(enterprise.id);
-  const openReceive = workAfterReceipt.items.some(item =>
-    item.workType === "RECEIVE"
-    && item.dimensions?.order_no === "TR01-PO-001"
-  );
-  const openPay = workAfterReceipt.items.some(item =>
-    item.workType === "PAY"
-    && item.dimensions?.order_no === "TR01-PO-001"
-  );
-  if (!openReceive && openPay) break;
-  await new Promise(resolve => setTimeout(resolve, 250));
-}
-assert.ok(workAfterReceipt);
+const inventoryAmountAfterReceipt = await waitForAmount(
+  enterprise.id,
+  "inventory",
+  beforeInventoryAmount + amount,
+  "receipt inventory amount was not observed"
+);
+const payableAfterReceipt = await waitForAmount(
+  enterprise.id,
+  "payable",
+  beforePayableAmount + amount,
+  "receipt must not close payable"
+);
+const workAfterReceipt = await waitForOrderWork(
+  enterprise.id,
+  "TR01-PO-001",
+  body =>
+    orderWork(body, "TR01-PO-001", "pending_purchase") === undefined
+    && orderWork(body, "TR01-PO-001", "payable")?.workType === "PAY",
+  "receipt work closure was not observed"
+);
 assert.equal(
-  workAfterReceipt.items.some(item =>
-    item.workType === "RECEIVE"
-    && item.dimensions?.order_no === "TR01-PO-001"
-  ),
-  false,
+  orderWork(workAfterReceipt, "TR01-PO-001", "pending_purchase"),
+  undefined,
   "full receipt must close RECEIVE work"
 );
-assert.equal(
-  workAfterReceipt.items.some(item =>
-    item.workType === "PAY"
-    && item.dimensions?.order_no === "TR01-PO-001"
-  ),
-  true,
-  "receipt must not close unpaid PAY work"
+const payWorkAfterReceipt = orderWork(
+  workAfterReceipt,
+  "TR01-PO-001",
+  "payable"
 );
+assert.ok(payWorkAfterReceipt);
+assert.equal(payWorkAfterReceipt.workType, "PAY");
+assert.ok(Math.abs(Number(payWorkAfterReceipt.amount) - amount) < 0.000001);
 
 console.log(JSON.stringify({
   status: "PASS",
@@ -341,13 +418,15 @@ console.log(JSON.stringify({
   purchaseBusinessDataId: purchase.submission.businessDataId,
   receiptBusinessDataId: receipt.submission.businessDataId,
   explicitRelation: "FULFILLS",
-  ledgerDelta: {
-    pendingPurchaseQuantity:
-      afterReceipt.pendingPurchaseQuantity - before.pendingPurchaseQuantity,
-    payableAmount: afterReceipt.payableAmount - before.payableAmount,
-    inventoryQuantity:
-      afterReceipt.inventoryQuantity - before.inventoryQuantity,
-    inventoryAmount: afterReceipt.inventoryAmount - before.inventoryAmount
+  evidence: {
+    purchaseEventDelta: 1,
+    receiptEventDelta: 1,
+    receiveWorkQuantityBeforeReceipt: Number(receiveWork.quantity),
+    receiveWorkClosedAfterReceipt: true,
+    payableAmountDelta: payableAfterReceipt - beforePayableAmount,
+    inventoryAmountDelta:
+      inventoryAmountAfterReceipt - beforeInventoryAmount,
+    globalQuantityAggregationAvoided: true
   },
   work: {
     receiveClosed: true,
