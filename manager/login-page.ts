@@ -346,7 +346,7 @@ body{font-family:var(--eidos-font-family);color:var(--eidos-fg);background:var(-
 *{box-sizing:border-box}
 a{color:inherit}
 .evo-login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(420px,.92fr)}
-.evo-login-brand{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(32px,5vw,72px);background:linear-gradient(145deg,#18344f 0%,#214d75 52%,#2b6cb0 100%);color:#fff}
+.evo-login-brand{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(32px,5vw,72px);color:#fff}
 .evo-login-brand:after{content:"";position:absolute;width:520px;height:520px;right:-180px;bottom:-220px;border:1px solid rgba(255,255,255,.18);border-radius:50%;box-shadow:0 0 0 72px rgba(255,255,255,.035),0 0 0 144px rgba(255,255,255,.025)}
 .evo-login-wordmark{position:relative;z-index:1;display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:720;letter-spacing:.01em}
 .evo-login-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(255,255,255,.34);border-radius:10px;background:rgba(255,255,255,.11);font-size:16px;font-weight:750}
@@ -412,14 +412,14 @@ a{color:inherit}
 .evo-login-demo-metrics strong{display:block;color:#0f68df;font-size:31px;line-height:1;font-weight:760;letter-spacing:-.02em}
 .evo-login-demo-metrics span{display:block;margin-top:9px;color:#526b8b;font-size:11px;line-height:1.45}
 .evo-login-demo-scene{position:absolute;z-index:0;inset:0;overflow:hidden;pointer-events:none}
-.evo-login-demo-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;filter:none;opacity:1}
+.evo-login-demo-art{position:absolute;inset:0;height:100%;object-fit:cover;object-position:center bottom;filter:none;opacity:1}
 .evo-login-demo-art-wash{position:absolute;inset:0;background:linear-gradient(180deg,rgba(244,250,255,.86) 0%,rgba(242,249,255,.54) 30%,rgba(240,248,255,.08) 52%,rgba(255,255,255,0) 72%)}
 .evo-login-demo-tags span{position:absolute;z-index:3;padding:8px 14px;border:1px solid rgba(255,255,255,.68);border-radius:8px;background:linear-gradient(180deg,rgba(74,153,242,.82),rgba(39,112,205,.68));color:#fff;font-size:11px;box-shadow:0 8px 24px rgba(24,90,168,.18);backdrop-filter:blur(9px)}
 .evo-login-demo-tags .tag-a{left:7%;top:68%}.evo-login-demo-tags .tag-b{left:49%;top:63%}.evo-login-demo-tags .tag-c{left:68%;top:75%}.evo-login-demo-tags .tag-d{left:8%;top:86%}
-.evo-login-shell[data-login-skin="demo"]{position:relative;isolation:isolate;grid-template-columns:minmax(0,1.18fr) minmax(460px,.82fr);min-height:100vh;padding-inline:clamp(0px,3vw,60px);overflow:hidden;background:#e8f4ff}
+.evo-login-shell[data-login-skin="demo"]{position:relative;isolation:isolate;grid-template-columns:minmax(0,1.18fr) minmax(460px,.82fr);min-height:100vh;padding-inline:clamp(0px,3vw,60px);overflow:hidden;background:#d2eaff}
 .evo-login-shell[data-login-skin="demo"]:before{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,#eef8ff 0%,rgba(238,248,255,.78) 3.5%,rgba(238,248,255,0) 10%,rgba(238,248,255,0) 90%,rgba(238,248,255,.78) 96.5%,#eef8ff 100%)}
 .evo-login-shell[data-login-skin="demo"] .evo-login-brand,.evo-login-shell[data-login-skin="demo"] .evo-login-main{position:relative;z-index:2}
-.evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding:150px clamp(48px,4.6vw,78px) 54px;background:linear-gradient(90deg,rgba(239,248,255,.86) 0%,rgba(239,248,255,.54) 66%,rgba(239,248,255,.12) 100%);color:#081d3c}
+.evo-login-shell[data-login-skin="demo"] .evo-login-brand{padding:150px clamp(48px,4.6vw,78px) 54px;color:#081d3c}
 .evo-login-shell[data-login-skin="demo"] .evo-login-brand:after{display:none}
 .evo-login-shell[data-login-skin="demo"] .evo-login-wordmark{display:none}
 .evo-login-shell[data-login-skin="demo"] .evo-login-hero{z-index:4;max-width:760px;margin:0;padding-top:3.5vh}
@@ -456,7 +456,8 @@ a{color:inherit}
 .evo-login-demo-google-icon img{display:block;width:20px;height:20px}
 .evo-login-demo-more{margin-top:20px;padding:16px;border:1px dashed #d6e1ed;border-radius:10px;text-align:center;background:#fcfdff}
 .evo-login-demo-more-icons{display:flex;justify-content:center;gap:13px;margin-bottom:9px}
-.evo-login-demo-more-icons button{width:31px;height:31px;border:1px solid #dce5ee;border-radius:8px;background:#f6f8fb;color:#9ba8ba;font-size:11px;font-weight:700;cursor:not-allowed}
+.evo-login-demo-more-icons button{width:31px;height:31px;display:grid;place-items:center;border:1px solid #dce5ee;border-radius:8px;background:#f6f8fb;color:#9ba8ba;cursor:not-allowed}
+.evo-login-demo-more-icon{display:block;width:17px;height:17px}
 .evo-login-demo-more p{margin:0;color:#a0adbd;font-size:11px}
 .evo-login-demo-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:28px;padding-top:22px;border-top:1px solid #e1e8f0;color:#7e8da2;font-size:12px}
 .evo-login-demo-footer-group{display:flex;align-items:center;gap:7px}
@@ -569,9 +570,25 @@ a{color:inherit}
 
         <div class="evo-login-demo-more" aria-label="${text.demoMoreMethods}">
           <div class="evo-login-demo-more-icons">
-            <button type="button" disabled aria-disabled="true" title="Microsoft">M</button>
-            <button type="button" disabled aria-disabled="true" title="Apple">A</button>
-            <button type="button" disabled aria-disabled="true" title="Enterprise SSO">SSO</button>
+            <button type="button" disabled aria-disabled="true" title="Microsoft">
+              <svg class="evo-login-demo-more-icon" data-demo-method-icon="microsoft" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="8" height="8" rx="1" fill="currentColor"></rect>
+                <rect x="13" y="3" width="8" height="8" rx="1" fill="currentColor"></rect>
+                <rect x="3" y="13" width="8" height="8" rx="1" fill="currentColor"></rect>
+                <rect x="13" y="13" width="8" height="8" rx="1" fill="currentColor"></rect>
+              </svg>
+            </button>
+            <button type="button" disabled aria-disabled="true" title="Apple">
+              <svg class="evo-login-demo-more-icon" data-demo-method-icon="apple" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M15.4 3.2c.8-.9 2-1.4 3.1-1.5.1 1.2-.3 2.3-1.1 3.2-.8.9-1.9 1.5-3.1 1.4-.1-1.1.4-2.3 1.1-3.1ZM19.4 12.7c0-2.8 2.3-4.1 2.4-4.2-1.3-1.9-3.4-2.2-4.1-2.2-1.8-.2-3.4 1-4.3 1-.9 0-2.2-1-3.7-.9-1.9 0-3.7 1.1-4.7 2.8-2 3.5-.5 8.7 1.4 11.5.9 1.4 2.1 3 3.5 2.9 1.4-.1 1.9-.9 3.6-.9s2.1.9 3.6.9c1.5 0 2.5-1.4 3.4-2.8 1.1-1.6 1.6-3.2 1.6-3.3-.1 0-2.7-1-2.7-4.8Z"></path>
+              </svg>
+            </button>
+            <button type="button" disabled aria-disabled="true" title="Enterprise SSO">
+              <svg class="evo-login-demo-more-icon" data-demo-method-icon="sso" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 5 6v5c0 4.5 2.8 8.6 7 10 4.2-1.4 7-5.5 7-10V6l-7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                <path d="M9.2 12.1 11 14l3.9-4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </button>
           </div>
           <p>${text.demoMoreMethods}</p>
         </div>
