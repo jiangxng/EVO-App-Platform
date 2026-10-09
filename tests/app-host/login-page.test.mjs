@@ -207,7 +207,7 @@ test("build emits valid login assets at the runtime path used by Railpack", asyn
     import.meta.url
   );
   const backgroundUrl = new URL(
-    "../../dist/manager/assets/tuge-login-background-final.jpg",
+    "../../dist/manager/assets/tuge-login-background-final.png",
     import.meta.url
   );
   const [logo, background, logoBytes, backgroundBytes] = await Promise.all([
@@ -226,7 +226,7 @@ test("build emits valid login assets at the runtime path used by Railpack", asyn
     [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
   );
   assert.deepEqual(
-    [...backgroundBytes.subarray(0, 3)],
-    [0xff, 0xd8, 0xff]
+    [...backgroundBytes.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
   );
 });
