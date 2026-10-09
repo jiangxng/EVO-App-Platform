@@ -154,3 +154,113 @@ export function diagramTranslateWaypointsV010(
   if (!moved.every(validPoint)) throw new Error("EIDOS_EDGE_WAYPOINT_TRANSLATION_INVALID");
   return moved;
 }
+
+
+/** B5a: pure geometry for accessible on-canvas presentation handles.
+ * Coordinates stay in world space; caller converts device pixel deltas using camera.scale.
+ */
+export interface DiagramOrthogonalSegmentHandleV010 {
+  index: number;
+  x: number;
+  y: number;
+  /** The coordinate that a perpendicular segment drag may change. */
+  axis: "x" | "y";
+}
+
+export function diagramMoveWaypointV010(
+  points: readonly DiagramEdgePointV010[], index: number, dx: number, dy: number
+): DiagramEdgePointV010[] {
+  if (!Array.isArray(points) || points.length > MAX_POINTS || !points.every(validPoint)
+    || !Number.isInteger(index) || index < 0 || index >= points.length
+    || !Number.isFinite(dx) || !Number.isFinite(dy)) {
+    throw new Error("EIDOS_EDGE_WAYPOINT_DRAG_INVALID");
+  }
+  const next = points.map(point => ({ ...point }));
+  next[index] = { x: next[index]!.x + dx, y: next[index]!.y + dy };
+  if (!validPoint(next[index])) throw new Error("EIDOS_EDGE_WAYPOINT_DRAG_INVALID");
+  return next;
+}
+
+function reducedOrthogonalRoute(
+  start: DiagramEdgePointV010, end: DiagramEdgePointV010,
+  override: DiagramEdgePathOverrideV010
+): DiagramEdgePointV010[] {
+  if (!validPoint(start) || !validPoint(end)
+    || !validDiagramEdgePathOverrideV010(override)
+    || (override.pathKind !== "orthogonal" && override.pathKind !== "rounded-orthogonal")
+    || !override.waypoints?.length) {
+    throw new Error("EIDOS_EDGE_SEGMENT_INVALID");
+  }
+  const result: DiagramEdgePointV010[] = [];
+  for (const point of orthogonalPoints(start, end, override.waypoints)) {
+    while (result.length >= 2) {
+      const a = result[result.length - 2]!, b = result[result.length - 1]!;
+      if (!((a.x === b.x && b.x === point.x) || (a.y === b.y && b.y === point.y))) break;
+      result.pop();
+    }
+    result.push({ ...point });
+  }
+  return result;
+}
+
+export function diagramEditableOrthogonalSegmentsV010(
+  start: DiagramEdgePointV010, end: DiagramEdgePointV010,
+  override: DiagramEdgePathOverrideV010
+): DiagramOrthogonalSegmentHandleV010[] {
+  const route = reducedOrthogonalRoute(start, end, override);
+  const handles: DiagramOrthogonalSegmentHandleV010[] = [];
+  for (let index = 0; index < route.length - 1; index++) {
+    const a = route[index]!, b = route[index + 1]!;
+    if (Math.hypot(b.x - a.x, b.y - a.y) < 12) continue;
+    if (a.x !== b.x && a.y !== b.y) throw new Error("EIDOS_EDGE_SEGMENT_NOT_ORTHOGONAL");
+    handles.push({
+      index, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2,
+      axis: a.x === b.x ? "x" : "y"
+    });
+  }
+  return handles;
+}
+
+/** Moves one entire line segment perpendicular to itself, preserving fixed terminals.
+ * Returns explicit route vertices as waypoints, so all other segments stay orthogonal.
+ */
+export function diagramDragOrthogonalSegmentV010(
+  start: DiagramEdgePointV010, end: DiagramEdgePointV010,
+  override: DiagramEdgePathOverrideV010,
+  segmentIndex: number, delta: number
+): DiagramEdgePointV010[] {
+  const route = reducedOrthogonalRoute(start, end, override);
+  if (!Number.isInteger(segmentIndex) || segmentIndex < 0 || segmentIndex >= route.length - 1
+    || !Number.isFinite(delta)) throw new Error("EIDOS_EDGE_SEGMENT_DRAG_INVALID");
+  if (delta === 0) return (override.waypoints ?? []).map(p => ({ ...p }));
+  const a = route[segmentIndex]!, b = route[segmentIndex + 1]!;
+  if (a.x !== b.x && a.y !== b.y) throw new Error("EIDOS_EDGE_SEGMENT_NOT_ORTHOGONAL");
+  const axis = a.x === b.x ? "x" : "y";
+  const shifted = route.map(p => ({ ...p }));
+  shifted[segmentIndex]![axis] += delta;
+  shifted[segmentIndex + 1]![axis] += delta;
+  if (!shifted.every(validPoint)) throw new Error("EIDOS_EDGE_SEGMENT_DRAG_INVALID");
+  if (segmentIndex === 0) shifted.unshift({ ...start });
+  if (segmentIndex + 1 === route.length - 1) shifted.push({ ...end });
+  const reduced: DiagramEdgePointV010[] = [];
+  for (const point of shifted) {
+    while (reduced.length >= 2) {
+      const p = reduced[reduced.length - 2]!, q = reduced[reduced.length - 1]!;
+      if (!((p.x === q.x && q.x === point.x) || (p.y === q.y && q.y === point.y))) break;
+      reduced.pop();
+    }
+    if (!reduced.length || reduced[reduced.length - 1]!.x !== point.x
+      || reduced[reduced.length - 1]!.y !== point.y) reduced.push(point);
+  }
+  if (reduced.length < 2 || reduced.length - 2 > MAX_POINTS
+    || reduced[0]!.x !== start.x || reduced[0]!.y !== start.y
+    || reduced[reduced.length - 1]!.x !== end.x || reduced[reduced.length - 1]!.y !== end.y) {
+    throw new Error("EIDOS_EDGE_SEGMENT_DRAG_INVALID");
+  }
+  for (let i = 1; i < reduced.length; i++) {
+    if (reduced[i - 1]!.x !== reduced[i]!.x && reduced[i - 1]!.y !== reduced[i]!.y) {
+      throw new Error("EIDOS_EDGE_SEGMENT_DRAG_INVALID");
+    }
+  }
+  return reduced.slice(1, -1);
+}
