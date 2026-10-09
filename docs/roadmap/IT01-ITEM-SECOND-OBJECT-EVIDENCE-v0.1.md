@@ -1,6 +1,6 @@
 # IT-01 Item/Product Second-Object Evidence v0.1
 
-**Status:** IT-01A + IT-01B MERGED_CI_PRODUCTION_PASS / IT-01C ACTIVE  
+**Status:** IT-01A + IT-01B + IT-01C MERGED_CI_PRODUCTION_PASS / IT-01D ACTIVE  
 **Date:** 2026-10-09  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
 
@@ -182,7 +182,7 @@ real second-object capability rather than creating an Item-specific import subsy
 
 ## IT-01C — Generic Data Import second-object proof
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 IT-01C removes another Counterparty-first leak from shared Foundation Object contracts:
 `FoundationObjectImportTargetParametersV010` is now an object-neutral parameter bag.
@@ -224,3 +224,16 @@ Evidence:
 - `foundation/import-values.ts`
 - `apps/item/import-target.ts`
 - `tests/protocol/it01-item-data-import.test.mjs`
+
+
+## IT-01C production evidence
+
+- implementation PR: #528
+- main merge commit: `8639fc0914e33d4040b92a1541679557f97c9cee`
+- Platform CI: PASS
+- Project Continuity CI: PASS
+- Railway deployment: `f4e56280-cfae-4012-bc8a-ed4e48d77ec6` — SUCCESS
+
+IT-01C is closed. IT-01D is the active slice and must prove Item through the existing
+Projection, Responsibility, Eidos Experience and Workbench Contribution boundaries
+without creating a parallel Item authority or moving Workspace ownership.
