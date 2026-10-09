@@ -3,15 +3,15 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `cp06-closed-cp07-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T16:26:00+08:00`  
+**Snapshot:** `cp07-evidence-complete-integration-candidate-2026-10-09`  
+**Snapshot time:** `2026-10-09T17:34:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
 CP-07 Counterparty maturity gate
-ACTIVE
+READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION
 ```
 
 ## Latest closed live slice
@@ -45,19 +45,19 @@ Evidence:
 
 ## Current open live gate
 
-**cp07-counterparty-maturity-gate: ACTIVE**
+**cp07-counterparty-maturity-gate: READY_TO_CLOSE_AFTER_MAINLINE_INTEGRATION**
 
-CP-07 is the active Counterparty maturity gate. The goal is to pressure-test and document the already accepted Foundation Object vertical before moving to Item/Product, not to reopen closed Counterparty semantics or grow a monolithic Counterparty framework.
+All currently defined CP-07 maturity evidence is complete: 10k full committed Demo continuity, >=100k real-world Companies House RVC, 1M performance pressure, sensitive-field isolation, legacy transformation evidence and package upgrade compatibility. CP-07 remains open only because the complete evidence stack is not yet integrated into main and final mainline closure continuity has not been recorded.
 
 Acceptance:
 
-- Preserve the already accepted identity, role, extension/import, responsibility/projection/permission, facets/profile and Workbench/Agent contracts without reopening closed gates.
-- 10k representative demo data passes the Counterparty experience and governed projections.
-- >=100k RVC integration pressure test passes with bounded, observable behavior.
-- Run a 1M+ performance test where practical and record limits instead of guessing.
-- Permission and sensitive-field tests prove server-side record/field scope remains fail-closed under scale.
-- Produce a legacy-field transformation report for realistic migration pressure.
-- Produce upgrade/version compatibility evidence sufficient to proceed to the materially different Item/Product proof.
+- 10k full committed Demo continuity: PASS via PR #515.
+- 100k real-world Companies House RVC: PASS via PR #516 validation run 37912406474.
+- 1M deterministic performance pressure: PASS via PR #517 run 37912688857.
+- Sensitive-field isolation and legacy transformation evidence: PASS/COMPLETE via PR #512.
+- Controlled package upgrade/version compatibility: PASS via PR #513.
+- Complete combined integration candidate exists as Draft PR #519 and must pass combined CI before any mainline merge.
+- After the complete stack is on main, record final CP-07 closure continuity before starting IT-01.
 
 ## Current production preview
 
@@ -536,6 +536,8 @@ Not proved:
 - Do not reopen CP-05 after Human acceptance; Contact/Address/Profile semantics are now closed Foundation Object evidence and CP-06 must build on their public contracts.
 - Do not move Workspace / Personal Workbench ownership back into App Platform Host or Counterparty; it is the independent optional evo-bi-workbench plugin in the BI / Insight Experience Layer, while business plugins only contribute governed items.
 - Do not ask for CP-06 Human product validation again; it passed on 2026-10-09 and CP-07 is now active.
+- Do not report CP-07 100k RVC or 1M performance as pending; both evidence runs passed on 2026-10-09 and are retained in docs/roadmap/CP07-COUNTERPARTY-SCALE-EVIDENCE-2026-10-09.md.
+- Do not start IT-01 from the Draft integration candidate alone; CP-07 must first be integrated into main and final closure continuity recorded.
 
 ## Fresh ChatGPT / LLM startup
 
