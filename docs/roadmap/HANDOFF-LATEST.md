@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `it01e-import-registry-pass-row-qualifier-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T20:14:00+08:00`  
+**Snapshot:** `it01e-platform-gaps-closed-rvc-active-2026-10-09`  
+**Snapshot time:** `2026-10-09T20:23:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,9 +16,9 @@ ACTIVE
 
 ## Latest closed live slice
 
-**it01e-lifecycle-aware-import-target-registry: MERGED_CI_PRODUCTION_PASS**
+**it01e-row-dynamic-qualifier-import: MERGED_CI_PRODUCTION_PASS**
 
-IT-01E resolved the lifecycle-aware Data Import target registry debt. Active package features contribute lightweight target metadata; Counterparty/Item target implementations load only when Data Import is actually used. Inactive targets disappear immediately and Data Import fails closed for jobs whose target is no longer active.
+IT-01E resolved the row-dynamic qualifier import limitation generically. Foundation Object schema compilation now has EFFECTIVE and DISCOVERY applicability modes; Item import discovers conditional fields before row context exists, then validates each row against its own effective qualifier context. Mixed GOODS/SERVICE imports can map GOODS-only extensions without leaking them onto SERVICE rows.
 
 Authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
@@ -26,13 +26,11 @@ Evidence:
 
 ```json
 {
-  "implementationPr": 532,
-  "mergeCommit": "07ae77f1f9f94b9860b29c20f858bd059b23c502",
-  "combinedCI": "35/35 PASS",
+  "implementationPr": 534,
+  "mergeCommit": "9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "crossProjectCI": "PASS",
-  "railwayDeploymentId": "c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d",
+  "railwayDeploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
@@ -41,7 +39,7 @@ Evidence:
 
 **it01e-real-world-item-rvc-semantic-boundaries: ACTIVE**
 
-IT-01E remains active. The lifecycle-aware import-target registry is now closed; the current sub-slice is row-dynamic qualifier-aware Item import, followed by real-world Open Food Facts/standards RVC and the Foundation Object contract maturity recommendation.
+IT-01E remains active with both platform gaps now closed. The current sub-slice is real-world Item RVC using Open Food Facts plus GS1/UN/CEFACT evidence to settle Item/Product/SKU/variant/GTIN/UOM/category boundaries and produce the Foundation Object contract maturity recommendation.
 
 Acceptance:
 
@@ -60,8 +58,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `07ae77f1f9f94b9860b29c20f858bd059b23c502`
-- Deployment: `c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d`
+- Commit: `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`
+- Deployment: `b16708e5-b17b-4151-99d1-4803880880b3`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -92,6 +90,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #534 — MERGED_CI_PRODUCTION_PASS: Resolved row-dynamic qualifier-aware Item import through generic DISCOVERY/EFFECTIVE schema modes; Platform/Continuity CI passed and Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 is SUCCESS.
 - PR #532 — MERGED_CI_PRODUCTION_PASS: Resolved lifecycle-aware Data Import target discovery/loading; 35/35 CI passed and Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d is SUCCESS.
 - PR #530 — MERGED_CI_PRODUCTION_PASS: IT-01D completed lifecycle-gated Item Projection/Responsibility/Eidos composition with shared Human/Agent projection authority; 34/34 CI passed and Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 is SUCCESS.
 - PR #528 — MERGED_CI_PRODUCTION_PASS: IT-01C proved Item on the generic Data Import path, shared import value normalization, object-neutral target parameters, schema-drift protection and atomic extension rollback; Platform/Continuity CI and Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 passed.
@@ -552,6 +551,8 @@ Not proved:
 - Do not statically register the IT-01C Item import target in Host; a lifecycle-aware import-target registry/contribution is required before product exposure.
 - Do not force-install evo-item merely because it is present in Catalog; PR #509 install/use-driven lifecycle rules remain authoritative.
 - Do not reopen the lifecycle-aware Data Import target registry debt; PR #532 resolved it with active-feature metadata discovery and use-time lazy target implementation loading.
+- Do not reopen row-dynamic qualifier-aware Item import; PR #534 resolved it with shared DISCOVERY/EFFECTIVE applicability modes and per-row effective validation.
+- Do not treat Open Food Facts barcode/code, GTIN, category, brand or packaging fields as EVO Item primary identity during IT-01E RVC; they are external identifiers/classifications until evidence says otherwise.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -571,9 +572,11 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state IT-01E row-dynamic qualifier-aware import as MERGED_CI_PRODUCTION_PASS via PR #534 / main commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
+- state both IT-01E platform gaps (lifecycle-aware import targets and row-dynamic qualifier import) as closed before real-world Item RVC
+- state real-world Open Food Facts / GS1 / UN/CEFACT Item RVC as the current active IT-01E sub-slice
+- state current production Ledger Configurator as App Platform PR #534 merge commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI
-- state row-dynamic qualifier-aware Item import as the current active IT-01E sub-slice
-- state current production Ledger Configurator as App Platform PR #532 merge commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS
 - state IT-01D Item projections/responsibility + governed Eidos experience as MERGED_CI_PRODUCTION_PASS via PR #530 / main commit ea3594f06625803883b7fd6dddcc878feb8bdc99 / Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 SUCCESS after 34/34 CI
 - state IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure as the current active slice inside IT-01
 - state Item import Host exposure as intentionally pending a lifecycle-aware Data Import target registry; do not statically register the Item target merely to make it visible
