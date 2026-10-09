@@ -11,7 +11,7 @@ import {
   createWarehouseLocationRepositoryV010
 } from "../../dist/apps/warehouse/locations.js";
 import {
-  WAREHOUSE_OPERATIONAL_PROFILE_SLOT_V010
+  WAREHOUSE_FACILITY_PROFILE_SLOT_V010
 } from "../../dist/apps/warehouse/foundation-object.js";
 import {
   createObjectExtensionValueRepositoryV010
@@ -208,7 +208,7 @@ test("WH-01C derived projection composes Warehouse hierarchy, Responsibility and
       targetRef: {
         objectType: "warehouse.subject",
         objectId: "warehouse-1",
-        slot: WAREHOUSE_OPERATIONAL_PROFILE_SLOT_V010
+        slot: WAREHOUSE_FACILITY_PROFILE_SLOT_V010
       },
       namespace: "enterprise.demo.warehouse",
       values: { facilityClass: "REGIONAL_DC" },
