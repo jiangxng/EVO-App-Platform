@@ -268,13 +268,17 @@ export interface DataImportServiceV010 {
 
 export function createDataImportServiceV010(input: {
   repository: DataImportRepositoryV010;
-  targets: readonly FoundationObjectImportTargetV010[];
+  targets?: readonly FoundationObjectImportTargetV010[];
+  resolveTargets?: () => readonly FoundationObjectImportTargetV010[];
   recipeRepository?: DataImportRecipeRepositoryV010;
 }): DataImportServiceV010 {
-  const targets = targetMap(input.targets);
+  function currentTargets(): Map<string, FoundationObjectImportTargetV010> {
+    const resolved = input.resolveTargets?.() ?? input.targets ?? [];
+    return targetMap(resolved);
+  }
 
   function targetFor(job: DataImportJobV010): FoundationObjectImportTargetV010 {
-    const target = targets.get(job.targetId);
+    const target = currentTargets().get(job.targetId);
     if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
     return target;
   }
@@ -487,7 +491,7 @@ export function createDataImportServiceV010(input: {
       if (input.repository.get(contextId, importJobId)) {
         throw new Error("DATA_IMPORT_JOB_ALREADY_EXISTS");
       }
-      if (!targets.has(stageInput.targetId)) {
+      if (!currentTargets().has(stageInput.targetId)) {
         throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
       }
       const job: DataImportJobV010 = {
