@@ -120,6 +120,32 @@ Evidence:
 
 Status: **IMPLEMENTED_CI_PASS via PR #513**. Platform CI and Project Continuity CI passed after the canonical App Host/Plugin Store upgrade path and Counterparty compatibility proof were added.
 
+## CP-07E — 10k committed Demo continuity proof
+
+CP-07 requires more than two isolated 10k tests. The maturity proof therefore runs the existing deterministic Counterparty Demo generator through the real Data Import pipeline and then reads the committed subjects through the existing governed Customer role projection.
+
+The proof is intentionally implementation-neutral:
+
+```text
+10,000 deterministic Demo rows
+→ Data Import stage
+→ dry-run
+→ atomic batch commit
+→ 10,000 Counterparty resources
+→ 10,000 CUSTOMER role resources
+→ extension values persisted
+→ governed Customer projection returns the same 10,000 stable identities
+```
+
+Evidence:
+
+- `tests/protocol/cp07-counterparty-10k-demo.test.mjs`
+- reuses the existing `createCounterpartyImportDemoRowsV010` generator and generic Data Import/Counterparty target;
+- adds no new Counterparty storage, projection or authorization mechanism;
+- does not mutate Railway production data.
+
+Status: **CI_PASS via PR #515**. Platform CI and Project Continuity CI passed with the 10k full-commit + governed projection proof.
+
 ## Closure rule
 
 CP-07 closes only when the remaining real-volume, sensitive-data, migration and
