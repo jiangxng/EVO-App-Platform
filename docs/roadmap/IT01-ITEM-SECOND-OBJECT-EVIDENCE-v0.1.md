@@ -139,3 +139,30 @@ Do not stabilize contracts merely because IT-01A compiles.
 
 IT-01A is closed. IT-01B is the active slice and will add Enterprise Context-backed
 Item identity persistence before Data Import/package/UI expansion.
+
+
+## IT-01B — Enterprise Context identity repository
+
+Status: **IMPLEMENTED / CI PENDING**.
+
+The Item repository persists `item.subject` through the same Enterprise Resource
+contract used by the first Foundation Object, while deliberately avoiding a hidden
+Item-specific lifecycle framework.
+
+Identity/lifecycle rules:
+
+- `itemId` is the durable resource identity;
+- Item code is unique case-insensitively within one Enterprise Context;
+- the same code may exist independently in another Enterprise Context;
+- ACTIVE / ARCHIVED is owned by the Enterprise Resource lifecycle, not duplicated
+  as an Item payload `status` field;
+- ordinary `save` cannot silently reactivate an archived Item;
+- an archived Item code cannot be silently reused for a different Item identity;
+- archive preserves payload and audit timestamps rather than deleting the resource.
+
+Evidence:
+
+- `apps/item/repository.ts`
+- `tests/protocol/it01-item-repository.test.mjs`
+
+IT-01B still does not introduce Product/SKU/variant/GTIN/category semantics.
