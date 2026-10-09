@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "it01b-closed-it01c-active-2026-10-09",
-    "snapshotAt": "2026-10-09T18:43:00+08:00",
+    "snapshotId": "it01c-closed-it01d-active-2026-10-09",
+    "snapshotAt": "2026-10-09T19:13:00+08:00",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1817,31 +1817,32 @@
       "milestone": "IT-01 Item/Product second-object proof",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "it01b-item-enterprise-context-identity",
+        "id": "it01c-item-generic-data-import",
         "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "IT-01B persisted the materially different Item identity through Enterprise Context Resource contracts without copying Counterparty payload lifecycle semantics. Item code uniqueness is enterprise-scoped and case-insensitive, archive preserves historical identity, archived identities cannot be silently reactivated, and archived codes cannot be silently reused.",
+        "summary": "IT-01C made Item a real second consumer of generic Data Import and Object Extensions. Shared import target parameters are now object-neutral, Counterparty and Item share import cell normalization, Item stage/dry-run/schema-digest/atomic commit/receipt passes, duplicate code and schema drift fail closed, and extension-write failure rolls back Item business writes atomically.",
         "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
         "evidence": {
-          "implementationPr": 524,
-          "mergeCommit": "7dbe34f706fdf4dd27d60997127cc5766002b1de",
+          "implementationPr": 528,
+          "mergeCommit": "8639fc0914e33d4040b92a1541679557f97c9cee",
           "platformCI": "PASS",
           "projectContinuityCI": "PASS",
-          "railwayDeploymentId": "d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58",
+          "railwayDeploymentId": "f4e56280-cfae-4012-bc8a-ed4e48d77ec6",
           "railwayDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "it01c-item-generic-data-import",
+        "id": "it01d-item-projection-responsibility-eidos",
         "status": "ACTIVE",
-        "summary": "IT-01C is the current slice: make Item the second real consumer of generic Data Import and Enterprise Object Extensions. The goal is to remove remaining Counterparty vocabulary from shared import contracts and prove deterministic stage/dry-run/atomic commit for Item.",
+        "summary": "IT-01D is the current slice: prove Item through the shared Projection and Responsibility boundaries and expose it through an Eidos-governed experience. Projection remains derived/non-authoritative, Workspace stays owned by evo-bi-workbench, and Item must not create a parallel UI/runtime framework.",
         "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
         "acceptance": [
-          "Remove Counterparty relationship-role vocabulary from the shared import-parameter contract while retaining Counterparty compatibility in its own target.",
-          "Reuse EffectiveObjectSchema and Object Extension definitions for Item import.",
-          "Prove deterministic mapping, dry-run and commit for Item core fields.",
-          "Prove atomic batch commit persists Item resources and extension values together.",
-          "Fail closed on duplicate Item code and schema changes after dry-run.",
-          "Keep Product/SKU/variant/GTIN/category outside IT-01C."
+          "Derive Item projection from Item identity, extension values and applicable Responsibility rather than persisting a second Item authority.",
+          "Reuse the shared Responsibility capability only for meaningful Item ownership semantics.",
+          "Expose governed list/detail/create/edit surfaces through EffectiveObjectSchema/shared projection contracts.",
+          "Use Eidos design language and existing Experience/Contribution boundaries.",
+          "Keep Workspace ownership in evo-bi-workbench; Item may only contribute governed Workbench items.",
+          "Keep Human and Agent reads aligned on the same Item projection authority.",
+          "Do not introduce Product/SKU/variant/GTIN/category semantics in IT-01D."
         ]
       },
       "productionPreview": {
@@ -1850,26 +1851,30 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "7dbe34f706fdf4dd27d60997127cc5766002b1de",
-        "deploymentId": "d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58",
+        "commit": "8639fc0914e33d4040b92a1541679557f97c9cee",
+        "deploymentId": "f4e56280-cfae-4012-bc8a-ed4e48d77ec6",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
-        "status": "IT01C_ACTIVE",
+        "status": "IT01D_ACTIVE",
         "sequence": [
-          "IT-01C generic Data Import reuse with Item target",
           "IT-01D Item projections/responsibility + governed Eidos experience",
           "IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure",
           "IT-01 contract maturity review",
           "WH-01 Warehouse/Location third-object proof",
           "TR-01 Trading Reference Loop"
         ],
-        "rule": "Do not reopen IT-01A or IT-01B. IT-01C must use the generic Data Import service and object-neutral contracts; do not create an Item-only import framework."
+        "rule": "Do not reopen IT-01A through IT-01C. IT-01D must reuse Projection/Responsibility/Eidos boundaries, keep projection derived and non-authoritative, and must not move Workspace ownership into Item."
       }
     },
     "recentMainline": [
+      {
+        "pr": 528,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "IT-01C proved Item on the generic Data Import path, shared import value normalization, object-neutral target parameters, schema-drift protection and atomic extension rollback; Platform/Continuity CI and Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 passed."
+      },
       {
         "pr": 524,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -3032,12 +3037,17 @@
       "Do not reopen IT-01A or replace generic applicability qualifiers with a new Item-specific applicability key; Item is the proof that new objects must use object-neutral qualifier dimensions.",
       "Do not put GTIN/SKU/variant/category into the initial Item identity merely to make the model look complete; those boundaries require later real-world Item evidence.",
       "Do not reopen IT-01B or add a duplicate Item payload lifecycle status; Enterprise Resource ACTIVE/ARCHIVED is the current Item identity lifecycle authority.",
-      "Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts."
+      "Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts.",
+      "Do not reopen IT-01C or create an Item-only Data Import framework; Item now consumes the generic Data Import target/service path.",
+      "Do not claim row-dynamic qualifier-dependent import schemas are solved; IT-01C records the current job-level EffectiveObjectSchema limitation explicitly.",
+      "Do not turn Item Projection into a new business-data authority in IT-01D; projections remain derived from authoritative Item/Extension/Responsibility data.",
+      "Do not move Workspace ownership into Item; evo-bi-workbench remains the optional BI / Insight Experience owner."
     ],
     "freshSessionAcceptance": [
+      "state IT-01C generic Data Import reuse with Item target as MERGED_CI_PRODUCTION_PASS via PR #528 / main commit 8639fc0914e33d4040b92a1541679557f97c9cee / Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 SUCCESS",
+      "state IT-01D Item projections/responsibility + governed Eidos experience as the current active slice inside IT-01",
+      "state current production Ledger Configurator as App Platform PR #528 merge commit 8639fc0914e33d4040b92a1541679557f97c9cee / Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 SUCCESS",
       "state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as MERGED_CI_PRODUCTION_PASS via PR #524 / main commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS",
-      "state IT-01C generic Data Import reuse with Item target as the current active slice inside IT-01",
-      "state current production Ledger Configurator as App Platform PR #524 merge commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS",
       "state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS",
       "state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt",
       "state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded",
@@ -5084,7 +5094,7 @@
       "nextGate": "WH-01 Warehouse/Location third-object proof",
       "contractMaturityDecision": "PENDING_ITEM_SECOND_OBJECT_EVIDENCE",
       "evidenceAuthority": "docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md",
-      "currentSlice": "IT-01C generic Data Import reuse with Item target",
+      "currentSlice": "IT-01D Item projections/responsibility + governed Eidos experience",
       "it01a": {
         "status": "MERGED_CI_PRODUCTION_PASS",
         "implementationPr": 522,
@@ -5118,17 +5128,35 @@
         ]
       },
       "it01c": {
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "implementationPr": 528,
+        "mergeCommit": "8639fc0914e33d4040b92a1541679557f97c9cee",
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS",
+        "railwayDeploymentId": "f4e56280-cfae-4012-bc8a-ed4e48d77ec6",
+        "railwayDeploymentStatus": "SUCCESS",
+        "proves": [
+          "Foundation Object import target parameters are object-neutral; Counterparty relationship-role semantics remain domain-owned compatibility behavior.",
+          "Counterparty and Item both use the shared Foundation Object import value normalizer.",
+          "Item consumes the existing generic Data Import stage/dry-run/schema-digest/atomic-commit/receipt flow.",
+          "Item Enterprise Extension values commit atomically with Item resources and retain IMPORT provenance.",
+          "Duplicate Item code and schema drift fail closed before inconsistent business writes.",
+          "Current job-level schema resolution limitation for row-dynamic qualifier-dependent extensions is explicitly recorded rather than hidden."
+        ]
+      },
+      "it01d": {
         "status": "ACTIVE",
-        "purpose": "Prove that generic Data Import, Object Extension and atomic batch semantics work for Item without Counterparty-specific import contracts.",
+        "purpose": "Prove generic Projection and Responsibility reuse plus an Eidos-governed Item experience without turning shared infrastructure into Item-specific UI/runtime code.",
         "acceptance": [
-          "shared import target parameters are object-neutral; Counterparty relationship-role parameters remain domain-owned compatibility semantics",
-          "Item target reuses EffectiveObjectSchema and enterprise Object Extensions",
-          "deterministic mapping/dry-run/commit works for Item core fields",
-          "batch commit is atomic and persists Item plus extension values through Enterprise Context",
-          "duplicate Item code and schema drift remain fail-closed",
-          "no Product/SKU/variant/GTIN/category semantics are introduced merely for import"
+          "Item projection is derived from Item/Extension/Responsibility authorities rather than becoming a parallel data authority",
+          "Responsibility applies to Item only where semantically useful and remains a shared capability",
+          "Item list/detail/create/edit surfaces are generated from EffectiveObjectSchema or shared projection contracts",
+          "Eidos design language is the UI authority; no ad-hoc parallel component system",
+          "Personal Workbench may consume governed Item contributions without moving Workspace ownership into Item",
+          "Human and Agent reads use the same projection authority",
+          "no Product/SKU/variant/GTIN/category semantics are introduced merely to satisfy UI"
         ],
-        "nextSlice": "IT-01D Item projections/responsibility + governed Eidos experience"
+        "nextSlice": "IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure"
       }
     }
   },
