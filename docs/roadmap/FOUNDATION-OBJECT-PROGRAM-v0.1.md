@@ -517,6 +517,8 @@ Acceptance:
 
 ## 15. CP-07 — Counterparty maturity gate
 
+**Evidence authority:** `docs/roadmap/CP07-COUNTERPARTY-MATURITY-EVIDENCE-v0.1.md`
+
 **Current state:** ACTIVE. CP-06 is CLOSED_HUMAN_PASS. Pressure-test and document the accepted Counterparty/Foundation Object vertical before starting Item/Product; do not reopen closed Counterparty semantics merely to add more features.
 
 Before calling Counterparty a mature Foundation Object:
