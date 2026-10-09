@@ -4957,7 +4957,7 @@
         "limitation": "Asloop-Backend is accessible but currently lacks a GitHub code-search index; this report uses the already accepted project archaeology and requires an exact source-specific inventory before any future production migration."
       },
       "upgradeCompatibility": {
-        "status": "IMPLEMENTED_CI_PENDING",
+        "status": "IMPLEMENTED_CI_PASS",
         "architecture": "docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md",
         "protocolTest": "tests/protocol/cp07-counterparty-upgrade-compatibility.test.mjs",
         "coreLifecycleTest": "tests/manager/core-manager.test.mjs",
@@ -4978,7 +4978,10 @@
           "active Feature removal blocks upgrade",
           "Counterparty Enterprise Context resources survive Package lifecycle version upgrade",
           "Package version does not implicitly rewrite Counterparty resource schemaRef"
-        ]
+        ],
+        "pr": 513,
+        "platformCI": "PASS",
+        "projectContinuityCI": "PASS"
       }
     }
   },
