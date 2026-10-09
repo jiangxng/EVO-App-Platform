@@ -11,6 +11,9 @@ import {
   createCounterpartyRepositoryV010
 } from "../../dist/apps/counterparty/repository.js";
 import {
+  createPluginStorePage
+} from "../../dist/manager/plugin-store-page.js";
+import {
   counterpartyPackage
 } from "../../dist/apps/counterparty/package.js";
 import {
@@ -223,4 +226,35 @@ test("CP-07 package upgrade rejects a newer Counterparty version that is incompa
       .some(blocker => blocker.code === "HOST_INCOMPATIBLE"),
     true
   );
+});
+
+
+test("CP-07 exposes the available Counterparty upgrade through Plugin Store and canonical App Host routes", async () => {
+  const store = lifecycleStore("0.1.0");
+  const catalogPackage = upgradedCounterparty("0.1.1");
+  const page = createPluginStorePage(
+    [dependencyPackage, catalogPackage],
+    store.snapshot()
+  );
+  const item = page.items.find(entry => entry.id === COUNTERPARTY_PACKAGE_ID);
+  assert.ok(item);
+  assert.equal(
+    item.secondaryActions?.some(
+      action =>
+        action.id === "upgrade"
+        && action.command === "app-platform.upgrade-package"
+    ),
+    true
+  );
+
+  const { readFile } = await import("node:fs/promises");
+  const server = await readFile(
+    new URL("../../manager/server.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(server, /app-platform\.upgrade-package/);
+  assert.match(server, /\/v1\/upgrade\/plan/);
+  assert.match(server, /\/v1\/upgrade/);
+  assert.match(server, /manager\.planUpgrade\(body\.packageId\)/);
+  assert.match(server, /manager\.upgrade\(body\.packageId/);
 });
