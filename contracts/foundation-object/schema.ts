@@ -40,8 +40,17 @@ export interface FoundationObjectEnumOptionV010 {
 
 export interface FoundationObjectFieldApplicabilityV010 {
   /**
-   * The field exists only when at least one of these relationship roles is
-   * active for the object/import scenario.
+   * Object-neutral applicability dimensions. A dimension applies when at
+   * least one active qualifier value intersects the configured values.
+   * Different dimensions are combined with AND semantics.
+   *
+   * Example:
+   * { "item.kind": ["GOODS"] }
+   */
+  qualifiers?: Record<string, string[]>;
+  /**
+   * Counterparty v0.1 compatibility alias. New Foundation Objects should use
+   * qualifiers rather than adding new object-specific applicability keys.
    */
   relationshipRoles?: string[];
 }
@@ -122,6 +131,7 @@ export interface EffectiveObjectSchemaV010 {
   baseSchemaRef: string;
   locale: string;
   activeRelationshipRoles: string[];
+  activeQualifiers?: Record<string, string[]>;
   fields: EffectiveFoundationObjectFieldV010[];
 }
 
