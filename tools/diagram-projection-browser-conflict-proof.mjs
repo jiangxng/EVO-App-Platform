@@ -230,6 +230,39 @@ try {
   assert.equal(cancelProbe.x,snapProbe.worldX,"pointercancel must roll back snapped preview");
   assert.equal(cancelProbe.guides,0,"pointercancel must clear alignment guides");
   assert.equal(store.getVersion(target),0,"preview/cancel must not persist projection");
+
+  // B6b: use the actual Eidos multi-select UI, overflow command and undo.
+  // This is a local presentation edit and must not write the Host projection.
+  const arrangeProof = await a.eval('(()=>{'
+    + 'const ids=[...document.querySelectorAll("[data-eidos-diagram-node]")].slice(0,3)'
+    + '.map(node=>node.getAttribute("data-eidos-diagram-node"));'
+    + 'if(ids.length!==3)throw Error("Three nodes required for distribution");'
+    + 'const get=id=>document.querySelector("[data-eidos-diagram-node="+CSS.escape(id)+"]");'
+    + 'const initial=ids.map(id=>({id,x:Number.parseFloat(get(id).style.left),'
+    + 'y:Number.parseFloat(get(id).style.top)}));'
+    + 'get(ids[0]).click();'
+    + 'for(const id of ids.slice(1))get(id).dispatchEvent(new MouseEvent("click",'
+    + '{bubbles:true,shiftKey:true}));'
+    + 'const align=document.querySelector("[data-eidos-diagram-arrange=left]");'
+    + 'const distribute=document.querySelector("[data-eidos-diagram-arrange=distribute-x]");'
+    + 'if(!align||!distribute||align.disabled||distribute.disabled)'
+    + 'throw Error("B6b group commands unavailable");'
+    + 'align.click();'
+    + 'const aligned=ids.map(id=>Number.parseFloat(get(id).style.left));'
+    + 'if(!aligned.every(x=>x===aligned[0]))throw Error("Group align did not align left");'
+    + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
+    + 'if(!undo||undo.disabled)throw Error("Group align omitted single undo step");'
+    + 'undo.click();'
+    + 'const restored=ids.map(id=>({id,x:Number.parseFloat(get(id).style.left),'
+    + 'y:Number.parseFloat(get(id).style.top)}));'
+    + 'if(JSON.stringify(restored)!==JSON.stringify(initial))'
+    + 'throw Error("Undo failed to restore all three node placements");'
+    + 'return {aligned:true,undoRestored:true,selectionCount:ids.length};'
+    + '})()');
+  assert.equal(arrangeProof.aligned, true);
+  assert.equal(arrangeProof.undoRestored, true);
+  assert.equal(store.getVersion(target),0,"arrangement/undo may not implicitly save");
+
   const hide = async (client, index) => client.eval('(()=>{'
     + 'const nodes=[...document.querySelectorAll("[data-eidos-diagram-node]")];'
     + 'if(nodes.length<2)throw Error("Need at least 2 nodes");'
@@ -277,7 +310,8 @@ try {
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
     browser: version.Browser, tabs: 3, nativeGridSnapCancelled: true,
-    independentGridModes: true, staleWriteBlocked: true,
+    independentGridModes: true, groupAlignmentUndo: true,
+    staleWriteBlocked: true,
     draftPreserved: true, savedAsNewProjection: true,
     transientFailurePreservesDraft: true, retrySaved: true,
     businessHistoryUnchanged: true
