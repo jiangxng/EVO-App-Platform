@@ -54,3 +54,21 @@ test("B8p shared Designer and Viewer SVG direction, isolated bidi",async()=>{
  assert.match(surface,/data-eidos-diagram-caption-direction/);
  assert.match(surface,/diagramCaptionLayoutV010\(geometry.label,caption,measuredCaption\)\.box/);
 });
+
+
+test("B8s real Firefox/WebKit RTL bbox safety margin is used by both wrap and collision",()=>{
+ const caption="مرحبا بالعالم · فواتير المورد والمستحقات 2026";
+ const measured=text=>({width:[...text].length*8,
+  actualBoundingBoxAscent:10,actualBoundingBoxDescent:3});
+ const anchor={x:280,y:160};
+ const rtl=diagramCaptionLayoutV010(anchor,caption,measured,260,4);
+ const ltr=diagramCaptionLayoutV010(anchor,"Invoice approval and payment",measured,260,4);
+ assert.equal(rtl.direction,"rtl");
+ assert.equal(ltr.direction,"ltr");
+ assert.ok(rtl.box.width>0&&rtl.box.width<=268);
+ assert.equal(rtl.box.x,anchor.x-rtl.box.width/2);
+ assert.ok(rtl.lines.every(line=>[...line].length*8*1.25<=260));
+ // Existing one-line English experience must not gain bidi headroom.
+ const one=diagramCaptionLayoutV010(anchor,"Short",measured);
+ assert.equal(one.box.width,48);
+});
