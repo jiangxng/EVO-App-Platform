@@ -278,7 +278,11 @@ export function diagramEditableAutomaticOrthogonalRouteV010(
   pathKind: "orthogonal" | "rounded-orthogonal",
   options?: DiagramEdgeGeometryOptionsV010
 ): { waypoints: DiagramEdgePointV010[]; segments: DiagramOrthogonalSegmentHandleV010[] } | undefined {
-  const corners = diagramAutomaticOrthogonalPointsV010(start, end, pathKind, options);
+  // Legacy automatic elbows can include coincident midpoint corners for
+  // perfectly collinear source/target nodes. Do not materialize duplicates.
+  const corners = cleaned(
+    diagramAutomaticOrthogonalPointsV010(start, end, pathKind, options)
+  );
   if (corners.length < 2 || corners.length - 2 > MAX_POINTS) return undefined;
   const points = corners.length === 2 ? [
     { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }
