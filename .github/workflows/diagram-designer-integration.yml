@@ -13,6 +13,7 @@ on:
       - "vendor/eidos/src/diagram/**"
       - "tests/integration/definition-projection-*.test.mjs"
       - "tests/integration/diagram-visual-handles.test.mjs"
+      - "tests/integration/diagram-snapping.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -27,6 +28,7 @@ on:
       - "vendor/eidos/src/diagram/**"
       - "tests/integration/definition-projection-*.test.mjs"
       - "tests/integration/diagram-visual-handles.test.mjs"
+      - "tests/integration/diagram-snapping.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -53,3 +55,4 @@ jobs:
           tests/integration/diagram-professional-routing.test.mjs
           tests/integration/diagram-touch-cancel-wiring.test.mjs
           tests/integration/diagram-visual-handles.test.mjs
+          tests/integration/diagram-snapping.test.mjs
