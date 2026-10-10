@@ -1,3 +1,4 @@
+export * from "./contextual-assistance.js";
 export * from "./contracts.js";
 export * from "./host.js";
 export * from "./memory-source.js";

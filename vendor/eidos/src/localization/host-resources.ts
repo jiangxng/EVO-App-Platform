@@ -13,6 +13,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.noActionHost": "No App Host ActionHost is configured.",
       "shell.executing": "Executing…",
       "shell.completed": "Completed.",
+      "shell.agentDraftPreserved": "Agent result is ready. Your unsaved changes were kept; review the result before reloading.",
       "shell.next": "Next: {next}",
       "shell.actionFailed": "Action failed: {message}",
       "shell.status": "App Host: {status} · revision {revision}",
@@ -80,6 +81,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
     namespace: "eidos.app-host",
     locale: "zh-CN",
     messages: {
+      "shell.agentDraftPreserved": "Agent 结果已就绪。已保留你未保存的修改，请先查看结果，再决定是否重新加载。",
       "shell.language": "语言",
       "shell.applications": "应用",
       "shell.noActivePage": "当前没有可用的应用页面。",
@@ -162,6 +164,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.executing": "実行中…",
       "shell.completed": "完了しました。",
       "shell.next": "次へ：{next}",
+      "shell.agentDraftPreserved": "Agent の結果が届きました。未保存の変更は保持されています。結果を確認してから再読み込みしてください。",
       "shell.actionFailed": "操作に失敗しました：{message}",
       "shell.status": "App Host：{status} · リビジョン {revision}",
       "shell.statusDiagnostics": "App Host：{status} · 診断 {count} 件",
@@ -236,6 +239,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.executing": "正在執行…",
       "shell.completed": "已完成。",
       "shell.next": "下一步：{next}",
+      "shell.agentDraftPreserved": "Agent 結果已就緒。已保留你尚未儲存的修改，請先查看結果，再決定是否重新載入。",
       "shell.actionFailed": "操作失敗：{message}",
       "shell.status": "App Host：{status} · 版本 {revision}",
       "shell.statusDiagnostics": "App Host：{status} · {count} 個診斷",
@@ -298,3 +302,4 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
     }
   }
 ];
+
