@@ -19,6 +19,10 @@ import {
   createWarehouseRepositoryV010
 } from "../dist/apps/warehouse/repository.js";
 import {
+  createPurchaseOperationalProjectionServiceV010,
+  PURCHASE_OPERATIONS_READ_ACTION_V010
+} from "../dist/apps/trading-reference/operational-projection.js";
+import {
   createPurchaseReferenceServiceV010,
   TRADING_REFERENCE_PURCHASE_HOST_APPLICATION_REF_ID_V010,
   TRADING_REFERENCE_RECEIPT_HOST_APPLICATION_REF_ID_V010
@@ -519,6 +523,83 @@ const workAfterReversal = await waitForOrderWork(
 assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "pending_purchase"));
 assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "payable"));
 
+// Read the identical governed application projection through actual EVO
+// work-items and dimension-filtered LedgerBalance HTTP endpoints. This test
+// only uses a scoped certification policy; it does not claim UI registration.
+const operationalReader = createPurchaseOperationalProjectionServiceV010({
+  resolveAuthorizationProvider: () => ({
+    providerId: "tr01-certification-scoped-policy",
+    async check(query) {
+      return {
+        contractVersion: "0.1.0",
+        allowed: query.action === PURCHASE_OPERATIONS_READ_ACTION_V010
+          && query.scope.enterpriseId === enterprise.id
+          && query.resource.type === "trading-reference.purchase-order"
+          && query.resource.id === "TR01-PO-001"
+          && query.resource.attributes?.supplierCounterpartyId
+            === selection.supplierCounterpartyId
+          && query.resource.attributes?.itemId === selection.itemId
+          && query.resource.attributes?.warehouseId === selection.warehouseId,
+        policyProviderId: "tr01-certification-scoped-policy",
+        reasonCodes: []
+      };
+    }
+  }),
+  reader: {
+    async listOpenWorkItems(evoEnterpriseId) {
+      const page = await openWorkItems(evoEnterpriseId);
+      return { items: page.items, complete: page.items.length < 100 };
+    },
+    async readLedgerBalances(evoEnterpriseId, ledgerCode, dimensions) {
+      const page = await ledgerBalances(evoEnterpriseId, ledgerCode, dimensions);
+      return { items: page.items, complete: page.items.length < 100 };
+    }
+  }
+});
+function operationalRequest(actorType) {
+  return {
+    contextId: hostEnterpriseId,
+    enterpriseId: enterprise.id,
+    orderNo: "TR01-PO-001",
+    supplierCounterpartyId: selection.supplierCounterpartyId,
+    itemId: selection.itemId,
+    warehouseId: selection.warehouseId,
+    requestContext: {
+      contractVersion: "0.1.0",
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId: "proof-owner",
+        actorType,
+        identityProviderId: "tr01-proof-identity",
+        sessionId: "tr01-proof-session"
+      },
+      scope: {
+        contractVersion: "0.1.0",
+        enterpriseId: enterprise.id,
+        userId: "proof-owner"
+      },
+      context: {
+        activeContext: {
+          contractVersion: "0.1.0",
+          kind: "ENTERPRISE",
+          contextId: hostEnterpriseId,
+          enterpriseId: enterprise.id
+        }
+      },
+      correlationId: "tr01:a3:operational-read"
+    }
+  };
+}
+const humanOperational = await operationalReader.read(operationalRequest("HUMAN"));
+const agentOperational = await operationalReader.read(operationalRequest("AI"));
+assert.deepEqual(agentOperational, humanOperational);
+assert.equal(humanOperational.pendingPurchaseQuantity, quantity);
+assert.equal(humanOperational.inventoryPosition.quantity, 0);
+assert.equal(humanOperational.inventoryPosition.amount, 0);
+assert.equal(humanOperational.payableAmount, amount);
+assert.equal(humanOperational.openWork.receive.quantity, quantity);
+assert.equal(humanOperational.openWork.pay.amount, amount);
+
 console.log(JSON.stringify({
   status: "PASS",
   proof: "TR01A2_APP_PLATFORM_TO_EVO_PURCHASE_RECEIPT_REVERSAL",
@@ -534,6 +615,14 @@ console.log(JSON.stringify({
   receiptBusinessDataId: receipt.submission.businessDataId,
   reversalBusinessDataId: reversal.submission.businessDataId,
   explicitRelation: "FULFILLS_AND_REVERSES",
+  operationalProjection: {
+    status: "PASS",
+    contract: humanOperational.projectionId,
+    humanAgentSameContract: true,
+    source: "EVO_PUBLIC_WORK_ITEMS_AND_DIMENSIONED_LEDGER_BALANCES",
+    view: humanOperational,
+    consumerIntegration: "NOT_YET_INSTALLED"
+  },
   evidence: {
     purchaseEventDelta: 1,
     receiptEventDelta: 2,
