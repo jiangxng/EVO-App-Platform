@@ -168,7 +168,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e;
+let proc, a, b, c, d, e, f;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -506,7 +506,7 @@ try {
   // clicking Add path point. Automatic line segments are directly draggable.
   e=await tab("E",true);
   await until(e,"Ready.");
-  const autoHandle=await e.eval('(()=>{'
+  const configureAuto=async(client)=>client.eval('(()=>{'
     + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
     + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
     + 'if(!edge)throw Error("B8 automatic edge missing");'
@@ -532,15 +532,16 @@ try {
     + 'const goal=Math.round(point/24)*24+48;'
     + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
     + 'return {x,y,axis,delta:goal-point+2,original:visual.getAttribute("d")};})()');
-  const moveAuto=async()=>{
-    await e.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:autoHandle.x,y:autoHandle.y});
-    await e.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
-      x:autoHandle.x,y:autoHandle.y});
-    await e.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
-      x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
-      y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
+  const autoHandle=await configureAuto(e);
+  const moveAuto=async(client,handle)=>{
+    await client.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:handle.x,y:handle.y});
+    await client.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+      x:handle.x,y:handle.y});
+    await client.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+      x:handle.x+(handle.axis==="x"?handle.delta:0),
+      y:handle.y+(handle.axis==="y"?handle.delta:0)});
   };
-  await moveAuto();
+  await moveAuto(e,autoHandle);
   const autoPreview=await e.eval('(()=>{'
     + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
     + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
@@ -562,29 +563,35 @@ try {
     + '})()');
   assert.equal(cancelledAuto.d,autoHandle.original,"B8 pointercancel must restore exact automatic SVG");
   assert.equal(cancelledAuto.manual,0,"B8 cancelled auto drag must leave automatic routing");
-  await moveAuto();
-  const repeatedAutoPreview=await e.eval('(()=>{const id='
+  // Synthetic pointercancel does not reset Chrome's native mouse-device
+  // state identically to a real OS pointer cancellation. Use a fresh tab for
+  // the independent native commit/Undo proof rather than a false red test.
+  f=await tab("F",true);
+  await until(f,"Ready.");
+  const commitHandle=await configureAuto(f);
+  await moveAuto(f,commitHandle);
+  const repeatedAutoPreview=await f.eval('(()=>{const id='
     + JSON.stringify(routeChoice.edge.id) + ';'
     + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
     + 'return {d:visual.getAttribute("d"),manual:'
     + 'document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
-  assert.notEqual(repeatedAutoPreview.d,autoHandle.original,
-    "B8 second drag after pointercancel must still be interactive: "+JSON.stringify(repeatedAutoPreview));
-  await e.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
-    x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
-    y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
-  const committedAuto=await e.eval('(()=>{'
+  assert.notEqual(repeatedAutoPreview.d,commitHandle.original,
+    "B8 native automatic segment drag on fresh tab must update SVG");
+  await f.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:commitHandle.x+(commitHandle.axis==="x"?commitHandle.delta:0),
+    y:commitHandle.y+(commitHandle.axis==="y"?commitHandle.delta:0)});
+  const committedAuto=await f.eval('(()=>{'
     + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
     + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
     + 'return {d:visual.getAttribute("d"),'
     + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
     + 'automatic:document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]").length};'
     + '})()');
-  assert.notEqual(committedAuto.d,autoHandle.original,"B8 committed automatic route must change");
+  assert.notEqual(committedAuto.d,commitHandle.original,"B8 committed automatic route must change");
   assert.ok(committedAuto.manual>=2,"B8 native segment release must materialize manual control points");
   assert.equal(committedAuto.automatic,0,"B8 committed route is now explicitly editable");
   assert.equal(store.getVersion(target),3,"B8 local edit must not implicitly save");
-  const undoAuto=await e.eval('(()=>{'
+  const undoAuto=await f.eval('(()=>{'
     + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
     + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
     + 'if(!undo||undo.disabled)throw Error("B8 missing undo");undo.click();'
@@ -593,7 +600,7 @@ try {
     + 'return {d:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d"),'
     + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
     + 'automatic:document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]").length};})()');
-  assert.equal(undoAuto.d,autoHandle.original,"B8 Undo must restore the original automatic SVG path");
+  assert.equal(undoAuto.d,commitHandle.original,"B8 Undo must restore the original automatic SVG path");
   assert.equal(undoAuto.manual,0,"B8 Undo must discard all converted manual controls");
   assert.ok(undoAuto.automatic>0,"B8 Undo must restore automatic segment drag handles");
   assert.equal(store.getVersion(target),3,"B8 Undo must not persist a Host write");
@@ -602,7 +609,7 @@ try {
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 5,
+    browser: version.Browser, tabs: 6,
     autoSegmentDragCancelConvertUndo: true, nativeRouteHandleSnapAndUndo: true,
     nativeOrthogonalSegmentSnapAndUndo: true,
     nativeGridSnapCancelled: true,
@@ -613,7 +620,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
