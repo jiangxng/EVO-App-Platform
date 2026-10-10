@@ -32,6 +32,9 @@ node tools/diagram-enterprise-browser-proof-b9l.mjs
 - [B9l 首次 Chrome CI #38094461294](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38094461294)：真实 Chrome S2C 原生鼠标和 Save CAS **1→2** 实际通过、原浏览器无 JS 错误；但随后测试代码误认为 GET 返回的 `nodes` 应物理删除隐藏节点，因此错误地判定失败。实际产品的 Designer GET 必须保留业务图节点供可恢复的隐藏态编辑，独立存放 `hiddenNodeIds`。这是**测试断言读错契约**，不能为了让测试通过而改变业务语义。
 - 修复改为检查 GET `hiddenNodeIds` 包含所选节点、GET `nodes` 原有业务对象仍存在、原输入和业务定义历史不变。保留 DOM 中不可见、Viewer 新开正确读取等原门槛，继续以本 PR 最终 head 的 CI 结果为证。
 
+- [B9l 修订后 Chrome CI #38094521068](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38094521068) **PASS**（该阶段代码/文档 head `751136602706728bc76a0d953aa318fe0ab98850`）：系统 Chrome 154 原生鼠标 S2C、P2P **两组纯合成图**分别 Save CAS **1→2**；存盘前 Designer 与 readonly Viewer 拥塞 **1/1**，存盘后新 Designer/Viewer **0/0**；指定节点的 `hiddenNodeIds` 正确、业务历史=1、JS 错误=[]、Viewer 不可保存。**这仍不是客户实际企业图通过。**
+- 对外部 JSON 进入 Chrome 页面增加 `safeInlineJson` 小补强：把用于内联 `<script>` 引导的数据中的字面 `<` 编码为 `\\u003c`，避免获准脱敏数据仍带特殊字符时打断测试引导脚本。这项改动以**最后提交的 CI**为准，不拿早前绿色 run 冒充最终结果。
+
 ## 持续集成与证据等级
 
 `tools/diagram-enterprise-synthetic-fixture-b9l.mjs` 只为 CI 生成两份**合法但纯合成的** 25 节点 / 23 障碍图，S2C 与 P2P 各 1 份，放在 runner 临时目录之外于 Git checkout。专用 `.github/workflows/diagram-enterprise-native-browser-b9l.yml` 使用 Node 22、Chrome 系统二进制与 pinned Playwright 1.56.1，检查 `B9L_NATIVE_SAVE_RESULT` 和 `B9L_ENTERPRISE_CHROME_RESULT` 各 2 次；上传的日志**只能来自合成图**。CI 不能从该模拟验证推断用户提供的任何真实企业 S2C/P2P 图已实际运行。
