@@ -312,3 +312,9 @@
 **[新正向重复证据]** [App Chrome 配对 run 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) **PASS**，使用同一 runner 分别构建 B6b base 与 P01a 的条件索引版本，Chrome/154.0.8037.97，两个预热场景 + 每种规模三次交错中位数。200/400 selection 19.3→16.8ms **-12.95%**，500/1000 selection 48.6→40.6ms **-16.46%**。载入耗时 200/400 75.1→76.4ms +1.73%、500/1000 97.7→96.6ms -1.13%，故不声称两种规模的首屏都显著改善。DOM 均完整渲染，没有因为虚拟化删除目标。纯几何 old/new 路由 SVG parity 仍由 CI 保护。
 
 **[限制]** 三次中位数只能减轻共享 runner 噪声，不能当作承诺的 FPS。尤其 CDP 鼠标 dispatch 还包含协议耗时，不能直接等价浏览器帧绘制。独立 Win/macOS/iOS/Android 设备、真实企业数据、长时间操作内存与长任务仍未实测，**§14 P01 继续 NOT TESTED**。实施与证据在 Eidos [#141](https://github.com/jiangxng/eidos/pull/141) 和 App [#573](https://github.com/jiangxng/EVO-App-Platform/pull/573)；此前负面结果已保留，不以优化后的好结果覆盖。
+
+---
+
+## 2026-10-10 P01a 第三次同 runner 重复测量及反例
+
+[最新 paired Chrome CI #38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) 使用 Chrome/154.0.8037.97 同台分别构建 B6b 原始版本/P01a 自适应版本，两个预热+三次交错中位数，200/400 selection 18.5→16.9ms **-8.65%**、500/1000 selection 44.8→38.5ms **-14.06%**。上一独立 [#38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 对应 -12.95%、-16.46%，形成两轮正向的选择重绘证据。第三轮 mount 200/400 -9.99%、500/1000 -12.15%；但 500/1000 **CDP drag-dispatch p95 +7.37%**，仍不是 FPS，不能忽略这一反例。项目 P01 正式设备与复杂业务图性能仍 NOT TESTED。Eidos #141 和 App #573 最新全部 CI 已在该轮完成（随后文档更新会触发新 SHA 校验）。无需变更此前已确认的 v1.0 设计要求；阈值 150000 仅为工程优化选择。外部 S1–S7 资料仍沿用原证据等级，并未重新阅读原文。
