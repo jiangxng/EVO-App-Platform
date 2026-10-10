@@ -1,0 +1,89 @@
+# TR-01 本窗口资料与原始来源索引 — 2026-10-10
+
+> **索引口径：**仅列本窗口真正读取、编写并复核、或用 GitHub 工具查看过的原始仓库材料和 CI/PR 结果。链接全部指向交接时刻的 **immutable commit（源码）** 或固定 GitHub PR/Actions run。**所有下表的查阅日期都是 2026-10-10。**“已读原文/相关段落”不表示逐页完整阅读每个文件；“已查阅 CI 结果/日志”不等于在本分支保存了可离线打开的原始日志文件。
+
+**外部公开网络来源：0 项在本窗口通过浏览器/搜索工具实际查阅；外部网页摘要来源：0 项；外部网页截图/PDF：0 项。**用户希望保留的“网络资料遗产”如果来自更早其他窗口，本窗口无法把它们重新标记为已读，应依赖那些窗口另存的研究包并二次核实。不得补造外部原文标题/链接/截图。
+
+## 1. 项目权威、研究文档与已接受 ADR
+
+| ID | 标题／原始网址 | 查阅级别 | 原文段落／章节位置 | 关键发现（来源）→ 当前具体用途 |
+|---|---|---|---|---|
+| A01 | [AI Project Bootstrap](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/AI-BOOTSTRAP.md) | 仓库原文：已读取、复核启动顺序 | Mandatory startup order / Source-of-truth rule | 先读 AI-BOOTSTRAP→project.status→handoff→LLM→foundation map；仓库权威高于聊天 → **确定新窗口阅读顺序；禁止从记忆判断最新阶段** |
+| A02 | [project.status.json](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/project.status.json) | 仓库原文：已解析当前状态字段 | projectContinuity.current / foundationObjectProgram.tr01 / openGate | B2D2 为 bounded read-only CI PASS；B2D3 trusted delegation OPEN；金融写入、销售安装体验未完成 → **交接时刻最重要的工程进度依据** |
+| A03 | [HANDOFF-LATEST（机器生成）](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/HANDOFF-LATEST.md) | 仓库原文：已核对首部与快照；生成规则已读 | Snapshot / Latest closed live slice / Current open live gate | 对应 B2D2→B2D3；不能手写覆盖 → **下次启动一致性核验** |
+| A04 | [TR-01 Trading Reference Loop Evidence](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md) | 仓库原文：已读取并核对主要章节 | Hard authority boundaries / TR-01A sub-gates | Counterparty/Item/Warehouse 是身份权威；EVO 负责 BusinessData、Ledger/Work；最初先采购后销售反向验证 → **跨业务统一约束、不要重新实施基础对象导入** |
+| A05 | [TR-01B1 Sales / Shipment / Customer Cash](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B1-SALES-SHIPMENT-CASH-REFERENCE-20261010.md) | 仓库原文：已读取关键段落、章节索引 | Evidence-based decisions / Owner-correct minimum flow / Verified integration closure | 销售订单→生产→发货→现金收款，公开 immutable BusinessData 入口；不假设原始库存 → **B2D3 再利用相同业务事实和订单范围** |
+| A06 | [TR-01B2A Governed Sales Work/Position](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B2A-GOVERNED-SALES-WORK-POSITION-20261010.md) | 仓库原文：已核对关键段与标题 | Public owner boundary / Financial precision | 公开 Ledger balance + WorkItems 读取；原始库存数量 0/金额 125 不等于已估值库存 → **防止用户界面提前宣称成本正确** |
+| A07 | [TR-01B2B EVO Cost/COGS Replay Proof](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B2B-EVO-VALUATION-REPLAY-CI-PROOF-20261010.md) | 仓库原文：本窗口写入且已复读关键章节 | Existing owner contracts / Minimal CI-only valuation / Verified result | 固定 FIFO valuation/allocation policy + shipment rule ID/version 后，金额 125 从库存转至 COGS，Replay MATCH → **下一阶段不必重做成本算法，但执行接口仍缺失** |
+| A08 | [TR-01B2C Formal Settlement Owner CI](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B2C-FORMAL-SETTLEMENT-OWNER-CI-20261010.md) | 仓库原文：本窗口写入，复核关键章节 | Contract gap / Isolated owner proof / Verified result | 本币历史账面值要在订单事实产生时记录；指令/关系核销 1000 CNY，单笔同币种全额 → **定义 B2D3 需要验证的收款来源/对象** |
+| A09 | [TR-01B2D1 Host Finance Intent Admission](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B2D1-HOST-FINANCE-INTENT-ADMISSION-GATE-20261010.md) | 仓库原文：本窗口编写、复核 | Implemented code / Non-admissions | 逐资源授权、策略版本显式、缺失 owner 插件 fail closed、executionAllowed=false → **B2D3 必须衔接该 Host 前置闸门** |
+| A10 | [TR-01B2D2 EVO Owner Verification](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/docs/roadmap/TR01B2D2-EVO-OWNER-FACT-PIN-VERIFICATION-20261010.md) | 仓库原文：本窗口编写、复核 | EVO-owned capability / Verified exact result | EVO owner 只读事实核验，PostgreSQL CI 证明 Human/AI Host 与 owner 串联，未创建新 CostRun/AllocationInstruction → **B2D3 源码/证据直接入口** |
+| A11 | [EVO Public API Contract](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/PUBLIC-API.md) | 仓库原文：已读取相关接口段落及目录 | Current vs target / Target minimal Runtime API / v1.0.0-alpha.2 Cost recalculation / Replay / WorkItem Read | BusinessData、Ledger、Work 公共接口与 demo/compat 端点层级不同；demo cost 不等于财务授权接口 → **避免把 /demo 或兼容 commands 误作为 production trust boundary** |
+| A12 | [EVO Minimal Runtime Plugin Boundary ADR](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docs/architecture/decisions/2026-09-24-evo-minimal-runtime-plugin-boundary-v0.1.md) | 仓库原文：已读取 1–13 节相关原文（ACCEPTED） | §1, §3–5, §8–12 | EVO minimal Core 处理确定性 BusinessData→PostingRule→Ledger；身份/权限/Agent/财务高阶引擎不默认归 Core → **决定可信委托与成本核销接口应属于 Host/插件，不膨胀 Core** |
+| A13 | [EVO TR-01B2B Cost/Allocation Public Boundary Review](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docs/architecture/reviews/TR01B2B-COST-ALLOCATION-PUBLIC-BOUNDARY-REVIEW-20261010.md) | 仓库原文：本窗口创建并核对 Review 原文 | §1 scope / §2 cost / §3 allocation / §4 dependencies | 成本估值、正式收款分配应有版本化/可授权 owner plugin 公共契约；标为 DESIGN ONLY → **辨别设计提案与实际 shipped API** |
+| A14 | [EVO TR-01B2D2 Read-only Owner Verifier Review](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docs/architecture/reviews/TR01B2D2-READONLY-FINANCE-OWNER-VERIFIER-20261010.md) | 仓库原文：本窗口创建，正文已知 | Objective / Common checks / Cost / Cash / Return / Next steps | 内部核验器不带可信通讯层、不返回写入令牌 → **B2D3 优先补 trusted Host delegation 而非再次修改账本** |
+
+## 2. 实际查看过的实现源码和测试
+
+| ID | 标题／原始网址 | 查阅级别 | 原文段落／章节位置 | 关键发现（来源）→ 具体用途 |
+|---|---|---|---|---|
+| S01 | [App Sales Reference implementation](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/apps/trading-reference/sales-loop.ts) | 源代码：已读取 approveSalesOrder / Production / Ship / receiveCash 相关段落 | 约 L198–286 | original order 的 customer/product/warehouse；收款持有 order/customer + settledAmount/currency；历史 localCarrying 成对写入 → **跨服务事实载荷匹配；无需捏造 receipt 里有仓库字段** |
+| S02 | [App Host Finance Intent Admission](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/apps/trading-reference/finance-intent-admission.ts) | 源代码：本窗口实现/读取 | 类型契约、normalize、逐资源授权、owner.verify | 缺 owner/plugin 失败，最终结果 executionAllowed:false；Host 不能代替 EVO 检查真实事实 → **后续 trusted adapter 的 Host 端接入点** |
+| S03 | [App B2D1 Host Admission Protocol Tests](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/tests/protocol/tr01b-finance-intent-admission.test.mjs) | 测试源码：本窗口编写 | HUMAN/AI / denied resource / missing owner / fake tenant | 单独校验每个资源权限、缺身份和条件授权 fail closed → **可信链路的新负向测试可复用** |
+| S04 | [App ↔ EVO Sales PostgreSQL Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/.github/workflows/cross-project-tr01b-sales-evo-postgres.yml) | 工作流源码：本窗口已读取完整阶段/固定 EVO SHA | EVO_CERTIFIED_COMMIT / four certify steps / PostgreSQL:18 | 先公开 BusinessData 再做 FIFO COGS、正式 Allocation、owner read-only verifier；EVO 版本固定为 d5ce051… → **B2D3 新真实 CI 的最短路径；不覆盖本工作流并行修改** |
+| S05 | [App B2B FIFO Cost/Replay Script](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/tools/certify-tr01b2b-cost-replay-after-sales.mjs) | 源代码：本窗口曾实现和调试相关段落 | policy/rule pin / canonical digest / replay | 历史库存量 0/原始金额 125 → valued 0、COGS 125；经济和输入双摘要 → **后续重放验收样本** |
+| S06 | [App B2C Formal Allocation Script](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/tools/certify-tr01b2c-formal-settlement-after-cost.mjs) | 源代码：本窗口编写并检验 | AllocationInstruction / accepted valuation request / derived relation / replay | 原始销售单到现金收据 1000 CNY 正式关联，指令留存、Relation 重建 → **新委托信任/幂等/来源双 ID 证据** |
+| S07 | [App B2D2 Owner Fact/Pin Script](https://github.com/jiangxng/EVO-App-Platform/blob/da8151d17726a0f08b3fd10fde67b02e127ff10c/tools/certify-tr01b2d2-owner-finance-fact-pin.mjs) | 源代码：本窗口完整编写、调试 | Host in-process bridge / negative probes / digest immutability | 借助 CI 内部桥接 Host preflight + EVO owner；无正式生产通讯、没有 write token → **B2D3 复用事实测试，但必须替换内部桥接为可信通讯** |
+| S08 | [EVO API route registry](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/apps/api/src/build-app.ts) | 源代码：本窗口已查看关键 route/commands 段落 | route declarations / compatibility command | 兼容命令输入含调用方自声明 Actor；没有可证明 Host 来源的通用财务 owner 接口 → **防止错误沿用 HTTP actor 声明** |
+| S09 | [EVO Runtime construction](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/apps/api/src/evo-runtime.ts) | 源代码：已读取相关运行时实现 | createEvoRuntime / owner services | 内部 owner 运行时被 CI 使用；不是 App Platform prod 网络 API → **区分 in-process CI 与产品部署** |
+| S10 | [EVO Cost Engine + policy pins](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/cost/infrastructure/postgres-cost-engine.ts) | 源代码：已读取策略 pin/算法验证相关段落 | 约 L160–255、L520–554 | FIFO 方法必须显式 valuation policy、allocation policy、shipment valuation rule ID/version；缺失直接失败 → **成本请求 B2D4/委托语义** |
+| S11 | [EVO Allocation Store](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/allocation/infrastructure/postgres-allocation-store.ts) | 源代码：已读 RecordInstruction 及校验段落 | 约 L65–175 | 先查 consumer BusinessData 企业，记录 formal Instruction；同 key 不同语义拒绝 → **收款幂等与原始事实保护** |
+| S12 | [EVO FX Position Resolver](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/valuation/infrastructure/postgres-fx-position-resolver.ts) | 源代码：已查看相关定位/聚合段落 | measurement() / positionKey() / resolve() | PositionDefinition 需要原事实 local carrying/currency，positionKey 与源数据规则匹配 → **不能在支付发生后由 Agent 猜测历史账面金额** |
+| S13 | [EVO Read-only Fact/Pin verifier](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/valuation/infrastructure/postgres-trading-finance-fact-verifier.ts) | 源代码：本窗口完整实现、修正并复核 | verify() / COST_VALUATION / CASH_ALLOCATION | 原始 Order/Shipment/Receipt、POSTED、policy/rule ID+version、币种金额校验；executionAllowed:false → **B2D3 owner 插件可信服务的唯一只读业务校验核** |
+| S14 | [EVO Replay service + canonical digests](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/replay/infrastructure/postgres-replay-service.ts) | 源代码：已读 Full Replay 关键段落 | prepareFullReplay / completeFullReplay | Replay 写入与 canonical economic digest 需协同；dashboard balance digest 不是同一摘要 → **后续不能混比摘要导致虚假失败/虚假成功** |
+| S15 | [EVO Replay Digest module](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/modules/replay/infrastructure/postgres-replay-digest.ts) | 源代码：已查阅 canonical digest 函数/参数 | computeEconomicRuntimeDigest / computeReplayInputDigest | 经济运行态摘要与不可变输入摘要必须分别比较，固定 posting boundary → **接受财务重放的检验依据** |
+| S16 | [EVO seed-demo rules](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/scripts/seed-demo.ts) | 源代码：已查看 850 附近/890–945 策略段落 | shipment-inventory-to-cogs / inventory_fifo / fx_settlement_explicit | 开发/CI 使用的 published 策略规则及 eligibility；不应当认为客户生产环境默认已有这些 seeds → **为真实测试挑固定 pins；不扩大到客户配置** |
+| S17 | [EVO database schema types](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/platform/database/src/types.ts) | 源代码：已检视相关类型定义 | BusinessDataTable / PostingInputTable / ValuationRule / AllocationPolicy / AllocationRelation | 核销指令/关系与 BusinessData REFERENCES、LedgerEntry 不是同一种记录 → **财务边界、数据约束及未来响应格式** |
+| S18 | [EVO EEL-C01 Full Replay script](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/scripts/validate-eel-c01-full-replay.ts) | 源代码：本窗口读关键请求和重放段落 | posted facts / costPins / valuation replay | EVO 自己的参考事实曾证明正式分配及重放，但不等同于 App Platform 自己发起同一操作 → **用真实 App origin CI 弥补来源差异** |
+| S19 | [EVO active packet and excluded Core list](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/project.status.json) | 权威原文：已解析 activeWorkPacket / targetCoreBoundary.notCore | CORE-MIN-02 / notCore | CORE-MIN-02 在 EVO 单独推进；成本/估值不默认纳入 Core → **防止从 App TR-01 强行改变 EVO 主线** |
+
+## 3. GitHub 原始 PR 与 Actions 证据（含日志查阅级别）
+
+| ID | 标题／原始网址 | 查阅级别／日期 | 关键发现 | 对项目的用途 |
+|---|---|---|---|---|
+| E01 | 采购已安装 Human/AI/Workbench：[PR #567](https://github.com/jiangxng/EVO-App-Platform/pull/567) / [CI #38012256000](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012256000) | 已查阅本窗口原始 CI 运行数据/日志（参考场景）；2026-10-10 | 原采购参考链路与 Chrome Eidos/Agent 可用；不能推论销售已经安装 | 边界对照 |
+| E02 | 销售服务级 Work/Position：[PR #574](https://github.com/jiangxng/EVO-App-Platform/pull/574) / [CI #38014202340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014202340) | 已查阅运行结果，未保存全量日志附件；2026-10-10 | 库存发货后 qty0/raw amount125；未估值 | 发现成本差异 |
+| E03 | FIFO Cost & Full Replay：[PR #578](https://github.com/jiangxng/EVO-App-Platform/pull/578) / [CI #38015494916](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015494916) | 已查阅原始 CI 成败日志与 PASS 标记；2026-10-10 | valuation policy + allocation policy + Shipment rule ID/version；Inventory amount125→0，COGS125，canonical digests MATCH | B2B 实证 |
+| E04 | 正式单笔全额核销：[PR #582](https://github.com/jiangxng/EVO-App-Platform/pull/582) / [CI #38017215432](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215432) | 已查阅原始 CI 日志/marker；2026-10-10 | 真实 Cash Receipt 对真实 Order 正式 AllocationRelation 1000 CNY、Replay MATCH | B2C 实证 |
+| E05 | Host 财务准入：[PR #585](https://github.com/jiangxng/EVO-App-Platform/pull/585) / [Platform CI #38018453036](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38018453036) | 已查阅 PR/CI 运行结果与测试源码；2026-10-10 | 逐资源权限/pins/no owner 拒绝，允许只读不允许执行 | B2D1 已关闭 |
+| E06 | EVO owner 核验器：[PR #107](https://github.com/jiangxng/EVO/pull/107) / [EVO CI #38019400183](https://github.com/jiangxng/EVO/actions/runs/38019400183) | 已查阅原始 CI 工作项/类型失败/后续 27/27 SUCCESS；2026-10-10 | 新增 owner read-only checker；未发布 authenticated API | B2D2 owner 实现 |
+| E07 | Host+EVO PostgreSQL 联测：[PR #588](https://github.com/jiangxng/EVO-App-Platform/pull/588) / [CI #38019652795](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38019652795) | 已查阅原始 CI job 日志和 PASS marker；2026-10-10 | Host Human/AI 分别授权，owner DB 对原始 Order/Shipment/Cash 核验；负向拒绝，经济/input 摘要不变，无新增 CostRun/Instruction | B2D2 最关键证据 |
+| E08 | 权威交接回归：[PR #589](https://github.com/jiangxng/EVO-App-Platform/pull/589) / [CI #38019910463](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38019910463) | 已查阅 GitHub Actions 状态/checks（8/8）；2026-10-10 | 项目 handoff 由 status 生成，Agent/Memory/Experience 回归通过；合并主线 | 下一窗口权威入口可信 |
+| E09 | EVO 插件边界研究评审：[PR #106](https://github.com/jiangxng/EVO/pull/106) / [研究文档](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docs/architecture/reviews/TR01B2B-COST-ALLOCATION-PUBLIC-BOUNDARY-REVIEW-20261010.md) | 已阅读编写的原文、核对 PR 合并状态；2026-10-10 | DESIGN ONLY 的公共契约方向，不是正式财务 API | B2D3/B2D4 不能把设计评审当成已上线接口 |
+
+## 4. 已用资料之间的版本和证据层次
+
+- **EVO owner 源码固定：**`d5ce051325c4572c7a5fd713560d7d7d06e4b401`；App Platform 交接固定：`da8151d17726a0f08b3fd10fde67b02e127ff10c`。两个版本都是源代码/权威状态快照；**不能不查最新 main 就声称它们仍是当前版本**。
+- 某些较早 B1/B2A/B2B CI 使用更早的 EVO pinned SHA `2311022640aa108a6baf3db44d9b26bd3e3ad623`；B2D2 App Platform 工作流已明确 pin 更新为 EVO `d5ce0513…`。跨版本语义变化须重新核查，而不是混合引用。
+- `project.status.json` **有工程决定权**；本索引是参考材料，只记录查阅和证据。带“candidate/proposal”字样的原历史文档标题/早期状态可能滞后，应优先以同文末段的 verified 结果、最新 CI 和 project.status 为准。
+- **PR 合并**证明代码进入某仓库；**CI PASS**证明特定测试环境内通过；**Railway SUCCESS**证明相应版本部署成功；**客户生产企业授权和实际 Human/Agent 财务操作已开通**是完全不同的断言。目前 B2D3/B2D4/B2E 均不具备最后这一级证明。
+
+## 5. 便于重新定位的关键日志标记（防止短期日志消失）
+
+- [B2B 38015494916](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015494916)：`TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF`，status PASS；initial Inventory raw amount 125 → valued amount 0、COGS 125；canonical replay MATCH。
+- [B2C 38017215432](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215432)：`TR01B2C_APP_ORIGIN_RECEIPT_ALLOCATION_EVO_POSTGRESQL_PROOF`，status PASS；单笔 cash receipt 1000 CNY AllocationInstruction/Relation；full replay MATCH。
+- [B2D2 38019652795](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38019652795)：`TR01B2D2_OWNER_FINANCE_FACT_PIN_POSTGRESQL_PROOF`，status PASS。日志关键子项：`ownerReadOnlyCostVerification:true`、`ownerReadOnlyCashVerification:true`、`humanAndAiHostPreflightWithoutExecution:true`、`deniedHostReceiptBeforeOwner:true`、`crossTenantWrongPinWrongFactWrongAmountRejected:true`、`immutableEconomicDigestUnchanged:true`、`noNewCostRunOrAllocationInstruction:true`、`ownerTrustedDelegation:"NOT_YET_ADMITTED"`、`financeMutationApi:"NOT_INSTALLED"`。
+- [EVO owner CI 38019400183](https://github.com/jiangxng/EVO/actions/runs/38019400183)：27/27 job PASS（此前同 PR 发生过 Decimal TypeScript default import 失败，已按项目命名导入修复）。
+- **运行日志位置：**GitHub Actions 链接 → workflow run → job → 具体 step；以上脚本源码是可永久查看的复现说明。**未生成任何实际 PNG 截图、PDF 或独立下载的 CI 日志附件，也没有合法的本地路径可引用。**原始 Actions 日志可被平台保留策略清理，重要结果现已以摘要和 marker 固化到本资料索引与源项目 roadmap。
+
+## 6. 尚待验证、没有在本窗口查阅原文的外部参考
+
+| 主题 | 状态 | 精确问题（不是已证实事实） | 需要的后续研究 |
+|---|---|---|---|
+| Host→EVO OIDC workload identity / mTLS / HMAC delegation | **待查证；本窗口没有读任何外部标准原文** | 哪种机制支持身份绑定、跨租户防护、轮换、撤销、短效、重放拒绝、服务间调用？ | 新窗口查阅标准/供应商最新规范，建立出处/版本/威胁模型，再选择协议 |
+| Agent delegated authorization、按操作审批、audit provenance | **待查证；未读外部标准原文** | Agent 如何不能提升 Human 权限，又可传递真实执行者与审计链？ | 优先参考实际 Host 和可安装 plugin 契约及最新版官方协议 |
+| 分布式 idempotency / event replay / concurrency | **现有 EVO 内部实证已读；外部对照待查证** | 验证通过到执行之间的事实改变、过期 pins、TOCTOU 该如何强制 revalidate？ | 先读现有 EVO Request/Replay/Posting API，再有针对性检索外部参考 |
+| 金融账户/银行渠道与对账需求 | **待验证业务样本，非现阶段决策** | Cash Ledger 是否需要银行账户主数据独立对象？ | 获取真实支付渠道、公司归属、银行账户、对账样本再决策 |
+
+**溯源规则：**下次任何新找到的网上资料，按“原始网址、实际阅读日期、已读原文/仅摘要/待验证、章节、关键原话的简短转述、与已有证据冲突点”补入本索引的后续版本；不得用搜索摘要替代标准正文。
+
