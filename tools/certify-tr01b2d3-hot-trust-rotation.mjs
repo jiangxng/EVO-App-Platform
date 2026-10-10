@@ -6,7 +6,8 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync } from 'node:crypto';
 import { readFileSync,writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { createDatabase } from '../evo/dist/platform/database/src/index.js';
 import { createTrustedRemoteFinanceOwnerPreflightV010 } from
  '../dist/apps/trading-reference/finance-owner-remote.js';
@@ -16,6 +17,7 @@ const database=createDatabase(process.env.DATABASE_URL);
 const db=database.db;
 const install=JSON.parse(readFileSync('/tmp/tr01b2d3-host-install.json','utf8'));
 const oldKey=readFileSync('/tmp/tr01b2d3-host-signing-key.pem','utf8');
+let secondApi;
 function operator(...args){
  const result=spawnSync(process.execPath,['dist/scripts/finance-trust-operator.js',...args],
    {cwd:'evo',env:process.env,encoding:'utf8'});
@@ -55,9 +57,10 @@ async function business(type,key){
   .where('business_data_type','=',type).where('business_object_key','=',key)
   .executeTakeFirstOrThrow();
 }
-function owner(i,key){
+function owner(i,key,port=3000){
+ const target={...i,endpoint:i.endpoint.replace(':3000/',':'+port+'/')};
  return createTrustedRemoteFinanceOwnerPreflightV010({
-  resolveInstallation:()=>i,resolveSigningPrivateKey:()=>key,
+  resolveInstallation:()=>target,resolveSigningPrivateKey:()=>key,
   allowLoopbackHttpInTest:true
  });
 }
@@ -106,16 +109,31 @@ try {
   shipmentValuationRule:pin(rule),boundarySequence:before.digest.boundary
  };
  const request=input(intent);
+ // Spin up another independent Fastify API process sharing the same PostgreSQL.
+ secondApi=spawn(process.execPath,['dist/apps/api/src/main.js'],{
+  cwd:'evo',env:{...process.env,EVO_FINANCE_TRUST_AUTHORITY:'POSTGRES',
+   HOST:'127.0.0.1',PORT:'3001',LOG_LEVEL:'silent'},stdio:'ignore'
+ });
+ let secondReady=false;
+ for(let attempt=0;attempt<55;attempt++){
+  if(secondApi.exitCode!==null)throw new Error('SECOND_EVO_INSTANCE_EXITED');
+  try{const r=await fetch('http://127.0.0.1:3001/health/ready',
+   {signal:AbortSignal.timeout(800)});if(r.ok){secondReady=true;break;}}catch{}
+  await sleep(200);
+ }
+ assert.equal(secondReady,true,'second independent EVO API ready');
  const oldSigner=owner(install,oldKey);
+ const oldSignerB=owner(install,oldKey,3001);
  const previousAudit=await audit();
  assert.equal(previousAudit.length,1,'first operator GRANT must have been audited');
  assert.equal(previousAudit[0].action,'GRANT');
  await expectVerified(oldSigner,request);
+ await expectVerified(oldSignerB,request);
 
  // Operating API stays RUNNING. Revoke persistent trust without restart.
  operator('revoke',install.issuer,install.installationId,install.keyId,
   'ci-finance-security-operator','CI-TRUST-001');
- await expectRejected(oldSigner,request);
+ await Promise.all([expectRejected(oldSigner,request),expectRejected(oldSignerB,request)]);
  const revoked=await db.selectFrom('finance_trusted_signing_key')
   .select('status').where('issuer','=',install.issuer)
   .where('installation_id','=',install.installationId)
@@ -132,15 +150,19 @@ try {
   'ci-finance-security-operator','CI-TRUST-002');
  const newSigner=owner({...install,keyId:next.keyId},
   generated.privateKey.export({format:'pem',type:'pkcs8'}).toString());
- await expectVerified(newSigner,request);
- await expectRejected(oldSigner,request);
+ await Promise.all([expectVerified(newSigner,request),
+  expectVerified(owner({...install,keyId:next.keyId},
+   generated.privateKey.export({format:'pem',type:'pkcs8'}).toString(),3001),request)]);
+ await Promise.all([expectRejected(oldSigner,request),expectRejected(oldSignerB,request)]);
  // Old key cannot be made ACTIVE again using a re-grant.
  deniedOperator('grant','/tmp/tr01b2d3-evo-public-key.json',
   'ci-finance-security-operator','CI-TRUST-REGRANT-FORBIDDEN');
 
  operator('revoke',install.issuer,install.installationId,next.keyId,
   'ci-finance-security-operator','CI-TRUST-003');
- await expectRejected(newSigner,request);
+ await Promise.all([expectRejected(newSigner,request),
+  expectRejected(owner({...install,keyId:next.keyId},
+   generated.privateKey.export({format:'pem',type:'pkcs8'}).toString(),3001),request)]);
  deniedOperator('revoke',install.issuer,install.installationId,next.keyId,
   'ci-finance-security-operator','CI-TRUST-REPEATED-REVOKE-FORBIDDEN');
 
@@ -156,6 +178,8 @@ try {
  assert.equal(ready.status,200);
  console.log('TR01B2D3_LIVE_POSTGRES_SIGNER_ROTATION_PROOF='+JSON.stringify({
   status:'PASS',oldKeyRevokedWithoutEvoRestart:true,
+  twoIndependentEvoApiInstancesOnePostgres:true,
+  revokeAndRegrantConsistentAcrossBothInstances:true,
   newKeyAdmittedWithoutEvoRestart:true,
   oldKeyStillRejectedAfterNewGrant:true,
   newKeyRevokedWithoutEvoRestart:true,
@@ -165,4 +189,11 @@ try {
   executionAllowed:false,realProductionTls:'NOT_CERTIFIED',
   realOidcLogin:'NOT_CERTIFIED'
  }));
-}finally{await database.destroy();}
+}finally{
+ if(secondApi&&secondApi.exitCode===null){
+  secondApi.kill('SIGTERM');
+  await Promise.race([new Promise(resolve=>secondApi.once('exit',resolve)),sleep(4000)]);
+  if(secondApi.exitCode===null)secondApi.kill('SIGKILL');
+ }
+ await database.destroy();
+}
