@@ -43,9 +43,10 @@ Eidos [Draft #154](https://github.com/jiangxng/eidos/pull/154) 堆叠已完成 E
 本轮最新 Eidos/App 提交及所有当前 head workflow run ID、Chrome 34-tab 和 B8q Q/C 证据应在 CI 最终确定后追加到 Draft PR body 和商业验收矩阵；以后继续从本文件、前序 B8n/B8o 文档和 Draft #154/#601 入口工作，不将网络参考索引当成已读原文。
 
 
-## B8q 真实发现与基准范围调整（CI 证据链）
+## B8q CI 诊断纠偏：测试图引用了不存在的节点（2026-10-10）
 
-- 首次开启 160/480 混合复杂图时，让大量远距离的 `orthogonal/rounded-orthogonal` 连线同时走自动避障，实际 Chrome 完整页面 **90 秒未能达到 Ready**；失败证据为 [App Complex DOM CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 的 `P01 fixture never mounted`。这是未达性能要求的真实发现，不是测试代码语法错误。**不能把这项自动寻路能力标注为通过，也不能删除这个失败记录。**
-- 为隔离不同成本，本轮 B8q **调整为“混合路径渲染与操作”基准**：`orthogonal` 与 `rounded-orthogonal` 使用合成显式 waypoint，`curve` 混合自动与手工控制点，自环仍自动根据其他曲线/节点避让，保留长跨边、RTL/CJK 标签、原生鼠标和整体 DOM 压力。这并不证明大图中自动正交路由能顺利完成。
-- 后续应把“密集自动正交寻路最坏情况”单列性能专项，做节点规模/边距阈值探索，研究候选路由空间、路径采样、路由预算/早退与分层路径缓存，再按同一 CI runner 复验，不通过无限延长计时掩盖。
-- 上游 B8o 的 12,001 条直线为主的 `node-only` 完整 DOM 成功，不能外推至 12,001 条复杂自动正交关系；本次失败与 B8o 测试分别保留作为不同复杂性类别的证据。
+- 两次初始 B8q Chrome 任务未达到 Ready，最初推断为复杂自动正交路由开销过大；**重新阅读 `validateDiagramEditorStateV010` 和压测生成器后确认，这个推断不成立，必须撤回**。
+- B8q 采用 160/320 节点、每行 25 列；最后一行不满 25 个节点。旧 `dst=src+1` 逻辑在 `src=159`/ `319` 时错误产生 `n160`/`n320`，违反 Eidos 图状态验证的“每个关系端点必须存在”，因此 `stateFromResult` 不能成功接收图数据，Ready 永远不会出现。
+- [初次失败 CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 与第二次失败属于**测试样例非法**，**不是自动寻路性能超限的有效证据**。既不能标记自动寻路通过，也不能声称已证实其失败。
+- 已修正不足整行的目标节点环绕计算，并在启动 Chrome 前直接调用生产同款 `validateDiagramEditorStateV010` 对模拟数据进行校验，防止状态验证问题再次被误当作性能超时。
+- 只有预校验通过并实际得到 DOM、Q/C 和路径操作的 Chrome 日志后，才能形成混合路径性能结论。需要进一步评估自动寻路规模时，应在独立的合法图样例上运行，保留 CI runner/浏览器/尺寸和重复样本。
