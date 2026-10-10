@@ -40,3 +40,4 @@ jobs:
           node tools/diagram-projection-browser-conflict-proof.mjs | tee /tmp/diagram-browser-cas.log
           grep -q "DIAGRAM_BROWSER_CAS_PROOF=" /tmp/diagram-browser-cas.log
           grep -q "B9B_SAVED_VIEWER_CONGESTION_RESULT=" /tmp/diagram-browser-cas.log
+          grep -q "B9C_POSITIVE_VIEWER_CONGESTION_RESULT=" /tmp/diagram-browser-cas.log
