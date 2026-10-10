@@ -12,7 +12,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
-  renderDiagramEditorPageShellToHtmlV010
+  renderDiagramEditorPageShellToHtmlV010,
+  validateDiagramEditorStateV010
 } from "../dist/vendor/eidos/src/diagram/surface.js";
 
 const CHROME = process.env.CHROME;
@@ -60,9 +61,12 @@ const makeState=(nodeCount,edgeCount)=>{
   }));
   const edges=Array.from({length:edgeCount},(_,i)=>{
     const src=i%nodeCount, dir=Math.floor(i/nodeCount);
-    const dst=dir%2===0
-      ?(src%columns===columns-1?src-columns+1:src+1)
-      :(src+columns)%nodeCount;
+    // Partial final rows occur in B8q (160/320 nodes with 25
+    // columns). Never synthesize a target such as n160 or n320.
+    const rowStart=src-(src%columns);
+    const nextInRow=(src%columns===columns-1 || src+1>=nodeCount)
+      ?rowStart:src+1;
+    const dst=dir%2===0?nextInRow:(src+columns)%nodeCount;
     const hasLoop=(denseMode&&i%55===0)||(complexMode&&i%37===0);
     const aboveBudget=denseMode && edgeCount>12000;
     if(complexMode){
@@ -121,7 +125,15 @@ const html=(state)=>'<!doctype html><html><head><meta charset="utf-8">'
 +'window.__mounted=mountDiagramEditorPageV010({definition:window.__perfPage,'
 +'container:document.getElementById("root"),actionHost});'
 +'</script></body></html>';
-const contents=new Map(sizes.map(s=>[s.nodes,html(makeState(s.nodes,s.edges))]));
+const contents=new Map(sizes.map(size=>{
+  const state=makeState(size.nodes,size.edges);
+  const validated=validateDiagramEditorStateV010(state);
+  assert.equal(validated.ok,true,
+    "Synthetic DOM fixture must satisfy actual Eidos state schema: "+validated.issues.join("; "));
+  assert.equal(state.nodes.length,size.nodes);
+  assert.equal(state.edges.length,size.edges);
+  return [size.nodes,html(state)];
+}));
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
