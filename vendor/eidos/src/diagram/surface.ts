@@ -49,6 +49,7 @@ import {
   diagramSelfLoopRouteControlsV010,
   diagramSelfLoopSideV010,
   diagramSelfLoopManualSideV010,
+  diagramSelfLoopFitBoundsV010,
   type DiagramSelfLoopSideV010,
   type DiagramSelfLoopInkV010
 } from "./edge-lanes.js";
@@ -1492,16 +1493,9 @@ export function mountDiagramEditorPageV010(
     if (!state || nodes.length === 0) {
       return { x: 0, y: 0, width: 1, height: 1 };
     }
-    const minX = Math.min(...nodes.map(node => node.x));
-    const minY = Math.min(...nodes.map(node => node.y));
-    const maxX = Math.max(...nodes.map(node => node.x + node.width));
-    const maxY = Math.max(...nodes.map(node => node.y + node.height));
-    return {
-      x: minX,
-      y: minY,
-      width: Math.max(1, maxX - minX),
-      height: Math.max(1, maxY - minY)
-    };
+    // B8i: include external self-loop handles in Fit all without tying
+    // routing to the transient viewport, pan or zoom camera.
+    return diagramSelfLoopFitBoundsV010(nodes,visibleEdges());
   };
 
   const matchingActions = (): DiagramEditorActionV010[] => {
@@ -1656,16 +1650,10 @@ export function mountDiagramEditorPageV010(
           );
         })();
     if (nodes.length === 0) return undefined;
-    const minX = Math.min(...nodes.map(node => node.x));
-    const minY = Math.min(...nodes.map(node => node.y));
-    const maxX = Math.max(...nodes.map(node => node.x + node.width));
-    const maxY = Math.max(...nodes.map(node => node.y + node.height));
-    return {
-      x: minX,
-      y: minY,
-      width: Math.max(1, maxX - minX),
-      height: Math.max(1, maxY - minY)
-    };
+    // B8i: Fit selection must not crop a saved or automatic self-loop.
+    const focus=selected?.kind==="edge"
+      ? state!.edges.filter(edge=>edge.id===selected.id) : [];
+    return diagramSelfLoopFitBoundsV010(nodes,focus);
   };
 
   const fitSelectionToCanvas = (): void => {
