@@ -61,9 +61,16 @@ try {
   .select(["id","version"]).where("enterprise_id","=",enterprise)
   .where("code","=","inventory_fifo").where("status","=","PUBLISHED")
   .where("version","=",1).executeTakeFirstOrThrow();
+ const vr=await runtime.db.selectFrom("valuation_rule")
+  .select(["id","version"]).where("enterprise_id","=",enterprise)
+  .where("code","=","shipment-inventory-to-cogs")
+  .where("source_business_data_type","=","sales_shipment.created")
+  .where("status","=","PUBLISHED").where("version","=",1)
+  .executeTakeFirstOrThrow();
  const pins={
   valuationPolicyId:vp.id,valuationPolicyVersion:vp.version,
-  allocationPolicyId:ap.id,allocationPolicyVersion:ap.version
+  allocationPolicyId:ap.id,allocationPolicyVersion:ap.version,
+  valuationRules:{"sales_shipment.created":{id:vr.id,version:vr.version}}
  };
  const cost=await runtime.cost.recalculate(enterprise,"FIFO",pins);
  assert.ok(cost.costRunId,JSON.stringify(cost));
@@ -128,6 +135,7 @@ console.log("TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF="+JSON.stringify({
  replayDeterministic:beforeDigest===afterDigest,
  valuationPolicyPin:{id:vp.id,version:vp.version},
  allocationPolicyPin:{id:ap.id,version:ap.version},
+ shipmentValuationRulePin:{id:vr.id,version:vr.version},
  unchangedReceivable:Number(rebuiltReceivable.amount),
  unchangedCash:Number(rebuiltCash.amount),
  financialAccountMasterObject:"NOT_IMPLEMENTED",
