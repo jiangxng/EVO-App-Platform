@@ -119,11 +119,11 @@ try{
   runtime.allocation.recordInstruction({
    ...input,sourceSelector:{kind:"BUSINESS_DATA",businessDataId:"wrong-order"}
   }),
-  /ALLOCATION_INSTRUCTION_IDEMPOTENCY_CONFLICT/
+  error=>error?.code==="ALLOCATION_INSTRUCTION_IDEMPOTENCY_CONFLICT"
  );
  await assert.rejects(runtime.allocation.recordInstruction({
   ...input,consumerBusinessDataId:"not-in-enterprise",idempotencyKey:"wrong-receipt"
- }),/ALLOCATION_BUSINESS_DATA_ENTERPRISE_MISMATCH/);
+ }),error=>error?.code==="ALLOCATION_BUSINESS_DATA_ENTERPRISE_MISMATCH");
  assert.equal(await relation(enterpriseId,instruction.id,receipt.id),undefined,
   "Instruction alone cannot be claimed as formal consumed AllocationRelation");
 
