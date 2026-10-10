@@ -1,0 +1,41 @@
+name: Diagram Designer Browser Conflict CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-projection-browser-conflict-proof.mjs"
+      - "apps/eog-2d-designer/**"
+      - "providers/enterprise-context/definition-projection-store.ts"
+      - "vendor/eidos/src/diagram/**"
+      - ".github/workflows/diagram-designer-browser-cas.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagram-browser-cas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-cas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - name: Two real Chromium tabs - stale save, conflict notice and Save As
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "Chrome/Chromium binary unavailable; browser proof cannot pass" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/diagram-projection-browser-conflict-proof.mjs | tee /tmp/diagram-browser-cas.log
+          grep -q "DIAGRAM_BROWSER_CAS_PROOF=" /tmp/diagram-browser-cas.log
