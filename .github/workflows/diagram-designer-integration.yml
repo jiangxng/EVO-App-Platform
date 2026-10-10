@@ -15,6 +15,7 @@ on:
       - "tests/integration/diagram-visual-handles.test.mjs"
       - "tests/integration/diagram-snapping.test.mjs"
       - "tests/integration/diagram-snapping-tools.test.mjs"
+      - "tests/integration/diagram-obstacle-spatial-index.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -31,6 +32,7 @@ on:
       - "tests/integration/diagram-visual-handles.test.mjs"
       - "tests/integration/diagram-snapping.test.mjs"
       - "tests/integration/diagram-snapping-tools.test.mjs"
+      - "tests/integration/diagram-obstacle-spatial-index.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -59,3 +61,4 @@ jobs:
           tests/integration/diagram-visual-handles.test.mjs
           tests/integration/diagram-snapping.test.mjs
           tests/integration/diagram-snapping-tools.test.mjs
+          tests/integration/diagram-obstacle-spatial-index.test.mjs
