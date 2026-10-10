@@ -282,6 +282,7 @@ import {
   createTrustedRemoteFinanceOwnerPreflightV010,
   type TrustedFinanceOwnerInstallationV010
 } from "../apps/trading-reference/finance-owner-remote.js";
+import { readFinanceOwnerActiveKeyIdV010 } from "../apps/trading-reference/finance-owner-key-pointer.js";
 import {
   createEvoBusinessDataHttpAdapterV010
 } from "./evo-business-data-http-adapter.js";
@@ -3325,21 +3326,30 @@ if (financeOwnerInstallation) {
   providerRuntimeRegistry.replace<FinanceOwnerPreflightV010>(
     TRADING_FINANCE_OWNER_PROVIDER_ID_V010,
     createTrustedRemoteFinanceOwnerPreflightV010({
-      resolveInstallation: () => financeOwnerInstallation,
+      resolveInstallation: () => {
+        const pointer = process.env.APP_PLATFORM_FINANCE_OWNER_ACTIVE_KEY_ID_FILE?.trim();
+        return pointer
+          ? {...financeOwnerInstallation, keyId: readFinanceOwnerActiveKeyIdV010(pointer)}
+          : financeOwnerInstallation;
+      },
       // Only disposable local certification may use HTTP. This is never
       // permitted by the production transport, even with this flag set.
       allowLoopbackHttpInTest: process.env.NODE_ENV === "test"
         && process.env.APP_PLATFORM_FINANCE_OWNER_CI_LOOPBACK_HTTP === "true",
-      async resolveSigningPrivateKey(installationId) {
+      async resolveSigningPrivateKey(installationId, keyId) {
         if (installationId !== financeOwnerInstallation.installationId) {
           throw new Error("TR01B2D3_INSTALLATION_SIGNING_SCOPE_MISMATCH");
         }
         const secrets = resolveManagedSecretsProvider();
         if (!secrets) throw new Error("TR01B2D3_HOST_SECRETS_PROVIDER_NOT_ADMITTED");
+        const dynamic = Boolean(process.env.APP_PLATFORM_FINANCE_OWNER_ACTIVE_KEY_ID_FILE?.trim());
         return secrets.resolve({
           contractVersion:"0.1.0",
           namespace:"evo-trading-finance-owner",
-          key:"host-ed25519-signing-pkcs8",
+          // Dynamic mode REQUIRES a distinct pre-provisioned private key per
+          // trusted key ID: no legacy fallback, even for initial key.
+          key: dynamic ? "host-ed25519-signing-pkcs8:"+keyId
+                       : "host-ed25519-signing-pkcs8",
           scope:"INSTALLATION",
           scopeId: installationId
         });
