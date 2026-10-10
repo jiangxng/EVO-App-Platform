@@ -336,3 +336,13 @@
 **[实际测试]** [Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) Chrome/154.0.8037.97 六标签页 **PASS**，机器证据 `autoSegmentDragCancelConvertUndo=true`。第五标签页无手工点状态使用真实 CDP 鼠标形成自动段预览，通过合成 `pointercancel` 验证原 SVG d 与无 manual waypoint 恢复；第六独立标签页执行无手工点的自动段原生鼠标拖动/松手→出现手工控制点→Undo→原 SVG d 精确还原且手工点消失。Host 投影 Store 没有被隐式写入；此前三窗口并发 CAS/另存/HTTP 503、B6a/B6b 手工路径和对齐继续通过。上游 Eidos test 覆盖纯几何复杂障碍、共线重复中点、固定端点等。
 
 **[未完成边界不能删除]** 首次浏览器测试在**同一标签页人工派发 DOM pointercancel 后立即用 CDP 鼠标再抓**未产生第二次预览；因取消事件不是原生系统输入，尚不能断言实际产品失败或成功。故拆为独立浏览器标签页证明取消回滚及正常提交；同页真实系统取消后立即重抓、实体 iOS/Android 多指、圆角自动线段可视控制柄、投影保存再 Viewer 刷新、复杂图性能及原 §14 E03 全面验收均待完成，39 项总体状态维持 NOT TESTED。本补充未改变旧参考研究或 v1.0 确认决策。
+
+---
+
+## 2026-10-10 B8b：真正的投影 Save、重新打开 Designer 和只读 Viewer SVG 往返
+
+**[本轮新证据来源]** 继承原研究交接 S1–S7 的旧来源和已确认 v1.0 设计，不将旧参考网站的 URL 冒称本轮重新阅读的原文。本项来自 [App Platform B8b Draft #583](https://github.com/jiangxng/EVO-App-Platform/pull/583) 实际 GitHub Actions [Chrome Browser CI 38017423084](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017423084) 的 **PASS 日志**，不是仅通过纯几何单测推断。用户要求“投影只是显示层，不修改业务定义，不额外生成业务版本”及 B7b 显式 CAS 的既定边界保持原样。
+
+**[已执行的端到端浏览器子场景]** Chrome/154.0.8037.97，8 个独立标签页使用原产品 App Host 处理器与内存投影 Store。第六标签页在 B8a 自动 orthogonal 线段直接拖动转换后 Undo，再 Redo 恢复手工点，使用真正的 Designer `Save projection` UI 执行授权 + 投影版本 CAS；Store version **3→4 一次**，`projection.view.edgePaths` 包含该边 orthogonal 手工控制点，业务定义 revision/history 不变。第七个全新 Designer 页面从后端重新读取这条关系，确认控制点数量与 SVG `d` 等于保存前。第八个使用真实 `createEnterpriseDefinition2dPreviewPageV010`、`createEnterpriseDefinition2dPreviewReadActionV010` 和 Eidos Workspace Mount 构造**真正的只读 Enterprise Definition Viewer**，与持久化关系对应的 SVG `d` 完全相同，且没有可编辑手柄/保存按钮。原 B7b 冲突/另存/HTTP 503、B6b 手工点、B8a 原生拖动/取消均保持通过。机器证据 `b8bSaveReloadRealViewerRoundtrip=true`。
+
+**[明确的未验收内容]** 当前是 GitHub Actions Chrome + 原产品动作处理器 + Memory Store 的真实 UI 流程，**不是线上 Railway、分布式数据库落盘重启**，也没有覆盖 Template Store 另一种 Viewer、实体触摸/多指、系统级 pointercancel 后同页立即重新抓取、圆角复杂路由及大图 FPS。原 §14 D04 有具体的 B8b UI 子场景证据，但 **39 项完整验收仍 NOT TESTED**。本轮不修改 Eidos 产品代码或既定方案，只新增独立 B8b 浏览器验证与专档 `docs/architecture/DIAGRAM-B8B-SAVE-RELOAD-VIEWER-20261010.md`，与 B8a App #581 主切片并存，不合并或部署。
