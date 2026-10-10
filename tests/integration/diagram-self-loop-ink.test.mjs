@@ -78,7 +78,8 @@ test("B8i Surface shares stable nonincident ink between Designer and Viewer",asy
  assert.match(code,/other.source === nodeId \|\| other.target === nodeId/);
  assert.match(code,/loopInkFor\(edge.source\)/);
  assert.match(code,/loopInkFor\(nodeId\)/);
- assert.match(code,/renderedEdges.length <= 1500 && siblingGroups.size <= 48/);
+ assert.match(code,/renderedEdges\.length <= 12000/);
+ assert.match(code,/createDiagramInkSpatialIndexV010\(inkEntries\)/);
 });
 
 test("B8i camera-independent Fit all retains unstyled graphs and encloses external handles",async()=>{
