@@ -198,11 +198,12 @@ try {
     + 'const scale=Number(stage.style.transform.slice(7).split(",")[0]);'
     + 'if(!(scale>0))throw Error("Invalid camera transform");'
     + 'const worldX=Number.parseFloat(node.style.left);'
-    + 'const target=Math.round(worldX/24)*24+96;'
+    + 'let gridStep=24;while(gridStep*scale<12)gridStep*=2;'
+    + 'const target=Math.round(worldX/gridStep)*gridStep+gridStep;'
     + 'window.__b6SnapNodeId=node.getAttribute("data-eidos-diagram-node");'
     + 'window.__b6InitialX=worldX;'
     + 'return {x:rect.left+Math.min(20,rect.width/4),y:rect.top+Math.min(20,rect.height/4),'
-    + 'target,worldX,delta:(target-worldX)*scale+2,scale};'
+    + 'target,worldX,delta:(target-worldX)*scale+2,scale,gridStep};'
     + '})()');
   await a.send("Input.dispatchMouseEvent", {type:"mouseMoved",x:snapProbe.x,y:snapProbe.y});
   await a.send("Input.dispatchMouseEvent", {type:"mousePressed",button:"left",clickCount:1,
