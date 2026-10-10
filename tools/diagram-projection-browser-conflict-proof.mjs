@@ -834,7 +834,7 @@ try {
   assert.ok(denseProbe.count>=3,"B8d requires at least three overlapping segments");
   assert.equal(denseProbe.rank,"1","B8d default alternate remains the second segment");
   assert.equal(denseProbe.radius,"22","B8d keeps original 44 CSS px hit circle");
-  assert.match(denseProbe.hint,/Shift\\+Alt\\+click/);
+  assert.ok(denseProbe.hint.includes("Shift+Alt+click"));
   await k.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:denseProbe.x,y:denseProbe.y});
   await k.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
     modifiers:9,x:denseProbe.x,y:denseProbe.y});
