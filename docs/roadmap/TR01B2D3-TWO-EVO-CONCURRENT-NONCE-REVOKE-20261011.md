@@ -30,4 +30,14 @@ This increment uses the **same original Sales→Production→Shipment→Cash** P
 
 ## CI evidence
 
-Pending current-head cross-project PostgreSQL CI. Preserve the first failed run and fix the cause without broadening Host financial authority, removing negative controls or making the function publicly executable.
+**Implementation head:** `f81ffadfe1fa6b5cf394922f7bcc9243cd8ceaa6`. **Cross-project PostgreSQL [CI #38067561855](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067561855): SUCCESS.** [Project Continuity CI #38067561860](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067561860): SUCCESS.
+
+The live job emitted `TR01B2D3_TWO_EVO_CONCURRENT_NONCE_REVOKE_PROOF.status=PASS` with:
+
+- `twoIndependentEvoHttpProcesses=true`, `sharedRealPostgresNonceUniqueness=true`
+- `sameSignedAssertionAcceptedExactlyOnce=true`, `replayDeniedAcrossTwoInstances=true`
+- `committedOperatorRevocationRejectsWaitingRequests=true`, `waitingNewRequestsConsumedNoNonce=true`
+- `operatorAppendOnlyAuditEntries=2`, `financeEconomicAndReplayInputUnchanged=true`, `financialExecutionAllowed=false`
+- `productionMultiMachineNetwork=NOT_CERTIFIED`, `productionTlsAndIdentity=NOT_CERTIFIED`
+
+The CI faithfully exercises a held, uncommitted revoke transaction plus parallel live signed HTTP requests on the original pinned sales facts; this is not an in-memory mock. This evidence does **not** imply physical multi-host or production deployment acceptance. Subsequent documentation-only SHA must receive new head CI before stack-merging.
