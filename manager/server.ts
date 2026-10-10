@@ -5879,6 +5879,22 @@ const server = createServer(async (request, response) => {
         return json(response,404,{code:"TR01B2D3_HOST_FINANCE_ROUTE_NOT_ADMITTED"});
       }
       try {
+        // Do not allow resolveRequestIdentitySession()'s historical
+        // static/compatibility fallback for this financial trust boundary.
+        const sessionDescriptors = manager.listEffectiveServiceProviders(
+          REQUEST_IDENTITY_SESSION_CAPABILITY
+        );
+        const boundSessionProvider =
+          resolveProviderRuntimeV010<RequestIdentitySessionProviderV010>(
+            providerRuntimeRegistry,
+            sessionDescriptors,
+            providerBindings,
+            REQUEST_IDENTITY_SESSION_CAPABILITY,
+            {installationId:"default"}
+          );
+        if (boundSessionProvider?.providerId !== HOST_MANAGED_SESSION_PROVIDER_ID) {
+          throw new Error("TR01B2D3_REQUEST_BOUND_SESSION_PROVIDER_REQUIRED");
+        }
         const session = resolveRequestIdentitySession(request);
         if (session.sessionId === "compatibility-local-session" ||
           !session.principal.subjectId ||
