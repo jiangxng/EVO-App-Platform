@@ -41,13 +41,13 @@
 | T07 | 手机抽屉、旋转、软键盘 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | E01 | 自动折线遇到中间节点 | Eidos tests/diagram-obstacle-routing.test.mjs；待真实渲染 | NOT TESTED |
 | E02 | 同向多边、反向边、自环 | Eidos tests/diagram-edge-lanes.test.mjs；待交互 | NOT TESTED |
-| E03 | 拖动折线段或路径点 | B5a tests/diagram-visual-handles.test.mjs 与 App integration；CI 待核，真实操作待测 | NOT TESTED |
+| E03 | 拖动折线段或路径点 | B5a 真实手柄与 B6b 双轴 waypoint/单轴正交段吸附纯几何；Eidos #140/App #568 CI 已测，真实路径手柄浏览器与设备待验 | NOT TESTED |
 | E04 | 点击曲线远离端点直线的位置 | Eidos tests/diagram-edge-paths.test.mjs；待真实命中 | NOT TESTED |
 | E05 | 移动一个/两个端点 | Eidos tests/diagram-waypoints.test.mjs；待真实操作 | NOT TESTED |
 | E06 | 曲线/折线转直线再撤销 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | E07 | 标签拖动和节点移动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D01 | 隐藏节点/边再保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| D02 | 连续编辑、撤销、重做、保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
+| D02 | 连续编辑、撤销、重做、保存 | B6b Chrome/154 真正三节点多选→左对齐→Undo→坐标完整恢复且未隐式保存，完整 D02 连续流程待验 | NOT TESTED |
 | D03 | 保存失败后重试 | B7b GitHub Chromium 154 实际 UI + HTTP 503 注入 + UI 重试，[Browser CI 38010453881](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010453881) PASS；其他设备仍待验 | NOT TESTED |
 | D04 | 保存后刷新、Viewer、模板预览 | App tests/integration/definition-projection-edge-routes.test.mjs；待 Viewer 手动 | NOT TESTED |
 | D05 | 两窗口冲突保存或 Agent 更新 | B7b Chrome 两独立 Tab 实际 Eidos DOM 选择/隐藏/保存/冲突/另存副本；Direct/Personal Agent Node CAS；真机/真实 LLM 待验 | NOT TESTED |
@@ -111,3 +111,11 @@
 - [App Platform Draft #566](https://github.com/jiangxng/EVO-App-Platform/pull/566) 小范围 vendored port，保留 Host `renderContextNavigationV010`；新增 `tests/integration/diagram-snapping.test.mjs`，已纳入 Diagram Designer Integration CI 真正执行。
 - **已跑浏览器子场景：** [Chrome CI 38011441150](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38011441150)，Chrome/154.0.8037.97，鼠标真实 pointer 抓取 + 10% 缩放自适应网格吸附 + `pointercancel` 回滚 + 三开关独立，机器日志 `nativeGridSnapCancelled=true` / `independentGridModes=true`。保留 B7b 多窗口冲突及 HTTP 重试通过的既有证据。
 - **缺口仍然存在：** 对齐参考线真实鼠标“与其他节点对齐”、群组鼠标操作、路径点/正交段吸附、等距分布/多对象对齐菜单、Windows/macOS/iOS/Android 实机、500 节点/1000 边性能。此处无证据能够将原始 §14 任何完整场景从 NOT TESTED 提升为 PASS。
+
+## B6b 路径手柄吸附与显式对齐/分布（2026-10-10）
+
+- [Eidos Draft #140](https://github.com/jiangxng/eidos/pull/140) 将 B6a 节点吸附几何延伸到 **manual waypoint 的双轴吸附**和 **orthogonal segment 的单轴约束吸附**；参考可见节点及其他手工路径点，继承 6 CSS px 容差、自适应 24 基础单位网格、Grid snap/Align 两开关。拖动中的参考线在 pointercancel / pointerup 清除，正常完成提交单 Undo；不改变边的业务语义与端点。
+- Eidos 同一新纯模块支持 6 项选中节点对齐、2 方向等边缘间隙分布；两节点可对齐，三节点可分布，不足禁用、空间不足拒绝；一次命令仅一条 checkpoint，仍需显式 Save。
+- [App Platform Draft #568](https://github.com/jiangxng/EVO-App-Platform/pull/568) 以差分方式更新 vendored Eidos，原 Host 导航、B7b CAS 与旧投影兼容保持。测试 `tests/integration/diagram-snapping-tools.test.mjs` 已纳入 CI 真正执行。[Diagram Integration CI 38012177672](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177672) 57/57 PASS；Eidos #140 初次 CI PASS。
+- [Browser Conflict CI 38012177648](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177648) Chrome/154.0.8037.97 通过 B6b **真实 DOM 三节点选择、左对齐、Undo 完整恢复且无 Host 投影写入**，并且 B7b 三浏览器标签页冲突 / HTTP 503 重试、B6a 网格吸附均未回归；机器日志 `groupAlignmentUndo=true`。
+- **剩余：** 路径点、正交线段的**实际浏览器鼠标/触摸拖动**仍未覆盖，跨设备、自动路线编辑、完整路径复原、500 节点/1000 边性能也未验收。原始 §14 39 项仍保持 NOT TESTED，CI 自动子场景不可冒充全场景人工验收。新文档 `DIAGRAM-B6B-HANDLES-ARRANGEMENT-INTEGRATION-20261010.md` 保存实现及限制。
