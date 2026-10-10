@@ -19,7 +19,8 @@ const CHROME = process.env.CHROME;
 assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
 const denseMode=process.env.EVO_DENSE_B8O==="1";
 const sizes = denseMode
-  ? [{nodes:300,edges:1200},{nodes:600,edges:2400}]
+  ? [{nodes:300,edges:1200},{nodes:600,edges:2400},
+    {nodes:200,edges:12001}]
   : [{nodes:200,edges:400},{nodes:500,edges:1000}];
 // Warm each size first, then interleave three independent mounts per scale.
 // Cold JS module compilation and OS scheduling distort single-shot numbers.
@@ -53,11 +54,13 @@ const makeState=(nodeCount,edgeCount)=>{
       ?(src%columns===columns-1?src-columns+1:src+1)
       :(src+columns)%nodeCount;
     const hasLoop=denseMode && i%55===0;
+    const aboveBudget=denseMode && edgeCount>12000;
     return {
       id:"e"+i,kind:"synthetic",source:"n"+src,
       target:"n"+(hasLoop?src:dst),
       ...(hasLoop?{pathKind:"curve",label:"销售订单\n采购付款🧾日本語",
-        arrow:"end"}:i%4===0?{pathKind:"orthogonal",arrow:"end"}:
+        arrow:"end"}:aboveBudget?{pathKind:"straight"}:
+        i%4===0?{pathKind:"orthogonal",arrow:"end"}:
         i%4===1?{pathKind:"rounded-orthogonal",arrow:"end"}:{}),
       ...(denseMode && i%19===0 && !hasLoop
         ? {label:"大型企业业务流程 · 订单履约与收款 · 日本語"} : {})
@@ -181,6 +184,7 @@ try{
       +'svg:document.querySelectorAll("svg *").length,'
       +'inkQuality:document.querySelector("[data-eidos-diagram-ink-quality]")?.getAttribute("data-eidos-diagram-ink-quality"),'
       +'inkIndex:document.querySelector("[data-eidos-diagram-ink-label-metrics]")?.getAttribute("data-eidos-diagram-ink-label-metrics"),'
+      +'advisory:document.querySelector("[data-eidos-diagram-routing-advisory]")?.getAttribute("data-eidos-diagram-routing-advisory")??null,'
       +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null};'
       +'await new Promise(r=>setTimeout(r,60));}throw Error("P01 fixture never mounted")})()';
     let mounted;
@@ -194,8 +198,11 @@ try{
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
     if(denseMode){
-      assert.equal(mounted.inkQuality,"full",
-        "B8o full DOM dense graph should show full fidelity");
+      const expected=size.edges>12000?"node-only":"full";
+      assert.equal(mounted.inkQuality,expected,
+        "B8o dense rendered SVG must expose true budget degradation");
+      assert.equal(mounted.advisory,size.edges>12000?"node-only":null,
+        "B8o advisory must appear only for actually degraded quality");
       assert.equal(mounted.inkIndex,"browser");
       assert.ok(mounted.svg>size.edges*2,
         "B8o counts actual SVG DOM elements rather than virtual arrays");
@@ -240,7 +247,8 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
-      ...(denseMode?{inkQuality:mounted.inkQuality,labelMetrics:mounted.inkIndex}:{}),
+      ...(denseMode?{inkQuality:mounted.inkQuality,
+        labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
     if (!size.warmup) results.push(data);
     console.log("P01_CASE="+JSON.stringify({...data,warmup:size.warmup}));
@@ -265,7 +273,7 @@ try{
   });
   console.log((denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
     +JSON.stringify({browser:version.Browser,cases:aggregated,
-      mode:denseMode?"synthetic dense full DOM, 2 prewarm + 2 measured Chrome mounts":
+      mode:denseMode?"synthetic dense full DOM, 3 prewarm + 3 measured Chrome mounts incl 12001-edge node-only":
         "synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
       warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
 }finally{
