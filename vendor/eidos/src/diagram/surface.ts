@@ -1366,6 +1366,9 @@ export function mountDiagramEditorPageV010(
   const navigationPointers = new Map<number, { x: number; y: number }>();
   let cancelActiveNodeDrag: (() => void) | undefined;
   let cancelActiveRouteDrag: (() => void) | undefined;
+  // Escape can release SVG pointer capture before the physical mouse button
+  // comes up. Ignore only that cancelled gesture's trailing canvas click.
+  let activeRoutePointerId: number | undefined;
   let panLast: { x: number; y: number } | undefined;
   let pinchStartDistance: number | undefined;
   let pinchLastDistance: number | undefined;
@@ -2956,7 +2959,10 @@ export function mountDiagramEditorPageV010(
             target.removeEventListener("pointerup", onUp);
             target.removeEventListener("pointercancel", onCancel);
             target.removeEventListener("lostpointercapture", onCancel);
-            if (cancelActiveRouteDrag === onCancel) cancelActiveRouteDrag = undefined;
+            if (cancelActiveRouteDrag === onCancel) {
+              cancelActiveRouteDrag = undefined;
+              activeRoutePointerId = undefined;
+            }
             if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
           };
           const onCancel = (): void => {
@@ -3046,6 +3052,7 @@ export function mountDiagramEditorPageV010(
           target.addEventListener("pointercancel", onCancel);
           target.addEventListener("lostpointercapture", onCancel);
           cancelActiveRouteDrag = onCancel;
+          activeRoutePointerId = pointerId;
           target.setPointerCapture(pointerId);
         });
         svg.append(marker, target);
@@ -3761,6 +3768,23 @@ export function mountDiagramEditorPageV010(
 
     if (event.key === "Escape" && cancelActiveRouteDrag) {
       event.preventDefault();
+      const cancelledId = activeRoutePointerId;
+      if (cancelledId !== undefined) {
+        // Chrome may target the canvas rather than the SVG handle when a
+        // cancelled drag finally releases. The matching pointerup precedes
+        // its synthesized click; suppress that one click, not future clicks.
+        const onCancelledRelease = (release: PointerEvent): void => {
+          if (release.pointerId !== cancelledId) return;
+          canvas.removeEventListener("pointerup", onCancelledRelease, true);
+          suppressNextCanvasClick = true;
+          window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+        };
+        canvas.addEventListener("pointerup", onCancelledRelease, true);
+        // If the operating system never emits pointerup, don't retain a
+        // capture observer indefinitely.
+        window.setTimeout(() => canvas.removeEventListener(
+          "pointerup", onCancelledRelease, true), 30000);
+      }
       cancelActiveRouteDrag();
       return;
     }
