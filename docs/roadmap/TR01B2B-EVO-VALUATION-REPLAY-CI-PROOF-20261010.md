@@ -18,9 +18,9 @@ The current **public** `apps/api/src/build-app.ts` has `GET /api/v1/ledgers/:cod
 
 The new `tools/certify-tr01b2b-cost-replay-after-sales.mjs` runs **after** the existing `tools/certify-tr01b-sales-evo-postgres.mjs` in the same isolated pinned EVO + PostgreSQL workflow, so the immutable BusinessData identities and sale/shipment/cash order originate in **App Platform**, not a second synthetic test scenario.
 
-It first asserts the pre-cost raw quantity 0 / Inventory amount 125. Only inside this disposable CI database it asks EVO's reference `/api/v1/demo/cost/recalculate` endpoint to calculate FIFO and post pinned valuation. It then reads public dimensioned inventory and cogs Ledgers and asserts Inventory quantity 0/amount 0 and COGS amount 125. Finally, the CI-only `/api/v1/demo/replay` invocation must report a matching economic digest and produce **the same inventory, COGS, receivable 0 and cash 1000** with SHIP/COLLECT Work remaining closed.
+It first asserts the pre-cost raw quantity 0 / Inventory amount 125. Only inside this disposable CI database, an **EVO-owned runtime certification harness** explicitly reads the published valuation policy `inventory_fifo` and allocation policy `inventory_fifo`, pins both IDs and versions, and calls `runtime.cost.recalculate` (the actual EVO cost engine) and EVO's full replay lifecycle. It then reads public dimensioned inventory and COGS Ledgers and requires Inventory quantity 0/amount 0, COGS amount 125, matching pre/post replay digests and unchanged Receivable/Cash and closed SHIP/COLLECT Work. This private runtime import is **test-only** and is never loaded by an App Platform production service or Agent.
 
-**Passing this proof does NOT authorize App Platform production UI, Agent, Action Host or generic HTTP clients to call demo endpoints.** It certifies the correctly owned economic lifecycle and calls out a missing owner-governed/public submission capability, to be designed in EVO with explicit tenant, identity, cost method/policy pinning, idempotency, Replay ownership and audit requirements.
+**Passing this proof does NOT authorize App Platform production UI, Agent, Action Host or generic HTTP clients to invoke the private EVO runtime or demo endpoints.** It certifies the correctly owned economic lifecycle and calls out a missing owner-governed/public submission capability, to be designed in EVO with explicit tenant, identity, cost method/policy pinning, idempotency, Replay ownership and audit requirements.
 
 ## Residual payment allocation and financial account boundary
 
@@ -31,3 +31,7 @@ EVO Cash Ledger effects do not identify a customer's bank account or the enterpr
 ## No conflicting work
 
 No edits to Counterparty/Item/Warehouse import, parallel 2D Designer/Agent lines, internal EVO database schema, or platform `project.status.json` in this candidate. A passing real CI result should be recorded before promoting any gate.
+
+### Initial check exposed a necessary pin boundary
+
+The first CI attempt reached the seeded App Platform sales facts but received EVO `COST_VALUATION_POLICY_PIN_REQUIRED` from the legacy demo cost endpoint. Its `{method:'FIFO'}` request does not carry the required published version pins and therefore cannot be treated as a working authoritative cost operation. We did **not** weaken the cost engine or bypass validation. The revised CI uses the pinned EVO owner module directly in the *disposable database*, with both published policy identities and versions explicitly selected; no production application runtime gets this direct access.
