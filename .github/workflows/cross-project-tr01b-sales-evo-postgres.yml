@@ -14,6 +14,7 @@ on:
       - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
       - "tools/certify-tr01b2d3-hot-trust-rotation.mjs"
       - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
+      - "tools/certify-tr01b2d3-host-https-identity.mjs"
       - "tools/create-tr01b2d3-installed-host-ci.mjs"
       - "tools/run-tr01b2d3-installed-host-ci.mjs"
       - "tools/certify-tr01b2d3-installed-host-session.mjs"
@@ -175,6 +176,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d3-oidc-login-owner.mjs | tee /tmp/tr01b2d3-oidc-host-proof.log
           grep -q 'TR01B2D3_EXTERNAL_STYLE_OIDC_TO_REAL_FINANCE_HOST_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-oidc-host-proof.log
+
+      - name: Certify real Host to EVO HTTPS TLS certificate chain and hostname verification
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-host-https-identity.mjs | tee /tmp/tr01b2d3-host-tls-proof.log
+          grep -q 'TR01B2D3_HOST_HTTPS_TLS_IDENTITY_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-host-tls-proof.log
 
       - name: Certify live PostgreSQL signing key revoke-rotate-grant with immutable audit
         run: |
