@@ -59,7 +59,7 @@ import {
   diagramInkQualityV010,
   type DiagramInkEntryV010
 } from "./ink-spatial-index.js";
-import {diagramLabelReservationV010, type DiagramLabelMetricsV010}
+import {diagramCaptionLayoutV010, type DiagramLabelMetricsV010}
   from "./label-reservation.js";
 import {
   layoutLayeredDiagramV010
@@ -2728,7 +2728,7 @@ export function mountDiagramEditorPageV010(
         const caption=[other.label,...(other.observations??[])
           .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
         const labels=caption
-          ? [diagramLabelReservationV010(geometry.label,caption,measuredCaption(caption))]
+          ? [diagramCaptionLayoutV010(geometry.label,caption,measuredCaption).box]
           : [];
         inkEntries.push({edgeId:other.id,sourceId:other.source,
           targetId:other.target,segments,labels});
@@ -2962,7 +2962,30 @@ export function mountDiagramEditorPageV010(
         label.setAttribute("stroke-width", "4");
         label.setAttribute("stroke-linejoin", "round");
         label.setAttribute("opacity", edgeFocused ? "1" : "0.82");
-        label.textContent = edgeCaption;
+        // B8n: SVG tspan matches the same deterministic multiline
+        // layout used by the collision index; no DOM selection dependence.
+        const captionLayout=diagramCaptionLayoutV010(
+          geometry.label,edgeCaption,measuredCaption);
+        if(captionLayout.lines.length===1){
+          label.textContent=captionLayout.lines[0]!;
+        }else{
+          label.setAttribute("y",String(geometry.label.y-8
+            -14*(captionLayout.lines.length-1)/2));
+          captionLayout.lines.forEach((content,i)=>{
+            const tspan=svgElement("tspan");
+            tspan.setAttribute("x",String(geometry.label.x));
+            if(i>0)tspan.setAttribute("dy","14");
+            tspan.textContent=content;
+            label.appendChild(tspan);
+          });
+        }
+        if(captionLayout.truncated)label.setAttribute("data-eidos-diagram-caption-truncated","true");
+        if(captionLayout.truncated || captionLayout.lines.length>1){
+          label.setAttribute("aria-label",edgeCaption);
+          const tooltip=svgElement("title");
+          tooltip.textContent=edgeCaption;
+          label.appendChild(tooltip);
+        }
         label.style.pointerEvents = "none";
         svg.appendChild(label);
         liveEdges.get(edge.id)!.label = label;
