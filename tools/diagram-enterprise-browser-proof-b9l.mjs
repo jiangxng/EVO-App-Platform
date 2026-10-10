@@ -200,6 +200,16 @@ try{
    await tab.waitForFunction(()=>
     document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
     {timeout:30000});
+   if(mode==="viewer" && viewport.width===390 &&
+      process.env.EVO_B10E_SYNTHETIC_VISUAL==="1" &&
+      process.env.CI==="true" &&
+      graph.nodes.every(node=>node.label.startsWith("Synthetic")) &&
+      graph.edges.every(edge=>!edge.label || edge.label.startsWith("Synthetic"))){
+     await tab.screenshot({
+      path:join(process.env.RUNNER_TEMP??tmp,"b10e-synthetic-viewer-"+intake.process+".png"),
+      fullPage:true
+     });
+   }
    const result=await tab.evaluate(()=>{
     const svg=document.querySelector("svg[data-eidos-diagram-congested-count]");
     const canvasWidth=svg?.getBoundingClientRect().width??0;
