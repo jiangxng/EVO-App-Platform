@@ -110,7 +110,7 @@ try {
   }
   assert.equal(await nonceCount(),before.nonces+2);
   expectFailure(await post(cost,undefined),
-    'TR01B2D3_REQUEST_BOUND_SESSION_PROVIDER_REQUIRED',401);
+    'REQUEST_IDENTITY_SESSION_REQUIRED',401);
   // The session provider is installed; missing bearer fails on resolution.
   expectFailure(await post(cost,'forged-token'),
     'REQUEST_IDENTITY_SESSION_REQUIRED',401);
