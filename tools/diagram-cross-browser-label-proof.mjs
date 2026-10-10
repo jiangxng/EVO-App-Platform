@@ -87,7 +87,7 @@ try{
      await page.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
        {timeout:30000});
      await page.evaluate(()=>document.fonts.ready);
-     const result=await page.evaluate(()=>{
+     const result=await page.evaluate(async()=>{
       const edge=document.querySelector("[data-eidos-diagram-edge-label='business-relation']");
       if(!edge)throw Error("B8s rendered SVG label missing");
       const bbox=edge.getBBox();
@@ -97,7 +97,14 @@ try{
       c.font="11px "+getComputedStyle(document.querySelector("[data-eidos-diagram-canvas]")).fontFamily;
       const canvasWidths=rows.map(row=>c.measureText(row).width);
       const svgWidths=rowElements.map(t=>t.getBBox().width);
+      const {diagramCaptionLayoutV010}=await import("/dist/vendor/eidos/src/diagram/label-reservation.js");
+      const anchor={x:Number(edge.getAttribute("x")),
+        y:Number(edge.getAttribute("y"))+8+14*(Math.max(0,rows.length-1))/2};
+      const estimated=diagramCaptionLayoutV010(anchor,window.__state.edges[0].label,
+        text=>c.measureText(text));
       return {direction:edge.getAttribute("direction"),canvasWidths,svgWidths,
+       left:bbox.x,right:bbox.x+bbox.width,
+       reservedBox:estimated.box,
        computedDirection:getComputedStyle(edge).direction,
        unicodeBidi:edge.getAttribute("unicode-bidi"),
        rows:rows.length||1,
@@ -116,6 +123,11 @@ try{
      assert.ok(result.rows>=1&&result.rows<=4);
      assert.ok(result.width>5&&Number.isFinite(result.width));
      assert.ok(result.height>0&&Number.isFinite(result.height));
+     assert.ok(result.width<=result.reservedBox.width+3,
+       engine+" SVG glyph width must not exceed stable route collision reservation");
+     assert.ok(result.left>=result.reservedBox.x-6
+       && result.right<=result.reservedBox.x+result.reservedBox.width+6,
+       engine+" actual SVG bbox must remain inside world-space collision reservation");
      assert.ok(result.route?.includes(" C "));
      assert.ok(result.title===sample.caption||result.renderedText===sample.caption,
        engine+" source caption must survive in title or SVG logical text");
@@ -124,6 +136,7 @@ try{
       canvasWidths:result.canvasWidths.map(x=>Math.round(x*100)/100),
       svgWidths:result.svgWidths.map(x=>Math.round(x*100)/100),
       width:Math.round(result.width*100)/100,
+      reservedWidth:Math.round(result.reservedBox.width*100)/100,
       height:Math.round(result.height*100)/100,
       titlePreserved:result.title===sample.caption});
      console.log("B8S_BROWSER_CASE="+JSON.stringify(results.at(-1)));
