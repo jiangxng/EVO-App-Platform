@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Seventeen Chrome tabs - B8f self-loop curve, B8e rounded, B8b Viewer CAS
+      - name: Twenty Chrome tabs - B8g blocked self-loop, B8f curve and CAS Viewer
         shell: bash
         run: |
           set -euo pipefail
