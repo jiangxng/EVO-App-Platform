@@ -27,6 +27,17 @@ const fixture={
    target:"crowded-b",kind:"test",label:"Synthetic review",arrow:"end"}]
  }
 };
+// P2P must not be a renamed S2C fixture: add a supplier approval relation.
+if(processName==="P2P"){
+ fixture.preview2d.nodes.push({
+  id:"p2p-approval",kind:"subject",label:"Synthetic supplier approval",
+  shape:"rounded-rectangle",x:1130,y:430,width:170,height:70
+ });
+ fixture.preview2d.edges.push({
+  id:"p2p-approval-relation",kind:"test",label:"Synthetic payables approval",
+  source:"crowded-b",target:"p2p-approval",arrow:"end"
+ });
+}
 if(process.env.EVO_B10F_HTML_PROBE==="1"){
  fixture.preview2d.nodes[0].label=
   "Synthetic </script><img src=x onerror='window.__b10fRan=true'>";
