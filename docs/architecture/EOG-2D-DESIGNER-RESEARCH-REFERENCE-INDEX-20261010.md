@@ -324,3 +324,15 @@
 ## 2026-10-10 P01a 第四次独立配对反例：小图仍不稳定
 
 **[新源证据，继续保留坏消息]** [Chrome Perf CI 38015041848](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015041848) 实际使用相同 B6b Base/P01a HEAD 及 Chrome 154，2 次预热、每规模 3 次中位数、同 runner 对比。200/400 selection **38.0→40.0ms（+5.26% 回退）**，500/1000 selection **81.1→68.6ms（-15.41%）**。这是最新的**性能结果反例**：虽前两次 hybrid 小图对比为负耗时变化（较快），本次略慢，故不能写“小图优化已稳定成功”。500/1000 selection 在多轮配对中持续改善，但百分比随 runner 明显波动。此处无需改动 v1.0 原要求或宣称外部来源已重读，保留 P01 NOT TESTED；后续应做更细的实际浏览器长任务和不同密度业务图测量。
+
+---
+
+## 2026-10-10 B8a：自动正交折线无需先添加路径点的直接拖动
+
+**[继承历史已确认方案]** 以原始商业化 v1.0 §6/§10/§14、已有 B5a/B6b 的 44 CSS px 热区、正交法向拖动、取消回滚、一次 Undo 和投影仅展示层的决定为约束，保留 S1–S7 原来源与阅读等级；**本次未重新访问外部资料，不能把外站 URL 清单称为本轮查阅结果**。
+
+**[源代码实施]** [Eidos Draft #143](https://github.com/jiangxng/eidos/pull/143) 在自动 orthogonal / rounded-orthogonal 的已选边上直接绘制 segment 44px 抓取目标；`diagramAutomaticOrthogonalPointsV010` 复用生产自动路由完全相同的折点与障碍策略；`diagramEditableAutomaticOrthogonalRouteV010` 只构造临时控制点，清理老共线重复中点。若未实际完成拖动，业务边数据的 `waypoints` 始终缺席；取消恢复原 SVG d/label；原生鼠标松手才一次 checkpoint 转换为手工路径点，Undo 复原。自环/曲线/普通 straight 不自动转手工。App [Draft #581](https://github.com/jiangxng/EVO-App-Platform/pull/581) 差分移植，保留 `renderContextNavigationV010`、B7b CAS/Agent、投影无业务版本的边界。
+
+**[实际测试]** [Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) Chrome/154.0.8037.97 六标签页 **PASS**，机器证据 `autoSegmentDragCancelConvertUndo=true`。第五标签页无手工点状态使用真实 CDP 鼠标形成自动段预览，通过合成 `pointercancel` 验证原 SVG d 与无 manual waypoint 恢复；第六独立标签页执行无手工点的自动段原生鼠标拖动/松手→出现手工控制点→Undo→原 SVG d 精确还原且手工点消失。Host 投影 Store 没有被隐式写入；此前三窗口并发 CAS/另存/HTTP 503、B6a/B6b 手工路径和对齐继续通过。上游 Eidos test 覆盖纯几何复杂障碍、共线重复中点、固定端点等。
+
+**[未完成边界不能删除]** 首次浏览器测试在**同一标签页人工派发 DOM pointercancel 后立即用 CDP 鼠标再抓**未产生第二次预览；因取消事件不是原生系统输入，尚不能断言实际产品失败或成功。故拆为独立浏览器标签页证明取消回滚及正常提交；同页真实系统取消后立即重抓、实体 iOS/Android 多指、圆角自动线段可视控制柄、投影保存再 Viewer 刷新、复杂图性能及原 §14 E03 全面验收均待完成，39 项总体状态维持 NOT TESTED。本补充未改变旧参考研究或 v1.0 确认决策。
