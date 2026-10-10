@@ -1527,8 +1527,35 @@ try {
   assert.equal(wideViewer.save,false);
   assert.equal(store.getVersion(target),7,
     "Label measurement and readonly Viewer do not save projection data");
+
+  ae=await tab("AE","multilingual-label");
+  await until(ae,"Ready.");
+  const multi=await ae.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const loop=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!loop)throw Error(\"B8n multiline relation missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {lines,boxHeight:label.getBBox().height,\n   truncated:label.getAttribute(\"data-eidos-diagram-caption-truncated\"),\n   title:label.querySelector(\"title\")?.textContent,\n   aria:label.getAttribute(\"aria-label\"),\n   d:loop.getAttribute(\"d\"),\n   quality:document.querySelector(\"[data-eidos-diagram-ink-quality]\")?.getAttribute(\"data-eidos-diagram-ink-quality\"),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n     .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.equal(multi.lines.length,4,
+    "B8n real SVG must render four bounded multilingual tspan rows");
+  assert.equal(multi.truncated,"true",
+    "Long multilingual caption must visibly show truncation diagnostics");
+  assert.ok(multi.lines.at(-1).endsWith("…"));
+  assert.ok(multi.lines.some(line=>line.includes("日本語")));
+  assert.ok(multi.boxHeight>45,"Real browser SVG must paint more than one text row");
+  assert.equal(multi.title,multilingualCaption);
+  assert.equal(multi.aria,multilingualCaption);
+  assert.equal(multi.quality,"full");
+  af=await tab("AF","multilingual-viewer");
+  await until(af,"Ready.");
+  const multiViewer=await af.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const loop=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!loop)throw Error(\"B8n multiline relation missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {lines,boxHeight:label.getBBox().height,\n   truncated:label.getAttribute(\"data-eidos-diagram-caption-truncated\"),\n   title:label.querySelector(\"title\")?.textContent,\n   aria:label.getAttribute(\"aria-label\"),\n   d:loop.getAttribute(\"d\"),\n   quality:document.querySelector(\"[data-eidos-diagram-ink-quality]\")?.getAttribute(\"data-eidos-diagram-ink-quality\"),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n     .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.deepEqual(multiViewer.lines,multi.lines,
+    "Multilingual wrapping must be deterministic in readonly Viewer");
+  assert.equal(multiViewer.d,multi.d,
+    "Collision reservations and Viewer auto-loop side must agree");
+  assert.equal(multiViewer.title,multilingualCaption);
+  assert.equal(multiViewer.controls,0);
+  assert.equal(multiViewer.save,false);
+  assert.equal(store.getVersion(target),7,
+    "No projection persistence from multilingual label rendering");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 30,
+    browser: version.Browser, tabs: 32,
+    b8noMultilingualTspanDenseFullDom: true,
     b8lmRealLabelMetricsAndDensityBudget: true,
     b8jkRenderedCubicInkIndexedViewer: true,
     b8iEdgeAndLabelAvoidanceNativeViewer: true,
