@@ -1,3 +1,4 @@
+import { contextualAssistanceRequestV010 } from "./contextual-assistance.js";
 import { assertValidUidl } from "../runtime/validate.js";
 import type { ActionRequestV010, JsonValue } from "../runtime/contracts.js";
 import type { ActionHost } from "../adapters/ports.js";
@@ -195,7 +196,7 @@ export interface MountedAppHostPage {
   submitChatPrompt?(
     prompt: string,
     interactionContext?: Record<string, JsonValue>
-  ): Promise<void>;
+  ): Promise<unknown>;
   dispose(): void;
 }
 
@@ -905,9 +906,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       );
       if (!action?.prompt) continue;
 
-      const handler = () => {
-        if (!options.onAgentAction) return;
-        void options.onAgentAction({
+      const handler = async () => {
+        if (!options.onAgentAction || button.disabled) return;
+        button.disabled = true;
+        try {
+        await options.onAgentAction({
           contractVersion: "0.1.0",
           prompt: action.prompt!,
           ...(action.agentCapability
@@ -925,6 +928,12 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             ? { refreshSourceOnComplete: true }
             : {})
         }, page);
+        } catch (error) {
+          ensureActionStatus().textContent = hostText("shell.actionFailed", "Action failed: {message}",
+            { message: error instanceof Error ? error.message : String(error) });
+        } finally {
+          button.disabled = false;
+        }
       };
       button.addEventListener("click", handler);
       listeners.push(() => button.removeEventListener("click", handler));
@@ -949,7 +958,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       | ((
           prompt: string,
           interactionContext?: Record<string, JsonValue>
-        ) => Promise<void>)
+        ) => Promise<unknown>)
       | undefined;
 
     const patchTranscript = () => {
@@ -1889,6 +1898,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           return;
         }
 
+        let completedResult: unknown;
         const controller = new AbortController();
         activeChatAbort = controller;
         setChatBusy(true);
@@ -1916,6 +1926,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               : {})
           };
 
+          const assistance = threadBacked
+            ? contextualAssistanceRequestV010(message, clientTurnId, interactionContext)
+            : undefined;
+          if (assistance) {
+            delete values.interactionContext;
+            values.assistanceRequest = JSON.parse(JSON.stringify(assistance)) as JsonValue;
+          }
           const request = baseChatRequest(values);
           const configuredHost = options.actionHost as AbortableActionHostV010;
           const executionHost: ActionHost = configuredHost.executeWithSignal
@@ -1949,7 +1966,11 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
               })
             : undefined;
 
+          if (assistance && !threadExecution) {
+            throw new Error("EIDOS_ASSISTANCE_TRANSPORT_UNAVAILABLE");
+          }
           if (threadExecution) {
+            completedResult = threadExecution.result;
             persistRunId(undefined);
             applyThreadExecution(threadExecution);
             if (!threadExecution.result.ok) {
@@ -1981,6 +2002,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             ) {
               persistRunId(undefined);
             }
+            completedResult = execution.result;
             await appendChatResult(execution.result);
           }
         } catch (error) {
@@ -2022,12 +2044,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           setChatBusy(false);
           textarea.focus();
         }
+        return completedResult;
       };
 
       submitChatPrompt = async (
         prompt: string,
         interactionContext?: Record<string, JsonValue>
-      ): Promise<void> => {
+      ): Promise<unknown> => {
         const normalized = prompt.trim();
         if (!normalized) {
           throw new Error("EIDOS_CONTEXTUAL_AGENT_PROMPT_REQUIRED");
@@ -2041,7 +2064,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         // Human-visible turn first, then serialize the actual send behind that
         // initial recovery. A stale recovery transcript may replace local
         // state, so restage the same client turn before transport if needed.
-        const staged = stageUserTurn(normalized);
+        const staged = typeof interactionContext?.requestId === "string"
+          ? stageUserTurn(normalized, interactionContext.requestId)
+          : stageUserTurn(normalized);
         if (initialRecoveryPromise) {
           await initialRecoveryPromise;
           stageUserTurn(staged.message, staged.clientTurnId);
@@ -2049,7 +2074,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (runTransportInFlight) {
           throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
         }
-        await submit(interactionContext, staged);
+        return await submit(interactionContext, staged);
       };
 
       const recoverDurableRun = async (): Promise<void> => {
@@ -2380,3 +2405,4 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     }
   };
 }
+
