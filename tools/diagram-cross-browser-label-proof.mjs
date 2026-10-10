@@ -126,10 +126,11 @@ fixtures.set("b8x-two-instances",
  +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
  +'</script><script type="module">'
  +'import {mountDiagramEditorPageV010} from "/dist/vendor/eidos/src/diagram/surface.js";'
+ +'window.__dualMounts=[];'
  +dualDefinitions.map((def,i)=>
-  'mountDiagramEditorPageV010({definition:'+JSON.stringify(def)
+  'window.__dualMounts.push(mountDiagramEditorPageV010({definition:'+JSON.stringify(def)
   +',container:document.getElementById("b8x-'+(i===0?'first':'second')+'"),'
-  +'actionHost:{async execute(){return {ok:true,result:window.__dualStates['+i+']}}}});'
+  +'actionHost:{async execute(){return {ok:true,result:window.__dualStates['+i+']}}}}));'
  ).join("")
  +'</script></body></html>');
 const server=createServer(async(req,res)=>{
@@ -435,6 +436,44 @@ try{
      engine,before:undone.first.count,afterDrag:dragged.first.count,
      afterUndo:dragUndone.first.count,pointerTravelPx:Math.round(fromY-toY),
      siblingClear:true,warning:"Synthetic real Firefox/WebKit native mouse; no physical touch/production persistence"
+    }));
+    // B9a: unsaved local visibility is a draft, not the ActionHost's
+    // committed read source. Calling the actual Surface's public refresh()
+    // must discard the local hide, restore the 23-obstacle congested route,
+    // and leave the independent sibling unchanged. A whole browser reload
+    // must also start clean from the immutable external fixture.
+    await dualPage.locator("#b8x-first [data-eidos-diagram-node='block-22']").click();
+    await dualPage.locator("#b8x-first [data-eidos-diagram-local-hide]").click();
+    const draft=await inspect();
+    assert.equal(draft.first.count,0,engine+" B9a must first have unsaved local visibility");
+    await dualPage.evaluate(async()=>{
+      if(window.__dualMounts?.length!==2)throw Error("B9a missing two mounted controls");
+      await window.__dualMounts[0].refresh();
+    });
+    await dualPage.waitForFunction(()=>document.querySelector(
+      "#b8x-first [data-eidos-diagram-status]")?.textContent==="Ready.",{timeout:30000});
+    const refreshed=await inspect();
+    assert.equal(refreshed.first.count,1,
+      engine+" refresh() must reload the real read source, not stale hidden draft");
+    assert.equal(refreshed.first.summary,"1 routes need review");
+    assert.equal(refreshed.second.count,0);
+    assert.deepEqual(refreshed.stateCounts,before.stateCounts);
+    assert.deepEqual(refreshed.errors,[],engine+" refresh JavaScript errors");
+    await dualPage.reload({waitUntil:"load"});
+    await dualPage.waitForFunction(()=>
+     ["#b8x-first","#b8x-second"].every(selector=>
+      document.querySelector(selector+" [data-eidos-diagram-status]")?.textContent==="Ready."),
+     {timeout:30000});
+    const reopened=await inspect();
+    assert.equal(reopened.first.count,1,engine+" page reload must restore source graph");
+    assert.equal(reopened.second.count,0,engine+" reload must not leak first graph draft");
+    assert.equal(reopened.first.summary,"1 routes need review");
+    assert.deepEqual(reopened.errors,[],engine+" full reload errors");
+    console.log("B9A_UNSAVED_REFRESH_RESULT="+JSON.stringify({
+      engine,localDraft: draft.first.count,afterPublicRefresh:refreshed.first.count,
+      afterFullReload:reopened.first.count,
+      secondUnchanged:true,readSourceImmutable:true,
+      warning:"Controlled in-memory ActionHost; does not prove DB persistence/CAS"
     }));
    }finally{await dualPage.close();}
   }finally{await browser.close();}
