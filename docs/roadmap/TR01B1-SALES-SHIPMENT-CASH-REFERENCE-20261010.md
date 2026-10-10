@@ -47,3 +47,17 @@ Deferred separately: actual stock valuation/COGS posting proof, external custome
 **Cash `ledger` is not the company's Bank/Cash/Payment Platform master-data object.** The cash reference proves incoming cash movement only. Add the Financial Account Foundation Object later only if cross-channel banking identity, access control, multi-currency account routing, reconciliation and audit requirements create a demonstrated stable base-object contract; never introduce it just because the test includes `cash.received`.
 
 No changes are permitted to IT-01, WH-01 or parallel 2D Designer branches; do not change `project.status.json` or GENERATED `HANDOFF-LATEST` before actual run evidence.
+
+## Verified integration closure — 2026-10-10
+
+**TR-01B1 bounded positive public integration proof: MERGED_CI_PRODUCTION_PASS.** This does *not* close TR-01B as a whole.
+
+- [App Platform PR #571](https://github.com/jiangxng/EVO-App-Platform/pull/571), exact final head `3cd73208cd3654fd442c7eaf76207da222da8017`, main merge `301cf0a45e59591adcb6a33e6d30fb68a94db443`.
+- Platform CI [38013542321](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013542321): **PASS**.
+- Project Continuity CI [38013542307](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013542307): **PASS**.
+- Existing TR-01A installed Chrome/Eidos/AI/Workbench cross-project CI [38013542531](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013542531): **PASS**.
+- Existing Trading Lite/EVO PostgreSQL regression [38013542399](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013542399): **PASS**.
+- **New real EVO PostgreSQL Sales-to-Cash CI [38013542437](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013542437): PASS.** Its job log emitted `TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF` with `status=PASS`: order pending shipment=10, pending production=10 and receivable=1000; production closes pending production and raises Inventory quantity to 10; shipment closes pending shipment and reduces Inventory quantity to 0; receipt closes Receivable to 0 and increases Cash ledger to 1000, Work closes.
+- Railway production deployment `3add74b5-5ed9-4da7-ade4-bd5f7dbd8691`: **SUCCESS** at exact main `301cf0a45e59591adcb6a33e6d30fb68a94db443`.
+
+**Do not inherit unsupported claims:** the proof intentionally does not certify a zero inventory **amount** after Shipment, a posted COGS, formal cash allocation, bank/cash account master-data identity, FX, partial payments, customer production login, generalized replay or TR-01B Human/Agent/Workbench. Begin a bounded TR-01B2 gap selection around costing/settlement/read-only operational experience, rather than expanding foundation-object imports.
