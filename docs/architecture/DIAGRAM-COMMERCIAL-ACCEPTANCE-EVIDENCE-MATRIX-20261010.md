@@ -145,3 +145,8 @@
 - 早期 [38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) 发现单纯空间索引在 200/400 selection **+14.76%** 退化；另一独立重复 200 selection **+4.94%** 退化。为避免牺牲小图性能，新代码在 `visibleNodes × visibleEdges < 150000` 沿用旧障碍扫描，达到该规模才建立空间索引；source/target Map 始终复用。纯几何 parity 测试均保持相同路径。
 - [更新后配对 Chrome CI 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 200/400 selection 中位数 **19.3→16.8ms (-12.95%)**，500/1000 **48.6→40.6ms (-16.46%)**，每个规模预热后测 3 次。同 run 原版与改版两者都渲染完整 200/400 或 500/1000，未删减可交互对象。
 - 仍只有合成 Chrome 测试与共享 runner 调度，未测真实设备 FPS、Long Tasks p95、业务关系密度的极端分布、多图同页或长时间会话稳定性，P01 正式验收维持 `NOT TESTED`。
+
+## P01a 第三次独立配对确认
+
+- [Chrome CI 38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) 200/400 selection **18.5→16.9ms (-8.65%)**、500/1000 selection **44.8→38.5ms (-14.06%)**。与上轮 [38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 的两规模 selection -12.95% 和 -16.46% 一致为正向，最新 CI 全 PASS。
+- 500/1000 第三次 drag CDP dispatch p95 为 +7.37% 轻微回退，不能用选择重绘的改善假称全交互 FPS 改善。该计时还包含协议/runner 调度。§14 P01 保留 NOT TESTED。
