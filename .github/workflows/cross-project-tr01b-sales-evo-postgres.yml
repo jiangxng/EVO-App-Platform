@@ -12,6 +12,7 @@ on:
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
       - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
+      - "tools/certify-tr01b2d3-hot-trust-rotation.mjs"
       - "tools/create-tr01b2d3-installed-host-ci.mjs"
       - "tools/run-tr01b2d3-installed-host-ci.mjs"
       - "tools/certify-tr01b2d3-installed-host-session.mjs"
@@ -45,7 +46,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: fb709bc72ff195158ef6ffbb59fbcabf27af4fca
+  EVO_CERTIFIED_COMMIT: 206762ecd19b5b1a8d200d42d7fbca14a3dc20b4
   EVO_BASE_URL: http://127.0.0.1:3000
   EVO_ENTERPRISE_CODE: EVO_DEMO
   NODE_ENV: test
@@ -104,12 +105,18 @@ jobs:
           set -euo pipefail
           node tools/create-tr01b2d3-ci-keys.mjs
 
+      - name: Operator grant initial ephemeral public signing key into durable EVO PostgreSQL trust
+        working-directory: evo
+        run: |
+          set -euo pipefail
+          node dist/scripts/finance-trust-operator.js grant /tmp/tr01b2d3-evo-public-key.json ci-finance-security-operator CI-INITIAL-ADMISSION
+
       - name: Start EVO API and Worker
         run: |
           set -euo pipefail
           (
             cd evo
-            EVO_FINANCE_TRUSTED_INSTALLATIONS_JSON="$(cat /tmp/tr01b2d3-evo-trust.json)" HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
+            EVO_FINANCE_TRUST_AUTHORITY=POSTGRES HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
             echo $! > /tmp/tr01b-evo-api.pid
             WORKER_POLL_INTERVAL_MS=100 node dist/apps/worker/src/main.js > /tmp/tr01b-evo-worker.log 2>&1 &
             echo $! > /tmp/tr01b-evo-worker.pid
@@ -161,6 +168,12 @@ jobs:
           node tools/create-tr01b2d3-installed-host-ci.mjs
           node tools/run-tr01b2d3-installed-host-ci.mjs | tee /tmp/tr01b2d3-host-installed-proof.log
           grep -q 'TR01B2D3_HOST_PRODUCT_ALL_THREE_PHASES=PASS' /tmp/tr01b2d3-host-installed-proof.log
+
+      - name: Certify live PostgreSQL signing key revoke-rotate-grant with immutable audit
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-hot-trust-rotation.mjs | tee /tmp/tr01b2d3-hot-key-proof.log
+          grep -q 'TR01B2D3_LIVE_POSTGRES_SIGNER_ROTATION_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-hot-key-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
