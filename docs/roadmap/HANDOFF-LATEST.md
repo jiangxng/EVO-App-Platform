@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `tr01a1-closed-tr01a2-active-2026-10-10`  
-**Snapshot time:** `2026-10-10T08:07:00+08:00`  
+**Snapshot:** `tr01a2-closed-tr01a-operational-acceptance-open-2026-10-10`  
+**Snapshot time:** `2026-10-10T08:18:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,45 +16,54 @@ ACTIVE
 
 ## Latest closed live slice
 
-**tr01a1-purchase-receipt-reference-loop: MERGED_CI_PRODUCTION_PASS**
+**tr01a2-immutable-purchase-receipt-reversal: MERGED_CI_PRODUCTION_PASS**
 
-TR-01A1 closed after PR #551 composed active Supplier Counterparty, Item and Warehouse identities into immutable Purchase Order and Goods Receipt BusinessData facts through public EVO APIs. Goods Receipt carries FULFILLS lineage; PostgreSQL certification proved pending_purchase +10 then 0, inventory +10/+125, payable remains +125, RECEIVE closes and PAY remains open. EVO PR #105 already supplies isolated deterministic purchase/receipt/reversal replay certification. No App Platform second Ledger, Work or Balance authority was created.
+TR-01A2 immutable receipt reversal reference is closed: PR #557 submits a new goods_receipt.reversed BusinessData fact with REVERSES lineage to the unchanged Goods Receipt. Public EVO PostgreSQL certification proves full 10-unit/125-cost reversal reopens pending_purchase and RECEIVE Work, reduces inventory quantity/amount to zero, and leaves payable/PAY Work unchanged; EVO #105 certifies deterministic full replay preserving facts, lineage, balances, Work and economic digest. Original PO/Receipt are not modified. This is the bounded economic reference proof, not generalized partial/multiple reversal UX or Human/Agent/Workbench product acceptance.
 
-Authority: `docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md`
+Authority: `docs/roadmap/TR01A2-PURCHASE-RECEIPT-REVERSAL-PRODUCTION-EVIDENCE-20261010.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 551,
-  "mergeCommit": "a191b1acac1a142d4c71ac31bc388ef7ec4bfde3",
-  "implementationHead": "1de23c70e26c1c45653115ac6abc805d4f70f681",
+  "implementationPr": 557,
+  "mergeCommit": "70c6aac34cd6fad931f7110442e9a0f01293ef44",
+  "verifiedHead": "646a7c0d75a9e88536c5ca71f4e7ea708ab83002",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
   "crossProjectTradingLiteEvoPostgresqlCI": "PASS",
-  "evoContractMain": "2311022640aa108a6baf3db44d9b26bd3e3ad623",
-  "evoDirectBusinessDataRelationPr": 103,
-  "evoPublicLedgerBalanceReadPr": 104,
-  "evoReversalReplayCertificationPr": 105,
-  "productionDeploymentId": "b1d141c6-858d-4ee3-8422-0efbe7147396",
-  "productionDeploymentStatus": "SUCCESS"
+  "projectContinuityWorkflowRun": 38008286765,
+  "platformWorkflowRun": 38008286826,
+  "crossProjectWorkflowRun": 38008286848,
+  "evoReversalCertificationPr": 105,
+  "evoReversalCertificationMain": "2311022640aa108a6baf3db44d9b26bd3e3ad623",
+  "evoReversalCertificationCI": "PASS",
+  "productionDeploymentId": "1ece6ea3-c124-4d65-9860-f14d88f959a9",
+  "productionDeploymentStatus": "SUCCESS",
+  "replayGatePr": 559,
+  "replayGateMain": "5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b",
+  "replayGatePlatformCI": "PASS",
+  "replayGateContinuityCI": "PASS",
+  "replayGateCrossProjectEvoPostgresqlCI": "PASS",
+  "replayGateWorkflowRun": 38008484982,
+  "latestProductionDeploymentId": "11ee6c04-6845-474c-b56b-d8b7b84ea015",
+  "latestProductionDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**tr01a2-purchase-receipt-correction-reversal: ACTIVE**
+**tr01a-operational-experience-acceptance: OPEN**
 
-TR-01A2 must compose a new immutable Purchase Receipt reversal/correction fact through existing EVO public BusinessData/REVERSES contracts, with exact Goods Receipt lineage and verified accounting/work/replay outcomes. Do not modify the original Purchase Order or Goods Receipt, bypass EVO runtime authority, or advance to TR-01B.
+A1 and A2 economic BusinessData/Ledger/Work reference sub-gates are closed, but original TR-01A acceptance #6 still requires evidence that governed Human/Agent/Workbench operational projections consume shared derived Work/Position state. PRs #551/#557 deliberately shipped no procurement UI. Reconcile this outstanding acceptance with the authoritative product boundary before marking all TR-01A closed or starting TR-01B.
 
 Acceptance:
 
-- Use authoritative original Goods Receipt lineage (REVERSES relation), with explicit enterprise scope, reference identity and idempotent submission.
-- Keep original Purchase Order and Goods Receipt immutable; append a reversal BusinessData occurrence rather than editing or deleting either fact.
-- Reopen pending_purchase by reversed quantity, subtract reversed inventory quantity and original cost, and preserve payable from Purchase Order approval.
-- Derive RECEIVE/PAY work state and Inventory Position from EVO public posting/ledger read contracts, not App Platform stored mutable balances.
-- Pass isolated EVO deterministic replay certification and App Platform → EVO PostgreSQL public API integration evidence.
-- Close TR-01A2 by CI and verified deployment before starting TR-01B.
+- Inspect existing governed Work/Projection/Workbench capabilities and test whether purchase RECEIVE/PAY and Inventory Position are already exposed through shared authorized read operations.
+- If not already covered, implement the smallest owner-correct Human/Agent/Workbench view integration without a second Ledger/Balance or duplicated master-data authority.
+- Explicitly separate the bounded full-reversal certification from any future partial/multiple reversal cost and concurrency controls.
+- Record actual CI and deployment/Human evidence for the outstanding TR-01A view acceptance; only then decide TR-01B activation.
+- Keep IT-01, Warehouse and parallel 2D Designer scopes closed/isolated.
 
 ## Current production preview
 
@@ -63,8 +72,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
-- Deployment: `b1d141c6-858d-4ee3-8422-0efbe7147396`
+- Commit: `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b`
+- Deployment: `11ee6c04-6845-474c-b56b-d8b7b84ea015`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -95,6 +104,9 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #559 — MERGED_CI_PRODUCTION_PASS: Made pinned EVO full deterministic TR-01A2 reversal Replay an explicit third cross-project PostgreSQL CI gate; exact head 2ebaf57c passed Continuity/Platform/Cross Project CI and main 5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b deployed Railway 11ee6c04-6845-474c-b56b-d8b7b84ea015 SUCCESS.
+- PR #557 — MERGED_CI_PRODUCTION_PASS: TR-01A2 appended receipt-reversal BusinessData using EVO REVERSES and unchanged PO/Receipt; public EVO PostgreSQL CI proved pending purchase/inventory/payable/Work effects, pinned EVO replay CI passed and Railway production 1ece6ea3-c124-4d65-9860-f14d88f959a9 is SUCCESS.
+- PR #556 — MERGED_CI_PRODUCTION_PASS: Restored A1 continuity drift and activated A2 using verified #551 CI/production facts; regenerated HANDOFF-LATEST and deployed main 2737de425cc53d017fe250007a7f8139ce51d67d at Railway fc2b7e6c-9e8d-47a7-90df-d7e9b9c787fc SUCCESS.
 - PR #551 — MERGED_CI_PRODUCTION_PASS: TR-01A1 positive purchase/receipt loop composed Supplier Counterparty, Item and Warehouse into immutable EVO BusinessData facts with FULFILLS lineage; Platform, Continuity and cross-project EVO PostgreSQL CI passed; production main a191b1ac deployed at b1d141c6-858d-4ee3-8422-0efbe7147396 SUCCESS.
 - PR #546 — MERGED_CI_RVC_PRODUCTION_PASS: WH-01D completed real Overture warehouse/facility RVC over 5,000 external warehouse building features; Platform/Continuity/RVC CI passed and Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 is SUCCESS.
 - PR #544 — MERGED_CI_PRODUCTION_PASS: WH-01C completed lifecycle-gated Warehouse Responsibility/Authorization/Projection/Eidos composition with shared Human/Agent read authority; 34/34 CI passed and Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f is SUCCESS.
@@ -576,6 +588,9 @@ Not proved:
 - Do not reopen TR-01A1 or duplicate EVO Ledger/Work/Balance authority in App Platform.
 - Do not start TR-01B until TR-01A2 immutable receipt reversal and replay certification have closed.
 - Do not modify original Purchase Order or Goods Receipt to represent a correction; append an explicitly linked REVERSES fact.
+- Do not repeat TR-01A2 reversal reference implementation or replay certification; it is merged, cross-project CI passed and production deployed.
+- Do not mark all TR-01A acceptance complete solely from A1/A2 economic CI: governed Human/Agent/Workbench operational view acceptance still requires explicit evidence.
+- Do not treat the certified full reversal of one known Goods Receipt as proof of safe generalized partial/concurrent over-reversal or original-cost read-back.
 
 ## Fresh ChatGPT / LLM startup
 
