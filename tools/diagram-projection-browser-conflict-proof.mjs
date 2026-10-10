@@ -207,7 +207,13 @@ try {
     draftPreserved: true, savedAsNewProjection: true, businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); proc?.kill("SIGTERM");
+  a?.close(); b?.close();
+  if (proc && proc.exitCode === null) {
+    const exited = once(proc, "exit");
+    proc.kill("SIGTERM");
+    await Promise.race([exited, sleep(3000)]);
+    if (proc.exitCode === null) proc.kill("SIGKILL");
+  }
   server.closeAllConnections?.(); server.close();
-  rmSync(profile, { recursive: true, force: true });
+  rmSync(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
 }
