@@ -15,6 +15,7 @@ on:
       - "tools/certify-tr01b2d3-hot-trust-rotation.mjs"
       - "apps/trading-reference/finance-owner-key-pointer.ts"
       - "tools/certify-tr01b2d3-postgres-role-separation.mjs"
+      - "tools/certify-tr01b2d3-distinct-db-logins.mjs"
       - "tools/certify-tr01b2d3-host-hot-signing-key.mjs"
       - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
       - "tools/certify-tr01b2d3-host-https-identity.mjs"
@@ -203,6 +204,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d3-postgres-role-separation.mjs | tee /tmp/tr01b2d3-postgres-roles.log
           grep -q 'TR01B2D3_FINANCE_POSTGRES_ROLE_SEPARATION_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-postgres-roles.log
+
+      - name: Certify actual distinct PostgreSQL LOGIN accounts on live signed EVO owner HTTP
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-distinct-db-logins.mjs | tee /tmp/tr01b2d3-distinct-db-logins.log
+          grep -q 'TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-distinct-db-logins.log
 
       - name: Show EVO logs on failure
         if: failure()
