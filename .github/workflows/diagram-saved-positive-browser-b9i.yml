@@ -36,6 +36,7 @@ jobs:
           export CHROME
           node tools/diagram-saved-positive-browser-proof-b9i.mjs | tee /tmp/diagram-b9i-saved-positive.log
           grep -q 'B9I_SAVED_POSITIVE_CHROME_RESULT=' /tmp/diagram-b9i-saved-positive.log
+          grep -q 'B9J_NATIVE_SAVE_RESULT=' /tmp/diagram-b9i-saved-positive.log
       - name: Retain concrete B9i browser proof
         if: always()
         uses: actions/upload-artifact@v4
