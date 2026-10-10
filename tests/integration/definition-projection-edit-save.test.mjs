@@ -1026,3 +1026,96 @@ test("Ledger Manager projection flow edits presentation in place", async () => {
   );
 });
 
+
+
+test("two editor windows saving the same projection detect stale presentation write token", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source, sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    now: () => new Date("2026-10-10T00:00:00.000Z")
+  });
+  const read = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION);
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const identity = {
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  };
+  const firstRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  const secondRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(firstRead.ok, true);
+  assert.equal(firstRead.result.writeToken, "0");
+  assert.equal(secondRead.result.writeToken, "0");
+  const values = (base, dx) => ({
+    ...identity,
+    expectedRevision: revision.revision,
+    expectedWriteToken: base.result.writeToken,
+    operation: { type: "SAVE_PROJECTION_VIEW" },
+    viewState: {
+      hiddenNodeIds: [],
+      hiddenEdgeIds: [],
+      placements: base.result.nodes.map(node => ({
+        nodeId: node.id, x: node.x + dx, y: node.y
+      })),
+      camera: { scale: 1, translateX: dx, translateY: 0 }
+    }
+  });
+  const firstSave = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(firstRead, 25)), context());
+  assert.equal(firstSave.ok, true);
+  assert.equal(firstSave.result.writeToken, "1");
+  const afterFirst = projectionStore.snapshot();
+  const stale = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(secondRead, 40)), context());
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.code, "DEFINITION_PROJECTION_WRITE_CONFLICT");
+  assert.deepEqual(projectionStore.snapshot(), afterFirst);
+  const freshRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(freshRead.result.writeToken, "1");
+  const retry = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(freshRead, 5)), context());
+  assert.equal(retry.ok, true);
+  assert.equal(retry.result.writeToken, "2");
+  assert.equal(repository.listHistory({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId
+  }).length, 1);
+});
+
+test("write-token validation blocks malformed presentation version without mutation", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore,
+    source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore),
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {}
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const result = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision, projectionId,
+      expectedRevision: revision.revision, expectedWriteToken: "NaN",
+      operation: { type: "RENAME_PROJECTION", title: "should not save" }
+    }), context());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "DEFINITION_PROJECTION_WRITE_TOKEN_INVALID");
+  assert.equal(projectionStore.getVersion({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  }), 0);
+});
