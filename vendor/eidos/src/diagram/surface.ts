@@ -2647,7 +2647,14 @@ export function mountDiagramEditorPageV010(
               pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
               sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
             })
-          : diagramEdgeGeometryV010(a, b, edge.pathKind, { obstacles: routeObstacles });
+          : diagramEdgeGeometryV010(a, b, edge.pathKind, {
+              obstacles: routeObstacles,
+              // Previously passing all unrelated nodes made the router
+              // normalize even when they were geographically irrelevant.
+              // Spatial filtering must retain that exact rendered SVG shape.
+              forceRouteWhenEmpty: renderedNodes.length > (edge.source === edge.target ? 1 : 2)
+                && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
+            });
       if (selectedEdgeId === edge.id && page.viewInteraction?.localEdgePathEdit === true
         && edge.source !== edge.target && edge.waypoints?.length
         && edge.pathKind && edge.pathKind !== "straight") {
