@@ -5,7 +5,8 @@
  * This is a safety/shape preflight, NOT proof of authorization or anonymization.
  */
 import {createHash} from "node:crypto";
-import {lstat,readFile} from "node:fs/promises";
+import {lstat,open,realpath} from "node:fs/promises";
+import {constants} from "node:fs";
 import {isAbsolute,relative,resolve,sep} from "node:path";
 import {pathToFileURL} from "node:url";
 
@@ -96,13 +97,34 @@ export async function readAuthorizedEnterpriseFixtureV010(filename,{
  if(authorized!==true)error("EVO_B9K_AUTHORIZED_QA=1 is required");
  if(!id(filename))error("a local fixture path is required");
  const absolute=resolve(filename);
- const location=relative(resolve(repositoryRoot),absolute);
- if(location==="" || (!location.startsWith(".."+sep) && location!==".." && !isAbsolute(location)))
+ const checkout=resolve(repositoryRoot);
+ const inside=(candidate,root)=>{
+  const path=relative(root,candidate);
+  return path==="" || (path!==".." && !path.startsWith(".."+sep) && !isAbsolute(path));
+ };
+ // Check both the supplied path and the resolved target: a symlinked directory
+ // must never bypass the checkout-exclusion rule.
+ if(inside(absolute,checkout))error("customer fixture must stay outside the Git checkout");
+ const [realCheckout,realFixture]=await Promise.all([realpath(checkout),realpath(absolute)]);
+ if(inside(realFixture,realCheckout))
   error("customer fixture must stay outside the Git checkout");
+ // Reject leaf symlinks and do the final stat and read from ONE open handle.
+ // O_NONBLOCK avoids hanging on FIFOs; O_NOFOLLOW rejects leaf symlink races.
  const info=await lstat(absolute);
  if(!info.isFile() || info.size>MAX_BYTES)
   error("fixture must be a regular JSON file no larger than 2 MiB");
- const raw=await readFile(absolute,"utf8");
+ const flags=constants.O_RDONLY | (constants.O_NONBLOCK??0) | (constants.O_NOFOLLOW??0);
+ const handle=await open(absolute,flags);
+ let raw;
+ try{
+  const opened=await handle.stat();
+  if(!opened.isFile() || opened.size>MAX_BYTES)
+   error("fixture must be a regular JSON file no larger than 2 MiB");
+  const bytes=await handle.readFile();
+  if(bytes.length>MAX_BYTES)error("fixture must be a regular JSON file no larger than 2 MiB");
+  raw=bytes.toString("utf8");
+ }finally{await handle.close();}
+
  let data;
  try{data=JSON.parse(raw);}catch{error("invalid JSON fixture");}
  // The raw input is returned to the caller only when explicitly requested by
