@@ -22,7 +22,7 @@
 
 新建独立 `.github/workflows/diagram-b8tu-acceptance.yml`，由 `EVO_AUTO_B8T=1` 调用现有性能浏览器工具。新模式：`300 节点/900 关系`、`400/1200`；全部 `orthogonal` 或 `rounded-orthogonal`，不使用 manual waypoints；先经真正 Eidos `validateDiagramEditorStateV010` 检查合法，再真实 Chrome 154 挂载完整 DOM，校验边数、SVG、ink quality 和警示，鼠标 CDP 输入做选中与拖动。每档 1 次预热 + 2 次正式，汇总选择中位样本。
 
-**最终代码 head `f785d95a24f13de703dd8a807c07fef8375ee732` 真实 CI 记录**：[run #38059114823](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059114823) 成功。
+**上一代码 head `f785d95a24f13de703dd8a807c07fef8375ee732` 真实 CI 记录**：[run #38059114823](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059114823) 成功。
 
 | 合法合成图 | mount | select | CDP drag p95 | SVG 数 | JS heap |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -41,9 +41,25 @@
 
 ### 当前完整回归
 
-- App 最终受测代码 SHA `f785d95a24f13de703dd8a807c07fef8375ee732` 的 **8/8 工作流成功**：Platform、Continuity、P01 Performance、B8o Dense、B8q Complex、B8r Auto Full DOM、B8t Budget 和 B8s+B8u RTL。
+- App 前一受测代码 SHA `f785d95a24f13de703dd8a807c07fef8375ee732` 的 **8/8 工作流成功**：Platform、Continuity、P01 Performance、B8o Dense、B8q Complex、B8r Auto Full DOM、B8t Budget 和 B8s+B8u RTL。
 - Eidos 受测代码 SHA `efb8cc0da8560ade59a858c13ace06286ae4fba4` Eidos CI 321/321 PASS。后续文档变更属于附加记录，CI 是否重跑须按最终 HEAD 区分。
 - 两仓堆叠 Draft，保留既有 34-tab Chrome 历史证明但**本 App #604 head 的 8 个 workflow 并不含单独的 Browser Conflict CI**：历史 [34-tab #38057260254](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38057260254) 仍可信但不可直接说最新 App #604 也在同 head 复跑了 34-tab。可在发布前重新触发。
 - 本轮 **没有**实体设备、企业真实数据、生产服务部署、正式 §14 **39 项逐项人工签收**。所有这些维持 `NOT TESTED`，不允许新证据矩阵把部分 CI 自动子场景写成商用完整 PASS。
 
 下一阶段：固定合法、多路由与长期压力采样；不同平台字体/Safari/iOS/Android 物理操作；真实企业投影保存→刷新→Viewer→重启后的数据验收，再按 §14 逐项验收。涉及权限/实体资源应交给对应 App 主线统一审查，不能由此 B 类私改。
+
+
+## B8t 追加严格降级可访问性验证（2026-10-10）
+
+在上述 Chrome 测试基础上，又在真正 full DOM 的每档场景查询 `[data-eidos-diagram-route-congested]`，**并严格断言没有任何缺失 `aria-label` 的拥塞关系**。浏览器确实表明有的自动路线因原有局部安全预算或布局条件不足而拥堵，不能把 `inkQuality=full`（墨迹索引精度）误当“全部连线没有拥堵”。
+
+[追加 Chrome B8t run #38059395563](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059395563)（受测代码 `a4e14415be54df7b90d3b8106c969aa52a40c40f`）PASS，独立两正式样本/档：
+
+| 合法全自动图 | mount | select | CDP p95 | 拥塞（已带 aria） | JS heap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 300/900 | 101.5 ms | 44.0 ms | 19.49 ms | **21/900 (2.33%)** | 5.23 MB |
+| 400/1200 | 100.1 ms | 52.5 ms | 21.68 ms | **27/1200 (2.25%)** | 4.90 MB |
+
+这是新增的一轮 CI-host 采样，不能与上轮不同 runner 的速度简单比较。**结论应分开写**：全部关系确实采用自动正交模式；全图 DOM/真实浏览器性能测试通过；其中 21/27 条触发**可见可访问的拥塞降级**，没有证明全图“零碰撞”或“100%自动绕行成功”。这些样本仍是合成合法状态，不是生产企业图。安全设计保持不越过预算，因此拥堵时允许诚实提示并由人工调整。
+
+**版本追踪**：后续新增仅文档类型提交不改变此次受测浏览器代码；但必须按 PR 最新 head 的 Actions 重新判断总体绿色结论。
