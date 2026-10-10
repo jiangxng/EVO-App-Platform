@@ -41,7 +41,7 @@
 | T07 | 手机抽屉、旋转、软键盘 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | E01 | 自动折线遇到中间节点 | Eidos tests/diagram-obstacle-routing.test.mjs；待真实渲染 | NOT TESTED |
 | E02 | 同向多边、反向边、自环 | Eidos tests/diagram-edge-lanes.test.mjs；待交互 | NOT TESTED |
-| E03 | 拖动折线段或路径点 | B6b 手工 + B8a 自动正交线段原生 Chrome 鼠标抓取/取消/转手工/Undo [Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) PASS；同页系统取消后继续拖动、真实触摸/Viewer 保存往返待验 | NOT TESTED |
+| E03 | 拖动折线段或路径点 | B8c [Chrome 154 十标签页 CI 38018569747](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38018569747) PASS：Shift+原生鼠标从重叠 waypoint 拖动被遮挡正交段并 Undo；CDP 原生 touchStart/move/cancel 后**同页**再次 touchStart/move/end 提交；B8b 保存→新 Designer→Viewer 往返亦通过。实体系统触摸、多平台和高密度复杂图待验 | NOT TESTED |
 | E04 | 点击曲线远离端点直线的位置 | Eidos tests/diagram-edge-paths.test.mjs；待真实命中 | NOT TESTED |
 | E05 | 移动一个/两个端点 | Eidos tests/diagram-waypoints.test.mjs；待真实操作 | NOT TESTED |
 | E06 | 曲线/折线转直线再撤销 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -168,3 +168,11 @@
 - 第七个**新打开的** Designer 标签页从原 Host Artifact Source 重新读取同一 projection；手工点数量与实际 SVG `d` 均和保存前完全一致。第八个**真正只读 Enterprise Definition Viewer** 工作台（产品 `createEnterpriseDefinition2dPreviewPageV010`、`createEnterpriseDefinition2dPreviewReadActionV010`、Eidos workspace mount）重新读取、实际绘出完全相同的路径 `d`；无编辑热区及保存按钮，且 Viewer 不写 Store。
 - Edge source、target、kind 与原始业务图一致，业务定义版本不变；原 B7b CAS/HTTP 503 和 B6b 手工与 B8a 取消回滚回归未失效。此证明 D04 的**正交自动改手工**一个自动 Chrome 子场景，**并未**测 Template Store Preview、真正重启服务器/持久磁盘后重载、移动真机/生产部署。因此 D04 保留 `NOT TESTED`，原 §14 39 项正式验收不能据此直接 PASS。
 - B8a 之前人工 DOM pointercancel 后在**同一标签页**立即 CDP 鼠标重新抓取失败，仍不能判断为 CDP 模拟状态还是产品故障，未被本轮声称已修复。实体多指、真实 OS pointercancel/regrab、复杂圆角路由等仍待验。
+
+## B8c 十标签页 Chromium 重叠控制柄/同页触摸取消后重抓证据（2026-10-10）
+
+- [Eidos Draft #144](https://github.com/jiangxng/eidos/pull/144) / [App Draft #586](https://github.com/jiangxng/EVO-App-Platform/pull/586) 叠加 B8a/B8b 既定口径，不碰另一主线。原显式 waypoint 的 44 CSS px 命中目标始终盖在 segment 之上：普通拖动仍改点；**Shift+拖动**在同一遮挡目标中选择最近 segment；**Shift+Alt+拖动**选择第二个。以 zoom×世界距离判断 44 CSS px 圆区重叠、稳定排序、无候选 fail closed，不缩小碰撞热区。原 checkpoint/Undo、B6b 网格与路径法向、B7b Host CAS 保持。
+- [真实 Chrome Browser CI #38018569747](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38018569747) **PASS**：Chrome/154.0.8037.97，新增第九标签页原业务图关系加手工路径点制造重叠区域，原生 CDP 鼠标携带 Shift 状态拖动遮挡下正交 segment、松手产生多个点、Undo 还原单点及完全相同的 SVG、无 Store 自动写。机器报告 `b8cNativeShiftOverlapSegmentUndo=true`。
+- 第十标签页没有通过 `new PointerEvent` 手造取消，而是真正 Chrome CDP **`Input.dispatchTouchEvent`** 输入 `touchStart→touchMove→touchCancel→touchStart→touchMove→touchEnd`，在**同一页面** cancel 后复原原 SVG 与无手工点，然后第二次原生浏览器触摸重新预览、松手转为手工路径点，未隐式 Save。机器报告 `b8cNativeTouchCancelRegrab=true`。之前人工 DOM `pointercancel` 后 CDP 鼠标立即重抓未预览的现象因此更可能与混用合成/原生输入有关，但**不能断言物理系统触控故障已经修复或者 iOS/Android 实机已测**。
+- 原有 B8b 八标签页真保存/新 Designer/真实只读 Viewer 完全 SVG 往返、B7b 多窗口 CAS/失败重试和 B8a 原生自动段测试仍在十标签页 PASS 中。仍缺实体 OS 取消、触摸板/实体键鼠 Shift+Alt、同点多于两个 segment 消歧、复杂圆角/自环/大图及移动真机。E03、D04 及 §14 的 39 项正式验收仍 `NOT TESTED`。
+- 详细技术/验收见 `docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-INTEGRATION-20261010.md`；研究来源口径延用独立 PR #552，不冒称重查 S1–S7 外站。
