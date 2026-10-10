@@ -24,3 +24,19 @@ B8v 新增每帧可见拥塞计数及非阻挡 `role=note`，但此前的 Chrome
 - **未完成正式验收**：实际顾客使用的双独立投影、同页双图长期反复拖动、跨企业权限隔离、真实 iPhone/Android/macOS/Windows 操作、数据库重启/保存、全部系统样式及 P02 完整人工验收尚缺。现有 39 项正式验收矩阵仍标 `NOT TESTED`。
 
 **下一小步**：如子场景失败，优先定位实例作用域选择器、计数 DOM 作用域、marker ID 与真实输入事件，修复后重新跑该 head；不通过修改原约束或跳过测试取得虚假绿色。
+
+
+## 实际运行结果（首次真实测试，2026-10-10）
+
+[GitHub Actions #38060771821](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060771821) 的真实 Firefox 142.0.1 / WebKit 26.0/Linux 同页双实例 DOM **PASS**：
+
+| 引擎 | 第一个正交图 | 第二个清晰曲线图 | 独立选择 | SVG marker |
+| --- | --- | --- | --- | --- |
+| Firefox | 1 条拥塞、汇总 1、role=note | 0 条拥塞、无汇总 | PASS | 独立 ID |
+| WebKit | 1 条拥塞、汇总 1、role=note | 0 条拥塞、无汇总 | PASS | 独立 ID |
+
+两图的 SVG hit 与 summary 数完全一致，`pointer-events:none` 不阻挡用户输入；先点击第二实例再点击第一实例，最终均为选中状态，独立性成立。两组 `status=Ready.` 且窗口脚本错误为空，原 fixture 状态节点/边数量未变化。该 run 还继续包含 B8u 的 7 × 2 排版与 B8w 的 14 次 native-click 后 SVG bbox 检查。
+
+**这是 P02 一个实际双实例浏览器自动化子场景通过，而不是 P02 的全部正式人工签收。** 不能由它推断业务权限、双用户、数据库和物理设备均已验收；§14 39 项正式结论仍是 NOT TESTED。
+
+若以 docs-only 修改生成了新 CI head，以最新提交的 workflow/check-runs 为 PR 最新校验依据，不能将上面旧 run 当新代码的同-head 运行。
