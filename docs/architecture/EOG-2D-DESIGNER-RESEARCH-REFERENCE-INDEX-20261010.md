@@ -318,3 +318,9 @@
 ## 2026-10-10 P01a 第三次同 runner 重复测量及反例
 
 [最新 paired Chrome CI #38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) 使用 Chrome/154.0.8037.97 同台分别构建 B6b 原始版本/P01a 自适应版本，两个预热+三次交错中位数，200/400 selection 18.5→16.9ms **-8.65%**、500/1000 selection 44.8→38.5ms **-14.06%**。上一独立 [#38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 对应 -12.95%、-16.46%，形成两轮正向的选择重绘证据。第三轮 mount 200/400 -9.99%、500/1000 -12.15%；但 500/1000 **CDP drag-dispatch p95 +7.37%**，仍不是 FPS，不能忽略这一反例。项目 P01 正式设备与复杂业务图性能仍 NOT TESTED。Eidos #141 和 App #573 最新全部 CI 已在该轮完成（随后文档更新会触发新 SHA 校验）。无需变更此前已确认的 v1.0 设计要求；阈值 150000 仅为工程优化选择。外部 S1–S7 资料仍沿用原证据等级，并未重新阅读原文。
+
+---
+
+## 2026-10-10 P01a 第四次独立配对反例：小图仍不稳定
+
+**[新源证据，继续保留坏消息]** [Chrome Perf CI 38015041848](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015041848) 实际使用相同 B6b Base/P01a HEAD 及 Chrome 154，2 次预热、每规模 3 次中位数、同 runner 对比。200/400 selection **38.0→40.0ms（+5.26% 回退）**，500/1000 selection **81.1→68.6ms（-15.41%）**。这是最新的**性能结果反例**：虽前两次 hybrid 小图对比为负耗时变化（较快），本次略慢，故不能写“小图优化已稳定成功”。500/1000 selection 在多轮配对中持续改善，但百分比随 runner 明显波动。此处无需改动 v1.0 原要求或宣称外部来源已重读，保留 P01 NOT TESTED；后续应做更细的实际浏览器长任务和不同密度业务图测量。
