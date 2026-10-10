@@ -28,6 +28,8 @@ export interface DiagramEdgeGeometryOptionsV010 {
   /** Bounding boxes of visible, unrelated nodes, in the same world coordinates. */
   obstacles?: readonly DiagramRouteObstacleV010[];
   clearance?: number;
+  /** Preserve normalized routed geometry when only far-away unrelated nodes exist. */
+  forceRouteWhenEmpty?: boolean;
 }
 
 const permittedKinds: readonly DiagramEdgePathKindV010[] = [
@@ -155,7 +157,8 @@ export function diagramEdgeGeometryV010(
     };
   }
   const obstacles = options?.obstacles ?? [];
-  const routed = obstacles.length > 0
+  const routingAttempted = obstacles.length > 0 || options?.forceRouteWhenEmpty === true;
+  const routed = routingAttempted
     ? routeDiagramOrthogonalV010(start, end, obstacles, options?.clearance)
     : undefined;
   const corners = routed ?? elbowPoints(start, end);
@@ -165,6 +168,6 @@ export function diagramEdgeGeometryV010(
       ? corners.map((p, i) => (i === 0 ? "M " : "L ") + point(p)).join(" ")
       : roundedPath(corners),
     label: halfwayOnSegments(corners),
-    ...(obstacles.length > 0 && !routed ? { congested: true } : {})
+    ...(routingAttempted && !routed ? { congested: true } : {})
   };
 }
