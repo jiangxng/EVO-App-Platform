@@ -97,12 +97,33 @@ try{
       c.font="11px "+getComputedStyle(document.querySelector("[data-eidos-diagram-canvas]")).fontFamily;
       const canvasWidths=rows.map(row=>c.measureText(row).width);
       const svgWidths=rowElements.map(t=>t.getBBox().width);
+      const variants=[];
+      if(edge.getAttribute("direction")==="rtl"){
+       for(const variant of ["original","child-middle","child-end",
+         "parent-start","parent-end","no-plaintext","per-child-plaintext",
+         "per-child-isolate"]){
+        const temp=edge.cloneNode(true);
+        temp.removeAttribute("data-eidos-diagram-edge-label");
+        const spans=[...temp.querySelectorAll("tspan")];
+        if(variant==="child-middle")spans.forEach(t=>t.setAttribute("text-anchor","middle"));
+        if(variant==="child-end")spans.forEach(t=>t.setAttribute("text-anchor","end"));
+        if(variant==="parent-start")temp.setAttribute("text-anchor","start");
+        if(variant==="parent-end")temp.setAttribute("text-anchor","end");
+        if(variant==="no-plaintext")temp.removeAttribute("unicode-bidi");
+        if(variant==="per-child-plaintext")spans.forEach(t=>t.setAttribute("unicode-bidi","plaintext"));
+        if(variant==="per-child-isolate")spans.forEach(t=>t.setAttribute("unicode-bidi","isolate"));
+        edge.parentElement.appendChild(temp);
+        const value=temp.getBBox();
+        variants.push({variant,left:value.x,right:value.x+value.width,width:value.width});
+        temp.remove();
+       }
+      }
       const {diagramCaptionLayoutV010}=await import("/dist/vendor/eidos/src/diagram/label-reservation.js");
       const anchor={x:Number(edge.getAttribute("x")),
         y:Number(edge.getAttribute("y"))+8+14*(Math.max(0,rows.length-1))/2};
       const estimated=diagramCaptionLayoutV010(anchor,window.__state.edges[0].label,
         text=>c.measureText(text));
-      return {direction:edge.getAttribute("direction"),canvasWidths,svgWidths,
+      return {direction:edge.getAttribute("direction"),canvasWidths,svgWidths,variants,
        left:bbox.x,right:bbox.x+bbox.width,
        reservedBox:estimated.box,
        computedDirection:getComputedStyle(edge).direction,
@@ -123,6 +144,9 @@ try{
      assert.ok(result.rows>=1&&result.rows<=4);
      assert.ok(result.width>5&&Number.isFinite(result.width));
      assert.ok(result.height>0&&Number.isFinite(result.height));
+     if(sample.direction==="rtl")console.log("B8S_ANCHOR_DIAGNOSTIC="+JSON.stringify({
+       engine,case:sample.id,box:result.reservedBox,
+       left:result.left,right:result.right,variants:result.variants}));
      assert.ok(result.width<=result.reservedBox.width+3,
        engine+" SVG glyph width must not exceed stable route collision reservation");
      assert.ok(result.left>=result.reservedBox.x-6
