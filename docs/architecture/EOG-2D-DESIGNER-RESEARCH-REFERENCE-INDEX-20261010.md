@@ -278,3 +278,13 @@
 **[实测通过]** [Chrome Browser Conflict CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) 成功运行 Chrome `154.0.8037.97`，四个独立标签页。新增第四标签页真实选择一条业务关系、切为正交路由、添加一个手工 waypoint，使用 **原生鼠标 press/move/release** 拖动 SVG 44px 控制柄到网格位置，释放后 Undo，再重新选中关系校验原 waypoint 恢复；投影 Store 版本未发生隐式递增。机器日志包含 `nativeRouteHandleSnapAndUndo=true`；之前三窗口 CAS/另存/HTTP 503 与三节点对齐 Undo 的测试同时通过。
 
 **[边界]** E03 已有 manual waypoint 原生 Chrome 子场景证据，但未实测正交线段本身原生拖动、实体触摸/触控板、真实 500/1000 图规模和 Viewer 保存往返，原 §14 的完整 E03/39 项继续标记 NOT TESTED。该新增证据与实现决定已写入 App #568 的 `DIAGRAM-B6B-HANDLES-ARRANGEMENT-INTEGRATION-20261010.md` 及证据矩阵。
+
+---
+
+## 2026-10-10 B6b 追加证明：正交线段原生指针拖动与 Undo
+
+**[新来源：GitHub Actions 真实 Chrome 自动化，不是旧资料推断]** [Diagram Browser Conflict CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) 于 Chrome/154.0.8037.97 **PASS**，四个浏览器标签页同时覆盖真实手工 waypoint 拖动、真实正交 segment 44px 控制柄的法向拖动、节点群组对齐 Undo、三窗口并发保存与 HTTP 503 重试；机器可读证明 `nativeOrthogonalSegmentSnapAndUndo=true`、`nativeRouteHandleSnapAndUndo=true`、`businessHistoryUnchanged=true`。自动检查 segment SVG path 在拖动后变化，Undo 恢复原始 path `d`，无隐式 Store 写入。
+
+**[新增场景边界]** 原始单一路径点与线段热区完全重叠时，waypoint 拥有最上层命中优先级，segment 无法在原位置直接获取鼠标。测试先使用图形属性区现有的可访问 waypoint X/Y 数字控件创建非共线弯折，再抓取线段，遵守既定控制柄优先级和 44px 热区。今后可为重叠时明确的路径点/线段消歧增加设计，但**不能以缩小目标热区解决**，也不能声称现在所有重叠情况都可直接拖动。
+
+原研究 S1–S7 保持原先等级，未在此轮重新阅读外站。完整 §14 E03 及 39 项跨设备验收仍未全部执行，尤其是手机触摸、曲线/自环和大图性能；所有 PR 均为未合并、未部署状态。
