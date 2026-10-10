@@ -24,16 +24,22 @@ const half=(a:DiagramEdgePointV010,b:DiagramEdgePointV010)=>
 function distanceFromLine(
   p:DiagramEdgePointV010,a:DiagramEdgePointV010,b:DiagramEdgePointV010
 ):number {
-  const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);
-  return length<1e-9 ? Math.hypot(p.x-a.x,p.y-a.y)
-    : Math.abs(dx*(a.y-p.y)-(a.x-p.x)*dy)/length;
+  // Distance to the *finite chord*, not its infinite supporting line:
+  // collinear Bézier controls far outside the endpoints can otherwise
+  // create a large invisible hairpin while reporting zero flatness.
+  const dx=b.x-a.x,dy=b.y-a.y,squared=dx*dx+dy*dy;
+  const t=squared<1e-18 ? 0 : Math.max(0,Math.min(1,
+    ((p.x-a.x)*dx+(p.y-a.y)*dy)/squared));
+  return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));
 }
 /** Convert M/L/Q/C absolute SVG geometry to deterministic world-space
  * line segments. The input comes from the renderer, not arbitrary raw SVG.
  */
 export function diagramSvgInkSegmentsV010(d:string):DiagramInkSegmentV010[]{
   if(typeof d!=="string" || d.length>150000)throw Error("EIDOS_DIAGRAM_INK_INVALID");
-  const tokens=d.match(/[MLQC]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g)??[];
+  const tokenPattern=/[MLQC]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
+  const tokens=d.match(tokenPattern)??[];
+  if(d.replace(tokenPattern,"").replace(/[\s,]/g,""))throw Error("EIDOS_DIAGRAM_INK_INVALID");
   const result:DiagramInkSegmentV010[]=[];
   let current=point(0,0),i=0,opened=false;
   const n=():number=>{
