@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { diagramSnapTranslationV010 } from "../../dist/vendor/eidos/src/diagram/snapping.js";
+import { diagramSnapTranslationV010, diagramGridStepV010 } from "../../dist/vendor/eidos/src/diagram/snapping.js";
 
 const moving = [{ id: "moving", x: 10, y: 20, width: 20, height: 10 }];
 const targets = [{ id: "target", x: 50, y: 80, width: 20, height: 10 }];
@@ -97,4 +97,15 @@ test("on-canvas guides are transient and touch cancellation clears the overlay",
   assert.match(surface, /movingRects, stationaryRects/);
   assert.match(surface, /data-eidos-diagram-snap-mode/);
   assert.match(surface, /renderContextNavigationV010/);
+});
+
+test("world grid step expands at low zoom instead of rendering dense subpixel lines", () => {
+  assert.equal(diagramGridStepV010(.1), 192);
+  assert.equal(diagramGridStepV010(.25), 48);
+  assert.equal(diagramGridStepV010(1), 24);
+  assert.equal(diagramGridStepV010(3), 24);
+  assert.throws(() => diagramGridStepV010(0), /EIDOS_DIAGRAM_GRID_SCALE_INVALID/);
+  const snap = diagramSnapTranslationV010([{ id: "p", x: 172, y: 0, width: 0, height: 0 }],
+    [], 0, 0, { scale: .1, snapToGrid: true });
+  assert.equal(snap.dx, 20);
 });
