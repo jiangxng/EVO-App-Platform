@@ -345,3 +345,10 @@
 - [Draft #614](https://github.com/jiangxng/EVO-App-Platform/pull/614)，基于 B9b #612；测试与 CI、文档变更，**不更改运行时/Host/Agent/CAS/TR-01**。
 - 新增 34 Tab Chrome 中的原生五条自环关系正例：从实际 SVG 得到 Designer 的 1 条 route-congested path、计数 1、一个 `role=note` 且 `pointer-events:none` 的摘要，并在真实 App Enterprise Definition readonly Viewer 中重新读取且一致，Viewer 没有 Save；本地草稿改线不得隐式写 Store。以 `B9C_POSITIVE_VIEWER_CONGESTION_RESULT` 对应同 head CI 日志确认 PASS。
 - **限制很重要**：此正例使用 App Source 测试包装读取时加入的自环，**没有**通过 App CAS Save 将它们存入投影 Store。B9b 则已有真实 CAS Save 后零拥塞的 0/0/0 证据。不能据两者谎称「非零拥塞 CAS Save→Viewer」已经验收。保留 §14 **39 项正式商用验收 NOT TESTED**，详见 [B9c 文档](./DIAGRAM-B9C-POSITIVE-VIEWER-CONGESTION-20261011.md)。
+
+
+## B9d｜正式 App CAS Save → 文件型 Store 重新创建 → Editor/Viewer GET → 旧 Token 拦截（2026-10-11）
+
+- [Draft #615](https://github.com/jiangxng/EVO-App-Platform/pull/615) 堆叠 B9c #614，新增 `definition-projection-b9d-file-restart.test.mjs` 并纳入 Diagram Designer Integration 工作流。**没有运行时代码、主线或授权/CAS 契约变更。**
+- [首次真实 CI #38067979006 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067979006)：**129/129 测试通过**，包含新 B9d。正式 App Editor GET/Save Handler 和授权钩子将本地投影写入**真实 FileDefinitionProjectionStore 实现**，CAS token `0→1`；销毁旧实例，重新创建文件 Store 和 Handler 后恢复保存的隐藏节点、rounded-orthogonal 路径、控制点与业务关系端点；独立只读 Enterprise Definition Viewer GET 也正确读取。过期 token 0 的保存被阻断，第三次重新创建文件 Store 仍为 1；企业业务定义历史为 1。
+- **证据边界：** 真实 CI 临时磁盘文件＋**内存企业业务定义仓**，没有真正生产云数据库、服务重启/双服务器竞争、完整网页操作或真实企业客户数据。B9b 已有内存 Store 的浏览器 Save→Viewer 零拥塞正例，B9c 已有真实 Viewer 非零拥塞但未经 Save 的正例，B9d 验证了文件持久化显示数据并**不能**宣称非零拥塞的企业业务图已持久化验收。原 §14 **39 项正式商业验收仍 NOT TESTED**，详见 [B9d 文档](./DIAGRAM-B9D-FILE-STORE-RESTART-20261011.md)。
