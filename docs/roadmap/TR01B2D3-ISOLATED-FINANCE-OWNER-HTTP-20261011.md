@@ -24,4 +24,8 @@ This demonstrates **one additional isolated Finance Owner process in disposable 
 
 ## CI evidence
 
-Pending exact EVO #110 head CI and matching App Platform cross-project CI. No production claims before those finish.
+**Confirmed on implementation head `0539e05b737b2ba23cbe70cc8519207ef6265ec3`:** [EVO #110 CI #38067997945](https://github.com/jiangxng/EVO/actions/runs/38067997945) completed **SUCCESS**; [App Platform cross-project CI #38068088650](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068088650) **SUCCESS**; [Continuity #38068088601](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068088601) **SUCCESS**.
+
+Real original-sales PostgreSQL job emitted `TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF.status=PASS` with `runtimeSessionIsDistinctLogin=true`, `operatorSessionIsDistinctLogin=true`, `evoApiUsesRestrictedRuntimeCredential=true`, **`financeOwnerProcessIsolatedFromCommandsAndDemo=true`**, `actualHostSignedHttpOwnerRead=true`, `operatorCliUsesRestrictedOperatorCredential=true`, `operatorAuditEntries=2`, `crossRolePrivilegeEscalationDenied=true`, `revocationEffectiveWithoutEvoRestart=true`, `originalEconomicAndReplayInputUnchanged=true`, and `financialExecutionAllowed=false`. It additionally retained [concurrent nonce/revoke PASS](TR01B2D3-TWO-EVO-CONCURRENT-NONCE-REVOKE-20261011.md). All production credentials/TLS/identity flags remain `NOT_CERTIFIED`.
+
+This paragraph is a documentation-only change after implementation CI; the final PR head must pass fresh CI before stack merge.
