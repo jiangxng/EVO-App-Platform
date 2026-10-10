@@ -97,3 +97,21 @@ PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既�
 当前 dirty 保护范围为原生 input/textarea/select，测试用 DOM 替身；自定义富文本/画布需要显式 dirty 接口，不能称为已全面保护。程序保存未重挂载时可能保守阻止刷新。后续再进入 PA-02 Run/receipt 异步端口与持久化设计，不跳过环境/恢复基线。
 
 平台实施说明：[PA01B2](https://github.com/jiangxng/EVO-App-Platform/blob/agent/pa01b2-page-assistance-20261010/docs/agent-line/PA01B2-PAGE-ASSISTANCE-20261010.md)。本文件为持续状态入口，实施说明中的初始 CI_PENDING 以此处准确 head 证据为准，避免仅改状态反复跑实现 CI。
+
+
+## 2026-10-11 新窗口接续：PA-01B2 原生 Chromium 预检
+
+**新增门禁状态：NATIVE_CHROMIUM_HELPER_CI_PASS / FULL_APPHOST_BACKEND_BROWSER_PENDING / NOT_MERGED / NOT_DEPLOYED**。PA-00及PA-01A/B1/B2既有实现不重复启动；下一步仍为隔离环境中完整 App Host + 匹配后端的五组真实浏览器验收。
+
+- 已按准确ref顺序复读本线四份交接文档并只读核查Platform/Eidos main、AI-BOOTSTRAP/LLM/owner和并行PR。Platform main当前为 `653a1646bf4178b5b068b85323189304f89e76fa`；旧Platform生产/continuity快照仍指向较早版本，**没有因此修改或重排TR业务主线**。Agent实现堆叠 #575→#577→#579 和Eidos #142仍开放Draft；文档 #570仍开放。
+- 本地基于 #579 的 `contextual-assistance.ts` 严格验证Git blob `38cb45a81691d863d9c6ba79a377fb8c6e9a7699`，在隔离 Chromium `144.0.7559.96` 使用真实DOM/Playwright完成 10/10 helper预检（草稿、来源、终态、普通聊天封装、字段匹配）；它不是完整页面/真实Run验收。
+- 新增独立 [Draft PR #638](https://github.com/jiangxng/EVO-App-Platform/pull/638) (`agent/pa01b2-native-chromium-preflight-20261011`)，base为#579实现分支，不碰原实现分支或main。head `793b2fb430fd1e82c52309fd4b705be2301f1cad`。真正GitHub Runner从该head构建后，原生 [Chromium CI run 38095315018](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38095315018) 已 **SUCCESS, 10/10 PASS, Chromium 141.0.7390.37**；完整Job `114339888058` npm ci、build、Playwright、浏览器脚本、artifact上传全部成功。artifact [11685148470](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38095315018/artifacts/11685148470)（report + 屏幕辅助图）。同时对应[Continuity CI 38095314949](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38095314949) SUCCESS。**该CI只验证构建产物 helper 与真实原生DOM，不包含真实App Host或真实后端**。
+- 固定证据见 [PA01B2-NATIVE-CHROMIUM-PREFLIGHT-20261011.md](PA01B2-NATIVE-CHROMIUM-PREFLIGHT-20261011.md)。新增PR没有改业务逻辑、vendor整包、项目全局状态或生产环境；原外部14项研究阅读等级仍保持待验证。
+
+### 尚未完成的真实浏览器验收（继续按此顺序）
+
+1. 隔离运行#579以及#577/#575所需的匹配Host后端，使用原生浏览器启动真实Eidos Workbench与已授权导入job；不得访问生产。
+2. 干净页严格关联只刷新一次；请求前/等待中草稿保留并显示提示；离开重回同route旧响应不刷新；失败及非成功态不刷新；普通聊天与实际数据导入映射/Recipe二次导入不回归。
+3. 保存准确代码heads、浏览器/运行命令、网络请求与真实Run/receipt、断言、截图、失败控制与清理；无此证据不标 `BROWSER_PASS`。
+4. 完成后再进入PA-02A异步Run/receipt端口；不得把CI、本预检或Run文字成功升级为业务写入或生产认证。
+
