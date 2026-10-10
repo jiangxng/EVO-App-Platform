@@ -48,9 +48,9 @@
 | E07 | 标签拖动和节点移动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D01 | 隐藏节点/边再保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D02 | 连续编辑、撤销、重做、保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| D03 | 保存失败后重试 | B7 Eidos 保存失败保留草稿逻辑；缺少真实浏览器断网/重试证据 | NOT TESTED |
+| D03 | 保存失败后重试 | B7b 本地真实 Chromium 页面 + HTTP 503 注入 + UI 重试脚本，待以最新 Browser Conflict CI 核对；其他设备与网络形态仍待验 | NOT TESTED |
 | D04 | 保存后刷新、Viewer、模板预览 | App tests/integration/definition-projection-edge-routes.test.mjs；待 Viewer 手动 | NOT TESTED |
-| D05 | 两窗口冲突保存或 Agent 更新 | B7 双 Session 同 token 冲突测试；B7b Agent (Direct / Personal) 读取后人工写入竞争测试已跑通；真实浏览器双窗口和 Agent 实际模型流程待验 | NOT TESTED |
+| D05 | 两窗口冲突保存或 Agent 更新 | B7b Chrome 两独立 Tab 实际 Eidos DOM 选择/隐藏/保存/冲突/另存副本；Direct/Personal Agent Node CAS；真机/真实 LLM 待验 | NOT TESTED |
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A02 | 系统大字与键盘操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -97,3 +97,10 @@
 - 所有这些是 Node 集成检查和 GitHub CI 证据，**不是浏览器设备结果**，D03/D05 和其他 37 项验收仍保持 `NOT TESTED`。真实 Browser/Agent 模型/恢复交互需要另外留存截图、日志、环境。
 - 研究、工程理由、限制记录见 `DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md`。
 
+
+## B7b Chromium 执行证据
+
+- 源码 `tools/diagram-projection-browser-conflict-proof.mjs` 和 `.github/workflows/diagram-designer-browser-cas.yml`：本地服务使用真实投影 ActionHandler，浏览器模块导入真实 Eidos DOM 编辑器；读取/保存不是单纯模拟的状态机。
+- 两个标签页竞争、冲突提示、失败草稿保留、明确 Save As 追加新投影：首次 Chrome/154.0.8037.97 已打印真实业务断言日志；清理时的竞态已修复并于 [Browser CI 38010239304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010239304) PASS。
+- 第三个标签页 HTTP 503 失败保留草稿与真实 Save 按钮重试：已补入后续脚本，**须查最新 #563 HEAD 的 Browser CI 是否通过**，不能从之前两个标签页的结果推断。
+- **此处 D03/D05 仍标 NOT TESTED** 是指原始 §14 的完整跨设备/真实业务验收尚未完成，不否认已完成的局部自动 Chromium 测试。详情见 `DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md`。
