@@ -402,6 +402,40 @@ try{
       otherInstanceUnchanged:true,sourceNodesPreserved:true,
       warning:"Browser-only synthetic local visibility; no persistence or physical devices"
     }));
+    // B8z: native mouse pointer capture moves the 23rd local blocker
+    // outside the route's bounded relevance window. The real render
+    // must recalculate, not keep a stale "1 routes" note. Undo must
+    // restore both the obstacle position and budget-congestion summary.
+    const draggable=dualPage.locator("#b8x-first [data-eidos-diagram-node='block-22']");
+    const rect=await draggable.boundingBox();
+    assert.ok(rect&&rect.width>5&&rect.height>5,engine+" draggable node is not mounted");
+    const fromX=rect.x+rect.width/2,fromY=rect.y+rect.height/2;
+    const toY=Math.max(12,fromY-210);
+    assert.ok(fromY-toY>150,"B8z needs a real long mouse drag to clear route vicinity");
+    await dualPage.mouse.move(fromX,fromY);
+    await dualPage.mouse.down();
+    await dualPage.mouse.move(fromX,toY,{steps:14});
+    await dualPage.mouse.up();
+    const dragged=await inspect();
+    assert.equal(dragged.first.count,0,
+     engine+" after real pointer drag, 22 relevant blockers should be safe");
+    assert.equal(dragged.first.summary,null,
+     engine+" pointer release must clear stale congested summary");
+    assert.equal(dragged.second.count,0);
+    assert.equal(dragged.second.selection,"true",
+     engine+" moving first graph node must not deselect second graph");
+    await dualPage.locator("#b8x-first [data-eidos-diagram-history='undo']").click();
+    const dragUndone=await inspect();
+    assert.equal(dragUndone.first.count,1,
+     engine+" native drag Undo must restore original congestion");
+    assert.equal(dragUndone.first.summary,"1 routes need review");
+    assert.equal(dragUndone.second.count,0);
+    assert.deepEqual(dragUndone.errors,[],engine+" native drag/Undo JavaScript errors");
+    console.log("B8Z_DRAG_UNDO_RESULT="+JSON.stringify({
+     engine,before:undone.first.count,afterDrag:dragged.first.count,
+     afterUndo:dragUndone.first.count,pointerTravelPx:Math.round(fromY-toY),
+     siblingClear:true,warning:"Synthetic real Firefox/WebKit native mouse; no physical touch/production persistence"
+    }));
    }finally{await dualPage.close();}
   }finally{await browser.close();}
  }
