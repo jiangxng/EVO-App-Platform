@@ -687,7 +687,9 @@ try {
   assert.equal(persistedEdge.kind,originalBusinessEdge.kind);
 
   h=await tab("H","viewer");
-  await until(h,"Read-only Enterprise Context projection");
+  await until(h,"Ready.");
+  // The read-only Viewer reports Ready. after its real action handler returns;
+  // subsequent assertions verify the exact SVG rather than notice wording.
   const viewer=await h.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
     + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
     + 'if(!visual)throw Error("Actual Viewer lost saved auto-to-manual relation");'
