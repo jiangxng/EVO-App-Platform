@@ -32,6 +32,7 @@ jobs:
           node tools/diagram-cross-browser-label-proof.mjs | tee /tmp/b8s-cross-browser.log
           grep -q 'B8S_CROSS_BROWSER_RESULT=' /tmp/b8s-cross-browser.log
           grep -q 'B8U_COMPLEX_TEXT_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8W_POST_SELECT_RESULT=' /tmp/b8s-cross-browser.log
       - name: Preserve cross-engine evidence
         if: always()
         uses: actions/upload-artifact@v4
