@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Twenty-eight Chrome tabs - B8j curved ink and B8k spatial index
+      - name: Thirty Chrome tabs - B8l real label metrics and B8m density budget
         shell: bash
         run: |
           set -euo pipefail
