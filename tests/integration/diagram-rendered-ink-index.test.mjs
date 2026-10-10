@@ -93,6 +93,7 @@ test("B8j+B8k renderer computes route ink once and shares it between Designer an
   assert.match(code,/createDiagramInkSpatialIndexV010\(inkEntries\)/);
   assert.match(code,/loopInkIndex.near\(nodeId,node/);
   assert.match(code,/preciseRouteGeometries.get\(edge.id\)/);
+  assert.match(code,/preciseRouteGeometries.has\(edge.id\) && selectedEdgeId !== edge.id/);
   assert.match(code,/renderedEdges.length <= 12000/);
   assert.match(code,/inkSegmentCount\+parsed.length<=100000/);
 });
