@@ -192,3 +192,12 @@
 - 原生鼠标对最后一条重叠 segment 拖动预览保留 `Q` 圆角；按 Chrome 原生 Escape 键取消及随后鼠标松开，原 SVG 和候选回滚/保留；同一浏览器标签页重新拖动成功。Undo 精确恢复原圆角 SVG，Redo 恢复提交图形。显式 App Host `Save projection` 完成 CAS 投影版本 **4→5 一次**，业务定义 revision/history 保持；第 13 个全新 Designer 和第 14 个真实只读 Viewer 从测试 Store 重读相同 SVG `d`，Viewer 无编辑控件/保存按钮、读操作不写。
 - 日志 `b8eRoundedMultiRankCancelRegrabSaveViewer=true`，旧 `b8dNativeDenseOverlapCycleAndUndo`、`b8cNativeTouchCancelRegrab`、`b8bSaveReloadRealViewerRoundtrip`、CAS、503 亦同时为 true。Eidos CI 与 App 五项 CI 已在对应产品/测试提交上 PASS。
 - **边界与原正式结论**：此处为 CDP 浏览器鼠标/键盘事件，并非物理键鼠、触控板、iOS/Android/Windows/macOS 系统级多指测试。内存 Store 不能证明服务重启后持久化，也不能证明复杂自环、曲线、跨关系重叠、真实生产性能及 §14 全项；E03/D04 等仍 **NOT TESTED**，总共 39 项完整商业化验收均未升格。未合并、未部署。
+
+
+## B8f 自环显示层路径与曲线控制柄（2026-10-10）
+
+- 独立 Eidos [Draft #147](https://github.com/jiangxng/eidos/pull/147) + EVO [Draft #593](https://github.com/jiangxng/EVO-App-Platform/pull/593) 对 B8e 的显示层操作能力做自环增量。不变更业务关系端点/对象语义，保持原 44 CSS px 热区、单本地 Undo/Redo、显式 CAS Save、只读 Viewer 和 Agent 授权边界。
+- Eidos 单测/CI **PASS**：四种默认 self-loop 形状选择前后未变；正交、圆角 self-loop 可推导外侧手工段；curve 单 bulge cubic 控制点、越界拒绝、节点位移平移显示点与左右终端保持；App integration CI 同时 PASS。
+- [B8f Chrome 154 浏览器 17 标签页 #38022453391](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38022453391) **PASS**，证据标志 `b8fSelfLoopCurveNativeDragSaveViewer=true`。第 15 标签页的**测试专用模拟自环关系**由隔离 artifact source 注入，真实 Designer DOM、CDP 原生鼠标拖动曲线外凸 bulge、原生 Escape 恢复、同页重新抓取、单 Undo/Redo 和单次显式 App Host CAS Save 均 PASS（投影版本 5→6，业务定义 history 不变）；新开第 16 Designer 和第 17 真正只读 Viewer 读取相同 cubic SVG `d`，Viewer 无编辑/保存按钮。旧 B8e/B8d/B8c/B8b、CAS 回归同 run PASS。
+- **负面发现/待办**：初始测试把控制柄放到 Inspector 区外，第二次调整位置后落在图中其它业务节点之下，两次均实际无法命中。第三次测试把模拟自环挂在图中最右侧且画布内空旷节点，才成功操作。说明现有自动自环固定向右、**尚不提供节点避障**；需要下一阶段方向选择/避障/冲突处理。不可将「外侧有空间的测试样本成功」扩展为「密集图自环操作已验收」。
+- **完整验收仍保持**：当前浏览器自环 only curve 单点，其它正交/圆角自环仅纯几何/静态证据；实体键鼠、macOS 触控板、iOS/Android、系统手势打断、数据库重启后的持久性、高密图长期性能和 §14 **39 项正式验收**均 **NOT TESTED**；E03 等不升格，Draft 未合并、未部署。
