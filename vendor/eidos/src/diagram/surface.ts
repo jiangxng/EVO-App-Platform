@@ -2966,6 +2966,11 @@ export function mountDiagramEditorPageV010(
         // layout used by the collision index; no DOM selection dependence.
         const captionLayout=diagramCaptionLayoutV010(
           geometry.label,edgeCaption,measuredCaption);
+        // B8p: bidi ordering is visual browser responsibility. Do not
+        // reverse stored text or swap source/target anchors.
+        label.setAttribute("direction",captionLayout.direction);
+        label.setAttribute("unicode-bidi","plaintext");
+        label.setAttribute("data-eidos-diagram-caption-direction",captionLayout.direction);
         if(captionLayout.lines.length===1){
           label.textContent=captionLayout.lines[0]!;
         }else{
