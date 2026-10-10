@@ -48,6 +48,7 @@ jobs:
           done
           test "$(grep -c 'B9L_NATIVE_SAVE_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
           test "$(grep -c 'B9L_ENTERPRISE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
+          test "$(grep -c 'B9P_STALE_CAS_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
       - name: Retain only synthetic Chrome output
         if: always()
         uses: actions/upload-artifact@v4
