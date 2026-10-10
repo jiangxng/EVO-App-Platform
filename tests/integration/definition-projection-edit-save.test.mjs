@@ -157,14 +157,10 @@ test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eid
     )
   );
 
-  assert.match(
-    source,
-    /const nextX =\s*originalX \+ screenDeltaX \/ camera\.scale/
-  );
-  assert.match(
-    source,
-    /const nextY =\s*originalY \+ screenDeltaY \/ camera\.scale/
-  );
+  // World-space dragging still divides screen deltas by camera scale, but
+  // B6a now passes the result through deterministic group snapping.
+  assert.match(source, /screenDeltaX \/ camera\.scale, screenDeltaY \/ camera\.scale/);
+  assert.match(source, /showPositions\(movedPositions\(snapped\.dx, snapped\.dy\)\)/);
   assert.doesNotMatch(source, /const nextX = Math\.max\(\s*0,/);
   assert.doesNotMatch(source, /const nextY = Math\.max\(\s*0,/);
   assert.match(source, /function clearSelection\(\): void/);
