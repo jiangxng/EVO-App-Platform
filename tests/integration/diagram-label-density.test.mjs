@@ -59,7 +59,7 @@ test("B8m 13000 unrelated entries retain bounded nearby lookup",()=>{
 test("B8l+B8m Surface uses browser metrics and visible fallback status",async()=>{
  const source=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
  assert.match(source,/measureContext\.measureText\(caption\)/);
- assert.match(source,/diagramLabelReservationV010\(geometry.label,caption,measuredCaption\(caption\)\)/);
+ assert.match(source,/diagramCaptionLayoutV010\(geometry.label,caption,measuredCaption\)\.box/);
  assert.match(source,/data-eidos-diagram-ink-label-metrics/);
  assert.match(source,/inkSegmentCount>=100000/);
  assert.match(source,/data-eidos-diagram-routing-advisory/);
