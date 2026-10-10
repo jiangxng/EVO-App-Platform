@@ -243,6 +243,8 @@ try{
  };
  const savedDesigner=await snapshot("designer");
  const savedViewer=await snapshot("viewer");
+ assert.equal(reopened.projectionStore.getVersion(id),1,
+  "B9y opening saved readonly Viewer and Designer must never advance CAS");
  assert.equal(savedDesigner.count,savedViewer.count,
   "fresh readonly Viewer must match persisted Designer's honest congestion count");
  assert.equal(savedViewer.saveButtons,0);
@@ -339,6 +341,8 @@ try{
   assert.equal(v.count,reopenedClearViewer.count,
    "responsive readonly Viewer preserves saved route-congested count");
   assert.equal(v.saveButtons,0,"mobile-size readonly Viewer must not expose Save");
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "B9y readonly Viewer navigation and resizing never saves presentation");
   responsiveChecks.push({
    viewport:viewport.width+"x"+viewport.height,
    editorWorldSvgWidth:Math.round(d.canvasWidth),
@@ -358,6 +362,11 @@ try{
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
+ console.log("B9Y_READONLY_NO_WRITE_RESULT="+JSON.stringify({
+  process:intake.process,casAfterInitialView:1,casAfterFreshMobileViews:2,
+  readonlyViewerSaveButtons:0,
+  caveat:"Synthetic Chrome Viewer read-only path, not authenticated customer policy"
+ }));
  console.log("B9L_ENTERPRISE_CHROME_RESULT="+JSON.stringify({
   browser:browser.version(),firstCASVersion:1,secondCASVersion:2,
   savedDesigner,savedViewer,reopenedClearDesigner,reopenedClearViewer,

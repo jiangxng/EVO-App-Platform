@@ -1,0 +1,2 @@
+# B9y | Read-only Viewer/Designer GETs cannot persist projection
+Tests actual Chrome fresh GET before write and after Save/responsive 390/768px snapshots. At each point check underlying FileStore CAS remains 1 or 2, so page mount, viewing and resize have no implicit write. Viewer toolbar continues to omit Save and edge congestion counters are honest. Synthetic Chrome only, not production role permission signoff or physical devices; §14 remains NOT TESTED.
