@@ -104,8 +104,26 @@ assert.equal(replay.boundarySequence,boundary);
 assert.equal(replay.costMethod,"FIFO");
 assert.ok(replay.costPins?.valuationPolicyId);
 assert.ok(replay.costPins?.allocationPolicyId);
-const posted=await drainPosting(runtime,enterprise);
-assert.ok(posted>=4,"Replay must rebuild the four immutable sales facts");
+await drainPosting(runtime,enterprise);
+// The separately running EVO Worker may claim and post any of the four
+// immutable inputs before this CI function does. Count durable POSTED
+// source facts, NOT jobs completed by this particular process.
+const originalKeys=[
+ "TR01B-SO-001","TR01B-PROD-001","TR01B-SHIP-001","TR01B-CASH-001"
+];
+let replayedPosted=[];
+for(let attempt=0;attempt<80;attempt++){
+ replayedPosted=await runtime.db.selectFrom("posting_input as p")
+  .innerJoin("business_data as b","b.id","p.business_data_id")
+  .select(["b.business_object_key","p.status"])
+  .where("b.enterprise_id","=",enterprise)
+  .where("b.business_object_key","in",originalKeys).execute();
+ if(replayedPosted.length===4 && replayedPosted.every(x=>x.status==="POSTED"))break;
+ await new Promise(resolve=>setTimeout(resolve,100));
+}
+assert.equal(replayedPosted.length,4,"Full Replay must retain exactly four App Platform source facts");
+assert.ok(replayedPosted.every(x=>x.status==="POSTED"),
+ "Every immutable sales/production/shipment/cash fact must finish re-posting");
 const replayedCost=await runtime.cost.recalculate(
  enterprise,replay.costMethod,replay.costPins
 );
