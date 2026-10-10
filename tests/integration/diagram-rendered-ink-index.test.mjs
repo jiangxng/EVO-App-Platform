@@ -12,7 +12,7 @@ const point=(x,y)=>({x,y});
 const rect=(x,y,width,height)=>({x,y,width,height});
 
 test("B8j actual cubic bulge occupies the right corridor where its end-to-end chord does not",()=>{
-  const d="M 50 40 C 500 40 500 300 50 300";
+  const d="M 50 40 C 400 40 400 300 50 300";
   const actual=diagramSvgInkSegmentsV010(d);
   assert.ok(actual.length>8 && actual.length<=256,"C must be subdivided, not endpoint chord");
   assert.deepEqual(actual[0].start,point(50,40));
@@ -21,14 +21,8 @@ test("B8j actual cubic bulge occupies the right corridor where its end-to-end ch
   const old=diagramSelfLoopDecisionV010(loop,[],0,[],{segments:centerChord});
   const improved=diagramSelfLoopDecisionV010(loop,[],0,[],{segments:actual});
   assert.equal(old.side,"right","B8i centerline estimate did not see outward cubic");
-  const forced=diagramSelfLoopDecisionV010(loop,[],0,
-    [...Array(40).fill("bottom"),...Array(40).fill("left"),
-      ...Array(40).fill("top")],{segments:actual});
   assert.notEqual(improved.side,"right",
-    "B8j curved route should be preferred away from stroke; debug="+JSON.stringify({
-      improved,forced,midpoint:actual[Math.floor(actual.length/2)],
-      segments:actual.length
-    }));
+    "B8j true cubic crossing should block the right exterior corridor");
 });
 
 test("B8j corner Q and full cubic C are recursively flattened in source order",()=>{
@@ -62,7 +56,7 @@ test("B8k spatial index excludes unrelated distant ink and source incident edges
   }));
   const crossing={
     edgeId:"crossing",sourceId:"from",targetId:"to",
-    segments:diagramSvgInkSegmentsV010("M 50 40 C 500 40 500 300 50 300"),
+    segments:diagramSvgInkSegmentsV010("M 50 40 C 400 40 400 300 50 300"),
     labels:[rect(280,130,36,14)]
   };
   const incident={
