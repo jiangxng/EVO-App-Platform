@@ -11,7 +11,7 @@ Previously `TR01B2D3_FINANCE_POSTGRES_ROLE_SEPARATION_PROOF` used `SET LOCAL ROL
 In the **disposable existing original Sales→Production→Shipment→Cash/PostgreSQL CI**:
 
 1. Generate two random, secret, independent PostgreSQL passwords and issue separate `LOGIN NOINHERIT` accounts: `tr01b2d3_runtime_login_ci` and `tr01b2d3_operator_login_ci`. Never commit or print these passwords; CI PostgreSQL is ephemeral.
-2. Grant runtime read access to precisely the known immutable business facts, posting status, runtime boundary and pinned valuation/allocation policies required by the *B2D3 bounded owner verifier*, plus active trust-key lookup and replay nonce insert. Deny trust modification, audit mutation and CostRun writes.
+2. Grant runtime read access to precisely the known immutable business facts, posting status, runtime boundary and pinned valuation/allocation policies required by the *B2D3 bounded owner verifier*; admit active trust-key lookup **only via explicitly granted narrow SECURITY DEFINER function**, plus replay nonce insert/RETURNING. Runtime has no direct SELECT/UPDATE on trust-key table. Deny trust modification, audit mutation and CostRun writes.
 3. Grant operator access only to key grant/revoke and immutable audit trigger prerequisites. Deny original business facts, financial execution and nonce insertion. Validate **`session_user = current_user` equals each role**, proving actual authentication, not `SET ROLE`.
 4. Use the **existing EVO operator CLI** with the new operator `DATABASE_URL` to grant a fresh Ed25519 key; the runtime LOGIN cannot use the same CLI to revoke it.
 5. Start an **additional independent EVO API Node process** with `DATABASE_URL` containing the restricted runtime login and `EVO_FINANCE_TRUST_AUTHORITY=POSTGRES`; sign a fresh Host-style finance assertion from the App Platform public remote owner contract; get actual `OWNER_DATABASE_READ_ONLY` success over HTTP against original Sales Shipment facts.
@@ -19,6 +19,12 @@ In the **disposable existing original Sales→Production→Shipment→Cash/Postg
 7. Assert durable `GRANT/REVOKE` audit, unchanged original deterministic economic + replay-input digests and CostRun/AllocationInstruction counts, and `financialExecutionAllowed:false`.
 
 Implementation: `tools/certify-tr01b2d3-distinct-db-logins.mjs`, triggered in `.github/workflows/cross-project-tr01b-sales-evo-postgres.yml` **after** the prior role/separation proof. Marker `TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF.status=PASS` is valid **only after this branch's matching GitHub Actions check succeeds**.
+
+## Failure-driven owner security fix
+
+The initial true-LOGIN run [#38061476431](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061476431) correctly **FAILED**: runtime PostgreSQL denied the direct trust-table `SELECT ... FOR SHARE` with `42501`, even though `SELECT` was allowed. This exposed a previously untested difference from superuser `SET ROLE` harness. PostgreSQL requires UPDATE privilege on at least one selected-table column for `FOR SHARE`; **we do not grant that UPDATE permission to runtime**.
+
+Instead, companion stacked [EVO PR #109](https://github.com/jiangxng/EVO/pull/109) adds a fixed-search-path, nonpublic `SECURITY DEFINER` function that row-locks precisely an ACTIVE issuer/installation/key and is used inside the same signed-claim/nonce transaction. This App Platform CI now provisions only function EXECUTE, original-fact table SELECT and nonce insert/RETURNING rights to its real runtime LOGIN. Raw trust key table is deliberately inaccessible to that account. The EVO workflow pin is exact SHA `46e0b75a3386ea35b5fb31d5bc275b5c15ac41b3`; acceptance of the new revision must wait for matching real CI.
 
 ## Explicit limits
 
