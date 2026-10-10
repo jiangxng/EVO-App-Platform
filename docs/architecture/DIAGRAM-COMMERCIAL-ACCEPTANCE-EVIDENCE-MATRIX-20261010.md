@@ -331,3 +331,10 @@
 - [B9a Draft #611](https://github.com/jiangxng/EVO-App-Platform/pull/611) 仅在 B8z [Draft #610](https://github.com/jiangxng/EVO-App-Platform/pull/610) 基础上追加真实浏览器脚本、CI、证据；无 runtime/vendor/Host/Agent/CAS/source-target/route budget/main 变更。
 - 原双实例图中，先用真实鼠标通过既有 `Remove from view` 使**未保存**的第一图从 23 个相关障碍减少一个、拥塞计数 `1→0`；然后使用真实 Eidos 挂载控制器的公开 `refresh()` 再读 ActionHost，严格验证恢复原始未修改的读取数据，拥塞 `0→1`，第二图继续为 0；接着实际浏览器整页 `reload`，也必须保持第一图 1、第二图 0，显示层无残留。[首次真实 Firefox/WebKit #38061894121 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061894121)：两个浏览器均记录 `B9A_UNSAVED_REFRESH_RESULT`，未保存本地草稿计数 0、公共 `refresh()` 恢复 1、整页 reload 仍 1，另一实例 0，受控原始读取源数据不变。后续文档提交的最终 head CI 仍须单独验证。
 - **边界：** 受控内存 ActionHost，不是生产持久数据库/服务端投影保存、CAS 冲突、Designer 与 Viewer 的完整往返，也不是实机操作。此子场景无论通过与否，原 §14 **39 项正式商业验收仍 NOT TESTED**。详情 [B9a 验收记录](./DIAGRAM-B9A-UNSAVED-REFRESH-BROWSER-20261010.md)。
+
+
+## B9b｜真实 App CAS Save → 独立 Designer → 只读 Viewer 的零拥塞展示一致性（2026-10-11）
+
+- [Draft #612](https://github.com/jiangxng/EVO-App-Platform/pull/612)，叠加 B9a #611；**只修改真实浏览器 CI、测试与文档，不修改 runtime/Host/Agent/CAS/业务端点/TR-01**。
+- [Chrome 154 34-tab #38067528086 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067528086) 与 [Project Continuity #38067528091 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067528091)：真实 App Handler 授权与投影 CAS Save、全新独立 Designer、正式只读 Enterprise Definition Viewer 各自查询 SVG 实际 `route-congested` hit paths、总体拥塞计数与非阻挡 role-note。该受控保存图三处 **0/0/0** 拥塞并正确无摘要，Viewer 无 Save；App 内存投影 Store CAS 版本 **4**，业务定义历史依然 **1**。这是「无假阳性、存取一致」的正当证据，**不是**非零拥塞保存/Viewer 证明，不能夸大。
+- 受控 App **内存** projection store 不是真实生产数据库，未测生产服务重启、跨企业权限/物理设备或全部 §14 **39 项正式人工验收**，均维持 **NOT TESTED**。详细证据：[B9b 专项文档](./DIAGRAM-B9B-APP-SAVED-VIEWER-CONGESTION-20261011.md)。
