@@ -95,7 +95,7 @@ test("B8d sorts 3+ overlapping candidates, deduplicates, and retains legacy shor
   assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,-1),undefined);
   assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,1.5),undefined);
   assert.deepEqual(segments,snapshot);
-  assert.deepEqual(diagramOverlappingSegmentsForWaypointV010(center,segments,3)
+  assert.deepEqual(diagramOverlappingSegmentsForWaypointV010(center,segments,2)
     .map(item=>item.index),[5,3,7]);
   assert.deepEqual(diagramOverlappingSegmentsForWaypointV010(center,segments,0),[]);
 });
