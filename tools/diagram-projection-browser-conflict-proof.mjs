@@ -168,7 +168,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d;
+let proc, a, b, c, d, e;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -501,11 +501,102 @@ try {
     "Undo must restore exact original orthogonal connector SVG geometry");
   assert.equal(store.getVersion(target),3,"Manual route interaction must not implicitly save");
 
+  // B8a: fifth real Chrome tab starts from a fresh projection. Select an
+  // existing relationship and switch presentation to orthogonal WITHOUT
+  // clicking Add path point. Automatic line segments are directly draggable.
+  e=await tab("E",true);
+  await until(e,"Ready.");
+  const autoHandle=await e.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'if(!edge)throw Error("B8 automatic edge missing");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const select=document.querySelector("[data-eidos-diagram-edge-path-kind]");'
+    + 'if(!select)throw Error("B8 route selector missing");'
+    + 'select.value="orthogonal";select.dispatchEvent(new Event("change",{bubbles:true}));'
+    + 'const nums=document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]");'
+    + 'if(nums.length)throw Error("B8 should start with no manual points");'
+    + 'const canvas=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();'
+    + 'const candidates=[...document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]")];'
+    + 'const hit=candidates.find(el=>{const b=el.getBoundingClientRect();'
+    + 'const x=b.left+b.width/2,y=b.top+b.height/2;'
+    + 'return x>canvas.left+22&&x<canvas.right-22&&y>canvas.top+22&&y<canvas.bottom-22'
+    + '&&document.elementFromPoint(x,y)===el});'
+    + 'if(!hit)throw Error("B8 no native-grabbable auto segment "+JSON.stringify('
+    + 'candidates.map(el=>{const r=el.getBoundingClientRect();'
+    + 'return {x:r.left+r.width/2,y:r.top+r.height/2,cursor:el.style.cursor};})));'
+    + 'const box=hit.getBoundingClientRect();'
+    + 'const axis=hit.style.cursor==="ew-resize"?"x":"y";'
+    + 'const x=box.left+box.width/2,y=box.top+box.height/2;'
+    + 'const point=Number(hit.getAttribute(axis==="x"?"cx":"cy"));'
+    + 'const goal=Math.round(point/24)*24+48;'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {x,y,axis,delta:goal-point+2,original:visual.getAttribute("d")};})()');
+  const moveAuto=async()=>{
+    await e.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:autoHandle.x,y:autoHandle.y});
+    await e.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+      x:autoHandle.x,y:autoHandle.y});
+    await e.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+      x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
+      y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
+  };
+  await moveAuto();
+  const autoPreview=await e.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {d:visual.getAttribute("d"),manual:'
+    + 'document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};'
+    + '})()');
+  assert.notEqual(autoPreview.d,autoHandle.original,"B8 automatic preview should move");
+  assert.equal(autoPreview.manual,0,"B8 preview cannot persist manual controls");
+  await e.eval('(()=>{const h=document.querySelector("[data-eidos-diagram-auto-segment-handle]");'
+    + 'h.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:1,pointerType:"mouse"}));'
+    + 'return true;})()');
+  await e.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
+    y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
+  const cancelledAuto=await e.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return {d:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};'
+    + '})()');
+  assert.equal(cancelledAuto.d,autoHandle.original,"B8 pointercancel must restore exact automatic SVG");
+  assert.equal(cancelledAuto.manual,0,"B8 cancelled auto drag must leave automatic routing");
+  await moveAuto();
+  await e.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
+    y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
+  const committedAuto=await e.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {d:visual.getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
+    + 'automatic:document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]").length};'
+    + '})()');
+  assert.notEqual(committedAuto.d,autoHandle.original,"B8 committed automatic route must change");
+  assert.ok(committedAuto.manual>=2,"B8 native segment release must materialize manual control points");
+  assert.equal(committedAuto.automatic,0,"B8 committed route is now explicitly editable");
+  assert.equal(store.getVersion(target),3,"B8 local edit must not implicitly save");
+  const undoAuto=await e.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
+    + 'if(!undo||undo.disabled)throw Error("B8 missing undo");undo.click();'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'return {d:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
+    + 'automatic:document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]").length};})()');
+  assert.equal(undoAuto.d,autoHandle.original,"B8 Undo must restore the original automatic SVG path");
+  assert.equal(undoAuto.manual,0,"B8 Undo must discard all converted manual controls");
+  assert.ok(undoAuto.automatic>0,"B8 Undo must restore automatic segment drag handles");
+  assert.equal(store.getVersion(target),3,"B8 Undo must not persist a Host write");
+
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 4, nativeRouteHandleSnapAndUndo: true,
+    browser: version.Browser, tabs: 5,
+    autoSegmentDragCancelConvertUndo: true, nativeRouteHandleSnapAndUndo: true,
     nativeOrthogonalSegmentSnapAndUndo: true,
     nativeGridSnapCancelled: true,
     independentGridModes: true, groupAlignmentUndo: true,
@@ -515,7 +606,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
