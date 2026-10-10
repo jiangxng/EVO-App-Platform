@@ -267,3 +267,12 @@
 - **纠偏记录：** [B8q 初始失败 CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 的 `P01 fixture never mounted` 原先误认为是复杂自动正交寻路超时；实际发现 160/320 节点使用 25 列时，末行 `src+1` 会生成不存在的 `n160/n320` 目标，违反 Eidos 图状态验证。**这是测试图非法，不是自动路由性能失败的证据。** 现已修复部分末行的环绕目标计算，另在启动 Chrome 前使用生产 `validateDiagramEditorStateV010` 检测所有模拟图，以后只有合法图真正挂载才可报告性能。
 - 完成的代码验证与浏览器 CI 记录以 Draft PR 最新 head 的结果为准。**§14 39 项正式商业化验收仍全部 NOT TESTED**；实体 iOS/Android/macOS/Windows、真实业务数据和真实大图全部自动复杂路径、性能稳态与数据库重启均未验收。
 - 决策及交接入口：`docs/architecture/DIAGRAM-B8PQ-WORD-BIDI-COMPLEX-DOM-INTEGRATION-20261010.md`。该专项保持与其他主线分支独立。
+
+
+## B8r + B8s：合法自动正交路由 A* 与真实 Firefox/WebKit 国际化排版（2026-10-10）
+
+- 研发隔离：Eidos [Draft #155](https://github.com/jiangxng/eidos/pull/155)、App [Draft #602](https://github.com/jiangxng/EVO-App-Platform/pull/602)，分别堆叠 B8p+B8q #154/#601。未修改业务拓扑、投影 CAS、Host/Agent 权限、人工 waypoint，不合并主线、不部署。决策文档：`docs/architecture/DIAGRAM-B8RS-AUTO-ROUTING-CROSS-BROWSER-INTEGRATION-20261010.md`。
+- **B8r** Eidos 有界自动正交路由从 Dijkstra 队列转为 A*，启发项为 Manhattan 距离（非负转弯损耗保证其为有效下界），网格点障碍占用使用一次性 `Uint8Array` 缓存，同时**保留对整条线段的真实障碍交叉检查**、22 个相关障碍 / 2600 网格点预算与拥塞降级。纯函数合成测试覆盖障碍绕行、圆角及 200 条合法关系，任一不可达仍返回 `undefined`，不静默写入节点、业务关系或手动路径。
+- [**真实 Chrome/154 自动正交完整 DOM CI #38056106595 PASS**](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38056106595)。测试图在启动 Chrome 前经过生产 Eidos `validateDiagramEditorStateV010` 验证，全部关系为真实 `orthogonal/rounded-orthogonal` 自动寻路，无手工 waypoint 替代；100 节点 / 300 边、200 / 600。预热后每档 2 次正式样本，CI-host 挂载 116.2ms/164.6ms、选择 39.1ms/63.5ms、CDP 原生拖动 p95 18.96ms/23.15ms、604/1204 SVG 元素、JS heap 3.54/4.95MB。这不能宣称 12k 复杂自动关系可达到该性能，也不是硬件 FPS 保证。
+- **B8s** 实际双引擎 [Firefox + WebKit CI #38056106551 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38056106551)：每引擎使用真实 Eidos SVG 页面渲染 Arabic RTL / Hebrew RTL / English word boundaries / CJK-emoji 四组标题，总计 8 组。自动读取 `direction`、浏览器 `getComputedStyle`、`unicode-bidi`、`tspan` 和 `getBBox`；RTL 方向有效、所有四组都生成有效文字盒，全文 `title` 保留，未改变业务原文。**Firefox 与 WebKit 的 RTL 实际 SVG 盒宽明显不同**（阿拉伯约 237.78 vs 278.55px，希伯来约 235.43 vs 266.91px）；跨浏览器排版不能要求尺寸严格相同，也不能只用 Chrome 数据证明所有平台无重叠。已增加后续 Canvas2D 测量与 SVG 实宽诊断，最终限制和结论按后续最新-head CI 补充。
+- **开放问题：** 实际 Safari/iOS、Windows/macOS 系统字体、专业 RTL 光标/选区、字体实盒与碰撞预留的一致性、实体触控与鼠标手感、真实企业大图、持久数据库重启和 §14 **39 项正式商业化验收全部 NOT TESTED**。Chrome + Linux Firefox/WebKit 结果不可冒充实体设备或商用签收。
