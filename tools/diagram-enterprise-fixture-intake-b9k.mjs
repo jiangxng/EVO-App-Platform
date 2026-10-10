@@ -4,10 +4,9 @@
  * enterprise S2C/P2P preview2d graphs. No network or storage write.
  * This is a safety/shape preflight, NOT proof of authorization or anonymization.
  */
-import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {lstat,readFile} from "node:fs/promises";
-import {relative,resolve,sep} from "node:path";
+import {isAbsolute,relative,resolve,sep} from "node:path";
 import {pathToFileURL} from "node:url";
 
 const MAX_BYTES=2*1024*1024;
@@ -98,7 +97,7 @@ export async function readAuthorizedEnterpriseFixtureV010(filename,{
  if(!id(filename))error("a local fixture path is required");
  const absolute=resolve(filename);
  const location=relative(resolve(repositoryRoot),absolute);
- if(location==="" || (!location.startsWith(".."+sep) && location!==".." && !location.startsWith("..")))
+ if(location==="" || (!location.startsWith(".."+sep) && location!==".." && !isAbsolute(location)))
   error("customer fixture must stay outside the Git checkout");
  const info=await lstat(absolute);
  if(!info.isFile() || info.size>MAX_BYTES)
