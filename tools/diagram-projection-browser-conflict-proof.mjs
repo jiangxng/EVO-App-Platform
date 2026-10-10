@@ -1477,6 +1477,15 @@ try {
   assert.equal(multiProbe.radius,"22");
   assert.equal(multiProbe.hit,true,"Congestion warning must not obstruct 44px handle");
   assert.ok(multiProbe.fifthWorldX>multiProbe.firstWorldX+58);
+  // B9c captures BEFORE unsaved pointer edits: an actual crowded Eidos
+  // diagram with one known congested loop, not a synthetic SVG flag.
+  const b9cDesigner=await b9bSnapshot(u);
+  assert.equal(b9cDesigner.count,1,
+    "B9c actual Designer must show one of five budget-congested loops");
+  assert.equal(b9cDesigner.actualPaths,1);
+  assert.equal(b9cDesigner.summary,"1");
+  assert.equal(b9cDesigner.role,"note");
+  assert.equal(b9cDesigner.pointerEvents,"none");
   const fifthOld=multiProbe.edges[4].d;
   await u.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:multiProbe.x,y:multiProbe.y});
   await u.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
@@ -1497,6 +1506,28 @@ try {
     "Readonly Viewer remains equal to the pre-edit, UNSAVED test source");
   assert.equal(multiViewer.controls,0);
   assert.equal(multiViewer.save,false);
+  // B9c separate POSITIVE proof: a true read-only App Viewer with the
+  // same App artifact source must recompute the very same nonzero
+  // congestion summary despite an UNSAVED edit on the Designer tab.
+  const b9cViewer=await b9bSnapshot(v);
+  assert.equal(b9cViewer.count,1,
+    "B9c actual readonly Viewer must preserve real crowded edge count");
+  assert.equal(b9cViewer.actualPaths,1);
+  assert.equal(b9cViewer.summary,"1");
+  assert.equal(b9cViewer.role,"note");
+  assert.equal(b9cViewer.pointerEvents,"none");
+  assert.equal(b9cViewer.missingAccessibleEdges,0);
+  assert.equal(b9cViewer.savedControls,0);
+  assert.equal(b9cDesigner.count,b9cViewer.count,
+    "B9c real App read-only Viewer must match original unedited Designer congestion");
+  assert.equal(store.getVersion(target),7,
+    "B9c local route edits plus Viewer GET must not commit a CAS write");
+  console.log("B9C_POSITIVE_VIEWER_CONGESTION_RESULT="+JSON.stringify({
+    browser:version.Browser,unmodifiedDesigner:b9cDesigner,
+    readonlyViewer:b9cViewer,storeVersion:store.getVersion(target),
+    expectedPositiveCount:1,
+    warning:"Actual App read-only artifact Handler and true Chrome; synthetic crowded source, NO positive CAS Save"
+  }));
   w=await tab("W","all-blocked-loop");
   await until(w,"Ready.");
   const allCrowded=await w.eval("(()=>{\n const ids=__IDS__;\n return ids.map(id=>{\n   const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n   const hit=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n   const warning=document.querySelector(\"[data-eidos-diagram-congestion-warning=\"+CSS.escape(id)+\"]\");\n   if(!visual||!hit)throw Error(\"B8h crowded edge missing \"+id);\n   return {d:visual.getAttribute(\"d\"),\n     congested:hit.getAttribute(\"data-eidos-diagram-route-congested\")===\"true\",\n     aria:hit.getAttribute(\"aria-label\"),\n     warning:!!warning,warningPointer:warning?.style.pointerEvents};\n });\n})()".replace("__IDS__",JSON.stringify(multiIds)));
