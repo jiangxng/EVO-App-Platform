@@ -14,3 +14,9 @@
 - Eidos source/Unit 和 App integration：自环四侧保留、第五/六侧错层、多节点拥堵、手工持久方向稳定和异常参数等。
 - App Browser Conflict CI 保留 B8g **20-tab** 浏览器回归，并新增 3 页隔离合成场景：第 21 页五个自环的真实 Designer，验证第五条警示/可抓柄并 CDP 鼠标拖动；第 22 页只读 Viewer 仍显示未保存的原测试源；第 23 页四侧被节点阻挡时拥堵证据。浏览器是否全部通过，以 CI run 最终状态为准。
 - 合成关系和四侧 blocker 只存在测试 source，不修改生产关系。Chrome CDP 不是物理 iOS/Android/Windows/macOS；测试 Store 不是持久 DB 重启。图边-边、标签、外侧视口裁切的真实冲突处理尚不完整，§14 **39条仍 NOT TESTED**。PR 未合并、未部署。
+
+## B8h 补充核验与优先级修正
+
+- **手工路径优先**：同一节点的全部已保存手工自环先占外侧方向，不论其关系 ID 在自动自环之前还是之后；其余自动自环按稳定 ID 次序择侧。这样不会因新添 ID 更小的自环使先前保存的手工路径被覆盖或视觉交错。对应 Surface 代码与测试均已增加约束。
+- [B8h Chrome 23 标签页实测 #38024189776](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38024189776) **PASS**，Chrome/154.0.8037.97，日志 `b8hMultiLoopCongestionNativePointerViewer=true`；B8g/B8f/B8e/B8d/B8c/B8b/CAS 历史验证同时为 true。第 21 页：5 条合成自环稳定分右、下、左、上、右，第五条有警示和能命中的 44px bulge；CDP 原生鼠标拖动成功但不自动 Save。第 22 页真实只读 Viewer 仍保持原测试源的未保存形状。第 23 页四侧被模拟节点遮挡，所有自环均带 aria 拥堵说明和 pointer-events:none 警示。请勿将这项隔离测试解释为现网真实企业图验收。
+- 代码、性能和浏览器最终是否都 PASS，以本轮 GitHub 最新 PR head 的 CI 为准；上一份浏览器运行是已完成的实证，但后续优先级修正仍需最新 CI 回归。
