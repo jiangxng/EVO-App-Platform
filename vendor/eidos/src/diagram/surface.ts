@@ -20,7 +20,7 @@ import {
   type DiagramEdgePathKindV010
 } from "./edge-paths.js";
 import { diagramNodesIntersectingRectV010 } from "./selection.js";
-import { diagramSnapTranslationV010, type DiagramSnapTranslationV010 } from "./snapping.js";
+import { diagramSnapTranslationV010, diagramGridStepV010, type DiagramSnapTranslationV010 } from "./snapping.js";
 import {
   diagramEdgeAnchorPointV010,
   diagramManualEdgeGeometryV010,
@@ -1449,6 +1449,8 @@ export function mountDiagramEditorPageV010(
     if (!stageElement) return;
     stageElement.style.transform =
       `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
+    const gridStep = diagramGridStepV010(camera.scale);
+    stageElement.style.backgroundSize = gridStep + "px " + gridStep + "px";
     // A zoom updates the transform without a full DOM redraw. Keep handle hit
     // targets at 44 CSS px and visible markers at a fixed screen radius.
     for (const target of Array.from(stageElement.querySelectorAll<SVGCircleElement>(
@@ -2467,7 +2469,8 @@ export function mountDiagramEditorPageV010(
     stage.style.width = maxX + "px";
     stage.style.height = maxY + "px";
     stage.style.transformOrigin = "0 0";
-    stage.style.backgroundSize = "24px 24px";
+    const gridStep = diagramGridStepV010(camera.scale);
+    stage.style.backgroundSize = gridStep + "px " + gridStep + "px";
     stage.style.backgroundImage = gridVisible
       ? "linear-gradient(to right,rgba(95,107,118,.10) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,107,118,.10) 1px,transparent 1px)" : "none";
     stageElement = stage;
