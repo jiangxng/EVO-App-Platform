@@ -135,3 +135,10 @@
 从各自最新 main 独立创建草稿 [EVO #108](https://github.com/jiangxng/EVO/pull/108) 和 [App Platform #594](https://github.com/jiangxng/EVO-App-Platform/pull/594)，保留所有已经确认的 B2D1/2 原始 facts、policy/valuation pins 和无财务写入断言。来源事实、替代方案（mTLS/HMAC/自声明 actor/进程内适配）、候选实现和仍需验证的 Host 实际 Session+安装 Provider+Secrets、TLS/轮换/撤销/nonce 保留、执行时 TOCTOU 详见 [B2D3 文档](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md)。
 
 **进度限制：**草稿 PR/测试脚本不是真实 CI PASS；B2D3 仍为 OPEN，B2D4/B2E 尚未启动，不得修改 `project.status.json` 或手编自动生成 HANDOFF。两条并行 2D Designer / Agent 任务不在本分支范围内。
+
+
+### 2026-10-10 subsequent owner/provider installation gate candidate
+
+The App Platform owner verifier is now represented by a dedicated optional `PLATFORM_PROVIDER` package in `providers/trading-finance-owner/package.ts`, resolved using existing installation/enablement and Provider binding policy. `manager/server.ts` additionally contains a real request-bound **managed** Session-only read-only Host ingress (never compatibility/static identity, no Agent or Workbench tool), server-resolved context scope and owner mapping, B2D1 per-resource authorization, and Host SecretsProvider-backed Ed25519 signing. This code is on the same unmerged #594 draft. It is **not** a new source of EVO financial truth; EVO owner remains the separate B2D2 read-only database verifier behind #108's cryptographic boundary. No new `executionAllowed:true` operation.
+
+Observed latest EVO CI 27/27 success and App Platform integration/quality workflows 38/38 success, including genuine signed HTTP/PostgreSQL original-facts test. A real *product Host* request with fully issued/revoked managed session, installed/disabled Provider and installed Secrets has **not** been certified. Keep B2D3 OPEN, next proof must target this missing path plus revoke/rotate and TLS; retain separate B2D4 finance execution and B2E Sales Human/Agent/Workbench admission.

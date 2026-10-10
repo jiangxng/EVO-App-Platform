@@ -54,3 +54,24 @@
 5. **Do not advance project authority or merge drafts until required evidence is real.** B2D4 financial effects, B2E installed Sales UI/Agent/Workbench and Financial Account master-data modelling stay separate.
 
 **Window isolation:** neither draft changes parallel 2D Designer or long-term Personal Agent branch; no `main` write, no `project.status.json`/generated HANDOFF edits.
+
+
+## 2026-10-10 product Host install/session integration update (candidate; not product-accepted)
+
+The earlier "Host actual session + installation" gap has **an implemented read-only candidate**, but is **not yet certified by a real product request**:
+
+- `providers/trading-finance-owner/package.ts`: new optional `PLATFORM_PROVIDER` package `evo-trading-finance-owner-provider`, service capability `evo.trading-finance.owner.verify-readonly`, no Human/Agent operation or Workbench exposure. It is never auto-installed.
+- `manager/server.ts`: registers the runtime only when the **operator-supplied** `APP_PLATFORM_FINANCE_OWNER_INSTALLATION_JSON` is valid. Each incoming `POST /api/v1/trading-finance/readonly-owner-verify` demands `APP_PLATFORM_MANAGED_SESSION_ENABLED=true`, the *effective* Host Managed Request Session Provider (never compatibility/static fallback), a valid server-resolved request session, resolved Enterprise Context and explicit Host→EVO scope map. The JSON body permits only `intent`; actor and enterprise identities are never taken from it.
+- Each call resolves the installed-and-effective owner Provider through existing package lifecycle and Provider bindings, and the matching Ed25519 signing private key from **Host encrypted SecretsProvider** at `{contractVersion:"0.1.0",namespace:"evo-trading-finance-owner",key:"host-ed25519-signing-pkcs8",scope:"INSTALLATION",scopeId:<installationId>}`. Missing plugin, Provider binding, secure Session, enterprise or Secret fails closed; B2D1 individually authorizes resources, B2D2 owner independently checks PostgreSQL facts, financial write remains unavailable.
+- The Host installation configuration must match the EVO operator's `EVO_FINANCE_TRUSTED_INSTALLATIONS_JSON` public-key/issuer/enterprise/context allowlist; `APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON` must independently map Host enterprise to that exact EVO enterprise. Production signer enforces HTTPS and rejects redirects. **Never store a private key in the installation JSON, PR, public settings, or chat.**
+- The Host HTTP read-only route is an **internal gated candidate**, not a public exposed finance capability, Agent tool, or workbench installation claim.
+
+### Actual CI evidence and depth
+
+| Artifact | Evidence level | Outcome |
+|---|---|---|
+| [EVO PR #108 latest CI #38022311183](https://github.com/jiangxng/EVO/actions/runs/38022311183) (`fb709bc72ff195158ef6ffbb59fbcabf27af4fca`) | Observed **27/27 completed successful jobs**, including quality/production artifact/DB migrations; includes regression for valid multiline PEM trust | PASS |
+| [App Platform original-facts HTTP/PostgreSQL CI #38022319616](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38022319616) (`b0c8ea733f3fedfef9fbb3bb02a78859a3fd8281`) | Inspected **original record IDs** and logged `TR01B2D3_HOST_EVO_SIGNED_HTTP_POSTGRESQL_PROOF.status=PASS`; real Fastify HTTP, Ed25519, Postgres nonce, wrong-tenant/forged/replay/expired/denied facts, unchanged economic digest | PASS |
+| [App Platform latest gated Host candidate PR #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) (`fb6ba773e7a1d1b7fd55be0e4652884e7f425a9c`) | Observed **38/38 complete successful workflows** including Platform CI, Host Managed Session, TR01A and TR01B original-facts PostgreSQL CI | PASS for code/regression, **NOT** a real-session HTTP installed-product proof |
+
+**Still required to claim B2D3 fully accepted:** an end-to-end **live Host** managed session (valid/expired/revoked), installed+enabled/disabled Provider, real Host Secrets key and Enterprise grants through the new Host HTTP endpoint; provider/issuer rotation, trust revocation and TLS deployment. The cross-project proof used a representative Host context and a scoped test authorization provider, so it cannot substitute for that product request test. No mutation / B2D4 / Sales Agent/Workbench follows from current evidence. `project.status.json` remains unchanged and B2D3 remains OPEN.

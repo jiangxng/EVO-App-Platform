@@ -100,3 +100,8 @@
 | N06 | [EVO CI 38021960750](https://github.com/jiangxng/EVO/actions/runs/38021960750) | **已查 job/错误日志**，2026-10-10 | 首轮 TypeScript TS18048 严格可空失败；已改 `7c6ff8f`，新 CI 结果需另核；不记录为 PASS |
 
 具体方案、仍待 CI 的验收与风险见 [B2D3 工作证据](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md)。本轮未生成网页截图/PDF 附件。
+
+
+| N07 | [EVO latest owner CI #38022311183](https://github.com/jiangxng/EVO/actions/runs/38022311183) | **GitHub CI runs and 27/27 job conclusions read**, 2026-10-10 | Corrected multiline PEM parsing, full EVO quality/DB migration/production artifact all green; still not Host session acceptance |
+| N08 | [App Host product provider implementation PR #594](https://github.com/jiangxng/EVO-App-Platform/pull/594), `providers/trading-finance-owner/package.ts`, `manager/server.ts` | **Actual code written and checked; 38/38 GitHub CI conclusions read**, 2026-10-10 | Optional install-and-effective Provider + request-bound managed Session + scoped Host Secrets key + explicit Enterprise Context map; real product Host HTTP request **not yet exercised** |
+| N09 | [TR01B2D3 original-facts network CI #38022319616](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38022319616) | **Full test output inspected**, 2026-10-10 | `status=PASS`, original App Sales/Shipment/Receipt IDs, Ed25519 / postgres anti-replay / wrong tenant/expiry/facts rejected; canonical finance state unchanged |
