@@ -58,3 +58,31 @@ test("TR-01A receipt contract carries explicit FULFILLS relation", async () => {
   );
   assert.equal(source.includes('movementType: "PURCHASE_RECEIPT"'), true);
 });
+
+test("TR-01A2 uses pinned public EVO REVERSES and its deterministic replay certification", async () => {
+  const contract = await readFile("contracts/evo-business-data.ts", "utf8");
+  const service = await readFile(
+    "apps/trading-reference/purchase-loop.ts", "utf8"
+  );
+  const proof = await readFile(
+    "tools/certify-tr01-purchase-evo-postgres.mjs", "utf8"
+  );
+  const workflow = await readFile(
+    ".github/workflows/cross-project-evo-business-data.yml", "utf8"
+  );
+  assert.equal(contract.includes('| "REVERSES";'), true);
+  assert.equal(service.includes('businessDataType: "goods_receipt.reversed"'), true);
+  assert.equal(service.includes('movementType: "PURCHASE_RECEIPT_REVERSAL"'), true);
+  assert.equal(service.includes('relationType: "REVERSES"'), true);
+  assert.equal(proof.includes("service.reversePurchaseReceipt"), true);
+  assert.equal(proof.includes("pendingAfterReversal"), true);
+  assert.equal(proof.includes("inventoryAfterReversal"), true);
+  assert.equal(proof.includes("payableAfterReversal"), true);
+  assert.equal(proof.includes("workAfterReversal"), true);
+  assert.equal(
+    workflow.includes("npm run validate:tr01-purchase-receipt-reversal"),
+    true
+  );
+  assert.equal(proof.includes("business_object_link"), false);
+  assert.equal(proof.includes("ledger_balance"), false);
+});
