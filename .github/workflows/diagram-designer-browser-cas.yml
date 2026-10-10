@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Two real Chromium tabs - stale save, conflict notice and Save As
+      - name: Three real Chromium tabs - stale save, Save As, HTTP failure and retry
         shell: bash
         run: |
           set -euo pipefail
