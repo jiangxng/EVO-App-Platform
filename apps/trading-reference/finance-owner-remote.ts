@@ -26,7 +26,7 @@ export function createTrustedRemoteFinanceOwnerPreflightV010(options: {
   /** Missing/deactivated installation means fail closed before any network. */
   resolveInstallation(): TrustedFinanceOwnerInstallationV010 | undefined;
   /** Resolve from the Host server-side SecretsProvider, never a request value. */
-  resolveSigningPrivateKey(installationId: string): Promise<string> | string;
+  resolveSigningPrivateKey(installationId: string, keyId: string): Promise<string> | string;
   fetchImpl?: typeof fetch;
   now?: () => number;
   /** Isolated CI only, cannot activate plain HTTP in production. */
@@ -58,7 +58,7 @@ export function createTrustedRemoteFinanceOwnerPreflightV010(options: {
         !['HUMAN','AI'].includes(input.actorType)) {
         throw new Error('TR01B2D3_HOST_IDENTITY_INVALID');
       }
-      const key = createPrivateKey(await options.resolveSigningPrivateKey(install.installationId));
+      const key = createPrivateKey(await options.resolveSigningPrivateKey(install.installationId, install.keyId));
       if (key.asymmetricKeyType !== 'ed25519') {
         throw new Error('TR01B2D3_SIGNING_KEY_INVALID');
       }
