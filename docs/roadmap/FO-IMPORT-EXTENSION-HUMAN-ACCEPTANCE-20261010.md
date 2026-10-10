@@ -31,7 +31,7 @@
 - 查看 `/data-import/jobs/{id}`（实际页面如改版应以产品导航为准）；确认原始来源标记。查看供应商列表，以唯一测试编码逐一检查 `SUPPLIER` role、主体名称。
 - 样例 B（2 行）先**只预检查不提交**，观察 `RECIPE` 来源和正确列映射；需要测试正式保存时再人工确认。
 - 正式扩展字段测试前，先检查**本企业实际是否已定义相应扩展字段**：若没有，不应把未映射列的原始保存误当成完成；将此条标为 `USER_E2E_NOT_CERTIFIED`，由独立 UI 能力评估补齐。
-- 新增回归：`tests/protocol/data-import-human-experience.test.mjs` 的 CP-03D 既有 Human-first recipe 测试额外断言「成功提交后的 Job 仍有未映射备注原值，且没有写到 Counterparty.notes 或 Enterprise Extension Value」；该提交必须等其自身 CI 结果证实，不能提前报 PASS。
+- 新增回归：`tests/protocol/data-import-human-experience.test.mjs` 的 CP-03D 既有 Human-first recipe 测试额外断言「成功提交后的 Job 仍有未映射备注原值，且没有写到 Counterparty.notes 或 Enterprise Extension Value」；[Platform CI #38059144873](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059144873) 已成功；这仅验证协议断言，不表示 Human 已重新点击生产页面验收。
 
 ## 证据与用户只需要确认的判据
 
