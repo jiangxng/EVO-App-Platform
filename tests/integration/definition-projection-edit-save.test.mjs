@@ -1226,3 +1226,30 @@ test("stale editor may explicitly Save As without overwriting another writer's v
     enterpriseId: revision.enterpriseId, definitionId: revision.definitionId
   }).length, 1);
 });
+
+
+test("legacy tokenless editor writes reject safely even before any gallery has been stored", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore,
+    source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore),
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {}
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const before = projectionStore.snapshot();
+  const result = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId,
+      expectedRevision: revision.revision,
+      operation: { type: "RENAME_PROJECTION", title: "blind writer" }
+    }), context());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "DEFINITION_PROJECTION_WRITE_TOKEN_REQUIRED");
+  assert.deepEqual(projectionStore.snapshot(), before);
+});
