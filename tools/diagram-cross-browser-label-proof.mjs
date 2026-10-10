@@ -22,7 +22,11 @@ const cases=[
  {id:"rtl-ar",caption:"مرحبا بالعالم · أمر شراء 2026 · فاتورة مورد ومطابقة التحصيل حسابات الشركة",direction:"rtl"},
  {id:"rtl-he",caption:"חשבונית ספק 2026 · אישור חשבונות לתשלום והשלמת ההתאמות",direction:"rtl"},
  {id:"ltr-en",caption:"Accounts payable approval process and purchase order payment reconciliation",direction:"ltr"},
- {id:"cjk-emoji",caption:"销售到收款👩‍💻｜采购到付款🧾｜請求書照合・日本語処理を確認",direction:"ltr"}
+ {id:"cjk-emoji",caption:"销售到收款👩‍💻｜采购到付款🧾｜請求書照合・日本語処理を確認",direction:"ltr"},
+ // B8u: distinct shaping/fallback sequences. Do not reverse logical text.
+ {id:"rtl-ar-diacritics",caption:"تَسْوِيَةُ الْحِسَابَاتِ 2026 · مراجعة الطلبات والفواتير · حساب الشركة",direction:"rtl"},
+ {id:"rtl-he-niqqud",caption:"שָׁלוֹם · בְּדִיקַת חֶשְׁבּוֹן 2026 · אישור תשלומים נוספים",direction:"rtl"},
+ {id:"ltr-zwj-mixed",caption:"Approval 👩‍💻 / 👨‍👩‍👧‍👦 — नमस्ते · 買掛金 · 合同验收",direction:"ltr"}
 ];
 const nodes=[
  {id:"a",kind:"subject",label:"Sales",shape:"rounded-rectangle",x:40,y:85,width:150,height:64},
@@ -54,6 +58,19 @@ const fixtures=new Map(cases.map(test=>{
   +'</script></body></html>';
  return [test.id,html];
 }));
+// 258 painted RTL labels probe the existing 256 getBBox cap on a real DOM.
+const capState=state("שלום");
+capState.edges=Array.from({length:258},(_,i)=>({
+ id:"cap-edge-"+i,kind:"test",source:"a",target:"b",
+ pathKind:"straight",label:"שלום "+i,arrow:"end"
+}));
+const capValid=validateDiagramEditorStateV010(capState);
+assert.equal(capValid.ok,true,capValid.issues.join("; "));
+const baseCaption=cases.find(sample=>sample.id==="rtl-he").caption;
+const sourceJSON=JSON.stringify(state(baseCaption));
+const sourceHTML=fixtures.get("rtl-he");
+assert.ok(sourceHTML?.includes(sourceJSON));
+fixtures.set("rtl-cap-258",sourceHTML.replace(sourceJSON,JSON.stringify(capState)));
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,"http://127.0.0.1");
@@ -77,6 +94,7 @@ try{
  server.listen(0,"127.0.0.1");await once(server,"listening");serverStarted=true;
  const origin="http://127.0.0.1:"+server.address().port;
  const results=[];
+ const limitResults=[];
  for(const [engine,browserType] of [["firefox",firefox],["webkit",webkit]]){
   const browser=await browserType.launch({headless:true});
   try{
@@ -166,9 +184,29 @@ try{
      console.log("B8S_BROWSER_CASE="+JSON.stringify(results.at(-1)));
     }finally{await page.close();}
    }
+   const capPage=await browser.newPage({viewport:{width:1150,height:800}});
+   try {
+    await capPage.goto(origin+"/fixture?case=rtl-cap-258",{waitUntil:"load"});
+    await capPage.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+      {timeout:30000});
+    const diagnostic=await capPage.evaluate(()=>({
+      count:document.querySelectorAll("[data-eidos-diagram-caption-direction='rtl']").length,
+      capped:document.querySelector("svg[data-eidos-diagram-bidi-measure-limit]")?.getAttribute("data-eidos-diagram-bidi-measure-limit"),
+      errors:window.__errors
+    }));
+    assert.deepEqual(diagnostic.errors,[],engine+" label-cap script errors");
+    assert.equal(diagnostic.count,258,engine+" must paint all labels, not silently drop excess");
+    assert.equal(diagnostic.capped,"true",engine+" expensive RTL measurements must be bounded");
+    limitResults.push({engine,...diagnostic});
+    console.log("B8U_MEASURE_LIMIT="+JSON.stringify({engine,count:diagnostic.count,capped:diagnostic.capped}));
+   } finally { await capPage.close(); }
   }finally{await browser.close();}
  }
  assert.equal(results.length,cases.length*2);
+ assert.equal(limitResults.length,2);
+ console.log("B8U_COMPLEX_TEXT_RESULT="+JSON.stringify({
+  engines:["firefox","webkit"],samples:results.length,capProbes:limitResults,
+  warning:"Linux browser engines only; not a Safari/iOS or physical-device acceptance"}));
  console.log("B8S_CROSS_BROWSER_RESULT="+JSON.stringify({
   engines:["firefox","webkit"],samples:results.length,cases:results,
   note:"Real Firefox and WebKit SVG metrics. Font-dependent widths need not match pixel-for-pixel; physical devices not covered."}));
