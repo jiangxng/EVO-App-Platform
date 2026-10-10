@@ -294,6 +294,28 @@ const preciseInkViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010(
   source:preciseInkSource
 });
 
+// B8l real-glyph-width fixture: remote straight connector is much
+// farther right than the previous 176-unit caption cap, but a long
+// actual SVG text width extends into the self-loop corridor.
+const wideLabelSource={get(input){
+  const result=labelInkSource.get(input);
+  if(!result?.diagram2d)return result;
+  return {...result,diagram2d:{...result.diagram2d,
+    nodes:result.diagram2d.nodes.map(n=>
+      n.id==="diagram-browser:ink-upper"||n.id==="diagram-browser:ink-lower"
+        ? {...n,x:n.x+174}:n),
+    edges:result.diagram2d.edges.map(e=>e.id===inkRelationId
+      ? {...e,label:"M".repeat(60)}:e)}};
+}};
+const wideLabelHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:wideLabelSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:08:00.000Z")
+});
+const wideLabelViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:wideLabelSource
+});
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -344,6 +366,12 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/precise-ink") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
+    if (url.pathname === "/wide-label") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
+    }
+    if (url.pathname === "/wide-label-viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -353,7 +381,9 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = ["AA","AB"].includes(tab)
+      const candidates = ["AC","AD"].includes(tab)
+        ? [...wideLabelHandlers,wideLabelViewerHandler]
+        : ["AA","AB"].includes(tab)
         ? [...preciseInkHandlers,preciseInkViewerHandler]
         : ["X","Y"].includes(tab)
         ? [...inkHandlers,inkViewerHandler]
@@ -417,7 +447,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab, ac, ad;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -474,6 +504,8 @@ try {
       : route === "ink-label" ? "/ink-label?session="
       : route === "precise-ink" ? "/precise-ink?session="
       : route === "precise-ink-viewer" ? "/precise-ink-viewer?session="
+      : route === "wide-label" ? "/wide-label?session="
+      : route === "wide-label-viewer" ? "/wide-label-viewer?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1464,7 +1496,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close(); ac?.close(); ad?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
