@@ -235,3 +235,13 @@
 - **B8k：** 在同一次 render 对可见非 self 关系计算一次路由并缓存供 Canvas/Viewer 复用，建立按 256 world-unit 单元索引的段/标签数据。自环只查询附近墨迹并过滤自己的 incident 关系；巨大跨度线段有 overflow 防漏机制。新增 6,000 条远处合成关系 + 长跨距边测试。预算可处理至 12,000 visible edges，100,000 细分段后局部降级为端点线估计；超过 12k 边明确降为 B8h 节点/同节点自环避让，**不是避让成功**。已缓存的非选中关系不重复寻路；只有选中关系需要控件时继续做编辑预览路由。
 - [**真实 Chrome 154，28 标签页，Browser CI #38026313103 PASS**](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38026313103)，实际输出 `b8jkRenderedCubicInkIndexedViewer=true`。第 27 页是隔离注入的模拟另一条手工 C 曲线 + 自环，浏览器确认该曲线经过节点外侧、自环改至下方，手柄保留 44px；第 28 页真实只读 Viewer 对**两条关系**重新获取完全一致 SVG，不提供编辑/Save，不推动 Store CAS。原 B8i/B8h/B8g/B8f/B8e/B8d/B8c/B8b、错误重试、冲突防写回归均在同 run 通过。最新 head 的补充缓存优化需要以最新 CI 复跑为最终依据。
 - 未达到完整商用验收：6000 远边为合成索引正确性，不等于现场大数据帧率；圆角/曲线仍为自适应采样非解析几何，标签真实浏览器字体测量、多关系全局无交叉、大图索引极端内存峰值、人工 pan/zoom 边界、实体 iOS/Android/macOS/Windows 触摸、数据库重启、完整 §14 **39 项正式商用验收仍 NOT TESTED**。两个 PR 仍 Draft/未合并/未部署。
+
+
+## B8l + B8m 双增量：实测标签预留与高密度算法降级（2026-10-10）
+
+- 双轨联动但与业务主线隔离：[Eidos Draft #152](https://github.com/jiangxng/eidos/pull/152)，[EVO Draft #599](https://github.com/jiangxng/EVO-App-Platform/pull/599)，堆叠各自 B8j+B8k 已通过的 Draft 分支。未改动投影 Host CAS、业务 source/target、Agent 授权、业务定义版本和 44 CSS px 路由手柄。
+- **B8l** 原有无关关系标签最多只保留 176 world-unit 的宽度，导致真实长标题可能占据自环外侧而不被考虑。现用实际浏览器 Canvas2D `measureText`、字体家族和 SVG 11px 字号，计算文字宽度、ascent/descent、文字描边余量对应的稳定世界坐标区。相同标题一轮 render 只测一次；没有 Canvas2D 时以确定性的文字估计兜底，位置不依赖鼠标选中、缩放和临时标签 DOM 显隐。
+- **B8m** `full / coarse / node-only` 诚实标注路由精度。当 render 累计 100,000 曲线线段预算用尽，停止进一步 Q/C 分段、保守回退，并由画布提供一次非阻挡式状态提示；超过 12,000 可见关系不进行外部墨迹预计算，仍保留 B8h 节点与同节点多自环方向避让。状态没有增加持久化字段或 Host 权限变更，提示不遮挡拖动。
+- **已完成的代码版本测试：** [真实 Chrome 154，30 标签页 #38033645259](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38033645259) **PASS**，日志 `b8lmRealLabelMetricsAndDensityBudget=true`。新增第 29 页长 60 个 M 的**隔离合成关系标题**，实测 SVG 文字宽度超过 176、Canvas2D 测量生效、自环绕行至下侧、44px 路由柄保留；第 30 页只读 Viewer 重读相同 SVG 且无编辑或 Save，Store CAS 不改变。B8j+B8k / B8i / B8h / B8g / B8f / B8e / B8d / B8c / B8b 以及冲突阻断、503 重试、业务定义历史的原有浏览器验证同批通过。
+- **高密度 Node 合成测试：** 13,000 条远处关系仍能在空间索引查询中定位局部线条；`12000→full`、`12001→node-only`、精度预算触发→`coarse` 均明确。此测试是**正确性与算法退化验证**，不是实体 13,000 关系企业场景满画布的 FPS 或响应延迟证明。原有 Diagram Performance Evidence CI 继续作为本轮兼容基线。
+- **尚未完成商业验收：** 浏览器测量是对 SVG 文字盒的近似，未做到浏览器 DOM 字形最终路径精确解析；超长文字/多行与字体差异、密集企业图现场性能、持久数据中心重启、实体设备及触摸板、§14 **39项正式商业化验收全部仍 NOT TESTED**。两仓库 PR 保持 Draft，未合并、未部署。
