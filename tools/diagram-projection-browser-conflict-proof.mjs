@@ -1247,11 +1247,58 @@ try {
   assert.equal(fallbackViewer.edit,0);
   assert.equal(fallbackViewer.save,false);
   assert.equal(store.getVersion(target),7,"B8g Viewer read cannot write");
+
+  // B8h: three isolated genuine Chrome tabs. Stable-ID sibling distribution,
+  // fifth loop nested with honest warning, hit-tested native pointer drag,
+  // read-only Viewer parity, and all four sides blocked congestion warning.
+  u=await tab("U","multi-loop");
+  await until(u,"Ready.");
+  const multiProbe=await u.eval("(()=>{\n const ids=__IDS__,node=__NODE__;\n const edges=ids.map(id=>{\n   const p=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n   if(!p)throw Error(\"B8h missing synthetic self-edge \"+id);\n   const d=p.getAttribute(\"d\");\n   const m=/^M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)/.exec(d);\n   if(!m)throw Error(\"B8h invalid self-edge SVG \"+d);\n   const x=Number(m[1]),y=Number(m[2]);\n   const eq=(a,b)=>Math.abs(a-b)<.002;\n   const side=eq(x,node.x+node.width)?\"right\"\n     :eq(y,node.y+node.height)?\"bottom\"\n     :eq(x,node.x)?\"left\":eq(y,node.y)?\"top\":\"unknown\";\n   return {id,d,side,\n     congested:document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\")\n       ?.getAttribute(\"data-eidos-diagram-route-congested\")===\"true\",\n     warning:!!document.querySelector(\"[data-eidos-diagram-congestion-warning=\"+CSS.escape(id)+\"]\")};\n });\n const fifth=ids[4],edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(fifth)+\"]\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const handle=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(fifth+\":0\")+\"]\");\n if(!handle)throw Error(\"B8h fifth outward cubic bulge not draggable\");\n const r=handle.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;\n const top=document.elementFromPoint(x,y);\n if(top!==handle)throw Error(\"B8h fifth handle is obscured: \"+top?.outerHTML.slice(0,170));\n return {edges,x,y,radius:handle.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n   fifthWorldX:Number(handle.getAttribute(\"cx\")),\n   firstWorldX:node.x+node.width,\n   hit:top===handle};\n})()".replace("__IDS__",JSON.stringify(multiIds)).replace("__NODE__",JSON.stringify(selfNode)));
+  assert.deepEqual(multiProbe.edges.map(e=>e.side),
+    ["right","bottom","left","top","right"],
+    "Five automatic self-loops must distribute by stable ID");
+  assert.ok(multiProbe.edges.slice(0,4).every(e=>!e.congested&&!e.warning));
+  assert.equal(multiProbe.edges[4].congested,true);
+  assert.equal(multiProbe.edges[4].warning,true,
+    "Fifth repeated side must show explicit congestion warning");
+  assert.equal(multiProbe.radius,"22");
+  assert.equal(multiProbe.hit,true,"Congestion warning must not obstruct 44px handle");
+  assert.ok(multiProbe.fifthWorldX>multiProbe.firstWorldX+58);
+  const fifthOld=multiProbe.edges[4].d;
+  await u.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:multiProbe.x,y:multiProbe.y});
+  await u.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    x:multiProbe.x,y:multiProbe.y});
+  await u.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+    x:multiProbe.x+33,y:multiProbe.y-10});
+  const fifthPreview=await u.eval("(()=>{\n const id=__LAST__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n   ?.getAttribute(\"d\");\n})()".replace("__LAST__",JSON.stringify(multiIds[4])));
+  assert.notEqual(fifthPreview,fifthOld,"Fifth congested loop must remain editable");
+  await u.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:multiProbe.x+33,y:multiProbe.y-10});
+  const fifthCommit=await u.eval("(()=>{\n const id=__LAST__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n   ?.getAttribute(\"d\");\n})()".replace("__LAST__",JSON.stringify(multiIds[4])));
+  assert.notEqual(fifthCommit,fifthOld);
+  assert.equal(store.getVersion(target),7,"B8h local edit cannot auto-save");
+  v=await tab("V","multi-loop-viewer");
+  await until(v,"Ready.");
+  const multiViewer=await v.eval("(()=>{\n const ids=__IDS__;\n return {paths:ids.map(id=>document.querySelector(\n    \"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\")),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n      .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__IDS__",JSON.stringify(multiIds)));
+  assert.deepEqual(multiViewer.paths,multiProbe.edges.map(e=>e.d),
+    "Readonly Viewer remains equal to the pre-edit, UNSAVED test source");
+  assert.equal(multiViewer.controls,0);
+  assert.equal(multiViewer.save,false);
+  w=await tab("W","all-blocked-loop");
+  await until(w,"Ready.");
+  const allCrowded=await w.eval("(()=>{\n const ids=__IDS__;\n return ids.map(id=>{\n   const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n   const hit=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n   const warning=document.querySelector(\"[data-eidos-diagram-congestion-warning=\"+CSS.escape(id)+\"]\");\n   if(!visual||!hit)throw Error(\"B8h crowded edge missing \"+id);\n   return {d:visual.getAttribute(\"d\"),\n     congested:hit.getAttribute(\"data-eidos-diagram-route-congested\")===\"true\",\n     aria:hit.getAttribute(\"aria-label\"),\n     warning:!!warning,warningPointer:warning?.style.pointerEvents};\n });\n})()".replace("__IDS__",JSON.stringify(multiIds)));
+  assert.ok(allCrowded.every(e=>e.congested&&e.warning),
+    "Four-sided node congestion must never be reported as clear");
+  assert.ok(allCrowded.every(e=>e.aria?.includes("congested")
+    && e.warningPointer==="none"),"Congestion must be accessible and nonblocking");
+  assert.equal(store.getVersion(target),7,
+    "Read-only Viewer and all-sides congestion must not write projection");
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 20,
+    browser: version.Browser, tabs: 23,
+    b8hMultiLoopCongestionNativePointerViewer: true,
     b8gNativeBlockedSideSaveReadViewer: true,
     b8fSelfLoopCurveNativeDragSaveViewer: true,
     b8eRoundedMultiRankCancelRegrabSaveViewer: true,
