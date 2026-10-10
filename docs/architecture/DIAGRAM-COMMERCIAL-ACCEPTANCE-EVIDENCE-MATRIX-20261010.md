@@ -48,9 +48,9 @@
 | E07 | 标签拖动和节点移动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D01 | 隐藏节点/边再保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D02 | 连续编辑、撤销、重做、保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| D03 | 保存失败后重试 | 尚无足以确认该场景的专项证据 | NOT TESTED |
+| D03 | 保存失败后重试 | B7 Eidos 保存失败保留草稿逻辑；缺少真实浏览器断网/重试证据 | NOT TESTED |
 | D04 | 保存后刷新、Viewer、模板预览 | App tests/integration/definition-projection-edge-routes.test.mjs；待 Viewer 手动 | NOT TESTED |
-| D05 | 两窗口冲突保存或 Agent 更新 | 尚无足以确认该场景的专项证据 | NOT TESTED |
+| D05 | 两窗口冲突保存或 Agent 更新 | B7 同 token 双客户端竞争、跨 await 写入 CAS、文件锁自动测试；Agent 与真实双窗口待验 | NOT TESTED |
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A02 | 系统大字与键盘操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -65,12 +65,19 @@
 - 自动路由（无手工 waypoint）的直接线段拖动、curve 标签移动、自环控制柄、密集重叠线段消歧仍需后续切片；不得把 B5a 宣称为 E03/E07 全部完成。
 
 
-## D05 并发覆盖风险（源码审查，尚未执行冲突实测）
+## D05 并发覆盖风险（B5a 历史源码审查；B7 已有增量实现）
 
 - `apps/eog-2d-designer/definition-projection-editor.ts` 的 `SAVE_PROJECTION_VIEW` 核对 `expectedRevision` 与**业务定义** `latest.revision`、session `definitionRevision`。这证明可识别定义版本过期，不等价于投影自身编辑版本冲突。
 - `providers/enterprise-context/definition-projection-store.ts` 的 `put()` 按 enterprise/definition/definitionRevision 键直接过滤旧项后写新 gallery；公开接口目前没有独立投影版本/CAS 参数。这是**可覆盖的架构风险**，不能误记为已通过双窗口验收。
 - 下一切片 B7 的最小安全闭环：读取得到独立 `projectionRevision` / opaque ETag，保存强制原子 compare-and-swap，不允许通过业务定义 revision 代替；冲突返回结构化状态供用户保留本地编辑、重新加载或另存投影。并发写必须由各 Store 实现保证原子性，不能只在服务层先读再写。
 - 验收证据：两个不同浏览器会话同一投影同一 base revision 竞争写入，恰好一个成功、另一个冲突且保留草稿；保存失败模拟、重试及 Agent 写入同走版本校验。未执行前 D03/D05 继续 NOT TESTED。
+
+## B7 最新实现证据（保留 §14 场景 NOT TESTED）
+
+- B7 相关变更存于 App Platform [Draft #561](https://github.com/jiangxng/EVO-App-Platform/pull/561)（基于 #553）和 Eidos [Draft #138](https://github.com/jiangxng/eidos/pull/138)（基于 #137），尚不属于 main 已上线能力。
+- 上节关于 `put()` 无 CAS 的判断准确描述 **B5a 之前** 的代码；B7 增加独立 gallery version、`putIfVersion`、文件排它锁与 `expectedWriteToken`。B7 自动测试覆盖同一 token 竞争保存和旧版本拒绝，也覆盖内存/文件 provider 与旧数据兼容。
+- 限制：旧客户端可不带 token、跨主机文件系统原子性未知、异常遗留锁恢复、浏览器本地草稿恢复、Agent 路径及两台真实终端同时编辑尚未完成。**D03/D05 均维持 NOT TESTED，不因 CI 成功自动判为 PASS**。
+- 新增架构与运维细节见 `docs/architecture/DIAGRAM-B7-PROJECTION-CAS-20261010.md`；GitHub 当前测试工作流以对应 PR 最新提交为准。
 
 ## 实机证据模板
 
