@@ -45,7 +45,8 @@ import {
 import {
   diagramOffsetNodeAttachmentV010,
   diagramParallelLaneOffsetsV010,
-  diagramSelfLoopGeometryV010
+  diagramSelfLoopGeometryV010,
+  diagramSelfLoopRouteControlsV010
 } from "./edge-lanes.js";
 import {
   layoutLayeredDiagramV010
@@ -2419,7 +2420,17 @@ export function mountDiagramEditorPageV010(
             const sx = source.x + source.width / 2, sy = source.y + source.height / 2;
             const tx = target.x + target.width / 2, ty = target.y + target.height / 2;
             editRoute(() => {
-              edge.waypoints = [...(edge.waypoints ?? []), { x: (sx + tx) / 2, y: (sy + ty) / 2 }];
+              if (edge.source === edge.target && !edge.waypoints?.length
+                && edge.pathKind && edge.pathKind !== "straight") {
+                // A self-edge has no meaningful center-center midpoint.
+                // Start with the editable exterior contour, not inside its node.
+                edge.waypoints = diagramSelfLoopRouteControlsV010(
+                  source, edge.pathKind
+                ).waypoints;
+              } else {
+                edge.waypoints = [...(edge.waypoints ?? []),
+                  { x: (sx + tx) / 2, y: (sy + ty) / 2 }];
+              }
             });
           };
           waypointPanel.appendChild(addPoint);
@@ -2608,6 +2619,8 @@ export function mountDiagramEditorPageV010(
       automatic: boolean;
       originalGeometry: { d: string; label: { x: number; y: number } };
       segments?: ReturnType<typeof diagramEditableOrthogonalSegmentsV010>;
+      loopNode?: DiagramEditorNodeV010;
+      laneOffset?: number;
     }> = [];
     const laneOffsets = diagramParallelLaneOffsetsV010(
       renderedEdges.filter(edge => edge.pathKind !== undefined)
@@ -2664,7 +2677,7 @@ export function mountDiagramEditorPageV010(
             .map(node => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
         : [];
       const geometry = edge.source === edge.target
-        ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane)
+        ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane, edge.waypoints)
         : edge.waypoints?.length
           ? diagramManualEdgeGeometryV010(a, b, {
               pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
@@ -2679,8 +2692,19 @@ export function mountDiagramEditorPageV010(
                 && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
             });
       if (selectedEdgeId === edge.id && page.viewInteraction?.localEdgePathEdit === true
-        && edge.source !== edge.target && edge.pathKind && edge.pathKind !== "straight") {
-        if (edge.waypoints?.length) {
+        && edge.pathKind && edge.pathKind !== "straight") {
+        if (edge.source === edge.target) {
+          // B8f: retain the exact existing automatic self-loop until a handle
+          // is actually dragged. Manual curve and orthogonal controls have
+          // fixed right-side boundary terminals; the relation stays a self-edge.
+          const loop = diagramSelfLoopRouteControlsV010(source, edge.pathKind, lane);
+          editableRoutes.push({
+            edge, start: loop.start, end: loop.end,
+            waypoints: edge.waypoints?.length ? edge.waypoints : loop.waypoints,
+            automatic: !edge.waypoints?.length, originalGeometry: geometry,
+            loopNode: source, laneOffset: lane
+          });
+        } else if (edge.waypoints?.length) {
           editableRoutes.push({ edge, start: a, end: b,
             waypoints: edge.waypoints, automatic: false, originalGeometry: geometry });
         } else if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
@@ -2794,7 +2818,8 @@ export function mountDiagramEditorPageV010(
     // B5a: selected manual routes get screen-sized, presentation-only drag handles.
     // Pointer previews never mutate state. A normal release commits one undo step;
     // cancel, lost capture, blur, or a second touch discards the preview.
-    for (const { edge, start, end, waypoints, automatic, originalGeometry, segments } of editableRoutes) {
+    for (const { edge, start, end, waypoints, automatic, originalGeometry, segments,
+      loopNode, laneOffset } of editableRoutes) {
       const rendered = liveEdges.get(edge.id);
       if (!rendered || !waypoints.length || !edge.pathKind) continue;
       const original = waypoints.map(point => ({ ...point }));
@@ -2819,10 +2844,12 @@ export function mountDiagramEditorPageV010(
           })))
       ];
       const previewRoute = (points: { x: number; y: number }[]): void => {
-        const geometry = diagramManualEdgeGeometryV010(start, end, {
-          pathKind: edge.pathKind!, waypoints: points,
-          sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
-        });
+        const geometry = loopNode
+          ? diagramSelfLoopGeometryV010(loopNode, edge.pathKind!, laneOffset, points)
+          : diagramManualEdgeGeometryV010(start, end, {
+              pathKind: edge.pathKind!, waypoints: points,
+              sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+            });
         rendered.hit.setAttribute("d", geometry.d);
         rendered.visual.setAttribute("d", geometry.d);
         if (rendered.label) {
@@ -3068,7 +3095,7 @@ export function mountDiagramEditorPageV010(
       }
       // Automatic routes expose only segment handles. Waypoint handles appear
       // after the FIRST committed edit converts the route to explicit points.
-      if (!automatic) {
+      if (!automatic || (loopNode && edge.pathKind === "curve")) {
         for (const [index, point] of original.entries()) {
           handle(point.x, point.y, "point", index);
         }
@@ -3111,7 +3138,7 @@ export function mountDiagramEditorPageV010(
               movedSource!.x - sourceNode.x, movedSource!.y - sourceNode.y)
           : edge.waypoints;
         const route = edge.source === edge.target
-          ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane)
+          ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane, points)
           : points?.length
             ? diagramManualEdgeGeometryV010(a, b, { pathKind: edge.pathKind ?? "orthogonal", waypoints: points })
             : diagramEdgeGeometryV010(a, b, edge.pathKind);
