@@ -7,6 +7,7 @@
  */
 import assert from "node:assert/strict";
 import { createDatabase } from "../evo/dist/platform/database/src/index.js";
+import { createEvoRuntime } from "../evo/dist/apps/api/src/evo-runtime.js";
 import { PostgresTradingFinanceFactVerifierV010 } from
  "../evo/dist/modules/valuation/infrastructure/postgres-trading-finance-fact-verifier.js";
 import { createTradingFinanceIntentPreflightV010 } from
@@ -14,7 +15,8 @@ import { createTradingFinanceIntentPreflightV010 } from
 import { computeEconomicRuntimeDigest, computeReplayInputDigest } from
  "../evo/dist/modules/replay/infrastructure/postgres-replay-digest.js";
 
-const db=createDatabase(process.env.DATABASE_URL??"postgres://evo:evo@localhost:5432/evo");
+const database=createDatabase(process.env.DATABASE_URL??"postgres://evo:evo@localhost:5432/evo");
+const db=createEvoRuntime(database).db;
 const verified=new PostgresTradingFinanceFactVerifierV010(db);
 const orderNo="TR01B-SO-001";
 const expected={
@@ -223,4 +225,4 @@ try{
   financeMutationApi:"NOT_INSTALLED",
   installedSalesWorkbench:"NOT_CERTIFIED"
  }));
-}finally{await db.destroy();}
+}finally{await database.destroy();}
