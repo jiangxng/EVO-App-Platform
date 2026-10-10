@@ -293,3 +293,12 @@
 ### B8t 追加真实 Chrome 预算降级度量，不能漏记负面质量证据
 
 [受测代码 `a4e14415` Chrome run #38059395563](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059395563) PASS。300/900 与 400/1200 的完整 DOM **全自动正交关系**实测有 **21 和 27 条** `data-eidos-diagram-route-congested`（分别 2.33% / 2.25%）；每条都带 `aria-label`，严格断言 0 条无提示拥塞。前者 mount 101.5ms / select 44.0ms / native CDP p95 19.49ms，后者 100.1ms / 52.5ms / 21.68ms；每档预热后两正式样本，Chrome/154 CI runner 合成图。**区分两层质量**：`inkQuality=full` 仅代表渲染墨迹索引精度，并不保证每条障碍路由成功；全图有明确的拥塞回退，不得称作 900/1200 条 100% 无碰撞。在现有安全预算内诚实降级可接受作为机器子场景证据，但正式 E/V/P 场景商业验收继续 **NOT TESTED**。两仓 PR Draft，未合并、未部署。
+
+
+## B8v + B8w：可见拥塞总数与实际选中后 RTL 重新排版（2026-10-10）
+
+- 两仓 Draft：[Eidos #158](https://github.com/jiangxng/eidos/pull/158) 和 [App #606](https://github.com/jiangxng/EVO-App-Platform/pull/606)，分别堆叠 #157 / #604，不影响 TR-01 主线，不更改 Host/Agent 授权、CAS、业务关系端点或已有手工路径。完整实施与证据入口：[B8vw 详细记录](./DIAGRAM-B8VW-CONGESTION-POSTSELECT-INTEGRATION-20261010.md)。
+- **B8v [Chrome 154 #38060230522 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060230522)**：合法合成 300 节点/900 条全自动正交关系中 **21 条**拥塞，400/1200 中 **27 条**拥塞。每个真实 DOM `route-congested` path 均带 `aria-label`，SVG 上有完全一致的统计，`role=note` 的一条汇总提示不拦截点击/拖动。测试比较的是同帧真实几何计算，不能将 `inkQuality=full` 等同于所有路由无碰撞。6/6 新增/保留定向测试通过；本次 CI 主机两档挂载约 93.2/104.1ms（两次正式样本取中位值），不是生产性能保证。
+- **B8w [Firefox/WebKit #38060230544 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060230544)**：在阿拉伯语、希伯来语及其音标、英文词界、CJK、Indic/emoji 混排等 **7 组 × 2 引擎**下真实 Playwright 鼠标选中节点，14/14 次重绘后再次严格比对父 SVG `getBBox` 的真实宽度与水平坐标是否落入原始世界锚点预留框，同时验证 RTL/LTR 与原文保留；单边无拥塞时汇总应消失且计数为 0。原 B8u 两引擎 258 个可见 RTL 标签/256 个测量上限诊断继续通过。
+- **同一 App 代码头 Chrome 154 34 tabs [#38060230507 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060230507)**，原 B8b～B8q、Host 503 重试、投影 CAS 与浏览器输入回归未被打破。工作流 PASS 属自动化子场景，**不等于**正式 E/V/P 场景人工验收。
+- 原始 §14 **39 项正式商业化验收仍全部 NOT TESTED**。物理 iPhone/Android、Windows/macOS Safari/触控板、真实企业数据、重启后 DB、同屏双实例和长时间负载依然缺实证。代码和文档只放 stacked Draft PR，不合并、不部署。
