@@ -183,3 +183,12 @@
 - Eidos [Draft #145](https://github.com/jiangxng/eidos/pull/145) / App [Draft #590](https://github.com/jiangxng/EVO-App-Platform/pull/590) 在 B8c 基础上增加 3+ 重叠段的轮选，不改原 44px 热区、普通点拖/Shift 最近段/Shift+Alt 默认第二段、CAS、Agent 权限或业务定义版本。
 - [App Chrome 154 eleven-tab CI #38020601326](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38020601326) **PASS**：实际 Chrome/154.0.8037.97，**11 个独立标签页**。第 11 页通过真实 Designer Inspector 构造 5 手工路径点的密集折线路由，使末尾 waypoint 下存在至少三个不同的 orthogonal segment 候选；真实 CDP 原生鼠标 Shift+Alt 单击把备选第二切换为第三，显示 `3/N`，未改变原 SVG，保留 22px radius；Shift+Alt 拖动第三线段预览和提交后 SVG 改变，一次 Undo 后精确恢复原 SVG，Store 投影版本仍为 4、未隐式 Save。日志 `b8dNativeDenseOverlapCycleAndUndo=true`。原 B8c 触摸同页取消/重抓、B8b 保存重开 Viewer、B7b CAS、B6b 路径回归全 PASS。
 - **仍未验收**：第四及更高候选逐个原生拖动；真实 macOS/Windows 外接鼠标、触控板和 iOS/Android 触摸；复杂圆角/自环、真实硬件 FPS、全 §14 39 项。E03 依然 **NOT TESTED**（该行的局部 Chrome 子场景虽 PASS，却不等于 §14 的完整跨设备验收）；D04 等其他条目结论不变。Draft、未合并、未生产部署。
+
+
+## B8e 复杂圆角线段、末尾轮选、Escape 同页重抓和 Viewer（2026-10-10）
+
+- 新增 Eidos [Draft #146](https://github.com/jiangxng/eidos/pull/146) / App [Draft #591](https://github.com/jiangxng/EVO-App-Platform/pull/591) 独立增量；沿用原研究交接 [#552](https://github.com/jiangxng/EVO-App-Platform/pull/552) 及 §14 原标准，保留所有 44 CSS px 命中区和业务关系不变。
+- [真实 Chrome Browser CI #38021117688](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38021117688) **PASS**，Chrome/154.0.8037.97，**14 标签页**。第 12 页通过真实 Inspector 把一条关系切到 `rounded-orthogonal` 并建五手工点，产生 4+ 遮挡的 segment，真实 CDP Shift+Alt 鼠标点击依次轮选第四到最后，最后循环回第二，再重选最后；点击只改本地候选编号，路径 SVG 不变、Store 未写、22px 半径不变。
+- 原生鼠标对最后一条重叠 segment 拖动预览保留 `Q` 圆角；按 Chrome 原生 Escape 键取消及随后鼠标松开，原 SVG 和候选回滚/保留；同一浏览器标签页重新拖动成功。Undo 精确恢复原圆角 SVG，Redo 恢复提交图形。显式 App Host `Save projection` 完成 CAS 投影版本 **4→5 一次**，业务定义 revision/history 保持；第 13 个全新 Designer 和第 14 个真实只读 Viewer 从测试 Store 重读相同 SVG `d`，Viewer 无编辑控件/保存按钮、读操作不写。
+- 日志 `b8eRoundedMultiRankCancelRegrabSaveViewer=true`，旧 `b8dNativeDenseOverlapCycleAndUndo`、`b8cNativeTouchCancelRegrab`、`b8bSaveReloadRealViewerRoundtrip`、CAS、503 亦同时为 true。Eidos CI 与 App 五项 CI 已在对应产品/测试提交上 PASS。
+- **边界与原正式结论**：此处为 CDP 浏览器鼠标/键盘事件，并非物理键鼠、触控板、iOS/Android/Windows/macOS 系统级多指测试。内存 Store 不能证明服务重启后持久化，也不能证明复杂自环、曲线、跨关系重叠、真实生产性能及 §14 全项；E03/D04 等仍 **NOT TESTED**，总共 39 项完整商业化验收均未升格。未合并、未部署。
