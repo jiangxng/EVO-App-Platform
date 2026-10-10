@@ -162,8 +162,12 @@ const blockedNode={...selfNode,
 const blockedSource={get(input){
   const result=loopSource.get(input);
   if(!result?.diagram2d)return result;
+  // Isolated two-node test diagram gives an unambiguous right-hand blocker;
+  // all business topology remains untouched in the repository. The real App
+  // save/read handlers are still used for this synthetic presentation fixture.
   return {...result,diagram2d:{...result.diagram2d,
-    nodes:[...result.diagram2d.nodes,{...blockedNode}]}};
+    nodes:[{...selfNode},{...blockedNode}],
+    edges:result.diagram2d.edges.filter(edge=>edge.id===selfId)}};
 }};
 const blockedHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
   repository,projectionStore:store,source:blockedSource,sessions,
