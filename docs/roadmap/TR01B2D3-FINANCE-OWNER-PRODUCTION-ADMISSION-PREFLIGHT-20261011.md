@@ -5,6 +5,7 @@
 ## 权威资料及证据分类
 
 - **外部一手原文（2026-10-11 复核）：** [PostgreSQL 18 CREATE FUNCTION](https://www.postgresql.org/docs/18/sql-createfunction.html)，特别是 *Writing SECURITY DEFINER Functions Safely* 与默认 PUBLIC EXECUTE 的章节。固定 search_path、创建时同步撤销 PUBLIC 和函数 owner 最小权限均需要真实部署核查。此前交接来源索引的 W01/W02 关于 FOR SHARE/ON CONFLICT 权限仍有效。
+- **迁移执行器已读源码（2026-10-11）：** EVO `scripts/migrate.ts` 对每个新 SQL migration 执行 `begin` → SQL 文件 → 记录 schema_migrations → `commit`，因此当前新建函数与文件末尾 REVOKE 在该执行器内同事务；不能据此假定生产曾使用相同执行器或拥有者账号。PostgreSQL 官方原文同时建议将 `pg_temp` 显式置于搜索路径末尾；当前函数只有 `pg_catalog` 并使用 fully-qualified `public.finance_trusted_signing_key`，需要真实函数定义与临时 schema 负控复核，不把“固定路径”当成完整审计。
 - **仓库代码（不是生产证据）：** EVO Draft #108 的 `migrations/schema/202610100040_finance_runtime_key_lock_function.sql`、`apps/api/src/finance-owner-readonly-main.ts`、`finance-owner-readonly-app.ts` 和 App Platform Draft #594 的真实独立数据库 LOGIN CI。
 - **既有 CI 证据：** App 37/37 工作流成功和 EVO #108 全套 CI 成功，覆盖签名、重放、撤销、隔离进程及 PostgreSQL 实验环境，但不代表真正生产 KMS/OIDC/网络及数据库授权。
 - **仍待验证的一手运营资料：** 实际生产 IdP 租户、TLS/mTLS 服务入口、私网 ACL、密钥托管权限、主备数据库和多主机证据；本次没有冒充已经读取的生产资料。
