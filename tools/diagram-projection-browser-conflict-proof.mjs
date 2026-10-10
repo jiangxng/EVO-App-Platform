@@ -57,6 +57,35 @@ const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
   + 'if(!response.ok)throw Error("HTTP "+response.status);return response.json();}};'
   + 'window.__mounted=mountDiagramEditorPageV010({definition:window.__page,container:document.getElementById("root"),actionHost});'
   + '</script></body></html>';
+// A separate visual fixture positions the real editor camera over a real
+// existing relation. Other three tabs continue to use the original page.
+const routeGraph = source.get(target)?.diagram2d;
+assert.ok(routeGraph?.edges?.length && routeGraph.nodes?.length,
+  "An editable base diagram is required for the route-handle browser proof");
+const routeNodes = new Map(routeGraph.nodes.map(node => [node.id,node]));
+const routeChoices = routeGraph.edges.flatMap(edge => {
+  const a=routeNodes.get(edge.source), b=routeNodes.get(edge.target);
+  if(!a||!b||a.id===b.id)return [];
+  const ax=a.x+a.width/2, ay=a.y+a.height/2;
+  const bx=b.x+b.width/2, by=b.y+b.height/2;
+  if(![ax,ay,bx,by].every(Number.isFinite))return [];
+  const mid={x:(ax+bx)/2,y:(ay+by)/2};
+  const clearance=Math.min(...routeGraph.nodes
+    .filter(node=>node.id!==a.id&&node.id!==b.id)
+    .map(node=>Math.max(node.x-mid.x,0,mid.x-node.x-node.width,
+      node.y-mid.y,0,mid.y-node.y-node.height)));
+  const distance=Math.hypot(ax-bx,ay-by);
+  return [{edge,mid,clearance,distance}];
+}).filter(item=>item.distance>160&&item.distance<1400)
+  .sort((a,b)=>b.clearance-a.clearance||a.distance-b.distance);
+const routeChoice=routeChoices[0];
+assert.ok(routeChoice,"Need an existing relation with a draggable midpoint");
+const routePage={...page,
+  initialCamera:{scale:1,translateX:450-routeChoice.mid.x,translateY:240-routeChoice.mid.y}};
+const routeHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(routePage))
+  .replace("window.__page="+JSON.stringify(page),
+    "window.__page="+JSON.stringify(routePage));
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -76,6 +105,9 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
     if (url.pathname === "/") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(html); return;
+    }
+    if (url.pathname === "/route") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(routeHtml); return;
     }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
@@ -135,7 +167,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c;
+let proc, a, b, c, d;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -155,8 +187,9 @@ try {
   assert.ok(debugPort, "Chrome did not start DevTools");
   const api = "http://127.0.0.1:" + debugPort;
   const version = await (await fetch(api + "/json/version")).json();
-  async function tab(id) {
-    const response = await fetch(api + "/json/new?" + encodeURIComponent(address + "/?session=" + id),
+  async function tab(id, route = false) {
+    const response = await fetch(api + "/json/new?" + encodeURIComponent(
+      address + (route ? "/route?session=" : "/?session=") + id),
       { method: "PUT" });
     assert.ok(response.ok, "Chrome target create failed");
     const targetInfo = await response.json();
@@ -317,7 +350,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close();
+  a?.close(); b?.close(); c?.close(); d?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
