@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `wh01-closed-tr01a-active-2026-10-10`  
-**Snapshot time:** `2026-10-10T07:28:00+08:00`  
+**Snapshot:** `tr01a1-closed-tr01a2-active-2026-10-10`  
+**Snapshot time:** `2026-10-10T08:07:00+08:00`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,44 +16,45 @@ ACTIVE
 
 ## Latest closed live slice
 
-**wh01d-real-warehouse-location-rvc: MERGED_CI_PRODUCTION_PASS**
+**tr01a1-purchase-receipt-reference-loop: MERGED_CI_PRODUCTION_PASS**
 
-WH-01 closed after real Overture warehouse/facility RVC proved the Warehouse=where boundary against 5,000 external warehouse building features. External building identifiers/names/geometry remain provenance-bearing facility evidence rather than enterprise Warehouse identity or operational Zone/Location/Bin authority; no Inventory Position quantity leaked into Warehouse. Shared STABLE_CANDIDATE Foundation Object contracts required no third-object compatibility change.
+TR-01A1 closed after PR #551 composed active Supplier Counterparty, Item and Warehouse identities into immutable Purchase Order and Goods Receipt BusinessData facts through public EVO APIs. Goods Receipt carries FULFILLS lineage; PostgreSQL certification proved pending_purchase +10 then 0, inventory +10/+125, payable remains +125, RECEIVE closes and PAY remains open. EVO PR #105 already supplies isolated deterministic purchase/receipt/reversal replay certification. No App Platform second Ledger, Work or Balance authority was created.
 
-Authority: `docs/roadmap/WH01-WAREHOUSE-LOCATION-EVIDENCE-v0.1.md`
+Authority: `docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 546,
-  "mergeCommit": "0397a31f341a101756af5572f36d52390703c1a7",
+  "implementationPr": 551,
+  "mergeCommit": "a191b1acac1a142d4c71ac31bc388ef7ec4bfde3",
+  "implementationHead": "1de23c70e26c1c45653115ac6abc805d4f70f681",
   "platformCI": "PASS",
   "projectContinuityCI": "PASS",
-  "realWorldRvcWorkflow": "PASS",
-  "sampleRows": 5000,
-  "distinctExternalIds": 5000,
-  "missingName": 4903,
-  "productionDeploymentId": "235335b8-44e3-4da4-9682-6cb75c70bcb6",
+  "crossProjectTradingLiteEvoPostgresqlCI": "PASS",
+  "evoContractMain": "2311022640aa108a6baf3db44d9b26bd3e3ad623",
+  "evoDirectBusinessDataRelationPr": 103,
+  "evoPublicLedgerBalanceReadPr": 104,
+  "evoReversalReplayCertificationPr": 105,
+  "productionDeploymentId": "b1d141c6-858d-4ee3-8422-0efbe7147396",
   "productionDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**tr01a-purchase-reference-loop: ACTIVE**
+**tr01a2-purchase-receipt-correction-reversal: ACTIVE**
 
-TR-01A is the active real-business proof: compose Supplier Counterparty + Item + Warehouse/Location into Purchase Order → Receipt → Inventory Position → Payable using existing BusinessData/Ledger/public contracts. Do not add more Foundation Objects as the mainline.
+TR-01A2 must compose a new immutable Purchase Receipt reversal/correction fact through existing EVO public BusinessData/REVERSES contracts, with exact Goods Receipt lineage and verified accounting/work/replay outcomes. Do not modify the original Purchase Order or Goods Receipt, bypass EVO runtime authority, or advance to TR-01B.
 
 Acceptance:
 
-- Reference existing Supplier-role Counterparty, Item and Warehouse/Location authorities without copying them into transaction-owned master data.
-- Represent Receipt as an immutable new business occurrence rather than mutating Purchase Order history.
-- Drive Inventory Position from inventory movement/ledger facts, not Warehouse fields.
-- Drive Payable/open-item state through posting facts/rules rather than embedding financial balance authority in Purchase Order.
-- Keep BusinessData snapshots/revisions deterministic, replayable and compatible with EVO runtime binding.
-- Expose Work/Projection/Workbench as derived operational views over authoritative facts.
-- Prove the purchase loop before implementing the inverse sales loop.
+- Use authoritative original Goods Receipt lineage (REVERSES relation), with explicit enterprise scope, reference identity and idempotent submission.
+- Keep original Purchase Order and Goods Receipt immutable; append a reversal BusinessData occurrence rather than editing or deleting either fact.
+- Reopen pending_purchase by reversed quantity, subtract reversed inventory quantity and original cost, and preserve payable from Purchase Order approval.
+- Derive RECEIVE/PAY work state and Inventory Position from EVO public posting/ledger read contracts, not App Platform stored mutable balances.
+- Pass isolated EVO deterministic replay certification and App Platform → EVO PostgreSQL public API integration evidence.
+- Close TR-01A2 by CI and verified deployment before starting TR-01B.
 
 ## Current production preview
 
@@ -62,8 +63,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `0397a31f341a101756af5572f36d52390703c1a7`
-- Deployment: `235335b8-44e3-4da4-9682-6cb75c70bcb6`
+- Commit: `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
+- Deployment: `b1d141c6-858d-4ee3-8422-0efbe7147396`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -94,6 +95,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #551 — MERGED_CI_PRODUCTION_PASS: TR-01A1 positive purchase/receipt loop composed Supplier Counterparty, Item and Warehouse into immutable EVO BusinessData facts with FULFILLS lineage; Platform, Continuity and cross-project EVO PostgreSQL CI passed; production main a191b1ac deployed at b1d141c6-858d-4ee3-8422-0efbe7147396 SUCCESS.
 - PR #546 — MERGED_CI_RVC_PRODUCTION_PASS: WH-01D completed real Overture warehouse/facility RVC over 5,000 external warehouse building features; Platform/Continuity/RVC CI passed and Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 is SUCCESS.
 - PR #544 — MERGED_CI_PRODUCTION_PASS: WH-01C completed lifecycle-gated Warehouse Responsibility/Authorization/Projection/Eidos composition with shared Human/Agent read authority; 34/34 CI passed and Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f is SUCCESS.
 - PR #542 — MERGED_CI_PRODUCTION_PASS: WH-01B proved order-independent hierarchical Warehouse Location Data Import on unchanged STABLE_CANDIDATE contracts; Platform/Continuity CI passed and Railway deployment c2011371-4309-4982-9062-90cb98a166a9 is SUCCESS.
@@ -571,6 +573,9 @@ Not proved:
 - Do not reopen WH-01 or infer Inventory Position quantities from Warehouse/facility data; WH-01 closed with real Overture RVC and Warehouse remains where only.
 - Do not continue adding Foundation Objects as the mainline during TR-01; pressure existing Counterparty, Item and Warehouse/Location through real business operations.
 - Do not mutate historical Purchase Order/Receipt/Shipment facts to represent later state; state changes are new business/ledger facts and projections are derived.
+- Do not reopen TR-01A1 or duplicate EVO Ledger/Work/Balance authority in App Platform.
+- Do not start TR-01B until TR-01A2 immutable receipt reversal and replay certification have closed.
+- Do not modify original Purchase Order or Goods Receipt to represent a correction; append an explicitly linked REVERSES fact.
 
 ## Fresh ChatGPT / LLM startup
 
