@@ -56,8 +56,11 @@ import {
 import {
   diagramSvgInkSegmentsV010,
   createDiagramInkSpatialIndexV010,
+  diagramInkQualityV010,
   type DiagramInkEntryV010
 } from "./ink-spatial-index.js";
+import {diagramLabelReservationV010, type DiagramLabelMetricsV010}
+  from "./label-reservation.js";
 import {
   layoutLayeredDiagramV010
 } from "./layered-layout.js";
@@ -2650,6 +2653,26 @@ export function mountDiagramEditorPageV010(
     const preciseRouteGeometries = new Map<string,ReturnType<typeof diagramEdgeGeometryV010>>();
     const inkEntries: DiagramInkEntryV010[] = [];
     let inkSegmentCount = 0;
+    let inkFallbackCount = 0;
+    // B8l: use browser font metrics of the SAME 11px canvas label, not
+    // a 176-unit approximate cap. One measurement per distinct caption.
+    const textMetricsCache=new Map<string,DiagramLabelMetricsV010>();
+    let measureContext:CanvasRenderingContext2D|null=null;
+    try {
+      measureContext=document.createElement("canvas").getContext("2d");
+      if(measureContext)measureContext.font=`11px ${getComputedStyle(canvas).fontFamily || "sans-serif"}`;
+    }catch { measureContext=null; }
+    const measuredCaption=(caption:string):DiagramLabelMetricsV010|undefined=>{
+      const hit=textMetricsCache.get(caption);
+      if(hit)return hit;
+      if(!measureContext)return undefined;
+      const metric=measureContext.measureText(caption);
+      const result={width:metric.width,
+        actualBoundingBoxAscent:metric.actualBoundingBoxAscent,
+        actualBoundingBoxDescent:metric.actualBoundingBoxDescent};
+      textMetricsCache.set(caption,result);
+      return result;
+    };
     if (siblingGroups.size > 0 && renderedEdges.length <= 12000) {
       for (const other of renderedEdges) {
         if (other.source === other.target) continue;
@@ -2688,25 +2711,31 @@ export function mountDiagramEditorPageV010(
             });
         preciseRouteGeometries.set(other.id,geometry);
         let segments: DiagramInkEntryV010["segments"];
-        try {
+        // B8m: stop expensive Q/C subdivisions when total budget ends.
+        // Coarse chord fallback is explicitly diagnosed in the UI.
+        if(inkSegmentCount>=100000){
+          inkFallbackCount++;
+          segments=[{start:a,end:b}];
+        }else try {
           const parsed=diagramSvgInkSegmentsV010(geometry.d);
-          segments=inkSegmentCount+parsed.length<=100000
-            ? parsed : [{start:a,end:b}];
-        } catch {
+          if(inkSegmentCount+parsed.length<=100000) segments=parsed;
+          else {inkFallbackCount++;segments=[{start:a,end:b}];}
+        }catch{
+          inkFallbackCount++;
           segments=[{start:a,end:b}];
         }
         inkSegmentCount+=segments.length;
         const caption=[other.label,...(other.observations??[])
           .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
         const labels=caption
-          ? [{x:geometry.label.x-Math.min(176,Math.max(24,caption.length*6.2))/2,
-              y:geometry.label.y-23,
-              width:Math.min(176,Math.max(24,caption.length*6.2)),height:18}]
+          ? [diagramLabelReservationV010(geometry.label,caption,measuredCaption(caption))]
           : [];
         inkEntries.push({edgeId:other.id,sourceId:other.source,
           targetId:other.target,segments,labels});
       }
     }
+    const inkQuality=diagramInkQualityV010(renderedEdges.length,
+      siblingGroups.size>0,inkFallbackCount);
     const loopInkIndex=inkEntries.length
       ? createDiagramInkSpatialIndexV010(inkEntries):undefined;
     const loopInkCache = new Map<string,DiagramSelfLoopInkV010>();
@@ -3338,6 +3367,9 @@ export function mountDiagramEditorPageV010(
         snapGuideLayer.appendChild(guide);
       }
     };
+    svg.setAttribute("data-eidos-diagram-ink-quality",inkQuality);
+    svg.setAttribute("data-eidos-diagram-ink-label-metrics",
+      measureContext ? "browser" : "estimated");
     stage.appendChild(svg);
 
     for (const node of renderedNodes) {
@@ -3618,6 +3650,21 @@ export function mountDiagramEditorPageV010(
 
     viewport.appendChild(stage);
     canvas.appendChild(viewport);
+    if(inkQuality!=="full"){
+      // B8m single visible advisory rather than thousands of false-clear
+      // per-edge badges. Click/drag gestures still go through unchanged.
+      const advisory=document.createElement("div");
+      advisory.setAttribute("data-eidos-diagram-routing-advisory",inkQuality);
+      advisory.setAttribute("role","status");
+      advisory.textContent=inkQuality==="node-only"
+        ? "Dense graph: node-only connector avoidance; inspect overlapping routes."
+        : "Complex graph: reduced connector precision; manual adjustment may be needed.";
+      advisory.style.cssText="position:absolute;top:8px;right:8px;max-width:300px;"
+        +"font-size:11px;background:var(--eidos-bg,#fff);color:var(--eidos-fg-muted,#5F6B76);"
+        +"padding:4px 7px;border:1px solid var(--eidos-border,#cbd5e1);"
+        +"border-radius:6px;pointer-events:none;z-index:5";
+      canvas.appendChild(advisory);
+    }
     applyCameraTransform();
     if (state.notice) report(state.notice);
     renderSelection();
