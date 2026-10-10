@@ -783,6 +783,7 @@ import {
   counterpartyPackage,
   itemPackage,
   warehousePackage,
+  tradingReferencePackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -798,6 +799,11 @@ import {
   templateStorePackage,
   tradingLitePackage
 } from "../catalog/seed.js";
+import {
+  PURCHASE_OPERATIONS_READ_COMMAND_V010,
+  TRADING_REFERENCE_FEATURE_ID_V010,
+  TRADING_REFERENCE_PACKAGE_ID_V010
+} from "../apps/trading-reference/constants.js";
 import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE,
@@ -1027,6 +1033,7 @@ const catalog = createPackageCatalog([
   counterpartyPackage,
   itemPackage,
   warehousePackage,
+  tradingReferencePackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -4912,6 +4919,42 @@ const actionRouter = createAppActionRouter(
         }
       })
     ),
+    createLazyAppActionHandlerV010({
+      packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
+      featureId: TRADING_REFERENCE_FEATURE_ID_V010,
+      commandCode: PURCHASE_OPERATIONS_READ_COMMAND_V010,
+      async load() {
+        const [actionModule, projectionModule, httpModule] = await Promise.all([
+          import("../apps/trading-reference/operational-actions.js"),
+          import("../apps/trading-reference/operational-projection.js"),
+          import("../apps/trading-reference/operational-http-reader.js")
+        ]);
+        const service =
+          projectionModule.createPurchaseOperationalProjectionServiceV010({
+            reader: httpModule.createPurchaseOperationalEvoHttpReaderV010({
+              baseUrl: evoBaseUrl
+            }),
+            resolveAuthorizationProvider
+          });
+        return actionModule.createPurchaseOperationalReadActionHandlerV010({
+          service,
+          resolveEvoEnterpriseId(context) {
+            const active = context.context?.activeContext;
+            if (!active || active.kind !== "ENTERPRISE"
+                || context.scope.enterpriseId !== active.enterpriseId) {
+              throw new Error("TR01_OPERATIONAL_ENTERPRISE_CONTEXT_MISMATCH");
+            }
+            // Unlike the legacy demo Trading Lite path, a purchase-read
+            // MUST NOT fall back to the global EVO_DEMO enterprise.
+            const bound = evoRuntimeScopeMap.get(active.enterpriseId);
+            if (!bound) {
+              throw new Error("TR01_OPERATIONAL_EVO_SCOPE_BINDING_REQUIRED");
+            }
+            return bound;
+          }
+        });
+      }
+    }),
     ...[
       WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
       WAREHOUSE_MY_READ_COMMAND_V010
