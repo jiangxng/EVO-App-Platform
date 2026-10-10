@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Ten Chrome tabs - B8c overlap + native touch regrab, B8b Viewer and CAS
+      - name: Eleven Chrome tabs - B8d dense overlap, B8c touch, B8b Viewer and CAS
         shell: bash
         run: |
           set -euo pipefail
