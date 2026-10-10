@@ -54,3 +54,24 @@ test('B2D3 SECURITY DEFINER superuser owner is never production-admissible', () 
   assert.ok(strict.failedChecks.includes('SECURITY_DEFINER_OWNER_MUST_NOT_BE_SUPERUSER'));
   assert.equal(strict.executionAllowed, false);
 });
+
+
+test('B2D3 strict owner admission rejects drift in each owner grant/role invariant', () => {
+  for (const id of [
+    'definer_owner_named', 'definer_owner_no_login', 'definer_owner_no_inherit',
+    'definer_owner_non_privileged', 'definer_owner_schema_create',
+    'definer_owner_key_insert', 'definer_owner_key_delete',
+    'definer_owner_key_select_issuer', 'definer_owner_key_select_status',
+    'definer_owner_key_update_status', 'definer_owner_key_update_issuer',
+    'definer_owner_audit_insert', 'definer_owner_has_memberships',
+    'definer_owner_only_function', 'definer_owner_no_tables'
+  ]) {
+    const drift = valid();
+    drift[id] = !drift[id];
+    const result = evaluateFinanceOwnerCatalog(drift, { strictOwner: true });
+    assert.equal(result.automatedStatus, 'FAIL', id);
+    assert.ok(result.failedChecks.includes(id), id);
+    assert.ok(result.failedChecks.includes('SECURITY_DEFINER_OWNER_SCOPE_NOT_ADMITTED'), id);
+    assert.equal(result.executionAllowed, false);
+  }
+});
