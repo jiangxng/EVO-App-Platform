@@ -178,8 +178,13 @@ try {
     await admin.query("create role " + role + " login noinherit password '" + secret + "'");
   }
   await admin.query('grant usage on schema public to ' + runtimeRole + ', ' + operatorRole);
-  await admin.query('grant select on enterprise_runtime_state, business_data, posting_input, valuation_policy, allocation_policy, valuation_rule, finance_trusted_signing_key to ' + runtimeRole);
+  await admin.query('grant select on enterprise_runtime_state, business_data, posting_input, valuation_policy, allocation_policy, valuation_rule to ' + runtimeRole);
+  // SECURITY DEFINER is the only row-lock path: no UPDATE or raw SELECT
+  // privilege on finance_trusted_signing_key is available to the API login.
+  await admin.query('grant execute on function public.finance_lock_active_signing_key_v010(text,text,text) to ' + runtimeRole);
   await admin.query('grant insert on finance_delegation_nonce to ' + runtimeRole);
+  // INSERT ... RETURNING jti requires explicit SELECT(jti), not table-wide read.
+  await admin.query('grant select(jti) on finance_delegation_nonce to ' + runtimeRole);
   await admin.query('grant select,insert,update on finance_trusted_signing_key to ' + operatorRole);
   await admin.query('grant select,insert on finance_trust_change_audit to ' + operatorRole);
   await admin.query('grant usage on sequence finance_trust_change_audit_audit_id_seq to ' + operatorRole);
@@ -189,6 +194,7 @@ try {
   try {
     await runtime.query('select count(*) from business_data');
     await operator.query('select count(*) from finance_trusted_signing_key');
+    await permissionDenied(runtime, 'select count(*) from finance_trusted_signing_key');
     await permissionDenied(runtime, "update finance_trusted_signing_key set status='REVOKED' where false");
     await permissionDenied(runtime, 'insert into finance_trust_change_audit (issuer) values (\'test\')');
     await permissionDenied(runtime, 'insert into cost_run(id) values (\'00000000-0000-4000-8000-000000000001\')');
