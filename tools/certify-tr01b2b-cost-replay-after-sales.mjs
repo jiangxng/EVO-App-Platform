@@ -16,7 +16,6 @@ const customer="cp-tr01b-customer";
 const item="item-tr01b";
 const warehouse="wh-tr01b";
 const code=process.env.EVO_ENTERPRISE_CODE??"EVO_DEMO";
-const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function get(path){
   const response=await fetch(base+path,{headers:{accept:"application/json"}});
   const data=await response.json();
@@ -46,9 +45,6 @@ const beforeCash=await exactBalance(enterprise,"cash",finDims);
 assert.equal(Number(beforeReceivable.amount),0);
 assert.equal(Number(beforeCash.amount),1000);
 
-// Deliberate CI-only reference call. /demo/* routes have no production
-// commitment, no Host principal/scope authorization, and may not be
-// registered as an Agent Capability Operation.
 // CI-only EVO OWNER RUNTIME: No production API, Agent capability or App
 // Platform product code invokes the private cost/replay internals.
 // All writes here remain in the disposable CI PostgreSQL EVO runtime.
