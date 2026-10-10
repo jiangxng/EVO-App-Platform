@@ -176,3 +176,10 @@
 - 第十标签页没有通过 `new PointerEvent` 手造取消，而是真正 Chrome CDP **`Input.dispatchTouchEvent`** 输入 `touchStart→touchMove→touchCancel→touchStart→touchMove→touchEnd`，在**同一页面** cancel 后复原原 SVG 与无手工点，然后第二次原生浏览器触摸重新预览、松手转为手工路径点，未隐式 Save。机器报告 `b8cNativeTouchCancelRegrab=true`。之前人工 DOM `pointercancel` 后 CDP 鼠标立即重抓未预览的现象因此更可能与混用合成/原生输入有关，但**不能断言物理系统触控故障已经修复或者 iOS/Android 实机已测**。
 - 原有 B8b 八标签页真保存/新 Designer/真实只读 Viewer 完全 SVG 往返、B7b 多窗口 CAS/失败重试和 B8a 原生自动段测试仍在十标签页 PASS 中。仍缺实体 OS 取消、触摸板/实体键鼠 Shift+Alt、同点多于两个 segment 消歧、复杂圆角/自环/大图及移动真机。E03、D04 及 §14 的 39 项正式验收仍 `NOT TESTED`。
 - 详细技术/验收见 `docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-INTEGRATION-20261010.md`；研究来源口径延用独立 PR #552，不冒称重查 S1–S7 外站。
+
+
+## B8d 十一标签页多重重叠控制柄轮选（2026-10-10）
+
+- Eidos [Draft #145](https://github.com/jiangxng/eidos/pull/145) / App [Draft #590](https://github.com/jiangxng/EVO-App-Platform/pull/590) 在 B8c 基础上增加 3+ 重叠段的轮选，不改原 44px 热区、普通点拖/Shift 最近段/Shift+Alt 默认第二段、CAS、Agent 权限或业务定义版本。
+- [App Chrome 154 eleven-tab CI #38020601326](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38020601326) **PASS**：实际 Chrome/154.0.8037.97，**11 个独立标签页**。第 11 页通过真实 Designer Inspector 构造 5 手工路径点的密集折线路由，使末尾 waypoint 下存在至少三个不同的 orthogonal segment 候选；真实 CDP 原生鼠标 Shift+Alt 单击把备选第二切换为第三，显示 `3/N`，未改变原 SVG，保留 22px radius；Shift+Alt 拖动第三线段预览和提交后 SVG 改变，一次 Undo 后精确恢复原 SVG，Store 投影版本仍为 4、未隐式 Save。日志 `b8dNativeDenseOverlapCycleAndUndo=true`。原 B8c 触摸同页取消/重抓、B8b 保存重开 Viewer、B7b CAS、B6b 路径回归全 PASS。
+- **仍未验收**：第四及更高候选逐个原生拖动；真实 macOS/Windows 外接鼠标、触控板和 iOS/Android 触摸；复杂圆角/自环、真实硬件 FPS、全 §14 39 项。E03 依然 **NOT TESTED**（该行的局部 Chrome 子场景虽 PASS，却不等于 §14 的完整跨设备验收）；D04 等其他条目结论不变。Draft、未合并、未生产部署。
