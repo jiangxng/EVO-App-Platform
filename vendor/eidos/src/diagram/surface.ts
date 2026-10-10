@@ -2677,8 +2677,18 @@ export function mountDiagramEditorPageV010(
           : renderedNodes.filter(node => node.id !== edge.source && node.id !== edge.target)
             .map(node => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
         : [];
+      // B8g: a self-loop only needs neighbors within its outer control
+      // corridor. Reuse the existing render-level spatial index on large
+      // graphs instead of scanning every node once per self-relation.
+      // near() covers 134 world units around the node rectangle; only use
+      // it when the maximum loop reach plus 22 units fits that envelope.
+      const loopReach = Math.max(38, 56 + lane);
       const loopObstacles = edge.source === edge.target && edge.pathKind !== undefined
-        ? renderedNodes.filter(other => other.id !== edge.source)
+        ? spatialObstacles && loopReach + 22 <= 134
+          ? spatialObstacles.near({ x: source.x, y: source.y },
+              { x: source.x + source.width, y: source.y + source.height },
+              edge.source, edge.source)
+          : renderedNodes.filter(other => other.id !== edge.source)
         : [];
       const geometry = edge.source === edge.target
         ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane,
