@@ -150,3 +150,7 @@
 
 - [Chrome CI 38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) 200/400 selection **18.5→16.9ms (-8.65%)**、500/1000 selection **44.8→38.5ms (-14.06%)**。与上轮 [38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 的两规模 selection -12.95% 和 -16.46% 一致为正向，最新 CI 全 PASS。
 - 500/1000 第三次 drag CDP dispatch p95 为 +7.37% 轻微回退，不能用选择重绘的改善假称全交互 FPS 改善。该计时还包含协议/runner 调度。§14 P01 保留 NOT TESTED。
+
+## P01a 第四次重复结果不得遗漏
+
+[Chrome Perf CI 38015041848](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015041848) **PASS** 但 200/400 selection 是 **38.0→40.0ms（+5.26% 回退）**、500/1000 selection **81.1→68.6ms（-15.41%）**。因此 P01 现阶段更准确的结论是 **500/1000 中位数选择重绘在多次不同 CI-runner 配对中改善，小图效应不稳定**；原 §14 P01 `NOT TESTED`，严禁按最佳一次抽样宣称商业化性能验收通过。
