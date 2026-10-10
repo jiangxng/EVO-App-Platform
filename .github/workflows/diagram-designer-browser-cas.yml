@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Eight Chrome tabs - B8b save/reload/Viewer plus B8a auto segments and CAS
+      - name: Ten Chrome tabs - B8c overlap + native touch regrab, B8b Viewer and CAS
         shell: bash
         run: |
           set -euo pipefail
