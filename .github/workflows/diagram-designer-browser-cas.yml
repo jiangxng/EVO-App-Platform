@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Three real Chromium tabs - stale save, Save As, HTTP failure and retry
+      - name: Four Chrome tabs - B6b manual route snap, alignment Undo, CAS and HTTP retry
         shell: bash
         run: |
           set -euo pipefail
