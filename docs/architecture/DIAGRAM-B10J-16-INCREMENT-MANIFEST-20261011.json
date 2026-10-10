@@ -19,7 +19,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "70f493f592e75872326ee76cf675f0f54f940277"
     },
     {
       "id": "B9v",
@@ -32,7 +33,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "478a3a733e72f429289f51bc9ac5f6e0f5c57846"
     },
     {
       "id": "B9w",
@@ -45,7 +47,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "25b9c736dc570bb2419d8061bdf203a584a46eac"
     },
     {
       "id": "B9x",
@@ -58,7 +61,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "917874ef2e15a57efd989e9b61a5d6cdf1da1d40"
     },
     {
       "id": "B9y",
@@ -71,7 +75,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "baf9d149592dbbc8d79fb84adf3dfc28971da73f"
     },
     {
       "id": "B9z",
@@ -84,7 +89,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "a70c55ead2b936d6e0c24116854998f2675cd0b9"
     },
     {
       "id": "B10a",
@@ -97,7 +103,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "fb4bd505c005d2e16cc1f54599eaea1a0c1c0409"
     },
     {
       "id": "B10b",
@@ -110,7 +117,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "83b768dd9f5ece23dc595fc46cf602585257f86e"
     },
     {
       "id": "B10c",
@@ -123,7 +131,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "72517c6fed3b3a203743a1d7e2f3f7d60d30e1bd"
     },
     {
       "id": "B10d",
@@ -136,7 +145,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "97131d17d7993648c3aff0963bc671d03bf3c4b2"
     },
     {
       "id": "B10e",
@@ -149,7 +159,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "10724c87cc07111f8dd47a8242686640897a1c7b"
     },
     {
       "id": "B10f",
@@ -162,7 +173,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "01afc9103e35a4035d4d345c65df8e0f628a8a51"
     },
     {
       "id": "B10g",
@@ -175,7 +187,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "d29e61ed4d32bed4adca16ce4cfb8ae5e8d873e2"
     },
     {
       "id": "B10h",
@@ -188,7 +201,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "51355d56ea46679f2bf52569d71b570f2c710016"
     },
     {
       "id": "B10i",
@@ -201,7 +215,8 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": "d3fb3a1800fb875e5cb67d658e423c6f9bf9169b"
     },
     {
       "id": "B10j",
@@ -214,7 +229,9 @@
       "formalCommercialAcceptance": "NOT TESTED",
       "realCustomerDataUsed": false,
       "productionEnvironmentVerified": false,
-      "physicalDeviceSignedOff": false
+      "physicalDeviceSignedOff": false,
+      "restackedHeadSha": null
     }
-  ]
+  ],
+  "restackEvidence": "B9v–B10j commit objects rebuilt atop updated immediate parent using exact prior tree, force-with-lease to only this round's dedicated branches; latest B10j head is authoritative in PR #656."
 }
