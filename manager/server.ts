@@ -7202,7 +7202,7 @@ const server = createServer(async (request, response) => {
             code: PURCHASE_OPERATIONS_READ_COMMAND_V010,
             inputVersion: "0.1.0"
           },
-          values: selected,
+          values: { ...selected },
           sourceInteractionId: "purchase-detail",
           actionId: "read",
           requiresConfirmation: false
