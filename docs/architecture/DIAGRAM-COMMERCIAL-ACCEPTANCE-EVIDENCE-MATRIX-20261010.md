@@ -366,3 +366,9 @@
 - [Draft #618](https://github.com/jiangxng/EVO-App-Platform/pull/618)，基于 B9e #617；**两个独立 Node 子进程**分别构建真实 App Projection Editor GET/SAVE Handler，通过受控授权钩子，使用相同企业和投影 ID、expectedWriteToken 0 与独立 camera X（101/202），向同一真实 FileDefinitionProjectionStore 文件请求保存。**只准 1 个 Handler 真正成功**，另一个必须因 WRITE_CONFLICT/STORE_LOCKED 失败。进程退出后全新 Store 的 CAS token 必须为 **1**，且镜头 X 等于获胜者；两进程各自企业基础定义历史均为 1。
 - [Diagram Designer Integration #38068348194 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068348194)：**131/131 测试通过**，覆盖 B9d/B9e/B9f；业务定义仓和授权钩子仍是受控内存 fixture，文件 Store 是正式代码、真实 OS 文件与子进程。它**不是**正式多用户登录、分布式云服务/生产数据库、物理设备或正式企业主数据的验收。详见 [B9f 文档](./DIAGRAM-B9F-TWO-APP-HANDLER-PROCESSES-20261011.md)。
 - 既有 B9b（CAS Save 后零拥塞）和 B9c（Viewer 正数，但经 test-only Source 注入）限制未变，原 §14 **39 项正式商用验收仍 NOT TESTED**，两仓/主线未合并未部署。
+
+
+## B9g｜授权拒绝的 App Save 不得触碰文件投影与只读 Viewer（2026-10-11）
+
+- [Draft #619](https://github.com/jiangxng/EVO-App-Platform/pull/619)，叠加 B9f #618，测试平台 **正式 App Editor GET/SAVE Handler + FileProjectionStore + Enterprise Definition Viewer** 的一条明确 deny/allow/deny 状态机。拒绝首次保存时旧 token 仍为 0、文件根本不生成；允许另一个 Save 后 token `0→1` 且隐藏节点；随后**带正确最新 token 1** 的拒绝覆盖仍然不得修改文件，不能把策略拒绝误算为过期 token 冲突；新建 Store 与 Viewer GET 仍保留唯一允许的隐藏效果，业务定义历史不增加。
+- [首次 Diagram Designer Integration #38068500982 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068500982)：项目正式 Handler 的拒绝分支通过。授权钩子在测试中专门配置，**不是**用户真实生产登录/企业权限策略、也非云生产数据库或真实手机/桌面设备。原 §14 **39 项正式商用验收仍 NOT TESTED**，详见 [B9g 记录](./DIAGRAM-B9G-DENIED-PROJECTION-FILE-SAVE-20261011.md)。
