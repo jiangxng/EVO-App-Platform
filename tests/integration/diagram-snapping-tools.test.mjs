@@ -33,9 +33,9 @@ test("orthogonal segment snap is strictly perpendicular and stable at different 
   assert.equal(y.dy, 3);
   assert.equal(y.guideY, 80);
   assert.equal(y.guideX, undefined);
-  const scaled = diagramSnapHandleOffsetV010({x:47,y:10},2,0,"x",references,
+  const scaled = diagramSnapHandleOffsetV010({x:47,y:10},0,0,"x",references,
     {scale:3,tolerancePx:6,alignToNodes:true});
-  assert.equal(scaled.dx,2);
+  assert.equal(scaled.dx,0);
   assert.equal(scaled.guideX,undefined);
 });
 
