@@ -302,3 +302,13 @@
 **[解释限制]** 合成 Eidos DOM 真实渲染了全部节点、连线和 804/2004 个 SVG 元素，持续使用 CDP 原生鼠标事件，但 CDP dispatch 的时长含协议与 runner 调度，不能当作逐帧绘制 p95。单次冷启动与后续热启动的数值不可作稳健对比，因此采用同 runner、多次预热/重复。仍需重复独立 run 分析 200/400 回退，及真实企业图、真实跨设备 FPS、内存/长任务分布和 Viewer 保存往返；**原 §14 P01 及其他未完的 39 项验收继续 NOT TESTED**。
 
 **[文档入口]** Eidos #141 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-20261010.md`；App #573 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md`；App #573 原 `DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md`。Draft 全部未合并、未部署。
+
+---
+
+## 2026-10-10 P01a 实测回退后的补充工程选择（保留旧证据）
+
+**[新项目内证据，不是外站重读]** 在初版 spatial index 的 [同 runner Chrome CI 38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) 中，200/400 selection +14.76% 退化，500/1000 selection -15.68% 改善；第二次独立配对小图仍 +4.94% 回退，大图 -22.24% 改善，不能只引用大图的好结果而隐藏小图反证。因此基于实测选择自适应路线：**可见节点数 × 可见边数 >= 150000** 时启用空间桶索引；小图继续使用原节点障碍列表扫描。每次重绘的 ID→Node Map 仍可复用。该阈值是可调整的工程调优点，不属于用户确认的图业务规则，也不是新的外部资料结论。
+
+**[新正向重复证据]** [App Chrome 配对 run 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) **PASS**，使用同一 runner 分别构建 B6b base 与 P01a 的条件索引版本，Chrome/154.0.8037.97，两个预热场景 + 每种规模三次交错中位数。200/400 selection 19.3→16.8ms **-12.95%**，500/1000 selection 48.6→40.6ms **-16.46%**。载入耗时 200/400 75.1→76.4ms +1.73%、500/1000 97.7→96.6ms -1.13%，故不声称两种规模的首屏都显著改善。DOM 均完整渲染，没有因为虚拟化删除目标。纯几何 old/new 路由 SVG parity 仍由 CI 保护。
+
+**[限制]** 三次中位数只能减轻共享 runner 噪声，不能当作承诺的 FPS。尤其 CDP 鼠标 dispatch 还包含协议耗时，不能直接等价浏览器帧绘制。独立 Win/macOS/iOS/Android 设备、真实企业数据、长时间操作内存与长任务仍未实测，**§14 P01 继续 NOT TESTED**。实施与证据在 Eidos [#141](https://github.com/jiangxng/eidos/pull/141) 和 App [#573](https://github.com/jiangxng/EVO-App-Platform/pull/573)；此前负面结果已保留，不以优化后的好结果覆盖。
