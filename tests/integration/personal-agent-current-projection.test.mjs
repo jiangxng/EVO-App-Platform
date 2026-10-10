@@ -23,6 +23,9 @@ import {
   createCurrent2dEditorAgentToolRegistrationsV010
 } from "../../dist/apps/eog-2d-designer/current-2d-editor-agent-tools.js";
 import {
+  createDefinitionProjectionAgentToolRegistrationsV010
+} from "../../dist/apps/eog-2d-designer/definition-projection-agent-tools.js";
+import {
   createEnterpriseOperatingGraphViewActionHandlersV010,
   EOG_VIEW_GET_ACTION
 } from "../../dist/apps/eog-2d-designer/enterprise-operating-graph-page.js";
@@ -883,4 +886,89 @@ test("current enterprise 2D editor tools stay hidden when principal lacks editor
   });
 
   assert.equal(toolCatalog(registrations).list().length, 0);
+});
+
+
+test("Personal Agent cannot overwrite a human projection write after reading a stale token", async () => {
+  const repository = fakeRepository();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const currentEditors = createMemoryCurrent2dEditorSessionStoreV010();
+  currentEditors.set("session-a", {
+    contractVersion: "0.1.0", kind: "DEFINITION_PROJECTION",
+    enterpriseId, definitionId, definitionRevision, projectionId,
+    resourceId: "enterprise-definition:ent-a:ledger:main@0#projection:main",
+    selectedAt: "2026-10-10T00:00:00.000Z"
+  });
+  const registrations = createCurrent2dEditorAgentToolRegistrationsV010({
+    currentEditors, graphService: fakeGraphService(operatingGraph()),
+    graphViewService: createEogViewStateProviderV010({
+      store: createMemoryEogViewStateStoreV010()
+    }),
+    definitionRepository: repository,
+    definitionProjectionStore: projectionStore,
+    definitionProjectionSource: artifactSource(),
+    principal: principal(), context: resolvedContext(),
+    canAccessEnterprise: () => true, canManageEnterprise: () => true
+  });
+  const get = registrations.find(r => r.descriptor.id === "enterprise.current_2d_editor.get");
+  const crop = registrations.find(r => r.descriptor.id === "enterprise.current_2d_editor.crop");
+  const before = get.execute({});
+  assert.equal(before.writeToken, "0");
+  const visibleNodeIds = before.nodes.slice(0, 3).map(x => x.id);
+  const visibleEdgeIds = before.edges.filter(e =>
+    visibleNodeIds.includes(e.source) && visibleNodeIds.includes(e.target)).map(e => e.id);
+  const values = { visibleNodeIds, visibleEdgeIds, expectedWriteToken: before.writeToken };
+  assert.throws(() => crop.execute({ visibleNodeIds, visibleEdgeIds }), /CURRENT_2D_EDITOR_WRITE_TOKEN_REQUIRED/);
+  const written = projectionStore.putIfVersion({
+    enterpriseId, definitionId, definitionRevision,
+    gallery: initialGallery(), updatedAt: "2026-10-10T00:00:01.000Z",
+    updatedBySubjectId: "human"
+  }, 0);
+  assert.equal(written.version, 1);
+  const humanState = projectionStore.snapshot();
+  assert.throws(() => crop.execute(values), /DEFINITION_PROJECTION_WRITE_CONFLICT/);
+  assert.deepEqual(projectionStore.snapshot(), humanState);
+  const fresh = get.execute({});
+  assert.equal(fresh.writeToken, "1");
+  const applied = crop.execute({ ...values, expectedWriteToken: fresh.writeToken });
+  assert.equal(applied.changed, true);
+  assert.equal(projectionStore.getVersion({ enterpriseId, definitionId, definitionRevision }), 2);
+});
+
+test("direct Definition Projection Agent tools require and atomically check the read token", () => {
+  const repository = fakeRepository();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  sessions.set("session-a", {
+    contractVersion: "0.1.0", enterpriseId, definitionId,
+    definitionRevision, projectionId, selectedAt: "2026-10-10T00:00:00.000Z"
+  });
+  const regs = createDefinitionProjectionAgentToolRegistrationsV010({
+    repository, projectionStore, source: artifactSource(),
+    sessions, principal: principal(), context: resolvedContext(),
+    canManageEnterpriseContext: () => true
+  });
+  const get = regs.find(x => x.descriptor.id === "enterprise.definition_projection.current.get");
+  const crop = regs.find(x => x.descriptor.id === "enterprise.definition_projection.current.crop");
+  const first = get.execute({});
+  assert.equal(first.writeToken, "0");
+  const visibleNodeIds = first.nodes.slice(0, 3).map(x => x.id);
+  const visibleEdgeIds = first.edges.filter(e =>
+    visibleNodeIds.includes(e.source) && visibleNodeIds.includes(e.target)).map(e => e.id);
+  const data = { visibleNodeIds, visibleEdgeIds };
+  assert.throws(() => crop.execute(data), /DEFINITION_PROJECTION_WRITE_TOKEN_REQUIRED/);
+  projectionStore.putIfVersion({
+    enterpriseId, definitionId, definitionRevision,
+    gallery: initialGallery(), updatedAt: "2026-10-10T00:00:01.000Z",
+    updatedBySubjectId: "human"
+  }, 0);
+  const snapshot = projectionStore.snapshot();
+  assert.throws(() => crop.execute({ ...data, expectedWriteToken: first.writeToken }),
+    /DEFINITION_PROJECTION_WRITE_CONFLICT/);
+  assert.deepEqual(projectionStore.snapshot(), snapshot);
+  const fresh = get.execute({});
+  assert.equal(fresh.writeToken, "1");
+  const result = crop.execute({ ...data, expectedWriteToken: fresh.writeToken });
+  assert.equal(result.changed, true);
+  assert.equal(projectionStore.getVersion({ enterpriseId, definitionId, definitionRevision }), 2);
 });
