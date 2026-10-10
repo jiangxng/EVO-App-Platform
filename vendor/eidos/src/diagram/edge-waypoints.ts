@@ -1,7 +1,9 @@
 /** B3 presentation-only explicit connector handles.
  * The geometry is a declarative view override: topology, arrow and relationship identity never change.
  */
-import type { DiagramEdgePointV010, DiagramEdgePathKindV010, DiagramEdgeGeometryV010 } from "./edge-paths.js";
+import { diagramAutomaticOrthogonalPointsV010, type DiagramEdgeGeometryOptionsV010,
+  type DiagramEdgePointV010, type DiagramEdgePathKindV010,
+  type DiagramEdgeGeometryV010 } from "./edge-paths.js";
 
 export type DiagramEdgeAnchorSideV010 = "auto" | "left" | "right" | "top" | "bottom";
 export interface DiagramEdgePathOverrideV010 {
@@ -263,4 +265,26 @@ export function diagramDragOrthogonalSegmentV010(
     }
   }
   return reduced.slice(1, -1);
+}
+
+/** B8a: derive editable controls from exactly the same automatic orthogonal
+ * route currently rendered. Selection never mutates/persists these controls;
+ * only an actual segment drag may commit them as explicit manual waypoints.
+ * Fail closed on over-budget routes rather than truncating their geometry.
+ */
+export function diagramEditableAutomaticOrthogonalRouteV010(
+  start: DiagramEdgePointV010,
+  end: DiagramEdgePointV010,
+  pathKind: "orthogonal" | "rounded-orthogonal",
+  options?: DiagramEdgeGeometryOptionsV010
+): { waypoints: DiagramEdgePointV010[]; segments: DiagramOrthogonalSegmentHandleV010[] } | undefined {
+  const corners = diagramAutomaticOrthogonalPointsV010(start, end, pathKind, options);
+  if (corners.length < 2 || corners.length - 2 > MAX_POINTS) return undefined;
+  const points = corners.length === 2 ? [
+    { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }
+  ] : corners.slice(1, -1).map(p => ({ ...p }));
+  if (!points.every(validPoint) || points.length > MAX_POINTS) return undefined;
+  const override: DiagramEdgePathOverrideV010 = { pathKind, waypoints: points };
+  const segments = diagramEditableOrthogonalSegmentsV010(start, end, override);
+  return segments.length ? { waypoints: points, segments } : undefined;
 }
