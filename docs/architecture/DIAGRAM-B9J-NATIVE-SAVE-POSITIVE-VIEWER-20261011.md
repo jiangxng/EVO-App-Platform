@@ -21,3 +21,18 @@
 这验证了真实浏览器鼠标、实际产品按钮、App Handler、CAS、文件 Store、真 Chrome readonly Viewer 的**一条完整受控机器验收链路**。但业务图合法却是合成示例、Store 在 CI 临时文件、授权策略是受控测试钩子；并非生产企业数据库、真实客户 S2C/P2P 数据、多用户策略或实体 iOS/Android/Windows/macOS 设备。历史 §14 **39 项正式商用签收仍 NOT TESTED**。所有 PR 保持 Draft，未合并、未部署，TR-01 不变。
 
 初期脚本采用 Pin Playwright 1.56.1 控制 CI runner 原生 Chrome 154，不改变 product 依赖或部署包。任何失败必须保留首个失败 run，记录修改原因后以同 HEAD 成功证据判定。
+
+
+## 实际首次失败、修正与正式 Chrome 结果
+
+- [首轮 B9j 失败 #38069271828](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069271828)：点击真实业务节点后，Eidos 按正常契约执行 **selection-read Command**。上一轮 B9i 只为不带交互的 Viewer GET 设置了 GET/SAVE/VIEW 测试服务器路由，导致新场景 HTTP 400 和被浏览器捕获的 unhandled rejection。这不是业务保存失败，而是**测试服务器缺少真实选择读取处理器**，不能跳过错误断言来伪造 PASS。
+- 精确修正：同一测试 ActionHost 映射 App `createEnterpriseDefinitionProjectionEditorActionHandlersV010` 返回的**所有正式 Handler**（包含 selection-read），保持实际授权、CAS 和底层文件 Store 不变；记录修复提交 `e97b1348b5dcf4f67a3f046e6fed87cb09a488b3`。
+- [真 Chrome 修复后 #38069350412 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069350412)，浏览器 **154.0.8037.97**：
+  - `B9J_NATIVE_SAVE_RESULT`：正数原始拥塞 1、实际点击隐藏后 0、原 CAS 仍为 1；真正按钮点击后 CAS **1→2**，真实浏览器鼠标选择和工具栏按钮均触发，脚本错误数组为空。
+  - `B9I_SAVED_POSITIVE_CHROME_RESULT`：已保存正数在全新 Designer=1 / Viewer=1；第二次通过真实 Chrome 按钮保存后全新 Designer=0 / Viewer=0，均有实际 SVG hit、汇总与 aria 校验，Viewer saveButtons 始终 0，业务定义历史 1。
+  - 与原有 B9i 的工具直接调用 Handler 保存方式相比，B9j **完成原生 UI 入口到真实 App CAS 保存的闭环**；首轮失败保留为可追踪证据。
+- 文档提交后的最新 PR HEAD Actions 仍应单独核验，不能把上述前一绿色 run 冒充同一最终 SHA。
+
+## 限定与下一轮方向
+
+本阶段实现了**合法合成业务图**的浏览器按钮→App Host→真实临时文件型投影 Store→全新 Chrome readonly Viewer 的完整机器子场景，但没有引入真实顾客/真实云数据库/多租户实机或生产部署。正式 §14 39 项商业人工验收**仍 NOT TESTED**。下一阶段应优先聚焦真实 S2C/P2P 投影数据、终端系统字体/触控板与生产环境安全授权验收；不能再把现有自动化当成真实客户签收。
