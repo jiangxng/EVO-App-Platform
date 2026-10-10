@@ -12,6 +12,8 @@ test("B10j 16 incremental independent Draft PR references, chronological and uni
   assert.match(r.url,/^https:\/\/github\.com\/jiangxng\/EVO-App-Platform\/pull\/\d+$/);
   assert.equal(r.url.endsWith("/"+r.pr),true);
   assert.equal(r.prStateAtIndexCreation,"open-draft");
+  if(r.id!=="B10j")assert.match(r.restackedHeadSha,/^[a-f0-9]{40}$/);
+  else assert.equal(r.restackedHeadSha,null);
   assert.equal(r.evidenceTier,"synthetic-machine-only");
   assert.equal(r.formalCommercialAcceptance,"NOT TESTED");
   assert.equal(r.realCustomerDataUsed,false);
