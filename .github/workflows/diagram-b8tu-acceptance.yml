@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/diagram-performance-browser-proof.mjs"
       - "tests/integration/diagram-b8tu-budget-grapheme.test.mjs"
+      - "tests/integration/diagram-b8vw-congestion-summary.test.mjs"
       - "vendor/eidos/src/diagram/**"
       - ".github/workflows/diagram-b8tu-acceptance.yml"
   push:
@@ -23,8 +24,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: B8t+B8u pure safety and grapheme checks
-        run: node --test tests/integration/diagram-b8tu-budget-grapheme.test.mjs
+      - name: B8t+B8u+B8v pure safety, grapheme and accessible summary guards
+        run: node --test tests/integration/diagram-b8tu-budget-grapheme.test.mjs tests/integration/diagram-b8vw-congestion-summary.test.mjs
       - name: B8t 300/900 and 400/1200 real fully automatic orthogonal Chrome DOM
         shell: bash
         run: |
