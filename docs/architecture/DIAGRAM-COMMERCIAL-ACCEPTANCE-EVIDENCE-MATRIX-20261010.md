@@ -54,7 +54,7 @@
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A02 | 系统大字与键盘操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| P01 | 规模样例与连续操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
+| P01 | 规模样例与连续操作 | P01a Chrome 154 synthetic full DOM 200/400 + 500/1000，3 中位数同 runner B6b/P01a 配对 [CI 38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416)：500/1000 mount -19.0%、selection -15.68%，200/400 selection +14.76% 退化；实机 FPS/持续操作待验 | NOT TESTED |
 | P02 | 同一页面两个图形实例 | marker ID 已做实例隔离；实际双实例测试待做 | NOT TESTED |
 
 ## B5a 增量的测试边界
@@ -131,3 +131,11 @@
 - [Chrome Browser CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) Chrome/154.0.8037.97 四标签页 **PASS**，其中 `nativeOrthogonalSegmentSnapAndUndo=true`、`nativeRouteHandleSnapAndUndo=true`、`groupAlignmentUndo=true`、`businessHistoryUnchanged=true`。
 - 因单一共线 waypoint 与 segment handle 透明圈可重合，实验首先通过真实路径点数字坐标控件构造明确拐角；选取真正可点击的 segment 44px SVG 热区，沿其可动法向轴拖动，检查路径实际变化与 Undo 后 `d` 精确还原。两种手柄现均有实际 Chrome 鼠标子场景；用户仍可通过路径点数字编辑处理目标重叠情况。
 - 原始 §14 E03 仍保留 NOT TESTED：尚未在手机 Safari / Android Chrome 上验证多指触摸路径编辑、曲线及自环、保存后 Viewer 往返与大图性能。此证据只证明上述子场景，不代表实机商业验收全面 PASS。
+
+## P01a Chromium 大图性能及不一致结果（2026-10-10）
+
+- [Eidos Draft PR #141](https://github.com/jiangxng/eidos/pull/141) 增加 node endpoint Map 和确定性 `obstacle-spatial-index.ts`，只筛选与边相关的障碍节点；大小图和长边 / 大节点边界的退路都保留。路由 `d`、label、congested 与原本**所有障碍全量输入**按单测逐条一致；不改业务语义、投影版本/Agent/权限。
+- [App Draft PR #573](https://github.com/jiangxng/EVO-App-Platform/pull/573) 差分 vendor 并加入 `diagram-obstacle-spatial-index.test.mjs` 实际 CI 路径/命令；独立 `tools/diagram-performance-browser-proof.mjs` 用**真实 Chrome 的合成 Eidos DOM**，不碰线上企业数据，分别渲染 200/400 与 500/1000。
+- [配对实测 CI 38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) 在同一 runner checkout B6b base 与 P01a HEAD，分别编译并先预热，再每种规模测 3 次取中位数。500/1000 mount **173.2→140.3ms (-19.00%)**，selection render **81.0→68.3ms (-15.68%)**。200/400 mount **108.0→105.8ms (-2.04%)**，selection **35.9→41.2ms (+14.76% 退化)**。不应把这次局部正向结果宣传为所有图规模优化。
+- CDP 鼠标事件调度中位数不是动画帧率；共享 runner、合成数据不等于物理手机/桌面及线上环境；§14 P01 **NOT TESTED**。需真实业务拥堵图、触摸、持续编辑、堆内存峰值与 p95/p99 长任务、Win/macOS/iOS/Android 性能截图和原 §14 阈值核对。
+- 跟踪与已确认决策见 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md` 和原研究交接 PR #552。
