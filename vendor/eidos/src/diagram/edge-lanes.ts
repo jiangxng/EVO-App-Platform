@@ -80,17 +80,42 @@ const loopSides: readonly DiagramSelfLoopSideV010[] =
  * Reserved sides represent earlier, stable-id ordered self-edges on the
  * SAME node. A finite soft penalty keeps alternatives usable if crowded.
  */
+/** B8i nonincident route and label reservations, world coordinates.
+ * Segment intersection is tested only against the exterior loop corridor.
+ * Source/target adjacent strokes must not be included by callers.
+ */
+export interface DiagramSelfLoopInkV010 {
+  segments?: readonly {start: DiagramEdgePointV010;end: DiagramEdgePointV010}[];
+  labels?: readonly DiagramLaneNodeV010[];
+}
+function segmentHitsRect(a:DiagramEdgePointV010,b:DiagramEdgePointV010,
+  x0:number,y0:number,x1:number,y1:number):boolean {
+  const dx=b.x-a.x,dy=b.y-a.y;
+  let enter=0,exit=1;
+  for(const [p,q] of [
+    [-dx,a.x-x0],[dx,x1-a.x],[-dy,a.y-y0],[dy,y1-a.y]
+  ]){
+    if(Math.abs(p)<1e-9){if(q<0)return false;continue;}
+    const v=q/p;
+    if(p<0)enter=Math.max(enter,v);else exit=Math.min(exit,v);
+    if(enter>exit)return false;
+  }
+  return true;
+}
 export interface DiagramSelfLoopDecisionV010 {
   side: DiagramSelfLoopSideV010;
   congested: boolean;
   nodeOverlapArea: number;
   sameSideLoops: number;
+  edgeCrossings?: number;
+  labelOverlapArea?: number;
 }
 export function diagramSelfLoopDecisionV010(
   node: DiagramLaneNodeV010,
   obstacles: readonly DiagramLaneNodeV010[] = [],
   laneOffset = 0,
-  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+  reservedSides: readonly DiagramSelfLoopSideV010[] = [],
+  ink: DiagramSelfLoopInkV010 = {}
 ): DiagramSelfLoopDecisionV010 {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
     || node.width <= 0 || node.height <= 0 || Math.abs(laneOffset) > 1000
@@ -98,7 +123,12 @@ export function diagramSelfLoopDecisionV010(
     || obstacles.some(o => !o || ![o.x,o.y,o.width,o.height].every(Number.isFinite)
       || o.width <= 0 || o.height <= 0)
     || !Array.isArray(reservedSides)
-    || reservedSides.some(side => !loopSides.includes(side))) {
+    || reservedSides.some(side => !loopSides.includes(side))
+    || !Array.isArray(ink.segments ?? []) || !Array.isArray(ink.labels ?? [])
+    || (ink.segments ?? []).some(seg => !seg || ![seg.start?.x,seg.start?.y,
+      seg.end?.x,seg.end?.y].every(Number.isFinite))
+    || (ink.labels ?? []).some(box => !box || ![box.x,box.y,box.width,
+      box.height].every(Number.isFinite) || box.width<=0 || box.height<=0)) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
   }
   const reach = Math.max(38,56+laneOffset);
@@ -121,11 +151,27 @@ export function diagramSelfLoopDecisionV010(
       const iy=Math.max(0,Math.min(y1,o.y+o.height)-Math.max(y0,o.y));
       area+=ix*iy;
     }
-    const score=area+siblings*reservationPenalty;
+    // Candidate ink footprint starts on the node boundary and extends out.
+    // Lines traversing the source node itself are not a self-loop penalty.
+    const ox0=side==="right"?node.x+node.width:x0;
+    const ox1=side==="left"?node.x:x1;
+    const oy0=side==="bottom"?node.y+node.height:y0;
+    const oy1=side==="top"?node.y:y1;
+    const crossings=(ink.segments ?? []).reduce((sum,seg)=>sum+
+      Number(segmentHitsRect(seg.start,seg.end,ox0,oy0,ox1,oy1)),0);
+    let labelArea=0;
+    for(const label of ink.labels ?? []){
+      const ix=Math.max(0,Math.min(ox1,label.x+label.width)-Math.max(ox0,label.x));
+      const iy=Math.max(0,Math.min(oy1,label.y+label.height)-Math.max(oy0,label.y));
+      labelArea+=ix*iy;
+    }
+    const score=area+siblings*reservationPenalty+crossings*6000+labelArea*2;
     if(score<bestScore){
       bestScore=score;
-      best={side,congested:area>0||siblings>0,
-        nodeOverlapArea:area,sameSideLoops:siblings};
+      best={side,congested:area>0||siblings>0||crossings>0||labelArea>0,
+        nodeOverlapArea:area,sameSideLoops:siblings,
+        ...(crossings ? {edgeCrossings:crossings} : {}),
+        ...(labelArea ? {labelOverlapArea:labelArea} : {})};
     }
   }
   return best;
@@ -135,9 +181,10 @@ export function diagramSelfLoopSideV010(
   node: DiagramLaneNodeV010,
   obstacles: readonly DiagramLaneNodeV010[] = [],
   laneOffset = 0,
-  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+  reservedSides: readonly DiagramSelfLoopSideV010[] = [],
+  ink: DiagramSelfLoopInkV010 = {}
 ): DiagramSelfLoopSideV010 {
-  return diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides).side;
+  return diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides,ink).side;
 }
 
 function loopPointsOnSide(node: DiagramLaneNodeV010,side: DiagramSelfLoopSideV010,reach:number){
@@ -187,7 +234,8 @@ export function diagramSelfLoopRouteControlsV010(
   laneOffset = 0,
   obstacles: readonly DiagramLaneNodeV010[] = [],
   manualWaypoints?: readonly DiagramEdgePointV010[],
-  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+  reservedSides: readonly DiagramSelfLoopSideV010[] = [],
+  ink: DiagramSelfLoopInkV010 = {}
 ): { start: DiagramEdgePointV010; end: DiagramEdgePointV010;
   waypoints: DiagramEdgePointV010[]; side: DiagramSelfLoopSideV010 } {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
@@ -195,7 +243,7 @@ export function diagramSelfLoopRouteControlsV010(
     || !["orthogonal","rounded-orthogonal","curve"].includes(kind)) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
   }
-  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides);
+  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides,ink);
   const automatically=decision.side;
   const side=manualWaypoints?.length
     ? diagramSelfLoopManualSideV010(node,manualWaypoints,automatically)
@@ -217,7 +265,8 @@ export function diagramSelfLoopGeometryV010(
   laneOffset = 0,
   manualWaypoints?: readonly DiagramEdgePointV010[],
   obstacles: readonly DiagramLaneNodeV010[] = [],
-  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+  reservedSides: readonly DiagramSelfLoopSideV010[] = [],
+  ink: DiagramSelfLoopInkV010 = {}
 ): DiagramEdgeGeometryV010 {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
     || node.width<=0 || node.height<=0 || Math.abs(laneOffset)>1000
@@ -230,7 +279,7 @@ export function diagramSelfLoopGeometryV010(
       || Math.abs(p.x)>1e7 || Math.abs(p.y)>1e7))) {
     throw new Error("EIDOS_DIAGRAM_LOOP_WAYPOINT_INVALID");
   }
-  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides);
+  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides,ink);
   const automaticSide=decision.side;
   const status=manualWaypoints?.length ? {} : decision.congested ? {congested:true} : {};
   const selectedSide=manualWaypoints?.length
