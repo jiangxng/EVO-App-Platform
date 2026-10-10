@@ -250,3 +250,17 @@
 **[已执行证据]** Eidos #139 CI 验证纯几何（10%、300% 规模、坐标平局稳定、群组不变形、切换独立），App Platform #566 Diagram Integration CI 含 `diagram-snapping.test.mjs`。实际 [Browser CI #38011441150](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38011441150) 使用 Chrome/154.0.8037.97、真实 Eidos DOM、原生 CDP 鼠标位移，验证 10% 网格吸附和 `pointercancel` 回滚，以及三个开关独立；输出 `nativeGridSnapCancelled=true`、`independentGridModes=true`。两个仓库原有 CI 与 B7b 浏览器冲突测试均单独核查，不用测试文件数量代替运行结果。
 
 **[尚需验证/未实现]** 网格控制与节点吸附不代表路径点/正交段也可吸附，B6b 继续处理；还需真实鼠标对齐参考线、手工路径吸附、对齐/等距动作、锁定群组、真实手机/触控板和大型图性能证据。原 §14 39 项完整验收矩阵均未因 Node/CI 子测试而自动标记为跨设备 PASS。
+
+---
+
+## 2026-10-10 B6b 补充：路径手柄吸附与显式对齐/等距分布
+
+**[继承已有研究，未重新阅读外部资料]** 仍以原始 S1–S7 已记录的来源等级及 v1.0 §6.5/§7.2/§10 的用户确认要求为设计边界，**不能把参考网址清单说成这一轮已经重新查阅过的原文**。本轮新事实只来自已检查的 Eidos/App Platform 源码及实际 GitHub Actions 与 Chromium DOM 自动化。
+
+**[Eidos 通用工程实现]** [Draft PR #140](https://github.com/jiangxng/eidos/pull/140) 基于 B6a #139，在 `src/diagram/snapping.ts` 增加纯函数 `diagramSnapHandleOffsetV010` 与 `diagramArrangeNodesV010`。手工 waypoint 双轴吸附、正交段仅法向轴吸附；对齐目标包括可见节点及其他边的显式 waypoint，不改变关系源/目标和 pathKind。多节点提供六向对齐和两轴等边缘间距分布，对齐需至少二节点、分布需至少三节点，使用选中的主对象作为基准；空间不足给明确错误。Surface 添加真实菜单、单次 Undo checkpoint 与取消时清理参考线。
+
+**[App Platform 差分集成]** [Draft PR #568](https://github.com/jiangxng/EVO-App-Platform/pull/568) 基于 B6a #566，按原架构差分移植进 `vendor/eidos`，保护 Host 的 `renderContextNavigationV010` 与 B7b 写入 token/CAS，没有修改业务定义或账本。
+
+**[实际测试证据]** Eidos #140 CI 通过；[App Diagram Integration CI 38012177672](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177672) 实际执行 `diagram-snapping-tools.test.mjs` 等共 **57/57 PASS**；[App Browser Conflict CI 38012177648](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177648) 的真实 Chrome/154.0.8037.97 页面执行了 **三个节点多选、Align left、Undo 恢复全部原坐标且不写入投影**，机器输出 `groupAlignmentUndo=true`。B7b 多窗口保存/失败重试、B6a 自适应网格测试未回归。这是实际 DOM/ActionHost 自动验证，不是正式跨设备验收。
+
+**[未覆盖与下一步]** B6b 现有路径手柄吸附具有纯算法与 Surface 静态测试，但尚未证明真实 Chrome 鼠标/指触路径手柄完整拖动；自动正交路由段编辑、实体 iOS/Android/触控板手势、密集图性能和原 §14 完整 39 项仍待完成。保持原研究与决策不变；新增反馈不需要更改 v1.0 原始确认方案。
