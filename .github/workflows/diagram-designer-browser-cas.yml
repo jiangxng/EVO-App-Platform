@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Thirty-two Chrome tabs - B8n multilingual tspan and B8o density evidence
+      - name: Thirty-four Chrome tabs - B8p RTL visual bidi and B8q mixed-route evidence
         shell: bash
         run: |
           set -euo pipefail
