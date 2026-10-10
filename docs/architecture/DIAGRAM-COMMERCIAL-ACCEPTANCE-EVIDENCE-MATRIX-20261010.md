@@ -279,3 +279,12 @@
 
 
 - **B8s 严格字形包围盒修正：** 最初 Firefox/WebKit 的方向/全文保留测试 8/8 PASS，但 WebKit RTL 多行 parent SVG `getBBox` 与 Canvas 和路由预留不一致；随后真实位置断言暴露 WebKit RTL 锚点水平偏移。实现已在 SVG 挂载后仅对真实绘制的 RTL 标签执行上限 256 次 `getBBox`，有偏移时同时修改 `text` 与 `tspan` 的 `x` 来对齐原始世界坐标 `geometry.label.x`，完全不改变持久数据。另增加 `data-eidos-diagram-caption-world-x` 记录**未校准前的路由原始锚点**，真实 Firefox/WebKit 测试必须从这里取坐标与保守避让框比较；不得错误使用已改动的 SVG `x` 计算预留中心。仅在最新 head 严格边界测试 PASS 后才能宣称 B8s 宽度+位置均经验证；Safari/iOS 和多系统字体实机仍不在验收范围。
+
+
+## B8t + B8u：全自动路由预算与真实跨引擎复杂文本（2026-10-10）
+
+- 两仓独立研发 Draft：[Eidos #157](https://github.com/jiangxng/eidos/pull/157)、[EVO #604](https://github.com/jiangxng/EVO-App-Platform/pull/604)，各自叠加 B8r+B8s 已通过的 #155/#602；**未合并、未部署、未接触主线业务定义或 Host/Agent 权限**。已归档源代码/实测/首次失败纠偏：[B8tu 独立记录](./DIAGRAM-B8TU-ROUTING-BROWSER-ACCEPTANCE-20261010.md)。
+- **B8t 代码与 CI：** 22/23 相关障碍边界、远障碍不计预算、确定性 + 64 条正交样本安全及 Unicode/ZWJ 字素测试。Eidos [321/321 PASS #38058814582](https://github.com/jiangxng/eidos/actions/runs/38058814582) 包含 5 条新测试；App [5/5 PASS、Chrome B8t #38059114823](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059114823)。验证了完整 DOM 的全部自动正交（非 manual）300/900 和 400/1200 合成图，前者 mount 160.4ms、select 67.9ms、drag p95 19.14ms、heap 4.89MB，后者分别 163.4ms、80.6ms、22.12ms、7.62MB；各档预热后 2 个正式样本。CI runner 性能非生产 SLA，不宣称 12,001 条全部正交生产能力；既有 22/2600 安全预算不变。
+- **B8u 真实 Firefox/WebKit：** [严格跨引擎 #38059114817 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059114817)，7 类受控文本 × 2 内核 = 14/14 PASS，SVG `getBBox` 左右框、RTL/LTR、逻辑原文保留。超过 18 条边时未选中普通 label 默认隐藏，最初压力测试因此 [#38058967083 FAIL](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38058967083)；定位为夹具未选中共同端点，后改为通过真实点击选中共用节点：两内核均出现**258 条实际 RTL label**，且 `data-eidos-diagram-bidi-measure-limit=true`，证明每轮 DOM `getBBox` **256 次预算**有明确诊断，未超额盲测也未删掉标签。保留红色历史和纠正原由。
+- **最新受测 App 代码 head** `f785d95a24f13de703dd8a807c07fef8375ee732` 的 **8/8 工作流 PASS**：Platform / Continuity / P01 Performance / Dense DOM / Complex DOM / B8r Auto DOM / B8t Budget / RTL。注意这一 head 的 8 个 workflow 不包括 Browser Conflict 的 34-tab 专项；该证据来自前一 [#38057260254](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38057260254)，不能称为本 head 实测。
+- **验收限定：** 自动化子场景 PASS 不是完整 V/M/T/E/D/A/P 条目人工完成；Windows/macOS 字体、Safari/iOS 实体、Android 实体、物理触控板、真实客户企业图、持久数据库重启、长期稳态压力、全 §14 **39 项正式商业验收仍 NOT TESTED**。保持原 39 行判定，不提前改成 PASS。
