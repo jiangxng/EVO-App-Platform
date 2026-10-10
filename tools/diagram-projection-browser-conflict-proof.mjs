@@ -633,11 +633,83 @@ try {
   assert.ok(undoAuto.automatic>0,"B8 Undo must restore automatic segment drag handles");
   assert.equal(store.getVersion(target),3,"B8 Undo must not persist a Host write");
 
+  // B8b: Redo the converted route, persist through the actual App Host
+  // authorization + CAS handler, reopen a NEW Designer tab, then open the
+  // actual read-only Enterprise Definition Viewer workspace in Chrome.
+  const redoAuto=await f.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const redo=document.querySelector("[data-eidos-diagram-history=redo]");'
+    + 'if(!redo||redo.disabled)throw Error("B8b converted route cannot be redone");'
+    + 'redo.click();'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {d:visual.getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
+  assert.equal(redoAuto.d,committedAuto.d,"Redo must restore the identical manually routed SVG");
+  assert.equal(redoAuto.manual,committedAuto.manual,"Redo must restore exact manual point fields");
+  assert.equal(store.getVersion(target),3,"Redo cannot write before Save");
+  await action(f,"Save projection");
+  await until(f,"Saved.");
+  assert.equal(store.getVersion(target),4,"B8b Save must advance independent projection CAS once");
+  const persisted=store.get(target).projections
+    .find(projection=>projection.projectionId===target.projectionId);
+  const savedRoute=persisted?.view.edgePaths?.find(route=>route.edgeId===routeChoice.edge.id);
+  assert.ok(savedRoute,"Converted auto route must appear in saved projection edgePaths");
+  assert.equal(savedRoute.pathKind,"orthogonal");
+  assert.ok(savedRoute.waypoints?.length>=2,"Persisted auto-to-manual conversion must include waypoints");
+  assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
+    definitionId:target.definitionId}).length,1,
+    "Projection save must not append a business definition revision");
+
+  // A fresh browser tab is a real page reload/read over the persisted Store,
+  // not a reuse of the Designer's in-memory local graph.
+  g=await tab("G",true);
+  await until(g,"Ready.");
+  const reopened=await g.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'if(!edge)throw Error("Reopened Designer lost persisted relation");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {d:visual.getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
+  assert.equal(reopened.d,committedAuto.d,"Fresh Designer read must restore exactly saved path geometry");
+  assert.equal(reopened.manual,committedAuto.manual,"Fresh Designer must expose saved manual controls");
+
+  const savedArtifact=source.get(target);
+  assert.ok(savedArtifact?.diagram2d);
+  const persistedEdge=savedArtifact.diagram2d.edges.find(edge=>edge.id===routeChoice.edge.id);
+  assert.deepEqual(persistedEdge?.waypoints,savedRoute.waypoints);
+  assert.equal(persistedEdge?.pathKind,savedRoute.pathKind);
+  const originalBusinessEdge=routeGraph.edges.find(edge=>edge.id===routeChoice.edge.id);
+  assert.equal(persistedEdge.source,originalBusinessEdge.source);
+  assert.equal(persistedEdge.target,originalBusinessEdge.target);
+  assert.equal(persistedEdge.kind,originalBusinessEdge.kind);
+
+  h=await tab("H","viewer");
+  await until(h,"Read-only Enterprise Context projection");
+  const viewer=await h.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'if(!visual)throw Error("Actual Viewer lost saved auto-to-manual relation");'
+    + 'return {d:visual.getAttribute("d"),'
+    + 'manual:document.querySelectorAll("[data-eidos-diagram-waypoint-controls]").length,'
+    + 'auto:document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]").length,'
+    + 'save:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]'
+    + '.some(b=>b.textContent.trim()==="Save projection")};})()');
+  assert.equal(viewer.d,committedAuto.d,"Actual Viewer SVG path must equal committed Designer SVG");
+  assert.equal(viewer.manual,0,"Read-only Viewer must not show Designer manual waypoint controls");
+  assert.equal(viewer.auto,0,"Read-only Viewer must not show Designer auto-segment handles");
+  assert.equal(viewer.save,false,"Read-only Viewer cannot expose projection Save");
+  assert.equal(store.getVersion(target),4,"Viewer read must not mutate projection store");
+  assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
+    definitionId:target.definitionId}).length,1);
+
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 6,
+    browser: version.Browser, tabs: 8,
+    b8bSaveReloadRealViewerRoundtrip: true,
     autoSegmentDragCancelConvertUndo: true, nativeRouteHandleSnapAndUndo: true,
     nativeOrthogonalSegmentSnapAndUndo: true,
     nativeGridSnapCancelled: true,
