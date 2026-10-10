@@ -390,7 +390,14 @@ try {
     + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
     + 'if(!undo||undo.disabled)throw Error("Handle drag missing single undo checkpoint");'
     + 'undo.click();'
-    + 'const restored=Number(document.querySelector("[data-eidos-diagram-waypoint-handle]").getAttribute("cx"));'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape('
+    + JSON.stringify(routeChoice.edge.id)
+    + ')+"]");'
+    + 'if(!edge)throw Error("Undo lost original relation");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const marker=document.querySelector("[data-eidos-diagram-waypoint-handle]");'
+    + 'if(!marker)throw Error("Undo dropped waypoint instead of reverting drag");'
+    + 'const restored=Number(marker.getAttribute("cx"));'
     + 'return {committed,restored};})()');
   assert.ok(Math.abs(routeUndo.committed-handleProbe.goal)<.01);
   assert.ok(Math.abs(routeUndo.restored-handleProbe.initial)<.01);
