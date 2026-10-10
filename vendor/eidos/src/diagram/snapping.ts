@@ -127,3 +127,105 @@ export function diagramSnapTranslationV010(
     ...(snappedY.kind === undefined ? {} : { snapY: snappedY.kind })
   };
 }
+
+
+/** B6b: a route waypoint can snap on both axes, while a horizontal or
+ * vertical orthogonal segment must only move along its perpendicular axis.
+ * Never changes edge topology, anchors or manual waypoint identity.
+ */
+export function diagramSnapHandleOffsetV010(
+  point: { x: number; y: number },
+  dx: number,
+  dy: number,
+  movableAxis: "both" | "x" | "y",
+  references: readonly DiagramSnapRectV010[],
+  options: DiagramSnapOptionsV010
+): DiagramSnapTranslationV010 {
+  if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)
+    || !["both", "x", "y"].includes(movableAxis)) {
+    throw new Error("EIDOS_DIAGRAM_HANDLE_SNAP_INVALID");
+  }
+  const snapped = diagramSnapTranslationV010(
+    [{ id: "handle:active", x: point.x, y: point.y, width: 0, height: 0 }],
+    references,
+    movableAxis === "y" ? 0 : dx,
+    movableAxis === "x" ? 0 : dy,
+    options
+  );
+  if (movableAxis === "x") {
+    return {
+      dx: snapped.dx, dy: 0,
+      ...(snapped.guideX === undefined ? {} : { guideX: snapped.guideX }),
+      ...(snapped.snapX === undefined ? {} : { snapX: snapped.snapX })
+    };
+  }
+  if (movableAxis === "y") {
+    return {
+      dx: 0, dy: snapped.dy,
+      ...(snapped.guideY === undefined ? {} : { guideY: snapped.guideY }),
+      ...(snapped.snapY === undefined ? {} : { snapY: snapped.snapY })
+    };
+  }
+  return snapped;
+}
+
+export type DiagramArrangeModeV010 =
+  | "left" | "center-x" | "right"
+  | "top" | "center-y" | "bottom"
+  | "distribute-x" | "distribute-y";
+
+export interface DiagramArrangedNodeV010 { id: string; x: number; y: number }
+
+/** Explicit, deterministic multi-selection arrangement.
+ * Alignment uses the selected anchor node; distribution keeps the first and
+ * last nodes fixed and makes gaps between adjacent node bounds equal.
+ */
+export function diagramArrangeNodesV010(
+  nodes: readonly DiagramSnapRectV010[],
+  mode: DiagramArrangeModeV010,
+  anchorId?: string
+): DiagramArrangedNodeV010[] {
+  const modes: DiagramArrangeModeV010[] = [
+    "left", "center-x", "right", "top", "center-y", "bottom",
+    "distribute-x", "distribute-y"
+  ];
+  if (!modes.includes(mode) || nodes.length < (mode.startsWith("distribute") ? 3 : 2)
+    || !nodes.every(finiteRect)
+    || new Set(nodes.map(node => node.id)).size !== nodes.length
+    || (anchorId !== undefined && !nodes.some(node => node.id === anchorId))) {
+    throw new Error("EIDOS_DIAGRAM_ARRANGE_INVALID");
+  }
+  const anchor = nodes.find(node => node.id === anchorId) ?? nodes[0]!;
+  if (mode.startsWith("distribute")) {
+    const axis = mode === "distribute-x" ? "x" : "y";
+    const size = axis === "x" ? "width" : "height";
+    const ordered = [...nodes].sort((a, b) => a[axis] - b[axis] || a.id.localeCompare(b.id));
+    const first = ordered[0]!, last = ordered[ordered.length - 1]!;
+    const occupied = ordered.slice(0, -1).reduce((sum, node) => sum + node[size], 0);
+    const gap = (last[axis] - first[axis] - occupied) / (ordered.length - 1);
+    if (!Number.isFinite(gap) || gap < 0) {
+      throw new Error("EIDOS_DIAGRAM_DISTRIBUTE_NO_SPACE");
+    }
+    const positions = new Map<string, number>();
+    let cursor = first[axis];
+    for (const node of ordered) {
+      positions.set(node.id, cursor);
+      cursor += node[size] + gap;
+    }
+    return nodes.map(node => ({
+      id: node.id,
+      x: axis === "x" ? positions.get(node.id)! : node.x,
+      y: axis === "y" ? positions.get(node.id)! : node.y
+    }));
+  }
+  return nodes.map(node => {
+    let x = node.x, y = node.y;
+    if (mode === "left") x = anchor.x;
+    if (mode === "center-x") x = anchor.x + (anchor.width - node.width) / 2;
+    if (mode === "right") x = anchor.x + anchor.width - node.width;
+    if (mode === "top") y = anchor.y;
+    if (mode === "center-y") y = anchor.y + (anchor.height - node.height) / 2;
+    if (mode === "bottom") y = anchor.y + anchor.height - node.height;
+    return { id: node.id, x, y };
+  });
+}
