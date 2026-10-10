@@ -105,5 +105,10 @@ test("surface exposes explicit commands and cleans route guides on cancellation 
   assert.match(src,/diagramSnapHandleOffsetV010/);
   assert.match(src,/const onCancel = \(\): void => \{[\s\S]*?resetPreview\(\);\s*drawSnapGuides\(\)/);
   assert.match(src,/cleanup\(\);\s*drawSnapGuides\(\)/);
+  // Native Chrome found overlapping transparent hit circles: last SVG child
+  // wins pointer targeting. Explicit waypoint target must be painted last.
+  assert.ok(src.indexOf('handle(segment.x, segment.y, "segment"')
+    < src.indexOf('handle(point.x, point.y, "point"'));
+  assert.match(src,/String\(22 \/ camera\.scale\)/);
   assert.match(src,/renderContextNavigationV010|diagramEditorInstanceSequence/);
 });
