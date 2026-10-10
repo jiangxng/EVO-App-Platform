@@ -81,7 +81,7 @@ const routeChoices = routeGraph.edges.flatMap(edge => {
 const routeChoice=routeChoices[0];
 assert.ok(routeChoice,"Need an existing relation with a draggable midpoint");
 const routePage={...page,
-  initialCamera:{scale:1,translateX:450-routeChoice.mid.x,translateY:240-routeChoice.mid.y}};
+  initialCamera:{scale:1,translateX:150-routeChoice.mid.x,translateY:90-routeChoice.mid.y}};
 const routeHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(routePage))
   .replace("window.__page="+JSON.stringify(page),
     "window.__page="+JSON.stringify(routePage));
@@ -365,7 +365,9 @@ try {
     + 'const box=handle.getBoundingClientRect();'
     + 'const cx=box.left+box.width/2,cy=box.top+box.height/2;'
     + 'const top=document.elementFromPoint(cx,cy);'
-    + 'if(top!==handle)throw Error("Route handle blocked by "+(top?.outerHTML||"null").slice(0,100));'
+    + 'if(top!==handle)throw Error("Route handle blocked at "+cx+","+cy+"; canvas="+'
+    + 'JSON.stringify(document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect().toJSON())'
+    + '+" by "+(top?.outerHTML||"null").slice(0,120));'
     + 'const initial=Number(handle.getAttribute("cx"));'
     + 'const goal=Math.round(initial/24)*24+48;'
     + 'return {x:cx,y:cy,initial,goal,delta:goal-initial+2};'
