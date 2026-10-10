@@ -16,6 +16,8 @@ on:
       - "apps/trading-reference/finance-owner-key-pointer.ts"
       - "tools/certify-tr01b2d3-postgres-role-separation.mjs"
       - "tools/certify-tr01b2d3-distinct-db-logins.mjs"
+      - "tools/tr01b2d3-finance-owner-catalog-preflight.mjs"
+      - "tests/protocol/tr01b2d3-finance-owner-preflight.test.mjs"
       - "tools/certify-tr01b2d3-cross-instance-races.mjs"
       - "tools/certify-tr01b2d3-host-hot-signing-key.mjs"
       - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
