@@ -249,6 +249,8 @@ try{
       +'inkQuality:document.querySelector("[data-eidos-diagram-ink-quality]")?.getAttribute("data-eidos-diagram-ink-quality"),'
       +'inkIndex:document.querySelector("[data-eidos-diagram-ink-label-metrics]")?.getAttribute("data-eidos-diagram-ink-label-metrics"),'
       +'advisory:document.querySelector("[data-eidos-diagram-routing-advisory]")?.getAttribute("data-eidos-diagram-routing-advisory")??null,'
+      +'congested:document.querySelectorAll("[data-eidos-diagram-route-congested]").length,'
+      +'unannounced:document.querySelectorAll("[data-eidos-diagram-route-congested]:not([aria-label])").length,'
       +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null};'
       +'await new Promise(r=>setTimeout(r,60));}throw Error("P01 fixture never mounted")})()';
     let mounted;
@@ -261,6 +263,11 @@ try{
     }
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
+    if(budgetMode){
+      assert.ok(mounted.congested>=0&&mounted.congested<=size.edges);
+      assert.equal(mounted.unannounced,0,
+        "B8t every budget-congested route must retain accessible warning");
+    }
     if(denseMode||complexMode||autoMode||budgetMode){
       const expected=size.edges>12000?"node-only":"full";
       assert.equal(mounted.inkQuality,expected,
@@ -321,6 +328,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
+      ...(budgetMode?{congestedEdges:mounted.congested}:{}),
       ...(denseMode||complexMode||autoMode||budgetMode?{inkQuality:mounted.inkQuality,
         labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
@@ -342,6 +350,7 @@ try{
       dragDispatchP50Ms:duration(median(trials.map(t=>t.dragDispatchP50Ms))),
       dragDispatchP95Ms:duration(median(trials.map(t=>t.dragDispatchP95Ms))),
       svgElements:trials[0].svgElements,
+      ...(budgetMode?{congestedEdges:trials[0].congestedEdges}:{}),
       usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
     };
   });
