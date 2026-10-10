@@ -257,6 +257,7 @@ test("Saving a projection overwrites presentation state without creating a defin
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: 0,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
@@ -389,6 +390,7 @@ test("Projection editor read/save survives without transient projection session 
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements: readResult.result.nodes.map(node => ({
@@ -456,6 +458,7 @@ test("Restore all can reveal previously hidden projection items and persist that
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
@@ -483,6 +486,7 @@ test("Restore all can reveal previously hidden projection items and persist that
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "1",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [],
@@ -575,6 +579,7 @@ test("Save as projection creates a new projection without creating a definition 
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_AS_NEW" },
         viewState: {
           hiddenNodeIds: [state.result.nodes[0].id],
@@ -682,6 +687,7 @@ test("A saved alternate projection can become the default in place", async () =>
         definitionRevision: revision.revision,
         projectionId,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_AS_NEW" },
         viewState: {
           hiddenNodeIds: [],
@@ -709,6 +715,7 @@ test("A saved alternate projection can become the default in place", async () =>
         definitionRevision: revision.revision,
         projectionId: "projection:default-candidate",
         expectedRevision: revision.revision,
+        expectedWriteToken: "1",
         operation: { type: "SET_PRIMARY_PROJECTION" }
       }
     ),
@@ -784,6 +791,7 @@ test("Projection may be renamed in place without changing business payload or vi
         definitionRevision: revision.revision,
         projectionId,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: {
           type: "RENAME_PROJECTION",
           title: "资金与库存关系"
@@ -861,6 +869,7 @@ test("Projection save refuses to write against a stale business-definition revis
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: 0,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements: [],
@@ -967,6 +976,7 @@ test("Ledger Manager projection flow edits presentation in place", async () => {
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements,
