@@ -22,3 +22,15 @@
 
 - [本轮 PR Checks](https://github.com/jiangxng/EVO-App-Platform/pull/611) 的同一 HEAD CI 是最终依据；首次失败须保留日志与修正。
 - 后续真正 **Designer 保存→刷新→独立 Viewer→后台存储→再打开**应调用 App 项目正式读取/保存链路验证，并在对 Host 授权和企业上下文仓接口做变更前征得主线边界配合；不能以本次合成 ActionHost 假造客户数据证据。
+
+
+## B9a 真实浏览器核验记录（首次受测代码）
+
+[GitHub Actions #38061894121](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061894121) **PASS**。两套真实 Firefox/Linux、WebKit/Linux 图层加载/本地编辑/公共 API 刷新和整页刷新均无脚本错误。
+
+| 浏览器引擎 | 隐藏后的未保存草稿 | Eidos `refresh()` 后 | 整页 reload 后 | 兄弟实例 |
+| --- | ---: | ---: | ---: | --- |
+| Firefox | 0 | 1 | 1 | 0 |
+| WebKit | 0 | 1 | 1 | 0 |
+
+各引擎均输出 `B9A_UNSAVED_REFRESH_RESULT`，`readSourceImmutable=true`，保持 B8z 拖动 Undo、B8y 隐藏 Undo、B8x 双实例和复杂文字测试。这说明**本地草稿不会假装已经存在于读取的源状态**，不是验证真数据库持久化或 CAS；最新版文档 head 需另核 CI，不能将旧 run 冒充最终 SHA。
