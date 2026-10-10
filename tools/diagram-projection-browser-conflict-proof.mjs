@@ -194,7 +194,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j;
+let proc, a, b, c, d, e, f, g, h, i, j, k;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -825,11 +825,48 @@ try {
   assert.ok(nativeCommitted.points>=2,"Native touch regrab commit must create manual points");
   assert.equal(store.getVersion(target),4,"Same-page touch sequence must not auto-save");
 
+  // B8d: independent actual Chrome tab; construct a compact five-point route
+  // through the real Inspector controls so 3+ segment handles overlap the
+  // final waypoint. CDP Shift+Alt click cycles to third, then drags it.
+  k=await tab("K",true);
+  await until(k,"Ready.");
+  const denseProbe=await k.eval("(()=>{\n const id=__EDGE_ID__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8d relation missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const button=name=>{\n   const el=[...document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] button\")]\n     .find(b=>b.textContent===name);\n   if(!el)throw Error(\"Missing \"+name);\n   return el;\n };\n button(\"Restore automatic routing\").click();\n for(let i=0;i<5;i++)button(\"Add path point\").click();\n const readInputs=()=>[...document.querySelectorAll(\n   \"[data-eidos-diagram-waypoint-controls] input[type=number]\")];\n const inputs=readInputs();\n if(inputs.length!==10)throw Error(\"B8d expected five editable waypoints\");\n const cx=Number(inputs[0].value),cy=Number(inputs[1].value);\n const offsets=[[-24,0],[0,-24],[24,0],[0,24],[8,8]];\n for(let i=0;i<offsets.length;i++)for(let axis=0;axis<2;axis++){\n   const el=readInputs()[i*2+axis];\n   el.value=String((axis===0?cx:cy)+offsets[i][axis]);\n   el.dispatchEvent(new Event(\"change\",{bubbles:true}));\n }\n const hit=[...document.querySelectorAll(\"[data-eidos-diagram-waypoint-handle]\")]\n   .find(el=>el.getAttribute(\"data-eidos-diagram-waypoint-handle\")===id+\":4\");\n if(!hit)throw Error(\"B8d final manual point not visible\");\n const rect=hit.getBoundingClientRect(),x=rect.left+rect.width/2,y=rect.top+rect.height/2;\n if(document.elementFromPoint(x,y)!==hit)\n   throw Error(\"B8d final waypoint not topmost at center\");\n const segments=[...document.querySelectorAll(\"[data-eidos-diagram-segment-handle]\")]\n   .map(el=>{\n     const r=el.getBoundingClientRect();\n     return {x:r.left+r.width/2,y:r.top+r.height/2,\n       index:Number(el.getAttribute(\"data-eidos-diagram-segment-handle\").split(\":\").at(-1)),\n       axis:el.style.cursor===\"ew-resize\"?\"x\":\"y\"};\n   })\n   .map(s=>({...s,d:Math.hypot(x-s.x,y-s.y)}))\n   .filter(s=>s.d<=44)\n   .sort((a,b)=>a.d-b.d||a.index-b.index||a.axis.localeCompare(b.axis));\n const seen=new Set();\n const ranked=segments.filter(s=>{\n   const key=s.index+\":\"+s.axis;if(seen.has(key))return false;\n   seen.add(key);return true;\n });\n const marker=document.querySelector(\"[data-eidos-diagram-overlap-choice=\"+CSS.escape(id+\":4\")+\"]\");\n if(ranked.length<3||!marker)\n   throw Error(\"B8d needs 3+ distinct overlap segments: \"+JSON.stringify(\n     {ranked,marker:!!marker,hit:hit.outerHTML.slice(0,500)}));\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {x,y,axis:ranked[2].axis,count:ranked.length,old:visual.getAttribute(\"d\"),\n  rank:hit.getAttribute(\"data-eidos-diagram-overlap-selected-rank\"),\n  hint:hit.getAttribute(\"title\"),\n  radius:hit.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n  tag:marker.textContent};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.ok(denseProbe.count>=3,"B8d requires at least three overlapping segments");
+  assert.equal(denseProbe.rank,"1","B8d default alternate remains the second segment");
+  assert.equal(denseProbe.radius,"22","B8d keeps original 44 CSS px hit circle");
+  assert.match(denseProbe.hint,/Shift\\+Alt\\+click/);
+  await k.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:denseProbe.x,y:denseProbe.y});
+  await k.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    modifiers:9,x:denseProbe.x,y:denseProbe.y});
+  await k.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",clickCount:1,
+    modifiers:9,x:denseProbe.x,y:denseProbe.y});
+  const afterCycle=await k.eval("(()=>{\n const id=__EDGE_ID__;\n const point=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":4\")+\"]\");\n const label=document.querySelector(\"[data-eidos-diagram-overlap-choice=\"+CSS.escape(id+\":4\")+\"]\");\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {rank:point?.getAttribute(\"data-eidos-diagram-overlap-selected-rank\"),\n   label:label?.textContent, d:visual?.getAttribute(\"d\"),\n   radius:point?.getAttribute(\"data-eidos-diagram-handle-screen-radius\")};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(afterCycle.rank,"2","Shift+Alt click must select third segment");
+  assert.equal(afterCycle.label,"3/"+denseProbe.count);
+  assert.equal(afterCycle.d,denseProbe.old,"A click must not mutate route geometry");
+  assert.equal(afterCycle.radius,"22");
+  assert.equal(store.getVersion(target),4,"Selection cycle cannot implicitly Save");
+  const dx=denseProbe.x+(denseProbe.axis==="x"?72:0);
+  const dy=denseProbe.y+(denseProbe.axis==="y"?72:0);
+  await k.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:denseProbe.x,y:denseProbe.y});
+  await k.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    modifiers:9,x:denseProbe.x,y:denseProbe.y});
+  await k.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",modifiers:9,x:dx,y:dy});
+  const densePreview=await k.eval("(()=>{\n const id=__EDGE_ID__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n  .getAttribute(\"d\");\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.notEqual(densePreview,denseProbe.old,"Selected third segment must preview a changed route");
+  await k.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",modifiers:9,x:dx,y:dy});
+  const denseCommitted=await k.eval("(()=>{\n const id=__EDGE_ID__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n  .getAttribute(\"d\");\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.notEqual(denseCommitted,denseProbe.old,"Selected third segment drag must commit locally");
+  const denseUndo=await k.eval("(()=>{\n const id=__EDGE_ID__;\n document.querySelector(\"[data-eidos-diagram-history=undo]\").click();\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\").getAttribute(\"d\");\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(denseUndo,denseProbe.old,"Single Undo must restore before third-segment edit");
+  assert.equal(store.getVersion(target),4,"Dense overlap interaction must not implicitly Save");
+  assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,definitionId:target.definitionId}).length,1);
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 10,
+    browser: version.Browser, tabs: 11,
+    b8dNativeDenseOverlapCycleAndUndo: true,
     b8cNativeShiftOverlapSegmentUndo: true, b8cNativeTouchCancelRegrab: true,
     b8bSaveReloadRealViewerRoundtrip: true,
     autoSegmentDragCancelConvertUndo: true, nativeRouteHandleSnapAndUndo: true,
@@ -842,7 +879,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
