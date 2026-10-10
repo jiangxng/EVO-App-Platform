@@ -1024,6 +1024,53 @@ try {
   assert.equal(viewer.manual,0,"Read-only Viewer must not show Designer manual waypoint controls");
   assert.equal(viewer.auto,0,"Read-only Viewer must not show Designer auto-segment handles");
   assert.equal(viewer.save,false,"Read-only Viewer cannot expose projection Save");
+  // B9b: the genuine saved Editor/fresh Editor/read-only Viewer must all
+  // compute the same visible-route congestion from the exact persisted
+  // App projection, not from a stale local draft or synthetic DOM badge.
+  // This is deliberately about real App CAS + storage read + Viewer. It
+  // does not manufacture congestion where the customer graph has none.
+  const b9bSnapshot=async(client)=>client.eval('(()=>{'
+    + 'const svg=document.querySelector("svg[data-eidos-diagram-congested-count]");'
+    + 'if(!svg)throw Error("B9b missing actual Eidos rendered congestion counter");'
+    + 'const value=Number(svg.getAttribute("data-eidos-diagram-congested-count"));'
+    + 'const congested=[...svg.querySelectorAll("[data-eidos-diagram-route-congested]")];'
+    + 'const summary=document.querySelector("[data-eidos-diagram-congestion-summary]");'
+    + 'return {count:value,actualPaths:congested.length,'
+    + 'missingAccessibleEdges:congested.filter(p=>!p.getAttribute("aria-label")).length,'
+    + 'summary:summary?.getAttribute("data-eidos-diagram-congestion-summary")??null,'
+    + 'role:summary?.getAttribute("role")??null,'
+    + 'pointerEvents:summary?.style.pointerEvents??null,'
+    + 'savedControls:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]'
+    + '.filter(b=>b.textContent.trim()==="Save projection").length};'
+    + '})()');
+  const b9bSaved=await b9bSnapshot(f);
+  const b9bReopened=await b9bSnapshot(g);
+  const b9bViewer=await b9bSnapshot(h);
+  for(const [name,current] of [["saved",b9bSaved],["reopened",b9bReopened],["viewer",b9bViewer]]){
+    assert.ok(Number.isInteger(current.count)&&current.count>=0,
+      "B9b "+name+" visible congestion count must be a finite integer");
+    assert.equal(current.count,current.actualPaths,
+      "B9b "+name+" SVG count must match actual budget-congested paths");
+    assert.equal(current.missingAccessibleEdges,0,
+      "B9b "+name+" each congested route must have accessible description");
+    assert.equal(current.summary,current.count>0?String(current.count):null,
+      "B9b "+name+" summary must be rebuilt from visible geometry only");
+    assert.equal(current.role,current.count>0?"note":null);
+    assert.equal(current.pointerEvents,current.count>0?"none":null);
+  }
+  assert.equal(b9bSaved.count,b9bReopened.count,
+    "B9b actual App Save -> fresh Editor must recalculate same congestion");
+  assert.equal(b9bReopened.count,b9bViewer.count,
+    "B9b actual read-only Viewer must agree on saved projection congestion");
+  assert.equal(b9bViewer.savedControls,0,
+    "B9b readonly Viewer must never offer a Save operation");
+  console.log("B9B_SAVED_VIEWER_CONGESTION_RESULT="+JSON.stringify({
+    browser:version.Browser,actualAppStoreVersion:store.getVersion(target),
+    saved:b9bSaved,reopened:b9bReopened,readOnlyViewer:b9bViewer,
+    businessDefinitionHistoryCount:repository.listHistory({
+      enterpriseId:target.enterpriseId,definitionId:target.definitionId}).length,
+    warning:"Actual App Host CAS + in-memory projection store + real Chrome Viewer; not production DB"
+  }));
   assert.equal(store.getVersion(target),4,"Viewer read must not mutate projection store");
   assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
     definitionId:target.definitionId}).length,1);
