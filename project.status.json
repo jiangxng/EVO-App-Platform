@@ -1793,8 +1793,8 @@
   },
   "projectContinuity": {
     "schemaVersion": "0.1.0",
-    "snapshotId": "tr01b1-sales-customer-item-warehouse-public-postgres-pass-tr01b2-open-2026-10-10",
-    "snapshotAt": "2026-10-10T01:35:20.083Z",
+    "snapshotId": "tr01b2a-public-governed-sales-raw-stock-value-gap-2026-10-10",
+    "snapshotAt": "2026-10-10T01:45:00.000Z",
     "status": "AUTHORITATIVE_CURRENT",
     "stateAuthority": "project.status.json",
     "bootstrap": "AI-BOOTSTRAP.md",
@@ -1817,46 +1817,47 @@
       "milestone": "TR-01 Trading Reference Loop",
       "milestoneStatus": "ACTIVE",
       "lastClosedLiveSlice": {
-        "id": "tr01b1-sales-production-shipment-customer-cash-public-reference",
-        "status": "MERGED_CI_PRODUCTION_PASS_BOUNDED",
-        "summary": "TR-01B1 bounded inverse Sales-to-Cash positive reference is complete in isolated real EVO PostgreSQL via public APIs. The App Platform sales reference validates active CUSTOMER Counterparty role and Item/Warehouse identity, submits four immutable facts (sales_order.approved, production.completed, sales_shipment.created, cash.received) with explicit FULFILLS/REFERENCES links, and observes pending production/shipments/receivable Work changes plus Inventory quantity and Cash. Actual post-order quantities: pending production+10/pending shipment+10, receivable+1000; production raises Inventory quantity+10, shipment returns Inventory quantity to 0, same-currency full receipt closes receivable to 0 and increases Cash ledger by 1000, all order Work closes. 5/5 PR CI success and exact main production deploy. This does not certify shipment inventory valuation, COGS, formal settlement allocation, bank-account Foundation Object, FX, generalized replay, partial settlement or installed sales UI.",
-        "authority": "docs/roadmap/TR01B1-SALES-SHIPMENT-CASH-REFERENCE-20261010.md",
+        "id": "tr01b2a-authorized-inverse-sales-work-position-service",
+        "status": "SERVICE_LEVEL_CI_POSTGRESQL_PRODUCTION_PASS_BOUNDED",
+        "summary": "TR-01B2A introduces a guarded, application-owned, read-only inverse Sales operational projection from public EVO WorkItems and dimension-filtered LedgerBalance for pending Shipment, Receivable, Inventory quantity/raw amount and Cash. In real PostgreSQL after App Platform-originated immutable Sales→Production→Shipment→Cash facts it proves HUMAN/AI Principal parity under one-order-only scoped CI authorization, rejects an unauthorized sales order, and shows SHIP/COLLECT Work closed. Critical discovery: after Shipment quantity=0 while unvalued raw Inventory Ledger amount=125; shipment costing/COGS is NOT certified. This service is NOT yet a registered Host Capability Operation or installed sales Human/Agent/Workbench Experience. Formal allocation, replay, customer production policy, financial Account Foundation Object remain OUT OF SCOPE.",
+        "authority": "docs/roadmap/TR01B2A-GOVERNED-SALES-WORK-POSITION-20261010.md",
         "evidence": {
-          "implementationPr": 571,
-          "verifiedHead": "3cd73208cd3654fd442c7eaf76207da222da8017",
-          "mergeCommit": "301cf0a45e59591adcb6a33e6d30fb68a94db443",
+          "implementationPr": 574,
+          "head": "c4ac883269ca95cf7665ceb3adecccc951e4d813",
+          "mergedMain": "39109addd721c017cd6276c60ee4b3062ab3f6b7",
+          "postgresProofRun": 38014202340,
+          "postgresProof": "PASS",
+          "marker": "TR01B2A_GOVERNED_SALES_EVO_PUBLIC_READ_PROOF",
+          "platformRun": 38014202293,
           "platformCI": "PASS",
-          "platformWorkflowRun": 38013542321,
+          "continuityRun": 38014202284,
           "continuityCI": "PASS",
-          "continuityWorkflowRun": 38013542307,
-          "existingEvoPostgresqlCI": "PASS",
-          "existingEvoPostgresqlWorkflowRun": 38013542399,
-          "tr01aInstalledBrowserRegression": "PASS",
-          "tr01aInstalledBrowserWorkflowRun": 38013542531,
-          "salesCashPostgresqlCI": "PASS",
-          "salesCashPostgresqlWorkflowRun": 38013542437,
-          "exactJobProofMarker": "TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF",
-          "provedReceivableCloses": true,
-          "provedCashLedgerIncreases": true,
-          "inventoryQuantityAfterShipment": 0,
-          "inventoryValueAfterShipment": "NOT_CERTIFIED",
-          "financialAccountFoundationObject": "NOT_STARTED",
-          "railwayDeploymentId": "3add74b5-5ed9-4da7-ade4-bd5f7dbd8691",
+          "tradingLiteEvoRegressionRun": 38014202326,
+          "tradingLiteEvoRegression": "PASS",
+          "tr01aInstalledBrowserRun": 38014202298,
+          "tr01aInstalledBrowser": "PASS",
+          "observedInventoryQuantityAfterShipment": 0,
+          "observedRawInventoryAmountAfterShipment": 125,
+          "costValuationCertified": false,
+          "hostInstalledSalesUX": "NOT_CERTIFIED",
+          "formalReceiptAllocation": "NOT_CERTIFIED",
+          "financialAccountObject": "NOT_STARTED",
+          "railwayDeploymentId": "b0ff4777-17d6-4de0-bdda-7a02dbf39d6b",
           "railwayDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
-        "id": "tr01b2-cost-settlement-allocation-and-shared-operational-view",
+        "id": "tr01b2b-valuation-cogs-and-settlement-public-contract",
         "status": "OPEN",
-        "summary": "TR-01B1 has a deployed public PostgreSQL positive Sales→Production→Shipment→Cash economic proof, but the full inverse reference is not accepted. Choose minimum TR-01B2 validation for shipment costing/Inventory Amount and COGS, proper source-target customer receipt settlement allocation, replay equivalence and derived Human/Agent/Workbench read for SHIP/COLLECT. Use existing EVO valuation/allocation/Work public contracts where supported and report unsupported public adapters explicitly. No new Cash Account Foundation Object or second ledger until those scenarios prove necessity.",
-        "authority": "docs/roadmap/TR01B1-SALES-SHIPMENT-CASH-REFERENCE-20261010.md",
+        "summary": "TR-01B2A shared authorized Sales read service passed real EVO public PostgreSQL CI, but quantity 0 and raw Inventory amount 125 after Shipment reveal that stock cost/COGS must be handled by pinned EVO Valuation/Cost lifecycle. Formal Cash Receipt→Receivable AllocationInstruction/Relation remains an EVO-internal certified EEL-C01 capability without an adopted scoped public Host integration. Verify usable public contracts (or explicitly report a gap) for cost and allocation before broadening sales UX. TR-01B2C Host/Eidos/Agent/Workbench installation and replay of exact App Platform facts remain subsequent gates. No direct inventory write, new Cash Account object or customer production auth changes.",
+        "authority": "docs/roadmap/TR01B2A-GOVERNED-SALES-WORK-POSITION-20261010.md",
         "acceptance": [
-          "Confirm EVO public cost and valuation read-back before asserting inventory value/COGS after shipment; shipment quantity-only posting is not cost settlement.",
-          "Confirm whether existing public allocation/position APIs can link cash.received to the exact open receivable; a BusinessData REFERENCES link is not a formal AllocationInstruction.",
-          "Preserve correct same-currency receipt full-closure evidence; do not claim cross-currency FX, split or overpayments without independent tests.",
-          "Verify replay/deterministic rebuild against immutable exact App Platform-originated Sales/Production/Shipment/Receipt facts and links, or record a scoped EVO contract gap.",
-          "Reuse TR-01A governed Human/AI/Workbench projection pattern for pending_shipment, receivable, Inventory Position and Work with strict enterprise-order identity and deny-by-default policies; no full sales ERP UI.",
-          "Keep Counterparty/Item/Warehouse generic import and parallel Eidos 2D Designer unchanged, and defer financial account master-data object until a proven channel/bank account use case."
+          "Inventory amount=125 with quantity=0 is not a valid finished-cost guarantee: locate EVO pinned CostResult/ValuationPosting public lifecycle and prove exact shipment cost-to-COGS without altering immutable events or issuing direct LedgerEntry.",
+          "Inspect existing EVO EEL-C01 AllocationInstruction/Relation and public contracts; prove customer receipt source-target allocation if exposed, or record an owner-scoped EVO API gap instead of fabricating a settlement relation.",
+          "Keep formal cost valuation, same-currency cash receipt posting, foreign exchange and customer bank-account identities distinct in both contract and UI claims.",
+          "Plan deterministic full replay equality for exact App Platform sales/production/shipment/cash facts after cost/settlement semantics are pinned.",
+          "Subsequently register the Sales READ through the same opt-in governed Action Host lifecycle as TR-01A and certify real installed Eidos Human + Agent + Workbench against authorized EVO public Work/Position.",
+          "Do not reopen Counterparty/Item/Warehouse imports or expand Cash Account Foundation Object, and do not modify parallel 2D Designer or Agent-line PRs."
         ]
       },
       "productionPreview": {
@@ -1865,24 +1866,31 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "301cf0a45e59591adcb6a33e6d30fb68a94db443",
-        "deploymentId": "3add74b5-5ed9-4da7-ade4-bd5f7dbd8691",
+        "commit": "39109addd721c017cd6276c60ee4b3062ab3f6b7",
+        "deploymentId": "b0ff4777-17d6-4de0-bdda-7a02dbf39d6b",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
       "nextExecutionRoute": {
         "authority": "docs/roadmap/TR01-TRADING-REFERENCE-LOOP-EVIDENCE-v0.1.md",
-        "status": "TR01B1_CLOSED_TR01B2_ACTIVE",
+        "status": "TR01B2A_CLOSED_TR01B2B_COST_ALLOCATION_CONTRACT_OPEN",
         "sequence": [
-          "TR-01A Purchase→Receipt→Reversal→governed Human/AI/Workbench: bounded reference accepted",
-          "TR-01B1 Sales→Production→Shipment→Customer Cash: bounded positive public PostgreSQL reference accepted",
-          "TR-01B2 Cost/COGS, allocation, replay and governed inverse Work/Workbench verification: OPEN",
-          "TR-01 Foundation Object Program exit/maturity review after bounded reciprocal proofs"
+          "TR-01A Purchase→Receipt→Reversal→installed governed Human/AI/Workbench: bounded reference accepted",
+          "TR-01B1 Sales→Production→Shipment→Customer Cash public PostgreSQL positive reference: bounded accepted",
+          "TR-01B2A Sales shared authorized Work/Inventory/Receivable/Cash read service: real public PostgreSQL CI PASS (not installed Host/Workbench)",
+          "TR-01B2B EVO cost/valuation/COGS plus cash-to-receivable formal allocation public contract: OPEN",
+          "TR-01B2C Sales Host opt-in Human/Agent/Workbench + deterministic replay: NOT_STARTED",
+          "TR-01 Foundation Object Program exit review: AFTER inverse gate evidence"
         ],
-        "rule": "Do not prematurely build a Sales ERP or Cash Account Foundation Object. Keep EVO Ledger/Position/Work the authority and Counterparty/Item/Warehouse as independent masters; actual receipt Cash posting does not prove financial account semantics. Certify shipment quantity and amount separately, formal allocation separately, then end-user projections."
+        "rule": "EVO inventory quantity=0 but raw amount=125 after Shipment is the observed financial integrity gap. Never direct-write Ledger/Cost to hide it. Adopt an owned pinned EVO Cost/Valuation public capability, then allocation/replay and installed shared Sales UX. Counterparty/Item/Warehouse stable refs and cash Ledger are not financial account master data."
       }
     },
     "recentMainline": [
+      {
+        "pr": 574,
+        "status": "MERGED_CI_PRODUCTION_PASS_BOUNDED",
+        "summary": "TR-01B2A governed Sales Work/Position read service for HUMAN/AI Principals using EVO public exact dimensioned Ledger+Work; CI [38014202340] PASS with isolated one-order authorization and unauthorized-order refusal, Platform 38014202293 PASS, continuity 38014202284 PASS, existing PostgreSQL 38014202326 PASS, TR-01A installed Chrome regression 38014202298 PASS. Merged 39109addd721c017cd6276c60ee4b3062ab3f6b7; Railway b0ff4777-17d6-4de0-bdda-7a02dbf39d6b SUCCESS. Stock qty=0 while raw amount=125 after shipment; valuation/COGS, installed sales UI and formal allocation NOT certified."
+      },
       {
         "pr": 571,
         "status": "MERGED_CI_PRODUCTION_PASS_BOUNDED",
@@ -2027,14 +2035,10 @@
         "pr": 492,
         "status": "MERGED_CI_PRODUCTION_HUMAN_PASS",
         "summary": "Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience."
-      },
-      {
-        "pr": 491,
-        "status": "MERGED_CI_PRODUCTION_PASS",
-        "summary": "EffectiveObjectSchema semantic destinations route Data Import into Counterparty Profile/Contact/Address resources instead of flattening them into identity."
       }
     ],
     "doNotRepeat": [
+      "TR-01B2A real EVO proves Inventory quantity=0 but raw Ledger amount=125 after Shipment; do NOT claim Inventory Amount or COGS closed, and do NOT direct-write any balance. Sales read HUMAN/AI parity is service-level CI, NOT installed Host/Agent/Workbench.",
       "Do not conflate TR-01B1 cash.received and cash Ledger increase with an enterprise financial/bank account Foundation Object or formal allocation; shipment quantity closes but Inventory Amount and COGS need separate proof.",
       "Do not claim TR-01A reference acceptance proves customer production plugin install, actual customer login, Agent model reasoning, partial/concurrent reversal or a complete procurement product; #567 proves only real isolated installed Chrome/AI/Workbench acceptance.",
       "Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.",
@@ -4709,7 +4713,7 @@
       "status": "ACTIVE",
       "purpose": "Stop object-first expansion and prove Counterparty, Item and Warehouse/Location in real purchase and sales operations while pressuring BusinessData, Ledger, Projection, Work and Personal Workbench boundaries.",
       "entryCondition": "SATISFIED: WH-01 CLOSED_PRODUCTION_PASS",
-      "currentSlice": "TR-01B1 Sales→Production→Shipment→Cash positive public PostgreSQL proof MERGED_CI_PRODUCTION_PASS; TR-01B2 cost/allocation/replay/shared-view still OPEN.",
+      "currentSlice": "TR-01B2A Sales read-only derived Work/Inventory/Receivable/Cash service PASS with real PostgreSQL; B2B Cost/COGS/Allocation public adoption OPEN; no financial account master data yet.",
       "acceptance": [
         "Purchase Order references one Supplier-role Counterparty, Item lines and destination Warehouse/Location without duplicating those master-data authorities.",
         "Receipt is a new immutable business occurrence that reduces open-to-receive work and creates inventory movement facts; it does not mutate Item or Warehouse master data.",
@@ -4731,7 +4735,7 @@
           "railwayDeploymentStatus": "SUCCESS"
         },
         "tr01b": {
-          "status": "TR01B1_POSITIVE_REFERENCE_CLOSED_TR01B2_OPEN",
+          "status": "TR01B1_AND_B2A_BOUNDED_ACCEPTED_TR01B2B_OPEN",
           "purpose": "Sales Order → Shipment → Inventory Position → Receivable → Receipt/Settlement inverse reference loop",
           "b1": {
             "status": "MERGED_CI_PRODUCTION_PASS_BOUNDED",
@@ -4742,7 +4746,20 @@
             "railwayDeploymentStatus": "SUCCESS",
             "authority": "docs/roadmap/TR01B1-SALES-SHIPMENT-CASH-REFERENCE-20261010.md"
           },
-          "nextSlice": "TR-01B2 cost/COGS, formal allocation, replay and derived Human/Agent/Workbench evidence."
+          "nextSlice": "TR-01B2B EVO pinned Cost/COGS and formal settlement Allocation public contracts; TR-01B2C Host/Eidos/Agent/Workbench + replay later.",
+          "b2a": {
+            "status": "SERVICE_LEVEL_CI_POSTGRESQL_PRODUCTION_PASS_BOUNDED",
+            "pr": 574,
+            "ci": 38014202340,
+            "mergedMain": "39109addd721c017cd6276c60ee4b3062ab3f6b7",
+            "observedShipmentInventoryQuantity": 0,
+            "observedShipmentInventoryRawAmount": 125,
+            "costingCertified": false,
+            "hostInstalledExperienceCertified": false,
+            "railwayDeploymentId": "b0ff4777-17d6-4de0-bdda-7a02dbf39d6b",
+            "railwayDeploymentStatus": "SUCCESS",
+            "authority": "docs/roadmap/TR01B2A-GOVERNED-SALES-WORK-POSITION-20261010.md"
+          }
         },
         "tr01a1": {
           "status": "MERGED_CI_PRODUCTION_PASS",
