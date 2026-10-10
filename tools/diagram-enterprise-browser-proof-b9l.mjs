@@ -321,6 +321,20 @@ try{
  const reopenedClearViewer=await snapshot("viewer");
  assert.equal(reopenedClearDesigner.count,reopenedClearViewer.count,
   "fresh readonly Viewer and Designer must agree after browser Save");
+ // B10c duplicate independent read must be stable and must not change the CAS.
+ const preReadToken=reopened.projectionStore.getVersion(id);
+ const readAgain=await open().read.execute(request(READ,id),ctx);
+ assert.equal(readAgain.ok,true,"independent freshly constructed Store handler GET");
+ assert.equal(reopened.projectionStore.getVersion(id),preReadToken,
+  "cold re-open must not create presentation versions");
+ assert.deepEqual(
+  [...(readAgain.result.hiddenNodeIds??[])].sort(),
+  [...(staleRead.result.hiddenNodeIds??[])].sort(),
+  "fresh Store instance must see same hidden presentation identifiers");
+ console.log("B10C_COLD_STORE_READ_RESULT="+JSON.stringify({
+  process:intake.process,independentStoreObject:true,casPreserved:preReadToken,
+  hiddenStateMatches:true,warning:"Same local temporary disk, not production database restart"
+ }));
  const fresh=await reopened.read.execute(request(READ,id),ctx);
  assert.equal(fresh.ok,true,"fresh App read must succeed");
  assert.ok(fresh.result.hiddenNodeIds?.includes(removeNodeId),
