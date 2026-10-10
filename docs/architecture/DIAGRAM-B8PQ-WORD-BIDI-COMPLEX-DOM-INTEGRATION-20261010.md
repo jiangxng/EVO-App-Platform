@@ -50,3 +50,17 @@ Eidos [Draft #154](https://github.com/jiangxng/eidos/pull/154) 堆叠已完成 E
 - [初次失败 CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 与第二次失败属于**测试样例非法**，**不是自动寻路性能超限的有效证据**。既不能标记自动寻路通过，也不能声称已证实其失败。
 - 已修正不足整行的目标节点环绕计算，并在启动 Chrome 前直接调用生产同款 `validateDiagramEditorStateV010` 对模拟数据进行校验，防止状态验证问题再次被误当作性能超时。
 - 只有预校验通过并实际得到 DOM、Q/C 和路径操作的 Chrome 日志后，才能形成混合路径性能结论。需要进一步评估自动寻路规模时，应在独立的合法图样例上运行，保留 CI runner/浏览器/尺寸和重复样本。
+
+
+## 成功实测结果｜合法混合路径图（Chrome/154.0.8037.97）
+
+修正目标端点并在启动浏览器前进行 `validateDiagramEditorStateV010` 后，独立真实 Chrome [Complex Business DOM CI #38049616368](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049616368) **PASS**；包含 **Q 圆角、C 贝塞尔、显式手工路线、自动曲线、自环、RTL/CJK 标签、原生鼠标选择/拖动**。图均使用可复现模拟业务对象，并不是用户真实企业账本。
+
+| 合成规模 | 正式样本 | 挂载（统计取高位中间样本） | 选择 | CDP 拖动 p95 | 实际 SVG 元素 | JS 堆 |
+|---|---:|---:|---:|---:|---:|---:|
+| 160 节点 / 480 边 | 2 | 174.3 ms | 62.9 ms | 20.47 ms | 970 | 7.89 MB |
+| 320 节点 / 960 边 | 2 | 216.0 ms | 108.8 ms | 21.46 ms | 1,936 | 10.35 MB |
+
+两档真实 DOM 的 `inkQuality=full`、`labelMetrics=browser`、`advisory=null`，真实 SVG 路径断言确认同时出现 Q 和 C，不只是 JSON 里标记路径类型。脚本保留 P01a/B8o 默认基准口径不变。以上是 **2 个样本/档的 CI-host 数值**（聚合用排序后的中间高位值），CDP 输入派发耗时包含 DevTools 协议开销，并非 GPU 帧率、企业数据或设备性能 SLA。
+
+**纠错闭环：** [失败 CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 的 `P01 fixture never mounted` 来自目标关系引用了未定义的 `n160/n320`，不是自动正交算法计时失败；已补实际 Eidos 状态校验并记录修复。真正大规模全自动复杂路径最坏情况尚未单独测量，不能根据本轮成功推论。
