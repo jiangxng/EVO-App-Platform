@@ -1113,11 +1113,75 @@ try {
   assert.equal(viewerLoop.manual,0);
   assert.equal(viewerLoop.save,false);
   assert.equal(store.getVersion(target),6,"Viewer read must not write");
+
+  // B8g: one additional actual Chrome scene with a test-only adjacent node
+  // occupying the right self-loop corridor. Restore automatic path, verify
+  // bottom fallback is hit-testable, native drag, explicit CAS Save, then
+  // remove the obstacle in a fresh Designer/Viewer: manual side must be pinned.
+  r=await tab("R","blocked-loop");
+  await until(r,"Ready.");
+  const fallback=await r.eval("(()=>{\n const id=__LOOP_ID__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8g test-only blocked self-loop missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const ctl=document.querySelector(\"[data-eidos-diagram-waypoint-controls]\");\n if(!ctl)throw Error(\"B8g self-loop Inspector missing\");\n const restore=[...ctl.querySelectorAll(\"button\")]\n  .find(b=>b.textContent===\"Restore automatic routing\");\n if(!restore)throw Error(\"B8g Restore automatic routing unavailable\");\n restore.click();\n const hit=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!hit||!visual)throw Error(\"B8g automatic self-loop handle absent\");\n const b=hit.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2;\n const top=document.elementFromPoint(x,y);\n if(top!==hit)throw Error(\"B8g free-side handle not hit-testable \"+JSON.stringify({\n   x,y,top:top?.outerHTML.slice(0,220),handle:hit.outerHTML.slice(0,220)}));\n return {x,y,worldY:Number(hit.getAttribute(\"cy\")),worldX:Number(hit.getAttribute(\"cx\")),\n   d:visual.getAttribute(\"d\"),radius:hit.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n   inputs:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length,\n   blocker:document.querySelector(\"[data-eidos-diagram-node=diagram-browser\\\\:right-obstacle]\")!==null};\n})()".replace("__LOOP_ID__",JSON.stringify(selfId)));
+  assert.equal(fallback.blocker,true,"B8g obstacle fixture must be visible");
+  assert.equal(fallback.radius,"22","B8g keeps 44 CSS px hit area");
+  assert.equal(fallback.inputs,0,"B8g restore cannot manufacture manual points");
+  assert.ok(fallback.worldY>selfNode.y+selfNode.height+20,
+    "B8g free-side automatic curve bulge must face below blocked right side");
+  assert.match(fallback.d,/ C /);
+  assert.ok(fallback.d.startsWith("M "+String(Math.round((selfNode.x+selfNode.width*.28)*1000)/1000)
+    +" "+String(Math.round((selfNode.y+selfNode.height)*1000)/1000)+" "));
+  assert.equal(store.getVersion(target),6,"B8g automatic fallback is local only");
+  const fx=fallback.x,fy=fallback.y+55;
+  await r.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:fx,y:fallback.y});
+  await r.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    x:fx,y:fallback.y});
+  await r.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",x:fx,y:fy});
+  const fallbackPreview=await r.eval("(()=>{\n const id=__LOOP_ID__;\n return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),\n  controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};\n})()".replace("__LOOP_ID__",JSON.stringify(selfId)));
+  assert.notEqual(fallbackPreview.d,fallback.d,
+    "Native drag of clear-side bulge must preview a different cubic");
+  assert.match(fallbackPreview.d,/ C /);
+  await r.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",x:fx,y:fy});
+  const fallbackCommit=await r.eval("(()=>{\n const id=__LOOP_ID__;\n return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),\n  controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};\n})()".replace("__LOOP_ID__",JSON.stringify(selfId)));
+  assert.notEqual(fallbackCommit.d,fallback.d);
+  assert.equal(fallbackCommit.controls,2,"Committed clear-side cubic has exactly one manual point");
+  assert.equal(await r.eval("(()=>{\n const id=__LOOP_ID__,b=document.querySelector(\"[data-eidos-diagram-history=undo]\");\n if(!b||b.disabled)throw Error(\"B8g Undo missing\");b.click();\n document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\")\n  ?.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\");\n})()".replace("__LOOP_ID__",JSON.stringify(selfId))),fallback.d,
+    "B8g one Undo restores automatic bottom fallback");
+  assert.equal(await r.eval("(()=>{\n const id=__LOOP_ID__,b=document.querySelector(\"[data-eidos-diagram-history=redo]\");\n if(!b||b.disabled)throw Error(\"B8g Redo missing\");b.click();\n document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\")\n  ?.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\");\n})()".replace("__LOOP_ID__",JSON.stringify(selfId))),fallbackCommit.d,
+    "B8g one Redo restores committed bottom-side cubic");
+  assert.equal(store.getVersion(target),6,"B8g local edits cannot auto-save");
+  await action(r,"Save projection");
+  await until(r,"Saved.");
+  assert.equal(store.getVersion(target),7,"B8g explicit CAS Save advances once");
+  const savedFallback=store.get(target).projections
+    .find(p=>p.projectionId===target.projectionId)?.view.edgePaths
+    ?.find(e=>e.edgeId===selfId);
+  assert.equal(savedFallback?.pathKind,"curve");
+  assert.equal(savedFallback?.waypoints?.length,1);
+  assert.ok(savedFallback.waypoints[0].y>selfNode.y+selfNode.height,
+    "B8g saved manual point must remain outside bottom edge");
+  assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
+    definitionId:target.definitionId}).length,1,
+    "Self-loop reroute cannot create a business definition revision");
+  // The obstacle is ABSENT in these new tabs: persistence must pin manual side.
+  sTab=await tab("S","loop");
+  await until(sTab,"Ready.");
+  const obstacleGone=await sTab.eval("(()=>{\n const id=__LOOP_ID__,edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8g self relation gone after unobstructed read\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {d:visual?.getAttribute(\"d\"),\n   inputs:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};\n})()".replace("__LOOP_ID__",JSON.stringify(selfId)));
+  assert.equal(obstacleGone.d,fallbackCommit.d,
+    "Fresh Designer without adjacent obstacle must respect manually saved bottom side");
+  assert.equal(obstacleGone.inputs,2);
+  t=await tab("T","loop-viewer");
+  await until(t,"Ready.");
+  const fallbackViewer=await t.eval("(()=>{\n const id=__LOOP_ID__;\n return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),\n  edit:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n  save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n    .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP_ID__",JSON.stringify(selfId)));
+  assert.equal(fallbackViewer.d,fallbackCommit.d,
+    "Readonly Viewer without obstacle renders pinned manual cubic unchanged");
+  assert.equal(fallbackViewer.edit,0);
+  assert.equal(fallbackViewer.save,false);
+  assert.equal(store.getVersion(target),7,"B8g Viewer read cannot write");
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 17,
+    browser: version.Browser, tabs: 20,
+    b8gNativeBlockedSideSaveReadViewer: true,
     b8fSelfLoopCurveNativeDragSaveViewer: true,
     b8eRoundedMultiRankCancelRegrabSaveViewer: true,
     b8dNativeDenseOverlapCycleAndUndo: true,
