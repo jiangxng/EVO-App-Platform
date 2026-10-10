@@ -12,6 +12,7 @@ import {tmpdir} from "node:os";
 import {join,resolve} from "node:path";
 import {chromium} from "playwright";
 import {loadAuthorizedEnterpriseFixtureV010} from "./diagram-enterprise-fixture-intake-b9k.mjs";
+import {analyzeCorridorRiskV010} from "./diagram-corridor-risk-b9o.mjs";
 
 import {createMemoryBusinessDefinitionRepositoryV010} from "../dist/providers/enterprise-context/business-definitions.js";
 import {createFileDefinitionProjectionStoreV010} from "../dist/providers/enterprise-context/definition-projection-store.js";
@@ -241,6 +242,8 @@ try{
    return result;
   }finally{await tab.close()}
  };
+ // B10d: straight-corridor proxy is diagnostic, never a true router output.
+ const proxy=analyzeCorridorRiskV010(graph);
  const savedDesigner=await snapshot("designer");
  const savedViewer=await snapshot("viewer");
  assert.equal(reopened.projectionStore.getVersion(id),1,
@@ -248,6 +251,12 @@ try{
  assert.equal(savedDesigner.count,savedViewer.count,
   "fresh readonly Viewer must match persisted Designer's honest congestion count");
  assert.equal(savedViewer.saveButtons,0);
+ console.log("B10D_ROUTING_EVIDENCE_RESULT="+JSON.stringify({
+  process:intake.process,routeCongestedActualChrome:savedViewer.count,
+  corridorRiskProxy:proxy.corridorsAboveBudget,proxyBands:proxy.corridorRiskBands,
+  exactMatchNotRequired:true,
+  warning:"Diagnostic straight corridor proxy is NOT actual Eidos A* route congestion"
+ }));
  // B9l: real browser pointer clicks + real Save projection button,
  // NOT a Node test invoking the Handler for the second CAS commit.
  const nativeSaveTab=await browser.newPage({viewport:{width:1280,height:820}});
