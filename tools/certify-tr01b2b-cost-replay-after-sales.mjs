@@ -9,6 +9,8 @@
 import assert from "node:assert/strict";
 import { createDatabase } from "../evo/dist/platform/database/src/index.js";
 import { createEvoRuntime, drainPosting } from "../evo/dist/apps/api/src/evo-runtime.js";
+import { computeEconomicRuntimeDigest, computeReplayInputDigest
+} from "../evo/dist/modules/replay/infrastructure/postgres-replay-digest.js";
 
 const base=(process.env.EVO_BASE_URL??"http://127.0.0.1:3000").replace(/\/$/u,"");
 const orderNo="TR01B-SO-001";
@@ -86,9 +88,19 @@ assert.equal(Number(cogs.amount),125,
  "Only EVO cost allocation + valuation may recognize shipment COGS");
 assert.equal(Number(cogs.quantity),0);
 
-const beforeDigest=await runtime.query.balanceDigest(enterprise);
+const state=await runtime.db.selectFrom("enterprise_runtime_state")
+ .select(["consistency_domain","next_posting_sequence"])
+ .where("enterprise_id","=",enterprise).executeTakeFirstOrThrow();
+const boundary=BigInt(state.next_posting_sequence)-1n;
+const beforeDigest=await computeEconomicRuntimeDigest(
+ runtime.db,enterprise,state.consistency_domain,boundary
+);
+const beforeInput=await computeReplayInputDigest(
+ runtime.db,enterprise,state.consistency_domain,boundary
+);
 const replay=await runtime.replay.prepareFullReplay(enterprise);
 assert.equal(replay.beforeDigest,beforeDigest);
+assert.equal(replay.boundarySequence,boundary);
 assert.equal(replay.costMethod,"FIFO");
 assert.ok(replay.costPins?.valuationPolicyId);
 assert.ok(replay.costPins?.allocationPolicyId);
@@ -99,11 +111,24 @@ const replayedCost=await runtime.cost.recalculate(
 );
 assert.ok(replayedCost.valuationPostingCount>=1);
 await runtime.work.refresh(enterprise);
-const afterDigest=await runtime.query.balanceDigest(enterprise);
+const afterDigest=await computeEconomicRuntimeDigest(
+ runtime.db,enterprise,state.consistency_domain,boundary
+);
+const afterInput=await computeReplayInputDigest(
+ runtime.db,enterprise,state.consistency_domain,boundary
+);
 await runtime.replay.completeFullReplay(
  replay.replayRunId,enterprise,afterDigest
 );
-assert.equal(beforeDigest,afterDigest,"EVO economic digest changed after pinned Full Replay");
+assert.equal(beforeDigest,afterDigest,"EVO canonical economic digest changed after pinned Full Replay");
+assert.deepEqual(afterInput,beforeInput,"Immutable BusinessData canonical replay input digest changed");
+const certifiedRun=await runtime.db.selectFrom("replay_run")
+ .select(["status","validation_status","before_digest","after_digest"])
+ .where("id","=",replay.replayRunId).executeTakeFirstOrThrow();
+assert.equal(certifiedRun.status,"COMPLETED");
+assert.equal(certifiedRun.validation_status,"MATCH");
+assert.equal(certifiedRun.before_digest,beforeDigest);
+assert.equal(certifiedRun.after_digest,afterDigest);
 const rebuiltInventory=await exactBalance(enterprise,"inventory",dims);
 const rebuiltCogs=await exactBalance(enterprise,"cogs",dims);
 const rebuiltReceivable=await exactBalance(enterprise,"receivable",finDims);
@@ -133,6 +158,7 @@ console.log("TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF="+JSON.stringify({
  valuedInventoryAmount:Number(inventory.amount),
  valuedCOGS:Number(cogs.amount),
  replayDeterministic:beforeDigest===afterDigest,
+ canonicalReplayInputUnchanged:beforeInput.digest===afterInput.digest,
  valuationPolicyPin:{id:vp.id,version:vp.version},
  allocationPolicyPin:{id:ap.id,version:ap.version},
  shipmentValuationRulePin:{id:vr.id,version:vr.version},
