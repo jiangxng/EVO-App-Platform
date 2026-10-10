@@ -1581,8 +1581,34 @@ try {
   assert.equal(multilingualViewerProbe.save,false);
   assert.equal(store.getVersion(target),7,
     "No projection persistence from multilingual label rendering");
+
+  ag=await tab("AG","rtl-label");
+  await until(ag,"Ready.");
+  const rtlDesigner=await ag.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!visual)throw Error(\"B8p RTL caption SVG missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {direction:label.getAttribute(\"direction\"),\n  unicodeBidi:label.getAttribute(\"unicode-bidi\"),\n  computedDirection:getComputedStyle(label).direction,\n  lines:lines.length?lines:[label.textContent],\n  title:label.querySelector(\"title\")?.textContent,\n  bboxWidth:label.getBBox().width, bboxHeight:label.getBBox().height,\n  loopPath:visual.getAttribute(\"d\"),\n  save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n    .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.equal(rtlDesigner.direction,"rtl","First Arabic word determines label paragraph direction");
+  assert.equal(rtlDesigner.unicodeBidi,"plaintext");
+  assert.equal(rtlDesigner.computedDirection,"rtl","Chrome must apply RTL direction to SVG");
+  assert.ok(rtlDesigner.lines.length>=2 && rtlDesigner.bboxHeight>20);
+  assert.match(rtlDesigner.lines.join(" "),/مرحبا/,"Arabic logical words retained");
+  assert.match(rtlDesigner.lines.join(" "),/חשבונית/,"Hebrew logical words retained");
+  assert.ok(rtlDesigner.bboxWidth>40);
+  assert.equal(rtlDesigner.title,rtlCaption);
+  ah=await tab("AH","rtl-viewer");
+  await until(ah,"Ready.");
+  const rtlReadonly=await ah.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!visual)throw Error(\"B8p RTL caption SVG missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {direction:label.getAttribute(\"direction\"),\n  unicodeBidi:label.getAttribute(\"unicode-bidi\"),\n  computedDirection:getComputedStyle(label).direction,\n  lines:lines.length?lines:[label.textContent],\n  title:label.querySelector(\"title\")?.textContent,\n  bboxWidth:label.getBBox().width, bboxHeight:label.getBBox().height,\n  loopPath:visual.getAttribute(\"d\"),\n  save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n    .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.equal(rtlReadonly.direction,"rtl");
+  assert.equal(rtlReadonly.computedDirection,"rtl");
+  assert.deepEqual(rtlReadonly.lines,rtlDesigner.lines,
+    "Readonly Viewer must preserve logical-order RTL text segmentation");
+  assert.equal(rtlReadonly.loopPath,rtlDesigner.loopPath,
+    "Bidi label width must choose deterministic route in readonly Viewer");
+  assert.equal(rtlReadonly.title,rtlCaption);
+  assert.equal(rtlReadonly.save,false);
+  assert.equal(store.getVersion(target),7,
+    "RTL preview cannot commit a projection update");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 32,
+    browser: version.Browser, tabs: 34,
+    b8pqRtlWordBoundaryAndMixedComplexDom: true,
     b8noMultilingualTspanDenseFullDom: true,
     b8lmRealLabelMetricsAndDensityBudget: true,
     b8jkRenderedCubicInkIndexedViewer: true,
