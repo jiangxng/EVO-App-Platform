@@ -137,7 +137,7 @@ const pageHTML=(mode)=>{
   :"/dist/vendor/eidos/src/diagram/surface.js";
  const mountName=viewer?"mountDiagramWorkspacePageV010":"mountDiagramEditorPageV010";
  return '<!doctype html><html><head><meta charset="utf-8">'
-  +'<style>html,body{margin:0}main{width:1250px;height:760px}'
+  +'<style>html,body{margin:0}main{width:min(100%,1250px);height:760px}'
   +'[data-eidos-diagram-editor]{height:750px!important;min-height:560px}</style></head>'
   +'<body><main id="root">'+shell+'</main>'
   +'<script>window.__definition='+safeInlineJson
@@ -191,8 +191,8 @@ try{
  const address="http://127.0.0.1:"+server.address().port;
  browser=await chromium.launch({headless:true,executablePath:chrome,
   args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
- const snapshot=async(mode)=>{
-  const tab=await browser.newPage({viewport:{width:1280,height:820}});
+ const snapshot=async(mode,viewport={width:1280,height:820})=>{
+  const tab=await browser.newPage({viewport});
   try{
    await tab.goto(address+"/"+mode,{waitUntil:"load"});
    await tab.waitForFunction(()=>
@@ -200,9 +200,10 @@ try{
     {timeout:30000});
    const result=await tab.evaluate(()=>{
     const svg=document.querySelector("svg[data-eidos-diagram-congested-count]");
+    const canvasWidth=svg?.getBoundingClientRect().width??0;
     const routes=[...document.querySelectorAll("[data-eidos-diagram-route-congested]")];
     const note=document.querySelector("[data-eidos-diagram-congestion-summary]");
-    return {count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
+    return {canvasWidth,count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
      actualPaths:routes.length,
      missingAria:routes.filter(item=>!item.getAttribute("aria-label")).length,
      note:note?.getAttribute("data-eidos-diagram-congestion-summary")??null,
@@ -213,6 +214,7 @@ try{
      errors:window.__errors};
    });
    assert.deepEqual(result.errors,[],mode+" B9l real Chrome errors");
+   assert.ok(result.canvasWidth>0,mode+" SVG must render at viewport width "+viewport.width);
    assert.equal(result.count,result.actualPaths,mode+" congestion DOM hit count");
    assert.equal(result.missingAria,0);
    assert.equal(result.note,result.count>0?String(result.count):null);
@@ -296,6 +298,28 @@ try{
  assert.ok(graph.nodes.some(node=>node.id===removeNodeId),
   "the original business preview2d topology remains untouched");
  assert.equal(reopenedClearViewer.saveButtons,0);
+ // B9q: same persisted Eidos geometry under actual Chrome window-size changes.
+ // These are *emulated viewports*, NOT physical phone/tablet or touch gestures.
+ const responsiveChecks=[];
+ for(const viewport of [{width:390,height:844},{width:768,height:1024}]){
+  const d=await snapshot("designer",viewport);
+  const v=await snapshot("viewer",viewport);
+  assert.equal(d.count,reopenedClearDesigner.count,
+   "responsive designer preserves saved route-congested count");
+  assert.equal(v.count,reopenedClearViewer.count,
+   "responsive readonly Viewer preserves saved route-congested count");
+  assert.equal(v.saveButtons,0,"mobile-size readonly Viewer must not expose Save");
+  responsiveChecks.push({
+   viewport:viewport.width+"x"+viewport.height,
+   editorSvgWidth:Math.round(d.canvasWidth),viewerSvgWidth:Math.round(v.canvasWidth),
+   congestedDesigner:d.count,congestedViewer:v.count,
+   viewerReadOnly:true
+  });
+ }
+ console.log("B9Q_RESPONSIVE_CHROME_RESULT="+JSON.stringify({
+  process:intake.process,responsiveChecks,chrome:browser.version(),
+  caution:"Chrome emulated viewport only; NOT physical mobile/touch/accessibility acceptance"
+ }));
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
