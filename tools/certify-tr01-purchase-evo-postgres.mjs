@@ -435,9 +435,93 @@ assert.ok(payWorkAfterReceipt);
 assert.equal(payWorkAfterReceipt.workType, "PAY");
 assert.ok(Math.abs(Number(payWorkAfterReceipt.amount) - amount) < 0.000001);
 
+const reversal = await service.reversePurchaseReceipt({
+  target,
+  selection,
+  receiptBusinessDataId: receipt.submission.businessDataId,
+  originalReceiptNo: "TR01-GR-001",
+  reversalNo: "TR01-GRR-001",
+  orderNo: "TR01-PO-001",
+  quantity,
+  totalCost: "125.00",
+  currency: "CNY",
+  effectiveAt: "2026-10-10T01:30:00.000Z",
+  correlationId: "TR01:GRR:001",
+  idempotencyKey: "tr01:grr:001"
+});
+assert.equal(reversal.submission.postingStatus, "QUEUED");
+assert.notEqual(
+  reversal.submission.businessDataId,
+  receipt.submission.businessDataId,
+  "receipt must be reversed by a separate immutable fact"
+);
+assert.notEqual(
+  reversal.submission.businessDataId,
+  purchase.submission.businessDataId
+);
+
+await waitForApplicationEvents(
+  enterprise.id,
+  receiptBinding.applicationId,
+  beforeReceiptEvents + 2,
+  "receipt reversal BusinessData event was not observed"
+);
+const pendingAfterReversal = await waitForBalance(
+  enterprise.id,
+  "pending_purchase",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item => Math.abs(Number(item.quantity) - quantity) < 0.000001,
+  "receipt reversal did not reopen pending purchase"
+);
+const inventoryAfterReversal = await waitForBalance(
+  enterprise.id,
+  "inventory",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item =>
+    Math.abs(Number(item.quantity)) < 0.000001
+    && Math.abs(Number(item.amount)) < 0.000001,
+  "receipt reversal did not remove original inventory quantity and cost"
+);
+const payableAfterReversal = await waitForBalance(
+  enterprise.id,
+  "payable",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01"
+  },
+  item => Math.abs(Number(item.amount) - amount) < 0.000001,
+  "receipt reversal must preserve Purchase Order payable"
+);
+const workAfterReversal = await waitForOrderWork(
+  enterprise.id,
+  "TR01-PO-001",
+  body => {
+    const receive = orderWork(body, "TR01-PO-001", "pending_purchase");
+    const pay = orderWork(body, "TR01-PO-001", "payable");
+    return receive?.workType === "RECEIVE"
+      && Math.abs(Number(receive.quantity) - quantity) < 0.000001
+      && pay?.workType === "PAY"
+      && Math.abs(Number(pay.amount) - amount) < 0.000001;
+  },
+  "receipt reversal did not reopen RECEIVE while preserving PAY"
+);
+assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "pending_purchase"));
+assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "payable"));
+
 console.log(JSON.stringify({
   status: "PASS",
-  proof: "TR01A_APP_PLATFORM_TO_EVO_PROCURE_TO_PAY_REFERENCE_LOOP",
+  proof: "TR01A2_APP_PLATFORM_TO_EVO_PURCHASE_RECEIPT_REVERSAL",
   evoScopeKey: enterprise.id,
   purchaseApplicationId: purchaseBinding.applicationId,
   receiptApplicationId: receiptBinding.applicationId,
@@ -448,10 +532,11 @@ console.log(JSON.stringify({
   },
   purchaseBusinessDataId: purchase.submission.businessDataId,
   receiptBusinessDataId: receipt.submission.businessDataId,
-  explicitRelation: "FULFILLS",
+  reversalBusinessDataId: reversal.submission.businessDataId,
+  explicitRelation: "FULFILLS_AND_REVERSES",
   evidence: {
     purchaseEventDelta: 1,
-    receiptEventDelta: 1,
+    receiptEventDelta: 2,
     receiveWorkQuantityBeforeReceipt: Number(receiveWork.quantity),
     receiveWorkClosedAfterReceipt: true,
     ledgerCertification: "EVO_PUBLIC_DIMENSION_FILTERED_LEDGER_BALANCE",
@@ -462,10 +547,16 @@ console.log(JSON.stringify({
     inventoryQuantityAfterReceipt: Number(inventoryAfterReceipt.quantity),
     inventoryAmountAfterReceipt: Number(inventoryAfterReceipt.amount),
     inventoryDimensions: inventoryAfterReceipt.dimensions,
+    pendingPurchaseQuantityAfterReversal: Number(pendingAfterReversal.quantity),
+    inventoryQuantityAfterReversal: Number(inventoryAfterReversal.quantity),
+    inventoryAmountAfterReversal: Number(inventoryAfterReversal.amount),
+    payableAmountAfterReversal: Number(payableAfterReversal.amount),
     aggregateRuntimeObservationAvoided: true
   },
   work: {
     receiveClosed: true,
-    payStillOpen: true
+    payStillOpen: true,
+    receiveReopenedAfterReversal: true,
+    payStillOpenAfterReversal: true
   }
 }, null, 2));
