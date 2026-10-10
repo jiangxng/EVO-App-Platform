@@ -269,6 +269,20 @@ import type {
 } from "../contracts/platform-services.js";
 import { createProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import {
+  tradingFinanceOwnerProviderPackageV010,
+  TRADING_FINANCE_OWNER_CAPABILITY_V010,
+  TRADING_FINANCE_OWNER_PROVIDER_ID_V010
+} from "../providers/trading-finance-owner/package.js";
+import {
+  createTradingFinanceIntentPreflightV010,
+  type FinanceOwnerPreflightV010,
+  type TradingFinanceIntentV010
+} from "../apps/trading-reference/finance-intent-admission.js";
+import {
+  createTrustedRemoteFinanceOwnerPreflightV010,
+  type TrustedFinanceOwnerInstallationV010
+} from "../apps/trading-reference/finance-owner-remote.js";
+import {
   createEvoBusinessDataHttpAdapterV010
 } from "./evo-business-data-http-adapter.js";
 import {
@@ -784,6 +798,7 @@ import {
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
+  tradingFinanceOwnerProviderPackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -3283,6 +3298,66 @@ const evoRuntimeScopeMap = (() => {
   }
   return result;
 })();
+
+/** Operator-pinned Host→EVO installation. Never sourced from a request body,
+ * browser state, or public user preferences. The cryptographic private key
+ * is fetched at call-time via Host encrypted SecretsProvider only.
+ */
+const financeOwnerInstallation: TrustedFinanceOwnerInstallationV010 | undefined = (() => {
+  const raw = process.env.APP_PLATFORM_FINANCE_OWNER_INSTALLATION_JSON?.trim();
+  if (!raw) return undefined; // no operator trust binding = no runtime
+  const decoded: unknown = JSON.parse(raw);
+  if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
+    throw new Error("TR01B2D3_HOST_INSTALLATION_CONFIG_INVALID");
+  }
+  const config = decoded as Record<string, unknown>;
+  if (
+    !["installationId","issuer","keyId","endpoint",
+      "hostEnterpriseId","contextId","evoEnterpriseId"].every(
+      key => typeof config[key] === "string" && Boolean((config[key] as string).trim())
+    ) || config.active !== true
+  ) {
+    throw new Error("TR01B2D3_HOST_INSTALLATION_CONFIG_INVALID");
+  }
+  return config as unknown as TrustedFinanceOwnerInstallationV010;
+})();
+if (financeOwnerInstallation) {
+  providerRuntimeRegistry.replace<FinanceOwnerPreflightV010>(
+    TRADING_FINANCE_OWNER_PROVIDER_ID_V010,
+    createTrustedRemoteFinanceOwnerPreflightV010({
+      resolveInstallation: () => financeOwnerInstallation,
+      async resolveSigningPrivateKey(installationId) {
+        if (installationId !== financeOwnerInstallation.installationId) {
+          throw new Error("TR01B2D3_INSTALLATION_SIGNING_SCOPE_MISMATCH");
+        }
+        const secrets = resolveManagedSecretsProvider();
+        if (!secrets) throw new Error("TR01B2D3_HOST_SECRETS_PROVIDER_NOT_ADMITTED");
+        return secrets.resolve({
+          contractVersion:"0.1.0",
+          namespace:"evo-trading-finance-owner",
+          key:"host-ed25519-signing-pkcs8",
+          scope:"INSTALLATION",
+          scopeId: installationId
+        });
+      }
+    })
+  );
+  providerRuntimeRegistry.setHealth(TRADING_FINANCE_OWNER_PROVIDER_ID_V010,{
+    state:"HEALTHY",
+    message:"Operator-pinned read-only transport configured; installation and Host Secrets are rechecked at request time."
+  });
+}
+function resolveInstalledFinanceOwnerPreflightV010():
+  FinanceOwnerPreflightV010 | undefined {
+  return resolveProviderRuntimeV010<FinanceOwnerPreflightV010>(
+    providerRuntimeRegistry,
+    manager.listEffectiveServiceProviders(TRADING_FINANCE_OWNER_CAPABILITY_V010),
+    providerBindings,
+    TRADING_FINANCE_OWNER_CAPABILITY_V010,
+    { installationId:"default" }
+  )?.runtime;
+}
+
 const evoObservatoryEnterpriseMap = (() => {
   const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_ENTERPRISE_MAP_JSON?.trim();
   if (!raw) return new Map<string, string>();
@@ -5788,6 +5863,85 @@ const server = createServer(async (request, response) => {
         headers: request.headers,
         publicBaseUrl: authenticationPublicBaseUrl
       });
+    }
+
+
+    // B2D3 internal only: no Capability Operation, Workbench or Agent tool.
+    // The REAL Host request-bound managed Session supplies the actor, never
+    // the submitted intent JSON. The owner Provider must be INSTALLED and
+    // ACTIVATED, and the signing key must exist in Host encrypted secrets.
+    if (url.pathname === "/api/v1/trading-finance/readonly-owner-verify") {
+      response.setHeader("cache-control","no-store");
+      if (request.method !== "POST") {
+        return json(response,405,{code:"TR01B2D3_METHOD_NOT_ALLOWED"});
+      }
+      if (!managedSessionEnabled || !financeOwnerInstallation) {
+        return json(response,404,{code:"TR01B2D3_HOST_FINANCE_ROUTE_NOT_ADMITTED"});
+      }
+      try {
+        const session = resolveRequestIdentitySession(request);
+        if (session.sessionId === "compatibility-local-session" ||
+          !session.principal.subjectId ||
+          !["HUMAN","AI"].includes(session.principal.actorType)) {
+          throw new Error("TR01B2D3_REQUEST_BOUND_SESSION_REQUIRED");
+        }
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId:session.sessionId
+        };
+        const partial: PlatformRequestContextV010 = {
+          contractVersion:"0.1.0",
+          principal,
+          scope:{contractVersion:"0.1.0",userId:principal.subjectId},
+          context:resolved,
+          correlationId:"tr01b2d3-"+randomUUID()
+        };
+        const requestContext:PlatformRequestContextV010 = {
+          ...partial,
+          scope:legacyScopeFromRequestContextV010(partial)
+        };
+        const body:unknown=await readJsonLimited(request,16000);
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).length !== 1 ||
+          !Object.hasOwn(body,"intent")) {
+          throw new Error("TR01B2D3_INTENT_REQUEST_INVALID");
+        }
+        const intent = (body as {intent:TradingFinanceIntentV010}).intent;
+        const active = requestContext.context?.activeContext;
+        const verifier = createTradingFinanceIntentPreflightV010({
+          resolveAuthorizationProvider,
+          resolveEvoEnterpriseId(host) {
+            const selected = host.context?.activeContext;
+            if (!selected || selected.kind !== "ENTERPRISE" ||
+              host.scope.enterpriseId !== selected.enterpriseId) {
+              throw new Error("TR01B2D3_ENTERPRISE_SCOPE_REQUIRED");
+            }
+            const bound = evoRuntimeScopeMap.get(selected.enterpriseId);
+            if (!bound) throw new Error("TR01B2D3_EVO_BINDING_REQUIRED");
+            return bound;
+          },
+          resolveOwnerPreflight:resolveInstalledFinanceOwnerPreflightV010
+        });
+        const result = await verifier.verify({
+          requestContext,
+          contextId:active?.contextId ?? "",
+          intent
+        });
+        return json(response,200,result);
+      } catch(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = message.split(":")[0] ?? "TR01B2D3_HOST_REQUEST_DENIED";
+        const status = code.includes("SESSION") || code.includes("IDENTITY")
+          ? 401 : 403;
+        return json(response,status,{
+          contractVersion:"0.1.0",status:"DENIED",code,
+          executionAllowed:false
+        });
+      }
     }
 
     if (url.pathname === "/mcp") {
