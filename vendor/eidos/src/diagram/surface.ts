@@ -3678,6 +3678,32 @@ export function mountDiagramEditorPageV010(
 
     viewport.appendChild(stage);
     canvas.appendChild(viewport);
+    // B8s: WebKit can honor RTL text-anchor on individual rows yet
+    // produce a horizontally shifted union bbox for multiline SVG text.
+    // Measure ONLY painted RTL captions, after DOM attachment, and shift
+    // their SVG x coordinates until ink is centered on the same world-space
+    // anchor used by the routing reservation. This is visual-only.
+    let bidiPainted=0;
+    for(const {label} of liveEdges.values()){
+      if(!label||label.getAttribute("data-eidos-diagram-caption-direction")!=="rtl")continue;
+      if(++bidiPainted>256){
+        svg.setAttribute("data-eidos-diagram-bidi-measure-limit","true");
+        break;
+      }
+      try{
+        const bbox=label.getBBox();
+        const anchor=Number(label.getAttribute("x"));
+        const center=bbox.x+bbox.width/2;
+        if(!Number.isFinite(anchor)||!Number.isFinite(center)||bbox.width<=0)continue;
+        const offset=anchor-center;
+        if(Math.abs(offset)<=0.5)continue;
+        const positioned=String(anchor+offset);
+        label.setAttribute("x",positioned);
+        label.querySelectorAll("tspan").forEach(tspan=>tspan.setAttribute("x",positioned));
+      }catch{
+        svg.setAttribute("data-eidos-diagram-bidi-measure-unavailable","true");
+      }
+    }
     if(inkQuality!=="full"){
       // B8m single visible advisory rather than thousands of false-clear
       // per-edge badges. Click/drag gestures still go through unchanged.
