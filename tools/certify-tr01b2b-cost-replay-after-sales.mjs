@@ -119,16 +119,21 @@ console.log("TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF="+JSON.stringify({
  status:"PASS",enterpriseId:enterprise,orderNo,
  factsSource:"TR01B1_APP_PLATFORM_PUBLIC_BUSINESS_DATA",
  runtimeCostOwner:"EVO_COST_ENGINE_AND_VALUATION_POSTING",
- certificationEndpoint:"EVO_DEMO_ONLY_NOT_PRODUCTION_CONTRACT",
+ certificationEndpoint:"ISOLATED_EVO_OWNER_RUNTIME_NOT_PRODUCTION_PUBLIC_CONTRACT",
  method:"FIFO",costRunId:cost.costRunId,
  originalQuantity:Number(beforeInventory.quantity),
  originalInventoryRawAmount:Number(beforeInventory.amount),
  valuedInventoryAmount:Number(inventory.amount),
  valuedCOGS:Number(cogs.amount),
- replayDeterministic:replay.deterministic,
+ replayDeterministic:beforeDigest===afterDigest,
+ valuationPolicyPin:{id:vp.id,version:vp.version},
+ allocationPolicyPin:{id:ap.id,version:ap.version},
  unchangedReceivable:Number(rebuiltReceivable.amount),
  unchangedCash:Number(rebuiltCash.amount),
  financialAccountMasterObject:"NOT_IMPLEMENTED",
  formalCashAllocation:"NOT_CERTIFIED",
  productionCostCommand:"MISSING_GOVERNED_PUBLIC_API"
 }));
+} finally {
+ await database.destroy();
+}
