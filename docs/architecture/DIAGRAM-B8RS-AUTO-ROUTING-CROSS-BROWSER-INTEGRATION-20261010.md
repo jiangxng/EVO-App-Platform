@@ -42,3 +42,12 @@ Firefox/WebKit 的浏览器下载依赖 CI 环境网络；安装、浏览器启�
 ## 验收和未来工作
 
 该阶段的成功限定为独立单元/集成、最新 head 全部 CI、真实 Chrome 合法自动路由、真实 Firefox+WebKit 渲染证据。专业级 RTL 光标/选择与复制、真实用户企业图及重启后的数据库写入、目标系统实体鼠标/触摸/触控板、12k 全自动复杂路由均尚未完整验收。§14 **39 项商业验收仍 NOT TESTED**。所有本轮代码与研究继续留在两仓库 Draft 分支，便于下一聊天窗口追溯。
+
+
+## B8s 真实 SVG 与 Canvas 的测量差异、保守避让修正
+
+在实际 [Firefox/WebKit 字形宽度诊断 #38056315599](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38056315599) 中发现：Firefox 阿拉伯文单行 `canvasWidths[0]=237.78`，最终 parent SVG `getBBox.width=237.78`，而 WebKit 对同一 RTL 样例测得 `canvasWidths[0]=247.83`，最终 SVG parent bbox `width=278.55`；希伯来文亦有 `canvas 258.74` vs `SVG 266.91`。此外 WebKit 的子 `tspan.getBBox()` 有时返回整个父标签宽度，不能把每个子 tspan 的 `getBBox` 当作跨引擎可靠的独立行宽。这是实测布局差异，不是存储文本或关系对象错误。
+
+**决策：** `diagramCaptionLayoutV010` 对 `direction="rtl"` 在折行条件和碰撞预留两侧使用相同的 **1.25 倍安全宽度**，避免“折行和评分使用不同估计”。LTR/中英文原有宽度口径不变。因浏览器字形差异不固定，这个工程余量只能降低漏判几率，**不能从此推断 WebKit/Safari 所有复杂字形都永不超框**。在独立真实 Firefox/WebKit 工作流中新增用同一 pure `diagramCaptionLayoutV010` 算出的预留框与实际 SVG parent `getBBox` 的**宽度和水平坐标比较**；若异常则测试失败，不能假定跨浏览器一致。
+
+后续最值得跟进：不同字体、不同系统的 SVG 可见字形精确测量和二次避让策略、Safari/macOS/iOS 真机；更长期应从真实字体轮廓测量或渲染后的有界二次布局入手，不能将这 25% 常数当成最终专业版全部排版需求。
