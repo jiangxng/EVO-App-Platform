@@ -2672,7 +2672,10 @@ export function mountDiagramEditorPageV010(
           const caption=[other.label,...(other.observations??[])
             .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
           if(caption){
-            const center=points[Math.floor(points.length/2)]!;
+            // Straight/legacy connectors display their label at the actual
+            // midpoint of the edge, never on the lower endpoint node.
+            const center={x:(points[0]!.x+points[points.length-1]!.x)/2,
+              y:(points[0]!.y+points[points.length-1]!.y)/2};
             const width=Math.min(176,Math.max(24,caption.length*6.2));
             labels.push({x:center.x-width/2,y:center.y-23,width,height:18});
           }
