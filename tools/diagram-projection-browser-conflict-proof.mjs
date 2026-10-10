@@ -1543,14 +1543,14 @@ try {
   assert.equal(multi.quality,"full");
   af=await tab("AF","multilingual-viewer");
   await until(af,"Ready.");
-  const multiViewer=await af.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const loop=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!loop)throw Error(\"B8n multiline relation missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {lines,boxHeight:label.getBBox().height,\n   truncated:label.getAttribute(\"data-eidos-diagram-caption-truncated\"),\n   title:label.querySelector(\"title\")?.textContent,\n   aria:label.getAttribute(\"aria-label\"),\n   d:loop.getAttribute(\"d\"),\n   quality:document.querySelector(\"[data-eidos-diagram-ink-quality]\")?.getAttribute(\"data-eidos-diagram-ink-quality\"),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n     .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
-  assert.deepEqual(multiViewer.lines,multi.lines,
+  const multilingualViewerProbe=await af.eval("(()=>{\n const id=__LOOP__,other=__REL__;\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const loop=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n if(!label||!loop)throw Error(\"B8n multiline relation missing\");\n const lines=[...label.querySelectorAll(\"tspan\")].map(t=>t.textContent);\n return {lines,boxHeight:label.getBBox().height,\n   truncated:label.getAttribute(\"data-eidos-diagram-caption-truncated\"),\n   title:label.querySelector(\"title\")?.textContent,\n   aria:label.getAttribute(\"aria-label\"),\n   d:loop.getAttribute(\"d\"),\n   quality:document.querySelector(\"[data-eidos-diagram-ink-quality]\")?.getAttribute(\"data-eidos-diagram-ink-quality\"),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n     .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.deepEqual(multilingualViewerProbe.lines,multi.lines,
     "Multilingual wrapping must be deterministic in readonly Viewer");
-  assert.equal(multiViewer.d,multi.d,
+  assert.equal(multilingualViewerProbe.d,multi.d,
     "Collision reservations and Viewer auto-loop side must agree");
-  assert.equal(multiViewer.title,multilingualCaption);
-  assert.equal(multiViewer.controls,0);
-  assert.equal(multiViewer.save,false);
+  assert.equal(multilingualViewerProbe.title,multilingualCaption);
+  assert.equal(multilingualViewerProbe.controls,0);
+  assert.equal(multilingualViewerProbe.save,false);
   assert.equal(store.getVersion(target),7,
     "No projection persistence from multilingual label rendering");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
