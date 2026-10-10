@@ -21,7 +21,8 @@ const object=(value)=>value!==null && typeof value==="object" && !Array.isArray(
 const id=(value)=>typeof value==="string" && value.length>0 && value.length<=200;
 const text=(value)=>typeof value==="string" && value.length>0 && value.length<=4000;
 const finite=(value)=>typeof value==="number" && Number.isFinite(value);
-const clean=(value)=>!EMAIL.test(value);
+const forbiddenControls=/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u;
+const clean=(value)=>!EMAIL.test(value) && !forbiddenControls.test(value);
 const fields=(value,allowed)=>Object.keys(value).every(key=>allowed.has(key));
 
 export function validateAuthorizedEnterpriseFixtureV010(input){
@@ -54,7 +55,7 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
     node.width<=0 || node.height<=0 ||
     (node.shape!==undefined && !id(node.shape)))
    error("invalid node fields or geometry");
-  if(!clean(node.id) || !clean(node.label))error("potential email in node identifier/label");
+  if(!clean(node.id) || !clean(node.label) || !clean(node.kind))error("unsafe control character or email in node");
   if(nodeIds.has(node.id))error("duplicate node identifier");
   nodeIds.add(node.id);
   minX=Math.min(minX,node.x);minY=Math.min(minY,node.y);
@@ -70,8 +71,9 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
     (edge.arrow!==undefined && !id(edge.arrow)) ||
     (edge.style!==undefined && !id(edge.style)))
    error("invalid relation fields");
-  if(!clean(edge.id) || (edge.label && !clean(edge.label)))
-   error("potential email in relation identifier/label");
+  if(!clean(edge.id) || !clean(edge.source) || !clean(edge.target) ||
+    !clean(edge.kind) || (edge.label && !clean(edge.label)))
+   error("unsafe control character or email in relation");
   if(edgeIds.has(edge.id))error("duplicate relation identifier");
   if(!nodeIds.has(edge.source) || !nodeIds.has(edge.target))
    error("relation endpoint is missing from preview2d");
