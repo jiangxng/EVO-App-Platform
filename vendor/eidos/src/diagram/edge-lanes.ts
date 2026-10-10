@@ -108,7 +108,8 @@ export function diagramSelfLoopDecisionV010(
   };
   let bestScore = Infinity;
   for(const side of loopSides){
-    const points=loopPointsOnSide(node,side,reach);
+    const siblings=reservedSides.filter(item=>item===side).length;
+    const points=loopPointsOnSide(node,side,reach+siblings*32);
     const positions=[points.start,points.end,...points.orthogonal];
     const x0=Math.min(...positions.map(p=>p.x))-22;
     const y0=Math.min(...positions.map(p=>p.y))-22;
@@ -120,7 +121,6 @@ export function diagramSelfLoopDecisionV010(
       const iy=Math.max(0,Math.min(y1,o.y+o.height)-Math.max(y0,o.y));
       area+=ix*iy;
     }
-    const siblings=reservedSides.filter(item=>item===side).length;
     const score=area+siblings*reservationPenalty;
     if(score<bestScore){
       bestScore=score;
@@ -195,11 +195,14 @@ export function diagramSelfLoopRouteControlsV010(
     || !["orthogonal","rounded-orthogonal","curve"].includes(kind)) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
   }
-  const automatically=diagramSelfLoopSideV010(node,obstacles,laneOffset,reservedSides);
+  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides);
+  const automatically=decision.side;
   const side=manualWaypoints?.length
     ? diagramSelfLoopManualSideV010(node,manualWaypoints,automatically)
     : automatically;
-  const points=loopPointsOnSide(node,side,Math.max(38,56+laneOffset));
+  const reach=Math.max(38,56+laneOffset)
+    + (manualWaypoints?.length ? 0 : decision.sameSideLoops*32);
+  const points=loopPointsOnSide(node,side,reach);
   return {start:points.start,end:points.end,
     waypoints:kind==="curve"?[points.bulge]:points.orthogonal,side};
 }
@@ -233,7 +236,8 @@ export function diagramSelfLoopGeometryV010(
   const selectedSide=manualWaypoints?.length
     ? diagramSelfLoopManualSideV010(node,manualWaypoints,automaticSide)
     : automaticSide;
-  const reach=Math.max(38,56+laneOffset);
+  const reach=Math.max(38,56+laneOffset)
+    + (manualWaypoints?.length ? 0 : decision.sameSideLoops*32);
   const frame=loopPointsOnSide(node,selectedSide,reach);
   if(kind==="curve"){
     const bulge=manualWaypoints?.length===1?manualWaypoints[0]!:frame.bulge;
