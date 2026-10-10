@@ -21,6 +21,8 @@ try {
    contextId:'host-ci-enterprise-context',
    evoEnterpriseId:tenant.id,enabled:true
  };
+ writeFileSync('/tmp/tr01b2d3-evo-public-key.json',
+  JSON.stringify(config),{mode:0o600});
  writeFileSync('/tmp/tr01b2d3-evo-trust.json',
   JSON.stringify([config]),{mode:0o600});
  writeFileSync('/tmp/tr01b2d3-host-install.json',
