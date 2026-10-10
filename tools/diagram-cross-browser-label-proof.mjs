@@ -203,9 +203,14 @@ try{
        reserved,dir:label.getAttribute("direction"),
        labelPreserved:label.querySelector("title")?.textContent===window.__state.edges[0].label
         || (rows.map(t=>t.textContent).join("")||label.textContent)===window.__state.edges[0].label,
-       errors:window.__errors};
+       errors:window.__errors,
+       congestionSummary:document.querySelector("[data-eidos-diagram-congestion-summary]")?.getAttribute("data-eidos-diagram-congestion-summary")??null,
+       congestionCount:document.querySelector("[data-eidos-diagram-congested-count]")?.getAttribute("data-eidos-diagram-congested-count")
+       };
      });
      assert.deepEqual(after.errors,[],engine+" native selected-node rerender errors");
+     assert.equal(after.congestionCount,"0",engine+" safe single edge must count zero congested routes");
+     assert.equal(after.congestionSummary,null,engine+" zero-congestion graph must not show advisory");
      assert.equal(after.dir,sample.direction,engine+" bidi direction must survive selection");
      assert.equal(after.labelPreserved,true,engine+" rerender must preserve original caption");
      assert.ok(after.width>5&&Number.isFinite(after.width));
