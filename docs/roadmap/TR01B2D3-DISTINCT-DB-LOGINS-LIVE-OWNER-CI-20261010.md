@@ -26,6 +26,15 @@ The initial true-LOGIN run [#38061476431](https://github.com/jiangxng/EVO-App-Pl
 
 Instead, companion stacked [EVO PR #109](https://github.com/jiangxng/EVO/pull/109) adds a fixed-search-path, nonpublic `SECURITY DEFINER` function that row-locks precisely an ACTIVE issuer/installation/key and is used inside the same signed-claim/nonce transaction. This App Platform CI now provisions only function EXECUTE, original-fact table SELECT and nonce insert/RETURNING rights to its real runtime LOGIN. Raw trust key table is deliberately inaccessible to that account. The EVO workflow pin is exact SHA `46e0b75a3386ea35b5fb31d5bc275b5c15ac41b3`; acceptance of the new revision must wait for matching real CI.
 
+## Verified green certification
+
+- New exact App Platform implementation head: `b49c98a68c81df6ce9b8a3b5a0d78446b625d9d2`.
+- [Cross-project real PostgreSQL CI #38061971800](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061971800): **SUCCESS**. Job emitted `TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF` with `status=PASS`, `runtimeSessionIsDistinctLogin=true`, `operatorSessionIsDistinctLogin=true`, `evoApiUsesRestrictedRuntimeCredential=true`, `actualHostSignedHttpOwnerRead=true`, `operatorCliUsesRestrictedOperatorCredential=true`, `operatorAuditEntries=2`, `crossRolePrivilegeEscalationDenied=true`, `revocationEffectiveWithoutEvoRestart=true`, `originalEconomicAndReplayInputUnchanged=true`, `financialExecutionAllowed=false`; real production credentials and TLS/identity explicitly remain `NOT_CERTIFIED`.
+- [Project Continuity CI #38061971799](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061971799): **SUCCESS**.
+- Companion EVO [PR #109](https://github.com/jiangxng/EVO/pull/109) head `46e0b75a3386ea35b5fb31d5bc275b5c15ac41b3`, [EVO CI #38061768134](https://github.com/jiangxng/EVO/actions/runs/38061768134): **SUCCESS** (migration-upgrade, production artifact, quality and full certification matrix).
+- The earlier [#38061476431](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061476431) and [#38061811187](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061811187) **failed** for real, separately documented privilege boundaries (direct trust key `FOR SHARE` and nonce `ON CONFLICT` arbiter column read); both were remedied **without expanding runtime privilege to key-table UPDATE**, and verified by the green run above.
+- A subsequent documentation-only head requires its own continuity CI; do not substitute the green implementation SHA for a new unverified code change.
+
 ## Explicit limits
 
 - This proves a **restricted, real database LOGIN for a dedicated additional read-only finance-verifier API process in isolated CI**, not that the full production EVO API / worker / migration system uses this credential. A single general API image still exposes other compatibility routes; production must design endpoint/process isolation and complete SQL privileges accordingly.
