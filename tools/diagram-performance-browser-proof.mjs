@@ -18,6 +18,10 @@ import {
 const CHROME = process.env.CHROME;
 assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
 const sizes = [{nodes:200,edges:400},{nodes:500,edges:1000}];
+// Warm each size first, then interleave three independent mounts per scale.
+// Cold JS module compilation and OS scheduling distort single-shot numbers.
+const scenarios = [...sizes.map(x=>({...x,warmup:true})),
+  ...Array.from({length:3},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
 const viewWidth=1440, viewHeight=900;
 const profileDirs=[];
 const sleep=ms=>new Promise(ok=>setTimeout(ok,ms));
@@ -150,7 +154,7 @@ try{
   const origin="http://127.0.0.1:"+port;
   const version=await(await fetch(origin+"/json/version")).json();
   const results=[];
-  for(const size of sizes){
+  for(const size of scenarios){
     const targetUrl=serverUrl+"/perf?nodes="+size.nodes;
     const created=await fetch(origin+"/json/new?"+encodeURIComponent(targetUrl),
       {method:"PUT"});
@@ -219,12 +223,29 @@ try{
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
-    results.push(data);
-    console.log("P01_CASE="+JSON.stringify(data));
+    if (!size.warmup) results.push(data);
+    console.log("P01_CASE="+JSON.stringify({...data,warmup:size.warmup}));
     client.close();client=undefined;
   }
+  const median=(values)=>{
+    const ordered=[...values].sort((a,b)=>a-b);
+    return ordered[Math.floor(ordered.length/2)];
+  };
+  const aggregated=sizes.map(size=>{
+    const trials=results.filter(item=>item.nodes===size.nodes);
+    assert.equal(trials.length,3);
+    return {
+      nodes:size.nodes,edges:size.edges,samples:trials.length,
+      mountMs:duration(median(trials.map(t=>t.mountMs))),
+      selectionMs:duration(median(trials.map(t=>t.selectionMs))),
+      dragDispatchP50Ms:duration(median(trials.map(t=>t.dragDispatchP50Ms))),
+      dragDispatchP95Ms:duration(median(trials.map(t=>t.dragDispatchP95Ms))),
+      svgElements:trials[0].svgElements,
+      usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
+    };
+  });
   console.log("P01_BROWSER_RESULT="+JSON.stringify({browser:version.Browser,
-    cases:results,mode:"synthetic Eidos DOM, mixed styled routes",
+    cases:aggregated,mode:"synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
     warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
 }finally{
   client?.close();
