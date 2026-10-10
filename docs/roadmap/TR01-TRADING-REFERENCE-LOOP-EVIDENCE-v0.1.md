@@ -1,6 +1,6 @@
 # TR-01 Trading Reference Loop Evidence v0.1
 
-**Status:** TR-01A ACTIVE  
+**Status:** TR-01A1 MERGED_CI_PRODUCTION_PASS / TR-01A2 ACTIVE  
 **Date:** 2026-10-10  
 **Program:** Foundation Object Program  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
@@ -93,7 +93,7 @@ the real trading loops complete without incompatible evidence.
 
 ## TR-01A1 — Purchase / Receipt cross-project composition
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 This slice does not implement procurement accounting inside App Platform.
 
@@ -186,7 +186,7 @@ TR-01A is intentionally not closed by the first positive purchase loop alone.
 
 ### TR-01A1 — positive purchase loop + replay
 
-Status: **IMPLEMENTED / CROSS-PROJECT CI PENDING**
+Status: **MERGED_CI_PRODUCTION_PASS**
 
 Evidence target:
 
@@ -204,9 +204,25 @@ Evidence target:
 
 Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level Position API. It is a ledger-wide observation surface and correctly fails closed when units/currencies cannot be represented as one aggregate. TR-01A1 instead uses EVO's public dimension-filtered LedgerBalance read boundary introduced by EVO PR #104.
 
+### TR-01A1 verified closure — 2026-10-10
+
+The positive purchase loop is closed as **MERGED_CI_PRODUCTION_PASS**; this does **not** close TR-01A or authorize TR-01B.
+
+- App Platform PR #551: https://github.com/jiangxng/EVO-App-Platform/pull/551
+- merged main commit: `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
+- verified PR head: `1de23c70e26c1c45653115ac6abc805d4f70f681`
+- Project Continuity CI: **PASS** (run 38006776596)
+- Platform CI: **PASS** (run 38006776576)
+- Cross Project CI — Trading Lite EVO PostgreSQL: **PASS** (run 38006776715)
+- Railway project `EVO Ledger Runtime MVP`, service `Ledger Configurator`, production deployment `b1d141c6-858d-4ee3-8422-0efbe7147396`: **SUCCESS**, main commit `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
+- EVO current main at verification: `2311022640aa108a6baf3db44d9b26bd3e3ad623`
+- EVO PR #103: atomic direct BusinessData `FULFILLS` relation; PR #104: exact dimension-filtered LedgerBalance read; PR #105: isolated receipt `REVERSES` replay certification. All three are merged.
+
+The dedicated PostgreSQL proof asserts Purchase Order -> Goods Receipt yields pending_purchase +10 then 0, inventory +10 / +125, payable +125 and an open PAY WorkItem while RECEIVE closes. This is a cross-project integration proof, not evidence of a completed App Platform correction/reversal submission. Historical BusinessData is immutable. EVO PR #105's isolated replay certification supplies the runtime-level replay capability; App Platform A2 still needs its own public API integration certification.
+
 ### TR-01A2 — purchase receipt correction / reversal
 
-Status: **REQUIRED / NOT YET IMPLEMENTED**
+Status: **ACTIVE / APP PLATFORM COMPOSITION PENDING** (EVO runtime contract already merged)
 
 A correction must be a new immutable business occurrence. It must not mutate the
 Purchase Order or prior Goods Receipt.
@@ -226,3 +242,11 @@ The reversal fact must carry explicit lineage to the Goods Receipt it reverses a
 must replay deterministically in EVO.
 
 Do not mark TR-01A closed and do not start TR-01B merely because TR-01A1 passes.
+
+## Next live gate / TR-01A2 ownership — 2026-10-10
+
+- App Platform: resolve the authoritative receipt context and original Goods Receipt BusinessData identity, form a separate reversal BusinessData submission through the existing generic EVO adapter with `REVERSES` lineage; preserve existing owner references and deterministic idempotency.
+- EVO: owns immutable BusinessData relation persistence, purchase reversal posting rules, pending_purchase/inventory/payable balances, WorkItems and replay. Reuse PR #105 and its public contract; no App Platform private Ledger writes.
+- Evidence target: PostgreSQL HTTP receipt reversal from App Platform public integration, exact line/quantity/cost/dimension assertions, original PO/Receipt unchanged, REVERSES lineage, no payable rollback, RECEIVE reopened, PAY still open, deterministic replay.
+- Sequence guard: TR-01A2 must close before TR-01B starts.
+
