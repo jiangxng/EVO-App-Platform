@@ -189,6 +189,14 @@ try{
     await capPage.goto(origin+"/fixture?case=rtl-cap-258",{waitUntil:"load"});
     await capPage.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
       {timeout:30000});
+    // Dense diagrams intentionally hide unselected edge captions (>18).
+    // Select their shared endpoint to make all 258 captions actually painted.
+    const beforeSelect=await capPage.locator("[data-eidos-diagram-caption-direction='rtl']").count();
+    assert.equal(beforeSelect,0,engine+" must preserve the dense unselected-caption policy");
+    await capPage.locator("[data-eidos-diagram-node='a']").click();
+    await capPage.waitForFunction(()=>
+      document.querySelectorAll("[data-eidos-diagram-caption-direction='rtl']").length===258,
+      {timeout:30000});
     const diagnostic=await capPage.evaluate(()=>({
       count:document.querySelectorAll("[data-eidos-diagram-caption-direction='rtl']").length,
       capped:document.querySelector("svg[data-eidos-diagram-bidi-measure-limit]")?.getAttribute("data-eidos-diagram-bidi-measure-limit"),
