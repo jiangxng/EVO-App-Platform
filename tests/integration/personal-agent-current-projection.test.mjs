@@ -465,6 +465,7 @@ function salesToCashModel(expectedKind) {
         )?.result;
         assert.ok(material);
         assert.equal(material.currentEditor.kind, expectedKind);
+        assert.match(material.writeToken, /^(0|[1-9][0-9]*)$/);
         const ids = new Set(material.nodes.map(node => node.id));
         for (const id of [
           "app:sales-order",
@@ -498,6 +499,7 @@ function salesToCashModel(expectedKind) {
                 "app:cash-receipt"
               ],
               visibleEdgeIds: wantedEdges,
+              expectedWriteToken: material.writeToken,
               rationale: "根据当前素材保留销售、应收与收款相关节点及关系。"
             }
           }
