@@ -78,6 +78,7 @@ const request=(code,values)=>({
  command:{code,inputVersion:"0.1.0"},values,
  sourceInteractionId:"B9l-saved-real-browser",actionId:code,requiresConfirmation:false
 });
+let denySaves=false;
 const open=()=>{
  const projectionStore=createFileDefinitionProjectionStoreV010(file);
  const source=createEnterpriseDefinitionProjectionArtifactSourceV010(repository,projectionStore);
@@ -85,7 +86,7 @@ const open=()=>{
   repository,projectionStore,source,
   sessions:createMemoryDefinitionProjectionSessionStoreV010(),
   canManageEnterpriseContext:()=>true,
-  authorizeProjectionSave:async()=>{},
+  authorizeProjectionSave:async()=>{if(denySaves)throw Error("B9x simulated deny");},
   locale:()=>"en-US",now:()=>new Date("2026-10-11T00:01:00.000Z")
  });
  return {projectionStore,handlers,
@@ -302,6 +303,18 @@ try{
   versionAfterRejectedWrite:2,previousHiddenNodePreserved:true,
   warning:"Isolated test Handler identity/FileStore; no production user conflict tested"
  }));
+ // B9x simulated save authorization DENY after real Chrome winner Save.
+ denySaves=true;
+ try{
+  const rejected=await save(reopened,"2",[]);
+  assert.equal(rejected.ok,false,"unauthorized synthetic writer must be rejected");
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "permission-denied write must not advance CAS");
+  console.log("B9X_PERMISSION_DENIAL_RESULT="+JSON.stringify({
+   process:intake.process,denied:true,versionPreserved:2,
+   caveat:"Controlled test authorization hook; NOT production enterprise policy"
+  }));
+ }finally{denySaves=false;}
  const reopenedClearDesigner=await snapshot("designer");
  const reopenedClearViewer=await snapshot("viewer");
  assert.equal(reopenedClearDesigner.count,reopenedClearViewer.count,
