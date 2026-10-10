@@ -152,6 +152,28 @@ const viewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({sourc
      "window.__page="+JSON.stringify(loopViewerPage));
 
 
+// B8g: separate test-only right-obstacle relation source. The regular
+// loopSource remains obstacle-free to verify a persisted manually edited
+// bottom loop never silently jumps back to the old right-hand default.
+const blockedNode={...selfNode,
+  id:"diagram-browser:right-obstacle",
+  x:selfNode.x+selfNode.width+12,y:selfNode.y+selfNode.height*.12,
+  width:90,height:selfNode.height*.76,label:"B8g right obstacle"};
+const blockedSource={get(input){
+  const result=loopSource.get(input);
+  if(!result?.diagram2d)return result;
+  return {...result,diagram2d:{...result.diagram2d,
+    nodes:[...result.diagram2d.nodes,{...blockedNode}]}};
+}};
+const blockedHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:blockedSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:02:00.000Z")
+});
+const blockedViewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:blockedSource
+});
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -184,6 +206,9 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/loop-viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
     }
+    if (url.pathname === "/blocked-loop") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -193,8 +218,11 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = ["O","P","Q"].includes(tab)
-        ? [...loopHandlers,loopViewerReadHandler] : [...handlers,viewerReadHandler];
+      const candidates = tab === "R"
+        ? [...blockedHandlers,blockedViewerReadHandler]
+        : ["O","P","Q","S","T"].includes(tab)
+          ? [...loopHandlers,loopViewerReadHandler]
+          : [...handlers,viewerReadHandler];
       const handler = candidates.find(h => h.commandCode === request.command?.code);
       if (!handler) throw Error("Unknown action: " + request.command?.code);
       const result = await handler.execute(request, context(url.searchParams.get("session") ?? "A"));
@@ -244,7 +272,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -292,6 +320,7 @@ try {
     const path = route === "viewer" ? "/viewer?session="
       : route === "loop" ? "/loop?session="
       : route === "loop-viewer" ? "/loop-viewer?session="
+      : route === "blocked-loop" ? "/blocked-loop?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1100,7 +1129,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
