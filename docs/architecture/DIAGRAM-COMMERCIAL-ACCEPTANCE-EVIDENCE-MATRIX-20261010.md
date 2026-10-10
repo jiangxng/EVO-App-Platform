@@ -226,3 +226,12 @@
 - Fit All、Fit Selection：包围盒还包括显式自环外侧 reach、同侧多环叠层和已保存 waypoint、额外控制柄空间；普通无自环历史节点包围仍一致；不根据 pan/zoom 改变持久路由。
 - Node 与真实 Browser 测试项目：单独跨线、单独标签、全侧线冲突警示、手工路径不跳动、老图 Fit 不变化、外侧 Fit 点纳入；隔离合成测试 source 上 Chrome **26 tabs** 的 Designer、原生鼠标拖动/取消和 readonly Viewer 同 SVG，包括此前 B8h～B8b 与 Host CAS/503 兼容回归。最终是否全部 PASS 只以本轮最新 PR head CI 为准，不能把已启动测试写为完成。
 - 保留待测：自动正交/圆角/曲线其它关联边的完整真实线段交点、浏览器字体实际文字盒、更多数量下的线段空间索引、大型企业图性能和视觉质量、任意手动 pan/zoom 的视口避让、实体 iOS/Android/macOS/Windows、持久数据库重启及 §14 **39项正式商用验收全部仍 NOT TESTED**；不合并、不部署。
+
+
+## B8j + B8k 双增量：真实渲染曲线占用 + 墨迹空间索引（2026-10-10）
+
+- 项目并行提速为一个迭代两个独立结果，PR 为 [Eidos Draft #151](https://github.com/jiangxng/eidos/pull/151) 和 [App Draft #598](https://github.com/jiangxng/EVO-App-Platform/pull/598)，二者仅堆叠各自 B8i，保留此前产品研究及 B8b～B8i 决策/CI，**不改变 main、Agent/Host 权限、企业业务定义、source/target、CAS 规则或 44px 热区**。详细方案、源代码契约和精度限制见 `docs/architecture/DIAGRAM-B8JK-RENDERED-INK-SPATIAL-INDEX-INTEGRATION-20261010.md`。
+- **B8j：** 过去的中心线/waypoint 直线弦不能代表其它连接线实际绘制的 Bézier、圆角。现在从 Eidos 实际 `DiagramEdgeGeometry.d` 提取 M/L/Q/C；Q/C 采用带 1.5 world-unit 平坦误差阈值和 8 级深度上限的自适应折线，使用相同的渲染几何给候选自环的外侧走廊计入真实曲线占用；标题位置也取实际 `geometry.label`，不是近似直线终点中点。保留显式说明：这**仍不是解析 Bézier 两曲线精确交点**，只是有界局部走廊检测。
+- **B8k：** 在同一次 render 对可见非 self 关系计算一次路由并缓存供 Canvas/Viewer 复用，建立按 256 world-unit 单元索引的段/标签数据。自环只查询附近墨迹并过滤自己的 incident 关系；巨大跨度线段有 overflow 防漏机制。新增 6,000 条远处合成关系 + 长跨距边测试。预算可处理至 12,000 visible edges，100,000 细分段后局部降级为端点线估计；超过 12k 边明确降为 B8h 节点/同节点自环避让，**不是避让成功**。已缓存的非选中关系不重复寻路；只有选中关系需要控件时继续做编辑预览路由。
+- [**真实 Chrome 154，28 标签页，Browser CI #38026313103 PASS**](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38026313103)，实际输出 `b8jkRenderedCubicInkIndexedViewer=true`。第 27 页是隔离注入的模拟另一条手工 C 曲线 + 自环，浏览器确认该曲线经过节点外侧、自环改至下方，手柄保留 44px；第 28 页真实只读 Viewer 对**两条关系**重新获取完全一致 SVG，不提供编辑/Save，不推动 Store CAS。原 B8i/B8h/B8g/B8f/B8e/B8d/B8c/B8b、错误重试、冲突防写回归均在同 run 通过。最新 head 的补充缓存优化需要以最新 CI 复跑为最终依据。
+- 未达到完整商用验收：6000 远边为合成索引正确性，不等于现场大数据帧率；圆角/曲线仍为自适应采样非解析几何，标签真实浏览器字体测量、多关系全局无交叉、大图索引极端内存峰值、人工 pan/zoom 边界、实体 iOS/Android/macOS/Windows 触摸、数据库重启、完整 §14 **39 项正式商用验收仍 NOT TESTED**。两个 PR 仍 Draft/未合并/未部署。
