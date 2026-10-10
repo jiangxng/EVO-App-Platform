@@ -1248,15 +1248,6 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
               definitionRevision: latest.revision
             })
           : Number(writeToken);
-        const currentProjectionGallery = input.projectionStore.get({
-          enterpriseId: latest.enterpriseId,
-          definitionId: latest.definitionId,
-          definitionRevision: latest.revision
-        }) ?? latest.projectionGallery;
-        if (!currentProjectionGallery) {
-          throw new Error("DEFINITION_PROJECTION_GALLERY_REQUIRED");
-        }
-
         await input.authorizeProjectionSave(context, {
           enterpriseId: scope.enterpriseId,
           definitionId: selection.definitionId,
@@ -1275,6 +1266,19 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         const rename = operationType === "RENAME_PROJECTION";
         const saveAs = operationType === "SAVE_PROJECTION_AS_NEW";
         const setPrimary = operationType === "SET_PRIMARY_PROJECTION";
+        // Save As is an explicit non-destructive conflict escape hatch: it
+        // appends a separate projection to the latest gallery, not a stale copy
+        // of the complete gallery. The version and gallery share one snapshot.
+        const current = input.projectionStore.getVersioned({
+          enterpriseId: latest.enterpriseId,
+          definitionId: latest.definitionId,
+          definitionRevision: latest.revision
+        });
+        const currentProjectionGallery = current.gallery ?? latest.projectionGallery;
+        if (!currentProjectionGallery) {
+          throw new Error("DEFINITION_PROJECTION_GALLERY_REQUIRED");
+        }
+        const commitVersion = saveAs ? current.version : expectedProjectionVersion;
         let nextProjection: {
           gallery: TemplateProjectionGalleryV010;
           projectionId: string;
@@ -1338,7 +1342,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           gallery: projectionGallery,
           updatedAt: recordedAt,
           updatedBySubjectId: context.principal.subjectId
-        }, expectedProjectionVersion);
+        }, commitVersion);
 
         const nextSelection: DefinitionProjectionSelectionV010 = {
           contractVersion: "0.1.0",
