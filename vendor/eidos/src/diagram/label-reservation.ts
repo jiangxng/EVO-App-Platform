@@ -86,11 +86,18 @@ export function diagramCaptionLayoutV010(
     || !Number.isFinite(maxWidth)||maxWidth<40||maxWidth>4096
     || !Number.isInteger(maxLines)||maxLines<1||maxLines>12)
     throw Error("EIDOS_DIAGRAM_CAPTION_LAYOUT_INVALID");
-  const width=(value:string)=>diagramLabelReservationV010(
-    anchor,value,measure?.(value)).width-8;
   const normalized=caption.replace(/\r\n?/g,"\n").replace(/\t/g," ");
   const parts=normalized.split("\n"),lines:string[]=[];
   const direction=diagramCaptionDirectionV010(normalized);
+  // B8s: real Firefox/WebKit SVG bidi tspans differ from Canvas2D
+  // measurement and even from each other's line-box geometry. Reserve
+  // a conservative width for RTL both when WRAPPING and COLLISION scoring.
+  // Measured WebKit Arabic parent SVG was ~12.4% wider than Canvas; use
+  // a 25% headroom rather than a Chrome-only "pixel identical" claim.
+  const bidiHeadroom=direction==="rtl"?1.25:1;
+  const width=(value:string)=>(
+    diagramLabelReservationV010(anchor,value,measure?.(value)).width-8
+  )*bidiHeadroom;
   let truncated=false;
   outer:for(let p=0;p<parts.length;p++){
     const tokens=wordTokens(parts[p]!);
@@ -130,8 +137,9 @@ export function diagramCaptionLayoutV010(
   const widest=lines.reduce((best,line)=>width(line)>width(best)?line:best,"");
   const base=diagramLabelReservationV010(anchor,widest,measure?.(widest));
   const advance=14*(lines.length-1);
+  const safeWidth=(base.width-8)*bidiHeadroom+8;
   return {lines,truncated,direction,box:{
-    x:base.x,y:base.y-advance/2,
-    width:base.width,height:base.height+advance
+    x:anchor.x-safeWidth/2,y:base.y-advance/2,
+    width:safeWidth,height:base.height+advance
   }};
 }
