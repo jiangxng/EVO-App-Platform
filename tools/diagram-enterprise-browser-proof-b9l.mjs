@@ -231,9 +231,9 @@ try{
      saveButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
       .filter(button=>button.textContent.trim()==="Save projection").length,
      probeExecuted:window.__b10fRan===true,
-     errors:window.__errors};
+     errorCount:window.__errors.length};
    });
-   assert.deepEqual(result.errors,[],mode+" B9l real Chrome errors");
+   assert.equal(result.errorCount,0,mode+" B9l real Chrome error count");
    assert.equal(result.probeExecuted,false,"B10f HTML-like labels must not execute script");
    assert.ok(result.canvasWidth>0,mode+" SVG must render at viewport width "+viewport.width);
    assert.ok(result.visibleCanvasWidth>0,
@@ -300,13 +300,13 @@ try{
    {timeout:30000});
   assert.equal(reopened.projectionStore.getVersion(id),2,
    "B9l native Chrome Save button must trigger actual App CAS file commit");
-  const browserErrors=await nativeSaveTab.evaluate(()=>window.__errors);
-  assert.deepEqual(browserErrors,[],"B9l browser native Save errors");
+  const browserErrorCount=await nativeSaveTab.evaluate(()=>window.__errors.length);
+  assert.equal(browserErrorCount,0,"B9l browser native Save errors");
   console.log("B9L_NATIVE_SAVE_RESULT="+JSON.stringify({
    browser:browser.version(),process:intake.process,
    graphSha256:intake.sha256,initialSavedCongestion:savedDesigner.count,
    versionBeforeNativeSave:1,versionAfterNativeSave:2,
-   truePointerSelection:true,trueSaveButton:true,errors:browserErrors,
+   truePointerSelection:true,trueSaveButton:true,errorCount:browserErrorCount,
    warning:"Owner attestation not independently verified; isolated test identity/FileStore, never production DB"
   }));
  }finally{await nativeSaveTab.close()}
