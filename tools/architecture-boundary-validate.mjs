@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import {
+  TR01_BUSINESS_GUARD_FILES_V010,
+  inspectTr01BusinessPluginOwnershipV010
+} from "./tr01-business-plugin-ownership-guard.mjs";
 
 const root = new URL("../", import.meta.url);
 
@@ -31,6 +35,19 @@ const manifest = JSON.parse(manifestRaw);
 const policy = JSON.parse(policyRaw);
 const documentationPolicy = JSON.parse(documentationPolicyRaw);
 const errors = [];
+
+const tr01Sources = {};
+for (const path of TR01_BUSINESS_GUARD_FILES_V010) {
+  try {
+    tr01Sources[path] = await text(path);
+  } catch (error) {
+    errors.push("Unable to inspect TR-01 plugin owner: " + path
+      + " (" + (error instanceof Error ? error.message : String(error)) + ")");
+  }
+}
+errors.push(...inspectTr01BusinessPluginOwnershipV010({
+  policy, files: tr01Sources
+}));
 
 const authorityPath = "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md";
 if (!manifest.architectureAuthorities?.includes(authorityPath)) {
