@@ -385,3 +385,11 @@
 - [Draft #621](https://github.com/jiangxng/EVO-App-Platform/pull/621)：使用合法业务 payload.preview2d（2 端点+23 个真实相关障碍+1 业务边），正式 App Editor Handler 授权 CAS **0→1** 保存 orthogonal 投影到真正 FileDefinitionProjectionStore，独立重新创建 Store 后通过浏览器 HTTP ActionHost 真实 GET 并挂载 Chrome 154 Designer 与 readonly Viewer。**真实 SVG/DOM 两处均 1 条拥塞、计数 1、摘要 1、role=note、pointer none、aria 完整，Viewer 无 Save；JS errors=[]。** 第二次 App Handler CAS **1→2** 保存隐藏第 23 个障碍，全新 Chrome Designer/Viewer 重新 GET 后均实际显示 0 条拥塞/无陈旧摘要；基础企业定义历史 1。
 - [首次依赖缺失失败 #38069020504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069020504)：专用 Runner 上 `playwright` 未预装，明确报 ERR_MODULE_NOT_FOUND；CI 隔离安装 Playwright 1.56.1 后，[真实 Chrome 成功 #38069072194](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069072194) 输出 `B9I_SAVED_POSITIVE_CHROME_RESULT` 并 PASS。**不回避红色历史。**
 - 这是此前 B9b（真实 Save 但 0 拥塞）、B9c（1 拥塞但未保存）、B9h（已保存正数但仅 Node Eidos 几何）的联通证明。**第二次清除目前由正式 App Handler 测试直接调用，不是 Chrome 点击用户 Save 按钮。** 该按钮链路留待 B9j。业务图与磁盘为**合法但合成**的 CI fixture，不是客户生产 DB/真实身份/设备，原始 §14 **39 项正式商业化验收仍 NOT TESTED**。详细见 [B9i 文档](./DIAGRAM-B9I-SAVED-POSITIVE-CHROME-VIEWER-20261011.md)。
+
+
+## B9j｜Chrome 原生鼠标“移除节点”→保存投影按钮→文件 CAS → 新 Viewer（2026-10-11）
+
+- [Draft #622](https://github.com/jiangxng/EVO-App-Platform/pull/622) 基于 B9i #621，不改任何运行时/Host 权限/业务关系/Eidos 寻路预算，替换 B9i 第二次由 Node 测试代码调用 SAVE 的方式为**真实 Chrome 鼠标节点点击＋产品原本的 Remove from view＋Save projection 按钮**。
+- **首轮红色 [#38069271828](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069271828)**：真实点选节点还会通过 Eidos 触发 App selection-read，测试 HTTP 服务器先前只为非交互 GET/SAVE/VIEW 配路由，遗漏 selection handler 引发 HTTP 400。修正为复用正式 App Handler 集合中的全部处理器（并非忽略异常或削弱契约）。
+- [真实 Chrome 154 修复后 #38069350412 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069350412)：真实浏览器点击并局部隐藏后，拥塞 **1→0** 但 FileStore CAS **仍为 1**；随后真实按钮保存成功后 CAS **1→2**。全新独立 Chrome Designer 和 readonly Viewer 的 actual SVG 由原各 **1** 条拥塞、提示 1，变为 **0** 条拥塞/无残留摘要；Viewer 在正数和零数均无 Save，JS 错误数组为空，企业业务定义历史仍 1。两独立事件 `B9J_NATIVE_SAVE_RESULT` 和 `B9I_SAVED_POSITIVE_CHROME_RESULT` 均在日志中且 CI 强制检查。
+- **验收等级：** 合法合成 payload.preview2d、App 正式 Handler/受控允许授权、真实文件型 Store、本机 Chrome DOM 真操作，仍**不是客户真实企业 S2C/P2P 图、正式云生产数据库、实物 iOS/Android/macOS/Windows 或部署后签收**。原 §14 **39 项正式商业验收仍 NOT TESTED**，详见 [B9j 专项文档](./DIAGRAM-B9J-NATIVE-SAVE-POSITIVE-VIEWER-20261011.md)。
