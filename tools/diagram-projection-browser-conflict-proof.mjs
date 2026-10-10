@@ -194,7 +194,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h;
+let proc, a, b, c, d, e, f, g, h, i, j;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -706,11 +706,131 @@ try {
   assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
     definitionId:target.definitionId}).length,1);
 
+  // B8c overlap: same saved relation, restored automatic, then a single
+  // manual point at the original straight elbow. Without shrinking either
+  // SVG hit target, Shift+CDP-native mouse drag reaches the segment occluded
+  // beneath the waypoint circle, and Undo restores the one original point.
+  i=await tab("I",true);
+  await until(i,"Ready.");
+  const overlapProbe=await i.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'if(!edge)throw Error("B8c relation missing");edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const restore=[...document.querySelectorAll("[data-eidos-diagram-waypoint-controls] button")]'
+    + '.find(b=>b.textContent==="Restore automatic routing");'
+    + 'if(!restore)throw Error("B8c restore-auto control missing");restore.click();'
+    + 'const add=[...document.querySelectorAll("[data-eidos-diagram-waypoint-controls] button")]'
+    + '.find(b=>b.textContent==="Add path point");'
+    + 'if(!add)throw Error("B8c add-point control missing");add.click();'
+    + 'const matches=[...document.querySelectorAll("[data-eidos-diagram-overlap-point]")];'
+    + 'const stage=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();'
+    + 'const hit=matches.find(el=>{const r=el.getBoundingClientRect();'
+    + 'const x=r.left+r.width/2,y=r.top+r.height/2;'
+    + 'return x>stage.left+22&&x<stage.right-22&&y>stage.top+22&&y<stage.bottom-22'
+    + '&&document.elementFromPoint(x,y)===el});'
+    + 'if(!hit)throw Error("No visible B8c overlap waypoint "+JSON.stringify('
+    + 'matches.map(el=>{const b=el.getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2};})));'
+    + 'const r=hit.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;'
+    + 'const segments=[...document.querySelectorAll("[data-eidos-diagram-segment-handle]")];'
+    + 'const ranked=segments.map(el=>{const b=el.getBoundingClientRect();'
+    + 'return {el,d:Math.hypot(x-(b.left+b.width/2),y-(b.top+b.height/2))};})'
+    + '.filter(item=>item.d<=44).sort((a,b)=>a.d-b.d||'
+    + 'Number(a.el.getAttribute("data-eidos-diagram-segment-handle").split(":").at(-1))-'
+    + 'Number(b.el.getAttribute("data-eidos-diagram-segment-handle").split(":").at(-1)));'
+    + 'if(!ranked.length)throw Error("B8c no overlapping segment candidate");'
+    + 'const axis=ranked[0].el.style.cursor==="ew-resize"?"x":"y";'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {x,y,axis,old:visual.getAttribute("d"),'
+    + 'points:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
+    + 'hint:hit.getAttribute("title"),radius:hit.getAttribute("data-eidos-diagram-handle-screen-radius")};})()');
+  assert.equal(overlapProbe.points,2,"B8c starts with exactly one manual waypoint");
+  assert.equal(overlapProbe.radius,"22","B8c cannot shrink 44px waypoint target");
+  assert.match(overlapProbe.hint,/Shift\+drag/);
+  const bx=overlapProbe.x+(overlapProbe.axis==="x"?64:0);
+  const by=overlapProbe.y+(overlapProbe.axis==="y"?64:0);
+  await i.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:overlapProbe.x,y:overlapProbe.y});
+  await i.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    modifiers:8,x:overlapProbe.x,y:overlapProbe.y});
+  await i.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",modifiers:8,x:bx,y:by});
+  const overlapPreview=await i.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d");})()');
+  assert.notEqual(overlapPreview,overlapProbe.old,"Native Shift drag must preview hidden segment");
+  await i.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",modifiers:8,x:bx,y:by});
+  const overlapCommitted=await i.eval('(()=>({'
+    + 'points:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length,'
+    + 'undo:!document.querySelector("[data-eidos-diagram-history=undo]")?.disabled'
+    + '}))()');
+  assert.ok(overlapCommitted.points>=4,"Shift+drag must move whole segment and materialize at least two controls");
+  assert.equal(overlapCommitted.undo,true);
+  await i.eval('(()=>{document.querySelector("[data-eidos-diagram-history=undo]").click();'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]")'
+    + '.dispatchEvent(new MouseEvent("click",{bubbles:true}));return true;})()');
+  const overlapUndo=await i.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return {d:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d"),'
+    + 'points:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
+  assert.equal(overlapUndo.d,overlapProbe.old);
+  assert.equal(overlapUndo.points,2);
+  assert.equal(store.getVersion(target),4,"B8c hit-disambiguation must not implicitly Save");
+
+  // B8c native Chrome CDP touch stream, not a JS-dispatched PointerEvent:
+  // touchStart/move/cancel THEN touchStart/move/end on the SAME page and
+  // selected automatic segment. This directly probes regrab after cancel.
+  j=await tab("J",true);
+  await until(j,"Ready.");
+  await j.send("Emulation.setTouchEmulationEnabled",{enabled:true,maxTouchPoints:2});
+  const touchProbe=await j.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const e=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'e.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const restore=[...document.querySelectorAll("[data-eidos-diagram-waypoint-controls] button")]'
+    + '.find(b=>b.textContent==="Restore automatic routing");'
+    + 'if(!restore)throw Error("B8c touch: no Restore automatic routing");restore.click();'
+    + 'const canvas=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();'
+    + 'const segments=[...document.querySelectorAll("[data-eidos-diagram-auto-segment-handle]")];'
+    + 'const hit=segments.find(el=>{const r=el.getBoundingClientRect();'
+    + 'const x=r.left+r.width/2,y=r.top+r.height/2;'
+    + 'return x>canvas.left+22&&x<canvas.right-22&&y>canvas.top+22&&y<canvas.bottom-22'
+    + '&&document.elementFromPoint(x,y)===el});'
+    + 'if(!hit)throw Error("B8c touch: auto segment not hit-testable");'
+    + 'const r=hit.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;'
+    + 'const axis=hit.style.cursor==="ew-resize"?"x":"y";'
+    + 'return {x,y,axis,old:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d")};})()');
+  const tpx=touchProbe.x+(touchProbe.axis==="x"?72:0);
+  const tpy=touchProbe.y+(touchProbe.axis==="y"?72:0);
+  const touch=async(type,id,x,y)=>{
+    const touchPoints=type==="touchEnd"||type==="touchCancel"?[]
+      :[{x,y,id}];
+    await j.send("Input.dispatchTouchEvent",{type,touchPoints});
+  };
+  await touch("touchStart",1,touchProbe.x,touchProbe.y);
+  await touch("touchMove",1,tpx,tpy);
+  const firstTouchPreview=await j.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d");})()');
+  assert.notEqual(firstTouchPreview,touchProbe.old,"Chrome native touch drag did not preview route");
+  await touch("touchCancel",1,tpx,tpy);
+  const afterNativeCancel=await j.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return {d:document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d"),'
+    + 'points:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
+  assert.equal(afterNativeCancel.d,touchProbe.old,"Native touchCancel must restore exact SVG");
+  assert.equal(afterNativeCancel.points,0,"Native touchCancel cannot add waypoints");
+  await touch("touchStart",2,touchProbe.x,touchProbe.y);
+  await touch("touchMove",2,tpx,tpy);
+  const nativeRegrab=await j.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'return document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]").getAttribute("d");})()');
+  assert.notEqual(nativeRegrab,touchProbe.old,"Same-tab native touch regrab after cancel must preview");
+  await touch("touchEnd",2,tpx,tpy);
+  const nativeCommitted=await j.eval('(()=>({'
+    + 'points:document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length'
+    + '}))()');
+  assert.ok(nativeCommitted.points>=2,"Native touch regrab commit must create manual points");
+  assert.equal(store.getVersion(target),4,"Same-page touch sequence must not auto-save");
+
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 8,
+    browser: version.Browser, tabs: 10,
+    b8cNativeShiftOverlapSegmentUndo: true, b8cNativeTouchCancelRegrab: true,
     b8bSaveReloadRealViewerRoundtrip: true,
     autoSegmentDragCancelConvertUndo: true, nativeRouteHandleSnapAndUndo: true,
     nativeOrthogonalSegmentSnapAndUndo: true,
@@ -722,7 +842,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
