@@ -75,7 +75,8 @@ test("B8i rejects nonfinite ink inputs",()=>{
 test("B8i Surface shares stable nonincident ink between Designer and Viewer",async()=>{
  const code=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
  assert.match(code,/const loopInkFor = \(nodeId: string\)/);
- assert.match(code,/other.source === nodeId \|\| other.target === nodeId/);
+ const ink=await readFile(new URL("../../vendor/eidos/src/diagram/ink-spatial-index.ts",import.meta.url),"utf8");
+ assert.match(ink,/e\.sourceId===nodeId \|\|e\.targetId===nodeId/);
  assert.match(code,/loopInkFor\(edge.source\)/);
  assert.match(code,/loopInkFor\(nodeId\)/);
  assert.match(code,/renderedEdges\.length <= 12000/);
