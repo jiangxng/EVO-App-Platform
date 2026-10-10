@@ -54,7 +54,7 @@
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A02 | 系统大字与键盘操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| P01 | 规模样例与连续操作 | P01a Chrome 154 synthetic full DOM 200/400 + 500/1000，3 中位数同 runner B6b/P01a 配对 [CI 38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416)：500/1000 mount -19.0%、selection -15.68%，200/400 selection +14.76% 退化；实机 FPS/持续操作待验 | NOT TESTED |
+| P01 | 规模样例与连续操作 | P01a Chrome 154 synthetic full DOM 200/400+500/1000，独立同 runner A/B 发现 200 退化后启用小图 fallback；[新版 CI 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 200 selection -12.95%、500 selection -16.46%；真实硬件 FPS/持续操作待验 | NOT TESTED |
 | P02 | 同一页面两个图形实例 | marker ID 已做实例隔离；实际双实例测试待做 | NOT TESTED |
 
 ## B5a 增量的测试边界
@@ -139,3 +139,9 @@
 - [配对实测 CI 38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) 在同一 runner checkout B6b base 与 P01a HEAD，分别编译并先预热，再每种规模测 3 次取中位数。500/1000 mount **173.2→140.3ms (-19.00%)**，selection render **81.0→68.3ms (-15.68%)**。200/400 mount **108.0→105.8ms (-2.04%)**，selection **35.9→41.2ms (+14.76% 退化)**。不应把这次局部正向结果宣传为所有图规模优化。
 - CDP 鼠标事件调度中位数不是动画帧率；共享 runner、合成数据不等于物理手机/桌面及线上环境；§14 P01 **NOT TESTED**。需真实业务拥堵图、触摸、持续编辑、堆内存峰值与 p95/p99 长任务、Win/macOS/iOS/Android 性能截图和原 §14 阈值核对。
 - 跟踪与已确认决策见 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md` 和原研究交接 PR #552。
+
+## P01a 自适应索引及后续配对证据
+
+- 早期 [38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) 发现单纯空间索引在 200/400 selection **+14.76%** 退化；另一独立重复 200 selection **+4.94%** 退化。为避免牺牲小图性能，新代码在 `visibleNodes × visibleEdges < 150000` 沿用旧障碍扫描，达到该规模才建立空间索引；source/target Map 始终复用。纯几何 parity 测试均保持相同路径。
+- [更新后配对 Chrome CI 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) 200/400 selection 中位数 **19.3→16.8ms (-12.95%)**，500/1000 **48.6→40.6ms (-16.46%)**，每个规模预热后测 3 次。同 run 原版与改版两者都渲染完整 200/400 或 500/1000，未删减可交互对象。
+- 仍只有合成 Chrome 测试与共享 runner 调度，未测真实设备 FPS、Long Tasks p95、业务关系密度的极端分布、多图同页或长时间会话稳定性，P01 正式验收维持 `NOT TESTED`。
