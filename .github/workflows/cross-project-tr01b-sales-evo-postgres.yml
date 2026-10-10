@@ -11,6 +11,10 @@ on:
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
+      - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
+      - "tools/create-tr01b2d3-ci-keys.mjs"
+      - "apps/trading-reference/finance-owner-remote.ts"
+      - "apps/trading-reference/finance-intent-admission.ts"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   push:
     branches: [main]
@@ -36,7 +40,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: d5ce051325c4572c7a5fd713560d7d7d06e4b401
+  EVO_CERTIFIED_COMMIT: bf7e479e9bab6f587b81f04131fec94a16691500
   EVO_BASE_URL: http://127.0.0.1:3000
   EVO_ENTERPRISE_CODE: EVO_DEMO
   NODE_ENV: test
@@ -90,12 +94,17 @@ jobs:
           npm run seed:demo
           npm run build
 
+      - name: Prepare ephemeral Host owner trust bound to original EVO PostgreSQL enterprise
+        run: |
+          set -euo pipefail
+          node tools/create-tr01b2d3-ci-keys.mjs
+
       - name: Start EVO API and Worker
         run: |
           set -euo pipefail
           (
             cd evo
-            HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
+            EVO_FINANCE_TRUSTED_INSTALLATIONS_JSON="$(cat /tmp/tr01b2d3-evo-trust.json)" HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
             echo $! > /tmp/tr01b-evo-api.pid
             WORKER_POLL_INTERVAL_MS=100 node dist/apps/worker/src/main.js > /tmp/tr01b-evo-worker.log 2>&1 &
             echo $! > /tmp/tr01b-evo-worker.pid
@@ -134,6 +143,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d2-owner-finance-fact-pin.mjs | tee /tmp/tr01b2d2-owner-proof.log
           grep -q 'TR01B2D2_OWNER_FINANCE_FACT_PIN_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d2-owner-proof.log
+
+      - name: Certify authenticated one-use Host -> EVO owner real HTTP + PostgreSQL read-only delegation
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-trusted-owner-delegation.mjs | tee /tmp/tr01b2d3-authenticated-proof.log
+          grep -q 'TR01B2D3_HOST_EVO_SIGNED_HTTP_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-authenticated-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
