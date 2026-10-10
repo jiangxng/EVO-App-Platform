@@ -27,7 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: "B8o genuine Chromium 300/1200 and 600/2400 full DOM, native drag"
+      - name: "B8o Chromium 1200/2400/12001-edge DOM, node-only fallback and native drag"
         shell: bash
         run: |
           set -euo pipefail
