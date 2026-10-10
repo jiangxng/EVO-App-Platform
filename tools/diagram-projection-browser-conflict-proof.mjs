@@ -136,7 +136,7 @@ const viewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({sourc
  });
  const loopViewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({source:loopSource});
  const loopCamera={scale:1,
-   translateX:440-(selfNode.x+selfNode.width+60),
+   translateX:260-(selfNode.x+selfNode.width+60),
    translateY:180-(selfNode.y+selfNode.height/2)};
  const loopPage={...page,title:"B8f loop Designer",initialCamera:loopCamera};
  const loopHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(loopPage))
