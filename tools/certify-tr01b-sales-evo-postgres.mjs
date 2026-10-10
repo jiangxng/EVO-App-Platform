@@ -6,6 +6,11 @@ import { createCounterpartyRoleRepositoryV010 } from "../dist/apps/counterparty/
 import { createItemRepositoryV010 } from "../dist/apps/item/repository.js";
 import { createWarehouseRepositoryV010 } from "../dist/apps/warehouse/repository.js";
 import { createSalesReferenceServiceV010 } from "../dist/apps/trading-reference/sales-loop.js";
+import { createSalesOperationalProjectionServiceV010,
+  SALES_OPERATIONS_READ_ACTION_V010
+} from "../dist/apps/trading-reference/sales-operational-projection.js";
+import { createSalesOperationalEvoHttpReaderV010
+} from "../dist/apps/trading-reference/sales-operational-http-reader.js";
 import { createEvoBusinessDataHttpAdapterV010 } from "../dist/manager/evo-business-data-http-adapter.js";
 import { createMemoryEnterpriseApplicationRuntimeBindingStoreV010 } from "../dist/providers/application-runtime-binding/store.js";
 import { createEnterpriseApplicationRuntimeBindingProviderV010 } from "../dist/providers/application-runtime-binding/runtime.js";
@@ -213,6 +218,78 @@ assert.ok(approved.submission.businessDataId);
 assert.ok(produced.submission.businessDataId);
 assert.ok(shipped.submission.businessDataId);
 assert.ok(receipt.submission.businessDataId);
+
+// TR-01B2A: from the SAME real PostgreSQL facts, certify governed shared read.
+// This scoped in-process policy is a CI fixture, NOT Host capability admission or
+// proof of an installed Human UI/Agent/Workbench Experience.
+const operationalRead = createSalesOperationalProjectionServiceV010({
+ reader:createSalesOperationalEvoHttpReaderV010({baseUrl:base}),
+ resolveAuthorizationProvider:()=>({
+  providerId:"tr01b2-ci-one-order-only",
+  async check(query){
+   return {
+    contractVersion:"0.1.0",
+    allowed:query.action===SALES_OPERATIONS_READ_ACTION_V010
+      && query.scope.enterpriseId===contextId
+      && query.resource.type==="trading-reference.sales-order"
+      && query.resource.id===orderNo
+      && query.resource.attributes?.customerCounterpartyId===customerId
+      && query.resource.attributes?.itemId===itemId
+      && query.resource.attributes?.warehouseId===warehouseId,
+    policyProviderId:"tr01b2-ci-one-order-only",
+    reasonCodes:[]
+   };
+  }
+ })
+});
+function operationalRequest(actorType, requestedOrderNo=orderNo){
+ return {
+  contextId,enterpriseId:evoEnterpriseId,
+  orderNo:requestedOrderNo,customerCounterpartyId:customerId,
+  itemId,warehouseId,
+  requestContext:{
+   contractVersion:"0.1.0",
+   principal:{
+    contractVersion:"0.1.0",subjectId:"proof-owner",
+    actorType,identityProviderId:"tr01b2-ci",sessionId:"proof-session"
+   },
+   scope:{
+    contractVersion:"0.1.0",enterpriseId:contextId,userId:"proof-owner"
+   },
+   context:{activeContext:{
+    contractVersion:"0.1.0",kind:"ENTERPRISE",
+    contextId,enterpriseId:contextId
+   }},
+   correlationId:"tr01b2:governed-sales-read"
+  }
+ };
+}
+const humanSalesView=await operationalRead.read(operationalRequest("HUMAN"));
+const aiSalesView=await operationalRead.read(operationalRequest("AI"));
+assert.deepEqual(aiSalesView,humanSalesView);
+assert.equal(humanSalesView.pendingShipmentQuantity,0);
+assert.equal(humanSalesView.receivableAmount,0);
+assert.equal(humanSalesView.cashLedgerAmount,1000);
+assert.equal(humanSalesView.inventoryPosition.quantity,0);
+assert.equal(humanSalesView.inventoryPosition.costValuationCertified,false);
+assert.deepEqual(humanSalesView.openWork,{ship:null,collect:null});
+await assert.rejects(
+ operationalRead.read(operationalRequest("HUMAN","SO-UNAUTHORIZED")),
+ /TR01B2_READ_DENIED/
+);
+console.log("TR01B2A_GOVERNED_SALES_EVO_PUBLIC_READ_PROOF="+JSON.stringify({
+ status:"PASS",
+ humanAiSameReadContract:true,
+ scopeIsExplicit:true,
+ unauthorizedOrderDenied:true,
+ workSource:"EVO_PUBLIC_WORK_ITEMS",
+ positionSource:"EVO_DIMENSION_FILTERED_LEDGER_BALANCES",
+ installedHostExperience:"NOT_CERTIFIED",
+ invoiceCashAllocation:"NOT_CERTIFIED",
+ shippingCOGS:"NOT_CERTIFIED",
+ observedInventoryLedgerAmount:humanSalesView.inventoryPosition.observedLedgerAmount,
+ view:humanSalesView
+}));
 
 console.log("TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF="+JSON.stringify({
  status:"PASS",enterpriseId:evoEnterpriseId,orderNo,
