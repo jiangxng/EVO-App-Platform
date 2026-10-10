@@ -27,6 +27,17 @@ export interface DiagramSnapTranslationV010 {
   snapY?: "node" | "grid";
 }
 
+/** Keep the visible grid at least 12 screen px apart when zoomed far out. */
+export function diagramGridStepV010(scale: number, base = 24): number {
+  if (!Number.isFinite(scale) || scale <= 0
+    || !Number.isFinite(base) || base <= 0) {
+    throw new Error("EIDOS_DIAGRAM_GRID_SCALE_INVALID");
+  }
+  let step = base;
+  while (step * scale < 12 && step < 1e8) step *= 2;
+  return step;
+}
+
 function finiteRect(rect: DiagramSnapRectV010): boolean {
   return typeof rect.id === "string" && rect.id.length > 0
     && Number.isFinite(rect.x) && Number.isFinite(rect.y)
@@ -101,7 +112,7 @@ export function diagramSnapTranslationV010(
   const movingIds = new Set(moving.map(rect => rect.id));
   const others = stationary.filter(rect => !movingIds.has(rect.id));
   const tolerance = (options.tolerancePx ?? 6) / options.scale;
-  const gridSize = options.gridSize ?? 24;
+  const gridSize = diagramGridStepV010(options.scale, options.gridSize ?? 24);
   const snappedX = snapAxis(features(box.x, box.width),
     others.map(rect => ({ id: rect.id, points: features(rect.x, rect.width) })),
     rawDx, tolerance, gridSize, options.alignToNodes === true, options.snapToGrid === true);
