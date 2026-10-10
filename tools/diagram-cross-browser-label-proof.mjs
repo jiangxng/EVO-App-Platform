@@ -91,8 +91,13 @@ try{
       const edge=document.querySelector("[data-eidos-diagram-edge-label='business-relation']");
       if(!edge)throw Error("B8s rendered SVG label missing");
       const bbox=edge.getBBox();
-      const rows=[...edge.querySelectorAll("tspan")].map(t=>t.textContent);
-      return {direction:edge.getAttribute("direction"),
+      const rowElements=[...edge.querySelectorAll("tspan")];
+      const rows=rowElements.map(t=>t.textContent);
+      const c=document.createElement("canvas").getContext("2d");
+      c.font="11px "+getComputedStyle(document.querySelector("[data-eidos-diagram-canvas]")).fontFamily;
+      const canvasWidths=rows.map(row=>c.measureText(row).width);
+      const svgWidths=rowElements.map(t=>t.getBBox().width);
+      return {direction:edge.getAttribute("direction"),canvasWidths,svgWidths,
        computedDirection:getComputedStyle(edge).direction,
        unicodeBidi:edge.getAttribute("unicode-bidi"),
        rows:rows.length||1,
@@ -115,7 +120,10 @@ try{
      assert.ok(result.title===sample.caption||result.renderedText===sample.caption,
        engine+" source caption must survive in title or SVG logical text");
      results.push({engine,case:sample.id,direction:result.computedDirection,
-      rows:result.rows,width:Math.round(result.width*100)/100,
+      rows:result.rows,
+      canvasWidths:result.canvasWidths.map(x=>Math.round(x*100)/100),
+      svgWidths:result.svgWidths.map(x=>Math.round(x*100)/100),
+      width:Math.round(result.width*100)/100,
       height:Math.round(result.height*100)/100,
       titlePreserved:result.title===sample.caption});
      console.log("B8S_BROWSER_CASE="+JSON.stringify(results.at(-1)));
