@@ -3326,6 +3326,10 @@ if (financeOwnerInstallation) {
     TRADING_FINANCE_OWNER_PROVIDER_ID_V010,
     createTrustedRemoteFinanceOwnerPreflightV010({
       resolveInstallation: () => financeOwnerInstallation,
+      // Only disposable local certification may use HTTP. This is never
+      // permitted by the production transport, even with this flag set.
+      allowLoopbackHttpInTest: process.env.NODE_ENV === "test"
+        && process.env.APP_PLATFORM_FINANCE_OWNER_CI_LOOPBACK_HTTP === "true",
       async resolveSigningPrivateKey(installationId) {
         if (installationId !== financeOwnerInstallation.installationId) {
           throw new Error("TR01B2D3_INSTALLATION_SIGNING_SCOPE_MISMATCH");
