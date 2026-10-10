@@ -51,3 +51,14 @@ Firefox/WebKit 的浏览器下载依赖 CI 环境网络；安装、浏览器启�
 **决策：** `diagramCaptionLayoutV010` 对 `direction="rtl"` 在折行条件和碰撞预留两侧使用相同的 **1.25 倍安全宽度**，避免“折行和评分使用不同估计”。LTR/中英文原有宽度口径不变。因浏览器字形差异不固定，这个工程余量只能降低漏判几率，**不能从此推断 WebKit/Safari 所有复杂字形都永不超框**。在独立真实 Firefox/WebKit 工作流中新增用同一 pure `diagramCaptionLayoutV010` 算出的预留框与实际 SVG parent `getBBox` 的**宽度和水平坐标比较**；若异常则测试失败，不能假定跨浏览器一致。
 
 后续最值得跟进：不同字体、不同系统的 SVG 可见字形精确测量和二次避让策略、Safari/macOS/iOS 真机；更长期应从真实字体轮廓测量或渲染后的有界二次布局入手，不能将这 25% 常数当成最终专业版全部排版需求。
+
+
+## B8s 水平锚点的真实跨浏览器偏移及修复（更新）
+
+额外验证引入了比“SVG 盒宽度”更严格的断言：比较 **真正画出来的父 `<text>` 的 `getBBox.x/x+width`** 与路由算法使用的同一个世界坐标预留矩形。尽管 B8s 的 1.25 倍 RTL 宽度余量已让 WebKit 希伯来文的总宽度落入预算，WebKit 实际父 SVG 的中心仍可能偏向右侧，说明不能单靠宽度倍率解决锚点定位。以前关于“文字宽度大所以加倍率即可”的结论必须收窄。
+
+**采用两层纠正**：
+1. RTL 字符串优先以 1.25 倍测量宽度同时决定折行与避让矩形，防止不同逻辑产生不一致的半径。
+2. 在 Eidos Surface 的 SVG 与 DOM **实际挂载以后**，仅对真实可见的 RTL `<text>` 调用 `getBBox()`，比较其中心与 `geometry.label.x`；如存在明显偏移，等量调整该文本及内部每一个 `tspan` 的 `x`，令真实 SVG 字形盒中心与路由预留中心一致。只改变这次渲染的 SVG 属性，不能写入 projection 模型。对一次 render 最多 256 个可见 RTL label 做昂贵 DOM 量测，超过限额或量测不可用时通过 SVG `data-eidos-diagram-bidi-measure-limit/unavailable` 明示诊断，避免无界测量拖慢密集图。
+
+实际 Firefox 和 WebKit 的测试比较**渲染之后**的实际 SVG `getBBox` 与纯 `diagramCaptionLayoutV010` 的世界坐标预留框，既检查字形宽度，也检查是否被整体横向错位。保留 Browser 引擎、字型、行数和真实数值在 CI log 里，兼容出现不同的字体轮廓但不允许超预留框。该策略仍无法取代 Safari/iOS 实机、不同系统 font fallback 和全套 §14 39 项商业化验收。
