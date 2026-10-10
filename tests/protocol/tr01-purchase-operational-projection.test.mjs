@@ -156,7 +156,7 @@ test("TR-01A3 fails closed before any EVO access for missing or denying policy",
 test("TR-01A3 rejects cross-enterprise or inactive enterprise context before access", async () => {
   const { service, calls, checks } = fixture();
   const mismatched = request();
-  mismatched.enterpriseId = "evo-b";
+  mismatched.requestContext.scope.enterpriseId = "other-host-enterprise";
   await assert.rejects(service.read(mismatched), /CONTEXT_MISMATCH/);
   const personal = request();
   personal.requestContext.context.activeContext.kind = "PERSONAL";
@@ -207,4 +207,13 @@ test("TR-01A3 strictly scopes Work by order and supplier/item/warehouse dimensio
   const result = await f.service.read(request());
   assert.equal(result.openWork.receive.quantity, 10);
   assert.equal(result.openWork.pay.amount, 125);
+});
+
+test("TR-01A4 permits an explicitly bound EVO runtime scope distinct from Host enterprise", async () => {
+  const { service } = fixture({ pending: 10, inventory: 0 });
+  const scoped = request();
+  scoped.enterpriseId = "evo-runtime-tenant-a";
+  const view = await service.read(scoped);
+  assert.equal(view.enterpriseId, "evo-runtime-tenant-a");
+  assert.equal(view.pendingPurchaseQuantity, 10);
 });

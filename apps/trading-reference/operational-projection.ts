@@ -140,8 +140,8 @@ export function createPurchaseOperationalProjectionServiceV010(input: {
       const active = request.requestContext.context?.activeContext;
       if (!active || active.kind !== "ENTERPRISE"
           || active.contextId !== request.contextId
-          || active.enterpriseId !== request.enterpriseId
-          || request.requestContext.scope.enterpriseId !== request.enterpriseId) {
+          || active.enterpriseId !== request.requestContext.scope.enterpriseId
+          || !request.enterpriseId.trim()) {
         throw new Error("TR01_OPERATIONAL_ENTERPRISE_CONTEXT_MISMATCH");
       }
       const orderNo = required(request.orderNo, "orderNo");
