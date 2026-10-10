@@ -322,5 +322,5 @@
 ## B8y + B8z｜本地隐藏和实际鼠标拖动后的拥塞提示复算（2026-10-10）
 
 - [B8y Draft #608](https://github.com/jiangxng/EVO-App-Platform/pull/608) 继承 B8x，Firefox/WebKit 两真实引擎经过设计器 UI 点击 `block-22`、`Remove from view`，先后达到 **1→0**；点击真实 Undo 恢复 **0→1**，第二实例仍然为 0、原始业务图 fixture 节点数不变。最初真实运行 [#38061392320 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061392320) 记录两条 `B8Y_VISIBILITY_UNDO_RESULT`，并无新增业务权限或客户端外部持久写入。
-- [B8z Draft #610](https://github.com/jiangxng/EVO-App-Platform/pull/610) 是紧接其后的独立测试切片，改用真实浏览器鼠标长距离 `down→14 steps move→up` **拖动障碍节点**使 23 个局部障碍中一个离开相关范围，再验证拥塞从 1 降至 0；点击设计器 Undo 恢复为 1、另一实例保持独立。测试必须在 Firefox/WebKit 实际运行后得到 `B8Z_DRAG_UNDO_RESULT`；未完成的 head 不得提前认定通过。详情 [B8z 工作记录](./DIAGRAM-B8Z-NATIVE-DRAG-UNDO-20261010.md)。
+- [B8z Draft #610](https://github.com/jiangxng/EVO-App-Platform/pull/610) 是紧接其后的独立测试切片，改用真实浏览器鼠标长距离 `down→14 steps move→up` **拖动障碍节点**使 23 个局部障碍中一个离开相关范围，再验证拥塞从 1 降至 0；点击设计器 Undo 恢复为 1、另一实例保持独立。[首次真实 Firefox/WebKit run #38061566920 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061566920)：两内核分别记录 `B8Z_DRAG_UNDO_RESULT`，真实鼠标纵向移动 210 屏幕像素，拥塞 `1→0→1`，同页第二图仍为 0；文档变更后的最终 HEAD 必须另核 CI。详情 [B8z 工作记录](./DIAGRAM-B8Z-NATIVE-DRAG-UNDO-20261010.md)。
 - B8y/B8z 均只是 E/M/D 项的**受控真实浏览器子场景**；不代表用户签收原 §14 的 39 项正式商用测试。仍维持 **NOT TESTED**，缺真实企业数据、生产数据库、保存刷新与只读 Viewer 往返、实机系统字体/鼠标/触摸板与长期稳定性；继续保留先前 B8t 全自动样本真实 21/900、27/1200 条拥塞记录。
