@@ -22,6 +22,21 @@ export const EXPECTED_FLAGS = Object.freeze({
   function_public_execute: false,
   function_execute: true,
   function_owner_membership: false,
+  definer_owner_named: true,
+  definer_owner_no_login: true,
+  definer_owner_no_inherit: true,
+  definer_owner_non_privileged: true,
+  definer_owner_schema_create: false,
+  definer_owner_key_insert: false,
+  definer_owner_key_delete: false,
+  definer_owner_key_select_issuer: true,
+  definer_owner_key_select_status: true,
+  definer_owner_key_update_status: true,
+  definer_owner_key_update_issuer: false,
+  definer_owner_audit_insert: false,
+  definer_owner_has_memberships: false,
+  definer_owner_only_function: true,
+  definer_owner_no_tables: true,
   key_select: false,
   key_insert: false,
   key_update: false,
@@ -57,7 +72,7 @@ const CATALOG_QUERY = [
  "where ns.nspname='public' and acl.grantee=0 and acl.privilege_type='CREATE'",
  ') as public_schema_create,',
  'p.prosecdef as function_security_definer,',
- "coalesce('search_path=pg_catalog'=any(p.proconfig),false)",
+ "false",
  "or coalesce('search_path=pg_catalog, pg_temp'=any(p.proconfig),false)",
  'as function_fixed_path,',
  'exists (select 1 from',
@@ -67,6 +82,22 @@ const CATALOG_QUERY = [
  "has_function_privilege(r.oid,p.oid,'EXECUTE') as function_execute,",
  "pg_has_role(r.oid,p.proowner,'MEMBER') as function_owner_membership,",
  'owner_role.rolsuper as function_owner_superuser,',
+ "owner_role.rolname='evo_finance_key_lock_definer_v010' as definer_owner_named,",
+ 'not owner_role.rolcanlogin as definer_owner_no_login,',
+ 'not owner_role.rolinherit as definer_owner_no_inherit,',
+ 'not (owner_role.rolsuper or owner_role.rolcreatedb or owner_role.rolcreaterole',
+ 'or owner_role.rolreplication or owner_role.rolbypassrls) as definer_owner_non_privileged,',
+ "has_schema_privilege(owner_role.oid,'public','CREATE') as definer_owner_schema_create,",
+ "has_table_privilege(owner_role.oid,'public.finance_trusted_signing_key','INSERT') as definer_owner_key_insert,",
+ "has_table_privilege(owner_role.oid,'public.finance_trusted_signing_key','DELETE') as definer_owner_key_delete,",
+ "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','issuer','SELECT') as definer_owner_key_select_issuer,",
+ "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','status','SELECT') as definer_owner_key_select_status,",
+ "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','status','UPDATE') as definer_owner_key_update_status,",
+ "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','issuer','UPDATE') as definer_owner_key_update_issuer,",
+ "has_table_privilege(owner_role.oid,'public.finance_trust_change_audit','INSERT') as definer_owner_audit_insert,",
+ 'not exists (select 1 from pg_auth_members m where m.member=owner_role.oid) as definer_owner_has_memberships,',
+ '(select count(*)=1 from pg_proc p2 where p2.proowner=owner_role.oid) as definer_owner_only_function,',
+ 'not exists (select 1 from pg_class cl where cl.relowner=owner_role.oid) as definer_owner_no_tables,',
  "has_table_privilege(session_user,'public.finance_trusted_signing_key','SELECT') as key_select,",
  "has_table_privilege(session_user,'public.finance_trusted_signing_key','INSERT') as key_insert,",
  "has_table_privilege(session_user,'public.finance_trusted_signing_key','UPDATE') as key_update,",
@@ -107,13 +138,18 @@ export function evaluateFinanceOwnerCatalog(row, { strictOwner = false } = {}) {
   if (strictOwner && row.function_owner_superuser !== false) {
     failedChecks.push('SECURITY_DEFINER_OWNER_MUST_NOT_BE_SUPERUSER');
   }
+  if (strictOwner && failedChecks.some(k => k.startsWith('definer_owner_'))) {
+    failedChecks.push('SECURITY_DEFINER_OWNER_SCOPE_NOT_ADMITTED');
+  }
   return {
     automatedStatus: failedChecks.length === 0 ? 'PASS' : 'FAIL',
     failedChecks,
     ownerReview: row.function_owner_superuser === true
       ? 'SUPERUSER_OWNER_PRODUCTION_BLOCKER'
       : row.function_owner_superuser === false
-        ? 'NON_SUPERUSER_OWNER_REQUIRES_SCOPE_REVIEW'
+        ? failedChecks.some(k => k.startsWith('definer_owner_'))
+          ? 'DEFINER_OWNER_SCOPE_VIOLATION'
+          : 'NON_SUPERUSER_OWNER_SCOPE_AUTOMATED_PASS'
         : 'OWNER_NOT_EVALUATED',
     productionCertification: 'NOT_CERTIFIED',
     executionAllowed: false
