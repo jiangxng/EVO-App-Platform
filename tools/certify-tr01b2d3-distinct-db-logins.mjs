@@ -193,6 +193,17 @@ try {
 
   const runtime = await loggedInClient(runtimeUrl, runtimeRole);
   const operator = await loggedInClient(operatorUrl, operatorRole);
+  // Catalog-only preflight of the actual runtime LOGIN, not SET LOCAL ROLE.
+  // Function owner is privileged in disposable CI and remains a deployment blocker.
+  const catalog = spawnSync(process.execPath,
+    ['tools/tr01b2d3-finance-owner-catalog-preflight.mjs'],
+    { env: { ...process.env, DATABASE_URL: runtimeUrl }, encoding: 'utf8' });
+  assert.equal(catalog.status, 0,
+    'runtime catalog preflight failed: ' + catalog.stdout + catalog.stderr.slice(-500));
+  assert.match(catalog.stdout,
+    /TR01B2D3_FINANCE_OWNER_CATALOG_PREFLIGHT=.*"automatedStatus":"PASS"/u);
+  assert.match(catalog.stdout, /"productionCertification":"NOT_CERTIFIED"/u);
+  console.log(catalog.stdout.trim());
   try {
     await runtime.query('select count(*) from business_data');
     await operator.query('select count(*) from finance_trusted_signing_key');
