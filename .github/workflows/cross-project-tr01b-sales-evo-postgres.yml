@@ -8,6 +8,7 @@ on:
       - "contracts/evo-business-data.ts"
       - "providers/application-runtime-binding/**"
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
+      - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - "contracts/evo-business-data.ts"
       - "providers/application-runtime-binding/**"
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
+      - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   workflow_dispatch:
 
@@ -110,6 +112,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b-sales-evo-postgres.mjs | tee /tmp/tr01b-proof.log
           grep -q 'TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b-proof.log
+
+      - name: Certify EVO-owned FIFO Valuation COGS and deterministic Full Replay of exact App Platform sales facts
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2b-cost-replay-after-sales.mjs | tee /tmp/tr01b2b-cost-proof.log
+          grep -q 'TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF=.*"status":"PASS"' /tmp/tr01b2b-cost-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
