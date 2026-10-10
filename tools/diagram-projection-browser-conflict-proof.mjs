@@ -1475,8 +1475,33 @@ try {
   assert.equal(preciseView.save,false);
   assert.equal(store.getVersion(target),7,
     "B8j/B8k geometry and index cannot mutate projection CAS");
+
+  // B8l: actual Chrome font-metric reservation of an extra-wide (60 M)
+  // caption, missed by B8i's hard 176 world-unit cap; normal SVG labels.
+  ac=await tab("AC","wide-label");
+  await until(ac,"Ready.");
+  const wide=await ac.eval("(()=>{\n const id=__LOOP__,other=__OTHER__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8l self relation missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const line=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const label=document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\");\n const root=document.querySelector(\"[data-eidos-diagram-ink-label-metrics]\");\n const h=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n if(!line||!label||!root||!h)throw Error(\"B8l real label SVG missing\");\n const bounds=label.getBBox(),d=line.getAttribute(\"d\");\n const m=/^M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)/.exec(d);\n const r=h.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;\n if(document.elementFromPoint(x,y)!==h)throw Error(\"B8l label blocks 44px route handle\");\n return {d,labelWidth:bounds.width,startY:Number(m?.[2]),\n  measure:root.getAttribute(\"data-eidos-diagram-ink-label-metrics\"),\n  quality:root.getAttribute(\"data-eidos-diagram-ink-quality\"),\n  radius:h.getAttribute(\"data-eidos-diagram-handle-screen-radius\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__OTHER__",JSON.stringify(inkRelationId)));
+  assert.equal(wide.measure,"browser",
+    "Real Chrome label routing must measure the browser font");
+  assert.ok(wide.labelWidth>176,
+    "Synthetic caption must exceed B8i fixed-width reservation cap");
+  assert.equal(wide.startY,selfNode.y+selfNode.height,
+    "Measured distant label should reserve the right corridor and redirect self-loop");
+  assert.equal(wide.radius,"22","Wide labels may not obscure or shrink 44px handle");
+  assert.equal(wide.quality,"full");
+  ad=await tab("AD","wide-label-viewer");
+  await until(ad,"Ready.");
+  const wideViewer=await ad.eval("(()=>{\n const id=__LOOP__;\n return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),\n   measure:document.querySelector(\"[data-eidos-diagram-ink-label-metrics]\")?.getAttribute(\"data-eidos-diagram-ink-label-metrics\"),\n   controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n    .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__LOOP__",JSON.stringify(inkSelfId)).replace("__OTHER__",JSON.stringify(inkRelationId)));
+  assert.equal(wideViewer.d,wide.d,
+    "Browser-measured captions must choose same self-loop in readonly Viewer");
+  assert.equal(wideViewer.measure,"browser");
+  assert.equal(wideViewer.controls,0);
+  assert.equal(wideViewer.save,false);
+  assert.equal(store.getVersion(target),7,
+    "Label measurement and readonly Viewer do not save projection data");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 28,
+    browser: version.Browser, tabs: 30,
+    b8lmRealLabelMetricsAndDensityBudget: true,
     b8jkRenderedCubicInkIndexedViewer: true,
     b8iEdgeAndLabelAvoidanceNativeViewer: true,
     b8hMultiLoopCongestionNativePointerViewer: true,
