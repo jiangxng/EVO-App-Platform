@@ -26,6 +26,7 @@
 | App Platform | [#553](https://github.com/jiangxng/EVO-App-Platform/pull/553) | #550（更早 #537/#547/#549）及 Eidos #137 | 定点 vendor 移植、集成和导航边界测试、独立 Diagram CI 接线、39 项矩阵、本研究增量 |
 
 - 两 PR 均 **Draft**，不主动 merge / deploy。当前 main 与跨仓库可用性独立核对。
+- **新增技术风险（二）：** Eidos `src/diagram/surface.ts` 的 `executeOperation()` 请求在异步 `await actionHost.execute(request)` 前捕获 viewState；失败时 `!result.ok` 返回并保留内存 state，这为手动重试提供基础，但成功时当前代码立即 `state = stateFromResult(result.result)` 并清空 undo/redo。若保存期间仍允许本地编辑，后续编辑可能被较早的保存响应覆盖。要实现 D03/D05，保存时还需提交快照序号、编辑世代判定、重复提交限制以及冲突提示，不能仅检查服务端 CAS。
 - **新增技术风险：** App Platform SAVE 使用的是 business `definitionRevision`；`projectionStore.put` 直接按业务定义版本键替换 gallery。双窗口保存需要独立 projection ETag + 真正原子 CAS。下一实现 B7 之前审查 UI 保存期间快照、失败后草稿保护和独立存储实例的原子保证。
 - **尚未执行：** Windows Chrome/Edge、macOS trackpad、iOS/iPadOS Safari、Android Chrome 的真实手势；自动路径段、标签移动、对齐吸附、并发恢复、大图 200/400、500/1000、100/200 FPS。验收矩阵仍全部 NOT TESTED。
 - **未改变先前决定：** 既有 S1–S7 研究和方案对比继续有效，没有新的外部相反证据；本轮将其转化为更小粒度实施。
