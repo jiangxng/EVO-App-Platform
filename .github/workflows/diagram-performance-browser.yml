@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "tools/diagram-performance-browser-proof.mjs"
+      - "tools/diagram-performance-compare.mjs"
       - "vendor/eidos/src/diagram/**"
       - ".github/workflows/diagram-performance-browser.yml"
   workflow_dispatch:
@@ -18,32 +19,54 @@ concurrency:
 jobs:
   chrome-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Real Chromium full-DOM stress at 200/400 and 500/1000
+      - name: Build exact stacked PR base for same-runner A/B benchmark
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          BASE_DIR="$RUNNER_TEMP/diagram-p01-baseline"
+          git worktree add --detach "$BASE_DIR" "$BASE_SHA"
+          cp tools/diagram-performance-browser-proof.mjs "$BASE_DIR/tools/"
+          npm ci --prefix "$BASE_DIR"
+          npm run build --prefix "$BASE_DIR"
+      - name: Baseline and optimized full-DOM Chromium 200/400 and 500/1000
         shell: bash
         run: |
           set -euo pipefail
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [ -z "$CHROME" ]; then
-            echo "Chrome is required. P01 performance evidence cannot be skipped" >&2
+            echo "Chrome is required for P01; never silently skip" >&2
             exit 1
           fi
           export CHROME
-          node tools/diagram-performance-browser-proof.mjs | tee /tmp/diagram-p01-results.log
-          grep -q "^P01_BROWSER_RESULT=" /tmp/diagram-p01-results.log
-          echo '### P01 synthetic real-Chromium evidence' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Measured on shared CI runner; **not** physical-device FPS or SLA.' >> "$GITHUB_STEP_SUMMARY"
-          grep '^P01_CASE=' /tmp/diagram-p01-results.log >> "$GITHUB_STEP_SUMMARY"
+          BASE_DIR="$RUNNER_TEMP/diagram-p01-baseline"
+          if [ -d "$BASE_DIR" ]; then
+            (cd "$BASE_DIR" && node tools/diagram-performance-browser-proof.mjs) | tee /tmp/diagram-p01-baseline.log
+            grep -q '^P01_BROWSER_RESULT=' /tmp/diagram-p01-baseline.log
+          fi
+          node tools/diagram-performance-browser-proof.mjs | tee /tmp/diagram-p01-optimized.log
+          grep -q '^P01_BROWSER_RESULT=' /tmp/diagram-p01-optimized.log
+          if [ -f /tmp/diagram-p01-baseline.log ]; then
+            node tools/diagram-performance-compare.mjs /tmp/diagram-p01-baseline.log /tmp/diagram-p01-optimized.log | tee /tmp/diagram-p01-comparison.log
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: p01-chromium-metrics
-          path: /tmp/diagram-p01-results.log
+          path: |
+            /tmp/diagram-p01-baseline.log
+            /tmp/diagram-p01-optimized.log
+            /tmp/diagram-p01-comparison.log
           if-no-files-found: ignore
