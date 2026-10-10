@@ -54,6 +54,11 @@ import {
   type DiagramSelfLoopInkV010
 } from "./edge-lanes.js";
 import {
+  diagramSvgInkSegmentsV010,
+  createDiagramInkSpatialIndexV010,
+  type DiagramInkEntryV010
+} from "./ink-spatial-index.js";
+import {
   layoutLayeredDiagramV010
 } from "./layered-layout.js";
 import {
@@ -2636,40 +2641,84 @@ export function mountDiagramEditorPageV010(
       group.push(edge);
       siblingGroups.set(edge.source, group);
     }
-    // B8i: bounded route-ink preview. These are non-incident edge spans,
-    // not business-relationship changes and not transient selected-label DOM.
-    // Manual controls are unchanged; side scoring uses stable world coordinates.
-    // Cap O(loop owners * edges) until a dedicated stroke spatial index exists.
+    // B8j: derive ink from the SAME displayed geometry as the SVG below,
+    // including rendered rounded Q corners and cubic C curves. Never infer
+    // curve occupation from the straight source/target midpoint chord.
+    // B8k: build one spatial index per render, not O(selfNodes x allEdges).
+    // A complexity budget is explicit, with a conservative flat-segment
+    // fallback for pathological path counts; >12000 edges use B8h routing.
+    const preciseRouteGeometries = new Map<string,ReturnType<typeof diagramEdgeGeometryV010>>();
+    const inkEntries: DiagramInkEntryV010[] = [];
+    let inkSegmentCount = 0;
+    if (siblingGroups.size > 0 && renderedEdges.length <= 12000) {
+      for (const other of renderedEdges) {
+        if (other.source === other.target) continue;
+        const sourceNode=renderedNodeById.get(other.source);
+        const targetNode=renderedNodeById.get(other.target);
+        if (!sourceNode || !targetNode) continue;
+        const sourceCenter=nodeCenter(sourceNode),targetCenter=nodeCenter(targetNode);
+        const lane=laneOffsets.get(other.id) ?? 0;
+        const sourceAttachment=nodeBoundaryPoint(sourceNode,targetCenter);
+        const targetAttachment=nodeBoundaryPoint(targetNode,sourceCenter);
+        const a=diagramEdgeAnchorPointV010(sourceNode,other.sourceAnchor ?? "auto")
+          ?? (other.pathKind !== undefined
+            ? diagramOffsetNodeAttachmentV010(sourceNode,sourceAttachment,targetCenter,lane)
+            : sourceAttachment);
+        const b=diagramEdgeAnchorPointV010(targetNode,other.targetAnchor ?? "auto")
+          ?? (other.pathKind !== undefined
+            ? diagramOffsetNodeAttachmentV010(targetNode,targetAttachment,sourceCenter,lane)
+            : targetAttachment);
+        const routeObstacles=other.pathKind === "orthogonal"
+          || other.pathKind === "rounded-orthogonal"
+          ? spatialObstacles
+            ? spatialObstacles.near(a,b,other.source,other.target)
+            : renderedNodes.filter(n=>n.id!==other.source && n.id!==other.target)
+              .map(n=>({x:n.x,y:n.y,width:n.width,height:n.height}))
+          : [];
+        const geometry=other.waypoints?.length
+          ? diagramManualEdgeGeometryV010(a,b,{
+              pathKind:other.pathKind ?? "orthogonal",waypoints:other.waypoints,
+              sourceAnchor:other.sourceAnchor,targetAnchor:other.targetAnchor
+            })
+          : diagramEdgeGeometryV010(a,b,other.pathKind,{
+              obstacles:routeObstacles,
+              forceRouteWhenEmpty:renderedNodes.length>2
+                && (other.pathKind==="orthogonal"
+                  || other.pathKind==="rounded-orthogonal")
+            });
+        preciseRouteGeometries.set(other.id,geometry);
+        let segments: DiagramInkEntryV010["segments"];
+        try {
+          const parsed=diagramSvgInkSegmentsV010(geometry.d);
+          segments=inkSegmentCount+parsed.length<=100000
+            ? parsed : [{start:a,end:b}];
+        } catch {
+          segments=[{start:a,end:b}];
+        }
+        inkSegmentCount+=segments.length;
+        const caption=[other.label,...(other.observations??[])
+          .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
+        const labels=caption
+          ? [{x:geometry.label.x-Math.min(176,Math.max(24,caption.length*6.2))/2,
+              y:geometry.label.y-23,
+              width:Math.min(176,Math.max(24,caption.length*6.2)),height:18}]
+          : [];
+        inkEntries.push({edgeId:other.id,sourceId:other.source,
+          targetId:other.target,segments,labels});
+      }
+    }
+    const loopInkIndex=inkEntries.length
+      ? createDiagramInkSpatialIndexV010(inkEntries):undefined;
     const loopInkCache = new Map<string,DiagramSelfLoopInkV010>();
     const loopInkFor = (nodeId: string): DiagramSelfLoopInkV010 => {
-      const cached = loopInkCache.get(nodeId);
+      const cached=loopInkCache.get(nodeId);
       if(cached)return cached;
-      const segments: Array<{start:{x:number;y:number};end:{x:number;y:number}}>=[];
-      const labels: Array<{x:number;y:number;width:number;height:number}>=[];
-      if(renderedEdges.length <= 1500 && siblingGroups.size <= 48) {
-        for(const other of renderedEdges){
-          if(other.source === other.target || other.source === nodeId || other.target === nodeId)continue;
-          const a=renderedNodeById.get(other.source),b=renderedNodeById.get(other.target);
-          if(!a||!b)continue;
-          const points=[nodeCenter(a),...(other.waypoints??[]),nodeCenter(b)];
-          for(let i=1;i<points.length;i++)segments.push({
-            start:points[i-1]!,end:points[i]!
-          });
-          // Reserve a conservative label corridor consistently even if zoom
-          // or selection temporarily hides the label in DOM.
-          const caption=[other.label,...(other.observations??[])
-            .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
-          if(caption){
-            // Straight/legacy connectors display their label at the actual
-            // midpoint of the edge, never on the lower endpoint node.
-            const center={x:(points[0]!.x+points[points.length-1]!.x)/2,
-              y:(points[0]!.y+points[points.length-1]!.y)/2};
-            const width=Math.min(176,Math.max(24,caption.length*6.2));
-            labels.push({x:center.x-width/2,y:center.y-23,width,height:18});
-          }
-        }
-      }
-      const value={segments,labels};
+      const node=renderedNodeById.get(nodeId);
+      const count=siblingGroups.get(nodeId)?.length ?? 0;
+      const reach=56+Math.max(0,count-1)*32+count*32+64;
+      const value=node && loopInkIndex
+        ? loopInkIndex.near(nodeId,node,Math.min(1e7,reach))
+        : {segments:[],labels:[]};
       loopInkCache.set(nodeId,value);
       return value;
     };
@@ -2752,19 +2801,18 @@ export function mountDiagramEditorPageV010(
         ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane,
             edge.waypoints, loopObstacles, loopReservations,
             loopInkFor(edge.source))
-        : edge.waypoints?.length
-          ? diagramManualEdgeGeometryV010(a, b, {
-              pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
-              sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
-            })
-          : diagramEdgeGeometryV010(a, b, edge.pathKind, {
-              obstacles: routeObstacles,
-              // Previously passing all unrelated nodes made the router
-              // normalize even when they were geographically irrelevant.
-              // Spatial filtering must retain that exact rendered SVG shape.
-              forceRouteWhenEmpty: renderedNodes.length > (edge.source === edge.target ? 1 : 2)
-                && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
-            });
+        : preciseRouteGeometries.get(edge.id)
+          ?? (edge.waypoints?.length
+            ? diagramManualEdgeGeometryV010(a, b, {
+                pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
+                sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+              })
+            : diagramEdgeGeometryV010(a, b, edge.pathKind, {
+                obstacles: routeObstacles,
+                // Keep original rendering when no self-loops are present.
+                forceRouteWhenEmpty: renderedNodes.length > (edge.source === edge.target ? 1 : 2)
+                  && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
+              }));
       if (selectedEdgeId === edge.id && page.viewInteraction?.localEdgePathEdit === true
         && edge.pathKind && edge.pathKind !== "straight") {
         if (edge.source === edge.target) {
