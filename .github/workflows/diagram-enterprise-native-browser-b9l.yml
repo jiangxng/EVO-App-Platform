@@ -46,10 +46,13 @@ jobs:
             node tools/diagram-enterprise-synthetic-fixture-b9l.mjs "$EVO_B9L_FIXTURE_PATH" "$process"
             node tools/diagram-enterprise-browser-proof-b9l.mjs | tee -a "$RUNNER_TEMP/b9l-synthetic.log"
           done
-          test "$(grep -c 'B9L_NATIVE_SAVE_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
-          test "$(grep -c 'B9L_ENTERPRISE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
-          test "$(grep -c 'B9P_STALE_CAS_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
-          test "$(grep -c 'B9Q_RESPONSIVE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
+          export EVO_B9L_FIXTURE_PATH="$RUNNER_TEMP/b9l-synthetic/S2C-html-probe.json"
+          EVO_B10F_HTML_PROBE=1 node tools/diagram-enterprise-synthetic-fixture-b9l.mjs "$EVO_B9L_FIXTURE_PATH" S2C
+          node tools/diagram-enterprise-browser-proof-b9l.mjs | tee -a "$RUNNER_TEMP/b9l-synthetic.log"
+          test "$(grep -c 'B9L_NATIVE_SAVE_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 3
+          test "$(grep -c 'B9L_ENTERPRISE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 3
+          test "$(grep -c 'B9P_STALE_CAS_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 3
+          test "$(grep -c 'B9Q_RESPONSIVE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 3
       - name: Keep ONLY checked synthetic Viewer PNG evidence
         if: always()
         uses: actions/upload-artifact@v4

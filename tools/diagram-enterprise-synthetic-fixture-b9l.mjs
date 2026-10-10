@@ -27,5 +27,9 @@ const fixture={
    target:"crowded-b",kind:"test",label:"Synthetic review",arrow:"end"}]
  }
 };
+if(process.env.EVO_B10F_HTML_PROBE==="1"){
+ fixture.preview2d.nodes[0].label=
+  "Synthetic </script><img src=x onerror='window.__b10fRan=true'>";
+}
 await writeFile(filename,JSON.stringify(fixture),{encoding:"utf8",mode:0o600,flag:"wx"});
 console.log("B9L_SYNTHETIC_FIXTURE_GENERATED=1");

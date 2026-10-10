@@ -230,9 +230,11 @@ try{
      pointerEvents:note?.style.pointerEvents??null,
      saveButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
       .filter(button=>button.textContent.trim()==="Save projection").length,
+     probeExecuted:window.__b10fRan===true,
      errors:window.__errors};
    });
    assert.deepEqual(result.errors,[],mode+" B9l real Chrome errors");
+   assert.equal(result.probeExecuted,false,"B10f HTML-like labels must not execute script");
    assert.ok(result.canvasWidth>0,mode+" SVG must render at viewport width "+viewport.width);
    assert.ok(result.visibleCanvasWidth>0,
     mode+" must expose a non-zero clipped canvas");
