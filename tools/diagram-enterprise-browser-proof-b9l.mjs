@@ -267,6 +267,22 @@ try{
    warning:"Owner attestation not independently verified; isolated test identity/FileStore, never production DB"
   }));
  }finally{await nativeSaveTab.close()}
+ // B9p: a second writer using the previously consumed presentation CAS token
+ // must be rejected by the same production Handler/FileStore (no silent overwrite).
+ const staleSave=await save(first,"1",[]);
+ assert.equal(staleSave.ok,false,"stale save must fail");
+ assert.equal(staleSave.error?.code,"DEFINITION_PROJECTION_WRITE_CONFLICT");
+ assert.equal(reopened.projectionStore.getVersion(id),2,
+  "stale write must not change persisted CAS version");
+ const staleRead=await reopened.read.execute(request(READ,id),ctx);
+ assert.equal(staleRead.ok,true,"read after conflict succeeds");
+ assert.ok(staleRead.result.hiddenNodeIds?.includes(removeNodeId),
+  "stale writer must not restore previously hidden projection node");
+ console.log("B9P_STALE_CAS_RESULT="+JSON.stringify({
+  process:intake.process,staleErrorCode:staleSave.error?.code,
+  versionAfterRejectedWrite:2,previousHiddenNodePreserved:true,
+  warning:"Isolated test Handler identity/FileStore; no production user conflict tested"
+ }));
  const reopenedClearDesigner=await snapshot("designer");
  const reopenedClearViewer=await snapshot("viewer");
  assert.equal(reopenedClearDesigner.count,reopenedClearViewer.count,
