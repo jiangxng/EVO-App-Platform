@@ -217,3 +217,12 @@
 - Eidos Geometry/Surface 单测：无遮挡单环保留旧默认 SVG；同节点四条关系方向依次右、下、左、上；第五/六条同侧允许向外错层并标记拥堵；四侧均被节点占满返回非零交叠面积和 `congested=true`；手工路径方向不跳变，且**所有已保存手工路径先于任意自动兄弟自环占用侧别**；警示文字不吃 pointer。
 - [Chrome 154，23 标签页实际浏览器 #38024189776](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38024189776) **PASS**，日志 `b8hMultiLoopCongestionNativePointerViewer=true`。第 21 页独立合成五自环：稳定分配右→下→左→上→右，第五条可见拥堵提示并保留 22px 半径/44px 直径真实 Chrome 鼠标可抓点，实际拖动更新 cubic 预览/本地路径但**不隐式写 Store**；第 22 页真实只读 Viewer 仍显示未提交的旧图；第 23 页合成四侧障碍，全部拥堵自环带 DOM 和 aria 状态，提示不会截获指针。B8g/B8f/B8e/B8d/B8c/B8b/Host CAS/临时 503/版本隔离回归同运行通过。
 - **证据局限**：以上多环和四侧阻挡都是隔离 artifact source 的模拟关系与模拟节点，不是在线真实业务关系；Chrome CDP 鼠标非实体操作设备；只验证与节点矩形和同节点自环的局部冲突，不含其它关系的边-边交叉惩罚、标签防遮、视口外溢、跨图全局布线。五条以上仍可能共享一侧且继续拥堵，警示不能保证自动化解。实体设备、重启/数据库持久化、完整 §14 **39 条正式商用验收仍 NOT TESTED**；Draft、未合并、未部署。
+
+
+## B8i 自环与非关联连接线、标签避让和 Fit 取景（2026-10-10）
+
+- 独立两仓 Draft：[Eidos #150](https://github.com/jiangxng/eidos/pull/150)、[App #597](https://github.com/jiangxng/EVO-App-Platform/pull/597)，堆叠 B8h 而非改 main；设计及限制已写入 `docs/architecture/DIAGRAM-B8I-EDGE-LABEL-AVOIDANCE-INTEGRATION-20261010.md`。
+- 局部算法：显式自环四侧评分增加“非关联关系中心/控制点构成的折线穿越外侧手柄走廊”和“非关联关系标题/观察值的稳定近似文字矩形”；不根据选中/悬停 DOM 动态改路，保留节点占用、同节点其它自环保留槽位、手工路线 side 固定策略。局部预算 ≤1500 visible edges、≤48 loop-bearing nodes；超出降级为 B8h，**不是全图零交叉保证**。
+- Fit All、Fit Selection：包围盒还包括显式自环外侧 reach、同侧多环叠层和已保存 waypoint、额外控制柄空间；普通无自环历史节点包围仍一致；不根据 pan/zoom 改变持久路由。
+- Node 与真实 Browser 测试项目：单独跨线、单独标签、全侧线冲突警示、手工路径不跳动、老图 Fit 不变化、外侧 Fit 点纳入；隔离合成测试 source 上 Chrome **26 tabs** 的 Designer、原生鼠标拖动/取消和 readonly Viewer 同 SVG，包括此前 B8h～B8b 与 Host CAS/503 兼容回归。最终是否全部 PASS 只以本轮最新 PR head CI 为准，不能把已启动测试写为完成。
+- 保留待测：自动正交/圆角/曲线其它关联边的完整真实线段交点、浏览器字体实际文字盒、更多数量下的线段空间索引、大型企业图性能和视觉质量、任意手动 pan/zoom 的视口避让、实体 iOS/Android/macOS/Windows、持久数据库重启及 §14 **39项正式商用验收全部仍 NOT TESTED**；不合并、不部署。
