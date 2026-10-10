@@ -106,6 +106,6 @@ test("B8g spatial neighborhood and full obstacle scan give identical sides",asyn
     diagramSelfLoopSideV010(source,nodes.slice(1)),
     "B8g large-graph shortcut must not miss near or enormous blocking nodes");
   const s=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
-  assert.match(s,/loopReach \+ 22 <= 134/);
+  assert.match(s,/reach \+ 22 <= 134/);
   assert.match(s,/spatialObstacles\.near\(\{ x: source\.x, y: source\.y \}/);
 });
