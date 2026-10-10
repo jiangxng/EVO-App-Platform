@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {mkdtemp,writeFile,rm} from "node:fs/promises";
+import {mkdtemp,writeFile,rm,symlink,mkdir} from "node:fs/promises";
 import {join} from "node:path";
 import {tmpdir} from "node:os";
 import {
@@ -103,6 +103,32 @@ test("B9k checks OS file location and an explicit opt-in; never writes source",a
   const oversized=join(outside,"large.json");
   await writeFile(oversized," ".repeat(2*1024*1024+1),"utf8");
   await assert.rejects(()=>read(oversized,{repositoryRoot:checkout,authorized:true}),/2 MiB/);
+ }finally{
+  await rm(outside,{recursive:true,force:true});
+  await rm(checkout,{recursive:true,force:true});
+ }
+});
+
+test("B9m rejects leaf symlinks, aliased directory traversal and internal checkout path",async()=>{
+ const outside=await mkdtemp(join(tmpdir(),"b9m-external-"));
+ const checkout=await mkdtemp(join(tmpdir(),"b9m-repo-"));
+ try{
+  const target=join(outside,"real.json"),alias=join(outside,"alias.json");
+  await writeFile(target,JSON.stringify(sample()),"utf8");
+  await symlink(target,alias);
+  await assert.rejects(()=>read(alias,{repositoryRoot:checkout,authorized:true}));
+  await mkdir(join(checkout,"fixtures"));
+  const inside=join(checkout,"fixtures","internal.json");
+  await writeFile(inside,JSON.stringify(sample()),"utf8");
+  const folderAlias=join(outside,"link-to-checkout");
+  await symlink(join(checkout,"fixtures"),folderAlias,"dir");
+  await assert.rejects(()=>read(join(folderAlias,"internal.json"),{
+   repositoryRoot:checkout,authorized:true
+  }),/outside the Git checkout/);
+  await assert.rejects(()=>read(inside,{repositoryRoot:checkout,authorized:true}),
+   /outside the Git checkout/);
+  const safe=await read(target,{repositoryRoot:checkout,authorized:true});
+  assert.equal(safe.nodes,2);
  }finally{
   await rm(outside,{recursive:true,force:true});
   await rm(checkout,{recursive:true,force:true});
