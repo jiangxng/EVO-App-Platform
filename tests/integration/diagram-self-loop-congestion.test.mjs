@@ -94,6 +94,6 @@ test("B8h Canvas/Viewer use side reservation and nonblocking warning",async()=>{
   assert.match(s,/loopReservedSides\.set\(edge.id, \[\.\.\.reserved\]\)/);
   assert.match(s,/loopObstacles, loopReservations\)/);
   assert.match(s,/data-eidos-diagram-congestion-warning/);
-  assert.match(s,/Self-loop crowded; manual route adjustment may be needed/);
+  assert.match(s,/Self-loop crowded; manual adjustment may be needed/);
   assert.match(s,/warning.style.pointerEvents = "none"/);
 });
