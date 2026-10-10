@@ -201,9 +201,16 @@ try{
    const result=await tab.evaluate(()=>{
     const svg=document.querySelector("svg[data-eidos-diagram-congested-count]");
     const canvasWidth=svg?.getBoundingClientRect().width??0;
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    const clip=canvas?.getBoundingClientRect();
+    const visibleCanvasWidth=clip?.width??0;
+    const canvasOverflow=canvas?getComputedStyle(canvas).overflow:"missing";
     const routes=[...document.querySelectorAll("[data-eidos-diagram-route-congested]")];
     const note=document.querySelector("[data-eidos-diagram-congestion-summary]");
-    return {canvasWidth,count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
+    return {canvasWidth,visibleCanvasWidth,canvasOverflow,
+     documentWidth:document.documentElement.scrollWidth,
+     viewportWidth:document.documentElement.clientWidth,
+     count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
      actualPaths:routes.length,
      missingAria:routes.filter(item=>!item.getAttribute("aria-label")).length,
      note:note?.getAttribute("data-eidos-diagram-congestion-summary")??null,
@@ -215,6 +222,12 @@ try{
    });
    assert.deepEqual(result.errors,[],mode+" B9l real Chrome errors");
    assert.ok(result.canvasWidth>0,mode+" SVG must render at viewport width "+viewport.width);
+   assert.ok(result.visibleCanvasWidth>0,
+    mode+" must expose a non-zero clipped canvas");
+   assert.equal(result.canvasOverflow,"hidden",
+    mode+" world-sized SVG stage must remain inside a clipped canvas");
+   assert.ok(result.visibleCanvasWidth<=viewport.width+2,
+    mode+" visible canvas width must not exceed browser viewport");
    assert.equal(result.count,result.actualPaths,mode+" congestion DOM hit count");
    assert.equal(result.missingAria,0);
    assert.equal(result.note,result.count>0?String(result.count):null);
@@ -311,7 +324,12 @@ try{
   assert.equal(v.saveButtons,0,"mobile-size readonly Viewer must not expose Save");
   responsiveChecks.push({
    viewport:viewport.width+"x"+viewport.height,
-   editorSvgWidth:Math.round(d.canvasWidth),viewerSvgWidth:Math.round(v.canvasWidth),
+   editorWorldSvgWidth:Math.round(d.canvasWidth),
+   viewerWorldSvgWidth:Math.round(v.canvasWidth),
+   editorVisibleCanvasWidth:Math.round(d.visibleCanvasWidth),
+   viewerVisibleCanvasWidth:Math.round(v.visibleCanvasWidth),
+   editorDocWidth:d.documentWidth,viewerDocWidth:v.documentWidth,
+   editorViewportWidth:d.viewportWidth,viewerViewportWidth:v.viewportWidth,
    congestedDesigner:d.count,congestedViewer:v.count,
    viewerReadOnly:true
   });
