@@ -201,3 +201,11 @@
 - [B8f Chrome 154 浏览器 17 标签页 #38022453391](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38022453391) **PASS**，证据标志 `b8fSelfLoopCurveNativeDragSaveViewer=true`。第 15 标签页的**测试专用模拟自环关系**由隔离 artifact source 注入，真实 Designer DOM、CDP 原生鼠标拖动曲线外凸 bulge、原生 Escape 恢复、同页重新抓取、单 Undo/Redo 和单次显式 App Host CAS Save 均 PASS（投影版本 5→6，业务定义 history 不变）；新开第 16 Designer 和第 17 真正只读 Viewer 读取相同 cubic SVG `d`，Viewer 无编辑/保存按钮。旧 B8e/B8d/B8c/B8b、CAS 回归同 run PASS。
 - **负面发现/待办**：初始测试把控制柄放到 Inspector 区外，第二次调整位置后落在图中其它业务节点之下，两次均实际无法命中。第三次测试把模拟自环挂在图中最右侧且画布内空旷节点，才成功操作。说明现有自动自环固定向右、**尚不提供节点避障**；需要下一阶段方向选择/避障/冲突处理。不可将「外侧有空间的测试样本成功」扩展为「密集图自环操作已验收」。
 - **完整验收仍保持**：当前浏览器自环 only curve 单点，其它正交/圆角自环仅纯几何/静态证据；实体键鼠、macOS 触控板、iOS/Android、系统手势打断、数据库重启后的持久性、高密图长期性能和 §14 **39 项正式验收**均 **NOT TESTED**；E03 等不升格，Draft 未合并、未部署。
+
+
+## B8g 方向自适应避障与手工路径不跳动（2026-10-10）
+
+- Eidos [Draft #148](https://github.com/jiangxng/eidos/pull/148) / App [Draft #595](https://github.com/jiangxng/EVO-App-Platform/pull/595)，独立堆叠在 B8f；不改业务关系 source/target、Agent 权限、Host CAS、44px 命中范围或业务定义版本。已作来源/决策记录：`docs/architecture/DIAGRAM-B8G-SELF-LOOP-OBSTACLE-INTEGRATION-20261010.md`。
+- 单测验证：无障碍的四类旧右侧自环 SVG 保持；可见节点占用右侧时自动选下，再占用下则选左、再占左则选上；重排不受障碍列表顺序影响；手工路径点反推自环方向，邻接节点消失时不自动改写手工方向；无效输入拒绝；大图空间索引与完整障碍扫描得到相同决策。
+- [Chrome 20 标签页 Browser CI #38023222999](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38023222999) **PASS**（Chrome/154.0.8037.97），标记 `b8gNativeBlockedSideSaveReadViewer=true`。仅通过隔离 artifact source 注入的 **模拟 self-loop 和模拟右侧阻挡节点**构造真实 Browser/Host 行为，不修改实际企业关系。Chrome 第 18 页调用 Inspector 的 Restore automatic routing 后从右侧改走下方；CDP 原生鼠标能够命中外侧控制柄并拖动 cubic 曲线，单次 Undo/Redo；仅显式 Save 才 CAS 推进投影 6→7，业务定义历史不变。第 19 页全新 Designer、第 20 页只读 Viewer **移除测试阻挡节点后**仍严格显示已保存的下侧 cubic SVG，不提供查看侧 Save/编辑，不隐式写入 Store。此前 B8f/B8e/B8d/B8c/B8b/冲突与重试子场景同 run PASS。
+- **B8g 不能认定正式商用验收已完成**：全部四侧有阻碍时只选最小交叠，不保证无交叠；未处理边边交叉、标签遮挡、视口边界、同节点多自环、复杂混合手势。真实 Chrome 场景只对底侧 curve 操作提供端到端证据，正交/圆角的左/上路径仍是几何测试。实体手机/桌面设备、持久化数据库服务重启、高密场景的可靠性、完整 §14 **39 项仍 NOT TESTED**。两个 PR 为 Draft，未合并、未部署。
