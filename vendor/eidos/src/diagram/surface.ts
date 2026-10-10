@@ -2772,6 +2772,9 @@ export function mountDiagramEditorPageV010(
           node,loopObstaclesFor(node,lane),lane,reserved,loopInkFor(nodeId)));
       }
     }
+    // B8v: count only actually rendered, budget-congested presentation edges.
+    // An ink-quality "full" result is NOT proof of zero congested routes.
+    let congestedRouteCount = 0;
     const liveEdges = new Map<string, {
       hit: SVGPathElement;
       visual: SVGPathElement;
@@ -2884,6 +2887,7 @@ export function mountDiagramEditorPageV010(
       hit.style.cursor = "pointer";
       hit.setAttribute("data-eidos-diagram-edge", edge.id);
       if (geometry.congested) {
+        congestedRouteCount += 1;
         hit.setAttribute("data-eidos-diagram-route-congested", "true");
         hit.setAttribute("aria-label", "Connector route congested; manual adjustment may be needed");
       }
@@ -3706,6 +3710,26 @@ export function mountDiagramEditorPageV010(
       }catch{
         svg.setAttribute("data-eidos-diagram-bidi-measure-unavailable","true");
       }
+    }
+    // B8v: a single accessible, non-blocking diagram summary for the
+    // precise visible route count, never persisted to a projection model.
+    // Rebuilt from fresh geometry on every render, so hidden or updated
+    // routes cannot leave a stale warning behind. Do not announce repeatedly
+    // as a live status while users drag or pan.
+    svg.setAttribute("data-eidos-diagram-congested-count", String(congestedRouteCount));
+    if (congestedRouteCount > 0) {
+      const summary = document.createElement("div");
+      summary.setAttribute("data-eidos-diagram-congestion-summary", String(congestedRouteCount));
+      summary.setAttribute("role", "note");
+      summary.setAttribute("aria-label",
+        congestedRouteCount + " of " + renderedEdges.length
+        + " visible connectors need manual route review");
+      summary.textContent = congestedRouteCount + " routes need review";
+      summary.style.cssText = "position:absolute;bottom:8px;right:8px;max-width:300px;"
+        + "font-size:11px;padding:4px 7px;border:1px solid var(--eidos-border,#cbd5e1);"
+        + "border-radius:6px;background:var(--eidos-bg,#fff);color:var(--eidos-fg-muted,#5F6B76);"
+        + "pointer-events:none;z-index:5";
+      canvas.appendChild(summary);
     }
     if(inkQuality!=="full"){
       // B8m single visible advisory rather than thousands of false-clear
