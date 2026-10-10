@@ -180,3 +180,17 @@
 6. **版本/外部变动：** 官方 Miro、draw.io、React Flow、MDN 文档可随时修订。今后若一个来源规则影响代码决策，记录再次阅读日期、栏目、代码提交、浏览器实测与所采用的取舍。
 
 **本索引不是任何 PR 的合并或生产部署授权。**
+---
+
+## 2026-10-10 追加记录：B5a 新窗口接续（不改前述研究事实）
+
+**来源等级：** 本次接续窗口已直接读取两仓库最新源码、已列项目架构文档和 CI 日志；S1–S7 第三方官方页面**本次没有重新打开**，仍只继承上文记载的 2026-10-09/10 原文复核状态，不能把本次编码当作官方来源再次核验。
+
+**落实的既有决策：** 由 Eidos 提供手工路径点/正交线段的图上控制柄，使用项目要求的 44px 命中目标、单次撤销和取消回滚；App Platform 只按差异移植 Eidos 的相关函数/交互，保留 Host `renderContextNavigationV010`。源/目标、业务箭头、业务关系及原始投影兼容语义不更改。这些是 **[工程实施/项目判断]**，并非 S4/S6/S7 声称的项目实现情况。
+
+**新增代码与审查入口：**
+- Eidos [B5a Draft PR #137](https://github.com/jiangxng/eidos/pull/137)，基于 #136：`src/diagram/edge-waypoints.ts`、`surface.ts`、`tests/diagram/diagram-visual-handles.test.mjs`、`docs/architecture/DIAGRAM-B5A-VISUAL-HANDLES-20261010.md`。测试曾因 Node test glob 的发现范围与 TypeScript NodeList DOM iterable 约束调整，最终以 PR 当前 SHA / CI 为准。
+- App Platform [B5a Draft PR #553](https://github.com/jiangxng/EVO-App-Platform/pull/553)，基于 #550：`vendor/eidos/src/diagram` 定点移植、`tests/integration/diagram-visual-handles.test.mjs`、`docs/architecture/DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md`（从基线 §14 提取完整 **39 项**，初始全部 NOT TESTED）、`docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-DELTA-B5A-20261010.md`。上述新增文件位于该**独立 PR 分支**，不要在 main 中直接寻找。
+- 核心新增可验证风险：App Platform `definition-projection-editor.ts` 用**业务定义 revision** 校验保存；`providers/enterprise-context/definition-projection-store.ts` 当前 `put` 对相同定义 revision 的 gallery 直接替换。独立投影版本/CAS、两个窗口冲突提示与保留草稿尚未实现。此结论来自阅读当前源码，是**[工程审查发现]**，不是成功执行过的双窗口冲突测试。
+
+**验收等级：** B5a 几何/源码测试和 GitHub CI 只能证明其检查覆盖范围；没有录制或保存真实设备截图/录像。E03、D03、D05、T04/T05、P01/P02 与其余 §14 项仍不能凭本记录标为真实设备 PASS。所有新 PR 继续不合并、不部署。下一窗口请先刷新 #137/#553 最新 head SHA、完整 CI、39 项矩阵与可能的主线冲突。
