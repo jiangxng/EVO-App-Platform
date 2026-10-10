@@ -55,7 +55,7 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
     node.width<=0 || node.height<=0 ||
     (node.shape!==undefined && !id(node.shape)))
    error("invalid node fields or geometry");
-  if(!clean(node.id) || !clean(node.label) || !clean(node.kind))error("unsafe control character or email in node");
+  if(!clean(node.id) || !clean(node.label) || !clean(node.kind))error("potential email or unsafe control character in node");
   if(nodeIds.has(node.id))error("duplicate node identifier");
   nodeIds.add(node.id);
   minX=Math.min(minX,node.x);minY=Math.min(minY,node.y);
@@ -73,7 +73,7 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
    error("invalid relation fields");
   if(!clean(edge.id) || !clean(edge.source) || !clean(edge.target) ||
     !clean(edge.kind) || (edge.label && !clean(edge.label)))
-   error("unsafe control character or email in relation");
+   error("potential email or unsafe control character in relation");
   if(edgeIds.has(edge.id))error("duplicate relation identifier");
   if(!nodeIds.has(edge.source) || !nodeIds.has(edge.target))
    error("relation endpoint is missing from preview2d");
