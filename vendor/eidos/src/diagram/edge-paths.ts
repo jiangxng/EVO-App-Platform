@@ -114,6 +114,36 @@ function roundedPath(points: readonly DiagramEdgePointV010[]): string {
 }
 
 /** Returns an SVG path plus a label coordinate on that route (not a center-center midpoint). */
+/** B8a: use the SAME router and corner policy for automatic edge geometry
+ * and for materializing editable manual controls. The returned array is
+ * presentation only, not an update to business relationship endpoints.
+ */
+function automaticOrthogonalGeometryV010(
+  start: DiagramEdgePointV010,
+  end: DiagramEdgePointV010,
+  options?: DiagramEdgeGeometryOptionsV010
+): { corners: DiagramEdgePointV010[]; routed: boolean; routingAttempted: boolean } {
+  const obstacles = options?.obstacles ?? [];
+  const routingAttempted = obstacles.length > 0 || options?.forceRouteWhenEmpty === true;
+  const route = routingAttempted
+    ? routeDiagramOrthogonalV010(start, end, obstacles, options?.clearance)
+    : undefined;
+  return { corners: route ?? elbowPoints(start, end),
+    routed: route !== undefined, routingAttempted };
+}
+export function diagramAutomaticOrthogonalPointsV010(
+  start: DiagramEdgePointV010,
+  end: DiagramEdgePointV010,
+  pathKind: DiagramEdgePathKindV010,
+  options?: DiagramEdgeGeometryOptionsV010
+): DiagramEdgePointV010[] {
+  if ((pathKind !== "orthogonal" && pathKind !== "rounded-orthogonal")
+    || ![start.x, start.y, end.x, end.y].every(Number.isFinite)) {
+    throw new Error("EIDOS_DIAGRAM_AUTO_ROUTE_EDIT_INVALID");
+  }
+  return automaticOrthogonalGeometryV010(start, end, options).corners.map(p => ({ ...p }));
+}
+
 export function diagramEdgeGeometryV010(
   start: DiagramEdgePointV010,
   end: DiagramEdgePointV010,
@@ -156,12 +186,8 @@ export function diagramEdgeGeometryV010(
       label
     };
   }
-  const obstacles = options?.obstacles ?? [];
-  const routingAttempted = obstacles.length > 0 || options?.forceRouteWhenEmpty === true;
-  const routed = routingAttempted
-    ? routeDiagramOrthogonalV010(start, end, obstacles, options?.clearance)
-    : undefined;
-  const corners = routed ?? elbowPoints(start, end);
+  const { corners, routed, routingAttempted } =
+    automaticOrthogonalGeometryV010(start, end, options);
   return {
     kind: requestedKind,
     d: requestedKind === "orthogonal"
