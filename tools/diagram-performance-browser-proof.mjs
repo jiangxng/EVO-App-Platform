@@ -20,8 +20,12 @@ const CHROME = process.env.CHROME;
 assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
 const denseMode=process.env.EVO_DENSE_B8O==="1";
 const complexMode=process.env.EVO_COMPLEX_B8Q==="1";
-assert.ok(!(denseMode&&complexMode),"Choose exactly one benchmark variant");
-const sizes = complexMode
+const autoMode=process.env.EVO_AUTO_B8R==="1";
+assert.ok([denseMode,complexMode,autoMode].filter(Boolean).length<=1,
+  "Choose exactly one benchmark variant");
+const sizes = autoMode
+  ? [{nodes:100,edges:300},{nodes:200,edges:600}]
+  : complexMode
   ? [{nodes:160,edges:480},{nodes:320,edges:960}]
   : denseMode
     ? [{nodes:300,edges:1200},{nodes:600,edges:2400},
@@ -29,7 +33,7 @@ const sizes = complexMode
     : [{nodes:200,edges:400},{nodes:500,edges:1000}];
 // Warm each size first, then interleave three independent mounts per scale.
 // Cold JS module compilation and OS scheduling distort single-shot numbers.
-const repeats=denseMode?1:complexMode?2:3;
+const repeats=denseMode?1:complexMode||autoMode?2:3;
 const scenarios = [...sizes.map(x=>({...x,warmup:true})),
   ...Array.from({length:repeats},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
 const viewWidth=1440, viewHeight=900;
@@ -69,6 +73,15 @@ const makeState=(nodeCount,edgeCount)=>{
     const dst=dir%2===0?nextInRow:(src+columns)%nodeCount;
     const hasLoop=(denseMode&&i%55===0)||(complexMode&&i%37===0);
     const aboveBudget=denseMode && edgeCount>12000;
+    if(autoMode){
+      // All 300/600 relations use the real automatic orthogonal router.
+      // Coordinates are verified by validateDiagramEditorStateV010
+      // BEFORE launching any browser. No manual-route escape hatch.
+      return {id:"e"+i,kind:"synthetic",source:"n"+src,
+        target:"n"+(i%7===0?(src+columns*2)%nodeCount:dst),
+        pathKind:i%2===0?"orthogonal":"rounded-orthogonal",
+        arrow:"end",label:i%9===0?"Sales to cash / 采购到付款":undefined};
+    }
     if(complexMode){
       // Representative enterprise workflow graph, NOT a real customer
       // database: S2C/P2P relationships, mixed kinds, self-relations,
@@ -76,12 +89,8 @@ const makeState=(nodeCount,edgeCount)=>{
       const finalTarget=hasLoop?src:(i%5===0?(src+columns*3)%nodeCount:dst);
       const kind=i%4===0?"rounded-orthogonal":i%4===1?"orthogonal":
         i%4===2?"curve":"straight";
-      // B8q: a contained mixed-path/rendering benchmark, NOT a mass
-      // auto-router scalability benchmark. The original 480-edge case
-      // exhausted the 90s mount deadline when many long-distance
-      // orthogonal edges all requested global automatic rerouting.
-      // Preserve the real Q/C and manual-path cost while isolating
-      // expensive dense automatic orthogonal routing as an open risk.
+      // B8q preserves explicit manual routes as the separate
+      // mixed-rendering workload; B8r tests genuine automatic routes.
       const explicit=kind==="orthogonal"||kind==="rounded-orthogonal"
         || (kind==="curve"&&i%3===0);
       const manual=explicit&&!hasLoop
@@ -249,7 +258,7 @@ try{
     }
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
-    if(denseMode||complexMode){
+    if(denseMode||complexMode||autoMode){
       const expected=size.edges>12000?"node-only":"full";
       assert.equal(mounted.inkQuality,expected,
         "B8o dense rendered SVG must expose true budget degradation");
@@ -259,14 +268,15 @@ try{
       assert.ok(mounted.svg>size.edges*2,
         "B8o/B8q count actual SVG DOM elements rather than virtual arrays");
     }
-    if(complexMode){
+    if(complexMode||autoMode){
       const types=await client.eval('(()=>{'
         +'const paths=[...document.querySelectorAll("[data-eidos-diagram-edge-visual]")].map(x=>x.getAttribute("d")||"");'
         +'return {cubic:paths.some(p=>p.includes(" C ")),'
         +'rounded:paths.some(p=>p.includes(" Q ")),'
         +'loopCount:document.querySelectorAll("[data-eidos-diagram-edge][data-eidos-diagram-route-congested]").length};})()');
-      assert.equal(types.cubic,true,"B8q must exercise actually rendered Bézier paths");
-      assert.equal(types.rounded,true,"B8q must exercise actually rendered rounded corners");
+      if(complexMode)
+        assert.equal(types.cubic,true,"B8q must render Bézier paths");
+      assert.equal(types.rounded,true,"B8r/B8q must render rounded corners");
     }
     const selection=await client.eval('(()=>{'
       +'const node=document.querySelector("[data-eidos-diagram-node]");'
@@ -308,7 +318,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
-      ...(denseMode||complexMode?{inkQuality:mounted.inkQuality,
+      ...(denseMode||complexMode||autoMode?{inkQuality:mounted.inkQuality,
         labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
     if (!size.warmup) results.push(data);
@@ -332,10 +342,12 @@ try{
       usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
     };
   });
-  console.log((complexMode?"B8Q_COMPLEX_BROWSER_RESULT=":
+  console.log((autoMode?"B8R_AUTO_BROWSER_RESULT=":
+      complexMode?"B8Q_COMPLEX_BROWSER_RESULT=":
       denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
     +JSON.stringify({browser:version.Browser,cases:aggregated,
-      mode:complexMode?"representative mixed S2C/P2P routes, 2 prewarm + 4 measured Chrome mounts":
+      mode:autoMode?"validated full DOM with real automatic orthogonal routes, 2 prewarm + 4 measured Chrome mounts":
+        complexMode?"representative mixed S2C/P2P routes, 2 prewarm + 4 measured Chrome mounts":
         denseMode?"synthetic dense full DOM, 3 prewarm + 3 measured Chrome mounts incl 12001-edge node-only":
         "synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
       warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
