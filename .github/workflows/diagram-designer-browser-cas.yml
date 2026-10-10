@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Thirty Chrome tabs - B8l real label metrics and B8m density budget
+      - name: Thirty-two Chrome tabs - B8n multilingual tspan and B8o density evidence
         shell: bash
         run: |
           set -euo pipefail
