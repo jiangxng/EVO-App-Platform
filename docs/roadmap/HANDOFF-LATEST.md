@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `tr01b2a-public-governed-sales-raw-stock-value-gap-2026-10-10`  
-**Snapshot time:** `2026-10-10T01:45:00.000Z`  
+**Snapshot:** `tr01b2b-pinned-fifo-cogs-exact-replay-proof-public-contract-open-2026-10-10`  
+**Snapshot time:** `2026-10-10T02:08:08.124Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,55 +16,61 @@ ACTIVE
 
 ## Latest closed live slice
 
-**tr01b2a-authorized-inverse-sales-work-position-service: SERVICE_LEVEL_CI_POSTGRESQL_PRODUCTION_PASS_BOUNDED**
+**tr01b2b-pinned-cost-valuation-exact-sales-replay-ci: EVO_OWNER_CI_PRODUCTION_CODE_PASS_BOUNDED**
 
-TR-01B2A introduces a guarded, application-owned, read-only inverse Sales operational projection from public EVO WorkItems and dimension-filtered LedgerBalance for pending Shipment, Receivable, Inventory quantity/raw amount and Cash. In real PostgreSQL after App Platform-originated immutable Sales→Production→Shipment→Cash facts it proves HUMAN/AI Principal parity under one-order-only scoped CI authorization, rejects an unauthorized sales order, and shows SHIP/COLLECT Work closed. Critical discovery: after Shipment quantity=0 while unvalued raw Inventory Ledger amount=125; shipment costing/COGS is NOT certified. This service is NOT yet a registered Host Capability Operation or installed sales Human/Agent/Workbench Experience. Formal allocation, replay, customer production policy, financial Account Foundation Object remain OUT OF SCOPE.
+TR-01B2B has actual App Platform-generated immutable Sales→Production→Shipment→Cash facts followed by pinned EVO CostEngine/ValuationPosting on isolated real PostgreSQL. FIFO valuation policy v1, FIFO allocation policy v1 and shipment-inventory-to-cogs valuation rule v1 were pinned by IDs; original shipped Inventory qty=0/raw amount=125 became qty=0/amount=0 and COGS=125. Exact Full Replay kept canonical economic digest, canonical immutable input digest and all Inventory/COGS/Receivable/Cash/Work outcomes unchanged, persisted MATCH. This is owner-runtime test-only certification; NO production Host/Agent public cost/settlement API, NO formal customer receipt AllocationInstruction/Relation, NO bank/financial account master object, and NO full TR-01B2 acceptance. No private cost API is wired into App Platform runtime.
 
-Authority: `docs/roadmap/TR01B2A-GOVERNED-SALES-WORK-POSITION-20261010.md`
+Authority: `docs/roadmap/TR01B2B-EVO-VALUATION-REPLAY-CI-PROOF-20261010.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 574,
-  "head": "c4ac883269ca95cf7665ceb3adecccc951e4d813",
-  "mergedMain": "39109addd721c017cd6276c60ee4b3062ab3f6b7",
-  "postgresProofRun": 38014202340,
-  "postgresProof": "PASS",
-  "marker": "TR01B2A_GOVERNED_SALES_EVO_PUBLIC_READ_PROOF",
-  "platformRun": 38014202293,
-  "platformCI": "PASS",
-  "continuityRun": 38014202284,
+  "implementationPr": 578,
+  "finalHead": "d427430de6071799af210b1ec75bba4be68d5047",
+  "mergedMain": "887e70752c4f9c5d3c3ac392db4273d78e36a3e5",
+  "realEvoPostgresqlRun": 38015494916,
+  "realEvoPostgresqlCI": "PASS",
+  "canonicalMarker": "TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF",
+  "continuityRun": 38015494601,
   "continuityCI": "PASS",
-  "tradingLiteEvoRegressionRun": 38014202326,
-  "tradingLiteEvoRegression": "PASS",
-  "tr01aInstalledBrowserRun": 38014202298,
-  "tr01aInstalledBrowser": "PASS",
-  "observedInventoryQuantityAfterShipment": 0,
-  "observedRawInventoryAmountAfterShipment": 125,
-  "costValuationCertified": false,
-  "hostInstalledSalesUX": "NOT_CERTIFIED",
+  "immutableAppOriginatedSalesFact": true,
+  "pins": {
+    "valuationPolicy": "inventory_fifo@1",
+    "allocationPolicy": "inventory_fifo@1",
+    "valuationRule": "shipment-inventory-to-cogs@1"
+  },
+  "inventoryQtyAfterShipment": 0,
+  "inventoryRawAmountBeforeValuation": 125,
+  "valuedInventoryAmountAfterValuation": 0,
+  "cogsAfterValuation": 125,
+  "canonicalEconomicReplay": "MATCH",
+  "immutableInputReplay": "UNCHANGED",
+  "receivableAfterReplay": 0,
+  "cashLedgerAfterReplay": 1000,
+  "publicCostOperation": "NOT_ADMITTED",
   "formalReceiptAllocation": "NOT_CERTIFIED",
-  "financialAccountObject": "NOT_STARTED",
-  "railwayDeploymentId": "b0ff4777-17d6-4de0-bdda-7a02dbf39d6b",
+  "evoOwnerReviewPr": 106,
+  "evoOwnerReviewStatus": "PROPOSED_NOT_ASSUMED_MERGED",
+  "railwayDeploymentId": "72b35a06-a4c8-4757-a8f8-b9abf6314bc6",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**tr01b2b-valuation-cogs-and-settlement-public-contract: OPEN**
+**tr01b2b-public-pinned-cost-and-formal-cash-allocation-admission: OPEN**
 
-TR-01B2A shared authorized Sales read service passed real EVO public PostgreSQL CI, but quantity 0 and raw Inventory amount 125 after Shipment reveal that stock cost/COGS must be handled by pinned EVO Valuation/Cost lifecycle. Formal Cash Receipt→Receivable AllocationInstruction/Relation remains an EVO-internal certified EEL-C01 capability without an adopted scoped public Host integration. Verify usable public contracts (or explicitly report a gap) for cost and allocation before broadening sales UX. TR-01B2C Host/Eidos/Agent/Workbench installation and replay of exact App Platform facts remain subsequent gates. No direct inventory write, new Cash Account object or customer production auth changes.
+EVO CostEngine/Valuation and exact Replay have been proven in a disposable CI owner runtime for App Platform-originated sales. However the current compatibility EVO alpha does not advertise an authorized, plugin-owned Host-integrable version-pinned Cost operation or public formal Cash Receipt→Receivable AllocationInstruction/Relation operation. EVO's minimal Ledger Runtime boundary excludes cost/valuation engines by default; owner review PR #106 is DESIGN ONLY. Do not call /demo/cost/recalculate or private cost/allocation services from production App Platform or Agents. Next is versioned Host-governed plugin contract and real PostgreSQL full allocation proof, then installed Sales Eidos/AI/Workbench and customer deployment separately.
 
 Acceptance:
 
-- Inventory amount=125 with quantity=0 is not a valid finished-cost guarantee: locate EVO pinned CostResult/ValuationPosting public lifecycle and prove exact shipment cost-to-COGS without altering immutable events or issuing direct LedgerEntry.
-- Inspect existing EVO EEL-C01 AllocationInstruction/Relation and public contracts; prove customer receipt source-target allocation if exposed, or record an owner-scoped EVO API gap instead of fabricating a settlement relation.
-- Keep formal cost valuation, same-currency cash receipt posting, foreign exchange and customer bank-account identities distinct in both contract and UI claims.
-- Plan deterministic full replay equality for exact App Platform sales/production/shipment/cash facts after cost/settlement semantics are pinned.
-- Subsequently register the Sales READ through the same opt-in governed Action Host lifecycle as TR-01A and certify real installed Eidos Human + Agent + Workbench against authorized EVO public Work/Position.
-- Do not reopen Counterparty/Item/Warehouse imports or expand Cash Account Foundation Object, and do not modify parallel 2D Designer or Agent-line PRs.
+- Confirm and review EVO cost/valuation plugin owner vs minimal Ledger Runtime responsibilities; candidate boundary in EVO PR #106 is proposal, not a shipped production API.
+- Admit a Host-governed version-pinned Cost/Valuation operation with Enterprise→EVO runtime binding, principal/permission, policy/rule pins, idempotency, replay boundary, audit and fail-closed semantics; never call demo endpoints in product code.
+- Implement a separately authorized AllocationInstruction/Relation contract for the actual App Platform Cash Receipt→Sales Receivable with source/consumer business IDs, policy pins, currency/partial/duplicate safeguards, public read-back and replay equivalence.
+- Prove exact App Platform sales/production/shipment/receipt facts in real PostgreSQL: Inventory valued qty/amount 0, COGS 125, receivable 0, cash 1000, canonical economic + immutable input replay equality under the admitted production integration contract.
+- After the cost/settlement public contract, route Sales read-only SHIP/COLLECT Work and Inventory/Receivable/Cash through opt-in authorized Action Host + Eidos Human/Agent/Workbench installation and test actual Chrome navigation; do not claim service-level AI parity proves Agent capability discovery.
+- Keep Counterparty/Item/Warehouse authority, parallel 2D Designer and Agent line isolated; defer financial/bank account Foundation Object until real bank/channel/reconciliation semantics are observed.
 
 ## Current production preview
 
@@ -73,8 +79,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `39109addd721c017cd6276c60ee4b3062ab3f6b7`
-- Deployment: `b0ff4777-17d6-4de0-bdda-7a02dbf39d6b`
+- Commit: `887e70752c4f9c5d3c3ac392db4273d78e36a3e5`
+- Deployment: `72b35a06-a4c8-4757-a8f8-b9abf6314bc6`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -105,6 +111,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #578 — MERGED_EVO_OWNER_CI_PRODUCTION_CODE_PASS_BOUNDED: TR-01B2B isolated EVO-owner CostEngine/ValuationPosting on actual App Platform immutable Sales facts, explicit FIFO valuation/allocation/shipment rule v1 pins; raw Inventory amount 125→valued 0 and COGS 125; canonical economic and immutable input Full Replay MATCH, Receivable 0/Cash 1000. CI 38015494916 PASS, continuity 38015494601 PASS; main 887e70752c4f9c5d3c3ac392db4273d78e36a3e5 and Railway 72b35a06-a4c8-4757-a8f8-b9abf6314bc6 SUCCESS. Private isolated owner test only; public Cost/Allocation plugin contract NOT ADMITTED, EVO review PR 106 proposed.
 - PR #574 — MERGED_CI_PRODUCTION_PASS_BOUNDED: TR-01B2A governed Sales Work/Position read service for HUMAN/AI Principals using EVO public exact dimensioned Ledger+Work; CI [38014202340] PASS with isolated one-order authorization and unauthorized-order refusal, Platform 38014202293 PASS, continuity 38014202284 PASS, existing PostgreSQL 38014202326 PASS, TR-01A installed Chrome regression 38014202298 PASS. Merged 39109addd721c017cd6276c60ee4b3062ab3f6b7; Railway b0ff4777-17d6-4de0-bdda-7a02dbf39d6b SUCCESS. Stock qty=0 while raw amount=125 after shipment; valuation/COGS, installed sales UI and formal allocation NOT certified.
 - PR #571 — MERGED_CI_PRODUCTION_PASS_BOUNDED: TR-01B1 reused CUSTOMER Counterparty, Item and Warehouse in real EVO Sales→Production→Shipment→Cash public BusinessData chain. Platform 38013542321 PASS, Continuity 38013542307 PASS, PostgreSQL Sales Cash 38013542437 PASS, existing PostgreSQL 38013542399 PASS, installed TR01A browser regression 38013542531 PASS. Merged 301cf0a45e59591adcb6a33e6d30fb68a94db443; Railway 3add74b5-5ed9-4da7-ade4-bd5f7dbd8691 SUCCESS. Cash Account object and inventory valuation/COGS/Allocation remain unproven.
 - PR #567 — MERGED_INSTALLED_BROWSER_CI_PRODUCTION_CODE_PASS: Pinned real EVO PostgreSQL + immutable PO/Receipt/Reversal proof; installed optional Trading Reference/BI Workbench, scoped policy and mapping; actual Chrome Eidos Workbench→lookup→detail, separate AI Principal Host parity, forbidden order and deep link denial. Run 38012256000 PASS, existing DB CI 38012255964 PASS, continuity 38012255960 PASS, merged main 399cbf5838626583599b441e3992e03fef9102c5, Railway 5a03ab99-2731-4a0d-91e4-9daa8c33a7dc SUCCESS.
@@ -134,10 +141,10 @@ Not proved:
 - PR #498 — MERGED_CI_PRODUCTION_PASS: Added active-package Workbench contributions and deterministic Package -> Enterprise/role -> Personal composition; unauthorized preference items cannot expand authority.
 - PR #497 — MERGED_CI_PRODUCTION_PASS: Human UI and Personal Agent now share the same governed Counterparty My Customers/My Suppliers projection service and Capability Operations.
 - PR #493 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-05 deployed facet/profile composition was Human validated and is now closed; mainline advances to CP-06.
-- PR #492 — MERGED_CI_PRODUCTION_HUMAN_PASS: Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience.
 
 ## DO NOT repeat stale actions
 
+- TR-01B2B cost/replay CI DOES NOT expose a production cost or settlement public API. Never call private CostEngine or /demo/cost/recalculate from Host/Agent. Fixed versions of valuation policy, allocation policy, shipment valuation rule were mandatory. Formal customer receipt AllocationInstruction/Relation and Financial Account object remain UNPROVEN.
 - TR-01B2A real EVO proves Inventory quantity=0 but raw Ledger amount=125 after Shipment; do NOT claim Inventory Amount or COGS closed, and do NOT direct-write any balance. Sales read HUMAN/AI parity is service-level CI, NOT installed Host/Agent/Workbench.
 - Do not conflate TR-01B1 cash.received and cash Ledger increase with an enterprise financial/bank account Foundation Object or formal allocation; shipment quantity closes but Inventory Amount and COGS need separate proof.
 - Do not claim TR-01A reference acceptance proves customer production plugin install, actual customer login, Agent model reasoning, partial/concurrent reversal or a complete procurement product; #567 proves only real isolated installed Chrome/AI/Workbench acceptance.
