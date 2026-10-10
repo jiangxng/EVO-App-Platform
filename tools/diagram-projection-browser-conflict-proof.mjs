@@ -173,7 +173,62 @@ try {
       + 'document.querySelector("[data-eidos-diagram-status]")?.textContent)})()';
     return client.eval(expression);
   }
+
   await Promise.all([until(a,"Ready."),until(b,"Ready.")]);
+  // B6a: exercise real browser toolbar toggles and native mouse pointer capture.
+  // A grid-aligned drag is previewed and then cancelled, so the B7b persistence
+  // conflict test below retains its original saved-state baseline.
+  const snapProbe = await a.eval('(()=>{'
+    + 'const mode=key=>document.querySelector("[data-eidos-diagram-snap-mode="+key+"]");'
+    + 'const grid=mode("grid"),snap=mode("snap"),align=mode("align");'
+    + 'if(!grid||!snap||!align)throw Error("Missing B6a controls");'
+    + 'if(grid.getAttribute("aria-pressed")!=="true"||snap.getAttribute("aria-pressed")!=="false"'
+    + '||align.getAttribute("aria-pressed")!=="true")throw Error("Wrong B6a defaults");'
+    + 'const stage=document.querySelector("[data-eidos-diagram-node]")?.parentElement;'
+    + 'grid.click();if(stage.style.backgroundImage!=="none")throw Error("Grid not hidden");'
+    + 'mode("grid").click();if(stage.style.backgroundImage==="none")throw Error("Grid not restored");'
+    + 'mode("snap").click();mode("align").click();'
+    + 'if(mode("snap").getAttribute("aria-pressed")!=="true"'
+    + '||mode("align").getAttribute("aria-pressed")!=="false")throw Error("Grid snap and Align not independent");'
+    + 'const nodes=[...document.querySelectorAll("[data-eidos-diagram-node]")];'
+    + 'const node=nodes.find(n=>{const r=n.getBoundingClientRect();'
+    + 'return r.width>0&&r.left>=0&&r.top>=0&&r.left<innerWidth-30&&r.top<innerHeight-30})||nodes[0];'
+    + 'if(!node)throw Error("No nodes in browser");'
+    + 'const rect=node.getBoundingClientRect();'
+    + 'const scale=Number(stage.style.transform.match(/matrix\(([^,]+)/)?.[1]);'
+    + 'if(!(scale>0))throw Error("Invalid camera transform");'
+    + 'const worldX=Number.parseFloat(node.style.left);'
+    + 'const target=Math.round(worldX/24)*24+96;'
+    + 'window.__b6SnapNodeId=node.getAttribute("data-eidos-diagram-node");'
+    + 'window.__b6InitialX=worldX;'
+    + 'return {x:rect.left+Math.min(20,rect.width/4),y:rect.top+Math.min(20,rect.height/4),'
+    + 'target,worldX,delta:(target-worldX)*scale+2,scale};'
+    + '})()');
+  await a.send("Input.dispatchMouseEvent", {type:"mouseMoved",x:snapProbe.x,y:snapProbe.y});
+  await a.send("Input.dispatchMouseEvent", {type:"mousePressed",button:"left",clickCount:1,
+    x:snapProbe.x,y:snapProbe.y});
+  await a.send("Input.dispatchMouseEvent", {type:"mouseMoved",button:"left",
+    x:snapProbe.x+snapProbe.delta,y:snapProbe.y});
+  const snappedPreview = await a.eval('(()=>{'
+    + 'const node=document.querySelector("[data-eidos-diagram-node="+CSS.escape(window.__b6SnapNodeId)+"]");'
+    + 'return node?Number.parseFloat(node.style.left):NaN;})()');
+  assert.ok(Math.abs(snappedPreview-snapProbe.target)<.001,
+    "Native pointer drag should snap node to 24-unit world grid at "+snapProbe.scale);
+  await a.eval('(()=>{'
+    + 'const node=document.querySelector("[data-eidos-diagram-node="+CSS.escape(window.__b6SnapNodeId)+"]");'
+    + 'node.dispatchEvent(new PointerEvent("pointercancel",{bubbles:true,pointerId:1,pointerType:"mouse"}));'
+    + '})()');
+  await a.send("Input.dispatchMouseEvent", {type:"mouseReleased",button:"left",
+    x:snapProbe.x+snapProbe.delta,y:snapProbe.y});
+  const cancelProbe = await a.eval('(()=>{'
+    + 'const node=document.querySelector("[data-eidos-diagram-node="+CSS.escape(window.__b6SnapNodeId)+"]");'
+    + 'const guides=document.querySelectorAll("[data-eidos-diagram-snap-axis]");'
+    + 'document.querySelector("[data-eidos-diagram-snap-mode=snap]").click();'
+    + 'document.querySelector("[data-eidos-diagram-snap-mode=align]").click();'
+    + 'return {x:Number.parseFloat(node.style.left),guides:guides.length};})()');
+  assert.equal(cancelProbe.x,snapProbe.worldX,"pointercancel must roll back snapped preview");
+  assert.equal(cancelProbe.guides,0,"pointercancel must clear alignment guides");
+  assert.equal(store.getVersion(target),0,"preview/cancel must not persist projection");
   const hide = async (client, index) => client.eval('(()=>{'
     + 'const nodes=[...document.querySelectorAll("[data-eidos-diagram-node]")];'
     + 'if(nodes.length<2)throw Error("Need at least 2 nodes");'
@@ -220,7 +275,8 @@ try {
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 3, staleWriteBlocked: true,
+    browser: version.Browser, tabs: 3, nativeGridSnapCancelled: true,
+    independentGridModes: true, staleWriteBlocked: true,
     draftPreserved: true, savedAsNewProjection: true,
     transientFailurePreservesDraft: true, retrySaved: true,
     businessHistoryUnchanged: true
