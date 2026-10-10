@@ -1,7 +1,6 @@
 {
   "schemaVersion": "0.1.0",
   "observationSource": "Authorized Railway read-only connector; values of environment variables and secrets never read",
-  "observedAt": "2026-10-11T00:00:00Z",
   "project": "EVO Ledger Runtime MVP",
   "environment": "production",
   "services": [
@@ -58,5 +57,7 @@
   "signing": {},
   "chaos": {},
   "release": {},
-  "evidence": {}
+  "evidence": {},
+  "observedDate": "2026-10-11",
+  "exactObservationTime": "NOT_RECORDED"
 }
