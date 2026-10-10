@@ -1232,22 +1232,20 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         ) {
           throw new Error("DEFINITION_PROJECTION_REVISION_CONFLICT");
         }
-        // Legacy clients may omit the opaque token. New Eidos clients send it
-        // with every operation; in that case the store enforces exact CAS.
+        // Every projection mutation, including Save As and rename, must
+        // identify the presentation snapshot seen by the caller. Never mint a
+        // "current" token on behalf of a legacy request: that silently
+        // converts a stale blind write into a successful overwrite.
         const writeToken = request.values.expectedWriteToken;
-        if (writeToken !== undefined
-          && (typeof writeToken !== "string"
-            || !/^(0|[1-9][0-9]*)$/.test(writeToken)
-            || !Number.isSafeInteger(Number(writeToken)))) {
+        if (writeToken === undefined) {
+          throw new Error("DEFINITION_PROJECTION_WRITE_TOKEN_REQUIRED");
+        }
+        if (typeof writeToken !== "string"
+          || !/^(0|[1-9][0-9]*)$/.test(writeToken)
+          || !Number.isSafeInteger(Number(writeToken))) {
           throw new Error("DEFINITION_PROJECTION_WRITE_TOKEN_INVALID");
         }
-        const expectedProjectionVersion = writeToken === undefined
-          ? input.projectionStore.getVersion({
-              enterpriseId: latest.enterpriseId,
-              definitionId: latest.definitionId,
-              definitionRevision: latest.revision
-            })
-          : Number(writeToken);
+        const expectedProjectionVersion = Number(writeToken);
         await input.authorizeProjectionSave(context, {
           enterpriseId: scope.enterpriseId,
           definitionId: selection.definitionId,
