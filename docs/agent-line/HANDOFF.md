@@ -27,7 +27,7 @@ Document class: LIVING_RUNBOOK
 
 ## 下一步（无需重做研究）
 
-已核实#575准确head的仓库CI全部成功。下一步PA-01B处理版本化协助请求/结果与现有interactionContext/messageParts的兼容，不把小修复称作整个PA-01完成。PA-02生产迁移前补实际环境与恢复证据。
+已核实#575准确head的仓库CI全部成功。PA-01B1后端兼容契约已实现，见下方更新；下一步先核实#577 CI，再进入Eidos页面接入/dirty guard。PA-02生产迁移前补实际环境与恢复证据。
 
 ## 未完成/限制
 
@@ -52,3 +52,13 @@ Document class: LIVING_RUNBOOK
 - [Project Continuity CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014345295)：SUCCESS。
 
 因此首切片状态为 IMPLEMENTED_CI_PASS_NOT_MERGED_NOT_DEPLOYED；仍不等于完整PA-01或生产验收。实现分支中的静态证据文件原先写CI_PENDING，此处的准确head运行链接为后续验证记录，避免仅为状态文字反复触发实现分支CI。PR#575仍为Draft以明确等待集成，未阻断其他主线。
+
+## PA-01B1最新检查点
+
+PR [#577](https://github.com/jiangxng/EVO-App-Platform/pull/577)，分支 `agent/pa01b-assistance-contract-20261010`，head `15f059da4d841e2bc1b6b84b0171bb1be0827797`，叠加于#575（PR base是PA-01A分支，不是main）。
+
+后端已支持版本化assistanceRequest，沿现有thread.send执行；请求编号与clientTurnId绑定、来源与资源版本随Run保存、send/resume返回assistanceResult。旧入口兼容；重复请求仍比较完整任务身份。Run成功不代表业务写入成功，结果只引用真实receipt IDs。
+
+本地23/23目标集成测试通过（含新增13项），覆盖持久事件重建、调用方修改隔离、版本/身份字段/输入冲突/大小深度等。仓库CI待确认；未合并/部署。详细契约：[PA-01B1记录](https://github.com/jiangxng/EVO-App-Platform/blob/agent/pa01b-assistance-contract-20261010/docs/agent-line/PA01B1-ASSISTANCE-CONTRACT-20261010.md)。
+
+下一步PA-01B2：Eidos owner实现页面transport及source匹配/未保存输入保护，之后窄范围vendor消费。当前导入按钮仍走可用旧协议，不声称页面已经切换，也不自动刷新覆盖。不要把后端契约称为整个PA-01完成。
