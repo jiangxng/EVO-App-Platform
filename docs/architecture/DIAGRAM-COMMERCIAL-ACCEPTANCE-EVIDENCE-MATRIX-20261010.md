@@ -338,3 +338,10 @@
 - [Draft #612](https://github.com/jiangxng/EVO-App-Platform/pull/612)，叠加 B9a #611；**只修改真实浏览器 CI、测试与文档，不修改 runtime/Host/Agent/CAS/业务端点/TR-01**。
 - [Chrome 154 34-tab #38067528086 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067528086) 与 [Project Continuity #38067528091 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38067528091)：真实 App Handler 授权与投影 CAS Save、全新独立 Designer、正式只读 Enterprise Definition Viewer 各自查询 SVG 实际 `route-congested` hit paths、总体拥塞计数与非阻挡 role-note。该受控保存图三处 **0/0/0** 拥塞并正确无摘要，Viewer 无 Save；App 内存投影 Store CAS 版本 **4**，业务定义历史依然 **1**。这是「无假阳性、存取一致」的正当证据，**不是**非零拥塞保存/Viewer 证明，不能夸大。
 - 受控 App **内存** projection store 不是真实生产数据库，未测生产服务重启、跨企业权限/物理设备或全部 §14 **39 项正式人工验收**，均维持 **NOT TESTED**。详细证据：[B9b 专项文档](./DIAGRAM-B9B-APP-SAVED-VIEWER-CONGESTION-20261011.md)。
+
+
+## B9c｜只读 Viewer 非零拥塞显示的实际 App Source 正例（2026-10-11）
+
+- [Draft #614](https://github.com/jiangxng/EVO-App-Platform/pull/614)，基于 B9b #612；测试与 CI、文档变更，**不更改运行时/Host/Agent/CAS/TR-01**。
+- 新增 34 Tab Chrome 中的原生五条自环关系正例：从实际 SVG 得到 Designer 的 1 条 route-congested path、计数 1、一个 `role=note` 且 `pointer-events:none` 的摘要，并在真实 App Enterprise Definition readonly Viewer 中重新读取且一致，Viewer 没有 Save；本地草稿改线不得隐式写 Store。以 `B9C_POSITIVE_VIEWER_CONGESTION_RESULT` 对应同 head CI 日志确认 PASS。
+- **限制很重要**：此正例使用 App Source 测试包装读取时加入的自环，**没有**通过 App CAS Save 将它们存入投影 Store。B9b 则已有真实 CAS Save 后零拥塞的 0/0/0 证据。不能据两者谎称「非零拥塞 CAS Save→Viewer」已经验收。保留 §14 **39 项正式商用验收 NOT TESTED**，详见 [B9c 文档](./DIAGRAM-B9C-POSITIVE-VIEWER-CONGESTION-20261011.md)。
