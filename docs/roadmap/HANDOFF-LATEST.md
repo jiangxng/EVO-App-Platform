@@ -3,8 +3,8 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `tr01a-reference-installed-human-ai-workbench-ci-accepted-tr01b-ready-2026-10-10`  
-**Snapshot time:** `2026-10-10T01:17:04.512Z`  
+**Snapshot:** `tr01b1-sales-customer-item-warehouse-public-postgres-pass-tr01b2-open-2026-10-10`  
+**Snapshot time:** `2026-10-10T01:35:20.083Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
@@ -16,54 +16,54 @@ ACTIVE
 
 ## Latest closed live slice
 
-**tr01a-installed-governed-human-ai-workbench-reference: REFERENCE_ACCEPTED_INSTALLED_CI_PRODUCTION_CODE_PASS**
+**tr01b1-sales-production-shipment-customer-cash-public-reference: MERGED_CI_PRODUCTION_PASS_BOUNDED**
 
-TR-01A bounded purchase reference technical acceptance is complete: A1/A2 proved immutable Purchase Order→Receipt→full Receipt reversal and deterministic EVO posting/replay; A3–A5 registered a shared authorized EVO Work/Inventory Position/Payable read and optional Eidos Human/Workbench entry; A6 installed the actual plugins with a strictly scoped one-order test permission and explicit enterprise mapping, drove the Chrome Workbench→Eidos lookup→derived detail UI, and exercised the identical operation from a separate AI Principal Host against live EVO PostgreSQL. Unauthorized order and forged detail URL were rejected. This is a real isolated automated browser/reference acceptance plus production code deployment, NOT a customer production login, general procurement product, Agent LLM reasoning, partial reversal, settlement, or production policy rollout.
+TR-01B1 bounded inverse Sales-to-Cash positive reference is complete in isolated real EVO PostgreSQL via public APIs. The App Platform sales reference validates active CUSTOMER Counterparty role and Item/Warehouse identity, submits four immutable facts (sales_order.approved, production.completed, sales_shipment.created, cash.received) with explicit FULFILLS/REFERENCES links, and observes pending production/shipments/receivable Work changes plus Inventory quantity and Cash. Actual post-order quantities: pending production+10/pending shipment+10, receivable+1000; production raises Inventory quantity+10, shipment returns Inventory quantity to 0, same-currency full receipt closes receivable to 0 and increases Cash ledger by 1000, all order Work closes. 5/5 PR CI success and exact main production deploy. This does not certify shipment inventory valuation, COGS, formal settlement allocation, bank-account Foundation Object, FX, generalized replay, partial settlement or installed sales UI.
 
-Authority: `docs/roadmap/TR01A6-INSTALLED-HUMAN-AGENT-WORKBENCH-EVIDENCE-20261010.md`
+Authority: `docs/roadmap/TR01B1-SALES-SHIPMENT-CASH-REFERENCE-20261010.md`
 
 Evidence:
 
 ```json
 {
-  "a3Pr": 562,
-  "a4Pr": 564,
-  "a5Pr": 565,
-  "finalAcceptancePr": 567,
-  "finalAcceptanceHead": "ff758f219fd98b7a379778c362f9d7e1c0621d2c",
-  "mergedMain": "399cbf5838626583599b441e3992e03fef9102c5",
-  "installedEidosHumanAgentWorkbenchWorkflow": 38012256000,
-  "installedEidosHumanAgentWorkbenchCI": "PASS",
-  "existingTradingLiteEvoPostgresqlWorkflow": 38012255964,
-  "existingTradingLiteEvoPostgresqlCI": "PASS",
-  "continuityWorkflow": 38012255960,
+  "implementationPr": 571,
+  "verifiedHead": "3cd73208cd3654fd442c7eaf76207da222da8017",
+  "mergeCommit": "301cf0a45e59591adcb6a33e6d30fb68a94db443",
+  "platformCI": "PASS",
+  "platformWorkflowRun": 38013542321,
   "continuityCI": "PASS",
-  "proofMarker": "TR01A6_INSTALLED_HUMAN_AGENT_WORKBENCH_EVO_PROOF",
-  "browserWorkbenchToLookupToDetail": true,
-  "evoPostgresqlAndImmutableFullReversal": true,
-  "humanAiPrincipalActionHostParity": true,
-  "restrictedOrderAndDeepLinkDenied": true,
-  "productionDeploymentId": "5a03ab99-2731-4a0d-91e4-9daa8c33a7dc",
-  "productionDeploymentStatus": "SUCCESS",
-  "productionInstalledClientAcceptance": "NOT_CLAIMED",
-  "externalAgentModelReasoning": "NOT_CERTIFIED"
+  "continuityWorkflowRun": 38013542307,
+  "existingEvoPostgresqlCI": "PASS",
+  "existingEvoPostgresqlWorkflowRun": 38013542399,
+  "tr01aInstalledBrowserRegression": "PASS",
+  "tr01aInstalledBrowserWorkflowRun": 38013542531,
+  "salesCashPostgresqlCI": "PASS",
+  "salesCashPostgresqlWorkflowRun": 38013542437,
+  "exactJobProofMarker": "TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF",
+  "provedReceivableCloses": true,
+  "provedCashLedgerIncreases": true,
+  "inventoryQuantityAfterShipment": 0,
+  "inventoryValueAfterShipment": "NOT_CERTIFIED",
+  "financialAccountFoundationObject": "NOT_STARTED",
+  "railwayDeploymentId": "3add74b5-5ed9-4da7-ade4-bd5f7dbd8691",
+  "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**tr01b-sales-shipment-receivable-settlement-reference: READY_FOR_BOUNDED_DESIGN_NOT_STARTED**
+**tr01b2-cost-settlement-allocation-and-shared-operational-view: OPEN**
 
-TR-01A bounded reference technical gate is accepted with actual installed Chrome Human/AI/Workbench CI and deployed code. Begin only TR-01B inverse sales reference design and owned public-contract inventory, then Sales Order→Shipment→Inventory Position→Receivable→receipt/settlement evidence. Do not interpret CI fixture permissions as customer deployment; no duplicate ledger, Item/Warehouse authority, customer bank accounts or Cash Account object until real business pressure supports the semantics.
+TR-01B1 has a deployed public PostgreSQL positive Sales→Production→Shipment→Cash economic proof, but the full inverse reference is not accepted. Choose minimum TR-01B2 validation for shipment costing/Inventory Amount and COGS, proper source-target customer receipt settlement allocation, replay equivalence and derived Human/Agent/Workbench read for SHIP/COLLECT. Use existing EVO valuation/allocation/Work public contracts where supported and report unsupported public adapters explicitly. No new Cash Account Foundation Object or second ledger until those scenarios prove necessity.
 
 Acceptance:
 
-- Inventory existing EVO public sales/shipment/receivable/receipt-settlement commands, immutable BusinessData relations, WorkItems and ledger dimension filters; reuse existing Trading Lite only within its proven boundary.
-- Define minimal owner-correct Sales Order→Shipment→inventory ledger and receivable effects plus reversible/correctable immutable facts where supported; explicitly record missing EVO capabilities rather than inventing them.
-- Pressure Counterparty, Item and Warehouse stable public object references through the inverse business scenario without reopening completed foundation-object import.
-- Keep Human/AI/Workbench projections derived from EVO Work/Position; do not create a second inventory or cash ledger, do not conflate Cash Account master data with settlement journal accounts.
-- Gate claims on real PostgreSQL HTTP, deterministic replay, CI and actual deployment; preserve TR-01A limitations on partial/concurrent reversal and customer production rollout.
-- Keep parallel 2D Designer and open IT-01 research handoff branches isolated.
+- Confirm EVO public cost and valuation read-back before asserting inventory value/COGS after shipment; shipment quantity-only posting is not cost settlement.
+- Confirm whether existing public allocation/position APIs can link cash.received to the exact open receivable; a BusinessData REFERENCES link is not a formal AllocationInstruction.
+- Preserve correct same-currency receipt full-closure evidence; do not claim cross-currency FX, split or overpayments without independent tests.
+- Verify replay/deterministic rebuild against immutable exact App Platform-originated Sales/Production/Shipment/Receipt facts and links, or record a scoped EVO contract gap.
+- Reuse TR-01A governed Human/AI/Workbench projection pattern for pending_shipment, receivable, Inventory Position and Work with strict enterprise-order identity and deny-by-default policies; no full sales ERP UI.
+- Keep Counterparty/Item/Warehouse generic import and parallel Eidos 2D Designer unchanged, and defer financial account master-data object until a proven channel/bank account use case.
 
 ## Current production preview
 
@@ -72,8 +72,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `399cbf5838626583599b441e3992e03fef9102c5`
-- Deployment: `5a03ab99-2731-4a0d-91e4-9daa8c33a7dc`
+- Commit: `301cf0a45e59591adcb6a33e6d30fb68a94db443`
+- Deployment: `3add74b5-5ed9-4da7-ade4-bd5f7dbd8691`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -104,6 +104,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #571 — MERGED_CI_PRODUCTION_PASS_BOUNDED: TR-01B1 reused CUSTOMER Counterparty, Item and Warehouse in real EVO Sales→Production→Shipment→Cash public BusinessData chain. Platform 38013542321 PASS, Continuity 38013542307 PASS, PostgreSQL Sales Cash 38013542437 PASS, existing PostgreSQL 38013542399 PASS, installed TR01A browser regression 38013542531 PASS. Merged 301cf0a45e59591adcb6a33e6d30fb68a94db443; Railway 3add74b5-5ed9-4da7-ade4-bd5f7dbd8691 SUCCESS. Cash Account object and inventory valuation/COGS/Allocation remain unproven.
 - PR #567 — MERGED_INSTALLED_BROWSER_CI_PRODUCTION_CODE_PASS: Pinned real EVO PostgreSQL + immutable PO/Receipt/Reversal proof; installed optional Trading Reference/BI Workbench, scoped policy and mapping; actual Chrome Eidos Workbench→lookup→detail, separate AI Principal Host parity, forbidden order and deep link denial. Run 38012256000 PASS, existing DB CI 38012255964 PASS, continuity 38012255960 PASS, merged main 399cbf5838626583599b441e3992e03fef9102c5, Railway 5a03ab99-2731-4a0d-91e4-9daa8c33a7dc SUCCESS.
 - PR #565 — MERGED_35_CI_PRODUCTION_PASS: Added opt-in Eidos read-only purchase query/detail and permission-filtered Workbench operational entry using the A4 governed read; 35/35 CI PASS, Railway deployment 624d7723-45bb-4a03-a0fd-3ceecd930650 SUCCESS; actual installed browser certified later by #567.
 - PR #564 — MERGED_35_CI_PRODUCTION_PASS: Registered optional Trading Reference Capability Operation and Action Host with explicit enterprise-to-EVO mapping and deny-by-default policy; 35/35 CI PASS, Railway 588060a1-3945-4c18-9d7e-665b5b5fec7f SUCCESS.
@@ -133,10 +134,10 @@ Not proved:
 - PR #493 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-05 deployed facet/profile composition was Human validated and is now closed; mainline advances to CP-06.
 - PR #492 — MERGED_CI_PRODUCTION_HUMAN_PASS: Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience.
 - PR #491 — MERGED_CI_PRODUCTION_PASS: EffectiveObjectSchema semantic destinations route Data Import into Counterparty Profile/Contact/Address resources instead of flattening them into identity.
-- PR #488 — MERGED_CI_PRODUCTION_PASS: Established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile boundaries.
 
 ## DO NOT repeat stale actions
 
+- Do not conflate TR-01B1 cash.received and cash Ledger increase with an enterprise financial/bank account Foundation Object or formal allocation; shipment quantity closes but Inventory Amount and COGS need separate proof.
 - Do not claim TR-01A reference acceptance proves customer production plugin install, actual customer login, Agent model reasoning, partial/concurrent reversal or a complete procurement product; #567 proves only real isolated installed Chrome/AI/Workbench acceptance.
 - Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.
 - Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and currently PENDING.
