@@ -264,3 +264,17 @@
 **[实际测试证据]** Eidos #140 CI 通过；[App Diagram Integration CI 38012177672](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177672) 实际执行 `diagram-snapping-tools.test.mjs` 等共 **57/57 PASS**；[App Browser Conflict CI 38012177648](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012177648) 的真实 Chrome/154.0.8037.97 页面执行了 **三个节点多选、Align left、Undo 恢复全部原坐标且不写入投影**，机器输出 `groupAlignmentUndo=true`。B7b 多窗口保存/失败重试、B6a 自适应网格测试未回归。这是实际 DOM/ActionHost 自动验证，不是正式跨设备验收。
 
 **[未覆盖与下一步]** B6b 现有路径手柄吸附具有纯算法与 Surface 静态测试，但尚未证明真实 Chrome 鼠标/指触路径手柄完整拖动；自动正交路由段编辑、实体 iOS/Android/触控板手势、密集图性能和原 §14 完整 39 项仍待完成。保持原研究与决策不变；新增反馈不需要更改 v1.0 原始确认方案。
+
+---
+
+## 2026-10-10 B6b 路径手柄真实鼠标证据与优先级修复
+
+**[本次新证据源：实际 Github CI + Chrome DOM 事件]** 继承上文 S1–S7 的历史外部资料，不将网页链接冒充本窗口重读的原文。B6b 的工程结论来自直接比较 Eidos/App Platform 的 Surface 源码、真实浏览器测试失败及修复后的成功日志。
+
+**[发现]** 在 [App Platform B6b Draft #568](https://github.com/jiangxng/EVO-App-Platform/pull/568) 的第四 Chrome 标签页中，原 B5a Surface 先绘制 44px waypoint、后绘制 44px segment hit circle；两热区重叠时 pointer 命中后绘制的 segment，令用户无法抓取 waypoint。由真实 `document.elementFromPoint` 诊断，而非猜测。此不要求更改图形设计或缩小热区。
+
+**[工程修复]** [Eidos Draft #140](https://github.com/jiangxng/eidos/pull/140) 与 App #568 均将正交段目标绘制在 waypoint 前，保证 explicit waypoint 获得上层指针优先级；两者仍为 44 CSS px 热区。新增测试验证源码顺序，保持手势取消/回滚与 Host 保存逻辑不变。
+
+**[实测通过]** [Chrome Browser Conflict CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) 成功运行 Chrome `154.0.8037.97`，四个独立标签页。新增第四标签页真实选择一条业务关系、切为正交路由、添加一个手工 waypoint，使用 **原生鼠标 press/move/release** 拖动 SVG 44px 控制柄到网格位置，释放后 Undo，再重新选中关系校验原 waypoint 恢复；投影 Store 版本未发生隐式递增。机器日志包含 `nativeRouteHandleSnapAndUndo=true`；之前三窗口 CAS/另存/HTTP 503 与三节点对齐 Undo 的测试同时通过。
+
+**[边界]** E03 已有 manual waypoint 原生 Chrome 子场景证据，但未实测正交线段本身原生拖动、实体触摸/触控板、真实 500/1000 图规模和 Viewer 保存往返，原 §14 的完整 E03/39 项继续标记 NOT TESTED。该新增证据与实现决定已写入 App #568 的 `DIAGRAM-B6B-HANDLES-ARRANGEMENT-INTEGRATION-20261010.md` 及证据矩阵。
