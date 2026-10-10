@@ -20,7 +20,14 @@ import {
   type DiagramEdgePathKindV010
 } from "./edge-paths.js";
 import { diagramNodesIntersectingRectV010 } from "./selection.js";
-import { diagramSnapTranslationV010, diagramGridStepV010, type DiagramSnapTranslationV010 } from "./snapping.js";
+import {
+  diagramSnapTranslationV010,
+  diagramSnapHandleOffsetV010,
+  diagramArrangeNodesV010,
+  diagramGridStepV010,
+  type DiagramArrangeModeV010,
+  type DiagramSnapTranslationV010
+} from "./snapping.js";
 import {
   diagramEdgeAnchorPointV010,
   diagramManualEdgeGeometryV010,
@@ -1753,6 +1760,53 @@ export function mountDiagramEditorPageV010(
     );
   };
 
+  const applyLocalArrangement = (mode: DiagramArrangeModeV010): void => {
+    if (!state || page.viewInteraction?.localNodeDrag !== true) return;
+    const nodes = state.nodes.filter(node =>
+      selectedNodeIds.has(node.id) && !locallyHiddenNodeIds.has(node.id));
+    try {
+      const arranged = diagramArrangeNodesV010(
+        nodes.map(node => ({
+          id: node.id, x: node.x, y: node.y, width: node.width, height: node.height
+        })),
+        mode,
+        selected?.kind === "node" ? selected.id : undefined
+      );
+      const positions = new Map(arranged.map(node => [node.id, node] as const));
+      if (!nodes.some(node => {
+        const target = positions.get(node.id)!;
+        return target.x !== node.x || target.y !== node.y;
+      })) {
+        report("Nodes are already arranged in this alignment.");
+        return;
+      }
+      checkpoint();
+      const before = new Map(nodes.map(node => [node.id, { x: node.x, y: node.y }] as const));
+      for (const node of nodes) {
+        const target = positions.get(node.id)!;
+        node.x = target.x;
+        node.y = target.y;
+      }
+      // Only translate explicit manual controls when both terminals moved by
+      // the same vector. Otherwise user-defined path controls remain fixed.
+      for (const edge of state.edges) {
+        if (!edge.waypoints?.length) continue;
+        const from = before.get(edge.source), to = before.get(edge.target);
+        if (!from || !to) continue;
+        const source = positions.get(edge.source)!, target = positions.get(edge.target)!;
+        const dx = source.x - from.x, dy = source.y - from.y;
+        if (dx === target.x - to.x && dy === target.y - to.y) {
+          edge.waypoints = diagramTranslateWaypointsV010(edge.waypoints, dx, dy);
+        }
+      }
+      followsFitToCanvas = false;
+      render();
+      report("Selected nodes arranged locally. Save the view to persist.");
+    } catch (error) {
+      report(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const renderActions = (): void => {
     toolbar.replaceChildren();
     viewControls.replaceChildren();
@@ -1834,6 +1888,33 @@ export function mountDiagramEditorPageV010(
       if (placement === "OVERFLOW") overflowButtons.push(button);
       else toolbar.appendChild(button);
     };
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      // Real commands, unlike passive guide/grid switches: exactly one undo
+      // checkpoint and no Host business write until explicit projection Save.
+      const modes: Array<{ mode: DiagramArrangeModeV010; title: string; min: number }> = [
+        { mode: "left", title: "Align left edges", min: 2 },
+        { mode: "center-x", title: "Align horizontal centers", min: 2 },
+        { mode: "right", title: "Align right edges", min: 2 },
+        { mode: "top", title: "Align top edges", min: 2 },
+        { mode: "center-y", title: "Align vertical centers", min: 2 },
+        { mode: "bottom", title: "Align bottom edges", min: 2 },
+        { mode: "distribute-x", title: "Distribute with equal horizontal gaps", min: 3 },
+        { mode: "distribute-y", title: "Distribute with equal vertical gaps", min: 3 }
+      ];
+      if (selectedNodeIds.size >= 2) {
+        for (const command of modes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = command.title;
+          button.title = command.title + " (local presentation only)";
+          button.disabled = selectedNodeIds.size < command.min;
+          button.setAttribute("data-eidos-diagram-arrange", command.mode);
+          button.onclick = () => applyLocalArrangement(command.mode);
+          placeToolbarButton(button, "OVERFLOW");
+        }
+      }
+    }
 
     for (const action of page.toolbarActions ?? []) {
       const button = document.createElement("button");
@@ -2670,6 +2751,18 @@ export function mountDiagramEditorPageV010(
       const rendered = liveEdges.get(edge.id);
       if (!rendered || !edge.waypoints?.length || !edge.pathKind) continue;
       const original = edge.waypoints.map(point => ({ ...point }));
+      // Build snap targets once per route selection, not on every pointermove.
+      const snapReferences = [
+        ...renderedNodes.map(node => ({
+          id: "node:" + node.id, x: node.x, y: node.y,
+          width: node.width, height: node.height
+        })),
+        ...renderedEdges.filter(other => other.id !== edge.id)
+          .flatMap(other => (other.waypoints ?? []).map((point, index) => ({
+            id: "route:" + other.id + ":" + index,
+            x: point.x, y: point.y, width: 0, height: 0
+          })))
+      ];
       const previewRoute = (points: { x: number; y: number }[]): void => {
         const geometry = diagramManualEdgeGeometryV010(start, end, {
           pathKind: edge.pathKind!, waypoints: points,
@@ -2750,6 +2843,7 @@ export function mountDiagramEditorPageV010(
             if (!active) return;
             active = false;
             resetPreview();
+            drawSnapGuides();
             if (isTouch && navigationPointers.size < 2) navigationPointers.delete(pointerId);
             cleanup();
           };
@@ -2764,18 +2858,26 @@ export function mountDiagramEditorPageV010(
             const px = move.clientX - downX, py = move.clientY - downY;
             if (!moved && Math.hypot(px, py) < (isTouch ? 8 : 4)) return;
             try {
+              const snap = diagramSnapHandleOffsetV010(
+                { x, y }, px / camera.scale, py / camera.scale,
+                kind === "point" ? "both" : axis!,
+                snapReferences,
+                { scale: camera.scale, tolerancePx: 6, gridSize: 24,
+                  alignToNodes: alignmentGuidesEnabled, snapToGrid: gridSnapEnabled }
+              );
               const next = kind === "point"
-                ? diagramMoveWaypointV010(original, index, px / camera.scale, py / camera.scale)
+                ? diagramMoveWaypointV010(original, index, snap.dx, snap.dy)
                 : diagramDragOrthogonalSegmentV010(
                     start, end,
                     { pathKind: edge.pathKind!, waypoints: original },
-                    index, (axis === "x" ? px : py) / camera.scale
+                    index, axis === "x" ? snap.dx : snap.dy
                   );
               previewRoute(next);
               current = next;
               moved = true;
-              const nextX = x + (kind === "point" || axis === "x" ? px / camera.scale : 0);
-              const nextY = y + (kind === "point" || axis === "y" ? py / camera.scale : 0);
+              drawSnapGuides(snap);
+              const nextX = x + (kind === "point" || axis === "x" ? snap.dx : 0);
+              const nextY = y + (kind === "point" || axis === "y" ? snap.dy : 0);
               marker.setAttribute("cx", String(nextX));
               marker.setAttribute("cy", String(nextY));
               target.setAttribute("cx", String(nextX));
@@ -2791,6 +2893,7 @@ export function mountDiagramEditorPageV010(
             active = false;
             if (isTouch) navigationPointers.delete(pointerId);
             cleanup();
+            drawSnapGuides();
             suppressNextCanvasClick = true;
             window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
             if (!moved) return;
