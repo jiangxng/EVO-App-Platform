@@ -272,3 +272,7 @@ TR-01A's original acceptance criterion 6 calls for shared governed **Human/Agent
 The next bounded gate is to inventory existing owned Work/Projection/Workbench capabilities, prove or implement the missing authorized consumption, and record relevant CI / production / Human evidence. TR-01B remains **PLANNED_NOT_STARTED** until this remaining acceptance is evaluated and closed.
 
 Also excluded: generalized partial/multiple reversal, concurrency-safe over-reversal prevention, and public read-back verification of original receipt cost. These require a separate authoritative receipt query/idempotency and remaining-quantity design before a generic correction UX can claim readiness.
+
+### TR-01A2 replay CI hardening / latest production
+
+After #557 was deployed, App Platform PR #559 merged a stricter cross-project CI step executing pinned EVO `validate:tr01-purchase-receipt-reversal` after the public HTTP economic proof. PR #559 head `2ebaf57c596075d04193e7688d6e1f28d0be2ea4` passed Platform CI `38008484986`, Project Continuity CI `38008484991` and Cross Project PostgreSQL CI `38008484982`; main merge `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b` deployed at Railway `11ee6c04-6845-474c-b56b-d8b7b84ea015` SUCCESS. The latest production source therefore includes an explicit **enforced** EVO deterministic reversal replay CI gate; TR-01A operational view acceptance remains OPEN.
