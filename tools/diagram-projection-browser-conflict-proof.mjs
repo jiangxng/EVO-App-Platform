@@ -16,6 +16,11 @@ import { createMemoryDefinitionProjectionSessionStoreV010 } from "../dist/contra
 import { createEnterpriseDefinitionProjectionEditorPageV010, createEnterpriseDefinitionProjectionEditorActionHandlersV010 } from "../dist/apps/eog-2d-designer/definition-projection-editor.js";
 import { ledgerRuntimeBaselineBundleV010 } from "../dist/apps/template-store/seed-records.js";
 import { renderDiagramEditorPageShellToHtmlV010 } from "../dist/vendor/eidos/src/diagram/surface.js";
+import { renderDiagramWorkspacePageShellToHtmlV010 } from "../dist/vendor/eidos/src/diagram/workspace.js";
+import {
+  createEnterpriseDefinition2dPreviewPageV010,
+  createEnterpriseDefinition2dPreviewReadActionV010
+} from "../dist/apps/eog-2d-viewer/definition-preview.js";
 
 const chrome = process.env.CHROME;
 assert.ok(chrome, "CHROME must identify an installed Chromium executable");
@@ -86,6 +91,24 @@ const routePage={...page,
 const routeHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(routePage))
   .replace("window.__page="+JSON.stringify(page),
     "window.__page="+JSON.stringify(routePage));
+// B8b: mount the genuine read-only Enterprise Definition Viewer workspace
+// against the very same persisted Store and business artifact source.
+const viewerPage=createEnterpriseDefinition2dPreviewPageV010({
+  ...target,title:"Browser B8b saved projection",camera:routePage.initialCamera
+});
+const viewerShell=renderDiagramWorkspacePageShellToHtmlV010(viewerPage);
+const viewerHtml='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main id="root">'
+  +viewerShell+'</main><script>window.__page='+JSON.stringify(viewerPage)
+  +';window.__browserErrors=[];window.addEventListener("error",e=>window.__browserErrors.push(e.message));'
+  +'window.addEventListener("unhandledrejection",e=>window.__browserErrors.push(String(e.reason)));'
+  +'</script><script type="module">import {mountDiagramWorkspacePageV010} from "/dist/vendor/eidos/src/diagram/workspace.js";'
+  +'const tab=new URL(location.href).searchParams.get("session");'
+  +'const actionHost={async execute(request){const response=await fetch("/action?session="+encodeURIComponent(tab),'
+  +'{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
+  +'if(!response.ok)throw Error("HTTP "+response.status);return response.json();}};'
+  +'window.__mounted=mountDiagramWorkspacePageV010({definition:window.__page,container:document.getElementById("root"),actionHost});'
+  +'</script></body></html>';
+const viewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({source});
 
 const context = tab => ({
   contractVersion: "0.1.0",
@@ -110,6 +133,9 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/route") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(routeHtml); return;
     }
+    if (url.pathname === "/viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(viewerHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -119,7 +145,7 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const handler = handlers.find(h => h.commandCode === request.command?.code);
+      const handler = [...handlers,viewerReadHandler].find(h => h.commandCode === request.command?.code);
       if (!handler) throw Error("Unknown action: " + request.command?.code);
       const result = await handler.execute(request, context(url.searchParams.get("session") ?? "A"));
       res.writeHead(200, { "content-type": "application/json" });
@@ -168,7 +194,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f;
+let proc, a, b, c, d, e, f, g, h;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -213,8 +239,10 @@ try {
   const api = "http://127.0.0.1:" + debugPort;
   const version = await (await fetch(api + "/json/version")).json();
   async function tab(id, route = false) {
+    const path = route === "viewer" ? "/viewer?session="
+      : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
-      address + (route ? "/route?session=" : "/?session=") + id),
+      address + path + id),
       { method: "PUT" });
     assert.ok(response.ok, "Chrome target create failed");
     const targetInfo = await response.json();
@@ -620,7 +648,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
