@@ -1419,8 +1419,33 @@ try {
   assert.equal(labelProbe.congested,false,
     "B8i label-only fallback has a free side, not an obstruction flag");
   assert.equal(store.getVersion(target),7,"B8i reads and cancelled gestures cannot write");
+
+  // B8j+B8k: actual Chrome native SVG render of a *different* curved
+  // relation plus its synthetic self relation. No Save or semantic graph edit.
+  aa=await tab("AA","precise-ink");
+  await until(aa,"Ready.");
+  const precise=await aa.eval("(()=>{\n const id=__LOOP__,other=__OTHER__;\n const actual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(other)+\"]\");\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!actual||!edge)throw Error(\"B8j true cubic render or synthetic self edge missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const handle=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n if(!visual||!handle)throw Error(\"B8j free-side cubic handle missing\");\n const box=handle.getBoundingClientRect(),x=box.left+box.width/2,y=box.top+box.height/2;\n if(document.elementFromPoint(x,y)!==handle)\n   throw Error(\"B8j true curved obstacle blocks free-side control\");\n const midpoint=actual.getPointAtLength(actual.getTotalLength()/2);\n const m=/^M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)/.exec(visual.getAttribute(\"d\"));\n return {other:actual.getAttribute(\"d\"),self:visual.getAttribute(\"d\"),\n   startY:Number(m?.[2]),midpointX:midpoint.x,\n   radius:handle.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n   congested:edge.hasAttribute(\"data-eidos-diagram-route-congested\")};\n})()".replaceAll("__LOOP__",JSON.stringify(inkSelfId)).replaceAll("__OTHER__",JSON.stringify(inkRelationId)));
+  assert.match(precise.other,/ C /,
+    "B8j must source the unrelated ink from an actually rendered cubic");
+  assert.match(precise.self,/ C /);
+  assert.equal(precise.startY,selfNode.y+selfNode.height,
+    "A nonincident curved stroke at right redirects the automatic loop to bottom");
+  assert.ok(precise.midpointX>selfNode.x+selfNode.width,
+    "Rendered cubic must actually bulge to the right of the node");
+  assert.equal(precise.radius,"22","B8j may not reduce 44px hit area");
+  assert.equal(precise.congested,false);
+  ab=await tab("AB","precise-ink-viewer");
+  await until(ab,"Ready.");
+  const preciseView=await ab.eval("(()=>{\n const ids=[__LOOP__,__OTHER__];\n return {paths:ids.map(id=>document.querySelector(\n    \"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\")),\n   edits:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n   save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n     .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replaceAll("__LOOP__",JSON.stringify(inkSelfId)).replaceAll("__OTHER__",JSON.stringify(inkRelationId)));
+  assert.deepEqual(preciseView.paths,[precise.self,precise.other],
+    "Actual readonly Viewer must match both rendered cubic and self-loop SVG paths");
+  assert.equal(preciseView.edits,0);
+  assert.equal(preciseView.save,false);
+  assert.equal(store.getVersion(target),7,
+    "B8j/B8k geometry and index cannot mutate projection CAS");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 26,
+    browser: version.Browser, tabs: 28,
+    b8jkRenderedCubicInkIndexedViewer: true,
     b8iEdgeAndLabelAvoidanceNativeViewer: true,
     b8hMultiLoopCongestionNativePointerViewer: true,
     b8gNativeBlockedSideSaveReadViewer: true,
