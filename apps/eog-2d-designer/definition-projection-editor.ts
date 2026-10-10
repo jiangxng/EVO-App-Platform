@@ -338,11 +338,14 @@ function editorState(input: {
   saved?: boolean;
   notice?: string;
   isPrimary?: boolean;
+  projectionWriteVersion?: number;
 }): DiagramWorkspaceStateV010 {
   const text = textFor(input.locale);
   const diagram = input.artifact.diagram2d;
   return {
     contractVersion: "0.1.0",
+    // A presentation write is independent of a business-definition revision.
+    writeToken: String(input.projectionWriteVersion ?? 0),
     resourceId:
       `enterprise-definition:${input.artifact.enterpriseId}:${input.artifact.definitionId}@${input.artifact.definitionRevision}`
       + (input.artifact.projectionId ? `#${input.artifact.projectionId}` : ""),
@@ -1141,6 +1144,11 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         return success(request, editorState({
           artifact,
           locale: input.locale?.(context),
+          projectionWriteVersion: input.projectionStore.getVersion({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision
+          }),
           isPrimary:
             projectionGallery?.primaryProjectionId
             === selection.projectionId
@@ -1224,6 +1232,22 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         ) {
           throw new Error("DEFINITION_PROJECTION_REVISION_CONFLICT");
         }
+        // Legacy clients may omit the opaque token. New Eidos clients send it
+        // with every operation; in that case the store enforces exact CAS.
+        const writeToken = request.values.expectedWriteToken;
+        if (writeToken !== undefined
+          && (typeof writeToken !== "string"
+            || !/^(0|[1-9][0-9]*)$/.test(writeToken)
+            || !Number.isSafeInteger(Number(writeToken)))) {
+          throw new Error("DEFINITION_PROJECTION_WRITE_TOKEN_INVALID");
+        }
+        const expectedProjectionVersion = writeToken === undefined
+          ? input.projectionStore.getVersion({
+              enterpriseId: latest.enterpriseId,
+              definitionId: latest.definitionId,
+              definitionRevision: latest.revision
+            })
+          : Number(writeToken);
         const currentProjectionGallery = input.projectionStore.get({
           enterpriseId: latest.enterpriseId,
           definitionId: latest.definitionId,
@@ -1240,6 +1264,13 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           definitionRevision: latest.revision
         });
 
+        // Authorization can await. Never commit against an already superseded
+        // business-definition revision after the permission check resolves.
+        if (input.repository.getLatest({
+          enterpriseId: latest.enterpriseId, definitionId: latest.definitionId
+        })?.revision !== expectedRevision) {
+          throw new Error("DEFINITION_PROJECTION_REVISION_CONFLICT");
+        }
         const locale = input.locale?.(context);
         const rename = operationType === "RENAME_PROJECTION";
         const saveAs = operationType === "SAVE_PROJECTION_AS_NEW";
@@ -1300,14 +1331,14 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
         }
         const projectionGallery = nextProjection.gallery;
         const recordedAt = now().toISOString();
-        input.projectionStore.put({
+        const committed = input.projectionStore.putIfVersion({
           enterpriseId: latest.enterpriseId,
           definitionId: latest.definitionId,
           definitionRevision: latest.revision,
           gallery: projectionGallery,
           updatedAt: recordedAt,
           updatedBySubjectId: context.principal.subjectId
-        });
+        }, expectedProjectionVersion);
 
         const nextSelection: DefinitionProjectionSelectionV010 = {
           contractVersion: "0.1.0",
@@ -1333,6 +1364,7 @@ export function createEnterpriseDefinitionProjectionEditorActionHandlersV010(
           ...editorState({
             artifact,
             locale,
+            projectionWriteVersion: committed.version,
             saved: true,
             notice: rename
               ? textFor(locale).renamed
