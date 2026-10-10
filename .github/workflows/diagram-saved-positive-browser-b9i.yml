@@ -1,0 +1,43 @@
+name: Diagram B9i Saved Positive Congestion Chrome CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-saved-positive-browser-proof-b9i.mjs"
+      - ".github/workflows/diagram-saved-positive-browser-b9i.yml"
+      - "vendor/eidos/src/diagram/**"
+      - "apps/eog-2d-designer/**"
+      - "apps/eog-2d-viewer/**"
+      - "providers/enterprise-context/definition-projection-store.ts"
+  push:
+    branches:
+      - "feat/diagram-commercial-saved-positive-browser-b9i-20261011"
+
+jobs:
+  saved-positive-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: B9i real Chrome CAS-saved positive Viewer DOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Real Chrome binary missing" >&2; exit 1; fi
+          export CHROME
+          node tools/diagram-saved-positive-browser-proof-b9i.mjs | tee /tmp/diagram-b9i-saved-positive.log
+          grep -q 'B9I_SAVED_POSITIVE_CHROME_RESULT=' /tmp/diagram-b9i-saved-positive.log
+      - name: Retain concrete B9i browser proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b9i-saved-positive-chrome-dom
+          path: /tmp/diagram-b9i-saved-positive.log
+          if-no-files-found: ignore
