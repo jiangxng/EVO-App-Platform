@@ -88,3 +88,24 @@ test("B8g Surface passes visible obstacle geometry into both Designer and Viewer
   assert.match(s,/diagramSelfLoopGeometryV010\(source, edge\.pathKind, lane, points,/);
   assert.match(s,/renderedNodes\.filter\(other => other\.id !== edge\.source\)/);
 });
+
+test("B8g spatial neighborhood and full obstacle scan give identical sides",async()=>{
+  const {createDiagramObstacleSpatialIndexV010}=await import(
+    "../../dist/vendor/eidos/src/diagram/obstacle-spatial-index.js");
+  const nodes=[
+    {id:"self",...source},
+    {id:"right",...rightBlock},
+    {id:"bottom",...bottomBlock},
+    {id:"far",x:5000,y:5000,width:40,height:40},
+    {id:"large",x:-4000,y:source.y+15,width:4080,height:50}
+  ];
+  const index=createDiagramObstacleSpatialIndexV010(nodes);
+  const near=index.near({x:source.x,y:source.y},
+    {x:source.x+source.width,y:source.y+source.height},"self","self");
+  assert.equal(diagramSelfLoopSideV010(source,near),
+    diagramSelfLoopSideV010(source,nodes.slice(1)),
+    "B8g large-graph shortcut must not miss near or enormous blocking nodes");
+  const s=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
+  assert.match(s,/loopReach \+ 22 <= 134/);
+  assert.match(s,/spatialObstacles\.near\(\{ x: source\.x, y: source\.y \}/);
+});
