@@ -263,3 +263,130 @@ test("TR-01A fails before EVO submission when Item or Warehouse authority is abs
 
   assert.equal(state.submissions.length, 0);
 });
+
+test("TR-01A2 composes an immutable receipt-reversal fact with REVERSES lineage", async () => {
+  const state = setup();
+  state.roles.assign({
+    contextId: state.contextId,
+    counterpartyId: "cp-supplier-1",
+    roleCode: "SUPPLIER",
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-10T00:01:00.000Z"
+  });
+
+  const purchase = await state.service.approvePurchaseOrder({
+    target,
+    selection: selection(state.contextId),
+    orderNo: "PO-REV-001",
+    quantity: 10,
+    unitPrice: "12.50",
+    totalAmount: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T01:00:00.000Z",
+    correlationId: "TR01:PO-REV-001",
+    idempotencyKey: "tr01:po:rev:001"
+  });
+  const receipt = await state.service.receivePurchaseOrder({
+    target,
+    selection: selection(state.contextId),
+    purchaseBusinessDataId: purchase.submission.businessDataId,
+    orderNo: "PO-REV-001",
+    receiptNo: "GR-REV-001",
+    quantity: 10,
+    totalCost: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T02:00:00.000Z",
+    correlationId: "TR01:GR-REV-001",
+    idempotencyKey: "tr01:gr:rev:001"
+  });
+  const priorFacts = structuredClone(state.submissions);
+
+  const reversal = await state.service.reversePurchaseReceipt({
+    target,
+    selection: selection(state.contextId),
+    receiptBusinessDataId: receipt.submission.businessDataId,
+    originalReceiptNo: "GR-REV-001",
+    reversalNo: "GRR-REV-001",
+    orderNo: "PO-REV-001",
+    quantity: 10,
+    totalCost: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T03:00:00.000Z",
+    correlationId: "TR01:GRR-REV-001",
+    idempotencyKey: "tr01:grr:rev:001"
+  });
+  assert.equal(reversal.submission.businessDataId, "bd-3");
+  assert.deepEqual(state.submissions.slice(0, 2), priorFacts);
+  const newFact = state.submissions[2];
+  assert.equal(newFact.applicationId, "inventory_movement");
+  assert.equal(newFact.businessDataType, "goods_receipt.reversed");
+  assert.equal(newFact.businessObjectKey, "GRR-REV-001");
+  assert.equal(newFact.causationId, receipt.submission.businessDataId);
+  assert.deepEqual(newFact.relation, {
+    fromBusinessDataId: receipt.submission.businessDataId,
+    relationType: "REVERSES"
+  });
+  assert.equal(newFact.payload.movementType, "PURCHASE_RECEIPT_REVERSAL");
+  assert.equal(newFact.payload.originalReceiptNo, "GR-REV-001");
+  assert.equal(newFact.payload.quantity, 10);
+  assert.equal(newFact.payload.totalCost, "125.00");
+  assert.equal(newFact.payload.supplier, "cp-supplier-1");
+  assert.equal(newFact.payload.productId, "item-1");
+  assert.equal(newFact.payload.warehouse, "warehouse-1");
+  assert.equal("payableBalance" in newFact.payload, false);
+  assert.equal("inventoryQuantity" in newFact.payload, false);
+});
+
+test("TR-01A2 rejects invalid reversal identity, quantity and negative cost before EVO write", async () => {
+  const state = setup();
+  state.roles.assign({
+    contextId: state.contextId,
+    counterpartyId: "cp-supplier-1",
+    roleCode: "SUPPLIER",
+    actorSubjectId: "owner",
+    recordedAt: "2026-10-10T00:01:00.000Z"
+  });
+  const basic = {
+    target,
+    selection: selection(state.contextId),
+    receiptBusinessDataId: "bd-existing-receipt",
+    originalReceiptNo: "GR-ORIGINAL",
+    reversalNo: "GRR-001",
+    orderNo: "PO-001",
+    quantity: 10,
+    totalCost: "125.00",
+    currency: "CNY",
+    effectiveAt: "2026-10-10T03:00:00.000Z",
+    correlationId: "TR01:GRR-001",
+    idempotencyKey: "tr01:grr:001"
+  };
+  await assert.rejects(
+    state.service.reversePurchaseReceipt({
+      ...basic,
+      receiptBusinessDataId: ""
+    }),
+    /TRADING_REFERENCE_RECEIPT_BUSINESS_DATA_REQUIRED/
+  );
+  await assert.rejects(
+    state.service.reversePurchaseReceipt({
+      ...basic,
+      reversalNo: "GR-ORIGINAL"
+    }),
+    /TRADING_REFERENCE_REVERSAL_IDENTITY_CONFLICT/
+  );
+  await assert.rejects(
+    state.service.reversePurchaseReceipt({
+      ...basic,
+      quantity: -10
+    }),
+    /TRADING_REFERENCE_QUANTITY_INVALID/
+  );
+  await assert.rejects(
+    state.service.reversePurchaseReceipt({
+      ...basic,
+      totalCost: "-125.00"
+    }),
+    /TRADING_REFERENCE_REVERSAL_COST_NEGATIVE/
+  );
+  assert.equal(state.submissions.length, 0);
+});
