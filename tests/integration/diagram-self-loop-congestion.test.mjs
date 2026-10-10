@@ -91,7 +91,7 @@ test("B8h existing manual exterior route remains pinned despite sibling reservat
 test("B8h Canvas/Viewer use side reservation and nonblocking warning",async()=>{
   const s=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
   assert.match(s,/siblings.sort\(\(a,b\) => a.id.localeCompare\(b.id\)\)/);
-  assert.match(s,/loopReservedSides\.set\(edge.id, \[\.\.\.reserved\]\)/);
+  assert.match(s,/loopReservedSides\.set\(edge.id,\s*\[\.\.\.reserved\]\)/);
   assert.match(s,/const reserved: DiagramSelfLoopSideV010\[\] = ordered/);
   assert.match(s,/\.filter\(edge => edge\.waypoints\?\.length\)/);
   assert.match(s,/diagramSelfLoopManualSideV010\(node,edge\.waypoints!\)/);
