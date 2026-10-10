@@ -1,0 +1,49 @@
+name: Diagram Performance Evidence CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-performance-browser-proof.mjs"
+      - "vendor/eidos/src/diagram/**"
+      - ".github/workflows/diagram-performance-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagram-perf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chrome-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - name: Real Chromium full-DOM stress at 200/400 and 500/1000
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "Chrome is required. P01 performance evidence cannot be skipped" >&2
+            exit 1
+          fi
+          export CHROME
+          node tools/diagram-performance-browser-proof.mjs | tee /tmp/diagram-p01-results.log
+          grep -q "^P01_BROWSER_RESULT=" /tmp/diagram-p01-results.log
+          echo '### P01 synthetic real-Chromium evidence' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Measured on shared CI runner; **not** physical-device FPS or SLA.' >> "$GITHUB_STEP_SUMMARY"
+          grep '^P01_CASE=' /tmp/diagram-p01-results.log >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p01-chromium-metrics
+          path: /tmp/diagram-p01-results.log
+          if-no-files-found: ignore
