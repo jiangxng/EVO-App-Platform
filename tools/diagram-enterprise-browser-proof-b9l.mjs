@@ -185,7 +185,7 @@ const server=createServer(async(req,res)=>{
    res.end(bytes);return;
   }
   res.writeHead(404);res.end("Not found");
- }catch(error){res.writeHead(500);res.end(String(error?.stack??error))}
+ }catch{res.writeHead(500);res.end("Internal error")}
 });
 let browser;
 try{
@@ -193,6 +193,14 @@ try{
  const address="http://127.0.0.1:"+server.address().port;
  browser=await chromium.launch({headless:true,executablePath:chrome,
   args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
+ // B10h malformed local test request must not echo implementation or fixture.
+ const malformed=await fetch(address+"/action",{
+  method:"POST",headers:{"content-type":"application/json"},
+  body:"{malformed"
+ });
+ assert.equal(malformed.status,500);
+ assert.equal(await malformed.text(),"Internal error",
+  "B10h local CI action server errors must not leak stack traces");
  const snapshot=async(mode,viewport={width:1280,height:820})=>{
   const tab=await browser.newPage({viewport});
   try{
