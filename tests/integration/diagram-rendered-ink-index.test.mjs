@@ -36,6 +36,18 @@ test("B8j corner Q and full cubic C are recursively flattened in source order",(
       "adaptive subdivision may not leave gaps in a rounded connector");
 });
 
+test("B8j zero-perpendicular-distance collinear cubic hairpins are not silently flattened",()=>{
+ const segments=diagramSvgInkSegmentsV010("M 0 0 C 240 0 -240 0 10 0");
+ const xs=segments.flatMap(segment=>[segment.start.x,segment.end.x]);
+ assert.ok(segments.length>6,
+   "finite-chord flatness must recursively resolve collinear overshoot");
+ assert.ok(Math.max(...xs)>40,"positive overshoot must remain in geometry");
+ assert.ok(Math.min(...xs)<-40,"negative overshoot must remain in geometry");
+ assert.throws(()=>diagramSvgInkSegmentsV010("M 0 0 H"),
+   /EIDOS_DIAGRAM_INK_INVALID/,
+   "unsupported SVG command must be rejected instead of silently ignored");
+});
+
 test("B8j flat segments, degenerate curves and bounded coordinate guards",()=>{
   assert.deepEqual(diagramSvgInkSegmentsV010("M 1 2 L 3 4"),[
     {start:point(1,2),end:point(3,4)}
