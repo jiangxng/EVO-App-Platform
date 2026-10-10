@@ -302,3 +302,10 @@
 - **B8w [Firefox/WebKit #38060230544 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060230544)**：在阿拉伯语、希伯来语及其音标、英文词界、CJK、Indic/emoji 混排等 **7 组 × 2 引擎**下真实 Playwright 鼠标选中节点，14/14 次重绘后再次严格比对父 SVG `getBBox` 的真实宽度与水平坐标是否落入原始世界锚点预留框，同时验证 RTL/LTR 与原文保留；单边无拥塞时汇总应消失且计数为 0。原 B8u 两引擎 258 个可见 RTL 标签/256 个测量上限诊断继续通过。
 - **同一 App 代码头 Chrome 154 34 tabs [#38060230507 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060230507)**，原 B8b～B8q、Host 503 重试、投影 CAS 与浏览器输入回归未被打破。工作流 PASS 属自动化子场景，**不等于**正式 E/V/P 场景人工验收。
 - 原始 §14 **39 项正式商业化验收仍全部 NOT TESTED**。物理 iPhone/Android、Windows/macOS Safari/触控板、真实企业数据、重启后 DB、同屏双实例和长时间负载依然缺实证。代码和文档只放 stacked Draft PR，不合并、不部署。
+
+
+## B8x P02 子场景：真实 Firefox/WebKit 同屏双 Eidos Surface 实例隔离（2026-10-10）
+
+- 独立只测/文档的 [App Draft #607](https://github.com/jiangxng/EVO-App-Platform/pull/607)，基于 B8v+B8w [#606](https://github.com/jiangxng/EVO-App-Platform/pull/606)。**不修改 Eidos / App runtime 源码、Host/Agent/权限、投影 CAS、关系端点、manual waypoints 和 TR-01**。
+- [Firefox/WebKit 真实 Playwright #38060771821 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060771821)：同一网页、同一 DOM 上实际挂载两个 Eidos Surface（具有独立 id、resourceId、ActionHost）。第一个合成图 **23 个相关局部障碍超出原 22 上限**，真实产生**1 条拥塞**，SVG summary/count/aria 与 hit path 正确一致；第二个普通 curve 图拥塞 **0**，不错误显示摘要。两引擎全部通过。两实例 SVG marker ID 不相同；真实鼠标先点第二图再点第一图，各实例独立保持选择，图源 fixture 的节点/边计数未被改变，脚本错误数组空。保留已有 B8u 14/14 国际文字、B8w 14 次选择重绘和 258 标签/256 次测量上限证据。
+- **验收限制**：这是原 P02 的一个机器自动化**子场景**，不是用户人工签收 P02 全项。图为隔离合法合成数据、浏览器为 Linux Firefox/WebKit，并非客户企业图、双用户跨业务权限或物理 iOS/Android/macOS/Windows；持久数据库与保存后多实例 Viewer 也未覆盖。原始 §14 **39 项正式商业化验收仍 NOT TESTED**，此条只增加证据链接。详见 [B8x 专项记录](./DIAGRAM-B8X-TWO-INSTANCE-ISOLATION-20261010.md)。
