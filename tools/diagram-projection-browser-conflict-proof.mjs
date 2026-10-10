@@ -1016,11 +1016,75 @@ try {
   assert.equal(readonlyRounded.save,false);
   assert.equal(store.getVersion(target),5,"Viewer read never writes");
 
+
+  // B8f: isolated synthetic self relation in a test-only artifact source.
+  // Actual App Host read/CAS save and Viewer render use the same injected source.
+  o=await tab("O","loop");
+  await until(o,"Ready.");
+  const loopProbe=await o.eval("(()=>{const id=__ID__;const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8f fixture self-edge not in read\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const route=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const handle=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n if(!handle)throw Error(\"B8f exterior cubic bulge handle absent\");\n const r=handle.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;\n if(document.elementFromPoint(x,y)!==handle)throw Error(\"Bulge handle not hit-testable\");\n if(document.querySelector(\"[data-eidos-diagram-waypoint-controls] input[type=number]\"))\n  throw Error(\"Auto loop selection materialized saved manual control\");\n return {x,y,old:route.getAttribute(\"d\"),radius:handle.getAttribute(\"data-eidos-diagram-handle-screen-radius\")};\n})()".replace("__ID__",JSON.stringify(selfId)));
+  assert.equal(loopProbe.radius,"22");
+  assert.match(loopProbe.old,/ C /,"Automatic self-edge starts cubic");
+  assert.equal(store.getVersion(target),5,"Loop selection cannot write");
+  const loopX=loopProbe.x+64,loopY=loopProbe.y-20;
+  const loopPress=async()=>{
+    await o.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:loopProbe.x,y:loopProbe.y});
+    await o.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+      x:loopProbe.x,y:loopProbe.y});
+    await o.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",x:loopX,y:loopY});
+  };
+  const loopRelease=()=>o.send("Input.dispatchMouseEvent",{type:"mouseReleased",
+    button:"left",x:loopX,y:loopY});
+  await loopPress();
+  const loopPreview=await o.eval("(()=>{const id=__ID__;return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"), manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};})()".replace("__ID__",JSON.stringify(selfId)));
+  assert.notEqual(loopPreview.d,loopProbe.old,"Native loop bulge drag must preview");
+  assert.match(loopPreview.d,/ C /);
+  await o.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",
+    code:"Escape",windowsVirtualKeyCode:27});
+  await o.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",
+    code:"Escape",windowsVirtualKeyCode:27});
+  await loopRelease();
+  assert.equal((await o.eval("(()=>{const id=__ID__;return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"), manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};})()".replace("__ID__",JSON.stringify(selfId)))).d,loopProbe.old,
+    "Native Escape restores automatic cubic");
+  await loopPress();
+  assert.notEqual((await o.eval("(()=>{const id=__ID__;return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"), manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};})()".replace("__ID__",JSON.stringify(selfId)))).d,loopProbe.old,
+    "Cancelled bulge can be regrabbed on the same page");
+  await loopRelease();
+  const loopCommit=await o.eval("(()=>{const id=__ID__;return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"), manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};})()".replace("__ID__",JSON.stringify(selfId)));
+  assert.notEqual(loopCommit.d,loopProbe.old);
+  assert.match(loopCommit.d,/ C /);
+  assert.equal(loopCommit.manual,2,"One editable cubic bulge waypoint");
+  assert.equal(await o.eval("(()=>{const id=__ID__;const b=document.querySelector(\"[data-eidos-diagram-history=undo]\");if(!b||b.disabled)throw Error(\"B8f Undo unavailable\");b.click();document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\")?.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\");})()".replace("__ID__",JSON.stringify(selfId))),loopProbe.old);
+  assert.equal(await o.eval("(()=>{const id=__ID__;const b=document.querySelector(\"[data-eidos-diagram-history=redo]\");if(!b||b.disabled)throw Error(\"B8f Redo unavailable\");b.click();document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\")?.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\");})()".replace("__ID__",JSON.stringify(selfId))),loopCommit.d);
+  assert.equal(store.getVersion(target),5,"Loop Undo/Redo cannot auto-save");
+  await action(o,"Save projection");
+  await until(o,"Saved.");
+  assert.equal(store.getVersion(target),6,"Loop explicit CAS Save once");
+  const storedLoop=store.get(target).projections
+    .find(x=>x.projectionId===target.projectionId)?.view.edgePaths
+    ?.find(x=>x.edgeId===selfId);
+  assert.equal(storedLoop?.pathKind,"curve");
+  assert.equal(storedLoop?.waypoints?.length,1);
+  assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,
+    definitionId:target.definitionId}).length,1);
+  p=await tab("P","loop");
+  await until(p,"Ready.");
+  const refreshedLoop=await p.eval("(()=>{const id=__ID__;const e=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");if(!e)throw Error(\"B8f fresh self-edge missing\");e.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),kind:document.querySelector(\"[data-eidos-diagram-edge-path-kind=\"+CSS.escape(id)+\"]\")?.value,manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};})()".replace("__ID__",JSON.stringify(selfId)));
+  assert.equal(refreshedLoop.d,loopCommit.d,"Fresh Designer exact cubic SVG");
+  assert.equal(refreshedLoop.kind,"curve");
+  assert.equal(refreshedLoop.manual,2);
+  q=await tab("Q","loop-viewer");
+  await until(q,"Ready.");
+  const viewerLoop=await q.eval("(()=>{const id=__ID__;return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")?.getAttribute(\"d\"),manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")].some(b=>b.textContent.trim()===\"Save projection\")};})()".replace("__ID__",JSON.stringify(selfId)));
+  assert.equal(viewerLoop.d,loopCommit.d,"Readonly Viewer exact cubic SVG");
+  assert.equal(viewerLoop.manual,0);
+  assert.equal(viewerLoop.save,false);
+  assert.equal(store.getVersion(target),6,"Viewer read must not write");
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 14,
+    browser: version.Browser, tabs: 17,
+    b8fSelfLoopCurveNativeDragSaveViewer: true,
     b8eRoundedMultiRankCancelRegrabSaveViewer: true,
     b8dNativeDenseOverlapCycleAndUndo: true,
     b8cNativeShiftOverlapSegmentUndo: true, b8cNativeTouchCancelRegrab: true,
