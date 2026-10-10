@@ -112,7 +112,8 @@ const viewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({sourc
 
  // B8f controlled self-relation fixture; the production seed need not have
  // self-edges. Real App read, CAS Save, and Viewer all use the same source.
- const selfNode=routeNodes.get(routeChoice.edge.source);
+ const selfNode=[...routeNodes.values()].sort((a,b)=>
+   (b.x+b.width)-(a.x+a.width)||a.id.localeCompare(b.id))[0];
  const selfId="diagram-browser:self-loop";
  const selfEdge={...routeChoice.edge,id:selfId,source:selfNode.id,target:selfNode.id,
    kind:routeChoice.edge.kind,label:"B8f browser loop",pathKind:"curve"};
