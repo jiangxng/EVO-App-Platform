@@ -245,3 +245,12 @@
 - **已完成的代码版本测试：** [真实 Chrome 154，30 标签页 #38033645259](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38033645259) **PASS**，日志 `b8lmRealLabelMetricsAndDensityBudget=true`。新增第 29 页长 60 个 M 的**隔离合成关系标题**，实测 SVG 文字宽度超过 176、Canvas2D 测量生效、自环绕行至下侧、44px 路由柄保留；第 30 页只读 Viewer 重读相同 SVG 且无编辑或 Save，Store CAS 不改变。B8j+B8k / B8i / B8h / B8g / B8f / B8e / B8d / B8c / B8b 以及冲突阻断、503 重试、业务定义历史的原有浏览器验证同批通过。
 - **高密度 Node 合成测试：** 13,000 条远处关系仍能在空间索引查询中定位局部线条；`12000→full`、`12001→node-only`、精度预算触发→`coarse` 均明确。此测试是**正确性与算法退化验证**，不是实体 13,000 关系企业场景满画布的 FPS 或响应延迟证明。原有 Diagram Performance Evidence CI 继续作为本轮兼容基线。
 - **尚未完成商业验收：** 浏览器测量是对 SVG 文字盒的近似，未做到浏览器 DOM 字形最终路径精确解析；超长文字/多行与字体差异、密集企业图现场性能、持久数据中心重启、实体设备及触摸板、§14 **39项正式商业化验收全部仍 NOT TESTED**。两仓库 PR 保持 Draft，未合并、未部署。
+
+
+## B8n + B8o 双增量：国际化多行标签与真正 Chrome 12,001 关系完整 DOM（2026-10-10）
+
+- 项目独立 Draft：[Eidos #153](https://github.com/jiangxng/eidos/pull/153)、[EVO #600](https://github.com/jiangxng/EVO-App-Platform/pull/600)，分别堆叠已绿的 B8l+B8m，未改 main、未部署、不改投影 CAS、业务关系端点、Agent/Host 授权、手工 route 和 44 CSS px hit targets。详见 `docs/architecture/DIAGRAM-B8NO-MULTILINGUAL-DENSE-DOM-INTEGRATION-20261010.md`。
+- **B8n** 真实 SVG `tspan` 多行显示，中文/日文、emoji、显式换行、超长无空格文本；Intl.Segmenter 字素折行，默认 260 world units/4 行，超长省略号和 SVG title/aria 保留完整原始 caption。与 Eidos 共享同一个 `diagramCaptionLayoutV010` 碰撞矩形（真实字体宽度及各行占位），避免显示换行而评分仍按单行；历史单行 label 表现保持，不能重写手工路线。
+- [**真实 Chrome 154，32 标签页 #38037526845 PASS**](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38037526845)：合成中日多语言＋表情＋长文字关系标签实际生成四行 `tspan` 和最后一行 `…`，SVG title/aria 均保留全文，readonly Viewer 文本行和两侧关系 SVG 路由与 Designer 一致，没有编辑/Save，Store CAS 未变。B8l/B8m、B8jk、B8i、B8h、B8g、B8f、B8e、B8d、B8c、B8b 与原有 CAS/503/history 回归标记全部为 true。
+- **B8o** 新增独立 [Chrome 完整 DOM 性能工作流 #38037486856 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38037486856)，默认 P01 历史比较不变；真实挂载 300/1200、600/2400、200/12001 节点/连线合成图，实际 SVG 数 2412、4820、24065。预热后各取一次 mount 为 175.0、251.5、356.3ms；选择为 77.7、141.2、260.1ms；CDP dispatch p95 20.32、22.03、29.04ms；JS heap 5.64、16.02、25.82MB。前两档 `full`、无降级告警；**第三档真正从 Chrome DOM 取得 `node-only` 和明确非阻挡提示**。这是实际 DOM+鼠标事件，不是抽象索引数据；却仍是**CI 合成业务图和单次样本**，不证明生产 FPS 或全复杂路由的 12k 性能。
+- 待测：真正 CJK/RTL 文本布局与多行可用性、浏览器字体轮廓/换行词边界、真实企业图大规模正交/曲线同时存在时的性能、长时间内存波动、实体 iOS/Android/Windows/macOS/触控板、持久化重启、§14 **39 项正式商业化验收仍全部 NOT TESTED**；PR Draft、未合并、未部署。
