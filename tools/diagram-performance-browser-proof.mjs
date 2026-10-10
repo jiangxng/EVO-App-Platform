@@ -250,6 +250,11 @@ try{
       +'inkIndex:document.querySelector("[data-eidos-diagram-ink-label-metrics]")?.getAttribute("data-eidos-diagram-ink-label-metrics"),'
       +'advisory:document.querySelector("[data-eidos-diagram-routing-advisory]")?.getAttribute("data-eidos-diagram-routing-advisory")??null,'
       +'congested:document.querySelectorAll("[data-eidos-diagram-route-congested]").length,'
+      +'congestedDom:document.querySelector("[data-eidos-diagram-congested-count]")?.getAttribute("data-eidos-diagram-congested-count"),'
+      +'summaryCount:document.querySelector("[data-eidos-diagram-congestion-summary]")?.getAttribute("data-eidos-diagram-congestion-summary")??null,'
+      +'summaryRole:document.querySelector("[data-eidos-diagram-congestion-summary]")?.getAttribute("role")??null,'
+      +'summaryAria:document.querySelector("[data-eidos-diagram-congestion-summary]")?.getAttribute("aria-label")??null,'
+      +'summaryPointer:document.querySelector("[data-eidos-diagram-congestion-summary]")?.style.pointerEvents??null,'
       +'unannounced:document.querySelectorAll("[data-eidos-diagram-route-congested]:not([aria-label])").length,'
       +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null};'
       +'await new Promise(r=>setTimeout(r,60));}throw Error("P01 fixture never mounted")})()';
@@ -267,6 +272,17 @@ try{
       assert.ok(mounted.congested>=0&&mounted.congested<=size.edges);
       assert.equal(mounted.unannounced,0,
         "B8t every budget-congested route must retain accessible warning");
+      assert.equal(Number(mounted.congestedDom),mounted.congested,
+        "B8v one SVG count must match every genuinely congested edge");
+      assert.equal(mounted.summaryCount,
+        mounted.congested>0?String(mounted.congested):null,
+        "B8v only render a summary if actual visible routes are congested");
+      if(mounted.congested>0){
+        assert.equal(mounted.summaryRole,"note","do not repeatedly aria-announce on every drag");
+        assert.equal(mounted.summaryPointer,"none","summary must not block any hit targets");
+        assert.equal(mounted.summaryAria,
+          mounted.congested+" of "+size.edges+" visible connectors need manual route review");
+      }
     }
     if(denseMode||complexMode||autoMode||budgetMode){
       const expected=size.edges>12000?"node-only":"full";
@@ -328,7 +344,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
-      ...(budgetMode?{congestedEdges:mounted.congested}:{}),
+      ...(budgetMode?{congestedEdges:mounted.congested,summaryCount:mounted.summaryCount}:{}),
       ...(denseMode||complexMode||autoMode||budgetMode?{inkQuality:mounted.inkQuality,
         labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
