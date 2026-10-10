@@ -402,6 +402,18 @@ try {
   assert.ok(Math.abs(routeUndo.committed-handleProbe.goal)<.01);
   assert.ok(Math.abs(routeUndo.restored-handleProbe.initial)<.01);
 
+  // B6b: arrange the one-control-point route into a deliberate visible bend.
+  // A perfectly collinear single waypoint shares its midpoint with the
+  // segment handle and intentionally wins the 44px overlapping hit target;
+  // editing the route through its accessible numeric controls exposes segments.
+  await d.eval('(()=>{'
+    + 'const change=(axis,delta)=>{'
+    + 'const inputs=document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]");'
+    + 'const input=inputs[axis];if(!input)throw Error("Accessible waypoint numeric input missing");'
+    + 'input.value=String(Number(input.value)+delta);'
+    + 'input.dispatchEvent(new Event("change",{bubbles:true}));};'
+    + 'change(0,120);change(1,100);return true;})()');
+
   // B6b: drag a genuinely exposed orthogonal segment handle along its sole
   // permissible normal axis. Compare the rendered SVG path before/after, then
   // Undo and reselect (Undo intentionally clears the active selection).
