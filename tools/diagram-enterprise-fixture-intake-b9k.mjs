@@ -21,7 +21,7 @@ const object=(value)=>value!==null && typeof value==="object" && !Array.isArray(
 const id=(value)=>typeof value==="string" && value.length>0 && value.length<=200;
 const text=(value)=>typeof value==="string" && value.length>0 && value.length<=4000;
 const finite=(value)=>typeof value==="number" && Number.isFinite(value);
-const forbiddenControls=/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/u;
+const forbiddenControls=/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
 const clean=(value)=>!EMAIL.test(value) && !forbiddenControls.test(value);
 const fields=(value,allowed)=>Object.keys(value).every(key=>allowed.has(key));
 
