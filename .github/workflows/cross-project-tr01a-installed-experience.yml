@@ -1,0 +1,179 @@
+name: Cross Project CI - TR01A Installed Human Agent Workbench EVO
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-reference/**"
+      - "apps/bi-workbench/**"
+      - "manager/server.ts"
+      - "catalog/seed.ts"
+      - "tools/certify-tr01-purchase-installed-experience.mjs"
+      - "tools/certify-tr01-purchase-evo-postgres.mjs"
+      - ".github/workflows/cross-project-tr01a-installed-experience.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/trading-reference/**"
+      - "apps/bi-workbench/**"
+      - "manager/server.ts"
+      - "catalog/seed.ts"
+      - "tools/certify-tr01-purchase-installed-experience.mjs"
+      - "tools/certify-tr01-purchase-evo-postgres.mjs"
+      - ".github/workflows/cross-project-tr01a-installed-experience.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-tr01a-installed-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "24.20.0"
+  EVO_CERTIFIED_COMMIT: 2311022640aa108a6baf3db44d9b26bd3e3ad623
+  DATABASE_URL: postgres://evo:evo@localhost:5432/evo
+  EVO_BASE_URL: http://127.0.0.1:3000
+  APP_PLATFORM_BASE_URL: http://127.0.0.1:4100
+  APP_PLATFORM_AGENT_PROOF_BASE_URL: http://127.0.0.1:4101
+  EVO_ENTERPRISE_CODE: EVO_DEMO
+  APP_PLATFORM_PROOF_CONTEXT_ID: enterprise:browser-proof
+  APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON: '{"contractVersion":"0.1.0","contexts":[{"contextId":"enterprise:browser-proof","enterpriseId":"enterprise:browser-proof","displayName":"TR-01 Proof Enterprise"}]}'
+  APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON: '{"contractVersion":"0.1.0","grants":[{"grantId":"grant:tr01a6","subjectId":"browser-proof-user","contextId":"enterprise:browser-proof","relationship":"OWNER"}]}'
+  APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON: '{"contractVersion":"0.1.0","rules":[{"id":"tr01-a6-entry","effect":"ALLOW","actions":["trading-reference.purchase-operations.entry.open"],"resourceTypes":["trading-reference.purchase-lookup"],"subjectIds":["browser-proof-user"],"scope":{"enterpriseId":"enterprise:browser-proof"}},{"id":"tr01-a6-read","effect":"ALLOW","actions":["trading-reference.purchase-operations.read"],"resourceTypes":["trading-reference.purchase-order"],"resourceIds":["TR01-PO-001"],"subjectIds":["browser-proof-user"],"scope":{"enterpriseId":"enterprise:browser-proof"}}]}'
+  NODE_ENV: test
+  LOG_LEVEL: silent
+
+jobs:
+  installed-experience:
+    name: Installed Eidos Human + AI Action + Workbench -> EVO PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: evo
+          POSTGRES_PASSWORD: evo
+          POSTGRES_DB: evo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evo -d evo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout App Platform
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned EVO authority
+        uses: actions/checkout@v5
+        with:
+          repository: jiangxng/EVO
+          ref: ${{ env.EVO_CERTIFIED_COMMIT }}
+          path: evo
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install and build App Platform
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install, migrate, seed and build EVO
+        working-directory: evo
+        run: |
+          npm ci
+          npm run migrate
+          npm run seed:demo
+          npm run build
+
+      - name: Start EVO API and Worker
+        run: |
+          set -euo pipefail
+          (
+            cd evo
+            HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01-evo-api.log 2>&1 &
+            echo $! > /tmp/tr01-evo-api.pid
+            WORKER_POLL_INTERVAL_MS=100 node dist/apps/worker/src/main.js > /tmp/tr01-evo-worker.log 2>&1 &
+            echo $! > /tmp/tr01-evo-worker.pid
+          )
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS "${EVO_BASE_URL}/health/ready" > /tmp/tr01-evo-ready.json; then
+              ready=1; break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/tr01-evo-api.log || true
+            cat /tmp/tr01-evo-worker.log || true
+            exit 1
+          fi
+
+      - name: Create actual purchase receipt and reversal EVO state
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01-purchase-evo-postgres.mjs | tee /tmp/tr01-evo-purchase-proof.log
+          grep -q '"status": "PASS"' /tmp/tr01-evo-purchase-proof.log
+
+      - name: Resolve exact Host to EVO enterprise mapping
+        run: |
+          set -euo pipefail
+          enterprise_id="$(curl -fsS "${EVO_BASE_URL}/api/v1/enterprises/EVO_DEMO" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{let x=JSON.parse(s);if(!x.id)process.exit(1);console.log(x.id)})')"
+          echo "APP_PLATFORM_EVO_RUNTIME_SCOPE_MAP_JSON={\"enterprise:browser-proof\":\"${enterprise_id}\"}" >> "${GITHUB_ENV}"
+
+      - name: Start real Human and AI Principal Hosts
+        env:
+          APP_PLATFORM_STATIC_SESSION_JSON: '{"contractVersion":"0.1.0","sessionId":"browser-proof-session","principal":{"contractVersion":"0.1.0","subjectId":"browser-proof-user","actorType":"HUMAN","identityProviderId":"tr01.proof.identity","displayName":"Human Proof"},"issuedAt":"2026-10-10T00:00:00.000Z"}'
+          APP_PLATFORM_AI_PROOF_SESSION_JSON: '{"contractVersion":"0.1.0","sessionId":"agent-proof-session","principal":{"contractVersion":"0.1.0","subjectId":"browser-proof-user","actorType":"AI","identityProviderId":"tr01.proof.identity","displayName":"AI Proof"},"issuedAt":"2026-10-10T00:00:00.000Z"}'
+        run: |
+          set -euo pipefail
+          PORT=4100 npm start > /tmp/tr01-human-host.log 2>&1 &
+          echo $! > /tmp/tr01-human-host.pid
+          (
+            export APP_PLATFORM_STATIC_SESSION_JSON="$APP_PLATFORM_AI_PROOF_SESSION_JSON"
+            PORT=4101 npm start > /tmp/tr01-agent-host.log 2>&1 &
+            echo $! > /tmp/tr01-agent-host.pid
+          )
+          for base in "${APP_PLATFORM_BASE_URL}" "${APP_PLATFORM_AGENT_PROOF_BASE_URL}"; do
+            ready=0
+            for attempt in $(seq 1 50); do
+              if curl -fsS "${base}/v1/catalog" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            if [ "$ready" -ne 1 ]; then
+              cat /tmp/tr01-human-host.log || true
+              cat /tmp/tr01-agent-host.log || true
+              exit 1
+            fi
+          done
+
+      - name: Certify installed Workbench browser Human and AI with real EVO position
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Chromium unavailable" >&2; exit 1; fi
+          export CHROME
+          node tools/certify-tr01-purchase-installed-experience.mjs | tee /tmp/tr01-installed-experience-proof.log
+          grep -q 'TR01A6_INSTALLED_HUMAN_AGENT_WORKBENCH_EVO_PROOF=' /tmp/tr01-installed-experience-proof.log
+
+      - name: Show Host and EVO logs on failure
+        if: failure()
+        run: |
+          cat /tmp/tr01-human-host.log || true
+          cat /tmp/tr01-agent-host.log || true
+          cat /tmp/tr01-evo-api.log || true
+          cat /tmp/tr01-evo-worker.log || true
+
+      - name: Stop proof processes
+        if: always()
+        run: |
+          for pidfile in /tmp/tr01-human-host.pid /tmp/tr01-agent-host.pid /tmp/tr01-evo-api.pid /tmp/tr01-evo-worker.pid; do
+            if [ -f "$pidfile" ]; then kill "$(cat "$pidfile")" || true; fi
+          done
