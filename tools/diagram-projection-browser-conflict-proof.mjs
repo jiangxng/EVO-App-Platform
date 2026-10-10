@@ -178,6 +178,64 @@ const blockedViewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010
   source:blockedSource
 });
 
+// B8h: isolated presentation-only five-self-loop scene, NOT a modification
+// to source business definitions. Keep the same real Host read/Viewer pipeline.
+const multiIds=Array.from({length:5},(_,i)=>"diagram-browser:multi-loop-"+(i+1));
+const multiSource={get(input){
+  const artifact=source.get(input);
+  if(!artifact?.diagram2d)return artifact;
+  const edges=multiIds.map((id,index)=>({
+    ...selfEdge,id,label:"B8h sibling self-loop "+(index+1),
+    pathKind:"curve"
+  }));
+  return {...artifact,diagram2d:{...artifact.diagram2d,
+    nodes:[{...selfNode}],edges}};
+}};
+const multiHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:multiSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:03:00.000Z")
+});
+const multiViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:multiSource
+});
+const fullBlockNodes=[
+  {...selfNode,id:"diagram-browser:four-right",
+    x:selfNode.x+selfNode.width+4,y:selfNode.y-15,width:95,height:selfNode.height+30},
+  {...selfNode,id:"diagram-browser:four-bottom",
+    x:selfNode.x+20,y:selfNode.y+selfNode.height+4,width:selfNode.width-40,height:95},
+  {...selfNode,id:"diagram-browser:four-left",
+    x:selfNode.x-99,y:selfNode.y-15,width:95,height:selfNode.height+30},
+  {...selfNode,id:"diagram-browser:four-top",
+    x:selfNode.x+20,y:selfNode.y-99,width:selfNode.width-40,height:95}
+];
+const allBlockedSource={get(input){
+  const result=multiSource.get(input);
+  return result?.diagram2d
+    ? {...result,diagram2d:{...result.diagram2d,
+        nodes:[...result.diagram2d.nodes,...fullBlockNodes]}}
+    : result;
+}};
+const allBlockedHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:allBlockedSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:04:00.000Z")
+});
+const multiCamera={scale:.6,
+  translateX:200-.6*(selfNode.x+selfNode.width/2),
+  translateY:220-.6*(selfNode.y+selfNode.height/2)};
+const multiPage={...page,title:"B8h multi-self-loop test",initialCamera:multiCamera};
+const multiHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(multiPage))
+  .replace("window.__page="+JSON.stringify(page),
+    "window.__page="+JSON.stringify(multiPage));
+const multiViewerPage=createEnterpriseDefinition2dPreviewPageV010({
+  ...target,title:"B8h siblings Viewer",camera:multiCamera
+});
+const multiViewerHtml=viewerHtml
+  .replace(viewerShell,renderDiagramWorkspacePageShellToHtmlV010(multiViewerPage))
+  .replace("window.__page="+JSON.stringify(viewerPage),
+    "window.__page="+JSON.stringify(multiViewerPage));
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -213,6 +271,12 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/blocked-loop") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
+    if (url.pathname === "/multi-loop" || url.pathname === "/all-blocked-loop") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(multiHtml); return;
+    }
+    if (url.pathname === "/multi-loop-viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(multiViewerHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -224,6 +288,10 @@ const server = createServer(async (req, res) => {
       }
       const candidates = tab === "R"
         ? [...blockedHandlers,blockedViewerReadHandler]
+        : ["U","V"].includes(tab)
+          ? [...multiHandlers,multiViewerHandler]
+          : tab === "W"
+            ? [...allBlockedHandlers,multiViewerHandler]
         : ["O","P","Q","S","T"].includes(tab)
           ? [...loopHandlers,loopViewerReadHandler]
           : [...handlers,viewerReadHandler];
@@ -276,7 +344,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -325,6 +393,9 @@ try {
       : route === "loop" ? "/loop?session="
       : route === "loop-viewer" ? "/loop-viewer?session="
       : route === "blocked-loop" ? "/blocked-loop?session="
+      : route === "multi-loop" ? "/multi-loop?session="
+      : route === "multi-loop-viewer" ? "/multi-loop-viewer?session="
+      : route === "all-blocked-loop" ? "/all-blocked-loop?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1197,7 +1268,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
