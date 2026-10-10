@@ -19,7 +19,8 @@ import { renderDiagramEditorPageShellToHtmlV010 } from "../dist/vendor/eidos/src
 
 const chrome = process.env.CHROME;
 assert.ok(chrome, "CHROME must identify an installed Chromium executable");
-const profile = mkdtempSync(join(tmpdir(), "evo-2d-browser-"));
+let profile = mkdtempSync(join(tmpdir(), "evo-2d-browser-"));
+const profiles = [profile];
 const repository = createMemoryBusinessDefinitionRepositoryV010();
 const bundle = ledgerRuntimeBaselineBundleV010;
 const revision = repository.createDraft({
@@ -171,20 +172,44 @@ let proc, a, b, c, d;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
-  proc = spawn(chrome, [
-    "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
-    "--no-first-run", "--disable-background-networking",
-    "--remote-debugging-port=0", "--user-data-dir=" + profile, "about:blank"
-  ], { stdio: "ignore" });
   let debugPort;
-  for (let n = 0; n < 150; n++) {
-    if (existsSync(join(profile, "DevToolsActivePort"))) {
-      debugPort = readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0]; break;
+  let chromeFailure = "";
+  // Shared CI runners occasionally fail to initialize a headless Chrome
+  // process on the first launch. Retry the *process bootstrap only*, using
+  // an isolated user profile, before executing ANY browser scenario.
+  for (let attempt = 0; attempt < 3 && !debugPort; attempt++) {
+    if (attempt > 0) {
+      profile = mkdtempSync(join(tmpdir(), "evo-2d-browser-"));
+      profiles.push(profile);
     }
-    if (proc.exitCode !== null) throw Error("Chrome exited before DevTools opened");
-    await sleep(100);
+    let stderr = "";
+    proc = spawn(chrome, [
+      "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+      "--no-first-run", "--disable-background-networking",
+      "--remote-debugging-port=0", "--user-data-dir=" + profile, "about:blank"
+    ], { stdio: ["ignore", "ignore", "pipe"] });
+    proc.stderr?.on("data", chunk => { stderr = (stderr + chunk.toString()).slice(-3000); });
+    for (let n = 0; n < 180; n++) {
+      if (existsSync(join(profile, "DevToolsActivePort"))) {
+        debugPort = readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0];
+        break;
+      }
+      if (proc.exitCode !== null || proc.signalCode !== null) break;
+      await sleep(100);
+    }
+    if (!debugPort) {
+      chromeFailure = "launch " + (attempt + 1) + " exit=" + proc.exitCode
+        + " signal=" + proc.signalCode + " stderr=" + stderr;
+      if (proc.exitCode === null) {
+        const stopped = once(proc, "exit");
+        proc.kill("SIGTERM");
+        await Promise.race([stopped, sleep(2500)]);
+        if (proc.exitCode === null) proc.kill("SIGKILL");
+      }
+      console.warn("Retrying isolated Chrome launch: " + chromeFailure);
+    }
   }
-  assert.ok(debugPort, "Chrome did not start DevTools");
+  assert.ok(debugPort, "Chrome did not start DevTools: " + chromeFailure);
   const api = "http://127.0.0.1:" + debugPort;
   const version = await (await fetch(api + "/json/version")).json();
   async function tab(id, route = false) {
@@ -499,7 +524,9 @@ try {
   }
   server.closeAllConnections?.(); server.close();
   try {
-    rmSync(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
+    for (const dir of profiles) {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
+    }
   } catch (error) {
     // Chrome may leave a short-lived crashpad/utility worker writing to its
     // disposable, unique profile even after the browser process exits. Runner
