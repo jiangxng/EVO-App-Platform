@@ -96,6 +96,10 @@ function turnContextValues(
   request: ActionRequestV010
 ): Record<string, JsonValue> {
   const values = scopeValues(request);
+  const assistanceRequest = request.values.assistanceRequest;
+  if (assistanceRequest !== undefined) {
+    values.assistanceRequest = structuredClone(assistanceRequest);
+  }
   const interactionContext = request.values.interactionContext;
   if (interactionContext !== undefined) {
     values.interactionContext = structuredClone(interactionContext);
@@ -642,3 +646,4 @@ export function threadBackedChatStorageKeyV010(
 ): string {
   return "eidos:personal-agent-thread:" + sourceInteractionId;
 }
+
