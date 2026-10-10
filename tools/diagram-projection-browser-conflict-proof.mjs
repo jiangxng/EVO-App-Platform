@@ -1344,8 +1344,54 @@ try {
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
+
+  // B8i: test-only nonincident stroke and label-only cases in genuine
+  // Chrome. No business graph mutation, no projection Save, and no
+  // pointer/viewport-state-dependent auto rerouting.
+  xTab=await tab("X","ink-loop");
+  await until(xTab,"Ready.");
+  const inkProbe=await xTab.eval("(()=>{\n const id=__ID__,other=__REL__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n const sibling=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(other)+\"]\");\n if(!edge||!sibling)throw Error(\"B8i synthetic nonincident relation missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const svg=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const handle=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n if(!svg||!handle)throw Error(\"B8i exterior self-loop bulge handle missing\");\n const d=svg.getAttribute(\"d\"),m=/^M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)/.exec(d);\n const box=handle.getBoundingClientRect(),x=box.left+box.width/2,y=box.top+box.height/2;\n const top=document.elementFromPoint(x,y);\n if(top!==handle)throw Error(\"B8i avoidance bulge not hit-testable: \"+\n   JSON.stringify({x,y,top:top?.outerHTML.slice(0,170)}));\n return {d,startY:Number(m?.[2]),x,y,radius:handle.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n   label:!!document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\"),\n   congested:edge.getAttribute(\"data-eidos-diagram-route-congested\")===\"true\"};\n})()".replace("__ID__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.equal(inkProbe.startY,selfNode.y+selfNode.height,
+    "Actual crossing stroke at the right should push self-loop to bottom");
+  assert.equal(inkProbe.radius,"22");
+  assert.equal(inkProbe.congested,false,
+    "A completely free alternative should not display false congestion");
+  const initialInk=inkProbe.d;
+  await xTab.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:inkProbe.x,y:inkProbe.y});
+  await xTab.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",
+    clickCount:1,x:inkProbe.x,y:inkProbe.y});
+  await xTab.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+    x:inkProbe.x,y:inkProbe.y+35});
+  const previewInk=await xTab.eval("(()=>{\n const id=__ID__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n  ?.getAttribute(\"d\");\n})()".replace("__ID__",JSON.stringify(inkSelfId)));
+  assert.notEqual(previewInk,initialInk,
+    "B8i nonincident-stroke fallback remains natively editable");
+  await xTab.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",
+    code:"Escape",windowsVirtualKeyCode:27});
+  await xTab.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",
+    code:"Escape",windowsVirtualKeyCode:27});
+  await xTab.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:inkProbe.x,y:inkProbe.y+35});
+  assert.equal(await xTab.eval("(()=>{\n const id=__ID__;\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n  ?.getAttribute(\"d\");\n})()".replace("__ID__",JSON.stringify(inkSelfId))),initialInk,
+    "B8i native Escape cancels the exterior self-loop edit");
+  yTab=await tab("Y","ink-viewer");
+  await until(yTab,"Ready.");
+  const inkViewer=await yTab.eval("(()=>{\n const id=__ID__;\n return {d:document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\")\n    ?.getAttribute(\"d\"),\n  controls:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n  save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n    .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__ID__",JSON.stringify(inkSelfId)));
+  assert.equal(inkViewer.d,initialInk,
+    "Actual readonly Viewer draws the same nonincident-stroke fallback");
+  assert.equal(inkViewer.controls,0);
+  assert.equal(inkViewer.save,false);
+  zTab=await tab("Z","ink-label");
+  await until(zTab,"Ready.");
+  const labelProbe=await zTab.eval("(()=>{\n const id=__ID__,other=__REL__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n const sibling=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(other)+\"]\");\n if(!edge||!sibling)throw Error(\"B8i synthetic nonincident relation missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const svg=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const handle=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":0\")+\"]\");\n if(!svg||!handle)throw Error(\"B8i exterior self-loop bulge handle missing\");\n const d=svg.getAttribute(\"d\"),m=/^M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)/.exec(d);\n const box=handle.getBoundingClientRect(),x=box.left+box.width/2,y=box.top+box.height/2;\n const top=document.elementFromPoint(x,y);\n if(top!==handle)throw Error(\"B8i avoidance bulge not hit-testable: \"+\n   JSON.stringify({x,y,top:top?.outerHTML.slice(0,170)}));\n return {d,startY:Number(m?.[2]),x,y,radius:handle.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n   label:!!document.querySelector(\"[data-eidos-diagram-edge-label=\"+CSS.escape(other)+\"]\"),\n   congested:edge.getAttribute(\"data-eidos-diagram-route-congested\")===\"true\"};\n})()".replace("__ID__",JSON.stringify(inkSelfId)).replace("__REL__",JSON.stringify(inkRelationId)));
+  assert.equal(labelProbe.label,true,"B8i long unrelated caption must appear in DOM");
+  assert.equal(labelProbe.startY,selfNode.y+selfNode.height,
+    "B8i label reservation alone should steer away from right side");
+  assert.equal(labelProbe.congested,false,
+    "B8i label-only fallback has a free side, not an obstruction flag");
+  assert.equal(store.getVersion(target),7,"B8i reads and cancelled gestures cannot write");
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 23,
+    browser: version.Browser, tabs: 26,
+    b8iEdgeAndLabelAvoidanceNativeViewer: true,
     b8hMultiLoopCongestionNativePointerViewer: true,
     b8gNativeBlockedSideSaveReadViewer: true,
     b8fSelfLoopCurveNativeDragSaveViewer: true,
