@@ -59,3 +59,14 @@ The official open gate in `project.status.json` must only change
 after reviewing actual green run IDs and operational acceptance scope,
 and producing the handoff via `npm run continuity:render`. Until then
 TR-01A remains OPEN and TR-01B must not begin.
+
+## Verified implementation and outcome — 2026-10-10
+
+- App Platform PR [#567](https://github.com/jiangxng/EVO-App-Platform/pull/567), exact final head `ff758f219fd98b7a379778c362f9d7e1c0621d2c`, merged `main` at `399cbf5838626583599b441e3992e03fef9102c5`.
+- Project Continuity CI [38012255960](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012255960): **PASS**.
+- Existing Trading Lite / EVO PostgreSQL CI [38012255964](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012255964): **PASS**.
+- New installed Chrome/Eidos / AI Principal Host / Workbench / EVO PostgreSQL CI [38012256000](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012256000): **PASS**. The job emitted `TR01A6_INSTALLED_HUMAN_AGENT_WORKBENCH_EVO_PROOF` with `status=PASS`.
+- The proof actually installed both application packages, used a scoped Host→EVO enterprise map and an explicitly one-order allow policy, clicked Workbench in Chrome, submitted the Eidos form, reached the authoritative Work/Position detail view, read the same position via a separate AI Principal Action Host, and rejected an unauthorized PO and guessed detail URL.
+- After real Purchase → Receipt → immutable full Receipt reversal: RECEIVE reopens at 10, Inventory quantity and cost are 0, PAY remains open and Payable=125. No new master data authority or finance table.
+- Railway [deployment `5a03ab99-2731-4a0d-91e4-9daa8c33a7dc`](https://railway.com): **SUCCESS** at exact merged `main` commit `399cbf5838626583599b441e3992e03fef9102c5`.
+- **Acceptance boundary:** closed for the *reference implementation's automated installed Human-browser, AI-principal action and Workbench sharing of EVO Work/Position*; does **not** certify any customer's production installation, Agent natural-language reasoning, arbitrary purchase flows or generalized partial/multiple reversal. Test-only grant and tenant mapping remain isolated to CI. Customer production rollout needs separately scoped policy and operational acceptance.
