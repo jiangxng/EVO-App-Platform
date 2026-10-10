@@ -21,3 +21,9 @@
 - [Browser Conflict CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) **PASS**，实际 Chrome `154.0.8037.97`，四标签页，机器日志 `nativeRouteHandleSnapAndUndo=true`、`groupAlignmentUndo=true`、`nativeGridSnapCancelled=true`、`staleWriteBlocked=true`、`retrySaved=true`、`businessHistoryUnchanged=true`。
 - 第四标签页实际执行真实关系选择 → 切换正交路径 → 通过属性面板添加 waypoint → 用 Chrome 原生 CDP mousePressed/mouseMoved/mouseReleased 进行 SVG 控制柄拖动并吸附网格 → Undo → 重新选择关系确认原 waypoint 位置恢复，全程不写 Store。原有 B7b 三标签页保存冲突 / HTTP 503 和 B6a/B6b 群组测试继续通过。
 - **尚未实测：** 正交线段本身的原生手柄拖动、曲线路径、手机 Safari/Android Chrome 触摸、双指中途加入、500/1000 大规模性能。原始 §14 39 项完整验收不据此直接置 PASS。
+
+## Chrome 原生正交线段拖动（后续新增证据）
+
+[Browser Conflict CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) 在 Chrome/154.0.8037.97 四标签页真实 DOM 中 **PASS**。第四标签页通过路径点数字 X/Y 输入创建清晰非共线折弯（原始单控制点可能与唯一线段手柄完全重叠），用 `document.elementFromPoint` 确定 segment target 真实可点击，按 target 的可移动法向轴发送原生鼠标 press/move/release，核对 SVG 路径改变，再 Undo、重选原关系，核对路径 `d` 与操作前完全相等，并确认 App Host Store 版本未增加。日志记录 `nativeOrthogonalSegmentSnapAndUndo=true`，此前 `nativeRouteHandleSnapAndUndo`、`groupAlignmentUndo`、`staleWriteBlocked`、`retrySaved`、`businessHistoryUnchanged` 同一 run 都为 true。
+
+**余留：** 重叠命中目标在退化几何下的显式消歧、其他路径组合（曲线/自环）、实体 iOS/Android 多指设备、Windows/macOS 触控板、500/1000 大图 FPS 与完整 Viewer 保存往返。原 §14 E03 仍为 NOT TESTED，浏览器两个子场景通过不替代完整正式验收。
