@@ -1,3 +1,4 @@
+import type { AgentAssistanceRequestV010 } from "./agent-assistance.js";
 import type {
   PlatformActorType,
   ActiveContextRefV010
@@ -30,6 +31,8 @@ export type AgentRunEventTypeV010 =
   | "RUN_CANCELLED";
 
 export interface AgentRunInputV010 {
+  /** Validated client task envelope; never authorization evidence. */
+  assistanceRequest?: AgentAssistanceRequestV010;
   message: string;
   conversationHistory: AgentConversationMessageV010[];
   /**
@@ -132,3 +135,4 @@ export interface AgentRunResumeResultV010 {
   run: AgentRunV010;
   advanced: boolean;
 }
+
