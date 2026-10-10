@@ -25,6 +25,7 @@ on:
       - "tests/integration/diagram-rendered-ink-index.test.mjs"
       - "tests/integration/diagram-label-density.test.mjs"
       - "tests/integration/diagram-caption-multilingual.test.mjs"
+      - "tests/integration/diagram-caption-word-bidi.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -51,6 +52,7 @@ on:
       - "tests/integration/diagram-rendered-ink-index.test.mjs"
       - "tests/integration/diagram-label-density.test.mjs"
       - "tests/integration/diagram-caption-multilingual.test.mjs"
+      - "tests/integration/diagram-caption-word-bidi.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -89,3 +91,4 @@ jobs:
           tests/integration/diagram-rendered-ink-index.test.mjs
           tests/integration/diagram-label-density.test.mjs
           tests/integration/diagram-caption-multilingual.test.mjs
+          tests/integration/diagram-caption-word-bidi.test.mjs
