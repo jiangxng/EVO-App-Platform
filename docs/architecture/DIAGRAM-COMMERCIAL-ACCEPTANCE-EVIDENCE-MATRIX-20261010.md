@@ -372,3 +372,9 @@
 
 - [Draft #619](https://github.com/jiangxng/EVO-App-Platform/pull/619)，叠加 B9f #618，测试平台 **正式 App Editor GET/SAVE Handler + FileProjectionStore + Enterprise Definition Viewer** 的一条明确 deny/allow/deny 状态机。拒绝首次保存时旧 token 仍为 0、文件根本不生成；允许另一个 Save 后 token `0→1` 且隐藏节点；随后**带正确最新 token 1** 的拒绝覆盖仍然不得修改文件，不能把策略拒绝误算为过期 token 冲突；新建 Store 与 Viewer GET 仍保留唯一允许的隐藏效果，业务定义历史不增加。
 - [首次 Diagram Designer Integration #38068500982 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068500982)：项目正式 Handler 的拒绝分支通过。授权钩子在测试中专门配置，**不是**用户真实生产登录/企业权限策略、也非云生产数据库或真实手机/桌面设备。原 §14 **39 项正式商用验收仍 NOT TESTED**，详见 [B9g 记录](./DIAGRAM-B9G-DENIED-PROJECTION-FILE-SAVE-20261011.md)。
+
+
+## B9h｜合法业务定义的非零拥塞在真实 CAS 和文件 Store 保存→Viewer 恢复（2026-10-11）
+
+- [Draft #620](https://github.com/jiangxng/EVO-App-Platform/pull/620) 独立增量，仅新增 Node 集成测试和 CI 文档，无 runtime/Host/Agent/CAS/业务契约修改。真正支持的业务定义 `payload.preview2d` 含 25 节点（两个端点 + 23 局部相关障碍）、1 条业务关系，**不是**先前 B9c 的人工 GET Source 叠加。正式 App Editor Handler 对这条关系的 orthogonal pathKind 做 CAS `0→1` 保存到真正 FileDefinitionProjectionStore。全新 Store + App Handler Editor GET 和实际 readonly Viewer GET 都从**已保存**的同一业务图用正式 Eidos bounded geometry 确认 `congested=true`（23 超过不变的 22 上限）；随后**第二次真实 CAS `1→2`**保存隐藏 23 号障碍，新建 Store / Viewer 仅余 22 障碍、拥塞清除，基础定义历史仍为 1。
+- [Diagram Designer Integration #38068777299 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068777299)：**133/133**。比 B9b 零拥塞实际 Save、B9c 未持久化正数 Viewer 更进一层。但 B9h 当前仅为 Node + 正式 Eidos geometry，没有用真实 Chrome DOM 挂载这条**已保存**正例；当前文件是 CI 临时文件，业务仓与授权钩子受控，不是生产企业数据库/物理设备。§14 **39 项正式验收仍 NOT TESTED**。详细见 [B9h 专项](./DIAGRAM-B9H-PERSISTED-POSITIVE-CONGESTION-20261011.md)。
