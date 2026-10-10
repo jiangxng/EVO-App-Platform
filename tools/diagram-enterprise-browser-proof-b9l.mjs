@@ -129,6 +129,9 @@ const viewerPage=createEnterpriseDefinition2dPreviewPageV010({
 const pageHTML=(mode)=>{
  const viewer=mode==="viewer";
  const definition=viewer?viewerPage:editorPage;
+ // An attested de-identified label is still untrusted text. Do not permit a
+ // literal "</script>" from graph JSON to terminate the inline bootstrap.
+ const safeInlineJson=JSON.stringify(definition).replaceAll("<","\\u003c");
  const shell=viewer
   ?renderDiagramWorkspacePageShellToHtmlV010(definition)
   :renderDiagramEditorPageShellToHtmlV010(definition);
@@ -140,7 +143,7 @@ const pageHTML=(mode)=>{
   +'<style>html,body{margin:0}main{width:1250px;height:760px}'
   +'[data-eidos-diagram-editor]{height:750px!important;min-height:560px}</style></head>'
   +'<body><main id="root">'+shell+'</main>'
-  +'<script>window.__definition='+JSON.stringify(definition)
+  +'<script>window.__definition='+safeInlineJson
   +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
   +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
   +'</script><script type="module">'
