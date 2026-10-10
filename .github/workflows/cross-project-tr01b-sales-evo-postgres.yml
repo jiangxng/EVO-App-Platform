@@ -12,6 +12,11 @@ on:
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
       - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
+      - "tools/create-tr01b2d3-installed-host-ci.mjs"
+      - "tools/run-tr01b2d3-installed-host-ci.mjs"
+      - "tools/certify-tr01b2d3-installed-host-session.mjs"
+      - "providers/trading-finance-owner/**"
+      - "manager/server.ts"
       - "tools/create-tr01b2d3-ci-keys.mjs"
       - "apps/trading-reference/finance-owner-remote.ts"
       - "apps/trading-reference/finance-intent-admission.ts"
@@ -149,6 +154,13 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d3-trusted-owner-delegation.mjs | tee /tmp/tr01b2d3-authenticated-proof.log
           grep -q 'TR01B2D3_HOST_EVO_SIGNED_HTTP_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-authenticated-proof.log
+
+      - name: Certify actual Host Managed Session and installed/disabled owner provider through Host HTTP
+        run: |
+          set -euo pipefail
+          node tools/create-tr01b2d3-installed-host-ci.mjs
+          node tools/run-tr01b2d3-installed-host-ci.mjs | tee /tmp/tr01b2d3-host-installed-proof.log
+          grep -q 'TR01B2D3_HOST_PRODUCT_ALL_THREE_PHASES=PASS' /tmp/tr01b2d3-host-installed-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
