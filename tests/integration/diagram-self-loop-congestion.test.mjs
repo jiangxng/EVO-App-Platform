@@ -95,7 +95,7 @@ test("B8h Canvas/Viewer use side reservation and nonblocking warning",async()=>{
   assert.match(s,/const reserved: DiagramSelfLoopSideV010\[\] = ordered/);
   assert.match(s,/\.filter\(edge => edge\.waypoints\?\.length\)/);
   assert.match(s,/diagramSelfLoopManualSideV010\(node,edge\.waypoints!\)/);
-  assert.match(s,/loopObstacles, loopReservations\)/);
+  assert.match(s,/loopObstacles, loopReservations,/);
   assert.match(s,/data-eidos-diagram-congestion-warning/);
   assert.match(s,/Self-loop crowded; manual adjustment may be needed/);
   assert.match(s,/warning.style.pointerEvents = "none"/);
