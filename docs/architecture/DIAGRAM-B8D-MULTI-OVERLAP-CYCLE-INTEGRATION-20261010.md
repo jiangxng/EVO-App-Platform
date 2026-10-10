@@ -14,6 +14,7 @@
 
 ## 证据状态
 
-- 本切片必须以 GitHub PR Actions 实际结果判定编译和单测，不把提交代码等同于 CI PASS。
-- **尚未完成**实际 Chrome 多候选鼠标 Shift+Alt 单击→拖动→撤销的浏览器证据；iPhone/Android/macOS 触控板/实体键鼠也尚未测试。B8c 十标签页的 Chrome CDP 测试不能自动算作 B8d 验收。
-- 原有 [§14 验收矩阵](../DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md) 的 39 项均维持 `NOT TESTED`，E03 只记新增局部自动测试证据。新分支为 Draft、无合并、无部署。
+- Eidos [#145](https://github.com/jiangxng/eidos/pull/145) CI PASS；App [#590](https://github.com/jiangxng/EVO-App-Platform/pull/590) 集成测试及既有多窗口回归 PASS。
+- [App Chrome 154 eleven-tab CI #38020601326](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38020601326) **PASS**，Chrome/154.0.8037.97，11 标签页，证据 `b8dNativeDenseOverlapCycleAndUndo=true`。第 11 标签页通过真实 Inspector 数值控件新建密集的五个路径点，制造多于两个不同 segment 的同点遮挡，验证初始备选第二 → CDP 原生鼠标 Shift+Alt 单击第三（可见 `3/N`）→ SVG 不动、原 44px 热区保持 → Shift+Alt 原生鼠标拖动第三段 SVG 改变 → 一次 Undo 原 SVG 精确还原。Store 版本维持 4，未自动保存，领域定义历史保持不变。此前 B8c touch cancel/regrab、B8b Save/Viewer、B7b CAS 证据在同一流程仍 PASS。
+- 此处是浏览器 CDP 输入，不是实体 Windows/macOS 键鼠验证，更不等于 iPhone/Android/触控板测试；第四及更多候选逐一拖动、复杂圆角/自环、正式 §14 验收仍未证明。
+- 原有 [§14 验收矩阵](DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md) 的 39 项均维持 `NOT TESTED`，E03 只记新增局部自动测试证据。新分支为 Draft、无合并、无部署。
