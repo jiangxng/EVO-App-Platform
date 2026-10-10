@@ -8,6 +8,7 @@ on:
       - "eog/definition-projection.ts"
       - "contracts/template-projection-gallery.ts"
       - "contracts/template-preview.ts"
+      - "providers/enterprise-context/definition-projection-store.ts"
       - "vendor/eidos/src/diagram/**"
       - "tests/integration/definition-projection-*.test.mjs"
       - "tests/integration/diagram-visual-handles.test.mjs"
@@ -20,6 +21,7 @@ on:
       - "eog/definition-projection.ts"
       - "contracts/template-projection-gallery.ts"
       - "contracts/template-preview.ts"
+      - "providers/enterprise-context/definition-projection-store.ts"
       - "vendor/eidos/src/diagram/**"
       - "tests/integration/definition-projection-*.test.mjs"
       - "tests/integration/diagram-visual-handles.test.mjs"
@@ -42,6 +44,7 @@ jobs:
       - run: >-
           node --test
           tests/integration/definition-projection-edit-save.test.mjs
+          tests/integration/definition-projection-cas-store.test.mjs
           tests/integration/definition-projection-edge-routes.test.mjs
           tests/integration/eog-2d-designer-cutover.test.mjs
           tests/integration/diagram-professional-routing.test.mjs
