@@ -67,7 +67,13 @@ const networkClient=createTrustedRemoteFinanceOwnerPreflightV010({
  allowLoopbackHttpInTest:true,
  fetchImpl:async (url,init)=>{
   issued.push(JSON.parse(init.body).assertion);
-  return fetch(url,init);
+  const response=await fetch(url,init);
+  if (!response.ok) {
+    const reason=await response.clone().json().catch(()=>({code:'OWNER_JSON_NOT_AVAILABLE'}));
+    console.error('TR01B2D3_OWNER_REFUSAL_DIAGNOSTIC='+JSON.stringify({
+      status:response.status,code:reason.code??'UNKNOWN'}));
+  }
+  return response;
  }
 });
 function preflight(denyResource='',owner=networkClient,bind=installation.evoEnterpriseId){
