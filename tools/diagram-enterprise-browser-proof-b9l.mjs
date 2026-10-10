@@ -239,7 +239,7 @@ try{
   const rect=await blocker.boundingBox();
   assert.ok(rect&&rect.width>12&&rect.height>12,
    "B9l chosen node must have a hit-testable Chrome rectangle");
-  await nativeSaveTab.mouse.click(rect.x+rect.width*.5,rect.y+rect.height*.5);
+  await nativeSaveTab.mouse.click(rect.x+rect.width*.87,rect.y+rect.height*.5);
   const hide=nativeSaveTab.locator("[data-eidos-diagram-local-hide]");
   await hide.click();
   await nativeSaveTab.waitForFunction(target=>
