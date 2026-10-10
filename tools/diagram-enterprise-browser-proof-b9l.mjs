@@ -1,0 +1,295 @@
+#!/usr/bin/env node
+/** B9l: local, owner-attested de-identified enterprise topology proof.
+ * Native Chrome Designer Save -> genuine App CAS FileStore -> fresh readonly Viewer.
+ * Never send raw fixture to GitHub Actions/artifacts; CI uses synthetic geometry.
+ */
+import assert from "node:assert/strict";
+import {createServer} from "node:http";
+import {once} from "node:events";
+import {readFile} from "node:fs/promises";
+import {mkdtempSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join,resolve} from "node:path";
+import {chromium} from "playwright";
+import {readAuthorizedEnterpriseFixtureV010,validateAuthorizedEnterpriseFixtureV010} from "./diagram-enterprise-fixture-intake-b9k.mjs";
+
+import {createMemoryBusinessDefinitionRepositoryV010} from "../dist/providers/enterprise-context/business-definitions.js";
+import {createFileDefinitionProjectionStoreV010} from "../dist/providers/enterprise-context/definition-projection-store.js";
+import {createEnterpriseDefinitionProjectionArtifactSourceV010} from "../dist/providers/enterprise-context/definition-projection.js";
+import {createMemoryDefinitionProjectionSessionStoreV010} from "../dist/contracts/definition-projection.js";
+import {createEnterpriseDefinitionProjectionEditorActionHandlersV010,
+ createEnterpriseDefinitionProjectionEditorPageV010} from "../dist/apps/eog-2d-designer/definition-projection-editor.js";
+import {createEnterpriseDefinition2dPreviewPageV010,
+ createEnterpriseDefinition2dPreviewReadActionV010} from "../dist/apps/eog-2d-viewer/definition-preview.js";
+import {renderDiagramEditorPageShellToHtmlV010} from "../dist/vendor/eidos/src/diagram/surface.js";
+import {renderDiagramWorkspacePageShellToHtmlV010} from "../dist/vendor/eidos/src/diagram/workspace.js";
+import {ledgerRuntimeBaselineBundleV010} from "../dist/apps/template-store/seed-records.js";
+import {
+ EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION as READ,
+ EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION as SAVE
+} from "../dist/apps/eog-2d-designer/package.js";
+import {EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION as VIEW} from "../dist/apps/eog-2d-viewer/package.js";
+
+const chrome=process.env.CHROME;
+assert.ok(chrome,"B9l requires an actual Chrome executable");
+const tmp=mkdtempSync(join(tmpdir(),"evo-b9l-saved-positive-"));
+const file=join(tmp,"projection-store.json");
+const fixturePath=process.env.EVO_B9L_FIXTURE_PATH;
+assert.ok(fixturePath,"B9l requires a local, external fixture path");
+const intake=await readAuthorizedEnterpriseFixtureV010(fixturePath,{
+ authorized:process.env.EVO_B9K_AUTHORIZED_QA==="1"
+});
+const fixture=JSON.parse(await readFile(fixturePath,"utf8"));
+assert.equal(validateAuthorizedEnterpriseFixtureV010(fixture).sha256,intake.sha256,
+ "B9l fixture must not change after preflight");
+const graph=fixture.preview2d;
+const removeNodeId=process.env.EVO_B9L_REMOVE_NODE_ID;
+assert.ok(removeNodeId,"B9l requires explicit removal candidate ID");
+const removeNode=graph.nodes.find(node=>node.id===removeNodeId);
+assert.ok(removeNode,"B9l selected node must exist in the checked enterprise topology");
+const camera={scale:.8,
+ translateX:650-.8*(removeNode.x+removeNode.width/2),
+ translateY:320-.8*(removeNode.y+removeNode.height/2)};
+
+const repository=createMemoryBusinessDefinitionRepositoryV010();
+const bundle=ledgerRuntimeBaselineBundleV010;
+const revision=repository.createDraft({
+ enterpriseId:"ent-b9l",definitionId:"ledger:b9l",kind:bundle.definition.kind,
+ title:bundle.definition.title,
+ payload:{...structuredClone(bundle.definition.payload),preview2d:graph},
+ projectionGallery:structuredClone(bundle.definition.projectionGallery),
+ actor:{actorType:"HUMAN",subjectId:"owner-b9l"},
+ recordedAt:"2026-10-11T00:00:00.000Z",
+ origin:{type:"TEMPLATE_COPY",sourceRef:"test:b9l-legitimate-preview2d"}
+});
+const id={enterpriseId:revision.enterpriseId,definitionId:revision.definitionId,
+ definitionRevision:revision.revision,
+ projectionId:revision.projectionGallery.primaryProjectionId};
+const ctx={
+ contractVersion:"0.1.0",
+ principal:{contractVersion:"0.1.0",subjectId:"owner-b9l",
+  actorType:"HUMAN",identityProviderId:"test.identity",sessionId:"session-b9l"},
+ scope:{contractVersion:"0.1.0",enterpriseId:"ent-b9l"},
+ context:{contractVersion:"0.1.0",
+  personalContext:{contractVersion:"0.1.0",kind:"PERSONAL",contextId:"personal:owner-b9l"},
+  activeContext:{contractVersion:"0.1.0",kind:"ENTERPRISE",
+   contextId:"enterprise:ent-b9l",enterpriseId:"ent-b9l"}},
+ locale:"en-US",correlationId:"b9l-real-browser"
+};
+const request=(code,values)=>({
+ contractVersion:"0.1.0",type:"command",
+ command:{code,inputVersion:"0.1.0"},values,
+ sourceInteractionId:"B9l-saved-real-browser",actionId:code,requiresConfirmation:false
+});
+const open=()=>{
+ const projectionStore=createFileDefinitionProjectionStoreV010(file);
+ const source=createEnterpriseDefinitionProjectionArtifactSourceV010(repository,projectionStore);
+ const handlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore,source,
+  sessions:createMemoryDefinitionProjectionSessionStoreV010(),
+  canManageEnterpriseContext:()=>true,
+  authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-11T00:01:00.000Z")
+ });
+ return {projectionStore,handlers,
+  read:handlers.find(x=>x.commandCode===READ),
+  save:handlers.find(x=>x.commandCode===SAVE),
+  viewer:createEnterpriseDefinition2dPreviewReadActionV010({source})};
+};
+const first=open();
+const initial=await first.read.execute(request(READ,id),ctx);
+assert.equal(initial.ok,true,initial.error?.message);
+assert.equal(initial.result.nodes.length,graph.nodes.length);
+const edgePaths=[{edgeId:graph.edges[0].id,pathKind:"orthogonal"}];
+const save=(current,token,hiddenNodeIds)=>current.save.execute(request(SAVE,{
+ ...id,expectedRevision:revision.revision,expectedWriteToken:token,
+ operation:{type:"SAVE_PROJECTION_VIEW"},
+ viewState:{
+  hiddenNodeIds,edgePaths,
+  placements:initial.result.nodes.filter(n=>!hiddenNodeIds.includes(n.id))
+   .map(n=>({nodeId:n.id,x:n.x,y:n.y})),
+  camera
+ }
+}),ctx);
+const committed=await save(first,"0",[]);
+assert.equal(committed.ok,true,committed.error?.message);
+assert.equal(first.projectionStore.getVersion(id),1,
+ "genuine App Handler must commit the selected enterprise topology");
+
+const reopened=open(); // Fresh file Store and genuine independent handlers for HTTP GETs
+assert.equal(reopened.projectionStore.getVersion(id),1);
+const editorPage=createEnterpriseDefinitionProjectionEditorPageV010({
+ ...id,title:"B9l isolated enterprise topology",locale:"en-US",
+ initialCamera:camera
+});
+const viewerPage=createEnterpriseDefinition2dPreviewPageV010({
+ ...id,title:"B9l readonly enterprise topology",locale:"en-US",
+ camera
+});
+const pageHTML=(mode)=>{
+ const viewer=mode==="viewer";
+ const definition=viewer?viewerPage:editorPage;
+ const shell=viewer
+  ?renderDiagramWorkspacePageShellToHtmlV010(definition)
+  :renderDiagramEditorPageShellToHtmlV010(definition);
+ const modulePath=viewer
+  ?"/dist/vendor/eidos/src/diagram/workspace.js"
+  :"/dist/vendor/eidos/src/diagram/surface.js";
+ const mountName=viewer?"mountDiagramWorkspacePageV010":"mountDiagramEditorPageV010";
+ return '<!doctype html><html><head><meta charset="utf-8">'
+  +'<style>html,body{margin:0}main{width:1250px;height:760px}'
+  +'[data-eidos-diagram-editor]{height:750px!important;min-height:560px}</style></head>'
+  +'<body><main id="root">'+shell+'</main>'
+  +'<script>window.__definition='+JSON.stringify(definition)
+  +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
+  +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
+  +'</script><script type="module">'
+  +'import {'+mountName+'} from '+JSON.stringify(modulePath)+';'
+  +'const actionHost={async execute(request){const res=await fetch("/action",{method:"POST",'
+  +'headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
+  +'if(!res.ok)throw Error("HTTP "+res.status);return res.json()}};'
+  +'window.__mounted='+mountName+'({definition:window.__definition,'
+  +'container:document.getElementById("root"),actionHost});'
+  +'</script></body></html>';
+};
+// B9l: native node selection also invokes the real App selection-read
+// command. Never fake/404 it just because B9l only needed initial GET.
+const handlers=new Map([
+ ...reopened.handlers.map(handler=>[handler.commandCode,handler]),
+ [VIEW,reopened.viewer]
+]);
+const server=createServer(async(req,res)=>{
+ try{
+  const url=new URL(req.url,"http://127.0.0.1");
+  if(url.pathname==="/designer"||url.pathname==="/viewer"){
+   res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
+   res.end(pageHTML(url.pathname.slice(1)));return;
+  }
+  if(url.pathname==="/action"&&req.method==="POST"){
+   let raw="";for await (const chunk of req)raw+=chunk;
+   const call=JSON.parse(raw);
+   const h=handlers.get(call.command?.code);
+   if(!h){res.writeHead(400);res.end("Unknown command");return}
+   const value=await h.execute(call,ctx);
+   res.writeHead(200,{"content-type":"application/json"});
+   res.end(JSON.stringify(value));return;
+  }
+  if(url.pathname.startsWith("/dist/")){
+   const base=resolve(process.cwd(),"dist");
+   const abs=resolve(process.cwd(),"."+url.pathname);
+   if(!abs.startsWith(base+"/")){res.writeHead(403);res.end("Forbidden");return}
+   const bytes=await readFile(abs);
+   res.writeHead(200,{"content-type":"text/javascript; charset=utf-8"});
+   res.end(bytes);return;
+  }
+  res.writeHead(404);res.end("Not found");
+ }catch(error){res.writeHead(500);res.end(String(error?.stack??error))}
+});
+let browser;
+try{
+ server.listen(0,"127.0.0.1");await once(server,"listening");
+ const address="http://127.0.0.1:"+server.address().port;
+ browser=await chromium.launch({headless:true,executablePath:chrome,
+  args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
+ const snapshot=async(mode)=>{
+  const tab=await browser.newPage({viewport:{width:1280,height:820}});
+  try{
+   await tab.goto(address+"/"+mode,{waitUntil:"load"});
+   await tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+    {timeout:30000});
+   const result=await tab.evaluate(()=>{
+    const svg=document.querySelector("svg[data-eidos-diagram-congested-count]");
+    const routes=[...document.querySelectorAll("[data-eidos-diagram-route-congested]")];
+    const note=document.querySelector("[data-eidos-diagram-congestion-summary]");
+    return {count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
+     actualPaths:routes.length,
+     missingAria:routes.filter(item=>!item.getAttribute("aria-label")).length,
+     note:note?.getAttribute("data-eidos-diagram-congestion-summary")??null,
+     noteRole:note?.getAttribute("role")??null,
+     pointerEvents:note?.style.pointerEvents??null,
+     saveButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
+      .filter(button=>button.textContent.trim()==="Save projection").length,
+     errors:window.__errors};
+   });
+   assert.deepEqual(result.errors,[],mode+" B9l real Chrome errors");
+   assert.equal(result.count,result.actualPaths,mode+" congestion DOM hit count");
+   assert.equal(result.missingAria,0);
+   assert.equal(result.note,result.count>0?String(result.count):null);
+   assert.equal(result.noteRole,result.count>0?"note":null);
+   assert.equal(result.pointerEvents,result.count>0?"none":null);
+   return result;
+  }finally{await tab.close()}
+ };
+ const savedDesigner=await snapshot("designer");
+ const savedViewer=await snapshot("viewer");
+ assert.equal(savedDesigner.count,savedViewer.count,
+  "fresh readonly Viewer must match persisted Designer's honest congestion count");
+ assert.equal(savedViewer.saveButtons,0);
+ // B9l: real browser pointer clicks + real Save projection button,
+ // NOT a Node test invoking the Handler for the second CAS commit.
+ const nativeSaveTab=await browser.newPage({viewport:{width:1280,height:820}});
+ try{
+  await nativeSaveTab.goto(address+"/designer",{waitUntil:"load"});
+  await nativeSaveTab.waitForFunction(()=>
+   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+   {timeout:30000});
+  const blocker=nativeSaveTab.locator(
+   "[data-eidos-diagram-node="+JSON.stringify(removeNodeId)+"]");
+  const rect=await blocker.boundingBox();
+  assert.ok(rect&&rect.width>12&&rect.height>12,
+   "B9l chosen node must have a hit-testable Chrome rectangle");
+  await nativeSaveTab.mouse.click(rect.x+rect.width*.5,rect.y+rect.height*.5);
+  const hide=nativeSaveTab.locator("[data-eidos-diagram-local-hide]");
+  await hide.click();
+  await nativeSaveTab.waitForFunction(target=>
+   ![...document.querySelectorAll("[data-eidos-diagram-node]")]
+     .some(element=>element.getAttribute("data-eidos-diagram-node")===target),
+   removeNodeId,{timeout:30000});
+  assert.equal(reopened.projectionStore.getVersion(id),1,
+   "B9l local hide must NOT persist merely because real Chrome redraws");
+  const saveButton=nativeSaveTab.locator("[data-eidos-diagram-toolbar] button")
+   .filter({hasText:"Save projection"});
+  assert.equal(await saveButton.count(),1);
+  await saveButton.click();
+  await nativeSaveTab.waitForFunction(()=>
+   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+   {timeout:30000});
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "B9l native Chrome Save button must trigger actual App CAS file commit");
+  const browserErrors=await nativeSaveTab.evaluate(()=>window.__errors);
+  assert.deepEqual(browserErrors,[],"B9l browser native Save errors");
+  console.log("B9L_NATIVE_SAVE_RESULT="+JSON.stringify({
+   browser:browser.version(),process:intake.process,
+   graphSha256:intake.sha256,initialSavedCongestion:savedDesigner.count,
+   versionBeforeNativeSave:1,versionAfterNativeSave:2,
+   truePointerSelection:true,trueSaveButton:true,errors:browserErrors,
+   warning:"Owner attestation not independently verified; isolated test identity/FileStore, never production DB"
+  }));
+ }finally{await nativeSaveTab.close()}
+ const reopenedClearDesigner=await snapshot("designer");
+ const reopenedClearViewer=await snapshot("viewer");
+ assert.equal(reopenedClearDesigner.count,reopenedClearViewer.count,
+  "fresh readonly Viewer and Designer must agree after browser Save");
+ const fresh=await reopened.read.execute(request(READ,id),ctx);
+ assert.equal(fresh.ok,true,"fresh App read must succeed");
+ assert.equal(fresh.result.nodes.some(node=>node.id===removeNodeId),false,
+  "CAS saved projection must hide the specifically selected node");
+ assert.ok(graph.nodes.some(node=>node.id===removeNodeId),
+  "the original business preview2d topology remains untouched");
+ assert.equal(reopenedClearViewer.saveButtons,0);
+ assert.equal(repository.listHistory({
+  enterpriseId:id.enterpriseId,definitionId:id.definitionId
+ }).length,1,"projection Save must not version the business definition");
+ console.log("B9L_ENTERPRISE_CHROME_RESULT="+JSON.stringify({
+  browser:browser.version(),firstCASVersion:1,secondCASVersion:2,
+  savedDesigner,savedViewer,reopenedClearDesigner,reopenedClearViewer,
+  businessDefinitionHistoryCount:1,
+  process:intake.process,graphSha256:intake.sha256,
+  warning:"Fixture may be synthetic; isolated App Handler/FileStore Chrome proof, NOT customer authorization or production DB"
+ }));
+}finally{
+ await browser?.close();
+ server.closeAllConnections?.();server.close();
+ rmSync(tmp,{recursive:true,force:true});
+}
