@@ -1652,7 +1652,7 @@ export function mountDiagramEditorPageV010(
     if (nodes.length === 0) return undefined;
     // B8i: Fit selection must not crop a saved or automatic self-loop.
     const focus=selected?.kind==="edge"
-      ? state!.edges.filter(edge=>edge.id===selected.id) : [];
+      ? state!.edges.filter(edge=>edge.id===selected?.id) : [];
     return diagramSelfLoopFitBoundsV010(nodes,focus);
   };
 
