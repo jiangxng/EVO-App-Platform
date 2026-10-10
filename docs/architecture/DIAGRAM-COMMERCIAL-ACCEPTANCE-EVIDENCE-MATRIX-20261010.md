@@ -41,7 +41,7 @@
 | T07 | 手机抽屉、旋转、软键盘 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | E01 | 自动折线遇到中间节点 | Eidos tests/diagram-obstacle-routing.test.mjs；待真实渲染 | NOT TESTED |
 | E02 | 同向多边、反向边、自环 | Eidos tests/diagram-edge-lanes.test.mjs；待交互 | NOT TESTED |
-| E03 | 拖动折线段或路径点 | B6b Chrome 154 原生鼠标真实 SVG waypoint 拖动/网格吸附/Undo [Browser CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) PASS；正交段原生拖动和真实触摸等仍待验 | NOT TESTED |
+| E03 | 拖动折线段或路径点 | B6b Chrome 154 原生 SVG waypoint 与 orthogonal segment 抓取/吸附/Undo [Browser CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) PASS；实体触摸、完整连线组合/保存往返待验 | NOT TESTED |
 | E04 | 点击曲线远离端点直线的位置 | Eidos tests/diagram-edge-paths.test.mjs；待真实命中 | NOT TESTED |
 | E05 | 移动一个/两个端点 | Eidos tests/diagram-waypoints.test.mjs；待真实操作 | NOT TESTED |
 | E06 | 曲线/折线转直线再撤销 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -125,3 +125,9 @@
 - 首轮实际 Chrome 浏览器中，manual waypoint 与 orthogonal segment 的透明 44px 热区重叠时，后绘制的 segment 抢占鼠标。B6b 同步修复 Eidos #140 / App #568 Surface 顺序：先输出 segment handle，**再输出 waypoint handle**；保留原定 44px 热区，并加入源代码回归断言。
 - [App Browser CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) 为实际 Chrome/154.0.8037.97、四个独立浏览器标签页，机器日志 `nativeRouteHandleSnapAndUndo=true`。第四标签页在实际 Definition Projection 关系上切为 orthogonal、添加 waypoint、原生 mouse press/move/release 抓取并吸附、Undo 后重选关系确认坐标恢复，原 Host projection 版本未改变。
 - E03 的“手工路径点拖动”自动 Chrome 子场景有正向证据；但“正交线段本身拖动、路径合法性全组合、移动后完全保存/Viewer往返、实体触摸/多指、性能”等原 §14 完整验收未穷尽，故 **E03 仍 NOT TESTED** 而非 PASS。
+
+## B6b 正交线段鼠标拖动与原路径精确恢复（2026-10-10）
+
+- [Chrome Browser CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) Chrome/154.0.8037.97 四标签页 **PASS**，其中 `nativeOrthogonalSegmentSnapAndUndo=true`、`nativeRouteHandleSnapAndUndo=true`、`groupAlignmentUndo=true`、`businessHistoryUnchanged=true`。
+- 因单一共线 waypoint 与 segment handle 透明圈可重合，实验首先通过真实路径点数字坐标控件构造明确拐角；选取真正可点击的 segment 44px SVG 热区，沿其可动法向轴拖动，检查路径实际变化与 Undo 后 `d` 精确还原。两种手柄现均有实际 Chrome 鼠标子场景；用户仍可通过路径点数字编辑处理目标重叠情况。
+- 原始 §14 E03 仍保留 NOT TESTED：尚未在手机 Safari / Android Chrome 上验证多指触摸路径编辑、曲线及自环、保存后 Viewer 往返与大图性能。此证据只证明上述子场景，不代表实机商业验收全面 PASS。
