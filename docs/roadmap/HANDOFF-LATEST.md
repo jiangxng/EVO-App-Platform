@@ -51,7 +51,7 @@ Evidence:
   "publicCostOperation": "NOT_ADMITTED",
   "formalReceiptAllocation": "NOT_CERTIFIED",
   "evoOwnerReviewPr": 106,
-  "evoOwnerReviewStatus": "PROPOSED_NOT_ASSUMED_MERGED",
+  "evoOwnerReviewStatus": "MERGED_DESIGN_ONLY",
   "railwayDeploymentId": "72b35a06-a4c8-4757-a8f8-b9abf6314bc6",
   "railwayDeploymentStatus": "SUCCESS"
 }
