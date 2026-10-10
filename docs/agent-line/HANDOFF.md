@@ -27,7 +27,7 @@ Document class: LIVING_RUNBOOK
 
 ## 下一步（无需重做研究）
 
-已核实#575准确head的仓库CI全部成功。PA-01B1后端兼容契约已实现，见下方更新；下一步先核实#577 CI，再进入Eidos页面接入/dirty guard。PA-02生产迁移前补实际环境与恢复证据。
+PA-01A、PA-01B1、PA-01B2 已实现并通过对应准确 head CI；最新检查点见文末。下一步为 PA-01B2 隔离环境真实浏览器验收，随后再进入 PA-02；生产迁移前仍需实际环境与恢复证据。
 
 ## 未完成/限制
 
@@ -68,3 +68,28 @@ PR [#577](https://github.com/jiangxng/EVO-App-Platform/pull/577)，分支 `agent
 准确head `15f059da4d841e2bc1b6b84b0171bb1be0827797`：[P1.7B运行38014789592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014789592)，job114102554558的npm ci、tsc构建和测试均SUCCESS，49 tests /49 pass /0 fail。共返回17项工作流，17项全部SUCCESS，包含[Platform CI 38014789600](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014789600)。未测试浏览器和生产。
 
 PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既有差异，已查询的upstream page-controller/workbench shell未找到对应interactionContext/refreshSourceOnComplete文本；personal-agent-thread-chat读取未获得可用源码。先比较真实Host/vendor实现与upstream owner，不整包覆盖或凭名称假定两仓同步。
+
+## PA-01B2 最新检查点（2026-10-10）
+
+状态：IMPLEMENTED_CI_PASS_BROWSER_PENDING_NOT_MERGED_NOT_DEPLOYED。
+
+- 平台 PR [#579](https://github.com/jiangxng/EVO-App-Platform/pull/579)，分支 `agent/pa01b2-page-assistance-20261010`，准确 head `db555162370b3c3c992c7aef88f605f9ebf2d0cd`，base 为 #577 分支。依赖顺序 #575 → #577 → #579，不应直接把 #579 单独合入主线。
+- Eidos owner PR [#142](https://github.com/jiangxng/eidos/pull/142)，分支 `agent/pa01b2-contextual-refresh-20261010`，准确 head `f1057a64e26377ecf719c34ea83ff74b9dee9dc9`。两仓均 Draft。
+- 已接入页面按钮→侧栏→版本化 assistanceRequest→真实 thread transport→assistanceResult 返回链路。requestId 使用 UUID，复用线程发送身份；不混发旧 interactionContext，不静默降级丢失上下文。
+- 仅请求、来源、任务、Run、终态和当前挂载实例全部匹配，且无未保存原生表单修改时刷新。已有或等待期间的修改保留；离开后重进同一路径、失败/取消/暂停/旧结果均不刷新。按钮等待期间禁用，异常恢复。
+- 通用 helper 在 Eidos owner 实现，平台 narrow vendor 消费。既有 Host transport 上下游差异未整包覆盖，2D/crop 未改。
+
+### 精确提交验证
+
+- 平台 [P1.7C 38015600526](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015600526)：npm ci、完整 tsc 构建成功，63 tests /63 pass /0 fail（含本地 23 项 transport/guard 测试）。
+- 平台准确 head 返回的 10 项工作流全部 SUCCESS，包括 [Platform CI 38015600547](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015600547)、跨项目 CI、P1.8A/P1.8C 和 Continuity CI。
+- Eidos [release-check 38015597223](https://github.com/jiangxng/eidos/actions/runs/38015597223)：完整类型检查/构建与 235 tests /235 pass /0 fail。首次 CI 发现日文/繁体文案缺 key，已补齐四种语言并重新通过。
+- 上述 Node/CI 证据不等于真实浏览器验收。未访问生产、未执行真实 LLM 或数据写入、未合并/部署。
+
+### 下一步（先补验收，不重做研究）
+
+在隔离测试环境使用此堆叠分支及匹配后端做真实浏览器检查：①干净来源页成功刷新；②已有/等待中修改保持；③离开后回到同一路径不刷新；④失败不刷新；⑤普通聊天与导入字段匹配回归。确认真实业务写入凭证与 Run 成功不是同一概念。
+
+当前 dirty 保护范围为原生 input/textarea/select，测试用 DOM 替身；自定义富文本/画布需要显式 dirty 接口，不能称为已全面保护。程序保存未重挂载时可能保守阻止刷新。后续再进入 PA-02 Run/receipt 异步端口与持久化设计，不跳过环境/恢复基线。
+
+平台实施说明：[PA01B2](https://github.com/jiangxng/EVO-App-Platform/blob/agent/pa01b2-page-assistance-20261010/docs/agent-line/PA01B2-PAGE-ASSISTANCE-20261010.md)。本文件为持续状态入口，实施说明中的初始 CI_PENDING 以此处准确 head 证据为准，避免仅改状态反复跑实现 CI。
