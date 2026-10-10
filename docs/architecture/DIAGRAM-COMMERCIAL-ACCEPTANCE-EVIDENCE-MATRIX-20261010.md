@@ -49,7 +49,7 @@
 | D01 | 隐藏节点/边再保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D02 | 连续编辑、撤销、重做、保存 | B6b Chrome/154 真正三节点多选→左对齐→Undo→坐标完整恢复且未隐式保存，完整 D02 连续流程待验 | NOT TESTED |
 | D03 | 保存失败后重试 | B7b GitHub Chromium 154 实际 UI + HTTP 503 注入 + UI 重试，[Browser CI 38010453881](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010453881) PASS；其他设备仍待验 | NOT TESTED |
-| D04 | 保存后刷新、Viewer、模板预览 | App tests/integration/definition-projection-edge-routes.test.mjs；待 Viewer 手动 | NOT TESTED |
+| D04 | 保存后刷新、Viewer、模板预览 | B8b 实际 Chrome 154 UI：自动正交线段转手工、Redo、显式 Save CAS、全新 Designer 回读及真实只读 Enterprise Definition Viewer 的 SVG 路径一致 [CI 38017423084](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017423084) PASS；Template Preview、真实设备/生产服务待验 | NOT TESTED |
 | D05 | 两窗口冲突保存或 Agent 更新 | B7b Chrome 两独立 Tab 实际 Eidos DOM 选择/隐藏/保存/冲突/另存副本；Direct/Personal Agent Node CAS；真机/真实 LLM 待验 | NOT TESTED |
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -160,3 +160,11 @@
 - [Eidos Draft PR #143](https://github.com/jiangxng/eidos/pull/143) / [App Platform Draft PR #581](https://github.com/jiangxng/EVO-App-Platform/pull/581)：选中没有手工 waypoints 的 orthogonal 或 rounded-orthogonal 边，直接显示 44 CSS px 自动线段法向拖动目标；不要求按 Add path point。自动 SVG 与临时控制点使用同一套路由/障碍逻辑，老共线重复中点去重。选择/取消绝不写入手工控制点；实际释放成功才做一次 Undo checkpoint 与本地展示层转换。
 - [真实 Chrome 154 六标签页 Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) PASS，`autoSegmentDragCancelConvertUndo=true`。第五标签页从真实关系切换 orthogonal 后不增加 waypoint，使用原生 mouse press/move 预览，再注入 pointercancel 校验**原 SVG d 精确恢复、无手工点且无隐式 Host 写**；第六独立标签页同样无手工点启动，原生鼠标抓取并松手提交，出现手工控制点，再 Undo 恢复自动 SVG、移除手工点。原 B7b 三窗口 CAS/HTTP 503、B6b 手工折线、群组对齐仍通过。
 - **有意保留的缺口：** 用 DOM 人工派发的 `pointercancel` 不等于真实操作系统触摸取消；最初尝试在同一 Chrome 标签页紧接着复用原生鼠标状态，第二次拖动未触发预览。此现象暂不能归因于产品；本轮分别在独立标签页证明取消及正常提交/Undo，**没有声称真实同页取消后立即重抓已验收**。还需实体多指/触控板、rounded-orthogonal 直接拖动的浏览器路径、转换后显式保存刷新 Viewer、极端自动障碍路由等。§14 E03 与整体 39 项门槛仍 NOT TESTED。
+
+## B8b 自动正交段保存→重开→Viewer 真正渲染证据（2026-10-10）
+
+- [App B8b 独立 Draft #583](https://github.com/jiangxng/EVO-App-Platform/pull/583) 叠加原 B8a #581，**仅测试与文档**，不更改 Eidos/App 产品代码。延伸 B8a 的真实浏览器测试至 8 个 Chrome 154 标签页。
+- [Browser CI #38017423084](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017423084) **PASS**，机器证明 `b8bSaveReloadRealViewerRoundtrip=true`。第六标签页完成自动段→手工点→Undo→Redo，确保旧的自动 SVG、提交的手工路径和 redo 数据正确，再点击真实 Designer `Save projection`，Store 投影版本 3→4，包含该关系的 orthogonal 手工 `waypoints`，业务定义历史仍为 1。
+- 第七个**新打开的** Designer 标签页从原 Host Artifact Source 重新读取同一 projection；手工点数量与实际 SVG `d` 均和保存前完全一致。第八个**真正只读 Enterprise Definition Viewer** 工作台（产品 `createEnterpriseDefinition2dPreviewPageV010`、`createEnterpriseDefinition2dPreviewReadActionV010`、Eidos workspace mount）重新读取、实际绘出完全相同的路径 `d`；无编辑热区及保存按钮，且 Viewer 不写 Store。
+- Edge source、target、kind 与原始业务图一致，业务定义版本不变；原 B7b CAS/HTTP 503 和 B6b 手工与 B8a 取消回滚回归未失效。此证明 D04 的**正交自动改手工**一个自动 Chrome 子场景，**并未**测 Template Store Preview、真正重启服务器/持久磁盘后重载、移动真机/生产部署。因此 D04 保留 `NOT TESTED`，原 §14 39 项正式验收不能据此直接 PASS。
+- B8a 之前人工 DOM pointercancel 后在**同一标签页**立即 CDP 鼠标重新抓取失败，仍不能判断为 CDP 模拟状态还是产品故障，未被本轮声称已修复。实体多指、真实 OS pointercancel/regrab、复杂圆角路由等仍待验。
