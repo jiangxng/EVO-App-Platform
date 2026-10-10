@@ -34,3 +34,13 @@ test("vendored handles keep minimum 44 CSS pixel hit diameter after zoom",async(
   assert.match(src,/radius \/ camera\.scale/);
   assert.match(src,/target\.setAttribute\("data-eidos-diagram-handle-screen-radius", "22"\)/);
 });
+
+
+test("vendored Eidos forwards opaque optimistic write tokens and protects drafts during delayed saves", async () => {
+  const source = await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts", import.meta.url), "utf8");
+  assert.match(source, /expectedWriteToken: state\.writeToken/);
+  assert.match(source, /dispatchedFingerprint !== localViewFingerprint\(\)/);
+  assert.match(source, /DEFINITION_PROJECTION_WRITE_CONFLICT/);
+  assert.match(source, /if \(operationInFlight\)/);
+  assert.match(source, /renderContextNavigationV010/);
+});
