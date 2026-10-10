@@ -13,6 +13,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
       "shell.noActionHost": "No App Host ActionHost is configured.",
       "shell.executing": "Executing…",
       "shell.completed": "Completed.",
+      "shell.agentDraftPreserved": "Agent result is ready. Your unsaved changes were kept; review the result before reloading.",
       "shell.next": "Next: {next}",
       "shell.actionFailed": "Action failed: {message}",
       "shell.status": "App Host: {status} · revision {revision}",
@@ -80,6 +81,7 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
     namespace: "eidos.app-host",
     locale: "zh-CN",
     messages: {
+      "shell.agentDraftPreserved": "Agent 结果已就绪。已保留你未保存的修改，请先查看结果，再决定是否重新加载。",
       "shell.language": "语言",
       "shell.applications": "应用",
       "shell.noActivePage": "当前没有可用的应用页面。",
@@ -298,3 +300,4 @@ export const eidosAppHostLocalizationBundles: LocalizationBundleV010[] = [
     }
   }
 ];
+
