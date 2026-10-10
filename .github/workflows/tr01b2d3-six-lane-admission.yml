@@ -1,0 +1,68 @@
+name: TR01B2D3 Six Lane Production Admission Negative Gates
+
+on:
+  pull_request:
+    paths:
+      - "tools/tr01b2d3-six-lane-admission.mjs"
+      - "tools/tr01b2d3-private-tls-probe.mjs"
+      - "tests/protocol/tr01b2d3-six-lane-admission.test.mjs"
+      - "tests/protocol/tr01b2d3-private-tls-probe.test.mjs"
+      - "tests/fixtures/tr01b2d3-railway-production-readonly-observed-20261011.json"
+      - "docs/roadmap/TR01B2D3-SIX-LANE-PRODUCTION-ADMISSION-20261011.md"
+      - ".github/workflows/tr01b2d3-six-lane-admission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tr01b2d3-six-lane-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  security-lane:
+    name: ${{ matrix.id }} / isolated fail-closed gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: PRIVATE_TLS
+            pattern: PRIVATE_TLS
+          - id: MIGRATION
+            pattern: MIGRATION
+          - id: OIDC_SESSION
+            pattern: OIDC_SESSION
+          - id: KEY_CUSTODY
+            pattern: KEY_CUSTODY
+          - id: MULTI_INSTANCE
+            pattern: MULTI_INSTANCE
+          - id: RELEASE_ROLLBACK
+            pattern: RELEASE_ROLLBACK|SIX_LANE_AGGREGATE
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+      - name: Run negative security tests (no actual production access)
+        run: |
+          node --test --test-name-pattern="${{ matrix.pattern }}" \
+            tests/protocol/tr01b2d3-six-lane-admission.test.mjs \
+            tests/protocol/tr01b2d3-private-tls-probe.test.mjs
+      - name: Verify actual observed production is BLOCKED, never automatically admitted
+        run: |
+          set +e
+          node tools/tr01b2d3-six-lane-admission.mjs \
+            tests/fixtures/tr01b2d3-railway-production-readonly-observed-20261011.json \
+            > /tmp/tr01b2d3-real-observed.json
+          exit_code=$?
+          set -e
+          test "$exit_code" -eq 2
+          grep -q '"status":"BLOCKED"' /tmp/tr01b2d3-real-observed.json
+          grep -q '"productionCertification":"NOT_CERTIFIED"' /tmp/tr01b2d3-real-observed.json
+          grep -q '"deploymentAuthorized":false' /tmp/tr01b2d3-real-observed.json
+          grep -q '"executionAllowed":false' /tmp/tr01b2d3-real-observed.json
+          grep -q 'OWNER_DEDICATED_SERVICE_MISSING' /tmp/tr01b2d3-real-observed.json
+          grep -q 'EVO_AUTO_MIGRATION_NOT_ISOLATED' /tmp/tr01b2d3-real-observed.json
+          echo "TR01B2D3_SIX_LANE_${{ matrix.id }}_EXPECTED_PRODUCTION_BLOCK=PASS"
