@@ -116,7 +116,22 @@ async function waitForBalance(
 ) {
   let last;
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    const body = await ledgerBalances(enterpriseId, ledgerCode, dimensions);
+    let body;
+    try {
+      body = await ledgerBalances(enterpriseId, ledgerCode, dimensions);
+    } catch (error) {
+      // EVO may temporarily report 'no result' before the async Worker
+      // creates the first dimensioned balance row. Retry only this exact
+      // read-not-ready response within the existing bounded 60 attempts.
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('HTTP 500:')
+          || !message.includes('"message":"no result"')) {
+        throw error;
+      }
+      last = { transientEvoBalanceNotReady: true, ledgerCode };
+      await new Promise(resolve => setTimeout(resolve, 500));
+      continue;
+    }
     if (body.items.length === 1 && predicate(body.items[0])) {
       return body.items[0];
     }
