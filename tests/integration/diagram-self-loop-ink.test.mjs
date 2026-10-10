@@ -80,3 +80,27 @@ test("B8i Surface shares stable nonincident ink between Designer and Viewer",asy
  assert.match(code,/loopInkFor\(nodeId\)/);
  assert.match(code,/renderedEdges.length <= 1500 && siblingGroups.size <= 48/);
 });
+
+test("B8i camera-independent Fit all retains unstyled graphs and encloses external handles",async()=>{
+ const {diagramSelfLoopFitBoundsV010}=await import(
+   "../../dist/vendor/eidos/src/diagram/edge-lanes.js");
+ const a={id:"n",...n};
+ assert.deepEqual(diagramSelfLoopFitBoundsV010([a],[]),{
+   x:n.x,y:n.y,width:n.width,height:n.height});
+ const loops=Array.from({length:5},(_,i)=>({
+   id:"l"+i,source:"n",target:"n",pathKind:"curve"
+ }));
+ const b=diagramSelfLoopFitBoundsV010([a],loops);
+ assert.ok(b.x<n.x-90&&b.y<n.y-90);
+ assert.ok(b.x+b.width>n.x+n.width+90);
+ assert.ok(b.y+b.height>n.y+n.height+90);
+ const manual={...loops[0],waypoints:[{x:n.x+400,y:n.y+200}]};
+ const withManual=diagramSelfLoopFitBoundsV010([a, {
+    id:"remote",x:1000,y:2000,width:10,height:10}],[
+    manual,...loops.slice(1)]);
+ assert.ok(withManual.x+withManual.width>=n.x+422,
+   "Saved route control point outside nodes must not be cropped");
+ const code=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
+ assert.match(code,/diagramSelfLoopFitBoundsV010\(nodes,visibleEdges\(\)\)/);
+ assert.match(code,/diagramSelfLoopFitBoundsV010\(nodes,focus\)/);
+});
