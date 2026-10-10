@@ -20,6 +20,7 @@ import {
   type DiagramEdgePathKindV010
 } from "./edge-paths.js";
 import { diagramNodesIntersectingRectV010 } from "./selection.js";
+import { diagramSnapTranslationV010, type DiagramSnapTranslationV010 } from "./snapping.js";
 import {
   diagramEdgeAnchorPointV010,
   diagramManualEdgeGeometryV010,
@@ -1259,6 +1260,10 @@ export function mountDiagramEditorPageV010(
   let canvasTool: "SELECT" | "PAN" = "SELECT";
   let spaceHeld = false;
   let wheelInputMode: "MOUSE" | "TRACKPAD" = "MOUSE";
+  // B6a: distinct local presentation controls. Do not serialize preferences in business data.
+  let gridVisible = true;
+  let gridSnapEnabled = false;
+  let alignmentGuidesEnabled = true;
   try {
     wheelInputMode = window.localStorage.getItem("eidos.diagram.wheelMode") === "TRACKPAD"
       ? "TRACKPAD" : "MOUSE";
@@ -1782,6 +1787,29 @@ export function mountDiagramEditorPageV010(
         renderActions();
       };
       toolbar.appendChild(wheelButton);
+      if (page.viewInteraction?.localNodeDrag === true) {
+        const snapModes = [
+          { key: "grid", label: "Grid", title: "Show or hide the subtle 24-unit grid",
+            enabled: gridVisible, toggle: () => { gridVisible = !gridVisible;
+              if (stageElement) stageElement.style.backgroundImage = gridVisible
+                ? "linear-gradient(to right,rgba(95,107,118,.10) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,107,118,.10) 1px,transparent 1px)" : "none";
+            } },
+          { key: "snap", label: "Grid snap", title: "Snap moving nodes to the visible grid",
+            enabled: gridSnapEnabled, toggle: () => { gridSnapEnabled = !gridSnapEnabled; } },
+          { key: "align", label: "Align", title: "Snap node edges and centers to other visible nodes with guides",
+            enabled: alignmentGuidesEnabled, toggle: () => { alignmentGuidesEnabled = !alignmentGuidesEnabled; } }
+        ];
+        for (const mode of snapModes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = mode.label;
+          button.title = mode.title;
+          button.setAttribute("data-eidos-diagram-snap-mode", mode.key);
+          button.setAttribute("aria-pressed", String(mode.enabled));
+          button.onclick = () => { mode.toggle(); renderActions(); };
+          toolbar.appendChild(button);
+        }
+      }
       for (const option of [
         { label: "Undo", key: "undo", enabled: undoHistory.length > 0, action: undoView },
         { label: "Redo", key: "redo", enabled: redoHistory.length > 0, action: redoView }
@@ -2439,6 +2467,9 @@ export function mountDiagramEditorPageV010(
     stage.style.width = maxX + "px";
     stage.style.height = maxY + "px";
     stage.style.transformOrigin = "0 0";
+    stage.style.backgroundSize = "24px 24px";
+    stage.style.backgroundImage = gridVisible
+      ? "linear-gradient(to right,rgba(95,107,118,.10) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,107,118,.10) 1px,transparent 1px)" : "none";
     stageElement = stage;
     applyCameraTransform();
 
@@ -2838,6 +2869,37 @@ export function mountDiagramEditorPageV010(
       }
     };
 
+    const snapGuideLayer = svgElement("g");
+    snapGuideLayer.setAttribute("data-eidos-diagram-snap-guides", "");
+    snapGuideLayer.style.pointerEvents = "none";
+    svg.appendChild(snapGuideLayer);
+    const drawSnapGuides = (snap?: DiagramSnapTranslationV010): void => {
+      snapGuideLayer.replaceChildren();
+      if (!alignmentGuidesEnabled || !snap) return;
+      for (const axis of ["x", "y"] as const) {
+        const coordinate = axis === "x" ? snap.guideX : snap.guideY;
+        if (coordinate === undefined) continue;
+        const guide = svgElement("line");
+        if (axis === "x") {
+          guide.setAttribute("x1", String(coordinate));
+          guide.setAttribute("x2", String(coordinate));
+          guide.setAttribute("y1", "0");
+          guide.setAttribute("y2", String(maxY));
+        } else {
+          guide.setAttribute("x1", "0");
+          guide.setAttribute("x2", String(maxX));
+          guide.setAttribute("y1", String(coordinate));
+          guide.setAttribute("y2", String(coordinate));
+        }
+        guide.setAttribute("data-eidos-diagram-snap-axis", axis);
+        guide.setAttribute("stroke", "var(--eidos-primary,#2B6CB0)");
+        guide.setAttribute("stroke-opacity", ".72");
+        guide.setAttribute("stroke-width", "1");
+        guide.setAttribute("stroke-dasharray", "5 4");
+        guide.setAttribute("vector-effect", "non-scaling-stroke");
+        snapGuideLayer.appendChild(guide);
+      }
+    };
     stage.appendChild(svg);
 
     for (const node of renderedNodes) {
@@ -2975,6 +3037,14 @@ export function mountDiagramEditorPageV010(
           const initial = new Map(members.map(item => [item.id, {
             x: item.x, y: item.y
           }] as const));
+          const movingRects = members.map(item => ({
+            id: item.id, x: item.x, y: item.y, width: item.width, height: item.height
+          }));
+          const movingIdsForSnap = new Set(members.map(item => item.id));
+          const stationaryRects = renderedNodes.filter(item => !movingIdsForSnap.has(item.id))
+            .map(item => ({
+              id: item.id, x: item.x, y: item.y, width: item.width, height: item.height
+            }));
           const membersElements = new Map(members.map(item => [
             item.id,
             stage.querySelector<HTMLElement>(
@@ -3004,6 +3074,7 @@ export function mountDiagramEditorPageV010(
             cancelledByNavigation = true;
             moved = false;
             showPositions(initial);
+            drawSnapGuides();
             suppressNextNodeClick = true;
             window.setTimeout(() => {
               suppressNextNodeClick = false;
@@ -3032,10 +3103,15 @@ export function mountDiagramEditorPageV010(
             ) {
               return;
             }
-            const nextX = originalX + screenDeltaX / camera.scale;
-            const nextY = originalY + screenDeltaY / camera.scale;
+            const snapped = diagramSnapTranslationV010(
+              movingRects, stationaryRects,
+              screenDeltaX / camera.scale, screenDeltaY / camera.scale,
+              { scale: camera.scale, tolerancePx: 6, gridSize: 24,
+                alignToNodes: alignmentGuidesEnabled, snapToGrid: gridSnapEnabled }
+            );
             moved = true;
-            showPositions(movedPositions(nextX - originalX, nextY - originalY));
+            showPositions(movedPositions(snapped.dx, snapped.dy));
+            drawSnapGuides(snapped);
           };
 
           const pointerUp = (up: PointerEvent) => {
@@ -3047,6 +3123,7 @@ export function mountDiagramEditorPageV010(
             element.removeEventListener("pointermove", pointerMove);
             element.removeEventListener("pointerup", pointerUp);
             element.removeEventListener("pointercancel", pointerCancel);
+            drawSnapGuides();
             if (cancelledByNavigation || !moved) return;
             suppressNextNodeClick = true;
             const x = Number.parseFloat(element.style.left);
