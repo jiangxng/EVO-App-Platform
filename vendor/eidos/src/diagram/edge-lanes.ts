@@ -344,3 +344,45 @@ export function diagramSelfLoopGeometryV010(
   }
   return {kind,d,label:{x:right+reach+2,y:(y1+y2)/2},...status};
 }
+
+/** B8i: stable Fit-all / Fit-selection envelope. Unlike camera-aware route
+ * decisions this does not change on pan/zoom/selection, and manual exterior
+ * points are always included. Ordinary graphs without styled self-loops
+ * preserve their exact original node bounds.
+ */
+export function diagramSelfLoopFitBoundsV010(
+  nodes: readonly (DiagramLaneNodeV010 & {id:string})[],
+  edges: readonly (DiagramLaneEdgeV010 & {
+    pathKind?: DiagramEdgePathKindV010;
+    waypoints?: readonly DiagramEdgePointV010[];
+  })[]
+): {x:number;y:number;width:number;height:number} {
+  if(!nodes.length)return {x:0,y:0,width:1,height:1};
+  const byId=new Map(nodes.map(n=>[n.id,n] as const));
+  let minX=Math.min(...nodes.map(n=>n.x)),minY=Math.min(...nodes.map(n=>n.y));
+  let maxX=Math.max(...nodes.map(n=>n.x+n.width));
+  let maxY=Math.max(...nodes.map(n=>n.y+n.height));
+  const counts=new Map<string,number>();
+  for(const edge of edges){
+    if(edge.source===edge.target && edge.pathKind!==undefined && byId.has(edge.source)){
+      counts.set(edge.source,(counts.get(edge.source)??0)+1);
+      for(const p of edge.waypoints??[]){
+        minX=Math.min(minX,p.x-22);minY=Math.min(minY,p.y-22);
+        maxX=Math.max(maxX,p.x+22);maxY=Math.max(maxY,p.y+22);
+      }
+    }
+  }
+  for(const [id,count] of counts){
+    const n=byId.get(id)!;
+    // Approximate extreme lane offset, four-side reuse nesting and 22px
+    // world-space handle. Fit camera adds its own fixed pixel-space padding.
+    const outward=Math.max(38,56+count*7)
+      +Math.floor((count-1)/4)*32+22;
+    minX=Math.min(minX,n.x-outward);
+    minY=Math.min(minY,n.y-outward);
+    maxX=Math.max(maxX,n.x+n.width+outward);
+    maxY=Math.max(maxY,n.y+n.height+outward);
+  }
+  return {x:minX,y:minY,width:Math.max(1,maxX-minX),
+    height:Math.max(1,maxY-minY)};
+}
