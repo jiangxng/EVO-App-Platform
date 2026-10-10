@@ -209,3 +209,11 @@
 - 单测验证：无障碍的四类旧右侧自环 SVG 保持；可见节点占用右侧时自动选下，再占用下则选左、再占左则选上；重排不受障碍列表顺序影响；手工路径点反推自环方向，邻接节点消失时不自动改写手工方向；无效输入拒绝；大图空间索引与完整障碍扫描得到相同决策。
 - [Chrome 20 标签页 Browser CI #38023222999](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38023222999) **PASS**（Chrome/154.0.8037.97），标记 `b8gNativeBlockedSideSaveReadViewer=true`。仅通过隔离 artifact source 注入的 **模拟 self-loop 和模拟右侧阻挡节点**构造真实 Browser/Host 行为，不修改实际企业关系。Chrome 第 18 页调用 Inspector 的 Restore automatic routing 后从右侧改走下方；CDP 原生鼠标能够命中外侧控制柄并拖动 cubic 曲线，单次 Undo/Redo；仅显式 Save 才 CAS 推进投影 6→7，业务定义历史不变。第 19 页全新 Designer、第 20 页只读 Viewer **移除测试阻挡节点后**仍严格显示已保存的下侧 cubic SVG，不提供查看侧 Save/编辑，不隐式写入 Store。此前 B8f/B8e/B8d/B8c/B8b/冲突与重试子场景同 run PASS。
 - **B8g 不能认定正式商用验收已完成**：全部四侧有阻碍时只选最小交叠，不保证无交叠；未处理边边交叉、标签遮挡、视口边界、同节点多自环、复杂混合手势。真实 Chrome 场景只对底侧 curve 操作提供端到端证据，正交/圆角的左/上路径仍是几何测试。实体手机/桌面设备、持久化数据库服务重启、高密场景的可靠性、完整 §14 **39 项仍 NOT TESTED**。两个 PR 为 Draft，未合并、未部署。
+
+
+## B8h 多自环分配、同侧错层与拥堵提示（2026-10-10）
+
+- Eidos [Draft #149](https://github.com/jiangxng/eidos/pull/149) + App [Draft #596](https://github.com/jiangxng/EVO-App-Platform/pull/596)，直接堆叠各自 B8g；限定 2D 自环路径显示和 Surface 手柄/提示，不改业务关系 ID/端点/业务定义 revision、Agent 授权、CAS 或 44 CSS px 热区。
+- Eidos Geometry/Surface 单测：无遮挡单环保留旧默认 SVG；同节点四条关系方向依次右、下、左、上；第五/六条同侧允许向外错层并标记拥堵；四侧均被节点占满返回非零交叠面积和 `congested=true`；手工路径方向不跳变，且**所有已保存手工路径先于任意自动兄弟自环占用侧别**；警示文字不吃 pointer。
+- [Chrome 154，23 标签页实际浏览器 #38024189776](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38024189776) **PASS**，日志 `b8hMultiLoopCongestionNativePointerViewer=true`。第 21 页独立合成五自环：稳定分配右→下→左→上→右，第五条可见拥堵提示并保留 22px 半径/44px 直径真实 Chrome 鼠标可抓点，实际拖动更新 cubic 预览/本地路径但**不隐式写 Store**；第 22 页真实只读 Viewer 仍显示未提交的旧图；第 23 页合成四侧障碍，全部拥堵自环带 DOM 和 aria 状态，提示不会截获指针。B8g/B8f/B8e/B8d/B8c/B8b/Host CAS/临时 503/版本隔离回归同运行通过。
+- **证据局限**：以上多环和四侧阻挡都是隔离 artifact source 的模拟关系与模拟节点，不是在线真实业务关系；Chrome CDP 鼠标非实体操作设备；只验证与节点矩形和同节点自环的局部冲突，不含其它关系的边-边交叉惩罚、标签防遮、视口外溢、跨图全局布线。五条以上仍可能共享一侧且继续拥堵，警示不能保证自动化解。实体设备、重启/数据库持久化、完整 §14 **39 条正式商用验收仍 NOT TESTED**；Draft、未合并、未部署。
