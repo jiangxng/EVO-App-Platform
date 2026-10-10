@@ -303,7 +303,7 @@ const wideLabelSource={get(input){
   return {...result,diagram2d:{...result.diagram2d,
     nodes:result.diagram2d.nodes.map(n=>
       n.id==="diagram-browser:ink-upper"||n.id==="diagram-browser:ink-lower"
-        ? {...n,x:n.x+174}:n),
+        ? {...n,x:n.x+8}:n),
     edges:result.diagram2d.edges.map(e=>e.id===inkRelationId
       ? {...e,label:"M".repeat(60)}:e)}};
 }};
@@ -314,6 +314,27 @@ const wideLabelHandlers=createEnterpriseDefinitionProjectionEditorActionHandlers
 });
 const wideLabelViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
   source:wideLabelSource
+});
+
+// B8n: same source graph, multilingual newline/emoji plus an
+// overlong unbroken tail. Visible SVG tspans and reservation share layout.
+const multilingualCaption="销售到收款👩‍💻与采购付款\n日本語の会計処理🧾"
+  +"\n客户订单—供应商往来—库存变动—资金核对"
+  +"\n"+"中文日本語ABC📦".repeat(32);
+const multilingualSource={get(input){
+  const result=wideLabelSource.get(input);
+  if(!result?.diagram2d)return result;
+  return {...result,diagram2d:{...result.diagram2d,
+    edges:result.diagram2d.edges.map(e=>e.id===inkRelationId
+      ? {...e,label:multilingualCaption}:e)}};
+}};
+const multilingualHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:multilingualSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:09:00.000Z")
+});
+const multilingualViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:multilingualSource
 });
 
 const context = tab => ({
@@ -369,8 +390,11 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/wide-label") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
-    if (url.pathname === "/wide-label-viewer") {
+    if (url.pathname === "/wide-label-viewer" || url.pathname === "/multilingual-viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
+    }
+    if (url.pathname === "/multilingual-label") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
@@ -381,7 +405,9 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = ["AC","AD"].includes(tab)
+      const candidates = ["AE","AF"].includes(tab)
+        ? [...multilingualHandlers,multilingualViewerHandler]
+        : ["AC","AD"].includes(tab)
         ? [...wideLabelHandlers,wideLabelViewerHandler]
         : ["AA","AB"].includes(tab)
         ? [...preciseInkHandlers,preciseInkViewerHandler]
@@ -447,7 +473,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab, ac, ad;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab, ac, ad, ae, af;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -506,6 +532,8 @@ try {
       : route === "precise-ink-viewer" ? "/precise-ink-viewer?session="
       : route === "wide-label" ? "/wide-label?session="
       : route === "wide-label-viewer" ? "/wide-label-viewer?session="
+      : route === "multilingual-label" ? "/multilingual-label?session="
+      : route === "multilingual-viewer" ? "/multilingual-viewer?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1486,7 +1514,7 @@ try {
   assert.ok(wide.labelWidth>176,
     "Synthetic caption must exceed B8i fixed-width reservation cap");
   assert.equal(wide.startY,selfNode.y+selfNode.height,
-    "Measured distant label should reserve the right corridor and redirect self-loop");
+    "B8n actual wrapped wide-label footprint must still reserve the right corridor");
   assert.equal(wide.radius,"22","Wide labels may not obscure or shrink 44px handle");
   assert.equal(wide.quality,"full");
   ad=await tab("AD","wide-label-viewer");
@@ -1521,7 +1549,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close(); ac?.close(); ad?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close(); ac?.close(); ad?.close(); ae?.close(); af?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
