@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Six Chrome tabs - B8a auto segments, manual routes, alignment, CAS and retry
+      - name: Eight Chrome tabs - B8b save/reload/Viewer plus B8a auto segments and CAS
         shell: bash
         run: |
           set -euo pipefail
