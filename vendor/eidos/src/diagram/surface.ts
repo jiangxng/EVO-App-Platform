@@ -2913,15 +2913,18 @@ export function mountDiagramEditorPageV010(
         });
         svg.append(marker, target);
       };
-      for (const [index, point] of original.entries()) {
-        handle(point.x, point.y, "point", index);
-      }
+      // B6b: segment hit circles may overlap waypoint circles. Paint segment
+      // targets first so explicit point handles remain on top and are draggable.
+      // Both retain the 44 CSS px target; no hit-area reduction is allowed.
       if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
         for (const segment of diagramEditableOrthogonalSegmentsV010(
           start, end, { pathKind: edge.pathKind, waypoints: original }
         )) {
           handle(segment.x, segment.y, "segment", segment.index, segment.axis);
         }
+      }
+      for (const [index, point] of original.entries()) {
+        handle(point.x, point.y, "point", index);
       }
     }
 
