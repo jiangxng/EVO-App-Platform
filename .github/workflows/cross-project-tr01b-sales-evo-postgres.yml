@@ -16,6 +16,7 @@ on:
       - "apps/trading-reference/finance-owner-key-pointer.ts"
       - "tools/certify-tr01b2d3-postgres-role-separation.mjs"
       - "tools/certify-tr01b2d3-distinct-db-logins.mjs"
+      - "tools/certify-tr01b2d3-cross-instance-races.mjs"
       - "tools/certify-tr01b2d3-host-hot-signing-key.mjs"
       - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
       - "tools/certify-tr01b2d3-host-https-identity.mjs"
@@ -210,6 +211,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d3-distinct-db-logins.mjs | tee /tmp/tr01b2d3-distinct-db-logins.log
           grep -q 'TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-distinct-db-logins.log
+
+      - name: Certify concurrent one-use assertions and revoked-key ordering across two EVO processes
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-cross-instance-races.mjs | tee /tmp/tr01b2d3-cross-instance-races.log
+          grep -q 'TR01B2D3_TWO_EVO_CONCURRENT_NONCE_REVOKE_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-cross-instance-races.log
 
       - name: Show EVO logs on failure
         if: failure()
