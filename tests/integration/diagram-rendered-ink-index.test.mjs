@@ -21,8 +21,14 @@ test("B8j actual cubic bulge occupies the right corridor where its end-to-end ch
   const old=diagramSelfLoopDecisionV010(loop,[],0,[],{segments:centerChord});
   const improved=diagramSelfLoopDecisionV010(loop,[],0,[],{segments:actual});
   assert.equal(old.side,"right","B8i centerline estimate did not see outward cubic");
+  const forced=diagramSelfLoopDecisionV010(loop,[],0,
+    [...Array(40).fill("bottom"),...Array(40).fill("left"),
+      ...Array(40).fill("top")],{segments:actual});
   assert.notEqual(improved.side,"right",
-    "B8j geometry-consistent cubic sample must avoid the exterior collision");
+    "B8j curved route should be preferred away from stroke; debug="+JSON.stringify({
+      improved,forced,midpoint:actual[Math.floor(actual.length/2)],
+      segments:actual.length
+    }));
 });
 
 test("B8j corner Q and full cubic C are recursively flattened in source order",()=>{
