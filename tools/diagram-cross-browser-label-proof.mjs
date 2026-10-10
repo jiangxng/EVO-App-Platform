@@ -94,6 +94,7 @@ try{
  server.listen(0,"127.0.0.1");await once(server,"listening");serverStarted=true;
  const origin="http://127.0.0.1:"+server.address().port;
  const results=[];
+ const postSelectResults=[];
  const limitResults=[];
  for(const [engine,browserType] of [["firefox",firefox],["webkit",webkit]]){
   const browser=await browserType.launch({headless:true});
@@ -182,6 +183,38 @@ try{
       height:Math.round(result.height*100)/100,
       titlePreserved:result.title===sample.caption});
      console.log("B8S_BROWSER_CASE="+JSON.stringify(results.at(-1)));
+     // B8w: actual browser mouse click causes a fresh, selected-node
+     // render. Recheck the final painted SVG ink against the ORIGINAL
+     // world-space route box; a first-render-only bidi fix is insufficient.
+     await page.locator("[data-eidos-diagram-node='a']").click();
+     const after=await page.evaluate(async()=>{
+      const label=document.querySelector("[data-eidos-diagram-edge-label='business-relation']");
+      if(!label)throw Error("B8w related edge label missing after native selection");
+      const bbox=label.getBBox();
+      const rows=[...label.querySelectorAll("tspan")];
+      const {diagramCaptionLayoutV010}=await import("/dist/vendor/eidos/src/diagram/label-reservation.js");
+      const fontContext=document.createElement("canvas").getContext("2d");
+      fontContext.font="11px "+getComputedStyle(document.querySelector("[data-eidos-diagram-canvas]")).fontFamily;
+      const originalAnchor={x:Number(label.getAttribute("data-eidos-diagram-caption-world-x")),
+       y:Number(label.getAttribute("y"))+8+14*Math.max(0,rows.length-1)/2};
+      const reserved=diagramCaptionLayoutV010(originalAnchor,window.__state.edges[0].label,
+       value=>fontContext.measureText(value)).box;
+      return {left:bbox.x,right:bbox.x+bbox.width,width:bbox.width,
+       reserved,dir:label.getAttribute("direction"),
+       labelPreserved:label.querySelector("title")?.textContent===window.__state.edges[0].label
+        || (rows.map(t=>t.textContent).join("")||label.textContent)===window.__state.edges[0].label,
+       errors:window.__errors};
+     });
+     assert.deepEqual(after.errors,[],engine+" native selected-node rerender errors");
+     assert.equal(after.dir,sample.direction,engine+" bidi direction must survive selection");
+     assert.equal(after.labelPreserved,true,engine+" rerender must preserve original caption");
+     assert.ok(after.width>5&&Number.isFinite(after.width));
+     assert.ok(after.left>=after.reserved.x-6
+       && after.right<=after.reserved.x+after.reserved.width+6,
+       engine+" selected rerendered SVG ink exceeds original world reservation");
+     postSelectResults.push({engine,case:sample.id,
+      measuredWidth:Math.round(after.width*100)/100,
+      retainedBidi:after.dir===sample.direction});
     }finally{await page.close();}
    }
    const capPage=await browser.newPage({viewport:{width:1150,height:800}});
@@ -211,7 +244,13 @@ try{
   }finally{await browser.close();}
  }
  assert.equal(results.length,cases.length*2);
+ assert.equal(postSelectResults.length,cases.length*2);
  assert.equal(limitResults.length,2);
+ console.log("B8W_POST_SELECT_RESULT="+JSON.stringify({
+  engines:["firefox","webkit"],nativeClicks:postSelectResults.length,
+  cases:postSelectResults,
+  note:"Native pointer selection re-render of real SVG; not physical-device validation"
+ }));
  console.log("B8U_COMPLEX_TEXT_RESULT="+JSON.stringify({
   engines:["firefox","webkit"],samples:results.length,capProbes:limitResults,
   warning:"Linux browser engines only; not a Safari/iOS or physical-device acceptance"}));
