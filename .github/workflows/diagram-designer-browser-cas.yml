@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Twenty-three Chrome tabs - B8h sibling self-loops, congestion, B8g CAS Viewer
+      - name: Twenty-six Chrome tabs - B8i external stroke and label avoidance
         shell: bash
         run: |
           set -euo pipefail
