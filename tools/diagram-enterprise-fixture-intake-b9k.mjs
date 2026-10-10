@@ -53,6 +53,10 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
     !finite(node.x) || !finite(node.y) ||
     !finite(node.width) || !finite(node.height) ||
     node.width<=0 || node.height<=0 ||
+    Math.abs(node.x)>1_000_000 || Math.abs(node.y)>1_000_000 ||
+    node.width>100_000 || node.height>100_000 ||
+    Math.abs(node.x+node.width)>1_100_000 ||
+    Math.abs(node.y+node.height)>1_100_000 ||
     (node.shape!==undefined && !id(node.shape)))
    error("invalid node fields or geometry");
   if(!clean(node.id) || !clean(node.label) || !clean(node.kind))error("potential email or unsafe control character in node");
