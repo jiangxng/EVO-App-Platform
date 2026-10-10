@@ -426,3 +426,72 @@ test("thread resume fails closed if a run belongs to another thread", async () =
     0
   );
 });
+
+
+// PA-01A: task coordinates are part of a client turn's identity.
+for (const [label, originalContext, retryContext, errorCode] of [
+  ["different import job", { context: { importJobId: "job-1" } },
+    { context: { importJobId: "job-2" } }, "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED"],
+  ["removed context", { context: { importJobId: "job-1" } },
+    undefined, "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED"],
+  ["added context", undefined, { context: { importJobId: "job-1" } },
+    "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED"],
+  ["changed reference order", { refs: ["a", "b"] }, { refs: ["b", "a"] },
+    "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED"],
+  ["malformed context", undefined, "not-an-object",
+    "PERSONAL_AGENT_INTERACTION_CONTEXT_INVALID"]
+]) {
+  test(`client turn retry rejects ${label} without new effects`, async () => {
+    const h = harness();
+    const values = {
+      threadId: "conversation-thread:1",
+      message: "map these fields",
+      clientTurnId: "client-turn:context-identity",
+      ...(originalContext === undefined ? {} : { interactionContext: originalContext })
+    };
+    const send = input => h.byCode.get("enterprise-agent.thread.send").execute(
+      request("enterprise-agent.thread.send", input), h.requestContext
+    );
+    const first = await send(values);
+    assert.equal(first.ok, true);
+    const beforeCalls = h.providerInputs.length;
+    const beforeEvents = h.runStore.events(first.result.run.runId);
+    const beforeThread = h.threadStore.get(values.threadId);
+    const retry = await send({ ...values, interactionContext: retryContext });
+    assert.equal(retry.ok, false);
+    assert.equal(retry.error.code, errorCode);
+    assert.equal(h.providerInputs.length, beforeCalls);
+    assert.deepEqual(h.runStore.events(first.result.run.runId), beforeEvents);
+    assert.deepEqual(h.threadStore.get(values.threadId), beforeThread);
+    assert.equal(h.runStore.list({
+      principalSubjectId: principal.subjectId, context: context.activeContext, limit: 100
+    }).length, 1);
+  });
+}
+
+test("client turn retry accepts equivalent context with different JSON key order", async () => {
+  const h = harness();
+  const values = {
+    threadId: "conversation-thread:1",
+    message: "map these fields",
+    clientTurnId: "client-turn:ordered-context",
+    interactionContext: {
+      source: { pageId: "mapping", actionId: "ai-auto-map" },
+      context: { taskKind: "data-import.mapping", importJobId: "job-1" }
+    }
+  };
+  const send = input => h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", input), h.requestContext
+  );
+  const first = await send(values);
+  assert.equal(first.ok, true);
+  const beforeCalls = h.providerInputs.length;
+  const second = await send({ ...values, interactionContext: {
+    context: { importJobId: "job-1", taskKind: "data-import.mapping" },
+    source: { actionId: "ai-auto-map", pageId: "mapping" }
+  } });
+  assert.equal(second.ok, true);
+  assert.equal(second.result.run.runId, first.result.run.runId);
+  assert.equal(h.providerInputs.length, beforeCalls);
+  assert.equal(h.threadStore.get(values.threadId).messages.length, 2);
+});
