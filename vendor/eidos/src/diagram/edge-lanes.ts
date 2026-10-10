@@ -234,9 +234,10 @@ export function diagramSelfLoopGeometryV010(
     });
   }
   if(selectedSide!=="right"){
-    return diagramManualEdgeGeometryV010(frame.start,frame.end,{
+    const path=diagramManualEdgeGeometryV010(frame.start,frame.end,{
       pathKind:kind==="straight"?"orthogonal":kind,waypoints:frame.orthogonal
-    }) as DiagramEdgeGeometryV010;
+    });
+    return {...path,kind};
   }
   // Historical right-facing default remains pixel-identical when unblocked.
   const right=node.x+node.width;
