@@ -22,7 +22,7 @@ test("B8c Shift picks closest overlapping segment and Shift+Alt picks next",()=>
   assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,2)?.index,1);
   assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,2,true)?.index,3);
   assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,.5)?.index,1);
-  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,10)?.index,1);
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,10),undefined);
   assert.deepEqual(segments,snapshot,"hit selection never alters manual coordinates");
 });
 
