@@ -23,6 +23,7 @@ on:
       - "tests/integration/diagram-self-loop-congestion.test.mjs"
       - "tests/integration/diagram-self-loop-ink.test.mjs"
       - "tests/integration/diagram-rendered-ink-index.test.mjs"
+      - "tests/integration/diagram-label-density.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -47,6 +48,7 @@ on:
       - "tests/integration/diagram-self-loop-congestion.test.mjs"
       - "tests/integration/diagram-self-loop-ink.test.mjs"
       - "tests/integration/diagram-rendered-ink-index.test.mjs"
+      - "tests/integration/diagram-label-density.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -83,3 +85,4 @@ jobs:
           tests/integration/diagram-self-loop-congestion.test.mjs
           tests/integration/diagram-self-loop-ink.test.mjs
           tests/integration/diagram-rendered-ink-index.test.mjs
+          tests/integration/diagram-label-density.test.mjs
