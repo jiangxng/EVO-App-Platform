@@ -241,6 +241,8 @@ export interface DiagramEditorStateV010 {
   contractVersion: "0.1.0";
   resourceId: string;
   revision: number;
+  /** Opaque host-owned optimistic write token; independent of domain revision. */
+  writeToken?: string;
   lifecycleState?: string;
   nodes: DiagramEditorNodeV010[];
   edges: DiagramEditorEdgeV010[];
@@ -595,6 +597,11 @@ export function validateDiagramEditorStateV010(
   ) {
     issues.push("revision must be a non-negative integer.");
   }
+  if (state.writeToken !== undefined
+    && (typeof state.writeToken !== "string"
+      || state.writeToken.length === 0 || state.writeToken.length > 256)) {
+    issues.push("writeToken must be a non-empty opaque string.");
+  }
   if (!Array.isArray(state.nodes)) issues.push("nodes must be an array.");
   if (!Array.isArray(state.edges)) issues.push("edges must be an array.");
   for (const [field, value] of [
@@ -842,6 +849,7 @@ export function diagramEditorOperationRequestV010(
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
       expectedRevision: state.revision,
+      ...(state.writeToken !== undefined ? { expectedWriteToken: state.writeToken } : {}),
       operation: jsonClone(operation),
       ...(viewState
         ? { viewState: jsonClone(viewState) as unknown as JsonValue }
