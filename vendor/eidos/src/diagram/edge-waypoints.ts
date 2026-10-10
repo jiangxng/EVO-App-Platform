@@ -293,25 +293,52 @@ export function diagramEditableAutomaticOrthogonalRouteV010(
   return segments.length ? { waypoints: points, segments } : undefined;
 }
 
-/** B8c: choose the segment hidden under a 44 CSS px waypoint hit target.
- * Shift+drag prefers the closest hidden segment. Shift+Alt+drag picks the
- * second distinct segment where available. Sorting is deterministic, never
- * changes saved waypoint topology, and no hit circle becomes smaller.
+/** B8d: return every distinct overlapping orthogonal handle, ordered by visible
+ * screen distance then a stable route identity. Never edit the input route.
+ * The existing 44 CSS px overlap envelope (two 22 px circles) is unchanged.
  */
-export function diagramOverlappingSegmentForWaypointV010(
+export function diagramOverlappingSegmentsForWaypointV010(
   waypoint: DiagramEdgePointV010,
   segments: readonly DiagramOrthogonalSegmentHandleV010[],
-  scale: number,
-  alternate = false
-): DiagramOrthogonalSegmentHandleV010 | undefined {
-  if (!validPoint(waypoint) || !Number.isFinite(scale) || scale <= 0) return undefined;
-  const candidates = segments
+  scale: number
+): DiagramOrthogonalSegmentHandleV010[] {
+  if (!validPoint(waypoint) || !Number.isFinite(scale) || scale <= 0
+    || !Array.isArray(segments)) return [];
+  const seen = new Set<string>();
+  return segments
+    .filter(segment => segment && validPoint(segment)
+      && Number.isInteger(segment.index) && segment.index >= 0
+      && (segment.axis === "x" || segment.axis === "y"))
     .map(segment => ({ segment, distance: Math.hypot(
       (segment.x - waypoint.x) * scale,
       (segment.y - waypoint.y) * scale
     ) }))
     .filter(item => Number.isFinite(item.distance) && item.distance <= 44)
-    .sort((a,b) => a.distance - b.distance || a.segment.index - b.segment.index
-      || a.segment.axis.localeCompare(b.segment.axis));
-  return candidates[alternate && candidates.length > 1 ? 1 : 0]?.segment;
+    .sort((a, b) => a.distance - b.distance || a.segment.index - b.segment.index
+      || a.segment.axis.localeCompare(b.segment.axis))
+    .filter(item => {
+      const key = item.segment.index + ":" + item.segment.axis;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(item => item.segment);
+}
+
+/** B8c-compatible default: Shift selects nearest, Shift+Alt selects second.
+ * B8d accepts a zero-based numeric rank after an explicit no-drag cycle.
+ * Out-of-range numeric choices fail closed; a lone B8c alternate still
+ * selects the only segment for backwards compatibility.
+ */
+export function diagramOverlappingSegmentForWaypointV010(
+  waypoint: DiagramEdgePointV010,
+  segments: readonly DiagramOrthogonalSegmentHandleV010[],
+  scale: number,
+  alternate: boolean | number = false
+): DiagramOrthogonalSegmentHandleV010 | undefined {
+  const candidates = diagramOverlappingSegmentsForWaypointV010(waypoint, segments, scale);
+  const rank = typeof alternate === "boolean"
+    ? (alternate && candidates.length > 1 ? 1 : 0)
+    : alternate;
+  return Number.isInteger(rank) && rank >= 0 ? candidates[rank] : undefined;
 }
