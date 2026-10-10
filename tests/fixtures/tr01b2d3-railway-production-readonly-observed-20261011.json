@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "0.1.0",
+  "observationSource": "Authorized Railway read-only connector; values of environment variables and secrets never read",
+  "observedAt": "2026-10-11T00:00:00Z",
+  "project": "EVO Ledger Runtime MVP",
+  "environment": "production",
+  "services": [
+    {
+      "purpose": "APP_PLATFORM_HOST",
+      "name": "Ledger Configurator",
+      "sourceBranch": "main",
+      "replicas": 1,
+      "publicDomains": [
+        "ledger-configurator-production.up.railway.app"
+      ],
+      "privateHostname": "ledger-configurator.railway.internal"
+    },
+    {
+      "purpose": "EVO_GENERAL_RUNTIME",
+      "name": "EVO Runtime",
+      "sourceBranch": "main",
+      "replicas": 1,
+      "entrypoint": "npm start",
+      "preDeployCommands": [
+        "node dist/scripts/migrate.js"
+      ],
+      "publicDomains": [
+        "evo-runtime-production.up.railway.app"
+      ],
+      "privateHostname": "evo-runtime.railway.internal"
+    },
+    {
+      "purpose": "POSTGRES_PRIMARY",
+      "name": "Postgres",
+      "replicas": 1,
+      "durablePrimary": true,
+      "sourceImage": "ghcr.io/railwayapp-templates/postgres-ssl:18",
+      "privateHostname": "postgres.railway.internal"
+    },
+    {
+      "purpose": "EXPERIENCE_COMPILER",
+      "name": "Experience Compiler",
+      "replicas": 1
+    },
+    {
+      "purpose": "HOST_VALIDATOR",
+      "name": "Ledger Configurator App Host Validator",
+      "replicas": 1
+    }
+  ],
+  "network": {
+    "endpoint": null
+  },
+  "migration": {
+    "securityMigration": "202610110010_finance_key_lock_definer_least_privilege.sql"
+  },
+  "identity": {},
+  "signing": {},
+  "chaos": {},
+  "release": {},
+  "evidence": {}
+}
