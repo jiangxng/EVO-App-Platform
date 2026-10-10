@@ -112,3 +112,50 @@ test("B8d click-only cycles candidate without changing route, Undo, or 44px hit 
   assert.match(s,/if \(!moved\) \{[\s\S]*?updateChoiceHint\(\);[\s\S]*?return;[\s\S]*?checkpoint\(\);/);
   assert.match(s,/target\.setAttribute\("r", String\(22 \/ camera\.scale\)\)/);
 });
+
+test("B8e rounded-orthogonal multi-segment edit retains rounded geometry and fixed terminals",()=>{
+  const start={x:0,y:0}, end={x:240,y:0};
+  const waypoints=[
+    {x:60,y:0},{x:60,y:50},{x:100,y:50},{x:100,y:0}
+  ];
+  const override={pathKind:"rounded-orthogonal",waypoints};
+  const old=diagramManualEdgeGeometryV010(start,end,override);
+  assert.match(old.d,/ Q /,"rounded path has actual quadratic corners");
+  const segments=diagramEditableOrthogonalSegmentsV010(start,end,override);
+  assert.ok(segments.length>=4);
+  const ranked=diagramOverlappingSegmentsForWaypointV010(waypoints[1],segments,1);
+  assert.ok(ranked.length>=2,"corner has multiple draggable segments within 44px overlap");
+  for(const candidate of ranked) {
+    const next=diagramDragOrthogonalSegmentV010(start,end,override,candidate.index,36);
+    const geometry=diagramManualEdgeGeometryV010(start,end,{
+      pathKind:"rounded-orthogonal",waypoints:next
+    });
+    assert.match(geometry.d,/ Q /,"drag must not silently square the rounded edge");
+    assert.notEqual(geometry.d,old.d);
+    assert.ok(geometry.d.startsWith("M 0 0 "));
+    assert.ok(geometry.d.endsWith("L 240 0"));
+    assert.deepEqual(waypoints,override.waypoints);
+    assert.ok(next.length<=24);
+    assert.ok(next.every(point=>Number.isFinite(point.x)&&Number.isFinite(point.y)));
+  }
+});
+
+test("B8e last overlapped candidate and wrap-around preserve stable ordinal",()=>{
+  const center={x:10,y:20},segments=[
+    {index:11,x:10,y:20,axis:"x"},
+    {index:8,x:30,y:20,axis:"y"},
+    {index:3,x:10,y:45,axis:"x"},
+    {index:17,x:44,y:20,axis:"y"},
+    {index:6,x:80,y:20,axis:"y"}
+  ];
+  const ranked=diagramOverlappingSegmentsForWaypointV010(center,segments,1);
+  assert.deepEqual(ranked.map(item=>item.index),[11,8,3,17]);
+  for(let rank=1;rank<ranked.length;rank++) {
+    assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,rank)?.index,
+      ranked[rank].index);
+  }
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,ranked.length),undefined);
+  const cycle=index=>index+1<ranked.length?index+1:1;
+  assert.equal(cycle(ranked.length-1),1);
+  assert.equal(cycle(1),2);
+});
