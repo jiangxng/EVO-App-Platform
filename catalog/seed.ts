@@ -29,6 +29,9 @@ import {
   warehousePackage
 } from "../apps/warehouse/package.js";
 import {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
+import {
   biWorkbenchPackage
 } from "../apps/bi-workbench/package.js";
 import {
@@ -66,6 +69,9 @@ export {
 export {
   warehousePackage
 } from "../apps/warehouse/package.js";
+export {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
 export {
   biWorkbenchPackage
 } from "../apps/bi-workbench/package.js";
