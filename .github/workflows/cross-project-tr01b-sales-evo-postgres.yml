@@ -13,6 +13,7 @@ on:
       - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
       - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
       - "tools/certify-tr01b2d3-hot-trust-rotation.mjs"
+      - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
       - "tools/create-tr01b2d3-installed-host-ci.mjs"
       - "tools/run-tr01b2d3-installed-host-ci.mjs"
       - "tools/certify-tr01b2d3-installed-host-session.mjs"
@@ -168,6 +169,12 @@ jobs:
           node tools/create-tr01b2d3-installed-host-ci.mjs
           node tools/run-tr01b2d3-installed-host-ci.mjs | tee /tmp/tr01b2d3-host-installed-proof.log
           grep -q 'TR01B2D3_HOST_PRODUCT_ALL_THREE_PHASES=PASS' /tmp/tr01b2d3-host-installed-proof.log
+
+      - name: Certify real Generic OIDC login PKCE RS256 Host managed cookie to original EVO finance read-only
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-oidc-login-owner.mjs | tee /tmp/tr01b2d3-oidc-host-proof.log
+          grep -q 'TR01B2D3_EXTERNAL_STYLE_OIDC_TO_REAL_FINANCE_HOST_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-oidc-host-proof.log
 
       - name: Certify live PostgreSQL signing key revoke-rotate-grant with immutable audit
         run: |
