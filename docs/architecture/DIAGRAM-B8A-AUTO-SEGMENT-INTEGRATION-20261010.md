@@ -13,6 +13,12 @@
 
 新 `tests/integration/diagram-auto-route-segment.test.mjs` 已加入 Diagram Designer Integration CI 的 path filter 和**实际命令**；专项用例包括真实绕障碍、纯水平退化路径、原路由端点、无隐式改写和代码交互守卫。
 
-`tools/diagram-projection-browser-conflict-proof.mjs` 在原四个真实 Chrome 标签页外添加第五个自动折线编辑场景：从原业务关系切为 orthogonal，**不点 Add path point**，原生鼠标拖动、取消还原、重新拖动完成转换、Undo 恢复自动 SVG，验证 Host projection store 和业务修订不变。以最终最新 HEAD 上的 Browser CI PASS 为证据；在 CI 未通过前不可宣布完成。
+`tools/diagram-projection-browser-conflict-proof.mjs` 在原四个真实 Chrome 标签页外添加第五/六两个独立的自动折线编辑场景：从原业务关系切为 orthogonal，**不点 Add path point**，原生鼠标拖动、取消还原、重新拖动完成转换、Undo 恢复自动 SVG，验证 Host projection store 和业务修订不变。以最终最新 HEAD 上的 Browser CI PASS 为证据；在 CI 未通过前不可宣布完成。
 
 缺口仍有 rounded 复杂路径真机、跨设备触摸、中断与重新载入后的 Viewer 保存往返、性能高密度图。原 39 项 §14 完整验收门槛继续 NOT TESTED。
+
+## 最新实际 Chrome 浏览器证据（2026-10-10）
+
+[Diagram Designer Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) Chrome/154.0.8037.97 **PASS**，六标签页。第五标签页从真实关系 `orthogonal` 自动路由开始，无手工路径点，原生鼠标抓取自动线段形成 SVG 预览，再用 DOM `pointercancel` 验证显示和手工数据均完全回滚；第六**独立新页面**直接抓取同类自动线段，释放后生成可编辑 waypoint，Undo 移除手工点并重现原 SVG `d`，无隐式投影 Save。机器证据 `autoSegmentDragCancelConvertUndo=true`，原来 CAS 三窗口/HTTP 503/网格/群组/手工 waypoint/正交段测试都通过。
+
+**保留局限：** 先前在同一页面使用人工 DOM `pointercancel` 后立即使用 CDP 原生鼠标重抓，未触发第二次预览，无法证明这是 CDP 状态问题或真实系统取消问题；因此不能写成“同页取消后立即再拖已验收”。还需真实设备的多指中断和重复抓取、圆角自动线段视觉一致性、显式保存刷新后 Viewer 往返、复杂障碍密集图。本次是 B8a 交互子场景，不是 §14 全部 E03 PASS。
