@@ -194,7 +194,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -861,11 +861,116 @@ try {
   assert.equal(denseUndo,denseProbe.old,"Single Undo must restore before third-segment edit");
   assert.equal(store.getVersion(target),4,"Dense overlap interaction must not implicitly Save");
   assert.equal(repository.listHistory({enterpriseId:target.enterpriseId,definitionId:target.definitionId}).length,1);
+
+  // B8e: rounded-orthogonal dense route in a separate real Chrome tab.
+  // Cycle past fourth to the last occluded handle, wrap back to second,
+  // then native Shift+Alt drag -> Escape cancel -> same-page regrab/Undo/Redo.
+  l=await tab("L",true);
+  await until(l,"Ready.");
+  const roundedProbe=await l.eval("(()=>{\n const id=__EDGE_ID__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8e rounded route relation missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const button=name=>{\n  const el=[...document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] button\")]\n   .find(b=>b.textContent===name);\n  if(!el)throw Error(\"B8e missing \"+name);\n  return el;\n };\n button(\"Restore automatic routing\").click();\n const type=document.querySelector(\"[data-eidos-diagram-edge-path-kind=\"+CSS.escape(id)+\"]\");\n if(!type)throw Error(\"B8e path kind control missing\");\n type.value=\"rounded-orthogonal\";\n type.dispatchEvent(new Event(\"change\",{bubbles:true}));\n for(let i=0;i<5;i++)button(\"Add path point\").click();\n const inputs=()=>[...document.querySelectorAll(\n  \"[data-eidos-diagram-waypoint-controls] input[type=number]\")];\n if(inputs().length!==10)throw Error(\"B8e expects five waypoints\");\n const cx=Number(inputs()[0].value),cy=Number(inputs()[1].value);\n const offsets=[[-24,0],[0,-24],[24,0],[0,24],[8,8]];\n for(let i=0;i<5;i++)for(let axis=0;axis<2;axis++){\n  const el=inputs()[i*2+axis];\n  el.value=String((axis===0?cx:cy)+offsets[i][axis]);\n  el.dispatchEvent(new Event(\"change\",{bubbles:true}));\n }\n const hit=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":4\")+\"]\");\n if(!hit)throw Error(\"B8e waypoint circle missing\");\n const r=hit.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;\n if(document.elementFromPoint(x,y)!==hit)throw Error(\"B8e waypoint not topmost\");\n const segments=[...document.querySelectorAll(\"[data-eidos-diagram-segment-handle]\")]\n  .filter(el=>el.getAttribute(\"data-eidos-diagram-segment-handle\")?.startsWith(id+\":\"))\n  .map(el=>{\n   const b=el.getBoundingClientRect();\n   return {index:Number(el.getAttribute(\"data-eidos-diagram-segment-handle\").split(\":\").at(-1)),\n    axis:el.style.cursor===\"ew-resize\"?\"x\":\"y\",\n    d:Math.hypot(x-(b.left+b.width/2),y-(b.top+b.height/2))};\n  }).filter(v=>v.d<=44)\n  .sort((a,b)=>a.d-b.d||a.index-b.index||a.axis.localeCompare(b.axis));\n const seen=new Set(),ranked=segments.filter(s=>{\n  const key=s.index+\":\"+s.axis;if(seen.has(key))return false;seen.add(key);return true;\n });\n if(ranked.length<4)throw Error(\"B8e four or more route candidates required: \"+JSON.stringify(ranked));\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n const old=visual?.getAttribute(\"d\");\n if(!old?.includes(\" Q \"))throw Error(\"B8e route was not rounded\");\n const label=document.querySelector(\"[data-eidos-diagram-overlap-choice=\"+CSS.escape(id+\":4\")+\"]\");\n if(!label)throw Error(\"B8e candidate rank label missing\");\n return {x,y,count:ranked.length,axis:ranked.at(-1).axis,old,\n  radius:hit.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n  rank:hit.getAttribute(\"data-eidos-diagram-overlap-selected-rank\"),\n  choice:label.textContent};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.ok(roundedProbe.count>=4);
+  assert.equal(roundedProbe.rank,"1");
+  assert.equal(roundedProbe.radius,"22","B8e 44px hit circle cannot shrink");
+  const roundedState=()=>l.eval("(()=>{\n const id=__EDGE_ID__;\n const hit=document.querySelector(\"[data-eidos-diagram-waypoint-handle=\"+CSS.escape(id+\":4\")+\"]\");\n const label=document.querySelector(\"[data-eidos-diagram-overlap-choice=\"+CSS.escape(id+\":4\")+\"]\");\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {rank:hit?.getAttribute(\"data-eidos-diagram-overlap-selected-rank\"),\n  label:label?.textContent,d:visual?.getAttribute(\"d\"),\n  radius:hit?.getAttribute(\"data-eidos-diagram-handle-screen-radius\"),\n  points:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  const clickAlternate=async()=>{
+    await l.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:roundedProbe.x,y:roundedProbe.y});
+    await l.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+      modifiers:9,x:roundedProbe.x,y:roundedProbe.y});
+    await l.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",clickCount:1,
+      modifiers:9,x:roundedProbe.x,y:roundedProbe.y});
+  };
+  for(let rank=2;rank<roundedProbe.count;rank++) {
+    await clickAlternate();
+    const selection=await roundedState();
+    assert.equal(selection.rank,String(rank),"B8e all high ordinals must be selectable");
+    assert.equal(selection.label,(rank+1)+"/"+roundedProbe.count);
+    assert.equal(selection.d,roundedProbe.old,"B8e selection must not edit rounded route");
+    assert.equal(selection.radius,"22");
+  }
+  await clickAlternate();
+  const wrapped=await roundedState();
+  assert.equal(wrapped.rank,"1","B8e last candidate wraps back to second");
+  assert.equal(wrapped.d,roundedProbe.old);
+  for(let rank=2;rank<roundedProbe.count;rank++)await clickAlternate();
+  assert.equal((await roundedState()).rank,String(roundedProbe.count-1));
+  assert.equal(store.getVersion(target),4,"B8e hit cycling never saves");
+
+  const rx=roundedProbe.x+(roundedProbe.axis==="x"?64:0);
+  const ry=roundedProbe.y+(roundedProbe.axis==="y"?64:0);
+  const roundedPress=async()=>{
+    await l.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:roundedProbe.x,y:roundedProbe.y});
+    await l.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+      modifiers:9,x:roundedProbe.x,y:roundedProbe.y});
+    await l.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+      modifiers:9,x:rx,y:ry});
+  };
+  const roundedRelease=async()=>{
+    await l.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+      modifiers:9,x:rx,y:ry});
+  };
+  await l.eval('document.querySelector("[data-eidos-diagram-canvas]").focus({preventScroll:true})');
+  await roundedPress();
+  const cancelPreview=await roundedState();
+  assert.notEqual(cancelPreview.d,roundedProbe.old,"B8e last segment must visibly preview");
+  assert.match(cancelPreview.d,/ Q /,"B8e preview must preserve rounded corners");
+  await l.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",
+    windowsVirtualKeyCode:27});
+  await l.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",code:"Escape",
+    windowsVirtualKeyCode:27});
+  await roundedRelease();
+  const cancelled=await roundedState();
+  assert.equal(cancelled.d,roundedProbe.old,"Escape must restore original rounded SVG");
+  assert.equal(cancelled.rank,String(roundedProbe.count-1));
+  assert.equal(store.getVersion(target),4,"Cancel cannot write the projection");
+
+  await roundedPress();
+  const regrabPreview=await roundedState();
+  assert.notEqual(regrabPreview.d,roundedProbe.old,
+    "Native same-tab mouse regrab after Escape must preview");
+  await roundedRelease();
+  const committedRounded=await roundedState();
+  assert.notEqual(committedRounded.d,roundedProbe.old,"B8e final candidate must commit");
+  assert.match(committedRounded.d,/ Q /,"B8e commit remains rounded");
+  const roundedUndo=await l.eval("(()=>{\n const id=__EDGE_ID__;\n const button=document.querySelector(\"[data-eidos-diagram-history=undo]\");\n if(!button||button.disabled)throw Error(\"B8e Undo was not enabled\");\n button.click();\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\").getAttribute(\"d\");\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(roundedUndo,roundedProbe.old,
+    "One Undo restores original rounded SVG after last segment drag");
+  const roundedRedo=await l.eval("(()=>{\n const id=__EDGE_ID__;\n const button=document.querySelector(\"[data-eidos-diagram-history=redo]\");\n if(!button||button.disabled)throw Error(\"B8e Redo was not enabled\");\n button.click();\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n return document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\").getAttribute(\"d\");\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(roundedRedo,committedRounded.d,"Redo restores exactly committed rounded SVG");
+  assert.equal(store.getVersion(target),4,"Undo/Redo must not write projection");
+  await action(l,"Save projection");
+  await until(l,"Saved.");
+  assert.equal(store.getVersion(target),5,"B8e rounded route Save CAS advances exactly once");
+  const roundedSaved=store.get(target).projections
+    .find(projection=>projection.projectionId===target.projectionId)
+    ?.view.edgePaths?.find(edge=>edge.edgeId===routeChoice.edge.id);
+  assert.equal(roundedSaved?.pathKind,"rounded-orthogonal");
+  assert.ok(roundedSaved?.waypoints?.length>=2);
+  assert.equal(repository.listHistory({
+    enterpriseId:target.enterpriseId,definitionId:target.definitionId
+  }).length,1,"Rounded presentation Save must not add domain revision");
+
+  m=await tab("M",true);
+  await until(m,"Ready.");
+  const refreshedRounded=await m.eval("(()=>{\n const id=__EDGE_ID__;\n const edge=document.querySelector(\"[data-eidos-diagram-edge=\"+CSS.escape(id)+\"]\");\n if(!edge)throw Error(\"B8e saved edge missing\");\n edge.dispatchEvent(new MouseEvent(\"click\",{bubbles:true}));\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {d:visual?.getAttribute(\"d\"),\n  kind:document.querySelector(\"[data-eidos-diagram-edge-path-kind=\"+CSS.escape(id)+\"]\")?.value,\n  manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls] input[type=number]\").length};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(refreshedRounded.d,committedRounded.d,
+    "Fresh Designer must reread identical persisted rounded SVG");
+  assert.equal(refreshedRounded.kind,"rounded-orthogonal");
+  assert.ok(refreshedRounded.manual>=4);
+  n=await tab("N","viewer");
+  await until(n,"Ready.");
+  const readonlyRounded=await n.eval("(()=>{\n const id=__EDGE_ID__;\n const visual=document.querySelector(\"[data-eidos-diagram-edge-visual=\"+CSS.escape(id)+\"]\");\n return {d:visual?.getAttribute(\"d\"),\n  manual:document.querySelectorAll(\"[data-eidos-diagram-waypoint-controls]\").length,\n  save:[...document.querySelectorAll(\"[data-eidos-diagram-toolbar] button\")]\n   .some(b=>b.textContent.trim()===\"Save projection\")};\n})()".replace("__EDGE_ID__",JSON.stringify(routeChoice.edge.id)));
+  assert.equal(readonlyRounded.d,committedRounded.d,
+    "Actual read-only Viewer must render the persisted rounded SVG identically");
+  assert.equal(readonlyRounded.manual,0);
+  assert.equal(readonlyRounded.save,false);
+  assert.equal(store.getVersion(target),5,"Viewer read never writes");
+
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 11,
+    browser: version.Browser, tabs: 14,
+    b8eRoundedMultiRankCancelRegrabSaveViewer: true,
     b8dNativeDenseOverlapCycleAndUndo: true,
     b8cNativeShiftOverlapSegmentUndo: true, b8cNativeTouchCancelRegrab: true,
     b8bSaveReloadRealViewerRoundtrip: true,
@@ -879,7 +984,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
