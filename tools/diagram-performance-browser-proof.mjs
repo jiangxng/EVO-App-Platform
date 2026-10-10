@@ -18,13 +18,17 @@ import {
 const CHROME = process.env.CHROME;
 assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
 const denseMode=process.env.EVO_DENSE_B8O==="1";
-const sizes = denseMode
-  ? [{nodes:300,edges:1200},{nodes:600,edges:2400},
-    {nodes:200,edges:12001}]
-  : [{nodes:200,edges:400},{nodes:500,edges:1000}];
+const complexMode=process.env.EVO_COMPLEX_B8Q==="1";
+assert.ok(!(denseMode&&complexMode),"Choose exactly one benchmark variant");
+const sizes = complexMode
+  ? [{nodes:160,edges:480},{nodes:320,edges:960}]
+  : denseMode
+    ? [{nodes:300,edges:1200},{nodes:600,edges:2400},
+      {nodes:200,edges:12001}]
+    : [{nodes:200,edges:400},{nodes:500,edges:1000}];
 // Warm each size first, then interleave three independent mounts per scale.
 // Cold JS module compilation and OS scheduling distort single-shot numbers.
-const repeats=denseMode?1:3;
+const repeats=denseMode?1:complexMode?2:3;
 const scenarios = [...sizes.map(x=>({...x,warmup:true})),
   ...Array.from({length:repeats},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
 const viewWidth=1440, viewHeight=900;
@@ -43,8 +47,14 @@ const page={
 const markup=renderDiagramEditorPageShellToHtmlV010(page);
 const makeState=(nodeCount,edgeCount)=>{
   const columns=nodeCount===200?20:25;
+  const businessLabels=["销售订单","客户往来","销售出库","应收确认","收款核销",
+    "采购申请","供应商","采购入库","应付确认","付款核销",
+    "合同审查","库存盘点","银行对账","财务期间结账","営利収益",
+    "طلب شراء","חשבונית","Shipment / Invoice"];
   const nodes=Array.from({length:nodeCount},(_,i)=>({
-    id:"n"+i,kind:"synthetic",label:"Node "+i,shape:"rounded-rectangle",
+    id:"n"+i,kind:"synthetic",
+    label:complexMode?businessLabels[i%businessLabels.length]+" "+Math.floor(i/businessLabels.length):
+      "Node "+i,shape:"rounded-rectangle",
     x:40+(i%columns)*235,y:40+Math.floor(i/columns)*155,
     width:120,height:60
   }));
@@ -53,8 +63,27 @@ const makeState=(nodeCount,edgeCount)=>{
     const dst=dir%2===0
       ?(src%columns===columns-1?src-columns+1:src+1)
       :(src+columns)%nodeCount;
-    const hasLoop=denseMode && i%55===0;
+    const hasLoop=(denseMode&&i%55===0)||(complexMode&&i%37===0);
     const aboveBudget=denseMode && edgeCount>12000;
+    if(complexMode){
+      // Representative enterprise workflow graph, NOT a real customer
+      // database: S2C/P2P relationships, mixed kinds, self-relations,
+      // manually edited controls, RTL/CJK captions and distant dependencies.
+      const finalTarget=hasLoop?src:(i%5===0?(src+columns*3)%nodeCount:dst);
+      const kind=i%4===0?"rounded-orthogonal":i%4===1?"orthogonal":
+        i%4===2?"curve":"straight";
+      const manual=i%13===0&&!hasLoop&&kind!=="straight"
+        ? [{x:40+(src%columns)*235+160,
+            y:80+Math.floor(src/columns)*155+62}] : undefined;
+      return {id:"e"+i,kind:"synthetic",source:"n"+src,
+        target:"n"+finalTarget,pathKind:hasLoop?"curve":kind,
+        ...(manual?{waypoints:manual}:{}),
+        arrow:"end",label:i%7===0
+          ? "طلب شراء وفاتورة 123 · חשבונית 2026"
+          : i%5===0?"销售收款 · 采购付款 · 源单据追溯 / Traceability"
+          : i%3===0?"請求書を照合 · 業務プロセス 📦"
+          :"Approval and payment reconciliation"};
+    }
     return {
       id:"e"+i,kind:"synthetic",source:"n"+src,
       target:"n"+(hasLoop?src:dst),
@@ -197,7 +226,7 @@ try{
     }
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
-    if(denseMode){
+    if(denseMode||complexMode){
       const expected=size.edges>12000?"node-only":"full";
       assert.equal(mounted.inkQuality,expected,
         "B8o dense rendered SVG must expose true budget degradation");
@@ -205,7 +234,16 @@ try{
         "B8o advisory must appear only for actually degraded quality");
       assert.equal(mounted.inkIndex,"browser");
       assert.ok(mounted.svg>size.edges*2,
-        "B8o counts actual SVG DOM elements rather than virtual arrays");
+        "B8o/B8q count actual SVG DOM elements rather than virtual arrays");
+    }
+    if(complexMode){
+      const types=await client.eval('(()=>{'
+        +'const paths=[...document.querySelectorAll("[data-eidos-diagram-edge-visual]")].map(x=>x.getAttribute("d")||"");'
+        +'return {cubic:paths.some(p=>p.includes(" C ")),'
+        +'rounded:paths.some(p=>p.includes(" Q ")),'
+        +'loopCount:document.querySelectorAll("[data-eidos-diagram-edge][data-eidos-diagram-route-congested]").length};})()');
+      assert.equal(types.cubic,true,"B8q must exercise actually rendered Bézier paths");
+      assert.equal(types.rounded,true,"B8q must exercise actually rendered rounded corners");
     }
     const selection=await client.eval('(()=>{'
       +'const node=document.querySelector("[data-eidos-diagram-node]");'
@@ -247,7 +285,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
-      ...(denseMode?{inkQuality:mounted.inkQuality,
+      ...(denseMode||complexMode?{inkQuality:mounted.inkQuality,
         labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
     if (!size.warmup) results.push(data);
@@ -271,9 +309,11 @@ try{
       usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
     };
   });
-  console.log((denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
+  console.log((complexMode?"B8Q_COMPLEX_BROWSER_RESULT=":
+      denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
     +JSON.stringify({browser:version.Browser,cases:aggregated,
-      mode:denseMode?"synthetic dense full DOM, 3 prewarm + 3 measured Chrome mounts incl 12001-edge node-only":
+      mode:complexMode?"representative mixed S2C/P2P routes, 2 prewarm + 4 measured Chrome mounts":
+        denseMode?"synthetic dense full DOM, 3 prewarm + 3 measured Chrome mounts incl 12001-edge node-only":
         "synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
       warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
 }finally{
