@@ -1,0 +1,241 @@
+#!/usr/bin/env node
+/** P01a synthetic Eidos DOM stress harness, not a business correctness test.
+ * Real Chrome renders full nodes/edges and dispatches native mouse input.
+ * Records metrics only; hardware-independent performance gates are NOT inferred.
+ */
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import {
+  renderDiagramEditorPageShellToHtmlV010
+} from "../dist/vendor/eidos/src/diagram/surface.js";
+
+const CHROME = process.env.CHROME;
+assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
+const sizes = [{nodes:200,edges:400},{nodes:500,edges:1000}];
+const viewWidth=1440, viewHeight=900;
+const profileDirs=[];
+const sleep=ms=>new Promise(ok=>setTimeout(ok,ms));
+const duration=(n)=>Math.round(n*100)/100;
+const page={
+  contractVersion:"0.1.0",kind:"diagram-editor",id:"performance-diagram",
+  title:"Eidos Performance Stress",resourceId:"benchmark:synthetic",
+  readCommand:{code:"benchmark.read",inputVersion:"0.1.0"},
+  initialCamera:{scale:.8,translateX:40,translateY:50},
+  viewInteraction:{
+    zoom:true,pan:true,localNodeDrag:true,localEdgePathEdit:true
+  }
+};
+const markup=renderDiagramEditorPageShellToHtmlV010(page);
+const makeState=(nodeCount,edgeCount)=>{
+  const columns=nodeCount===200?20:25;
+  const nodes=Array.from({length:nodeCount},(_,i)=>({
+    id:"n"+i,kind:"synthetic",label:"Node "+i,shape:"rounded-rectangle",
+    x:40+(i%columns)*235,y:40+Math.floor(i/columns)*155,
+    width:120,height:60
+  }));
+  const edges=Array.from({length:edgeCount},(_,i)=>{
+    const src=i%nodeCount, dir=Math.floor(i/nodeCount);
+    const dst=dir%2===0
+      ?(src%columns===columns-1?src-columns+1:src+1)
+      :(src+columns)%nodeCount;
+    return {
+      id:"e"+i,kind:"synthetic",source:"n"+src,target:"n"+dst,
+      ...(i%4===0?{pathKind:"orthogonal",arrow:"end"}:
+        i%4===1?{pathKind:"rounded-orthogonal",arrow:"end"}:{})
+    };
+  });
+  return {contractVersion:"0.1.0",resourceId:page.resourceId,revision:1,
+    lifecycleState:"DRAFT",nodes,edges};
+};
+const html=(state)=>'<!doctype html><html><head><meta charset="utf-8">'
++'<meta name="viewport" content="width=device-width,initial-scale=1">'
++'<style>html,body{margin:0;height:100%;}main{width:100vw;height:100vh;}'
++'[data-eidos-diagram-canvas]{min-height:700px;}</style></head>'
++'<body><main id="root">'+markup+'</main><script>window.__perfState='
++JSON.stringify(state)+';window.__perfPage='+JSON.stringify(page)
++';window.__perfStart=performance.now();window.__perfErr=[];'
++'window.addEventListener("error",e=>window.__perfErr.push(e.message));'
++'window.addEventListener("unhandledrejection",e=>window.__perfErr.push(String(e.reason)));'
++'</script><script type="module">'
++'import {mountDiagramEditorPageV010} from "/dist/vendor/eidos/src/diagram/surface.js";'
++'const actionHost={async execute(){return {ok:true,result:window.__perfState}}};'
++'window.__mounted=mountDiagramEditorPageV010({definition:window.__perfPage,'
++'container:document.getElementById("root"),actionHost});'
++'</script></body></html>';
+const contents=new Map(sizes.map(s=>[s.nodes,html(makeState(s.nodes,s.edges))]));
+const server=createServer(async(req,res)=>{
+  try{
+    const url=new URL(req.url,"http://127.0.0.1");
+    if(url.pathname==="/perf"){
+      const nodes=Number(url.searchParams.get("nodes"));
+      const content=contents.get(nodes);
+      if(!content){res.writeHead(404);res.end("unknown fixture");return;}
+      res.writeHead(200,{"content-type":"text/html; charset=utf-8"});res.end(content);return;
+    }
+    if(url.pathname.startsWith("/dist/")){
+      const root=resolve(process.cwd(),"dist");
+      const full=resolve(process.cwd(),"."+url.pathname);
+      if(!full.startsWith(root+"/"))throw Error("Unsafe JS module location");
+      res.writeHead(200,{"content-type":"text/javascript; charset=utf-8"});
+      res.end(await readFile(full));return;
+    }
+    res.writeHead(404);res.end("not found");
+  }catch(e){res.writeHead(500);res.end(String(e?.stack??e));}
+});
+class CDP{
+  constructor(url){this.ws=new WebSocket(url);this.id=0;this.pending=new Map();}
+  async open(){
+    if(this.ws.readyState!==WebSocket.OPEN)await new Promise((resolve,reject)=>{
+      this.ws.addEventListener("open",resolve,{once:true});
+      this.ws.addEventListener("error",reject,{once:true});
+    });
+    this.ws.addEventListener("message",event=>{
+      const msg=JSON.parse(String(event.data));
+      const job=this.pending.get(msg.id);
+      if(!job)return;
+      this.pending.delete(msg.id);
+      if(msg.error)job.reject(Error(msg.error.message));else job.resolve(msg.result);
+    });
+    await this.send("Runtime.enable");
+  }
+  send(method,params={}){
+    const id=++this.id;
+    this.ws.send(JSON.stringify({id,method,params}));
+    return new Promise((resolve,reject)=>this.pending.set(id,{resolve,reject}));
+  }
+  async eval(expression){
+    const r=await this.send("Runtime.evaluate",
+      {expression,awaitPromise:true,returnByValue:true});
+    if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description??r.exceptionDetails.text);
+    return r.result?.value;
+  }
+  close(){this.ws.close();}
+}
+let chrome, client;
+try{
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  const serverUrl="http://127.0.0.1:"+server.address().port;
+  let port;
+  for(let attempt=0;attempt<3&&!port;attempt++){
+    const profile=mkdtempSync(join(tmpdir(),"eidos-perf-"));profileDirs.push(profile);
+    let errors="";
+    chrome=spawn(CHROME,[
+      "--headless=new","--no-sandbox","--disable-gpu","--disable-dev-shm-usage",
+      "--no-first-run","--disable-background-networking",
+      "--enable-precise-memory-info",
+      "--window-size="+viewWidth+","+viewHeight,
+      "--remote-debugging-port=0","--user-data-dir="+profile,"about:blank"
+    ],{stdio:["ignore","ignore","pipe"]});
+    chrome.stderr?.on("data",d=>{errors=(errors+d.toString()).slice(-1200);});
+    for(let i=0;i<200;i++){
+      const f=join(profile,"DevToolsActivePort");
+      if(existsSync(f)){port=readFileSync(f,"utf8").split("\n")[0];break;}
+      if(chrome.exitCode!==null||chrome.signalCode!==null)break;
+      await sleep(100);
+    }
+    if(!port){
+      console.warn("P01_CHROME_BOOTSTRAP_RETRY="+JSON.stringify({
+        attempt:attempt+1,exit:chrome.exitCode,stderr:errors}));
+      chrome.kill("SIGKILL");
+      await sleep(150);
+    }
+  }
+  assert.ok(port,"P01 Chromium DevTools bootstrap failed");
+  const origin="http://127.0.0.1:"+port;
+  const version=await(await fetch(origin+"/json/version")).json();
+  const results=[];
+  for(const size of sizes){
+    const targetUrl=serverUrl+"/perf?nodes="+size.nodes;
+    const created=await fetch(origin+"/json/new?"+encodeURIComponent(targetUrl),
+      {method:"PUT"});
+    assert.ok(created.ok,"Could not create P01 tab");
+    const tab=await created.json();
+    client=new CDP(tab.webSocketDebuggerUrl);
+    await client.open();
+    const expression='(async()=>{const end=performance.now()+90000;'
+      +'while(performance.now()<end){'
+      +'if(window.__perfErr?.length)throw Error(window.__perfErr.join(";"));'
+      +'if(document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.")'
+      +'return {mountMs:performance.now()-window.__perfStart,'
+      +'nodes:document.querySelectorAll("[data-eidos-diagram-node]").length,'
+      +'edges:document.querySelectorAll("[data-eidos-diagram-edge]").length,'
+      +'svg:document.querySelectorAll("svg *").length,'
+      +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null};'
+      +'await new Promise(r=>setTimeout(r,60));}throw Error("P01 fixture never mounted")})()';
+    let mounted;
+    for(let retry=0;retry<10;retry++){
+      try{mounted=await client.eval(expression);break;}
+      catch(e){
+        if(!String(e).includes("Execution context was destroyed")||retry===9)throw e;
+        await sleep(150);
+      }
+    }
+    assert.equal(mounted.nodes,size.nodes);
+    assert.equal(mounted.edges,size.edges);
+    const selection=await client.eval('(()=>{'
+      +'const node=document.querySelector("[data-eidos-diagram-node]");'
+      +'const before=performance.now();node.click();'
+      +'return {selectionMs:performance.now()-before,'
+      +'count:document.querySelectorAll("[data-eidos-diagram-node]").length};})()');
+    assert.equal(selection.count,size.nodes);
+    // Simulate independent pointer frames; each move executes actual native
+    // browser handlers (node position / incident connector preview / guides).
+    const drag=await client.eval('(async()=>{'
+      +'const first=document.querySelector("[data-eidos-diagram-node]");'
+      +'const rect=first.getBoundingClientRect();'
+      +'const x=rect.left+Math.min(20,rect.width/4);'
+      +'const y=rect.top+Math.min(20,rect.height/4);'
+      +'return {x,y};})()');
+    await client.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:drag.x,y:drag.y});
+    await client.send("Input.dispatchMouseEvent",{type:"mousePressed",
+      x:drag.x,y:drag.y,button:"left",clickCount:1});
+    const frames=[];
+    for(let i=0;i<12;i++){
+      const started=performance.now();
+      await client.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+        x:drag.x+(i+1)*4,y:drag.y+(i+1)*2});
+      frames.push(performance.now()-started);
+    }
+    await client.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+      x:drag.x+48,y:drag.y+24});
+    const measured=await client.eval('(()=>({'
+      +'nodeCount:document.querySelectorAll("[data-eidos-diagram-node]").length,'
+      +'edgeCount:document.querySelectorAll("[data-eidos-diagram-edge]").length,'
+      +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null,'
+      +'status:document.querySelector("[data-eidos-diagram-status]")?.textContent'
+      +'}))()');
+    assert.equal(measured.nodeCount,size.nodes);
+    assert.equal(measured.edgeCount,size.edges);
+    const sorted=[...frames].sort((a,b)=>a-b);
+    const data={nodes:size.nodes,edges:size.edges,
+      mountMs:duration(mounted.mountMs),selectionMs:duration(selection.selectionMs),
+      dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
+      dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
+      svgElements:mounted.svg,
+      usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
+    results.push(data);
+    console.log("P01_CASE="+JSON.stringify(data));
+    client.close();client=undefined;
+  }
+  console.log("P01_BROWSER_RESULT="+JSON.stringify({browser:version.Browser,
+    cases:results,mode:"synthetic Eidos DOM, mixed styled routes",
+    warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
+}finally{
+  client?.close();
+  if(chrome&&chrome.exitCode===null){
+    const ended=once(chrome,"exit");chrome.kill("SIGTERM");
+    await Promise.race([ended,sleep(2500)]);
+    if(chrome.exitCode===null)chrome.kill("SIGKILL");
+  }
+  server.closeAllConnections?.();server.close();
+  for(const path of profileDirs){
+    try{rmSync(path,{force:true,recursive:true,maxRetries:4,retryDelay:120});}
+    catch(e){if(!["ENOTEMPTY","EBUSY"].includes(e?.code))throw e;}
+  }
+}
