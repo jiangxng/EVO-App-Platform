@@ -1436,6 +1436,16 @@ export function mountDiagramEditorPageV010(
     if (!stageElement) return;
     stageElement.style.transform =
       `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
+    // A zoom updates the transform without a full DOM redraw. Keep handle hit
+    // targets at 44 CSS px and visible markers at a fixed screen radius.
+    for (const target of stageElement.querySelectorAll<SVGCircleElement>(
+      "[data-eidos-diagram-handle-screen-radius]"
+    )) {
+      const radius = Number(target.dataset.eidosDiagramHandleScreenRadius);
+      if (Number.isFinite(radius)) {
+        target.setAttribute("r", String(radius / camera.scale));
+      }
+    }
   };
 
   const graphBounds = (): {
@@ -2598,6 +2608,7 @@ export function mountDiagramEditorPageV010(
         marker.setAttribute("cx", String(x));
         marker.setAttribute("cy", String(y));
         marker.setAttribute("r", String((kind === "point" ? 6 : 5) / camera.scale));
+        marker.setAttribute("data-eidos-diagram-handle-screen-radius", kind === "point" ? "6" : "5");
         marker.setAttribute("fill", kind === "point"
           ? "var(--eidos-primary,#2B6CB0)" : "var(--eidos-bg,#FFFFFF)");
         marker.setAttribute("stroke", "var(--eidos-primary,#2B6CB0)");
@@ -2608,6 +2619,7 @@ export function mountDiagramEditorPageV010(
         target.setAttribute("cx", String(x));
         target.setAttribute("cy", String(y));
         target.setAttribute("r", String(22 / camera.scale));
+        target.setAttribute("data-eidos-diagram-handle-screen-radius", "22");
         target.setAttribute("fill", "transparent");
         target.setAttribute("data-eidos-diagram-" + (kind === "point"
           ? "waypoint-handle" : "segment-handle"), edge.id + ":" + index);
