@@ -1,0 +1,57 @@
+name: Diagram B9l Enterprise Fixture Native Chrome Save CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-enterprise-browser-proof-b9l.mjs"
+      - "tools/diagram-enterprise-synthetic-fixture-b9l.mjs"
+      - "tools/diagram-enterprise-fixture-intake-b9k.mjs"
+      - ".github/workflows/diagram-enterprise-native-browser-b9l.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-enterprise-native-save-b9l-20261011"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-fixture-native-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Check B9l synthetic Chrome scripts and B9k guard
+        run: |
+          node --check tools/diagram-enterprise-browser-proof-b9l.mjs
+          node --check tools/diagram-enterprise-synthetic-fixture-b9l.mjs
+          node --test tests/integration/diagram-enterprise-fixture-intake-b9k.test.mjs
+      - name: Native Chrome Save through App CAS FileStore and fresh Viewer (synthetic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Real Chrome binary missing" >&2; exit 1; fi
+          export CHROME EVO_B9K_AUTHORIZED_QA=1 EVO_B9L_REMOVE_NODE_ID=block-22
+          mkdir -p "$RUNNER_TEMP/b9l-synthetic"
+          : > "$RUNNER_TEMP/b9l-synthetic.log"
+          for process in S2C P2P; do
+            export EVO_B9L_FIXTURE_PATH="$RUNNER_TEMP/b9l-synthetic/${process}.json"
+            node tools/diagram-enterprise-synthetic-fixture-b9l.mjs "$EVO_B9L_FIXTURE_PATH" "$process"
+            node tools/diagram-enterprise-browser-proof-b9l.mjs | tee -a "$RUNNER_TEMP/b9l-synthetic.log"
+          done
+          test "$(grep -c 'B9L_NATIVE_SAVE_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
+          test "$(grep -c 'B9L_ENTERPRISE_CHROME_RESULT=' "$RUNNER_TEMP/b9l-synthetic.log")" -eq 2
+      - name: Retain only synthetic Chrome output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b9l-synthetic-native-chrome-cas-viewer
+          path: ${{ runner.temp }}/b9l-synthetic.log
+          if-no-files-found: ignore
