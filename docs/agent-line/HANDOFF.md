@@ -7,7 +7,7 @@ Document class: LIVING_RUNBOOK
 ## 当前状态
 
 - PA-00：首轮静态盘点已完成；实际环境绑定/容量/恢复基线仍待测，不能整体标生产基线PASS。
-- PA-01A：首个真实缺陷修复已实现，本地目标测试10/10 PASS；仓库CI待确认。未合并、未部署。
+- PA-01A：首个真实缺陷修复已实现，本地目标测试10/10 PASS；准确head仓库CI 16/16成功。未合并、未部署。
 - 规划/进度 PR：[#570](https://github.com/jiangxng/EVO-App-Platform/pull/570)，分支 `docs/personal-agent-blueprint-20261010`。
 - 实现 PR：[#575](https://github.com/jiangxng/EVO-App-Platform/pull/575)，分支 `agent/pa01a-contextual-turn-identity-20261010`，当前实现head `f5efab9b110b3e79635c7f904ef7a7d94fd6b137`。
 
@@ -27,7 +27,7 @@ Document class: LIVING_RUNBOOK
 
 ## 下一步（无需重做研究）
 
-先查询#575准确head的仓库CI；失败则修复，再记录真实运行ID。随后PA-01B处理版本化协助请求/结果与现有interactionContext/messageParts的兼容，不把小修复称作整个PA-01完成。PA-02生产迁移前补实际环境与恢复证据。
+已核实#575准确head的仓库CI全部成功。下一步PA-01B处理版本化协助请求/结果与现有interactionContext/messageParts的兼容，不把小修复称作整个PA-01完成。PA-02生产迁移前补实际环境与恢复证据。
 
 ## 未完成/限制
 
@@ -42,3 +42,13 @@ Document class: LIVING_RUNBOOK
 ## 新窗口读取顺序
 
 读仓库AI-BOOTSTRAP与当前主线状态（只读），再读本文件、PA-00记录、#575真实代码/检查结果，然后按当前任务读取总纲。不要根据旧聊天重建状态或重复已经通过的工作。
+
+## PA-01A仓库验证闭环
+
+准确head `f5efab9b110b3e79635c7f904ef7a7d94fd6b137`，本次返回的16项PR工作流全部SUCCESS。
+
+- [P1.7B完整构建与线程集成测试](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014345349)：npm ci及npm run test:conversation-thread:p1-7b步骤均SUCCESS。
+- [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014345337)：SUCCESS。
+- [Project Continuity CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014345295)：SUCCESS。
+
+因此首切片状态为 IMPLEMENTED_CI_PASS_NOT_MERGED_NOT_DEPLOYED；仍不等于完整PA-01或生产验收。实现分支中的静态证据文件原先写CI_PENDING，此处的准确head运行链接为后续验证记录，避免仅为状态文字反复触发实现分支CI。PR#575仍为Draft以明确等待集成，未阻断其他主线。
