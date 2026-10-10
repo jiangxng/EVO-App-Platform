@@ -62,6 +62,9 @@ export interface SalesReferenceServiceV010 {
     unitPrice: string;
     totalAmount: string;
     currency: string;
+    /** For a separately governed FX receivable Position definition. Must be supplied as a pair. */
+    localCarryingAmount?: string;
+    localCurrency?: string;
   }): Promise<Outcome>;
   completeOrderProduction(input: Common & {
     orderBusinessDataId: string;
@@ -194,6 +197,21 @@ export function createSalesReferenceServiceV010(input: {
     resolveReferences,
     async approveSalesOrder(i) {
       const s = shared(i), r = resolveReferences(i.selection);
+      if ((i.localCarryingAmount === undefined) !== (i.localCurrency === undefined)) {
+        throw new Error("TR01B_LOCAL_CARRYING_PAIR_REQUIRED");
+      }
+      const carrying = i.localCarryingAmount === undefined
+        ? {}
+        : {
+          localCarryingAmount: money(i.localCarryingAmount, "localCarryingAmount"),
+          localCurrency: required(i.localCurrency!, "localCurrency")
+        };
+      // A same-currency receivable may not declare a synthetic revaluation.
+      if (i.currency === i.localCurrency &&
+          i.localCarryingAmount !== undefined &&
+          Number(i.localCarryingAmount) !== Number(i.totalAmount)) {
+        throw new Error("TR01B_LOCAL_CARRYING_SAME_CURRENCY_MISMATCH");
+      }
       const submission = await submit(
         s, i.target.salesApplicationId, "sales_order.approved", s.orderNo,
         {
@@ -203,6 +221,7 @@ export function createSalesReferenceServiceV010(input: {
           unitPrice: money(i.unitPrice, "unitPrice"),
           totalAmount: money(i.totalAmount, "totalAmount"),
           currency: required(i.currency, "currency"),
+          ...carrying,
           fulfillmentMode: "MAKE",
           ...commonDimensions()
         }
