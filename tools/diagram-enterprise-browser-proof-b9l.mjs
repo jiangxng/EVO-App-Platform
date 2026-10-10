@@ -229,7 +229,7 @@ try{
     mode+" world-sized SVG stage must remain inside a clipped canvas");
    assert.ok(result.visibleCanvasWidth<=viewport.width+2,
     mode+" visible canvas width must not exceed browser viewport");
-   if(viewport.width<=390){
+   if(viewport.width<=414){
     assert.ok(result.documentWidth<=result.viewportWidth+2,
      mode+" mobile document must not overflow horizontally");
    }
@@ -344,7 +344,7 @@ try{
  // B9q: same persisted Eidos geometry under actual Chrome window-size changes.
  // These are *emulated viewports*, NOT physical phone/tablet or touch gestures.
  const responsiveChecks=[];
- for(const viewport of [{width:390,height:844},{width:768,height:1024}]){
+ for(const viewport of [{width:320,height:700},{width:360,height:780},{width:390,height:844},{width:414,height:896},{width:768,height:1024}]){
   const d=await snapshot("designer",viewport);
   const v=await snapshot("viewer",viewport);
   assert.equal(d.count,reopenedClearDesigner.count,
@@ -354,6 +354,8 @@ try{
   assert.equal(v.saveButtons,0,"mobile-size readonly Viewer must not expose Save");
   assert.equal(reopened.projectionStore.getVersion(id),2,
    "B9y readonly Viewer navigation and resizing never saves presentation");
+  assert.ok(d.documentWidth<=viewport.width+2 && v.documentWidth<=viewport.width+2,
+   "B10a neither Designer nor readonly Viewer may cause page horizontal overflow");
   responsiveChecks.push({
    viewport:viewport.width+"x"+viewport.height,
    editorWorldSvgWidth:Math.round(d.canvasWidth),
