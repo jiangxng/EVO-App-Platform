@@ -41,7 +41,7 @@
 | T07 | 手机抽屉、旋转、软键盘 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | E01 | 自动折线遇到中间节点 | Eidos tests/diagram-obstacle-routing.test.mjs；待真实渲染 | NOT TESTED |
 | E02 | 同向多边、反向边、自环 | Eidos tests/diagram-edge-lanes.test.mjs；待交互 | NOT TESTED |
-| E03 | 拖动折线段或路径点 | B6b Chrome 154 原生 SVG waypoint 与 orthogonal segment 抓取/吸附/Undo [Browser CI 38013268466](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38013268466) PASS；实体触摸、完整连线组合/保存往返待验 | NOT TESTED |
+| E03 | 拖动折线段或路径点 | B6b 手工 + B8a 自动正交线段原生 Chrome 鼠标抓取/取消/转手工/Undo [Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) PASS；同页系统取消后继续拖动、真实触摸/Viewer 保存往返待验 | NOT TESTED |
 | E04 | 点击曲线远离端点直线的位置 | Eidos tests/diagram-edge-paths.test.mjs；待真实命中 | NOT TESTED |
 | E05 | 移动一个/两个端点 | Eidos tests/diagram-waypoints.test.mjs；待真实操作 | NOT TESTED |
 | E06 | 曲线/折线转直线再撤销 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -154,3 +154,9 @@
 ## P01a 第四次重复结果不得遗漏
 
 [Chrome Perf CI 38015041848](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015041848) **PASS** 但 200/400 selection 是 **38.0→40.0ms（+5.26% 回退）**、500/1000 selection **81.1→68.6ms（-15.41%）**。因此 P01 现阶段更准确的结论是 **500/1000 中位数选择重绘在多次不同 CI-runner 配对中改善，小图效应不稳定**；原 §14 P01 `NOT TESTED`，严禁按最佳一次抽样宣称商业化性能验收通过。
+
+## B8a 自动正交折线段直接拖动：真实 Chrome 子场景（2026-10-10）
+
+- [Eidos Draft PR #143](https://github.com/jiangxng/eidos/pull/143) / [App Platform Draft PR #581](https://github.com/jiangxng/EVO-App-Platform/pull/581)：选中没有手工 waypoints 的 orthogonal 或 rounded-orthogonal 边，直接显示 44 CSS px 自动线段法向拖动目标；不要求按 Add path point。自动 SVG 与临时控制点使用同一套路由/障碍逻辑，老共线重复中点去重。选择/取消绝不写入手工控制点；实际释放成功才做一次 Undo checkpoint 与本地展示层转换。
+- [真实 Chrome 154 六标签页 Browser CI 38016452101](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38016452101) PASS，`autoSegmentDragCancelConvertUndo=true`。第五标签页从真实关系切换 orthogonal 后不增加 waypoint，使用原生 mouse press/move 预览，再注入 pointercancel 校验**原 SVG d 精确恢复、无手工点且无隐式 Host 写**；第六独立标签页同样无手工点启动，原生鼠标抓取并松手提交，出现手工控制点，再 Undo 恢复自动 SVG、移除手工点。原 B7b 三窗口 CAS/HTTP 503、B6b 手工折线、群组对齐仍通过。
+- **有意保留的缺口：** 用 DOM 人工派发的 `pointercancel` 不等于真实操作系统触摸取消；最初尝试在同一 Chrome 标签页紧接着复用原生鼠标状态，第二次拖动未触发预览。此现象暂不能归因于产品；本轮分别在独立标签页证明取消及正常提交/Undo，**没有声称真实同页取消后立即重抓已验收**。还需实体多指/触控板、rounded-orthogonal 直接拖动的浏览器路径、转换后显式保存刷新 Viewer、极端自动障碍路由等。§14 E03 与整体 39 项门槛仍 NOT TESTED。
