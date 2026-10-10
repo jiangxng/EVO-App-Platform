@@ -288,3 +288,17 @@
 **[新增场景边界]** 原始单一路径点与线段热区完全重叠时，waypoint 拥有最上层命中优先级，segment 无法在原位置直接获取鼠标。测试先使用图形属性区现有的可访问 waypoint X/Y 数字控件创建非共线弯折，再抓取线段，遵守既定控制柄优先级和 44px 热区。今后可为重叠时明确的路径点/线段消歧增加设计，但**不能以缩小目标热区解决**，也不能声称现在所有重叠情况都可直接拖动。
 
 原研究 S1–S7 保持原先等级，未在此轮重新阅读外站。完整 §14 E03 及 39 项跨设备验收仍未全部执行，尤其是手机触摸、曲线/自环和大图性能；所有 PR 均为未合并、未部署状态。
+
+---
+
+## 2026-10-10 P01a：200/400 与 500/1000 大图基线、空间索引和配对实测
+
+**资料来源保真：** 不重复宣称阅读过先前 S1–S7 官方研究原文。本轮源证据是直接检查当前 Eidos/App 代码、实际 GitHub Actions 编译/测试，以及真正 Chrome 154 的**合成图形 DOM** 路由/鼠标/性能基准。v1.0 §14 P01 的正式验收条件没有被改变。
+
+**[新发现]** B6b 全量 Surface 在每次重绘时逐边用数组 `.find` 两次定位端点，并针对每条 orthogonal 边逐次生成所有可见节点的障碍数组，即存在 O(E×N) 热点；拖动预览重复构造 node lookup。**[新工程决定]** [Eidos Draft #141](https://github.com/jiangxng/eidos/pull/141) 构建每次 render 共享 node ID Map、256 世界单位桶的空间障碍索引，保留源节点顺序、巨大矩形/过大查询回退；以局部查询限制每条边路由输入。为保留“所有障碍都很远”时的 SVG 路径压缩输出，`edge-paths.ts` 新增 Host 不可见的可选内部 `forceRouteWhenEmpty`，上游几何 parity tests 逐条比较旧版新版本 SVG d、label、congested，不改拓扑、Host 版本或权限。[App Draft #573](https://github.com/jiangxng/EVO-App-Platform/pull/573) 差分 vendor 保护 `renderContextNavigationV010`，维持 B7b 写 token/CAS。
+
+**[真实 CI-host 基线]** [Diagram Performance Evidence CI #38014451416](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014451416) **PASS**。同台 GitHub Ubuntu runner 分别 checkout B6b base / P01a HEAD、各自 npm 构建；Chrome/154.0.8037.97 每个版本 2 组预热后 200 nodes/400 edges 与 500 nodes/1000 edges 分别各测 3 次中位数。500/1000 mount 173.2→140.3ms **-19.00%**、selection 81.0→68.3ms **-15.68%**；200/400 mount 108.0→105.8ms **-2.04%**、selection 35.9→41.2ms **+14.76% 回退**。两种结果必须一起保留；尚无证据声称普遍提速或帧率达到 60 FPS。
+
+**[解释限制]** 合成 Eidos DOM 真实渲染了全部节点、连线和 804/2004 个 SVG 元素，持续使用 CDP 原生鼠标事件，但 CDP dispatch 的时长含协议与 runner 调度，不能当作逐帧绘制 p95。单次冷启动与后续热启动的数值不可作稳健对比，因此采用同 runner、多次预热/重复。仍需重复独立 run 分析 200/400 回退，及真实企业图、真实跨设备 FPS、内存/长任务分布和 Viewer 保存往返；**原 §14 P01 及其他未完的 39 项验收继续 NOT TESTED**。
+
+**[文档入口]** Eidos #141 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-20261010.md`；App #573 `docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md`；App #573 原 `DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md`。Draft 全部未合并、未部署。
