@@ -35,6 +35,7 @@ import {
   diagramTranslateWaypointsV010,
   diagramMoveWaypointV010,
   diagramEditableOrthogonalSegmentsV010,
+  diagramOverlappingSegmentForWaypointV010,
   diagramEditableAutomaticOrthogonalRouteV010,
   diagramDragOrthogonalSegmentV010,
   validDiagramEdgePathOverrideV010,
@@ -2793,6 +2794,14 @@ export function mountDiagramEditorPageV010(
       const rendered = liveEdges.get(edge.id);
       if (!rendered || !waypoints.length || !edge.pathKind) continue;
       const original = waypoints.map(point => ({ ...point }));
+      // Shared B8c overlap candidates are derived from the actual displayed
+      // manual/automatic orthogonal route, before any pointer interaction.
+      const routeSegments = edge.pathKind === "orthogonal"
+        || edge.pathKind === "rounded-orthogonal"
+        ? segments ?? diagramEditableOrthogonalSegmentsV010(
+            start, end, { pathKind: edge.pathKind, waypoints: original }
+          )
+        : [];
       // Build snap targets once per route selection, not on every pointermove.
       const snapReferences = [
         ...renderedNodes.map(node => ({
@@ -2844,8 +2853,17 @@ export function mountDiagramEditorPageV010(
           target.setAttribute("data-eidos-diagram-auto-segment-handle", edge.id + ":" + index);
         }
         target.setAttribute("aria-label", kind === "point"
-          ? "Drag path point " + (index + 1)
+          ? "Drag path point " + (index + 1) + "; Shift-drag overlapping segment, Shift-Alt-drag alternate segment"
           : (automatic ? "Drag automatic orthogonal segment " : "Drag orthogonal segment ") + (index + 1));
+        if (kind === "point" && routeSegments.length) {
+          const overlap = diagramOverlappingSegmentForWaypointV010(
+            { x, y }, routeSegments, camera.scale
+          );
+          if (overlap) {
+            target.setAttribute("data-eidos-diagram-overlap-point", edge.id + ":" + index);
+            target.setAttribute("title", "Drag point; Shift+drag overlapping segment; Shift+Alt+drag alternate segment");
+          }
+        }
         target.style.pointerEvents = "all";
         target.style.touchAction = "none";
         target.style.cursor = kind === "point"
@@ -2862,6 +2880,20 @@ export function mountDiagramEditorPageV010(
           event.preventDefault();
           event.stopPropagation();
           cancelActiveRouteDrag?.();
+          // B8c: waypoint hit areas are intentionally painted above
+          // segment hit areas. Use a modifier on the SAME 44 px target so
+          // the covered segment can still be dragged without shrinking either.
+          const overlap = kind === "point" && event.shiftKey
+            ? diagramOverlappingSegmentForWaypointV010(
+                { x, y }, routeSegments, camera.scale, event.altKey
+              )
+            : undefined;
+          const dragKind = overlap ? "segment" : kind;
+          const dragIndex = overlap?.index ?? index;
+          const dragAxis = overlap?.axis ?? axis;
+          const dragOrigin = overlap
+            ? { x: overlap.x, y: overlap.y }
+            : { x, y };
           const pointerId = event.pointerId;
           const downX = event.clientX, downY = event.clientY;
           const isTouch = event.pointerType === "touch";
@@ -2913,29 +2945,33 @@ export function mountDiagramEditorPageV010(
             if (!moved && Math.hypot(px, py) < (isTouch ? 8 : 4)) return;
             try {
               const snap = diagramSnapHandleOffsetV010(
-                { x, y }, px / camera.scale, py / camera.scale,
-                kind === "point" ? "both" : axis!,
+                dragOrigin, px / camera.scale, py / camera.scale,
+                dragKind === "point" ? "both" : dragAxis!,
                 snapReferences,
                 { scale: camera.scale, tolerancePx: 6, gridSize: 24,
                   alignToNodes: alignmentGuidesEnabled, snapToGrid: gridSnapEnabled }
               );
-              const next = kind === "point"
-                ? diagramMoveWaypointV010(original, index, snap.dx, snap.dy)
+              const next = dragKind === "point"
+                ? diagramMoveWaypointV010(original, dragIndex, snap.dx, snap.dy)
                 : diagramDragOrthogonalSegmentV010(
                     start, end,
                     { pathKind: edge.pathKind!, waypoints: original },
-                    index, axis === "x" ? snap.dx : snap.dy
+                    dragIndex, dragAxis === "x" ? snap.dx : snap.dy
                   );
               previewRoute(next);
               current = next;
               moved = true;
               drawSnapGuides(snap);
-              const nextX = x + (kind === "point" || axis === "x" ? snap.dx : 0);
-              const nextY = y + (kind === "point" || axis === "y" ? snap.dy : 0);
-              marker.setAttribute("cx", String(nextX));
-              marker.setAttribute("cy", String(nextY));
-              target.setAttribute("cx", String(nextX));
-              target.setAttribute("cy", String(nextY));
+              // When the actual captured SVG element is a waypoint but
+              // Shift means 'segment', do not fake-move its point marker.
+              if (!overlap) {
+                const nextX = x + (dragKind === "point" || dragAxis === "x" ? snap.dx : 0);
+                const nextY = y + (dragKind === "point" || dragAxis === "y" ? snap.dy : 0);
+                marker.setAttribute("cx", String(nextX));
+                marker.setAttribute("cy", String(nextY));
+                target.setAttribute("cx", String(nextX));
+                target.setAttribute("cy", String(nextY));
+              }
             } catch {
               // Ignore out-of-range previews; never commit malformed coordinates.
             }
@@ -2971,9 +3007,7 @@ export function mountDiagramEditorPageV010(
       // targets first so explicit point handles remain on top and are draggable.
       // Both retain the 44 CSS px target; no hit-area reduction is allowed.
       if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
-        for (const segment of segments ?? diagramEditableOrthogonalSegmentsV010(
-          start, end, { pathKind: edge.pathKind, waypoints: original }
-        )) {
+        for (const segment of routeSegments) {
           handle(segment.x, segment.y, "segment", segment.index, segment.axis);
         }
       }
