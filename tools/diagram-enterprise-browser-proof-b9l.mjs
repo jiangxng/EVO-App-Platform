@@ -11,7 +11,7 @@ import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join,resolve} from "node:path";
 import {chromium} from "playwright";
-import {readAuthorizedEnterpriseFixtureV010,validateAuthorizedEnterpriseFixtureV010} from "./diagram-enterprise-fixture-intake-b9k.mjs";
+import {loadAuthorizedEnterpriseFixtureV010} from "./diagram-enterprise-fixture-intake-b9k.mjs";
 
 import {createMemoryBusinessDefinitionRepositoryV010} from "../dist/providers/enterprise-context/business-definitions.js";
 import {createFileDefinitionProjectionStoreV010} from "../dist/providers/enterprise-context/definition-projection-store.js";
@@ -36,13 +36,10 @@ const tmp=mkdtempSync(join(tmpdir(),"evo-b9l-saved-positive-"));
 const file=join(tmp,"projection-store.json");
 const fixturePath=process.env.EVO_B9L_FIXTURE_PATH;
 assert.ok(fixturePath,"B9l requires a local, external fixture path");
-const intake=await readAuthorizedEnterpriseFixtureV010(fixturePath,{
+const {summary:intake,preview2d:graph}=await loadAuthorizedEnterpriseFixtureV010(fixturePath,{
  authorized:process.env.EVO_B9K_AUTHORIZED_QA==="1"
 });
-const fixture=JSON.parse(await readFile(fixturePath,"utf8"));
-assert.equal(validateAuthorizedEnterpriseFixtureV010(fixture).sha256,intake.sha256,
- "B9l fixture must not change after preflight");
-const graph=fixture.preview2d;
+// Single open/read/parse/validation; never reopen untrusted pathname after consent gate.
 const removeNodeId=process.env.EVO_B9L_REMOVE_NODE_ID;
 assert.ok(removeNodeId,"B9l requires explicit removal candidate ID");
 const removeNode=graph.nodes.find(node=>node.id===removeNodeId);
