@@ -236,6 +236,41 @@ const multiViewerHtml=viewerHtml
   .replace("window.__page="+JSON.stringify(viewerPage),
     "window.__page="+JSON.stringify(multiViewerPage));
 
+// B8i isolated edge-ink and label-only sources. Both exclude production
+// business graph mutations: the same App Host read and readonly Viewer render
+// the synthetic diagram in separate Chrome tabs.
+const inkSelfId="diagram-browser:ink-self";
+const inkRelationId="diagram-browser:ink-relation";
+const inkCenterY=selfNode.y+selfNode.height/2;
+const makeInkSource=(labelOnly=false)=>({get(input){
+  const result=source.get(input);
+  if(!result?.diagram2d)return result;
+  const x=selfNode.x+selfNode.width+(labelOnly?96:56);
+  const upper={...selfNode,id:"diagram-browser:ink-upper",
+    x:x-12,y:selfNode.y-180,width:24,height:24,label:"B8i upper"};
+  const lower={...selfNode,id:"diagram-browser:ink-lower",
+    x:x-12,y:selfNode.y+selfNode.height+156,width:24,height:24,label:"B8i lower"};
+  const loop={...selfEdge,id:inkSelfId,label:"B8i loop",pathKind:"curve"};
+  const connector={...routeChoice.edge,id:inkRelationId,source:upper.id,
+    target:lower.id,pathKind:"straight",
+    label:labelOnly?"B8i very long interfering caption that overlaps right side":""};
+  delete loop.waypoints;delete connector.waypoints;
+  return {...result,diagram2d:{...result.diagram2d,
+    nodes:[{...selfNode},upper,lower],edges:[loop,connector]}};
+}});
+const inkSource=makeInkSource(false),labelInkSource=makeInkSource(true);
+const inkHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:inkSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:05:00.000Z")
+});
+const labelInkHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:labelInkSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:06:00.000Z")
+});
+const inkViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({source:inkSource});
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -277,6 +312,12 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/multi-loop-viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(multiViewerHtml); return;
     }
+    if (url.pathname === "/ink-loop" || url.pathname === "/ink-label") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
+    }
+    if (url.pathname === "/ink-viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -286,7 +327,11 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = tab === "R"
+      const candidates = ["X","Y"].includes(tab)
+        ? [...inkHandlers,inkViewerHandler]
+        : tab === "Z"
+          ? [...labelInkHandlers,inkViewerHandler]
+        : tab === "R"
         ? [...blockedHandlers,blockedViewerReadHandler]
         : ["U","V"].includes(tab)
           ? [...multiHandlers,multiViewerHandler]
@@ -344,7 +389,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -396,6 +441,9 @@ try {
       : route === "multi-loop" ? "/multi-loop?session="
       : route === "multi-loop-viewer" ? "/multi-loop-viewer?session="
       : route === "all-blocked-loop" ? "/all-blocked-loop?session="
+      : route === "ink-loop" ? "/ink-loop?session="
+      : route === "ink-viewer" ? "/ink-viewer?session="
+      : route === "ink-label" ? "/ink-label?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1315,7 +1363,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
