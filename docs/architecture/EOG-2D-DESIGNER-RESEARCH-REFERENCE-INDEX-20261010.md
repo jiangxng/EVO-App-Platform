@@ -194,3 +194,17 @@
 - 核心新增可验证风险：App Platform `definition-projection-editor.ts` 用**业务定义 revision** 校验保存；`providers/enterprise-context/definition-projection-store.ts` 当前 `put` 对相同定义 revision 的 gallery 直接替换。独立投影版本/CAS、两个窗口冲突提示与保留草稿尚未实现。此结论来自阅读当前源码，是**[工程审查发现]**，不是成功执行过的双窗口冲突测试。
 
 **验收等级：** B5a 几何/源码测试和 GitHub CI 只能证明其检查覆盖范围；没有录制或保存真实设备截图/录像。E03、D03、D05、T04/T05、P01/P02 与其余 §14 项仍不能凭本记录标为真实设备 PASS。所有新 PR 继续不合并、不部署。下一窗口请先刷新 #137/#553 最新 head SHA、完整 CI、39 项矩阵与可能的主线冲突。
+
+---
+
+## 2026-10-10 追加：B7 保存并发安全专项
+
+**新窗口直接阅读的仓库证据：** App Platform `providers/enterprise-context/definition-projection-store.ts` 原始 `put` 是按 `(enterpriseId, definitionId, definitionRevision)` 替换 gallery，业务 `definitionRevision` 不因投影编辑改变；`apps/eog-2d-designer/definition-projection-editor.ts` 原 `SAVE` 仅核对业务定义版本；Eidos `src/diagram/surface.ts` 原先 await 写请求并在成功后直接载入服务端状态和清空历史。这解释双窗口覆盖与“保存期间后续编辑被旧响应抹除”的风险。标记为 **[已读项目源码并形成的工程判断]**，不是外部参考网站结论。
+
+**采用的方案和适用边界（工程决定）：**
+- Eidos [Draft PR #138](https://github.com/jiangxng/eidos/pull/138)，基于 B5a #137：用通用可选不透明 `writeToken` 发送 `expectedWriteToken`，阻止同一 mount 的重入保存，失败保留草稿，延迟成功时比较本地编辑指纹，避免直接覆盖本地新增修改。Eidos 不解析或签发版本。
+- App Platform [Draft PR #561](https://github.com/jiangxng/EVO-App-Platform/pull/561)，基于 B5a #553：投影 gallery 有独立递增版本；存储 `putIfVersion` 提供 CAS；文件 provider 在本地文件系统用 `.lock` 目录包裹读-比较-替换；选中的每次保存都比对独立令牌，失败返回 `DEFINITION_PROJECTION_WRITE_CONFLICT`。Host 权限和业务定义仍单独检查。见新文件 `docs/architecture/DIAGRAM-B7-PROJECTION-CAS-20261010.md`（位于 #561 分支）及 Eidos `docs/architecture/DIAGRAM-B7-HOST-WRITE-TOKEN-20261010.md`（位于 #138 分支）。
+- 兼容限制：旧客户端请求可缺少 token，暂退化为不安全的当前版本；作为已识别上线门槛，需迁移后强制提供。文件锁对于崩溃遗留会失效关闭，分布式后端必须另提供原子 CAS；不能声称已经做了跨节点并发验收。
+- 验证：新增双窗口旧令牌拒绝、读取新令牌后重试、memory/file CAS、历史 snapshot 升级与 Eidos 命令透传测试。**CI 与实机结果按各 PR 当前 head 的 GitHub Checks 重新核对，不用此索引静态记录代替实时状态。** 浏览器 Save As 交互、冲突后可视化对比/草稿导出和 §14 设备测试仍未完成。
+
+**外部资料状态：** 本次 B7 是沿既有 S1–S7 结论继续工程化；没有再次阅读外站正文、没有新增未经访问的资料条目或改变既定交互策略。原始研究索引标题、原网址及“原文/摘要/待验证”判定均保持不变。
