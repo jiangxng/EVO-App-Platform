@@ -77,7 +77,9 @@ fixtures.set("rtl-cap-258",sourceHTML.replace(sourceJSON,JSON.stringify(capState
 // congestion notices, resource IDs, route geometry and marker SVG IDs.
 const dualDefinitions=[
  {...definition,id:"b8x-congested",resourceId:"b8x:congested",
-  initialCamera:{scale:0.8,translateX:12,translateY:14}},
+  initialCamera:{scale:0.8,translateX:12,translateY:14},
+  viewInteraction:{zoom:true,pan:true,localNodeDrag:true,
+   localSelectionHide:true,localVisibilityReset:true,localEdgePathEdit:false}},
  {...definition,id:"b8x-clear",resourceId:"b8x:clear",
   initialCamera:{scale:0.8,translateX:12,translateY:14}}
 ];
@@ -370,6 +372,35 @@ try{
      engine,first:afterFirst.first,second:afterFirst.second,
      independentSelection:true,distinctSvgMarkers:true,
      warning:"Real Linux engine with two Eidos instances; not physical-device P02 signoff"
+    }));
+    // B8y: native selected-node -> local hide -> Undo is a strictly
+    // local visibility change. One blocker crossing the 23/22 budget
+    // boundary must update the congestion summary, then Undo restore
+    // the actual original geometry and sibling isolation.
+    await dualPage.locator("#b8x-first [data-eidos-diagram-node='block-22']").click();
+    assert.equal((await inspect()).first.count,1);
+    await dualPage.locator("#b8x-first [data-eidos-diagram-local-hide]").click();
+    const hidden=await inspect();
+    assert.equal(hidden.first.count,0,
+      engine+" 22 remaining local obstacles should route safely");
+    assert.equal(hidden.first.summary,null,
+      engine+" a cleared route must remove its stale summary");
+    assert.equal(hidden.second.count,0);
+    assert.equal(hidden.second.selection,"true");
+    await dualPage.locator("#b8x-first [data-eidos-diagram-history='undo']").click();
+    const undone=await inspect();
+    assert.equal(undone.first.count,1,
+      engine+" undo must recompute all actual obstacle routes");
+    assert.equal(undone.first.summary,"1 routes need review");
+    assert.equal(undone.second.count,0);
+    assert.deepEqual(undone.stateCounts,before.stateCounts,
+      "hidden projected view and Undo cannot delete business nodes");
+    assert.deepEqual(undone.errors,[],engine+" hide/Undo browser errors");
+    console.log("B8Y_VISIBILITY_UNDO_RESULT="+JSON.stringify({
+      engine,initialCongested:before.first.count,
+      afterHide: hidden.first.count,afterUndo:undone.first.count,
+      otherInstanceUnchanged:true,sourceNodesPreserved:true,
+      warning:"Browser-only synthetic local visibility; no persistence or physical devices"
     }));
    }finally{await dualPage.close();}
   }finally{await browser.close();}
