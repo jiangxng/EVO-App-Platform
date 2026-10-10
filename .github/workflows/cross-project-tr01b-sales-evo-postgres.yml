@@ -16,6 +16,8 @@ on:
       - "apps/trading-reference/finance-owner-key-pointer.ts"
       - "tools/certify-tr01b2d3-postgres-role-separation.mjs"
       - "tools/certify-tr01b2d3-distinct-db-logins.mjs"
+      - "tools/tr01b2d3-finance-owner-catalog-preflight.mjs"
+      - "tests/protocol/tr01b2d3-finance-owner-preflight.test.mjs"
       - "tools/certify-tr01b2d3-cross-instance-races.mjs"
       - "tools/certify-tr01b2d3-host-hot-signing-key.mjs"
       - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
@@ -53,7 +55,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: 8fa737ca97de8472f89f806f866b9fbf7c71985f
+  EVO_CERTIFIED_COMMIT: 97c7a7233ee9cafd2ca17aeb3638979815d331dd
   EVO_BASE_URL: http://127.0.0.1:3000
   EVO_ENTERPRISE_CODE: EVO_DEMO
   NODE_ENV: test

@@ -1,0 +1,36 @@
+name: TR01B2D3 Finance Owner Deployment Configuration Preflight
+
+on:
+  pull_request:
+    paths:
+      - "tools/tr01b2d3-deployment-descriptor-validate.mjs"
+      - "tests/protocol/tr01b2d3-deployment-descriptor.test.mjs"
+      - "tests/fixtures/tr01b2d3-deployment-descriptor-staging-candidate.json"
+      - "docs/roadmap/TR01B2D3-FINANCE-OWNER-DEPLOYMENT-DESCRIPTOR-20261011.md"
+      - ".github/workflows/tr01b2d3-finance-owner-deployment-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fail-closed-descriptor:
+    name: Candidate descriptor fail-closed matrix (not production attestation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Negative security invariant tests
+        run: node --test tests/protocol/tr01b2d3-deployment-descriptor.test.mjs
+      - name: Evaluate explicitly synthetic staging candidate without secrets
+        run: |
+          set -euo pipefail
+          node tools/tr01b2d3-deployment-descriptor-validate.mjs \
+            tests/fixtures/tr01b2d3-deployment-descriptor-staging-candidate.json \
+            | tee /tmp/tr01b2d3-descriptor.log
+          grep -q '"candidateStatus":"CANDIDATE_CONFIGURATION_PASS"' /tmp/tr01b2d3-descriptor.log
+          grep -q '"productionCertification":"NOT_CERTIFIED"' /tmp/tr01b2d3-descriptor.log
+          grep -q '"executionAllowed":false' /tmp/tr01b2d3-descriptor.log
