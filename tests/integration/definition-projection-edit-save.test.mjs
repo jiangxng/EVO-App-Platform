@@ -1119,3 +1119,46 @@ test("write-token validation blocks malformed presentation version without mutat
     definitionRevision: revision.revision
   }), 0);
 });
+
+
+test("overlapping authorized saves use atomic CAS even after both pass async permission checks", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  let entered = 0;
+  let release;
+  const barrier = new Promise(resolve => { release = resolve; });
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source, sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {
+      entered += 1;
+      if (entered === 2) release();
+      await barrier;
+    }
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const command = title => actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId,
+      expectedRevision: revision.revision,
+      expectedWriteToken: "0",
+      operation: { type: "RENAME_PROJECTION", title }
+    });
+  const results = await Promise.all([
+    save.execute(command("Concurrent A"), context()),
+    save.execute(command("Concurrent B"), context())
+  ]);
+  assert.equal(entered, 2);
+  assert.equal(results.filter(x => x.ok).length, 1);
+  assert.equal(results.filter(x => !x.ok)[0].error.code, "DEFINITION_PROJECTION_WRITE_CONFLICT");
+  assert.equal(projectionStore.getVersion({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  }), 1);
+});
