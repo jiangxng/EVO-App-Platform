@@ -39,7 +39,15 @@ Evidence:
   "evoReversalCertificationMain": "2311022640aa108a6baf3db44d9b26bd3e3ad623",
   "evoReversalCertificationCI": "PASS",
   "productionDeploymentId": "1ece6ea3-c124-4d65-9860-f14d88f959a9",
-  "productionDeploymentStatus": "SUCCESS"
+  "productionDeploymentStatus": "SUCCESS",
+  "replayGatePr": 559,
+  "replayGateMain": "5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b",
+  "replayGatePlatformCI": "PASS",
+  "replayGateContinuityCI": "PASS",
+  "replayGateCrossProjectEvoPostgresqlCI": "PASS",
+  "replayGateWorkflowRun": 38008484982,
+  "latestProductionDeploymentId": "11ee6c04-6845-474c-b56b-d8b7b84ea015",
+  "latestProductionDeploymentStatus": "SUCCESS"
 }
 ```
 
@@ -64,8 +72,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `70c6aac34cd6fad931f7110442e9a0f01293ef44`
-- Deployment: `1ece6ea3-c124-4d65-9860-f14d88f959a9`
+- Commit: `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b`
+- Deployment: `11ee6c04-6845-474c-b56b-d8b7b84ea015`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -96,6 +104,7 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #559 — MERGED_CI_PRODUCTION_PASS: Made pinned EVO full deterministic TR-01A2 reversal Replay an explicit third cross-project PostgreSQL CI gate; exact head 2ebaf57c passed Continuity/Platform/Cross Project CI and main 5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b deployed Railway 11ee6c04-6845-474c-b56b-d8b7b84ea015 SUCCESS.
 - PR #557 — MERGED_CI_PRODUCTION_PASS: TR-01A2 appended receipt-reversal BusinessData using EVO REVERSES and unchanged PO/Receipt; public EVO PostgreSQL CI proved pending purchase/inventory/payable/Work effects, pinned EVO replay CI passed and Railway production 1ece6ea3-c124-4d65-9860-f14d88f959a9 is SUCCESS.
 - PR #556 — MERGED_CI_PRODUCTION_PASS: Restored A1 continuity drift and activated A2 using verified #551 CI/production facts; regenerated HANDOFF-LATEST and deployed main 2737de425cc53d017fe250007a7f8139ce51d67d at Railway fc2b7e6c-9e8d-47a7-90df-d7e9b9c787fc SUCCESS.
 - PR #551 — MERGED_CI_PRODUCTION_PASS: TR-01A1 positive purchase/receipt loop composed Supplier Counterparty, Item and Warehouse into immutable EVO BusinessData facts with FULFILLS lineage; Platform, Continuity and cross-project EVO PostgreSQL CI passed; production main a191b1ac deployed at b1d141c6-858d-4ee3-8422-0efbe7147396 SUCCESS.
