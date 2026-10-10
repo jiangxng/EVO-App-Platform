@@ -203,7 +203,7 @@ export function diagramSelfLoopGeometryV010(
   const frame=loopPointsOnSide(node,selectedSide,reach);
   if(kind==="curve"){
     const bulge=manualWaypoints?.length===1?manualWaypoints[0]!:frame.bulge;
-    if(manualWaypoints?.length>1){
+    if(manualWaypoints && manualWaypoints.length>1){
       return diagramManualEdgeGeometryV010(frame.start,frame.end,{
         pathKind:"curve",waypoints:[...manualWaypoints]
       });
