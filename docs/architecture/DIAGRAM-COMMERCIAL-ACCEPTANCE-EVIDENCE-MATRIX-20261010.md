@@ -26,12 +26,12 @@
 | M01 | 左键拖空白 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | M02 | 左键单击/拖动节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | M03 | Shift 点选与追加框选 | Eidos tests/diagram-selection.test.mjs；待真实鼠标 | NOT TESTED |
-| M04 | 多选后拖动其中一个节点 | Eidos tests/diagram-selection.test.mjs；待浏览器 | NOT TESTED |
+| M04 | 多选后拖动其中一个节点 | B6a group-bbox 同步吸附偏移单测，Eidos #139 / App #566 CI；群组真实鼠标/触控待验 | NOT TESTED |
 | M05 | 右键从节点上拖动画布 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | M06 | 原地右键 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | M07 | 中键、Space + 拖动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | M08 | 输入框内 Space、Delete、Ctrl+A | 尚无足以确认该场景的专项证据 | NOT TESTED |
-| M09 | 拖动出画布再释放/切换窗口 | 尚无足以确认该场景的专项证据 | NOT TESTED |
+| M09 | 拖动出画布再释放/切换窗口 | B6a Chrome 154 原生 mouseMoved 预览 + pointercancel 回滚/参考线清理；真实窗口失焦/跨边界待验 | NOT TESTED |
 | T01 | 触控板双指平移和捏合 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | T02 | 触摸未选节点开始滑动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | T03 | 触摸选中后拖动 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -104,3 +104,10 @@
 - 两个标签页竞争、冲突提示、失败草稿保留、明确 Save As 追加新投影：首次 Chrome/154.0.8037.97 已打印真实业务断言日志；清理时的竞态已修复并于 [Browser CI 38010239304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010239304) PASS。
 - 第三个标签页 HTTP 503 失败保留草稿与真实 Save 按钮重试：已在 Chrome/154.0.8037.97 [Browser CI 38010453881](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010453881) 执行并通过；日志有 `transientFailurePreservesDraft=true` 与 `retrySaved=true`。
 - **此处 D03/D05 仍标 NOT TESTED** 是指原始 §14 的完整跨设备/真实业务验收尚未完成，不否认已完成的局部自动 Chromium 测试。详情见 `DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md`。
+
+## B6a 节点吸附与辅助线（2026-10-10）
+
+- [Eidos Draft #139](https://github.com/jiangxng/eidos/pull/139) 对通用节点/多选群组接入纯几何 `diagramSnapTranslationV010`，计算整体包围盒与可见非移动节点的左右上下及中心锚点；同组只采用一次平移。参考线仅在拖动预览出现，取消/失去捕获清除。可独立切换 Grid、Grid snap、Align。
+- [App Platform Draft #566](https://github.com/jiangxng/EVO-App-Platform/pull/566) 小范围 vendored port，保留 Host `renderContextNavigationV010`；新增 `tests/integration/diagram-snapping.test.mjs`，已纳入 Diagram Designer Integration CI 真正执行。
+- **已跑浏览器子场景：** [Chrome CI 38011441150](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38011441150)，Chrome/154.0.8037.97，鼠标真实 pointer 抓取 + 10% 缩放自适应网格吸附 + `pointercancel` 回滚 + 三开关独立，机器日志 `nativeGridSnapCancelled=true` / `independentGridModes=true`。保留 B7b 多窗口冲突及 HTTP 重试通过的既有证据。
+- **缺口仍然存在：** 对齐参考线真实鼠标“与其他节点对齐”、群组鼠标操作、路径点/正交段吸附、等距分布/多对象对齐菜单、Windows/macOS/iOS/Android 实机、500 节点/1000 边性能。此处无证据能够将原始 §14 任何完整场景从 NOT TESTED 提升为 PASS。
