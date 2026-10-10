@@ -35,6 +35,7 @@ import {
   diagramTranslateWaypointsV010,
   diagramMoveWaypointV010,
   diagramEditableOrthogonalSegmentsV010,
+  diagramEditableAutomaticOrthogonalRouteV010,
   diagramDragOrthogonalSegmentV010,
   validDiagramEdgePathOverrideV010,
   type DiagramEdgeAnchorSideV010
@@ -2594,7 +2595,15 @@ export function mountDiagramEditorPageV010(
     const spatialObstacles = useSpatialIndex
       ? createDiagramObstacleSpatialIndexV010(renderedNodes)
       : undefined;
-    const editableRoutes: Array<{ edge: DiagramEditorEdgeV010; start: { x: number; y: number }; end: { x: number; y: number } }> = [];
+    const editableRoutes: Array<{
+      edge: DiagramEditorEdgeV010;
+      start: { x: number; y: number };
+      end: { x: number; y: number };
+      waypoints: Array<{ x: number; y: number }>;
+      automatic: boolean;
+      originalGeometry: { d: string; label: { x: number; y: number } };
+      segments?: ReturnType<typeof diagramEditableOrthogonalSegmentsV010>;
+    }> = [];
     const laneOffsets = diagramParallelLaneOffsetsV010(
       renderedEdges.filter(edge => edge.pathKind !== undefined)
     );
@@ -2665,9 +2674,22 @@ export function mountDiagramEditorPageV010(
                 && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
             });
       if (selectedEdgeId === edge.id && page.viewInteraction?.localEdgePathEdit === true
-        && edge.source !== edge.target && edge.waypoints?.length
-        && edge.pathKind && edge.pathKind !== "straight") {
-        editableRoutes.push({ edge, start: a, end: b });
+        && edge.source !== edge.target && edge.pathKind && edge.pathKind !== "straight") {
+        if (edge.waypoints?.length) {
+          editableRoutes.push({ edge, start: a, end: b,
+            waypoints: edge.waypoints, automatic: false, originalGeometry: geometry });
+        } else if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
+          // B8a: no mutation on selection. Materialize explicit controls only
+          // after the user actually drags one automatic segment and releases it.
+          const preview = diagramEditableAutomaticOrthogonalRouteV010(a, b, edge.pathKind, {
+            obstacles: routeObstacles,
+            forceRouteWhenEmpty: renderedNodes.length > 2
+          });
+          if (preview) editableRoutes.push({
+            edge, start: a, end: b, waypoints: preview.waypoints,
+            automatic: true, originalGeometry: geometry, segments: preview.segments
+          });
+        }
       }
       const hit = svgElement("path");
       hit.setAttribute("d", geometry.d);
@@ -2767,10 +2789,10 @@ export function mountDiagramEditorPageV010(
     // B5a: selected manual routes get screen-sized, presentation-only drag handles.
     // Pointer previews never mutate state. A normal release commits one undo step;
     // cancel, lost capture, blur, or a second touch discards the preview.
-    for (const { edge, start, end } of editableRoutes) {
+    for (const { edge, start, end, waypoints, automatic, originalGeometry, segments } of editableRoutes) {
       const rendered = liveEdges.get(edge.id);
-      if (!rendered || !edge.waypoints?.length || !edge.pathKind) continue;
-      const original = edge.waypoints.map(point => ({ ...point }));
+      if (!rendered || !waypoints.length || !edge.pathKind) continue;
+      const original = waypoints.map(point => ({ ...point }));
       // Build snap targets once per route selection, not on every pointermove.
       const snapReferences = [
         ...renderedNodes.map(node => ({
@@ -2818,9 +2840,12 @@ export function mountDiagramEditorPageV010(
         target.setAttribute("fill", "transparent");
         target.setAttribute("data-eidos-diagram-" + (kind === "point"
           ? "waypoint-handle" : "segment-handle"), edge.id + ":" + index);
+        if (automatic && kind === "segment") {
+          target.setAttribute("data-eidos-diagram-auto-segment-handle", edge.id + ":" + index);
+        }
         target.setAttribute("aria-label", kind === "point"
           ? "Drag path point " + (index + 1)
-          : "Drag orthogonal segment " + (index + 1));
+          : (automatic ? "Drag automatic orthogonal segment " : "Drag orthogonal segment ") + (index + 1));
         target.style.pointerEvents = "all";
         target.style.touchAction = "none";
         target.style.cursor = kind === "point"
@@ -2845,7 +2870,16 @@ export function mountDiagramEditorPageV010(
           let moved = false;
           let active = true;
           const resetPreview = (): void => {
-            previewRoute(original);
+            if (automatic) {
+              // An untouched/cancelled automatic route remains bit-for-bit
+              // identical to its original SVG, including rounded corners.
+              rendered.hit.setAttribute("d", originalGeometry.d);
+              rendered.visual.setAttribute("d", originalGeometry.d);
+              if (rendered.label) {
+                rendered.label.setAttribute("x", String(originalGeometry.label.x));
+                rendered.label.setAttribute("y", String(originalGeometry.label.y - 8));
+              }
+            } else previewRoute(original);
             marker.setAttribute("cx", String(x));
             marker.setAttribute("cy", String(y));
             target.setAttribute("cx", String(x));
@@ -2937,14 +2971,18 @@ export function mountDiagramEditorPageV010(
       // targets first so explicit point handles remain on top and are draggable.
       // Both retain the 44 CSS px target; no hit-area reduction is allowed.
       if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
-        for (const segment of diagramEditableOrthogonalSegmentsV010(
+        for (const segment of segments ?? diagramEditableOrthogonalSegmentsV010(
           start, end, { pathKind: edge.pathKind, waypoints: original }
         )) {
           handle(segment.x, segment.y, "segment", segment.index, segment.axis);
         }
       }
-      for (const [index, point] of original.entries()) {
-        handle(point.x, point.y, "point", index);
+      // Automatic routes expose only segment handles. Waypoint handles appear
+      // after the FIRST committed edit converts the route to explicit points.
+      if (!automatic) {
+        for (const [index, point] of original.entries()) {
+          handle(point.x, point.y, "point", index);
+        }
       }
     }
 
