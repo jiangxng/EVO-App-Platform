@@ -83,9 +83,9 @@ test("B8f node move translates only displayed loop waypoints, not business endpo
 test("B8f self-loop route shown in Surface and every read-only Viewer render",async()=>{
   const source=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
   assert.match(source,/diagramSelfLoopRouteControlsV010/);
-  assert.match(source,/diagramSelfLoopGeometryV010\(source, edge\.pathKind, lane,\s*edge\.waypoints, loopObstacles\)/);
+  assert.match(source,/diagramSelfLoopGeometryV010\(source, edge\.pathKind, lane,\s*edge\.waypoints, loopObstacles, loopReservations\)/);
   assert.match(source,/diagramSelfLoopGeometryV010\(source, edge\.pathKind, lane, points,/);
-  assert.match(source,/diagramSelfLoopGeometryV010\(loopNode, edge\.pathKind!, laneOffset, points\)/);
+  assert.match(source,/diagramSelfLoopGeometryV010\(loopNode, edge\.pathKind!, laneOffset, points,/);
   assert.match(source,/loopNode && edge\.pathKind === "curve"/);
   assert.match(source,/edge\.waypoints = current/);
   assert.match(source,/checkpoint\(\);\s*edge\.waypoints = current/);
