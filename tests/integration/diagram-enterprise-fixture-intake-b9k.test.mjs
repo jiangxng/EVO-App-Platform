@@ -5,7 +5,8 @@ import {join} from "node:path";
 import {tmpdir} from "node:os";
 import {
  validateAuthorizedEnterpriseFixtureV010 as validate,
- readAuthorizedEnterpriseFixtureV010 as read
+ readAuthorizedEnterpriseFixtureV010 as read,
+ loadAuthorizedEnterpriseFixtureV010 as load
 } from "../../tools/diagram-enterprise-fixture-intake-b9k.mjs";
 
 function sample(process="S2C"){
@@ -129,6 +130,26 @@ test("B9m rejects leaf symlinks, aliased directory traversal and internal checko
    /outside the Git checkout/);
   const safe=await read(target,{repositoryRoot:checkout,authorized:true});
   assert.equal(safe.nodes,2);
+ }finally{
+  await rm(outside,{recursive:true,force:true});
+  await rm(checkout,{recursive:true,force:true});
+ }
+});
+
+test("B9n in-process handoff uses one checked snapshot; mutation after read does not change graph",async()=>{
+ const outside=await mkdtemp(join(tmpdir(),"b9n-snapshot-"));
+ const checkout=await mkdtemp(join(tmpdir(),"b9n-checkout-"));
+ try{
+  const path=join(outside,"input.json");
+  await writeFile(path,JSON.stringify(sample("S2C")),"utf8");
+  const sealed=await load(path,{repositoryRoot:checkout,authorized:true});
+  assert.equal(sealed.summary.nodes,2);
+  assert.equal(sealed.preview2d.nodes[0].label,"Anonymized start");
+  await writeFile(path,JSON.stringify(sample("P2P")),"utf8");
+  assert.equal(sealed.summary.process,"S2C");
+  assert.equal(sealed.preview2d.nodes[0].id,"node-a");
+  assert.equal((await read(path,{repositoryRoot:checkout,authorized:true})).process,"P2P");
+  assert.notEqual(sealed.summary.sha256,(await load(path,{repositoryRoot:checkout,authorized:true})).summary.sha256);
  }finally{
   await rm(outside,{recursive:true,force:true});
   await rm(checkout,{recursive:true,force:true});
