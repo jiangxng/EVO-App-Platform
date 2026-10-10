@@ -378,3 +378,10 @@
 
 - [Draft #620](https://github.com/jiangxng/EVO-App-Platform/pull/620) 独立增量，仅新增 Node 集成测试和 CI 文档，无 runtime/Host/Agent/CAS/业务契约修改。真正支持的业务定义 `payload.preview2d` 含 25 节点（两个端点 + 23 局部相关障碍）、1 条业务关系，**不是**先前 B9c 的人工 GET Source 叠加。正式 App Editor Handler 对这条关系的 orthogonal pathKind 做 CAS `0→1` 保存到真正 FileDefinitionProjectionStore。全新 Store + App Handler Editor GET 和实际 readonly Viewer GET 都从**已保存**的同一业务图用正式 Eidos bounded geometry 确认 `congested=true`（23 超过不变的 22 上限）；随后**第二次真实 CAS `1→2`**保存隐藏 23 号障碍，新建 Store / Viewer 仅余 22 障碍、拥塞清除，基础定义历史仍为 1。
 - [Diagram Designer Integration #38068777299 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068777299)：**133/133**。比 B9b 零拥塞实际 Save、B9c 未持久化正数 Viewer 更进一层。但 B9h 当前仅为 Node + 正式 Eidos geometry，没有用真实 Chrome DOM 挂载这条**已保存**正例；当前文件是 CI 临时文件，业务仓与授权钩子受控，不是生产企业数据库/物理设备。§14 **39 项正式验收仍 NOT TESTED**。详细见 [B9h 专项](./DIAGRAM-B9H-PERSISTED-POSITIVE-CONGESTION-20261011.md)。
+
+
+## B9i｜**CAS 已保存非零拥塞**在独立真实 Chrome Designer / Viewer DOM 的正/零回放（2026-10-11）
+
+- [Draft #621](https://github.com/jiangxng/EVO-App-Platform/pull/621)：使用合法业务 payload.preview2d（2 端点+23 个真实相关障碍+1 业务边），正式 App Editor Handler 授权 CAS **0→1** 保存 orthogonal 投影到真正 FileDefinitionProjectionStore，独立重新创建 Store 后通过浏览器 HTTP ActionHost 真实 GET 并挂载 Chrome 154 Designer 与 readonly Viewer。**真实 SVG/DOM 两处均 1 条拥塞、计数 1、摘要 1、role=note、pointer none、aria 完整，Viewer 无 Save；JS errors=[]。** 第二次 App Handler CAS **1→2** 保存隐藏第 23 个障碍，全新 Chrome Designer/Viewer 重新 GET 后均实际显示 0 条拥塞/无陈旧摘要；基础企业定义历史 1。
+- [首次依赖缺失失败 #38069020504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069020504)：专用 Runner 上 `playwright` 未预装，明确报 ERR_MODULE_NOT_FOUND；CI 隔离安装 Playwright 1.56.1 后，[真实 Chrome 成功 #38069072194](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38069072194) 输出 `B9I_SAVED_POSITIVE_CHROME_RESULT` 并 PASS。**不回避红色历史。**
+- 这是此前 B9b（真实 Save 但 0 拥塞）、B9c（1 拥塞但未保存）、B9h（已保存正数但仅 Node Eidos 几何）的联通证明。**第二次清除目前由正式 App Handler 测试直接调用，不是 Chrome 点击用户 Save 按钮。** 该按钮链路留待 B9j。业务图与磁盘为**合法但合成**的 CI fixture，不是客户生产 DB/真实身份/设备，原始 §14 **39 项正式商业化验收仍 NOT TESTED**。详细见 [B9i 文档](./DIAGRAM-B9I-SAVED-POSITIVE-CHROME-VIEWER-20261011.md)。
