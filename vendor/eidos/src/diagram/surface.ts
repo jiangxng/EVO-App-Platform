@@ -3095,7 +3095,13 @@ export function mountDiagramEditorPageV010(
       }
       // Automatic routes expose only segment handles. Waypoint handles appear
       // after the FIRST committed edit converts the route to explicit points.
-      if (!automatic || (loopNode && edge.pathKind === "curve")) {
+      if (!automatic) {
+        for (const [index, point] of original.entries()) {
+          handle(point.x, point.y, "point", index);
+        }
+      } else if (loopNode && edge.pathKind === "curve") {
+        // B8f special case: a self-loop's automatic cubic shows one exterior
+        // bulge handle without writing a waypoint before pointer release.
         for (const [index, point] of original.entries()) {
           handle(point.x, point.y, "point", index);
         }
