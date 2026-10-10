@@ -36,6 +36,7 @@ jobs:
           grep -q 'B8X_MULTI_INSTANCE_RESULT=' /tmp/b8s-cross-browser.log
           grep -q 'B8Y_VISIBILITY_UNDO_RESULT=' /tmp/b8s-cross-browser.log
           grep -q 'B8Z_DRAG_UNDO_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B9A_UNSAVED_REFRESH_RESULT=' /tmp/b8s-cross-browser.log
       - name: Preserve cross-engine evidence
         if: always()
         uses: actions/upload-artifact@v4
