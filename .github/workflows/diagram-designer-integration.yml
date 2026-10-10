@@ -77,6 +77,7 @@ jobs:
           tests/integration/definition-projection-b9d-file-restart.test.mjs
           tests/integration/definition-projection-b9e-crossprocess-cas.test.mjs
           tests/integration/definition-projection-b9f-handler-race.test.mjs
+          tests/integration/definition-projection-b9g-denied-file-save.test.mjs
           tests/integration/definition-projection-cas-store.test.mjs
           tests/integration/personal-agent-current-projection.test.mjs
           tests/integration/definition-projection-edge-routes.test.mjs
