@@ -254,3 +254,13 @@
 - [**真实 Chrome 154，32 标签页 #38037526845 PASS**](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38037526845)：合成中日多语言＋表情＋长文字关系标签实际生成四行 `tspan` 和最后一行 `…`，SVG title/aria 均保留全文，readonly Viewer 文本行和两侧关系 SVG 路由与 Designer 一致，没有编辑/Save，Store CAS 未变。B8l/B8m、B8jk、B8i、B8h、B8g、B8f、B8e、B8d、B8c、B8b 与原有 CAS/503/history 回归标记全部为 true。
 - **B8o** 新增独立 [Chrome 完整 DOM 性能工作流 #38037486856 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38037486856)，默认 P01 历史比较不变；真实挂载 300/1200、600/2400、200/12001 节点/连线合成图，实际 SVG 数 2412、4820、24065。预热后各取一次 mount 为 175.0、251.5、356.3ms；选择为 77.7、141.2、260.1ms；CDP dispatch p95 20.32、22.03、29.04ms；JS heap 5.64、16.02、25.82MB。前两档 `full`、无降级告警；**第三档真正从 Chrome DOM 取得 `node-only` 和明确非阻挡提示**。这是实际 DOM+鼠标事件，不是抽象索引数据；却仍是**CI 合成业务图和单次样本**，不证明生产 FPS 或全复杂路由的 12k 性能。
 - 待测：真正 CJK/RTL 文本布局与多行可用性、浏览器字体轮廓/换行词边界、真实企业图大规模正交/曲线同时存在时的性能、长时间内存波动、实体 iOS/Android/Windows/macOS/触控板、持久化重启、§14 **39 项正式商业化验收仍全部 NOT TESTED**；PR Draft、未合并、未部署。
+
+
+## B8p + B8q：英文词界与 RTL、混合业务图完整 DOM（2026-10-10）
+
+- 本轮独立 Draft：[Eidos #154](https://github.com/jiangxng/eidos/pull/154) 和 [App #601](https://github.com/jiangxng/EVO-App-Platform/pull/601)，分别堆叠 B8n+B8o #153/#600。保持当前 2D Designer 可见性层与 44px 触控柄、投影 CAS、业务关系端点、Agent/Host 权限、已编辑 manual waypoints 原样；不合并主线、不部署。
+- **B8p**：从 B8n 逐字素换行升级为浏览器 `Intl.Segmenter` 单词优先断行（单个过长词才回退字素硬折）；使用首个强字母脚本决定段落 `ltr`/ `rtl`，SVG `direction` 和 `unicode-bidi="plaintext"` 让浏览器执行 RTL 视觉排列。阿拉伯文、希伯来文、数字、英文、CJK 混排保留原有业务字符串逻辑顺序；SVG 展示行与碰撞预留共用 `diagramCaptionLayoutV010`。有旧浏览器 fallback；完整跨浏览器专业排版仍未验收。
+- **B8q**：独立 `.github/workflows/diagram-complex-business-dom.yml`，`EVO_COMPLEX_B8Q=1` 不影响 P01/B8o 历史口径。Chrome 真正挂载 160/480 与 320/960 的代表性**模拟**销售到收款/采购到付款流程图，曲线 C、圆角 Q、正交、直线、自环与显式手工路径并存，同时含 CJK/阿拉伯文/希伯来文长标签。测试完整 SVG DOM、选择和原生鼠标拖动；日志包括挂载、选择、CDP p50/p95 和 JS heap。此图并非真实生产企业账本。
+- **明确保留负面证据：** [B8q 最初全自动正交寻路 CI #38049057236](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049057236) 在首档 160/480 复杂自动正交寻路中实际 **超过 90 秒仍未完成挂载**（`P01 fixture never mounted`），不能将自动正交寻路称为通过。B8q 随后把多数混合正交/圆角改为显式演示 waypoint 以单独测量多种**渲染和操作成本**；密集自动寻路的规模性问题作为阻断项留待独立优化，不通过增大 CI 超时掩盖。
+- 完成的代码验证与浏览器 CI 记录以 Draft PR 最新 head 的结果为准。**§14 39 项正式商业化验收仍全部 NOT TESTED**；实体 iOS/Android/macOS/Windows、真实业务数据和真实大图全部自动复杂路径、性能稳态与数据库重启均未验收。
+- 决策及交接入口：`docs/architecture/DIAGRAM-B8PQ-WORD-BIDI-COMPLEX-DOM-INTEGRATION-20261010.md`。该专项保持与其他主线分支独立。
