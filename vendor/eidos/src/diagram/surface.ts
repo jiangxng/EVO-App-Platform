@@ -2426,7 +2426,7 @@ export function mountDiagramEditorPageV010(
                 // Start with the editable exterior contour, not inside its node.
                 edge.waypoints = diagramSelfLoopRouteControlsV010(
                   source, edge.pathKind, 0,
-                  state.nodes.filter(other => other.id !== edge.source)
+                  state?.nodes.filter(other => other.id !== edge.source) ?? []
                 ).waypoints;
               } else {
                 edge.waypoints = [...(edge.waypoints ?? []),
