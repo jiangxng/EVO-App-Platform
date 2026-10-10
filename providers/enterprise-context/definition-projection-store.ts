@@ -37,6 +37,10 @@ export interface DefinitionProjectionStoreV010 {
   put(input: DefinitionProjectionStoreEntryV010): TemplateProjectionGalleryV010;
   /** 0 for a gallery still inherited from the immutable business definition. */
   getVersion(input: { enterpriseId: string; definitionId: string; definitionRevision: number }): number;
+  /** Version and gallery originate from the same snapshot to avoid mixed reads. */
+  getVersioned(input: { enterpriseId: string; definitionId: string; definitionRevision: number }): {
+    gallery?: TemplateProjectionGalleryV010; version: number
+  };
   /** Reject a concurrent write instead of silently replacing a later projection. */
   putIfVersion(input: DefinitionProjectionStoreEntryV010, expectedVersion: number): {
     gallery: TemplateProjectionGalleryV010; version: number
@@ -152,6 +156,13 @@ function createStore(
     },
     getVersion(input) {
       return versionOf(read().entries.find(item => key(item) === key(input)));
+    },
+    getVersioned(input) {
+      const found = read().entries.find(item => key(item) === key(input));
+      return {
+        ...(found ? { gallery: clone(found.gallery) } : {}),
+        version: versionOf(found)
+      };
     },
     put(input) {
       return save(input).gallery;
