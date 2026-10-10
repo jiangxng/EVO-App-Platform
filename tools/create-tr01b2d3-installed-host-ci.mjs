@@ -19,6 +19,7 @@ import { hostEnterpriseContextProviderPackage } from '../dist/providers/enterpri
 import { hostEnterpriseContextGrantProviderPackage } from '../dist/providers/enterprise-context-grant/package.js';
 import { hostStaticAuthorizationProviderPackage } from '../dist/providers/authorization/package.js';
 import { hostEncryptedSecretsProviderPackage } from '../dist/providers/secrets/package.js';
+import { genericOidcIdentityProviderPackage } from '../dist/providers/oidc/package.js';
 const dir=resolve('/tmp/tr01b2d3-host-product');
 mkdirSync(dir,{recursive:true,mode:0o700});
 const install=JSON.parse(readFileSync('/tmp/tr01b2d3-host-install.json','utf8'));
@@ -26,7 +27,8 @@ const signingKey=readFileSync('/tmp/tr01b2d3-host-signing-key.pem','utf8');
 const packages=[
   hostManagedSessionProviderPackage,hostEnterpriseContextProviderPackage,
   hostEnterpriseContextGrantProviderPackage,hostStaticAuthorizationProviderPackage,
-  hostEncryptedSecretsProviderPackage,tradingFinanceOwnerProviderPackageV010
+  hostEncryptedSecretsProviderPackage,tradingFinanceOwnerProviderPackageV010,
+  genericOidcIdentityProviderPackage
 ];
 const manager=createAppManagerService(createPackageCatalog(packages),
   createFileLifecycleStore(dir+'/state.json'));
