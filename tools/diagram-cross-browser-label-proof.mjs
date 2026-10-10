@@ -305,6 +305,73 @@ try{
     limitResults.push({engine,...diagnostic});
     console.log("B8U_MEASURE_LIMIT="+JSON.stringify({engine,count:diagnostic.count,capped:diagnostic.capped}));
    } finally { await capPage.close(); }
+   const dualPage=await browser.newPage({viewport:{width:1200,height:1500}});
+   try{
+    await dualPage.goto(origin+"/fixture?case=b8x-two-instances",{waitUntil:"load"});
+    await dualPage.waitForFunction(()=>{
+     const roots=["#b8x-first","#b8x-second"];
+     return roots.every(selector=>
+      document.querySelector(selector+" [data-eidos-diagram-status]")?.textContent==="Ready.");
+    },{timeout:30000});
+    const inspect=()=>dualPage.evaluate(()=>{
+     const check=selector=>{
+      const root=document.querySelector(selector);
+      const svg=root.querySelector("svg[data-eidos-diagram-congested-count]");
+      const hitCount=root.querySelectorAll("[data-eidos-diagram-route-congested]").length;
+      const summary=root.querySelector("[data-eidos-diagram-congestion-summary]");
+      return {status:root.querySelector("[data-eidos-diagram-status]")?.textContent,
+       count:Number(svg?.getAttribute("data-eidos-diagram-congested-count")),
+       hits:hitCount,summary:summary?.textContent??null,
+       summaryRole:summary?.getAttribute("role")??null,
+       summaryPointer:summary?.style.pointerEvents??null,
+       selection:root.querySelector("[data-eidos-diagram-editor]")?.getAttribute("data-has-selection"),
+       marker:root.querySelector("marker[id^='eidos-diagram-arrow-']")?.id,
+       edgeCount:root.querySelectorAll("[data-eidos-diagram-edge]").length};
+     };
+     return {first:check("#b8x-first"),second:check("#b8x-second"),
+       errors:window.__errors,
+       stateCounts:window.__dualStates.map(s=>({nodes:s.nodes.length,edges:s.edges.length}))};
+    });
+    const before=await inspect();
+    assert.deepEqual(before.errors,[],engine+" two-instance startup errors");
+    assert.equal(before.first.edgeCount,1);
+    assert.equal(before.second.edgeCount,1);
+    assert.equal(before.first.count,before.first.hits,
+     engine+" busy instance count should exactly match its own congested hits");
+    assert.ok(before.first.count>0,engine+" 23 blockers must trigger bounded-route congestion");
+    assert.equal(before.first.summaryRole,"note");
+    assert.equal(before.first.summaryPointer,"none");
+    assert.equal(before.second.count,0,"clear sibling must have no congestion");
+    assert.equal(before.second.hits,0);
+    assert.equal(before.second.summary,null);
+    assert.ok(before.first.marker&&before.second.marker);
+    assert.notEqual(before.first.marker,before.second.marker,
+     engine+" SVG marker ids must be isolated per mounted surface");
+    assert.equal(before.first.selection,"false");
+    assert.equal(before.second.selection,"false");
+    await dualPage.locator("#b8x-second [data-eidos-diagram-node='clear-a']").click();
+    const afterSecond=await inspect();
+    assert.equal(afterSecond.first.selection,"false",
+     engine+" selection on sibling must not change first Surface");
+    assert.equal(afterSecond.second.selection,"true");
+    assert.equal(afterSecond.first.count,before.first.count);
+    assert.equal(afterSecond.second.count,0);
+    await dualPage.locator("#b8x-first [data-eidos-diagram-node='crowded-a']").click();
+    const afterFirst=await inspect();
+    assert.equal(afterFirst.first.selection,"true");
+    assert.equal(afterFirst.second.selection,"true",
+     engine+" selecting first Surface must preserve the second selection");
+    assert.equal(afterFirst.first.count,afterFirst.first.hits);
+    assert.equal(afterFirst.second.count,0);
+    assert.deepEqual(afterFirst.stateCounts,before.stateCounts,
+     "presentation selection must not mutate business graph fixture");
+    assert.deepEqual(afterFirst.errors,[],engine+" independent selection errors");
+    console.log("B8X_MULTI_INSTANCE_RESULT="+JSON.stringify({
+     engine,first:afterFirst.first,second:afterFirst.second,
+     independentSelection:true,distinctSvgMarkers:true,
+     warning:"Real Linux engine with two Eidos instances; not physical-device P02 signoff"
+    }));
+   }finally{await dualPage.close();}
   }finally{await browser.close();}
  }
  assert.equal(results.length,cases.length*2);
