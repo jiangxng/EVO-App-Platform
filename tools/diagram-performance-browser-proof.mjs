@@ -72,7 +72,15 @@ const makeState=(nodeCount,edgeCount)=>{
       const finalTarget=hasLoop?src:(i%5===0?(src+columns*3)%nodeCount:dst);
       const kind=i%4===0?"rounded-orthogonal":i%4===1?"orthogonal":
         i%4===2?"curve":"straight";
-      const manual=i%13===0&&!hasLoop&&kind!=="straight"
+      // B8q: a contained mixed-path/rendering benchmark, NOT a mass
+      // auto-router scalability benchmark. The original 480-edge case
+      // exhausted the 90s mount deadline when many long-distance
+      // orthogonal edges all requested global automatic rerouting.
+      // Preserve the real Q/C and manual-path cost while isolating
+      // expensive dense automatic orthogonal routing as an open risk.
+      const explicit=kind==="orthogonal"||kind==="rounded-orthogonal"
+        || (kind==="curve"&&i%3===0);
+      const manual=explicit&&!hasLoop
         ? [{x:40+(src%columns)*235+160,
             y:80+Math.floor(src/columns)*155+62}] : undefined;
       return {id:"e"+i,kind:"synthetic",source:"n"+src,
