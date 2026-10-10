@@ -327,6 +327,17 @@ try{
   "CAS saved presentation must include the selected ID in hiddenNodeIds");
  assert.ok(fresh.result.nodes.some(node=>node.id===removeNodeId),
   "editor GET includeHidden must retain underlying business node");
+ // Business relation direction and identity cannot be altered by hiding a node.
+ const sourceTopology=graph.edges.map(edge=>[edge.id,edge.source,edge.target,edge.kind])
+  .sort((a,b)=>a[0].localeCompare(b[0],"en"));
+ const savedTopology=fresh.result.edges.map(edge=>[edge.id,edge.source,edge.target,edge.kind])
+  .sort((a,b)=>a[0].localeCompare(b[0],"en"));
+ assert.deepEqual(savedTopology,sourceTopology,
+  "B9z projection edit must not change real business relation endpoints");
+ console.log("B9Z_RELATION_INTEGRITY_RESULT="+JSON.stringify({
+  process:intake.process,relationsChecked:sourceTopology.length,identical:true,
+  warning:"Synthetic topology verification, not actual enterprise semantics"
+ }));
  assert.ok(graph.nodes.some(node=>node.id===removeNodeId),
   "the original business preview2d topology remains untouched");
  assert.equal(reopenedClearViewer.saveButtons,0);
