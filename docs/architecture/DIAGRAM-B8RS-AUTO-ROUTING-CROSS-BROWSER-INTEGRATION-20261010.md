@@ -62,3 +62,10 @@ Firefox/WebKit 的浏览器下载依赖 CI 环境网络；安装、浏览器启�
 2. 在 Eidos Surface 的 SVG 与 DOM **实际挂载以后**，仅对真实可见的 RTL `<text>` 调用 `getBBox()`，比较其中心与 `geometry.label.x`；如存在明显偏移，等量调整该文本及内部每一个 `tspan` 的 `x`，令真实 SVG 字形盒中心与路由预留中心一致。只改变这次渲染的 SVG 属性，不能写入 projection 模型。对一次 render 最多 256 个可见 RTL label 做昂贵 DOM 量测，超过限额或量测不可用时通过 SVG `data-eidos-diagram-bidi-measure-limit/unavailable` 明示诊断，避免无界测量拖慢密集图。
 
 实际 Firefox 和 WebKit 的测试比较**渲染之后**的实际 SVG `getBBox` 与纯 `diagramCaptionLayoutV010` 的世界坐标预留框，既检查字形宽度，也检查是否被整体横向错位。保留 Browser 引擎、字型、行数和真实数值在 CI log 里，兼容出现不同的字体轮廓但不允许超预留框。该策略仍无法取代 Safari/iOS 实机、不同系统 font fallback 和全套 §14 39 项商业化验收。
+
+
+### B8s 校验用原始锚点与视觉 x 的区别
+
+第一次严格对照 `getBBox` 的 Chrome/Firefox/WebKit 证据发现 RTL 文字可以在挂载后被视觉校准居中，但 **SVG `text.x` 已被校准过程调整，不再等于原始路由算法的世界坐标标签中心**。测试不应把调整后的 `text.x` 当作原始预留框中心再进行比较；否则会产生假阴性。本轮在渲染标签时增加只读 `data-eidos-diagram-caption-world-x`，在校准完成后它仍保留未移动的 `geometry.label.x`。Firefox/WebKit 浏览器验收工具改为用该原始锚点与对应 B8s 避让 `diagramCaptionLayoutV010` 计算预留框，并实际比较 SVG parent `getBBox` 的左右界。
+
+这个属性只是 DOM 诊断，不进入业务数据，也不影响 source/target、CAS、projection revision、自动路由或手工路由。实验中 WebKit RTL 原文能够正确显示与完整保留；严格跨引擎验收以包含此修正的 **最新 head CI 结论** 为准，不能引用前一次红色运行作为通过。
