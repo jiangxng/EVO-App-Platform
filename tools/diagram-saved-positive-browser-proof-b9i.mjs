@@ -88,7 +88,7 @@ const open=()=>{
   authorizeProjectionSave:async()=>{},
   locale:()=>"en-US",now:()=>new Date("2026-10-11T00:01:00.000Z")
  });
- return {projectionStore,
+ return {projectionStore,handlers,
   read:handlers.find(x=>x.commandCode===READ),
   save:handlers.find(x=>x.commandCode===SAVE),
   viewer:createEnterpriseDefinition2dPreviewReadActionV010({source})};
@@ -149,7 +149,12 @@ const pageHTML=(mode)=>{
   +'container:document.getElementById("root"),actionHost});'
   +'</script></body></html>';
 };
-const handlers=new Map([[READ,reopened.read],[SAVE,reopened.save],[VIEW,reopened.viewer]]);
+// B9j: native node selection also invokes the real App selection-read
+// command. Never fake/404 it just because B9i only needed initial GET.
+const handlers=new Map([
+ ...reopened.handlers.map(handler=>[handler.commandCode,handler]),
+ [VIEW,reopened.viewer]
+]);
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,"http://127.0.0.1");
