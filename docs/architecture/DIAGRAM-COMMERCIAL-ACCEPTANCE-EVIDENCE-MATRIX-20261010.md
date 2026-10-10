@@ -50,7 +50,7 @@
 | D02 | 连续编辑、撤销、重做、保存 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | D03 | 保存失败后重试 | B7 Eidos 保存失败保留草稿逻辑；缺少真实浏览器断网/重试证据 | NOT TESTED |
 | D04 | 保存后刷新、Viewer、模板预览 | App tests/integration/definition-projection-edge-routes.test.mjs；待 Viewer 手动 | NOT TESTED |
-| D05 | 两窗口冲突保存或 Agent 更新 | B7 同 token 双客户端竞争、跨 await 写入 CAS、文件锁自动测试；Agent 与真实双窗口待验 | NOT TESTED |
+| D05 | 两窗口冲突保存或 Agent 更新 | B7 双 Session 同 token 冲突测试；B7b Agent (Direct / Personal) 读取后人工写入竞争测试已跑通；真实浏览器双窗口和 Agent 实际模型流程待验 | NOT TESTED |
 | D06 | 切换到另一投影 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A01 | 自动排版含隐藏/锁定节点 | 尚无足以确认该场景的专项证据 | NOT TESTED |
 | A02 | 系统大字与键盘操作 | 尚无足以确认该场景的专项证据 | NOT TESTED |
@@ -88,3 +88,12 @@
 目标环境：Windows Chrome/Edge 鼠标、macOS 触控板、iPhone/iPad Safari、Android Chrome；图规模覆盖桌面 200/400、500/1000，手机 100/200。后续将实际证据写回矩阵，不凭推测填 PASS。
 
 **B7 补充恢复路径：** `SAVE_PROJECTION_AS_NEW` 对旧 token 允许显式的非破坏性复制：读取当前 gallery + version，原子追加新投影；原投影不被修改。测试已加入 `definition-projection-edit-save.test.mjs`，浏览器/导航及跨机器验收仍属于 NOT TESTED。
+
+## B7b 追加证据：不带 token 的请求及 Agent CAS
+
+- [Draft PR #563](https://github.com/jiangxng/EVO-App-Platform/pull/563)（基于 #561）开始要求投影编辑器全部写操作携带 `expectedWriteToken`；旧客户端无 token 的写请求被明确拒绝，不再读取当前版本后盲写。
+- Direct Definition Projection Agent 与 Unified Current 2D Personal Agent 的裁剪写操作加入 **GET 返回 token → WRITE 强制 token → `putIfVersion`**。统一 Current 2D 的经营图仍使用其自己的 View revision，不混合领域版本。
+- CI 的 42 项 Diagram 集成测试包含 Agent/人工写竞争、无 token 拒绝、最新 token 显式重试；此前 B7 的双窗口 Session 测试仍在。
+- 所有这些是 Node 集成检查和 GitHub CI 证据，**不是浏览器设备结果**，D03/D05 和其他 37 项验收仍保持 `NOT TESTED`。真实 Browser/Agent 模型/恢复交互需要另外留存截图、日志、环境。
+- 研究、工程理由、限制记录见 `DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md`。
+
