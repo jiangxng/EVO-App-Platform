@@ -224,3 +224,13 @@
 **[实际自动验证]** 测试写入后重新读取，Agent 旧 token 被拒绝且不污染 gallery；Direct/Unified 两个工具路径和经营图原版本路径均有集成测试。首轮 [Diagram Designer Integration CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38009755579) 实际执行 42/42 PASS；Platform CI 同提交 PASS。后续 commit/最新 CI 需重新核对。详细说明在 #563 的 `docs/architecture/DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md`；§14 验收矩阵 D03、D05 仍不能从 Node 单测推断为浏览器实测通过。
 
 **[限制/未决]** 旧客户端需升级并提供友好重试/刷新说明；尚无真实浏览器双窗口可视操作记录、真实 LLM 调用工具后的更新恢复、跨主机存储一致性和实机手势录像。这些保持 NOT TESTED；不得将 Draft PR 视为合并或上线。
+
+---
+
+## 2026-10-10 B7b 补充：真实 Chromium 浏览器集成证明
+
+**[本窗口实际运行的官方 GitHub Actions 测试，而非网页设计参考]** [Diagram Designer Browser Conflict CI run 38010453881](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010453881) 在 GitHub Linux runner 中通过，使用 `Chrome/154.0.8037.97`、Node 22 与本地服务的**真实 App Platform Definition Projection ActionHandler**，Chrome 真正装载 `dist/vendor/eidos/src/diagram/surface.js` 并操作 UI 元素。机器日志给出 `DIAGRAM_BROWSER_CAS_PROOF`：`tabs=3`、`staleWriteBlocked=true`、`draftPreserved=true`、`savedAsNewProjection=true`、`transientFailurePreservesDraft=true`、`retrySaved=true`、`businessHistoryUnchanged=true`。
+
+**[测试行为]** 标签页 A 与 B 各自用真实 DOM 隐藏不同节点；A 保存后，B 陈旧保存被拒绝且显示冲突说明，B 保存为新投影，原投影保持 A 的结果。标签页 C 保存期间注入 HTTP 503，页面保留草稿，用户再次点击实际 Save 按钮即可保存。脚本、工作流与说明位于 [Draft PR #563](https://github.com/jiangxng/EVO-App-Platform/pull/563)：`tools/diagram-projection-browser-conflict-proof.mjs`、`.github/workflows/diagram-designer-browser-cas.yml`、`docs/architecture/DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md`。
+
+**[边界]** 这是 headless 真正 Chrome 的 UI/ActionHost 端到端自动化证据，**不等于 Windows、macOS、iOS、Android 物理设备手势验收**；也未覆盖真实线上环境、分布式数据库与 LLM 自主写工具的端到端会话。因此原始 §14 的 D03/D05 在完整跨设备验收矩阵中仍保持 NOT TESTED。我们继续区分源代码已实现、CI 成功、合并、部署和真实设备验收。
