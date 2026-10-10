@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -435,6 +436,10 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             );
           }
 
+          // Validate task coordinates before reusing or advancing an existing run.
+          // Identical text can target different imports/resources.
+          const interactionContext =
+            parsePersonalAgentInteractionContextV010(request);
           const clientTurnId = clientTurnIdForRequest(request);
           const sourceActionId = turnSourceActionId(clientTurnId);
           const existingRun = clientTurnId
@@ -449,7 +454,13 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             : undefined;
 
           if (existingRun) {
-            if (existingRun.input.message !== message) {
+            if (
+              existingRun.input.message !== message
+              || !isDeepStrictEqual(
+                existingRun.input.interactionContext,
+                interactionContext
+              )
+            ) {
               throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
             }
             const resumed = ["READY", "PAUSED", "RUNNING"].includes(
@@ -495,8 +506,6 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             ?? await dependencies.threadStore.conversationHistory({
               threadId
             });
-          const interactionContext =
-            parsePersonalAgentInteractionContextV010(request);
           let run = dependencies.runStore.create({
             runId,
             principalSubjectId: principal.subjectId,
@@ -610,3 +619,4 @@ export function createThreadBackedAgentTurnActionHandlersV010(
     }
   ];
 }
+
