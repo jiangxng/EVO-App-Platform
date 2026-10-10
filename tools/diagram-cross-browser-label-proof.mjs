@@ -119,7 +119,7 @@ try{
        }
       }
       const {diagramCaptionLayoutV010}=await import("/dist/vendor/eidos/src/diagram/label-reservation.js");
-      const anchor={x:Number(edge.getAttribute("x")),
+      const anchor={x:Number(edge.getAttribute("data-eidos-diagram-caption-world-x")),
         y:Number(edge.getAttribute("y"))+8+14*(Math.max(0,rows.length-1))/2};
       const estimated=diagramCaptionLayoutV010(anchor,window.__state.edges[0].label,
         text=>c.measureText(text));
