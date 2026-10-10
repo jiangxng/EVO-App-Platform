@@ -21,9 +21,12 @@ assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
 const denseMode=process.env.EVO_DENSE_B8O==="1";
 const complexMode=process.env.EVO_COMPLEX_B8Q==="1";
 const autoMode=process.env.EVO_AUTO_B8R==="1";
-assert.ok([denseMode,complexMode,autoMode].filter(Boolean).length<=1,
+const budgetMode=process.env.EVO_AUTO_B8T==="1";
+assert.ok([denseMode,complexMode,autoMode,budgetMode].filter(Boolean).length<=1,
   "Choose exactly one benchmark variant");
-const sizes = autoMode
+const sizes = budgetMode
+  ? [{nodes:300,edges:900},{nodes:400,edges:1200}]
+  : autoMode
   ? [{nodes:100,edges:300},{nodes:200,edges:600}]
   : complexMode
   ? [{nodes:160,edges:480},{nodes:320,edges:960}]
@@ -33,7 +36,7 @@ const sizes = autoMode
     : [{nodes:200,edges:400},{nodes:500,edges:1000}];
 // Warm each size first, then interleave three independent mounts per scale.
 // Cold JS module compilation and OS scheduling distort single-shot numbers.
-const repeats=denseMode?1:complexMode||autoMode?2:3;
+const repeats=denseMode?1:complexMode||autoMode||budgetMode?2:3;
 const scenarios = [...sizes.map(x=>({...x,warmup:true})),
   ...Array.from({length:repeats},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
 const viewWidth=1440, viewHeight=900;
@@ -73,7 +76,7 @@ const makeState=(nodeCount,edgeCount)=>{
     const dst=dir%2===0?nextInRow:(src+columns)%nodeCount;
     const hasLoop=(denseMode&&i%55===0)||(complexMode&&i%37===0);
     const aboveBudget=denseMode && edgeCount>12000;
-    if(autoMode){
+    if(autoMode||budgetMode){
       // All 300/600 relations use the real automatic orthogonal router.
       // Coordinates are verified by validateDiagramEditorStateV010
       // BEFORE launching any browser. No manual-route escape hatch.
@@ -258,7 +261,7 @@ try{
     }
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
-    if(denseMode||complexMode||autoMode){
+    if(denseMode||complexMode||autoMode||budgetMode){
       const expected=size.edges>12000?"node-only":"full";
       assert.equal(mounted.inkQuality,expected,
         "B8o dense rendered SVG must expose true budget degradation");
@@ -268,7 +271,7 @@ try{
       assert.ok(mounted.svg>size.edges*2,
         "B8o/B8q count actual SVG DOM elements rather than virtual arrays");
     }
-    if(complexMode||autoMode){
+    if(complexMode||autoMode||budgetMode){
       const types=await client.eval('(()=>{'
         +'const paths=[...document.querySelectorAll("[data-eidos-diagram-edge-visual]")].map(x=>x.getAttribute("d")||"");'
         +'return {cubic:paths.some(p=>p.includes(" C ")),'
@@ -318,7 +321,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
-      ...(denseMode||complexMode||autoMode?{inkQuality:mounted.inkQuality,
+      ...(denseMode||complexMode||autoMode||budgetMode?{inkQuality:mounted.inkQuality,
         labelMetrics:mounted.inkIndex,advisory:mounted.advisory}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
     if (!size.warmup) results.push(data);
@@ -342,11 +345,14 @@ try{
       usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
     };
   });
-  console.log((autoMode?"B8R_AUTO_BROWSER_RESULT=":
+  console.log((budgetMode?"B8T_AUTO_BROWSER_RESULT=":
+      autoMode?"B8R_AUTO_BROWSER_RESULT=":
+
       complexMode?"B8Q_COMPLEX_BROWSER_RESULT=":
       denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
     +JSON.stringify({browser:version.Browser,cases:aggregated,
-      mode:autoMode?"validated full DOM with real automatic orthogonal routes, 2 prewarm + 4 measured Chrome mounts":
+      mode:budgetMode?"larger validated all-automatic orthogonal DOM 900/1200, 2 warmups + 4 measured Chrome mounts; original router budgets unchanged":
+      autoMode?"validated full DOM with real automatic orthogonal routes, 2 prewarm + 4 measured Chrome mounts":
         complexMode?"representative mixed S2C/P2P routes, 2 prewarm + 4 measured Chrome mounts":
         denseMode?"synthetic dense full DOM, 3 prewarm + 3 measured Chrome mounts incl 12001-edge node-only":
         "synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
