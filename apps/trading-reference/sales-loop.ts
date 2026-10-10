@@ -200,7 +200,7 @@ export function createSalesReferenceServiceV010(input: {
       if ((i.localCarryingAmount === undefined) !== (i.localCurrency === undefined)) {
         throw new Error("TR01B_LOCAL_CARRYING_PAIR_REQUIRED");
       }
-      const carrying = i.localCarryingAmount === undefined
+      const carrying: Record<string, string> = i.localCarryingAmount === undefined
         ? {}
         : {
           localCarryingAmount: money(i.localCarryingAmount, "localCarryingAmount"),
