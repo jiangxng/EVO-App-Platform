@@ -273,8 +273,10 @@ try{
   "fresh readonly Viewer and Designer must agree after browser Save");
  const fresh=await reopened.read.execute(request(READ,id),ctx);
  assert.equal(fresh.ok,true,"fresh App read must succeed");
- assert.equal(fresh.result.nodes.some(node=>node.id===removeNodeId),false,
-  "CAS saved projection must hide the specifically selected node");
+ assert.ok(fresh.result.hiddenNodeIds?.includes(removeNodeId),
+  "CAS saved presentation must include the selected ID in hiddenNodeIds");
+ assert.ok(fresh.result.nodes.some(node=>node.id===removeNodeId),
+  "editor GET includeHidden must retain underlying business node");
  assert.ok(graph.nodes.some(node=>node.id===removeNodeId),
   "the original business preview2d topology remains untouched");
  assert.equal(reopenedClearViewer.saveButtons,0);
