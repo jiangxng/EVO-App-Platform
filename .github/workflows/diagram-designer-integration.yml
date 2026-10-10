@@ -17,6 +17,7 @@ on:
       - "tests/integration/diagram-snapping-tools.test.mjs"
       - "tests/integration/diagram-obstacle-spatial-index.test.mjs"
       - "tests/integration/diagram-auto-route-segment.test.mjs"
+      - "tests/integration/diagram-overlapping-handles.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -35,6 +36,7 @@ on:
       - "tests/integration/diagram-snapping-tools.test.mjs"
       - "tests/integration/diagram-obstacle-spatial-index.test.mjs"
       - "tests/integration/diagram-auto-route-segment.test.mjs"
+      - "tests/integration/diagram-overlapping-handles.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -65,3 +67,4 @@ jobs:
           tests/integration/diagram-snapping-tools.test.mjs
           tests/integration/diagram-obstacle-spatial-index.test.mjs
           tests/integration/diagram-auto-route-segment.test.mjs
+          tests/integration/diagram-overlapping-handles.test.mjs
