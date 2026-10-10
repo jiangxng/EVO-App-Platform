@@ -150,3 +150,18 @@ export function createDiagramInkSpatialIndexV010(
     return {segments,labels};
   }};
 }
+
+/** B8m presentation diagnostic. No persistent state/schema.
+ * No self loop needs ink work; over 12k relations bypasses it entirely.
+ */
+export type DiagramInkQualityV010 = "full" | "coarse" | "node-only";
+export function diagramInkQualityV010(
+  visibleRelations: number, hasStyledSelfLoops: boolean, fallbackCount = 0
+):DiagramInkQualityV010 {
+  if(!Number.isInteger(visibleRelations) || visibleRelations<0
+    || !Number.isInteger(fallbackCount) || fallbackCount<0)
+    throw Error("EIDOS_DIAGRAM_INK_QUALITY_INVALID");
+  if(!hasStyledSelfLoops)return "full";
+  if(visibleRelations>12000)return "node-only";
+  return fallbackCount>0?"coarse":"full";
+}
