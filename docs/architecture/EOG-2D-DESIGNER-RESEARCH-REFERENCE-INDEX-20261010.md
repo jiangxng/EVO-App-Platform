@@ -346,3 +346,15 @@
 **[已执行的端到端浏览器子场景]** Chrome/154.0.8037.97，8 个独立标签页使用原产品 App Host 处理器与内存投影 Store。第六标签页在 B8a 自动 orthogonal 线段直接拖动转换后 Undo，再 Redo 恢复手工点，使用真正的 Designer `Save projection` UI 执行授权 + 投影版本 CAS；Store version **3→4 一次**，`projection.view.edgePaths` 包含该边 orthogonal 手工控制点，业务定义 revision/history 不变。第七个全新 Designer 页面从后端重新读取这条关系，确认控制点数量与 SVG `d` 等于保存前。第八个使用真实 `createEnterpriseDefinition2dPreviewPageV010`、`createEnterpriseDefinition2dPreviewReadActionV010` 和 Eidos Workspace Mount 构造**真正的只读 Enterprise Definition Viewer**，与持久化关系对应的 SVG `d` 完全相同，且没有可编辑手柄/保存按钮。原 B7b 冲突/另存/HTTP 503、B6b 手工点、B8a 原生拖动/取消均保持通过。机器证据 `b8bSaveReloadRealViewerRoundtrip=true`。
 
 **[明确的未验收内容]** 当前是 GitHub Actions Chrome + 原产品动作处理器 + Memory Store 的真实 UI 流程，**不是线上 Railway、分布式数据库落盘重启**，也没有覆盖 Template Store 另一种 Viewer、实体触摸/多指、系统级 pointercancel 后同页立即重新抓取、圆角复杂路由及大图 FPS。原 §14 D04 有具体的 B8b UI 子场景证据，但 **39 项完整验收仍 NOT TESTED**。本轮不修改 Eidos 产品代码或既定方案，只新增独立 B8b 浏览器验证与专档 `docs/architecture/DIAGRAM-B8B-SAVE-RELOAD-VIEWER-20261010.md`，与 B8a App #581 主切片并存，不合并或部署。
+
+---
+
+## 2026-10-10 B8c：重叠控制柄消歧和同页 Chrome 原生触摸取消后重抓
+
+**[沿用已确认研究，不是假称本次重读外网]** 商用 v1.0 及旧 S1–S7 来源、Eidos B5a/B6b 的 44 CSS px 命中目标、B8a 自动线段、B8b 投影真实保存/刷新/Viewer 往返，都由先前已核验提交确认。本轮新证据是直接检查 Eidos/App 源码并让真实 Chrome 输入驱动浏览器测试；没有重新访问旧参考网页，原 §14 手工及实体设备验收门槛不改变。
+
+**[实现决定]** [Eidos B8c Draft PR #144](https://github.com/jiangxng/eidos/pull/144) 和 [App B8c Draft PR #586](https://github.com/jiangxng/EVO-App-Platform/pull/586)：手工路径点 SVG 命中目标继续位于 segment 上层，两者半径 22 CSS px，保留一手可点；普通左键拖动移动 waypoint，**Shift+drag waypoint** 选择距离最近且命中区域与该 waypoint 重叠的正交段，**Shift+Alt+drag** 选择第二重叠段。候选按世界距离×当前缩放、段序号和轴向稳定排序，超过 44 CSS px 或非法相机值时不强制变更手势。重叠段只做 segment 法向移动，不移动屏幕 waypoint marker 的假视觉位置；遵循已有 B6b snap、Cancel 与单 checkpoint/Undo，纯展示层修改，独立 Host CAS/业务定义不变。对“第三个以上完全重叠候选”的高密度消歧仍需后续设计，本轮不虚称完全解决。
+
+**[Chrome 输入层真实验收子场景]** [App Browser CI 38018569747](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38018569747) **PASS**，Chrome/154.0.8037.97 **10 标签页**。第九标签页在真实关系中插入一个手工 waypoint 制造热区重叠，CDP 原生 mousePressed/mouseMoved/mouseReleased 带 Shift 修饰键，从 waypoint 上层 target 触发底下 segment 拖动，SVG 改变、产生正交控制点，Undo 精确恢复原路径及原单 waypoint；无需 Host Save。第十标签页使用浏览器 **CDP Input.dispatchTouchEvent** 输入的 `touchStart→move→touchCancel→touchStart→move→touchEnd`，不同于先前通过 DOM `new PointerEvent` 合成取消；**同一页面**第一次取消恢复自动 SVG 并且没有手工点，随后第二次触摸成功重新抓取预览、释放转换手工点，且仍无 Store 自动写入。证据 `b8cNativeShiftOverlapSegmentUndo=true`、`b8cNativeTouchCancelRegrab=true`；原 B7b CAS/HTTP503、B8a 自动拖动、B8b Save/真实只读 Viewer 都保持通过。Eidos CI+App Diagram Integration 纯几何/源码防线亦 PASS。
+
+**[反例与严格边界]** 先前在一页人工 DOM `pointercancel` 后立即发 CDP 鼠标，第二次未出预览；与本轮 CDP touchCancel 成功**输入协议不同**，不能据此证明或否定真实 OS 系统取消 Bug。Chrome DevTools 驱动的触摸取消不是 iPhone/Android 的物理手势，不代表 Safari/触控板/键盘组合实机已验；多于两个完全重叠手柄、圆角复杂路径、远端持久化重启、500/1000 FPS 以及原商用 v1.0 §14 E03/39 项完整手工验收仍 `NOT TESTED`。保留所有未合并 Draft PR，绝不部署或改写主线状态。详细入口：Eidos #144 `docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-20261010.md`；App #586 `docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-INTEGRATION-20261010.md` 和 §14 证据矩阵。
