@@ -359,3 +359,10 @@
 - 独立 [Draft #617](https://github.com/jiangxng/EVO-App-Platform/pull/617) 接续 B9d #615，真实两个 Node 子进程同时对同一个真实 FileDefinitionProjectionStore 文件用 expectedVersion 1 保存不同投影标题，**仅一个版本更新到 2**，另一个通过明确 WRITE_CONFLICT 或 STORE_LOCKED 失败；新建 Store 读取仅一个最终记录，标题匹配唯一获胜进程。
 - 模拟崩溃遗留 lock 目录必须显式拒绝写入，**不能偷锁或增加版本**。首次 [Diagram Designer Integration #38068173599 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068173599)：**130/130** 子测试全部通过，其中 B9d 正式 App Handler 文件重新读取场景仍通过。
 - B9e 的两子进程操作属于**正式 Store API**，尚非两个独立 Web 用户通过 App Host/Agent 授权发起的完整并发保存，也不是分布式共享文件系统/生产数据库服务。原 §14 **39 项正式商用验收仍 NOT TESTED**，详见 [B9e 文档](./DIAGRAM-B9E-CROSSPROCESS-FILE-CAS-20261011.md)。
+
+
+## B9f｜两进程正式 App Handler 并发保存文件投影（2026-10-11）
+
+- [Draft #618](https://github.com/jiangxng/EVO-App-Platform/pull/618)，基于 B9e #617；**两个独立 Node 子进程**分别构建真实 App Projection Editor GET/SAVE Handler，通过受控授权钩子，使用相同企业和投影 ID、expectedWriteToken 0 与独立 camera X（101/202），向同一真实 FileDefinitionProjectionStore 文件请求保存。**只准 1 个 Handler 真正成功**，另一个必须因 WRITE_CONFLICT/STORE_LOCKED 失败。进程退出后全新 Store 的 CAS token 必须为 **1**，且镜头 X 等于获胜者；两进程各自企业基础定义历史均为 1。
+- [Diagram Designer Integration #38068348194 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38068348194)：**131/131 测试通过**，覆盖 B9d/B9e/B9f；业务定义仓和授权钩子仍是受控内存 fixture，文件 Store 是正式代码、真实 OS 文件与子进程。它**不是**正式多用户登录、分布式云服务/生产数据库、物理设备或正式企业主数据的验收。详见 [B9f 文档](./DIAGRAM-B9F-TWO-APP-HANDLER-PROCESSES-20261011.md)。
+- 既有 B9b（CAS Save 后零拥塞）和 B9c（Viewer 正数，但经 test-only Source 注入）限制未变，原 §14 **39 项正式商用验收仍 NOT TESTED**，两仓/主线未合并未部署。
