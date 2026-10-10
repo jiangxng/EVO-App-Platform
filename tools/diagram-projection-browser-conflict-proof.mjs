@@ -110,6 +110,47 @@ const viewerHtml='<!doctype html><html><head><meta charset="utf-8"><meta name="v
   +'</script></body></html>';
 const viewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({source});
 
+ // B8f controlled self-relation fixture; the production seed need not have
+ // self-edges. Real App read, CAS Save, and Viewer all use the same source.
+ const selfNode=routeNodes.get(routeChoice.edge.source);
+ const selfId="diagram-browser:self-loop";
+ const selfEdge={...routeChoice.edge,id:selfId,source:selfNode.id,target:selfNode.id,
+   kind:routeChoice.edge.kind,label:"B8f browser loop",pathKind:"curve"};
+ delete selfEdge.waypoints;delete selfEdge.sourceAnchor;delete selfEdge.targetAnchor;
+ const loopSource={get(input){
+   const art=source.get(input);
+   if(!art?.diagram2d)return art;
+   const gallery=store.get(target)??revision.projectionGallery;
+   const saved=gallery?.projections?.find(x=>x.projectionId===target.projectionId)
+     ?.view.edgePaths?.find(x=>x.edgeId===selfId);
+   const edge={...selfEdge};
+   if(saved){edge.pathKind=saved.pathKind;
+     if(saved.waypoints?.length)edge.waypoints=saved.waypoints.map(p=>({...p}));
+   }
+   return {...art,diagram2d:{...art.diagram2d,edges:[...art.diagram2d.edges,edge]}};
+ }};
+ const loopHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+   repository,projectionStore:store,source:loopSource,sessions,
+   canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+   locale:()=>"en-US",now:()=>new Date("2026-10-10T00:01:00.000Z")
+ });
+ const loopViewerReadHandler=createEnterpriseDefinition2dPreviewReadActionV010({source:loopSource});
+ const loopCamera={scale:1,
+   translateX:440-(selfNode.x+selfNode.width+60),
+   translateY:180-(selfNode.y+selfNode.height/2)};
+ const loopPage={...page,title:"B8f loop Designer",initialCamera:loopCamera};
+ const loopHtml=html.replace(markup,renderDiagramEditorPageShellToHtmlV010(loopPage))
+   .replace("window.__page="+JSON.stringify(page),
+     "window.__page="+JSON.stringify(loopPage));
+ const loopViewerPage=createEnterpriseDefinition2dPreviewPageV010({
+   ...target,title:"B8f loop Viewer",camera:loopCamera
+ });
+ const loopViewerHtml=viewerHtml
+   .replace(viewerShell,renderDiagramWorkspacePageShellToHtmlV010(loopViewerPage))
+   .replace("window.__page="+JSON.stringify(viewerPage),
+     "window.__page="+JSON.stringify(loopViewerPage));
+
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -136,6 +177,12 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(viewerHtml); return;
     }
+    if (url.pathname === "/loop") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
+    }
+    if (url.pathname === "/loop-viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
+    }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
@@ -145,7 +192,9 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const handler = [...handlers,viewerReadHandler].find(h => h.commandCode === request.command?.code);
+      const candidates = ["O","P","Q"].includes(tab)
+        ? [...loopHandlers,loopViewerReadHandler] : [...handlers,viewerReadHandler];
+      const handler = candidates.find(h => h.commandCode === request.command?.code);
       if (!handler) throw Error("Unknown action: " + request.command?.code);
       const result = await handler.execute(request, context(url.searchParams.get("session") ?? "A"));
       res.writeHead(200, { "content-type": "application/json" });
@@ -194,7 +243,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -240,6 +289,8 @@ try {
   const version = await (await fetch(api + "/json/version")).json();
   async function tab(id, route = false) {
     const path = route === "viewer" ? "/viewer?session="
+      : route === "loop" ? "/loop?session="
+      : route === "loop-viewer" ? "/loop-viewer?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -984,7 +1035,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
