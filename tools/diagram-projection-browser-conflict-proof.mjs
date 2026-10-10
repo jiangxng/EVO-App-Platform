@@ -195,7 +195,7 @@ try {
     + 'return r.width>0&&r.left>=0&&r.top>=0&&r.left<innerWidth-30&&r.top<innerHeight-30})||nodes[0];'
     + 'if(!node)throw Error("No nodes in browser");'
     + 'const rect=node.getBoundingClientRect();'
-    + 'const scale=Number(stage.style.transform.match(/matrix\(([^,]+)/)?.[1]);'
+    + 'const scale=Number(stage.style.transform.slice(7).split(",")[0]);'
     + 'if(!(scale>0))throw Error("Invalid camera transform");'
     + 'const worldX=Number.parseFloat(node.style.left);'
     + 'const target=Math.round(worldX/24)*24+96;'
