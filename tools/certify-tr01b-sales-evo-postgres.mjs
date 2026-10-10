@@ -152,6 +152,7 @@ const before={
 };
 const approved=await service.approveSalesOrder({
  ...common,quantity:n,unitPrice:"100.00",totalAmount:total,currency:"CNY",
+ localCarryingAmount:total,localCurrency:"CNY",
  effectiveAt:"2026-10-10T01:10:00.000Z",
  correlationId:"TR01B:S:001",idempotencyKey:"tr01b:approved:001"
 });

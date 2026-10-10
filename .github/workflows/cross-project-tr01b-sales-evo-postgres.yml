@@ -9,6 +9,7 @@ on:
       - "providers/application-runtime-binding/**"
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
+      - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   push:
     branches: [main]
@@ -19,6 +20,7 @@ on:
       - "providers/application-runtime-binding/**"
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
+      - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   workflow_dispatch:
 
@@ -118,6 +120,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2b-cost-replay-after-sales.mjs | tee /tmp/tr01b2b-cost-proof.log
           grep -q 'TR01B2B_EVO_PINNED_COST_COGS_REPLAY_PROOF=.*"status":"PASS"' /tmp/tr01b2b-cost-proof.log
+
+      - name: Certify formal AllocationInstruction to exact App Platform Cash Receipt and Replay
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2c-formal-settlement-after-cost.mjs | tee /tmp/tr01b2c-allocation-proof.log
+          grep -q 'TR01B2C_APP_ORIGIN_RECEIPT_ALLOCATION_EVO_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2c-allocation-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
