@@ -33,9 +33,9 @@ test("B8i nearby label alone reserves a better exterior side",()=>{
 test("B8i all-side stroke congestion is truthfully flagged",()=>{
  const ink={segments:[
   line,
-  {start:{x:15,y:20},end:{x:15,y:360}},
-  {start:{x:30,y:300},end:{x:400,y:300}},
-  {start:{x:30,y:30},end:{x:400,y:30}}
+  {start:{x:55,y:20},end:{x:55,y:360}},
+  {start:{x:30,y:270},end:{x:400,y:270}},
+  {start:{x:30,y:50},end:{x:400,y:50}}
  ]};
  const choice=diagramSelfLoopDecisionV010(n,[],0,[],ink);
  assert.equal(choice.congested,true);
@@ -46,7 +46,7 @@ test("B8i all-side stroke congestion is truthfully flagged",()=>{
 });
 
 test("B8i nonincident strokes and label order never change side decision",()=>{
- const ink={segments:[line,{start:{x:15,y:20},end:{x:15,y:360}}],
+ const ink={segments:[line,{start:{x:55,y:20},end:{x:55,y:360}}],
   labels:[label,{x:15,y:140,width:20,height:22}]};
  const d=diagramSelfLoopDecisionV010(n,[],0,[],ink);
  assert.deepEqual(diagramSelfLoopDecisionV010(n,[],0,[],{
