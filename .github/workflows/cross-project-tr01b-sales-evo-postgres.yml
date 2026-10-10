@@ -10,6 +10,7 @@ on:
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
+      - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   push:
     branches: [main]
@@ -21,6 +22,7 @@ on:
       - "tools/certify-tr01b-sales-evo-postgres.mjs"
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
+      - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   workflow_dispatch:
 
@@ -34,7 +36,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: 2311022640aa108a6baf3db44d9b26bd3e3ad623
+  EVO_CERTIFIED_COMMIT: d5ce051325c4572c7a5fd713560d7d7d06e4b401
   EVO_BASE_URL: http://127.0.0.1:3000
   EVO_ENTERPRISE_CODE: EVO_DEMO
   NODE_ENV: test
@@ -126,6 +128,12 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2c-formal-settlement-after-cost.mjs | tee /tmp/tr01b2c-allocation-proof.log
           grep -q 'TR01B2C_APP_ORIGIN_RECEIPT_ALLOCATION_EVO_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2c-allocation-proof.log
+
+      - name: Certify bounded Host and EVO owner read-only finance fact/pin verification
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d2-owner-finance-fact-pin.mjs | tee /tmp/tr01b2d2-owner-proof.log
+          grep -q 'TR01B2D2_OWNER_FINANCE_FACT_PIN_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d2-owner-proof.log
 
       - name: Show EVO logs on failure
         if: failure()
