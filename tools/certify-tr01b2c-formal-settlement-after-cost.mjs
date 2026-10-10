@@ -122,7 +122,7 @@ try{
   error=>error?.code==="ALLOCATION_INSTRUCTION_IDEMPOTENCY_CONFLICT"
  );
  await assert.rejects(runtime.allocation.recordInstruction({
-  ...input,consumerBusinessDataId:"not-in-enterprise",idempotencyKey:"wrong-receipt"
+  ...input,consumerBusinessDataId:"00000000-0000-0000-0000-000000000001",idempotencyKey:"wrong-receipt"
  }),error=>error?.code==="ALLOCATION_BUSINESS_DATA_ENTERPRISE_MISMATCH");
  assert.equal(await relation(enterpriseId,instruction.id,receipt.id),undefined,
   "Instruction alone cannot be claimed as formal consumed AllocationRelation");
