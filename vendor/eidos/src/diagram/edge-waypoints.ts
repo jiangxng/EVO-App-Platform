@@ -292,3 +292,26 @@ export function diagramEditableAutomaticOrthogonalRouteV010(
   const segments = diagramEditableOrthogonalSegmentsV010(start, end, override);
   return segments.length ? { waypoints: points, segments } : undefined;
 }
+
+/** B8c: choose the segment hidden under a 44 CSS px waypoint hit target.
+ * Shift+drag prefers the closest hidden segment. Shift+Alt+drag picks the
+ * second distinct segment where available. Sorting is deterministic, never
+ * changes saved waypoint topology, and no hit circle becomes smaller.
+ */
+export function diagramOverlappingSegmentForWaypointV010(
+  waypoint: DiagramEdgePointV010,
+  segments: readonly DiagramOrthogonalSegmentHandleV010[],
+  scale: number,
+  alternate = false
+): DiagramOrthogonalSegmentHandleV010 | undefined {
+  if (!validPoint(waypoint) || !Number.isFinite(scale) || scale <= 0) return undefined;
+  const candidates = segments
+    .map(segment => ({ segment, distance: Math.hypot(
+      (segment.x - waypoint.x) * scale,
+      (segment.y - waypoint.y) * scale
+    ) }))
+    .filter(item => Number.isFinite(item.distance) && item.distance <= 44)
+    .sort((a,b) => a.distance - b.distance || a.segment.index - b.segment.index
+      || a.segment.axis.localeCompare(b.segment.axis));
+  return candidates[alternate && candidates.length > 1 ? 1 : 0]?.segment;
+}
