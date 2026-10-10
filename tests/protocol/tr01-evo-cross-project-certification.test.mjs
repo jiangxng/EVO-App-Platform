@@ -19,6 +19,11 @@ test("TR-01A cross-project certification pins the EVO dimension-filtered Ledger 
     true
   );
   assert.equal(source.includes("postgres:18"), true);
+  assert.equal(
+    source.includes("run: npm run validate:tr01-purchase-receipt-reversal"),
+    true,
+    "Cross Project PostgreSQL CI must rerun EVO full purchase receipt reversal replay certification"
+  );
 });
 
 test("TR-01A certification uses App Platform authorities and public EVO APIs only", async () => {
