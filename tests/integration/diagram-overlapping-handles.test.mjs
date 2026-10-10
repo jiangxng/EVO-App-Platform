@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   diagramOverlappingSegmentForWaypointV010,
+  diagramOverlappingSegmentsForWaypointV010,
   diagramEditableOrthogonalSegmentsV010,
   diagramDragOrthogonalSegmentV010,
   diagramManualEdgeGeometryV010
@@ -68,5 +69,46 @@ test("B8c Surface exposes the accessible Shift+drag affordance and preserves one
   assert.match(s,/diagramDragOrthogonalSegmentV010\([\s\S]*?dragIndex, dragAxis/);
   assert.match(s,/if \(!overlap\) \{/);
   assert.match(s,/checkpoint\(\);\s*edge\.waypoints = current;/);
+  assert.match(s,/target\.setAttribute\("r", String\(22 \/ camera\.scale\)\)/);
+});
+
+test("B8d sorts 3+ overlapping candidates, deduplicates, and retains legacy shortcuts",()=>{
+  const center={x:80,y:100};
+  const segments=[
+    {index:7,x:99,y:100,axis:"y"},
+    {index:3,x:77,y:100,axis:"x"},
+    {index:9,x:109,y:100,axis:"y"},
+    {index:5,x:81,y:100,axis:"x"},
+    {index:5,x:81,y:100,axis:"x"},
+    {index:8,x:Infinity,y:100,axis:"x"}
+  ];
+  const snapshot=structuredClone(segments);
+  const candidates=diagramOverlappingSegmentsForWaypointV010(center,segments,1);
+  assert.deepEqual(candidates.map(item=>item.index),[5,3,7,9]);
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1)?.index,5);
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,true)?.index,3);
+  for(let rank=0;rank<4;rank++) {
+    assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,rank)?.index,
+      candidates[rank].index);
+  }
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,4),undefined);
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,-1),undefined);
+  assert.equal(diagramOverlappingSegmentForWaypointV010(center,segments,1,1.5),undefined);
+  assert.deepEqual(segments,snapshot);
+  assert.deepEqual(diagramOverlappingSegmentsForWaypointV010(center,segments,3)
+    .map(item=>item.index),[5,3,7]);
+  assert.deepEqual(diagramOverlappingSegmentsForWaypointV010(center,segments,0),[]);
+});
+
+test("B8d click-only cycles candidate without changing route, Undo, or 44px hit area",async()=>{
+  const location = import.meta.url.includes("/integration/")
+    ? "../../vendor/eidos/src/diagram/surface.ts" : "../../src/diagram/surface.ts";
+  const s=await readFile(new URL(location,import.meta.url),"utf8");
+  assert.match(s,/Shift-Alt-click to cycle segment/);
+  assert.match(s,/data-eidos-diagram-overlap-choice/);
+  assert.match(s,/data-eidos-diagram-overlap-selected-rank/);
+  assert.match(s,/event\.altKey \? alternateChoice : 0/);
+  assert.match(s,/cycleChoiceOnClick && !attemptedDrag/);
+  assert.match(s,/if \(!moved\) \{[\s\S]*?updateChoiceHint\(\);[\s\S]*?return;[\s\S]*?checkpoint\(\);/);
   assert.match(s,/target\.setAttribute\("r", String\(22 \/ camera\.scale\)\)/);
 });
