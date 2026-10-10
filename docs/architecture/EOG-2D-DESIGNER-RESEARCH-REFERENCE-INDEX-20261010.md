@@ -210,3 +210,17 @@
 **外部资料状态：** 本次 B7 是沿既有 S1–S7 结论继续工程化；没有再次阅读外站正文、没有新增未经访问的资料条目或改变既定交互策略。原始研究索引标题、原网址及“原文/摘要/待验证”判定均保持不变。
 
 **B7 追加恢复决策（工程增量）：** 在两个窗口拥有同一旧 token 的情况下，直接保存旧视图必冲突且不得覆盖原投影；但用户**明确选择另存为新投影**时，Host 使用新读取的 gallery+version 作为一个快照，追加新投影并以 CAS 提交，这能保留其他人的原投影及本地草稿。相关回归测试在 #561 的 `tests/integration/definition-projection-edit-save.test.mjs`；仍需真实浏览器验证。
+
+---
+
+## 2026-10-10 B7b 补充：发现旧客户端与 Agent 写入旁路
+
+**本次证据类别：已读当前仓库源码并在 GitHub Actions 执行集成测试。** 上文已有的官方设计研究 S1–S7 的原始网址、来源等级及结论不变；本轮没有虚构或重新标记为已读外站的资料。
+
+**[工程核查事实]** B7 #561 初始版人工 SAVE 对未提供 `expectedWriteToken` 的旧客户端采用当前最新版本替代，导致过期写入仍可能成功。独立 Direct Definition Projection Agent 与 Unified Personal Agent current-2D crop 工具调用无条件 `projectionStore.put`，绕过在编辑器内已经实现的 CAS。后者统一管理 Definition Projection 和 Enterprise Operating Graph，必须避免将不同 View 的 revision 混同。
+
+**[新决策与实现]** 在独立 [App Platform Draft #563](https://github.com/jiangxng/EVO-App-Platform/pull/563)（基于 #561）实施 B7b：编辑器无 token 写请求一律拒绝；两个 Agent 工具先 GET 暴露 `writeToken`，后续写入要求提交 `expectedWriteToken`；Definition Projection 统一 `getVersioned` + `putIfVersion`，Operating Graph 继续使用自己的 `view.revision` 检查。此改动收紧旧客户端兼容边界，理由是无 token 的静默覆盖不满足既有 D05 的防丢数据验收要求；它没有更改已确认的 2D 交互和路径设计。
+
+**[实际自动验证]** 测试写入后重新读取，Agent 旧 token 被拒绝且不污染 gallery；Direct/Unified 两个工具路径和经营图原版本路径均有集成测试。首轮 [Diagram Designer Integration CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38009755579) 实际执行 42/42 PASS；Platform CI 同提交 PASS。后续 commit/最新 CI 需重新核对。详细说明在 #563 的 `docs/architecture/DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md`；§14 验收矩阵 D03、D05 仍不能从 Node 单测推断为浏览器实测通过。
+
+**[限制/未决]** 旧客户端需升级并提供友好重试/刷新说明；尚无真实浏览器双窗口可视操作记录、真实 LLM 调用工具后的更新恢复、跨主机存储一致性和实机手势录像。这些保持 NOT TESTED；不得将 Draft PR 视为合并或上线。
