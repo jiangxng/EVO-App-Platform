@@ -40,7 +40,7 @@ secrets.put({contractVersion:'0.1.0',namespace:'evo-trading-finance-owner',
 const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
 const kid='tr01b2d3-ci-rsa-key',jwk=publicKey.export({format:'jwk'});
 const pending=new Map();
-let badNextNonce=false, pkceValidated=0, signedIdTokens=0;
+let nextInvalidClaim=null, pkceValidated=0, signedIdTokens=0;
 const encode=v=>Buffer.from(JSON.stringify(v)).toString('base64url');
 function jwt(claims){
  const head=encode({alg:'RS256',typ:'JWT',kid});
@@ -95,9 +95,13 @@ const idp=createServer(async(req,res)=>{
    assert.equal(createHash('sha256').update(verifier).digest('base64url'),transaction.challenge);
    pkceValidated++;
    const now=Math.floor(Date.now()/1000);
-   const bad=badNextNonce;badNextNonce=false;
-   const token=jwt({iss:issuer,sub:idpSubject,aud:clientId,iat:now,exp:now+300,
-    nonce:bad?'ci-deliberately-incorrect-nonce':transaction.nonce,
+   const invalid=nextInvalidClaim;nextInvalidClaim=null;
+   const token=jwt({
+    iss:invalid==='issuer'?'http://other-issuer.localhost':issuer,
+    sub:idpSubject,
+    aud:invalid==='audience'?'ci-unrelated-client':clientId,
+    iat:now,exp:now+300,
+    nonce:invalid==='nonce'?'ci-deliberately-incorrect-nonce':transaction.nonce,
     name:'CI External OIDC Human',email_verified:true});
    signedIdTokens++;
    res.setHeader('content-type','application/json');
@@ -194,11 +198,13 @@ try{
  assert.notEqual(replay.status,303);
  assert.equal(replay.headers.get('set-cookie'),null);
 
- // Invalid ID Token nonce must not issue a Host cookie.
- badNextNonce=true;
- const failed=await login();
- assert.notEqual(failed.finish.status,303);
- assert.equal(failed.finish.headers.get('set-cookie'),null);
+ // Invalid signed OIDC claims never issue a Host Session.
+ for (const invalid of ['nonce','issuer','audience']){
+  nextInvalidClaim=invalid;
+  const failed=await login();
+  assert.notEqual(failed.finish.status,303,invalid+' should be denied');
+  assert.equal(failed.finish.headers.get('set-cookie'),null);
+ }
 
  const logout=await request('/auth/logout',{method:'POST',headers:{cookie,origin:host}});
  assert.equal(logout.status,303);
@@ -206,13 +212,14 @@ try{
   method:'POST',headers,body:JSON.stringify({intent})});
  assert.equal(denied.status,401);
  assert.equal((await denied.json()).executionAllowed,false);
- assert.equal(pkceValidated,2);
- assert.equal(signedIdTokens,2);
+ assert.equal(pkceValidated,4);
+ assert.equal(signedIdTokens,4);
  console.log('TR01B2D3_EXTERNAL_STYLE_OIDC_TO_REAL_FINANCE_HOST_PROOF='+JSON.stringify({
   status:'PASS',liveMockIssuerHttp:true,authorizationCode:true,pkceS256Validated:true,
   rsaSignedIdToken:true,nonceAndIssuerAudienceValidation:true,hostIssuedHttpOnlyCookie:true,
   oidcPrincipalUsedForOriginalEvoFinance:true,sessionLogoutImmediateRevoke:true,
-  replayedStateDenied:true,badNonceDenied:true,executionAllowed:false,
+  replayedStateDenied:true,badNonceDenied:true,
+  wrongIssuerDenied:true,wrongAudienceDenied:true,executionAllowed:false,
   googleRealTenant:'NOT_CERTIFIED',productionHttps:'NOT_CERTIFIED'
  }));
 }catch(e){
