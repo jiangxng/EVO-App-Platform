@@ -317,3 +317,10 @@
 - 原真实 Firefox/WebKit 同屏两幅图：第一幅 23 局部障碍触发 1 条拥塞，第二幅 0 条拥塞。新增原生鼠标 UI 操作：在第一幅选择第 23 个障碍节点，点击 `Remove from view` 后应从 23 相关障碍变为 22，并严格断言拥塞计数 `1→0`、整图摘要消失，第二幅图选择与计数不变；点击 Undo 又应 `0→1`、显示 `1 routes need review`，并且底层图节点/边数量不能减少。这是显式可见性状态和路由安全预算的联动验收，而非修改 22/2600 安全阈值。
 - **本轮 CI 以 PR 最终 head 实际结论为准**，机器证据事件 `B8Y_VISIBILITY_UNDO_RESULT` 必须在 Firefox/WebKit 两引擎分别出现；否则本项不可宣称 PASS，失败原样保留。相关 [B8y 实测入口](./DIAGRAM-B8Y-CONGESTION-HIDE-UNDO-BROWSER-20261010.md)。
 - 正式 §14 **39 项商业化测试仍为 NOT TESTED**。本项仅覆盖合成图、单页面、本地隐藏/Undo；未测试真实投影保存→刷新→Viewer、数据库重启、真实手机/桌面操作或客户业务数据。
+
+
+## B8y + B8z｜本地隐藏和实际鼠标拖动后的拥塞提示复算（2026-10-10）
+
+- [B8y Draft #608](https://github.com/jiangxng/EVO-App-Platform/pull/608) 继承 B8x，Firefox/WebKit 两真实引擎经过设计器 UI 点击 `block-22`、`Remove from view`，先后达到 **1→0**；点击真实 Undo 恢复 **0→1**，第二实例仍然为 0、原始业务图 fixture 节点数不变。最初真实运行 [#38061392320 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061392320) 记录两条 `B8Y_VISIBILITY_UNDO_RESULT`，并无新增业务权限或客户端外部持久写入。
+- [B8z Draft #610](https://github.com/jiangxng/EVO-App-Platform/pull/610) 是紧接其后的独立测试切片，改用真实浏览器鼠标长距离 `down→14 steps move→up` **拖动障碍节点**使 23 个局部障碍中一个离开相关范围，再验证拥塞从 1 降至 0；点击设计器 Undo 恢复为 1、另一实例保持独立。测试必须在 Firefox/WebKit 实际运行后得到 `B8Z_DRAG_UNDO_RESULT`；未完成的 head 不得提前认定通过。详情 [B8z 工作记录](./DIAGRAM-B8Z-NATIVE-DRAG-UNDO-20261010.md)。
+- B8y/B8z 均只是 E/M/D 项的**受控真实浏览器子场景**；不代表用户签收原 §14 的 39 项正式商用测试。仍维持 **NOT TESTED**，缺真实企业数据、生产数据库、保存刷新与只读 Viewer 往返、实机系统字体/鼠标/触摸板与长期稳定性；继续保留先前 B8t 全自动样本真实 21/900、27/1200 条拥塞记录。
