@@ -337,6 +337,27 @@ const multilingualViewerHandler=createEnterpriseDefinition2dPreviewReadActionV01
   source:multilingualSource
 });
 
+// B8p: Arabic and Hebrew with Latin digits and CJK: the renderer uses
+// the Unicode bidi algorithm instead of reversing the original business text.
+const rtlCaption="مرحبا بالعالم · أمر بيع 2026"
+  +"\nחשבונית ספק 123 · Invoice 123"
+  +"\nطلب الدفع، البنك والتحصيل · 整理对账 🧾";
+const rtlSource={get(input){
+  const result=multilingualSource.get(input);
+  if(!result?.diagram2d)return result;
+  return {...result,diagram2d:{...result.diagram2d,
+    edges:result.diagram2d.edges.map(e=>e.id===inkRelationId
+      ? {...e,label:rtlCaption}:e)}};
+}};
+const rtlHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:rtlSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:11:00.000Z")
+});
+const rtlViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:rtlSource
+});
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -393,8 +414,11 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/wide-label-viewer" || url.pathname === "/multilingual-viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
     }
-    if (url.pathname === "/multilingual-label") {
+    if (url.pathname === "/multilingual-label" || url.pathname === "/rtl-label") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
+    }
+    if (url.pathname === "/rtl-viewer") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
     }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
@@ -405,7 +429,9 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = ["AE","AF"].includes(tab)
+      const candidates = ["AG","AH"].includes(tab)
+        ? [...rtlHandlers,rtlViewerHandler]
+        : ["AE","AF"].includes(tab)
         ? [...multilingualHandlers,multilingualViewerHandler]
         : ["AC","AD"].includes(tab)
         ? [...wideLabelHandlers,wideLabelViewerHandler]
@@ -473,7 +499,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab, ac, ad, ae, af;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab, ac, ad, ae, af, ag, ah;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -534,6 +560,8 @@ try {
       : route === "wide-label-viewer" ? "/wide-label-viewer?session="
       : route === "multilingual-label" ? "/multilingual-label?session="
       : route === "multilingual-viewer" ? "/multilingual-viewer?session="
+      : route === "rtl-label" ? "/rtl-label?session="
+      : route === "rtl-viewer" ? "/rtl-viewer?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1576,7 +1604,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close(); ac?.close(); ad?.close(); ae?.close(); af?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close(); ac?.close(); ad?.close(); ae?.close(); af?.close(); ag?.close(); ah?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
