@@ -39,3 +39,9 @@
 [新同 runner Chrome CI 38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156) **PASS**。旧版 B6b 对比新的混合策略：200/400 selection **19.3→16.8ms (-12.95%)**，500/1000 selection **48.6→40.6ms (-16.46%)**；首屏 mount 200/400 **75.1→76.4ms (+1.73%)**、500/1000 **97.7→96.6ms (-1.13%)**。此前原始索引版本的结果继续留存以便分析；**这次的改善也只是一次 CI 运行器内的对比**，下一步应继续重复并核验真实企业数据规模、p95 长任务和真实设备交互帧率。
 
 各用例图形 DOM node/edge 数量仍完整 200/400 和 500/1000，SVG 节点数在这两个规模下分别 804 和 2004，测试不依赖删减可交互连线。P01 全面验收仍 NOT TESTED。
+
+## 第三次独立 runner 重测确认（2026-10-10）
+
+最新完整 [Diagram Performance Evidence CI 38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) **PASS**，仍按 base/HEAD 同台构建、Chrome 154、双规模预热、三次中位数流程。200/400 mount **69.1→62.2ms (-9.99%)**、selection **18.5→16.9ms (-8.65%)**；500/1000 mount **97.1→85.3ms (-12.15%)**、selection **44.8→38.5ms (-14.06%)**。CDP drag dispatch p95 在 500/1000 这次略退化 **+7.37%**，不能夸大为拖动帧率提高。
+
+结合前一次 [38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156)，自适应策略在两个独立 CI run 中均改善 200/400 和 500/1000 的 selection 中位数；runner 间绝对耗时仍明显波动。最新 App Platform、Browser Conflict、Diagram Integration、Continuity 和 Perf CI 都通过。**P01 正式实体设备与长时间性能验收仍 NOT TESTED。**
