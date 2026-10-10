@@ -22,3 +22,15 @@
 ## 工作记录方法
 
 CI 正式值以 #610 最新 HEAD 的 GitHub Actions 日志为准。保留任何红色首测及其症结，不得偷换成旧绿色 commit。后续在 B8z 验证成功后，再为真实企业数据 / Viewer 和独立浏览器重开提供同口径测试，不擅自修改业务权限与 Project authority。
+
+
+## B8z 首个同代码提交真实引擎证明
+
+[GitHub Actions #38061566920](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38061566920) **PASS**；真实 Playwright Firefox 与 WebKit 均执行 210 屏幕像素的鼠标长距离拖动（14 原生移动帧）：
+
+| 浏览器引擎 | 原始拥塞 | 拖动后 | Undo 后 | 同页第二图 | 结果 |
+| --- | ---: | ---: | ---: | --- | --- |
+| Firefox | 1 | 0 | 1 | 0，独立 | PASS |
+| WebKit | 1 | 0 | 1 | 0，独立 | PASS |
+
+两引擎实际记录 `B8Z_DRAG_UNDO_RESULT`、`pointerTravelPx=210`，并保留 B8y、B8x、B8w 与 B8u 原有断言；不是单纯用 DOM JS 直接修改节点位置。**该值仅适用于此受测代码 head 的自动化测试；文档提交后的最终 head CI 要单独重核。**
