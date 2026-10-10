@@ -75,39 +75,69 @@ const loopSides: readonly DiagramSelfLoopSideV010[] =
  * scenes choose the least intersected corridor (stable tie: right first).
  * Only other visible nodes count; callers exclude the source node.
  */
-export function diagramSelfLoopSideV010(
+/** B8h: congestion is an explicit presentation diagnostic, not a
+ * persisted routing failure or a mutation of a business relationship.
+ * Reserved sides represent earlier, stable-id ordered self-edges on the
+ * SAME node. A finite soft penalty keeps alternatives usable if crowded.
+ */
+export interface DiagramSelfLoopDecisionV010 {
+  side: DiagramSelfLoopSideV010;
+  congested: boolean;
+  nodeOverlapArea: number;
+  sameSideLoops: number;
+}
+export function diagramSelfLoopDecisionV010(
   node: DiagramLaneNodeV010,
   obstacles: readonly DiagramLaneNodeV010[] = [],
-  laneOffset = 0
-): DiagramSelfLoopSideV010 {
+  laneOffset = 0,
+  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+): DiagramSelfLoopDecisionV010 {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
-    || node.width<=0 || node.height<=0 || !Number.isFinite(laneOffset)
-    || Math.abs(laneOffset)>1000 || !Array.isArray(obstacles)
-    || obstacles.some(o=>!o || ![o.x,o.y,o.width,o.height].every(Number.isFinite)
-      || o.width<=0 || o.height<=0)) {
+    || node.width <= 0 || node.height <= 0 || Math.abs(laneOffset) > 1000
+    || !Array.isArray(obstacles)
+    || obstacles.some(o => !o || ![o.x,o.y,o.width,o.height].every(Number.isFinite)
+      || o.width <= 0 || o.height <= 0)
+    || !Array.isArray(reservedSides)
+    || reservedSides.some(side => !loopSides.includes(side))) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
   }
-  if (!obstacles.length) return "right";
-  const reach=Math.max(38,56+laneOffset);
-  let best: DiagramSelfLoopSideV010="right";
-  let bestCost=Infinity;
+  const reach = Math.max(38,56+laneOffset);
+  const reservationPenalty = 10000;
+  let best: DiagramSelfLoopDecisionV010 = {
+    side:"right",congested:false,nodeOverlapArea:0,sameSideLoops:0
+  };
+  let bestScore = Infinity;
   for(const side of loopSides){
     const points=loopPointsOnSide(node,side,reach);
     const positions=[points.start,points.end,...points.orthogonal];
-    const left=Math.min(...positions.map(p=>p.x))-22;
-    const top=Math.min(...positions.map(p=>p.y))-22;
-    const right=Math.max(...positions.map(p=>p.x))+22;
-    const bottom=Math.max(...positions.map(p=>p.y))+22;
-    let cost=0;
+    const x0=Math.min(...positions.map(p=>p.x))-22;
+    const y0=Math.min(...positions.map(p=>p.y))-22;
+    const x1=Math.max(...positions.map(p=>p.x))+22;
+    const y1=Math.max(...positions.map(p=>p.y))+22;
+    let area=0;
     for(const o of obstacles){
-      const ix=Math.max(0,Math.min(right,o.x+o.width)-Math.max(left,o.x));
-      const iy=Math.max(0,Math.min(bottom,o.y+o.height)-Math.max(top,o.y));
-      cost+=ix*iy;
+      const ix=Math.max(0,Math.min(x1,o.x+o.width)-Math.max(x0,o.x));
+      const iy=Math.max(0,Math.min(y1,o.y+o.height)-Math.max(y0,o.y));
+      area+=ix*iy;
     }
-    if(cost<bestCost){best=side;bestCost=cost;}
-    if(cost===0)break;
+    const siblings=reservedSides.filter(item=>item===side).length;
+    const score=area+siblings*reservationPenalty;
+    if(score<bestScore){
+      bestScore=score;
+      best={side,congested:area>0||siblings>0,
+        nodeOverlapArea:area,sameSideLoops:siblings};
+    }
   }
   return best;
+}
+
+export function diagramSelfLoopSideV010(
+  node: DiagramLaneNodeV010,
+  obstacles: readonly DiagramLaneNodeV010[] = [],
+  laneOffset = 0,
+  reservedSides: readonly DiagramSelfLoopSideV010[] = []
+): DiagramSelfLoopSideV010 {
+  return diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides).side;
 }
 
 function loopPointsOnSide(node: DiagramLaneNodeV010,side: DiagramSelfLoopSideV010,reach:number){
@@ -156,7 +186,8 @@ export function diagramSelfLoopRouteControlsV010(
   kind: "orthogonal" | "rounded-orthogonal" | "curve",
   laneOffset = 0,
   obstacles: readonly DiagramLaneNodeV010[] = [],
-  manualWaypoints?: readonly DiagramEdgePointV010[]
+  manualWaypoints?: readonly DiagramEdgePointV010[],
+  reservedSides: readonly DiagramSelfLoopSideV010[] = []
 ): { start: DiagramEdgePointV010; end: DiagramEdgePointV010;
   waypoints: DiagramEdgePointV010[]; side: DiagramSelfLoopSideV010 } {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
@@ -164,7 +195,7 @@ export function diagramSelfLoopRouteControlsV010(
     || !["orthogonal","rounded-orthogonal","curve"].includes(kind)) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
   }
-  const automatically=diagramSelfLoopSideV010(node,obstacles,laneOffset);
+  const automatically=diagramSelfLoopSideV010(node,obstacles,laneOffset,reservedSides);
   const side=manualWaypoints?.length
     ? diagramSelfLoopManualSideV010(node,manualWaypoints,automatically)
     : automatically;
@@ -182,7 +213,8 @@ export function diagramSelfLoopGeometryV010(
   kind: DiagramEdgePathKindV010 = "straight",
   laneOffset = 0,
   manualWaypoints?: readonly DiagramEdgePointV010[],
-  obstacles: readonly DiagramLaneNodeV010[] = []
+  obstacles: readonly DiagramLaneNodeV010[] = [],
+  reservedSides: readonly DiagramSelfLoopSideV010[] = []
 ): DiagramEdgeGeometryV010 {
   if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
     || node.width<=0 || node.height<=0 || Math.abs(laneOffset)>1000
@@ -195,7 +227,9 @@ export function diagramSelfLoopGeometryV010(
       || Math.abs(p.x)>1e7 || Math.abs(p.y)>1e7))) {
     throw new Error("EIDOS_DIAGRAM_LOOP_WAYPOINT_INVALID");
   }
-  const automaticSide=diagramSelfLoopSideV010(node,obstacles,laneOffset);
+  const decision=diagramSelfLoopDecisionV010(node,obstacles,laneOffset,reservedSides);
+  const automaticSide=decision.side;
+  const status=manualWaypoints?.length ? {} : decision.congested ? {congested:true} : {};
   const selectedSide=manualWaypoints?.length
     ? diagramSelfLoopManualSideV010(node,manualWaypoints,automaticSide)
     : automaticSide;
@@ -204,9 +238,9 @@ export function diagramSelfLoopGeometryV010(
   if(kind==="curve"){
     const bulge=manualWaypoints?.length===1?manualWaypoints[0]!:frame.bulge;
     if(manualWaypoints && manualWaypoints.length>1){
-      return diagramManualEdgeGeometryV010(frame.start,frame.end,{
+      return {...diagramManualEdgeGeometryV010(frame.start,frame.end,{
         pathKind:"curve",waypoints:[...manualWaypoints]
-      });
+      }),...status};
     }
     const external=(bulge.x-frame.bulge.x)*frame.nx
       +(bulge.y-frame.bulge.y)*frame.ny+reach;
@@ -226,18 +260,18 @@ export function diagramSelfLoopGeometryV010(
         +(external*.35+shifted)*frame.ty
     };
     return {kind,d:"M "+xy(frame.start)+" C "+xy(c1)+" "+xy(c2)+" "+xy(frame.end),
-      label:{x:bulge.x+2,y:bulge.y}};
+      label:{x:bulge.x+2,y:bulge.y},...status};
   }
   if(manualWaypoints?.length && kind!=="straight"){
-    return diagramManualEdgeGeometryV010(frame.start,frame.end,{
+    return {...diagramManualEdgeGeometryV010(frame.start,frame.end,{
       pathKind:kind,waypoints:[...manualWaypoints]
-    });
+    }),...status};
   }
   if(selectedSide!=="right"){
     const path=diagramManualEdgeGeometryV010(frame.start,frame.end,{
       pathKind:kind==="straight"?"orthogonal":kind,waypoints:frame.orthogonal
     });
-    return {...path,kind};
+    return {...path,kind,...status};
   }
   // Historical right-facing default remains pixel-identical when unblocked.
   const right=node.x+node.width;
@@ -255,5 +289,5 @@ export function diagramSelfLoopGeometryV010(
   }else{
     d="M "+xy(start)+" L "+xy(topRight)+" L "+xy(bottomRight)+" L "+xy(end);
   }
-  return {kind,d,label:{x:right+reach+2,y:(y1+y2)/2}};
+  return {kind,d,label:{x:right+reach+2,y:(y1+y2)/2},...status};
 }
