@@ -306,7 +306,7 @@ export function diagramOverlappingSegmentsForWaypointV010(
     || !Array.isArray(segments)) return [];
   const seen = new Set<string>();
   return segments
-    .filter(segment => segment && validPoint(segment)
+    .filter(segment => segment && validPoint({ x: segment.x, y: segment.y })
       && Number.isInteger(segment.index) && segment.index >= 0
       && (segment.axis === "x" || segment.axis === "y"))
     .map(segment => ({ segment, distance: Math.hypot(
