@@ -228,6 +228,10 @@ try{
     mode+" world-sized SVG stage must remain inside a clipped canvas");
    assert.ok(result.visibleCanvasWidth<=viewport.width+2,
     mode+" visible canvas width must not exceed browser viewport");
+   if(viewport.width<=390){
+    assert.ok(result.documentWidth<=result.viewportWidth+2,
+     mode+" mobile document must not overflow horizontally");
+   }
    assert.equal(result.count,result.actualPaths,mode+" congestion DOM hit count");
    assert.equal(result.missingAria,0);
    assert.equal(result.note,result.count>0?String(result.count):null);
