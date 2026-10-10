@@ -256,6 +256,9 @@
 - 待测：真正 CJK/RTL 文本布局与多行可用性、浏览器字体轮廓/换行词边界、真实企业图大规模正交/曲线同时存在时的性能、长时间内存波动、实体 iOS/Android/Windows/macOS/触控板、持久化重启、§14 **39 项正式商业化验收仍全部 NOT TESTED**；PR Draft、未合并、未部署。
 
 
+
+- **修复后 B8q 混合关系完整 DOM 已 PASS**：[真实 Chrome/154 流水线 #38049616368](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049616368)。在生产同款状态验证先通过的前提下，**160 节点/480 边**（2 样本）挂载 174.3ms、选择 62.9ms、原生 CDP 拖动 p95 20.47ms、970 个 SVG 元素、JS heap 7.89MB；**320/960** 挂载 216.0ms、选择 108.8ms、CDP p95 21.46ms、1,936 个 SVG、JS heap 10.35MB。两个场景质量为 `full`，实际 SVG 路径存在 `Q` 与 `C` 命令，包含多类手动、自动曲线/自环及英中日韩希伯来阿拉伯文本。**这些是真正合成图 DOM 的两次样本，非企业真实图性能保证，尤其不能推论全复杂自动正交 12k 关系性能。**
+
 ## B8p + B8q：英文词界与 RTL、混合业务图完整 DOM（2026-10-10）
 
 - 本轮独立 Draft：[Eidos #154](https://github.com/jiangxng/eidos/pull/154) 和 [App #601](https://github.com/jiangxng/EVO-App-Platform/pull/601)，分别堆叠 B8n+B8o #153/#600。保持当前 2D Designer 可见性层与 44px 触控柄、投影 CAS、业务关系端点、Agent/Host 权限、已编辑 manual waypoints 原样；不合并主线、不部署。
