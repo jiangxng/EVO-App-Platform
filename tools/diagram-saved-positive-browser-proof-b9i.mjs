@@ -220,9 +220,47 @@ try{
  assert.equal(savedViewer.count,1,
   "B9i actual Chrome readonly Viewer must report same saved positive congestion");
  assert.equal(savedViewer.saveButtons,0);
- const cleared=await save(reopened,"1",["block-22"]);
- assert.equal(cleared.ok,true,cleared.error?.message);
- assert.equal(reopened.projectionStore.getVersion(id),2);
+ // B9j: real browser pointer clicks + real Save projection button,
+ // NOT a Node test invoking the Handler for the second CAS commit.
+ const nativeSaveTab=await browser.newPage({viewport:{width:1280,height:820}});
+ try{
+  await nativeSaveTab.goto(address+"/designer",{waitUntil:"load"});
+  await nativeSaveTab.waitForFunction(()=>
+   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+   {timeout:30000});
+  const blocker=nativeSaveTab.locator("[data-eidos-diagram-node='block-22']");
+  const rect=await blocker.boundingBox();
+  assert.ok(rect&&rect.width>12&&rect.height>12,
+   "B9j last budget blocker must be visible for real native mouse");
+  // This blocker overlaps #21 near its left side. Click well inside its
+  // right nonoverlapping portion so hit testing is exercised honestly.
+  await nativeSaveTab.mouse.click(rect.x+rect.width*.87,rect.y+rect.height*.5);
+  const hide=nativeSaveTab.locator("[data-eidos-diagram-local-hide]");
+  await hide.click();
+  await nativeSaveTab.waitForFunction(()=>
+   document.querySelector("svg[data-eidos-diagram-congested-count]")
+    ?.getAttribute("data-eidos-diagram-congested-count")==="0",
+   {timeout:30000});
+  assert.equal(reopened.projectionStore.getVersion(id),1,
+   "B9j local hide must NOT persist merely because real Chrome redraws");
+  const saveButton=nativeSaveTab.locator("[data-eidos-diagram-toolbar] button")
+   .filter({hasText:"Save projection"});
+  assert.equal(await saveButton.count(),1);
+  await saveButton.click();
+  await nativeSaveTab.waitForFunction(()=>
+   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+   {timeout:30000});
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "B9j native Chrome Save button must trigger actual App CAS file commit");
+  const browserErrors=await nativeSaveTab.evaluate(()=>window.__errors);
+  assert.deepEqual(browserErrors,[],"B9j browser native Save errors");
+  console.log("B9J_NATIVE_SAVE_RESULT="+JSON.stringify({
+   browser:browser.version(),initialSavedCongestion:1,
+   localHiddenCount:0,versionBeforeNativeSave:1,versionAfterNativeSave:2,
+   truePointerSelection:true,trueSaveButton:true,errors:browserErrors,
+   warning:"Browser native UI + real App FileStore; synthetic preview2d, not customer production deployment"
+  }));
+ }finally{await nativeSaveTab.close()}
  const reopenedClearDesigner=await snapshot("designer");
  const reopenedClearViewer=await snapshot("viewer");
  assert.equal(reopenedClearDesigner.count,0,
