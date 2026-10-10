@@ -24,4 +24,5 @@
 - 这是 **GitHub runner 上真实 Chromium 的自动 DOM + ActionHost** 测试，不是模拟浏览器源码断言，也不是 Windows/macOS/iOS/Android 真机验收。
 - 不包含两台物理机网络条件、手机触摸手势、真实 LLM 对话裁剪、浏览器刷新后的离线草稿恢复，亦不替代分布式多实例存储 CAS 压测。
 - §14 的 D03 / D05 自动 Chromium 子场景可以记录为浏览器自动验证通过，**完整跨设备验收仍应在证据矩阵维持 NOT TESTED**。
-- 首轮仅两个浏览器窗口的版本 `8d0d2b...` 完成业务断言并打印证明，但 CI 因 Chrome Profile 临时目录清理竞态报错；`1fd6584...` 修复等待退出与删除重试，浏览器工作流 [38010239304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010239304) PASS。后续第三标签页 HTTP 503/重试扩展对应最新提交须重新核对完整 CI，不可复用前次结论。
+- 首轮仅两个浏览器窗口的版本 `8d0d2b...` 完成业务断言，但 Profile 临时目录清理竞态导致 CI 失败；随后 [Browser CI 38010239304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010239304) PASS。第三标签页 HTTP 503/重试扩展最终在 [Browser CI 38010453881](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38010453881) **PASS**，实际 Chrome 版本 `154.0.8037.97`；日志包含 3 标签页及全部七项机器可读业务断言。临时 Profile 清理仅为一次性 CI 运行器垃圾回收问题，测试数据不复用。
+- 仍须以 #563 最新提交的 PR Checks 重新校验整体状态。浏览器证明覆盖的 D03/D05 仅为上述自动化子场景，跨平台和物理设备仍未验收。
