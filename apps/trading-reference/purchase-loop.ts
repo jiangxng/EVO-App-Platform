@@ -77,6 +77,23 @@ export interface PurchaseReferenceServiceV010 {
     references: ResolvedPurchaseReferencesV010;
     submission: EvoBusinessDataSubmissionResultV010;
   }>;
+  reversePurchaseReceipt(input: {
+    target: PurchaseReferenceRuntimeTargetV010;
+    selection: PurchaseReferenceSelectionV010;
+    receiptBusinessDataId: string;
+    orderNo: string;
+    originalReceiptNo: string;
+    reversalNo: string;
+    quantity: number;
+    totalCost: string;
+    currency: string;
+    effectiveAt: string;
+    correlationId: string;
+    idempotencyKey: string;
+  }): Promise<{
+    references: ResolvedPurchaseReferencesV010;
+    submission: EvoBusinessDataSubmissionResultV010;
+  }>;
 }
 
 function required(value: string, code: string): string {
@@ -298,6 +315,89 @@ export function createPurchaseReferenceServiceV010(input: {
           warehouseCode: references.warehouse.code,
           warehouseDisplayName: references.warehouse.displayName,
           quantity: quantity(receiptInput.quantity),
+          totalCost,
+          currency,
+          project: null,
+          department: null,
+          costCenter: null
+        }
+      });
+
+      return { references, submission };
+    },
+
+    async reversePurchaseReceipt(reversalInput) {
+      const runtime = target(reversalInput.target);
+      const references = resolveReferences(reversalInput.selection);
+      const originalReceiptBusinessDataId = required(
+        reversalInput.receiptBusinessDataId,
+        "TRADING_REFERENCE_RECEIPT_BUSINESS_DATA_REQUIRED"
+      );
+      const orderNo = required(
+        reversalInput.orderNo,
+        "TRADING_REFERENCE_ORDER_NO_REQUIRED"
+      );
+      const originalReceiptNo = required(
+        reversalInput.originalReceiptNo,
+        "TRADING_REFERENCE_ORIGINAL_RECEIPT_NO_REQUIRED"
+      );
+      const reversalNo = required(
+        reversalInput.reversalNo,
+        "TRADING_REFERENCE_REVERSAL_NO_REQUIRED"
+      );
+      if (reversalNo === originalReceiptNo) {
+        throw new Error("TRADING_REFERENCE_REVERSAL_REQUIRES_NEW_FACT_KEY");
+      }
+      const effectiveAt = timestamp(reversalInput.effectiveAt);
+      const currency = required(
+        reversalInput.currency,
+        "TRADING_REFERENCE_CURRENCY_REQUIRED"
+      );
+      const totalCost = decimal(
+        reversalInput.totalCost,
+        "TRADING_REFERENCE_TOTAL_COST_INVALID"
+      );
+      if (totalCost.startsWith("-")) {
+        throw new Error("TRADING_REFERENCE_REVERSAL_COST_NEGATIVE");
+      }
+
+      // Reversal is an entirely new BusinessData occurrence; neither historical
+      // PO nor Goods Receipt is updated. EVO persists the REVERSES link atomically.
+      const submission = await input.adapter.submit({
+        contractVersion: "0.1.0",
+        scopeKey: runtime.scopeKey,
+        applicationId: runtime.receiptApplicationId,
+        businessDataType: "goods_receipt.reversed",
+        businessObjectKey: reversalNo,
+        effectiveAt,
+        correlationId: required(
+          reversalInput.correlationId,
+          "TRADING_REFERENCE_CORRELATION_REQUIRED"
+        ),
+        idempotencyKey: required(
+          reversalInput.idempotencyKey,
+          "TRADING_REFERENCE_IDEMPOTENCY_REQUIRED"
+        ),
+        causationId: originalReceiptBusinessDataId,
+        relation: {
+          fromBusinessDataId: originalReceiptBusinessDataId,
+          relationType: "REVERSES"
+        },
+        payload: {
+          movementType: "PURCHASE_RECEIPT_REVERSAL",
+          reversalNo,
+          originalReceiptNo,
+          orderNo,
+          supplier: references.supplier.counterpartyId,
+          supplierCode: references.supplier.code,
+          supplierDisplayName: references.supplier.displayName,
+          productId: references.item.itemId,
+          productCode: references.item.code,
+          productDisplayName: references.item.displayName,
+          warehouse: references.warehouse.warehouseId,
+          warehouseCode: references.warehouse.code,
+          warehouseDisplayName: references.warehouse.displayName,
+          quantity: quantity(reversalInput.quantity),
           totalCost,
           currency,
           project: null,
