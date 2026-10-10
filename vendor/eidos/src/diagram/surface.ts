@@ -2954,6 +2954,9 @@ export function mountDiagramEditorPageV010(
         label.setAttribute("x", String(geometry.label.x));
         label.setAttribute("y", String(geometry.label.y - 8));
         label.setAttribute("data-eidos-diagram-edge-label", edge.id);
+        // B8s: immutable render-time world anchor retained for cross-engine
+        // verification even if post-mount SVG text x is visually normalized.
+        label.setAttribute("data-eidos-diagram-caption-world-x",String(geometry.label.x));
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "11");
         label.setAttribute("fill", "var(--eidos-fg-muted,#5F6B76)");
