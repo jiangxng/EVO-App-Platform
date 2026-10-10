@@ -234,5 +234,13 @@ try {
     if (proc.exitCode === null) proc.kill("SIGKILL");
   }
   server.closeAllConnections?.(); server.close();
-  rmSync(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
+  try {
+    rmSync(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
+  } catch (error) {
+    // Chrome may leave a short-lived crashpad/utility worker writing to its
+    // disposable, unique profile even after the browser process exits. Runner
+    // teardown owns this temp directory; never hide browser assertion errors.
+    if (error?.code !== "ENOTEMPTY" && error?.code !== "EBUSY") throw error;
+    console.warn("Deferred Chromium temporary profile cleanup: " + error.code);
+  }
 }
