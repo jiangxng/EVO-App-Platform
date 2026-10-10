@@ -72,3 +72,12 @@ test("B8s real Firefox/WebKit RTL bbox safety margin is used by both wrap and co
  const one=diagramCaptionLayoutV010(anchor,"Short",measured);
  assert.equal(one.box.width,48);
 });
+
+test("B8s paint pass centers RTL actual SVG ink on the same reservation anchor",async()=>{
+ const source=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
+ assert.match(source,/bbox=label.getBBox\(\)/);
+ assert.match(source,/const offset=anchor-center/);
+ assert.match(source,/label.querySelectorAll\("tspan"\)\.forEach/);
+ assert.match(source,/data-eidos-diagram-bidi-measure-limit/);
+ assert.match(source,/data-eidos-diagram-bidi-measure-unavailable/);
+});
