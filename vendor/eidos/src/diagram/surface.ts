@@ -36,6 +36,7 @@ import {
   diagramMoveWaypointV010,
   diagramEditableOrthogonalSegmentsV010,
   diagramOverlappingSegmentForWaypointV010,
+  diagramOverlappingSegmentsForWaypointV010,
   diagramEditableAutomaticOrthogonalRouteV010,
   diagramDragOrthogonalSegmentV010,
   validDiagramEdgePathOverrideV010,
@@ -2852,17 +2853,47 @@ export function mountDiagramEditorPageV010(
         if (automatic && kind === "segment") {
           target.setAttribute("data-eidos-diagram-auto-segment-handle", edge.id + ":" + index);
         }
-        target.setAttribute("aria-label", kind === "point"
-          ? "Drag path point " + (index + 1) + "; Shift-drag overlapping segment, Shift-Alt-drag alternate segment"
-          : (automatic ? "Drag automatic orthogonal segment " : "Drag orthogonal segment ") + (index + 1));
-        if (kind === "point" && routeSegments.length) {
-          const overlap = diagramOverlappingSegmentForWaypointV010(
-            { x, y }, routeSegments, camera.scale
-          );
-          if (overlap) {
+        // B8d: preserve B8c's first and second drag shortcuts. For three or
+        // more covered segments, a no-drag Shift+Alt click advances the alternate
+        // ordinal. The tiny visual cue is not a hit target or stored data.
+        const overlapCandidates = kind === "point"
+          ? diagramOverlappingSegmentsForWaypointV010({ x, y }, routeSegments, camera.scale)
+          : [];
+        let alternateChoice = overlapCandidates.length > 1 ? 1 : 0;
+        const choiceLabel = overlapCandidates.length > 2 ? svgElement("text") : undefined;
+        if (choiceLabel) {
+          choiceLabel.setAttribute("data-eidos-diagram-overlap-choice", edge.id + ":" + index);
+          choiceLabel.setAttribute("x", String(x + 17 / camera.scale));
+          choiceLabel.setAttribute("y", String(y - 11 / camera.scale));
+          choiceLabel.setAttribute("font-size", String(11 / camera.scale));
+          choiceLabel.setAttribute("fill", "var(--eidos-primary,#2B6CB0)");
+          choiceLabel.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+          choiceLabel.setAttribute("stroke-width", String(3 / camera.scale));
+          choiceLabel.setAttribute("paint-order", "stroke fill");
+          choiceLabel.style.pointerEvents = "none";
+        }
+        const updateChoiceHint = (): void => {
+          const hint = "Drag point; Shift+drag closest segment; Shift+Alt+drag selected alternate"
+            + (overlapCandidates.length > 2 ? "; Shift+Alt+click cycles the alternate" : "");
+          target.setAttribute("aria-label", "Drag path point " + (index + 1)
+            + "; Shift-drag overlapping segment, Shift-Alt-drag alternate segment"
+            + (overlapCandidates.length > 2 ? "; Shift-Alt-click to cycle segment" : ""));
+          if (overlapCandidates.length) {
             target.setAttribute("data-eidos-diagram-overlap-point", edge.id + ":" + index);
-            target.setAttribute("title", "Drag point; Shift+drag overlapping segment; Shift+Alt+drag alternate segment");
+            target.setAttribute("title", hint + (overlapCandidates.length > 2
+              ? " (" + (alternateChoice + 1) + " of " + overlapCandidates.length + ")" : ""));
           }
+          if (choiceLabel) {
+            choiceLabel.textContent = (alternateChoice + 1) + "/" + overlapCandidates.length;
+            target.setAttribute("data-eidos-diagram-overlap-selected-rank", String(alternateChoice));
+          }
+        };
+        if (kind === "point") {
+          if (choiceLabel) choiceLabel.textContent = "";
+          updateChoiceHint();
+        } else {
+          target.setAttribute("aria-label",
+            (automatic ? "Drag automatic orthogonal segment " : "Drag orthogonal segment ") + (index + 1));
         }
         target.style.pointerEvents = "all";
         target.style.touchAction = "none";
@@ -2885,7 +2916,7 @@ export function mountDiagramEditorPageV010(
           // the covered segment can still be dragged without shrinking either.
           const overlap = kind === "point" && event.shiftKey
             ? diagramOverlappingSegmentForWaypointV010(
-                { x, y }, routeSegments, camera.scale, event.altKey
+                { x, y }, routeSegments, camera.scale, event.altKey ? alternateChoice : 0
               )
             : undefined;
           const dragKind = overlap ? "segment" : kind;
@@ -2900,6 +2931,9 @@ export function mountDiagramEditorPageV010(
           if (isTouch) navigationPointers.set(pointerId, { x: downX, y: downY });
           let current = original;
           let moved = false;
+          let attemptedDrag = false;
+          const cycleChoiceOnClick = kind === "point" && event.pointerType !== "touch"
+            && event.shiftKey && event.altKey && overlapCandidates.length > 2;
           let active = true;
           const resetPreview = (): void => {
             if (automatic) {
@@ -2943,6 +2977,7 @@ export function mountDiagramEditorPageV010(
             }
             const px = move.clientX - downX, py = move.clientY - downY;
             if (!moved && Math.hypot(px, py) < (isTouch ? 8 : 4)) return;
+            attemptedDrag = true;
             try {
               const snap = diagramSnapHandleOffsetV010(
                 dragOrigin, px / camera.scale, py / camera.scale,
@@ -2986,7 +3021,19 @@ export function mountDiagramEditorPageV010(
             drawSnapGuides();
             suppressNextCanvasClick = true;
             window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
-            if (!moved) return;
+            if (!moved) {
+              // Clicking a dense overlap only changes local hit selection.
+              // Never create an Undo entry or Host write for this gesture.
+              if (cycleChoiceOnClick && !attemptedDrag
+                && Math.hypot(up.clientX - downX, up.clientY - downY) < 4) {
+                alternateChoice = alternateChoice + 1 < overlapCandidates.length
+                  ? alternateChoice + 1 : 1;
+                updateChoiceHint();
+                report("Overlapping segment " + (alternateChoice + 1) + " of "
+                  + overlapCandidates.length + " selected. Shift+Alt+drag to edit.");
+              }
+              return;
+            }
             checkpoint();
             edge.waypoints = current;
             followsFitToCanvas = false;
@@ -3002,6 +3049,7 @@ export function mountDiagramEditorPageV010(
           target.setPointerCapture(pointerId);
         });
         svg.append(marker, target);
+        if (choiceLabel) svg.appendChild(choiceLabel);
       };
       // B6b: segment hit circles may overlap waypoint circles. Paint segment
       // targets first so explicit point handles remain on top and are draggable.
