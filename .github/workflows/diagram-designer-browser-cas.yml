@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Twenty-six Chrome tabs - B8i external stroke and label avoidance
+      - name: Twenty-eight Chrome tabs - B8j curved ink and B8k spatial index
         shell: bash
         run: |
           set -euo pipefail
