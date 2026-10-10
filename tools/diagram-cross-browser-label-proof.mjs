@@ -71,6 +71,65 @@ const sourceJSON=JSON.stringify(state(baseCaption));
 const sourceHTML=fixtures.get("rtl-he");
 assert.ok(sourceHTML?.includes(sourceJSON));
 fixtures.set("rtl-cap-258",sourceHTML.replace(sourceJSON,JSON.stringify(capState)));
+// B8x: an independent pair of actual Eidos Surface instances on ONE page.
+// The first has 23 local obstacles (the unchanged 22-obstacle router budget);
+// the second has a simple clear curve. Both must own separate selection,
+// congestion notices, resource IDs, route geometry and marker SVG IDs.
+const dualDefinitions=[
+ {...definition,id:"b8x-congested",resourceId:"b8x:congested",
+  initialCamera:{scale:0.8,translateX:12,translateY:14}},
+ {...definition,id:"b8x-clear",resourceId:"b8x:clear",
+  initialCamera:{scale:0.8,translateX:12,translateY:14}}
+];
+const dualNodesA=[
+ {id:"crowded-a",kind:"subject",label:"Source",shape:"rounded-rectangle",
+  x:20,y:200,width:130,height:64},
+ {id:"crowded-b",kind:"subject",label:"Target",shape:"rounded-rectangle",
+  x:880,y:200,width:130,height:64},
+ ...Array.from({length:23},(_,i)=>({
+  id:"block-"+i,kind:"subject",label:"Block "+i,
+  shape:"rounded-rectangle",x:180+i*26,y:200,width:58,height:64
+ }))
+];
+const dualNodesB=[
+ {id:"clear-a",kind:"subject",label:"Left",shape:"rounded-rectangle",
+  x:20,y:150,width:130,height:64},
+ {id:"clear-b",kind:"subject",label:"Right",shape:"rounded-rectangle",
+  x:690,y:150,width:130,height:64}
+];
+const dualStates=[
+ {contractVersion:"0.1.0",resourceId:dualDefinitions[0].resourceId,
+  revision:1,lifecycleState:"DRAFT",nodes:dualNodesA,
+  edges:[{id:"blocked-relation",kind:"test",source:"crowded-a",target:"crowded-b",
+    pathKind:"orthogonal",arrow:"end",label:"Review required"}]},
+ {contractVersion:"0.1.0",resourceId:dualDefinitions[1].resourceId,
+  revision:1,lifecycleState:"DRAFT",nodes:dualNodesB,
+  edges:[{id:"clear-relation",kind:"test",source:"clear-a",target:"clear-b",
+    pathKind:"curve",arrow:"end",label:"No congestion"}]}
+];
+dualStates.forEach(value=>{
+ const checked=validateDiagramEditorStateV010(value);
+ assert.equal(checked.ok,true,"B8x fixture must be legal: "+checked.issues.join("; "));
+});
+fixtures.set("b8x-two-instances",
+ '<!doctype html><html><head><meta charset="utf-8">'
+ +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+ +'<style>html,body{margin:0;}main{height:690px;width:1190px}'
+ +'[data-eidos-diagram-editor]{height:680px!important;min-height:560px}</style>'
+ +'</head><body>'
+ +'<main id="b8x-first">'+renderDiagramEditorPageShellToHtmlV010(dualDefinitions[0])+'</main>'
+ +'<main id="b8x-second">'+renderDiagramEditorPageShellToHtmlV010(dualDefinitions[1])+'</main>'
+ +'<script>window.__dualStates='+JSON.stringify(dualStates)
+ +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
+ +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
+ +'</script><script type="module">'
+ +'import {mountDiagramEditorPageV010} from "/dist/vendor/eidos/src/diagram/surface.js";'
+ +dualDefinitions.map((def,i)=>
+  'mountDiagramEditorPageV010({definition:'+JSON.stringify(def)
+  +',container:document.getElementById("b8x-'+(i===0?'first':'second')+'"),'
+  +'actionHost:{async execute(){return {ok:true,result:window.__dualStates['+i+']}}}});'
+ ).join("")
+ +'</script></body></html>');
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,"http://127.0.0.1");
