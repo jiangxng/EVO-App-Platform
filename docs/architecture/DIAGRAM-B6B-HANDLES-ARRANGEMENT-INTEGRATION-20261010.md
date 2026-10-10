@@ -13,3 +13,11 @@
 ## 没有宣称完成的测试
 
 物理 Windows/macOS/iOS/Android 设备手势；路径手柄实际浏览器中左键/第二指/捕获丢失场景；500 节点/1000 关系性能；完整 §14 39 项。即使 Node CI、Chromium 自动化子场景成功，完整 E03、D02、P01、A02 的结论仍按矩阵登记。
+
+## 真实 Chrome 第四标签页与图层抢占修复
+
+- 初次专用 Chrome 测试尝试用鼠标拖动手工路径点，发现 SVG waypoint 44px target 被正交 segment 的 44px target 覆盖，鼠标实际上命中 segment。已将 **segment hit circle 先绘制、waypoint hit circle 最后绘制**，修复 B5a 的目标优先级缺陷，所有热区尺寸不缩小；上游 Eidos #140 和本仓 vendored 代码均同步。
+- 后续真实 browser 测试中的 Undo 会按既定交互规则**清除选择**，所以验证器必须重新选中同一条关系后再读取 restored waypoint。这是测试步骤修订，不是产品 Undo 丢数据。
+- [Browser Conflict CI 38012891164](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012891164) **PASS**，实际 Chrome `154.0.8037.97`，四标签页，机器日志 `nativeRouteHandleSnapAndUndo=true`、`groupAlignmentUndo=true`、`nativeGridSnapCancelled=true`、`staleWriteBlocked=true`、`retrySaved=true`、`businessHistoryUnchanged=true`。
+- 第四标签页实际执行真实关系选择 → 切换正交路径 → 通过属性面板添加 waypoint → 用 Chrome 原生 CDP mousePressed/mouseMoved/mouseReleased 进行 SVG 控制柄拖动并吸附网格 → Undo → 重新选择关系确认原 waypoint 位置恢复，全程不写 Store。原有 B7b 三标签页保存冲突 / HTTP 503 和 B6a/B6b 群组测试继续通过。
+- **尚未实测：** 正交线段本身的原生手柄拖动、曲线路径、手机 Safari/Android Chrome 触摸、双指中途加入、500/1000 大规模性能。原始 §14 39 项完整验收不据此直接置 PASS。
