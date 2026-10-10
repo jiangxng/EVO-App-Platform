@@ -204,7 +204,17 @@ try {
       + 'if(text.includes(' + JSON.stringify(phrase) + '))return text;'
       + 'await new Promise(r=>setTimeout(r,50));}throw Error("No status '+phrase+'; "+'
       + 'document.querySelector("[data-eidos-diagram-status]")?.textContent)})()';
-    return client.eval(expression);
+    // A new tab can navigate away from about:blank during this read-only
+    // status check. Do not retry any action or mutating evaluation.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try { return await client.eval(expression); }
+      catch (error) {
+        if (!String(error).includes("Execution context was destroyed")
+          || attempt === 7) throw error;
+        await sleep(150);
+      }
+    }
+    throw Error("Unreachable browser readiness state");
   }
 
   await Promise.all([until(a,"Ready."),until(b,"Ready.")]);
