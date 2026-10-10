@@ -20,6 +20,7 @@ on:
       - "tests/integration/diagram-overlapping-handles.test.mjs"
       - "tests/integration/diagram-self-loop-edit.test.mjs"
       - "tests/integration/diagram-self-loop-obstacles.test.mjs"
+      - "tests/integration/diagram-self-loop-congestion.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
   push:
     branches: [main]
@@ -41,6 +42,7 @@ on:
       - "tests/integration/diagram-overlapping-handles.test.mjs"
       - "tests/integration/diagram-self-loop-edit.test.mjs"
       - "tests/integration/diagram-self-loop-obstacles.test.mjs"
+      - "tests/integration/diagram-self-loop-congestion.test.mjs"
       - ".github/workflows/diagram-designer-integration.yml"
 
 concurrency:
@@ -74,3 +76,4 @@ jobs:
           tests/integration/diagram-overlapping-handles.test.mjs
           tests/integration/diagram-self-loop-edit.test.mjs
           tests/integration/diagram-self-loop-obstacles.test.mjs
+          tests/integration/diagram-self-loop-congestion.test.mjs
