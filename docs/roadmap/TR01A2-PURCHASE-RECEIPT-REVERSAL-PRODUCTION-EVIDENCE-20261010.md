@@ -18,7 +18,10 @@
 | Railway project | EVO Ledger Runtime MVP |
 | Railway production service | Ledger Configurator |
 | Railway deployment | `1ece6ea3-c124-4d65-9860-f14d88f959a9` — SUCCESS at exact main merge |
-| Railway live health | online; 1/1 replica; zero active warning/critical; no pending changes |
+| Railway #557 implementation deployment | `1ece6ea3-c124-4d65-9860-f14d88f959a9` — SUCCESS (superseded by newer main deploy) |
+| Replay CI hardening PR | [#559](https://github.com/jiangxng/EVO-App-Platform/pull/559) — merged at `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b` |
+| #559 replay gate CI | Platform `38008484986`, Continuity `38008484991`, Cross Project EVO PostgreSQL `38008484982` — all PASS |
+| Latest Railway production deployment | `11ee6c04-6845-474c-b56b-d8b7b84ea015` — SUCCESS at #559 main `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b` |
 | EVO main | `2311022640aa108a6baf3db44d9b26bd3e3ad623` |
 | EVO runtime authority | [PR #105](https://github.com/jiangxng/EVO/pull/105), merged; head `c1d5ff93f47fb5b15272885e10a5269165cb5504`, CI run `38006488638` PASS |
 
@@ -80,3 +83,7 @@ The last point is an outstanding **existing TR-01A criterion 6**: shared governe
 ## Non-interference
 
 This production closure did not merge, edit or supersede IT-01 research PR #555 nor any concurrent 2D Designer PRs (#537, #547, #549, #550, #552, #553, #554). Item/GTIN/UOM/Product/SKU/category, inactive import target loading and Warehouse inventory ownership conclusions remain unchanged.
+
+## Later accepted CI hardening before snapshot closure
+
+While this closure was being prepared, parallel PR #559 merged **after** PR #557. It extends the *same* cross-project workflow with an explicit step executing the pinned EVO `validate:tr01-purchase-receipt-reversal` full Replay certification after the App Platform public HTTP economic assertions. This means the replay check is now an enforced recurring CI gate, not merely a separately trusted upstream certification. Its exact head `2ebaf57c596075d04193e7688d6e1f28d0be2ea4` passed Project Continuity, Platform and Cross Project CI, and Railway deployed resulting main `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b` at `11ee6c04-6845-474c-b56b-d8b7b84ea015` SUCCESS. PR #559 did not change transaction semantics or any mainline status files. The latest live production source is now #559's merge commit rather than #557's earlier merge.
