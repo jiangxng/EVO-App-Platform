@@ -563,6 +563,13 @@ try {
   assert.equal(cancelledAuto.d,autoHandle.original,"B8 pointercancel must restore exact automatic SVG");
   assert.equal(cancelledAuto.manual,0,"B8 cancelled auto drag must leave automatic routing");
   await moveAuto();
+  const repeatedAutoPreview=await e.eval('(()=>{const id='
+    + JSON.stringify(routeChoice.edge.id) + ';'
+    + 'const visual=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return {d:visual.getAttribute("d"),manual:'
+    + 'document.querySelectorAll("[data-eidos-diagram-waypoint-controls] input[type=number]").length};})()');
+  assert.notEqual(repeatedAutoPreview.d,autoHandle.original,
+    "B8 second drag after pointercancel must still be interactive: "+JSON.stringify(repeatedAutoPreview));
   await e.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
     x:autoHandle.x+(autoHandle.axis==="x"?autoHandle.delta:0),
     y:autoHandle.y+(autoHandle.axis==="y"?autoHandle.delta:0)});
