@@ -1,0 +1,124 @@
+name: Cross Project CI - TR01B Sales Shipment Receivable Cash EVO
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-reference/sales-loop.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "contracts/evo-business-data.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-tr01b-sales-evo-postgres.mjs"
+      - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/trading-reference/sales-loop.ts"
+      - "manager/evo-business-data-http-adapter.ts"
+      - "contracts/evo-business-data.ts"
+      - "providers/application-runtime-binding/**"
+      - "tools/certify-tr01b-sales-evo-postgres.mjs"
+      - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-project-tr01b-sales-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "24.20.0"
+  DATABASE_URL: postgres://evo:evo@localhost:5432/evo
+  EVO_CERTIFIED_COMMIT: 2311022640aa108a6baf3db44d9b26bd3e3ad623
+  EVO_BASE_URL: http://127.0.0.1:3000
+  EVO_ENTERPRISE_CODE: EVO_DEMO
+  NODE_ENV: test
+  LOG_LEVEL: silent
+
+jobs:
+  sales-evo-postgresql:
+    name: App Platform Customer Item Warehouse -> EVO Sales Shipment Receipt Ledger Work
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: evo
+          POSTGRES_PASSWORD: evo
+          POSTGRES_DB: evo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evo -d evo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout App Platform
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned EVO
+        uses: actions/checkout@v5
+        with:
+          repository: jiangxng/EVO
+          ref: ${{ env.EVO_CERTIFIED_COMMIT }}
+          path: evo
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install and build App Platform
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install migrate seed and build EVO
+        working-directory: evo
+        run: |
+          npm ci
+          npm run migrate
+          npm run seed:demo
+          npm run build
+
+      - name: Start EVO API and Worker
+        run: |
+          set -euo pipefail
+          (
+            cd evo
+            HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
+            echo $! > /tmp/tr01b-evo-api.pid
+            WORKER_POLL_INTERVAL_MS=100 node dist/apps/worker/src/main.js > /tmp/tr01b-evo-worker.log 2>&1 &
+            echo $! > /tmp/tr01b-evo-worker.pid
+          )
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS "${EVO_BASE_URL}/health/ready" >/tmp/tr01b-ready.json; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/tr01b-evo-api.log || true
+            cat /tmp/tr01b-evo-worker.log || true
+            exit 1
+          fi
+
+      - name: Certify Sales -> Production -> Shipment -> Receivable -> Cash through EVO public APIs
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b-sales-evo-postgres.mjs | tee /tmp/tr01b-proof.log
+          grep -q 'TR01B1_SALES_CUSTOMER_CASH_EVO_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b-proof.log
+
+      - name: Show EVO logs on failure
+        if: failure()
+        run: |
+          cat /tmp/tr01b-evo-api.log || true
+          cat /tmp/tr01b-evo-worker.log || true
+
+      - name: Stop EVO processes
+        if: always()
+        run: |
+          if [ -f /tmp/tr01b-evo-worker.pid ]; then kill "$(cat /tmp/tr01b-evo-worker.pid)" || true; fi
+          if [ -f /tmp/tr01b-evo-api.pid ]; then kill "$(cat /tmp/tr01b-evo-api.pid)" || true; fi
