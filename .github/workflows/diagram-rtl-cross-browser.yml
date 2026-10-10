@@ -25,16 +25,17 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps firefox webkit
-      - name: B8s real Firefox/WebKit Arabic Hebrew CJK SVG rendering
+      - name: B8s+B8u real Firefox/WebKit Arabic Hebrew CJK complex SVG rendering
         shell: bash
         run: |
           set -euo pipefail
           node tools/diagram-cross-browser-label-proof.mjs | tee /tmp/b8s-cross-browser.log
           grep -q 'B8S_CROSS_BROWSER_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8U_COMPLEX_TEXT_RESULT=' /tmp/b8s-cross-browser.log
       - name: Preserve cross-engine evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: b8s-real-firefox-webkit-label-proof
+          name: b8u-complex-real-firefox-webkit-label-proof
           path: /tmp/b8s-cross-browser.log
           if-no-files-found: ignore
