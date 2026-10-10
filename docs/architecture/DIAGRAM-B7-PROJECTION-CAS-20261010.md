@@ -9,14 +9,15 @@
 - **Local file provider:** an exclusive `.lock` directory encloses read/check/atomic rename. A second cooperative instance refuses the write with `DEFINITION_PROJECTION_STORE_LOCKED`; lock is removed on ordinary error/success. An unexpected process crash can leave a lock and will fail closed until an operator investigates it. This protects ordinary cooperating processes on a filesystem supporting atomic directory creation and rename; network/cloud/distributed stores require their own CAS primitive and cannot infer identical guarantees.
 - **Host request:** GET sends generic `writeToken` independent of `revision`; Eidos sends `expectedWriteToken`. Host validates unsigned safe integer strings and calls CAS in SAVE/RENAME/SET_PRIMARY/SAVE_AS_NEW. Authorization remains mandatory; business revision rechecked after awaiting authorization. A stale edit returns a defined conflict rather than resetting another user's projection.
 - **Backward compatibility:** previous clients that omit `expectedWriteToken` fall back to current stored version for now; **they are not fully protected against overwriting a previous writer**. This is a transitional compatibility concession, not a safe final multi-user policy. Must enforce token for all production writes after legacy-client migration.
-- **Client preservation:** overlapping write submits are ignored; failures keep local draft; delayed success does not replace newer local changes. Save-as and asynchronous host navigation callbacks need full browser validation, not just source assertions.
+- **Conflict escape hatch:** a deliberate `SAVE_PROJECTION_AS_NEW` from a stale window re-reads the latest **gallery and version from one snapshot**, appends a distinct projection and uses CAS. It never overwrites the original projection; concurrent changes during the append still fail closed. After a conflict, the user can select Save As without first reloading and losing the local draft.
+- **Client preservation:** overlapping write submits are ignored; failures keep local draft; delayed success does not replace newer local changes. Actual Save As button behavior and asynchronous host navigation callbacks still need full browser validation, not just Node assertions.
 - **Isolation:** no business fields or relation semantics changed; no main merge/deploy. The App Platform vendor patch touches only generic Eidos deltas and retains Host context navigation.
 
 ## Automated evidence and limitations
 
 Added tests:
 - `tests/integration/definition-projection-cas-store.test.mjs`: memory CAS, legacy data migration, two independent file provider instances, locked-file failure.
-- `tests/integration/definition-projection-edit-save.test.mjs`: two stale editor views, write conflict without mutation, fresh read and explicit retry, invalid token.
+- `tests/integration/definition-projection-edit-save.test.mjs`: two stale editor views, write conflict without mutation, fresh read and explicit retry, overlapping authorized writers, stale-draft Save As preserving the original, invalid token.
 - `tests/integration/diagram-visual-handles.test.mjs`: vendor forwarder, save in-flight guard and context-nav preservation.
 - Eidos `tests/diagram/diagram-opaque-write-token.test.mjs`: generic contract and save-source guards.
 
