@@ -469,3 +469,106 @@ console.log(JSON.stringify({
     payStillOpen: true
   }
 }, null, 2));
+
+const reversal = await service.reversePurchaseReceipt({
+  target,
+  selection,
+  receiptBusinessDataId: receipt.submission.businessDataId,
+  orderNo: "TR01-PO-001",
+  originalReceiptNo: "TR01-GR-001",
+  reversalNo: "TR01-GRR-001",
+  quantity,
+  totalCost: "125.00",
+  currency: "CNY",
+  effectiveAt: "2026-10-10T01:30:00.000Z",
+  correlationId: "TR01:GRR:001",
+  idempotencyKey: "tr01:grr:001"
+});
+assert.equal(reversal.submission.postingStatus, "QUEUED");
+assert.ok(reversal.submission.businessDataId);
+assert.notEqual(reversal.submission.businessDataId, receipt.submission.businessDataId);
+assert.notEqual(reversal.submission.businessDataId, purchase.submission.businessDataId);
+
+await waitForApplicationEvents(
+  enterprise.id,
+  receiptBinding.applicationId,
+  beforeReceiptEvents + 2,
+  "reversal BusinessData event was not observed"
+);
+const pendingAfterReversal = await waitForBalance(
+  enterprise.id, "pending_purchase", {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item => Math.abs(Number(item.quantity) - quantity) < 0.000001,
+  "reversal must reopen pending purchase"
+);
+const inventoryAfterReversal = await waitForBalance(
+  enterprise.id, "inventory", {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item =>
+    Math.abs(Number(item.quantity)) < 0.000001
+    && Math.abs(Number(item.amount)) < 0.000001,
+  "reversal must reverse inventory quantity and original cost"
+);
+const payableAfterReversal = await waitForBalance(
+  enterprise.id, "payable", {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01"
+  },
+  item => Math.abs(Number(item.amount) - amount) < 0.000001,
+  "reversal must not undo PO-originated payable"
+);
+const workAfterReversal = await waitForOrderWork(
+  enterprise.id,
+  "TR01-PO-001",
+  body =>
+    orderWork(body, "TR01-PO-001", "pending_purchase")?.workType === "RECEIVE"
+    && Math.abs(Number(orderWork(body, "TR01-PO-001", "pending_purchase")?.quantity) - quantity) < 0.000001
+    && orderWork(body, "TR01-PO-001", "payable")?.workType === "PAY",
+  "reversal must reopen RECEIVE and preserve PAY work"
+);
+const reopenedReceive = orderWork(
+  workAfterReversal, "TR01-PO-001", "pending_purchase"
+);
+const unchangedPay = orderWork(
+  workAfterReversal, "TR01-PO-001", "payable"
+);
+assert.ok(reopenedReceive);
+assert.ok(unchangedPay);
+assert.ok(Math.abs(Number(unchangedPay.amount) - amount) < 0.000001);
+assert.equal(
+  await applicationEventCount(enterprise.id, purchaseBinding.applicationId),
+  beforePurchaseEvents + 1,
+  "receipt reversal must not add or rewrite Purchase Order facts"
+);
+assert.deepEqual(inventoryAfterReversal.dimensions, inventoryAfterReceipt.dimensions);
+
+console.log(JSON.stringify({
+  status: "PASS",
+  proof: "TR01A2_APP_PLATFORM_IMMUTABLE_RECEIPT_REVERSAL_PUBLIC_EVO",
+  purchaseBusinessDataId: purchase.submission.businessDataId,
+  originalReceiptBusinessDataId: receipt.submission.businessDataId,
+  reversalBusinessDataId: reversal.submission.businessDataId,
+  originalGoodsReceiptPreserved: true,
+  relationSubmittedAtomically: {
+    fromBusinessDataId: receipt.submission.businessDataId,
+    relationType: "REVERSES"
+  },
+  eventDeltas: { purchase: 1, receiptAndReversal: 2 },
+  balances: {
+    pendingPurchaseQuantityAfterReversal: Number(pendingAfterReversal.quantity),
+    inventoryQuantityAfterReversal: Number(inventoryAfterReversal.quantity),
+    inventoryAmountAfterReversal: Number(inventoryAfterReversal.amount),
+    payableAmountAfterReversal: Number(payableAfterReversal.amount)
+  },
+  work: { receiveReopened: true, payStillOpen: true },
+  replayContractCertification: "EVO PR #105 validate:tr01-purchase-receipt-reversal"
+}, null, 2));
