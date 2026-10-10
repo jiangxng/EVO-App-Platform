@@ -116,7 +116,10 @@ test("TR-01A4 registers lifecycle-gated READ operation for same Human/Agent cont
   assert.equal(tradingReferencePackageV010.packageId, TRADING_REFERENCE_PACKAGE_ID_V010);
   const feature = tradingReferencePackageV010.features[0];
   assert.equal(feature.featureId, TRADING_REFERENCE_FEATURE_ID_V010);
-  const op = feature.contributions.find(x => x.kind === "platform.capability-operation").operation;
+  const op = feature.contributions.find(x =>
+    x.kind === "platform.capability-operation"
+    && x.operation.operationId === PURCHASE_OPERATIONS_READ_OPERATION_V010
+  ).operation;
   assert.equal(op.operationId, PURCHASE_OPERATIONS_READ_OPERATION_V010);
   assert.equal(op.binding.type, "ACTION_HOST");
   assert.equal(op.binding.commandCode, PURCHASE_OPERATIONS_READ_COMMAND_V010);
