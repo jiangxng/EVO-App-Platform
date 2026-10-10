@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: Fourteen Chrome tabs - B8e rounded, B8d overlap, B8c touch and CAS
+      - name: Seventeen Chrome tabs - B8f self-loop curve, B8e rounded, B8b Viewer CAS
         shell: bash
         run: |
           set -euo pipefail
