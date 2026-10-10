@@ -372,6 +372,29 @@ try{
   process:intake.process,responsiveChecks,chrome:browser.version(),
   caution:"Chrome emulated viewport only; NOT physical mobile/touch/accessibility acceptance"
  }));
+ // B10b: a real Chrome wheel event while in readonly Viewer must not Save.
+ const wheelTab=await browser.newPage({viewport:{width:390,height:844}});
+ try{
+  await wheelTab.goto(address+"/viewer",{waitUntil:"load"});
+  await wheelTab.waitForFunction(()=>
+   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  await wheelTab.mouse.move(180,330);
+  await wheelTab.mouse.wheel(0,-180);
+  await wheelTab.waitForTimeout(80);
+  const wheel=await wheelTab.evaluate(()=>({
+   errorsCount:window.__errors.length,
+   viewerSave:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
+    .filter(b=>b.textContent.trim()==="Save projection").length
+  }));
+  assert.equal(wheel.errorsCount,0,"Viewer wheel may not throw");
+  assert.equal(wheel.viewerSave,0,"Viewer wheel must not reveal Save");
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "Viewer wheel navigation must not persist a projection");
+  console.log("B10B_READONLY_WHEEL_RESULT="+JSON.stringify({
+   process:intake.process,physicalBrowserWheelEvent:true,casPreserved:2,
+   caveat:"Chrome synthetic wheel, NOT physical trackpad or two-finger gestures"
+  }));
+ }finally{await wheelTab.close();}
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
