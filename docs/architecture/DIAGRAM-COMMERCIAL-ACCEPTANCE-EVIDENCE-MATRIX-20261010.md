@@ -309,3 +309,11 @@
 - 独立只测/文档的 [App Draft #607](https://github.com/jiangxng/EVO-App-Platform/pull/607)，基于 B8v+B8w [#606](https://github.com/jiangxng/EVO-App-Platform/pull/606)。**不修改 Eidos / App runtime 源码、Host/Agent/权限、投影 CAS、关系端点、manual waypoints 和 TR-01**。
 - [Firefox/WebKit 真实 Playwright #38060771821 PASS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38060771821)：同一网页、同一 DOM 上实际挂载两个 Eidos Surface（具有独立 id、resourceId、ActionHost）。第一个合成图 **23 个相关局部障碍超出原 22 上限**，真实产生**1 条拥塞**，SVG summary/count/aria 与 hit path 正确一致；第二个普通 curve 图拥塞 **0**，不错误显示摘要。两引擎全部通过。两实例 SVG marker ID 不相同；真实鼠标先点第二图再点第一图，各实例独立保持选择，图源 fixture 的节点/边计数未被改变，脚本错误数组空。保留已有 B8u 14/14 国际文字、B8w 14 次选择重绘和 258 标签/256 次测量上限证据。
 - **验收限制**：这是原 P02 的一个机器自动化**子场景**，不是用户人工签收 P02 全项。图为隔离合法合成数据、浏览器为 Linux Firefox/WebKit，并非客户企业图、双用户跨业务权限或物理 iOS/Android/macOS/Windows；持久数据库与保存后多实例 Viewer 也未覆盖。原始 §14 **39 项正式商业化验收仍 NOT TESTED**，此条只增加证据链接。详见 [B8x 专项记录](./DIAGRAM-B8X-TWO-INSTANCE-ISOLATION-20261010.md)。
+
+
+## B8y｜可见拥塞在本地隐藏/Undo 操作中是否准确复算（2026-10-10）
+
+- 基于 B8x [Draft #607](https://github.com/jiangxng/EVO-App-Platform/pull/607) 的增量测试/文档 [Draft #608](https://github.com/jiangxng/EVO-App-Platform/pull/608)，仅更新专用真实浏览器测试/CI/证据，不更改 runtime 源码或权限/投影保存边界。
+- 原真实 Firefox/WebKit 同屏两幅图：第一幅 23 局部障碍触发 1 条拥塞，第二幅 0 条拥塞。新增原生鼠标 UI 操作：在第一幅选择第 23 个障碍节点，点击 `Remove from view` 后应从 23 相关障碍变为 22，并严格断言拥塞计数 `1→0`、整图摘要消失，第二幅图选择与计数不变；点击 Undo 又应 `0→1`、显示 `1 routes need review`，并且底层图节点/边数量不能减少。这是显式可见性状态和路由安全预算的联动验收，而非修改 22/2600 安全阈值。
+- **本轮 CI 以 PR 最终 head 实际结论为准**，机器证据事件 `B8Y_VISIBILITY_UNDO_RESULT` 必须在 Firefox/WebKit 两引擎分别出现；否则本项不可宣称 PASS，失败原样保留。相关 [B8y 实测入口](./DIAGRAM-B8Y-CONGESTION-HIDE-UNDO-BROWSER-20261010.md)。
+- 正式 §14 **39 项商业化测试仍为 NOT TESTED**。本项仅覆盖合成图、单页面、本地隐藏/Undo；未测试真实投影保存→刷新→Viewer、数据库重启、真实手机/桌面操作或客户业务数据。
