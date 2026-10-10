@@ -88,7 +88,12 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
  const fingerprint=createHash("sha256").update(JSON.stringify({
   process:input.process,preview2d:graph
  })).digest("hex");
+ const edgeTopology=createHash("sha256").update(JSON.stringify(
+  graph.edges.map(edge=>[edge.id,edge.source,edge.target,edge.kind])
+   .sort((a,b)=>a[0].localeCompare(b[0],"en"))
+ )).digest("hex");
  return {
+  topologySha256:edgeTopology,
   contractVersion:"0.1.0",stage:"B9k-offline-intake-only",
   process:input.process,nodes:graph.nodes.length,edges:graph.edges.length,
   selfLoops,bounds:{width:maxX-minX,height:maxY-minY},
