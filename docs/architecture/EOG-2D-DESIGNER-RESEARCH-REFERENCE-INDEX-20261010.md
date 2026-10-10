@@ -234,3 +234,19 @@
 **[测试行为]** 标签页 A 与 B 各自用真实 DOM 隐藏不同节点；A 保存后，B 陈旧保存被拒绝且显示冲突说明，B 保存为新投影，原投影保持 A 的结果。标签页 C 保存期间注入 HTTP 503，页面保留草稿，用户再次点击实际 Save 按钮即可保存。脚本、工作流与说明位于 [Draft PR #563](https://github.com/jiangxng/EVO-App-Platform/pull/563)：`tools/diagram-projection-browser-conflict-proof.mjs`、`.github/workflows/diagram-designer-browser-cas.yml`、`docs/architecture/DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md`。
 
 **[边界]** 这是 headless 真正 Chrome 的 UI/ActionHost 端到端自动化证据，**不等于 Windows、macOS、iOS、Android 物理设备手势验收**；也未覆盖真实线上环境、分布式数据库与 LLM 自主写工具的端到端会话。因此原始 §14 的 D03/D05 在完整跨设备验收矩阵中仍保持 NOT TESTED。我们继续区分源代码已实现、CI 成功、合并、部署和真实设备验收。
+
+---
+
+## 2026-10-10 B6a 附录：节点吸附、低比例尺网格与实际 Chrome 交互验证
+
+**外部参考保真：** 沿用既有 S1–S7 的原始链接、已读等级与实施依据；本次没有重新阅读外部站点，也不凭网址清单冒充原文研究。本轮新的事实来自**实际 GitHub 源码、自动测试、Chrome 浏览器 CI**。
+
+**[沿用确认要求]** 原始商业化需求 §7.2 要求群组用统一位移，§10 要求网格显示、网格吸附、对象对齐参考线三者独立、建议约 6 屏幕像素容差。B6a 继续保持 Eidos 只处理图形；App Platform 承担存储/授权、Host 导航与业务语义。
+
+**[工程选择]** Eidos [Draft PR #139](https://github.com/jiangxng/eidos/pull/139) 纯模块 `src/diagram/snapping.ts` 计算移动组包围盒与其他可见非移动节点的角/中心参考点的最小偏移（相同距离按坐标和 ID 固定排序）。群组所有成员只用一组 dx/dy，拖动预览绘制短划对齐线，取消或放手清理，不产生额外记账/事件。UI 分别提供 Grid、Grid snap、Align；默认展示淡网格、网格吸附关闭、节点对齐开。App Platform [Draft PR #566](https://github.com/jiangxng/EVO-App-Platform/pull/566) 只差分移植，保留 `renderContextNavigationV010`。
+
+**[实施过程发现与调整理由]** 第一次真实 Chrome 测试在 10% 缩放发现基础 24 世界单位网格仅为 2.4px，严重密集。保持原定 6px 容差不变，增加 `diagramGridStepV010` 按二倍阶梯提高世界网格步长，直到实际网格至少约 12 CSS px（10% 对应 192 世界单位），视图/吸附共用该步长。原因是**本轮真实浏览器与几何测量**，并非推翻先前研究。原始 v1.0 文档不修改。
+
+**[已执行证据]** Eidos #139 CI 验证纯几何（10%、300% 规模、坐标平局稳定、群组不变形、切换独立），App Platform #566 Diagram Integration CI 含 `diagram-snapping.test.mjs`。实际 [Browser CI #38011441150](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38011441150) 使用 Chrome/154.0.8037.97、真实 Eidos DOM、原生 CDP 鼠标位移，验证 10% 网格吸附和 `pointercancel` 回滚，以及三个开关独立；输出 `nativeGridSnapCancelled=true`、`independentGridModes=true`。两个仓库原有 CI 与 B7b 浏览器冲突测试均单独核查，不用测试文件数量代替运行结果。
+
+**[尚需验证/未实现]** 网格控制与节点吸附不代表路径点/正交段也可吸附，B6b 继续处理；还需真实鼠标对齐参考线、手工路径吸附、对齐/等距动作、锁定群组、真实手机/触控板和大型图性能证据。原 §14 39 项完整验收矩阵均未因 Node/CI 子测试而自动标记为跨设备 PASS。
