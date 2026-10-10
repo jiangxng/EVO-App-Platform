@@ -27,4 +27,10 @@ test("App Host retains context navigation and cancel-safe visual handles",async(
   assert.match(source,/checkpoint\(\);\s*edge\.waypoints = current/);
   assert.match(source,/target\.addEventListener\("pointercancel", onCancel\)/);
 });
-\ntest("vendored handles keep minimum 44 CSS pixel hit diameter after zoom",async()=>{\n  const src=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");\n  assert.match(src,/data-eidos-diagram-handle-screen-radius/);\n  assert.match(src,/radius \\/ camera\\.scale/);\n  assert.match(src,/target\\.setAttribute\\("data-eidos-diagram-handle-screen-radius", "22"\\)/);\n});\n
+
+test("vendored handles keep minimum 44 CSS pixel hit diameter after zoom",async()=>{
+  const src=await readFile(new URL("../../vendor/eidos/src/diagram/surface.ts",import.meta.url),"utf8");
+  assert.match(src,/data-eidos-diagram-handle-screen-radius/);
+  assert.match(src,/radius \/ camera\.scale/);
+  assert.match(src,/target\.setAttribute\("data-eidos-diagram-handle-screen-radius", "22"\)/);
+});
