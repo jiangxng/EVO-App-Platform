@@ -2650,14 +2650,22 @@ export function mountDiagramEditorPageV010(
     for (const [nodeId, siblings] of siblingGroups) {
       const node = renderedNodeById.get(nodeId);
       if (!node) continue;
-      const reserved: DiagramSelfLoopSideV010[] = [];
-      for (const edge of siblings.sort((a,b) => a.id.localeCompare(b.id))) {
+      const ordered = siblings.sort((a,b) => a.id.localeCompare(b.id));
+      // B8h: honor ALL existing manual routes before allocating automatic
+      // ones, even when the manual edge id sorts later than an auto edge.
+      // Manual geometry is never moved to clear space for a new sibling.
+      const reserved: DiagramSelfLoopSideV010[] = ordered
+        .filter(edge => edge.waypoints?.length)
+        .map(edge => diagramSelfLoopManualSideV010(node,edge.waypoints!));
+      for (const edge of ordered) {
+        if (edge.waypoints?.length) {
+          loopReservedSides.set(edge.id,[...reserved]);
+          continue;
+        }
         const lane = laneOffsets.get(edge.id) ?? 0;
-        loopReservedSides.set(edge.id, [...reserved]);
-        const side = edge.waypoints?.length
-          ? diagramSelfLoopManualSideV010(node,edge.waypoints)
-          : diagramSelfLoopSideV010(node,loopObstaclesFor(node,lane),lane,reserved);
-        reserved.push(side);
+        loopReservedSides.set(edge.id,[...reserved]);
+        reserved.push(diagramSelfLoopSideV010(
+          node,loopObstaclesFor(node,lane),lane,reserved));
       }
     }
     const liveEdges = new Map<string, {
