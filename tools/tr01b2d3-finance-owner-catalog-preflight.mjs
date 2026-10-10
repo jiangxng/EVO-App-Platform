@@ -95,7 +95,7 @@ const CATALOG_QUERY = [
  "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','status','UPDATE') as definer_owner_key_update_status,",
  "has_column_privilege(owner_role.oid,'public.finance_trusted_signing_key','issuer','UPDATE') as definer_owner_key_update_issuer,",
  "has_table_privilege(owner_role.oid,'public.finance_trust_change_audit','INSERT') as definer_owner_audit_insert,",
- 'not exists (select 1 from pg_auth_members m where m.member=owner_role.oid) as definer_owner_has_memberships,',
+ 'exists (select 1 from pg_auth_members m where m.member=owner_role.oid) as definer_owner_has_memberships,',
  '(select count(*)=1 from pg_proc p2 where p2.proowner=owner_role.oid) as definer_owner_only_function,',
  'not exists (select 1 from pg_class cl where cl.relowner=owner_role.oid) as definer_owner_no_tables,',
  "has_table_privilege(session_user,'public.finance_trusted_signing_key','SELECT') as key_select,",
