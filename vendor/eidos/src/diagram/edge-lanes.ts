@@ -2,6 +2,7 @@
  * No source/target/arrow mutation. Existing unstyled legacy edges may opt out of lane offsets.
  */
 import type { DiagramEdgeGeometryV010, DiagramEdgePathKindV010, DiagramEdgePointV010 } from "./edge-paths.js";
+import { diagramManualEdgeGeometryV010 } from "./edge-waypoints.js";
 
 export interface DiagramLaneEdgeV010 { id: string; source: string; target: string }
 export interface DiagramLaneNodeV010 {
@@ -65,6 +66,33 @@ export function diagramOffsetNodeAttachmentV010(
   return { x: clamp(endpoint.x + offset, node.x + inset, node.x + node.width - inset), y: endpoint.y };
 }
 
+/** B8f: world-space editing terminals and the existing loop's default
+ * control positions. Reading controls never materializes a saved override.
+ * Curve uses one bulge handle; orthogonal routes use the two right corners.
+ */
+export function diagramSelfLoopRouteControlsV010(
+  node: DiagramLaneNodeV010,
+  kind: "orthogonal" | "rounded-orthogonal" | "curve",
+  laneOffset = 0
+): { start: DiagramEdgePointV010; end: DiagramEdgePointV010; waypoints: DiagramEdgePointV010[] } {
+  if (![node.x,node.y,node.width,node.height,laneOffset].every(Number.isFinite)
+    || node.width <= 0 || node.height <= 0 || Math.abs(laneOffset) > 1000
+    || !["orthogonal","rounded-orthogonal","curve"].includes(kind)) {
+    throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
+  }
+  const right = node.x + node.width;
+  const y1 = node.y + node.height * 0.28;
+  const y2 = node.y + node.height * 0.72;
+  const reach = Math.max(38, 56 + laneOffset);
+  return {
+    start: { x: right, y: y1 },
+    end: { x: right, y: y2 },
+    waypoints: kind === "curve"
+      ? [{ x: right + reach, y: (y1 + y2) / 2 }]
+      : [{ x: right + reach, y: y1 }, { x: right + reach, y: y2 }]
+  };
+}
+
 /** An explicit self-edge is routed around the right side of its own node.
  * A straight-path self relation cannot literally be a single segment: this visual loop
  * is preferable to the degenerate same-point line that would otherwise be invisible.
@@ -72,12 +100,40 @@ export function diagramOffsetNodeAttachmentV010(
 export function diagramSelfLoopGeometryV010(
   node: DiagramLaneNodeV010,
   kind: DiagramEdgePathKindV010 = "straight",
-  laneOffset = 0
+  laneOffset = 0,
+  manualWaypoints?: readonly DiagramEdgePointV010[]
 ): DiagramEdgeGeometryV010 {
   if (![node.x, node.y, node.width, node.height, laneOffset].every(Number.isFinite)
     || node.width <= 0 || node.height <= 0 || Math.abs(laneOffset) > 1000
     || !["straight", "orthogonal", "rounded-orthogonal", "curve"].includes(kind)) {
     throw new Error("EIDOS_DIAGRAM_LOOP_INVALID");
+  }
+  if (manualWaypoints?.length && kind !== "straight") {
+    if (manualWaypoints.length > 24 || manualWaypoints.some(p => !p
+      || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+      || Math.abs(p.x) > 1e7 || Math.abs(p.y) > 1e7)) {
+      throw new Error("EIDOS_DIAGRAM_LOOP_WAYPOINT_INVALID");
+    }
+    const controls = diagramSelfLoopRouteControlsV010(node, kind, laneOffset);
+    if (kind === "curve" && manualWaypoints.length === 1) {
+      const bulge = manualWaypoints[0]!;
+      const right = node.x + node.width;
+      const reach = bulge.x - right;
+      if (reach <= 8) throw new Error("EIDOS_DIAGRAM_LOOP_BULGE_INVALID");
+      const midY = (controls.start.y + controls.end.y) / 2;
+      const dy = bulge.y - midY;
+      return {
+        kind,
+        d: "M " + xy(controls.start) + " C "
+          + xy({ x: bulge.x, y: controls.start.y - reach * 0.35 + dy }) + " "
+          + xy({ x: bulge.x, y: controls.end.y + reach * 0.35 + dy }) + " "
+          + xy(controls.end),
+        label: { x: bulge.x + 2, y: bulge.y }
+      };
+    }
+    return diagramManualEdgeGeometryV010(controls.start, controls.end, {
+      pathKind: kind, waypoints: [...manualWaypoints]
+    });
   }
   const right = node.x + node.width;
   const y1 = node.y + node.height * 0.28;
