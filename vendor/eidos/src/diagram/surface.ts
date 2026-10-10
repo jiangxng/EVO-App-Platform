@@ -46,7 +46,10 @@ import {
   diagramOffsetNodeAttachmentV010,
   diagramParallelLaneOffsetsV010,
   diagramSelfLoopGeometryV010,
-  diagramSelfLoopRouteControlsV010
+  diagramSelfLoopRouteControlsV010,
+  diagramSelfLoopSideV010,
+  diagramSelfLoopManualSideV010,
+  type DiagramSelfLoopSideV010
 } from "./edge-lanes.js";
 import {
   layoutLayeredDiagramV010
@@ -2626,6 +2629,37 @@ export function mountDiagramEditorPageV010(
     const laneOffsets = diagramParallelLaneOffsetsV010(
       renderedEdges.filter(edge => edge.pathKind !== undefined)
     );
+    // B8h: stable id order prevents source-order-dependent sibling routing.
+    // Manual self-loop waypoints pin their side without a schema addition.
+    const loopObstaclesFor = (source: DiagramEditorNodeV010, lane: number) => {
+      const reach = Math.max(38, 56 + lane);
+      return spatialObstacles && reach + 22 <= 134
+        ? spatialObstacles.near({ x: source.x, y: source.y },
+            { x: source.x + source.width, y: source.y + source.height },
+            source.id, source.id)
+        : renderedNodes.filter(other => other.id !== source.id);
+    };
+    const loopReservedSides = new Map<string, DiagramSelfLoopSideV010[]>();
+    const siblingGroups = new Map<string, DiagramEditorEdgeV010[]>();
+    for (const edge of renderedEdges) {
+      if (edge.source !== edge.target || edge.pathKind === undefined) continue;
+      const group = siblingGroups.get(edge.source) ?? [];
+      group.push(edge);
+      siblingGroups.set(edge.source, group);
+    }
+    for (const [nodeId, siblings] of siblingGroups) {
+      const node = renderedNodeById.get(nodeId);
+      if (!node) continue;
+      const reserved: DiagramSelfLoopSideV010[] = [];
+      for (const edge of siblings.sort((a,b) => a.id.localeCompare(b.id))) {
+        const lane = laneOffsets.get(edge.id) ?? 0;
+        loopReservedSides.set(edge.id, [...reserved]);
+        const side = edge.waypoints?.length
+          ? diagramSelfLoopManualSideV010(node,edge.waypoints)
+          : diagramSelfLoopSideV010(node,loopObstaclesFor(node,lane),lane,reserved);
+        reserved.push(side);
+      }
+    }
     const liveEdges = new Map<string, {
       hit: SVGPathElement;
       visual: SVGPathElement;
@@ -2677,22 +2711,12 @@ export function mountDiagramEditorPageV010(
           : renderedNodes.filter(node => node.id !== edge.source && node.id !== edge.target)
             .map(node => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
         : [];
-      // B8g: a self-loop only needs neighbors within its outer control
-      // corridor. Reuse the existing render-level spatial index on large
-      // graphs instead of scanning every node once per self-relation.
-      // near() covers 134 world units around the node rectangle; only use
-      // it when the maximum loop reach plus 22 units fits that envelope.
-      const loopReach = Math.max(38, 56 + lane);
       const loopObstacles = edge.source === edge.target && edge.pathKind !== undefined
-        ? spatialObstacles && loopReach + 22 <= 134
-          ? spatialObstacles.near({ x: source.x, y: source.y },
-              { x: source.x + source.width, y: source.y + source.height },
-              edge.source, edge.source)
-          : renderedNodes.filter(other => other.id !== edge.source)
-        : [];
+        ? loopObstaclesFor(source,lane) : [];
+      const loopReservations = loopReservedSides.get(edge.id) ?? [];
       const geometry = edge.source === edge.target
         ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane,
-            edge.waypoints, loopObstacles)
+            edge.waypoints, loopObstacles, loopReservations)
         : edge.waypoints?.length
           ? diagramManualEdgeGeometryV010(a, b, {
               pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
@@ -2713,7 +2737,7 @@ export function mountDiagramEditorPageV010(
           // is actually dragged. Manual curve and orthogonal controls have
           // fixed right-side boundary terminals; the relation stays a self-edge.
           const loop = diagramSelfLoopRouteControlsV010(source, edge.pathKind,
-            lane, loopObstacles, edge.waypoints);
+            lane, loopObstacles, edge.waypoints, loopReservations);
           editableRoutes.push({
             edge, start: loop.start, end: loop.end,
             waypoints: edge.waypoints?.length ? edge.waypoints : loop.waypoints,
@@ -2828,6 +2852,23 @@ export function mountDiagramEditorPageV010(
         svg.appendChild(label);
         liveEdges.get(edge.id)!.label = label;
       }
+      if (geometry.congested && edge.source === edge.target) {
+        // B8h: visible and accessible cue, non-blocking for all 44px targets.
+        const warning = svgElement("text");
+        warning.setAttribute("data-eidos-diagram-congestion-warning", edge.id);
+        warning.setAttribute("x", String(geometry.label.x + 15));
+        warning.setAttribute("y", String(geometry.label.y));
+        warning.setAttribute("font-size", String(13 / camera.scale));
+        warning.setAttribute("font-weight", "700");
+        warning.setAttribute("fill", "var(--eidos-warning,#A16207)");
+        warning.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+        warning.setAttribute("stroke-width", "3");
+        warning.setAttribute("paint-order", "stroke fill");
+        warning.setAttribute("aria-label", "Self-loop crowded; manual adjustment may be needed");
+        warning.style.pointerEvents = "none";
+        warning.textContent = "!";
+        svg.appendChild(warning);
+      }
     }
 
 
@@ -2861,7 +2902,8 @@ export function mountDiagramEditorPageV010(
       ];
       const previewRoute = (points: { x: number; y: number }[]): void => {
         const geometry = loopNode
-          ? diagramSelfLoopGeometryV010(loopNode, edge.pathKind!, laneOffset, points)
+          ? diagramSelfLoopGeometryV010(loopNode, edge.pathKind!, laneOffset, points,
+              [], loopReservedSides.get(edge.id) ?? [])
           : diagramManualEdgeGeometryV010(start, end, {
               pathKind: edge.pathKind!, waypoints: points,
               sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
@@ -3163,7 +3205,8 @@ export function mountDiagramEditorPageV010(
           ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane, points,
               edge.pathKind === undefined ? [] : renderedNodes
                 .filter(node => node.id !== edge.source)
-                .map(node => ({ ...node, ...positions.get(node.id) })))
+                .map(node => ({ ...node, ...positions.get(node.id) })),
+              loopReservedSides.get(edge.id) ?? [])
           : points?.length
             ? diagramManualEdgeGeometryV010(a, b, { pathKind: edge.pathKind ?? "orthogonal", waypoints: points })
             : diagramEdgeGeometryV010(a, b, edge.pathKind);
