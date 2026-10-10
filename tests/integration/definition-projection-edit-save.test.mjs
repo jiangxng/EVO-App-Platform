@@ -1162,3 +1162,57 @@ test("overlapping authorized saves use atomic CAS even after both pass async per
     definitionRevision: revision.revision
   }), 1);
 });
+
+
+test("stale editor may explicitly Save As without overwriting another writer's view", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source,
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    projectionIdFactory: () => "projection:conflict-copy"
+  });
+  const read = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION);
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const identity = {
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId,
+    definitionRevision: revision.revision, projectionId
+  };
+  const old = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(old.result.writeToken, "0");
+  const changed = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      ...identity, expectedRevision: revision.revision,
+      expectedWriteToken: "0",
+      operation: { type: "RENAME_PROJECTION", title: "Other editor's name" }
+    }), context());
+  assert.equal(changed.ok, true);
+  const afterOther = projectionStore.get(identity);
+  const copied = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      ...identity, expectedRevision: revision.revision,
+      expectedWriteToken: old.result.writeToken,
+      operation: { type: "SAVE_PROJECTION_AS_NEW" },
+      viewState: {
+        hiddenNodeIds: [], hiddenEdgeIds: [],
+        placements: old.result.nodes.map(node => ({
+          nodeId: node.id, x: node.x + 85, y: node.y
+        })),
+        camera: { scale: 1, translateX: 85, translateY: 0 }
+      }
+    }), context());
+  assert.equal(copied.ok, true);
+  assert.equal(copied.result.writeToken, "2");
+  const gallery = projectionStore.get(identity);
+  assert.equal(gallery.projections.length, afterOther.projections.length + 1);
+  assert.deepEqual(gallery.projections.find(p => p.projectionId === projectionId),
+    afterOther.projections.find(p => p.projectionId === projectionId));
+  assert.ok(gallery.projections.some(p => p.projectionId === "projection:conflict-copy"));
+  assert.equal(repository.listHistory({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId
+  }).length, 1);
+});
