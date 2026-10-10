@@ -127,3 +127,11 @@
 | 并行窗口隔离 | 2D Designer PR #590/#586 等、Agent PR #579/#577 等 | 独立新分支，绝不更改相关源、权威状态或 merge 他们的 PR |
 
 **本交接只记录已查事实与已作判断，不自行替用户决定未研究透彻的认证协议，也不作为 B2D3 实施完成的证据。**
+
+## 2026-10-10 增量决策：TR-01B2D3 可信委托实施候选
+
+**此前 D11 原始待选状态仍然如实保留。**新的增量定向查阅了 RFC 8725 的算法/发行者/受众/类型检查与 RFC 9864 的 `Ed25519`（旧 polymorphic `EdDSA` 已被标为 deprecated）。候选方案采用短效 45 秒、专用 audience/typ/purpose 的 Ed25519 JWS 由受信 Host 签发；EVO plugin owner 根据管理员信任配置锁定 issuer、kid、安装 ID、Host Enterprise/Context→EVO Tenant，结合 PostgreSQL 唯一 nonce 防重放后才能调用原只读 verifier。**这是项目工程选择，不等同 RFC 强制要求这个具体架构。**
+
+从各自最新 main 独立创建草稿 [EVO #108](https://github.com/jiangxng/EVO/pull/108) 和 [App Platform #594](https://github.com/jiangxng/EVO-App-Platform/pull/594)，保留所有已经确认的 B2D1/2 原始 facts、policy/valuation pins 和无财务写入断言。来源事实、替代方案（mTLS/HMAC/自声明 actor/进程内适配）、候选实现和仍需验证的 Host 实际 Session+安装 Provider+Secrets、TLS/轮换/撤销/nonce 保留、执行时 TOCTOU 详见 [B2D3 文档](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md)。
+
+**进度限制：**草稿 PR/测试脚本不是真实 CI PASS；B2D3 仍为 OPEN，B2D4/B2E 尚未启动，不得修改 `project.status.json` 或手编自动生成 HANDOFF。两条并行 2D Designer / Agent 任务不在本分支范围内。

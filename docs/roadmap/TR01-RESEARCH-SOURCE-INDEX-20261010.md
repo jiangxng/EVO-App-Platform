@@ -87,3 +87,16 @@
 
 **溯源规则：**下次任何新找到的网上资料，按“原始网址、实际阅读日期、已读原文/仅摘要/待验证、章节、关键原话的简短转述、与已有证据冲突点”补入本索引的后续版本；不得用搜索摘要替代标准正文。
 
+
+## 2026-10-10 新窗口定向来源增量（不改写旧窗口“零外网查阅”声明）
+
+| ID | 资料／原始 URL | 实际查阅深度 | 发现及用途 |
+|---|---|---|---|
+| N01 | [RFC 8725 JWT Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725.html) | **已打开官方原文**，重点 §2.1/§2.7–2.9/§3.1、§3.8–3.12，2026-10-10 | 验证算法、可信密钥/issuer、audience、专用 typ；指导 EVO Host-Owner 委托检查 |
+| N02 | [RFC 9864 Fully-Specified Algorithms](https://www.rfc-editor.org/rfc/rfc9864.html) | **已打开官方原文**，阅读 §2.2/§4.1，2026-10-10 | JOSE `alg:Ed25519` 完全指定；初始 `EdDSA` 候选因 polymorphic deprecation 改为 `Ed25519` |
+| N03 | [RFC 8037 OKP EdDSA in JOSE](https://www.rfc-editor.org/rfc/rfc8037.html) | **只读官方搜索摘要与 §3.1 节选**，非完整原文，2026-10-10 | 历史签名格式；结合后续 RFC9864 |
+| N04 | [EVO PR #108](https://github.com/jiangxng/EVO/pull/108) | **本轮已编写并读取相关源码**，2026-10-10 | 不安装不注册的 owner read-only endpoint、Ed25519、固定企业映射、PostgreSQL nonce；草稿非生产验收 |
+| N05 | [App Platform PR #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) | **本轮编写并读取相关源码**，2026-10-10 | Host 服务签名、原真实 order/shipment/receipt HTTP+Postgres CI；真实安装会话仍待证 |
+| N06 | [EVO CI 38021960750](https://github.com/jiangxng/EVO/actions/runs/38021960750) | **已查 job/错误日志**，2026-10-10 | 首轮 TypeScript TS18048 严格可空失败；已改 `7c6ff8f`，新 CI 结果需另核；不记录为 PASS |
+
+具体方案、仍待 CI 的验收与风险见 [B2D3 工作证据](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md)。本轮未生成网页截图/PDF 附件。
