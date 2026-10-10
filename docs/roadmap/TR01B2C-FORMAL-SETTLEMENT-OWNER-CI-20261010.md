@@ -1,7 +1,7 @@
 # TR-01B2C — Exact App Platform Customer Cash Receipt → Receivable formal allocation (owner-CI proof)
 
 **Date:** 2026-10-10  
-**Stage:** CANDIDATE, awaiting real pinned EVO PostgreSQL evidence, **not** public Host Allocation API.  
+**Stage:** BOUNDED_OWNER_CI_ACCEPTED, real EVO PostgreSQL PASS; **not** a public Host Allocation API.  
 **Relationship:** The previously-accepted TR-01B1 sales facts, TR-01B2A service-level reads and TR-01B2B cost/COGS canonical Full Replay remain independent. This is a new bounded test of **formal** receipt allocation, not a Sales ERP.
 
 ## Contract gap discovered by the inverse business exercise
@@ -26,3 +26,10 @@ EVO has the reference implementation but **does not currently publish a producti
 The test only proves a **single source order, single receipt, same currency, exact full payment**. Partial, overpayment, split receipt, multiple invoices, cancellation/refund, exchange rate, bank account identity, identity-provider authorization, real customer production installation, and external Host plugin acceptance remain OPEN.
 
 **Do not close the master TR-01B2/Finance Account gate from this proof.** No direct LedgerEntry/Balance writes, no foundation object rebuild, no 2D Designer/Agent-window edits. The EVO [PR #106](https://github.com/jiangxng/EVO/pull/106) boundary review merged as design only and did not publish finance operations. Subsequent guarded public Contract Adapter implementation must be owner-reviewed and separated from the deterministic core.
+
+## Verified result — 2026-10-10
+
+- [App Platform PR #582](https://github.com/jiangxng/EVO-App-Platform/pull/582) final head `1aac60b1bd8b094517bea4cbb4aa17fc2ba910f7`, merged main `59527f6aafe5868891727006bf9ff43e7ee252b0`.
+- [Actual pinned EVO PostgreSQL CI #38017215432](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215432): **PASS**, emits exact `TR01B2C_APP_ORIGIN_RECEIPT_ALLOCATION_EVO_POSTGRESQL_PROOF`. Public App Platform BusinessData source Sales Order `01a123a6-616f-7a72-bf65-706781d02e2b`, Cash Receipt consumer `01a123a6-6696-7aa9-8bca-bb8bb1d434d1` (IDs are ephemeral disposable CI evidence, not production business objects). EVO recorded policy-pinned `AllocationInstruction` and completed `AllocationRelation` of `1000.00 CNY` on the exact order position. Same request idempotent; conflicting intent and invalid source/consumer denied; instruction survives Full Replay and relation re-materializes with unchanged position key/measurements. Realized FX delta=0; canonical economic digest MATCH and canonical input UNCHANGED. Valued Inventory qty/amount 0, COGS 125, Receivable 0, Cash 1000.
+- [Platform CI #38017215368](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215368): PASS. [Project Continuity #38017215324](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215324): PASS. [Trading Lite EVO/PostgreSQL #38017215275](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215275): PASS. [TR-01A installed Chrome Human/Agent/Workbench #38017215288](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38017215288): PASS.
+- **Still not proven:** production Host-authorized cost plugin call and allocation command/query, actual installed Sales UI, arbitrary multiple-source/partial/overpayments/FX, customer bank account/master-data and reconciliation. CI code imports EVO internal runtime **only in test**, never in product.
