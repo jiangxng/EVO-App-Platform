@@ -183,8 +183,10 @@ try {
   // privilege on finance_trusted_signing_key is available to the API login.
   await admin.query('grant execute on function public.finance_lock_active_signing_key_v010(text,text,text) to ' + runtimeRole);
   await admin.query('grant insert on finance_delegation_nonce to ' + runtimeRole);
-  // INSERT ... RETURNING jti requires explicit SELECT(jti), not table-wide read.
-  await admin.query('grant select(jti) on finance_delegation_nonce to ' + runtimeRole);
+  // ON CONFLICT (issuer,jti) needs SELECT on its arbiter columns,
+  // while INSERT ... RETURNING jti needs SELECT(jti). No other nonce
+  // columns or financial tables are readable by this runtime login.
+  await admin.query('grant select(issuer,jti) on finance_delegation_nonce to ' + runtimeRole);
   await admin.query('grant select,insert,update on finance_trusted_signing_key to ' + operatorRole);
   await admin.query('grant select,insert on finance_trust_change_audit to ' + operatorRole);
   await admin.query('grant usage on sequence finance_trust_change_audit_audit_id_seq to ' + operatorRole);
