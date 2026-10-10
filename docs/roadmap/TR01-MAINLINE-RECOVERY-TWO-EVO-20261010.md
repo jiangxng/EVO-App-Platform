@@ -1,6 +1,6 @@
 # TR-01 主线旧窗口恢复与双 EVO 实例证据增量 — 2026-10-10
 
-> **性质：**旧窗口恢复的资料导航、进展核验和待办增量；不替代 `project.status.json` 与生成的 `docs/roadmap/HANDOFF-LATEST.md`。截至本次核验，B2D3 生产准入仍 OPEN。此文档独立于 2D Designer 和 Personal Agent 专项。本次只提交文档，不合并 PR，不更改 finance runtime、main、状态或生产环境。
+> **性质：**旧窗口恢复的资料导航、进展核验和待办增量；不替代 `project.status.json` 与生成的 `docs/roadmap/HANDOFF-LATEST.md`。截至本次核验，B2D3 生产准入仍 OPEN。此文档独立于 2D Designer 和 Personal Agent 专项。本次只增加恢复/验收文档、脱敏样例 CSV 与导入协议回归；不修改财务运行时、权威项目状态或生产数据。是否合并以 PR 检查通过及独立评审为准。
 
 ## 1. 阅读顺序与已恢复内容
 
@@ -36,7 +36,7 @@
 
 ## 基础对象原始目标的用户验收（2026-10-10 补充）
 
-这条主线没有从 CP-03 导入/扩展字段偏离：TR-01 用 Counterparty/Item/Warehouse 已验证的业务对象执行真实业务回路。然而**未映射列的导入作业原始值保存**与**正式 Enterprise Extension sidecar 保存**必须分别验收；二者不可互代。见 [基础对象导入与扩展字段 Human 验收清单](FO-IMPORT-EXTENSION-HUMAN-ACCEPTANCE-20261010.md) 与独立测试 Supplier CSV fixtures。新增协议断言验证提交后的未映射值仍在 ImportJob.source，且不静默写入领域核心或扩展字段。该断言的最新 CI 状态须另行核对；既有 CP-03/CP-05/IT-01/WH-01 历史 Human/生产验收仍保持原证据级别。
+这条主线没有从 CP-03 导入/扩展字段偏离：TR-01 用 Counterparty/Item/Warehouse 已验证的业务对象执行真实业务回路。然而**未映射列的导入作业原始值保存**与**正式 Enterprise Extension sidecar 保存**必须分别验收；二者不可互代。见 [基础对象导入与扩展字段 Human 验收清单](FO-IMPORT-EXTENSION-HUMAN-ACCEPTANCE-20261010.md) 与独立测试 Supplier CSV fixtures。新增协议断言验证提交后的未映射值仍在 ImportJob.source，且不静默写入领域核心或扩展字段。该断言已在 [Platform CI #38059144873](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059144873) 通过，恢复文档在 [Continuity CI #38059144872](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38059144872) 通过；既有 CP-03/CP-05/IT-01/WH-01 历史 Human/生产验收仍保持原证据级别。
 
 ## 4. 仍缺与下一个最小门槛
 
