@@ -70,6 +70,7 @@ const context = tab => ({
   },
   locale: "en-US", correlationId: "browser-cas-" + tab
 });
+const transientFailures = new Set(["C"]);
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://127.0.0.1");
@@ -80,6 +81,11 @@ const server = createServer(async (req, res) => {
       let data = "";
       for await (const chunk of req) data += chunk.toString();
       const request = JSON.parse(data);
+      const tab = url.searchParams.get("session") ?? "A";
+      if (request.values?.operation?.type === "SAVE_PROJECTION_VIEW"
+        && transientFailures.delete(tab)) {
+        res.writeHead(503); res.end("Injected transient network failure"); return;
+      }
       const handler = handlers.find(h => h.commandCode === request.command?.code);
       if (!handler) throw Error("Unknown action: " + request.command?.code);
       const result = await handler.execute(request, context(url.searchParams.get("session") ?? "A"));
@@ -129,7 +135,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b;
+let proc, a, b, c;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -199,15 +205,28 @@ try {
   assert.deepEqual(gallery.projections.find(p => p.projectionId === target.projectionId), original);
   const copy = gallery.projections.find(p => p.projectionId === "projection:browser-conflict-copy");
   assert.ok(copy); assert.ok(copy.view.hiddenNodeIds.includes(hiddenB));
+  // A third *real browser tab* fails at the HTTP transport boundary, then
+  // retries without losing its local unsaved projection view.
+  c = await tab("C");
+  await until(c, "Ready.");
+  await hide(c, 0);
+  await action(c, "Save projection");
+  await until(c, "Save failed; local edits are preserved.");
+  assert.equal(store.getVersion(target), 2);
+  await action(c, "Save projection");
+  await until(c, "Saved.");
+  assert.equal(store.getVersion(target), 3);
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 2, staleWriteBlocked: true,
-    draftPreserved: true, savedAsNewProjection: true, businessHistoryUnchanged: true
+    browser: version.Browser, tabs: 3, staleWriteBlocked: true,
+    draftPreserved: true, savedAsNewProjection: true,
+    transientFailurePreservesDraft: true, retrySaved: true,
+    businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close();
+  a?.close(); b?.close(); c?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
