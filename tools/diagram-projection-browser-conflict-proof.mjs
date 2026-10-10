@@ -401,6 +401,53 @@ try {
     + 'return {committed,restored};})()');
   assert.ok(Math.abs(routeUndo.committed-handleProbe.goal)<.01);
   assert.ok(Math.abs(routeUndo.restored-handleProbe.initial)<.01);
+
+  // B6b: drag a genuinely exposed orthogonal segment handle along its sole
+  // permissible normal axis. Compare the rendered SVG path before/after, then
+  // Undo and reselect (Undo intentionally clears the active selection).
+  const segmentProbe=await d.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const visual=()=>document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'const canvas=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();'
+    + 'const handles=[...document.querySelectorAll("[data-eidos-diagram-segment-handle]")];'
+    + 'const h=handles.find(el=>{const b=el.getBoundingClientRect();'
+    + 'const x=b.left+b.width/2,y=b.top+b.height/2;'
+    + 'return x>canvas.left+20&&x<canvas.right-20&&y>canvas.top+20&&y<canvas.bottom-20'
+    + '&&document.elementFromPoint(x,y)===el});'
+    + 'if(!h)throw Error("No unobstructed orthogonal segment handle, candidates="+handles.length);'
+    + 'const b=h.getBoundingClientRect();'
+    + 'const axis=h.style.cursor==="ew-resize"?"x":"y";'
+    + 'const initial=Number(h.getAttribute(axis==="x"?"cx":"cy"));'
+    + 'const goal=Math.round(initial/24)*24+48;'
+    + 'return {x:b.left+b.width/2,y:b.top+b.height/2,axis,initial,goal,'
+    + 'delta:goal-initial+2,originalPath:visual().getAttribute("d")};'
+    + '})()');
+  await d.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:segmentProbe.x,y:segmentProbe.y});
+  await d.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    x:segmentProbe.x,y:segmentProbe.y});
+  await d.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+    x:segmentProbe.x+(segmentProbe.axis==="x"?segmentProbe.delta:0),
+    y:segmentProbe.y+(segmentProbe.axis==="y"?segmentProbe.delta:0)});
+  const segmentPreview=await d.eval('(()=>{const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const p=document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'return p?.getAttribute("d");})()');
+  assert.notEqual(segmentPreview,segmentProbe.originalPath,
+    "Perpendicular segment drag must change actual visual path");
+  await d.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:segmentProbe.x+(segmentProbe.axis==="x"?segmentProbe.delta:0),
+    y:segmentProbe.y+(segmentProbe.axis==="y"?segmentProbe.delta:0)});
+  const segmentUndo=await d.eval('(()=>{'
+    + 'const id='+JSON.stringify(routeChoice.edge.id)+';'
+    + 'const visual=()=>document.querySelector("[data-eidos-diagram-edge-visual="+CSS.escape(id)+"]");'
+    + 'const committed=visual()?.getAttribute("d");'
+    + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
+    + 'if(!undo||undo.disabled)throw Error("Segment drag missing Undo");undo.click();'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'return {committed,restored:visual()?.getAttribute("d")};})()');
+  assert.notEqual(segmentUndo.committed,segmentProbe.originalPath);
+  assert.equal(segmentUndo.restored,segmentProbe.originalPath,
+    "Undo must restore exact original orthogonal connector SVG geometry");
   assert.equal(store.getVersion(target),3,"Manual route interaction must not implicitly save");
 
   assert.equal(repository.listHistory({
@@ -408,6 +455,7 @@ try {
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
     browser: version.Browser, tabs: 4, nativeRouteHandleSnapAndUndo: true,
+    nativeOrthogonalSegmentSnapAndUndo: true,
     nativeGridSnapCancelled: true,
     independentGridModes: true, groupAlignmentUndo: true,
     staleWriteBlocked: true,
