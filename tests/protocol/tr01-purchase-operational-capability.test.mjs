@@ -124,8 +124,11 @@ test("TR-01A4 registers lifecycle-gated READ operation for same Human/Agent cont
   assert.equal(op.effect, "READ");
   assert.equal(op.authorization.resource.idSource, "INPUT");
   assert.equal(op.authorization.resource.inputKey, "orderNo");
-  assert.equal(feature.contributions.some(x => x.kind === "eidos.experience"), false);
-  assert.equal(feature.contributions.some(x => x.kind === "eidos.workbench-home-item"), false);
+  const experience = feature.contributions.find(x => x.kind === "eidos.experience").manifest;
+  assert.deepEqual(experience.navigation, []);
+  assert.equal(experience.pages.length, 2);
+  const workbench = feature.contributions.find(x => x.kind === "eidos.workbench-home-item").item;
+  assert.equal(workbench.section, "OPERATIONAL_PROJECTIONS");
 });
 
 test("TR-01A4 explicit Host->EVO mapping supplies one governed read path", async () => {
