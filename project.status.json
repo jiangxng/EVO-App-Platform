@@ -1835,7 +1835,15 @@
           "evoReversalCertificationMain": "2311022640aa108a6baf3db44d9b26bd3e3ad623",
           "evoReversalCertificationCI": "PASS",
           "productionDeploymentId": "1ece6ea3-c124-4d65-9860-f14d88f959a9",
-          "productionDeploymentStatus": "SUCCESS"
+          "productionDeploymentStatus": "SUCCESS",
+          "replayGatePr": 559,
+          "replayGateMain": "5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b",
+          "replayGatePlatformCI": "PASS",
+          "replayGateContinuityCI": "PASS",
+          "replayGateCrossProjectEvoPostgresqlCI": "PASS",
+          "replayGateWorkflowRun": 38008484982,
+          "latestProductionDeploymentId": "11ee6c04-6845-474c-b56b-d8b7b84ea015",
+          "latestProductionDeploymentStatus": "SUCCESS"
         }
       },
       "openGate": {
@@ -1857,8 +1865,8 @@
         "service": "Ledger Configurator",
         "environment": "production",
         "source": "jiangxng/EVO-App-Platform:main",
-        "commit": "70c6aac34cd6fad931f7110442e9a0f01293ef44",
-        "deploymentId": "1ece6ea3-c124-4d65-9860-f14d88f959a9",
+        "commit": "5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b",
+        "deploymentId": "11ee6c04-6845-474c-b56b-d8b7b84ea015",
         "status": "SUCCESS",
         "persistentStateMount": "/data"
       },
@@ -1874,6 +1882,11 @@
       }
     },
     "recentMainline": [
+      {
+        "pr": 559,
+        "status": "MERGED_CI_PRODUCTION_PASS",
+        "summary": "Made pinned EVO full deterministic TR-01A2 reversal Replay an explicit third cross-project PostgreSQL CI gate; exact head 2ebaf57c passed Continuity/Platform/Cross Project CI and main 5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b deployed Railway 11ee6c04-6845-474c-b56b-d8b7b84ea015 SUCCESS."
+      },
       {
         "pr": 557,
         "status": "MERGED_CI_PRODUCTION_PASS",
@@ -5547,7 +5560,10 @@
           "crossProjectEvoPostgresqlCI": "PASS",
           "railwayDeploymentId": "1ece6ea3-c124-4d65-9860-f14d88f959a9",
           "railwayDeploymentStatus": "SUCCESS",
-          "evidence": "docs/roadmap/TR01A2-PURCHASE-RECEIPT-REVERSAL-PRODUCTION-EVIDENCE-20261010.md"
+          "evidence": "docs/roadmap/TR01A2-PURCHASE-RECEIPT-REVERSAL-PRODUCTION-EVIDENCE-20261010.md",
+          "replayGatePr": 559,
+          "replayGateCrossProjectCI": "PASS",
+          "latestRailwayDeploymentId": "11ee6c04-6845-474c-b56b-d8b7b84ea015"
         }
       },
       "nextGate": "PROGRAM-EXIT"
