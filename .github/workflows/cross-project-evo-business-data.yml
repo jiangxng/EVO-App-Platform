@@ -125,6 +125,10 @@ jobs:
       - name: Certify TR-01A Purchase -> Receipt -> Ledger -> Work
         run: node tools/certify-tr01-purchase-evo-postgres.mjs
 
+      - name: Certify EVO Purchase -> Receipt -> Reversal deterministic replay
+        working-directory: evo
+        run: npm run validate:tr01-purchase-receipt-reversal
+
       - name: Show EVO logs on failure
         if: failure()
         run: |
