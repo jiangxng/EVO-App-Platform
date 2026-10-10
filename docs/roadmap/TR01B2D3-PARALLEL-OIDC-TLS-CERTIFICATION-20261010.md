@@ -46,3 +46,7 @@ This models TLS termination at a **local ingress**, not TLS to the EVO backend i
 ## Proof references and handoff continuity
 
 Prior retained decisions and evidence: [Trusted Owner delegation](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md), [installed Host Managed Session](TR01B2D3-INSTALLED-HOST-MANAGED-SESSION-CI-20261010.md), [EVO live key revocation](TR01B2D3-LIVE-POSTGRES-KEY-ROTATION-20261010.md), original [source index](TR01-RESEARCH-SOURCE-INDEX-20261010.md) and [decisions/gaps](TR01-RESEARCH-DECISIONS-AND-GAPS-20261010.md). Evidence should remain usable in future new chat sessions without repeating already validated research.
+
+## B2D3 doubled-pace next gates, same original finance CI (2026-10-10)
+
+[Host online signer and PostgreSQL role separation](TR01B2D3-HOST-HOT-SIGNER-AND-DB-ROLES-20261010.md) adds two independently checked gates in [cross-project run #38049355866](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049355866): a real Host process switches its **preprovisioned, AES-GCM encrypted, key-ID-specific** Ed25519 signer via an atomic owner-only file pointer without restarting Host or EVO; revoked key, removed/insecure pointer fail closed; a disposable PostgreSQL runtime-role/operator-role matrix prevents cross-privilege finance trust or CostRun writes. Both logged PASS with no finance execution. This **does not** certify production provisioning, multi-replica file distribution, actual production DB credentials or external OIDC/TLS ingress.
