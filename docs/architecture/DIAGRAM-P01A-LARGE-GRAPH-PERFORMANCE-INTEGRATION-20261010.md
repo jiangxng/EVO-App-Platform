@@ -45,3 +45,7 @@
 最新完整 [Diagram Performance Evidence CI 38014903344](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014903344) **PASS**，仍按 base/HEAD 同台构建、Chrome 154、双规模预热、三次中位数流程。200/400 mount **69.1→62.2ms (-9.99%)**、selection **18.5→16.9ms (-8.65%)**；500/1000 mount **97.1→85.3ms (-12.15%)**、selection **44.8→38.5ms (-14.06%)**。CDP drag dispatch p95 在 500/1000 这次略退化 **+7.37%**，不能夸大为拖动帧率提高。
 
 结合前一次 [38014785156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38014785156)，自适应策略在两个独立 CI run 中均改善 200/400 和 500/1000 的 selection 中位数；runner 间绝对耗时仍明显波动。最新 App Platform、Browser Conflict、Diagram Integration、Continuity 和 Perf CI 都通过。**P01 正式实体设备与长时间性能验收仍 NOT TESTED。**
+
+## 第四次 CI-host 配对反例（2026-10-10，需继续追踪）
+
+最新 [Perf CI 38015041848](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38015041848) Chrome 154 **PASS**，仍为同 runner 两版编译、2 次预热、每规模 3 次中位数。200/400 selection **38.0→40.0 ms (+5.26% 回退)**，500/1000 selection **81.1→68.6 ms (-15.41%)**；mount 200/400 -2.21%、500/1000 -10.86%。这一轮不支持“小图已稳定提速”的说法。综合 200/400 结果前两轮为正向但第四轮略退化，波动较大；500/1000 多轮 selection 均正向。需要更多小图微观 profiling，不应进一步调阈值以追逐单轮噪声；现保留自适应实现与样本报告，P01 保持 NOT TESTED。
