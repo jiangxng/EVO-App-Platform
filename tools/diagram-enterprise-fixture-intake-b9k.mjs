@@ -91,7 +91,7 @@ export function validateAuthorizedEnterpriseFixtureV010(input){
  };
 }
 
-export async function readAuthorizedEnterpriseFixtureV010(filename,{
+async function loadValidatedFixture(filename,{
  repositoryRoot=process.cwd(),authorized=false
 }={}){
  if(authorized!==true)error("EVO_B9K_AUTHORIZED_QA=1 is required");
@@ -127,9 +127,20 @@ export async function readAuthorizedEnterpriseFixtureV010(filename,{
 
  let data;
  try{data=JSON.parse(raw);}catch{error("invalid JSON fixture");}
- // The raw input is returned to the caller only when explicitly requested by
- // future, separate test harness code; this preflight deliberately returns no raw data.
- return validateAuthorizedEnterpriseFixtureV010(data);
+ const summary=validateAuthorizedEnterpriseFixtureV010(data);
+ return {summary,preview2d:data.preview2d};
+}
+
+// Privileged in-process handoff: one checked file descriptor, one parsed graph.
+// Callers MUST NOT log, serialize or upload the returned preview2d.
+export async function loadAuthorizedEnterpriseFixtureV010(filename,options={}){
+ return loadValidatedFixture(filename,options);
+}
+
+// Unprivileged CLI preflight only returns safe aggregate metadata.
+export async function readAuthorizedEnterpriseFixtureV010(filename,options={}){
+ const {summary}=await loadValidatedFixture(filename,options);
+ return summary;
 }
 
 if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
