@@ -220,13 +220,34 @@ try {
       'ci-malicious-runtime', 'MUST-NOT-REVOKE'], false);
 
   logFd = openSync(logFile, 'w', 0o600);
-  api = spawn(process.execPath, ['dist/apps/api/src/main.js'], {
+  api = spawn(process.execPath, ['dist/apps/api/src/finance-owner-readonly-main.js'], {
     cwd: 'evo', env: { ...process.env,
-      DATABASE_URL: runtimeUrl, EVO_FINANCE_TRUST_AUTHORITY: 'POSTGRES',
+      DATABASE_URL: runtimeUrl,
+      EVO_FINANCE_OWNER_ISOLATED_READONLY: 'true',
+      EVO_FINANCE_TRUST_AUTHORITY: 'POSTGRES',
+      EVO_FINANCE_TRUSTED_INSTALLATIONS_JSON: '',
       HOST: '127.0.0.1', PORT: '3002', LOG_LEVEL: 'silent'
     }, stdio: ['ignore', logFd, logFd]
   });
   await waitReady(api);
+  // This credential must be used by a dedicated *plugin-only* listener,
+  // not a full EVO API with inherited demo/commands/financial write routes.
+  const isolatedBase = 'http://127.0.0.1:3002';
+  for (const url of [
+    '/api/v1/commands',
+    '/api/v1/demo/cost/recalculate',
+    '/api/v1/demo/sales-orders/approve',
+    '/api/v1/configurator/business-data',
+    '/api/v1/enterprise-templates/enterprise-core/initialize'
+  ]) {
+    const response = await fetch(isolatedBase + url, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: '{}', signal: AbortSignal.timeout(4000)
+    });
+    assert.equal(response.status, 404, 'isolated owner must not mount: ' + url);
+  }
+  const apps = await fetch(isolatedBase + '/api/v1/apps');
+  assert.equal(apps.status, 404, 'no general EVO discovery route mounted on finance-only process');
   const intent = await factInput(before.boundary);
   const request = {
     contractVersion: '0.1.0',
@@ -262,6 +283,7 @@ try {
       runtimeSessionIsDistinctLogin: true,
       operatorSessionIsDistinctLogin: true,
       evoApiUsesRestrictedRuntimeCredential: true,
+      financeOwnerProcessIsolatedFromCommandsAndDemo: true,
       actualHostSignedHttpOwnerRead: true,
       operatorCliUsesRestrictedOperatorCredential: true,
       operatorAuditEntries: audit.length,
