@@ -338,11 +338,68 @@ try {
   await action(c, "Save projection");
   await until(c, "Saved.");
   assert.equal(store.getVersion(target), 3);
+
+  // B6b: a fourth real Chrome tab opens an actual Host graph relationship
+  // with its camera focused on the geometric midpoint. An SVG hit selects
+  // the relation, the property editor adds one manual waypoint, and genuine
+  // CDP mouse events move its 44px pointer-captured handle to the grid.
+  d = await tab("D",true);
+  await until(d,"Ready.");
+  const handleProbe = await d.eval('(()=>{'
+    + 'const id=' + JSON.stringify(routeChoice.edge.id) + ';'
+    + 'const edge=document.querySelector("[data-eidos-diagram-edge="+CSS.escape(id)+"]");'
+    + 'if(!edge)throw Error("Target route missing "+id);'
+    + 'edge.dispatchEvent(new MouseEvent("click",{bubbles:true}));'
+    + 'const select=document.querySelector("[data-eidos-diagram-edge-path-kind]");'
+    + 'if(!select)throw Error("Route style editor missing");'
+    + 'select.value="orthogonal";'
+    + 'select.dispatchEvent(new Event("change",{bubbles:true}));'
+    + 'const add=[...document.querySelectorAll("[data-eidos-diagram-waypoint-controls] button")]'
+    + '.find(button=>button.textContent==="Add path point");'
+    + 'if(!add)throw Error("Add waypoint control missing");add.click();'
+    + 'const snap=document.querySelector("[data-eidos-diagram-snap-mode=snap]");'
+    + 'if(!snap)throw Error("Route grid snap missing");snap.click();'
+    + 'document.querySelector("[data-eidos-diagram-snap-mode=align]")?.click();'
+    + 'const handle=document.querySelector("[data-eidos-diagram-waypoint-handle]");'
+    + 'if(!handle)throw Error("Manual SVG handle missing");'
+    + 'const box=handle.getBoundingClientRect();'
+    + 'const cx=box.left+box.width/2,cy=box.top+box.height/2;'
+    + 'const top=document.elementFromPoint(cx,cy);'
+    + 'if(top!==handle)throw Error("Route handle blocked by "+(top?.outerHTML||"null").slice(0,100));'
+    + 'const initial=Number(handle.getAttribute("cx"));'
+    + 'const goal=Math.round(initial/24)*24+48;'
+    + 'return {x:cx,y:cy,initial,goal,delta:goal-initial+2};'
+    + '})()');
+  assert.ok(handleProbe.delta>4);
+  await d.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:handleProbe.x,y:handleProbe.y});
+  await d.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,
+    x:handleProbe.x,y:handleProbe.y});
+  await d.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",
+    x:handleProbe.x+handleProbe.delta,y:handleProbe.y});
+  const routePreview=await d.eval('(()=>{const handle=document.querySelector("[data-eidos-diagram-waypoint-handle]");'
+    + 'return Number(handle.getAttribute("cx"));})()');
+  assert.ok(Math.abs(routePreview-handleProbe.goal)<.01,
+    "Native manual waypoint should snap to grid; got "+routePreview+" expected "+handleProbe.goal);
+  await d.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",
+    x:handleProbe.x+handleProbe.delta,y:handleProbe.y});
+  const routeUndo=await d.eval('(()=>{'
+    + 'const handle=document.querySelector("[data-eidos-diagram-waypoint-handle]");'
+    + 'const committed=Number(handle.getAttribute("cx"));'
+    + 'const undo=document.querySelector("[data-eidos-diagram-history=undo]");'
+    + 'if(!undo||undo.disabled)throw Error("Handle drag missing single undo checkpoint");'
+    + 'undo.click();'
+    + 'const restored=Number(document.querySelector("[data-eidos-diagram-waypoint-handle]").getAttribute("cx"));'
+    + 'return {committed,restored};})()');
+  assert.ok(Math.abs(routeUndo.committed-handleProbe.goal)<.01);
+  assert.ok(Math.abs(routeUndo.restored-handleProbe.initial)<.01);
+  assert.equal(store.getVersion(target),3,"Manual route interaction must not implicitly save");
+
   assert.equal(repository.listHistory({
     enterpriseId: target.enterpriseId, definitionId: target.definitionId
   }).length, 1);
   console.log("DIAGRAM_BROWSER_CAS_PROOF=" + JSON.stringify({
-    browser: version.Browser, tabs: 3, nativeGridSnapCancelled: true,
+    browser: version.Browser, tabs: 4, nativeRouteHandleSnapAndUndo: true,
+    nativeGridSnapCancelled: true,
     independentGridModes: true, groupAlignmentUndo: true,
     staleWriteBlocked: true,
     draftPreserved: true, savedAsNewProjection: true,
