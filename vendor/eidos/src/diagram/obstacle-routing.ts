@@ -53,7 +53,7 @@ function compress(points: DiagramRoutePointV010[]): DiagramRoutePointV010[] {
   return out;
 }
 
-interface Entry { key: number; cost: number }
+interface Entry { key: number; cost: number; priority: number }
 class MinQueue {
   private values: Entry[] = [];
   get length(): number { return this.values.length; }
@@ -63,8 +63,8 @@ class MinQueue {
     let index = v.length - 1;
     while (index > 0) {
       const parent = (index - 1) >> 1;
-      if (v[parent]!.cost < item.cost
-        || (v[parent]!.cost === item.cost && v[parent]!.key <= item.key)) break;
+      if (v[parent]!.priority < item.priority
+        || (v[parent]!.priority === item.priority && v[parent]!.key <= item.key)) break;
       v[index] = v[parent]!;
       index = parent;
     }
@@ -82,10 +82,10 @@ class MinQueue {
       if (left >= v.length) break;
       const right = left + 1;
       let next = left;
-      if (right < v.length && (v[right]!.cost < v[left]!.cost
-        || (v[right]!.cost === v[left]!.cost && v[right]!.key < v[left]!.key))) next = right;
-      if (last.cost < v[next]!.cost
-        || (last.cost === v[next]!.cost && last.key <= v[next]!.key)) break;
+      if (right < v.length && (v[right]!.priority < v[left]!.priority
+        || (v[right]!.priority === v[left]!.priority && v[right]!.key < v[left]!.key))) next = right;
+      if (last.priority < v[next]!.priority
+        || (last.priority === v[next]!.priority && last.key <= v[next]!.key)) break;
       v[index] = v[next]!;
       index = next;
     }
@@ -146,8 +146,18 @@ export function routeDiagramOrthogonalV010(
   if (nx * ny > MAX_GRID_POINTS) return undefined;
   const pointAt = (id: number): DiagramRoutePointV010 =>
     ({ x: xs[id % nx]!, y: ys[Math.floor(id / nx)]! });
-  const inside = (p: DiagramRoutePointV010): boolean => rects.some(r =>
-    p.x > r.l + EPS && p.x < r.r - EPS && p.y > r.t + EPS && p.y < r.b - EPS);
+  // B8r: each grid point is shared by up to four neighbors and three
+  // directional states. Cache its obstacle occupancy once per route.
+  const blocked = new Uint8Array(nx * ny);
+  for(let i=0;i<blocked.length;i++){
+    const x=xs[i%nx]!, y=ys[Math.floor(i/nx)]!;
+    blocked[i]=rects.some(r=>
+      x>r.l+EPS && x<r.r-EPS && y>r.t+EPS && y<r.b-EPS)?1:0;
+  }
+  // The Manhattan lower bound is admissible (turn penalties are
+  // nonnegative), so A* preserves shortest legal distance+turn score.
+  const heuristic=(cell:number):number=>
+    Math.abs(xs[cell%nx]!-end.x)+Math.abs(ys[Math.floor(cell/nx)]!-end.y);
   const startIndex = ys.indexOf(start.y) * nx + xs.indexOf(start.x);
   const endIndex = ys.indexOf(end.y) * nx + xs.indexOf(end.x);
   const total = nx * ny * 3; // direction 0=start, 1=horizontal, 2=vertical
@@ -156,7 +166,7 @@ export function routeDiagramOrthogonalV010(
   const queue = new MinQueue();
   const initial = startIndex * 3;
   dist[initial] = 0;
-  queue.push({ key: initial, cost: 0 });
+  queue.push({ key: initial, cost: 0, priority: heuristic(startIndex) });
   let finish = -1;
   while (queue.length) {
     const current = queue.pop()!;
@@ -173,14 +183,14 @@ export function routeDiagramOrthogonalV010(
       if (nextX! < 0 || nextX! >= nx || nextY! < 0 || nextY! >= ny) continue;
       const nextCell = nextY! * nx + nextX!;
       const q = pointAt(nextCell);
-      if (inside(q) || !clear([p, q], rects)) continue;
+      if (blocked[nextCell] || !clear([p, q], rects)) continue;
       const nextKey = nextCell * 3 + nextDir!;
       const cost = current.cost + Math.abs(q.x - p.x) + Math.abs(q.y - p.y)
         + (direction && direction !== nextDir ? TURN_PENALTY : 0);
       if (cost + EPS >= dist[nextKey]) continue;
       dist[nextKey] = cost;
       prev[nextKey] = current.key;
-      queue.push({ key: nextKey, cost });
+      queue.push({ key: nextKey, cost, priority: cost+heuristic(nextCell) });
     }
   }
   if (finish === -1) return undefined;
