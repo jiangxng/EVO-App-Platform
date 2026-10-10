@@ -1438,9 +1438,9 @@ export function mountDiagramEditorPageV010(
       `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
     // A zoom updates the transform without a full DOM redraw. Keep handle hit
     // targets at 44 CSS px and visible markers at a fixed screen radius.
-    for (const target of stageElement.querySelectorAll<SVGCircleElement>(
+    for (const target of Array.from(stageElement.querySelectorAll<SVGCircleElement>(
       "[data-eidos-diagram-handle-screen-radius]"
-    )) {
+    ))) {
       const radius = Number(target.dataset.eidosDiagramHandleScreenRadius);
       if (Number.isFinite(radius)) {
         target.setAttribute("r", String(radius / camera.scale));
