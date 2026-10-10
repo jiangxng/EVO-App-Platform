@@ -271,6 +271,29 @@ const labelInkHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV
 });
 const inkViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({source:inkSource});
 
+// B8j: actual independent cubic relationship. This source is isolated to
+// two new tabs; production graph and business definition history are unchanged.
+const preciseInkSource={get(input){
+  const result=inkSource.get(input);
+  if(!result?.diagram2d)return result;
+  const relation=result.diagram2d.edges.find(e=>e.id===inkRelationId);
+  if(!relation)return result;
+  return {...result,diagram2d:{...result.diagram2d,
+    edges:result.diagram2d.edges.map(e=>e.id===inkRelationId?{
+      ...relation,pathKind:"curve",
+      waypoints:[{x:selfNode.x+selfNode.width+76,
+        y:selfNode.y+selfNode.height/2}]
+    }:e)}};
+}};
+const preciseInkHandlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+  repository,projectionStore:store,source:preciseInkSource,sessions,
+  canManageEnterpriseContext:()=>true,authorizeProjectionSave:async()=>{},
+  locale:()=>"en-US",now:()=>new Date("2026-10-10T00:07:00.000Z")
+});
+const preciseInkViewerHandler=createEnterpriseDefinition2dPreviewReadActionV010({
+  source:preciseInkSource
+});
+
 const context = tab => ({
   contractVersion: "0.1.0",
   principal: { contractVersion: "0.1.0", subjectId: "owner-browser", actorType: "HUMAN",
@@ -315,8 +338,11 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/ink-loop" || url.pathname === "/ink-label") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
-    if (url.pathname === "/ink-viewer") {
+    if (url.pathname === "/ink-viewer" || url.pathname === "/precise-ink-viewer") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopViewerHtml); return;
+    }
+    if (url.pathname === "/precise-ink") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(loopHtml); return;
     }
     if (url.pathname === "/action" && req.method === "POST") {
       let data = "";
@@ -327,7 +353,9 @@ const server = createServer(async (req, res) => {
         && transientFailures.delete(tab)) {
         res.writeHead(503); res.end("Injected transient network failure"); return;
       }
-      const candidates = ["X","Y"].includes(tab)
+      const candidates = ["AA","AB"].includes(tab)
+        ? [...preciseInkHandlers,preciseInkViewerHandler]
+        : ["X","Y"].includes(tab)
         ? [...inkHandlers,inkViewerHandler]
         : tab === "Z"
           ? [...labelInkHandlers,inkViewerHandler]
@@ -389,7 +417,7 @@ class CDP {
   }
   close() { this.ws.close(); }
 }
-let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab;
+let proc, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, sTab, t, u, v, w, xTab, yTab, zTab, aa, ab;
 try {
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = "http://127.0.0.1:" + server.address().port;
@@ -444,6 +472,8 @@ try {
       : route === "ink-loop" ? "/ink-loop?session="
       : route === "ink-viewer" ? "/ink-viewer?session="
       : route === "ink-label" ? "/ink-label?session="
+      : route === "precise-ink" ? "/precise-ink?session="
+      : route === "precise-ink-viewer" ? "/precise-ink-viewer?session="
       : route ? "/route?session=" : "/?session=";
     const response = await fetch(api + "/json/new?" + encodeURIComponent(
       address + path + id),
@@ -1409,7 +1439,7 @@ try {
     businessHistoryUnchanged: true
   }));
 } finally {
-  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close();
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); f?.close(); g?.close(); h?.close(); i?.close(); j?.close(); k?.close(); l?.close(); m?.close(); n?.close(); o?.close(); p?.close(); q?.close(); r?.close(); sTab?.close(); t?.close(); u?.close(); v?.close(); w?.close(); xTab?.close(); yTab?.close(); zTab?.close(); aa?.close(); ab?.close();
   if (proc && proc.exitCode === null) {
     const exited = once(proc, "exit");
     proc.kill("SIGTERM");
