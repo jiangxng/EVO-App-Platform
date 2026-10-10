@@ -17,11 +17,15 @@ import {
 
 const CHROME = process.env.CHROME;
 assert.ok(CHROME, "CHROME must be an installed Chrome/Chromium binary");
-const sizes = [{nodes:200,edges:400},{nodes:500,edges:1000}];
+const denseMode=process.env.EVO_DENSE_B8O==="1";
+const sizes = denseMode
+  ? [{nodes:300,edges:1200},{nodes:600,edges:2400}]
+  : [{nodes:200,edges:400},{nodes:500,edges:1000}];
 // Warm each size first, then interleave three independent mounts per scale.
 // Cold JS module compilation and OS scheduling distort single-shot numbers.
+const repeats=denseMode?1:3;
 const scenarios = [...sizes.map(x=>({...x,warmup:true})),
-  ...Array.from({length:3},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
+  ...Array.from({length:repeats},()=>sizes.map(x=>({...x,warmup:false}))).flat()];
 const viewWidth=1440, viewHeight=900;
 const profileDirs=[];
 const sleep=ms=>new Promise(ok=>setTimeout(ok,ms));
@@ -48,10 +52,15 @@ const makeState=(nodeCount,edgeCount)=>{
     const dst=dir%2===0
       ?(src%columns===columns-1?src-columns+1:src+1)
       :(src+columns)%nodeCount;
+    const hasLoop=denseMode && i%55===0;
     return {
-      id:"e"+i,kind:"synthetic",source:"n"+src,target:"n"+dst,
-      ...(i%4===0?{pathKind:"orthogonal",arrow:"end"}:
-        i%4===1?{pathKind:"rounded-orthogonal",arrow:"end"}:{})
+      id:"e"+i,kind:"synthetic",source:"n"+src,
+      target:"n"+(hasLoop?src:dst),
+      ...(hasLoop?{pathKind:"curve",label:"销售订单\n采购付款🧾日本語",
+        arrow:"end"}:i%4===0?{pathKind:"orthogonal",arrow:"end"}:
+        i%4===1?{pathKind:"rounded-orthogonal",arrow:"end"}:{}),
+      ...(denseMode && i%19===0 && !hasLoop
+        ? {label:"大型企业业务流程 · 订单履约与收款 · 日本語"} : {})
     };
   });
   return {contractVersion:"0.1.0",resourceId:page.resourceId,revision:1,
@@ -170,6 +179,8 @@ try{
       +'nodes:document.querySelectorAll("[data-eidos-diagram-node]").length,'
       +'edges:document.querySelectorAll("[data-eidos-diagram-edge]").length,'
       +'svg:document.querySelectorAll("svg *").length,'
+      +'inkQuality:document.querySelector("[data-eidos-diagram-ink-quality]")?.getAttribute("data-eidos-diagram-ink-quality"),'
+      +'inkIndex:document.querySelector("[data-eidos-diagram-ink-label-metrics]")?.getAttribute("data-eidos-diagram-ink-label-metrics"),'
       +'heapMB:performance.memory?performance.memory.usedJSHeapSize/1048576:null};'
       +'await new Promise(r=>setTimeout(r,60));}throw Error("P01 fixture never mounted")})()';
     let mounted;
@@ -182,6 +193,13 @@ try{
     }
     assert.equal(mounted.nodes,size.nodes);
     assert.equal(mounted.edges,size.edges);
+    if(denseMode){
+      assert.equal(mounted.inkQuality,"full",
+        "B8o full DOM dense graph should show full fidelity");
+      assert.equal(mounted.inkIndex,"browser");
+      assert.ok(mounted.svg>size.edges*2,
+        "B8o counts actual SVG DOM elements rather than virtual arrays");
+    }
     const selection=await client.eval('(()=>{'
       +'const node=document.querySelector("[data-eidos-diagram-node]");'
       +'const before=performance.now();node.click();'
@@ -222,6 +240,7 @@ try{
       dragDispatchP50Ms:duration(sorted[Math.floor(sorted.length*.5)]),
       dragDispatchP95Ms:duration(sorted[Math.floor(sorted.length*.95)]),
       svgElements:mounted.svg,
+      ...(denseMode?{inkQuality:mounted.inkQuality,labelMetrics:mounted.inkIndex}:{}),
       usedHeapMB:measured.heapMB===null?null:duration(measured.heapMB)};
     if (!size.warmup) results.push(data);
     console.log("P01_CASE="+JSON.stringify({...data,warmup:size.warmup}));
@@ -233,7 +252,7 @@ try{
   };
   const aggregated=sizes.map(size=>{
     const trials=results.filter(item=>item.nodes===size.nodes);
-    assert.equal(trials.length,3);
+    assert.equal(trials.length,repeats);
     return {
       nodes:size.nodes,edges:size.edges,samples:trials.length,
       mountMs:duration(median(trials.map(t=>t.mountMs))),
@@ -244,9 +263,11 @@ try{
       usedHeapMB:duration(median(trials.map(t=>t.usedHeapMB??0)))
     };
   });
-  console.log("P01_BROWSER_RESULT="+JSON.stringify({browser:version.Browser,
-    cases:aggregated,mode:"synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
-    warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
+  console.log((denseMode?"B8O_DENSE_BROWSER_RESULT=":"P01_BROWSER_RESULT=")
+    +JSON.stringify({browser:version.Browser,cases:aggregated,
+      mode:denseMode?"synthetic dense full DOM, 2 prewarm + 2 measured Chrome mounts":
+        "synthetic Eidos DOM, 2 prewarm + 6 interleaved trials",
+      warning:"CI-host perf only; no production SLA/physical-device FPS inference"}));
 }finally{
   client?.close();
   if(chrome&&chrome.exitCode===null){
