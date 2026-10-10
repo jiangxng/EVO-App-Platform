@@ -54,6 +54,7 @@ const issue=(subjectId,actorType='HUMAN',ttlSeconds=300)=>sessions.issue({
 const human=issue('host-authenticated-user');
 const ai=issue('host-authorized-ai','AI');
 const ungranted=issue('host-ungranted-person');
+const denied=issue('host-policy-denied-person');
 const revoked=issue('host-revoked-person');
 if(!sessions.revoke(revoked.session.sessionId,'CI_REVOKE_BEFORE_PRODUCT_REQUEST')){
  throw new Error('TR01B2D3_SESSION_REVOKE_FAILED');
@@ -63,6 +64,7 @@ const result={hostPort:4100,hostEnterpriseId:install.hostEnterpriseId,
  contextId:install.contextId,evoEnterpriseId:install.evoEnterpriseId,
  packageId:tradingFinanceOwnerProviderPackageV010.packageId,
  tokens:{human:human.token,ai:ai.token,ungranted:ungranted.token,
+  denied:denied.token,
   revoked:revoked.token,expired:expired.token}
 };
 writeFileSync(dir+'/private-fixture.json',JSON.stringify(result),{mode:0o600});
@@ -91,7 +93,8 @@ const context={contractVersion:'0.1.0',contexts:[{
 }]};
 const grants={contractVersion:'0.1.0',grants:[
   {grantId:'host-finance-human-grant',subjectId:'host-authenticated-user',contextId:install.contextId},
-  {grantId:'host-finance-ai-grant',subjectId:'host-authorized-ai',contextId:install.contextId}
+  {grantId:'host-finance-ai-grant',subjectId:'host-authorized-ai',contextId:install.contextId},
+  {grantId:'host-finance-denied-grant',subjectId:'host-policy-denied-person',contextId:install.contextId}
 ]};
 const env={
  PORT:'4100',NODE_ENV:'test',
@@ -112,7 +115,8 @@ const env={
  APP_PLATFORM_AUTHORIZATION_POLICY_JSON:JSON.stringify(policy),
  APP_PLATFORM_ENTERPRISE_CONTEXTS_JSON:JSON.stringify(context),
  APP_PLATFORM_ENTERPRISE_CONTEXT_GRANTS_JSON:JSON.stringify(grants),
- APP_PLATFORM_PUBLIC_BASE_URL:'http://localhost:4100'
+ APP_PLATFORM_PUBLIC_BASE_URL:'http://localhost:4100',
+ APP_PLATFORM_FINANCE_OWNER_CI_LOOPBACK_HTTP:'true'
 };
 writeFileSync(dir+'/private-host-env.json',JSON.stringify(env),{mode:0o600});
 if(!sessions.resolveToken(human.token)||sessions.resolveToken(revoked.token)){
