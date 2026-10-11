@@ -223,6 +223,8 @@ export interface DiagramEditorNodeV010 {
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
   observations?: DiagramObservationBadgeV010[];
+  /** Declared display issue: cannot change a business relation or editing permission. */
+  issue?: { level: "warning" | "error"; message: string };
 }
 
 export interface DiagramEditorEdgeV010 {
@@ -660,6 +662,10 @@ export function validateDiagramEditorStateV010(
       || !finite(node?.height)
       || node.width <= 0
       || node.height <= 0
+      || (node.issue !== undefined && (
+        !["warning", "error"].includes(node.issue.level)
+        || !nonEmpty(node.issue.message)
+      ))
       || (
         node.typeLabel !== undefined
         && typeof node.typeLabel !== "string"
@@ -1116,6 +1122,14 @@ export function renderDiagramEditorPageShellToHtmlV010(
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-selection-actions]{
   display:grid;
   gap:8px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-node]:hover:not(:focus-visible){
+  outline:2px solid var(--eidos-border-strong,#C9D2DC);
+  outline-offset:2px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-node]:focus-visible{
+  outline:3px dashed var(--eidos-primary,#2B6CB0);
+  outline-offset:4px;
 }
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-status]{
   min-height:18px;
@@ -3459,12 +3473,28 @@ export function mountDiagramEditorPageV010(
         badge.style.fontWeight = "400";
         element.appendChild(badge);
       }
+      if (node.issue) {
+        const issueBadge = document.createElement("span");
+        issueBadge.setAttribute("data-eidos-diagram-issue", node.issue.level);
+        issueBadge.setAttribute("aria-label",
+          (node.issue.level === "error" ? "Error: " : "Warning: ") + node.issue.message);
+        issueBadge.title = node.issue.message;
+        issueBadge.textContent = node.issue.level === "error" ? "✕ Error" : "⚠ Warning";
+        issueBadge.style.cssText = "position:absolute;right:6px;bottom:-11px;z-index:3;"
+          + "padding:1px 5px;border-radius:5px;font-size:10px;font-weight:650;"
+          + "border:1px solid var(--eidos-border-strong,#C9D2DC);"
+          + "color:var(--eidos-fg,#1F2933);background:var(--eidos-bg,#FFFFFF)";
+        element.appendChild(issueBadge);
+      }
       element.title = [
         node.label,
+        ...(node.issue ? [node.issue.level.toUpperCase() + ": " + node.issue.message] : []),
         node.detail ?? node.kind,
         ...observationText(node.observations)
       ].filter(Boolean).join("\n");
       const nodeSelected = selectedNodeIds.has(node.id) || selectedNodeId === node.id;
+      element.setAttribute("aria-pressed", String(nodeSelected));
+      element.setAttribute("data-eidos-diagram-selected", String(nodeSelected));
       const nodeFocused = !selected || selectedNodeIds.has(node.id)
         || focusedNodeIds.has(node.id);
       element.style.position = "absolute";
