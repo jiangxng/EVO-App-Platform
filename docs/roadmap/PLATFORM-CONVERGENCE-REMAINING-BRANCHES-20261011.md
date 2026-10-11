@@ -112,3 +112,18 @@
 本文件 A 部分表格原写“待安全删除”，属于**执行前的历史快照**。实际已在 [PR #740](https://github.com/jiangxng/EVO-App-Platform/pull/740) 经一次性 SHA 固定工作流合并和执行，先审计 [#38140337021](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140337021) SUCCESS，再正式执行 [#38140393664](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140393664) SUCCESS；随后逐条查实 A 部分 **16/16 Git refs 不存在**。故 A 表的“待删除”已经被本节状态 **DELETED_VERIFIED** 取代。Git 分支总量在该验证时点为 **54**，不能拿它代替独立功能待收敛数。
 
 B 部分约 14 条 TR-01 B2D3 分支（包括 #594）**完全未动、未删**。各 Agent / 2D / EOG 与 open PR head/base **完全未动、未删**。#728/#731/#736/#740 等 squash 合并头与 main 历史 diverged，不能只按 `behind_by=0` 认定可删。后续需要独立功能评估、PR CI、主线合并及安全 refs 处置，Railway 测试 SHA 保持固定。
+
+
+### 2026-10-11 剩余 14 条 TR-01 真实 compare 复查（不得按 Git 数量删除）
+
+对最新核查基线 `ab8de6d3942d2905205061e079daa0086d55fccb`，再次调用 GitHub compare(main...source)。这 14 条全部返回 `diverged`，并非 main 的祖先；主线相对其共同分叉点领先约 196 commits，旧分支各含 57–132 个自有 commits（其中许多继承同一未验收 B2D3 Host 基底）。**此处是 commit 结构事实，不代表这 57–132 个都是真正独立产品功能。**
+
+| 旧分支类型 | 分支数 | 本轮处理结论 |
+|---|---:|---|
+| Host owner #594 + 授权/admission/deployment/finance safety 派生 | 6 | 仍需严格身份/签名/租户/nonce/真实 Host 测试，不能整支覆盖 main |
+| 六插件 peer / stage | 2 | 主线 #703 + #731 已有六包及公网 synthetic 预览；旧 UI/契约差异未按文件逐项结案 |
+| TR-01 B2D3 test-only 命名的隔离/跨实例/独立 DB 验证 | 3 | compare 实际涉及 Host/Finance 代码，不能因叫 test/ 就删除 |
+| docs/ 命名的 recovery/preflight | 2 | compare 实际带 Host/Finance 代码，仍需逐文件考古与证据归档 |
+| demo/ 独立静态演示 | 1 | 只能讨论是否归档为 harness，不等同于真实用户业务 App |
+
+优先级：复核 #594 的真实安全授权边界和跨实例 proof，逐功能抽最小 PR；不能让分支清理逆转已部署给用户测试的 `89320e11` Railway pinned SHA。最近 squash 合并的 #728/#731/#736/#740 对 main 的 compare 也是 `diverged`；无论功能是否已在 main，都不能通过本次 ancestor-only 删除器误删。
