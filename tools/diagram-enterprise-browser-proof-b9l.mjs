@@ -438,6 +438,27 @@ try{
    caveat:"Chrome synthetic wheel, NOT physical trackpad or two-finger gestures"
   }));
  }finally{await wheelTab.close();}
+ // B11c: real Chrome keyboard events on the readonly Viewer cannot write.
+ const keyTab=await browser.newPage({viewport:{width:390,height:844}});
+ try{
+  await keyTab.goto(address+"/viewer",{waitUntil:"load"});
+  await keyTab.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  await keyTab.keyboard.press("Tab");
+  await keyTab.keyboard.press("Escape");
+  const k=await keyTab.evaluate(()=>({
+   errorCount:window.__errors.length,
+   saveButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
+    .filter(x=>x.textContent.trim()==="Save projection").length
+  }));
+  assert.equal(k.errorCount,0);
+  assert.equal(k.saveButtons,0);
+  assert.equal(reopened.projectionStore.getVersion(id),2,
+   "B11c keyboard-only readonly browsing cannot write CAS");
+  console.log("B11C_KEYBOARD_READONLY_RESULT="+JSON.stringify({
+   process:intake.process,tabAndEscape:true,casAfter:2,
+   caveat:"Chrome keyboard smoke, not screen reader or WCAG assessment"
+  }));
+ }finally{await keyTab.close();}
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
