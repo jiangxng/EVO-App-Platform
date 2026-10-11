@@ -2454,6 +2454,113 @@ try{
   await d04Viewer.close();
   await d04Editor.close();
 
+  // D05: two actual Chromium tabs share the same initial CAS token. One
+  // writer saves; the stale writer is rejected without discarding local edits.
+  // Explicit Save As appends a separate projection on the current Gallery.
+  const d05Writer=await browser.newPage({viewport:{width:1250,height:820}});
+  const d05Stale=await browser.newPage({viewport:{width:1250,height:820}});
+  await Promise.all([
+    d05Writer.goto(base+"/designer",{waitUntil:"load"}),
+    d05Stale.goto(base+"/designer",{waitUntil:"load"})
+  ]);
+  await Promise.all([waitReady(d05Writer),waitReady(d05Stale)]);
+  assert.equal(store.getVersion(id),5,"D05 begins with matching CAS tokens in two tabs");
+  const d05BeforeIds=new Set(store.get(id).projections.map(x=>x.projectionId));
+  const d05Loc=page=>page.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)};
+  });
+  const d05Before=await d05Loc(d05Writer);
+  assert.deepEqual(await d05Loc(d05Stale),d05Before,
+    "D05 both actual tabs must open the same persisted projection state");
+  const d05Node=d05Writer.locator('[data-eidos-diagram-node="sale"]');
+  await d05Node.click();
+  const d05Box=await d05Node.boundingBox();
+  const d05X=d05Box.x+d05Box.width/2,d05Y=d05Box.y+d05Box.height/2;
+  await d05Writer.mouse.move(d05X,d05Y);
+  await d05Writer.mouse.down({button:"left"});
+  await d05Writer.mouse.move(d05X+47,d05Y+24,{steps:8});
+  await d05Writer.mouse.up({button:"left"});
+  const d05Winning=await d05Loc(d05Writer);
+  assert.ok(Math.hypot(d05Winning.x-d05Before.x,d05Winning.y-d05Before.y)>10);
+  await d05Writer.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).click();
+  await d05Writer.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),6,"D05 first writer CAS succeeds once");
+  const d05Hit=await d05Stale.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let pct=10;pct<=90;pct+=2){
+      const p=path.getPointAtLength(len*pct/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(d05Hit);
+  await d05Stale.mouse.click(d05Hit.x,d05Hit.y);
+  await d05Stale.locator("[data-eidos-diagram-local-hide]").click();
+  assert.equal(await d05Stale.locator(selector).count(),0);
+  assert.equal(store.getVersion(id),6,"D05 stale unsaved edit cannot change server");
+  await d05Stale.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).click();
+  await d05Stale.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent
+      ?.includes("Projection changed elsewhere."),
+    {timeout:30000});
+  assert.equal(await d05Stale.locator(selector).count(),0,
+    "D05 conflict must keep the stale tab's hidden-edge local draft");
+  assert.equal(store.getVersion(id),6,
+    "D05 conflicting stale Save cannot overwrite first writer");
+  const d05PersistedWinner=await read.execute(request(READ,id),ctx);
+  assert.equal(d05PersistedWinner.ok,true);
+  assert.equal(d05PersistedWinner.result.hiddenEdgeIds?.includes(relationId)??false,false,
+    "D05 conflict never removes original business relation from saved projection");
+  assert.equal(d05PersistedWinner.result.nodes.find(x=>x.id==="sale").x,d05Winning.x,
+    "D05 original projection preserves winning node move");
+  await d05Stale.locator("[data-eidos-diagram-more-actions] summary").click();
+  await d05Stale.locator("[data-eidos-diagram-more-menu] button")
+    .filter({hasText:"Save as projection"}).click();
+  await d05Stale.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),7,"D05 explicit stale Save As performs one CAS append");
+  const d05AfterGallery=store.get(id);
+  const d05NewItems=d05AfterGallery.projections.filter(x=>!d05BeforeIds.has(x.projectionId));
+  assert.equal(d05NewItems.length,1,
+    "D05 only one new projection was added rather than overwriting a rival");
+  const d05NewProjectionId=d05NewItems[0].projectionId;
+  assert.notEqual(d05NewProjectionId,id.projectionId);
+  const d05OriginalAfter=d05AfterGallery.projections.find(x=>x.projectionId===id.projectionId);
+  assert.equal(d05OriginalAfter.view.hiddenEdgeIds?.includes(relationId)??false,false);
+  assert.ok(d05NewItems[0].view.hiddenEdgeIds?.includes(relationId),
+    "D05 newly appended projection retains the stale user's separate view");
+  const d05OriginalRead=await read.execute(request(READ,id),ctx);
+  const d05NewRead=await read.execute(request(READ,{...id,projectionId:d05NewProjectionId}),ctx);
+  assert.equal(d05OriginalRead.ok,true);
+  assert.equal(d05NewRead.ok,true);
+  assert.equal(d05OriginalRead.result.hiddenEdgeIds?.includes(relationId)??false,false);
+  assert.ok(d05NewRead.result.hiddenEdgeIds?.includes(relationId));
+  assert.equal(repo.listHistory({
+    enterpriseId:id.enterpriseId,definitionId:id.definitionId
+  }).length,1,"D05 CAS conflict and explicit Save As never revise business definition");
+  assert.deepEqual(await d05Writer.evaluate(()=>window.__errors),[]);
+  assert.deepEqual(await d05Stale.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D05",browser:"Chromium "+browser.version(),
+    twoIndependentBrowserTabs:true,staleWriteBlocked:true,
+    staleDraftPreserved:true,explicitSaveAsNew:true,
+    originalWinnerIntact:true,separateProjectionCreated:true,
+    casVersionStart:5,winner:6,saveAs:7,
+    originalBusinessDefinitionRevisionPreserved:true,
+    physicalDeviceVerified:false,formalHumanSignedCases:0
+  }));
+  await d05Stale.close();
+  await d05Writer.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
