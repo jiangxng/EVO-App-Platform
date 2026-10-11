@@ -33,6 +33,14 @@ const forbidden = Object.freeze([
   }
 ]);
 
+// Prevent a second *interpretation* authority, not just duplicate ledger writes.
+// Finance/Trading business plug-ins and Host/Providers may call governed, versioned
+// EVO runtime capabilities, but must never inspect its economic storage schema
+// to infer whether an invoice, position, allocation or cost result is valid.
+// This covers raw SQL FROM/JOIN and query-builder selectFrom(), with optional
+// schema qualification; the EVO runtime's own internal persistence code is
+// deliberately outside this repository and outside this guard's scope.
+const directEvoEconomicRead = /(?:\b(?:FROM|JOIN)\s+|\bselectFrom\s*\(\s*)(?:(?:["'`]?\w+["'`]?)\s*\.\s*)?["'`]?(?:business_data|posting_input|ledger_entry|ledger_balance|enterprise_runtime_state|position_definition|allocation_instruction|allocation_relation|allocation_run|cost_run|cost_result|valuation_policy|valuation_rule|valuation_result)["'`]?/iu;
 // Inspect module code rather than textual descriptions/comments.
 function executableSource(source) {
   return source.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/[^\n]*/gm,'');
@@ -45,6 +53,11 @@ export function inspectEvoRuntimeSingleOwnerV010(files) {
       if (entry.pattern.test(src)) {
         errors.push('EVO_SINGLE_OWNER_VIOLATION: '+path+': '+entry.reason);
       }
+    }
+    if (directEvoEconomicRead.test(src)) {
+      errors.push('EVO_RUNTIME_SEMANTIC_AUTHORITY_VIOLATION: '+path
+        + ': direct read of EVO economic storage; use a governed EVO runtime'
+        + ' interpretation/result contract instead');
     }
   }
   return errors;
