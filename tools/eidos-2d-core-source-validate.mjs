@@ -18,10 +18,10 @@ required(component?.publicEntrypoint === "src/2d/index.ts","Wrong Eidos 2D publi
 required(component?.sourcePublicEntrypointBlob === "d35b0f2fd6631b1c14ea540f27984a5f2cf0e419","Wrong Eidos public entrypoint provenance.");
 required(manifest.sourceCommit !== component?.sourceCommit,"Broad Eidos snapshot must not falsely claim the newer scoped sync.");
 function gitBlobSha(bytes) {
-  return createHash("sha1").update(Buffer.from("blob " + bytes.length + "\\0".replace("\\\\0","\\0"))).update(bytes).digest("hex");
+  return createHash("sha1").update("blob " + bytes.length).update(Buffer.from([0])).update(bytes).digest("hex");
 }
 const expected = component?.upstreamFileBlobs ?? {};
-const overlays = new Map((component?.hostOverlays ?? []).map(p=>[p.path.replace(/^src\\/diagram\\//,""),p]));
+const overlays = new Map((component?.hostOverlays ?? []).map(p=>[p.path.replace("src/diagram/",""),p]));
 const diagramRoot = join(root,"vendor/eidos/src/diagram");
 const actual = readdirSync(diagramRoot).filter(f => f.endsWith(".ts")).sort();
 required(JSON.stringify(actual) === JSON.stringify(Object.keys(expected).sort()),"Unexpected or missing diagram source files.");
