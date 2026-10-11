@@ -3977,6 +3977,8 @@ export function mountDiagramEditorPageV010(
           selectionInspection = undefined;
           selectionReadGeneration += 1;
           suppressNextCanvasClick = true;
+          // M01: selecting via marquee must not re-fit when the inspector opens.
+          followsFitToCanvas = false;
           render();
           canvas.focus({ preventScroll: true });
           window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
