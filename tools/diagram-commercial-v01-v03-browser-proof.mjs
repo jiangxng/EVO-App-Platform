@@ -851,11 +851,26 @@ try{
   assert.ok(Math.abs(t04Cancelled.nodeX-t04Before.nodeX)<.001
     &&Math.abs(t04Cancelled.nodeY-t04Before.nodeY)<.001,
     "T04 adding a second finger must immediately roll back pending node coordinates");
-  await t04Cdp.send("Input.dispatchTouchEvent",{
+  await t04Tab.evaluate(()=>{
+    window.__t04EventTrace=[];
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    for(const name of ["pointerdown","pointermove","pointercancel","pointerup"]){
+      canvas.addEventListener(name,e=>window.__t04EventTrace.push({
+        name,pointerId:e.pointerId,target:e.target.getAttribute?.("data-eidos-diagram-node"),
+        x:e.clientX,y:e.clientY,pointerType:e.pointerType
+      }),true);
+    }
+  });
+  for(let i=1;i<=5;i++)await t04Cdp.send("Input.dispatchTouchEvent",{
     type:"touchMove",touchPoints:[
-      t04A(t04AX-4,t04AY-4),t04B(t04X+180,t04Y+80)]
+      t04A(t04AX-i*4,t04AY-i*2),
+      t04B(t04X+150+i*18,t04Y+62+i*9)]
   });
   const t04Pinch=await t04Snap();
+  console.log("T04_GESTURE_DIAGNOSTIC="+JSON.stringify({
+    before:t04Before,during:t04During,cancelled:t04Cancelled,
+    pinch:t04Pinch,events:await t04Tab.evaluate(()=>window.__t04EventTrace)
+  }));
   await t04Cdp.send("Input.dispatchTouchEvent",{
     type:"touchEnd",touchPoints:[]
   });
