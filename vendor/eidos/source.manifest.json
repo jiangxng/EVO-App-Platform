@@ -135,9 +135,9 @@
         {
           "path": "src/diagram/surface.ts",
           "upstreamBlob": "5e84b31995df4024c68309ee918b9700ca2952b2",
-          "vendoredBlob": "4464c508087aeaec3bd322b470e2c1a9eaaf6adf",
+          "vendoredBlob": "7fc52f7424390d4c2a38fbb134d79d726f8a0a9d",
           "owner": "EVO-App-Platform",
-          "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync. V04 narrow forward-port of Eidos Draft PR #161 adds a non-scaling transparent hit stroke; main 3fde... remains the pinned upstream baseline until the Eidos owner merges and repins the component."
+          "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync. V04 narrow forward-port of Eidos Draft PR #161 adds a non-scaling transparent hit stroke; main 3fde... remains the pinned upstream baseline until the Eidos owner merges and repins the component. Following native Chromium 154 failure at 10% (#38113595572), the forward-port uses an inherited CSS world-stroke compensation variable rather than SVG vector-effect for hit-testing."
         }
       ],
       "status": "SCOPED_PIN_WITH_EXPLICIT_HOST_OVERLAY",
