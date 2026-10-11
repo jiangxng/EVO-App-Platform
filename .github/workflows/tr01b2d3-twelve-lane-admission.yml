@@ -1,0 +1,84 @@
+name: TR01B2D3 Twelve Lane Production Pre-admission
+
+on:
+  pull_request:
+    paths:
+      - "tools/tr01b2d3-twelve-lane-admission.mjs"
+      - "tools/tr01b2d3-six-lane-admission.mjs"
+      - "tools/tr01b2d3-private-tls-probe.mjs"
+      - "tests/protocol/tr01b2d3-twelve-lane-admission.test.mjs"
+      - "tests/protocol/tr01b2d3-six-lane-admission.test.mjs"
+      - "tests/protocol/tr01b2d3-private-tls-probe.test.mjs"
+      - "tests/fixtures/tr01b2d3-railway-production-readonly-observed-20261011.json"
+      - "docs/roadmap/TR01B2D3-TWELVE-LANE-PREADMISSION-20261011.md"
+      - ".github/workflows/tr01b2d3-twelve-lane-admission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: b2d3-twelve-lane-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  security-lane:
+    name: ${{ matrix.id }} / isolated security guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        id:
+          - PRIVATE_TLS
+          - MIGRATION
+          - OIDC_SESSION
+          - KEY_CUSTODY
+          - MULTI_INSTANCE
+          - RELEASE_ROLLBACK
+          - WORKLOAD_ISOLATION
+          - TENANT_AUTHZ
+          - BUILD_PROVENANCE
+          - AUDIT_PRIVACY
+          - BACKUP_RECOVERY
+          - INCIDENT_OBSERVABILITY
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+      - name: Test assigned engineering lane and negative cases
+        run: |
+          node --test --test-name-pattern="${{ matrix.id }}" \
+            tests/protocol/tr01b2d3-six-lane-admission.test.mjs \
+            tests/protocol/tr01b2d3-private-tls-probe.test.mjs \
+            tests/protocol/tr01b2d3-twelve-lane-admission.test.mjs
+      - name: Reproduce authorized read-only production blockers, never claim certification
+        run: |
+          set +e
+          node tools/tr01b2d3-twelve-lane-admission.mjs \
+            tests/fixtures/tr01b2d3-railway-production-readonly-observed-20261011.json \
+            > /tmp/b2d3-twelve-lanes.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -q '"status":"BLOCKED"' /tmp/b2d3-twelve-lanes.json
+          grep -q '"productionCertification":"NOT_CERTIFIED"' /tmp/b2d3-twelve-lanes.json
+          grep -q '"deploymentAuthorized":false' /tmp/b2d3-twelve-lanes.json
+          grep -q '"executionAllowed":false' /tmp/b2d3-twelve-lanes.json
+          grep -q 'WORKLOAD_ISOLATION:SEPARATE_HOST_OWNER_EVO_SERVICES_MISSING' /tmp/b2d3-twelve-lanes.json
+          grep -q 'MIGRATION:EVO_AUTO_MIGRATION_NOT_ISOLATED' /tmp/b2d3-twelve-lanes.json
+          echo "TR01B2D3_${{ matrix.id }}_FAIL_CLOSED_GATE=PASS"
+
+  aggregate:
+    name: Twelve lane gates must all succeed
+    if: always()
+    needs: security-lane
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix lane green
+        env:
+          ALL_LANES_RESULT: ${{ needs.security-lane.result }}
+        run: |
+          test "$ALL_LANES_RESULT" = "success"
+          echo "TR01B2D3_12_LANE_CI_MATRIX=PASS; PRODUCTION=NOT_CERTIFIED"

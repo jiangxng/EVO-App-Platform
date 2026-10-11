@@ -127,3 +127,41 @@
 | 并行窗口隔离 | 2D Designer PR #590/#586 等、Agent PR #579/#577 等 | 独立新分支，绝不更改相关源、权威状态或 merge 他们的 PR |
 
 **本交接只记录已查事实与已作判断，不自行替用户决定未研究透彻的认证协议，也不作为 B2D3 实施完成的证据。**
+
+## 2026-10-10 增量决策：TR-01B2D3 可信委托实施候选
+
+**此前 D11 原始待选状态仍然如实保留。**新的增量定向查阅了 RFC 8725 的算法/发行者/受众/类型检查与 RFC 9864 的 `Ed25519`（旧 polymorphic `EdDSA` 已被标为 deprecated）。候选方案采用短效 45 秒、专用 audience/typ/purpose 的 Ed25519 JWS 由受信 Host 签发；EVO plugin owner 根据管理员信任配置锁定 issuer、kid、安装 ID、Host Enterprise/Context→EVO Tenant，结合 PostgreSQL 唯一 nonce 防重放后才能调用原只读 verifier。**这是项目工程选择，不等同 RFC 强制要求这个具体架构。**
+
+从各自最新 main 独立创建草稿 [EVO #108](https://github.com/jiangxng/EVO/pull/108) 和 [App Platform #594](https://github.com/jiangxng/EVO-App-Platform/pull/594)，保留所有已经确认的 B2D1/2 原始 facts、policy/valuation pins 和无财务写入断言。来源事实、替代方案（mTLS/HMAC/自声明 actor/进程内适配）、候选实现和仍需验证的 Host 实际 Session+安装 Provider+Secrets、TLS/轮换/撤销/nonce 保留、执行时 TOCTOU 详见 [B2D3 文档](TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md)。
+
+**进度限制：**草稿 PR/测试脚本不是真实 CI PASS；B2D3 仍为 OPEN，B2D4/B2E 尚未启动，不得修改 `project.status.json` 或手编自动生成 HANDOFF。两条并行 2D Designer / Agent 任务不在本分支范围内。
+
+
+### 2026-10-10 subsequent owner/provider installation gate candidate
+
+The App Platform owner verifier is now represented by a dedicated optional `PLATFORM_PROVIDER` package in `providers/trading-finance-owner/package.ts`, resolved using existing installation/enablement and Provider binding policy. `manager/server.ts` additionally contains a real request-bound **managed** Session-only read-only Host ingress (never compatibility/static identity, no Agent or Workbench tool), server-resolved context scope and owner mapping, B2D1 per-resource authorization, and Host SecretsProvider-backed Ed25519 signing. This code is on the same unmerged #594 draft. It is **not** a new source of EVO financial truth; EVO owner remains the separate B2D2 read-only database verifier behind #108's cryptographic boundary. No new `executionAllowed:true` operation.
+
+Observed latest EVO CI 27/27 success and App Platform integration/quality workflows 38/38 success, including genuine signed HTTP/PostgreSQL original-facts test. A real *product Host* request with fully issued/revoked managed session, installed/disabled Provider and installed Secrets has **not** been certified. Keep B2D3 OPEN, next proof must target this missing path plus revoke/rotate and TLS; retain separate B2D4 finance execution and B2E Sales Human/Agent/Workbench admission.
+
+### B2D3 actual Host product request proof (new verified CI evidence)
+
+The previous open gap “we only injected a synthetic `PlatformRequestContext`” has now been **closed for isolated CI**: [run #38023569941](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38023569941), app implementation commit `a927a1a4b3118876ed62d5b28d50a6fd86933a42`. A real App Platform HTTP server resolves issued/persisted Host Managed Sessions, selected Enterprise Context grants, explicit per-resource Host policy, and an installed/enabled `evo-trading-finance-owner-provider` via the platform's actual lifecycle. The Ed25519 signing secret is read from the AES-256-GCM Host SecretsProvider. The independent EVO Fastify/PostgreSQL owner checks the exact original Sales/Shipment/Cash and policy-version pins; three startup phases **active→disabled Provider→re-enabled but missing protected key** all logged PASS, and unauthorized/expired/revoked sessions and caller-supplied identities were denied. Read-only economics and instructions did not change, `executionAllowed:false` throughout.
+
+**Still open rather than silently admitted:** real external OIDC issuance, production TLS ingress/service identity, in-service dynamic operator key revocation/rotation with credible audit evidence, and multi-replica behaviour are not certified. This is a bounded CI proof, not B2D4 execution or B2E Agent/Workbench. New detailed handoff at [TR01B2D3-INSTALLED-HOST-MANAGED-SESSION-CI-20261010.md](TR01B2D3-INSTALLED-HOST-MANAGED-SESSION-CI-20261010.md). Do not mark `project.status.json` closed on isolated CI alone.
+
+### 2026-10-10 B2D3 live operator-key trust decision (read-only)
+
+Adopt explicit `EVO_FINANCE_TRUST_AUTHORITY=POSTGRES` for runtime-varying signer trust, with a row lock through one-use nonce admission and **no** fallback to startup JSON. Preserve backward-compatibility STARTUP mode but label **not dynamically revocable**. An out-of-band CLI may grant distinct public key IDs or irrevocably revoke keys, with database-enforced append-only operator audit. Actual original Sales→EVO signed HTTP Host Session workflow followed by no-restart signer rotation [#38025050327](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38025050327) **PASS**; four GRANT/REVOKE records and financial digest invariants verified. Initial CI #38024898986 **FAILED** from over-escaped JWT locator regex, fixed at EVO `4ac6103` before passing. [Detailed proof and precise limits](TR01B2D3-LIVE-POSTGRES-KEY-ROTATION-20261010.md). Production OIDC/TLS, multi-replica operations and finance write admission remain open; `project.status.json` unchanged.
+
+### TR-01B2D3 parallel OIDC and TLS certification, 2026-10-10
+
+The user-directed increased pace resulted in **two separate end-to-end gates in the same existing original Sales→EVO cross-project CI**. [Live CI #38026113772](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38026113772) **PASS**: (A) installed Generic OIDC provider, external-style independently serving disposable IdP, Authorization Code + PKCE S256, signed RS256 ID Token, issuer/audience/nonce proof and rejection, real Host callback and HttpOnly cookie, actual original EVO read-only finance with denied replay and logout; (B) live Host→local HTTPS ingress→EVO Owner, trusted SAN localhost certificate accepted, invalid hostname and unknown root denied *before* EVO nonce consumption. No finance writes; existing signer revoke/rotate CI still PASS. [Research/engineering handoff with exact CI scopes](TR01B2D3-PARALLEL-OIDC-TLS-CERTIFICATION-20261010.md).
+
+**Fact and judgment separation:** the OIDC protocol and TLS handshake are **actual process-backed CI facts**. The OIDC provider and TLS ingress in this proof are **ephemeral local test doubles**, not an authenticated Google tenant, published domain/CA, production service mTLS or an audited real deployment. The accepted choice is a fail-closed protocol/TLS gate, **not** production trust admission. Remaining: real OIDC tenant and live membership, publicly deployed HTTPS identity, Host signer online key-ID rotation, operational DB role separation/replicas. B2D3 production remains OPEN; B2D4/B2E and project authority untouched.
+
+### 2026-10-10 B2D3 next two validated security slices
+
+1. **Live Host signer rollover (bounded CI PASS):** [run #38049355866](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38049355866) exercises per-request atomic owner-readable key-id pointer `APP_PLATFORM_FINANCE_OWNER_ACTIVE_KEY_ID_FILE` and preprovisioned encrypted key-ID-specific private keys; no Host/EVO restart, no fallback to startup key if pointer permissions/contents missing or key revoked by Postgres, finance read-only throughout. Operator-side durable/change-ticket audit for pointer file is **not** implemented, hence no production readiness claim.
+2. **DB-role grant separation (bounded CI PASS):** same run shows runtime role SELECT-only signer trust and nonce privilege cannot mutate trust/audit or CostRun, and distinct operator role can grant/revoke with audit but cannot insert CostRun. The actual deployed EVO API DB credential was **not** switched; production least-privilege credentials remain an open gate.
+
+[Detailed implementation and evidence](TR01B2D3-HOST-HOT-SIGNER-AND-DB-ROLES-20261010.md) continues rather than replaces earlier [OIDC+TLS](TR01B2D3-PARALLEL-OIDC-TLS-CERTIFICATION-20261010.md), [EVO Postgres live trust](TR01B2D3-LIVE-POSTGRES-KEY-ROTATION-20261010.md), B2D1/2D2 and prior research. Neither evidence authorizes `project.status.json` closure, financial execution (B2D4) or Finance Human/Agent/Workbench (B2E).

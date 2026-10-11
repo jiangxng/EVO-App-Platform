@@ -1,0 +1,55 @@
+name: TR01B Four Peer Plugins Eidos Stage
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-stage/**"
+      - "apps/trading-stage-sales/**"
+      - "apps/trading-stage-shipment/**"
+      - "apps/trading-stage-receivable/**"
+      - "apps/trading-stage-cash/**"
+      - "catalog/seed.ts"
+      - "manager/server.ts"
+      - "tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs"
+      - "docs/roadmap/TR01B2D3-FOUR-PEER-PLUGIN-STAGE-DEMO-20261011.md"
+      - ".github/workflows/tr01b2d3-four-peer-stage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-native-eidos:
+    name: Native package lifecycle and Eidos Experience
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_PLATFORM_STAGE_MODE: isolated-preview
+      APP_PLATFORM_TR01B_STAGE_DEMO: enabled
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Four independent installed packages, Eidos surfaces, disable and restore
+        run: node --test tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs
+      - name: Ordinary Host has ZERO synthetic stage assets by default
+        run: |
+          env -u APP_PLATFORM_STAGE_MODE -u APP_PLATFORM_TR01B_STAGE_DEMO \
+            node --input-type=module -e "import {tradingStageExperienceAssetsV010} from './dist/catalog/seed.js'; if(tradingStageExperienceAssetsV010.size !== 0) process.exit(1); console.log('STAGE_DEMO_DEFAULT_OFF=PASS');"
+      - name: Real App Platform Eidos plugin platform integration
+        run: node --test tests/integration/app-platform-eidos-plugin-platform.test.mjs
+      - name: Eidos language + Experience architecture gates
+        run: |
+          node tools/eidos-design-language-validate.mjs
+          node tools/eidos-experience-architecture-validate.mjs
+      - name: No money mutation / no special production admission
+        run: |
+          set -e
+          ! grep -REiq 'app-platform/finance-write|finance\\.execute|enableCostWrite|enableAllocationWrite' \
+            apps/trading-stage apps/trading-stage-sales apps/trading-stage-shipment \
+            apps/trading-stage-receivable apps/trading-stage-cash
+          echo "FOUR_NATIVE_PLUGINS_DEMO_ONLY=PASS"

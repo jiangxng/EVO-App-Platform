@@ -11,6 +11,25 @@ on:
       - "tools/certify-tr01b2b-cost-replay-after-sales.mjs"
       - "tools/certify-tr01b2c-formal-settlement-after-cost.mjs"
       - "tools/certify-tr01b2d2-owner-finance-fact-pin.mjs"
+      - "tools/certify-tr01b2d3-trusted-owner-delegation.mjs"
+      - "tools/certify-tr01b2d3-hot-trust-rotation.mjs"
+      - "apps/trading-reference/finance-owner-key-pointer.ts"
+      - "tools/certify-tr01b2d3-postgres-role-separation.mjs"
+      - "tools/certify-tr01b2d3-distinct-db-logins.mjs"
+      - "tools/tr01b2d3-finance-owner-catalog-preflight.mjs"
+      - "tests/protocol/tr01b2d3-finance-owner-preflight.test.mjs"
+      - "tools/certify-tr01b2d3-cross-instance-races.mjs"
+      - "tools/certify-tr01b2d3-host-hot-signing-key.mjs"
+      - "tools/certify-tr01b2d3-oidc-login-owner.mjs"
+      - "tools/certify-tr01b2d3-host-https-identity.mjs"
+      - "tools/create-tr01b2d3-installed-host-ci.mjs"
+      - "tools/run-tr01b2d3-installed-host-ci.mjs"
+      - "tools/certify-tr01b2d3-installed-host-session.mjs"
+      - "providers/trading-finance-owner/**"
+      - "manager/server.ts"
+      - "tools/create-tr01b2d3-ci-keys.mjs"
+      - "apps/trading-reference/finance-owner-remote.ts"
+      - "apps/trading-reference/finance-intent-admission.ts"
       - ".github/workflows/cross-project-tr01b-sales-evo-postgres.yml"
   push:
     branches: [main]
@@ -36,7 +55,7 @@ concurrency:
 env:
   NODE_VERSION: "24.20.0"
   DATABASE_URL: postgres://evo:evo@localhost:5432/evo
-  EVO_CERTIFIED_COMMIT: d5ce051325c4572c7a5fd713560d7d7d06e4b401
+  EVO_CERTIFIED_COMMIT: 97c7a7233ee9cafd2ca17aeb3638979815d331dd
   EVO_BASE_URL: http://127.0.0.1:3000
   EVO_ENTERPRISE_CODE: EVO_DEMO
   NODE_ENV: test
@@ -90,12 +109,23 @@ jobs:
           npm run seed:demo
           npm run build
 
+      - name: Prepare ephemeral Host owner trust bound to original EVO PostgreSQL enterprise
+        run: |
+          set -euo pipefail
+          node tools/create-tr01b2d3-ci-keys.mjs
+
+      - name: Operator grant initial ephemeral public signing key into durable EVO PostgreSQL trust
+        working-directory: evo
+        run: |
+          set -euo pipefail
+          node dist/scripts/finance-trust-operator.js grant /tmp/tr01b2d3-evo-public-key.json ci-finance-security-operator CI-INITIAL-ADMISSION
+
       - name: Start EVO API and Worker
         run: |
           set -euo pipefail
           (
             cd evo
-            HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
+            EVO_FINANCE_TRUST_AUTHORITY=POSTGRES HOST=0.0.0.0 PORT=3000 node dist/apps/api/src/main.js > /tmp/tr01b-evo-api.log 2>&1 &
             echo $! > /tmp/tr01b-evo-api.pid
             WORKER_POLL_INTERVAL_MS=100 node dist/apps/worker/src/main.js > /tmp/tr01b-evo-worker.log 2>&1 &
             echo $! > /tmp/tr01b-evo-worker.pid
@@ -134,6 +164,61 @@ jobs:
           set -euo pipefail
           node tools/certify-tr01b2d2-owner-finance-fact-pin.mjs | tee /tmp/tr01b2d2-owner-proof.log
           grep -q 'TR01B2D2_OWNER_FINANCE_FACT_PIN_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d2-owner-proof.log
+
+      - name: Certify authenticated one-use Host -> EVO owner real HTTP + PostgreSQL read-only delegation
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-trusted-owner-delegation.mjs | tee /tmp/tr01b2d3-authenticated-proof.log
+          grep -q 'TR01B2D3_HOST_EVO_SIGNED_HTTP_POSTGRESQL_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-authenticated-proof.log
+
+      - name: Certify actual Host Managed Session and installed/disabled owner provider through Host HTTP
+        run: |
+          set -euo pipefail
+          node tools/create-tr01b2d3-installed-host-ci.mjs
+          node tools/run-tr01b2d3-installed-host-ci.mjs | tee /tmp/tr01b2d3-host-installed-proof.log
+          grep -q 'TR01B2D3_HOST_PRODUCT_ALL_THREE_PHASES=PASS' /tmp/tr01b2d3-host-installed-proof.log
+
+      - name: Certify real Generic OIDC login PKCE RS256 Host managed cookie to original EVO finance read-only
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-oidc-login-owner.mjs | tee /tmp/tr01b2d3-oidc-host-proof.log
+          grep -q 'TR01B2D3_EXTERNAL_STYLE_OIDC_TO_REAL_FINANCE_HOST_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-oidc-host-proof.log
+
+      - name: Certify real Host to EVO HTTPS TLS certificate chain and hostname verification
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-host-https-identity.mjs | tee /tmp/tr01b2d3-host-tls-proof.log
+          grep -q 'TR01B2D3_HOST_HTTPS_TLS_IDENTITY_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-host-tls-proof.log
+
+      - name: Certify live PostgreSQL signing key revoke-rotate-grant with immutable audit
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-hot-trust-rotation.mjs | tee /tmp/tr01b2d3-hot-key-proof.log
+          grep -q 'TR01B2D3_LIVE_POSTGRES_SIGNER_ROTATION_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-hot-key-proof.log
+
+      - name: Certify Host in-process no-restart signing key rollover against original EVO PostgreSQL
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-host-hot-signing-key.mjs | tee /tmp/tr01b2d3-host-hot-key.log
+          grep -q 'TR01B2D3_HOST_NO_RESTART_SIGNING_KEY_ROTATION_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-host-hot-key.log
+
+      - name: Certify independent PostgreSQL runtime versus operator trust roles
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-postgres-role-separation.mjs | tee /tmp/tr01b2d3-postgres-roles.log
+          grep -q 'TR01B2D3_FINANCE_POSTGRES_ROLE_SEPARATION_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-postgres-roles.log
+
+      - name: Certify actual distinct PostgreSQL LOGIN accounts on live signed EVO owner HTTP
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-distinct-db-logins.mjs | tee /tmp/tr01b2d3-distinct-db-logins.log
+          grep -q 'TR01B2D3_DISTINCT_DATABASE_LOGINS_LIVE_OWNER_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-distinct-db-logins.log
+
+      - name: Certify concurrent one-use assertions and revoked-key ordering across two EVO processes
+        run: |
+          set -euo pipefail
+          node tools/certify-tr01b2d3-cross-instance-races.mjs | tee /tmp/tr01b2d3-cross-instance-races.log
+          grep -q 'TR01B2D3_TWO_EVO_CONCURRENT_NONCE_REVOKE_PROOF=.*"status":"PASS"' /tmp/tr01b2d3-cross-instance-races.log
 
       - name: Show EVO logs on failure
         if: failure()
