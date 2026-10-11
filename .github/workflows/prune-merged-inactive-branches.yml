@@ -1,0 +1,95 @@
+name: Prune merged inactive branches safely
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/prune-merged-inactive-branches.yml
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only report deletion candidates
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: repo-prune-merged-branches
+  cancel-in-progress: false
+
+jobs:
+  guarded-prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify ancestry and retain all open-PR branches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo} = context.repo;
+            const fullName = owner + '/' + repo;
+            const dryRun = context.eventName === 'workflow_dispatch'
+              && context.payload.inputs?.dry_run !== 'false';
+            const main = await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            const mainSha = main.data.commit.sha;
+            const open = await github.paginate(github.rest.pulls.list, {
+              owner,repo,state:'open',per_page:100
+            });
+            const referenced = new Set(['main']);
+            for (const pr of open) {
+              referenced.add(pr.base.ref);
+              if (pr.head.repo?.full_name === fullName) referenced.add(pr.head.ref);
+            }
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,repo,per_page:100
+            });
+            const report = {scanned:0,removed:[],protected:[],notMerged:[],failed:[],dryRun};
+            for (const branch of branches) {
+              report.scanned++;
+              const name=branch.name;
+              if (branch.protected || referenced.has(name) ||
+                  /^(?:agent\/|eog\/|docs\/personal-agent|feat\/diagram-|docs\/diagram-|feat\/eog-|chore\/diagram-)/u.test(name) ||
+                  /^(?:release\/|production\/|staging\/|deploy\/)/u.test(name)) {
+                report.protected.push(name); continue;
+              }
+              try {
+                const comparison = await github.rest.repos.compareCommits({
+                  owner,repo,base:mainSha,head:branch.commit.sha
+                });
+                if (comparison.data.ahead_by !== 0) {
+                  report.notMerged.push(name);continue;
+                }
+                if (dryRun) { report.removed.push('DRY_RUN: '+name); continue; }
+                // Race protection: only delete the branch if it still points at
+                // the verified SHA and no new PR claimed it since the scan.
+                const latest = await github.rest.repos.getBranch({owner,repo,branch:name});
+                if (latest.data.commit.sha !== branch.commit.sha) {
+                  report.failed.push({branch:name,reason:'branch moved'});continue;
+                }
+                const latestPRs=await github.rest.pulls.list({
+                  owner,repo,head:owner+':'+name,state:'open',per_page:100
+                });
+                if (latestPRs.data.length) {
+                  report.protected.push(name);continue;
+                }
+                await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+                report.removed.push(name);
+              } catch (error) {
+                report.failed.push({branch:name,reason:String(error.message||error)});
+              }
+            }
+            core.info(JSON.stringify(report,null,2));
+            await core.summary.addHeading('Verified main-merged inactive branch cleanup')
+              .addRaw('Main commit: '+mainSha+'\n')
+              .addRaw('Scanned: '+report.scanned+'; deleted/candidates: '+
+                report.removed.length+'; skipped active/protected: '+
+                report.protected.length+'; unmerged: '+
+                report.notMerged.length+'; failures: '+
+                report.failed.length+'; dryRun: '+dryRun+'\n')
+              .addCodeBlock(JSON.stringify(report,null,2),'json').write();
+            if (report.failed.length) core.setFailed(
+              'Some branches could not be verified or deleted; see report.');
