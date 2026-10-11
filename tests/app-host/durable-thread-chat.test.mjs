@@ -29,7 +29,8 @@ function request(message = "hello") {
       conversationHistory: [{
         role: "assistant",
         content: "browser-local history must not be authoritative"
-      }]
+      }],
+      clientTurnId: "client-turn:test"
     },
     sourceInteractionId: "enterprise-agent.home",
     actionId: "chat.send",
@@ -123,6 +124,7 @@ test("thread-backed Chat resolves Host thread, sends one turn and auto-resumes t
         case "enterprise-agent.thread.send":
           assert.equal(value.values.threadId, "conversation-thread:1");
           assert.equal(value.values.message, "hello");
+          assert.equal(value.values.clientTurnId, "client-turn:test");
           assert.equal("conversationHistory" in value.values, false);
           return {
             ok: true,

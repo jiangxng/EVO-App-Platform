@@ -9,12 +9,66 @@ export const APP_PLATFORM_EXPERIENCE_ARCHITECTURE_AUTHORITY_V010 = {
   eidosRuntimeLocalizationCommit: "05fa28cfa2b1019fa22c9811eaf06d3278d344af",
   eidosSettingsJourneyCommit: "c6fb8bb99541dbda5d5e4957fdebac069299e573",
   eidosChatMarkdownCommit: "2b0fc5aa80d1cacf6277535e715a3b9e6efb0e3f",
+  eidosCatalogBrowserDesignLanguageCommit:
+    "7bf486cd6770f141e62d23a878bfde687751653d",
   eidosPolicyVersion: "0.1.0",
   constitution: "Eidos Experience Architecture Constitution v0.1",
   baselineExpansionRequiresHumanApproval: true
 } as const;
 
 export const appPlatformExperienceArchitectureV010: ExperienceArchitectureDescriptorV010[] = [
+  {
+    contractVersion: "0.1.0",
+    experienceId: "evo-template-store",
+    maturity: "candidate",
+    archetype: "collection",
+    taskMode: "exploration",
+    goal: "Discover, preview and copy reusable templates into Enterprise Context",
+    subject: "shared-template",
+    journey: {
+      goal: "Evaluate a shared template and optionally create an independent enterprise-owned copy",
+      entry: ["/templates"],
+      prerequisites: ["Template Store plugin active"],
+      states: ["browsing", "previewing", "copied"],
+      currentState: "browsing",
+      completionStates: ["copied"],
+      nextDestinations: ["/templates"],
+      resumable: true,
+      recoveryActions: [
+        "retry-copy",
+        "return-to-template-store",
+        "install-2d-viewer"
+      ]
+    },
+    actions: [
+      {
+        id: "preview-2d",
+        label: "Preview",
+        determinism: "deterministic",
+        frequency: "frequent",
+        surface: "direct",
+        availableInStates: ["browsing"]
+      },
+      {
+        id: "copy",
+        label: "Use template",
+        determinism: "deterministic",
+        frequency: "occasional",
+        surface: "direct",
+        primary: true,
+        availableInStates: ["browsing"]
+      }
+    ],
+    agent: { enabled: false },
+    quality: {
+      systemStringsLocalized: true,
+      machineValuesSeparatedFromHumanCopy: true,
+      keyboardOperable: true,
+      responsive: true,
+      recoveryDefined: true,
+      designLanguageCompliant: true
+    }
+  },
   {
     contractVersion: "0.1.0",
     experienceId: "evo-enterprise-context-governance",

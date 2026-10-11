@@ -6,9 +6,14 @@ import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010
 } from "../../dist/contracts/enterprise-application-runtime-binding.js";
 import {
+  APPLICATION_RUNTIME_BINDING_FEATURE_ID,
+  APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
 } from "../../dist/providers/application-runtime-binding/package.js";
+import { createPackageCatalog } from "../../dist/catalog/catalog.js";
+import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import { createAppManagerService } from "../../dist/manager/service.js";
 import {
   createEnterpriseApplicationRuntimeBindingProviderV010
 } from "../../dist/providers/application-runtime-binding/runtime.js";
@@ -77,7 +82,7 @@ test("Host Runtime Binding consumers resolve through installed provider descript
   );
 });
 
-test("legacy configured bindings trigger package migration without making the package default-on", async () => {
+test("legacy configured bindings trigger package migration and activate the installed provider", async () => {
   const server = await readFile("manager/server.ts", "utf8");
   assert.equal(
     server.includes("applicationRuntimeBindingStore.snapshot().bindings.length > 0"),
@@ -89,6 +94,52 @@ test("legacy configured bindings trigger package migration without making the pa
   );
   assert.equal(
     applicationRuntimeBindingProviderPackage.features[0]?.defaultActivation,
+    true
+  );
+});
+
+
+test("legacy installed-but-inactive Runtime Binding package is repairable by enable", () => {
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({
+    packageId: APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
+    version: "0.1.0",
+    installedAt: "2026-10-02T00:00:00.000Z",
+    trustApproved: true,
+    grantedPermissions: []
+  });
+
+  const manager = createAppManagerService(
+    createPackageCatalog([applicationRuntimeBindingProviderPackage]),
+    store,
+    () => new Date("2026-10-03T12:30:00.000Z")
+  );
+
+  assert.equal(
+    manager.getSnapshot().activeFeatures.some(
+      item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
+    ),
     false
+  );
+
+  manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+
+  assert.equal(
+    manager.getSnapshot().activeFeatures.some(
+      item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
+    ),
+    true
+  );
+});
+
+test("Host bootstrap repairs installed-but-inactive Runtime Binding state", async () => {
+  const server = await readFile("manager/server.ts", "utf8");
+  assert.equal(
+    server.includes("item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID"),
+    true
+  );
+  assert.equal(
+    server.includes("manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID)"),
+    true
   );
 });

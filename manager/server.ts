@@ -6,6 +6,17 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
+import {
+  createMemoryDefinitionProjectionSessionStoreV010,
+  DEFINITION_2D_EDITOR_ROUTE_V010,
+  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  definition2dPreviewRouteV010,
+  parseDefinitionProjectionRouteV010
+} from "../contracts/definition-projection.js";
+import {
+  createMemoryCurrent2dEditorSessionStoreV010
+} from "../contracts/current-2d-editor.js";
 import {
   createEncryptedFileSecretStoreV010,
   createMemorySecretStoreV010
@@ -43,6 +54,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import {
   createTradingLiteEvoActionHandler,
@@ -69,14 +81,37 @@ import {
   createMemoryConversationThreadEventStoreV010
 } from "./conversation-thread-store.js";
 import {
+  createPostgresConversationAuthorityV010,
+  type PostgresConversationAuthorityV010
+} from "./conversation-postgres-store.js";
+import {
+  createMirroredConversationThreadStoreV010
+} from "./conversation-mirror-store.js";
+import {
+  createPostgresConversationContextArtifactStoreV010
+} from "./conversation-context-postgres-store.js";
+import {
+  createConversationContextAssemblerV010
+} from "./conversation-context-assembly.js";
+import {
   createEnterpriseOperatingGraphDefinitionPersistenceV010
 } from "../apps/eog-2d-designer/definition-persistence.js";
+import {
+  createCurrent2dEditorAgentToolRegistrationsV010
+} from "../apps/eog-2d-designer/current-2d-editor-agent-tools.js";
+import {
+  createEnterpriseDefinitionProjectionArtifactSourceV010
+} from "../providers/enterprise-context/definition-projection.js";
 import {
   migrateLegacyEnterpriseOperatingGraphsV010
 } from "../apps/eog-2d-designer/legacy-definition-migration.js";
 import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
+import {
+  applyEogPreviewSeedV010,
+  parseEogPreviewSeedV010
+} from "./eog-preview-seed.js";
 import {
   createFileEogViewStateStoreV010,
   createMemoryEogViewStateStoreV010
@@ -153,6 +188,11 @@ import {
 } from "./personal-agent-follow-up-page.js";
 import { createPersonalAgentQualityEvaluationActionHandlerV010 } from "../agents/enterprise-agent/quality-evaluation-actions.js";
 import { createEnterpriseAgentHostToolCatalogV010 } from "../agents/enterprise-agent/host-tool-catalog.js";
+import {
+  createPersonalAgentCapabilityToolRegistrationsV010,
+  PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,
+  personalAgentCapabilityRequestContextV010
+} from "../agents/enterprise-agent/capability-fabric-tools.js";
 import { createPersonalAgentQualityPageV010, createPersonalAgentQualityReviewPageV010 } from "./personal-agent-quality-page.js";
 import { createFileContextMemoryQualityStoreV010, createMemoryContextMemoryQualityStoreV010 } from "./context-memory-quality-store.js";
 import { createFileContextMemoryFreshnessPolicyStoreV010, createMemoryContextMemoryFreshnessPolicyStoreV010 } from "./context-memory-freshness-policy-store.js";
@@ -175,6 +215,7 @@ import {
   createPersonalAgentMemoryReviewPageV010,
   createPersonalAgentPluginStoreProductStateV010,
   evaluatePersonalAgentReadinessV010,
+  resolvePersonalAgentActiveContextV010,
   PERSONAL_AGENT_ROUTE,
   PERSONAL_AGENT_SETUP_ROUTE,
   PERSONAL_AGENT_MEMORY_REVIEW_ROUTE
@@ -184,6 +225,13 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../contracts/enterprise-business-definition.js";
 import {
+  ENTERPRISE_RESOURCE_CAPABILITY_V010,
+  type EnterpriseResourceRepositoryV010
+} from "../contracts/enterprise-resource.js";
+import type {
+  EnterpriseTemplateTransferProviderV010
+} from "../contracts/template-transfer.js";
+import {
   EVO_LEDGER_RUNTIME_PROVIDER_ID_V010,
   toEvoLedgerRuntimeApplicationIdBindingV010
 } from "../contracts/evo-ledger-runtime-application-id.js";
@@ -191,6 +239,9 @@ import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010,
   type EnterpriseApplicationRuntimeBindingProviderV010
 } from "../contracts/enterprise-application-runtime-binding.js";
+import {
+  VISUAL_2D_VIEWER_CAPABILITY_V010
+} from "../contracts/template-preview.js";
 import type {
   ActiveContextRefV010,
   AuthorizationProviderV010,
@@ -276,6 +327,8 @@ import {
   HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
   HOST_ENTERPRISE_CONTEXT_PROVIDER_ID,
   HOST_ENTERPRISE_BUSINESS_DEFINITION_PROVIDER_ID,
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
   hostEnterpriseContextProviderPackage
 } from "../providers/enterprise-context/package.js";
 import {
@@ -287,6 +340,17 @@ import {
   createFileBusinessDefinitionRepositoryV010,
   createMemoryBusinessDefinitionRepositoryV010
 } from "../providers/enterprise-context/business-definitions.js";
+import {
+  createFileEnterpriseResourceRepositoryV010,
+  createMemoryEnterpriseResourceRepositoryV010
+} from "../providers/enterprise-context/resources.js";
+import {
+  createFileDefinitionProjectionStoreV010,
+  createMemoryDefinitionProjectionStoreV010
+} from "../providers/enterprise-context/definition-projection-store.js";
+import {
+  createEnterpriseTemplateTransferProviderV010
+} from "../providers/enterprise-context/template-transfer.js";
 import {
   migrateLegacyEogSopsV010
 } from "../providers/enterprise-context/eog-sop-migration.js";
@@ -433,6 +497,7 @@ import {
   eogBottleneckAnalysisProviderPackage
 } from "../providers/eog-bottleneck-analysis/package.js";
 import {
+  APPLICATION_RUNTIME_BINDING_FEATURE_ID,
   APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
@@ -556,9 +621,32 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  enterpriseContextGovernanceAuthorizationPolicyV010
+} from "./enterprise-context-authorization.js";
+import {
+  EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+  EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+  EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010,
+  EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010,
+  eogDefinitionProjectionAuthorizationPolicyV010
+} from "../apps/eog-2d-designer/authorization.js";
+import {
+  templateStoreAuthorizationPolicyV010
+} from "./template-store-authorization.js";
+import {
+  createEnterpriseContextArchiveActionHandlerV010
+} from "./enterprise-context-archive.js";
+import {
+  createEnterpriseContextDefaultActionHandlerV010
+} from "./enterprise-context-default-actions.js";
+import {
+  resolveDefaultEnterpriseContextV010
+} from "./default-enterprise-context.js";
+import {
   createEnterpriseRelationshipActionHandlersV010
 } from "./enterprise-relationship-actions.js";
 import {
+  contextFromHeaderV010,
   createPlatformRequestContextV010,
   identitySessionRequestFromHeadersV010
 } from "./request-context.js";
@@ -567,14 +655,21 @@ import {
   requestSecurityHttpFailureV010,
   requireSameOriginForCookieMutationV010
 } from "./request-security.js";
-import { createAuthenticationFlowV010 } from "./authentication-flow.js";
+import {
+  createAuthenticationFlowV010,
+  normalizeAuthenticationReturnToV010
+} from "./authentication-flow.js";
 import { sessionTokenFromCookieHeaderV010 } from "./session-cookie.js";
 import { IDENTITY_AUTHENTICATION_CAPABILITY } from "../providers/authentication/capability.js";
 import {
   authorizeMaterialWriteV010,
-  legacyScopeFromRequestContextV010
+  legacyScopeFromRequestContextV010,
+  type MaterialWriteAuthorizationInputV010
 } from "./material-write-authorization.js";
-import { createCapabilityOperationActionPreExecuteV010 } from "./capability-operation-access.js";
+import {
+  createCapabilityOperationActionPreExecuteV010,
+  listAuthorizedCapabilityOperationsV010
+} from "./capability-operation-access.js";
 import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
 import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
@@ -586,6 +681,10 @@ import {
   appHostShellCss,
   createAppHostShellHtmlV010
 } from "./app-host-shell.js";
+import {
+  createLoginExperienceHtmlV010,
+  defaultLoginMethodsV010
+} from "./login-page.js";
 import {
   normalizeAssetRevisionV010,
   resolveBrowserAssetRequestV010
@@ -599,10 +698,20 @@ import {
 import { createWebPerformanceStoreV010 } from "./web-performance.js";
 import { appPlatformLocalizationBundles } from "./localization.js";
 import {
+  createWorkbenchActionHandlersV010
+} from "../apps/bi-workbench/actions.js";
+import {
+  BI_WORKBENCH_FEATURE_ID_V010,
+  BI_WORKBENCH_HOME_PAGE_SOURCE_V010,
+  BI_WORKBENCH_PACKAGE_ID_V010
+} from "../apps/bi-workbench/package.js";
+import {
   createSettingsExperienceManifest,
+  createSettingsGroupPage,
   createSettingsIndexPage,
   createSettingsPage,
   packageIdFromSettingsPageSource,
+  settingsGroupFromPageSource,
   settingsIndexPageSource,
   secretReferenceForPackageV010,
   validateAndMergeSettings
@@ -669,47 +778,277 @@ import {
   secretAuditEventV010
 } from "./secret-governance.js";
 import {
+  biWorkbenchPackage,
   companyNotesPackage,
+  counterpartyPackage,
+  itemPackage,
+  warehousePackage,
+  tradingReferencePackageV010,
+  dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
-  eog2dDesignerPackage,
-  eog2dViewerPackage,
-  eog3dViewerPackage,
+  enterpriseObservatoryPackage,
+  eog2dPackage,
+  eog3dPackage,
   evoFoundationPackage,
+  ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
+  objectExtensionPackage,
+  responsibilityPackage,
   referenceExperienceAssets,
+  templateStorePackage,
   tradingLitePackage
 } from "../catalog/seed.js";
 import {
+  PURCHASE_OPERATIONS_READ_COMMAND_V010,
+  PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+  PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010,
+  PURCHASE_OPERATIONS_DETAIL_PAGE_SOURCE_V010,
+  TRADING_REFERENCE_FEATURE_ID_V010,
+  TRADING_REFERENCE_PACKAGE_ID_V010
+} from "../apps/trading-reference/constants.js";
+import {
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+  EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "../apps/eog-2d-designer/package.js";
 import {
-  EOG_2D_VIEWER_FEATURE_ID,
-  EOG_2D_VIEWER_PACKAGE_ID
-} from "../apps/eog-2d-viewer/package.js";
+  ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+  ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+  ENTERPRISE_CONTEXT_SELECT_COMMAND
+} from "../apps/enterprise-context-governance/constants.js";
 import {
-  createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010,
-  createEnterpriseOperatingGraphViewerWorkspacePageV010,
-  createEnterpriseOperatingGraphViewerWorkspaceReadActionV010,
-  createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010,
-  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE
-} from "../apps/eog-2d-viewer/workspace-page.js";
+  COUNTERPARTY_ARCHIVE_COMMAND,
+  COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+  COUNTERPARTY_CREATE_COMMAND,
+  COUNTERPARTY_CREATE_PAGE_SOURCE,
+  COUNTERPARTY_CUSTOMERS_PAGE_SOURCE,
+  COUNTERPARTY_DETAIL_PAGE_SOURCE,
+  COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
+  COUNTERPARTY_EDIT_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+  COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
+  COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_FEATURE_ID,
+  COUNTERPARTY_PACKAGE_ID,
+  COUNTERPARTY_REMOVE_ROLE_COMMAND,
+  COUNTERPARTY_UPDATE_COMMAND,
+  parseCounterpartyDetailRouteV010,
+  parseCounterpartyEditRouteV010
+} from "../apps/counterparty/constants.js";
+import {
+  createCounterpartyRepositoryV010
+} from "../apps/counterparty/repository.js";
+import {
+  createCounterpartyRoleRepositoryV010
+} from "../apps/counterparty/roles.js";
+import {
+  createCounterpartyAddressRepositoryV010,
+  createCounterpartyContactRepositoryV010,
+  createCounterpartyProfileRepositoryV010
+} from "../apps/counterparty/facets.js";
+import {
+  counterpartyCoreSchemaV010
+} from "../apps/counterparty/foundation-object.js";
+import {
+  counterpartyAuthorizationPolicyV010
+} from "../apps/counterparty/authorization.js";
+import {
+  resolveCounterpartyReadAccessV010
+} from "../apps/counterparty/access.js";
+import {
+  COUNTERPARTY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
+  COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+  COUNTERPARTY_SUPPLIER_PROJECTION_V010,
+  type CounterpartyProjectionIdV010
+} from "../apps/counterparty/projections.js";
+import {
+  createCounterpartyProjectionServiceV010
+} from "../apps/counterparty/projection-service.js";
+import {
+  ITEM_ARCHIVE_COMMAND,
+  ITEM_CREATE_COMMAND,
+  ITEM_CREATE_PAGE_SOURCE,
+  ITEM_DETAIL_PAGE_SOURCE,
+  ITEM_DIRECTORY_PAGE_SOURCE,
+  ITEM_DIRECTORY_PROJECTION_V010,
+  ITEM_DIRECTORY_READ_COMMAND_V010,
+  ITEM_EDIT_PAGE_SOURCE,
+  ITEM_FEATURE_ID,
+  ITEM_MY_ITEMS_PAGE_SOURCE,
+  ITEM_MY_ITEMS_PROJECTION_V010,
+  ITEM_MY_ITEMS_READ_COMMAND_V010,
+  ITEM_PACKAGE_ID,
+  ITEM_UPDATE_COMMAND,
+  parseItemDetailRouteV010,
+  parseItemEditRouteV010
+} from "../apps/item/constants.js";
+import {
+  itemAuthorizationPolicyV010
+} from "../apps/item/authorization.js";
+import {
+  WAREHOUSE_DETAIL_PAGE_SOURCE,
+  WAREHOUSE_DIRECTORY_PAGE_SOURCE,
+  WAREHOUSE_DIRECTORY_PROJECTION_V010,
+  WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
+  WAREHOUSE_FEATURE_ID,
+  WAREHOUSE_MY_PAGE_SOURCE,
+  WAREHOUSE_MY_PROJECTION_V010,
+  WAREHOUSE_MY_READ_COMMAND_V010,
+  WAREHOUSE_PACKAGE_ID,
+  parseWarehouseDetailRouteV010
+} from "../apps/warehouse/constants.js";
+import {
+  warehouseAuthorizationPolicyV010
+} from "../apps/warehouse/authorization.js";
+import {
+  RESPONSIBILITY_ARCHIVE_COMMAND_V010,
+  RESPONSIBILITY_ASSIGN_COMMAND_V010,
+  RESPONSIBILITY_FEATURE_ID,
+  RESPONSIBILITY_PACKAGE_ID
+} from "../apps/responsibility/constants.js";
+import {
+  createResponsibilityRepositoryV010
+} from "../apps/responsibility/repository.js";
+import {
+  DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
+  DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
+  DATA_IMPORT_ERROR_CSV_COMMAND_V010,
+  DATA_IMPORT_FEATURE_ID,
+  DATA_IMPORT_GET_COMMAND_V010,
+  DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+  DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+  DATA_IMPORT_MAPPING_PAGE_SOURCE,
+  DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_REVIEW_COMMAND_V010,
+  DATA_IMPORT_REVIEW_PAGE_SOURCE,
+  DATA_IMPORT_STAGE_CSV_COMMAND_V010,
+  DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_UPLOAD_PAGE_SOURCE,
+  dataImportUploadRouteV010,
+  parseDataImportMappingRouteV010,
+  parseDataImportReviewRouteV010,
+  parseDataImportUploadRouteV010
+} from "../apps/data-import/constants.js";
+import {
+  dataImportAuthorizationPolicyV010
+} from "../apps/data-import/authorization.js";
+import {
+  createDataImportRepositoryV010
+} from "../apps/data-import/repository.js";
+import {
+  createDataImportRecipeRepositoryV010
+} from "../apps/data-import/recipe.js";
+import {
+  createDataImportServiceV010
+} from "../apps/data-import/service.js";
+import type {
+  FoundationObjectImportTargetV010
+} from "../contracts/foundation-object/import.js";
+import {
+  createHttpDataImportExperienceAdvisorV010
+} from "../apps/data-import/experience-advisor.js";
+import {
+  OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
+  OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
+  OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+  OBJECT_EXTENSION_FEATURE_ID,
+  OBJECT_EXTENSION_PACKAGE_ID
+} from "../apps/object-extension/constants.js";
+import {
+  objectExtensionAuthorizationPolicyV010
+} from "../apps/object-extension/authorization.js";
+import {
+  createObjectExtensionRepositoryV010
+} from "../apps/object-extension/repository.js";
+import {
+  createObjectExtensionValueRepositoryV010
+} from "../apps/object-extension/values.js";
+import {
+  LEDGER_MANAGER_DEFINITION_KIND,
+  LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
+  LEDGER_MANAGER_FEATURE_ID,
+  LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+  LEDGER_MANAGER_PACKAGE_ID,
+  LEDGER_MANAGER_PAGE_SOURCE,
+  LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+  LEDGER_MANAGER_PUBLISH_COMMAND,
+  LEDGER_MANAGER_ROUTE,
+  ledgerManagerDetailRouteV010,
+  parseLedgerManagerDetailRouteV010
+} from "../apps/ledger-manager/constants.js";
+import {
+  ledgerManagerAuthorizationPolicyV010
+} from "../apps/ledger-manager/authorization.js";
+import {
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
+  EOG_2D_VIEWER_FEATURE_ID,
+  EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
+  EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
+} from "../apps/eog-2d-viewer/package.js";
 import {
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
+import {
+  createEnterpriseOperatingGraph3dViewerPageV010,
+  createEnterpriseOperatingGraph3dViewerReadActionV010,
+  EOG_3D_VIEWER_PAGE_SOURCE
+} from "../apps/eog-3d/workspace-page.js";
+import {
+  ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_PACKAGE_ID
+} from "../apps/enterprise-observatory/package.js";
+import type {
+  TemplateStoreRepositoryV010
+} from "../apps/template-store/repository.js";
+import {
+  TEMPLATE_STORE_COPY_COMMAND,
+  TEMPLATE_STORE_DETAIL_PAGE_SOURCE,
+  TEMPLATE_STORE_DOWNLOAD_COMMAND,
+  TEMPLATE_STORE_FEATURE_ID,
+  TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
+  TEMPLATE_STORE_PACKAGE_ID,
+  TEMPLATE_STORE_PAGE_SOURCE,
+  TEMPLATE_STORE_PREVIEW_2D_COMMAND
+} from "../apps/template-store/package.js";
 
 const catalog = createPackageCatalog([
+  biWorkbenchPackage,
   companyNotesPackage,
+  counterpartyPackage,
+  itemPackage,
+  warehousePackage,
+  tradingReferencePackageV010,
+  dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
-  eog2dDesignerPackage,
-  eog2dViewerPackage,
-  eog3dViewerPackage,
+  enterpriseObservatoryPackage,
+  eog2dPackage,
+  eog3dPackage,
   evoFoundationPackage,
   externalAgentGovernancePackage,
+  ledgerManagerPackage,
   ledgerRuntimeConfiguratorPackage,
+  objectExtensionPackage,
+  responsibilityPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
@@ -731,10 +1070,103 @@ const catalog = createPackageCatalog([
   evoRuntimeObservatoryProviderPackage,
   eogBottleneckAnalysisProviderPackage,
   applicationRuntimeBindingProviderPackage,
+  templateStorePackage,
   tradingLitePackage
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+const enterpriseResourceStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-resources.json")
+    : undefined);
+const enterpriseResourceRepository =
+  enterpriseResourceStateFile
+    ? createFileEnterpriseResourceRepositoryV010(
+        enterpriseResourceStateFile
+      )
+    : createMemoryEnterpriseResourceRepositoryV010();
+const counterpartyRepository =
+  createCounterpartyRepositoryV010(enterpriseResourceRepository);
+const counterpartyRoleRepository =
+  createCounterpartyRoleRepositoryV010(
+    enterpriseResourceRepository,
+    counterpartyRepository
+  );
+const counterpartyContactRepository =
+  createCounterpartyContactRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository
+  });
+const counterpartyAddressRepository =
+  createCounterpartyAddressRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository
+  });
+const counterpartyProfileRepository =
+  createCounterpartyProfileRepositoryV010({
+    resources: enterpriseResourceRepository,
+    counterpartyRepository,
+    roleRepository: counterpartyRoleRepository
+  });
+const responsibilityRepository =
+  createResponsibilityRepositoryV010(enterpriseResourceRepository);
+const counterpartyProjectionService =
+  createCounterpartyProjectionServiceV010({
+    repository: counterpartyRepository,
+    roleRepository: counterpartyRoleRepository,
+    responsibilityRepository,
+    resolveAuthorizationProvider,
+    fieldIds: () =>
+      counterpartyCoreSchemaV010.fields.map(field => field.fieldId)
+  });
+const objectExtensionRepository =
+  createObjectExtensionRepositoryV010(enterpriseResourceRepository);
+const objectExtensionValueRepository =
+  createObjectExtensionValueRepositoryV010(enterpriseResourceRepository);
+const dataImportRepository =
+  createDataImportRepositoryV010(enterpriseResourceRepository);
+const dataImportRecipeRepository =
+  createDataImportRecipeRepositoryV010(enterpriseResourceRepository);
+const experienceCompilerAdvisoryBaseUrl =
+  process.env.APP_PLATFORM_EC_ADVISORY_BASE_URL?.trim();
+const dataImportExperienceAdvisor = experienceCompilerAdvisoryBaseUrl
+  ? createHttpDataImportExperienceAdvisorV010({
+      baseUrl: experienceCompilerAdvisoryBaseUrl,
+      token: process.env.APP_PLATFORM_EC_ADVISORY_TOKEN?.trim()
+    })
+  : undefined;
+const templateStoreStateFile =
+  process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "template-store.json")
+    : undefined);
+let templateStoreRepositoryPromise:
+  | Promise<TemplateStoreRepositoryV010>
+  | undefined;
+async function resolveTemplateStoreRepository():
+Promise<TemplateStoreRepositoryV010> {
+  templateStoreRepositoryPromise ??= Promise.all([
+    import("../apps/template-store/repository.js"),
+    import("../apps/template-store/seed-records.js")
+  ]).then(([repository, seed]) =>
+    templateStoreStateFile
+      ? repository.createFileTemplateStoreRepositoryV010(
+          templateStoreStateFile,
+          seed.templateStoreSeedRecordsV010
+        )
+      : repository.createMemoryTemplateStoreRepositoryV010(
+          seed.templateStoreSeedRecordsV010
+        )
+  );
+  return templateStoreRepositoryPromise;
+}
+const templatePreviewSessions =
+  createMemoryTemplatePreviewSessionStoreV010();
+const enterpriseDefinitionProjectionSessions =
+  createMemoryDefinitionProjectionSessionStoreV010();
+const current2dEditorSessions =
+  createMemoryCurrent2dEditorSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
 const authenticationPublicBaseUrl =
@@ -870,6 +1302,18 @@ const enterpriseBusinessDefinitionRepository =
       )
     : createMemoryBusinessDefinitionRepositoryV010();
 
+const enterpriseDefinitionProjectionStateFile =
+  process.env.APP_PLATFORM_ENTERPRISE_DEFINITION_PROJECTIONS_FILE?.trim()
+  || (lifecycleStateFile
+    ? join(dirname(lifecycleStateFile), "enterprise-definition-projections.json")
+    : undefined);
+const enterpriseDefinitionProjectionStore =
+  enterpriseDefinitionProjectionStateFile
+    ? createFileDefinitionProjectionStoreV010(
+        enterpriseDefinitionProjectionStateFile
+      )
+    : createMemoryDefinitionProjectionStoreV010();
+
 const legacyGraphMigration = migrateLegacyEnterpriseOperatingGraphsV010({
   path: legacyEnterpriseOperatingGraphStateFile,
   repository: enterpriseBusinessDefinitionRepository
@@ -888,6 +1332,19 @@ const enterpriseOperatingGraphService =
     persistence: enterpriseOperatingGraphDefinitionPersistence,
     id: randomUUID
   });
+
+const eogPreviewSeed = parseEogPreviewSeedV010(
+  process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
+);
+const eogPreviewSeedResult = applyEogPreviewSeedV010({
+  service: enterpriseOperatingGraphService,
+  seed: eogPreviewSeed
+});
+if (eogPreviewSeedResult.seeded) {
+  console.log(
+    "Seeded EOG public preview graph '" + eogPreviewSeedResult.graphId + "'."
+  );
+}
 
 const enterpriseOperatingGraphViewStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_VIEW_FILE?.trim()
@@ -995,13 +1452,104 @@ const agentRunStore = createAgentRunStoreV010({
 const conversationThreadFile =
   process.env.APP_PLATFORM_CONVERSATION_THREAD_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "conversation-threads.jsonl") : undefined);
+const configuredConversationAuthority =
+  process.env.APP_PLATFORM_CONVERSATION_AUTHORITY?.trim().toUpperCase()
+  || "JSONL";
+if (
+  configuredConversationAuthority !== "JSONL"
+  && configuredConversationAuthority !== "JSONL_MIRROR_POSTGRES"
+  && configuredConversationAuthority !== "POSTGRES"
+) {
+  throw new Error("CONVERSATION_AUTHORITY_INVALID");
+}
+const conversationDatabaseUrl =
+  process.env.APP_PLATFORM_CONVERSATION_DATABASE_URL?.trim();
+const conversationPostgresSchema =
+  process.env.APP_PLATFORM_CONVERSATION_POSTGRES_SCHEMA?.trim();
+let conversationPostgresAuthority:
+  | PostgresConversationAuthorityV010
+  | undefined;
+if (conversationDatabaseUrl) {
+  conversationPostgresAuthority =
+    await createPostgresConversationAuthorityV010({
+      connectionString: conversationDatabaseUrl,
+      ...(conversationPostgresSchema
+        ? { schema: conversationPostgresSchema }
+        : {})
+    });
+}
+if (
+  configuredConversationAuthority !== "JSONL"
+  && !conversationPostgresAuthority
+) {
+  throw new Error("CONVERSATION_POSTGRES_DATABASE_URL_REQUIRED");
+}
 const conversationThreadEventStore = conversationThreadFile
   ? createJsonlConversationThreadEventStoreV010(conversationThreadFile)
   : createMemoryConversationThreadEventStoreV010();
-const conversationThreadStore = createConversationThreadStoreV010({
-  eventStore: conversationThreadEventStore,
-  eventId: randomUUID
-});
+const compatibilityConversationThreadStore =
+  createConversationThreadStoreV010({
+    eventStore: conversationThreadEventStore,
+    eventId: randomUUID
+  });
+const migrateJsonlOnStartup =
+  process.env.APP_PLATFORM_CONVERSATION_MIGRATE_JSONL_ON_STARTUP?.trim()
+    .toLowerCase() === "true";
+if (
+  conversationPostgresAuthority
+  && conversationThreadFile
+  && (
+    configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+    || migrateJsonlOnStartup
+  )
+) {
+  const migrated = await conversationPostgresAuthority.importEvents(
+    conversationThreadEventStore.listEvents()
+  );
+  console.log(
+    "CONVERSATION_POSTGRES_STARTUP_MIGRATION_PASS",
+    JSON.stringify({
+      authority: configuredConversationAuthority,
+      sourceEventCount: migrated.sourceEventCount,
+      sourceThreadCount: migrated.sourceThreadCount,
+      sourceMessageCount: migrated.sourceMessageCount,
+      sourceDigest: migrated.sourceDigest,
+      target: migrated.target
+    })
+  );
+}
+const conversationThreadStore =
+  configuredConversationAuthority === "POSTGRES"
+    ? conversationPostgresAuthority!.store
+    : configuredConversationAuthority === "JSONL_MIRROR_POSTGRES"
+      ? createMirroredConversationThreadStoreV010({
+          primary: compatibilityConversationThreadStore,
+          postgres: conversationPostgresAuthority!,
+          onMirrorError(error, threadId) {
+            console.error(
+              "CONVERSATION_POSTGRES_MIRROR_FAILED",
+              JSON.stringify({
+                threadId,
+                error: error instanceof Error ? error.message : String(error)
+              })
+            );
+          }
+        })
+      : compatibilityConversationThreadStore;
+
+const conversationContextArtifactStore = conversationDatabaseUrl
+  ? await createPostgresConversationContextArtifactStoreV010({
+      connectionString: conversationDatabaseUrl,
+      ...(conversationPostgresSchema
+        ? { schema: conversationPostgresSchema }
+        : {})
+    })
+  : undefined;
+const conversationContextAssembler = conversationContextArtifactStore
+  ? createConversationContextAssemblerV010({
+      artifactStore: conversationContextArtifactStore
+    })
+  : undefined;
 const configuredConversationRetentionDays =
   process.env.APP_PLATFORM_CONVERSATION_RETENTION_DAYS?.trim();
 const conversationRetentionDays = Number(
@@ -1323,6 +1871,34 @@ providerRuntimeRegistry.setHealth(
     checkedAt: new Date().toISOString()
   }
 );
+providerRuntimeRegistry.replace<EnterpriseResourceRepositoryV010>(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  enterpriseResourceRepository
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_RESOURCE_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Resource Library is active.",
+    checkedAt: new Date().toISOString()
+  }
+);
+const enterpriseTemplateTransferProvider =
+  createEnterpriseTemplateTransferProviderV010(
+    enterpriseBusinessDefinitionRepository
+  );
+providerRuntimeRegistry.replace<EnterpriseTemplateTransferProviderV010>(
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  enterpriseTemplateTransferProvider
+);
+providerRuntimeRegistry.setHealth(
+  HOST_ENTERPRISE_TEMPLATE_TRANSFER_PROVIDER_ID,
+  {
+    state: "HEALTHY",
+    message: "Enterprise Context Template Transfer is active.",
+    checkedAt: new Date().toISOString()
+  }
+);
 const contextMemoryGovernanceProvider =
   createHostContextMemoryGovernanceProviderV010(
     contextMemoryGovernanceStore,
@@ -1472,6 +2048,15 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_JSON
   ),
+  enterpriseContextGovernanceAuthorizationPolicyV010,
+  eogDefinitionProjectionAuthorizationPolicyV010,
+  dataImportAuthorizationPolicyV010,
+  counterpartyAuthorizationPolicyV010,
+  itemAuthorizationPolicyV010,
+  warehouseAuthorizationPolicyV010,
+  objectExtensionAuthorizationPolicyV010,
+  ledgerManagerAuthorizationPolicyV010,
+  templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
     process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON
   )
@@ -1564,6 +2149,41 @@ const retiredLocalization = retireExperimentalPackageV010(
 if (retiredLocalization.changed) {
   console.log("Retired obsolete experimental package", JSON.stringify(retiredLocalization));
 }
+let biWorkbenchRuntimePromise:
+  | Promise<import("../apps/bi-workbench/runtime.js").BiWorkbenchRuntimeV010>
+  | undefined;
+
+async function disposeBiWorkbenchRuntimeV010(): Promise<void> {
+  const current = biWorkbenchRuntimePromise;
+  biWorkbenchRuntimePromise = undefined;
+  if (!current) return;
+  try {
+    const runtime = await current;
+    await runtime.close();
+  } catch (error) {
+    console.error("Failed to dispose BI Workbench runtime.", error);
+  }
+}
+
+let itemRuntimePromise:
+  | Promise<{
+      repository: import("../apps/item/repository.js").ItemRepositoryV010;
+      projectionService:
+        import("../apps/item/projection-service.js").ItemProjectionServiceV010;
+    }>
+  | undefined;
+
+let warehouseRuntimePromise:
+  | Promise<{
+      repository:
+        import("../apps/warehouse/repository.js").WarehouseRepositoryV010;
+      locationRepository:
+        import("../apps/warehouse/locations.js").WarehouseLocationRepositoryV010;
+      projectionService:
+        import("../apps/warehouse/projection-service.js").WarehouseProjectionServiceV010;
+    }>
+  | undefined;
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -1590,32 +2210,266 @@ const manager = createAppManagerService(
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
+      if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
+        void disposeBiWorkbenchRuntimeV010();
+      }
+      if (event.packageId === ITEM_PACKAGE_ID) {
+        itemRuntimePromise = undefined;
+      }
+      if (event.packageId === WAREHOUSE_PACKAGE_ID) {
+        warehouseRuntimePromise = undefined;
+      }
     }
   },
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
 
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
-)) {
+function itemFeatureActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(feature =>
+    feature.packageId === ITEM_PACKAGE_ID
+    && feature.featureId === ITEM_FEATURE_ID
+  );
+}
+
+async function resolveItemRuntimeV010() {
+  if (!itemFeatureActiveV010()) {
+    throw new Error("ITEM_FEATURE_NOT_ACTIVE");
+  }
+  itemRuntimePromise ??= Promise.all([
+    import("../apps/item/repository.js"),
+    import("../apps/item/projection-service.js"),
+    import("../apps/item/foundation-object.js")
+  ]).then(([repositoryModule, projectionModule, foundationModule]) => {
+    const repository = repositoryModule.createItemRepositoryV010(
+      enterpriseResourceRepository
+    );
+    return {
+      repository,
+      projectionService: projectionModule.createItemProjectionServiceV010({
+        repository,
+        responsibilityRepository,
+        extensionValueRepository: objectExtensionValueRepository,
+        resolveAuthorizationProvider,
+        fieldIds: () =>
+          foundationModule.itemCoreSchemaV010.fields.map(
+            field => field.fieldId
+          )
+      })
+    };
+  });
+  return itemRuntimePromise;
+}
+
+function warehouseFeatureActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(feature =>
+    feature.packageId === WAREHOUSE_PACKAGE_ID
+    && feature.featureId === WAREHOUSE_FEATURE_ID
+  );
+}
+
+async function resolveWarehouseRuntimeV010() {
+  if (!warehouseFeatureActiveV010()) {
+    throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
+  }
+  warehouseRuntimePromise ??= Promise.all([
+    import("../apps/warehouse/repository.js"),
+    import("../apps/warehouse/locations.js"),
+    import("../apps/warehouse/projection-service.js"),
+    import("../apps/warehouse/foundation-object.js")
+  ]).then(([
+    repositoryModule,
+    locationsModule,
+    projectionModule,
+    foundationModule
+  ]) => {
+    const repository = repositoryModule.createWarehouseRepositoryV010(
+      enterpriseResourceRepository
+    );
+    const locationRepository =
+      locationsModule.createWarehouseLocationRepositoryV010(
+        enterpriseResourceRepository
+      );
+    return {
+      repository,
+      locationRepository,
+      projectionService:
+        projectionModule.createWarehouseProjectionServiceV010({
+          repository,
+          locationRepository,
+          responsibilityRepository,
+          extensionValueRepository: objectExtensionValueRepository,
+          resolveAuthorizationProvider,
+          fieldIds: () =>
+            foundationModule.warehouseCoreSchemaV010.fields.map(
+              field => field.fieldId
+            )
+        })
+    };
+  });
+  return warehouseRuntimePromise;
+}
+
+const dataImportTargetPromises = new Map<
+  string,
+  Promise<FoundationObjectImportTargetV010>
+>();
+
+async function resolveEffectiveDataImportTargetsV010():
+Promise<FoundationObjectImportTargetV010[]> {
+  const contributions = manager.listEffectiveDataImportTargets();
+  const activeRefs = new Set(
+    contributions.map(contribution => contribution.binding.ref)
+  );
+  for (const ref of [...dataImportTargetPromises.keys()]) {
+    if (!activeRefs.has(ref)) dataImportTargetPromises.delete(ref);
+  }
+
+  const targets = await Promise.all(contributions.map(contribution => {
+    const ref = contribution.binding.ref;
+    let pending = dataImportTargetPromises.get(ref);
+    if (!pending) {
+      if (ref === "evo-counterparty.import-target.v0.1") {
+        pending = import("../apps/counterparty/import-target.js")
+          .then(module => module.createCounterpartyImportTargetV010({
+            resources: enterpriseResourceRepository,
+            repository: counterpartyRepository,
+            roleRepository: counterpartyRoleRepository,
+            contactRepository: counterpartyContactRepository,
+            addressRepository: counterpartyAddressRepository,
+            profileRepository: counterpartyProfileRepository,
+            extensionRepository: objectExtensionRepository,
+            extensionValueRepository: objectExtensionValueRepository
+          }));
+      } else if (ref === "evo-item.import-target.v0.1") {
+        pending = Promise.all([
+          import("../apps/item/import-target.js"),
+          resolveItemRuntimeV010()
+        ]).then(([module, runtime]) =>
+          module.createItemImportTargetV010({
+            resources: enterpriseResourceRepository,
+            repository: runtime.repository,
+            extensionRepository: objectExtensionRepository,
+            extensionValueRepository: objectExtensionValueRepository
+          })
+        );
+      } else if (
+        ref === "evo-warehouse.location-import-target.v0.1"
+      ) {
+        pending = Promise.all([
+          import("../apps/warehouse/import-target.js"),
+          resolveWarehouseRuntimeV010()
+        ]).then(([module, runtime]) =>
+          module.createWarehouseLocationImportTargetV010({
+            resources: enterpriseResourceRepository,
+            warehouseRepository: runtime.repository,
+            locationRepository: runtime.locationRepository
+          })
+        );
+      } else {
+        throw new Error(
+          "DATA_IMPORT_TARGET_FACTORY_NOT_REGISTERED: " + ref
+        );
+      }
+      dataImportTargetPromises.set(ref, pending);
+    }
+    return pending.then(target => {
+      if (
+        target.targetId !== contribution.targetId
+        || target.objectType !== contribution.objectType
+      ) {
+        throw new Error(
+          "DATA_IMPORT_TARGET_CONTRIBUTION_MISMATCH: "
+          + contribution.targetId
+        );
+      }
+      return target;
+    });
+  }));
+
+  return targets.sort((a, b) => a.targetId.localeCompare(b.targetId));
+}
+
+function biWorkbenchActiveV010(): boolean {
+  return manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === BI_WORKBENCH_FEATURE_ID_V010
+  );
+}
+
+async function resolveBiWorkbenchRuntimeV010() {
+  if (!biWorkbenchActiveV010()) {
+    throw new Error("BI_WORKBENCH_NOT_ACTIVE");
+  }
+  if (!biWorkbenchRuntimePromise) {
+    biWorkbenchRuntimePromise = import("../apps/bi-workbench/runtime.js")
+      .then(module => module.createBiWorkbenchRuntimeV010({
+        manager,
+        enterpriseResources: enterpriseResourceRepository,
+        databaseUrl:
+          process.env.EVO_BI_WORKBENCH_DATABASE_URL?.trim()
+          || process.env.APP_PLATFORM_WORKBENCH_DATABASE_URL?.trim()
+          || conversationDatabaseUrl,
+        postgresSchema:
+          process.env.EVO_BI_WORKBENCH_POSTGRES_SCHEMA?.trim(),
+        legacyPostgresSchema:
+          process.env.APP_PLATFORM_WORKBENCH_POSTGRES_SCHEMA?.trim()
+          || "app_platform_workbench",
+        resolveRelationshipKind(context) {
+          const active = context.context?.activeContext;
+          if (!active || active.kind !== "ENTERPRISE") return undefined;
+          return (
+            resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(context.principal) ?? []
+          ).find(item =>
+            item.contextId === active.contextId
+            && item.state === "ACTIVE"
+          )?.kind;
+        },
+        resolveAuthorizationProvider
+      }));
+  }
+  return biWorkbenchRuntimePromise;
+}
+
+if (
+  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1"
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === BI_WORKBENCH_PACKAGE_ID_V010
+  )
+) {
   try {
-    manager.install(EOG_2D_DESIGNER_PACKAGE_ID);
-    console.log("Activated EOG 2D Designer ownership cutover.");
+    manager.install(BI_WORKBENCH_PACKAGE_ID_V010);
+    console.log("Activated optional EVO BI Workbench plugin by explicit operator configuration.");
   } catch (error) {
-    console.error("Failed to activate EOG 2D Designer ownership cutover.", error);
+    console.error("Failed to activate optional EVO BI Workbench plugin.", error);
   }
 }
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
-)) {
+
+const eog2dStartupSnapshot = manager.getSnapshot();
+if (
+  eog2dStartupSnapshot.installedPackages.some(
+    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
+  )
+  && eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
+  )
+  && !eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID
+  )
+) {
   try {
-    manager.install(EOG_2D_VIEWER_PACKAGE_ID);
-    console.log("Activated EOG 2D Viewer ownership cutover.");
+    manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+    console.log(
+      "Migrated EOG 2D installation to activate the contextual projection Designer."
+    );
   } catch (error) {
-    console.error("Failed to activate EOG 2D Viewer ownership cutover.", error);
+    console.error(
+      "Failed to activate EOG 2D projection Designer migration.",
+      error
+    );
   }
 }
+
 if (!manager.getSnapshot().activeFeatures.some(
   feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
 )) {
@@ -1624,6 +2478,21 @@ if (!manager.getSnapshot().activeFeatures.some(
     console.log("Activated EOG 3D Viewer ownership cutover.");
   } catch (error) {
     console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
+  }
+}
+if (
+  !manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
+  )
+  || !manager.getSnapshot().activeFeatures.some(
+    feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
+  )
+) {
+  try {
+    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
+    console.log("Activated Enterprise Observatory peer plugin.");
+  } catch (error) {
+    console.error("Failed to activate Enterprise Observatory peer plugin.", error);
   }
 }
 
@@ -1643,14 +2512,41 @@ const enterpriseOperatingGraphInspectorProperties =
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
 if (
-  applicationRuntimeBindingStore.snapshot().bindings.length > 0
+  installedAtStartup.some(
+    item => item.packageId === "evo-ledger-runtime-configurator"
+  )
   && !installedAtStartup.some(
-    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+    item => item.packageId === LEDGER_MANAGER_PACKAGE_ID
   )
 ) {
   try {
-    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    console.log("Migrated persisted Application Runtime Bindings onto the provider package.");
+    manager.install(LEDGER_MANAGER_PACKAGE_ID);
+    console.log(
+      "Migrated Ledger Configurator product surface to Ledger Manager."
+    );
+  } catch (error) {
+    console.error(
+      "Failed to activate Ledger Manager product cutover.",
+      error
+    );
+  }
+}
+if (
+  applicationRuntimeBindingStore.snapshot().bindings.length > 0
+  && !manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
+  )
+) {
+  try {
+    const installed = manager.getSnapshot().installedPackages.some(
+      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+    );
+    if (installed) {
+      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    } else {
+      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    }
+    console.log("Migrated persisted Application Runtime Bindings onto the active provider feature.");
   } catch (error) {
     console.error("Failed to activate Application Runtime Binding Provider.", error);
   }
@@ -1836,6 +2732,51 @@ if (
     console.log("Activated Host Enterprise Context Provider from Host-owned configuration.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Provider.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === COUNTERPARTY_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(COUNTERPARTY_PACKAGE_ID);
+    console.log("Activated EVO Counterparty plugin.");
+  } catch (error) {
+    console.error("Failed to activate EVO Counterparty plugin.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === OBJECT_EXTENSION_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(OBJECT_EXTENSION_PACKAGE_ID);
+    console.log("Activated EVO Object Extension application.");
+  } catch (error) {
+    console.error("Failed to activate EVO Object Extension application.", error);
+  }
+}
+if (
+  manager.getSnapshot().effectiveCapabilities.includes(
+    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  )
+  && !manager.getSnapshot().installedPackages.some(
+    item => item.packageId === DATA_IMPORT_PACKAGE_ID
+  )
+) {
+  try {
+    manager.install(DATA_IMPORT_PACKAGE_ID);
+    console.log("Activated EVO Data Import application.");
+  } catch (error) {
+    console.error("Failed to activate EVO Data Import application.", error);
   }
 }
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
@@ -2410,12 +3351,19 @@ const evoObservatoryApplicationMap = (() => {
 })();
 if (
   evoObservatoryApplicationMap.length > 0
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+  && !manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
   )
 ) {
   try {
-    manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    const installed = manager.getSnapshot().installedPackages.some(
+      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
+    );
+    if (installed) {
+      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    } else {
+      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+    }
     console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
   } catch (error) {
     console.error("Failed to activate Application Runtime Binding Provider.", error);
@@ -3053,6 +4001,17 @@ if (contextMemoryScheduleMs > 0) {
   contextMemoryScheduleTimer.unref();
 }
 
+function current2dEditorSessionKeysV010(
+  principal: PlatformPrincipalV010
+): string[] {
+  return [
+    principal.sessionId?.trim(),
+    principal.subjectId.trim()
+  ].filter((value, index, values): value is string =>
+    Boolean(value) && values.indexOf(value) === index
+  );
+}
+
 function resolveContextForPrincipal(
   principal: PlatformPrincipalV010,
   ref: ActiveContextRefV010
@@ -3077,6 +4036,26 @@ function createPersonalAgentToolCatalogV010(
     principal,
     principalContextSources()
   );
+  const editorEnterpriseRef = (enterpriseId: string) =>
+    contextRegistry.list().find(candidate =>
+      candidate.kind === "ENTERPRISE"
+      && candidate.enterpriseId === enterpriseId
+    );
+  const canManageEditorEnterprise = (
+    currentPrincipal: PlatformPrincipalV010,
+    enterpriseId: string
+  ) => {
+    const ref = editorEnterpriseRef(enterpriseId);
+    if (!ref) return false;
+    return (
+      resolveEnterpriseContextRelationshipProvider()
+        ?.listForPrincipal(currentPrincipal) ?? []
+    ).some(item =>
+      item.contextId === ref.contextId
+      && item.state === "ACTIVE"
+      && (item.kind === "OWNER" || item.kind === "ADMIN")
+    );
+  };
   return createEnterpriseAgentHostToolCatalogV010({
     manager,
     principal,
@@ -3195,7 +4174,7 @@ function createPersonalAgentToolCatalogV010(
     searchHelp(query, helpContext) {
       return searchHelpV010(helpCorpus, query, locale, helpContext);
     },
-    async authorizeWrite(descriptor) {
+    async authorizeWrite(descriptor, args) {
       if (!requestContext) {
         return {
           allowed: false,
@@ -3203,10 +4182,121 @@ function createPersonalAgentToolCatalogV010(
           message: "Material WRITE requires a Host-resolved request context."
         };
       }
+
+      if (descriptor.id === PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID) {
+        const operationId =
+          typeof args.operationId === "string"
+            ? args.operationId.trim()
+            : "";
+        if (!operationId) {
+          return {
+            allowed: false,
+            code: "PERSONAL_AGENT_CAPABILITY_OPERATION_REQUIRED",
+            message: "A concrete Capability Operation is required before WRITE authorization."
+          };
+        }
+        const capabilityCatalog =
+          await listAuthorizedCapabilityOperationsV010({
+            manager,
+            authorizationProvider: resolveAuthorizationProvider(),
+            requestContext:
+              personalAgentCapabilityRequestContextV010(requestContext),
+            audience: "PERSONAL_AGENT"
+          });
+        const operation = capabilityCatalog.operations.find(item =>
+          item.operationId === operationId && item.effect === "WRITE"
+        );
+        return operation
+          ? { allowed: true }
+          : {
+              allowed: false,
+              code: "PERSONAL_AGENT_CAPABILITY_NOT_AUTHORIZED",
+              message:
+                "The requested WRITE Capability Operation is not currently authorized for Personal Agent."
+            };
+      }
+
+      const current2dEditorWrite =
+        descriptor.id === "enterprise.current_2d_editor.crop";
+      const current2dEditorTarget = current2dEditorWrite
+        ? current2dEditorSessionKeysV010(principal)
+            .map(key => current2dEditorSessions.get(key))
+            .find(target => target !== undefined)
+        : undefined;
+      if (current2dEditorWrite && !current2dEditorTarget) {
+        return {
+          allowed: false,
+          code: "CURRENT_2D_EDITOR_REQUIRED",
+          message: "Open the target 2D editor before asking Personal Agent to change the current canvas."
+        };
+      }
+      const current2dEditorEnterpriseRef = current2dEditorTarget
+        ? editorEnterpriseRef(current2dEditorTarget.enterpriseId)
+        : undefined;
+      if (current2dEditorWrite && !current2dEditorEnterpriseRef) {
+        return {
+          allowed: false,
+          code: "CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED",
+          message: "The current 2D editor belongs to an Enterprise Context that is not available to this principal."
+        };
+      }
+      if (
+        current2dEditorTarget
+        && !canManageEditorEnterprise(
+          principal,
+          current2dEditorTarget.enterpriseId
+        )
+      ) {
+        return {
+          allowed: false,
+          code: "CURRENT_2D_EDITOR_MANAGE_ROLE_REQUIRED",
+          message: "Changing the current 2D editor requires an ACTIVE Owner or Admin relationship for its Enterprise Context."
+        };
+      }
+
+      const current2dAuthorization: MaterialWriteAuthorizationInputV010 | undefined =
+        current2dEditorTarget?.kind === "DEFINITION_PROJECTION"
+        ? {
+            action: EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+            resource: {
+              type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+              id:
+                `${current2dEditorTarget.definitionId}#${current2dEditorTarget.projectionId}`,
+              attributes: {
+                enterpriseId: current2dEditorTarget.enterpriseId,
+                definitionRevision: current2dEditorTarget.definitionRevision,
+                operator: "PERSONAL_AGENT"
+              }
+            }
+          }
+        : current2dEditorTarget?.kind === "OPERATING_GRAPH"
+          ? {
+              action: EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010,
+              resource: {
+                type: EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010,
+                id: current2dEditorTarget.resourceId,
+                attributes: {
+                  enterpriseId: current2dEditorTarget.enterpriseId,
+                  graphId: current2dEditorTarget.graphId,
+                  operator: "PERSONAL_AGENT"
+                }
+              }
+            }
+          : undefined;
+
+      const authorizationRequestContext =
+        current2dEditorEnterpriseRef
+          ? {
+              ...requestContext,
+              context: contextRegistry.resolve(
+                current2dEditorEnterpriseRef
+              )
+            }
+          : requestContext;
       const decision = await authorizeMaterialWriteV010(
         resolveAuthorizationProvider(),
-        requestContext,
-        {
+        authorizationRequestContext,
+        current2dAuthorization ?? {
           action: descriptor.id === "context.memory.canonicalization.proposal.create"
             ? "context.memory.proposal.create"
             : descriptor.id,
@@ -3246,6 +4336,14 @@ function createPersonalAgentToolCatalogV010(
           };
     }
   }, [
+    ...(requestContext
+      ? createPersonalAgentCapabilityToolRegistrationsV010({
+          manager,
+          actionRouter,
+          requestContext,
+          resolveAuthorizationProvider
+        })
+      : []),
     ...createEnterpriseOperatingGraphAgentToolRegistrationsV010({
       service: enterpriseOperatingGraphService,
       viewService: enterpriseOperatingGraphViewService,
@@ -3258,6 +4356,63 @@ function createPersonalAgentToolCatalogV010(
         feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
       )
     }),
+    ...createCurrent2dEditorAgentToolRegistrationsV010({
+      currentEditors: current2dEditorSessions,
+      graphService: enterpriseOperatingGraphService,
+      graphViewService: enterpriseOperatingGraphViewService,
+      definitionRepository: enterpriseBusinessDefinitionRepository,
+      definitionProjectionStore: enterpriseDefinitionProjectionStore,
+      definitionProjectionSource:
+        createEnterpriseDefinitionProjectionArtifactSourceV010(
+          enterpriseBusinessDefinitionRepository,
+          enterpriseDefinitionProjectionStore
+        ),
+      principal,
+      context,
+      locale,
+      isDesignerActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+      ),
+      canAccessEnterprise(_currentPrincipal, enterpriseId) {
+        return editorEnterpriseRef(enterpriseId) !== undefined;
+      },
+      canManageEnterprise(currentPrincipal, enterpriseId) {
+        return canManageEditorEnterprise(currentPrincipal, enterpriseId);
+      },
+      onEditorUpdated(update) {
+        const editorContext = editorEnterpriseRef(
+          update.target.enterpriseId
+        );
+        if (!editorContext) {
+          throw new Error(
+            "CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED"
+          );
+        }
+        realtimeEvents.publish({
+          topic: "resource.current-2d-editor",
+          type: "RESOURCE_INVALIDATED",
+          scope: {
+            contextId: editorContext.contextId,
+            enterpriseId: update.target.enterpriseId
+          },
+          resource: {
+            kind: update.target.kind === "OPERATING_GRAPH"
+              ? "enterprise-operating-graph"
+              : "enterprise-business-definition-projection",
+            resourceId: update.resourceId,
+            ...(update.version === undefined
+              ? {}
+              : { version: update.version })
+          },
+          payload: {
+            operator: "PERSONAL_AGENT",
+            editorKind: update.target.kind,
+            visibleNodeIds: [...update.visibleNodeIds],
+            visibleEdgeIds: [...update.visibleEdgeIds]
+          }
+        });
+      }
+    }),
     ...createEogExpectedSopAgentToolRegistrationsV010({
       service: eogExpectedSopService,
       principal,
@@ -3268,8 +4423,8 @@ function createPersonalAgentToolCatalogV010(
       providers: enterpriseOperatingGraphObservatoryProviders,
       principal,
       context,
-      isViewerActive: () => manager.getSnapshot().activeFeatures.some(
-        feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+      isObservatoryActive: () => manager.getSnapshot().activeFeatures.some(
+        feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
       )
     })
   ]);
@@ -3295,6 +4450,11 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
 
 const actionRouter = createAppActionRouter(
   [
+    ...createWorkbenchActionHandlersV010({
+      async resolveService() {
+        return (await resolveBiWorkbenchRuntimeV010()).service;
+      }
+    }),
     ...createEnterpriseOperatingGraphActionHandlersV010({
       service: enterpriseOperatingGraphService,
       resolveAuthorizationProvider
@@ -3310,6 +4470,19 @@ const actionRouter = createAppActionRouter(
       inspectorResolver: enterpriseOperatingGraphInspectorProperties,
       locale(context) {
         return context.locale;
+      },
+      onEditorRead(context, target) {
+        const selectedAt = new Date().toISOString();
+        for (const key of current2dEditorSessionKeysV010(context.principal)) {
+          current2dEditorSessions.set(key, {
+            contractVersion: "0.1.0",
+            kind: "OPERATING_GRAPH",
+            enterpriseId: target.enterpriseId,
+            graphId: target.graphId,
+            resourceId: target.resourceId,
+            selectedAt
+          });
+        }
       }
     }),
     ...createEnterpriseOperatingGraphObservatoryActionHandlersV020({
@@ -3325,24 +4498,153 @@ const actionRouter = createAppActionRouter(
       }
     }),
     createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
-    createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      locale(context) {
-        return context.locale;
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
+      async load() {
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
+        return module.createEnterpriseOperatingGraphViewerWorkspaceReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          locale(context) {
+            return context.locale;
+          }
+        });
       }
     }),
-    createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION,
+      async load() {
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
+        return module.createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          inspectorResolver: enterpriseOperatingGraphInspectorProperties
+        });
+      }
     }),
-    createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010(),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
+      async load() {
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return viewer.createTemplate2dPreviewReadActionV010({
+          source: previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION,
+      guard() {
+        const templateStoreActive = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        return templateStoreActive
+          ? undefined
+          : {
+              ok: false,
+              error: {
+                code: "TEMPLATE_STORE_NOT_ACTIVE",
+                message: "Template Store is not active."
+              }
+            };
+      },
+      async load() {
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return viewer.createTemplate2dPreviewSelectionReadActionV010({
+          source: previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository,
+              enterpriseDefinitionProjectionStore
+            )
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: EOG_2D_VIEWER_PACKAGE_ID,
+      featureId: EOG_2D_VIEWER_FEATURE_ID,
+      commandCode: EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION,
+      async load() {
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        return viewer.createEnterpriseDefinition2dPreviewSelectionReadActionV010({
+          source:
+            sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+              enterpriseBusinessDefinitionRepository,
+              enterpriseDefinitionProjectionStore
+            )
+        });
+      }
+    }),
     createEnterpriseOperatingGraphMobileReadActionHandlerV010({
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders,
       locale(context) {
         return context.locale;
       }
+    }),
+    createEnterpriseOperatingGraph3dViewerReadActionV010({
+      graphService: enterpriseOperatingGraphService,
+      viewService: enterpriseOperatingGraphViewService
     }),
     createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
       graphService: enterpriseOperatingGraphService,
@@ -3352,6 +4654,646 @@ const actionRouter = createAppActionRouter(
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
       resolveAuthorizationProvider
+    }),
+    createEnterpriseContextArchiveActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      resolveAuthorizationProvider
+    }),
+    createEnterpriseContextDefaultActionHandlerV010({
+      store: enterpriseGovernanceStore,
+      listAvailableContexts(principal) {
+        return createPrincipalContextRegistryV010(
+          principal,
+          principalContextSources()
+        ).list();
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
+      featureId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
+      commandCode: ENTERPRISE_CONTEXT_SELECT_COMMAND,
+      async load() {
+        const module = await import(
+          "../apps/enterprise-context-governance/context-actions.js"
+        );
+        return module.createEnterpriseContextSelectionActionHandlerV010({
+          listAvailableContexts(principal) {
+            return createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            ).list();
+          }
+        });
+      }
+    }),
+    ...[
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
+      EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [editor, sourceModule] = await Promise.all([
+            import("../apps/eog-2d-designer/definition-projection-editor.js"),
+            import("../providers/enterprise-context/definition-projection.js")
+          ]);
+          const handlers =
+            editor.createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+              repository: enterpriseBusinessDefinitionRepository,
+              projectionStore: enterpriseDefinitionProjectionStore,
+              source:
+                sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+                  enterpriseBusinessDefinitionRepository,
+                  enterpriseDefinitionProjectionStore
+                ),
+              sessions: enterpriseDefinitionProjectionSessions,
+              canManageEnterpriseContext(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).some(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                  && (item.kind === "OWNER" || item.kind === "ADMIN")
+                );
+              },
+              async authorizeProjectionSave(context, target) {
+                const authorization = await authorizeMaterialWriteV010(
+                  resolveAuthorizationProvider(),
+                  context,
+                  {
+                    action:
+                      EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010,
+                    resource: {
+                      type: EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010,
+                      id: `${target.definitionId}#${target.projectionId}`,
+                      attributes: {
+                        enterpriseId: target.enterpriseId,
+                        definitionRevision: target.definitionRevision
+                      }
+                    }
+                  }
+                );
+                if (!authorization.allowed) {
+                  throw new Error(
+                    `${authorization.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED"}: denied by '${authorization.policyProviderId}' ${authorization.reasonCodes.join(", ")}`
+                  );
+                }
+              },
+              locale(context) {
+                return context.locale;
+              },
+              onEditorRead(context, target) {
+                const selectedAt = new Date().toISOString();
+                for (const key of current2dEditorSessionKeysV010(context.principal)) {
+                  current2dEditorSessions.set(key, {
+                    contractVersion: "0.1.0",
+                    kind: "DEFINITION_PROJECTION",
+                    enterpriseId: target.enterpriseId,
+                    definitionId: target.definitionId,
+                    definitionRevision: target.definitionRevision,
+                    projectionId: target.projectionId,
+                    resourceId: target.resourceId,
+                    selectedAt
+                  });
+                }
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("DEFINITION_PROJECTION_EDITOR_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      COUNTERPARTY_CREATE_COMMAND,
+      COUNTERPARTY_UPDATE_COMMAND,
+      COUNTERPARTY_ARCHIVE_COMMAND,
+      COUNTERPARTY_ASSIGN_ROLE_COMMAND,
+      COUNTERPARTY_REMOVE_ROLE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/counterparty/actions.js");
+          const handlers = module.createCounterpartyActionHandlersV010({
+            repository: counterpartyRepository,
+            roleRepository: counterpartyRoleRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "cp-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
+      COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: COUNTERPARTY_PACKAGE_ID,
+        featureId: COUNTERPARTY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import(
+            "../apps/counterparty/projection-actions.js"
+          );
+          const handlers =
+            module.createCounterpartyProjectionActionHandlersV010({
+              service: counterpartyProjectionService,
+              resolveEnterpriseRelationshipKind(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).find(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                )?.kind;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("COUNTERPARTY_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      ITEM_CREATE_COMMAND,
+      ITEM_UPDATE_COMMAND,
+      ITEM_ARCHIVE_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ITEM_PACKAGE_ID,
+        featureId: ITEM_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/item/actions.js"),
+            resolveItemRuntimeV010()
+          ]);
+          const handlers = module.createItemActionHandlersV010({
+            repository: runtime.repository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "item-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("ITEM_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      ITEM_DIRECTORY_READ_COMMAND_V010,
+      ITEM_MY_ITEMS_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ITEM_PACKAGE_ID,
+        featureId: ITEM_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/item/projection-actions.js"),
+            resolveItemRuntimeV010()
+          ]);
+          const handlers = module.createItemProjectionActionHandlersV010({
+            service: runtime.projectionService,
+            resolveEnterpriseRelationshipKind(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).find(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+              )?.kind;
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("ITEM_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    createLazyAppActionHandlerV010({
+      packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
+      featureId: TRADING_REFERENCE_FEATURE_ID_V010,
+      commandCode: PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+      async load() {
+        const mod = await import("../apps/trading-reference/operational-actions.js");
+        return mod.createPurchaseOperationalEntryActionHandlerV010();
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
+      featureId: TRADING_REFERENCE_FEATURE_ID_V010,
+      commandCode: PURCHASE_OPERATIONS_READ_COMMAND_V010,
+      async load() {
+        const [actionModule, projectionModule, httpModule] = await Promise.all([
+          import("../apps/trading-reference/operational-actions.js"),
+          import("../apps/trading-reference/operational-projection.js"),
+          import("../apps/trading-reference/operational-http-reader.js")
+        ]);
+        const service =
+          projectionModule.createPurchaseOperationalProjectionServiceV010({
+            reader: httpModule.createPurchaseOperationalEvoHttpReaderV010({
+              baseUrl: evoBaseUrl
+            }),
+            resolveAuthorizationProvider
+          });
+        return actionModule.createPurchaseOperationalReadActionHandlerV010({
+          service,
+          resolveEvoEnterpriseId(context) {
+            const active = context.context?.activeContext;
+            if (!active || active.kind !== "ENTERPRISE"
+                || context.scope.enterpriseId !== active.enterpriseId) {
+              throw new Error("TR01_OPERATIONAL_ENTERPRISE_CONTEXT_MISMATCH");
+            }
+            // Unlike the legacy demo Trading Lite path, a purchase-read
+            // MUST NOT fall back to the global EVO_DEMO enterprise.
+            const bound = evoRuntimeScopeMap.get(active.enterpriseId);
+            if (!bound) {
+              throw new Error("TR01_OPERATIONAL_EVO_SCOPE_BINDING_REQUIRED");
+            }
+            return bound;
+          }
+        });
+      }
+    }),
+    ...[
+      WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
+      WAREHOUSE_MY_READ_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: WAREHOUSE_PACKAGE_ID,
+        featureId: WAREHOUSE_FEATURE_ID,
+        commandCode,
+        async load() {
+          const [module, runtime] = await Promise.all([
+            import("../apps/warehouse/projection-actions.js"),
+            resolveWarehouseRuntimeV010()
+          ]);
+          const handlers =
+            module.createWarehouseProjectionActionHandlersV010({
+              service: runtime.projectionService,
+              resolveEnterpriseRelationshipKind(principal, contextId) {
+                return (
+                  resolveEnterpriseContextRelationshipProvider()
+                    ?.listForPrincipal(principal) ?? []
+                ).find(item =>
+                  item.contextId === contextId
+                  && item.state === "ACTIVE"
+                )?.kind;
+              }
+            });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("WAREHOUSE_PROJECTION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      RESPONSIBILITY_ASSIGN_COMMAND_V010,
+      RESPONSIBILITY_ARCHIVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: RESPONSIBILITY_PACKAGE_ID,
+        featureId: RESPONSIBILITY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/responsibility/actions.js");
+          const handlers = module.createResponsibilityActionHandlersV010({
+            repository: responsibilityRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("RESPONSIBILITY_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
+      OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: OBJECT_EXTENSION_PACKAGE_ID,
+        featureId: OBJECT_EXTENSION_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/object-extension/actions.js");
+          const handlers = module.createObjectExtensionActionHandlersV010({
+            repository: objectExtensionRepository,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("OBJECT_EXTENSION_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+      DATA_IMPORT_REVIEW_COMMAND_V010,
+      DATA_IMPORT_STAGE_CSV_COMMAND_V010,
+      DATA_IMPORT_DRY_RUN_COMMAND_V010,
+      DATA_IMPORT_COMMIT_COMMAND_V010,
+      DATA_IMPORT_GET_COMMAND_V010,
+      DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
+      DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+      DATA_IMPORT_ERROR_CSV_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: DATA_IMPORT_PACKAGE_ID,
+        featureId: DATA_IMPORT_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/data-import/actions.js");
+          const dataImportTargets =
+            await resolveEffectiveDataImportTargetsV010();
+          const dataImportService = createDataImportServiceV010({
+            repository: dataImportRepository,
+            recipeRepository: dataImportRecipeRepository,
+            targets: dataImportTargets
+          });
+          const handlers = module.createDataImportActionHandlersV010({
+            service: dataImportService,
+            repository: dataImportRepository,
+            targets: dataImportTargets,
+            ...(dataImportExperienceAdvisor
+              ? { experienceAdvisor: dataImportExperienceAdvisor }
+              : {}),
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            idFactory() {
+              return "import-" + randomUUID();
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
+      LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
+      LEDGER_MANAGER_PUBLISH_COMMAND
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: LEDGER_MANAGER_PACKAGE_ID,
+        featureId: LEDGER_MANAGER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/ledger-manager/actions.js");
+          const handlers = module.createLedgerManagerActionHandlersV010({
+            repository: enterpriseBusinessDefinitionRepository,
+            projectionSessions: enterpriseDefinitionProjectionSessions,
+            resolveAuthorizationProvider,
+            canManageEnterpriseContext(principal, contextId) {
+              return (
+                resolveEnterpriseContextRelationshipProvider()
+                  ?.listForPrincipal(principal) ?? []
+              ).some(item =>
+                item.contextId === contextId
+                && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+            },
+            viewerAvailable() {
+              return manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              );
+            },
+            async publishToLedgerRuntime({
+              enterpriseId,
+              enterpriseDisplayName,
+              compiled
+            }) {
+              const runtimeEnterpriseId =
+                evoRuntimeScopeMap.get(enterpriseId);
+              const result = await evoJson(
+                "/api/v1/configurator/burn",
+                {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    ...compiled,
+                    target: runtimeEnterpriseId
+                      ? { enterpriseId: runtimeEnterpriseId }
+                      : {
+                          enterpriseCode: enterpriseId,
+                          enterpriseName:
+                            enterpriseDisplayName ?? enterpriseId
+                        }
+                  })
+                }
+              );
+              if (result.status < 200 || result.status >= 300) {
+                throw new Error(
+                  "LEDGER_MANAGER_RUNTIME_PUBLISH_FAILED: "
+                  + JSON.stringify(result.body)
+                );
+              }
+              return result.body;
+            },
+            resolveEnterpriseDisplayName(enterpriseId) {
+              const item = enterpriseGovernanceStore.snapshot().contexts
+                .find(context => context.enterpriseId === enterpriseId);
+              return item?.displayName;
+            }
+          });
+          const handler = handlers.find(
+            candidate => candidate.commandCode === commandCode
+          );
+          if (!handler) {
+            throw new Error("LEDGER_MANAGER_HANDLER_NOT_FOUND");
+          }
+          return handler;
+        }
+      })
+    ),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_COPY_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/copy-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreCopyActionHandlerV010({
+          store: templateStoreRepository,
+          transfer: enterpriseTemplateTransferProvider,
+          resolveAuthorizationProvider,
+          listAvailableContexts(principal) {
+            return createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            ).list();
+          },
+          resolveDefaultEnterpriseContext(principal) {
+            const registry = createPrincipalContextRegistryV010(
+              principal,
+              principalContextSources()
+            );
+            return resolveDefaultEnterpriseContextV010({
+              principal,
+              availableContexts: registry.list(),
+              store: enterpriseGovernanceStore
+            });
+          },
+          canManageEnterpriseContext(principal, contextId) {
+            return (
+              resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(principal) ?? []
+            ).some(item =>
+              item.contextId === contextId
+              && item.state === "ACTIVE"
+              && (item.kind === "OWNER" || item.kind === "ADMIN")
+            );
+          }
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_DOWNLOAD_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/download-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreDownloadActionHandlerV010({
+          store: templateStoreRepository
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_OPEN_DETAIL_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/detail-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStoreOpenDetailActionHandlerV010({
+          store: templateStoreRepository,
+          sessions: templatePreviewSessions
+        });
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TEMPLATE_STORE_PACKAGE_ID,
+      featureId: TEMPLATE_STORE_FEATURE_ID,
+      commandCode: TEMPLATE_STORE_PREVIEW_2D_COMMAND,
+      async load() {
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/preview-action.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        return module.createTemplateStorePreview2dActionHandlerV010({
+          store: templateStoreRepository,
+          sessions: templatePreviewSessions,
+          viewerAvailable() {
+            return manager.getSnapshot().effectiveCapabilities.includes(
+              VISUAL_2D_VIEWER_CAPABILITY_V010
+            );
+          }
+        });
+      }
     }),
     ...createEnterpriseRelationshipActionHandlersV010({
       store: enterpriseGovernanceStore,
@@ -3451,6 +5393,9 @@ const actionRouter = createAppActionRouter(
     }),
     ...createThreadBackedAgentTurnActionHandlersV010({
       threadStore: conversationThreadStore,
+      ...(conversationContextAssembler
+        ? { contextAssembler: conversationContextAssembler }
+        : {}),
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
       resolveLlmProvider,
@@ -3508,7 +5453,10 @@ const actionRouter = createAppActionRouter(
       resolveRuntimeTarget: resolveTradingLiteEvoRuntimeTarget
     })
   ],
-  featureId => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === featureId),
+  featureId =>
+    manager.getSnapshot().activeFeatures.some(
+      feature => feature.featureId === featureId
+    ),
   createCapabilityOperationActionPreExecuteV010({
     manager,
     resolveAuthorizationProvider
@@ -3670,6 +5618,15 @@ async function evoJson(path: string, init?: RequestInit): Promise<{ status: numb
 
 function installPlanWithDigest(packageId: string) {
   const plan = manager.planInstall(packageId);
+  const snapshot = manager.getSnapshot();
+  const planDigest = createHash("sha256")
+    .update(JSON.stringify({ plan, snapshot }))
+    .digest("hex");
+  return { ...plan, planDigest };
+}
+
+function upgradePlanWithDigest(packageId: string) {
+  const plan = manager.planUpgrade(packageId);
   const snapshot = manager.getSnapshot();
   const planDigest = createHash("sha256")
     .update(JSON.stringify({ plan, snapshot }))
@@ -3941,7 +5898,7 @@ const server = createServer(async (request, response) => {
           response.statusCode = 303;
           response.setHeader(
             "location",
-            "/auth/login?returnTo=" + encodeURIComponent(returnTo)
+            "/login?returnTo=" + encodeURIComponent(returnTo)
           );
           return response.end();
         }
@@ -4064,6 +6021,83 @@ const server = createServer(async (request, response) => {
       return json(response, result.status, result.body);
     }
 
+    if (
+      request.method === "GET"
+      && (
+        url.pathname === "/login-assets/tuge-logo-reference.webp"
+        || url.pathname === "/login-assets/tuge-global-connectivity-demo.webp"
+        || url.pathname === "/login-assets/tuge-logo-final.png"
+        || url.pathname === "/login-assets/tuge-login-background-final.png"
+      )
+    ) {
+      const assetName = url.pathname.split("/").at(-1);
+      if (!assetName) {
+        return json(response, 404, { code: "LOGIN_ASSET_NOT_FOUND" });
+      }
+      try {
+        const bytes = await readFile(
+          fileURLToPath(new URL("./assets/" + assetName, import.meta.url))
+        );
+        const etag = "\"" + createHash("sha256")
+          .update(bytes)
+          .digest("base64url") + "\"";
+        response.setHeader("etag", etag);
+        response.setHeader("cache-control", "public, max-age=3600");
+        response.setHeader(
+          "content-type",
+          assetName.endsWith(".png")
+            ? "image/png"
+            : assetName.endsWith(".jpg") || assetName.endsWith(".jpeg")
+              ? "image/jpeg"
+              : "image/webp"
+        );
+        if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
+          transportTraffic.recordNotModified();
+          response.statusCode = 304;
+          return response.end();
+        }
+        response.statusCode = 200;
+        return response.end(bytes);
+      } catch {
+        return json(response, 404, { code: "LOGIN_ASSET_NOT_FOUND" });
+      }
+    }
+
+    if (request.method === "GET" && url.pathname === "/login") {
+      response.setHeader("cache-control", "no-store");
+      const returnTo = normalizeAuthenticationReturnToV010(
+        url.searchParams.get("returnTo") ?? "/"
+      );
+      const locale = url.searchParams.get("locale")?.trim() || "en";
+      const skin = url.searchParams.get("skin") === "demo"
+        ? "demo"
+        : "standard";
+      if (managedSessionEnabled) {
+        try {
+          resolveRequestIdentitySession(request);
+          response.statusCode = 303;
+          response.setHeader("location", returnTo);
+          return response.end();
+        } catch (error) {
+          const failure = requestAuthenticationHttpFailureV010(error);
+          if (!failure || failure.status !== 401) throw error;
+        }
+      }
+      response.statusCode = 200;
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      return response.end(createLoginExperienceHtmlV010({
+        assetRevision: appHostAssetRevision,
+        returnTo,
+        locale,
+        skin,
+        authenticationEnabled: managedSessionEnabled,
+        methods: defaultLoginMethodsV010({
+          googleAvailable: managedSessionEnabled,
+          locale
+        })
+      }));
+    }
+
     if (request.method === "GET" && url.pathname === "/auth/login") {
       if (!managedSessionEnabled) {
         return json(response, 404, { code: "AUTHENTICATION_NOT_ENABLED" });
@@ -4163,7 +6197,7 @@ const server = createServer(async (request, response) => {
             response.setHeader("cache-control", "no-store");
             response.setHeader(
               "location",
-              "/auth/login?returnTo=" + encodeURIComponent("/")
+              "/login?returnTo=" + encodeURIComponent("/")
             );
             return response.end();
           }
@@ -4173,7 +6207,7 @@ const server = createServer(async (request, response) => {
       const etag = representationEtag(appHostShellHtml);
       applyCors(response);
       response.setHeader("etag", etag);
-      response.setHeader("cache-control", "no-cache");
+      response.setHeader("cache-control", "no-store");
       if (ifNoneMatchSatisfied(request.headers["if-none-match"], etag)) {
         transportTraffic.recordNotModified();
         response.statusCode = 304;
@@ -4410,6 +6444,11 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
+      const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+        principal: session.principal,
+        availableContexts: contextRegistry.list(),
+        store: enterpriseGovernanceStore
+      });
       return json(response, 200, {
         contractVersion: "0.1.0",
         session: {
@@ -4418,6 +6457,15 @@ const server = createServer(async (request, response) => {
         },
         personalContext: contextRegistry.personal(),
         availableContexts: contextRegistry.list(),
+        availableContextOptions: contextRegistry.list().map(ref => {
+          const resolved = contextRegistry.resolve(ref);
+          return {
+            ref,
+            label: ref.kind === "PERSONAL"
+              ? resolved.personalContext.displayName ?? ref.contextId
+              : resolved.enterpriseContext?.displayName ?? ref.contextId
+          };
+        }),
         relationships: resolveEnterpriseContextRelationshipProvider()
           ?.listForPrincipal(session.principal) ?? [],
         pendingInvitations: enterpriseGovernanceStore.snapshot().invitations
@@ -4432,6 +6480,7 @@ const server = createServer(async (request, response) => {
             && item.state === "PENDING"
             && (item.expiresAt === undefined || Date.parse(item.expiresAt) > Date.now())
           ),
+        defaultEnterpriseContext,
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
@@ -4615,6 +6664,927 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature =>
+            feature.featureId
+            === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(
+            response,
+            404,
+            { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" }
+          );
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const selected = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
+        );
+        const activeContext = contextRegistry.resolve(selected).activeContext;
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: contextRegistry.list(),
+          store: enterpriseGovernanceStore
+        });
+        const ownerContextIds = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? []
+        ).filter(item =>
+          item.kind === "OWNER" && item.state === "ACTIVE"
+        ).map(item => item.contextId);
+        const contexts = contextRegistry.list().flatMap(ref => {
+          if (ref.kind !== "ENTERPRISE") return [];
+          const resolved = contextRegistry.resolve(ref);
+          return resolved.enterpriseContext
+            ? [resolved.enterpriseContext]
+            : [];
+        });
+        const module = await import(
+          "../apps/enterprise-context-governance/context-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseContextDirectoryPageV010({
+            contexts,
+            activeContext,
+            defaultContextId: defaultEnterpriseContext?.contextId,
+            ownerContextIds,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+      if (source === ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const selected = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
+        );
+        const resolved = contextRegistry.resolve(selected);
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !resolved.enterpriseContext
+        ) {
+          return json(response, 409, {
+            code: "ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: contextRegistry.list(),
+          store: enterpriseGovernanceStore
+        });
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const module = await import(
+          "../apps/enterprise-context-governance/context-page.js"
+        );
+        return json(
+          response,
+          200,
+          module.createEnterpriseContextOverviewPageV010({
+            context: resolved.enterpriseContext,
+            currentRole: relationship?.kind,
+            isDefault:
+              defaultEnterpriseContext?.contextId === active.contextId,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (
+        source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE
+        || source === COUNTERPARTY_CUSTOMERS_PAGE_SOURCE
+        || source === COUNTERPARTY_SUPPLIERS_PAGE_SOURCE
+        || source === COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE
+        || source === COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE
+        || source === COUNTERPARTY_CREATE_PAGE_SOURCE
+        || source === COUNTERPARTY_DETAIL_PAGE_SOURCE
+        || source === COUNTERPARTY_EDIT_PAGE_SOURCE
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "COUNTERPARTY_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "counterparty-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const canManage = relationship?.kind === "OWNER"
+          || relationship?.kind === "ADMIN";
+        const allCounterparties =
+          counterpartyRepository.list(active.contextId);
+        const responsibilities = responsibilityRepository.list(
+          active.contextId,
+          { objectType: "counterparty.subject" }
+        );
+        const access = await resolveCounterpartyReadAccessV010({
+          authorizationProvider: resolveAuthorizationProvider(),
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind,
+          counterparties: allCounterparties,
+          responsibilities,
+          fieldIds: counterpartyCoreSchemaV010.fields.map(
+            field => field.fieldId
+          )
+        });
+        const authorizedCounterpartyIds = new Set(
+          access.counterparties.map(item => item.counterpartyId)
+        );
+        const module = await import("../apps/counterparty/page.js");
+
+        if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyDirectoryPageV010({
+              counterparties: access.counterparties,
+              ...(manager.listEffectiveDataImportTargets().some(target =>
+                target.targetId === "counterparty.subject"
+              )
+                ? {
+                    importRoute: dataImportUploadRouteV010(
+                      "counterparty.subject"
+                    )
+                  }
+                : {}),
+              locale,
+              readableFieldIds: access.readableFieldIds,
+              canManage
+            })
+          );
+        }
+
+        const projectionId: CounterpartyProjectionIdV010 | undefined =
+          source === COUNTERPARTY_CUSTOMERS_PAGE_SOURCE
+            ? COUNTERPARTY_CUSTOMER_PROJECTION_V010
+            : source === COUNTERPARTY_SUPPLIERS_PAGE_SOURCE
+              ? COUNTERPARTY_SUPPLIER_PROJECTION_V010
+              : source === COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE
+                ? COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
+                : source === COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE
+                  ? COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+                  : undefined;
+
+        if (projectionId) {
+          const projection = await counterpartyProjectionService.read({
+            contextId: active.contextId,
+            projectionId,
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
+          });
+          return json(
+            response,
+            200,
+            module.createCounterpartyProjectionPageV010({
+              projectionId,
+              counterparties: projection.counterparties,
+              locale,
+              readableFieldIds: projection.readableFieldIds,
+              canManage
+            })
+          );
+        }
+
+        if (source === COUNTERPARTY_CREATE_PAGE_SOURCE) {
+          if (!canManage) {
+            return json(response, 403, {
+              code: "COUNTERPARTY_MANAGE_ROLE_REQUIRED"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createCounterpartyCreatePageV010(locale)
+          );
+        }
+
+        const routeValue = url.searchParams.get("route")?.trim();
+        const counterpartyId = source === COUNTERPARTY_EDIT_PAGE_SOURCE
+          ? parseCounterpartyEditRouteV010(routeValue || undefined)
+          : parseCounterpartyDetailRouteV010(routeValue || undefined);
+        if (!counterpartyId) {
+          return json(response, 400, {
+            code: source === COUNTERPARTY_EDIT_PAGE_SOURCE
+              ? "COUNTERPARTY_EDIT_ROUTE_INVALID"
+              : "COUNTERPARTY_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const counterparty =
+          counterpartyRepository.get(active.contextId, counterpartyId);
+        if (
+          !counterparty
+          || !authorizedCounterpartyIds.has(counterpartyId)
+        ) {
+          return json(response, 404, {
+            code: "COUNTERPARTY_NOT_FOUND"
+          });
+        }
+        if (source === COUNTERPARTY_EDIT_PAGE_SOURCE && !canManage) {
+          return json(response, 403, {
+            code: "COUNTERPARTY_MANAGE_ROLE_REQUIRED"
+          });
+        }
+        return json(
+          response,
+          200,
+          source === COUNTERPARTY_EDIT_PAGE_SOURCE
+            ? module.createCounterpartyEditPageV010({
+                counterparty,
+                locale
+              })
+            : module.createCounterpartyDetailPageV010({
+                counterparty,
+                roles: counterpartyRoleRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
+                customerProfile: counterpartyProfileRepository.get(
+                  active.contextId,
+                  counterpartyId,
+                  "CUSTOMER"
+                ),
+                supplierProfile: counterpartyProfileRepository.get(
+                  active.contextId,
+                  counterpartyId,
+                  "SUPPLIER"
+                ),
+                contacts: counterpartyContactRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
+                addresses: counterpartyAddressRepository.list(
+                  active.contextId,
+                  counterpartyId
+                ),
+                locale,
+                readableFieldIds: access.readableFieldIds,
+                canManage
+              })
+        );
+      }
+
+      if (
+        source === ITEM_DIRECTORY_PAGE_SOURCE
+        || source === ITEM_MY_ITEMS_PAGE_SOURCE
+        || source === ITEM_CREATE_PAGE_SOURCE
+        || source === ITEM_DETAIL_PAGE_SOURCE
+        || source === ITEM_EDIT_PAGE_SOURCE
+      ) {
+        if (!itemFeatureActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "ITEM_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "item-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const canManage = relationship?.kind === "OWNER"
+          || relationship?.kind === "ADMIN";
+        const runtime = await resolveItemRuntimeV010();
+        const module = await import("../apps/item/page.js");
+
+        if (
+          source === ITEM_DIRECTORY_PAGE_SOURCE
+          || source === ITEM_MY_ITEMS_PAGE_SOURCE
+        ) {
+          const projectionId =
+            source === ITEM_MY_ITEMS_PAGE_SOURCE
+              ? ITEM_MY_ITEMS_PROJECTION_V010
+              : ITEM_DIRECTORY_PROJECTION_V010;
+          const projection = await runtime.projectionService.read({
+            contextId: active.contextId,
+            projectionId,
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
+          });
+          return json(
+            response,
+            200,
+            source === ITEM_DIRECTORY_PAGE_SOURCE
+              ? module.createItemDirectoryPageV010({
+                  records: projection.items,
+                  locale,
+                  readableFieldIds: projection.readableFieldIds,
+                  canManage
+                })
+              : module.createItemProjectionPageV010({
+                  projectionId,
+                  records: projection.items,
+                  locale,
+                  readableFieldIds: projection.readableFieldIds,
+                  canManage
+                })
+          );
+        }
+
+        if (source === ITEM_CREATE_PAGE_SOURCE) {
+          if (!canManage) {
+            return json(response, 403, {
+              code: "ITEM_MANAGE_ROLE_REQUIRED"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createItemCreatePageV010(locale)
+          );
+        }
+
+        const routeValue = url.searchParams.get("route")?.trim();
+        const itemId = source === ITEM_EDIT_PAGE_SOURCE
+          ? parseItemEditRouteV010(routeValue || undefined)
+          : parseItemDetailRouteV010(routeValue || undefined);
+        if (!itemId) {
+          return json(response, 400, {
+            code: source === ITEM_EDIT_PAGE_SOURCE
+              ? "ITEM_EDIT_ROUTE_INVALID"
+              : "ITEM_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const directory = await runtime.projectionService.read({
+          contextId: active.contextId,
+          projectionId: ITEM_DIRECTORY_PROJECTION_V010,
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind
+        });
+        const record = directory.items.find(
+          candidate => candidate.item.itemId === itemId
+        );
+        if (!record) {
+          return json(response, 404, {
+            code: "ITEM_NOT_FOUND"
+          });
+        }
+        if (source === ITEM_EDIT_PAGE_SOURCE && !canManage) {
+          return json(response, 403, {
+            code: "ITEM_MANAGE_ROLE_REQUIRED"
+          });
+        }
+        return json(
+          response,
+          200,
+          source === ITEM_EDIT_PAGE_SOURCE
+            ? module.createItemEditPageV010({
+                item: record.item,
+                locale
+              })
+            : module.createItemDetailPageV010({
+                record,
+                locale,
+                readableFieldIds: directory.readableFieldIds,
+                canManage
+              })
+        );
+      }
+
+      if (
+        source === PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010
+        || source === PURCHASE_OPERATIONS_DETAIL_PAGE_SOURCE_V010
+      ) {
+        // Keep UI and Agent reads on exactly the same authorized Action Host
+        // operation; a guessed deep link cannot bypass runtime binding or policy.
+        if (!manager.getSnapshot().activeFeatures.some(feature =>
+          feature.packageId === TRADING_REFERENCE_PACKAGE_ID_V010
+          && feature.featureId === TRADING_REFERENCE_FEATURE_ID_V010
+        )) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const registry = createContextRegistryForSession(session);
+        const resolved = registry.resolve(
+          contextFromHeaderV010(request.headers, registry)
+        );
+        if (resolved.activeContext.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "TR01_OPERATIONAL_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const partialContext: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: { contractVersion: "0.1.0", userId: principal.subjectId },
+          context: resolved,
+          correlationId: "tr01-operational-view-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...partialContext,
+          scope: legacyScopeFromRequestContextV010(partialContext)
+        };
+        const pageModule = await import(
+          "../apps/trading-reference/operational-page.js"
+        );
+        if (source === PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010) {
+          const entry = await actionRouter.execute({
+            contractVersion: "0.1.0",
+            type: "command",
+            command: {
+              code: PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+              inputVersion: "0.1.0"
+            },
+            values: {},
+            sourceInteractionId: "purchase-entry",
+            actionId: "open",
+            requiresConfirmation: false
+          }, readContext);
+          if (!entry.ok) return json(response, 403, {
+            code: entry.error?.code ?? "TR01_OPERATIONAL_ENTRY_DENIED"
+          });
+          return json(
+            response, 200,
+            pageModule.createPurchaseOperationalLookupPageV010(locale)
+          );
+        }
+        const selected = pageModule.parsePurchaseOperationalDetailRouteV010(
+          url.searchParams.get("route")?.trim() || undefined
+        );
+        if (!selected) {
+          return json(response, 400, {
+            code: "TR01_OPERATIONAL_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const result = await actionRouter.execute({
+          contractVersion: "0.1.0",
+          type: "command",
+          command: {
+            code: PURCHASE_OPERATIONS_READ_COMMAND_V010,
+            inputVersion: "0.1.0"
+          },
+          values: { ...selected },
+          sourceInteractionId: "purchase-detail",
+          actionId: "read",
+          requiresConfirmation: false
+        }, readContext);
+        if (!result.ok || !result.result) {
+          return json(response, 403, {
+            code: result.error?.code ?? "TR01_OPERATIONAL_READ_DENIED"
+          });
+        }
+        return json(response, 200,
+          pageModule.createPurchaseOperationalPositionPageV010(
+            result.result as unknown as import(
+              "../apps/trading-reference/operational-projection.js"
+            ).PurchaseOperationalViewV010,
+            locale
+          )
+        );
+      }
+
+      if (
+        source === WAREHOUSE_DIRECTORY_PAGE_SOURCE
+        || source === WAREHOUSE_MY_PAGE_SOURCE
+        || source === WAREHOUSE_DETAIL_PAGE_SOURCE
+      ) {
+        if (!warehouseFeatureActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "WAREHOUSE_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const readContextBase: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "warehouse-read-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...readContextBase,
+          scope: legacyScopeFromRequestContextV010(readContextBase)
+        };
+        const relationship = (
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(principal) ?? []
+        ).find(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+        );
+        const runtime = await resolveWarehouseRuntimeV010();
+        const module = await import("../apps/warehouse/page.js");
+
+        if (
+          source === WAREHOUSE_DIRECTORY_PAGE_SOURCE
+          || source === WAREHOUSE_MY_PAGE_SOURCE
+        ) {
+          const projectionId =
+            source === WAREHOUSE_MY_PAGE_SOURCE
+              ? WAREHOUSE_MY_PROJECTION_V010
+              : WAREHOUSE_DIRECTORY_PROJECTION_V010;
+          const projection = await runtime.projectionService.read({
+            contextId: active.contextId,
+            projectionId,
+            requestContext: readContext,
+            enterpriseRelationshipKind: relationship?.kind
+          });
+          return json(
+            response,
+            200,
+            module.createWarehouseProjectionPageV010({
+              projectionId,
+              records: projection.warehouses,
+              locale,
+              readableFieldIds: projection.readableFieldIds
+            })
+          );
+        }
+
+        const routeValue = url.searchParams.get("route")?.trim();
+        const warehouseId = parseWarehouseDetailRouteV010(
+          routeValue || undefined
+        );
+        if (!warehouseId) {
+          return json(response, 400, {
+            code: "WAREHOUSE_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const directory = await runtime.projectionService.read({
+          contextId: active.contextId,
+          projectionId: WAREHOUSE_DIRECTORY_PROJECTION_V010,
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind
+        });
+        const record = directory.warehouses.find(
+          candidate => candidate.warehouse.warehouseId === warehouseId
+        );
+        if (!record) {
+          return json(response, 404, {
+            code: "WAREHOUSE_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          module.createWarehouseDetailPageV010({
+            record,
+            locale,
+            readableFieldIds: directory.readableFieldIds
+          })
+        );
+      }
+
+      if (
+        source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE
+        || source === DATA_IMPORT_UPLOAD_PAGE_SOURCE
+        || source === DATA_IMPORT_MAPPING_PAGE_SOURCE
+        || source === DATA_IMPORT_REVIEW_PAGE_SOURCE
+      ) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (
+          active.kind !== "ENTERPRISE"
+          || !active.contextId?.trim()
+        ) {
+          return json(response, 409, {
+            code: "DATA_IMPORT_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const module = await import("../apps/data-import/page.js");
+        const dataImportTargets =
+          await resolveEffectiveDataImportTargetsV010();
+        const locale = requestedLocale(url);
+        const routeValue = url.searchParams.get("route")?.trim();
+
+        if (source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createDataImportDirectoryPageV010({
+              targets: dataImportTargets,
+              jobs: dataImportRepository.list(active.contextId),
+              locale
+            })
+          );
+        }
+
+        if (source === DATA_IMPORT_UPLOAD_PAGE_SOURCE) {
+          const targetId = parseDataImportUploadRouteV010(
+            routeValue || undefined
+          );
+          const target = dataImportTargets.find(item =>
+            item.targetId === targetId
+          );
+          if (!target) {
+            return json(response, 404, {
+              code: "DATA_IMPORT_TARGET_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createDataImportUploadPageV010({
+              target,
+              locale
+            })
+          );
+        }
+
+        const importJobId = source === DATA_IMPORT_MAPPING_PAGE_SOURCE
+          ? parseDataImportMappingRouteV010(routeValue || undefined)
+          : parseDataImportReviewRouteV010(routeValue || undefined);
+        if (!importJobId) {
+          return json(response, 400, {
+            code: "DATA_IMPORT_ROUTE_INVALID"
+          });
+        }
+        const job = dataImportRepository.get(active.contextId, importJobId);
+        if (!job) {
+          return json(response, 404, {
+            code: "DATA_IMPORT_JOB_NOT_FOUND"
+          });
+        }
+        if (source === DATA_IMPORT_MAPPING_PAGE_SOURCE) {
+          const target = dataImportTargets.find(item =>
+            item.targetId === job.targetId
+          );
+          if (!target) {
+            return json(response, 404, {
+              code: "DATA_IMPORT_TARGET_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createDataImportMappingPageV010({
+              job,
+              schema: target.describe({
+                contextId: active.contextId,
+                locale,
+                parameters: job.targetParameters
+              }),
+              locale
+            })
+          );
+        }
+        return json(
+          response,
+          200,
+          module.createDataImportReviewPageV010({
+            job,
+            locale
+          })
+        );
+      }
+
+      if (source === LEDGER_MANAGER_PAGE_SOURCE) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "LEDGER_MANAGER_ENTERPRISE_CONTEXT_REQUIRED",
+            message: "Select an Enterprise Context first."
+          });
+        }
+        const relationships =
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? [];
+        const canPublish = relationships.some(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+          && (item.kind === "OWNER" || item.kind === "ADMIN")
+        );
+        const module = await import("../apps/ledger-manager/page.js");
+        return json(
+          response,
+          200,
+          module.createLedgerManagerPageV010({
+            enterpriseId: active.enterpriseId,
+            repository: enterpriseBusinessDefinitionRepository,
+            viewer2dAvailable:
+              manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              ),
+            canPublish,
+            projectionGallery(revision) {
+              return enterpriseDefinitionProjectionStore.get({
+                enterpriseId: revision.enterpriseId,
+                definitionId: revision.definitionId,
+                definitionRevision: revision.revision
+              });
+            },
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (source === LEDGER_MANAGER_DETAIL_PAGE_SOURCE) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "LEDGER_MANAGER_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseLedgerManagerDetailRouteV010(
+          routeValue || undefined
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "LEDGER_MANAGER_DETAIL_ROUTE_INVALID"
+          });
+        }
+
+        const sessionId = session.principal.sessionId?.trim();
+        const sessionSelection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(
+            session.principal.subjectId
+          );
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision
+            }
+          : sessionSelection;
+        if (
+          !selection
+          || selection.enterpriseId !== active.enterpriseId
+        ) {
+          return json(response, 409, {
+            code: "LEDGER_MANAGER_DETAIL_SELECTION_REQUIRED"
+          });
+        }
+        const revision = enterpriseBusinessDefinitionRepository
+          .listHistory({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId
+          })
+          .find(item =>
+            item.revision === selection.definitionRevision
+            && item.kind === "LEDGER_RUNTIME_TEMPLATE"
+          );
+        if (!revision) {
+          return json(response, 404, {
+            code: "LEDGER_MANAGER_DEFINITION_NOT_FOUND"
+          });
+        }
+        const relationships =
+          resolveEnterpriseContextRelationshipProvider()
+            ?.listForPrincipal(session.principal) ?? [];
+        const canPublish = relationships.some(item =>
+          item.contextId === active.contextId
+          && item.state === "ACTIVE"
+          && (item.kind === "OWNER" || item.kind === "ADMIN")
+        );
+        const module = await import("../apps/ledger-manager/page.js");
+        return json(
+          response,
+          200,
+          module.createLedgerManagerDetailPageV010({
+            revision,
+            displayRevision: module.ledgerManagerSemanticVersionV010(
+              enterpriseBusinessDefinitionRepository,
+              revision.enterpriseId,
+              revision.definitionId,
+              revision.revision
+            ),
+            projectionGallery: enterpriseDefinitionProjectionStore.get({
+              enterpriseId: revision.enterpriseId,
+              definitionId: revision.definitionId,
+              definitionRevision: revision.revision
+            }),
+            viewer2dAvailable:
+              manager.getSnapshot().effectiveCapabilities.includes(
+                VISUAL_2D_VIEWER_CAPABILITY_V010
+              ),
+            canPublish,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+
       if (source === EOG_EDITOR_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
@@ -4660,12 +7630,343 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const module = await import(
+          "../apps/eog-2d-viewer/workspace-page.js"
+        );
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphViewerWorkspacePageV010({
+          module.createEnterpriseOperatingGraphViewerWorkspacePageV010({
             activeContext,
             locale: requestedLocale(url)
+          })
+        );
+      }
+
+      if (source === EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const templateStoreEffective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!templateStoreEffective) {
+          return json(response, 409, { code: "TEMPLATE_STORE_NOT_ACTIVE" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const previewSelection =
+          (sessionId ? templatePreviewSessions.get(sessionId) : undefined)
+          ?? templatePreviewSessions.get(subjectId);
+        if (!previewSelection) {
+          return json(response, 409, {
+            code: "TEMPLATE_PREVIEW_SELECTION_REQUIRED",
+            message: "Choose Preview from a Template Store card first."
+          });
+        }
+        const [
+          viewer,
+          previewSource,
+          templateStoreRepository
+        ] = await Promise.all([
+          import("../apps/eog-2d-viewer/template-preview.js"),
+          import("../apps/template-store/preview-source.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        const artifact =
+          previewSource.createTemplateStorePreviewArtifactSourceV010(
+            templateStoreRepository
+          ).get({
+            templateId: previewSelection.templateId,
+            templateVersion: previewSelection.templateVersion,
+            ...(previewSelection.projectionId
+              ? { projectionId: previewSelection.projectionId }
+              : {})
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "TEMPLATE_PREVIEW_NOT_FOUND"
+          });
+        }
+        return json(
+          response,
+          200,
+          viewer.createTemplate2dPreviewPageV010({
+            templateId: artifact.templateId,
+            templateVersion: artifact.templateVersion,
+            title: artifact.title,
+            ...(artifact.projectionId
+              ? { projectionId: artifact.projectionId }
+              : {})
+          })
+        );
+      }
+
+      if (source === EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseDefinitionProjectionRouteV010(
+          routeValue || undefined,
+          DEFINITION_2D_EDITOR_ROUTE_V010
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "DEFINITION_PROJECTION_ROUTE_INVALID"
+          });
+        }
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const sessionSelection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision,
+              projectionId: routeSelection.projectionId
+            }
+          : sessionSelection;
+        if (
+          !selection?.projectionId
+          || selection.enterpriseId !== active.enterpriseId
+        ) {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
+            message: "Open a saved Projection before editing it."
+          });
+        }
+        const [editor, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-designer/definition-projection-editor.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        const artifact =
+          sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+            enterpriseBusinessDefinitionRepository,
+            enterpriseDefinitionProjectionStore
+          ).get({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            projectionId: selection.projectionId
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "DEFINITION_PROJECTION_NOT_FOUND"
+          });
+        }
+        const locale = requestedLocale(url);
+        const definitionRevisionRecord =
+          enterpriseBusinessDefinitionRepository
+            .listHistory({
+              enterpriseId: artifact.enterpriseId,
+              definitionId: artifact.definitionId
+            })
+            .find(item => item.revision === artifact.definitionRevision);
+        const definitionTitle =
+          definitionRevisionRecord?.title ?? artifact.title;
+        const contextNavigation =
+          artifact.definitionKind === LEDGER_MANAGER_DEFINITION_KIND
+            ? {
+                items: [
+                  {
+                    id: "ledger-manager",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "账本管理"
+                      : "Ledger management",
+                    route: LEDGER_MANAGER_ROUTE
+                  },
+                  {
+                    id: "ledger-runtime-template",
+                    label: definitionTitle,
+                    route: ledgerManagerDetailRouteV010(
+                      artifact.definitionId,
+                      artifact.definitionRevision
+                    )
+                  },
+                  {
+                    id: "relationship-map",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "投影视图"
+                      : "Projection view",
+                    route: definition2dPreviewRouteV010({
+                      definitionId: artifact.definitionId,
+                      definitionRevision: artifact.definitionRevision,
+                      projectionId: selection.projectionId
+                    })
+                  },
+                  {
+                    id: "edit-projection",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "编辑投影"
+                      : "Edit projection"
+                  }
+                ]
+              }
+            : undefined;
+        return json(
+          response,
+          200,
+          editor.createEnterpriseDefinitionProjectionEditorPageV010({
+            enterpriseId: artifact.enterpriseId,
+            definitionId: artifact.definitionId,
+            definitionRevision: artifact.definitionRevision,
+            projectionId: selection.projectionId,
+            title: artifact.title,
+            ...(artifact.camera ? { camera: artifact.camera } : {}),
+            ...(contextNavigation ? { contextNavigation } : {}),
+            locale
+          })
+        );
+      }
+
+      if (source === EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const active = resolved.activeContext;
+        if (active.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const routeValue = url.searchParams.get("route")?.trim();
+        const routeSelection = parseDefinitionProjectionRouteV010(
+          routeValue || undefined,
+          DEFINITION_2D_PREVIEW_ROUTE_V010
+        );
+        if (routeValue && !routeSelection) {
+          return json(response, 400, {
+            code: "DEFINITION_PROJECTION_ROUTE_INVALID"
+          });
+        }
+        const sessionId = session.principal.sessionId?.trim();
+        const subjectId = session.principal.subjectId.trim();
+        const sessionSelection =
+          (sessionId
+            ? enterpriseDefinitionProjectionSessions.get(sessionId)
+            : undefined)
+          ?? enterpriseDefinitionProjectionSessions.get(subjectId);
+        const selection = routeSelection
+          ? {
+              enterpriseId: active.enterpriseId,
+              definitionId: routeSelection.definitionId,
+              definitionRevision: routeSelection.definitionRevision,
+              projectionId: routeSelection.projectionId
+            }
+          : sessionSelection;
+        if (!selection || selection.enterpriseId !== active.enterpriseId) {
+          return json(response, 409, {
+            code: "DEFINITION_PROJECTION_SELECTION_REQUIRED",
+            message: "Choose a Projection from Enterprise Software first."
+          });
+        }
+        const [viewer, sourceModule] = await Promise.all([
+          import("../apps/eog-2d-viewer/definition-preview.js"),
+          import("../providers/enterprise-context/definition-projection.js")
+        ]);
+        const artifact =
+          sourceModule.createEnterpriseDefinitionProjectionArtifactSourceV010(
+            enterpriseBusinessDefinitionRepository,
+            enterpriseDefinitionProjectionStore
+          ).get({
+            enterpriseId: selection.enterpriseId,
+            definitionId: selection.definitionId,
+            definitionRevision: selection.definitionRevision,
+            ...(selection.projectionId
+              ? { projectionId: selection.projectionId }
+              : {})
+          });
+        if (!artifact) {
+          return json(response, 404, {
+            code: "DEFINITION_2D_PREVIEW_NOT_FOUND"
+          });
+        }
+        const locale = requestedLocale(url);
+        const definitionRevisionRecord =
+          enterpriseBusinessDefinitionRepository
+            .listHistory({
+              enterpriseId: artifact.enterpriseId,
+              definitionId: artifact.definitionId
+            })
+            .find(item => item.revision === artifact.definitionRevision);
+        const definitionTitle =
+          definitionRevisionRecord?.title ?? artifact.title;
+        const contextNavigation =
+          artifact.definitionKind === LEDGER_MANAGER_DEFINITION_KIND
+            ? {
+                items: [
+                  {
+                    id: "ledger-manager",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "账本管理"
+                      : "Ledger management",
+                    route: LEDGER_MANAGER_ROUTE
+                  },
+                  {
+                    id: "ledger-runtime-template",
+                    label: definitionTitle,
+                    route: ledgerManagerDetailRouteV010(
+                      artifact.definitionId,
+                      artifact.definitionRevision
+                    )
+                  },
+                  {
+                    id: "relationship-map",
+                    label: locale.toLowerCase().startsWith("zh")
+                      ? "投影视图"
+                      : "Projection view"
+                  }
+                ]
+              }
+            : undefined;
+        return json(
+          response,
+          200,
+          viewer.createEnterpriseDefinition2dPreviewPageV010({
+            enterpriseId: artifact.enterpriseId,
+            definitionId: artifact.definitionId,
+            definitionRevision: artifact.definitionRevision,
+            title: artifact.title,
+            ...(artifact.projectionId
+              ? { projectionId: artifact.projectionId }
+              : {}),
+            ...(artifact.camera ? { camera: artifact.camera } : {}),
+            ...(contextNavigation ? { contextNavigation } : {}),
+            canEditProjection: manager.getSnapshot().activeFeatures.some(
+              feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID
+            ),
+            locale
           })
         );
       }
@@ -4675,7 +7976,7 @@ const server = createServer(async (request, response) => {
         || source === EOG_MOBILE_READ_PAGE_SOURCE
       ) {
         const effective = manager.getSnapshot().activeFeatures.some(
-          feature => feature.featureId === EOG_2D_VIEWER_FEATURE_ID
+          feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
@@ -4704,9 +8005,36 @@ const server = createServer(async (request, response) => {
               })
         );
       }
-      if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
+      if (source === EOG_3D_VIEWER_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve();
+        const enterpriseContexts = contextRegistry.list().filter(
+          item => item.kind === "ENTERPRISE"
+        );
+        const activeContext = resolved.activeContext.kind === "ENTERPRISE"
+          ? resolved.activeContext
+          : enterpriseContexts.length === 1
+            ? enterpriseContexts[0]
+            : resolved.activeContext;
+        return json(
+          response,
+          200,
+          createEnterpriseOperatingGraph3dViewerPageV010({
+            activeContext,
+            locale: requestedLocale(url)
+          })
+        );
+      }
+      if (source === EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
         );
         if (!effective) {
           return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
@@ -4759,7 +8087,22 @@ const server = createServer(async (request, response) => {
 
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
-        const context = contextRegistry.resolve();
+        const requestedContext = contextFromHeaderV010(
+          request.headers,
+          contextRegistry
+        );
+        const availableContextRefs = contextRegistry.list();
+        const defaultEnterpriseContext = resolveDefaultEnterpriseContextV010({
+          principal: session.principal,
+          availableContexts: availableContextRefs,
+          store: enterpriseGovernanceStore
+        });
+        const effectiveContext = resolvePersonalAgentActiveContextV010({
+          requestedContext,
+          defaultEnterpriseContext,
+          availableContexts: availableContextRefs
+        });
+        const context = contextRegistry.resolve(effectiveContext);
         const availableContexts = contextRegistry.list().map(ref => {
           const resolved = contextRegistry.resolve(ref);
           return {
@@ -4855,6 +8198,71 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "HELP_DOCUMENT_NOT_FOUND", id: helpDocumentId });
         }
         return json(response, 200, document);
+      }
+      if (
+        source === TEMPLATE_STORE_PAGE_SOURCE
+        || source === TEMPLATE_STORE_DETAIL_PAGE_SOURCE
+      ) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === TEMPLATE_STORE_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const [module, templateStoreRepository] = await Promise.all([
+          import("../apps/template-store/experience-assets.js"),
+          resolveTemplateStoreRepository()
+        ]);
+        const pageOptions = {
+          viewer2dAvailable:
+            manager.getSnapshot().effectiveCapabilities.includes(
+              VISUAL_2D_VIEWER_CAPABILITY_V010
+            ),
+          locale: requestedLocale(url)
+        };
+
+        if (source === TEMPLATE_STORE_DETAIL_PAGE_SOURCE) {
+          const session = resolveRequestIdentitySession(request);
+          const sessionId = session.principal.sessionId?.trim();
+          const subjectId = session.principal.subjectId.trim();
+          const selection =
+            (sessionId ? templatePreviewSessions.get(sessionId) : undefined)
+            ?? templatePreviewSessions.get(subjectId);
+          if (!selection) {
+            return json(response, 409, {
+              code: "TEMPLATE_DETAIL_SELECTION_REQUIRED",
+              message: "Choose Details from a Template Store card first."
+            });
+          }
+          const record = templateStoreRepository.getVersion(
+            selection.templateId,
+            selection.templateVersion
+          );
+          if (!record) {
+            return json(response, 404, {
+              code: "TEMPLATE_STORE_VERSION_NOT_FOUND"
+            });
+          }
+          return json(
+            response,
+            200,
+            module.createTemplateStoreDetailPageV010(
+              record,
+              pageOptions
+            )
+          );
+        }
+
+        return json(
+          response,
+          200,
+          module.createTemplateStorePageV010(
+            module.createTemplateStoreCatalogEntriesV010(
+              templateStoreRepository.listLatest()
+            ),
+            pageOptions
+          )
+        );
       }
       if (source === pluginStorePageSource) {
         return json(response, 200, createPluginStorePage(
@@ -4991,8 +8399,65 @@ const server = createServer(async (request, response) => {
           relationships: resolveEnterpriseContextRelationshipProvider()
         }));
       }
+      if (source === BI_WORKBENCH_HOME_PAGE_SOURCE_V010) {
+        const session = resolveRequestIdentitySession(request);
+        const contextRegistry = createContextRegistryForSession(session);
+        const resolved = contextRegistry.resolve(
+          contextFromHeaderV010(request.headers, contextRegistry)
+        );
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const partialContext: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: {
+            contractVersion: "0.1.0",
+            userId: principal.subjectId
+          },
+          context: resolved,
+          correlationId: "workspace-home-" + randomUUID(),
+          locale: requestedLocale(url)
+        };
+        const requestContext: PlatformRequestContextV010 = {
+          ...partialContext,
+          scope: legacyScopeFromRequestContextV010(partialContext)
+        };
+        if (!biWorkbenchActiveV010()) {
+          return json(response, 404, {
+            code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND"
+          });
+        }
+        const runtime = await resolveBiWorkbenchRuntimeV010();
+        const module = await import("../apps/bi-workbench/page.js");
+        return json(
+          response,
+          200,
+          module.createWorkspaceHomePageV010(
+            requestedLocale(url),
+            await runtime.service.resolve(requestContext)
+          )
+        );
+      }
       if (source === settingsIndexPageSource) {
-        return json(response, 200, createSettingsIndexPage(manager));
+        return json(
+          response,
+          200,
+          createSettingsIndexPage(manager, requestedLocale(url))
+        );
+      }
+      const settingsGroup = settingsGroupFromPageSource(source);
+      if (settingsGroup) {
+        return json(
+          response,
+          200,
+          createSettingsGroupPage(
+            manager,
+            settingsGroup,
+            requestedLocale(url)
+          )
+        );
       }
       if (source === providerManagerIndexPageSource) {
         return json(response, 200, createProviderManagerIndexPage(
@@ -5515,6 +8980,58 @@ const server = createServer(async (request, response) => {
         });
       }
 
+      if (action.command.code === "app-platform.plan-upgrade") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = upgradePlanWithDigest(itemId);
+        return json(response, 200, {
+          ok: plan.blockers.length === 0,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "UPGRADE_PLAN",
+            packageId: itemId,
+            plan
+          }))
+        });
+      }
+
+      if (action.command.code === "app-platform.upgrade-package") {
+        if (!itemId) {
+          return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
+        }
+        const plan = upgradePlanWithDigest(itemId);
+        if (plan.blockers.length > 0) {
+          return json(response, 409, {
+            ok: false,
+            error: {
+              code: "UPGRADE_BLOCKED",
+              message: JSON.stringify(plan.blockers),
+              details: JSON.parse(JSON.stringify(plan))
+            }
+          });
+        }
+        const confirmed = action.values.confirmed === true;
+        const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
+        const snapshot = manager.upgrade(itemId, {
+          trustApproved: confirmed,
+          approvedPermissions: confirmed
+            ? target?.permissions?.map(permission => permission.id) ?? []
+            : []
+        });
+        return json(response, 200, {
+          ok: true,
+          correlationId: action.sourceInteractionId,
+          result: JSON.parse(JSON.stringify({
+            stage: "UPGRADED",
+            packageId: itemId,
+            plan,
+            snapshot,
+            effectiveExperiences: [pluginStoreExperienceManifest, ...manager.listEffectiveExperiences()]
+          }))
+        });
+      }
+
       if (action.command.code === "app-platform.enable-package") {
         if (!itemId) {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
@@ -5750,6 +9267,33 @@ const server = createServer(async (request, response) => {
       });
       return json(response, 200, {
         snapshot,
+        effectiveExperiences: manager.listEffectiveExperiences()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/upgrade/plan") {
+      const body = await readJson(request) as { packageId?: string };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      return json(response, 200, upgradePlanWithDigest(body.packageId));
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/upgrade") {
+      const body = await readJson(request) as {
+        packageId?: string;
+        trustApproved?: boolean;
+        approvedPermissions?: string[];
+      };
+      if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      const plan = upgradePlanWithDigest(body.packageId);
+      if (plan.blockers.length > 0) {
+        return json(response, 409, { code: "UPGRADE_BLOCKED", plan });
+      }
+      return json(response, 200, {
+        plan,
+        snapshot: manager.upgrade(body.packageId, {
+          trustApproved: body.trustApproved === true,
+          approvedPermissions: body.approvedPermissions ?? []
+        }),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }

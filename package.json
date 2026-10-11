@@ -11,11 +11,11 @@
     "test": "npm run test:all",
     "start": "node dist/manager/server.js",
     "start:agent": "node dist/agents/enterprise-agent/server.js",
-    "test:platform": "npm run build && npm run continuity:validate && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node tools/eidos-experience-architecture-validate.mjs && node tools/architecture-boundary-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs tests/integration/provider-manager-page.test.mjs tests/integration/experience-architecture-gates.test.mjs tests/app-host/journey-continuation.test.mjs tests/app-host/runtime-localization.test.mjs tests/app-host/browser-active-context-transport.test.mjs tests/app-host/chat-markdown.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/integration/enterprise-operating-graph-eidos-surface.test.mjs",
+    "test:platform": "npm run build && npm run continuity:validate && node tools/help-validate.mjs && node tools/eidos-design-language-validate.mjs && node tools/eidos-experience-architecture-validate.mjs && node tools/architecture-boundary-validate.mjs && node --test tests/protocol/**/*.test.mjs tests/manager/core-manager.test.mjs tests/actions/router.test.mjs tests/integration/app-platform-eidos-plugin-platform.test.mjs tests/integration/counterparty-plugin.test.mjs tests/integration/provider-manager-page.test.mjs tests/integration/experience-architecture-gates.test.mjs tests/app-host/journey-continuation.test.mjs tests/app-host/runtime-localization.test.mjs tests/app-host/browser-active-context-transport.test.mjs tests/app-host/chat-markdown.test.mjs tests/integration/personal-agent-experience-journey.test.mjs tests/integration/enterprise-operating-graph-eidos-surface.test.mjs tests/integration/definition-projection-edit-save.test.mjs tests/integration/personal-agent-current-projection.test.mjs tests/app-host/global-session-controls.test.mjs tests/app-host/mobile-design-language.test.mjs tests/app-host/navigation-information-architecture.test.mjs tests/settings/plugin-settings.test.mjs",
     "test:all": "npm run build && node --test tests/**/*.test.mjs",
-    "test:plugin:enterprise-agent": "npm run build && node --test tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs",
+    "test:plugin:enterprise-agent": "npm run build && node --test tests/protocol/agent-action-receipt.test.mjs tests/agent/enterprise-agent.test.mjs tests/app-host/agent-workspace.test.mjs tests/integration/personal-agent-current-projection.test.mjs",
     "test:plugin:openai-provider": "npm run build && node --test tests/llm/provider.test.mjs tests/agent/openai-responses-model.test.mjs",
-    "test:plugin:ledger-configurator": "npm run build && node --test tests/configurator/configurator.test.mjs tests/configurator/capability-operations.test.mjs tests/ledger-runtime-configurator-compiler.test.mjs tests/ledger-runtime-configurator-ui.test.mjs",
+    "test:plugin:ledger-configurator": "npm run build && node --test tests/configurator/configurator.test.mjs tests/configurator/capability-operations.test.mjs tests/ledger-runtime-configurator-compiler.test.mjs tests/ledger-runtime-configurator-ui.test.mjs tests/integration/ledger-manager.test.mjs tests/integration/definition-projection-edit-save.test.mjs tests/integration/personal-agent-current-projection.test.mjs",
     "test:plugin:trading-lite": "npm run build && node --test tests/actions/trading-lite-evo.test.mjs",
     "test:integration:eidos": "npm run build && node --test tests/integration/app-platform-eidos-plugin-platform.test.mjs",
     "plugin:validate": "npm run build --silent && node tools/plugin-manifest-validate.mjs",
@@ -24,7 +24,7 @@
     "design:validate": "npm run build --silent && node tools/eidos-design-language-validate.mjs",
     "test:plugin:host-secrets-provider": "npm run build && node --test tests/protocol/secrets-provider.test.mjs tests/settings/plugin-settings.test.mjs",
     "test:plugin:host-enterprise-context-provider": "npm run build && node --test tests/protocol/enterprise-context-provider.test.mjs tests/protocol/person-first-context.test.mjs tests/protocol/enterprise-business-definition-repository.test.mjs",
-    "test:plugin:enterprise-context-governance": "npm run build && node --test tests/integration/enterprise-context-governance-plugin.test.mjs tests/protocol/enterprise-context-creation.test.mjs",
+    "test:plugin:enterprise-context-governance": "npm run build && node --test tests/integration/enterprise-context-governance-plugin.test.mjs tests/protocol/enterprise-context-creation.test.mjs tests/protocol/enterprise-context-archive.test.mjs",
     "test:plugin:host-static-session-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-enterprise-context-grant-provider": "npm run build && node --test tests/protocol/principal-grants.test.mjs tests/protocol/person-first-context.test.mjs",
     "test:plugin:host-bearer-session-provider": "npm run build && node --test tests/protocol/enterprise-context-creation.test.mjs tests/protocol/person-first-context.test.mjs",
@@ -64,13 +64,18 @@
     "test:external-agent:governance": "npm run build && node --test tests/external-agent/external-agent-governance.test.mjs tests/external-agent/external-agent-governance-actions.test.mjs tests/external-agent/effective-delegated-authority.test.mjs",
     "test:plugin:host-identity-user-directory-provider": "npm run build && node --test tests/protocol/identity-user-directory.test.mjs tests/protocol/authentication-flow.test.mjs",
     "test:external-agent:oauth": "npm run build && node --test tests/external-agent/external-agent-oauth.test.mjs tests/external-agent/external-agent-oauth-http.test.mjs tests/external-agent/external-agent-oauth-consent-page.test.mjs tests/external-agent/external-agent-governance.test.mjs tests/external-agent/effective-delegated-authority.test.mjs",
-    "test:external-agent:mcp": "npm run build && node --test tests/external-agent/mcp-modern-core.test.mjs tests/external-agent/mcp-protected-resource.test.mjs tests/external-agent/mcp-capability-projection.test.mjs tests/external-agent/mcp-product-adapter.test.mjs tests/external-agent/cline-local-mcp-adapter.test.mjs"
+    "test:external-agent:mcp": "npm run build && node --test tests/external-agent/mcp-modern-core.test.mjs tests/external-agent/mcp-protected-resource.test.mjs tests/external-agent/mcp-capability-projection.test.mjs tests/external-agent/mcp-product-adapter.test.mjs tests/external-agent/cline-local-mcp-adapter.test.mjs",
+    "test:plugin:template-store": "npm run build && node --test tests/integration/template-store-plugin.test.mjs tests/integration/template-store-copy-action.test.mjs tests/integration/template-store-download.test.mjs tests/integration/template-store-2d-preview.test.mjs tests/protocol/template-store-transfer-boundary.test.mjs tests/protocol/template-store-file-repository.test.mjs tests/protocol/plugin-resource-lazy-loading.test.mjs tests/actions/lazy-handler.test.mjs tests/protocol/template-store-exported-bootstrap-seed.test.mjs",
+    "test:plugin:counterparty": "npm run build && node --test tests/protocol/enterprise-resource-library.test.mjs tests/protocol/foundation-object-effective-schema.test.mjs tests/protocol/cp04-responsibility-projections.test.mjs tests/integration/counterparty-plugin.test.mjs",
+    "postbuild": "node tools/copy-login-assets.mjs",
+    "rvc:counterparty:gleif": "npm run build --silent && node tools/counterparty-rvc-gleif.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
   },
   "dependencies": {
-    "sigstore": "5.0.0"
+    "sigstore": "5.0.0",
+    "postgres": "3.4.9"
   }
 }

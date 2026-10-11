@@ -3,6 +3,7 @@ import type {
   ActionRequestV010,
   JsonValue
 } from "../runtime/contracts.js";
+import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { Vec3 } from "./engine.js";
 
 export interface SpatialObservationBadgeV010 {
@@ -20,7 +21,7 @@ export interface SpatialObservatoryReadPresetV010 {
 
 export interface SpatialObservatoryPageV010 {
   contractVersion: "0.1.0";
-  kind: "spatial-observatory";
+  kind: "spatial-observatory" | "spatial-workspace";
   id: string;
   title: string;
   resourceId: string;
@@ -74,6 +75,7 @@ export interface MountSpatialObservatoryPageOptionsV010 {
   definition: SpatialObservatoryPageV010;
   container: HTMLElement;
   actionHost: ActionHost;
+  localization?: LocalizationRuntime;
   onActionResult?: (result: unknown) => void | Promise<void>;
 }
 
@@ -123,7 +125,7 @@ export function isSpatialObservatoryPageV010(
   }
   const page = value as Partial<SpatialObservatoryPageV010>;
   return page.contractVersion === "0.1.0"
-    && page.kind === "spatial-observatory"
+    && (page.kind === "spatial-observatory" || page.kind === "spatial-workspace")
     && nonEmpty(page.id)
     && nonEmpty(page.title)
     && nonEmpty(page.resourceId)
@@ -255,9 +257,30 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
-export function renderSpatialObservatoryPageShellToHtmlV010(
-  page: SpatialObservatoryPageV010
+function spatialText(
+  localization: LocalizationRuntime | undefined,
+  key: string,
+  fallback: string,
+  params?: Record<string, string | number | boolean | null>
 ): string {
+  return localization?.resolve("eidos.app-host", key, fallback, params) ?? fallback;
+}
+
+export function renderSpatialObservatoryPageShellToHtmlV010(
+  page: SpatialObservatoryPageV010,
+  localization?: LocalizationRuntime
+): string {
+  const selectPrompt = page.emptyMessage ?? spatialText(
+    localization,
+    "spatial.selectPrompt",
+    "Select an object or relation."
+  );
+  const sceneAria = spatialText(
+    localization,
+    "spatial.sceneAria",
+    "{title} 3D scene",
+    { title: page.title }
+  );
   return `<section data-eidos-spatial-observatory="${escapeHtml(page.id)}" style="display:grid;grid-template-rows:auto minmax(520px,1fr) auto;gap:12px;min-height:620px">
 <header style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
 <h1 style="margin:0;font-size:20px">${escapeHtml(page.title)}</h1>
@@ -265,14 +288,14 @@ export function renderSpatialObservatoryPageShellToHtmlV010(
 <div data-eidos-spatial-toolbar style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"></div>
 </header>
 <div style="display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px;min-height:0">
-<div data-eidos-spatial-canvas tabindex="0" aria-label="${escapeHtml(page.title)} 3D scene" style="position:relative;overflow:hidden;min-height:520px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%);touch-action:none">
+<div data-eidos-spatial-canvas tabindex="0" aria-label="${escapeHtml(sceneAria)}" style="position:relative;overflow:hidden;min-height:520px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%);touch-action:none">
 <svg data-eidos-spatial-links aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
 <div data-eidos-spatial-objects style="position:absolute;inset:0"></div>
 </div>
 <aside data-eidos-spatial-inspector style="border:1px solid color-mix(in srgb,CanvasText 18%,transparent);border-radius:8px;padding:12px;overflow:auto">
-<strong>Selection</strong>
-<p data-eidos-spatial-selection style="white-space:pre-wrap">${escapeHtml(page.emptyMessage ?? "Select an object or relation.")}</p>
-<p style="font-size:12px;opacity:.72">Drag the scene to orbit. Use the mouse wheel or trackpad to zoom.</p>
+<strong>${escapeHtml(spatialText(localization, "spatial.selection", "Selection"))}</strong>
+<p data-eidos-spatial-selection style="white-space:pre-wrap">${escapeHtml(selectPrompt)}</p>
+<p style="font-size:12px;opacity:.72">${escapeHtml(spatialText(localization, "spatial.instructions", "Drag the scene to orbit. Use the mouse wheel or trackpad to zoom."))}</p>
 </aside>
 </div>
 <div data-eidos-spatial-status role="status" style="font-size:12px"></div>
@@ -369,7 +392,7 @@ function project(
 export function mountSpatialObservatoryPageV010(
   options: MountSpatialObservatoryPageOptionsV010
 ): MountedSpatialObservatoryPageV010 {
-  const { definition: page, container, actionHost } = options;
+  const { definition: page, container, actionHost, localization } = options;
   if (!isSpatialObservatoryPageV010(page)) {
     throw new Error("EIDOS_SPATIAL_OBSERVATORY_PAGE_INVALID");
   }
@@ -402,7 +425,11 @@ export function mountSpatialObservatoryPageV010(
 
   const renderSelection = (): void => {
     if (!state || !selected) {
-      selection.textContent = page.emptyMessage ?? "Select an object or relation.";
+      selection.textContent = page.emptyMessage ?? spatialText(
+        localization,
+        "spatial.selectPrompt",
+        "Select an object or relation."
+      );
       return;
     }
     const item = selected.kind === "object"
@@ -415,7 +442,11 @@ export function mountSpatialObservatoryPageV010(
           item.detail,
           ...observationText(item.observations)
         ].filter(Boolean).join("\n")
-      : page.emptyMessage ?? "Select an object or relation.";
+      : page.emptyMessage ?? spatialText(
+          localization,
+          "spatial.selectPrompt",
+          "Select an object or relation."
+        );
   };
 
   const renderToolbar = (): void => {
@@ -433,7 +464,7 @@ export function mountSpatialObservatoryPageV010(
     }
     const reset = document.createElement("button");
     reset.type = "button";
-    reset.textContent = "Reset view";
+    reset.textContent = spatialText(localization, "spatial.resetView", "Reset view");
     reset.onclick = () => {
       orbit = initialOrbit(state?.camera);
       renderScene();
@@ -599,7 +630,12 @@ export function mountSpatialObservatoryPageV010(
       );
     }
 
-    revision.textContent = "View revision: " + state.revision;
+    revision.textContent = spatialText(
+      localization,
+      "spatial.viewRevision",
+      "View revision: {revision}",
+      { revision: state.revision }
+    );
   };
 
   const renderScene = (): void => {
@@ -619,14 +655,17 @@ export function mountSpatialObservatoryPageV010(
     preserveViewState = false
   ): Promise<void> => {
     if (disposed) return;
-    report("Loading…");
+    report(spatialText(localization, "spatial.loading", "Loading…"));
     const result = await actionHost.execute(
       spatialObservatoryReadRequestV010(page, preset?.values ?? {})
     );
     await options.onActionResult?.(result);
     if (disposed) return;
     if (!result.ok) {
-      report(result.error?.message ?? "Failed to load spatial observatory.");
+      report(
+        result.error?.message
+          ?? spatialText(localization, "spatial.loadFailed", "Failed to load spatial observatory.")
+      );
       return;
     }
     const previousSelection = selected;
@@ -645,7 +684,7 @@ export function mountSpatialObservatoryPageV010(
     syncSceneDom();
     renderSelection();
     renderScene();
-    report(state.notice ?? "Ready.");
+    report(state.notice ?? spatialText(localization, "spatial.ready", "Ready."));
   };
 
   let drag:

@@ -37,22 +37,19 @@ import {
 import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
   EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
-  EOG_2D_VIEWER_WORKSPACE_ROUTE
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "./package.js";
 
 export {
+  EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
   EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE,
-  EOG_2D_VIEWER_WORKSPACE_ROUTE
+  EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION
 } from "./package.js";
-export const EOG_2D_VIEWER_WORKSPACE_GET_ACTION =
-  "enterprise-operating-graph.viewer.workspace.get";
-export const EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION =
-  "enterprise-operating-graph.viewer.workspace.operation";
-export const EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION =
-  "enterprise-operating-graph.viewer.workspace.selection.get";
-
 function localizedText(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";
   if (normalized.startsWith("zh")) {
@@ -78,16 +75,12 @@ export function createEnterpriseOperatingGraphViewerWorkspacePageV010(input: {
   const text = localizedText(input.locale);
   return {
     contractVersion: "0.1.0",
-    kind: "diagram-editor",
+    kind: "diagram-workspace",
     id: EOG_2D_VIEWER_WORKSPACE_PAGE_ID,
     title: text.title,
     resourceId: PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010,
     readCommand: {
       code: EOG_2D_VIEWER_WORKSPACE_GET_ACTION,
-      inputVersion: "0.1.0"
-    },
-    operationCommand: {
-      code: EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION,
       inputVersion: "0.1.0"
     },
     selectionReadCommand: {
@@ -96,6 +89,10 @@ export function createEnterpriseOperatingGraphViewerWorkspacePageV010(input: {
     },
     requestValues: {
       activeContext: structuredClone(input.activeContext) as unknown as JsonValue
+    },
+    viewInteraction: {
+      zoom: true,
+      pan: true
     },
     emptyMessage: text.empty
   };
@@ -214,22 +211,6 @@ export function createEnterpriseOperatingGraphViewerWorkspaceReadActionV010(
     }
   };
 }
-
-export function createEnterpriseOperatingGraphViewerWorkspaceOperationActionV010():
-  AppActionHandler {
-  return {
-    packageId: EOG_2D_VIEWER_PACKAGE_ID,
-    featureId: EOG_2D_VIEWER_FEATURE_ID,
-    commandCode: EOG_2D_VIEWER_WORKSPACE_OPERATION_ACTION,
-    async execute(request) {
-      return failure(
-        request,
-        new Error("EOG_2D_VIEWER_OPERATION_UNSUPPORTED")
-      );
-    }
-  };
-}
-
 
 export function createEnterpriseOperatingGraphViewerWorkspaceSelectionReadActionV010(
   input: {

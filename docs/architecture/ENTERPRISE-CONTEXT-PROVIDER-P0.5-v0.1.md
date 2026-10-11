@@ -2,11 +2,9 @@
 
 **Status:** CI-verified implementation baseline  
 **Date:** 2026-09-26  
-**Authority:** Person-first world model in `PERSON-FIRST-CONTEXT-MEMORY-MVP-v0.1.md`
+**Authority:** Directory/provider protocol baseline only. Product semantics are governed by `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`.
 
-> **Architecture correction — 2026-09-30:** Enterprise Context has evolved from the first directory-only P0.5 source into the target **definition-first, headless enterprise context plugin**. The standalone BDR product concept is merged into Enterprise Context. Enterprise knowledge/learning belongs to Experience Compiler, not Enterprise Context. Specialized editors/designers remain peer plugins. See `ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md`.
->
-> This document remains authoritative for the original directory/provider security boundary; later sections that imply Enterprise Context should become a general knowledge platform are superseded.
+> **Architecture correction — 2026-10-05:** Enterprise Context is now a **thin generic enterprise Resource Container**, not a definition-first domain repository. The P0.5 directory/provider security boundary remains valid. Domain definitions are stored as typed resources and interpreted by independent plugins. See `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`.
 
 ## Purpose
 
@@ -149,25 +147,19 @@ P0.5 deliberately does not implement:
 
 After P0.5, add the minimum executable Principal/Session + Relationship/Grant layer needed to decide which Enterprise Contexts a person may receive from a Provider. Then filter the effective Tool Catalog by Principal + Active Context before expanding material WRITE capabilities.
 
-## Target definition-first expansion
+## Superseded definition-first expansion
 
-Beyond the original `enterprise.directory` capability, Enterprise Context is the target owner of enterprise-scoped Business Definitions.
+The former definition-first expansion is superseded.
 
-The target plugin remains headless:
+Current direction:
 
 ```text
-Enterprise Context Plugin
-├── directory / identity-governance references
-└── business definitions
-    ├── Draft
-    ├── Published
-    ├── Effective
-    ├── immutable revision history
-    ├── provenance / attribution
-    └── publication governance
+Enterprise Context
+  -> generic Resource Library / Collections
+  -> domain resources stored under namespaces
+  -> independent plugins interpret/edit/publish those resources
 ```
 
-The Business Definition Repository is a capability inside Enterprise Context, not an independently installed top-level product.
-
-Enterprise Context does not own enterprise knowledge, specialized editors, report analytics or definition-kind-specific UI. Those capabilities enter through peer plugins and public contracts.
+Enterprise Context Core does not own Draft/Published/Effective semantics for every
+resource kind. Those semantics belong to the relevant domain plugin.
 

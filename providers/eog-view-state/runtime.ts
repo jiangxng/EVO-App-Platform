@@ -80,6 +80,12 @@ export function createEogViewStateProviderV010(input: {
         kind: request.kind,
         revision: 0,
         placements: [],
+        ...(request.kind === "DIAGRAM_2D"
+          ? {
+              hiddenNodeIds: [],
+              hiddenEdgeIds: []
+            }
+          : {}),
         createdAt: occurredAt,
         updatedAt: occurredAt
       });
@@ -126,6 +132,48 @@ export function createEogViewStateProviderV010(input: {
           item => item.nodeId !== placement.nodeId
         );
         next.placements.push(placement);
+      } else if (request.mutation.type === "PROJECTION_ITEM_VISIBILITY_SET") {
+        if (next.kind !== "DIAGRAM_2D") {
+          throw new Error("EOG_VIEW_PROJECTION_2D_REQUIRED");
+        }
+        const id = required(
+          request.mutation.target.id,
+          "EOG_VIEW_PROJECTION_ITEM_ID_REQUIRED"
+        );
+        const hidden = request.mutation.target.kind === "NODE"
+          ? new Set(next.hiddenNodeIds ?? [])
+          : new Set(next.hiddenEdgeIds ?? []);
+        if (request.mutation.visible) hidden.delete(id);
+        else hidden.add(id);
+        if (request.mutation.target.kind === "NODE") {
+          next.hiddenNodeIds = [...hidden];
+        } else {
+          next.hiddenEdgeIds = [...hidden];
+        }
+      } else if (request.mutation.type === "PROJECTION_VISIBILITY_RESET") {
+        if (next.kind !== "DIAGRAM_2D") {
+          throw new Error("EOG_VIEW_PROJECTION_2D_REQUIRED");
+        }
+        next.hiddenNodeIds = [];
+        next.hiddenEdgeIds = [];
+      } else if (request.mutation.type === "PROJECTION_VISIBILITY_REPLACE") {
+        if (next.kind !== "DIAGRAM_2D") {
+          throw new Error("EOG_VIEW_PROJECTION_2D_REQUIRED");
+        }
+        const hiddenNodeIds = request.mutation.hiddenNodeIds.map(id =>
+          required(id, "EOG_VIEW_PROJECTION_ITEM_ID_REQUIRED")
+        );
+        const hiddenEdgeIds = request.mutation.hiddenEdgeIds.map(id =>
+          required(id, "EOG_VIEW_PROJECTION_ITEM_ID_REQUIRED")
+        );
+        if (
+          new Set(hiddenNodeIds).size !== hiddenNodeIds.length
+          || new Set(hiddenEdgeIds).size !== hiddenEdgeIds.length
+        ) {
+          throw new Error("EOG_VIEW_PROJECTION_ITEMS_DUPLICATE");
+        }
+        next.hiddenNodeIds = [...hiddenNodeIds];
+        next.hiddenEdgeIds = [...hiddenEdgeIds];
       } else if (request.mutation.type === "CAMERA_SET") {
         if (next.kind !== "SPATIAL_3D") {
           throw new Error("EOG_VIEW_CAMERA_3D_REQUIRED");

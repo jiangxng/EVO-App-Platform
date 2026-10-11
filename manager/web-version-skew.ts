@@ -38,7 +38,9 @@ export function applyWebRevisionHeadersV010(
   const headers = webRevisionHeadersV010(hostRevision, clientRevision);
   setHeader("x-evo-host-revision", headers.hostRevision);
   setHeader("x-evo-web-contract", headers.contractVersion);
-  if (headers.clientUpdateAvailable) {
-    setHeader("x-evo-client-update", "available");
-  }
+  setHeader(
+    "x-evo-client-update",
+    headers.clientUpdateAvailable ? "available" : "current"
+  );
+  setHeader("vary", "x-evo-client-revision");
 }

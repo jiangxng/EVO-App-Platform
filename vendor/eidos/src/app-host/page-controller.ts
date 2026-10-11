@@ -13,6 +13,7 @@ import {
   isSettingsEditorV020,
   type SettingsFieldV010
 } from "../settings/index.js";
+import { createEidosIconElement } from "../design-language/icons/icon-system.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
 import type { AppHostLoadedPageV010 } from "./contracts.js";
 import {
@@ -25,6 +26,7 @@ import {
 } from "../spatial/surface.js";
 import { executeAppHostPageAction } from "./action-executor.js";
 import { renderAppHostPageToHtml } from "./page-renderer.js";
+import { actionResultDownloadV010 } from "./action-download.js";
 import {
   executeRunBackedChatV010,
   recoverRunBackedChatV010,
@@ -49,6 +51,38 @@ export interface AppHostChatState {
   activeRunId?: string;
   activeThreadId?: string;
   activeThreadState?: "ACTIVE" | "ARCHIVED";
+}
+
+interface AbortableActionHostV010 extends ActionHost {
+  executeWithSignal?(
+    request: ActionRequestV010,
+    signal: AbortSignal
+  ): ReturnType<ActionHost["execute"]>;
+}
+
+function chatUiTextV010(
+  localization: LocalizationRuntime | undefined,
+  key:
+    | "thinking"
+    | "loadingConversation"
+    | "stop"
+    | "stopped"
+    | "copy"
+    | "copied"
+    | "retry"
+): string {
+  const locale = localization?.getContext().locale.toLowerCase() ?? "en";
+  const zh = locale.startsWith("zh");
+  const ja = locale.startsWith("ja");
+  if (key === "thinking") return zh ? "正在思考…" : ja ? "考えています…" : "Thinking…";
+  if (key === "loadingConversation") {
+    return zh ? "正在加载对话…" : ja ? "会話を読み込んでいます…" : "Loading conversation…";
+  }
+  if (key === "stop") return zh ? "停止" : ja ? "停止" : "Stop";
+  if (key === "stopped") return zh ? "已停止当前响应。" : ja ? "現在の応答を停止しました。" : "Stopped the current response.";
+  if (key === "copy") return zh ? "复制" : ja ? "コピー" : "Copy";
+  if (key === "copied") return zh ? "已复制" : ja ? "コピーしました" : "Copied";
+  return zh ? "重试" : ja ? "再試行" : "Retry";
 }
 
 
@@ -123,6 +157,19 @@ export interface AppHostActionRenderHintV010 {
   preserveMountedPage?: boolean;
 }
 
+export interface ContextualAgentInteractionV010 {
+  contractVersion: "0.1.0";
+  prompt: string;
+  agentCapability?: string;
+  source: {
+    pageId: string;
+    route: string;
+    actionId: string;
+  };
+  context?: Record<string, JsonValue>;
+  refreshSourceOnComplete?: boolean;
+}
+
 export interface MountAppHostPageOptions {
   page: AppHostLoadedPageV010;
   container: HTMLElement;
@@ -135,12 +182,20 @@ export interface MountAppHostPageOptions {
     page: AppHostLoadedPageV010,
     renderHint?: AppHostActionRenderHintV010
   ) => void | Promise<void>;
+  onAgentAction?: (
+    interaction: ContextualAgentInteractionV010,
+    page: AppHostLoadedPageV010
+  ) => void | Promise<void>;
   chatState?: AppHostChatState;
 }
 
 export interface MountedAppHostPage {
   resourceIds?: readonly string[];
   refresh?(): Promise<void>;
+  submitChatPrompt?(
+    prompt: string,
+    interactionContext?: Record<string, JsonValue>
+  ): Promise<void>;
   dispose(): void;
 }
 
@@ -163,16 +218,53 @@ export function bindDelegatedAppHostActionsV010(
   return () => container.removeEventListener("click", handler);
 }
 
-function collectFormValues(
+function arrayBufferToBase64V010(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length))
+    );
+  }
+  return globalThis.btoa(binary);
+}
+
+async function collectFormValues(
   form: HTMLFormElement,
   definition: unknown
-): Record<string, JsonValue> {
+): Promise<Record<string, JsonValue>> {
   const document = assertValidUidl(definition);
   const values: Record<string, JsonValue> = {};
 
   for (const field of document.fields) {
+    if (field.readOnly) continue;
+
     const control = form.elements.namedItem(field.key);
-    if (!(control instanceof HTMLInputElement) && !(control instanceof HTMLSelectElement)) continue;
+    if (
+      !(control instanceof HTMLInputElement)
+      && !(control instanceof HTMLSelectElement)
+    ) {
+      continue;
+    }
+
+    if (field.control === "file" && control instanceof HTMLInputElement) {
+      const file = control.files?.[0];
+      if (!file) {
+        values[field.key] = "";
+        continue;
+      }
+      if (field.maxBytes !== undefined && file.size > field.maxBytes) {
+        throw new Error("EIDOS_FILE_TOO_LARGE");
+      }
+      values[field.key] = {
+        name: file.name,
+        mediaType: file.type || "application/octet-stream",
+        size: file.size,
+        contentBase64: arrayBufferToBase64V010(await file.arrayBuffer())
+      };
+      continue;
+    }
 
     const raw = control.value;
     if (raw === "") {
@@ -407,6 +499,22 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   if (typeof rendered === "string") container.innerHTML = rendered;
   else container.replaceChildren(rendered);
 
+  const contextNavigationHandler = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>(
+      "[data-eidos-context-route]"
+    );
+    if (!button || !container.contains(button)) return;
+    const route = button.dataset.eidosContextRoute;
+    if (!route?.startsWith("/")) return;
+    void options.onNavigate?.(route);
+  };
+  container.addEventListener("click", contextNavigationHandler);
+  listeners.push(() =>
+    container.removeEventListener("click", contextNavigationHandler)
+  );
+
   if (isDiagramEditorPageV010(page.definition)) {
     if (!options.actionHost) {
       throw new Error("EIDOS_DIAGRAM_EDITOR_ACTION_HOST_REQUIRED");
@@ -415,6 +523,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       definition: page.definition,
       container,
       actionHost: options.actionHost,
+      onNavigate: options.onNavigate,
       onActionResult(result) {
         return options.onActionResult?.(
           result,
@@ -443,6 +552,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       definition: page.definition,
       container,
       actionHost: options.actionHost,
+      localization,
       onActionResult(result) {
         return options.onActionResult?.(
           result,
@@ -485,6 +595,53 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     catalogSearch.addEventListener("input", filterCatalog);
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
+
+  const activateCatalogRow = (
+    row: HTMLElement,
+    event: Event
+  ): void => {
+    const route = row.dataset.eidosCatalogRowRoute;
+    if (!route?.startsWith("/")) return;
+    if (event instanceof MouseEvent) {
+      const target = event.target;
+      if (
+        target instanceof Element
+        && target.closest(
+          "button,a,input,select,textarea,summary,[role=button]"
+        )
+      ) {
+        return;
+      }
+    }
+    void options.onNavigate?.(route);
+  };
+
+  const onCatalogRowClick = (event: MouseEvent): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const row = target.closest<HTMLElement>(
+      "[data-eidos-catalog-row-route]"
+    );
+    if (!row || !container.contains(row)) return;
+    activateCatalogRow(row, event);
+  };
+  const onCatalogRowKeyDown = (event: KeyboardEvent): void => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const row = target.closest<HTMLElement>(
+      "[data-eidos-catalog-row-route]"
+    );
+    if (!row || !container.contains(row) || target !== row) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    activateCatalogRow(row, event);
+  };
+  container.addEventListener("click", onCatalogRowClick);
+  container.addEventListener("keydown", onCatalogRowKeyDown);
+  listeners.push(() => {
+    container.removeEventListener("click", onCatalogRowClick);
+    container.removeEventListener("keydown", onCatalogRowKeyDown);
+  });
 
   let actionStatus: HTMLPreElement | undefined;
 
@@ -587,7 +744,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             inputVersion: button.dataset.eidosInputVersion ?? "0.1.0"
           },
           values: (() => {
+            const rawActionValues = button.dataset.eidosActionValues;
+            let actionValues: Record<string, JsonValue> = {};
+            if (rawActionValues) {
+              const parsed = JSON.parse(rawActionValues) as unknown;
+              if (
+                parsed === null
+                || typeof parsed !== "object"
+                || Array.isArray(parsed)
+              ) {
+                throw new Error("EIDOS_ACTION_VALUES_INVALID");
+              }
+              actionValues = parsed as Record<string, JsonValue>;
+            }
             const values: Record<string, JsonValue> = {
+              ...actionValues,
               ...(itemId ? { itemId } : {}),
               confirmed: button.dataset.eidosConfirm === "true"
             };
@@ -627,7 +798,30 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         const result = await options.actionHost.execute(request);
         if (result.ok) {
           const payload = result.result;
-          if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+          const download = actionResultDownloadV010(payload);
+          if (download) {
+            const blob = new Blob([download.content], {
+              type: download.mediaType
+            });
+            const href = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = href;
+            anchor.download = download.fileName;
+            anchor.style.display = "none";
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.setTimeout(() => URL.revokeObjectURL(href), 0);
+
+            const message = payload !== null
+              && typeof payload === "object"
+              && !Array.isArray(payload)
+              ? (payload as { message?: unknown }).message
+              : undefined;
+            status().textContent = typeof message === "string"
+              ? message
+              : hostText("shell.completed", "Completed.");
+          } else if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
             const message = (payload as { message?: unknown }).message;
             const nextAction = (payload as { nextAction?: unknown }).nextAction;
             const details = JSON.stringify(payload, null, 2);
@@ -649,6 +843,21 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             "Action failed: {message}",
             { message: result.error?.message ?? "Unknown action error" }
           );
+        }
+
+        const navigateTo =
+          result.ok
+          && result.result !== null
+          && typeof result.result === "object"
+          && !Array.isArray(result.result)
+          && typeof (result.result as { navigateTo?: unknown }).navigateTo === "string"
+            ? (result.result as { navigateTo: string }).navigateTo.trim()
+            : "";
+        if (navigateTo && options.onNavigate) {
+          if (!navigateTo.startsWith("/")) {
+            throw new Error("EIDOS_ACTION_NAVIGATE_TARGET_INVALID");
+          }
+          await options.onNavigate(navigateTo);
         }
 
         const continuation = result.ok && options.onNavigate
@@ -679,6 +888,49 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
   listeners.push(bindDelegatedAppHostActionsV010(container, executeHostAction));
 
   const definition = page.definition;
+
+  if (
+    definition !== null
+    && typeof definition === "object"
+    && !Array.isArray(definition)
+    && (definition as { kind?: unknown }).kind === "form"
+  ) {
+    const document = assertValidUidl(definition);
+    const agentButtons =
+      container.querySelectorAll<HTMLButtonElement>("[data-eidos-agent-action]");
+    for (const button of Array.from(agentButtons)) {
+      const actionId = button.dataset.eidosAgentAction?.trim();
+      const action = document.actions.find(item =>
+        item.type === "agent" && item.id === actionId
+      );
+      if (!action?.prompt) continue;
+
+      const handler = () => {
+        if (!options.onAgentAction) return;
+        void options.onAgentAction({
+          contractVersion: "0.1.0",
+          prompt: action.prompt!,
+          ...(action.agentCapability
+            ? { agentCapability: action.agentCapability }
+            : {}),
+          source: {
+            pageId: page.page.id,
+            route: page.requestPath ?? page.route.path,
+            actionId: action.id
+          },
+          ...(action.context
+            ? { context: structuredClone(action.context) }
+            : {}),
+          ...(action.refreshSourceOnComplete === true
+            ? { refreshSourceOnComplete: true }
+            : {})
+        }, page);
+      };
+      button.addEventListener("click", handler);
+      listeners.push(() => button.removeEventListener("click", handler));
+    }
+  }
+
   if (isChatExperienceV010(definition) || isChatExperienceV020(definition)) {
     const state = options.chatState ?? { messages: [] };
     const transcript = container.querySelector<HTMLElement>("[data-eidos-chat-transcript]");
@@ -693,6 +945,12 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       element: HTMLElement;
     }>();
     let transcriptFrame: number | undefined;
+    let submitChatPrompt:
+      | ((
+          prompt: string,
+          interactionContext?: Record<string, JsonValue>
+        ) => Promise<void>)
+      | undefined;
 
     const patchTranscript = () => {
       if (!transcript) return;
@@ -739,14 +997,59 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         if (rendered.element !== desiredPosition) {
           transcript.insertBefore(rendered.element, desiredPosition);
         }
+
+        if (
+          (message.role === "assistant" || message.role === "error")
+          && !rendered.element.querySelector("[data-eidos-chat-message-actions]")
+        ) {
+          const actions = document.createElement("div");
+          actions.setAttribute("data-eidos-chat-message-actions", "");
+          actions.style.display = "flex";
+          actions.style.gap = "var(--eidos-space-xs)";
+          actions.style.marginTop = "var(--eidos-space-sm)";
+          actions.style.opacity = ".72";
+
+          const actionButton = (label: string) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.style.minHeight = "26px";
+            button.style.border = "1px solid var(--eidos-border)";
+            button.style.borderRadius = "var(--eidos-radius-sm)";
+            button.style.padding = "0 var(--eidos-space-sm)";
+            button.style.background = "var(--eidos-bg)";
+            button.style.color = "var(--eidos-fg-muted)";
+            button.style.fontSize = "var(--eidos-font-meta)";
+            return button;
+          };
+
+          if (message.role === "assistant") {
+            const copy = actionButton(chatUiTextV010(localization, "copy"));
+            copy.setAttribute("data-eidos-chat-message-copy", message.id);
+            actions.append(copy);
+          } else {
+            const retry = actionButton(chatUiTextV010(localization, "retry"));
+            retry.setAttribute("data-eidos-chat-message-retry", message.id);
+            actions.append(retry);
+          }
+          rendered.element.appendChild(actions);
+        }
+
         previous = rendered.element;
       }
 
       if (state.messages.length === 0 && initialEmptyState) {
         const currentEmpty = transcript.querySelector("[data-eidos-chat-empty]");
-        if (!currentEmpty) transcript.appendChild(initialEmptyState.cloneNode(true));
+        if (suppressEmptyState) {
+          currentEmpty?.remove();
+        } else if (!currentEmpty) {
+          transcript.appendChild(initialEmptyState.cloneNode(true));
+        }
       }
 
+      if (pendingIndicator && pendingIndicator.parentElement === transcript) {
+        transcript.appendChild(pendingIndicator);
+      }
       if (keepPinnedToBottom) {
         transcript.scrollTop = transcript.scrollHeight;
       }
@@ -786,6 +1089,27 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const archiveThreadButton = threadControls
       ? document.createElement("button")
       : undefined;
+    const historyDetails = threadControls
+      ? document.createElement("details")
+      : undefined;
+    const historySummary = historyDetails
+      ? document.createElement("summary")
+      : undefined;
+    const historyMenu = historyDetails
+      ? document.createElement("div")
+      : undefined;
+    const historyList = historyMenu
+      ? document.createElement("div")
+      : undefined;
+    const moreDetails = threadControls
+      ? document.createElement("details")
+      : undefined;
+    const moreSummary = moreDetails
+      ? document.createElement("summary")
+      : undefined;
+    const moreMenu = moreDetails
+      ? document.createElement("div")
+      : undefined;
 
     if (
       chatHeader
@@ -793,25 +1117,242 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       && threadSelect
       && newThreadButton
       && archiveThreadButton
+      && historyDetails
+      && historySummary
+      && historyMenu
+      && historyList
+      && moreDetails
+      && moreSummary
+      && moreMenu
     ) {
+      const compactControl = (element: HTMLElement): void => {
+        element.style.minHeight = "var(--eidos-control-compact)";
+        element.style.border = "0";
+        element.style.borderRadius = "var(--eidos-radius-sm)";
+        element.style.padding = "0 var(--eidos-space-md)";
+        element.style.background = "transparent";
+        element.style.color = "var(--eidos-fg-muted)";
+        element.style.fontSize = "var(--eidos-font-meta)";
+      };
+      const setToolbarControlContent = (
+        element: HTMLElement,
+        iconName: "newChat" | "history" | "moreHorizontal",
+        label: string,
+        iconOnly = false
+      ): void => {
+        element.replaceChildren();
+        const icon = createEidosIconElement(iconName, { size: 16 });
+        if (icon) element.appendChild(icon);
+        if (!iconOnly) {
+          const labelElement = document.createElement("span");
+          labelElement.setAttribute("data-eidos-chat-toolbar-label", "");
+          labelElement.textContent = label;
+          element.appendChild(labelElement);
+        }
+      };
+      const floatingMenu = (element: HTMLElement): void => {
+        element.style.position = "absolute";
+        element.style.top = "calc(100% + var(--eidos-space-xs))";
+        element.style.right = "0";
+        element.style.zIndex = "20";
+        element.style.minWidth = "220px";
+        element.style.maxWidth = "min(360px, 82vw)";
+        element.style.padding = "var(--eidos-space-xs)";
+        element.style.border = "1px solid var(--eidos-border)";
+        element.style.borderRadius = "var(--eidos-radius-lg)";
+        element.style.background = "var(--eidos-bg)";
+        element.style.boxShadow = "var(--eidos-shadow-overlay)";
+      };
+
       threadControls.setAttribute("data-eidos-chat-thread-controls", "");
+      chatHeader.style.display = "flex";
+      chatHeader.style.alignItems = "center";
+      chatHeader.style.justifyContent = "space-between";
+      chatHeader.style.gap = "var(--eidos-space-md)";
+      chatHeader.style.padding = "0 var(--eidos-space-xl)";
+
+      const heading = chatHeader.querySelector<HTMLElement>("h1");
+      const context = chatHeader.querySelector<HTMLElement>("[data-eidos-chat-context]");
+      const headingGroup = document.createElement("div");
+      headingGroup.setAttribute("data-eidos-chat-heading-group", "");
+      headingGroup.style.display = "flex";
+      headingGroup.style.alignItems = "center";
+      headingGroup.style.gap = "var(--eidos-space-md)";
+      headingGroup.style.minWidth = "0";
+      headingGroup.style.flex = "1 1 auto";
+
+      if (heading) {
+        heading.style.margin = "0";
+        heading.style.minWidth = "0";
+        heading.style.overflow = "hidden";
+        heading.style.textOverflow = "ellipsis";
+        heading.style.whiteSpace = "nowrap";
+        headingGroup.appendChild(heading);
+      }
+
+      if (context) {
+        context.style.display = "flex";
+        context.style.alignItems = "center";
+        context.style.gap = "var(--eidos-space-xs)";
+        context.style.minWidth = "0";
+        context.style.color = "var(--eidos-fg-muted)";
+        context.style.fontSize = "var(--eidos-font-meta)";
+        const contextLabel = context.querySelector<HTMLElement>("span");
+        if (contextLabel) {
+          contextLabel.style.position = "absolute";
+          contextLabel.style.width = "1px";
+          contextLabel.style.height = "1px";
+          contextLabel.style.padding = "0";
+          contextLabel.style.margin = "-1px";
+          contextLabel.style.overflow = "hidden";
+          contextLabel.style.clip = "rect(0,0,0,0)";
+          contextLabel.style.whiteSpace = "nowrap";
+          contextLabel.style.border = "0";
+        }
+        const contextSelect = context.querySelector<HTMLSelectElement>(
+          "[data-eidos-chat-context-selector]"
+        );
+        if (contextSelect) {
+          contextSelect.style.width = "auto";
+          contextSelect.style.minWidth = "72px";
+          contextSelect.style.maxWidth = "180px";
+          contextSelect.style.height = "28px";
+          contextSelect.style.border = "1px solid var(--eidos-border)";
+          contextSelect.style.borderRadius = "var(--eidos-radius-pill)";
+          contextSelect.style.padding = "0 var(--eidos-space-sm)";
+          contextSelect.style.background = "var(--eidos-bg-subtle)";
+          contextSelect.style.color = "var(--eidos-fg-muted)";
+        }
+        headingGroup.appendChild(context);
+      }
+
+      threadControls.style.width = "auto";
+      threadControls.style.flex = "0 0 auto";
+      threadControls.style.display = "flex";
+      threadControls.style.alignItems = "center";
+      threadControls.style.gap = "var(--eidos-space-xs)";
+      threadControls.style.position = "relative";
+
       threadSelect.setAttribute("data-eidos-chat-thread-selector", "");
       threadSelect.setAttribute(
         "aria-label",
         hostText("shell.chatHistory", "Conversation history")
       );
+      threadSelect.hidden = true;
+      threadSelect.style.display = "none";
+
+      const newThreadLabel = hostText("shell.chatNew", "New chat");
       newThreadButton.type = "button";
       newThreadButton.setAttribute("data-eidos-chat-new-thread", "");
-      newThreadButton.textContent = hostText("shell.chatNew", "New chat");
+      newThreadButton.setAttribute("aria-label", newThreadLabel);
+      newThreadButton.title = newThreadLabel;
+      setToolbarControlContent(newThreadButton, "newChat", newThreadLabel);
+      compactControl(newThreadButton);
+
+      historyDetails.setAttribute("data-eidos-chat-history", "");
+      historyDetails.style.position = "relative";
+      historySummary.setAttribute("data-eidos-chat-history-toggle", "");
+      const historyLabel = hostText("shell.chatHistory", "Conversation history");
+      historySummary.setAttribute("aria-label", historyLabel);
+      historySummary.title = historyLabel;
+      setToolbarControlContent(historySummary, "history", historyLabel);
+      historySummary.style.listStyle = "none";
+      historySummary.style.display = "flex";
+      historySummary.style.alignItems = "center";
+      historySummary.style.cursor = "pointer";
+      compactControl(historySummary);
+      historyMenu.setAttribute("data-eidos-chat-history-menu", "");
+      floatingMenu(historyMenu);
+      historyList.setAttribute("data-eidos-chat-history-list", "");
+      historyList.style.display = "grid";
+      historyList.style.gap = "2px";
+      historyList.style.maxHeight = "320px";
+      historyList.style.overflow = "auto";
+      historyMenu.append(threadSelect, historyList);
+      historyDetails.append(historySummary, historyMenu);
+
+      moreDetails.setAttribute("data-eidos-chat-more", "");
+      moreDetails.style.position = "relative";
+      moreSummary.setAttribute("data-eidos-chat-more-toggle", "");
+      const moreLabel = "More conversation actions";
+      moreSummary.setAttribute("aria-label", moreLabel);
+      moreSummary.title = moreLabel;
+      setToolbarControlContent(moreSummary, "moreHorizontal", moreLabel, true);
+      moreSummary.style.listStyle = "none";
+      moreSummary.style.display = "flex";
+      moreSummary.style.alignItems = "center";
+      moreSummary.style.justifyContent = "center";
+      moreSummary.style.cursor = "pointer";
+      moreSummary.style.width = "var(--eidos-control-compact)";
+      compactControl(moreSummary);
+      moreMenu.setAttribute("data-eidos-chat-more-menu", "");
+      floatingMenu(moreMenu);
+      moreMenu.style.minWidth = "150px";
+
       archiveThreadButton.type = "button";
       archiveThreadButton.setAttribute("data-eidos-chat-archive-thread", "");
       archiveThreadButton.textContent = hostText("shell.chatArchive", "Archive");
-      threadControls.append(threadSelect, newThreadButton, archiveThreadButton);
-      chatHeader.appendChild(threadControls);
+      archiveThreadButton.style.width = "100%";
+      archiveThreadButton.style.minHeight = "var(--eidos-control-compact)";
+      archiveThreadButton.style.border = "0";
+      archiveThreadButton.style.borderRadius = "var(--eidos-radius-sm)";
+      archiveThreadButton.style.padding = "0 var(--eidos-space-sm)";
+      archiveThreadButton.style.background = "transparent";
+      archiveThreadButton.style.color = "var(--eidos-fg)";
+      archiveThreadButton.style.fontSize = "var(--eidos-font-compact)";
+      archiveThreadButton.style.textAlign = "left";
+      moreMenu.appendChild(archiveThreadButton);
+      moreDetails.append(moreSummary, moreMenu);
+
+      threadControls.append(newThreadButton, historyDetails, moreDetails);
+      chatHeader.replaceChildren(headingGroup, threadControls);
+
+      const historyToggleHandler = () => {
+        if (historyDetails.open) moreDetails.open = false;
+      };
+      const moreToggleHandler = () => {
+        if (moreDetails.open) historyDetails.open = false;
+      };
+      historyDetails.addEventListener("toggle", historyToggleHandler);
+      moreDetails.addEventListener("toggle", moreToggleHandler);
+      listeners.push(
+        () => historyDetails.removeEventListener("toggle", historyToggleHandler),
+        () => moreDetails.removeEventListener("toggle", moreToggleHandler)
+      );
     }
 
     let runProgressMessageId: string | undefined;
     let runTransportInFlight = false;
+    let initialRecoveryPromise: Promise<void> | undefined;
+    let suppressEmptyState = false;
+    let activeChatAbort: AbortController | undefined;
+
+    const pendingIndicator = transcript
+      ? document.createElement("div")
+      : undefined;
+    let pendingLabel: HTMLSpanElement | undefined;
+    if (pendingIndicator && transcript) {
+      pendingIndicator.setAttribute("data-eidos-chat-pending", "");
+      pendingIndicator.setAttribute("role", "status");
+      pendingIndicator.setAttribute("aria-live", "polite");
+      pendingIndicator.hidden = true;
+      pendingIndicator.style.display = "none";
+      pendingIndicator.style.alignItems = "center";
+      pendingIndicator.style.gap = "var(--eidos-space-sm)";
+      pendingIndicator.style.padding = "0 0 var(--eidos-space-md)";
+      pendingIndicator.style.color = "var(--eidos-fg-muted)";
+      pendingIndicator.style.fontSize = "var(--eidos-font-compact)";
+      const dot = document.createElement("span");
+      dot.textContent = "●";
+      dot.setAttribute("aria-hidden", "true");
+      dot.style.fontSize = ".625rem";
+      dot.style.color = "var(--eidos-primary)";
+      pendingLabel = document.createElement("span");
+      pendingLabel.setAttribute("data-eidos-chat-pending-label", "");
+      pendingLabel.textContent = chatUiTextV010(localization, "thinking");
+      pendingIndicator.append(dot, pendingLabel);
+      transcript.appendChild(pendingIndicator);
+    }
 
     const persistRunId = (runId: string | undefined): void => {
       state.activeRunId = runId;
@@ -899,6 +1440,19 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     const onRunProgress = async (progress: RunBackedChatProgressV010): Promise<void> => {
       persistRunId(progress.runId);
       if (definition.contractVersion !== "0.2.0") return;
+      const terminal = ["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"].includes(
+        progress.state
+      );
+      if (terminal) {
+        if (runProgressMessageId) {
+          state.messages = state.messages.filter(
+            message => message.id !== runProgressMessageId
+          );
+          runProgressMessageId = undefined;
+          renderTranscript();
+        }
+        return;
+      }
       runProgressMessageId ??= "run-" + progress.runId;
       const next = runProgressMessageV020(runProgressMessageId, progress);
       const index = state.messages.findIndex(message => message.id === runProgressMessageId);
@@ -964,6 +1518,83 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     renderTranscript();
 
     if (form && textarea instanceof HTMLTextAreaElement) {
+      const sendButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const composerActions = sendButton
+        ? document.createElement("div")
+        : undefined;
+      const stopButton = sendButton
+        ? document.createElement("button")
+        : undefined;
+
+      if (sendButton && composerActions && stopButton) {
+        composerActions.setAttribute("data-eidos-chat-composer-actions", "");
+        composerActions.style.display = "flex";
+        composerActions.style.alignItems = "flex-end";
+        composerActions.style.gap = "var(--eidos-space-xs)";
+        sendButton.parentElement?.insertBefore(composerActions, sendButton);
+        composerActions.appendChild(sendButton);
+
+        stopButton.type = "button";
+        stopButton.setAttribute("data-eidos-chat-stop", "");
+        stopButton.textContent = chatUiTextV010(localization, "stop");
+        stopButton.hidden = true;
+        stopButton.style.minHeight = "var(--eidos-control-normal)";
+        stopButton.style.border = "1px solid var(--eidos-border-strong)";
+        stopButton.style.borderRadius = "var(--eidos-radius-md)";
+        stopButton.style.padding = "0 var(--eidos-space-lg)";
+        stopButton.style.background = "var(--eidos-bg)";
+        stopButton.style.color = "var(--eidos-danger)";
+        composerActions.appendChild(stopButton);
+      }
+
+      const setChatBusy = (
+        busy: boolean,
+        pendingText: "thinking" | "loadingConversation" = "thinking"
+      ): void => {
+        runTransportInFlight = busy;
+        if (pendingIndicator) {
+          if (pendingLabel && busy) {
+            pendingLabel.textContent = chatUiTextV010(localization, pendingText);
+          }
+          pendingIndicator.hidden = !busy;
+          pendingIndicator.style.display = busy ? "flex" : "none";
+        }
+        if (sendButton) {
+          sendButton.hidden = busy;
+          sendButton.disabled = busy || state.activeThreadState === "ARCHIVED";
+        }
+        if (stopButton) stopButton.hidden = !busy;
+        if (threadSelect) threadSelect.disabled = busy;
+        if (newThreadButton) newThreadButton.disabled = busy;
+        if (historyDetails && historySummary) {
+          if (busy) historyDetails.open = false;
+          historySummary.setAttribute("aria-disabled", busy ? "true" : "false");
+          historySummary.style.pointerEvents = busy ? "none" : "";
+          historySummary.style.opacity = busy ? ".5" : "";
+        }
+        if (moreDetails && moreSummary) {
+          if (busy) moreDetails.open = false;
+          moreSummary.setAttribute("aria-disabled", busy ? "true" : "false");
+          moreSummary.style.pointerEvents = busy ? "none" : "";
+          moreSummary.style.opacity = busy ? ".5" : "";
+        }
+        if (archiveThreadButton) {
+          archiveThreadButton.disabled = busy || state.activeThreadState === "ARCHIVED";
+        }
+      };
+
+      if (stopButton) {
+        const handler = () => {
+          activeChatAbort?.abort();
+          if (pendingIndicator) {
+            pendingIndicator.hidden = true;
+            pendingIndicator.style.display = "none";
+          }
+        };
+        stopButton.addEventListener("click", handler);
+        listeners.push(() => stopButton.removeEventListener("click", handler));
+      }
+
       const threadOptions = (): Parameters<typeof recoverThreadBackedChatV010>[0] => ({
         actionHost: options.actionHost!,
         request: baseChatRequest(contextValues(), "chat.thread.manage")
@@ -980,7 +1611,12 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       };
 
       const refreshThreadHistory = async (): Promise<void> => {
-        if (!threadBacked || !options.actionHost || !threadSelect) return;
+        if (
+          !threadBacked
+          || !options.actionHost
+          || !threadSelect
+          || !historyList
+        ) return;
         const listed = await listConversationThreadsV010({
           ...threadOptions(),
           includeArchived: true
@@ -989,13 +1625,53 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
         const currentId = storedThreadId();
         threadSelect.replaceChildren();
+        historyList.replaceChildren();
+
+        if (listed.threads.length === 0) {
+          const empty = document.createElement("div");
+          empty.textContent = hostText("shell.chatUntitled", "New chat");
+          empty.style.padding = "var(--eidos-space-sm) var(--eidos-space-md)";
+          empty.style.color = "var(--eidos-fg-subtle)";
+          empty.style.fontSize = "var(--eidos-font-meta)";
+          historyList.appendChild(empty);
+        }
+
         for (const thread of listed.threads) {
+          const label = threadLabel(thread);
           const option = document.createElement("option");
           option.value = thread.threadId;
-          option.textContent = threadLabel(thread);
+          option.textContent = label;
           option.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
           option.selected = thread.threadId === currentId;
           threadSelect.appendChild(option);
+
+          const item = document.createElement("button");
+          item.type = "button";
+          item.setAttribute("data-eidos-chat-history-item", thread.threadId);
+          item.dataset.eidosChatThreadState = thread.state ?? "ACTIVE";
+          item.textContent = label;
+          item.style.width = "100%";
+          item.style.minHeight = "34px";
+          item.style.border = "0";
+          item.style.borderRadius = "var(--eidos-radius-sm)";
+          item.style.padding = "var(--eidos-space-sm) var(--eidos-space-md)";
+          item.style.background = thread.threadId === currentId
+            ? "var(--eidos-bg-selected)"
+            : "transparent";
+          item.style.color = thread.state === "ARCHIVED"
+            ? "var(--eidos-fg-subtle)"
+            : "var(--eidos-fg)";
+          item.style.fontSize = "var(--eidos-font-compact)";
+          item.style.textAlign = "left";
+          item.style.whiteSpace = "nowrap";
+          item.style.overflow = "hidden";
+          item.style.textOverflow = "ellipsis";
+          item.addEventListener("click", () => {
+            if (runTransportInFlight) return;
+            if (historyDetails) historyDetails.open = false;
+            void openThread(thread.threadId);
+          });
+          historyList.appendChild(item);
         }
         if (
           currentId
@@ -1041,6 +1717,46 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         }
         await refreshThreadHistory();
       };
+
+      const transcriptActionHandler = (event: Event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const copyButton = target.closest<HTMLButtonElement>("[data-eidos-chat-message-copy]");
+        if (copyButton) {
+          const messageId = copyButton.dataset.eidosChatMessageCopy;
+          const message = state.messages.find(item => item.id === messageId);
+          const content = message ? chatMessageContentForHistory(message) : "";
+          if (!content) return;
+          const clipboard = globalThis.navigator?.clipboard;
+          if (!clipboard?.writeText) return;
+          void clipboard.writeText(content).then(() => {
+            const original = chatUiTextV010(localization, "copy");
+            copyButton.textContent = chatUiTextV010(localization, "copied");
+            globalThis.setTimeout(() => {
+              if (copyButton.isConnected) copyButton.textContent = original;
+            }, 1200);
+          });
+          return;
+        }
+
+        const retryButton = target.closest<HTMLButtonElement>("[data-eidos-chat-message-retry]");
+        if (!retryButton) return;
+        const errorId = retryButton.dataset.eidosChatMessageRetry;
+        const errorIndex = state.messages.findIndex(item => item.id === errorId);
+        if (errorIndex <= 0) return;
+        for (let index = errorIndex - 1; index >= 0; index -= 1) {
+          const candidate = state.messages[index];
+          if (candidate.role !== "user") continue;
+          const content = chatMessageContentForHistory(candidate);
+          if (!content) return;
+          textarea.value = content;
+          textarea.focus();
+          textarea.setSelectionRange(content.length, content.length);
+          return;
+        }
+      };
+      transcript?.addEventListener("click", transcriptActionHandler);
+      listeners.push(() => transcript?.removeEventListener("click", transcriptActionHandler));
 
       if (threadSelect) {
         const handler = () => {
@@ -1096,6 +1812,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 return;
               }
               applyThread(archived.thread);
+              if (moreDetails) moreDetails.open = false;
               await refreshThreadHistory();
             } finally {
               runTransportInFlight = false;
@@ -1109,28 +1826,47 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       }
 
       if (threadBacked) void refreshThreadHistory();
-      const submit = async () => {
-        const message = textarea.value.trim();
-        if (!message) return;
 
-        const conversationHistory = definition.contractVersion === "0.2.0"
-          ? createChatConversationHistoryV010(state.messages)
-          : [];
-
-        state.messages.push(definition.contractVersion === "0.2.0"
-          ? {
-              id: `user-${Date.now()}-${state.messages.length}`,
-              contractVersion: "0.2.0",
-              role: "user",
-              parts: [{ type: "text", text: message }]
-            }
-          : {
-              id: `user-${Date.now()}-${state.messages.length}`,
-              role: "user",
-              text: message
-            });
+      const stageUserTurn = (
+        message: string,
+        clientTurnId = `user-${Date.now()}-${state.messages.length}`
+      ) => {
+        if (!state.messages.some(item => item.id === clientTurnId)) {
+          state.messages.push(definition.contractVersion === "0.2.0"
+            ? {
+                id: clientTurnId,
+                contractVersion: "0.2.0",
+                role: "user",
+                parts: [{ type: "text", text: message }]
+              }
+            : {
+                id: clientTurnId,
+                role: "user",
+                text: message
+              });
+        }
         textarea.value = "";
         renderTranscript();
+        return { message, clientTurnId };
+      };
+
+      const submit = async (
+        interactionContext?: Record<string, JsonValue>,
+        stagedTurn?: { message: string; clientTurnId: string }
+      ) => {
+        if (runTransportInFlight) return;
+        const message = stagedTurn?.message ?? textarea.value.trim();
+        if (!message) return;
+        const clientTurnId = stagedTurn?.clientTurnId
+          ?? `user-${Date.now()}-${state.messages.length}`;
+
+        const conversationHistory = definition.contractVersion === "0.2.0"
+          ? createChatConversationHistoryV010(
+              state.messages.filter(item => item.id !== clientTurnId)
+            )
+          : [];
+
+        stageUserTurn(message, clientTurnId);
 
         if (!options.actionHost) {
           state.messages.push(definition.contractVersion === "0.2.0"
@@ -1153,13 +1889,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           return;
         }
 
-        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        if (button) button.disabled = true;
+        const controller = new AbortController();
+        activeChatAbort = controller;
+        setChatBusy(true);
 
         try {
           const values: Record<string, JsonValue> = {
             [definition.composer.key]: message,
             message,
+            clientTurnId,
             ...(definition.contractVersion === "0.2.0" && conversationHistory.length
               ? {
                   conversationHistory: conversationHistory.map(item => ({
@@ -1168,15 +1906,35 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                   }))
                 }
               : {}),
-            ...contextValues()
+            ...(interactionContext ? {} : contextValues()),
+            ...(interactionContext
+              ? {
+                  interactionContext: structuredClone(
+                    interactionContext
+                  )
+                }
+              : {})
           };
 
           const request = baseChatRequest(values);
-          runTransportInFlight = true;
+          const configuredHost = options.actionHost as AbortableActionHostV010;
+          const executionHost: ActionHost = configuredHost.executeWithSignal
+            ? {
+                ...(configuredHost.confirm
+                  ? { confirm: configuredHost.confirm.bind(configuredHost) }
+                  : {}),
+                execute(nextRequest) {
+                  return configuredHost.executeWithSignal!(
+                    nextRequest,
+                    controller.signal
+                  );
+                }
+              }
+            : configuredHost;
 
           const threadExecution = threadBacked
             ? await executeThreadBackedChatV010({
-                actionHost: options.actionHost,
+                actionHost: executionHost,
                 request,
                 threadId: storedThreadId(),
                 onProgress: async progress => {
@@ -1206,13 +1964,13 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           } else {
             const execution = runBacked
               ? await executeRunBackedChatV010({
-                  actionHost: options.actionHost,
+                  actionHost: executionHost,
                   request,
                   onProgress: onRunProgress
                 })
               : {
                   mode: "LEGACY" as const,
-                  result: await options.actionHost.execute(request),
+                  result: await executionHost.execute(request),
                   resumeCount: 0
                 };
             if (execution.mode === "LEGACY") persistRunId(undefined);
@@ -1226,33 +1984,80 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             await appendChatResult(execution.result);
           }
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          state.messages.push(definition.contractVersion === "0.2.0"
-            ? {
-                id: `error-${Date.now()}-${state.messages.length}`,
-                contractVersion: "0.2.0",
-                role: "error",
-                parts: [{ type: "notice", tone: "danger", text: message }]
-              }
-            : {
-                id: `error-${Date.now()}-${state.messages.length}`,
-                role: "error",
-                text: message
-              });
+          if (controller.signal.aborted) {
+            state.messages.push(definition.contractVersion === "0.2.0"
+              ? {
+                  id: `system-${Date.now()}-${state.messages.length}`,
+                  contractVersion: "0.2.0",
+                  role: "system",
+                  parts: [{
+                    type: "notice",
+                    tone: "info",
+                    text: chatUiTextV010(localization, "stopped")
+                  }]
+                }
+              : {
+                  id: `system-${Date.now()}-${state.messages.length}`,
+                  role: "system",
+                  text: chatUiTextV010(localization, "stopped")
+                });
+          } else {
+            const message = error instanceof Error ? error.message : String(error);
+            state.messages.push(definition.contractVersion === "0.2.0"
+              ? {
+                  id: `error-${Date.now()}-${state.messages.length}`,
+                  contractVersion: "0.2.0",
+                  role: "error",
+                  parts: [{ type: "notice", tone: "danger", text: message }]
+                }
+              : {
+                  id: `error-${Date.now()}-${state.messages.length}`,
+                  role: "error",
+                  text: message
+                });
+          }
           renderTranscript();
         } finally {
-          runTransportInFlight = false;
-          if (button) {
-            button.disabled = state.activeThreadState === "ARCHIVED";
-          }
+          if (activeChatAbort === controller) activeChatAbort = undefined;
+          setChatBusy(false);
           textarea.focus();
         }
+      };
+
+      submitChatPrompt = async (
+        prompt: string,
+        interactionContext?: Record<string, JsonValue>
+      ): Promise<void> => {
+        const normalized = prompt.trim();
+        if (!normalized) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_PROMPT_REQUIRED");
+        }
+        if (runTransportInFlight && !initialRecoveryPromise) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
+        }
+
+        // Contextual actions should feel sent immediately. If this Chat surface
+        // is still reconciling a durable thread from a fresh mount, stage the
+        // Human-visible turn first, then serialize the actual send behind that
+        // initial recovery. A stale recovery transcript may replace local
+        // state, so restage the same client turn before transport if needed.
+        const staged = stageUserTurn(normalized);
+        if (initialRecoveryPromise) {
+          await initialRecoveryPromise;
+          stageUserTurn(staged.message, staged.clientTurnId);
+        }
+        if (runTransportInFlight) {
+          throw new Error("EIDOS_CONTEXTUAL_AGENT_BUSY");
+        }
+        await submit(interactionContext, staged);
       };
 
       const recoverDurableRun = async (): Promise<void> => {
         if (!runBacked || !options.actionHost || runTransportInFlight) return;
         const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        runTransportInFlight = true;
+        suppressEmptyState = true;
+        setChatBusy(true, "loadingConversation");
+        renderTranscript();
         if (button) button.disabled = true;
         try {
           const request = baseChatRequest(contextValues(), "chat.recover");
@@ -1313,13 +2118,28 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             }
           }, false);
         } finally {
-          runTransportInFlight = false;
+          suppressEmptyState = false;
+          setChatBusy(false);
+          renderTranscript();
           if (button) button.disabled = false;
         }
       };
 
       if (runBacked) {
-        void recoverDurableRun();
+        const recovery = recoverDurableRun();
+        initialRecoveryPromise = recovery;
+        void recovery.then(
+          () => {
+            if (initialRecoveryPromise === recovery) {
+              initialRecoveryPromise = undefined;
+            }
+          },
+          () => {
+            if (initialRecoveryPromise === recovery) {
+              initialRecoveryPromise = undefined;
+            }
+          }
+        );
       }
 
       const submitHandler = (event: SubmitEvent) => {
@@ -1349,6 +2169,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     }
 
     return {
+      ...(submitChatPrompt ? { submitChatPrompt } : {}),
       dispose() {
         if (
           transcriptFrame !== undefined
@@ -1509,7 +2330,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         actionStatus.textContent = hostText("shell.executing", "Executing…");
 
         try {
-          const values = collectFormValues(form, page.definition);
+          const values = await collectFormValues(form, page.definition);
           const execution = await executeAppHostPageAction(page, values, options.actionHost);
           actionStatus.textContent = execution.result.ok
             ? formatAppHostActionResultV010(execution.result.result)
@@ -1518,6 +2339,20 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
                 "Action failed: {message}",
                 { message: execution.result.error?.message ?? "Unknown action error" }
               );
+          const navigateTo =
+            execution.result.ok
+            && execution.result.result !== null
+            && typeof execution.result.result === "object"
+            && !Array.isArray(execution.result.result)
+            && typeof (execution.result.result as { navigateTo?: unknown }).navigateTo === "string"
+              ? (execution.result.result as { navigateTo: string }).navigateTo.trim()
+              : "";
+          if (navigateTo && options.onNavigate) {
+            if (!navigateTo.startsWith("/")) {
+              throw new Error("EIDOS_ACTION_NAVIGATE_TARGET_INVALID");
+            }
+            await options.onNavigate(navigateTo);
+          }
           await options.onActionResult?.(
             execution.result,
             page,

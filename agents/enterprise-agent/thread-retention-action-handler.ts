@@ -141,7 +141,7 @@ export function createConversationRetentionPreviewActionHandlerV010(
             session ?? dependencies.resolveIdentitySession()
           );
 
-        return result(request, previewConversationRetentionV010({
+        return result(request, await previewConversationRetentionV010({
           threadStore: dependencies.threadStore,
           principalSubjectId: principal.subjectId,
           context: context.activeContext,

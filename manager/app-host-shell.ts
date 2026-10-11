@@ -7,13 +7,14 @@ function safeAssetRevision(value: string): string {
 
 export const appHostShellCss = eidosProductiveWorkbenchCss;
 
+
 export function createAppHostShellHtmlV010(assetRevision: string): string {
   const revision = safeAssetRevision(assetRevision);
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="text-scale" content="scale">
 <title>EVO</title>
 <link rel="stylesheet" href="/assets/${revision}/manager/app-host-shell.css">
 </head>

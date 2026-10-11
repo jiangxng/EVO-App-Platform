@@ -76,6 +76,8 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
   }
 
   const labels = relationLabels(input.locale);
+  const hiddenNodeIds = new Set(view.hiddenNodeIds ?? []);
+  const hiddenEdgeIds = new Set(view.hiddenEdgeIds ?? []);
   const nodePositions = positions(graph, view);
   const confirmedPairs = new Set(
     graph.enterpriseRelations.map(relation =>
@@ -83,7 +85,9 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
     )
   );
 
-  const nodes = graph.nodes.map(node => {
+  const nodes = graph.nodes
+    .filter(node => !hiddenNodeIds.has(node.nodeId))
+    .map(node => {
     const position = nodePositions.get(node.nodeId)!;
     return {
       id: node.nodeId,
@@ -128,12 +132,16 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
       ]
     };
   });
+  const visibleNodeIds = new Set(nodes.map(node => node.id));
 
   const guidanceEdges = graph.guidanceRelations
     .filter(relation =>
       !confirmedPairs.has(
         relation.applicationNodeId + "->" + relation.ledgerNodeId
       )
+      && !hiddenEdgeIds.has("guidance-edge:" + relation.relationId)
+      && visibleNodeIds.has(relation.applicationNodeId)
+      && visibleNodeIds.has(relation.ledgerNodeId)
     )
     .map(relation => ({
       id: "guidance-edge:" + relation.relationId,
@@ -165,7 +173,13 @@ export function projectEnterpriseOperatingGraphDiagramBaseV010(input: {
       ]
     }));
 
-  const confirmedEdges = graph.enterpriseRelations.map(relation => ({
+  const confirmedEdges = graph.enterpriseRelations
+    .filter(relation =>
+      !hiddenEdgeIds.has("enterprise-edge:" + relation.relationId)
+      && visibleNodeIds.has(relation.applicationNodeId)
+      && visibleNodeIds.has(relation.ledgerNodeId)
+    )
+    .map(relation => ({
     id: "enterprise-edge:" + relation.relationId,
     source: relation.applicationNodeId,
     target: relation.ledgerNodeId,

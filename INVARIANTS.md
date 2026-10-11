@@ -278,3 +278,14 @@
 - **APP-220** A material change to current architecture SHOULD preserve its rationale in a Decision Record when future engineering will need to know why the rule changed; typo/format/link/current-pointer maintenance does not require permanent historical artifacts.
 - **APP-221** Fresh LLM work MUST load current authority/status first and load historical records only when rationale, migration, compatibility, archaeology or forensic evidence is relevant.
 
+
+
+- **APP-222** Package installation, Feature activation, Capability availability and persistent navigation visibility are separate concerns. A routable/agent-discoverable professional tool MAY intentionally contribute no Workbench navigation and instead be launched from a relevant business context. Hosts MUST NOT infer navigation visibility merely from installation, activation, defaultRoute or capability presence.
+
+
+- **APP-223** App Platform persistent navigation MUST optimize frequent Human work rather than mirror installed Packages, active Features or system-management capabilities. The Applications side panel MAY be empty; Hosts MUST NOT fill it with low-frequency administration merely to avoid empty space.
+- **APP-224** Plugins, Template Store, Provider configuration, Memory governance and comparable low-frequency platform capabilities belong to explicit Settings/administration placement unless a later Human-validated workflow proves a distinct frequent-work destination. Enterprise/Ledger business administration remains semantically distinct from system infrastructure even when reached through the common Settings/management surface.
+- **APP-225** The default App Host landing MUST be a neutral work surface or a real Human work destination. A system-management page such as Plugin Store MUST NOT become the default landing solely because no business application is currently open.
+
+
+- **APP-226** Help remains a secondary Workbench utility, but substantive Help Center catalogs and article content MUST render in the primary workspace rather than the narrow side panel. Side-panel Help is reserved for lightweight navigation or contextual assistance. Business-facing Help cards MUST prioritize Human-readable title, summary, category and action; technical metadata is progressively disclosed.

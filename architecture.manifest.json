@@ -33,7 +33,16 @@
     "docs/architecture/ENTERPRISE-CONTEXT-GOVERNANCE-EXPERIENCE-PLUGIN-v0.1.md",
     "docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md",
     "docs/architecture/DOCUMENTATION-LIFECYCLE-GOVERNANCE-v0.1.md",
-    "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md"
+    "docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md",
+    "docs/architecture/TEMPLATE-STORE-PLUGIN-v0.1.md",
+    "docs/architecture/COUNTERPARTY-PLUGIN-v0.1.md",
+    "docs/architecture/FOUNDATION-OBJECTS-REAL-WORLD-VALIDATION-v0.1.md",
+    "docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md",
+    "docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md",
+    "docs/architecture/ENTERPRISE-OPERATING-MODEL-TRANSFORMATION-v0.1.md",
+    "docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md",
+    "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "docs/architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md"
   ],
   "boundaryPolicy": "architecture.boundary-policy.json",
   "documentationPolicy": "documentation.policy.json",

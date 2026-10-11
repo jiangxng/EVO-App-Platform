@@ -161,6 +161,9 @@ test("Enterprise Context creation atomically creates context, OWNER relationship
   assert.equal(snapshot.relationships.length, 1);
   assert.equal(snapshot.grants.length, 1);
   assert.equal(snapshot.lifecycleEvents.length, 2);
+  assert.equal(snapshot.defaultContexts.length, 1);
+  assert.equal(snapshot.defaultContexts[0].subjectId, "alice");
+  assert.equal(snapshot.defaultContexts[0].contextId, snapshot.contexts[0].contextId);
 
   const context = snapshot.contexts[0];
   assert.equal(context.displayName, "Acme");

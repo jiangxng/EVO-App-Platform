@@ -117,3 +117,17 @@ The target runtime provider identity is:
 `evo-ledger-runtime`
 
 For the reference sales-order flow, the default runtime applicationId is `sales_order`, configurable through `APP_PLATFORM_TRADING_LITE_EVO_APPLICATION_ID`. The resolved binding remains authoritative at runtime.
+
+
+## Compatibility retirement audit — 2026-10-03
+
+The generic write/read migration is now browser-certified.
+
+Current App Platform runtime dependency state:
+
+- `POST /api/v1/commands`: no active runtime caller;
+- `GET /api/v1/capabilities`: no active runtime caller;
+- `GET /api/v1/apps`: no active runtime caller;
+- `GET /api/v1/enterprises/:code`: retained only as runtime-scope compatibility fallback.
+
+The authoritative retirement gate is `EVO-COMPATIBILITY-RETIREMENT-AUDIT-v0.1.md`.

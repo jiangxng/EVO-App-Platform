@@ -51,7 +51,36 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
     item => item.experienceId === "evo-enterprise-context-governance"
   );
   assert.ok(experience);
-  assert.equal(experience.defaultRoute, "/enterprise-contexts/new");
+  assert.equal(experience.defaultRoute, "/enterprise-contexts");
+  assert.equal(
+    experience.pages.some(
+      item => item.source === "app://evo-enterprise-context-governance/pages/directory"
+    ),
+    true
+  );
+  assert.equal(
+    experience.pages.some(
+      item => item.source === "app://evo-enterprise-context-governance/pages/software"
+    ),
+    false
+  );
+  assert.equal(
+    experience.routes.some(
+      item =>
+        item.path === "/enterprise-contexts/overview"
+        && item.pageId === "evo-enterprise-context-governance.overview"
+    ),
+    true
+  );
+  assert.equal(
+    experience.routes.some(
+      item =>
+        item.path === "/enterprise-contexts/applications"
+        && item.pageId === "evo-enterprise-context-governance.overview"
+    ),
+    true
+  );
+  assert.deepEqual(experience.navigation ?? [], []);
 
   const page = manager.loadExperiencePage(
     "app://evo-enterprise-context-governance/pages/create"
@@ -64,13 +93,23 @@ test("Enterprise Context Governance is an installable Experience plugin over pro
   assert.equal(page.metadata.commandOwner, "host-enterprise-context-provider");
   assert.equal(page.metadata.designOwner, "evo-enterprise-context-governance");
   assert.equal("contexts" in page.metadata, false);
+
+  assert.equal(
+    manager.loadExperiencePage(
+      "app://evo-enterprise-context-governance/pages/overview"
+    ),
+    undefined
+  );
 });
 
 test("Enterprise Context Governance declares provider and authorization dependencies", () => {
   const feature = enterpriseContextGovernanceAppPackage.features[0];
   assert.deepEqual(
     [...feature.requiresCapabilities].sort(),
-    ["authorization.check", "enterprise.directory"]
+    [
+      "authorization.check",
+      "enterprise.directory"
+    ]
   );
   assert.equal(
     feature.contributions.some(

@@ -1,0 +1,167 @@
+name: CP-07 Counterparty 1M Performance
+
+on:
+  pull_request:
+    branches:
+      - cp07/fix-real-rvc-pipefail-20261009
+      - cp07/real-rvc-companies-house-20261009
+      - cp07/package-upgrade-compatibility-20261009
+    paths:
+      - .github/workflows/cp07-counterparty-1m-performance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  counterparty-1m-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build --silent
+
+      - name: Generate deterministic 1M Counterparty performance corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { createWriteStream } from "node:fs";
+          import { once } from "node:events";
+
+          const output = createWriteStream("/tmp/counterparty-1m.csv", {
+            encoding: "utf8"
+          });
+          output.write("ExternalId,LegalName,Country,Jurisdiction,EntityStatus\n");
+          for (let index = 1; index <= 1_000_000; index += 1) {
+            const id = "PERF-" + String(index).padStart(9, "0");
+            const country = index % 5 === 0 ? "" : (index % 2 === 0 ? "GB" : "JP");
+            const jurisdiction = index % 3 === 0 ? "GB-EAW" : "GB-ENG";
+            const status = index % 17 === 0 ? "INACTIVE" : "ACTIVE";
+            const row = [
+              id,
+              "Performance Counterparty " + String(index),
+              country,
+              jurisdiction,
+              status
+            ].join(",") + "\n";
+            if (!output.write(row)) await once(output, "drain");
+          }
+          output.end();
+          await once(output, "finish");
+          NODE
+
+          digest="$(sha256sum /tmp/counterparty-1m.csv | awk '{print $1}')"
+          cat > /tmp/counterparty-1m.manifest.json <<JSON
+          {
+            "contractVersion": "0.1.0",
+            "sourceId": "cp07-synthetic-counterparty-performance",
+            "sourceUrl": "urn:evo:cp07:counterparty-synthetic-performance-v0.1",
+            "retrievedAt": "2026-10-09T09:40:00.000Z",
+            "sourceVersion": "cp07-1m-v0.1",
+            "license": "EVO deterministic test data",
+            "attributionRequirements": "None",
+            "redistributionConstraints": "No external source data",
+            "adapterVersion": "counterparty-synthetic-performance-v0.1",
+            "contentDigest": "sha256:$digest",
+            "sampling": {
+              "method": "FIRST_N",
+              "limit": 1000000
+            },
+            "fieldMap": {
+              "externalId": "ExternalId",
+              "legalName": "LegalName",
+              "countryOrRegion": "Country",
+              "jurisdiction": "Jurisdiction",
+              "entityStatus": "EntityStatus"
+            }
+          }
+          JSON
+
+      - name: Run 1M Counterparty performance proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v -o /tmp/counterparty-1m-time.txt             node tools/counterparty-rvc-gleif.mjs               --manifest /tmp/counterparty-1m.manifest.json               --input /tmp/counterparty-1m.csv               --report /tmp/counterparty-1m-report.json
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+
+          const report = JSON.parse(
+            readFileSync("/tmp/counterparty-1m-report.json", "utf8")
+          );
+          const timeText = readFileSync("/tmp/counterparty-1m-time.txt", "utf8");
+          const rssMatch = timeText.match(
+            /Maximum resident set size \(kbytes\):\s*(\d+)/
+          );
+          if (!rssMatch) throw new Error("CP07_1M_MAX_RSS_MISSING");
+          const maxRssKb = Number(rssMatch[1]);
+
+          if (report.evidence.totalRows !== 1_000_000) {
+            throw new Error(
+              `CP07_1M_ROW_COUNT_INVALID: ${report.evidence.totalRows}`
+            );
+          }
+          if (report.evidence.validationBand !== "PERFORMANCE") {
+            throw new Error(
+              `CP07_1M_BAND_INVALID: ${report.evidence.validationBand}`
+            );
+          }
+          if (report.evidence.validSubjects !== 1_000_000) {
+            throw new Error(
+              `CP07_1M_VALID_SUBJECTS_INVALID: ${report.evidence.validSubjects}`
+            );
+          }
+          if (report.evidence.invalidSubjects !== 0) {
+            throw new Error(
+              `CP07_1M_INVALID_SUBJECTS_PRESENT: ${report.evidence.invalidSubjects}`
+            );
+          }
+          if (report.evidence.duplicateExternalIds !== 0) {
+            throw new Error(
+              `CP07_1M_DUPLICATE_IDS_PRESENT: ${report.evidence.duplicateExternalIds}`
+            );
+          }
+          if (report.performance.elapsedMs > 180_000) {
+            throw new Error(
+              `CP07_1M_TOO_SLOW: ${report.performance.elapsedMs}`
+            );
+          }
+          if (report.performance.rowsPerSecond < 5_000) {
+            throw new Error(
+              `CP07_1M_THROUGHPUT_TOO_LOW: ${report.performance.rowsPerSecond}`
+            );
+          }
+          if (maxRssKb > 2_000_000) {
+            throw new Error(`CP07_1M_RSS_TOO_HIGH_KB: ${maxRssKb}`);
+          }
+
+          console.log(JSON.stringify({
+            totalRows: report.evidence.totalRows,
+            validationBand: report.evidence.validationBand,
+            validSubjects: report.evidence.validSubjects,
+            invalidSubjects: report.evidence.invalidSubjects,
+            duplicateExternalIds: report.evidence.duplicateExternalIds,
+            duplicateNameCandidates: report.evidence.duplicateNameCandidates,
+            missingCountryOrRegion: report.evidence.missingCountryOrRegion,
+            elapsedMs: report.performance.elapsedMs,
+            rowsPerSecond: report.performance.rowsPerSecond,
+            maxRssKb
+          }, null, 2));
+          NODE
+
+      - name: Upload derived 1M performance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp07-counterparty-1m-performance
+          path: |
+            /tmp/counterparty-1m.manifest.json
+            /tmp/counterparty-1m-report.json
+            /tmp/counterparty-1m-time.txt
+          retention-days: 7

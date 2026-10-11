@@ -1,7 +1,11 @@
+import {
+  ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
+} from "./constants.js";
+
 export const enterpriseContextGovernanceExperienceAssets =
   new Map<string, unknown>([
     [
-      "app://evo-enterprise-context-governance/pages/create",
+      ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
       {
         contractVersion: "0.1.1",
         kind: "form",
@@ -36,6 +40,10 @@ export const enterpriseContextGovernanceExperienceAssets =
           requiresConfirmation: true
         }],
         metadata: {
+          architecture:
+            "thin-enterprise-resource-container",
+          authorityDocument:
+            "docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md",
           dataOwnerCapability: "enterprise.directory",
           commandOwner: "host-enterprise-context-provider",
           designOwner: "evo-enterprise-context-governance",

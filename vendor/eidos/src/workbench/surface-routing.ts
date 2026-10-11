@@ -22,12 +22,18 @@ export interface WorkbenchSurfaceRoutingResultV010 {
   resolution: ExperienceSurfaceResolutionV010;
 }
 
+function routeLookupPath(path: string): string {
+  const queryIndex = path.indexOf("?");
+  return queryIndex >= 0 ? path.slice(0, queryIndex) : path;
+}
+
 export function findWorkbenchRouteManifestV010(
   snapshot: AppHostSnapshotV010,
   path: string
 ): EffectiveExperienceManifestV010 | undefined {
+  const lookupPath = routeLookupPath(path);
   const direct = snapshot.manifests.find(manifest =>
-    manifest.routes.some(route => route.path === path)
+    manifest.routes.some(route => route.path === lookupPath)
   );
   if (direct) return direct;
 
@@ -42,7 +48,8 @@ export function resolveWorkbenchSurfaceRouteV010(
   snapshot: AppHostSnapshotV010,
   request: WorkbenchSurfaceRoutingRequestV010
 ): WorkbenchSurfaceRoutingResultV010 | undefined {
-  const manifest = findWorkbenchRouteManifestV010(snapshot, request.path);
+  const lookupPath = routeLookupPath(request.path);
+  const manifest = findWorkbenchRouteManifestV010(snapshot, lookupPath);
   if (!manifest) return undefined;
 
   const configuredTarget = request.configuredSurfaceId
@@ -52,13 +59,13 @@ export function resolveWorkbenchSurfaceRouteV010(
     : undefined;
 
   const hasDirectRoute = manifest.routes.some(route =>
-    route.path === request.path
+    route.path === lookupPath
   );
 
   return {
     manifest,
     resolution: resolveExperienceSurfaceV010(manifest, {
-      ...(hasDirectRoute ? { path: request.path } : {}),
+      ...(hasDirectRoute ? { path: lookupPath } : {}),
       ...(request.explicitTarget
         ? { explicitTarget: request.explicitTarget }
         : {}),

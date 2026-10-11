@@ -741,17 +741,7 @@ test("Personal Agent readiness distinguishes installed from ready", () => {
   assert.equal(chat.contractVersion, "0.2.0");
   assert.equal(chat.composer.disabled, false);
   assert.equal(chat.context.value, "Test Person");
-  assert.equal(chat.context.selector.key, "activeContext");
-  assert.equal(chat.context.selector.selectedId, "personal:test");
-  assert.deepEqual(chat.context.selector.options.map(item => item.label), ["Personal", "Acme"]);
-  assert.equal(chat.context.selector.options[0].localizationKey, "personal");
-  assert.equal(chat.context.value, "Test Person");
-  assert.deepEqual(chat.context.selector.options[1].value, {
-    contractVersion: "0.1.0",
-    kind: "ENTERPRISE",
-    contextId: "enterprise:acme",
-    enterpriseId: "acme"
-  });
+  assert.equal(chat.context.selector, undefined);
 
   const setup = createPersonalAgentSetupPageV010(ready);
   assert.equal(setup.kind, "setup-flow");

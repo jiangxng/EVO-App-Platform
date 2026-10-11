@@ -246,5 +246,26 @@ Upgrade compatibility:
 
 - a persisted legacy binding snapshot triggers provider-package installation;
 - configured EVO Observatory application mappings trigger provider-package installation;
-- otherwise the package remains default-OFF;
+- otherwise the package remains uninstalled; once explicitly or migrationally installed, its sole Provider Feature activates by default;
 - runtime consumers resolve the provider through the standard capability resolver rather than directly calling the implementation instance.
+
+
+## Runtime Binding activation correction — 2026-10-03
+
+The package remains opt-in at the package lifecycle level: it is not installed
+unless persisted bindings or configured mappings require it.
+
+Because App Manager installation only activates Features marked
+`defaultActivation: true`, the provider's sole Feature now activates when the
+package is installed. This corrects the previous impossible state where
+bootstrap installed the package but normal provider resolution could never
+observe it.
+
+
+### Legacy installed-but-inactive repair
+
+Hosts upgraded from the earlier `defaultActivation: false` descriptor may
+already contain the provider package in durable lifecycle state without its
+Feature being active. Bootstrap therefore checks Feature activation, not only
+package installation. If such a legacy state is found, the installed package
+is enabled to activate its sole provider Feature before provider resolution.

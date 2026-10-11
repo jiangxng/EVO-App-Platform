@@ -362,3 +362,93 @@ Application/Ledger/other business property
 ```
 
 EOG must not become a generic write router for business properties merely because those properties are displayed inside its Inspector.
+
+
+## Runtime convergence — neutral Workspace capability
+
+Eidos 2D Core now accepts the neutral serialized kind `diagram-workspace` and
+makes `operationCommand` optional.
+
+EOG adopts that contract directly:
+
+- Viewer: `diagram-workspace` + read + selection/Inspector, no operation command.
+- Designer: the same `diagram-workspace` + explicit governed operation command.
+
+This removes the previous fake Viewer edit command. Viewer interactivity is
+proven by selection reads and Inspector properties, not by an operation handler
+that merely rejects writes.
+
+
+## Observatory extraction
+
+The earlier compatibility model that described Observatory as a Viewer mode is
+superseded.
+
+Canonical ownership is now:
+
+```text
+EOG 2D Viewer
+= interactive Workspace / selection / Inspector / navigation
+
+Enterprise Observatory
+= peer plugin
+  + Time Lens
+  + Runtime Facts
+  + Analysis overlays
+```
+
+The Observatory may reuse the EOG projection and requires the Viewer Feature,
+but it has an independent Package/Feature lifecycle. The Viewer package no
+longer contributes `/operating-graph/observe` or the mobile Observatory
+surface.
+
+Authority:
+`docs/architecture/ENTERPRISE-OBSERVATORY-PEER-PACKAGE-v0.1.md`.
+
+
+## Professional canvas visual convergence
+
+The EOG 2D Viewer/Designer adopts the Eidos professional-canvas hierarchy rather than maintaining a private graph skin.
+
+Current product behavior:
+
+- the graph canvas expands to the available Workbench task height instead of using a short fixed diagram window;
+- when no saved camera exists, the initial camera fits the visible projection and keeps fit behavior through container resize until the Human manually pans/zooms;
+- camera controls live as a compact floating control group at the canvas edge; business actions such as Edit projection / Save projection remain page actions;
+- an empty Inspector does not permanently consume canvas width; selection opens contextual detail and clearing selection restores the canvas width;
+- Application and Ledger nodes retain their product-owned type/shape distinction while Eidos supplies restrained Business Office surfaces, light borders and brand-only selection emphasis;
+- dense relations are visually low-weight by default; selecting a node or relation emphasizes the directly connected neighborhood and de-emphasizes unrelated graph content;
+- relation labels are progressively disclosed for dense graphs instead of rendering every label continuously;
+- relation stroke width remains screen-stable during zoom where SVG supports non-scaling strokes;
+- raw renderer/state metadata is not default business chrome.
+
+These rules are presentation-only. They do not change ledger/application semantics, projection persistence rules or Enterprise Definition authority.
+
+Reference patterns were reviewed from mature canvas/map products (Figma, Miro, Mapbox and Lucidchart) and summarized into Eidos-owned design authority so the product does not depend on external product imitation at runtime.
+
+
+## Direct manipulation and keyboard conventions
+
+The EOG 2D editor follows Eidos-owned professional canvas conventions rather than inventing ledger-specific controls.
+
+Spatial behavior:
+
+- projection coordinates are unbounded presentation coordinates; nodes may be dragged left/up past the original layout origin and may therefore have negative x/y values;
+- the camera, not a hard canvas origin, defines what the Human sees;
+- clicking blank canvas or pressing Escape clears the current node/edge selection;
+- selecting a node or relation returns keyboard focus to the canvas so editing shortcuts remain available.
+
+Keyboard behavior:
+
+- Escape: clear selection;
+- Delete / Backspace: remove the selected node or relation from the current projection only;
+- Arrow keys: nudge a selected movable node by 1 view unit;
+- Shift + Arrow: nudge by 10 view units;
+- + / -: zoom in/out;
+- Shift + 1: fit the visible graph;
+- Shift + 2: fit the current selection;
+- Ctrl/Cmd + 0: return zoom to 100%.
+
+Copy, paste and duplicate are intentionally not assigned to business nodes. EOG must not imply that duplicating a drawn node duplicates the underlying Application, Ledger or other Enterprise Definition object.
+
+Keyboard shortcuts are ignored while focus is inside text inputs, selects, textareas or contenteditable controls.

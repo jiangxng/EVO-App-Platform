@@ -3,6 +3,73 @@ import type {
   ActionRequestV010,
   JsonValue
 } from "../runtime/contracts.js";
+import type {
+  DiagramCameraTransformV010
+} from "./viewport.js";
+import type {
+  EidosContextNavigationItemV010,
+  EidosContextNavigationV010
+} from "../navigation/context-navigation.js";
+import {
+  assertContextNavigationV010,
+  renderContextNavigationV010
+} from "../navigation/context-navigation.js";
+import {
+  diagramEdgeGeometryV010,
+  isDiagramEdgePathKindV010,
+  type DiagramEdgePathKindV010
+} from "./edge-paths.js";
+import { diagramNodesIntersectingRectV010 } from "./selection.js";
+import { createDiagramObstacleSpatialIndexV010 } from "./obstacle-spatial-index.js";
+import {
+  diagramSnapTranslationV010,
+  diagramSnapHandleOffsetV010,
+  diagramArrangeNodesV010,
+  diagramGridStepV010,
+  type DiagramArrangeModeV010,
+  type DiagramSnapTranslationV010
+} from "./snapping.js";
+import {
+  diagramEdgeAnchorPointV010,
+  diagramManualEdgeGeometryV010,
+  diagramTranslateWaypointsV010,
+  diagramMoveWaypointV010,
+  diagramEditableOrthogonalSegmentsV010,
+  diagramOverlappingSegmentForWaypointV010,
+  diagramOverlappingSegmentsForWaypointV010,
+  diagramEditableAutomaticOrthogonalRouteV010,
+  diagramDragOrthogonalSegmentV010,
+  validDiagramEdgePathOverrideV010,
+  type DiagramEdgeAnchorSideV010
+} from "./edge-waypoints.js";
+import {
+  diagramOffsetNodeAttachmentV010,
+  diagramParallelLaneOffsetsV010,
+  diagramSelfLoopGeometryV010,
+  diagramSelfLoopRouteControlsV010,
+  diagramSelfLoopSideV010,
+  diagramSelfLoopManualSideV010,
+  diagramSelfLoopFitBoundsV010,
+  type DiagramSelfLoopSideV010,
+  type DiagramSelfLoopInkV010
+} from "./edge-lanes.js";
+import {
+  diagramSvgInkSegmentsV010,
+  createDiagramInkSpatialIndexV010,
+  diagramInkQualityV010,
+  type DiagramInkEntryV010
+} from "./ink-spatial-index.js";
+import {diagramCaptionLayoutV010, type DiagramLabelMetricsV010}
+  from "./label-reservation.js";
+import {
+  layoutLayeredDiagramV010
+} from "./layered-layout.js";
+import {
+  createDiagramCameraTransformV010,
+  fitDiagramCameraToBoundsV010,
+  panDiagramCameraByScreenDeltaV010,
+  zoomDiagramCameraAtScreenPointV010
+} from "./viewport.js";
 
 export type DiagramEditorNodeShapeV010 =
   | "rectangle"
@@ -11,6 +78,36 @@ export type DiagramEditorNodeShapeV010 =
 export type DiagramEditorEdgeStyleV010 =
   | "solid"
   | "dashed";
+
+export type DiagramEditorEdgeArrowV010 =
+  | "none"
+  | "start"
+  | "end"
+  | "both";
+
+export type DiagramEditorToolbarPlacementV010 =
+  | "TOOLBAR"
+  | "OVERFLOW";
+
+export interface DiagramEditorViewInteractionV010 {
+  zoom?: boolean;
+  pan?: boolean;
+  localNodeDrag?: boolean;
+  /** Permits local presentation-only connector shape changes, captured on explicit Save. */
+  localEdgePathEdit?: boolean;
+  localSelectionHide?: boolean;
+  localSelectionHideLabel?: string;
+  localSelectionHideNotice?: string;
+  localVisibilityReset?: boolean;
+  localVisibilityResetLabel?: string;
+  localVisibilityResetNotice?: string;
+  localVisibilityResetPlacement?: DiagramEditorToolbarPlacementV010;
+  localAutoLayout?: boolean;
+  localAutoLayoutLabel?: string;
+  localAutoLayoutNotice?: string;
+  localAutoLayoutDirection?: "RIGHT" | "DOWN";
+  localAutoLayoutPlacement?: DiagramEditorToolbarPlacementV010;
+}
 
 export interface DiagramEditorCommandV010 {
   code: string;
@@ -59,17 +156,56 @@ export interface DiagramEditorReadPresetV010 {
   values: Record<string, JsonValue>;
 }
 
+export interface DiagramEditorToolbarActionV010 {
+  id: string;
+  label: string;
+  route: string;
+  primary?: boolean;
+}
+
+export type DiagramEditorContextNavigationItemV010 =
+  EidosContextNavigationItemV010;
+
+export type DiagramEditorContextNavigationV010 =
+  EidosContextNavigationV010;
+
+export interface DiagramEditorCapturedViewStateV010 {
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
+  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
+  viewport?: {
+    width: number;
+    height: number;
+  };
+  placements: Array<{
+    nodeId: string;
+    x: number;
+    y: number;
+  }>;
+  camera: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
+}
+
 export interface DiagramEditorPageV010 {
   contractVersion: "0.1.0";
-  kind: "diagram-editor";
+  kind: "diagram-editor" | "diagram-workspace";
   id: string;
   title: string;
   resourceId: string;
   readCommand: DiagramEditorCommandV010;
-  operationCommand: DiagramEditorCommandV010;
+  operationCommand?: DiagramEditorCommandV010;
   selectionReadCommand?: DiagramEditorCommandV010;
   requestValues?: Record<string, JsonValue>;
   readPresets?: DiagramEditorReadPresetV010[];
+  toolbarActions?: DiagramEditorToolbarActionV010[];
+  toolbarOverflowLabel?: string;
+  contextNavigation?: DiagramEditorContextNavigationV010;
+  initialCamera?: DiagramCameraTransformV010;
+  viewInteraction?: DiagramEditorViewInteractionV010;
+  showTechnicalMetadata?: boolean;
   emptyMessage?: string;
 }
 
@@ -83,6 +219,7 @@ export interface DiagramEditorNodeV010 {
   width: number;
   height: number;
   readOnly?: boolean;
+  typeLabel?: string;
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
   observations?: DiagramObservationBadgeV010[];
@@ -95,6 +232,13 @@ export interface DiagramEditorEdgeV010 {
   kind: string;
   label?: string;
   style?: DiagramEditorEdgeStyleV010;
+  /** A presentation route, independent of dashed texture and semantic arrow direction. */
+  pathKind?: DiagramEdgePathKindV010;
+  /** Explicit presentation-only manual points, never graph connection endpoints. */
+  waypoints?: Array<{ x: number; y: number }>;
+  sourceAnchor?: DiagramEdgeAnchorSideV010;
+  targetAnchor?: DiagramEdgeAnchorSideV010;
+  arrow?: DiagramEditorEdgeArrowV010;
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
   observations?: DiagramObservationBadgeV010[];
@@ -105,6 +249,14 @@ export interface DiagramEditorActionV010 {
   label: string;
   operation: JsonValue;
   requiresConfirmation?: boolean;
+  captureViewState?: boolean;
+  placement?: DiagramEditorToolbarPlacementV010;
+  textPrompt?: {
+    label: string;
+    valueKey: string;
+    defaultValue?: string;
+    required?: boolean;
+  };
   target?: {
     kind: "graph" | "node" | "edge";
     id?: string;
@@ -115,9 +267,13 @@ export interface DiagramEditorStateV010 {
   contractVersion: "0.1.0";
   resourceId: string;
   revision: number;
+  /** Opaque host-owned optimistic write token; independent of domain revision. */
+  writeToken?: string;
   lifecycleState?: string;
   nodes: DiagramEditorNodeV010[];
   edges: DiagramEditorEdgeV010[];
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   actions?: DiagramEditorActionV010[];
   notice?: string;
 }
@@ -141,6 +297,7 @@ export interface MountDiagramEditorPageOptionsV010 {
   container: HTMLElement;
   actionHost: ActionHost;
   onActionResult?: (result: unknown) => void | Promise<void>;
+  onNavigate?: (route: string) => void | Promise<void>;
 }
 
 export interface MountedDiagramEditorPageV010 {
@@ -154,6 +311,17 @@ function nonEmpty(value: unknown): value is string {
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function validContextNavigationV010(
+  value: DiagramEditorContextNavigationV010 | undefined
+): boolean {
+  try {
+    assertContextNavigationV010(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function validInspectorEditor(
@@ -240,6 +408,30 @@ function jsonClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+export function mergeDiagramInspectorPropertiesV010(
+  base: DiagramInspectorPropertyV010[] | undefined,
+  inspection: DiagramInspectorPropertyV010[] | undefined
+): DiagramInspectorPropertyV010[] | undefined {
+  if (!inspection?.length) return base;
+  const result = (base ?? []).map(item => ({ ...item }));
+  const indexByKey = new Map(
+    result.map((item, index) => [item.key, index] as const)
+  );
+  for (const property of inspection) {
+    const existing = indexByKey.get(property.key);
+    if (existing === undefined) {
+      indexByKey.set(property.key, result.length);
+      result.push({ ...property });
+    } else {
+      // Lazy selection inspection is authoritative for the selected object.
+      // Repeated keys refine/refresh the base projection instead of turning a
+      // valid selection into a rendering error.
+      result[existing] = { ...property };
+    }
+  }
+  return result;
+}
+
 export function isDiagramEditorPageV010(
   value: unknown
 ): value is DiagramEditorPageV010 {
@@ -248,21 +440,139 @@ export function isDiagramEditorPageV010(
   }
   const page = value as Partial<DiagramEditorPageV010>;
   return page.contractVersion === "0.1.0"
-    && page.kind === "diagram-editor"
+    && (page.kind === "diagram-editor" || page.kind === "diagram-workspace")
     && nonEmpty(page.id)
     && nonEmpty(page.title)
     && nonEmpty(page.resourceId)
     && page.readCommand !== undefined
     && nonEmpty(page.readCommand?.code)
     && nonEmpty(page.readCommand?.inputVersion)
-    && page.operationCommand !== undefined
-    && nonEmpty(page.operationCommand?.code)
-    && nonEmpty(page.operationCommand?.inputVersion)
+    && (
+      page.operationCommand === undefined
+      || (
+        nonEmpty(page.operationCommand.code)
+        && nonEmpty(page.operationCommand.inputVersion)
+      )
+    )
     && (
       page.selectionReadCommand === undefined
       || (
         nonEmpty(page.selectionReadCommand.code)
         && nonEmpty(page.selectionReadCommand.inputVersion)
+      )
+    )
+    && (
+      page.toolbarActions === undefined
+      || (
+        Array.isArray(page.toolbarActions)
+        && page.toolbarActions.every(action =>
+          nonEmpty(action?.id)
+          && nonEmpty(action?.label)
+          && nonEmpty(action?.route)
+          && action.route.startsWith("/")
+          && (
+            action.primary === undefined
+            || typeof action.primary === "boolean"
+          )
+        )
+      )
+    )
+    && (
+      page.toolbarOverflowLabel === undefined
+      || nonEmpty(page.toolbarOverflowLabel)
+    )
+    && validContextNavigationV010(page.contextNavigation)
+    && (
+      page.initialCamera === undefined
+      || (
+        typeof page.initialCamera === "object"
+        && page.initialCamera !== null
+        && Number.isFinite(page.initialCamera.scale)
+        && page.initialCamera.scale > 0
+        && Number.isFinite(page.initialCamera.translateX)
+        && Number.isFinite(page.initialCamera.translateY)
+      )
+    )
+    && (
+      page.showTechnicalMetadata === undefined
+      || typeof page.showTechnicalMetadata === "boolean"
+    )
+    && (
+      page.viewInteraction === undefined
+      || (
+        typeof page.viewInteraction === "object"
+        && page.viewInteraction !== null
+        && !Array.isArray(page.viewInteraction)
+        && (
+          page.viewInteraction.zoom === undefined
+          || typeof page.viewInteraction.zoom === "boolean"
+        )
+        && (
+          page.viewInteraction.pan === undefined
+          || typeof page.viewInteraction.pan === "boolean"
+        )
+        && (
+          page.viewInteraction.localNodeDrag === undefined
+          || typeof page.viewInteraction.localNodeDrag === "boolean"
+        )
+        && (
+          page.viewInteraction.localEdgePathEdit === undefined
+          || typeof page.viewInteraction.localEdgePathEdit === "boolean"
+        )
+        && (
+          page.viewInteraction.localSelectionHide === undefined
+          || typeof page.viewInteraction.localSelectionHide === "boolean"
+        )
+        && (
+          page.viewInteraction.localSelectionHideLabel === undefined
+          || nonEmpty(page.viewInteraction.localSelectionHideLabel)
+        )
+        && (
+          page.viewInteraction.localSelectionHideNotice === undefined
+          || nonEmpty(page.viewInteraction.localSelectionHideNotice)
+        )
+        && (
+          page.viewInteraction.localVisibilityReset === undefined
+          || typeof page.viewInteraction.localVisibilityReset === "boolean"
+        )
+        && (
+          page.viewInteraction.localVisibilityResetLabel === undefined
+          || nonEmpty(page.viewInteraction.localVisibilityResetLabel)
+        )
+        && (
+          page.viewInteraction.localVisibilityResetNotice === undefined
+          || nonEmpty(page.viewInteraction.localVisibilityResetNotice)
+        )
+        && (
+          page.viewInteraction.localVisibilityResetPlacement === undefined
+          || ["TOOLBAR", "OVERFLOW"].includes(
+            page.viewInteraction.localVisibilityResetPlacement
+          )
+        )
+        && (
+          page.viewInteraction.localAutoLayout === undefined
+          || typeof page.viewInteraction.localAutoLayout === "boolean"
+        )
+        && (
+          page.viewInteraction.localAutoLayoutLabel === undefined
+          || nonEmpty(page.viewInteraction.localAutoLayoutLabel)
+        )
+        && (
+          page.viewInteraction.localAutoLayoutNotice === undefined
+          || nonEmpty(page.viewInteraction.localAutoLayoutNotice)
+        )
+        && (
+          page.viewInteraction.localAutoLayoutDirection === undefined
+          || ["RIGHT", "DOWN"].includes(
+            page.viewInteraction.localAutoLayoutDirection
+          )
+        )
+        && (
+          page.viewInteraction.localAutoLayoutPlacement === undefined
+          || ["TOOLBAR", "OVERFLOW"].includes(
+            page.viewInteraction.localAutoLayoutPlacement
+          )
+        )
       )
     )
     && (
@@ -313,8 +623,28 @@ export function validateDiagramEditorStateV010(
   ) {
     issues.push("revision must be a non-negative integer.");
   }
+  if (state.writeToken !== undefined
+    && (typeof state.writeToken !== "string"
+      || state.writeToken.length === 0 || state.writeToken.length > 256)) {
+    issues.push("writeToken must be a non-empty opaque string.");
+  }
   if (!Array.isArray(state.nodes)) issues.push("nodes must be an array.");
   if (!Array.isArray(state.edges)) issues.push("edges must be an array.");
+  for (const [field, value] of [
+    ["hiddenNodeIds", state.hiddenNodeIds],
+    ["hiddenEdgeIds", state.hiddenEdgeIds]
+  ] as const) {
+    if (
+      value !== undefined
+      && (
+        !Array.isArray(value)
+        || value.some(item => !nonEmpty(item))
+        || new Set(value).size !== value.length
+      )
+    ) {
+      issues.push(`${field} must contain unique non-empty strings.`);
+    }
+  }
   if (issues.length > 0) return { ok: false, issues };
 
   const nodeIds = new Set<string>();
@@ -330,6 +660,10 @@ export function validateDiagramEditorStateV010(
       || !finite(node?.height)
       || node.width <= 0
       || node.height <= 0
+      || (
+        node.typeLabel !== undefined
+        && typeof node.typeLabel !== "string"
+      )
     ) {
       issues.push(`nodes[${index}] is invalid.`);
       continue;
@@ -365,6 +699,15 @@ export function validateDiagramEditorStateV010(
       || !nonEmpty(edge?.kind)
       || (edge.style !== undefined
         && !["solid", "dashed"].includes(edge.style))
+      || (edge.pathKind !== undefined
+        && !isDiagramEdgePathKindV010(edge.pathKind))
+      || ((edge.waypoints !== undefined || edge.sourceAnchor !== undefined || edge.targetAnchor !== undefined)
+        && !validDiagramEdgePathOverrideV010({
+          pathKind: edge.pathKind ?? "straight", waypoints: edge.waypoints,
+          sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+        }))
+      || (edge.arrow !== undefined
+        && !["none", "start", "end", "both"].includes(edge.arrow))
     ) {
       issues.push(`edges[${index}] is invalid.`);
       continue;
@@ -404,6 +747,29 @@ export function validateDiagramEditorStateV010(
           !nonEmpty(action?.id)
           || !nonEmpty(action?.label)
           || action.operation === undefined
+          || (
+            action.captureViewState !== undefined
+            && typeof action.captureViewState !== "boolean"
+          )
+          || (
+            action.placement !== undefined
+            && !["TOOLBAR", "OVERFLOW"].includes(action.placement)
+          )
+          || (
+            action.textPrompt !== undefined
+            && (
+              !nonEmpty(action.textPrompt.label)
+              || !nonEmpty(action.textPrompt.valueKey)
+              || (
+                action.textPrompt.defaultValue !== undefined
+                && typeof action.textPrompt.defaultValue !== "string"
+              )
+              || (
+                action.textPrompt.required !== undefined
+                && typeof action.textPrompt.required !== "boolean"
+              )
+            )
+          )
         ) {
           issues.push(`actions[${index}] is invalid.`);
           continue;
@@ -494,17 +860,26 @@ export function diagramEditorOperationRequestV010(
   operation: JsonValue,
   actionId: string,
   requiresConfirmation = false,
-  commandOverride?: DiagramEditorCommandV010
+  commandOverride?: DiagramEditorCommandV010,
+  viewState?: DiagramEditorCapturedViewStateV010
 ): ActionRequestV010 {
+  const command = commandOverride ?? page.operationCommand;
+  if (!command) {
+    throw new Error("EIDOS_DIAGRAM_OPERATION_COMMAND_REQUIRED");
+  }
   return {
     contractVersion: "0.1.0",
     type: "command",
-    command: { ...(commandOverride ?? page.operationCommand) },
+    command: { ...command },
     values: {
       ...(page.requestValues ? jsonClone(page.requestValues) : {}),
       resourceId: page.resourceId,
       expectedRevision: state.revision,
-      operation: jsonClone(operation)
+      ...(state.writeToken !== undefined ? { expectedWriteToken: state.writeToken } : {}),
+      operation: jsonClone(operation),
+      ...(viewState
+        ? { viewState: jsonClone(viewState) as unknown as JsonValue }
+        : {})
     },
     sourceInteractionId: page.id,
     actionId,
@@ -521,26 +896,292 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
+function renderDiagramContextNavigationV010(
+  page: DiagramEditorPageV010
+): string {
+  return renderContextNavigationV010(page.contextNavigation);
+}
+
 export function renderDiagramEditorPageShellToHtmlV010(
   page: DiagramEditorPageV010
 ): string {
-  return `<section data-eidos-diagram-editor="${escapeHtml(page.id)}" style="display:grid;grid-template-rows:auto minmax(420px,1fr);gap:12px;min-height:560px">
-<header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-<h1 style="margin:0;font-size:20px">${escapeHtml(page.title)}</h1>
-<span data-eidos-diagram-lifecycle style="font-size:12px"></span>
-<span data-eidos-diagram-revision style="font-size:12px"></span>
-<div data-eidos-diagram-toolbar style="margin-left:auto;display:flex;gap:8px"></div>
+  return `<section data-eidos-diagram-editor="${escapeHtml(page.id)}" data-has-selection="false">
+<style>
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  gap:8px;
+  min-width:0;
+  height:calc(100dvh - 112px);
+  min-height:560px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]>header{
+  min-height:40px;
+  display:grid;
+  gap:4px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-heading-row]{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"]>header h1{
+  margin:0;
+  font-size:1.125rem;
+  line-height:1.25;
+  font-weight:650;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation]{
+  min-width:0;
+  min-height:22px;
+  color:var(--eidos-fg-muted,#5F6B76);
+  font-size:var(--eidos-font-meta,.75rem);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop]{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] button,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile] button{
+  appearance:none;
+  border:0;
+  padding:0;
+  background:transparent;
+  color:var(--eidos-fg-muted,#5F6B76);
+  font:inherit;
+  cursor:pointer;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] button:hover,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile] button:hover{
+  color:var(--eidos-primary,#2B6CB0);
+  text-decoration:underline;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop] span[aria-current="page"]{
+  color:var(--eidos-fg,#1F2933);
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-separator]{
+  color:color-mix(in srgb,var(--eidos-fg-muted,#5F6B76) 58%,transparent);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile]{
+  display:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-lifecycle],
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-revision]{
+  font-size:var(--eidos-font-meta,.75rem);
+  color:var(--eidos-fg-muted,#5F6B76);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar]{
+  margin-left:auto;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-actions]{
+  position:relative;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-actions]>summary{
+  list-style:none;
+  min-height:32px;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+  border:1px solid var(--eidos-border-strong,#C9D2DC);
+  border-radius:var(--eidos-radius-sm,8px);
+  padding:0 10px;
+  background:var(--eidos-bg,#FFFFFF);
+  color:var(--eidos-fg,#1F2933);
+  box-shadow:var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05));
+  user-select:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-actions]>summary::-webkit-details-marker{
+  display:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-actions]>summary::after{
+  content:"▾";
+  margin-left:6px;
+  font-size:.75em;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-menu]{
+  position:absolute;
+  right:0;
+  top:calc(100% + 6px);
+  z-index:20;
+  min-width:168px;
+  display:grid;
+  gap:4px;
+  padding:6px;
+  border:1px solid var(--eidos-border,#E2E7ED);
+  border-radius:var(--eidos-radius-md,10px);
+  background:var(--eidos-bg,#FFFFFF);
+  box-shadow:var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.10));
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-menu] button{
+  width:100%;
+  justify-content:flex-start;
+  text-align:left;
+  box-shadow:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button{
+  min-height:32px;
+  border:1px solid var(--eidos-border-strong,#C9D2DC);
+  border-radius:var(--eidos-radius-sm,8px);
+  padding:0 10px;
+  background:var(--eidos-bg,#FFFFFF);
+  color:var(--eidos-fg,#1F2933);
+  box-shadow:var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05));
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button:hover,
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button:hover{
+  background:var(--eidos-bg-hover,#EEF3F8);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar] button[data-eidos-primary="true"]{
+  border-color:var(--eidos-primary,#2B6CB0);
+  background:var(--eidos-primary,#2B6CB0);
+  color:var(--eidos-primary-fg,#FFFFFF);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout]{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:12px;
+  min-height:0;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-layout]{
+  grid-template-columns:minmax(0,1fr) minmax(260px,320px);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas-wrap]{
+  position:relative;
+  min-width:0;
+  min-height:0;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas]{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border:1px solid var(--eidos-border,#E2E7ED);
+  border-radius:var(--eidos-radius-lg,12px);
+  background-color:var(--eidos-bg,#FFFFFF);
+  background-image:radial-gradient(circle,color-mix(in srgb,var(--eidos-fg,#1F2933) 10%,transparent) .7px,transparent .8px);
+  background-size:24px 24px;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--eidos-bg,#FFFFFF) 60%,transparent);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls]{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:4px;
+  border:1px solid color-mix(in srgb,var(--eidos-border-strong,#C9D2DC) 82%,transparent);
+  border-radius:var(--eidos-radius-md,10px);
+  background:color-mix(in srgb,var(--eidos-bg,#FFFFFF) 94%,transparent);
+  box-shadow:var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.10));
+  backdrop-filter:blur(8px);
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-view-controls] button{
+  min-width:32px;
+  padding-inline:8px;
+  box-shadow:none;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-inspector]{
+  display:none;
+  min-width:0;
+  overflow:auto;
+  border:1px solid var(--eidos-border,#E2E7ED);
+  border-radius:var(--eidos-radius-lg,12px);
+  padding:14px;
+  background:var(--eidos-bg,#FFFFFF);
+  box-shadow:var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05));
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-inspector]{
+  display:block;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-selection]{
+  margin:0 0 10px;
+  white-space:pre-line;
+  line-height:1.5;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-selection-actions]{
+  display:grid;
+  gap:8px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-status]{
+  min-height:18px;
+  font-size:var(--eidos-font-meta,.75rem);
+  color:var(--eidos-fg-muted,#5F6B76);
+}
+@media (max-width:760px){
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"]{
+    height:auto;
+    min-height:0;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-desktop]{
+    display:none;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-context-navigation-mobile]{
+    display:flex;
+    align-items:center;
+    min-height:28px;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-heading-row]{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:flex-start;
+    gap:8px;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-toolbar]{
+    width:100%;
+    margin-left:0;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-more-menu]{
+    left:0;
+    right:auto;
+    max-width:min(86vw,280px);
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-layout],
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"][data-has-selection="true"] [data-eidos-diagram-layout]{
+    grid-template-columns:minmax(0,1fr);
+  }
+  [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-canvas-wrap]{
+    min-height:62dvh;
+  }
+}
+</style>
+<header>
+${renderDiagramContextNavigationV010(page)}
+<div data-eidos-diagram-heading-row>
+<h1>${escapeHtml(page.title)}</h1>
+<span data-eidos-diagram-lifecycle></span>
+<span data-eidos-diagram-revision></span>
+<div data-eidos-diagram-toolbar></div>
+</div>
 </header>
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px;min-height:0">
-<div data-eidos-diagram-canvas style="position:relative;overflow:auto;min-height:480px;border:1px solid currentColor;border-radius:8px;background:color-mix(in srgb,Canvas 97%,CanvasText 3%)"></div>
-<aside data-eidos-diagram-inspector style="border:1px solid color-mix(in srgb,CanvasText 18%,transparent);border-radius:8px;padding:12px;overflow:auto">
-<strong>Selection</strong>
+<div data-eidos-diagram-layout>
+<div data-eidos-diagram-canvas-wrap>
+<div data-eidos-diagram-canvas tabindex="0"></div>
+<div data-eidos-diagram-view-controls aria-label="Canvas view controls"></div>
+</div>
+<aside data-eidos-diagram-inspector>
 <p data-eidos-diagram-selection>${escapeHtml(page.emptyMessage ?? "Select a node or relation.")}</p>
 <div data-eidos-diagram-selection-properties style="display:grid;gap:6px;margin:10px 0"></div>
-<div data-eidos-diagram-selection-actions style="display:grid;gap:8px"></div>
+<div data-eidos-diagram-selection-actions></div>
 </aside>
 </div>
-<div data-eidos-diagram-status role="status" style="font-size:12px"></div>
+<div data-eidos-diagram-status role="status"></div>
 </section>`;
 }
 
@@ -572,6 +1213,28 @@ function nodeCenter(node: DiagramEditorNodeV010): {
   };
 }
 
+function nodeBoundaryPoint(
+  node: DiagramEditorNodeV010,
+  toward: { x: number; y: number }
+): { x: number; y: number } {
+  const center = nodeCenter(node);
+  const dx = toward.x - center.x;
+  const dy = toward.y - center.y;
+  if (dx === 0 && dy === 0) return center;
+  const halfWidth = Math.max(1, node.width / 2);
+  const halfHeight = Math.max(1, node.height / 2);
+  const scale = 1 / Math.max(
+    Math.abs(dx) / halfWidth,
+    Math.abs(dy) / halfHeight
+  );
+  return {
+    x: center.x + dx * scale,
+    y: center.y + dy * scale
+  };
+}
+
+let diagramEditorInstanceSequence = 0;
+
 export function mountDiagramEditorPageV010(
   options: MountDiagramEditorPageOptionsV010
 ): MountedDiagramEditorPageV010 {
@@ -587,6 +1250,9 @@ export function mountDiagramEditorPageV010(
 
   const canvas = root.querySelector<HTMLElement>("[data-eidos-diagram-canvas]");
   const toolbar = root.querySelector<HTMLElement>("[data-eidos-diagram-toolbar]");
+  const viewControls = root.querySelector<HTMLElement>(
+    "[data-eidos-diagram-view-controls]"
+  );
   const lifecycle = root.querySelector<HTMLElement>("[data-eidos-diagram-lifecycle]");
   const revision = root.querySelector<HTMLElement>("[data-eidos-diagram-revision]");
   const status = root.querySelector<HTMLElement>("[data-eidos-diagram-status]");
@@ -601,6 +1267,7 @@ export function mountDiagramEditorPageV010(
   if (
     !canvas
     || !toolbar
+    || !viewControls
     || !lifecycle
     || !revision
     || !status
@@ -614,11 +1281,128 @@ export function mountDiagramEditorPageV010(
   let disposed = false;
   let state: DiagramEditorStateV010 | undefined;
   let selected: { kind: "node" | "edge"; id: string } | undefined;
+  const selectedNodeIds = new Set<string>();
+  let canvasTool: "SELECT" | "PAN" = "SELECT";
+  let spaceHeld = false;
+  let wheelInputMode: "MOUSE" | "TRACKPAD" = "MOUSE";
+  // B6a: distinct local presentation controls. Do not serialize preferences in business data.
+  let gridVisible = true;
+  let gridSnapEnabled = false;
+  let alignmentGuidesEnabled = true;
+  try {
+    wheelInputMode = window.localStorage.getItem("eidos.diagram.wheelMode") === "TRACKPAD"
+      ? "TRACKPAD" : "MOUSE";
+  } catch { /* Private browsing may disable storage; mouse stays the default. */ }
+  let suppressNextCanvasClick = false;
+  let canvasClickHandlerInstalled = false;
   let selectionInspection:
     DiagramEditorSelectionInspectionV010 | undefined;
   let selectionReadGeneration = 0;
   let activeReadPresetId = page.readPresets?.[0]?.id;
+  let camera = createDiagramCameraTransformV010(page.initialCamera ?? {});
+  let followsFitToCanvas = page.initialCamera === undefined;
+  let stageElement: HTMLElement | undefined;
+  let suppressNextNodeClick = false;
+  const arrowMarkerId = "eidos-diagram-arrow-" + (++diagramEditorInstanceSequence);
+  const locallyHiddenNodeIds = new Set<string>();
+  type ViewSnapshot = {
+    positions: Array<{ id: string; x: number; y: number }>;
+    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
+    hiddenNodeIds: string[];
+    hiddenEdgeIds: string[];
+  };
+  const undoHistory: ViewSnapshot[] = [];
+  const redoHistory: ViewSnapshot[] = [];
+  const captureSnapshot = (): ViewSnapshot => ({
+    positions: (state?.nodes ?? []).map(node => ({ id: node.id, x: node.x, y: node.y })),
+    edgePaths: (state?.edges ?? []).map(edge => ({
+      id: edge.id, pathKind: edge.pathKind,
+      ...(edge.waypoints ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+      ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
+      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {})
+    })),
+    hiddenNodeIds: [...locallyHiddenNodeIds],
+    hiddenEdgeIds: [...locallyHiddenEdgeIds]
+  });
+  const checkpoint = (): void => {
+    undoHistory.push(captureSnapshot());
+    if (undoHistory.length > 50) undoHistory.shift();
+    redoHistory.length = 0;
+  };
+  const restoreSnapshot = (snapshot: ViewSnapshot): void => {
+    for (const node of state?.nodes ?? []) {
+      const position = snapshot.positions.find(item => item.id === node.id);
+      if (position) { node.x = position.x; node.y = position.y; }
+    }
+    for (const edge of state?.edges ?? []) {
+      const previous = snapshot.edgePaths.find(item => item.id === edge.id);
+      if (previous) {
+        if (previous.pathKind === undefined) delete edge.pathKind;
+        else edge.pathKind = previous.pathKind;
+        if (previous.waypoints === undefined) delete edge.waypoints;
+        else edge.waypoints = previous.waypoints.map(p => ({ ...p }));
+        if (previous.sourceAnchor === undefined) delete edge.sourceAnchor;
+        else edge.sourceAnchor = previous.sourceAnchor;
+        if (previous.targetAnchor === undefined) delete edge.targetAnchor;
+        else edge.targetAnchor = previous.targetAnchor;
+      }
+    }
+    locallyHiddenNodeIds.clear();
+    locallyHiddenEdgeIds.clear();
+    for (const id of snapshot.hiddenNodeIds) locallyHiddenNodeIds.add(id);
+    for (const id of snapshot.hiddenEdgeIds) locallyHiddenEdgeIds.add(id);
+    selected = undefined;
+    selectedNodeIds.clear();
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    report("View adjusted locally. Save to persist changes.");
+  };
+  const undoView = (): void => {
+    const previous = undoHistory.pop();
+    if (!previous) return;
+    redoHistory.push(captureSnapshot());
+    restoreSnapshot(previous);
+  };
+  const redoView = (): void => {
+    const next = redoHistory.pop();
+    if (!next) return;
+    undoHistory.push(captureSnapshot());
+    restoreSnapshot(next);
+  };
+  const locallyHiddenEdgeIds = new Set<string>();
+  const syncLocalVisibilityFromState = (): void => {
+    locallyHiddenNodeIds.clear();
+    locallyHiddenEdgeIds.clear();
+    for (const id of state?.hiddenNodeIds ?? []) locallyHiddenNodeIds.add(id);
+    for (const id of state?.hiddenEdgeIds ?? []) locallyHiddenEdgeIds.add(id);
+  };
+  const navigationPointers = new Map<number, { x: number; y: number }>();
+  let cancelActiveNodeDrag: (() => void) | undefined;
+  let cancelActiveRouteDrag: (() => void) | undefined;
+  // Escape can release SVG pointer capture before the physical mouse button
+  // comes up. Ignore only that cancelled gesture's trailing canvas click.
+  let activeRoutePointerId: number | undefined;
+  let panLast: { x: number; y: number } | undefined;
+  let pinchStartDistance: number | undefined;
+  let pinchLastDistance: number | undefined;
+  let pinchLastMidpoint: { x: number; y: number } | undefined;
+  const touchDragThresholdPx = 8;
   const listeners: Array<() => void> = [];
+
+  for (const button of Array.from(
+    root.querySelectorAll<HTMLButtonElement>(
+      "[data-eidos-context-route]"
+    )
+  )) {
+    const onContextNavigate = (event: Event): void => {
+      event.stopPropagation();
+      const route = button.dataset.eidosContextRoute?.trim();
+      if (route && options.onNavigate) void options.onNavigate(route);
+    };
+    button.addEventListener("click", onContextNavigate);
+    listeners.push(() => button.removeEventListener("click", onContextNavigate));
+  }
 
   const report = (message: string): void => {
     if (!disposed) status.textContent = message;
@@ -648,6 +1432,10 @@ export function mountDiagramEditorPageV010(
     }
     const previousSelection = selected;
     state = stateFromResult(result.result);
+    undoHistory.length = 0;
+    redoHistory.length = 0;
+    selectedNodeIds.clear();
+    syncLocalVisibilityFromState();
     selectionInspection = undefined;
     selectionReadGeneration += 1;
     selected = preserveViewState && previousSelection && (
@@ -658,11 +1446,68 @@ export function mountDiagramEditorPageV010(
       ? previousSelection
       : undefined;
     render();
+    if (followsFitToCanvas) fitViewToCanvas();
     report("Ready.");
   };
 
+  const nodeVisible = (nodeId: string): boolean =>
+    !locallyHiddenNodeIds.has(nodeId);
+
+  const edgeVisible = (edge: DiagramEditorEdgeV010): boolean =>
+    !locallyHiddenEdgeIds.has(edge.id)
+    && nodeVisible(edge.source)
+    && nodeVisible(edge.target);
+
+  const visibleNodes = (): DiagramEditorNodeV010[] =>
+    (state?.nodes ?? []).filter(node => nodeVisible(node.id));
+
+  const visibleEdges = (): DiagramEditorEdgeV010[] =>
+    (state?.edges ?? []).filter(edge => edgeVisible(edge));
+
+  const selectionStillExists = (
+    candidate: { kind: "node" | "edge"; id: string } | undefined
+  ): boolean => {
+    if (!state || !candidate) return false;
+    return candidate.kind === "node"
+      ? visibleNodes().some(item => item.id === candidate.id)
+      : visibleEdges().some(item => item.id === candidate.id);
+  };
+
+  const applyCameraTransform = (): void => {
+    if (!stageElement) return;
+    stageElement.style.transform =
+      `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
+    const gridStep = diagramGridStepV010(camera.scale);
+    stageElement.style.backgroundSize = gridStep + "px " + gridStep + "px";
+    // A zoom updates the transform without a full DOM redraw. Keep handle hit
+    // targets at 44 CSS px and visible markers at a fixed screen radius.
+    for (const target of Array.from(stageElement.querySelectorAll<SVGCircleElement>(
+      "[data-eidos-diagram-handle-screen-radius]"
+    ))) {
+      const radius = Number(target.dataset.eidosDiagramHandleScreenRadius);
+      if (Number.isFinite(radius)) {
+        target.setAttribute("r", String(radius / camera.scale));
+      }
+    }
+  };
+
+  const graphBounds = (): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } => {
+    const nodes = visibleNodes();
+    if (!state || nodes.length === 0) {
+      return { x: 0, y: 0, width: 1, height: 1 };
+    }
+    // B8i: include external self-loop handles in Fit all without tying
+    // routing to the transient viewport, pan or zoom camera.
+    return diagramSelfLoopFitBoundsV010(nodes,visibleEdges());
+  };
+
   const matchingActions = (): DiagramEditorActionV010[] => {
-    if (!state) return [];
+    if (!state || selectedNodeIds.size > 1) return [];
     return (state.actions ?? []).filter(action => {
       if (!action.target || action.target.kind === "graph") {
         return selected === undefined;
@@ -672,13 +1517,28 @@ export function mountDiagramEditorPageV010(
     });
   };
 
+  let operationInFlight = false;
+  // Compare the in-memory draft on either side of an async write. Users may
+  // continue panning or editing while a server response is in flight.
+  const localViewFingerprint = (): string => JSON.stringify({
+    nodes: state?.nodes,
+    edges: state?.edges,
+    hiddenNodes: [...locallyHiddenNodeIds].sort(),
+    hiddenEdges: [...locallyHiddenEdgeIds].sort(),
+    camera
+  });
   const executeOperation = async (
     operation: JsonValue,
     actionId: string,
     requiresConfirmation = false,
-    commandOverride?: DiagramEditorCommandV010
+    commandOverride?: DiagramEditorCommandV010,
+    captureViewState = false
   ): Promise<void> => {
     if (!state || disposed) return;
+    if (operationInFlight) {
+      report("An operation is already being saved.");
+      return;
+    }
     if (
       requiresConfirmation
       && !window.confirm(actionId)
@@ -691,25 +1551,448 @@ export function mountDiagramEditorPageV010(
       operation,
       actionId,
       requiresConfirmation,
-      commandOverride
+      commandOverride,
+      captureViewState
+        ? {
+            hiddenNodeIds: [...locallyHiddenNodeIds],
+            hiddenEdgeIds: [...locallyHiddenEdgeIds],
+            edgePaths: (state.edges ?? []).filter(edge => edge.pathKind !== undefined)
+              .map(edge => ({
+                edgeId: edge.id, pathKind: edge.pathKind!,
+                ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+                ...(edge.sourceAnchor && edge.sourceAnchor !== "auto" ? { sourceAnchor: edge.sourceAnchor } : {}),
+                ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {})
+              })),
+            viewport: {
+              width: Math.max(1, canvas.clientWidth),
+              height: Math.max(1, canvas.clientHeight)
+            },
+            placements: visibleNodes().map(node => ({
+              nodeId: node.id,
+              x: node.x,
+              y: node.y
+            })),
+            camera: {
+              scale: camera.scale,
+              translateX: camera.translateX,
+              translateY: camera.translateY
+            }
+          }
+        : undefined
     );
+    const previousSelection = selected;
+    const dispatchedFingerprint = localViewFingerprint();
+    operationInFlight = true;
     report("Saving…");
-    const result = await actionHost.execute(request);
-    await options.onActionResult?.(result);
+    let result: Awaited<ReturnType<typeof actionHost.execute>>;
+    try {
+      result = await actionHost.execute(request);
+      await options.onActionResult?.(result);
+    } catch (error) {
+      report("Save failed; local edits are preserved. " +
+        (error instanceof Error ? error.message : String(error)));
+      return;
+    } finally {
+      operationInFlight = false;
+    }
+    if (disposed || !state) return;
     if (!result.ok) {
-      report(result.error?.message ?? "Diagram operation failed.");
+      const conflict = result.error?.code === "DEFINITION_PROJECTION_WRITE_CONFLICT";
+      report(conflict
+        ? "Projection changed elsewhere. Local edits are preserved; save as a new projection or compare before retrying."
+        : (result.error?.message ?? "Save failed; local edits are preserved."));
       return;
     }
-    state = stateFromResult(result.result);
-    selected = undefined;
+    const committedState = stateFromResult(result.result);
+    if (dispatchedFingerprint !== localViewFingerprint()) {
+      // A later local edit must not be erased by an older async response.
+      // Never copy a token from Save As (it refers to another resource).
+      if (state.resourceId === committedState.resourceId) {
+        state.writeToken = committedState.writeToken;
+      }
+      report("An earlier snapshot was saved; newer local edits remain unsaved.");
+      render();
+      return;
+    }
+    state = committedState;
+    undoHistory.length = 0;
+    redoHistory.length = 0;
+    selectedNodeIds.clear();
+    syncLocalVisibilityFromState();
+    selected = selectionStillExists(previousSelection)
+      ? previousSelection
+      : undefined;
     render();
     report("Saved.");
   };
 
+  const fitViewToCanvas = (): void => {
+    if (!state) return;
+    camera = fitDiagramCameraToBoundsV010(
+      graphBounds(),
+      {
+        width: Math.max(1, canvas.clientWidth),
+        height: Math.max(1, canvas.clientHeight)
+      },
+      48,
+      { min: 0.1, max: 1.25 }
+    );
+    applyCameraTransform();
+    renderActions();
+  };
+
+  const selectedBounds = (): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | undefined => {
+    if (!state || !selected) return undefined;
+    const nodes = selected.kind === "node"
+      ? state.nodes.filter(node => node.id === selected!.id)
+      : (() => {
+          const edge = state.edges.find(item => item.id === selected!.id);
+          if (!edge) return [];
+          return state.nodes.filter(
+            node => node.id === edge.source || node.id === edge.target
+          );
+        })();
+    if (nodes.length === 0) return undefined;
+    // B8i: Fit selection must not crop a saved or automatic self-loop.
+    const focus=selected?.kind==="edge"
+      ? state!.edges.filter(edge=>edge.id===selected?.id) : [];
+    return diagramSelfLoopFitBoundsV010(nodes,focus);
+  };
+
+  const fitSelectionToCanvas = (): void => {
+    const bounds = selectedBounds();
+    if (!bounds) return;
+    followsFitToCanvas = false;
+    camera = fitDiagramCameraToBoundsV010(
+      bounds,
+      {
+        width: Math.max(1, canvas.clientWidth),
+        height: Math.max(1, canvas.clientHeight)
+      },
+      64,
+      { min: 0.1, max: 2.5 }
+    );
+    applyCameraTransform();
+    renderActions();
+  };
+
+  const resetZoomTo100 = (): void => {
+    followsFitToCanvas = false;
+    const center = {
+      x: canvas.clientWidth / 2,
+      y: canvas.clientHeight / 2
+    };
+    camera = zoomDiagramCameraAtScreenPointV010(camera, 1, center);
+    applyCameraTransform();
+    renderActions();
+  };
+
+  const applyZoomAt = (
+    nextZoom: number,
+    anchor = {
+      x: canvas.clientWidth / 2,
+      y: canvas.clientHeight / 2
+    }
+  ): void => {
+    followsFitToCanvas = false;
+    camera = zoomDiagramCameraAtScreenPointV010(
+      camera,
+      nextZoom,
+      anchor
+    );
+    applyCameraTransform();
+    renderActions();
+  };
+
+  const applyLocalAutoLayout = (): void => {
+    if (!state) return;
+    const visibleNodeIds = new Set(
+      state.nodes
+        .filter(node => !locallyHiddenNodeIds.has(node.id))
+        .map(node => node.id)
+    );
+    if (visibleNodeIds.size === 0) return;
+
+    const layout = layoutLayeredDiagramV010({
+      nodes: state.nodes
+        .filter(node => visibleNodeIds.has(node.id))
+        .map(node => ({
+          id: node.id,
+          width: node.width,
+          height: node.height
+        })),
+      edges: state.edges
+        .filter(edge =>
+          !locallyHiddenEdgeIds.has(edge.id)
+          && visibleNodeIds.has(edge.source)
+          && visibleNodeIds.has(edge.target)
+        )
+        .map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target
+        })),
+      options: {
+        direction:
+          page.viewInteraction?.localAutoLayoutDirection ?? "RIGHT"
+      }
+    });
+    const placementByNode = new Map(
+      layout.placements.map(placement => [
+        placement.nodeId,
+        placement
+      ] as const)
+    );
+    checkpoint();
+    for (const node of state.nodes) {
+      const placement = placementByNode.get(node.id);
+      if (!placement) continue;
+      node.x = placement.x;
+      node.y = placement.y;
+    }
+    selected = undefined;
+    selectedNodeIds.clear();
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    followsFitToCanvas = true;
+    fitViewToCanvas();
+    report(
+      page.viewInteraction?.localAutoLayoutNotice
+      ?? "Diagram arranged automatically. Save the view to persist the layout."
+    );
+  };
+
+  const applyLocalArrangement = (mode: DiagramArrangeModeV010): void => {
+    if (!state || page.viewInteraction?.localNodeDrag !== true) return;
+    const nodes = state.nodes.filter(node =>
+      selectedNodeIds.has(node.id) && !locallyHiddenNodeIds.has(node.id));
+    try {
+      const arranged = diagramArrangeNodesV010(
+        nodes.map(node => ({
+          id: node.id, x: node.x, y: node.y, width: node.width, height: node.height
+        })),
+        mode,
+        selected?.kind === "node" ? selected.id : undefined
+      );
+      const positions = new Map(arranged.map(node => [node.id, node] as const));
+      if (!nodes.some(node => {
+        const target = positions.get(node.id)!;
+        return target.x !== node.x || target.y !== node.y;
+      })) {
+        report("Nodes are already arranged in this alignment.");
+        return;
+      }
+      checkpoint();
+      const before = new Map(nodes.map(node => [node.id, { x: node.x, y: node.y }] as const));
+      for (const node of nodes) {
+        const target = positions.get(node.id)!;
+        node.x = target.x;
+        node.y = target.y;
+      }
+      // Only translate explicit manual controls when both terminals moved by
+      // the same vector. Otherwise user-defined path controls remain fixed.
+      for (const edge of state.edges) {
+        if (!edge.waypoints?.length) continue;
+        const from = before.get(edge.source), to = before.get(edge.target);
+        if (!from || !to) continue;
+        const source = positions.get(edge.source)!, target = positions.get(edge.target)!;
+        const dx = source.x - from.x, dy = source.y - from.y;
+        if (dx === target.x - to.x && dy === target.y - to.y) {
+          edge.waypoints = diagramTranslateWaypointsV010(edge.waypoints, dx, dy);
+        }
+      }
+      followsFitToCanvas = false;
+      render();
+      report("Selected nodes arranged locally. Save the view to persist.");
+    } catch (error) {
+      report(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const renderActions = (): void => {
     toolbar.replaceChildren();
+    viewControls.replaceChildren();
     selectionActions.replaceChildren();
     if (!state) return;
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      for (const option of [
+        { id: "SELECT", label: "Select", title: "Select or marquee nodes (V)" },
+        { id: "PAN", label: "Hand", title: "Pan the canvas (H)" }
+      ] as const) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.label;
+        button.title = option.title;
+        button.setAttribute("data-eidos-diagram-tool", option.id);
+        button.setAttribute("aria-pressed", String(canvasTool === option.id));
+        button.onclick = () => {
+          canvasTool = option.id;
+          canvas.style.cursor = canvasTool === "PAN" ? "grab" : "crosshair";
+          renderActions();
+        };
+        toolbar.appendChild(button);
+      }
+      const wheelButton = document.createElement("button");
+      wheelButton.type = "button";
+      wheelButton.textContent = wheelInputMode === "MOUSE" ? "Mouse" : "Trackpad";
+      wheelButton.title = "Switch between mouse-wheel zoom and trackpad two-finger pan";
+      wheelButton.setAttribute("data-eidos-diagram-wheel-mode", wheelInputMode);
+      wheelButton.onclick = () => {
+        wheelInputMode = wheelInputMode === "MOUSE" ? "TRACKPAD" : "MOUSE";
+        try { window.localStorage.setItem("eidos.diagram.wheelMode", wheelInputMode); }
+        catch { /* Preference remains usable for this mount. */ }
+        renderActions();
+      };
+      toolbar.appendChild(wheelButton);
+      if (page.viewInteraction?.localNodeDrag === true) {
+        const snapModes = [
+          { key: "grid", label: "Grid", title: "Show or hide the subtle 24-unit grid",
+            enabled: gridVisible, toggle: () => { gridVisible = !gridVisible;
+              if (stageElement) stageElement.style.backgroundImage = gridVisible
+                ? "linear-gradient(to right,rgba(95,107,118,.10) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,107,118,.10) 1px,transparent 1px)" : "none";
+            } },
+          { key: "snap", label: "Grid snap", title: "Snap moving nodes to the visible grid",
+            enabled: gridSnapEnabled, toggle: () => { gridSnapEnabled = !gridSnapEnabled; } },
+          { key: "align", label: "Align", title: "Snap node edges and centers to other visible nodes with guides",
+            enabled: alignmentGuidesEnabled, toggle: () => { alignmentGuidesEnabled = !alignmentGuidesEnabled; } }
+        ];
+        for (const mode of snapModes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = mode.label;
+          button.title = mode.title;
+          button.setAttribute("data-eidos-diagram-snap-mode", mode.key);
+          button.setAttribute("aria-pressed", String(mode.enabled));
+          button.onclick = () => { mode.toggle(); renderActions(); };
+          toolbar.appendChild(button);
+        }
+      }
+      for (const option of [
+        { label: "Undo", key: "undo", enabled: undoHistory.length > 0, action: undoView },
+        { label: "Redo", key: "redo", enabled: redoHistory.length > 0, action: redoView }
+      ]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.label;
+        button.disabled = !option.enabled;
+        button.setAttribute("data-eidos-diagram-history", option.key);
+        button.onclick = option.action;
+        toolbar.appendChild(button);
+      }
+    }
+
+    const overflowButtons: HTMLButtonElement[] = [];
+    const placeToolbarButton = (
+      button: HTMLButtonElement,
+      placement: DiagramEditorToolbarPlacementV010 = "TOOLBAR"
+    ): void => {
+      if (placement === "OVERFLOW") overflowButtons.push(button);
+      else toolbar.appendChild(button);
+    };
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      // Real commands, unlike passive guide/grid switches: exactly one undo
+      // checkpoint and no Host business write until explicit projection Save.
+      const modes: Array<{ mode: DiagramArrangeModeV010; title: string; min: number }> = [
+        { mode: "left", title: "Align left edges", min: 2 },
+        { mode: "center-x", title: "Align horizontal centers", min: 2 },
+        { mode: "right", title: "Align right edges", min: 2 },
+        { mode: "top", title: "Align top edges", min: 2 },
+        { mode: "center-y", title: "Align vertical centers", min: 2 },
+        { mode: "bottom", title: "Align bottom edges", min: 2 },
+        { mode: "distribute-x", title: "Distribute with equal horizontal gaps", min: 3 },
+        { mode: "distribute-y", title: "Distribute with equal vertical gaps", min: 3 }
+      ];
+      if (selectedNodeIds.size >= 2) {
+        for (const command of modes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = command.title;
+          button.title = command.title + " (local presentation only)";
+          button.disabled = selectedNodeIds.size < command.min;
+          button.setAttribute("data-eidos-diagram-arrange", command.mode);
+          button.onclick = () => applyLocalArrangement(command.mode);
+          placeToolbarButton(button, "OVERFLOW");
+        }
+      }
+    }
+
+    for (const action of page.toolbarActions ?? []) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      button.setAttribute("data-eidos-diagram-toolbar-action", action.id);
+      button.setAttribute(
+        "data-eidos-primary",
+        action.primary === true ? "true" : "false"
+      );
+      button.onclick = () => {
+        if (options.onNavigate) {
+          void options.onNavigate(action.route);
+        }
+      };
+      toolbar.appendChild(button);
+    }
+
+    const clearSelectionOnCanvasClick = (event: MouseEvent): void => {
+    if (suppressNextCanvasClick) {
+      suppressNextCanvasClick = false;
+      return;
+    }
+    const target = event.target as Element | null;
+    if (
+      target?.closest?.("[data-eidos-diagram-node]")
+      || target?.closest?.("[data-eidos-diagram-edge]")
+      || target?.closest?.("[data-eidos-diagram-view-controls]")
+    ) {
+      return;
+    }
+    clearSelection();
+  };
+  if (!canvasClickHandlerInstalled) {
+    canvas.addEventListener("click", clearSelectionOnCanvasClick);
+    listeners.push(() => canvas.removeEventListener("click", clearSelectionOnCanvasClick));
+    canvasClickHandlerInstalled = true;
+  }
+
+  if (page.viewInteraction?.zoom) {
+      const addViewButton = (
+        label: string,
+        title: string,
+        onClick: () => void
+      ) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.title = title;
+        button.setAttribute("aria-label", title);
+        button.setAttribute("data-eidos-diagram-view-action", "");
+        button.onclick = onClick;
+        viewControls.appendChild(button);
+      };
+      addViewButton("−", "Zoom out", () => {
+        applyZoomAt(camera.scale / 1.2);
+      });
+      addViewButton("+", "Zoom in", () => {
+        applyZoomAt(camera.scale * 1.2);
+      });
+      addViewButton("Fit", "Fit diagram to canvas", () => {
+        followsFitToCanvas = true;
+        fitViewToCanvas();
+      });
+      addViewButton(
+        `${Math.round(camera.scale * 100)}%`,
+        "Reset view",
+        () => resetZoomTo100()
+      );
+    }
 
     for (const preset of page.readPresets ?? []) {
       const button = document.createElement("button");
@@ -727,6 +2010,49 @@ export function mountDiagramEditorPageV010(
       toolbar.appendChild(button);
     }
 
+    if (page.viewInteraction?.localVisibilityReset === true) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("data-eidos-diagram-local-visibility-reset", "");
+      button.textContent =
+        page.viewInteraction.localVisibilityResetLabel ?? "Restore all";
+      button.disabled =
+        locallyHiddenNodeIds.size === 0 && locallyHiddenEdgeIds.size === 0;
+      button.onclick = () => {
+        checkpoint();
+        locallyHiddenNodeIds.clear();
+        locallyHiddenEdgeIds.clear();
+        selected = undefined;
+        selectedNodeIds.clear();
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        render();
+        followsFitToCanvas = true;
+        fitViewToCanvas();
+        report(
+          page.viewInteraction?.localVisibilityResetNotice
+          ?? "All diagram items are visible again. Save to persist the view."
+        );
+      };
+      placeToolbarButton(
+        button,
+        page.viewInteraction.localVisibilityResetPlacement ?? "TOOLBAR"
+      );
+    }
+
+    if (page.viewInteraction?.localAutoLayout === true) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("data-eidos-diagram-auto-layout", "");
+      button.textContent =
+        page.viewInteraction.localAutoLayoutLabel ?? "Auto layout";
+      button.onclick = () => applyLocalAutoLayout();
+      placeToolbarButton(
+        button,
+        page.viewInteraction.localAutoLayoutPlacement ?? "TOOLBAR"
+      );
+    }
+
     for (const action of state.actions ?? []) {
       const isGraphAction = !action.target || action.target.kind === "graph";
       if (!isGraphAction) continue;
@@ -735,13 +2061,54 @@ export function mountDiagramEditorPageV010(
       button.textContent = action.label;
       button.disabled = state.lifecycleState === "PUBLISHED";
       button.onclick = () => {
+        let operation = action.operation;
+        if (action.textPrompt) {
+          const value = window.prompt(
+            action.textPrompt.label,
+            action.textPrompt.defaultValue ?? ""
+          );
+          if (value === null) return;
+          const normalized = value.trim();
+          if (action.textPrompt.required === true && !normalized) return;
+          if (
+            operation === null
+            || typeof operation !== "object"
+            || Array.isArray(operation)
+          ) {
+            return;
+          }
+          operation = {
+            ...(operation as Record<string, JsonValue>),
+            [action.textPrompt.valueKey]: normalized
+          } as JsonValue;
+        }
         void executeOperation(
-          action.operation,
+          operation,
           action.id,
-          action.requiresConfirmation === true
+          action.requiresConfirmation === true,
+          undefined,
+          action.captureViewState === true
         );
       };
-      toolbar.appendChild(button);
+      placeToolbarButton(button, action.placement ?? "TOOLBAR");
+    }
+
+    if (overflowButtons.length > 0) {
+      const details = document.createElement("details");
+      details.setAttribute("data-eidos-diagram-more-actions", "");
+      const summary = document.createElement("summary");
+      summary.textContent = page.toolbarOverflowLabel ?? "More";
+      summary.setAttribute("aria-label", page.toolbarOverflowLabel ?? "More");
+      const menu = document.createElement("div");
+      menu.setAttribute("data-eidos-diagram-more-menu", "");
+      for (const button of overflowButtons) {
+        button.addEventListener("click", () => {
+          details.open = false;
+        });
+        menu.appendChild(button);
+      }
+      details.append(summary, menu);
+      toolbar.appendChild(details);
     }
 
     for (const action of matchingActions()) {
@@ -759,7 +2126,54 @@ export function mountDiagramEditorPageV010(
       };
       selectionActions.appendChild(button);
     }
+
+    if (selected && page.viewInteraction?.localSelectionHide === true) {
+      const hideButton = document.createElement("button");
+      hideButton.type = "button";
+      hideButton.setAttribute("data-eidos-diagram-local-hide", "");
+      hideButton.textContent =
+        page.viewInteraction.localSelectionHideLabel ?? "Remove from view";
+      hideButton.onclick = () => hideSelectedFromView();
+      selectionActions.appendChild(hideButton);
+    }
   };
+
+  function clearSelection(): void {
+    if (!selected && !selectionInspection && selectedNodeIds.size === 0) return;
+    selected = undefined;
+    selectedNodeIds.clear();
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    canvas?.focus({ preventScroll: true });
+  }
+
+  function hideSelectedFromView(): void {
+    if (
+      !state
+      || !selected
+      || page.viewInteraction?.localSelectionHide !== true
+    ) {
+      return;
+    }
+    checkpoint();
+    if (selectedNodeIds.size > 1) {
+      for (const id of selectedNodeIds) locallyHiddenNodeIds.add(id);
+    } else if (selected.kind === "node") {
+      locallyHiddenNodeIds.add(selected.id);
+    } else {
+      locallyHiddenEdgeIds.add(selected.id);
+    }
+    selected = undefined;
+    selectedNodeIds.clear();
+    selectionInspection = undefined;
+    selectionReadGeneration += 1;
+    render();
+    report(
+      page.viewInteraction.localSelectionHideNotice
+      ?? "Removed from this view. Save the view to persist the change."
+    );
+  }
 
   const renderSelectionProperties = (
     properties: DiagramInspectorPropertyV010[] | undefined
@@ -877,22 +2291,15 @@ export function mountDiagramEditorPageV010(
 
   const selectionPropertiesMerged = (
     base: DiagramInspectorPropertyV010[] | undefined
-  ): DiagramInspectorPropertyV010[] | undefined => {
-    if (!selectionInspection) return base;
-    const result = [...(base ?? [])];
-    const keys = new Set(result.map(item => item.key));
-    for (const property of selectionInspection.properties) {
-      if (keys.has(property.key)) {
-        throw new Error("EIDOS_DIAGRAM_SELECTION_PROPERTY_DUPLICATE");
-      }
-      keys.add(property.key);
-      result.push(property);
-    }
-    return result;
-  };
+  ): DiagramInspectorPropertyV010[] | undefined =>
+    mergeDiagramInspectorPropertiesV010(
+      base,
+      selectionInspection?.properties
+    );
 
   const inspectSelection = async (): Promise<void> => {
-    if (!state || !selected || !page.selectionReadCommand || disposed) return;
+    if (!state || !selected || !page.selectionReadCommand || disposed
+      || selectedNodeIds.size > 1) return;
     const target = { ...selected };
     const generation = ++selectionReadGeneration;
     selectionInspection = undefined;
@@ -922,6 +2329,7 @@ export function mountDiagramEditorPageV010(
   };
 
   const renderSelection = (): void => {
+    root.setAttribute("data-has-selection", selected ? "true" : "false");
     if (!state || !selected) {
       selectionText.textContent = page.emptyMessage ?? "Select a node or relation.";
       renderSelectionProperties(undefined);
@@ -929,6 +2337,12 @@ export function mountDiagramEditorPageV010(
       return;
     }
     const item = selectedItem();
+    if (selectedNodeIds.size > 1) {
+      selectionText.textContent = selectedNodeIds.size + " nodes selected";
+      renderSelectionProperties(undefined);
+      renderActions();
+      return;
+    }
     selectionText.textContent = item
       ? [
           item.label,
@@ -945,75 +2359,586 @@ export function mountDiagramEditorPageV010(
       report(error instanceof Error ? error.message : String(error));
       renderSelectionProperties(item?.properties);
     }
+    if (selected.kind === "edge" && page.viewInteraction?.localEdgePathEdit === true) {
+      const edge = state.edges.find(item => item.id === selected!.id);
+      if (edge) {
+        const control = document.createElement("label");
+        control.textContent = "Connector path (presentation only)";
+        control.style.display = "grid";
+        control.style.gap = "6px";
+        control.style.marginTop = "14px";
+        const select = document.createElement("select");
+        select.setAttribute("data-eidos-diagram-edge-path-kind", edge.id);
+        for (const [kind, label] of [
+          ["straight", "Straight"],
+          ["orthogonal", "Orthogonal"],
+          ["rounded-orthogonal", "Rounded orthogonal"],
+          ["curve", "Curve"]
+        ] as const) {
+          const option = document.createElement("option");
+          option.value = kind;
+          option.textContent = label;
+          select.appendChild(option);
+        }
+        select.value = edge.pathKind ?? "straight";
+        select.onchange = () => {
+          if (!isDiagramEdgePathKindV010(select.value) || select.value === (edge.pathKind ?? "straight")) return;
+          checkpoint();
+          edge.pathKind = select.value;
+          if (select.value === "straight") delete edge.waypoints;
+          render();
+          report("Connector presentation updated locally. Save the projection to persist.");
+        };
+        control.appendChild(select);
+        selectionProperties.appendChild(control);
+
+        // Controls work with a mouse, keyboard or touch; no tiny SVG handle is required.
+        const editRoute = (action: () => void): void => {
+          checkpoint();
+          action();
+          followsFitToCanvas = false;
+          render();
+          report("Connector route adjusted locally. Save the projection to persist.");
+        };
+        if ((edge.pathKind ?? "straight") !== "straight") {
+          const waypointPanel = document.createElement("div");
+          waypointPanel.setAttribute("data-eidos-diagram-waypoint-controls", edge.id);
+          waypointPanel.style.display = "grid";
+          waypointPanel.style.gap = "8px";
+          waypointPanel.style.marginTop = "12px";
+          const heading = document.createElement("strong");
+          heading.textContent = "Path points";
+          waypointPanel.appendChild(heading);
+          const addPoint = document.createElement("button");
+          addPoint.type = "button";
+          addPoint.textContent = "Add path point";
+          addPoint.disabled = (edge.waypoints?.length ?? 0) >= 24;
+          addPoint.onclick = () => {
+            const source = state!.nodes.find(node => node.id === edge.source);
+            const target = state!.nodes.find(node => node.id === edge.target);
+            if (!source || !target) return;
+            const sx = source.x + source.width / 2, sy = source.y + source.height / 2;
+            const tx = target.x + target.width / 2, ty = target.y + target.height / 2;
+            editRoute(() => {
+              if (edge.source === edge.target && !edge.waypoints?.length
+                && edge.pathKind && edge.pathKind !== "straight") {
+                // A self-edge has no meaningful center-center midpoint.
+                // Start with the editable exterior contour, not inside its node.
+                edge.waypoints = diagramSelfLoopRouteControlsV010(
+                  source, edge.pathKind, 0,
+                  state?.nodes.filter(other => other.id !== edge.source) ?? []
+                ).waypoints;
+              } else {
+                edge.waypoints = [...(edge.waypoints ?? []),
+                  { x: (sx + tx) / 2, y: (sy + ty) / 2 }];
+              }
+            });
+          };
+          waypointPanel.appendChild(addPoint);
+          for (const [index, position] of (edge.waypoints ?? []).entries()) {
+            const line = document.createElement("div");
+            line.style.display = "flex";
+            line.style.flexWrap = "wrap";
+            line.style.alignItems = "center";
+            line.style.gap = "6px";
+            const text = document.createElement("span");
+            text.textContent = "Point " + (index + 1);
+            line.appendChild(text);
+            for (const [label, axis, delta] of [
+              ["Left", "x", -10], ["Right", "x", 10], ["Up", "y", -10], ["Down", "y", 10]
+            ] as const) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.textContent = label;
+              button.setAttribute("aria-label", label + " path point " + (index + 1) + " by 10");
+              button.style.minHeight = "44px";
+              button.onclick = () => editRoute(() => {
+                const next = (edge.waypoints ?? []).map(p => ({ ...p }));
+                const item = next[index]!;
+                item[axis] = Math.max(-10000000, Math.min(10000000, item[axis] + delta));
+                edge.waypoints = next;
+              });
+              line.appendChild(button);
+            }
+            for (const axis of ["x", "y"] as const) {
+              const label = document.createElement("label");
+              label.textContent = axis.toUpperCase();
+              const input = document.createElement("input");
+              input.type = "number";
+              input.step = "1";
+              input.min = "-10000000";
+              input.max = "10000000";
+              input.value = String(position[axis]);
+              input.style.width = "82px";
+              input.onchange = () => {
+                const n = Number(input.value);
+                if (!Number.isFinite(n) || Math.abs(n) > 10000000) {
+                  input.value = String(position[axis]); return;
+                }
+                editRoute(() => {
+                  const next = (edge.waypoints ?? []).map(p => ({ ...p }));
+                  next[index]![axis] = n;
+                  edge.waypoints = next;
+                });
+              };
+              label.appendChild(input);
+              line.appendChild(label);
+            }
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.textContent = "Remove";
+            remove.style.minHeight = "44px";
+            remove.onclick = () => editRoute(() => {
+              edge.waypoints = (edge.waypoints ?? []).filter((_, i) => i !== index);
+              if (!edge.waypoints.length) delete edge.waypoints;
+            });
+            line.appendChild(remove);
+            waypointPanel.appendChild(line);
+          }
+          const reset = document.createElement("button");
+          reset.type = "button";
+          reset.textContent = "Restore automatic routing";
+          reset.style.minHeight = "44px";
+          reset.disabled = !(edge.waypoints?.length || edge.sourceAnchor || edge.targetAnchor);
+          reset.onclick = () => editRoute(() => {
+            delete edge.waypoints;
+            delete edge.sourceAnchor;
+            delete edge.targetAnchor;
+          });
+          waypointPanel.appendChild(reset);
+          selectionProperties.appendChild(waypointPanel);
+        }
+        for (const [field, label] of [
+          ["sourceAnchor", "Source attachment"],
+          ["targetAnchor", "Target attachment"]
+        ] as const) {
+          const row = document.createElement("label");
+          row.textContent = label;
+          row.style.display = "grid";
+          row.style.gap = "6px";
+          const anchor = document.createElement("select");
+          anchor.setAttribute("data-eidos-diagram-anchor", field);
+          for (const side of ["auto", "left", "right", "top", "bottom"] as const) {
+            const option = document.createElement("option");
+            option.value = side;
+            option.textContent = side;
+            anchor.appendChild(option);
+          }
+          anchor.value = edge[field] ?? "auto";
+          anchor.onchange = () => editRoute(() => {
+            if (anchor.value === "auto") delete edge[field];
+            else {
+              edge.pathKind ??= "straight";
+              edge[field] = anchor.value as DiagramEdgeAnchorSideV010;
+            }
+          });
+          row.appendChild(anchor);
+          selectionProperties.appendChild(row);
+        }
+      }
+    }
     renderActions();
   };
 
   const render = (): void => {
     if (!state || disposed) return;
-    lifecycle.textContent = state.lifecycleState
+    const showTechnicalMetadata = page.showTechnicalMetadata === true;
+    lifecycle.hidden = !showTechnicalMetadata || !state.lifecycleState;
+    revision.hidden = !showTechnicalMetadata;
+    lifecycle.textContent = showTechnicalMetadata && state.lifecycleState
       ? "State: " + state.lifecycleState
       : "";
-    revision.textContent = "Revision: " + state.revision;
+    revision.textContent = showTechnicalMetadata
+      ? "Revision: " + state.revision
+      : "";
     canvas.replaceChildren();
 
-    const maxX = Math.max(
-      900,
-      ...state.nodes.map(node => node.x + node.width + 120)
-    );
-    const maxY = Math.max(
-      520,
-      ...state.nodes.map(node => node.y + node.height + 120)
-    );
+    const bounds = graphBounds();
+    const maxX = Math.max(1, bounds.x + bounds.width + 120);
+    const maxY = Math.max(1, bounds.y + bounds.height + 120);
+
+    const viewport = document.createElement("div");
+    viewport.style.position = "absolute";
+    viewport.style.inset = "0";
+    viewport.style.overflow = "visible";
 
     const stage = document.createElement("div");
-    stage.style.position = "relative";
+    stage.style.position = "absolute";
+    stage.style.left = "0";
+    stage.style.top = "0";
     stage.style.width = maxX + "px";
     stage.style.height = maxY + "px";
-    stage.style.minWidth = "100%";
-    stage.style.minHeight = "100%";
+    stage.style.transformOrigin = "0 0";
+    const gridStep = diagramGridStepV010(camera.scale);
+    stage.style.backgroundSize = gridStep + "px " + gridStep + "px";
+    stage.style.backgroundImage = gridVisible
+      ? "linear-gradient(to right,rgba(95,107,118,.10) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,107,118,.10) 1px,transparent 1px)" : "none";
+    stageElement = stage;
+    applyCameraTransform();
 
     const svg = svgElement("svg");
     svg.setAttribute("width", String(maxX));
     svg.setAttribute("height", String(maxY));
     svg.style.position = "absolute";
     svg.style.inset = "0";
+    svg.style.overflow = "visible";
     svg.style.pointerEvents = "none";
 
-    for (const edge of state.edges) {
-      const source = state.nodes.find(node => node.id === edge.source);
-      const target = state.nodes.find(node => node.id === edge.target);
+    const defs = svgElement("defs");
+    const markerEnd = svgElement("marker");
+    markerEnd.setAttribute("id", arrowMarkerId);
+    markerEnd.setAttribute("viewBox", "0 0 10 10");
+    markerEnd.setAttribute("refX", "9");
+    markerEnd.setAttribute("refY", "5");
+    markerEnd.setAttribute("markerWidth", "5.5");
+    markerEnd.setAttribute("markerHeight", "5.5");
+    markerEnd.setAttribute("orient", "auto-start-reverse");
+    const markerEndPath = svgElement("path");
+    markerEndPath.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    markerEndPath.setAttribute("fill", "currentColor");
+    markerEnd.appendChild(markerEndPath);
+    defs.appendChild(markerEnd);
+    svg.appendChild(defs);
+
+    const renderedNodes = visibleNodes();
+    const renderedEdges = visibleEdges();
+    // P01a: one stable source-order lookup per full render. Edge endpoints and
+    // relevant obstacle lists no longer rescan all visible nodes for each edge.
+    const renderedNodeById = new Map(renderedNodes.map(node => [node.id, node] as const));
+    // P01a: small diagrams measured a selection-redraw regression when
+    // constructing a spatial index. Switch only when E×N warrants it.
+    // This is a presentation performance choice, not a persisted graph flag.
+    const useSpatialIndex = renderedNodes.length * renderedEdges.length >= 150_000;
+    const spatialObstacles = useSpatialIndex
+      ? createDiagramObstacleSpatialIndexV010(renderedNodes)
+      : undefined;
+    const editableRoutes: Array<{
+      edge: DiagramEditorEdgeV010;
+      start: { x: number; y: number };
+      end: { x: number; y: number };
+      waypoints: Array<{ x: number; y: number }>;
+      automatic: boolean;
+      originalGeometry: { d: string; label: { x: number; y: number } };
+      segments?: ReturnType<typeof diagramEditableOrthogonalSegmentsV010>;
+      loopNode?: DiagramEditorNodeV010;
+      laneOffset?: number;
+    }> = [];
+    const laneOffsets = diagramParallelLaneOffsetsV010(
+      renderedEdges.filter(edge => edge.pathKind !== undefined)
+    );
+    // B8h: stable id order prevents source-order-dependent sibling routing.
+    // Manual self-loop waypoints pin their side without a schema addition.
+    const loopObstaclesFor = (source: DiagramEditorNodeV010, lane: number) => {
+      const reach = Math.max(38, 56 + lane);
+      return spatialObstacles && reach + 22 <= 134
+        ? spatialObstacles.near({ x: source.x, y: source.y },
+            { x: source.x + source.width, y: source.y + source.height },
+            source.id, source.id)
+        : renderedNodes.filter(other => other.id !== source.id);
+    };
+    const loopReservedSides = new Map<string, DiagramSelfLoopSideV010[]>();
+    const siblingGroups = new Map<string, DiagramEditorEdgeV010[]>();
+    for (const edge of renderedEdges) {
+      if (edge.source !== edge.target || edge.pathKind === undefined) continue;
+      const group = siblingGroups.get(edge.source) ?? [];
+      group.push(edge);
+      siblingGroups.set(edge.source, group);
+    }
+    // B8j: derive ink from the SAME displayed geometry as the SVG below,
+    // including rendered rounded Q corners and cubic C curves. Never infer
+    // curve occupation from the straight source/target midpoint chord.
+    // B8k: build one spatial index per render, not O(selfNodes x allEdges).
+    // A complexity budget is explicit, with a conservative flat-segment
+    // fallback for pathological path counts; >12000 edges use B8h routing.
+    const preciseRouteGeometries = new Map<string,ReturnType<typeof diagramEdgeGeometryV010>>();
+    const inkEntries: DiagramInkEntryV010[] = [];
+    let inkSegmentCount = 0;
+    let inkFallbackCount = 0;
+    // B8l: use browser font metrics of the SAME 11px canvas label, not
+    // a 176-unit approximate cap. One measurement per distinct caption.
+    const textMetricsCache=new Map<string,DiagramLabelMetricsV010>();
+    let measureContext:CanvasRenderingContext2D|null=null;
+    try {
+      measureContext=document.createElement("canvas").getContext("2d");
+      if(measureContext)measureContext.font=`11px ${getComputedStyle(canvas).fontFamily || "sans-serif"}`;
+    }catch { measureContext=null; }
+    const measuredCaption=(caption:string):DiagramLabelMetricsV010|undefined=>{
+      const hit=textMetricsCache.get(caption);
+      if(hit)return hit;
+      if(!measureContext)return undefined;
+      const metric=measureContext.measureText(caption);
+      const result={width:metric.width,
+        actualBoundingBoxAscent:metric.actualBoundingBoxAscent,
+        actualBoundingBoxDescent:metric.actualBoundingBoxDescent};
+      textMetricsCache.set(caption,result);
+      return result;
+    };
+    if (siblingGroups.size > 0 && renderedEdges.length <= 12000) {
+      for (const other of renderedEdges) {
+        if (other.source === other.target) continue;
+        const sourceNode=renderedNodeById.get(other.source);
+        const targetNode=renderedNodeById.get(other.target);
+        if (!sourceNode || !targetNode) continue;
+        const sourceCenter=nodeCenter(sourceNode),targetCenter=nodeCenter(targetNode);
+        const lane=laneOffsets.get(other.id) ?? 0;
+        const sourceAttachment=nodeBoundaryPoint(sourceNode,targetCenter);
+        const targetAttachment=nodeBoundaryPoint(targetNode,sourceCenter);
+        const a=diagramEdgeAnchorPointV010(sourceNode,other.sourceAnchor ?? "auto")
+          ?? (other.pathKind !== undefined
+            ? diagramOffsetNodeAttachmentV010(sourceNode,sourceAttachment,targetCenter,lane)
+            : sourceAttachment);
+        const b=diagramEdgeAnchorPointV010(targetNode,other.targetAnchor ?? "auto")
+          ?? (other.pathKind !== undefined
+            ? diagramOffsetNodeAttachmentV010(targetNode,targetAttachment,sourceCenter,lane)
+            : targetAttachment);
+        const routeObstacles=other.pathKind === "orthogonal"
+          || other.pathKind === "rounded-orthogonal"
+          ? spatialObstacles
+            ? spatialObstacles.near(a,b,other.source,other.target)
+            : renderedNodes.filter(n=>n.id!==other.source && n.id!==other.target)
+              .map(n=>({x:n.x,y:n.y,width:n.width,height:n.height}))
+          : [];
+        const geometry=other.waypoints?.length
+          ? diagramManualEdgeGeometryV010(a,b,{
+              pathKind:other.pathKind ?? "orthogonal",waypoints:other.waypoints,
+              sourceAnchor:other.sourceAnchor,targetAnchor:other.targetAnchor
+            })
+          : diagramEdgeGeometryV010(a,b,other.pathKind,{
+              obstacles:routeObstacles,
+              forceRouteWhenEmpty:renderedNodes.length>2
+                && (other.pathKind==="orthogonal"
+                  || other.pathKind==="rounded-orthogonal")
+            });
+        preciseRouteGeometries.set(other.id,geometry);
+        let segments: DiagramInkEntryV010["segments"];
+        // B8m: stop expensive Q/C subdivisions when total budget ends.
+        // Coarse chord fallback is explicitly diagnosed in the UI.
+        if(inkSegmentCount>=100000){
+          inkFallbackCount++;
+          segments=[{start:a,end:b}];
+        }else try {
+          const parsed=diagramSvgInkSegmentsV010(geometry.d);
+          if(inkSegmentCount+parsed.length<=100000) segments=parsed;
+          else {inkFallbackCount++;segments=[{start:a,end:b}];}
+        }catch{
+          inkFallbackCount++;
+          segments=[{start:a,end:b}];
+        }
+        inkSegmentCount+=segments.length;
+        const caption=[other.label,...(other.observations??[])
+          .map(item=>item.label+" "+item.value)].filter(Boolean).join(" · ");
+        const labels=caption
+          ? [diagramCaptionLayoutV010(geometry.label,caption,measuredCaption).box]
+          : [];
+        inkEntries.push({edgeId:other.id,sourceId:other.source,
+          targetId:other.target,segments,labels});
+      }
+    }
+    const inkQuality=diagramInkQualityV010(renderedEdges.length,
+      siblingGroups.size>0,inkFallbackCount);
+    const loopInkIndex=inkEntries.length
+      ? createDiagramInkSpatialIndexV010(inkEntries):undefined;
+    const loopInkCache = new Map<string,DiagramSelfLoopInkV010>();
+    const loopInkFor = (nodeId: string): DiagramSelfLoopInkV010 => {
+      const cached=loopInkCache.get(nodeId);
+      if(cached)return cached;
+      const node=renderedNodeById.get(nodeId);
+      const count=siblingGroups.get(nodeId)?.length ?? 0;
+      const reach=56+Math.max(0,count-1)*32+count*32+64;
+      const value=node && loopInkIndex
+        ? loopInkIndex.near(nodeId,node,Math.min(1e7,reach))
+        : {segments:[],labels:[]};
+      loopInkCache.set(nodeId,value);
+      return value;
+    };
+    for (const [nodeId, siblings] of siblingGroups) {
+      const node = renderedNodeById.get(nodeId);
+      if (!node) continue;
+      const ordered = siblings.sort((a,b) => a.id.localeCompare(b.id));
+      // B8h: honor ALL existing manual routes before allocating automatic
+      // ones, even when the manual edge id sorts later than an auto edge.
+      // Manual geometry is never moved to clear space for a new sibling.
+      const reserved: DiagramSelfLoopSideV010[] = ordered
+        .filter(edge => edge.waypoints?.length)
+        .map(edge => diagramSelfLoopManualSideV010(node,edge.waypoints!));
+      for (const edge of ordered) {
+        if (edge.waypoints?.length) {
+          loopReservedSides.set(edge.id,[...reserved]);
+          continue;
+        }
+        const lane = laneOffsets.get(edge.id) ?? 0;
+        loopReservedSides.set(edge.id,[...reserved]);
+        reserved.push(diagramSelfLoopSideV010(
+          node,loopObstaclesFor(node,lane),lane,reserved,loopInkFor(nodeId)));
+      }
+    }
+    // B8v: count only actually rendered, budget-congested presentation edges.
+    // An ink-quality "full" result is NOT proof of zero congested routes.
+    let congestedRouteCount = 0;
+    const liveEdges = new Map<string, {
+      hit: SVGPathElement;
+      visual: SVGPathElement;
+      label?: SVGTextElement;
+    }>();
+    const focusedNodeIds = new Set<string>();
+    const selectedNodeId = selected?.kind === "node" ? selected.id : undefined;
+    const selectedEdgeId = selected?.kind === "edge" ? selected.id : undefined;
+    if (selectedNodeId) {
+      focusedNodeIds.add(selectedNodeId);
+      for (const edge of renderedEdges) {
+        if (edge.source === selectedNodeId) focusedNodeIds.add(edge.target);
+        if (edge.target === selectedNodeId) focusedNodeIds.add(edge.source);
+      }
+    }
+    for (const id of selectedNodeIds) {
+      focusedNodeIds.add(id);
+      for (const edge of renderedEdges) {
+        if (edge.source === id) focusedNodeIds.add(edge.target);
+        if (edge.target === id) focusedNodeIds.add(edge.source);
+      }
+    }
+    if (selectedEdgeId) {
+      const edge = renderedEdges.find(item => item.id === selectedEdgeId);
+      if (edge) {
+        focusedNodeIds.add(edge.source);
+        focusedNodeIds.add(edge.target);
+      }
+    }
+
+    for (const edge of renderedEdges) {
+      const source = renderedNodeById.get(edge.source);
+      const target = renderedNodeById.get(edge.target);
       if (!source || !target) continue;
-      const a = nodeCenter(source);
-      const b = nodeCenter(target);
-      const hit = svgElement("line");
-      hit.setAttribute("x1", String(a.x));
-      hit.setAttribute("y1", String(a.y));
-      hit.setAttribute("x2", String(b.x));
-      hit.setAttribute("y2", String(b.y));
+      const sourceCenter = nodeCenter(source);
+      const targetCenter = nodeCenter(target);
+      const lane = laneOffsets.get(edge.id) ?? 0;
+      const a0 = nodeBoundaryPoint(source, targetCenter);
+      const b0 = nodeBoundaryPoint(target, sourceCenter);
+      const a = diagramEdgeAnchorPointV010(source, edge.sourceAnchor ?? "auto")
+        ?? (edge.pathKind !== undefined && edge.source !== edge.target
+          ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0);
+      const b = diagramEdgeAnchorPointV010(target, edge.targetAnchor ?? "auto")
+        ?? (edge.pathKind !== undefined && edge.source !== edge.target
+          ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0);
+      const routeObstacles = edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal"
+        ? preciseRouteGeometries.has(edge.id) && selectedEdgeId !== edge.id
+          ? [] // B8k: geometry already rendered and cached; do not route twice.
+          : spatialObstacles
+            ? spatialObstacles.near(a, b, edge.source, edge.target)
+            : renderedNodes.filter(node => node.id !== edge.source && node.id !== edge.target)
+              .map(node => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
+        : [];
+      const loopObstacles = edge.source === edge.target && edge.pathKind !== undefined
+        ? loopObstaclesFor(source,lane) : [];
+      const loopReservations = loopReservedSides.get(edge.id) ?? [];
+      const geometry = edge.source === edge.target
+        ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane,
+            edge.waypoints, loopObstacles, loopReservations,
+            loopInkFor(edge.source))
+        : preciseRouteGeometries.get(edge.id)
+          ?? (edge.waypoints?.length
+            ? diagramManualEdgeGeometryV010(a, b, {
+                pathKind: edge.pathKind ?? "orthogonal", waypoints: edge.waypoints,
+                sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+              })
+            : diagramEdgeGeometryV010(a, b, edge.pathKind, {
+                obstacles: routeObstacles,
+                // Keep original rendering when no self-loops are present.
+                forceRouteWhenEmpty: renderedNodes.length > (edge.source === edge.target ? 1 : 2)
+                  && (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal")
+              }));
+      if (selectedEdgeId === edge.id && page.viewInteraction?.localEdgePathEdit === true
+        && edge.pathKind && edge.pathKind !== "straight") {
+        if (edge.source === edge.target) {
+          // B8f: retain the exact existing automatic self-loop until a handle
+          // is actually dragged. Manual curve and orthogonal controls have
+          // fixed right-side boundary terminals; the relation stays a self-edge.
+          const loop = diagramSelfLoopRouteControlsV010(source, edge.pathKind,
+            lane, loopObstacles, edge.waypoints, loopReservations,
+            loopInkFor(edge.source));
+          editableRoutes.push({
+            edge, start: loop.start, end: loop.end,
+            waypoints: edge.waypoints?.length ? edge.waypoints : loop.waypoints,
+            automatic: !edge.waypoints?.length, originalGeometry: geometry,
+            loopNode: source, laneOffset: lane
+          });
+        } else if (edge.waypoints?.length) {
+          editableRoutes.push({ edge, start: a, end: b,
+            waypoints: edge.waypoints, automatic: false, originalGeometry: geometry });
+        } else if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
+          // B8a: no mutation on selection. Materialize explicit controls only
+          // after the user actually drags one automatic segment and releases it.
+          const preview = diagramEditableAutomaticOrthogonalRouteV010(a, b, edge.pathKind, {
+            obstacles: routeObstacles,
+            forceRouteWhenEmpty: renderedNodes.length > 2
+          });
+          if (preview) editableRoutes.push({
+            edge, start: a, end: b, waypoints: preview.waypoints,
+            automatic: true, originalGeometry: geometry, segments: preview.segments
+          });
+        }
+      }
+      const hit = svgElement("path");
+      hit.setAttribute("d", geometry.d);
+      hit.setAttribute("fill", "none");
       hit.setAttribute("stroke", "transparent");
       hit.setAttribute("stroke-width", "18");
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
+      hit.setAttribute("data-eidos-diagram-edge", edge.id);
+      if (geometry.congested) {
+        congestedRouteCount += 1;
+        hit.setAttribute("data-eidos-diagram-route-congested", "true");
+        hit.setAttribute("aria-label", "Connector route congested; manual adjustment may be needed");
+      }
       hit.addEventListener("click", () => {
+        selectedNodeIds.clear();
         selected = { kind: "edge", id: edge.id };
         selectionInspection = undefined;
-        renderSelection();
+        render();
+        canvas.focus({ preventScroll: true });
         void inspectSelection();
       });
       svg.appendChild(hit);
 
-      const line = svgElement("line");
-      line.setAttribute("x1", String(a.x));
-      line.setAttribute("y1", String(a.y));
-      line.setAttribute("x2", String(b.x));
-      line.setAttribute("y2", String(b.y));
-      line.setAttribute("stroke", "currentColor");
-      line.setAttribute("stroke-width", selected?.kind === "edge" && selected.id === edge.id ? "3" : "2");
+      const line = svgElement("path");
+      line.setAttribute("d", geometry.d);
+      line.setAttribute("fill", "none");
+      const edgeSelected = selectedEdgeId === edge.id;
+      const edgeConnected =
+        Boolean(selectedNodeId)
+        && (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+          || edge.source === selectedNodeId || edge.target === selectedNodeId);
+      const edgeFocused = edgeSelected || edgeConnected;
+      const edgeDimmed = Boolean(selected) && !edgeFocused;
+      line.setAttribute(
+        "stroke",
+        edgeFocused
+          ? "var(--eidos-primary,#2B6CB0)"
+          : "var(--eidos-fg-muted,#5F6B76)"
+      );
+      line.setAttribute(
+        "stroke-width",
+        edgeSelected ? "2.4" : edgeConnected ? "1.7" : "1.15"
+      );
+      line.setAttribute(
+        "stroke-opacity",
+        edgeDimmed ? "0.10" : edgeFocused ? "0.92" : "0.42"
+      );
+      line.setAttribute("vector-effect", "non-scaling-stroke");
       if (edge.style === "dashed") {
         line.setAttribute("stroke-dasharray", "8 6");
       }
+      if (edge.arrow === "end" || edge.arrow === "both") {
+        line.setAttribute("marker-end", "url(#" + arrowMarkerId + ")");
+      }
+      if (edge.arrow === "start" || edge.arrow === "both") {
+        line.setAttribute("marker-start", "url(#" + arrowMarkerId + ")");
+      }
+      line.setAttribute("data-eidos-diagram-edge-visual", edge.id);
       line.style.pointerEvents = "none";
       svg.appendChild(line);
+      liveEdges.set(edge.id, { hit, visual: line });
 
       const edgeCaption = [
         edge.label,
@@ -1021,27 +2946,494 @@ export function mountDiagramEditorPageV010(
           item.label + " " + item.value
         )
       ].filter(Boolean).join(" · ");
-      if (edgeCaption) {
+      const showEdgeCaption =
+        Boolean(edgeCaption)
+        && (
+          edgeSelected
+          || edgeConnected
+          || (renderedEdges.length <= 18 && camera.scale >= 0.72)
+        );
+      if (showEdgeCaption) {
         const label = svgElement("text");
-        label.setAttribute("x", String((a.x + b.x) / 2));
-        label.setAttribute("y", String((a.y + b.y) / 2 - 8));
+        label.setAttribute("x", String(geometry.label.x));
+        label.setAttribute("y", String(geometry.label.y - 8));
+        label.setAttribute("data-eidos-diagram-edge-label", edge.id);
+        // B8s: immutable render-time world anchor retained for cross-engine
+        // verification even if post-mount SVG text x is visually normalized.
+        label.setAttribute("data-eidos-diagram-caption-world-x",String(geometry.label.x));
         label.setAttribute("text-anchor", "middle");
-        label.setAttribute("font-size", "12");
-        label.textContent = edgeCaption;
+        label.setAttribute("font-size", "11");
+        label.setAttribute("fill", "var(--eidos-fg-muted,#5F6B76)");
+        label.setAttribute("paint-order", "stroke fill");
+        label.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+        label.setAttribute("stroke-width", "4");
+        label.setAttribute("stroke-linejoin", "round");
+        label.setAttribute("opacity", edgeFocused ? "1" : "0.82");
+        // B8n: SVG tspan matches the same deterministic multiline
+        // layout used by the collision index; no DOM selection dependence.
+        const captionLayout=diagramCaptionLayoutV010(
+          geometry.label,edgeCaption,measuredCaption);
+        // B8p: bidi ordering is visual browser responsibility. Do not
+        // reverse stored text or swap source/target anchors.
+        label.setAttribute("direction",captionLayout.direction);
+        label.setAttribute("unicode-bidi","plaintext");
+        label.setAttribute("data-eidos-diagram-caption-direction",captionLayout.direction);
+        if(captionLayout.lines.length===1){
+          label.textContent=captionLayout.lines[0]!;
+        }else{
+          label.setAttribute("y",String(geometry.label.y-8
+            -14*(captionLayout.lines.length-1)/2));
+          captionLayout.lines.forEach((content,i)=>{
+            const tspan=svgElement("tspan");
+            tspan.setAttribute("x",String(geometry.label.x));
+            if(i>0)tspan.setAttribute("dy","14");
+            tspan.textContent=content;
+            label.appendChild(tspan);
+          });
+        }
+        if(captionLayout.truncated)label.setAttribute("data-eidos-diagram-caption-truncated","true");
+        if(captionLayout.truncated || captionLayout.lines.length>1){
+          label.setAttribute("aria-label",edgeCaption);
+          const tooltip=svgElement("title");
+          tooltip.textContent=edgeCaption;
+          label.appendChild(tooltip);
+        }
         label.style.pointerEvents = "none";
         svg.appendChild(label);
+        liveEdges.get(edge.id)!.label = label;
+      }
+      if (geometry.congested && edge.source === edge.target) {
+        // B8h: visible and accessible cue, non-blocking for all 44px targets.
+        const warning = svgElement("text");
+        warning.setAttribute("data-eidos-diagram-congestion-warning", edge.id);
+        warning.setAttribute("x", String(geometry.label.x + 15));
+        warning.setAttribute("y", String(geometry.label.y));
+        warning.setAttribute("font-size", String(13 / camera.scale));
+        warning.setAttribute("font-weight", "700");
+        warning.setAttribute("fill", "var(--eidos-warning,#A16207)");
+        warning.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+        warning.setAttribute("stroke-width", "3");
+        warning.setAttribute("paint-order", "stroke fill");
+        warning.setAttribute("aria-label", "Self-loop crowded; manual adjustment may be needed");
+        warning.style.pointerEvents = "none";
+        warning.textContent = "!";
+        svg.appendChild(warning);
       }
     }
 
+
+    // B5a: selected manual routes get screen-sized, presentation-only drag handles.
+    // Pointer previews never mutate state. A normal release commits one undo step;
+    // cancel, lost capture, blur, or a second touch discards the preview.
+    for (const { edge, start, end, waypoints, automatic, originalGeometry, segments,
+      loopNode, laneOffset } of editableRoutes) {
+      const rendered = liveEdges.get(edge.id);
+      if (!rendered || !waypoints.length || !edge.pathKind) continue;
+      const original = waypoints.map(point => ({ ...point }));
+      // Shared B8c overlap candidates are derived from the actual displayed
+      // manual/automatic orthogonal route, before any pointer interaction.
+      const routeSegments = edge.pathKind === "orthogonal"
+        || edge.pathKind === "rounded-orthogonal"
+        ? segments ?? diagramEditableOrthogonalSegmentsV010(
+            start, end, { pathKind: edge.pathKind, waypoints: original }
+          )
+        : [];
+      // Build snap targets once per route selection, not on every pointermove.
+      const snapReferences = [
+        ...renderedNodes.map(node => ({
+          id: "node:" + node.id, x: node.x, y: node.y,
+          width: node.width, height: node.height
+        })),
+        ...renderedEdges.filter(other => other.id !== edge.id)
+          .flatMap(other => (other.waypoints ?? []).map((point, index) => ({
+            id: "route:" + other.id + ":" + index,
+            x: point.x, y: point.y, width: 0, height: 0
+          })))
+      ];
+      const previewRoute = (points: { x: number; y: number }[]): void => {
+        const geometry = loopNode
+          ? diagramSelfLoopGeometryV010(loopNode, edge.pathKind!, laneOffset, points,
+              [], loopReservedSides.get(edge.id) ?? [])
+          : diagramManualEdgeGeometryV010(start, end, {
+              pathKind: edge.pathKind!, waypoints: points,
+              sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
+            });
+        rendered.hit.setAttribute("d", geometry.d);
+        rendered.visual.setAttribute("d", geometry.d);
+        if (rendered.label) {
+          rendered.label.setAttribute("x", String(geometry.label.x));
+          rendered.label.setAttribute("y", String(geometry.label.y - 8));
+        }
+      };
+      const handle = (
+        x: number, y: number, kind: "point" | "segment", index: number,
+        axis?: "x" | "y"
+      ): void => {
+        const marker = svgElement("circle");
+        marker.setAttribute("cx", String(x));
+        marker.setAttribute("cy", String(y));
+        marker.setAttribute("r", String((kind === "point" ? 6 : 5) / camera.scale));
+        marker.setAttribute("data-eidos-diagram-handle-screen-radius", kind === "point" ? "6" : "5");
+        marker.setAttribute("fill", kind === "point"
+          ? "var(--eidos-primary,#2B6CB0)" : "var(--eidos-bg,#FFFFFF)");
+        marker.setAttribute("stroke", "var(--eidos-primary,#2B6CB0)");
+        marker.setAttribute("stroke-width", "2");
+        marker.setAttribute("vector-effect", "non-scaling-stroke");
+        marker.style.pointerEvents = "none";
+        const target = svgElement("circle");
+        target.setAttribute("cx", String(x));
+        target.setAttribute("cy", String(y));
+        target.setAttribute("r", String(22 / camera.scale));
+        target.setAttribute("data-eidos-diagram-handle-screen-radius", "22");
+        target.setAttribute("fill", "transparent");
+        target.setAttribute("data-eidos-diagram-" + (kind === "point"
+          ? "waypoint-handle" : "segment-handle"), edge.id + ":" + index);
+        if (automatic && kind === "segment") {
+          target.setAttribute("data-eidos-diagram-auto-segment-handle", edge.id + ":" + index);
+        }
+        // B8d: preserve B8c's first and second drag shortcuts. For three or
+        // more covered segments, a no-drag Shift+Alt click advances the alternate
+        // ordinal. The tiny visual cue is not a hit target or stored data.
+        const overlapCandidates = kind === "point"
+          ? diagramOverlappingSegmentsForWaypointV010({ x, y }, routeSegments, camera.scale)
+          : [];
+        let alternateChoice = overlapCandidates.length > 1 ? 1 : 0;
+        const choiceLabel = overlapCandidates.length > 2 ? svgElement("text") : undefined;
+        if (choiceLabel) {
+          choiceLabel.setAttribute("data-eidos-diagram-overlap-choice", edge.id + ":" + index);
+          choiceLabel.setAttribute("x", String(x + 17 / camera.scale));
+          choiceLabel.setAttribute("y", String(y - 11 / camera.scale));
+          choiceLabel.setAttribute("font-size", String(11 / camera.scale));
+          choiceLabel.setAttribute("fill", "var(--eidos-primary,#2B6CB0)");
+          choiceLabel.setAttribute("stroke", "var(--eidos-bg,#FFFFFF)");
+          choiceLabel.setAttribute("stroke-width", String(3 / camera.scale));
+          choiceLabel.setAttribute("paint-order", "stroke fill");
+          choiceLabel.style.pointerEvents = "none";
+        }
+        const updateChoiceHint = (): void => {
+          const hint = "Drag point; Shift+drag closest segment; Shift+Alt+drag selected alternate"
+            + (overlapCandidates.length > 2 ? "; Shift+Alt+click cycles the alternate" : "");
+          target.setAttribute("aria-label", "Drag path point " + (index + 1)
+            + "; Shift-drag overlapping segment, Shift-Alt-drag alternate segment"
+            + (overlapCandidates.length > 2 ? "; Shift-Alt-click to cycle segment" : ""));
+          if (overlapCandidates.length) {
+            target.setAttribute("data-eidos-diagram-overlap-point", edge.id + ":" + index);
+            target.setAttribute("title", hint + (overlapCandidates.length > 2
+              ? " (" + (alternateChoice + 1) + " of " + overlapCandidates.length + ")" : ""));
+          }
+          if (choiceLabel) {
+            choiceLabel.textContent = (alternateChoice + 1) + "/" + overlapCandidates.length;
+            target.setAttribute("data-eidos-diagram-overlap-selected-rank", String(alternateChoice));
+          }
+        };
+        if (kind === "point") {
+          if (choiceLabel) choiceLabel.textContent = "";
+          updateChoiceHint();
+        } else {
+          target.setAttribute("aria-label",
+            (automatic ? "Drag automatic orthogonal segment " : "Drag orthogonal segment ") + (index + 1));
+        }
+        target.style.pointerEvents = "all";
+        target.style.touchAction = "none";
+        target.style.cursor = kind === "point"
+          ? "move" : axis === "x" ? "ew-resize" : "ns-resize";
+        target.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); });
+        target.addEventListener("pointerdown", (event: PointerEvent) => {
+          if (event.pointerType !== "touch" && event.button !== 0) return;
+          // Preserve the first pointer's position for the canvas pinch baseline.
+          if (event.pointerType === "touch" && navigationPointers.size > 0) {
+            navigationPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            cancelActiveRouteDrag?.();
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          cancelActiveRouteDrag?.();
+          // B8c: waypoint hit areas are intentionally painted above
+          // segment hit areas. Use a modifier on the SAME 44 px target so
+          // the covered segment can still be dragged without shrinking either.
+          const overlap = kind === "point" && event.shiftKey
+            ? diagramOverlappingSegmentForWaypointV010(
+                { x, y }, routeSegments, camera.scale, event.altKey ? alternateChoice : 0
+              )
+            : undefined;
+          const dragKind = overlap ? "segment" : kind;
+          const dragIndex = overlap?.index ?? index;
+          const dragAxis = overlap?.axis ?? axis;
+          const dragOrigin = overlap
+            ? { x: overlap.x, y: overlap.y }
+            : { x, y };
+          const pointerId = event.pointerId;
+          const downX = event.clientX, downY = event.clientY;
+          const isTouch = event.pointerType === "touch";
+          if (isTouch) navigationPointers.set(pointerId, { x: downX, y: downY });
+          let current = original;
+          let moved = false;
+          let attemptedDrag = false;
+          const cycleChoiceOnClick = kind === "point" && event.pointerType !== "touch"
+            && event.shiftKey && event.altKey && overlapCandidates.length > 2;
+          let active = true;
+          const resetPreview = (): void => {
+            if (automatic) {
+              // An untouched/cancelled automatic route remains bit-for-bit
+              // identical to its original SVG, including rounded corners.
+              rendered.hit.setAttribute("d", originalGeometry.d);
+              rendered.visual.setAttribute("d", originalGeometry.d);
+              if (rendered.label) {
+                rendered.label.setAttribute("x", String(originalGeometry.label.x));
+                rendered.label.setAttribute("y", String(originalGeometry.label.y - 8));
+              }
+            } else previewRoute(original);
+            marker.setAttribute("cx", String(x));
+            marker.setAttribute("cy", String(y));
+            target.setAttribute("cx", String(x));
+            target.setAttribute("cy", String(y));
+          };
+          const cleanup = (): void => {
+            target.removeEventListener("pointermove", onMove);
+            target.removeEventListener("pointerup", onUp);
+            target.removeEventListener("pointercancel", onCancel);
+            target.removeEventListener("lostpointercapture", onCancel);
+            if (cancelActiveRouteDrag === onCancel) {
+              cancelActiveRouteDrag = undefined;
+              activeRoutePointerId = undefined;
+            }
+            if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
+          };
+          const onCancel = (): void => {
+            if (!active) return;
+            active = false;
+            resetPreview();
+            drawSnapGuides();
+            if (isTouch && navigationPointers.size < 2) navigationPointers.delete(pointerId);
+            cleanup();
+          };
+          const onMove = (move: PointerEvent): void => {
+            if (move.pointerId !== pointerId || !active) return;
+            move.preventDefault();
+            move.stopPropagation();
+            if (isTouch) {
+              navigationPointers.set(pointerId, { x: move.clientX, y: move.clientY });
+              if (navigationPointers.size >= 2) { onCancel(); return; }
+            }
+            const px = move.clientX - downX, py = move.clientY - downY;
+            if (!moved && Math.hypot(px, py) < (isTouch ? 8 : 4)) return;
+            attemptedDrag = true;
+            try {
+              const snap = diagramSnapHandleOffsetV010(
+                dragOrigin, px / camera.scale, py / camera.scale,
+                dragKind === "point" ? "both" : dragAxis!,
+                snapReferences,
+                { scale: camera.scale, tolerancePx: 6, gridSize: 24,
+                  alignToNodes: alignmentGuidesEnabled, snapToGrid: gridSnapEnabled }
+              );
+              const next = dragKind === "point"
+                ? diagramMoveWaypointV010(original, dragIndex, snap.dx, snap.dy)
+                : diagramDragOrthogonalSegmentV010(
+                    start, end,
+                    { pathKind: edge.pathKind!, waypoints: original },
+                    dragIndex, dragAxis === "x" ? snap.dx : snap.dy
+                  );
+              previewRoute(next);
+              current = next;
+              moved = true;
+              drawSnapGuides(snap);
+              // When the actual captured SVG element is a waypoint but
+              // Shift means 'segment', do not fake-move its point marker.
+              if (!overlap) {
+                const nextX = x + (dragKind === "point" || dragAxis === "x" ? snap.dx : 0);
+                const nextY = y + (dragKind === "point" || dragAxis === "y" ? snap.dy : 0);
+                marker.setAttribute("cx", String(nextX));
+                marker.setAttribute("cy", String(nextY));
+                target.setAttribute("cx", String(nextX));
+                target.setAttribute("cy", String(nextY));
+              }
+            } catch {
+              // Ignore out-of-range previews; never commit malformed coordinates.
+            }
+          };
+          const onUp = (up: PointerEvent): void => {
+            if (up.pointerId !== pointerId || !active) return;
+            up.preventDefault();
+            up.stopPropagation();
+            active = false;
+            if (isTouch) navigationPointers.delete(pointerId);
+            cleanup();
+            drawSnapGuides();
+            suppressNextCanvasClick = true;
+            window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+            if (!moved) {
+              // Clicking a dense overlap only changes local hit selection.
+              // Never create an Undo entry or Host write for this gesture.
+              if (cycleChoiceOnClick && !attemptedDrag
+                && Math.hypot(up.clientX - downX, up.clientY - downY) < 4) {
+                alternateChoice = alternateChoice + 1 < overlapCandidates.length
+                  ? alternateChoice + 1 : 1;
+                updateChoiceHint();
+                report("Overlapping segment " + (alternateChoice + 1) + " of "
+                  + overlapCandidates.length + " selected. Shift+Alt+drag to edit.");
+              }
+              return;
+            }
+            checkpoint();
+            edge.waypoints = current;
+            followsFitToCanvas = false;
+            render();
+            canvas.focus({ preventScroll: true });
+            report("Connector route adjusted locally. Save the projection to persist.");
+          };
+          target.addEventListener("pointermove", onMove);
+          target.addEventListener("pointerup", onUp);
+          target.addEventListener("pointercancel", onCancel);
+          target.addEventListener("lostpointercapture", onCancel);
+          cancelActiveRouteDrag = onCancel;
+          activeRoutePointerId = pointerId;
+          target.setPointerCapture(pointerId);
+        });
+        svg.append(marker, target);
+        if (choiceLabel) svg.appendChild(choiceLabel);
+      };
+      // B6b: segment hit circles may overlap waypoint circles. Paint segment
+      // targets first so explicit point handles remain on top and are draggable.
+      // Both retain the 44 CSS px target; no hit-area reduction is allowed.
+      if (edge.pathKind === "orthogonal" || edge.pathKind === "rounded-orthogonal") {
+        for (const segment of routeSegments) {
+          handle(segment.x, segment.y, "segment", segment.index, segment.axis);
+        }
+      }
+      // Automatic routes expose only segment handles. Waypoint handles appear
+      // after the FIRST committed edit converts the route to explicit points.
+      if (!automatic) {
+        for (const [index, point] of original.entries()) {
+          handle(point.x, point.y, "point", index);
+        }
+      } else if (loopNode && edge.pathKind === "curve") {
+        // B8f special case: a self-loop's automatic cubic shows one exterior
+        // bulge handle without writing a waypoint before pointer release.
+        for (const [index, point] of original.entries()) {
+          handle(point.x, point.y, "point", index);
+        }
+      }
+    }
+
+    // Preview only the incident edges during drag; keep pointer capture and the
+    // rest of the canvas mounted until the gesture commits or cancels.
+    const previewIncidentEdges = (
+      positions: ReadonlyMap<string, { x: number; y: number }>
+    ): void => {
+      if (positions.size === 0) return;
+      // Reuse the render's immutable endpoint index during pointer previews.
+      const byId = renderedNodeById;
+      for (const edge of renderedEdges) {
+        if (!positions.has(edge.source) && !positions.has(edge.target)) continue;
+        const sourceNode = byId.get(edge.source);
+        const targetNode = byId.get(edge.target);
+        if (!sourceNode || !targetNode) continue;
+        const source = { ...sourceNode, ...positions.get(edge.source) };
+        const target = { ...targetNode, ...positions.get(edge.target) };
+        const sourceCenter = nodeCenter(source);
+        const targetCenter = nodeCenter(target);
+        const lane = laneOffsets.get(edge.id) ?? 0;
+        const a0 = nodeBoundaryPoint(source, targetCenter);
+        const b0 = nodeBoundaryPoint(target, sourceCenter);
+        const a = diagramEdgeAnchorPointV010(source, edge.sourceAnchor ?? "auto")
+          ?? (edge.pathKind !== undefined && edge.source !== edge.target
+            ? diagramOffsetNodeAttachmentV010(source, a0, targetCenter, lane) : a0);
+        const b = diagramEdgeAnchorPointV010(target, edge.targetAnchor ?? "auto")
+          ?? (edge.pathKind !== undefined && edge.source !== edge.target
+            ? diagramOffsetNodeAttachmentV010(target, b0, sourceCenter, lane) : b0);
+        // Drag preview stays lightweight; the committed render evaluates obstacles.
+        const movedSource = positions.get(edge.source), movedTarget = positions.get(edge.target);
+        const translated = movedSource && movedTarget
+          && Math.abs(movedSource.x - sourceNode.x - (movedTarget.x - targetNode.x)) < 0.001
+          && Math.abs(movedSource.y - sourceNode.y - (movedTarget.y - targetNode.y)) < 0.001;
+        const points = translated && edge.waypoints?.length
+          ? diagramTranslateWaypointsV010(edge.waypoints,
+              movedSource!.x - sourceNode.x, movedSource!.y - sourceNode.y)
+          : edge.waypoints;
+        const route = edge.source === edge.target
+          ? diagramSelfLoopGeometryV010(source, edge.pathKind, lane, points,
+              edge.pathKind === undefined ? [] : renderedNodes
+                .filter(node => node.id !== edge.source)
+                .map(node => ({ ...node, ...positions.get(node.id) })),
+              loopReservedSides.get(edge.id) ?? [])
+          : points?.length
+            ? diagramManualEdgeGeometryV010(a, b, { pathKind: edge.pathKind ?? "orthogonal", waypoints: points })
+            : diagramEdgeGeometryV010(a, b, edge.pathKind);
+        const elements = liveEdges.get(edge.id);
+        if (!elements) continue;
+        elements.hit.setAttribute("d", route.d);
+        elements.visual.setAttribute("d", route.d);
+        if (elements.label) {
+          elements.label.setAttribute("x", String(route.label.x));
+          elements.label.setAttribute("y", String(route.label.y - 8));
+        }
+      }
+    };
+
+    const snapGuideLayer = svgElement("g");
+    snapGuideLayer.setAttribute("data-eidos-diagram-snap-guides", "");
+    snapGuideLayer.style.pointerEvents = "none";
+    svg.appendChild(snapGuideLayer);
+    const drawSnapGuides = (snap?: DiagramSnapTranslationV010): void => {
+      snapGuideLayer.replaceChildren();
+      if (!alignmentGuidesEnabled || !snap) return;
+      for (const axis of ["x", "y"] as const) {
+        const coordinate = axis === "x" ? snap.guideX : snap.guideY;
+        if (coordinate === undefined) continue;
+        const guide = svgElement("line");
+        if (axis === "x") {
+          guide.setAttribute("x1", String(coordinate));
+          guide.setAttribute("x2", String(coordinate));
+          guide.setAttribute("y1", "0");
+          guide.setAttribute("y2", String(maxY));
+        } else {
+          guide.setAttribute("x1", "0");
+          guide.setAttribute("x2", String(maxX));
+          guide.setAttribute("y1", String(coordinate));
+          guide.setAttribute("y2", String(coordinate));
+        }
+        guide.setAttribute("data-eidos-diagram-snap-axis", axis);
+        guide.setAttribute("stroke", "var(--eidos-primary,#2B6CB0)");
+        guide.setAttribute("stroke-opacity", ".72");
+        guide.setAttribute("stroke-width", "1");
+        guide.setAttribute("stroke-dasharray", "5 4");
+        guide.setAttribute("vector-effect", "non-scaling-stroke");
+        snapGuideLayer.appendChild(guide);
+      }
+    };
+    svg.setAttribute("data-eidos-diagram-ink-quality",inkQuality);
+    svg.setAttribute("data-eidos-diagram-ink-label-metrics",
+      measureContext ? "browser" : "estimated");
     stage.appendChild(svg);
 
-    for (const node of state.nodes) {
+    for (const node of renderedNodes) {
       const element = document.createElement("button");
       element.type = "button";
       element.setAttribute("data-eidos-diagram-node", node.id);
+      if (node.typeLabel) {
+        const typeLabel = document.createElement("small");
+        typeLabel.textContent = node.typeLabel;
+        typeLabel.style.display = "inline-flex";
+        typeLabel.style.alignSelf = "center";
+        typeLabel.style.marginBottom = "5px";
+        typeLabel.style.padding = "1px 6px";
+        typeLabel.style.borderRadius = "999px";
+        typeLabel.style.fontSize = ".6875rem";
+        typeLabel.style.fontWeight = "600";
+        typeLabel.style.letterSpacing = ".02em";
+        typeLabel.style.color = "var(--eidos-fg-muted,#5F6B76)";
+        typeLabel.style.background =
+          node.shape === "rounded-rectangle"
+            ? "color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 72%,var(--eidos-bg,#FFFFFF) 28%)"
+            : "color-mix(in srgb,var(--eidos-accent-teal,#0F7B83) 9%,var(--eidos-bg,#FFFFFF) 91%)";
+        element.appendChild(typeLabel);
+      }
       const label = document.createElement("strong");
       label.textContent = node.label;
       label.style.display = "block";
+      label.style.lineHeight = "1.35";
+      label.style.fontWeight = "650";
       element.appendChild(label);
       for (const observation of node.observations ?? []) {
         const badge = document.createElement("small");
@@ -1050,7 +3442,7 @@ export function mountDiagramEditorPageV010(
         badge.title = observation.detail ?? "";
         badge.style.display = "block";
         badge.style.marginTop = "3px";
-        badge.style.fontSize = "10px";
+        badge.style.fontSize = ".6875rem";
         badge.style.fontWeight = "400";
         element.appendChild(badge);
       }
@@ -1058,53 +3450,210 @@ export function mountDiagramEditorPageV010(
         node.detail ?? node.kind,
         ...observationText(node.observations)
       ].filter(Boolean).join("\n");
+      const nodeSelected = selectedNodeIds.has(node.id) || selectedNodeId === node.id;
+      const nodeFocused = !selected || selectedNodeIds.has(node.id)
+        || focusedNodeIds.has(node.id);
       element.style.position = "absolute";
       element.style.left = node.x + "px";
       element.style.top = node.y + "px";
       element.style.width = node.width + "px";
       element.style.height = node.height + "px";
-      element.style.border = "2px solid currentColor";
-      element.style.borderRadius = node.shape === "rounded-rectangle" ? "14px" : "2px";
-      element.style.background = "Canvas";
-      element.style.color = "CanvasText";
-      element.style.cursor = node.readOnly || state.lifecycleState === "PUBLISHED"
-        ? "default"
-        : "grab";
+      element.style.display = "flex";
+      element.style.flexDirection = "column";
+      element.style.alignItems = "center";
+      element.style.justifyContent = "center";
+      element.style.padding = "10px 12px";
+      element.style.textAlign = "center";
+      element.style.border = nodeSelected
+        ? "2px solid var(--eidos-primary,#2B6CB0)"
+        : "1px solid var(--eidos-border-strong,#C9D2DC)";
+      element.style.borderRadius =
+        node.shape === "rounded-rectangle" ? "12px" : "8px";
+      element.style.background = nodeSelected
+        ? "var(--eidos-primary-subtle,#EAF2FB)"
+        : node.shape === "rounded-rectangle"
+          ? "color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 34%,var(--eidos-bg,#FFFFFF) 66%)"
+          : "color-mix(in srgb,var(--eidos-accent-teal,#0F7B83) 5%,var(--eidos-bg,#FFFFFF) 95%)";
+      element.style.color = "var(--eidos-fg,#1F2933)";
+      element.style.boxShadow = nodeSelected
+        ? "0 0 0 2px color-mix(in srgb,var(--eidos-primary,#2B6CB0) 14%,transparent),var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.10))"
+        : "var(--eidos-shadow-surface,0 1px 2px rgba(31,41,51,.05))";
+      element.style.opacity = nodeFocused ? "1" : "0.42";
+      element.style.transition =
+        "border-color .12s ease,background-color .12s ease,box-shadow .12s ease,opacity .12s ease";
+      const localViewDrag = page.viewInteraction?.localNodeDrag === true;
+      const persistentDrag = !node.readOnly && state.lifecycleState !== "PUBLISHED";
+      element.style.cursor = localViewDrag || persistentDrag ? "grab" : "default";
+      element.style.touchAction = localViewDrag || persistentDrag ? "none" : "auto";
       element.style.zIndex = "2";
 
-      element.addEventListener("click", () => {
-        selected = { kind: "node", id: node.id };
+      element.addEventListener("click", event => {
+        if (suppressNextNodeClick) {
+          suppressNextNodeClick = false;
+          return;
+        }
+        if (event.shiftKey && page.viewInteraction?.localNodeDrag === true) {
+          if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
+          else selectedNodeIds.add(node.id);
+          const last = [...selectedNodeIds].at(-1);
+          selected = last ? { kind: "node", id: last } : undefined;
+        } else {
+          selectedNodeIds.clear();
+          selectedNodeIds.add(node.id);
+          selected = { kind: "node", id: node.id };
+        }
         selectionInspection = undefined;
-        renderSelection();
-        void inspectSelection();
+        selectionReadGeneration += 1;
+        render();
+        canvas.focus({ preventScroll: true });
+        if (selectedNodeIds.size === 1) void inspectSelection();
       });
 
-      if (!node.readOnly && state.lifecycleState !== "PUBLISHED") {
+      if (localViewDrag || persistentDrag) {
         const pointerDown = (event: PointerEvent) => {
+          if (event.pointerType !== "touch" && event.button !== 0) return;
+          if (spaceHeld || canvasTool === "PAN") return;
+          const isTouch = event.pointerType === "touch";
+          if (isTouch) {
+            navigationPointers.set(event.pointerId, {
+              x: event.clientX,
+              y: event.clientY
+            });
+            if (navigationPointers.size >= 2) { cancelActiveNodeDrag?.(); cancelActiveRouteDrag?.(); }
+            const touchDragEligible =
+              selected?.kind === "node"
+              && selected.id === node.id
+              && navigationPointers.size === 1;
+            if (!touchDragEligible) {
+              return;
+            }
+          }
+
           event.preventDefault();
+          event.stopPropagation();
           element.setPointerCapture(event.pointerId);
           const startX = event.clientX;
           const startY = event.clientY;
           const originalX = node.x;
           const originalY = node.y;
+          const members = localViewDrag && selectedNodeIds.has(node.id)
+            ? renderedNodes.filter(item => selectedNodeIds.has(item.id))
+            : [node];
+          const initial = new Map(members.map(item => [item.id, {
+            x: item.x, y: item.y
+          }] as const));
+          const movingRects = members.map(item => ({
+            id: item.id, x: item.x, y: item.y, width: item.width, height: item.height
+          }));
+          const movingIdsForSnap = new Set(members.map(item => item.id));
+          const stationaryRects = renderedNodes.filter(item => !movingIdsForSnap.has(item.id))
+            .map(item => ({
+              id: item.id, x: item.x, y: item.y, width: item.width, height: item.height
+            }));
+          const membersElements = new Map(members.map(item => [
+            item.id,
+            stage.querySelector<HTMLElement>(
+              `[data-eidos-diagram-node="${CSS.escape(item.id)}"]`
+            )
+          ] as const));
+          const movedPositions = (dx: number, dy: number) =>
+            new Map(members.map(item => [item.id, {
+              x: item.x + dx,
+              y: item.y + dy
+            }] as const));
+          const showPositions = (positions: ReadonlyMap<string, { x: number; y: number }>) => {
+            for (const [id, position] of positions) {
+              const target = membersElements.get(id);
+              if (target) {
+                target.style.left = position.x + "px";
+                target.style.top = position.y + "px";
+              }
+            }
+            previewIncidentEdges(positions);
+          };
           let moved = false;
+          let cancelledByNavigation = false;
 
+          const cancelForNavigation = (): void => {
+            if (cancelledByNavigation) return;
+            cancelledByNavigation = true;
+            moved = false;
+            showPositions(initial);
+            drawSnapGuides();
+            suppressNextNodeClick = true;
+            window.setTimeout(() => {
+              suppressNextNodeClick = false;
+            }, 0);
+          };
+
+          cancelActiveNodeDrag = cancelForNavigation;
           const pointerMove = (move: PointerEvent) => {
-            const nextX = Math.max(0, originalX + move.clientX - startX);
-            const nextY = Math.max(0, originalY + move.clientY - startY);
-            moved = moved || Math.abs(nextX - originalX) > 1 || Math.abs(nextY - originalY) > 1;
-            element.style.left = nextX + "px";
-            element.style.top = nextY + "px";
+            if (isTouch && navigationPointers.has(move.pointerId)) {
+              navigationPointers.set(move.pointerId, { x: move.clientX, y: move.clientY });
+            }
+            if (isTouch && navigationPointers.size >= 2) {
+              cancelForNavigation();
+              return;
+            }
+            if (cancelledByNavigation) return;
+            const screenDeltaX = move.clientX - startX;
+            const screenDeltaY = move.clientY - startY;
+            if (
+              !moved && Math.hypot(screenDeltaX, screenDeltaY) < (isTouch ? touchDragThresholdPx : 4)
+            ) return;
+            if (
+              isTouch
+              && !moved
+              && Math.hypot(screenDeltaX, screenDeltaY) < touchDragThresholdPx
+            ) {
+              return;
+            }
+            const snapped = diagramSnapTranslationV010(
+              movingRects, stationaryRects,
+              screenDeltaX / camera.scale, screenDeltaY / camera.scale,
+              { scale: camera.scale, tolerancePx: 6, gridSize: 24,
+                alignToNodes: alignmentGuidesEnabled, snapToGrid: gridSnapEnabled }
+            );
+            moved = true;
+            showPositions(movedPositions(snapped.dx, snapped.dy));
+            drawSnapGuides(snapped);
           };
 
           const pointerUp = (up: PointerEvent) => {
-            element.releasePointerCapture(up.pointerId);
+            if (cancelActiveNodeDrag === cancelForNavigation) cancelActiveNodeDrag = undefined;
+            element.removeEventListener("lostpointercapture", lostCapture);
+            if (element.hasPointerCapture(up.pointerId)) {
+              element.releasePointerCapture(up.pointerId);
+            }
             element.removeEventListener("pointermove", pointerMove);
             element.removeEventListener("pointerup", pointerUp);
-            element.removeEventListener("pointercancel", pointerUp);
-            if (!moved) return;
+            element.removeEventListener("pointercancel", pointerCancel);
+            drawSnapGuides();
+            if (cancelledByNavigation || !moved) return;
+            suppressNextNodeClick = true;
             const x = Number.parseFloat(element.style.left);
             const y = Number.parseFloat(element.style.top);
+            if (localViewDrag && (node.readOnly || !page.operationCommand || members.length > 1)) {
+              checkpoint();
+              const dx = x - originalX;
+              const dy = y - originalY;
+              const movingIds = new Set(members.map(item => item.id));
+              for (const item of members) {
+                item.x += dx;
+                item.y += dy;
+              }
+              for (const edge of state?.edges ?? []) {
+                if (!edge.waypoints?.length || !movingIds.has(edge.source)
+                  || !movingIds.has(edge.target)) continue;
+                edge.waypoints = diagramTranslateWaypointsV010(edge.waypoints, dx, dy);
+              }
+              render();
+              window.setTimeout(() => {
+                suppressNextNodeClick = false;
+              }, 0);
+              report("View adjusted locally. No changes were saved.");
+              return;
+            }
             void executeOperation(
               {
                 type: "MOVE_NODE",
@@ -1116,21 +3665,527 @@ export function mountDiagramEditorPageV010(
             );
           };
 
+          const pointerCancel = (event: PointerEvent): void => {
+            cancelForNavigation();
+            pointerUp(event);
+          };
+          const lostCapture = (event: PointerEvent): void => {
+            pointerCancel(event);
+          };
           element.addEventListener("pointermove", pointerMove);
           element.addEventListener("pointerup", pointerUp);
-          element.addEventListener("pointercancel", pointerUp);
+          element.addEventListener("pointercancel", pointerCancel);
+          element.addEventListener("lostpointercapture", lostCapture);
         };
         element.addEventListener("pointerdown", pointerDown);
-        listeners.push(() => element.removeEventListener("pointerdown", pointerDown));
       }
 
       stage.appendChild(element);
     }
 
-    canvas.appendChild(stage);
+    viewport.appendChild(stage);
+    canvas.appendChild(viewport);
+    // B8s: WebKit can honor RTL text-anchor on individual rows yet
+    // produce a horizontally shifted union bbox for multiline SVG text.
+    // Measure ONLY painted RTL captions, after DOM attachment, and shift
+    // their SVG x coordinates until ink is centered on the same world-space
+    // anchor used by the routing reservation. This is visual-only.
+    let bidiPainted=0;
+    for(const {label} of liveEdges.values()){
+      if(!label||label.getAttribute("data-eidos-diagram-caption-direction")!=="rtl")continue;
+      if(++bidiPainted>256){
+        svg.setAttribute("data-eidos-diagram-bidi-measure-limit","true");
+        break;
+      }
+      try{
+        const bbox=label.getBBox();
+        const anchor=Number(label.getAttribute("x"));
+        const center=bbox.x+bbox.width/2;
+        if(!Number.isFinite(anchor)||!Number.isFinite(center)||bbox.width<=0)continue;
+        const offset=anchor-center;
+        if(Math.abs(offset)<=0.5)continue;
+        const positioned=String(anchor+offset);
+        label.setAttribute("x",positioned);
+        label.querySelectorAll("tspan").forEach(tspan=>tspan.setAttribute("x",positioned));
+      }catch{
+        svg.setAttribute("data-eidos-diagram-bidi-measure-unavailable","true");
+      }
+    }
+    // B8v: a single accessible, non-blocking diagram summary for the
+    // precise visible route count, never persisted to a projection model.
+    // Rebuilt from fresh geometry on every render, so hidden or updated
+    // routes cannot leave a stale warning behind. Do not announce repeatedly
+    // as a live status while users drag or pan.
+    svg.setAttribute("data-eidos-diagram-congested-count", String(congestedRouteCount));
+    if (congestedRouteCount > 0) {
+      const summary = document.createElement("div");
+      summary.setAttribute("data-eidos-diagram-congestion-summary", String(congestedRouteCount));
+      summary.setAttribute("role", "note");
+      summary.setAttribute("aria-label",
+        congestedRouteCount + " of " + renderedEdges.length
+        + " visible connectors need manual route review");
+      summary.textContent = congestedRouteCount + " routes need review";
+      summary.style.cssText = "position:absolute;bottom:8px;right:8px;max-width:300px;"
+        + "font-size:11px;padding:4px 7px;border:1px solid var(--eidos-border,#cbd5e1);"
+        + "border-radius:6px;background:var(--eidos-bg,#fff);color:var(--eidos-fg-muted,#5F6B76);"
+        + "pointer-events:none;z-index:5";
+      canvas.appendChild(summary);
+    }
+    if(inkQuality!=="full"){
+      // B8m single visible advisory rather than thousands of false-clear
+      // per-edge badges. Click/drag gestures still go through unchanged.
+      const advisory=document.createElement("div");
+      advisory.setAttribute("data-eidos-diagram-routing-advisory",inkQuality);
+      advisory.setAttribute("role","status");
+      advisory.textContent=inkQuality==="node-only"
+        ? "Dense graph: node-only connector avoidance; inspect overlapping routes."
+        : "Complex graph: reduced connector precision; manual adjustment may be needed.";
+      advisory.style.cssText="position:absolute;top:8px;right:8px;max-width:300px;"
+        +"font-size:11px;background:var(--eidos-bg,#fff);color:var(--eidos-fg-muted,#5F6B76);"
+        +"padding:4px 7px;border:1px solid var(--eidos-border,#cbd5e1);"
+        +"border-radius:6px;pointer-events:none;z-index:5";
+      canvas.appendChild(advisory);
+    }
+    applyCameraTransform();
     if (state.notice) report(state.notice);
     renderSelection();
   };
+
+  if (page.viewInteraction?.zoom || page.viewInteraction?.pan) {
+    canvas.style.touchAction = "none";
+    if (page.viewInteraction?.pan) {
+      canvas.style.cursor = page.viewInteraction?.localNodeDrag && canvasTool === "SELECT"
+        ? "crosshair" : "grab";
+    }
+
+    const canvasPoint = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    };
+
+    const distance = (
+      a: { x: number; y: number },
+      b: { x: number; y: number }
+    ): number => Math.hypot(b.x - a.x, b.y - a.y);
+
+    let marquee: {
+      pointerId: number;
+      start: { x: number; y: number };
+      current: { x: number; y: number };
+      additive: boolean;
+      moved: boolean;
+      element: HTMLDivElement;
+    } | undefined;
+
+    const removeMarquee = (): void => {
+      marquee?.element.remove();
+      marquee = undefined;
+    };
+
+    const pointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      const mouse = event.pointerType === "mouse" || event.pointerType === "pen";
+      const primary = event.button === 0;
+      const wantsMarquee = mouse && primary
+        && page.viewInteraction?.localNodeDrag === true
+        && canvasTool === "SELECT" && !spaceHeld;
+      if (
+        mouse && primary && !spaceHeld && canvasTool !== "PAN"
+        && (
+          target?.closest?.("[data-eidos-diagram-node]")
+          || target?.closest?.("[data-eidos-diagram-edge]")
+        )
+      ) {
+        return;
+      }
+      if (mouse && !primary && event.button !== 1 && event.button !== 2) return;
+      if (!wantsMarquee && !page.viewInteraction?.pan && event.pointerType !== "touch") return;
+      event.preventDefault();
+      canvas.setPointerCapture(event.pointerId);
+      if (wantsMarquee) {
+        const anchor = canvasPoint(event.clientX, event.clientY);
+        const element = document.createElement("div");
+        element.setAttribute("data-eidos-diagram-marquee", "");
+        element.style.cssText = "position:absolute;z-index:9;pointer-events:none;border:1px solid var(--eidos-primary,#2B6CB0);background:color-mix(in srgb,var(--eidos-primary-subtle,#EAF2FB) 75%,transparent);";
+        canvas.appendChild(element);
+        marquee = {
+          pointerId: event.pointerId, start: anchor, current: anchor,
+          additive: event.shiftKey, moved: false, element
+        };
+        return;
+      }
+      navigationPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+      });
+      if (event.pointerType === "touch" && navigationPointers.size >= 2) {
+        cancelActiveNodeDrag?.();
+        cancelActiveRouteDrag?.();
+      }
+      const points = [...navigationPointers.values()];
+      if (points.length === 1) {
+        panLast = points[0];
+        canvas.style.cursor = page.viewInteraction?.pan ? "grabbing" : "";
+      } else if (points.length >= 2 && page.viewInteraction?.zoom) {
+        pinchStartDistance = Math.max(1, distance(points[0]!, points[1]!));
+        pinchLastDistance = pinchStartDistance;
+        pinchLastMidpoint = {
+          x: (points[0]!.x + points[1]!.x) / 2,
+          y: (points[0]!.y + points[1]!.y) / 2
+        };
+        panLast = undefined;
+      }
+    };
+
+    const pointerMove = (event: PointerEvent) => {
+      if (marquee?.pointerId === event.pointerId) {
+        event.preventDefault();
+        const current = canvasPoint(event.clientX, event.clientY);
+        marquee.current = current;
+        if (Math.hypot(current.x - marquee.start.x, current.y - marquee.start.y) >= 4) marquee.moved = true;
+        if (marquee.moved) {
+          marquee.element.style.left = Math.min(current.x, marquee.start.x) + "px";
+          marquee.element.style.top = Math.min(current.y, marquee.start.y) + "px";
+          marquee.element.style.width = Math.abs(current.x - marquee.start.x) + "px";
+          marquee.element.style.height = Math.abs(current.y - marquee.start.y) + "px";
+        }
+        return;
+      }
+      if (!navigationPointers.has(event.pointerId)) return;
+      event.preventDefault();
+      navigationPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+      });
+      const points = [...navigationPointers.values()];
+
+      if (
+        points.length >= 2
+        && page.viewInteraction?.zoom
+        && pinchStartDistance !== undefined
+      ) {
+        const currentDistance = Math.max(1, distance(points[0]!, points[1]!));
+        const midpoint = {
+          x: (points[0]!.x + points[1]!.x) / 2,
+          y: (points[0]!.y + points[1]!.y) / 2
+        };
+        if (pinchLastMidpoint && page.viewInteraction?.pan) {
+          camera = panDiagramCameraByScreenDeltaV010(
+            camera,
+            {
+              x: midpoint.x - pinchLastMidpoint.x,
+              y: midpoint.y - pinchLastMidpoint.y
+            }
+          );
+          applyCameraTransform();
+        }
+        const previousDistance = Math.max(
+          1,
+          pinchLastDistance ?? pinchStartDistance
+        );
+        applyZoomAt(
+          camera.scale * currentDistance / previousDistance,
+          canvasPoint(midpoint.x, midpoint.y)
+        );
+        pinchLastDistance = currentDistance;
+        pinchLastMidpoint = midpoint;
+        return;
+      }
+
+      if (points.length === 1 && page.viewInteraction?.pan && panLast) {
+        const current = points[0]!;
+        followsFitToCanvas = false;
+        camera = panDiagramCameraByScreenDeltaV010(
+          camera,
+          {
+            x: current.x - panLast.x,
+            y: current.y - panLast.y
+          }
+        );
+        applyCameraTransform();
+        panLast = current;
+      }
+    };
+
+    const pointerUp = (event: PointerEvent) => {
+      if (marquee?.pointerId === event.pointerId) {
+        const box = marquee;
+        removeMarquee();
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        if (event.type === "pointerup" && box.moved) {
+          const minX = Math.min(box.start.x, box.current.x);
+          const maxX = Math.max(box.start.x, box.current.x);
+          const minY = Math.min(box.start.y, box.current.y);
+          const maxY = Math.max(box.start.y, box.current.y);
+          const ids = diagramNodesIntersectingRectV010(visibleNodes(), {
+            x: (minX - camera.translateX) / camera.scale,
+            y: (minY - camera.translateY) / camera.scale,
+            width: (maxX - minX) / camera.scale,
+            height: (maxY - minY) / camera.scale
+          });
+          if (!box.additive) selectedNodeIds.clear();
+          for (const id of ids) selectedNodeIds.add(id);
+          const last = [...selectedNodeIds].at(-1);
+          selected = last ? { kind: "node", id: last } : undefined;
+          selectionInspection = undefined;
+          selectionReadGeneration += 1;
+          suppressNextCanvasClick = true;
+          render();
+          canvas.focus({ preventScroll: true });
+          window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+        }
+        return;
+      }
+      navigationPointers.delete(event.pointerId);
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      const points = [...navigationPointers.values()];
+      if (points.length < 2) {
+        pinchStartDistance = undefined;
+        pinchLastDistance = undefined;
+        pinchLastMidpoint = undefined;
+      }
+      panLast = points.length === 1 ? points[0] : undefined;
+      if (points.length === 0) {
+        canvas.style.cursor = page.viewInteraction?.localNodeDrag && canvasTool === "SELECT"
+          ? "crosshair" : (page.viewInteraction?.pan ? "grab" : "");
+      }
+    };
+
+    canvas.addEventListener("pointerdown", pointerDown);
+    canvas.addEventListener("pointermove", pointerMove);
+    canvas.addEventListener("pointerup", pointerUp);
+    canvas.addEventListener("pointercancel", pointerUp);
+    const onBlur = (): void => {
+      cancelActiveNodeDrag?.();
+      cancelActiveRouteDrag?.();
+      removeMarquee();
+      navigationPointers.clear();
+      panLast = undefined;
+      spaceHeld = false;
+    };
+    window.addEventListener("blur", onBlur);
+    const lostPointerCapture = (event: PointerEvent) => {
+      if (!navigationPointers.has(event.pointerId)) return;
+      navigationPointers.delete(event.pointerId);
+      const points = [...navigationPointers.values()];
+      if (points.length < 2) {
+        pinchStartDistance = undefined;
+        pinchLastDistance = undefined;
+        pinchLastMidpoint = undefined;
+      }
+      panLast = points.length === 1 ? points[0] : undefined;
+    };
+    canvas.addEventListener("lostpointercapture", lostPointerCapture);
+    listeners.push(
+      () => canvas.removeEventListener("pointerdown", pointerDown),
+      () => canvas.removeEventListener("pointermove", pointerMove),
+      () => canvas.removeEventListener("pointerup", pointerUp),
+      () => canvas.removeEventListener("pointercancel", pointerUp),
+      () => window.removeEventListener("blur", onBlur),
+      () => canvas.removeEventListener("lostpointercapture", lostPointerCapture)
+    );
+  }
+
+  if (page.viewInteraction?.zoom) {
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const deltaUnit = event.deltaMode === 1 ? 16
+        : event.deltaMode === 2 ? Math.max(1, canvas.clientHeight) : 1;
+      const dx = event.deltaX * deltaUnit;
+      const dy = event.deltaY * deltaUnit;
+      if (wheelInputMode === "TRACKPAD" && !event.ctrlKey) {
+        followsFitToCanvas = false;
+        camera = panDiagramCameraByScreenDeltaV010(camera, { x: -dx, y: -dy });
+        applyCameraTransform();
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const factor = Math.max(0.5, Math.min(2, Math.exp(-dy * 0.002)));
+      applyZoomAt(camera.scale * factor, anchor);
+    };
+    canvas.addEventListener("wheel", wheel, { passive: false });
+    listeners.push(() => canvas.removeEventListener("wheel", wheel));
+  }
+
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => {
+      if (!disposed && state && followsFitToCanvas) {
+        fitViewToCanvas();
+      }
+    });
+    observer.observe(canvas);
+    listeners.push(() => observer.disconnect());
+  }
+
+  const keydownHandler = (event: KeyboardEvent): void => {
+    const target = event.target;
+    const focus = document.activeElement;
+    if (focus && focus !== canvas && !focus.closest?.("[data-eidos-diagram-node]")) return;
+    if (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+      || (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (page.viewInteraction?.localNodeDrag === true) {
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (ctrl && !event.altKey && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redoView(); else undoView();
+        return;
+      }
+      if (ctrl && !event.altKey && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redoView();
+        return;
+      }
+      if (ctrl && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        selectedNodeIds.clear();
+        for (const node of visibleNodes()) selectedNodeIds.add(node.id);
+        const last = [...selectedNodeIds].at(-1);
+        selected = last ? { kind: "node", id: last } : undefined;
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        render();
+        return;
+      }
+      if (!ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "v") {
+        canvasTool = "SELECT"; renderActions(); return;
+      }
+      if (!ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "h") {
+        canvasTool = "PAN"; renderActions(); return;
+      }
+    }
+
+    if (page.viewInteraction?.localNodeDrag === true && event.code === "Space"
+      && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      spaceHeld = true;
+      canvas.style.cursor = "grab";
+      return;
+    }
+
+    if (event.key === "Escape" && cancelActiveRouteDrag) {
+      event.preventDefault();
+      const cancelledId = activeRoutePointerId;
+      if (cancelledId !== undefined) {
+        // Chrome may target the canvas rather than the SVG handle when a
+        // cancelled drag finally releases. The matching pointerup precedes
+        // its synthesized click; suppress that one click, not future clicks.
+        const onCancelledRelease = (release: PointerEvent): void => {
+          if (release.pointerId !== cancelledId) return;
+          canvas.removeEventListener("pointerup", onCancelledRelease, true);
+          suppressNextCanvasClick = true;
+          window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+        };
+        canvas.addEventListener("pointerup", onCancelledRelease, true);
+        // If the operating system never emits pointerup, don't retain a
+        // capture observer indefinitely.
+        window.setTimeout(() => canvas.removeEventListener(
+          "pointerup", onCancelledRelease, true), 30000);
+      }
+      cancelActiveRouteDrag();
+      return;
+    }
+
+    if (event.key === "Escape" && selected) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+
+    if (
+      page.viewInteraction?.localSelectionHide === true
+      && selected
+      && (event.key === "Delete" || event.key === "Backspace")
+    ) {
+      event.preventDefault();
+      hideSelectedFromView();
+      return;
+    }
+
+    if (
+      page.viewInteraction?.localNodeDrag === true
+      && selected?.kind === "node"
+      && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
+      && state
+    ) {
+      const node = state.nodes.find(item => item.id === selected!.id);
+      if (!node) return;
+      event.preventDefault();
+      checkpoint();
+      const step = event.shiftKey ? 10 : 1;
+      if (event.key === "ArrowLeft") node.x -= step;
+      if (event.key === "ArrowRight") node.x += step;
+      if (event.key === "ArrowUp") node.y -= step;
+      if (event.key === "ArrowDown") node.y += step;
+      followsFitToCanvas = false;
+      render();
+      canvas.focus({ preventScroll: true });
+      report(
+        event.shiftKey
+          ? "View adjusted by 10 units. No changes were saved."
+          : "View adjusted by 1 unit. No changes were saved."
+      );
+      return;
+    }
+
+    if (page.viewInteraction?.zoom === true) {
+      const commandOrControl = event.metaKey || event.ctrlKey;
+      if (
+        event.key === "+"
+        || event.key === "="
+        || (commandOrControl && event.code === "Equal")
+      ) {
+        event.preventDefault();
+        applyZoomAt(camera.scale * 1.2);
+        return;
+      }
+      if (
+        event.key === "-"
+        || (commandOrControl && event.code === "Minus")
+      ) {
+        event.preventDefault();
+        applyZoomAt(camera.scale / 1.2);
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit1") {
+        event.preventDefault();
+        followsFitToCanvas = true;
+        fitViewToCanvas();
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit2" && selected) {
+        event.preventDefault();
+        fitSelectionToCanvas();
+        return;
+      }
+      if (commandOrControl && event.code === "Digit0") {
+        event.preventDefault();
+        resetZoomTo100();
+      }
+    }
+  };
+  root.addEventListener("keydown", keydownHandler);
+  const keyupHandler = (event: KeyboardEvent): void => {
+    if (event.code === "Space" && spaceHeld) {
+      spaceHeld = false;
+      canvas.style.cursor = canvasTool === "SELECT" ? "crosshair" : "grab";
+    }
+  };
+  window.addEventListener("keyup", keyupHandler);
+  listeners.push(() => root.removeEventListener("keydown", keydownHandler));
+  listeners.push(() => window.removeEventListener("keyup", keyupHandler));
 
   void load(
     page.readPresets?.find(preset =>
@@ -1150,6 +4205,7 @@ export function mountDiagramEditorPageV010(
       );
     },
     dispose() {
+      cancelActiveRouteDrag?.();
       disposed = true;
       for (const listener of listeners) listener();
     }

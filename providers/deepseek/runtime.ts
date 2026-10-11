@@ -10,6 +10,7 @@ export interface DeepSeekResponsesLlmProviderOptions {
   model?: string;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
+  inferenceTimeoutMs?: number;
 }
 
 interface ResponseFunctionCall {
@@ -60,6 +61,14 @@ export function createDeepSeekResponsesLlmProvider(
 
   const baseUrl = normalizedBaseUrl(options.baseUrl);
   const modelId = options.model?.trim() || "deepseek-flash";
+  const inferenceTimeoutMs = options.inferenceTimeoutMs ?? 30_000;
+  if (
+    !Number.isFinite(inferenceTimeoutMs)
+    || inferenceTimeoutMs < 1_000
+    || inferenceTimeoutMs > 120_000
+  ) {
+    throw new Error("DEEPSEEK_PROVIDER_INFERENCE_TIMEOUT_INVALID");
+  }
 
   return {
     providerId: DEEPSEEK_LLM_PROVIDER_ID,
@@ -77,35 +86,48 @@ export function createDeepSeekResponsesLlmProvider(
         message => message.role === "user" || message.role === "assistant"
       );
 
-      const response = await fetchImpl(`${baseUrl}/responses`, {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          model: modelId,
-          instructions: instructionMessages.map(message => message.content).join("\n\n"),
-          input: inputMessages.map(message => ({
-            role: message.role,
-            content: message.content
-          })),
-          ...(request.maxOutputTokens
-            ? { max_output_tokens: request.maxOutputTokens }
-            : {}),
-          ...(request.tools?.length
-            ? {
-                tools: request.tools.map(tool => ({
-                  type: "function",
-                  name: tool.name,
-                  description: tool.description,
-                  parameters: tool.inputSchema
-                })),
-                tool_choice: "auto"
-              }
-            : {})
-        })
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), inferenceTimeoutMs);
+      let response: Response;
+      try {
+        response = await fetchImpl(`${baseUrl}/responses`, {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${options.apiKey}`,
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            model: modelId,
+            instructions: instructionMessages.map(message => message.content).join("\n\n"),
+            input: inputMessages.map(message => ({
+              role: message.role,
+              content: message.content
+            })),
+            ...(request.maxOutputTokens
+              ? { max_output_tokens: request.maxOutputTokens }
+              : {}),
+            ...(request.tools?.length
+              ? {
+                  tools: request.tools.map(tool => ({
+                    type: "function",
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: tool.inputSchema
+                  })),
+                  tool_choice: "auto"
+                }
+              : {})
+          }),
+          signal: controller.signal
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("DEEPSEEK_PROVIDER_INFERENCE_TIMEOUT");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
 
       const body = await response.json() as ResponseBody;
       if (!response.ok) {

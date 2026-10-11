@@ -11,6 +11,9 @@ import {
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../../dist/apps/eog-3d-viewer/package.js";
 import {
+  ENTERPRISE_OBSERVATORY_PACKAGE_ID
+} from "../../dist/apps/enterprise-observatory/package.js";
+import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "../../dist/manager/enterprise-operating-graph-agent-tools.js";
 import {
@@ -165,7 +168,7 @@ test("no EOG Agent tool descriptor remains generically owned by evo-app-platform
       },
       principal,
       context,
-      isViewerActive: () => true
+      isObservatoryActive: () => true
     })
   ];
   assert.equal(
@@ -174,7 +177,7 @@ test("no EOG Agent tool descriptor remains generically owned by evo-app-platform
   );
 });
 
-test("observatory Agent tools are owned and lifecycle-gated by the 2D Viewer while calculations remain Provider-backed", () => {
+test("observatory Agent tools are owned and lifecycle-gated by Enterprise Observatory while calculations remain Provider-backed", () => {
   const providers = {
     hasRuntimeCandidate: () => true,
     hasAnalysisCandidate: () => true
@@ -185,11 +188,11 @@ test("observatory Agent tools are owned and lifecycle-gated by the 2D Viewer whi
     providers,
     principal,
     context,
-    isViewerActive: () => true
+    isObservatoryActive: () => true
   });
   assert.equal(active.length, 2);
   assert.equal(
-    active.every(item => item.descriptor.ownerPackageId === EOG_2D_VIEWER_PACKAGE_ID),
+    active.every(item => item.descriptor.ownerPackageId === ENTERPRISE_OBSERVATORY_PACKAGE_ID),
     true
   );
   assert.equal(active.every(item => item.available?.() === true), true);
@@ -199,7 +202,7 @@ test("observatory Agent tools are owned and lifecycle-gated by the 2D Viewer whi
     providers,
     principal,
     context,
-    isViewerActive: () => false
+    isObservatoryActive: () => false
   });
   assert.equal(inactive.every(item => item.available?.() === false), true);
 });

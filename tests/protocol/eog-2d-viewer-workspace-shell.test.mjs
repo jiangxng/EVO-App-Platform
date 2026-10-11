@@ -21,7 +21,7 @@ test("2D Viewer has a generic interactive Workspace independent of Observatory p
   );
   assert.equal(
     experience.routes.some(route => route.path === "/operating-graph/observe"),
-    true
+    false
   );
 
   const source = await readFile(
@@ -31,5 +31,7 @@ test("2D Viewer has a generic interactive Workspace independent of Observatory p
   assert.equal(source.includes("ObservatoryProviderResolver"), false);
   assert.equal(source.includes("projectEnterpriseOperatingGraphDiagramBaseV010"), true);
   assert.equal(source.includes("readOnly: true"), true);
-  assert.equal(source.includes("EOG_2D_VIEWER_OPERATION_UNSUPPORTED"), true);
+  assert.equal(source.includes('kind: "diagram-workspace"'), true);
+  assert.equal(source.includes("operationCommand"), false);
+  assert.equal(source.includes("EOG_2D_VIEWER_OPERATION_UNSUPPORTED"), false);
 });

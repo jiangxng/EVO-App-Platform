@@ -20,20 +20,25 @@ test("vendored Eidos public 2D Core facade preserves diagram implementation iden
 test("vendored Eidos public 3D Core facade preserves spatial implementation identity", () => {
   assert.equal(threeD.reduceSpatial, spatial.reduceSpatial);
   assert.equal(threeD.mountSpatialObservatoryPageV010, spatial.mountSpatialObservatoryPageV010);
+  assert.equal(threeD.mountSpatialWorkspacePageV010, spatial.mountSpatialObservatoryPageV010);
   assert.equal(threeD.realizeWithThreeAdapter, spatial.realizeWithThreeAdapter);
 });
 
 test("EOG application projections consume public Eidos visual-core facades, not implementation folders", async () => {
   const files = [
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
-    "apps/eog-2d-viewer/desktop-page.ts",
-    "apps/eog-3d-viewer/spatial-page.ts"
+    "apps/eog-2d-viewer/workspace-page.ts",
+    "apps/enterprise-observatory/desktop-page.ts",
+    "apps/eog-3d/workspace-page.ts",
+    "apps/enterprise-observatory/spatial-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));
 
   assert.equal(contents[0].includes("vendor/eidos/src/2d/index.js"), true);
   assert.equal(contents[1].includes("vendor/eidos/src/2d/index.js"), true);
-  assert.equal(contents[2].includes("vendor/eidos/src/3d/index.js"), true);
+  assert.equal(contents[2].includes("vendor/eidos/src/2d/index.js"), true);
+  assert.equal(contents[3].includes("vendor/eidos/src/3d/index.js"), true);
+  assert.equal(contents[4].includes("vendor/eidos/src/3d/index.js"), true);
 
   for (const content of contents) {
     assert.equal(content.includes("vendor/eidos/src/diagram/"), false);
@@ -42,15 +47,19 @@ test("EOG application projections consume public Eidos visual-core facades, not 
 });
 
 
-test("vendored Eidos snapshot includes the neutral 2D Workspace boundary", async () => {
+test("vendored Eidos snapshot includes neutral 2D and 3D Workspace boundaries", async () => {
   const manifest = JSON.parse(
     await readFile("vendor/eidos/source.manifest.json", "utf8")
   );
   assert.equal(
     manifest.sourceCommit,
-    "71e7cc0bb05b67c57dba3a1fb919070cf46b1c69"
+    "22b487ffc3ddc12b819c9601d6f06c34326fb454"
   );
+  assert.equal(manifest.files.includes("src/app-host/action-download.ts"), true);
   assert.equal(manifest.files.includes("src/diagram/workspace.ts"), true);
+  assert.equal(manifest.files.includes("src/catalog-detail/render.ts"), true);
+  assert.equal(manifest.files.includes("src/diagram/viewport.ts"), true);
+  assert.equal(manifest.files.includes("src/spatial/workspace.ts"), true);
 });
 
 

@@ -1,6 +1,6 @@
 # Next Mainline — Host-owned EVO BusinessData Adapter
 
-**Status:** PUBLIC READBACK BROWSER PASS — APP PLATFORM COMPATIBILITY DEPENDENCY CLEARED  
+**Status:** PUBLIC READBACK BROWSER PASS — COMPATIBILITY AUDITED / RUNTIME-SCOPE FALLBACK NEXT  
 **Date:** 2026-10-03  
 **Predecessor:** Personal Agent P1.8 — VERIFIED PRODUCTION PASS  
 **Primary integration:** EVO App Platform + Eidos + EVO public runtime contracts
@@ -18,15 +18,15 @@ Trading Lite
 → Eidos
 ```
 
-The current Trading Lite integration is still a compatibility adapter that directly uses:
+Trading Lite no longer calls EVO capability discovery or Command compatibility endpoints.
+
+The remaining App Platform compatibility dependency is narrower:
 
 ```text
-GET  /api/v1/enterprises/:enterpriseCode
-GET  /api/v1/capabilities?enterprise_id=...
-POST /api/v1/commands
+GET /api/v1/enterprises/:enterpriseCode
 ```
 
-EVO `PUBLIC-API.md` now explicitly identifies those endpoints as Host/compatibility composition rather than the target minimal Core boundary.
+It is used only as a Host runtime-scope fallback when no explicit EVO runtime-scope mapping exists. EVO `PUBLIC-API.md` identifies this family of endpoints as Host/compatibility composition rather than the target minimal Core boundary.
 
 ## 2. Current EVO authority inspected
 
@@ -352,15 +352,6 @@ Eidos Trading Lite form
 
 The readback gate is therefore closed when this change is on `main`, because merge requires the cross-project browser certification to pass.
 
-The next bounded slice is a compatibility-usage audit before retiring any legacy `/api/v1/commands` dependency. No compatibility endpoint should be removed merely because Trading Lite no longer needs it.
+The compatibility-usage audit is now frozen in `docs/architecture/EVO-COMPATIBILITY-RETIREMENT-AUDIT-v0.1.md`.
 
-
-## 16. Compatibility usage audit
-
-The App Platform mainline no longer directly depends on EVO `/api/v1/commands`, capability discovery, or enterprise lookup for the Trading Lite certified flow.
-
-This closes the App Platform migration gate without deleting EVO's compatibility endpoints. EVO-side endpoint retirement is a separate compatibility decision because consumers may exist outside the four-project mainline.
-
-See `docs/architecture/EVO-COMMAND-COMPATIBILITY-USAGE-AUDIT-2026-10-03.md`.
-
-Next bounded slice: generalize runtime observation as a reusable Host contribution seam so future Apps/Agents do not repeat Trading Lite-specific integration wiring.
+App Platform has no active runtime dependency on `/api/v1/commands`, `/api/v1/capabilities`, or `/api/v1/apps`. The remaining bounded migration is the Host-owned `/api/v1/enterprises/:enterpriseCode` runtime-scope fallback. No EVO compatibility endpoint should be removed until EVO separately accepts its sunset and all remaining consumers are migrated.

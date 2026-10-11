@@ -111,10 +111,12 @@ function localizedText(locale: string | undefined) {
       create: "创建企业运行图",
       publish: "发布企业运行图",
       confirm: "确认这条关系",
+      hideProjection: "从当前投影隐藏",
+      restoreProjection: "恢复全部裁剪",
       guidance: "指导关系",
       confirmed: "企业确认关系",
       missing: "当前企业还没有运行图。",
-      ready: "来自 Host 权威 EOG 的可编辑视图。布局属于 View State，不改变企业语义。"
+      ready: "当前只编辑投影与视图状态，不改变应用、账本或运行时定义。"
     };
   }
   if (normalized.startsWith("ja")) {
@@ -124,10 +126,12 @@ function localizedText(locale: string | undefined) {
       create: "Create operating graph",
       publish: "Publish operating graph",
       confirm: "Confirm relation",
+      hideProjection: "Hide from projection",
+      restoreProjection: "Restore projection",
       guidance: "Guidance",
       confirmed: "Confirmed",
       missing: "No operating graph exists for this enterprise yet.",
-      ready: "Editable projection of the Host-authoritative EOG. Layout is independent View State."
+      ready: "Projection and view-state edits do not modify authoritative applications, ledgers or runtime definitions."
     };
   }
   return {
@@ -136,10 +140,12 @@ function localizedText(locale: string | undefined) {
     create: "Create operating graph",
     publish: "Publish operating graph",
     confirm: "Confirm this relation",
+    hideProjection: "Hide from projection",
+    restoreProjection: "Restore projection",
     guidance: "Guidance",
     confirmed: "Enterprise confirmed",
     missing: "No operating graph exists for this enterprise yet.",
-    ready: "Editable projection of the Host-authoritative EOG. Layout is independent View State."
+    ready: "Projection and view-state edits do not modify authoritative applications, ledgers or runtime definitions."
   };
 }
 
@@ -150,7 +156,7 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
   const text = localizedText(input.locale);
   return {
     contractVersion: "0.1.0",
-    kind: "diagram-editor",
+    kind: "diagram-workspace",
     id: "evo-enterprise-operating-graph.editor",
     title: text.title,
     resourceId: EOG_EDITOR_RESOURCE_ID,
@@ -168,6 +174,10 @@ export function createEnterpriseOperatingGraphEditorPageV010(input: {
     },
     requestValues: {
       activeContext: structuredClone(input.activeContext) as unknown as JsonValue
+    },
+    viewInteraction: {
+      zoom: true,
+      pan: true
     },
     emptyMessage: text.empty
   };
@@ -191,14 +201,16 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       relation.applicationNodeId + "->" + relation.ledgerNodeId
     )
   );
+  const visibleEdgeIds = new Set(base.edges.map(edge => edge.id));
 
-  const actions = graph.state === "DRAFT"
+  const semanticActions = graph.state === "DRAFT"
     ? [
         ...graph.guidanceRelations
           .filter(relation =>
             !confirmedPairs.has(
               relation.applicationNodeId + "->" + relation.ledgerNodeId
             )
+            && visibleEdgeIds.has("guidance-edge:" + relation.relationId)
           )
           .map(relation => ({
             id: "confirm:" + relation.relationId,
@@ -231,10 +243,64 @@ export function projectEnterpriseOperatingGraphEditorStateV010(
       ]
     : [];
 
+  const projectionActions = [
+    ...base.nodes.map(node => ({
+      id: "projection-hide-node:" + node.id,
+      label: text.hideProjection,
+      operation: {
+        type: "PROJECTION_ITEM_VISIBILITY_SET",
+        targetKind: "NODE",
+        targetId: node.id,
+        visible: false
+      } as JsonValue,
+      target: {
+        kind: "node" as const,
+        id: node.id
+      }
+    })),
+    ...base.edges.map(edge => ({
+      id: "projection-hide-edge:" + edge.id,
+      label: text.hideProjection,
+      operation: {
+        type: "PROJECTION_ITEM_VISIBILITY_SET",
+        targetKind: "EDGE",
+        targetId: edge.id,
+        visible: false
+      } as JsonValue,
+      target: {
+        kind: "edge" as const,
+        id: edge.id
+      }
+    })),
+    ...((view.hiddenNodeIds?.length ?? 0) > 0
+      || (view.hiddenEdgeIds?.length ?? 0) > 0
+      ? [{
+          id: "projection-restore-all",
+          label: text.restoreProjection,
+          operation: {
+            type: "PROJECTION_VISIBILITY_RESET"
+          } as JsonValue,
+          target: {
+            kind: "graph" as const
+          }
+        }]
+      : [])
+  ];
+
+  const actions = [
+    ...semanticActions,
+    ...projectionActions
+  ];
+
+  const visibleNodeIds = new Set(base.nodes.map(node => node.id));
   const bindings = [
     ...createEogOwnedInspectorEditorBindingsV010(graph),
     ...editorBindings
-  ];
+  ].filter(binding =>
+    binding.target.kind === "node"
+      ? visibleNodeIds.has(binding.target.id)
+      : visibleEdgeIds.has(binding.target.id)
+  );
   const interactive = bindings.length
     ? attachEog2dInspectorEditorsV010(base, bindings)
     : base;
@@ -390,6 +456,14 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
     resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
     inspectorResolver: EnterpriseOperatingGraphInspectorPropertyResolverV010;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
+    onEditorRead?: (
+      context: PlatformRequestContextV010,
+      target: {
+        enterpriseId: string;
+        graphId: string;
+        resourceId: string;
+      }
+    ) => void;
   }
 ): AppActionHandler[] {
   const semanticHandlers =
@@ -495,7 +569,13 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
   return [
     handler(EOG_VIEW_GET_ACTION, async (request, context) => {
       const resourceId = stringValue(request.values, "resourceId");
+      const scope = enterpriseScope(context);
       const graph = getGraph(context, resourceId);
+      dependencies.onEditorRead?.(context, {
+        enterpriseId: scope.enterpriseId,
+        graphId: resourceId,
+        resourceId
+      });
       return success(
         request,
         graph
@@ -684,6 +764,92 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
             context,
             semanticResult.result as unknown as EnterpriseOperatingGraphV010
           )
+        );
+      }
+
+      if (type === "PROJECTION_ITEM_VISIBILITY_SET") {
+        const targetKind = operation.targetKind;
+        const targetId = operation.targetId;
+        const visible = operation.visible;
+        if (
+          (targetKind !== "NODE" && targetKind !== "EDGE")
+          || typeof targetId !== "string"
+          || !targetId.trim()
+          || typeof visible !== "boolean"
+        ) {
+          throw new Error("EOG_VIEW_PROJECTION_VISIBILITY_INVALID");
+        }
+
+        if (
+          targetKind === "NODE"
+          && !currentGraph.nodes.some(node => node.nodeId === targetId.trim())
+        ) {
+          throw new Error("EOG_VIEW_PROJECTION_NODE_NOT_FOUND");
+        }
+        if (targetKind === "EDGE") {
+          const edgeExists =
+            (
+              targetId.startsWith("guidance-edge:")
+              && currentGraph.guidanceRelations.some(relation =>
+                "guidance-edge:" + relation.relationId === targetId.trim()
+              )
+            )
+            || (
+              targetId.startsWith("enterprise-edge:")
+              && currentGraph.enterpriseRelations.some(relation =>
+                "enterprise-edge:" + relation.relationId === targetId.trim()
+              )
+            );
+          if (!edgeExists) {
+            throw new Error("EOG_VIEW_PROJECTION_EDGE_NOT_FOUND");
+          }
+        }
+
+        await authorizeViewWrite(
+          context,
+          resourceId,
+          "PROJECTION_ITEM_VISIBILITY_SET"
+        );
+        const view = diagramView(context, currentGraph);
+        dependencies.viewService.apply({
+          enterpriseId: currentGraph.enterpriseId,
+          graphId: currentGraph.graphId,
+          viewId: view.viewId,
+          expectedRevision: expectedViewRevision(request.values),
+          mutation: {
+            type: "PROJECTION_ITEM_VISIBILITY_SET",
+            target: {
+              kind: targetKind,
+              id: targetId.trim()
+            },
+            visible
+          }
+        });
+        return success(
+          request,
+          project(context, currentGraph)
+        );
+      }
+
+      if (type === "PROJECTION_VISIBILITY_RESET") {
+        await authorizeViewWrite(
+          context,
+          resourceId,
+          "PROJECTION_VISIBILITY_RESET"
+        );
+        const view = diagramView(context, currentGraph);
+        dependencies.viewService.apply({
+          enterpriseId: currentGraph.enterpriseId,
+          graphId: currentGraph.graphId,
+          viewId: view.viewId,
+          expectedRevision: expectedViewRevision(request.values),
+          mutation: {
+            type: "PROJECTION_VISIBILITY_RESET"
+          }
+        });
+        return success(
+          request,
+          project(context, currentGraph)
         );
       }
 

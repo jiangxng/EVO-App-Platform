@@ -85,3 +85,69 @@ test("cross-origin requests do not leak Host Context selection", async () => {
   assert.equal(headers.get("x-evo-context-id"), null);
   assert.equal(headers.get("x-evo-client-revision"), null);
 });
+
+test("cached available marker cannot flag the already-current client", async () => {
+  installWindow("https://evo.example");
+  let shown = 0;
+  let current = 0;
+  const transport = createRevisionAwareBrowserTransportV010({
+    importUrl: "https://evo.example/assets/rev-2/manager/app-host-client.js",
+    fetchImpl: async () => new Response("{}", {
+      status: 200,
+      headers: {
+        "x-evo-host-revision": "rev-2",
+        "x-evo-client-update": "available"
+      }
+    }),
+    onUpdateAvailable: () => {
+      shown += 1;
+    },
+    onCurrentRevision: () => {
+      current += 1;
+    }
+  });
+
+  await transport.fetch("https://evo.example/v1/experiences/effective");
+  assert.equal(transport.updateAvailable(), false);
+  assert.equal(shown, 0);
+  assert.equal(current, 0);
+});
+
+test("a later current-revision response clears transient update state", async () => {
+  installWindow("https://evo.example");
+  let requestCount = 0;
+  let shown = 0;
+  let cleared = 0;
+  const transport = createRevisionAwareBrowserTransportV010({
+    importUrl: "https://evo.example/assets/rev-2/manager/app-host-client.js",
+    fetchImpl: async () => {
+      requestCount += 1;
+      return new Response("{}", {
+        status: 200,
+        headers: requestCount === 1
+          ? {
+              "x-evo-host-revision": "rev-3",
+              "x-evo-client-update": "available"
+            }
+          : {
+              "x-evo-host-revision": "rev-2",
+              "x-evo-client-update": "current"
+            }
+      });
+    },
+    onUpdateAvailable: () => {
+      shown += 1;
+    },
+    onCurrentRevision: () => {
+      cleared += 1;
+    }
+  });
+
+  await transport.fetch("https://evo.example/v1/one");
+  assert.equal(transport.updateAvailable(), true);
+  assert.equal(shown, 1);
+
+  await transport.fetch("https://evo.example/v1/two");
+  assert.equal(transport.updateAvailable(), false);
+  assert.equal(cleared, 1);
+});

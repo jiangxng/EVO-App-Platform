@@ -35,6 +35,26 @@ function snapshot() {
   };
 }
 
+test("Workbench resolves query-qualified detail routes without dropping route identity", () => {
+  const value = manifest();
+  const snap = {
+    contractVersion: "0.1.0",
+    revision: 1,
+    status: "ready",
+    manifests: [value],
+    pages: value.pages,
+    routes: value.routes,
+    navigation: value.navigation ?? [],
+    diagnostics: []
+  };
+  const route = value.routes[0].path + "?itemId=example";
+  const result = resolveWorkbenchSurfaceRouteV010(snap, {
+    path: route
+  });
+  assert.equal(result?.resolution.kind, "ROUTE");
+  assert.equal(result?.manifest.experienceId, value.experienceId);
+});
+
 test("Workbench keeps mobile Agent Surface during internal semantic navigation", () => {
   const result = resolveWorkbenchSurfaceRouteV010(snapshot(), {
     path: "/enterprise-agent",

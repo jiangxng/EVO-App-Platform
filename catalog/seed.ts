@@ -14,28 +14,91 @@ import {
   enterpriseContextGovernanceExperienceAssets
 } from "../apps/enterprise-context-governance/experience-assets.js";
 import {
-  eog2dDesignerPackage
-} from "../apps/eog-2d-designer/package.js";
+  ledgerManagerPackage
+} from "../apps/ledger-manager/package.js";
 import {
-  eog2dViewerPackage
-} from "../apps/eog-2d-viewer/package.js";
+  templateStorePackage
+} from "../apps/template-store/package.js";
 import {
-  eog3dViewerPackage
-} from "../apps/eog-3d-viewer/package.js";
+  counterpartyPackage
+} from "../apps/counterparty/package.js";
+import {
+  itemPackage
+} from "../apps/item/package.js";
+import {
+  warehousePackage
+} from "../apps/warehouse/package.js";
+import {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
+import {
+  biWorkbenchPackage
+} from "../apps/bi-workbench/package.js";
+import {
+  dataImportPackage
+} from "../apps/data-import/package.js";
+import {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
+import {
+  responsibilityPackage
+} from "../apps/responsibility/package.js";
+import {
+  eog2dPackage
+} from "../apps/eog-2d/package.js";
+import {
+  eog3dPackage
+} from "../apps/eog-3d/package.js";
+import {
+  enterpriseObservatoryPackage
+} from "../apps/enterprise-observatory/package.js";
 
 export { enterpriseAgentPackage } from "../agents/enterprise-agent/package.js";
 export {
   enterpriseContextGovernanceAppPackage
 } from "../apps/enterprise-context-governance/package.js";
 export {
-  eog2dDesignerPackage
-} from "../apps/eog-2d-designer/package.js";
+  templateStorePackage
+} from "../apps/template-store/package.js";
 export {
-  eog2dViewerPackage
-} from "../apps/eog-2d-viewer/package.js";
+  counterpartyPackage
+} from "../apps/counterparty/package.js";
+export {
+  itemPackage
+} from "../apps/item/package.js";
+export {
+  warehousePackage
+} from "../apps/warehouse/package.js";
+export {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
+export {
+  biWorkbenchPackage
+} from "../apps/bi-workbench/package.js";
+export {
+  dataImportPackage
+} from "../apps/data-import/package.js";
+export {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
+export {
+  responsibilityPackage
+} from "../apps/responsibility/package.js";
+export {
+  ledgerManagerPackage
+} from "../apps/ledger-manager/package.js";
+export {
+  eog2dPackage
+} from "../apps/eog-2d/package.js";
+export {
+  eog3dPackage
+} from "../apps/eog-3d/package.js";
 export {
   eog3dViewerPackage
 } from "../apps/eog-3d-viewer/package.js";
+export {
+  enterpriseObservatoryPackage
+} from "../apps/enterprise-observatory/package.js";
 
 
 export const companyNotesPackage: PackageManifestV010 = {
@@ -157,9 +220,9 @@ export const evoFoundationPackage: PackageManifestV010 = {
 export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
-  displayName: "EVO Ledger Runtime Configurator",
+  displayName: "EVO Ledger Runtime Compiler",
   version: "0.1.0",
-  type: "APPLICATION",
+  type: "RUNTIME_EXTENSION",
   features: [
     {
       contractVersion: "0.1.0",
@@ -174,69 +237,12 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
         LEDGER_RUNTIME_CONFIGURATION_CAPABILITY
       ],
       contributions: [
-        ...ledgerRuntimeConfigurationCapabilityContributionsV010,
-        {
-          kind: "eidos.experience",
-          manifest: {
-            contractVersion: "0.1.0",
-            experienceId: "evo-ledger-runtime-configurator",
-            packageId: "evo-ledger-runtime-configurator",
-            featureId: "evo-ledger-runtime-configurator.default",
-            defaultRoute: "/ledger-runtime-configurator",
-            pages: [
-              {
-                id: "evo-ledger-runtime-configurator.home",
-                title: "Ledger Runtime Configurator",
-                source: "app://evo-ledger-runtime-configurator/pages/home"
-              }
-            ],
-            routes: [
-              {
-                id: "evo-ledger-runtime-configurator.home",
-                path: "/ledger-runtime-configurator",
-                pageId: "evo-ledger-runtime-configurator.home"
-              }
-            ],
-            navigation: [
-              {
-                id: "evo-ledger-runtime-configurator.nav",
-                label: "Ledger Configurator",
-                route: "/ledger-runtime-configurator",
-                order: 40
-              }
-            ]
-          }
-        },
-        {
-          kind: "eidos.localization-bundle",
-          bundle: {
-            contractVersion: "0.1.0",
-            namespace: "evo-ledger-runtime-configurator",
-            locale: "en",
-            messages: {
-                      "navigation.evo-ledger-runtime-configurator.nav.label": "Ledger Configurator",
-                      "page.evo-ledger-runtime-configurator.home.title": "Ledger Runtime Configurator — Bookkeeping defaults",
-                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "Validate Default Configuration"
-            }
-          }
-        },
-        {
-          kind: "eidos.localization-bundle",
-          bundle: {
-            contractVersion: "0.1.0",
-            namespace: "evo-ledger-runtime-configurator",
-            locale: "zh-CN",
-            messages: {
-                      "navigation.evo-ledger-runtime-configurator.nav.label": "账本配置",
-                      "page.evo-ledger-runtime-configurator.home.title": "EVO 账本运行时配置 — Bookkeeping 默认配置",
-                      "action.evo-ledger-runtime-configurator.home.validate-default.label": "校验默认配置"
-            }
-          }
-        }
+        ...ledgerRuntimeConfigurationCapabilityContributionsV010
       ]
     }
   ]
 };
+
 
 export const tradingLitePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",

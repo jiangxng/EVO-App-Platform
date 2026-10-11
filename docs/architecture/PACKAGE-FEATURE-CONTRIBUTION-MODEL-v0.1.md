@@ -147,6 +147,48 @@ finance-reporting.experience = INACTIVE
 
 The App Manager must not collapse these into one boolean.
 
+## 4.1 Controlled package upgrade
+
+The current catalog exposes one current target manifest per Package identity. When
+durable lifecycle state records an older installed Package version, App Manager must
+treat the catalog manifest as an **available upgrade**, not silently rewrite durable
+lifecycle state.
+
+Canonical v0.1 behavior:
+
+```text
+installed Package version
+        ↓ compare with current catalog manifest
+side-effect-free upgrade plan
+        ↓
+host compatibility / runtime / integrity / trust / permission checks
+        ↓
+active Feature continuity + post-upgrade dependency check
+        ↓
+explicit upgrade
+        ↓
+installed Package + active Feature version state advances
+        ↓
+effective Contributions/Experiences resolve from the admitted current manifest
+```
+
+Rules:
+
+- downgrade through the upgrade path is prohibited;
+- an upgrade that removes an active Feature is blocked;
+- post-upgrade required Features and Capabilities must remain satisfied;
+- newly required permissions or unverified trust require explicit approval;
+- planning is side-effect free;
+- upgrade emits lifecycle evidence;
+- Package version and durable business-resource schema version are independent;
+- upgrading/reinstalling a Package does not delete or rewrite Enterprise Context
+  resources by default;
+- any business-data schema migration must be an explicit, versioned, auditable
+  owner-domain migration rather than an implicit Package lifecycle side effect.
+
+The v0.1 App Manager API is `planUpgrade(packageId)` + `upgrade(packageId)`.
+Plugin Store and App Host expose the same governed lifecycle transition.
+
 ## 5. Feature dependency graph
 
 Feature dependencies are first-class and machine-readable.

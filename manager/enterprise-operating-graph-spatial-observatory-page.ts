@@ -1,1 +1,1 @@
-export * from "../apps/eog-3d-viewer/spatial-page.js";
+export * from "../apps/enterprise-observatory/spatial-page.js";

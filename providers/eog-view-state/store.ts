@@ -76,6 +76,25 @@ export function validateEnterpriseOperatingGraphViewStateV010(
     nodeIds.add(placement.nodeId);
   }
 
+  for (const [field, ids] of [
+    ["hiddenNodeIds", view.hiddenNodeIds],
+    ["hiddenEdgeIds", view.hiddenEdgeIds]
+  ] as const) {
+    if (ids === undefined) continue;
+    if (
+      view.kind !== "DIAGRAM_2D"
+      || !Array.isArray(ids)
+      || ids.some(id => !nonEmpty(id))
+      || new Set(ids).size !== ids.length
+    ) {
+      throw new Error(
+        field === "hiddenNodeIds"
+          ? "EOG_VIEW_HIDDEN_NODES_INVALID"
+          : "EOG_VIEW_HIDDEN_EDGES_INVALID"
+      );
+    }
+  }
+
   if (view.camera !== undefined) {
     if (
       view.kind !== "SPATIAL_3D"

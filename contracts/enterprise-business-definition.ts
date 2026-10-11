@@ -1,3 +1,4 @@
+import type { TemplateProjectionGalleryV010 } from "./template-projection-gallery.js";
 export const ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010 =
   "enterprise.business-definition.repository" as const;
 
@@ -22,10 +23,14 @@ export interface BusinessDefinitionAttributionV010 {
 }
 
 export interface BusinessDefinitionOriginV010 {
-  type: "NATIVE" | "MIGRATED";
+  type: "NATIVE" | "MIGRATED" | "TEMPLATE_COPY";
   sourceRef?: string;
   historyComplete: boolean;
 }
+
+export type BusinessDefinitionCreateOriginV010 =
+  | { type: "NATIVE" }
+  | { type: "TEMPLATE_COPY"; sourceRef: string };
 
 export interface BusinessDefinitionRevisionV010 {
   contractVersion: "0.1.0";
@@ -36,6 +41,7 @@ export interface BusinessDefinitionRevisionV010 {
   state: BusinessDefinitionStateV010;
   title: string;
   payload: Record<string, unknown>;
+  projectionGallery?: TemplateProjectionGalleryV010;
   definitionCreatedAt: string;
   recordedAt: string;
   recordedBy: BusinessDefinitionAttributionV010;
@@ -53,8 +59,10 @@ export interface BusinessDefinitionRepositoryV010 {
     kind: string;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
+    origin?: BusinessDefinitionCreateOriginV010;
   }): BusinessDefinitionRevisionV010;
 
   reviseDraft(input: {
@@ -63,6 +71,7 @@ export interface BusinessDefinitionRepositoryV010 {
     expectedRevision: number;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
   }): BusinessDefinitionRevisionV010;
@@ -73,6 +82,7 @@ export interface BusinessDefinitionRepositoryV010 {
     expectedRevision: number;
     title: string;
     payload: Record<string, unknown>;
+    projectionGallery?: TemplateProjectionGalleryV010;
     actor: BusinessDefinitionAttributionV010;
     recordedAt?: string;
   }): BusinessDefinitionRevisionV010;

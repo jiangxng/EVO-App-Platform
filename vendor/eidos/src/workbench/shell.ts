@@ -20,6 +20,7 @@ import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.
 import {
   mountAppHostLoadedPage,
   type AppHostChatState,
+  type ContextualAgentInteractionV010,
   type MountedAppHostPage
 } from "../app-host/page-controller.js";
 import { renderAppHostPageToHtml } from "../app-host/page-renderer.js";
@@ -60,6 +61,20 @@ export interface WorkbenchShellOptions {
   minSidePanelWidth?: number;
   maxSidePanelWidth?: number;
   onActionResult?: Parameters<typeof mountAppHostLoadedPage>[0]["onActionResult"];
+  /**
+   * Host-owned resolver from a requested Agent capability to an installed
+   * side-route activity. Eidos does not hard-code a concrete Agent package.
+   */
+  resolveAgentActivity?: (
+    capability: string | undefined
+  ) => string | undefined;
+  /**
+   * Host-owned global chrome mounted beside built-in Workbench controls.
+   * Eidos provides placement only and does not interpret Host/domain semantics.
+   */
+  mountGlobalControls?: (
+    container: HTMLElement
+  ) => void | (() => void);
 }
 
 export interface WorkbenchShell {
@@ -83,6 +98,30 @@ function currentHashPath(): string | undefined {
   const hash = window.location.hash;
   if (!hash || hash === "#") return undefined;
   return hash.startsWith("#") ? hash.slice(1) : hash;
+}
+
+function routeQuerySuffix(path: string): string {
+  const queryIndex = path.indexOf("?");
+  return queryIndex >= 0 ? path.slice(queryIndex) : "";
+}
+
+function actionResultNavigateToV010(result: unknown): string | undefined {
+  if (
+    result === null
+    || typeof result !== "object"
+    || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true
+  ) {
+    return undefined;
+  }
+  const payload = (result as { result?: unknown }).result;
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return undefined;
+  }
+  const navigateTo = (payload as { navigateTo?: unknown }).navigateTo;
+  if (typeof navigateTo !== "string") return undefined;
+  const route = navigateTo.trim();
+  return route.startsWith("/") ? route : undefined;
 }
 
 function isExternalUrl(value: string): boolean {
@@ -295,6 +334,7 @@ export async function mountWorkbenchShell(
   root.setAttribute("data-eidos-app-host-layout", "workbench");
   root.setAttribute("data-side-panel-visible", state.sidePanelVisible ? "true" : "false");
   root.setAttribute("data-mobile-surface", "panel");
+  root.setAttribute("data-eidos-workspace-mode", workspaceMode);
   root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
 
   const activityBar = document.createElement("nav");
@@ -323,13 +363,6 @@ export async function mountWorkbenchShell(
 
   const sideFooter = document.createElement("footer");
   sideFooter.setAttribute("data-eidos-side-panel-footer", "");
-  const localeWrap = document.createElement("label");
-  localeWrap.setAttribute("data-eidos-locale-control", "");
-  const localeLabel = document.createElement("span");
-  const localeSelect = document.createElement("select");
-  localeSelect.setAttribute("data-eidos-locale", "");
-  localeWrap.append(localeLabel, localeSelect);
-  if (localization) sideFooter.append(localeWrap);
 
   sidePanel.append(sideHeader, sideContent, sideFooter);
 
@@ -346,18 +379,19 @@ export async function mountWorkbenchShell(
   const browserToolbar = document.createElement("div");
   browserToolbar.setAttribute("data-eidos-browser-toolbar", "");
   browserToolbar.setAttribute("aria-label", hostText("workbench.workspaceToolbar", "Workspace toolbar"));
-  const browserAddress = document.createElement("input");
-  browserAddress.type = "text";
-  browserAddress.autocomplete = "off";
-  browserAddress.setAttribute("data-eidos-browser-address", "");
-  browserAddress.setAttribute("aria-label", hostText("workbench.workspaceTarget", "Workspace route or web address"));
-  const browserGo = document.createElement("button");
-  browserGo.type = "button";
-  browserGo.setAttribute("data-eidos-browser-go", "");
-  const browserExternal = document.createElement("button");
-  browserExternal.type = "button";
-  browserExternal.setAttribute("data-eidos-browser-external", "");
-  browserToolbar.append(browserAddress, browserGo, browserExternal);
+
+  const globalControls = document.createElement("div");
+  globalControls.setAttribute("data-eidos-global-controls", "");
+
+  const localeWrap = document.createElement("label");
+  localeWrap.setAttribute("data-eidos-locale-control", "");
+  const localeLabel = document.createElement("span");
+  const localeSelect = document.createElement("select");
+  localeSelect.setAttribute("data-eidos-locale", "");
+  localeWrap.append(localeLabel, localeSelect);
+  if (localization) globalControls.append(localeWrap);
+
+  browserToolbar.append(globalControls);
 
   const workspaceContent = document.createElement("div");
   workspaceContent.setAttribute("data-eidos-workspace-content", "");
@@ -372,6 +406,9 @@ export async function mountWorkbenchShell(
 
   root.append(activityBar, sidePanel, splitter, workspace, statusBar);
   container.replaceChildren(root);
+
+  const disposeGlobalControls =
+    options.mountGlobalControls?.(globalControls);
 
   function persist(): void {
     stateStore.save({ ...state });
@@ -455,6 +492,63 @@ export async function mountWorkbenchShell(
     sideContent.appendChild(list);
   }
 
+  async function handleContextualAgentAction(
+    interaction: ContextualAgentInteractionV010
+  ): Promise<void> {
+    const activityId =
+      options.resolveAgentActivity?.(interaction.agentCapability);
+    if (!activityId) {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_ACTIVITY_UNAVAILABLE");
+    }
+
+    const activity = activityById(activityId);
+    if (!activity || activity.kind !== "side-route") {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_ACTIVITY_INVALID");
+    }
+
+    if (
+      state.activeActivityId !== activityId
+      || !state.sidePanelVisible
+    ) {
+      state.activeActivityId = activityId;
+      state.sidePanelVisible = true;
+      persist();
+      updateLayoutAttributes();
+      renderActivities();
+      await renderSidePanel();
+    }
+
+    if (!sideMount?.submitChatPrompt) {
+      throw new Error("EIDOS_CONTEXTUAL_AGENT_CHAT_UNAVAILABLE");
+    }
+
+    await sideMount.submitChatPrompt(
+      interaction.prompt,
+      {
+        contractVersion: "0.1.0",
+        source: {
+          pageId: interaction.source.pageId,
+          route: interaction.source.route,
+          actionId: interaction.source.actionId
+        },
+        ...(interaction.agentCapability
+          ? { agentCapability: interaction.agentCapability }
+          : {}),
+        ...(interaction.context
+          ? { context: structuredClone(interaction.context) }
+          : {})
+      }
+    );
+
+    if (
+      interaction.refreshSourceOnComplete === true
+      && workspaceMode === "app"
+      && state.workspaceTarget === interaction.source.route
+    ) {
+      await renderInternalWorkspace(state.workspaceTarget);
+    }
+  }
+
   async function renderSidePanel(): Promise<void> {
     const read = sideReadGate.begin();
     sideMount?.dispose();
@@ -529,8 +623,14 @@ export async function mountWorkbenchShell(
       localization,
       chatState,
       onNavigate: navigateWorkspace,
+      onAgentAction: handleContextualAgentAction,
       async onActionResult(result, page, renderHint) {
         await options.onActionResult?.(result, page, renderHint);
+        const navigateTo = actionResultNavigateToV010(result);
+        if (navigateTo && state.workspaceTarget !== navigateTo) {
+          await navigateWorkspace(navigateTo);
+          return;
+        }
         if (
           result !== null
           && typeof result === "object"
@@ -580,7 +680,8 @@ export async function mountWorkbenchShell(
       return;
     }
     if (surface?.resolution.kind === "ROUTE") {
-      resolvedPath = surface.resolution.route.path;
+      resolvedPath =
+        surface.resolution.route.path + routeQuerySuffix(path);
       applyActiveSurface(
         surface.resolution.surfaceId,
         surface.resolution.target
@@ -616,8 +717,14 @@ export async function mountWorkbenchShell(
       actionHost: options.actionHost,
       localization,
       onNavigate: navigateWorkspace,
+      onAgentAction: handleContextualAgentAction,
       async onActionResult(result, page, renderHint) {
         await options.onActionResult?.(result, page, renderHint);
+        const navigateTo = actionResultNavigateToV010(result);
+        if (navigateTo && state.workspaceTarget !== navigateTo) {
+          await navigateWorkspace(navigateTo);
+          return;
+        }
         if (
           result !== null
           && typeof result === "object"
@@ -642,11 +749,13 @@ export async function mountWorkbenchShell(
 
     if (normalized.startsWith("/")) {
       workspaceMode = "app";
+      root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       const surface = resolveSurface(normalized);
       let resolvedTarget = normalized;
 
       if (surface?.resolution.kind === "ROUTE") {
-        resolvedTarget = surface.resolution.route.path;
+        resolvedTarget =
+          surface.resolution.route.path + routeQuerySuffix(normalized);
         applyActiveSurface(
           surface.resolution.surfaceId,
           surface.resolution.target
@@ -654,7 +763,6 @@ export async function mountWorkbenchShell(
       }
 
       state.workspaceTarget = resolvedTarget;
-      browserAddress.value = resolvedTarget;
       if (
         surface?.resolution.kind !== "HANDOFF"
         && currentHashPath() !== resolvedTarget
@@ -679,8 +787,8 @@ export async function mountWorkbenchShell(
 
     if (isExternalUrl(normalized)) {
       workspaceMode = "web";
+      root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       state.workspaceTarget = normalized;
-      browserAddress.value = normalized;
       persist();
       renderWeb(normalized);
       root.setAttribute("data-mobile-surface", "workspace");
@@ -714,7 +822,10 @@ export async function mountWorkbenchShell(
       const icon = document.createElement("span");
       icon.setAttribute("data-eidos-activity-icon", "");
       setIconContent(icon, activity.icon, activity.icon, 22);
-      button.appendChild(icon);
+      const label = document.createElement("span");
+      label.setAttribute("data-eidos-activity-label", "");
+      label.textContent = activityTitle;
+      button.append(icon, label);
 
       button.addEventListener("click", () => { void setActivity(activity.id); });
       const target = activity.placement === "secondary" ? activityBottom : activityTop;
@@ -827,18 +938,6 @@ export async function mountWorkbenchShell(
     await renderSidePanel();
   }
 
-  browserGo.addEventListener("click", () => { void navigateWorkspace(browserAddress.value); });
-  browserAddress.addEventListener("keydown", event => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      void navigateWorkspace(browserAddress.value);
-    }
-  });
-  browserExternal.addEventListener("click", () => {
-    if (workspaceMode === "web" && isExternalUrl(state.workspaceTarget)) {
-      window.open(state.workspaceTarget, "_blank", "noopener,noreferrer");
-    }
-  });
   sideToggle.addEventListener("click", () => { void toggleSidePanel(); });
 
   let dragStartX = 0;
@@ -899,7 +998,21 @@ export async function mountWorkbenchShell(
 
   const hashHandler = () => {
     const path = currentHashPath();
-    if (path && path !== state.workspaceTarget) void navigateWorkspace(path);
+    if (path) {
+      if (path !== state.workspaceTarget) void navigateWorkspace(path);
+      return;
+    }
+
+    const fallback = options.initialWorkspaceRoute?.trim() || "/";
+    const fallbackHash = "#" + fallback;
+    if (window.location.hash !== fallbackHash) {
+      window.history.replaceState(window.history.state, "", fallbackHash);
+    }
+    if (state.workspaceTarget === fallback) {
+      void renderInternalWorkspace(fallback);
+      return;
+    }
+    void navigateWorkspace(fallback);
   };
   const keyboardHandler = (event: KeyboardEvent) => {
     const modifier = event.metaKey || event.ctrlKey;
@@ -907,15 +1020,6 @@ export async function mountWorkbenchShell(
       event.preventDefault();
       void toggleSidePanel();
       return;
-    }
-    if (modifier && event.key.toLowerCase() === "l") {
-      event.preventDefault();
-      browserAddress.focus();
-      browserAddress.select();
-      return;
-    }
-    if (event.key === "Escape" && document.activeElement === browserAddress) {
-      browserAddress.blur();
     }
   };
   window.addEventListener("keydown", keyboardHandler);
@@ -934,7 +1038,8 @@ export async function mountWorkbenchShell(
     if (workspaceMode === "app") {
       const routed = resolveSurface(state.workspaceTarget);
       if (routed?.resolution.kind === "ROUTE") {
-        const resolvedPath = routed.resolution.route.path;
+        const resolvedPath =
+          routed.resolution.route.path + routeQuerySuffix(state.workspaceTarget);
         applyActiveSurface(
           routed.resolution.surfaceId,
           routed.resolution.target
@@ -961,8 +1066,6 @@ export async function mountWorkbenchShell(
         persist();
       }
     }
-
-    browserAddress.value = state.workspaceTarget;
     await renderSidePanel();
     if (workspaceMode === "app") {
       await renderInternalWorkspace(state.workspaceTarget);
@@ -1047,6 +1150,9 @@ export async function mountWorkbenchShell(
     workspaceMount?.dispose();
     unsubscribeHost();
     unsubscribeLocale?.();
+    if (typeof disposeGlobalControls === "function") {
+      disposeGlobalControls();
+    }
     window.removeEventListener("hashchange", hashHandler);
     window.removeEventListener("keydown", keyboardHandler);
     window.removeEventListener("pointermove", move);
@@ -1056,14 +1162,6 @@ export async function mountWorkbenchShell(
 
   function updateChromeLabels(): void {
     localeLabel.textContent = hostText("shell.language", "Language");
-    browserAddress.setAttribute("aria-label", hostText("shell.browserAddress", "Workspace address"));
-    setIconButton(browserGo, "arrow-right", hostText("shell.browserGo", "Open"), 18);
-    setIconButton(
-      browserExternal,
-      "external-link",
-      hostText("shell.browserOpenExternal", "Open externally"),
-      18
-    );
   }
 
   updateChromeLabels();

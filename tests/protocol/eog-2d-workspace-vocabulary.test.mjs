@@ -6,7 +6,7 @@ test("EOG shared 2D code and both application siblings use neutral Workspace sur
   const files = [
     "eog/diagram-projection.ts",
     "eog/2d-inspector-editors.ts",
-    "apps/eog-2d-viewer/desktop-page.ts",
+    "apps/eog-2d-viewer/workspace-page.ts",
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));
@@ -16,4 +16,17 @@ test("EOG shared 2D code and both application siblings use neutral Workspace sur
     assert.equal(source.includes("DiagramEditorStateV010"), false);
     assert.equal(source.includes("DiagramWorkspace"), true);
   }
+});
+
+
+test("Viewer and Designer serialize as the same neutral Workspace kind", async () => {
+  const [viewer, designer] = await Promise.all([
+    readFile("apps/eog-2d-viewer/workspace-page.ts", "utf8"),
+    readFile("apps/eog-2d-designer/enterprise-operating-graph-page.ts", "utf8")
+  ]);
+
+  assert.equal(viewer.includes('kind: "diagram-workspace"'), true);
+  assert.equal(designer.includes('kind: "diagram-workspace"'), true);
+  assert.equal(viewer.includes("operationCommand"), false);
+  assert.equal(designer.includes("operationCommand"), true);
 });

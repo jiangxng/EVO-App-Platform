@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyWebRevisionHeadersV010,
   normalizeClientRevisionV010,
   webRevisionHeadersV010
 } from "../../dist/manager/web-version-skew.js";
@@ -9,6 +10,9 @@ import {
   createWebPerformanceStoreV010,
   validateWebPerformanceSampleV010
 } from "../../dist/manager/web-performance.js";
+import {
+  currentRevisionNavigationUrlV010
+} from "../../dist/manager/browser-version-notice.js";
 
 test("web revision contract detects stale immutable clients without rejecting compatibility", () => {
   assert.equal(normalizeClientRevisionV010("abc-123"), "abc-123");
@@ -68,4 +72,42 @@ test("web performance samples are bounded, non-authoritative diagnostics", () =>
   assert.equal(diagnostics.duplicateSamples, 1);
   assert.equal(diagnostics.bySurface.MOBILE_READ, 1);
   assert.equal(diagnostics.recent[0].clientRevision, "client-1");
+});
+
+test("stale-client update navigation forces a new shell URL while preserving route", () => {
+  const next = new URL(currentRevisionNavigationUrlV010(
+    "https://example.test/?surface=MOBILE_READ#/enterprise-contexts/overview",
+    "host-revision-2"
+  ));
+
+  assert.equal(next.searchParams.get("surface"), "MOBILE_READ");
+  assert.equal(next.searchParams.get("evo-web-revision"), "host-revision-2");
+  assert.equal(next.hash, "#/enterprise-contexts/overview");
+
+  const updatedAgain = new URL(currentRevisionNavigationUrlV010(
+    next.toString(),
+    "host-revision-3"
+  ));
+  assert.equal(updatedAgain.searchParams.getAll("evo-web-revision").length, 1);
+  assert.equal(updatedAgain.searchParams.get("evo-web-revision"), "host-revision-3");
+});
+
+test("web revision headers explicitly clear stale cached update state", () => {
+  const headers = new Map();
+  applyWebRevisionHeadersV010(
+    (name, value) => headers.set(name.toLowerCase(), value),
+    "host-2",
+    "host-2"
+  );
+
+  assert.equal(headers.get("x-evo-host-revision"), "host-2");
+  assert.equal(headers.get("x-evo-client-update"), "current");
+  assert.equal(headers.get("vary"), "x-evo-client-revision");
+
+  applyWebRevisionHeadersV010(
+    (name, value) => headers.set(name.toLowerCase(), value),
+    "host-2",
+    "host-1"
+  );
+  assert.equal(headers.get("x-evo-client-update"), "available");
 });

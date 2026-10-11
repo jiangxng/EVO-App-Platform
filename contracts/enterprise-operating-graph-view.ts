@@ -36,6 +36,8 @@ export interface EnterpriseOperatingGraphViewStateV010 {
   kind: EnterpriseOperatingGraphViewKindV010;
   revision: number;
   placements: EogViewNodePlacementV010[];
+  hiddenNodeIds?: string[];
+  hiddenEdgeIds?: string[];
   camera?: EogViewCameraV010;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +47,22 @@ export type EnterpriseOperatingGraphViewMutationV010 =
   | {
       type: "NODE_POSITION_SET";
       placement: EogViewNodePlacementV010;
+    }
+  | {
+      type: "PROJECTION_ITEM_VISIBILITY_SET";
+      target: {
+        kind: "NODE" | "EDGE";
+        id: string;
+      };
+      visible: boolean;
+    }
+  | {
+      type: "PROJECTION_VISIBILITY_RESET";
+    }
+  | {
+      type: "PROJECTION_VISIBILITY_REPLACE";
+      hiddenNodeIds: string[];
+      hiddenEdgeIds: string[];
     }
   | {
       type: "CAMERA_SET";

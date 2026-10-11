@@ -1,1 +1,1 @@
-export * from "../apps/eog-2d-viewer/agent-tools.js";
+export * from "../apps/enterprise-observatory/agent-tools.js";

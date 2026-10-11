@@ -1,9 +1,13 @@
 # Enterprise Context Governance Experience Plugin v0.1
 
-**Status:** Implementation baseline  
+**Status:** Implementation baseline subordinate to the canonical Resource Container design  
 **Date:** 2026-10-01  
 **Scope:** Enterprise Context creation product flow  
 **Architecture:** Provider data plane + Application Experience plugin + independent authorization
+
+## 0. Authority
+
+This document describes the governance Experience implementation only. It MUST conform to `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`, which is the sole conceptual authority for Enterprise Context.
 
 ## 1. Decision
 

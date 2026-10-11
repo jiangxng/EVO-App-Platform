@@ -12,8 +12,43 @@ import type {
   SecretDescriptorV010,
   SecretReferenceV010
 } from "../contracts/platform-services.js";
+import { ENTERPRISE_CONTEXT_DIRECTORY_ROUTE } from "../apps/enterprise-context-governance/constants.js";
+import { LEDGER_MANAGER_ROUTE } from "../apps/ledger-manager/constants.js";
+import { TEMPLATE_STORE_ROUTE } from "../apps/template-store/package.js";
 
 export const settingsIndexPageSource = "app://evo-app-platform/pages/settings";
+
+export type SettingsNavigationGroupV010 =
+  | "business"
+  | "applications"
+  | "ai"
+  | "system";
+
+export function settingsGroupPageSource(
+  group: SettingsNavigationGroupV010
+): string {
+  return `app://evo-app-platform/pages/settings-group/${group}`;
+}
+
+export function settingsGroupRoute(
+  group: SettingsNavigationGroupV010
+): string {
+  return `/settings/${group}`;
+}
+
+export function settingsGroupFromPageSource(
+  source: string
+): SettingsNavigationGroupV010 | undefined {
+  const prefix = "app://evo-app-platform/pages/settings-group/";
+  if (!source.startsWith(prefix)) return undefined;
+  const group = source.slice(prefix.length);
+  return group === "business"
+    || group === "applications"
+    || group === "ai"
+    || group === "system"
+    ? group
+    : undefined;
+}
 
 export interface SettingsSecretScopeContextV010 {
   installationId: string;
@@ -179,6 +214,12 @@ function installedConfigurablePackages(manager: AppManagerService): PackageManif
 
 export function createSettingsExperienceManifest(manager: AppManagerService) {
   const packages = installedConfigurablePackages(manager);
+  const groups: SettingsNavigationGroupV010[] = [
+    "business",
+    "applications",
+    "ai",
+    "system"
+  ];
 
   return {
     contractVersion: "0.1.0",
@@ -192,6 +233,11 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         title: "Settings",
         source: settingsIndexPageSource
       },
+      ...groups.map(group => ({
+        id: `evo-settings.group.${group}`,
+        title: group,
+        source: settingsGroupPageSource(group)
+      })),
       ...packages.map(pkg => ({
         id: `evo-settings.${pkg.packageId}`,
         title: pkg.displayName,
@@ -204,6 +250,11 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
         path: "/settings",
         pageId: "evo-settings.home"
       },
+      ...groups.map(group => ({
+        id: `evo-settings.group.${group}`,
+        path: settingsGroupRoute(group),
+        pageId: `evo-settings.group.${group}`
+      })),
       ...packages.map(pkg => ({
         id: `evo-settings.${pkg.packageId}`,
         path: settingsPackageRoute(pkg.packageId),
@@ -213,47 +264,200 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
   } as const;
 }
 
+function navigationLocale(locale: string) {
+  const zh = settingsUiLocale(locale) === "zh-CN";
+  return {
+    settings: zh ? "设置" : "Settings",
+    description: zh
+      ? "低频管理和系统配置按职责分组；日常工作保持在工作区。"
+      : "Low-frequency administration and system configuration are grouped by responsibility; daily work stays in the workspace.",
+    open: zh ? "打开" : "Open",
+    business: zh ? "业务管理" : "Business administration",
+    businessSummary: zh
+      ? "管理企业结构、账本和业务定义。"
+      : "Manage enterprise structure, ledgers and business definitions.",
+    applications: zh ? "应用与扩展" : "Applications & extensions",
+    applicationsSummary: zh
+      ? "管理插件、扩展和企业模板。"
+      : "Manage plugins, extensions and enterprise templates.",
+    ai: zh ? "AI 与知识" : "AI & knowledge",
+    aiSummary: zh
+      ? "管理 Memory 和后续知识/AI 基础能力。"
+      : "Manage Memory and future knowledge/AI foundations.",
+    system: zh ? "系统" : "System",
+    systemSummary: zh
+      ? "管理 Provider、凭据和已安装组件的高级配置。"
+      : "Manage Providers, credentials and advanced installed-component configuration.",
+    enterprise: zh ? "企业" : "Enterprise",
+    enterpriseSummary: zh
+      ? "企业信息、成员、组织和企业定义。"
+      : "Enterprise information, members, organization and definitions.",
+    ledger: zh ? "账本管理" : "Ledger management",
+    ledgerSummary: zh
+      ? "管理账本定义及相关业务配置。"
+      : "Manage ledger definitions and related business configuration.",
+    plugins: zh ? "插件" : "Plugins",
+    pluginsSummary: zh
+      ? "安装、启用、停用和管理扩展。"
+      : "Install, enable, disable and manage extensions.",
+    templates: zh ? "模板商店" : "Template Store",
+    templatesSummary: zh
+      ? "浏览企业模板并复制到当前企业。"
+      : "Browse enterprise templates and copy them into the current enterprise.",
+    memory: zh ? "Memory" : "Memory",
+    memorySummary: zh
+      ? "管理上下文 Memory、保留策略和质量。"
+      : "Govern contextual Memory, retention and quality.",
+    providers: zh ? "Provider 绑定" : "Provider bindings",
+    providersSummary: zh
+      ? "管理平台能力对应的 Provider 和作用域。"
+      : "Manage Provider selection and scope for platform capabilities.",
+    configure: zh ? "配置" : "Configure"
+  };
+}
+
 export function createSettingsIndexPage(
-  manager: AppManagerService
+  _manager: AppManagerService,
+  locale = "en"
 ): CatalogBrowserV010 {
-  const packages = installedConfigurablePackages(manager);
+  const ui = navigationLocale(locale);
+  const groups: Array<{
+    id: SettingsNavigationGroupV010;
+    title: string;
+    summary: string;
+  }> = [
+    { id: "business", title: ui.business, summary: ui.businessSummary },
+    { id: "applications", title: ui.applications, summary: ui.applicationsSummary },
+    { id: "ai", title: ui.ai, summary: ui.aiSummary },
+    { id: "system", title: ui.system, summary: ui.systemSummary }
+  ];
 
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo.settings",
-    title: "Settings",
-    description: "Configure installed plugins and Provider credentials through Host-owned settings and Secret boundaries.",
-    emptyMessage: "No installed plugins expose configurable settings or credentials.",
-    items: [
-      {
-        id: "provider-bindings",
-        title: "Provider Bindings",
-        category: "PLATFORM",
-        summary: "Manage deterministic Provider selection by capability and scope.",
-        primaryAction: {
-          id: "configure",
-          label: "Configure",
-          type: "navigate",
-          route: "/providers"
+    title: ui.settings,
+    description: ui.description,
+    emptyMessage: "",
+    items: groups.map(group => ({
+      id: group.id,
+      title: group.title,
+      category: "SETTINGS_GROUP",
+      summary: group.summary,
+      primaryAction: {
+        id: "open",
+        label: ui.open,
+        type: "navigate" as const,
+        route: settingsGroupRoute(group.id)
+      }
+    }))
+  };
+}
+
+export function createSettingsGroupPage(
+  manager: AppManagerService,
+  group: SettingsNavigationGroupV010,
+  locale = "en"
+): CatalogBrowserV010 {
+  const ui = navigationLocale(locale);
+  const packages = installedConfigurablePackages(manager);
+
+  const items = group === "business"
+    ? [
+        {
+          id: "enterprise",
+          title: ui.enterprise,
+          category: ui.business,
+          summary: ui.enterpriseSummary,
+          route: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE
+        },
+        {
+          id: "ledger",
+          title: ui.ledger,
+          category: ui.business,
+          summary: ui.ledgerSummary,
+          route: LEDGER_MANAGER_ROUTE
         }
-      },
-      ...packages.map(pkg => ({
-        id: pkg.packageId,
-        title: pkg.displayName,
-        version: pkg.version,
-        category: pkg.type,
-        summary: (pkg.secrets?.length ?? 0) > 0
-          ? "Plugin settings and Host-managed credentials"
-          : "Standard plugin settings",
-        primaryAction: {
-          id: "configure",
-          label: "Configure",
-          type: "navigate" as const,
-          route: settingsPackageRoute(pkg.packageId)
-        }
-      }))
-    ]
+      ]
+    : group === "applications"
+      ? [
+          {
+            id: "plugins",
+            title: ui.plugins,
+            category: ui.applications,
+            summary: ui.pluginsSummary,
+            route: "/store"
+          },
+          {
+            id: "templates",
+            title: ui.templates,
+            category: ui.applications,
+            summary: ui.templatesSummary,
+            route: TEMPLATE_STORE_ROUTE
+          }
+        ]
+      : group === "ai"
+        ? [
+            {
+              id: "memory",
+              title: ui.memory,
+              category: ui.ai,
+              summary: ui.memorySummary,
+              route: "/memory"
+            }
+          ]
+        : [
+            {
+              id: "provider-bindings",
+              title: ui.providers,
+              category: ui.system,
+              summary: ui.providersSummary,
+              route: "/providers"
+            },
+            ...packages.map(pkg => ({
+              id: pkg.packageId,
+              title: pkg.displayName,
+              category: ui.system,
+              summary: (pkg.secrets?.length ?? 0) > 0
+                ? "Plugin settings and Host-managed credentials"
+                : "Standard plugin settings",
+              route: settingsPackageRoute(pkg.packageId)
+            }))
+          ];
+
+  const groupTitle = group === "business"
+    ? ui.business
+    : group === "applications"
+      ? ui.applications
+      : group === "ai"
+        ? ui.ai
+        : ui.system;
+
+  return {
+    contractVersion: "0.1.0",
+    kind: "catalog-browser",
+    id: `evo.settings.${group}`,
+    title: groupTitle,
+    description: group === "business"
+      ? ui.businessSummary
+      : group === "applications"
+        ? ui.applicationsSummary
+        : group === "ai"
+          ? ui.aiSummary
+          : ui.systemSummary,
+    emptyMessage: "",
+    items: items.map(item => ({
+      id: item.id,
+      title: item.title,
+      category: item.category,
+      summary: item.summary,
+      primaryAction: {
+        id: "open",
+        label: group === "system" ? ui.configure : ui.open,
+        type: "navigate" as const,
+        route: item.route
+      }
+    }))
   };
 }
 

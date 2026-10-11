@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
-  "updatedAt": "2026-10-02",
+  "updatedAt": "2026-10-03",
   "status": "SOP_DEFERRED_RUNTIME_BINDING_ACTIVE",
   "prerequisites": {
     "eogThreePluginPhysicalBoundary": "CLOSED",
@@ -63,7 +63,7 @@
       "providerId": "evo.application-runtime-binding",
       "capability": "enterprise.application-runtime-binding",
       "publicContract": "contracts/enterprise-application-runtime-binding.ts",
-      "defaultActivation": false,
+      "defaultActivation": true,
       "implementation": {
         "runtime": "providers/application-runtime-binding/runtime.ts",
         "store": "providers/application-runtime-binding/store.ts",
@@ -72,7 +72,7 @@
           "manager/enterprise-operating-graph-application-runtime-store.ts",
           "contracts/enterprise-operating-graph-application-runtime.ts"
         ],
-        "activation": "PACKAGE_DESCRIPTOR_GATED_PROVIDER_RESOLUTION",
+        "activation": "PACKAGE_INSTALL_GATED_PROVIDER_RESOLUTION",
         "next": "ANALYSIS_PROVIDER_CONTRACT_AUDIT",
         "migrationActivation": [
           "persisted-binding-snapshot-present",

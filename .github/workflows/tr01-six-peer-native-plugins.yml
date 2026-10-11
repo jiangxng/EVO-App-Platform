@@ -1,0 +1,43 @@
+name: TR01 Six Peer Application Packages
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-stage/**"
+      - "apps/trading-stage-purchasing/**"
+      - "apps/trading-stage-receiving/**"
+      - "apps/trading-stage-sales/**"
+      - "apps/trading-stage-shipment/**"
+      - "apps/trading-stage-receivable/**"
+      - "apps/trading-stage-cash/**"
+      - "tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs"
+      - ".github/workflows/tr01-six-peer-native-plugins.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  six-peer-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Six independent native packages with Eidos lifecycle
+        run: node --test tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs
+      - name: Zero Host and Catalog core edits
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --exit-code "origin/${{ github.base_ref }}...HEAD" -- manager/server.ts catalog/seed.ts contracts/package.ts
+      - name: Eidos design and Experience validation
+        run: |
+          node tools/eidos-design-language-validate.mjs
+          node tools/eidos-experience-architecture-validate.mjs

@@ -2,24 +2,30 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("3D Viewer spatial implementation is physically package-owned", async () => {
-  const source = await readFile("apps/eog-3d-viewer/spatial-page.ts", "utf8");
-  assert.equal(source.includes("vendor/eidos/src/3d/index.js"), true);
-  assert.equal(
-    source.includes("contracts/enterprise-operating-graph-read.js"),
-    true
-  );
-  assert.equal(
-    source.includes("contracts/enterprise-operating-graph-view-state.js"),
-    true
-  );
-  assert.equal(source.includes("eog/observatory-input.js"), true);
-  assert.equal(source.includes("eog-2d-designer"), false);
-  assert.equal(source.includes("eog-2d-viewer"), false);
+test("3D Viewer owns a neutral Spatial Workspace implementation", async () => {
+  const source = await readFile("apps/eog-3d/workspace-page.ts", "utf8");
+  assert.equal(source.includes("SpatialWorkspacePageV010"), true);
+  assert.equal(source.includes('kind: "spatial-workspace"'), true);
+  assert.equal(source.includes("projectEnterpriseOperatingGraphSpatialBaseV010"), true);
+  assert.equal(source.includes("ObservatoryProviderResolver"), false);
+  assert.equal(source.includes("eog/observatory-input.js"), false);
+});
 
-  const wrapper = await readFile(
-    "manager/enterprise-operating-graph-spatial-observatory-page.ts",
+test("Spatial Observatory is physically peer-owned with compatibility wrappers", async () => {
+  const peer = await readFile(
+    "apps/enterprise-observatory/spatial-page.ts",
     "utf8"
   );
-  assert.equal(wrapper.trim().startsWith("export * from"), true);
+  assert.equal(peer.includes("ENTERPRISE_OBSERVATORY_PACKAGE_ID"), true);
+  assert.equal(peer.includes("projectEnterpriseOperatingGraphSpatialBaseV010"), true);
+  assert.equal(peer.includes("eog/observatory-input.js"), true);
+
+  const wrapper = await readFile(
+    "apps/eog-3d-viewer/spatial-page.ts",
+    "utf8"
+  );
+  assert.equal(
+    wrapper.trim(),
+    'export * from "../enterprise-observatory/spatial-page.js";'
+  );
 });

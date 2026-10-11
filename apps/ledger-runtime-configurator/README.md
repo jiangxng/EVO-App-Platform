@@ -5,6 +5,8 @@
 
 The Configurator is the development/configuration tool for EVO Ledger Runtime.
 
+It is **not** a separate product authority for Enterprise Templates or enterprise software version management.
+
 Mental model:
 
 ```text
@@ -156,3 +158,40 @@ requires the platform identity, delegation, authorization and protocol layers.
 
 See:
 `docs/architecture/LEDGER-RUNTIME-CONFIGURATION-CAPABILITY-OPERATIONS-EA2B-v0.1.md`.
+
+
+## Product ownership boundary
+
+The platform uses two existing ownership domains; this Configurator does not introduce a third product plugin.
+
+### Ledger Runtime owns
+
+- Runtime Spec / executable rule contract;
+- source-expression compilation and runtime compatibility validation;
+- deterministic Posting/Ledger execution;
+- runtime-side validation/loading of an Enterprise Context-selected compatible version.
+
+### Enterprise Context owns
+
+- Default Enterprise Template;
+- Enterprise Template Catalog;
+- Working Draft;
+- immutable Enterprise Template Versions;
+- diff/version history;
+- administrator version selection / activation governance;
+- Enterprise Graph Definition.
+
+The current `default-library.ts` bookkeeping import is retained as migration/reference/compiler evidence. It must not become the long-term product authority for the Default Enterprise Template.
+
+Long-term convergence:
+
+```text
+ledger-runtime-configurator source/default evidence
+        ↓ compile / validate
+Ledger Runtime contracts
+
+product Default Enterprise Template + version lifecycle
+        → Enterprise Context
+```
+
+No Template Plugin or Version Plugin should be created for these responsibilities.

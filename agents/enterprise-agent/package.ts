@@ -13,6 +13,10 @@ export const ENTERPRISE_AGENT_MOBILE_FOLLOW_UP_PAGE_SOURCE = "app://enterprise-a
 
 const enMessages = {
   "workbench.activity.label": "Personal Agent",
+  "workbench.home.my-work.title": "My Work",
+  "workbench.home.my-work.description": "Open Personal Agent follow-ups and governed review work.",
+  "workbench.home.agent.title": "Personal Agent",
+  "workbench.home.agent.description": "Reason, search and operate through the same Host-governed capabilities.",
   "review.personal-agent.memory-review.title": "Memory review",
   "review.personal-agent.memory-review.description": "Decide which proposed knowledge should become durable Memory. Review signals are suggestions only; you remain in control of every decision.",
   "review.personal-agent.memory-review.empty": "No Memory proposals need review.",
@@ -137,6 +141,10 @@ const enMessages = {
 
 const zhCnMessages = {
   "workbench.activity.label": "个人代理",
+  "workbench.home.my-work.title": "我的工作",
+  "workbench.home.my-work.description": "查看个人代理后续事项和需要你处理的受治理审核工作。",
+  "workbench.home.agent.title": "个人代理",
+  "workbench.home.agent.description": "通过同一套 Host 受治理能力进行分析、查询和操作。",
   "review.personal-agent.memory-review.title": "记忆审核",
   "review.personal-agent.memory-review.description": "决定哪些候选知识值得成为长期记忆。审核提示只是建议，每一次接受或拒绝都由你决定。",
   "review.personal-agent.memory-review.empty": "当前没有需要审核的记忆提案。",
@@ -261,6 +269,10 @@ const zhCnMessages = {
 
 const jaMessages = {
   "workbench.activity.label": "パーソナルエージェント",
+  "workbench.home.my-work.title": "マイワーク",
+  "workbench.home.my-work.description": "フォローアップと管理対象のレビュー作業を開きます。",
+  "workbench.home.agent.title": "パーソナルエージェント",
+  "workbench.home.agent.description": "同じ Host 管理下の機能を通じて分析・検索・操作します。",
   "review.personal-agent.memory-review.title": "メモリーレビュー",
   "review.personal-agent.memory-review.description": "どの候補知識を長期メモリーとして残すかを判断します。レビューシグナルは提案にすぎず、承認・却下は常にあなたが決めます。",
   "review.personal-agent.memory-review.empty": "レビューが必要なメモリー提案はありません。",
@@ -385,6 +397,10 @@ const jaMessages = {
 
 const zhTwMessages = {
   "workbench.activity.label": "個人代理",
+  "workbench.home.my-work.title": "我的工作",
+  "workbench.home.my-work.description": "查看個人代理後續事項與受治理的審核工作。",
+  "workbench.home.agent.title": "個人代理",
+  "workbench.home.agent.description": "透過同一套 Host 治理能力進行分析、查詢與操作。",
   "review.personal-agent.memory-review.title": "記憶審核",
   "review.personal-agent.memory-review.description": "決定哪些候選知識值得成為長期記憶。審核提示只是建議，每一次接受或拒絕都由你決定。",
   "review.personal-agent.memory-review.empty": "目前沒有需要審核的記憶提案。",
@@ -689,6 +705,40 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
             localization: {
               namespace: ENTERPRISE_AGENT_PACKAGE_ID,
               key: "workbench.activity.label"
+            }
+          }
+        },
+        {
+          kind: "eidos.workbench-home-item",
+          item: {
+            contractVersion: "0.1.0",
+            id: "enterprise-agent.workbench.my-work",
+            title: "My Work",
+            description: "Open Personal Agent follow-ups and governed review work.",
+            section: "MY_WORK",
+            route: "/enterprise-agent/follow-ups",
+            order: 10,
+            localization: {
+              namespace: ENTERPRISE_AGENT_PACKAGE_ID,
+              titleKey: "workbench.home.my-work.title",
+              descriptionKey: "workbench.home.my-work.description"
+            }
+          }
+        },
+        {
+          kind: "eidos.workbench-home-item",
+          item: {
+            contractVersion: "0.1.0",
+            id: "enterprise-agent.workbench.agent",
+            title: "Personal Agent",
+            description: "Reason, search and operate through the same Host-governed capabilities.",
+            section: "PERSONAL_AGENT",
+            route: "/enterprise-agent",
+            order: 90,
+            localization: {
+              namespace: ENTERPRISE_AGENT_PACKAGE_ID,
+              titleKey: "workbench.home.agent.title",
+              descriptionKey: "workbench.home.agent.description"
             }
           }
         },

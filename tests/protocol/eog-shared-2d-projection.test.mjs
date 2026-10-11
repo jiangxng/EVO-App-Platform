@@ -183,3 +183,30 @@ test("Viewer base projection never gains an editor unless an explicit binding is
     false
   );
 });
+
+
+test("projection clipping hides nodes and automatically suppresses connected edges", () => {
+  const clipped = projectEnterpriseOperatingGraphDiagramBaseV010({
+    graph,
+    view: {
+      ...view,
+      hiddenNodeIds: ["ledger:1"],
+      hiddenEdgeIds: []
+    },
+    readOnly: false
+  });
+  assert.deepEqual(clipped.nodes.map(node => node.id), ["app:1"]);
+  assert.equal(clipped.edges.length, 0);
+
+  const edgeOnly = projectEnterpriseOperatingGraphDiagramBaseV010({
+    graph,
+    view: {
+      ...view,
+      hiddenNodeIds: [],
+      hiddenEdgeIds: ["guidance-edge:guidance:1"]
+    },
+    readOnly: false
+  });
+  assert.equal(edgeOnly.nodes.length, 2);
+  assert.equal(edgeOnly.edges.length, 0);
+});

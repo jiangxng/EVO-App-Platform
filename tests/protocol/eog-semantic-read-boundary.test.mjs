@@ -5,13 +5,14 @@ import { readFile } from "node:fs/promises";
 test("Viewer-side EOG code depends on the public semantic read contract", async () => {
   const files = [
     "apps/eog-3d-viewer/agent-tools.ts",
+    "apps/eog-3d/workspace-page.ts",
     "manager/enterprise-operating-graph-observatory.ts",
     "manager/enterprise-operating-graph-observatory-provider.ts",
-    "apps/eog-2d-viewer/observatory-actions.ts",
-    "apps/eog-2d-viewer/agent-tools.ts",
-    "apps/eog-2d-viewer/desktop-page.ts",
-    "apps/eog-2d-viewer/mobile-read-page.ts",
-    "apps/eog-3d-viewer/spatial-page.ts"
+    "apps/enterprise-observatory/observatory-actions.ts",
+    "apps/enterprise-observatory/agent-tools.ts",
+    "apps/enterprise-observatory/desktop-page.ts",
+    "apps/enterprise-observatory/mobile-read-page.ts",
+    "apps/enterprise-observatory/spatial-page.ts"
   ];
   const contents = await Promise.all(files.map(path => readFile(path, "utf8")));
 

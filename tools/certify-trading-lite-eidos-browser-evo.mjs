@@ -205,13 +205,21 @@ try {
   let actionResponse;
   const responseBodies = new Map();
 
+  const isActionUrl = value => {
+    try {
+      return new URL(value).origin === host
+        && new URL(value).pathname === "/v1/actions";
+    } catch {
+      return false;
+    }
+  };
   client.on("Network.requestWillBeSent", params => {
-    if (params.request?.url === host + "/v1/actions") {
+    if (params.request?.url && isActionUrl(params.request.url)) {
       actionRequest = params;
     }
   });
   client.on("Network.responseReceived", params => {
-    if (params.response?.url === host + "/v1/actions") {
+    if (params.response?.url && isActionUrl(params.response.url)) {
       actionResponse = params;
     }
   });

@@ -5,6 +5,8 @@
 **World model:** Human → Personal Agent → Personal / Enterprise Context  
 **Scope:** request-bound Session, Enterprise Context creation, OWNER relationship, initial access Grant, lifecycle and first Material WRITE authorization
 
+> Product semantics are subordinate to `ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`. This document remains authoritative only for the creation/ownership/security protocol slice.
+
 ## 1. Core rule
 
 Enterprise Context is a governed platform object, not an Agent.

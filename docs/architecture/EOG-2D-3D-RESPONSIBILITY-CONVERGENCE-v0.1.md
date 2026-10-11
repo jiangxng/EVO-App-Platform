@@ -472,3 +472,44 @@ Designer = same shared interaction baseline + governed semantic editing
 The two packages MUST share Eidos 2D interaction primitives and package-neutral EOG 2D projection/inspector models rather than duplicating canvas and property-inspector behavior.
 
 The Viewer may inspect node and edge properties, navigate, drill down, filter and interact with overlays. Its prohibition is on Enterprise Graph semantic mutation, not on interaction.
+
+
+## 23. 2D package convergence
+
+The previous physical split into separate EOG 2D Viewer and EOG 2D Designer
+packages is superseded by one installable `evo-eog-2d` Package with two
+Feature profiles:
+
+- `evo-eog-2d.viewer`
+- `evo-eog-2d.designer`
+
+Designer requires Viewer and adds governed semantic mutation. Viewer remains
+fully interactive for selection, node/edge inspection, navigation and
+presentation interaction.
+
+Authority: `docs/architecture/EOG-2D-PACKAGE-CONVERGENCE-v0.1.md`.
+
+
+## 24. Final package convergence
+
+The migration-era three-package model is superseded by:
+
+```text
+evo-eog-2d
+├─ viewer
+└─ designer
+
+evo-eog-3d
+└─ viewer
+
+evo-enterprise-observatory
+├─ 2d
+└─ 3d
+```
+
+2D Viewer and Designer share one interactive Workspace family. EOG 3D Viewer
+uses the neutral Eidos Spatial Workspace. Runtime Fact / Analysis experiences
+belong to the peer Enterprise Observatory package in both dimensions.
+
+Compatibility module paths and observe routes may remain while callers migrate;
+they do not imply ownership.

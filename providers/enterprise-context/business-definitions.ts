@@ -6,6 +6,9 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname } from "node:path";
+import {
+  assertTemplateProjectionGalleryV010
+} from "../../contracts/template-projection-gallery.js";
 import type {
   BusinessDefinitionAttributionV010,
   BusinessDefinitionRepositoryMigrationV010,
@@ -96,15 +99,33 @@ function validateRevision(
       "BUSINESS_DEFINITION_RECORDED_AT_INVALID"
     ),
     recordedBy: validateActor(value.recordedBy),
+    ...(value.projectionGallery
+      ? {
+          projectionGallery: assertTemplateProjectionGalleryV010(
+            value.projectionGallery
+          )
+        }
+      : {}),
     origin: {
       type:
-        value.origin?.type === "MIGRATED" ? "MIGRATED" : "NATIVE",
+        value.origin?.type === "MIGRATED"
+          ? "MIGRATED"
+          : value.origin?.type === "TEMPLATE_COPY"
+            ? "TEMPLATE_COPY"
+            : "NATIVE",
       ...(value.origin?.sourceRef?.trim()
         ? { sourceRef: value.origin.sourceRef.trim() }
         : {}),
       historyComplete: value.origin?.historyComplete === true
     }
   };
+
+  if (
+    revision.origin.type === "TEMPLATE_COPY"
+    && !revision.origin.sourceRef?.trim()
+  ) {
+    throw new Error("BUSINESS_DEFINITION_TEMPLATE_COPY_SOURCE_REQUIRED");
+  }
 
   if (revision.state === "PUBLISHED") {
     if (
@@ -235,13 +256,29 @@ function createRepository(
         state: "DRAFT",
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        ...(input.projectionGallery
+          ? {
+              projectionGallery: assertTemplateProjectionGalleryV010(
+                input.projectionGallery
+              )
+            }
+          : {}),
         definitionCreatedAt: recordedAt,
         recordedAt,
         recordedBy: validateActor(input.actor),
-        origin: {
-          type: "NATIVE",
-          historyComplete: true
-        }
+        origin: input.origin?.type === "TEMPLATE_COPY"
+          ? {
+              type: "TEMPLATE_COPY",
+              sourceRef: required(
+                input.origin.sourceRef,
+                "BUSINESS_DEFINITION_TEMPLATE_COPY_SOURCE_REQUIRED"
+              ),
+              historyComplete: true
+            }
+          : {
+              type: "NATIVE",
+              historyComplete: true
+            }
       });
     },
 
@@ -267,6 +304,9 @@ function createRepository(
         revision: current.revision + 1,
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        projectionGallery: input.projectionGallery
+          ? assertTemplateProjectionGalleryV010(input.projectionGallery)
+          : current.projectionGallery,
         recordedAt: timestamp(
           input.recordedAt,
           "BUSINESS_DEFINITION_RECORDED_AT_INVALID"
@@ -298,6 +338,9 @@ function createRepository(
         state: "DRAFT",
         title: required(input.title, "BUSINESS_DEFINITION_TITLE_REQUIRED"),
         payload: clone(input.payload),
+        projectionGallery: input.projectionGallery
+          ? assertTemplateProjectionGalleryV010(input.projectionGallery)
+          : current.projectionGallery,
         recordedAt: timestamp(
           input.recordedAt,
           "BUSINESS_DEFINITION_RECORDED_AT_INVALID"

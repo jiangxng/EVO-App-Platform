@@ -1,1 +1,1 @@
-export * from "../apps/eog-2d-viewer/mobile-read-page.js";
+export * from "../apps/enterprise-observatory/mobile-read-page.js";
