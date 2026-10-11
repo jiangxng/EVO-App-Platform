@@ -137,3 +137,13 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - 旧 tip 每条有 72–79 个已存在但 blob 不同的 main 路径；这代表代码差异，不代表应当 cherry-pick。明确维持旧 Host Core / manager / catalog / semantic-finance SQL 不回灌；#594 不合。
 - 三个已经经过 CI 的微步是 **F0 #775（四 peer 独立可见性）**、**F2 #777（一次性独立 PG 登录）**、**F1 #779（真实 loopback Socket + Ed25519 Client 拒绝合同）**。它们分别证明不同受控边界，**不能相加声称 B2D3 全生产认证**。
 - 对 14 条旧 ref 的退役条件仍是：完成单路径功能差异审查、留存需继续的历史真实安全证据、原 head SHA 无变更、没有开放 PR head/base 关联、无 branch protection，最后才可逐条删除；此轮 **0 删除**。
+
+
+## 2026-10-12 F1 同路径代码差异反证：保留现代 main 更安全
+
+实际读取旧 #594 固定 tip `1d6149bd...` 与 main `09fee6f...` 三对完整文件：
+- `apps/trading-reference/finance-owner-key-pointer.ts`：旧 blob `7980430f...` 使用 `lstatSync + readFileSync(path)`；现行 main blob `0c5b3702...` 使用 `lstatSync + openSync(O_NOFOLLOW) + fstatSync(fd) + readFileSync(fd)`，并核对 dev/inode/owner/mode，防止校验文件路径到再次读取间的替换。**选择现代 main，不恢复旧文件**。
+- `tests/protocol/tr01b2d3-signing-pointer.test.mjs`：旧 blob `45efea0f...` 只有原子换键及非法/公开文件拒绝；现行 main blob `812e3a70...` 额外检查经验证的文件描述符/O_NOFOLLOW、目录拒绝与安全原子替换。**选择现代 main，不重复合并旧测试**。
+- `providers/trading-finance-owner/package.ts`：旧 blob `1eb2c48b...` 与现代 main `62ca743e...` 相比缺四语 displayNameTranslations；受管 Provider 类型和只读 metadata 不构成新金融执行权限。**现代 main 更完整**。
+
+以上是具体代码机制差异的人工语义审查，而非以 blob different 直接推理功能胜负。仍不得据此认定旧 #594 已完整收敛（Host Session/跨实例/生产 Owner 留待后续）。
