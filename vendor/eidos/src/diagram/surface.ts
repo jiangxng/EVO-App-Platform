@@ -2883,6 +2883,9 @@ export function mountDiagramEditorPageV010(
       hit.setAttribute("fill", "none");
       hit.setAttribute("stroke", "transparent");
       hit.setAttribute("stroke-width", "18");
+      // Forward-port Eidos commercial V04 #161 without replacing Host overlays.
+      // Transparent hit stroke remains 18 CSS px across 10–300% zoom.
+      hit.setAttribute("vector-effect", "non-scaling-stroke");
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
       hit.setAttribute("data-eidos-diagram-edge", edge.id);
