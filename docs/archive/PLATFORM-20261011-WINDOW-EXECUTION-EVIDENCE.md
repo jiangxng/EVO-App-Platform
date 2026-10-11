@@ -178,3 +178,14 @@
 **同路径高风险差异的含义：** 在旧 tip 中至少 72 条路径的 blob 与 modern main 不同，包含 `manager/server.ts`、`catalog/seed.ts`、`manager/plugin-store-page.ts`、`manager/provider-manager-page.ts`、`providers/trading-finance-owner/package.ts`、`.github/workflows/cross-project-tr01b-sales-evo-postgres.yml` 和 stage package 等。旧目录比 main 少数百文件，**旧文件 blob 不同通常反映历史基线落后，必须执行具体功能和授权语义比对；不得将 mismatch 判定为主线遗漏，也绝不能恢复旧 Host Core**。目前仅 F0 #775、F2 #777、F1 #779 已选取独特回归并以 CI 合入；旧 Demo F3 源码保留但不迁正式产品，旧 F4 工作流多与现行门禁重复。
 
 **保留 / 删除决策：** 不因 Tree 查看完毕即删除历史分支：剩余的 Host-managed session、跨实例 nonce race、RSA/OIDC/实际 TLS、生产 Owner listener、外部 key custody 等仍有未关闭的真实认证门槛。尤其 Finance #594 是 OPEN Draft 且仍有外部 EVO #108 Draft 依赖。全部 14 refs 保留原 head，待逐项明确资产归属和生产/CI 合同后再按 Git SHA 租约安全退役。此次未读 Agent/Diagram 分支的代码，亦无一项其改动。
+
+
+## K. 现代 Host 安全性优于旧同路径文件的具体证据（2026-10-12）
+
+| 文件 | 旧 #594 blob | 现行 main blob | 实际源码机制差异和处置 |
+| --- | --- | --- | --- |
+| `apps/trading-reference/finance-owner-key-pointer.ts` | 7980430f6a6ca3cc32c057b71affdd9f8facee65 | 0c5b3702742cd9e445bf72fed81d239c944ec623 | main 具有 O_NOFOLLOW、fstatSync(fd)、路径 stat 与打开文件 dev/inode 一致性、verified descriptor read，避免旧 pathname 二次打开的文件替换竞态；保留 main |
+| `tests/protocol/tr01b2d3-signing-pointer.test.mjs` | 45efea0ffb85414962e814734cf1cf2b3403b99c | 812e3a7062d147c760669d2819437836efb18ea4 | main 增补 FD-safe/O_NOFOLLOW、目录拒绝回归；保留 main |
+| `providers/trading-finance-owner/package.ts` | 1eb2c48b42cc34f9b18dcdfdfe049fbef4598ea4 | 62ca743e95b646c26645194255e68b68f57863e3 | main 增补多语言标题；metadata 仍 READ + executionAllowed=false；保留 main |
+
+所有代码均来自固定 SHA 下直接 `fetch_file` 原文，不是浏览搜索摘要；此处未修改生产代码，没有声称 #594 可直接退役。
