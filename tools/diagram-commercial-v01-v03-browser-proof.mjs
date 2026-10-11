@@ -1352,6 +1352,23 @@ try{
   await e03Tab.keyboard.press("Control+z");
   assert.equal(await e03Route(),e03Initial,
     "E03 one Undo must restore exact pre-drag waypoint path");
+  // Undo restores a view snapshot and clears the inspector selection.
+  // Re-select the real edge before asking Eidos for its segment handles.
+  const e03Reopen=await e03Tab.evaluate(edgeId=>{
+    const h=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=h.getScreenCTM(),length=h.getTotalLength();
+    for(let f=.1;f<.91;f+=.03){
+      const p=h.getPointAtLength(length*f);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e03Reopen,"E03 must reselect the route after Undo");
+  await e03Tab.mouse.click(e03Reopen.x,e03Reopen.y);
+  await e03Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .waitFor({state:"visible"});
   let e03Segment=await e03DragCenter(
     '[data-eidos-diagram-segment-handle^="'+relationId+':"]');
   const e03UsedOverlap= !e03Segment;
