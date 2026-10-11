@@ -127,3 +127,16 @@ B 部分约 14 条 TR-01 B2D3 分支（包括 #594）**完全未动、未删**�
 | demo/ 独立静态演示 | 1 | 只能讨论是否归档为 harness，不等同于真实用户业务 App |
 
 优先级：复核 #594 的真实安全授权边界和跨实例 proof，逐功能抽最小 PR；不能让分支清理逆转已部署给用户测试的 `89320e11` Railway pinned SHA。最近 squash 合并的 #728/#731/#736/#740 对 main 的 compare 也是 `diverged`；无论功能是否已在 main，都不能通过本次 ancestor-only 删除器误删。
+
+
+### 2026-10-11 第二批 squash PR heads 清理结果
+
+在上述 16 条祖先分支清理后，本专项又把 5 条已 squash 合并、因此与 main `diverged` 的独立专项 PR head 采用**另一项安全判定**：PR 已真实 merged、精确 mergeCommitSha 在 main ancestry、原 head SHA 未移动且无任何开放 PR 使用，才可删。预检 PASS、[PR #743](https://github.com/jiangxng/EVO-App-Platform/pull/743) 合入、执行 [run #38140857767](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140857767) SUCCESS，重新枚举 **5/5 refs 已不存在**：
+
+- `fix/platform-branch-hygiene-leased-20261011`（原 PR #728）
+- `feat/tr01-six-stage-host-preview-discovery-20261011`（#731；原公网测试 deployment 保留，因为其 main SHA 仍可访问）
+- `fix/tr01-finance-signer-pointer-fd-20261011`（#736）
+- `chore/retire-verified-platform-source-refs-20261011`（#740）
+- `docs/platform-convergence-cleanup-results-20261011`（#741）
+
+这两批累计 **21 个 Git refs 实际删除**，第二批执行后仓库总分支 **52（时点数，可随并行窗口变化）**。约 14 条 TR-01 B2D3 独立功能分支、所有 Agent/2D/EOG 和 open PR 使用分支仍受保护，不得继续按历史数量直接删。
