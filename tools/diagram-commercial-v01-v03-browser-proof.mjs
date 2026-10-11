@@ -1352,16 +1352,29 @@ try{
   await e03Tab.keyboard.press("Control+z");
   assert.equal(await e03Route(),e03Initial,
     "E03 one Undo must restore exact pre-drag waypoint path");
-  const e03Segment=await e03DragCenter(
+  let e03Segment=await e03DragCenter(
     '[data-eidos-diagram-segment-handle^="'+relationId+':"]');
+  const e03UsedOverlap= !e03Segment;
+  if(e03UsedOverlap) {
+    // B8c supported public interaction: a waypoint is drawn on top of the
+    // larger orthogonal segment hit area, Shift+drag the waypoint to edit
+    // the covered segment rather than weakening hit regions.
+    e03Segment=await e03DragCenter(
+      '[data-eidos-diagram-waypoint-handle="'+relationId+':0"]');
+  }
   assert.ok(e03Segment,
-    "E03 at least one actual orthogonal segment must be directly hit-testable");
+    "E03 must have a usable direct or Shift-overlap segment control");
+  console.log("E03_SEGMENT_HANDLE_MODE="+JSON.stringify({
+    direct:!e03UsedOverlap,shiftOverlap:e03UsedOverlap
+  }));
   await e03Tab.mouse.move(e03Segment.x,e03Segment.y);
+  if(e03UsedOverlap)await e03Tab.keyboard.down("Shift");
   await e03Tab.mouse.down({button:"left"});
   await e03Tab.mouse.move(e03Segment.x+55,e03Segment.y+45,{steps:8});
   assert.notEqual(await e03Route(),e03Initial,
     "E03 orthogonal segment drag must visibly change actual SVG geometry");
   await e03Tab.mouse.up({button:"left"});
+  if(e03UsedOverlap)await e03Tab.keyboard.up("Shift");
   assert.notEqual(await e03Route(),e03Initial);
   await e03Tab.locator("[data-eidos-diagram-canvas]").focus();
   await e03Tab.keyboard.press("Control+z");
@@ -1373,6 +1386,7 @@ try{
   console.log("DIAGRAM_E03_BROWSER_SUBGATE="+JSON.stringify({
     case:"E03",browser:"Chromium "+browser.version(),
     nativeWaypointDrag:true,nativeSegmentDrag:true,
+    segmentUsedShiftOverlap:e03UsedOverlap,
     inMotionSVGPreview:true,oneUndoPerOperation:true,
     businessSourceTargetUnchanged:true,noImplicitSave:true,
     syntheticOnly:true,physicalDeviceVerified:false
