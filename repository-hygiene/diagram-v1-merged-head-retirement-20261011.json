@@ -201,6 +201,12 @@
       "expectedHeadSha": "2d5122dbc04ab8fd0276b70a15a5b2d2d5be1e30",
       "number": 773,
       "mergeCommitSha": "fbbead0a271408b7f97227631f3d9344cf7a7393"
+    },
+    {
+      "head": "test/diagram-v1-p02-real-same-page-isolation-20261011",
+      "expectedHeadSha": "9773bd0db2046942adb5f7bff50a4b99ec8d0a9c",
+      "number": 774,
+      "mergeCommitSha": "40ed2c064ad60ef2671c714d69bb4b30955389da"
     }
   ]
 }
