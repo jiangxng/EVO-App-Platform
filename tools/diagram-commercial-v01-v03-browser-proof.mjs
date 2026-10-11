@@ -2210,6 +2210,119 @@ try{
   }));
   await d02Tab.close();
 
+  // D03: a real HTTP 503 must keep the complete local projection draft.
+  // Retry the same Save action; never replace the failed draft or silently write.
+  const d03Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await d03Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(d03Tab);
+  assert.equal(store.getVersion(id),4,"D03 starts from a committed D02 save");
+  const d03Hit=await d03Tab.evaluate(edgeId=>{
+    const edge=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=edge.getScreenCTM(),len=edge.getTotalLength();
+    for(let pct=12;pct<=88;pct+=2){
+      const p=edge.getPointAtLength(len*pct/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(d03Hit,"D03 relation must be pointer-selectable");
+  await d03Tab.mouse.click(d03Hit.x,d03Hit.y);
+  const d03Kind=d03Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await d03Kind.waitFor({state:"visible"});
+  await d03Kind.selectOption("curve");
+  await d03Tab.getByRole("button",{name:"Add path point"}).click();
+  const d03Waypoints=d03Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"] input[type="number"]');
+  await d03Waypoints.first().waitFor({state:"visible"});
+  const d03InitialWaypoint=[await d03Waypoints.nth(0).inputValue(),
+    await d03Waypoints.nth(1).inputValue()];
+  const d03Handle=await d03Tab.evaluate(edgeId=>{
+    const circle=document.querySelector('[data-eidos-diagram-waypoint-handle="'+edgeId+':0"]');
+    if(!circle)return null;
+    const m=circle.getScreenCTM();
+    const cx=Number(circle.getAttribute("cx")),cy=Number(circle.getAttribute("cy"));
+    return {x:cx*m.a+cy*m.c+m.e,y:cx*m.b+cy*m.d+m.f};
+  },relationId);
+  assert.ok(d03Handle,"D03 manual route control must be mouse-draggable");
+  await d03Tab.mouse.move(d03Handle.x,d03Handle.y);
+  await d03Tab.mouse.down({button:"left"});
+  await d03Tab.mouse.move(d03Handle.x+38,d03Handle.y-29,{steps:8});
+  await d03Tab.mouse.up({button:"left"});
+  const d03DraggedWaypoint=[await d03Waypoints.nth(0).inputValue(),
+    await d03Waypoints.nth(1).inputValue()];
+  assert.notDeepEqual(d03DraggedWaypoint,d03InitialWaypoint,
+    "D03 must have a genuinely edited manual route point before failure");
+  const d03Node=d03Tab.locator('[data-eidos-diagram-node="sale"]');
+  await d03Node.click();
+  const d03Box=await d03Node.boundingBox();
+  const d03NodeCenter={x:d03Box.x+d03Box.width/2,y:d03Box.y+d03Box.height/2};
+  await d03Tab.mouse.move(d03NodeCenter.x,d03NodeCenter.y);
+  await d03Tab.mouse.down({button:"left"});
+  await d03Tab.mouse.move(d03NodeCenter.x+40,d03NodeCenter.y+26,{steps:8});
+  await d03Tab.mouse.up({button:"left"});
+  const d03View=()=>d03Tab.evaluate(edgeId=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const edge=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    return {node:{x:Number.parseFloat(node.style.left),y:Number.parseFloat(node.style.top)},
+      path:edge?.getAttribute("d")};
+  },relationId);
+  const d03Draft=await d03View();
+  assert.match(d03Draft.path,/ C /,"D03 draft must include actual curve geometry");
+  assert.equal(store.getVersion(id),4,"D03 pre-save draft is not persisted");
+  let d03FailedOnce=false;
+  await d03Tab.route("**/action",async route=>{
+    const body=route.request().postDataJSON();
+    if(!d03FailedOnce && body?.command?.code===SAVE){
+      d03FailedOnce=true;
+      await route.fulfill({status:503,contentType:"text/plain",
+        body:"D03 synthetic transient HTTP 503"});
+    }else await route.continue();
+  });
+  const d03Save=d03Tab.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"});
+  await d03Save.click();
+  await d03Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent
+      ?.includes("Save failed; local edits are preserved."),
+    {timeout:30000});
+  assert.equal(d03FailedOnce,true,"D03 a real save HTTP request must hit the 503");
+  assert.equal(store.getVersion(id),4,"D03 503 cannot increment projection CAS");
+  assert.deepEqual(await d03View(),d03Draft,
+    "D03 failed Save preserves edited node and curve path exactly");
+  const d03StoredBefore=await read.execute(request(READ,id),ctx);
+  assert.equal(d03StoredBefore.ok,true);
+  assert.equal(d03StoredBefore.result.edges[0].pathKind,"orthogonal",
+    "D03 before retry the server must still hold the previous saved route");
+  await d03Save.click();
+  await d03Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),5,"D03 successful retry increments CAS exactly once");
+  await d03Tab.reload({waitUntil:"load"});
+  await waitReady(d03Tab);
+  assert.deepEqual(await d03View(),d03Draft,
+    "D03 a fresh Designer must render precisely the edited location and route");
+  const d03Saved=await read.execute(request(READ,id),ctx);
+  assert.equal(d03Saved.ok,true);
+  assert.equal(d03Saved.result.edges[0].pathKind,"curve");
+  assert.ok(d03Saved.result.edges[0].waypoints?.length>=1,
+    "D03 manual route waypoint survives failed Save and successful retry");
+  assert.equal(repo.listHistory({
+    enterpriseId:id.enterpriseId,definitionId:id.definitionId
+  }).length,1);
+  assert.deepEqual(await d03Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D03_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D03",browser:"Chromium "+browser.version(),
+    realHttp503Intercepted:true,failedDraftExact:true,
+    nativeWaypointDrag:true,nativeNodeDrag:true,
+    preservedCurveStyle:true,persistedManualWaypoints:true,
+    retrySavedOnce:true,casVersionBefore:4,after:5,
+    freshDesignerMatch:true,businessRevisions:1,
+    physicalDeviceVerified:false
+  }));
+  await d03Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
