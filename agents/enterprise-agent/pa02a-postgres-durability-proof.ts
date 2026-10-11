@@ -38,7 +38,9 @@ function stable(value: unknown): unknown {
   return value;
 }
 function same(a: unknown, b: unknown): boolean {
-  return JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+  // postgres.js may surface jsonb as text under different parser configurations.
+  const raw = typeof a === "string" ? JSON.parse(a) as unknown : a;
+  return JSON.stringify(stable(raw)) === JSON.stringify(stable(b));
 }
 function runRecord(row: Record<string,unknown>, created: boolean): AgentTurnClaimResultV020 {
   return {created,runId:String(row.run_id),taskDigest:String(row.task_digest),revision:Number(row.revision)};
