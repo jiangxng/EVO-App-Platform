@@ -2090,6 +2090,126 @@ try{
   await d01Viewer.close();
   await d01Tab.close();
 
+  // D02: multiple distinct edits, one-command undo/redo, explicit Save,
+  // then a fresh undo-to-saved-baseline; never create a business revision.
+  const d02Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await d02Tab.goto(base+"/designer",{waitUntil:"load"});
+  await d02Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),3,"D02 begins after the committed D01 projection");
+  assert.equal(await d02Tab.locator('[data-eidos-diagram-node="sale"]').count(),0);
+  await d02Tab.locator("[data-eidos-diagram-more-actions] summary").click();
+  await d02Tab.locator("[data-eidos-diagram-local-visibility-reset]").click();
+  assert.equal(await d02Tab.locator('[data-eidos-diagram-node="sale"]').count(),1,
+    "D02 restoring visibility is the first undo checkpoint");
+  assert.equal(await d02Tab.locator(selector).count(),1);
+  const d02XY=()=>d02Tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {x:Number.parseFloat(node.style.left),y:Number.parseFloat(node.style.top)};
+  });
+  const d02Original=await d02XY();
+  const d02Node=d02Tab.locator('[data-eidos-diagram-node="sale"]');
+  await d02Node.click();
+  let d02Box=await d02Node.boundingBox();
+  await d02Tab.mouse.move(d02Box.x+d02Box.width/2,d02Box.y+d02Box.height/2);
+  await d02Tab.mouse.down({button:"left"});
+  await d02Tab.mouse.move(d02Box.x+d02Box.width/2+52,
+    d02Box.y+d02Box.height/2+29,{steps:8});
+  await d02Tab.mouse.up({button:"left"});
+  const d02Moved=await d02XY();
+  assert.ok(Math.hypot(d02Moved.x-d02Original.x,d02Moved.y-d02Original.y)>12,
+    "D02 native mouse node move must be a second edit");
+  const d02EdgePoint=await d02Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let i=12;i<=88;i+=2){
+      const p=path.getPointAtLength(len*i/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(d02EdgePoint,"D02 must select the actual editable business edge");
+  await d02Tab.mouse.click(d02EdgePoint.x,d02EdgePoint.y);
+  const d02Kind=d02Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await d02Kind.waitFor({state:"visible"});
+  assert.equal(await d02Kind.inputValue(),"curve");
+  await d02Kind.selectOption("orthogonal");
+  assert.equal(await d02Kind.inputValue(),"orthogonal");
+  assert.equal(store.getVersion(id),3,"D02 three edits cannot implicitly Save");
+
+  const d02Undo=d02Tab.locator('[data-eidos-diagram-history="undo"]');
+  const d02Redo=d02Tab.locator('[data-eidos-diagram-history="redo"]');
+  await d02Undo.click();
+  await d02Tab.mouse.click(d02EdgePoint.x,d02EdgePoint.y);
+  // Selection can affect Inspector layout; compare geometry via the rendered SVG.
+  assert.match(await shape(d02Tab),/ C /,
+    "D02 first Undo reverts only the edge style to its previous curve");
+  assert.deepEqual(await d02XY(),d02Moved,
+    "D02 first Undo retains the preceding node displacement");
+  await d02Undo.click();
+  assert.deepEqual(await d02XY(),d02Original,
+    "D02 second Undo restores original node coordinates");
+  assert.equal(await d02Tab.locator('[data-eidos-diagram-node="sale"]').count(),1);
+  await d02Undo.click();
+  assert.equal(await d02Tab.locator('[data-eidos-diagram-node="sale"]').count(),0,
+    "D02 third Undo reverses only the visibility restore");
+  assert.equal(await d02Tab.locator(selector).count(),0);
+  await d02Redo.click();
+  assert.equal(await d02Tab.locator('[data-eidos-diagram-node="sale"]').count(),1);
+  await d02Redo.click();
+  assert.deepEqual(await d02XY(),d02Moved);
+  await d02Redo.click();
+  assert.match(await shape(d02Tab),/ L /,
+    "D02 third Redo restores the orthogonal route");
+  assert.equal(store.getVersion(id),3,
+    "D02 Undo/Redo updates only local presentation until explicit Save");
+  await d02Tab.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).click();
+  await d02Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),4,"D02 explicit Save advances CAS once");
+  assert.equal(await d02Undo.isDisabled(),true,
+    "D02 saving defines a new baseline rather than retaining old Undo history");
+  assert.equal(await d02Redo.isDisabled(),true);
+  const d02Persisted=await read.execute(request(READ,id),ctx);
+  assert.equal(d02Persisted.ok,true);
+  assert.equal(d02Persisted.result.hiddenNodeIds?.includes("sale")??false,false);
+  assert.equal(d02Persisted.result.edges[0].pathKind,"orthogonal");
+  await d02Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  d02Box=await d02Tab.locator('[data-eidos-diagram-node="sale"]').boundingBox();
+  await d02Tab.mouse.move(d02Box.x+d02Box.width/2,d02Box.y+d02Box.height/2);
+  await d02Tab.mouse.down({button:"left"});
+  await d02Tab.mouse.move(d02Box.x+d02Box.width/2+36,
+    d02Box.y+d02Box.height/2+22,{steps:8});
+  await d02Tab.mouse.up({button:"left"});
+  assert.ok(Math.hypot((await d02XY()).x-d02Moved.x,
+    (await d02XY()).y-d02Moved.y)>8,
+    "D02 new edit after Save must become unsaved");
+  assert.match(await d02Tab.locator("[data-eidos-diagram-status]").textContent(),
+    /Save to persist changes/);
+  await d02Undo.click();
+  assert.deepEqual(await d02XY(),d02Moved,
+    "D02 undo after Save must return to the new saved node baseline");
+  assert.equal((await d02Tab.locator("[data-eidos-diagram-status]").textContent())?.trim(),"Saved.",
+    "D02 undoing the sole post-Save edit must clear the dirty status");
+  assert.equal(store.getVersion(id),4,"D02 Undo-to-baseline must not write again");
+  assert.equal(repo.listHistory({
+    enterpriseId:id.enterpriseId,definitionId:id.definitionId
+  }).length,1,"D02 visual edits never create business revisions");
+  assert.deepEqual(await d02Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D02",browser:"Chromium "+browser.version(),
+    nativeNodeDrag:true,threeDifferentEdits:true,threeStepUndo:true,
+    threeStepRedo:true,explicitCasVersionBefore:3,after:4,
+    saveClearsOldUndoRedo:true,undoToSavedBaselineNotDirty:true,
+    businessRevisions:1,physicalDeviceVerified:false
+  }));
+  await d02Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
