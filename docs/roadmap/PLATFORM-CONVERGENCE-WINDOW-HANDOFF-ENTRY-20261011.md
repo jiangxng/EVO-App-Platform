@@ -94,3 +94,12 @@ https://ledger-configurator-production.up.railway.app
 - GitHub open PR 中仍有 #723（本交接）、#594（Finance Owner Draft）、Agent/2D/EOG 等；剩余约 14 条 TR-01 B2D3 仍有独立差异，未误删。
 - 近期 #728/#731/#736/#740 的 squash PR 源分支因历史 `diverged`，不符合祖先-only 自动删除条件，不能用第一批方式假装清理完毕。下一步需做比对与显式审批。
 - Railway 公网集成测试服务保持 pinned `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`，部署并未随 GitHub main 变化；不能打断用户测试。
+
+
+### 2026-10-11 第二批合并源分支清理：squash PR heads（5 条）
+
+- [PR #743](https://github.com/jiangxng/EVO-App-Platform/pull/743) 通过 audit-only CI 并合入 main `8f32e0d348e5e9268612f1402afc72ab66d288cd`。GitHub Actions [执行 run #38140857767](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140857767) 完成 **SUCCESS**；执行后重新完整枚举分支，**5/5 指定 squash-merged PR heads 消失**，仓库当次总数 **52**。
+- 本次清理固定 PR #728、#731、#736、#740、#741：检查每条 PR 在 GitHub merged=true / closed / base=main、正确源仓库、精确 head SHA 与 mergeCommitSha，且真实 mergeCommitSha 是 main 祖先；开放 PR 不引用、分支非 protected、删除前 SHA 不变。区别于第一批 16 条 source branch 的直接 ancestor-only 删除。
+- **本窗口共 21 条原历史分支 refs 删除成功**（16 条功能源 + 5 条已经 squash merge 的专项 PR heads）。完成不等于剩余 14 条 TR-01 B2D3 已审查/关闭。
+- [本批归档](https://github.com/jiangxng/EVO-App-Platform/blob/8f32e0d348e5e9268612f1402afc72ab66d288cd/docs/archive/platform-merged-squash-ref-retirement-20261011.md) 保存五项 SHA/PR；[源 manifest](https://github.com/jiangxng/EVO-App-Platform/blob/8f32e0d348e5e9268612f1402afc72ab66d288cd/repository-hygiene/platform-merged-squash-heads-20261011.json) + Actions run 是实际删除证据。主线 archive 原“待执行”属于执行前快照，以本条和 Actions 为准。
+- 本轮未修改 Railway，用户六插件测试部署 `89320e118b97f358b4fdab0ec4c198d1cf8a57c7` 保留不动；Agent/2D/EOG/Projection、Draft #594 和剩余功能分支未删除。
