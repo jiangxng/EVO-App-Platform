@@ -115,3 +115,12 @@
 | Finance Owner Deployment Preflight | [source 71821513](https://github.com/jiangxng/EVO-App-Platform/blob/718215136f79efd79d7e755954d686d77cf73356/.github/workflows/tr01b2d3-finance-owner-deployment-preflight.yml) | 仅候选 descriptor 的 fail-closed 静态矩阵 |
 
 **复用原则**：实际有功能增益才选择小 CI 迁移；现有 `tests/protocol/tr01b2d3-{six,twelve}-lane-admission.test.mjs` 的受控测试不能凭旧 YAML 自行升级成生产安全认证。
+
+
+## 2026-10-12 新增已读原文 / GitHub CI 证据
+
+| ID / 级别 | 固定原文/证据 | 实际发现及用途 |
+| --- | --- | --- |
+| S34 / A 原文 | [F2 工具](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/tools/platform-f2-distinct-db-login-ci.mjs)、[Guard tests](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/tests/protocol/platform-f2-distinct-db-login-guard.test.mjs)、[CI YAML](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/.github/workflows/platform-f2-disposable-db-logins.yml) | 只在显式 opt-in 的 loopback disposable f2_ci_* 数据库创建真实、随机独立 LOGIN，验证 42501 与原会话撤权；不读取真实 EVO 经济表 |
+| S35 / C 元数据 + B 日志 | [PR #777](https://github.com/jiangxng/EVO-App-Platform/pull/777)、[PG 38154708390](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708390)、[Platform 38154708378](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708378)、[Continuity 38154708397](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708397) | 三项 SUCCESS；日志显示 16 checks、两个实际 LOGIN、撤权成功、financeTablesTouched=false、NOT_CERTIFIED；merge aa6432f0 |
+| S36 / A 原文 | [EVO Draft #108 的 Finance-only Fastify app](https://github.com/jiangxng/EVO/blob/a8c3b0dfca56ec207c095efb743e1f6e9493d6a0/apps/api/src/finance-owner-readonly-app.ts)、[独立启动入口](https://github.com/jiangxng/EVO/blob/a8c3b0dfca56ec207c095efb743e1f6e9493d6a0/apps/api/src/finance-owner-readonly-main.ts) | 专用 Listener 只挂 health 与 finance read；两个文件不存在于现行 EVO main，仍为 Draft 非正式发布接口，真实 HTTP 路由隔离留待 owner 审批 |
