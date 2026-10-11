@@ -910,6 +910,17 @@ try{
       scale:m.a,cameraX:m.e,cameraY:m.f};
   });
   const t05Start=await t05Snapshot();
+  await t05Tab.evaluate(()=>{
+    window.__t05PointerEvents=[];
+    for(const name of ["pointerdown","pointermove","pointerup","pointercancel","lostpointercapture"]){
+      document.addEventListener(name,e=>{
+        window.__t05PointerEvents.push({name,id:e.pointerId,
+          target:e.target.getAttribute?.("data-eidos-diagram-node")??e.target.tagName,
+          isPrimary:e.isPrimary,x:e.clientX,y:e.clientY,
+          touch:e.pointerType==="touch"});
+      },true);
+    }
+  });
   const t05Cdp=await t05Context.newCDPSession(t05Tab);
   const t05A=(x=t05X,y=t05Y)=>({x,y,id:31});
   const t05B=(x=t05X+150,y=t05Y+72)=>({x,y,id:32});
@@ -950,7 +961,8 @@ try{
   console.log("T05_TOUCH_SEQUENCE_DIAGNOSTIC="+JSON.stringify({
     start:t05Start,moving:t05Moving,cancelled:t05Cancelled,
     twoFinger:t05Two,transition:t05Transition,
-    singleFinger:t05Single,final:t05Final
+    singleFinger:t05Single,final:t05Final,
+    eventTrace:await t05Tab.evaluate(()=>window.__t05PointerEvents)
   }));
   assert.ok(Math.hypot(t05Single.cameraX-t05Transition.cameraX,
     t05Single.cameraY-t05Transition.cameraY)>12,
