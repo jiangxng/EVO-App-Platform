@@ -65,3 +65,10 @@
 - **F0 小步已合 main**：[PR #775](https://github.com/jiangxng/EVO-App-Platform/pull/775)，squash merge `014196f7a52f7051ef9a0fa8ea524e14b23169de`。仅提取旧四 peer 源码中现代测试未覆盖的 Eidos 渲染、插件独立启停、禁止财务写入回归；包含 [F0/F2 源码回收证据](https://github.com/jiangxng/EVO-App-Platform/blob/014196f7a52f7051ef9a0fa8ea524e14b23169de/docs/archive/PLATFORM-20261011-F0-FOUR-PEER-SOURCE-RECOVERY.md)。
 - 最新 head `d2f560074b4a46290cec6e6e784e7deb6b8a94d3` 的 [Platform CI 38153528258](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528258) 和 [Continuity 38153528267](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528267) 均 SUCCESS。因 main 并行 2D 前进而触发的 GitHub required-check 阻断，已通过非强制正常同步 main + 新 CI 合法解决。**没有触发 Railway 新部署；没有删除 14 条 TR-01 源分支。**
 - 当前只完成 **F0 的第一小项**，不是 F0–F4 全部关闭，亦未开始 Purchasing 真实实现。最新的 F1/F2/F4 审查在同批 Evidence、Decisions、Source Index 追加小节中；以上旧 SHA/count 保留为历史快照，不直接覆盖。
+
+
+## 2026-10-12 F2 续接：已合并的一项和未关闭项
+
+- F2-PG-01 已合并：[PR #777](https://github.com/jiangxng/EVO-App-Platform/pull/777)，merge commit **aa6432f0d525b2ef3ad02c358c9ab83e093238f3**。代码在 [F2 归档](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/docs/archive/PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md)，新增一次性 PostgreSQL 16 双独立 LOGIN、权限拒绝及撤权检查。
+- 固定合并前 head **78a9d299aabf0aaf6d276196645549e7d8f8d945**：[Postgres CI 38154708390](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708390) PASS（16 checks）、[Platform CI 38154708378](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708378) PASS、[Continuity CI 38154708397](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708397) PASS。
+- 这只是 Postgres 权限安全的一项，不是 Finance Owner 经济语义认证，也不是正式 HTTP Listener 认证。所有 14 条旧 TR-01 原 ref、#594/#108 Draft 及未实施 Purchasing 的决策均保持不变。
