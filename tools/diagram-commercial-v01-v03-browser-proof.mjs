@@ -670,6 +670,44 @@ try{
     rollbackExact:true,ghostDragAbsent:true,noImplicitSave:true,
     physicalDeviceVerified:false
   }));
+  // T01 synthetic Chromium wheel/pinch subgate. OS physical Mac
+  // trackpad cannot be certified by CDP wheel events; verify UI semantics.
+  const t01Mode=tab.locator("[data-eidos-diagram-wheel-mode]");
+  const t01BeforeMode=await t01Mode.getAttribute("data-eidos-diagram-wheel-mode");
+  if(t01BeforeMode!=="TRACKPAD")await t01Mode.click();
+  assert.equal(await t01Mode.getAttribute("data-eidos-diagram-wheel-mode"),"TRACKPAD");
+  const t01Camera=()=>tab.evaluate(()=>{
+    const stage=document.querySelector('[data-eidos-diagram-node="sale"]').parentElement;
+    const m=new DOMMatrix(stage.style.transform);
+    return {scale:m.a,x:m.e,y:m.f};
+  });
+  const t01Start=await t01Camera();
+  const t01Canvas=await tab.locator("[data-eidos-diagram-canvas]").boundingBox();
+  const t01X=t01Canvas.x+42,t01Y=t01Canvas.y+45;
+  await tab.mouse.move(t01X,t01Y);
+  await tab.mouse.wheel(31,47);
+  const t01Pan=await t01Camera();
+  assert.ok(Math.abs(t01Pan.scale-t01Start.scale)<1e-7,
+    "T01 trackpad two-finger scrolling must pan without zooming");
+  assert.ok(Math.abs((t01Pan.x-t01Start.x)+31)<1.1
+    && Math.abs((t01Pan.y-t01Start.y)+47)<1.1,
+    "T01 trackpad wheel delta must be a continuous two-axis viewport translation");
+  await tab.keyboard.down("Control");
+  await tab.mouse.wheel(0,-120);
+  await tab.keyboard.up("Control");
+  const t01Pinch=await t01Camera();
+  assert.ok(t01Pinch.scale>t01Pan.scale,
+    "T01 ctrl-wheel pinch in Trackpad mode must zoom, not pan-only");
+  assert.ok(t01Pinch.scale/t01Pan.scale<1.5,
+    "T01 pinch must apply once, not double-count zoom handlers");
+  if(t01BeforeMode!=="TRACKPAD")await t01Mode.click();
+  assert.equal(store.getVersion(id),0,"T01 wheel gestures must not Save presentation");
+  console.log("DIAGRAM_T01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T01",browser:"Chromium "+browser.version(),
+    syntheticTrackpadWheelPan:true,ctrlWheelPinchZoom:true,
+    noDoubleZoom:true,continuousDelta:true,noImplicitSave:true,
+    realMacTrackpadVerified:false,physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
