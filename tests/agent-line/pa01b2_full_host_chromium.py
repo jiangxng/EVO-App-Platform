@@ -2,7 +2,7 @@
 """Actual isolated App Host + Workbench + thread/Run browser gates (not true LLM mapping)."""
 import base64, json, time
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 from datetime import datetime, timezone
 from playwright.sync_api import sync_playwright, expect
 
@@ -67,7 +67,7 @@ with sync_playwright() as p:
   expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible(timeout=30000)
   return page
  def page_reads(job):
-  return sum(x['kind']=='page' and '/data-import/jobs/'+job+'/map' in x.get('url','') for x in events)
+  return sum(x['kind']=='page' and '/data-import/jobs/'+job+'/map' in unquote(x.get('url','')) for x in events)
  def wait_until(condition,message,timeout=35):
   start=time.monotonic()
   while time.monotonic()-start<timeout:
@@ -102,6 +102,8 @@ with sync_playwright() as p:
    page.locator('[data-eidos-agent-action="ai-auto-map"]').click()
    wait_response(old);wait_thread(mark)
    wait_until(lambda:page_reads(job)>before,'CLEAN_SOURCE_DID_NOT_REFRESH')
+   page.wait_for_timeout(350)
+   assert page_reads(job)-before==1, 'CLEAN_SOURCE_REFRESH_NOT_EXACTLY_ONCE'
    sends=[x for x in events[mark:] if x.get('kind')=='thread-request' and x.get('code')=='enterprise-agent.thread.send']
    assert sends and sends[0]['assistanceRequest']['context']['importJobId']==job,sends
    assert sends[0]['assistanceRequest']['taskKind']=='data-import.mapping'
