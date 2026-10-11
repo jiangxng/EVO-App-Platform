@@ -459,6 +459,30 @@ try{
    caveat:"Chrome keyboard smoke, not screen reader or WCAG assessment"
   }));
  }finally{await keyTab.close();}
+ // B11d: two independent readonly Chrome tabs see one saved projection.
+ const tabs=await Promise.all([
+  browser.newPage({viewport:{width:390,height:844}}),
+  browser.newPage({viewport:{width:768,height:1024}})
+ ]);
+ try{
+  const results=await Promise.all(tabs.map(async t=>{
+   await t.goto(address+"/viewer",{waitUntil:"load"});
+   await t.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+   return t.evaluate(()=>({
+    count:Number(document.querySelector("svg[data-eidos-diagram-congested-count]")?.getAttribute("data-eidos-diagram-congested-count")),
+    errors:window.__errors.length,
+    saveButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
+     .filter(x=>x.textContent.trim()==="Save projection").length
+   }));
+  }));
+  assert.equal(results[0].count,results[1].count);
+  for(const r of results){assert.equal(r.errors,0);assert.equal(r.saveButtons,0)}
+  assert.equal(reopened.projectionStore.getVersion(id),2,"B11d simultaneous viewer tabs do not write");
+  console.log("B11D_MULTI_VIEWER_RESULT="+JSON.stringify({
+   process:intake.process,tabs:2,congestionConsistent:true,casPreserved:2,
+   caveat:"two tabs in one Chrome process, not true multi-user/tenant concurrency"
+  }));
+ }finally{await Promise.all(tabs.map(t=>t.close()))}
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
