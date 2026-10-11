@@ -172,7 +172,7 @@ export type DiagramEditorContextNavigationV010 =
 export interface DiagramEditorCapturedViewStateV010 {
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
-  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
+  edgePaths?: Array<{ edgeId: string; pathKind: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010; labelOffset?: { x: number; y: number } }>;
   viewport?: {
     width: number;
     height: number;
@@ -240,6 +240,8 @@ export interface DiagramEditorEdgeV010 {
   waypoints?: Array<{ x: number; y: number }>;
   sourceAnchor?: DiagramEdgeAnchorSideV010;
   targetAnchor?: DiagramEdgeAnchorSideV010;
+  /** E07 world-space caption displacement from the computed path anchor. */
+  labelOffset?: { x: number; y: number };
   arrow?: DiagramEditorEdgeArrowV010;
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
@@ -712,6 +714,10 @@ export function validateDiagramEditorStateV010(
           pathKind: edge.pathKind ?? "straight", waypoints: edge.waypoints,
           sourceAnchor: edge.sourceAnchor, targetAnchor: edge.targetAnchor
         }))
+      || (edge.labelOffset !== undefined && (!Number.isFinite(edge.labelOffset.x)
+        || !Number.isFinite(edge.labelOffset.y)
+        || Math.abs(edge.labelOffset.x) > 10000000
+        || Math.abs(edge.labelOffset.y) > 10000000))
       || (edge.arrow !== undefined
         && !["none", "start", "end", "both"].includes(edge.arrow))
     ) {
@@ -1324,7 +1330,7 @@ export function mountDiagramEditorPageV010(
   const locallyHiddenNodeIds = new Set<string>();
   type ViewSnapshot = {
     positions: Array<{ id: string; x: number; y: number }>;
-    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010 }>;
+    edgePaths: Array<{ id: string; pathKind?: DiagramEdgePathKindV010; waypoints?: Array<{ x: number; y: number }>; sourceAnchor?: DiagramEdgeAnchorSideV010; targetAnchor?: DiagramEdgeAnchorSideV010; labelOffset?: { x: number; y: number } }>;
     hiddenNodeIds: string[];
     hiddenEdgeIds: string[];
   };
@@ -1336,7 +1342,8 @@ export function mountDiagramEditorPageV010(
       id: edge.id, pathKind: edge.pathKind,
       ...(edge.waypoints ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
       ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
-      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {})
+      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {}),
+      ...(edge.labelOffset ? { labelOffset: { ...edge.labelOffset } } : {})
     })),
     hiddenNodeIds: [...locallyHiddenNodeIds],
     hiddenEdgeIds: [...locallyHiddenEdgeIds]
@@ -1362,6 +1369,8 @@ export function mountDiagramEditorPageV010(
         else edge.sourceAnchor = previous.sourceAnchor;
         if (previous.targetAnchor === undefined) delete edge.targetAnchor;
         else edge.targetAnchor = previous.targetAnchor;
+        if (previous.labelOffset === undefined) delete edge.labelOffset;
+        else edge.labelOffset = { ...previous.labelOffset };
       }
     }
     locallyHiddenNodeIds.clear();
@@ -1397,6 +1406,7 @@ export function mountDiagramEditorPageV010(
   const navigationPointers = new Map<number, { x: number; y: number }>();
   let cancelActiveNodeDrag: (() => void) | undefined;
   let cancelActiveRouteDrag: (() => void) | undefined;
+  let cancelActiveLabelDrag: (() => void) | undefined;
   // Escape can release SVG pointer capture before the physical mouse button
   // comes up. Ignore only that cancelled gesture's trailing canvas click.
   let activeRoutePointerId: number | undefined;
@@ -1575,12 +1585,13 @@ export function mountDiagramEditorPageV010(
         ? {
             hiddenNodeIds: [...locallyHiddenNodeIds],
             hiddenEdgeIds: [...locallyHiddenEdgeIds],
-            edgePaths: (state.edges ?? []).filter(edge => edge.pathKind !== undefined)
+            edgePaths: (state.edges ?? []).filter(edge => edge.pathKind !== undefined || edge.labelOffset !== undefined)
               .map(edge => ({
-                edgeId: edge.id, pathKind: edge.pathKind!,
+                edgeId: edge.id, pathKind: edge.pathKind ?? "straight",
                 ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
                 ...(edge.sourceAnchor && edge.sourceAnchor !== "auto" ? { sourceAnchor: edge.sourceAnchor } : {}),
-                ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {})
+                ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {}),
+                ...(edge.labelOffset ? { labelOffset: { ...edge.labelOffset } } : {})
               })),
             viewport: {
               width: Math.max(1, canvas.clientWidth),
@@ -3014,12 +3025,16 @@ export function mountDiagramEditorPageV010(
         );
       if (showEdgeCaption) {
         const label = svgElement("text");
-        label.setAttribute("x", String(geometry.label.x));
-        label.setAttribute("y", String(geometry.label.y - 8));
+        const captionX = geometry.label.x + (edge.labelOffset?.x ?? 0);
+        const captionY = geometry.label.y + (edge.labelOffset?.y ?? 0);
+        label.setAttribute("x", String(captionX));
+        label.setAttribute("y", String(captionY - 8));
+        label.setAttribute("data-eidos-diagram-label-offset-x", String(edge.labelOffset?.x ?? 0));
+        label.setAttribute("data-eidos-diagram-label-offset-y", String(edge.labelOffset?.y ?? 0));
         label.setAttribute("data-eidos-diagram-edge-label", edge.id);
         // B8s: immutable render-time world anchor retained for cross-engine
         // verification even if post-mount SVG text x is visually normalized.
-        label.setAttribute("data-eidos-diagram-caption-world-x",String(geometry.label.x));
+        label.setAttribute("data-eidos-diagram-caption-world-x",String(captionX));
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "11");
         label.setAttribute("fill", "var(--eidos-fg-muted,#5F6B76)");
@@ -3031,7 +3046,7 @@ export function mountDiagramEditorPageV010(
         // B8n: SVG tspan matches the same deterministic multiline
         // layout used by the collision index; no DOM selection dependence.
         const captionLayout=diagramCaptionLayoutV010(
-          geometry.label,edgeCaption,measuredCaption);
+          { x: captionX, y: captionY },edgeCaption,measuredCaption);
         // B8p: bidi ordering is visual browser responsibility. Do not
         // reverse stored text or swap source/target anchors.
         label.setAttribute("direction",captionLayout.direction);
@@ -3040,11 +3055,11 @@ export function mountDiagramEditorPageV010(
         if(captionLayout.lines.length===1){
           label.textContent=captionLayout.lines[0]!;
         }else{
-          label.setAttribute("y",String(geometry.label.y-8
+          label.setAttribute("y",String(captionY-8
             -14*(captionLayout.lines.length-1)/2));
           captionLayout.lines.forEach((content,i)=>{
             const tspan=svgElement("tspan");
-            tspan.setAttribute("x",String(geometry.label.x));
+            tspan.setAttribute("x",String(captionX));
             if(i>0)tspan.setAttribute("dy","14");
             tspan.textContent=content;
             label.appendChild(tspan);
@@ -3424,8 +3439,12 @@ export function mountDiagramEditorPageV010(
         elements.hit.setAttribute("d", route.d);
         elements.visual.setAttribute("d", route.d);
         if (elements.label) {
-          elements.label.setAttribute("x", String(route.label.x));
-          elements.label.setAttribute("y", String(route.label.y - 8));
+          const lx = route.label.x + (edge.labelOffset?.x ?? 0);
+          const ly = route.label.y + (edge.labelOffset?.y ?? 0) - 8;
+          elements.label.setAttribute("x", String(lx));
+          const spans = elements.label.querySelectorAll("tspan");
+          elements.label.setAttribute("y", String(ly - 14 * Math.max(0, spans.length - 1) / 2));
+          spans.forEach(span => span.setAttribute("x", String(lx)));
         }
       }
     };
@@ -4164,6 +4183,7 @@ export function mountDiagramEditorPageV010(
     const onBlur = (): void => {
       cancelActiveNodeDrag?.();
       cancelActiveRouteDrag?.();
+      cancelActiveLabelDrag?.();
       removeMarquee();
       rightGesture=undefined;
       closeContextMenu();
