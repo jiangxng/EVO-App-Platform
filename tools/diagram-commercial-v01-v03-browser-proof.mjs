@@ -809,6 +809,87 @@ try{
     localPresentationOnly:true,readonlyViewerGestureNotCovered:true,
     physicalDeviceVerified:false
   }));
+  // T04: actual Chromium multitouch injection during a node drag.
+  // Adding a second finger must cancel (not commit) pending node movement.
+  const t04Context=await browser.newContext({viewport:{width:1250,height:820},hasTouch:true});
+  const t04Tab=await t04Context.newPage();
+  await t04Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(t04Tab);
+  const t04Node=t04Tab.locator('[data-eidos-diagram-node="sale"]');
+  let t04Rect=await t04Node.boundingBox();
+  await t04Tab.touchscreen.tap(t04Rect.x+t04Rect.width/2,t04Rect.y+t04Rect.height/2);
+  assert.equal(await t04Node.getAttribute("aria-pressed"),"true",
+    "T04 must first select node before touch dragging");
+  t04Rect=await t04Node.boundingBox(); // Inspector may move the node on screen.
+  const t04X=t04Rect.x+t04Rect.width/2,t04Y=t04Rect.y+t04Rect.height/2;
+  const t04Snap=()=>t04Tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const matrix=new DOMMatrix(node.parentElement.style.transform);
+    return {nodeX:Number.parseFloat(node.style.left),
+      nodeY:Number.parseFloat(node.style.top),scale:matrix.a,
+      cameraX:matrix.e,cameraY:matrix.f};
+  });
+  const t04Before=await t04Snap();
+  const t04Cdp=await t04Context.newCDPSession(t04Tab);
+  const t04A=(x=t04X,y=t04Y)=>({x,y,id:11});
+  const t04B=(x=t04X+150,y=t04Y+62)=>({x,y,id:22});
+  await t04Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[t04A()]
+  });
+  for(let i=1;i<=6;i++)await t04Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[t04A(t04X+i*8,t04Y+i*4)]
+  });
+  const t04During=await t04Snap();
+  assert.ok(Math.hypot(t04During.nodeX-t04Before.nodeX,
+    t04During.nodeY-t04Before.nodeY)>12,
+    "T04 must prove pending node drag visually moved before second finger");
+  const t04AX=t04X+48,t04AY=t04Y+24;
+  await t04Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[t04A(t04AX,t04AY),t04B()]
+  });
+  const t04Cancelled=await t04Snap();
+  assert.ok(Math.abs(t04Cancelled.nodeX-t04Before.nodeX)<.001
+    &&Math.abs(t04Cancelled.nodeY-t04Before.nodeY)<.001,
+    "T04 adding a second finger must immediately roll back pending node coordinates");
+  await t04Tab.evaluate(()=>{
+    window.__t04EventTrace=[];
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    for(const name of ["pointerdown","pointermove","pointercancel","pointerup"]){
+      canvas.addEventListener(name,e=>window.__t04EventTrace.push({
+        name,pointerId:e.pointerId,target:e.target.getAttribute?.("data-eidos-diagram-node"),
+        x:e.clientX,y:e.clientY,pointerType:e.pointerType
+      }),true);
+    }
+  });
+  for(let i=1;i<=5;i++)await t04Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[
+      t04A(t04AX-i*4,t04AY-i*2),
+      t04B(t04X+150+i*18,t04Y+62+i*9)]
+  });
+  const t04Pinch=await t04Snap();
+  console.log("T04_GESTURE_DIAGNOSTIC="+JSON.stringify({
+    before:t04Before,during:t04During,cancelled:t04Cancelled,
+    pinch:t04Pinch,events:await t04Tab.evaluate(()=>window.__t04EventTrace)
+  }));
+  await t04Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchEnd",touchPoints:[]
+  });
+  const t04After=await t04Snap();
+  assert.ok(Math.abs(t04After.nodeX-t04Before.nodeX)<.001
+    &&Math.abs(t04After.nodeY-t04Before.nodeY)<.001,
+    "T04 after finger release must not commit the cancelled business node move");
+  assert.ok(Math.abs(t04Pinch.scale-t04Before.scale)>.005
+    ||Math.hypot(t04Pinch.cameraX-t04Before.cameraX,
+      t04Pinch.cameraY-t04Before.cameraY)>3,
+    "T04 two-finger gesture must be taken over by viewport navigation");
+  assert.equal(store.getVersion(id),0,"T04 cancelled drag must not Save");
+  await t04Context.close();
+  console.log("DIAGRAM_T04_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T04",browser:"Chromium "+browser.version(),
+    dragBeforeSecondFinger:true,secondFingerCancelled:true,
+    navigationTookOver:true,positionRestored:true,
+    implicitSave:false,syntheticTouch:true,physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
