@@ -17,11 +17,25 @@ export interface TemplateProjectionCameraV010 {
   translateY: number;
 }
 
+export type TemplateProjectionEdgePathKindV010 = "straight" | "orthogonal" | "rounded-orthogonal" | "curve";
+export type TemplateProjectionEdgeAnchorV010 = "auto" | "left" | "right" | "top" | "bottom";
+export interface TemplateProjectionEdgePointV010 { x: number; y: number }
+export interface TemplateProjectionEdgePathV010 {
+  edgeId: string;
+  pathKind: TemplateProjectionEdgePathKindV010;
+  /** Optional world-space manual presentation controls, never business endpoints. */
+  waypoints?: TemplateProjectionEdgePointV010[];
+  sourceAnchor?: TemplateProjectionEdgeAnchorV010;
+  targetAnchor?: TemplateProjectionEdgeAnchorV010;
+}
+
 export interface TemplateProjectionView2dV010 {
   contractVersion: "0.1.0";
   kind: "DIAGRAM_2D";
   hiddenNodeIds?: string[];
   hiddenEdgeIds?: string[];
+  /** Presentation-only route overrides keyed by existing relationship id. */
+  edgePaths?: TemplateProjectionEdgePathV010[];
   placements?: TemplateProjectionPlacementV010[];
   camera?: TemplateProjectionCameraV010;
 }
@@ -105,6 +119,32 @@ export function assertTemplateProjectionGalleryV010(
       throw new Error("TEMPLATE_PROJECTION_PLACEMENT_DUPLICATE");
     }
 
+    const edgePaths = item.view.edgePaths?.map(edge => {
+      const edgeId = required(edge?.edgeId, "TEMPLATE_PROJECTION_EDGE_PATH_INVALID");
+      if (!["straight", "orthogonal", "rounded-orthogonal", "curve"].includes(edge.pathKind)) {
+        throw new Error("TEMPLATE_PROJECTION_EDGE_PATH_INVALID");
+      }
+      const anchors = ["auto", "left", "right", "top", "bottom"];
+      if ((edge.sourceAnchor !== undefined && !anchors.includes(edge.sourceAnchor))
+        || (edge.targetAnchor !== undefined && !anchors.includes(edge.targetAnchor))
+        || (edge.waypoints !== undefined && (!Array.isArray(edge.waypoints)
+          || edge.waypoints.length > 24 || (edge.pathKind === "straight" && edge.waypoints.length > 0)
+          || edge.waypoints.some(p => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+            || Math.abs(p.x) > 10000000 || Math.abs(p.y) > 10000000)))) {
+        throw new Error("TEMPLATE_PROJECTION_EDGE_PATH_INVALID");
+      }
+      return {
+        edgeId, pathKind: edge.pathKind,
+        ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ x: p.x, y: p.y })) } : {}),
+        ...(edge.sourceAnchor && edge.sourceAnchor !== "auto" ? { sourceAnchor: edge.sourceAnchor } : {}),
+        ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {})
+      };
+    });
+    if ((edgePaths?.length ?? 0) > 10000
+      || (edgePaths && new Set(edgePaths.map(item => item.edgeId)).size !== edgePaths.length)) {
+      throw new Error("TEMPLATE_PROJECTION_EDGE_PATH_INVALID");
+    }
+
     let camera: TemplateProjectionCameraV010 | undefined;
     if (item.view.camera !== undefined) {
       if (
@@ -159,6 +199,7 @@ export function assertTemplateProjectionGalleryV010(
           )
         } : {}),
         ...(placements ? { placements } : {}),
+        ...(edgePaths ? { edgePaths } : {}),
         ...(camera ? { camera } : {})
       }
     };

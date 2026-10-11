@@ -164,6 +164,10 @@ export function projectReadOnly2dArtifactStateV010(input: {
       kind: edge.kind,
       ...(edge.label ? { label: edge.label } : {}),
       ...(edge.arrow ? { arrow: edge.arrow } : {}),
+      ...(edge.pathKind ? { pathKind: edge.pathKind } : {}),
+      ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
+      ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
+      ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }

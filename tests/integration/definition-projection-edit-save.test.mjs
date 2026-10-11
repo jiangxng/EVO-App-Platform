@@ -157,14 +157,10 @@ test("EOG editor keeps unbounded drag, deselection and keyboard pruning from Eid
     )
   );
 
-  assert.match(
-    source,
-    /const nextX =\s*originalX \+ screenDeltaX \/ camera\.scale/
-  );
-  assert.match(
-    source,
-    /const nextY =\s*originalY \+ screenDeltaY \/ camera\.scale/
-  );
+  // World-space dragging still divides screen deltas by camera scale, but
+  // B6a now passes the result through deterministic group snapping.
+  assert.match(source, /screenDeltaX \/ camera\.scale, screenDeltaY \/ camera\.scale/);
+  assert.match(source, /showPositions\(movedPositions\(snapped\.dx, snapped\.dy\)\)/);
   assert.doesNotMatch(source, /const nextX = Math\.max\(\s*0,/);
   assert.doesNotMatch(source, /const nextY = Math\.max\(\s*0,/);
   assert.match(source, /function clearSelection\(\): void/);
@@ -239,6 +235,7 @@ test("Saving a projection overwrites presentation state without creating a defin
   const hiddenEdgeId = readResult.result.edges.find(
     edge => edge.source !== hiddenNodeId && edge.target !== hiddenNodeId
   )?.id;
+  const styledEdgeId = readResult.result.edges[0].id;
   const placements = nodes
     .filter(node => node.id !== hiddenNodeId)
     .map((node, index) => ({
@@ -256,10 +253,13 @@ test("Saving a projection overwrites presentation state without creating a defin
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: 0,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
           ...(hiddenEdgeId ? { hiddenEdgeIds: [hiddenEdgeId] } : {}),
+          edgePaths: [{ edgeId: styledEdgeId, pathKind: "rounded-orthogonal",
+            sourceAnchor: "right", targetAnchor: "left", waypoints: [{ x: -60, y: 120 }, { x: 90, y: 120 }] }],
           viewport: { width: 1180, height: 640 },
           placements,
           camera: {
@@ -305,6 +305,11 @@ test("Saving a projection overwrites presentation state without creating a defin
     translateY: -12
   });
   assert.deepEqual(projection.view.hiddenNodeIds, [hiddenNodeId]);
+  assert.deepEqual(projection.view.edgePaths, [
+    { edgeId: styledEdgeId, pathKind: "rounded-orthogonal",
+      sourceAnchor: "right", targetAnchor: "left",
+      waypoints: [{ x: -60, y: 120 }, { x: 90, y: 120 }] }
+  ]);
   assert.match(projection.thumbnail.src, /^data:image\/svg\+xml;charset=UTF-8,/);
   assert.match(projection.thumbnail.alt, /投影缩略图$/);
   if (hiddenEdgeId) {
@@ -318,6 +323,20 @@ test("Saving a projection overwrites presentation state without creating a defin
     projectionId
   });
   assert.ok(projected?.diagram2d);
+  const fullProjection = source.get({
+    enterpriseId: "ent-a", definitionId: "ledger:main",
+    definitionRevision: 0, projectionId, includeHidden: true
+  });
+  assert.equal(
+    fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).pathKind,
+    "rounded-orthogonal"
+  );
+  assert.deepEqual(
+    fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).waypoints,
+    [{ x: -60, y: 120 }, { x: 90, y: 120 }]
+  );
+  assert.equal(fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).sourceAnchor, "right");
+  assert.equal(fullProjection.diagram2d.edges.find(edge => edge.id === styledEdgeId).targetAnchor, "left");
   assert.equal(
     projected.diagram2d.nodes.some(node => node.id === hiddenNodeId),
     false
@@ -367,6 +386,7 @@ test("Projection editor read/save survives without transient projection session 
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements: readResult.result.nodes.map(node => ({
@@ -434,6 +454,7 @@ test("Restore all can reveal previously hidden projection items and persist that
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [hiddenNodeId],
@@ -461,6 +482,7 @@ test("Restore all can reveal previously hidden projection items and persist that
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "1",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           hiddenNodeIds: [],
@@ -553,6 +575,7 @@ test("Save as projection creates a new projection without creating a definition 
       {
         ...identity,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_AS_NEW" },
         viewState: {
           hiddenNodeIds: [state.result.nodes[0].id],
@@ -660,6 +683,7 @@ test("A saved alternate projection can become the default in place", async () =>
         definitionRevision: revision.revision,
         projectionId,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_AS_NEW" },
         viewState: {
           hiddenNodeIds: [],
@@ -687,6 +711,7 @@ test("A saved alternate projection can become the default in place", async () =>
         definitionRevision: revision.revision,
         projectionId: "projection:default-candidate",
         expectedRevision: revision.revision,
+        expectedWriteToken: "1",
         operation: { type: "SET_PRIMARY_PROJECTION" }
       }
     ),
@@ -762,6 +787,7 @@ test("Projection may be renamed in place without changing business payload or vi
         definitionRevision: revision.revision,
         projectionId,
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: {
           type: "RENAME_PROJECTION",
           title: "资金与库存关系"
@@ -839,6 +865,7 @@ test("Projection save refuses to write against a stale business-definition revis
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: 0,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements: [],
@@ -945,6 +972,7 @@ test("Ledger Manager projection flow edits presentation in place", async () => {
       EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
       {
         expectedRevision: revision.revision,
+        expectedWriteToken: "0",
         operation: { type: "SAVE_PROJECTION_VIEW" },
         viewState: {
           placements,
@@ -1004,3 +1032,220 @@ test("Ledger Manager projection flow edits presentation in place", async () => {
   );
 });
 
+
+
+test("two editor windows saving the same projection detect stale presentation write token", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source, sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    now: () => new Date("2026-10-10T00:00:00.000Z")
+  });
+  const read = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION);
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const identity = {
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision,
+    projectionId
+  };
+  const firstRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  const secondRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(firstRead.ok, true);
+  assert.equal(firstRead.result.writeToken, "0");
+  assert.equal(secondRead.result.writeToken, "0");
+  const values = (base, dx) => ({
+    ...identity,
+    expectedRevision: revision.revision,
+    expectedWriteToken: base.result.writeToken,
+    operation: { type: "SAVE_PROJECTION_VIEW" },
+    viewState: {
+      hiddenNodeIds: [],
+      hiddenEdgeIds: [],
+      placements: base.result.nodes.map(node => ({
+        nodeId: node.id, x: node.x + dx, y: node.y
+      })),
+      camera: { scale: 1, translateX: dx, translateY: 0 }
+    }
+  });
+  const firstSave = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(firstRead, 25)), context());
+  assert.equal(firstSave.ok, true);
+  assert.equal(firstSave.result.writeToken, "1");
+  const afterFirst = projectionStore.snapshot();
+  const stale = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(secondRead, 40)), context());
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.code, "DEFINITION_PROJECTION_WRITE_CONFLICT");
+  assert.deepEqual(projectionStore.snapshot(), afterFirst);
+  const freshRead = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(freshRead.result.writeToken, "1");
+  const retry = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
+    values(freshRead, 5)), context());
+  assert.equal(retry.ok, true);
+  assert.equal(retry.result.writeToken, "2");
+  assert.equal(repository.listHistory({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId
+  }).length, 1);
+});
+
+test("write-token validation blocks malformed presentation version without mutation", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore,
+    source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore),
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {}
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const result = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision, projectionId,
+      expectedRevision: revision.revision, expectedWriteToken: "NaN",
+      operation: { type: "RENAME_PROJECTION", title: "should not save" }
+    }), context());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "DEFINITION_PROJECTION_WRITE_TOKEN_INVALID");
+  assert.equal(projectionStore.getVersion({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  }), 0);
+});
+
+
+test("overlapping authorized saves use atomic CAS even after both pass async permission checks", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const sessions = createMemoryDefinitionProjectionSessionStoreV010();
+  let entered = 0;
+  let release;
+  const barrier = new Promise(resolve => { release = resolve; });
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source, sessions,
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {
+      entered += 1;
+      if (entered === 2) release();
+      await barrier;
+    }
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const command = title => actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId,
+      expectedRevision: revision.revision,
+      expectedWriteToken: "0",
+      operation: { type: "RENAME_PROJECTION", title }
+    });
+  const results = await Promise.all([
+    save.execute(command("Concurrent A"), context()),
+    save.execute(command("Concurrent B"), context())
+  ]);
+  assert.equal(entered, 2);
+  assert.equal(results.filter(x => x.ok).length, 1);
+  assert.equal(results.filter(x => !x.ok)[0].error.code, "DEFINITION_PROJECTION_WRITE_CONFLICT");
+  assert.equal(projectionStore.getVersion({
+    enterpriseId: revision.enterpriseId,
+    definitionId: revision.definitionId,
+    definitionRevision: revision.revision
+  }), 1);
+});
+
+
+test("stale editor may explicitly Save As without overwriting another writer's view", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const source = createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore);
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore, source,
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {},
+    projectionIdFactory: () => "projection:conflict-copy"
+  });
+  const read = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION);
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const identity = {
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId,
+    definitionRevision: revision.revision, projectionId
+  };
+  const old = await read.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, identity), context());
+  assert.equal(old.result.writeToken, "0");
+  const changed = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      ...identity, expectedRevision: revision.revision,
+      expectedWriteToken: "0",
+      operation: { type: "RENAME_PROJECTION", title: "Other editor's name" }
+    }), context());
+  assert.equal(changed.ok, true);
+  const afterOther = projectionStore.get(identity);
+  const copied = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      ...identity, expectedRevision: revision.revision,
+      expectedWriteToken: old.result.writeToken,
+      operation: { type: "SAVE_PROJECTION_AS_NEW" },
+      viewState: {
+        hiddenNodeIds: [], hiddenEdgeIds: [],
+        placements: old.result.nodes.map(node => ({
+          nodeId: node.id, x: node.x + 85, y: node.y
+        })),
+        camera: { scale: 1, translateX: 85, translateY: 0 }
+      }
+    }), context());
+  assert.equal(copied.ok, true);
+  assert.equal(copied.result.writeToken, "2");
+  const gallery = projectionStore.get(identity);
+  assert.equal(gallery.projections.length, afterOther.projections.length + 1);
+  assert.deepEqual(gallery.projections.find(p => p.projectionId === projectionId),
+    afterOther.projections.find(p => p.projectionId === projectionId));
+  assert.ok(gallery.projections.some(p => p.projectionId === "projection:conflict-copy"));
+  assert.equal(repository.listHistory({
+    enterpriseId: revision.enterpriseId, definitionId: revision.definitionId
+  }).length, 1);
+});
+
+
+test("legacy tokenless editor writes reject safely even before any gallery has been stored", async () => {
+  const { repository, revision, projectionId } = seeded();
+  const projectionStore = createMemoryDefinitionProjectionStoreV010();
+  const handlers = createEnterpriseDefinitionProjectionEditorActionHandlersV010({
+    repository, projectionStore,
+    source: createEnterpriseDefinitionProjectionArtifactSourceV010(repository, projectionStore),
+    sessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    canManageEnterpriseContext: () => true,
+    authorizeProjectionSave: async () => {}
+  });
+  const save = handlers.find(x => x.commandCode === EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION);
+  const before = projectionStore.snapshot();
+  const result = await save.execute(actionRequest(
+    EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, {
+      enterpriseId: revision.enterpriseId,
+      definitionId: revision.definitionId,
+      definitionRevision: revision.revision,
+      projectionId,
+      expectedRevision: revision.revision,
+      operation: { type: "RENAME_PROJECTION", title: "blind writer" }
+    }), context());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "DEFINITION_PROJECTION_WRITE_TOKEN_REQUIRED");
+  assert.deepEqual(projectionStore.snapshot(), before);
+});
