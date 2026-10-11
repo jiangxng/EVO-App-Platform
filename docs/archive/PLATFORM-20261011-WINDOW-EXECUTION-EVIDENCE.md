@@ -85,9 +85,9 @@
 
 本交接进一步通过 GitHub Git tree 和 fetch_blob **实际读取了这三个 blob 的原文**，不只看了 branch 名称；它们共享“独立 Postgres LOGIN，而非 SET ROLE”的思路和 disposable CI 限制，**都不认证生产密码/部署**。
 
-- V1：blob [79f998e432fa3fb7e9e5db41cfaf51b33929ef1e](https://github.com/jiangxng/EVO-App-Platform/blob/79f998e432fa3fb7e9e5db41cfaf51b33929ef1e/tools/certify-tr01b2d3-distinct-db-logins.mjs)；321 行；出现在 10 条旧分支；**源码差异事实**：以 finance-only 进程而非 full EVO API 用独立 Runtime DB LOGIN 执行测试，同时在末尾追加 strict catalog owner preflight：NON_SUPERUSER_OWNER_SCOPE_AUTOMATED_PASS，但 productionCertification=NOT_CERTIFIED。
-- V2：blob [e18eb2ce908494e9b841c5558a8f6faf9a1a3502](https://github.com/jiangxng/EVO-App-Platform/blob/e18eb2ce908494e9b841c5558a8f6faf9a1a3502/tools/certify-tr01b2d3-distinct-db-logins.mjs)；309 行；出现在 2 条旧分支；**源码差异事实**：使用专用 finance-owner-readonly-main 独立 Listener，明确要求 /api/v1/commands、demo 和其它非 finance 路由返回 404；未包含第一版本末尾 catalog preflight。
-- V3：blob [56b0a439b2649a842bf078f55b888f418fef82c9](https://github.com/jiangxng/EVO-App-Platform/blob/56b0a439b2649a842bf078f55b888f418fef82c9/tools/certify-tr01b2d3-distinct-db-logins.mjs)；287 行；出现在 2 条旧分支；**源码差异事实**：较旧的版本以 dist/apps/api/src/main.js（完整 EVO HTTP 进程）运行测试；不具第二版对独立 Listener 和非 finance 路由 404 的收敛断言。
+- V1：blob [79f998e432fa3fb7e9e5db41cfaf51b33929ef1e](https://github.com/jiangxng/EVO-App-Platform/blob/1d6149bd05136d642e49aab5196d12ab243cbe4e/tools/certify-tr01b2d3-distinct-db-logins.mjs)；321 行；出现在 10 条旧分支；**源码差异事实**：以 finance-only 进程而非 full EVO API 用独立 Runtime DB LOGIN 执行测试，同时在末尾追加 strict catalog owner preflight：NON_SUPERUSER_OWNER_SCOPE_AUTOMATED_PASS，但 productionCertification=NOT_CERTIFIED。
+- V2：blob [e18eb2ce908494e9b841c5558a8f6faf9a1a3502](https://github.com/jiangxng/EVO-App-Platform/blob/3e7d5182bc5f4ae03ca638c76524872086a0cbec/tools/certify-tr01b2d3-distinct-db-logins.mjs)；309 行；出现在 2 条旧分支；**源码差异事实**：使用专用 finance-owner-readonly-main 独立 Listener，明确要求 /api/v1/commands、demo 和其它非 finance 路由返回 404；未包含第一版本末尾 catalog preflight。
+- V3：blob [56b0a439b2649a842bf078f55b888f418fef82c9](https://github.com/jiangxng/EVO-App-Platform/blob/ff2fd23e83ebf72a5fc0c21757f729fd800594ac/tools/certify-tr01b2d3-distinct-db-logins.mjs)；287 行；出现在 2 条旧分支；**源码差异事实**：较旧的版本以 dist/apps/api/src/main.js（完整 EVO HTTP 进程）运行测试；不具第二版对独立 Listener 和非 finance 路由 404 的收敛断言。
 
 差异比较结论：版本一增加了 strict owner catalog preflight；版本二已有专用只读 Finance Listener 的 404 隔离证明；版本三使用旧 full EVO API main.js。**尚未用现代 main/当前真实 disposable PostgreSQL 环境重新运行三版**。选择版本一的代码最全不等于无需迁移依赖；必须对照当前主线合格 Host/runtime 归属重构为最小测试资产，再重跑并且保留 fail-closed 结果。
 
