@@ -27,6 +27,8 @@ export interface TemplateProjectionEdgePathV010 {
   waypoints?: TemplateProjectionEdgePointV010[];
   sourceAnchor?: TemplateProjectionEdgeAnchorV010;
   targetAnchor?: TemplateProjectionEdgeAnchorV010;
+  /** Optional world-space displacement from computed relationship label anchor. */
+  labelOffset?: TemplateProjectionEdgePointV010;
 }
 
 export interface TemplateProjectionView2dV010 {
@@ -125,7 +127,11 @@ export function assertTemplateProjectionGalleryV010(
         throw new Error("TEMPLATE_PROJECTION_EDGE_PATH_INVALID");
       }
       const anchors = ["auto", "left", "right", "top", "bottom"];
-      if ((edge.sourceAnchor !== undefined && !anchors.includes(edge.sourceAnchor))
+      if ((edge.labelOffset !== undefined && (!Number.isFinite(edge.labelOffset.x)
+        || !Number.isFinite(edge.labelOffset.y)
+        || Math.abs(edge.labelOffset.x) > 10000000
+        || Math.abs(edge.labelOffset.y) > 10000000))
+        || (edge.sourceAnchor !== undefined && !anchors.includes(edge.sourceAnchor))
         || (edge.targetAnchor !== undefined && !anchors.includes(edge.targetAnchor))
         || (edge.waypoints !== undefined && (!Array.isArray(edge.waypoints)
           || edge.waypoints.length > 24 || (edge.pathKind === "straight" && edge.waypoints.length > 0)
@@ -137,7 +143,8 @@ export function assertTemplateProjectionGalleryV010(
         edgeId, pathKind: edge.pathKind,
         ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ x: p.x, y: p.y })) } : {}),
         ...(edge.sourceAnchor && edge.sourceAnchor !== "auto" ? { sourceAnchor: edge.sourceAnchor } : {}),
-        ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {})
+        ...(edge.targetAnchor && edge.targetAnchor !== "auto" ? { targetAnchor: edge.targetAnchor } : {}),
+        ...(edge.labelOffset ? { labelOffset: { ...edge.labelOffset } } : {})
       };
     });
     if ((edgePaths?.length ?? 0) > 10000
