@@ -279,6 +279,98 @@ try{
     syntheticOnly:true,physicalDeviceVerified:false
   }));
   await v06Tab.close();
+  // M01: native left-button drag on blank canvas creates a marquee and selects
+  // the enclosed node without changing the camera or saved projection.
+  const m01Before=await tab.evaluate(()=>{
+    const sale=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const other=document.querySelector('[data-eidos-diagram-node="receipt"]');
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    const a=sale.getBoundingClientRect(), b=other.getBoundingClientRect();
+    const v=canvas.getBoundingClientRect();
+    const start={x:a.left-24,y:a.top-24};
+    const end={x:a.right+24,y:a.bottom+24};
+    return {start,end,canvas:{left:v.left,top:v.top,right:v.right,bottom:v.bottom},
+      other:{left:b.left,top:b.top},
+      transform:sale.parentElement.style.transform,
+      startTarget:document.elementFromPoint(start.x,start.y)?.getAttribute("data-eidos-diagram-node"),
+      endTarget:document.elementFromPoint(end.x,end.y)?.getAttribute("data-eidos-diagram-node")};
+  });
+  assert.equal(m01Before.startTarget,null,"M01 marquee must start on blank canvas");
+  assert.equal(m01Before.endTarget,null,"M01 marquee must end on blank canvas");
+  assert.ok(m01Before.start.x>m01Before.canvas.left
+    &&m01Before.end.x<m01Before.canvas.right
+    &&m01Before.start.y>m01Before.canvas.top
+    &&m01Before.end.y<m01Before.canvas.bottom,"M01 drag stays inside canvas");
+  await tab.mouse.move(m01Before.start.x,m01Before.start.y);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(m01Before.end.x,m01Before.end.y,{steps:10});
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),1,
+    "M01 real left-drag draws an active selection rectangle");
+  await tab.mouse.up({button:"left"});
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),0);
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),
+    "true","M01 enclosed node must be selected");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),
+    "false","M01 excluded node must remain unselected");
+  const m01After=await tab.evaluate(()=>document.querySelector(
+    '[data-eidos-diagram-node="sale"]').parentElement.style.transform);
+  assert.equal(m01After,m01Before.transform,
+    "M01 dragging to marquee may not accidentally pan/zoom the canvas");
+  assert.equal(store.getVersion(id),0,"M01 marquee is presentation-only and unsaved");
+  console.log("DIAGRAM_M01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M01",browser:"Chromium "+browser.version(),
+    nativeBlankCanvasLeftDrag:true,marqueeVisibleDuringDrag:true,
+    enclosedNodeSelected:true,excludedNodeNotSelected:true,cameraUnchanged:true,
+    syntheticOnly:true,physicalMouseDeviceVerified:false
+  }));
+  // M02: click selects but does not move; 2px motion below the 4px
+  // pointer threshold does not drag; real 48px mouse move does drag. Undo
+  // restores geometry before subsequent existing V01-V06 regression.
+  const m02Node=tab.locator('[data-eidos-diagram-node="sale"]');
+  const m02Pos=async()=>tab.evaluate(()=>[...document.querySelectorAll(
+    '[data-eidos-diagram-node]')].map(n=>({
+      id:n.getAttribute("data-eidos-diagram-node"),
+      x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)
+    })));
+  const beforeClick=await m02Pos();
+  await m02Node.click();
+  assert.equal(await m02Node.getAttribute("aria-pressed"),"true",
+    "M02 clicking a node selects it");
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 click alone may not move node coordinates");
+  let rect=await m02Node.boundingBox();
+  let cx=rect.x+rect.width/2,cy=rect.y+rect.height/2;
+  await tab.mouse.move(cx,cy);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(cx+2,cy+2);
+  await tab.mouse.up({button:"left"});
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 pointer motion below 4 CSS px must not move the node");
+  rect=await m02Node.boundingBox();
+  cx=rect.x+rect.width/2;cy=rect.y+rect.height/2;
+  await tab.mouse.move(cx,cy);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(cx+48,cy+15,{steps:9});
+  await tab.mouse.up({button:"left"});
+  const movedM02=await m02Pos();
+  const oldNode=beforeClick.find(x=>x.id==="sale"),newNode=movedM02.find(x=>x.id==="sale");
+  assert.ok(Math.abs(newNode.x-oldNode.x)>12,
+    "M02 native left drag past threshold must move selected node");
+  assert.deepEqual(movedM02.find(x=>x.id==="receipt"),
+    beforeClick.find(x=>x.id==="receipt"),
+    "M02 dragging one node cannot silently move the other");
+  assert.equal(store.getVersion(id),0,
+    "M02 moving presentation nodes is not an implicit Save");
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.press("Control+z");
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 one Undo must restore the exact original node positions");
+  console.log("DIAGRAM_M02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M02",browser:"Chromium "+browser.version(),
+    actualClickSelectNoMove:true,subthresholdMotionNoMove:true,
+    aboveThresholdMoved:true,otherNodePreserved:true,undoRestored:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
@@ -367,19 +459,32 @@ try{
       const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+edge+'"]');
       if(!hit||!visual)throw Error("V04 missing SVG elements");
       const length=hit.getTotalLength();
-      const p=hit.getPointAtLength(length*.74);
-      const before=hit.getPointAtLength(length*.72);
-      const after=hit.getPointAtLength(length*.76);
       const matrix=hit.getScreenCTM();
       if(!matrix)throw Error("V04 missing path screen matrix");
       const toScreen=v=>({x:v.x*matrix.a+v.y*matrix.c+matrix.e,
         y:v.x*matrix.b+v.y*matrix.d+matrix.f});
-      const middle=toScreen(p),a=toScreen(before),b=toScreen(after);
-      const tangent={x:b.x-a.x,y:b.y-a.y};
-      const norm=Math.hypot(tangent.x,tangent.y);
-      if(!(norm>0))throw Error("V04 path has no tangent");
-      const x=middle.x-6*tangent.y/norm;
-      const y=middle.y+6*tangent.x/norm;
+      const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+      const rect=canvas.getBoundingClientRect();
+      // After M01 selection freezes camera, the inspector may cover some
+      // connector screen positions. Sample an actually visible segment, not
+      // the former hard-coded 74% position hidden behind the inspector.
+      let sample;
+      for(const fraction of [.74,.62,.50,.38,.26,.14]){
+        const p=hit.getPointAtLength(length*fraction);
+        const before=hit.getPointAtLength(length*Math.max(0,fraction-.02));
+        const after=hit.getPointAtLength(length*Math.min(1,fraction+.02));
+        const middle=toScreen(p),a=toScreen(before),b=toScreen(after);
+        const tangent={x:b.x-a.x,y:b.y-a.y};
+        const norm=Math.hypot(tangent.x,tangent.y);
+        if(!(norm>0))continue;
+        const x=middle.x-6*tangent.y/norm;
+        const y=middle.y+6*tangent.x/norm;
+        if(x<rect.left+9||x>=rect.right-9||y<rect.top+9||y>=rect.bottom-9)continue;
+        sample={fraction,middle,x,y};
+        break;
+      }
+      if(!sample)throw Error("V04 no actually visible connector point to hit at this zoom");
+      const {middle,x,y}=sample;
       const element=document.elementFromPoint(x,y);
       const hitDetected=element?.getAttribute("data-eidos-diagram-edge")===edge;
       const centerElement=document.elementFromPoint(middle.x,middle.y);
@@ -394,13 +499,14 @@ try{
         markerEnd:marker,
         markerStart:visual.getAttribute("marker-start"),
         hitDetected,
+        sampleFraction:sample.fraction,
         diagnostic:{zoomDisplay:document.querySelector('[aria-label="Reset view"]')?.textContent,
           center:[middle.x,middle.y],point:[x,y],
           centerTag:centerElement?.tagName,centerHit:centerElement?.getAttribute("data-eidos-diagram-edge"),
           topElements,computedHitStroke:getComputedStyle(hit).strokeWidth,
           hitRect:hit.getBoundingClientRect().toJSON()},
-        sampledPointInsideViewport:x>=0&&y>=0
-          &&x<document.documentElement.clientWidth&&y<innerHeight
+        sampledPointInsideViewport:x>=rect.left&&y>=rect.top
+          &&x<rect.right&&y<rect.bottom
       };
     },relationId);
     console.log("V04_NATIVE_HIT_DIAGNOSTIC="+JSON.stringify({scenario:scenario.display,...result}));
