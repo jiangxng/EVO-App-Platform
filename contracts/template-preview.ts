@@ -36,6 +36,7 @@ export interface TemplatePreviewEdgeV010 {
   waypoints?: TemplateProjectionEdgePointV010[];
   sourceAnchor?: TemplateProjectionEdgeAnchorV010;
   targetAnchor?: TemplateProjectionEdgeAnchorV010;
+  labelOffset?: TemplateProjectionEdgePointV010;
   detail?: string;
   properties?: TemplatePreviewPropertyV010[];
 }

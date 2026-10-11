@@ -596,6 +596,48 @@ try{
     preservedSelection:true,positionsStable:true,withoutImplicitSave:true,
     physicalDeviceVerified:false
   }));
+  // M06: stationary secondary click shows the application context menu.
+  // If a selected node belongs to a group, the group's selection survives.
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.press("Control+a");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  const m06Before=await tab.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {camera:n.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(el=>({
+        id:el.getAttribute("data-eidos-diagram-node"),x:el.style.left,y:el.style.top
+      }))};
+  });
+  await tab.locator('[data-eidos-diagram-node="sale"]').click({button:"right"});
+  const menu=tab.locator("[data-eidos-diagram-context-menu]");
+  await menu.waitFor({state:"visible",timeout:7000});
+  assert.equal(await menu.getAttribute("role"),"menu");
+  assert.equal((await menu.locator("[data-eidos-diagram-context-subject]").textContent())?.trim(),
+    "2 nodes selected","M06 right click on group member keeps whole selection context");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  const m06After=await tab.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {camera:n.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(el=>({
+        id:el.getAttribute("data-eidos-diagram-node"),x:el.style.left,y:el.style.top
+      }))};
+  });
+  assert.deepEqual(m06After,m06Before,
+    "M06 stationary secondary click cannot pan camera or mutate graph");
+  assert.equal(await menu.locator('[role="menuitem"]').filter({hasText:"Close"}).count(),1,
+    "M06 a discoverable dismiss action must be present");
+  await menu.locator('[role="menuitem"]').filter({hasText:"Close"}).click();
+  assert.equal(await tab.locator("[data-eidos-diagram-context-menu]").count(),0);
+  assert.equal(store.getVersion(id),0,"M06 context menu must never save on open/close");
+  console.log("DIAGRAM_M06_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M06",browser:"Chromium "+browser.version(),
+    nativeStationaryRightClick:true,applicationMenuVisible:true,
+    groupContextPreserved:true,cameraAndPositionsUnchanged:true,
+    explicitMenuDismiss:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
@@ -1409,6 +1451,274 @@ try{
     syntheticOnly:true,physicalDeviceVerified:false
   }));
   await e03Tab.close();
+  // E04: click the actual curved ink far away from its endpoint chord.
+  // A point on the ghost straight chord must NOT hit this SVG edge.
+  const e04Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e04Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e04Tab);
+  const e04GetPoint=await e04Tab.evaluate(edgeId=>{
+    const e=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=e.getScreenCTM(),len=e.getTotalLength();
+    for(let i=12;i<=88;i+=2){
+      const p=e.getPointAtLength(len*i/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e04GetPoint,"E04 source relation must have actual pointer-hit segment");
+  await e04Tab.mouse.click(e04GetPoint.x,e04GetPoint.y);
+  const e04Kind=e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await e04Kind.waitFor({state:"visible"});
+  await e04Kind.selectOption("curve");
+  assert.match(await shape(e04Tab),/ C /,"E04 must actually render a cubic, not a fake straight edge");
+  const e04Geometry=await e04Tab.evaluate(edgeId=>{
+    const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    const hit=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=hit.getScreenCTM(),len=hit.getTotalLength();
+    const pointAt=t=>{
+      const p=hit.getPointAtLength(len*t);
+      return {x:p.x*m.a+p.y*m.c+m.e,y:p.x*m.b+p.y*m.d+m.f};
+    };
+    const a=pointAt(0),b=pointAt(1);
+    let best=null;
+    const rect=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+    for(let i=10;i<=90;i++){
+      const f=i/100,p=pointAt(f);
+      const vx=b.x-a.x,vy=b.y-a.y;
+      const k=Math.max(0,Math.min(1,((p.x-a.x)*vx+(p.y-a.y)*vy)/(vx*vx+vy*vy)));
+      const chord={x:a.x+k*vx,y:a.y+k*vy};
+      const distance=Math.hypot(p.x-chord.x,p.y-chord.y);
+      if(p.x<rect.left+12||p.x>rect.right-12||p.y<rect.top+12||p.y>rect.bottom-12)continue;
+      if(chord.x<rect.left+12||chord.x>rect.right-12||chord.y<rect.top+12||chord.y>rect.bottom-12)continue;
+      if(document.elementFromPoint(p.x,p.y)?.getAttribute("data-eidos-diagram-edge")!==edgeId)continue;
+      if(!best||distance>best.distance)best={fraction:f,p,chord,distance};
+    }
+    if(!best)return null;
+    return {...best,
+      chordTarget:document.elementFromPoint(best.chord.x,best.chord.y)?.getAttribute("data-eidos-diagram-edge")??null,
+      chordStack:[...document.elementsFromPoint(best.chord.x,best.chord.y)].slice(0,4)
+        .map(x=>x.getAttribute("data-eidos-diagram-edge")),
+      actualTarget:document.elementFromPoint(best.p.x,best.p.y)?.getAttribute("data-eidos-diagram-edge")??null,
+      visual:visual.getAttribute("d")};
+  },relationId);
+  assert.ok(e04Geometry && e04Geometry.distance>15,
+    "E04 cubic must have clickable ink visibly displaced >15px from endpoint chord");
+  assert.equal(e04Geometry.actualTarget,relationId);
+  assert.notEqual(e04Geometry.chordTarget,relationId,
+    "E04 old endpoint straight chord cannot retain a ghost hit corridor");
+  await e04Tab.mouse.click(e04Geometry.chord.x,e04Geometry.chord.y);
+  assert.equal(await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]').count(),0,
+    "E04 clicking ghost-chord location must NOT select edited edge");
+  // Blank click collapses the inspector and may move/refit the canvas.
+  // Re-measure the painted curve after that layout change, not stale pixels.
+  const e04Reselect=await e04Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let i=15;i<=85;i++){
+      const q=path.getPointAtLength(len*i/100);
+      const x=q.x*m.a+q.y*m.c+m.e,y=q.x*m.b+q.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e04Reselect,"E04 curve must remain hit-testable after inspector collapse");
+  await e04Tab.mouse.click(e04Reselect.x,e04Reselect.y);
+  await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .waitFor({state:"visible"});
+  assert.equal(store.getVersion(id),0,"E04 hit-testing cannot save business graph");
+  assert.deepEqual(await e04Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E04_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E04",browser:"Chromium "+browser.version(),
+    maxChordDistance:e04Geometry.distance,
+    realCurveClick:true,ghostChordNotClickable:true,
+    cubicSVG:e04Geometry.visual,syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e04Tab.close();
+  // E05: move one, then both business endpoints of a manual orthogonal route.
+  // Hand-authored path controls must survive, not silently reset.
+  const e05Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e05Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e05Tab);
+  const e05Route=()=>shape(e05Tab);
+  const e05SelectEdge=async()=>{
+    const hit=await e05Tab.evaluate(edgeId=>{
+      const p=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+      const m=p.getScreenCTM(),len=p.getTotalLength();
+      for(let i=8;i<=92;i+=2){
+        const q=p.getPointAtLength(len*i/100);
+        const x=q.x*m.a+q.y*m.c+m.e,y=q.x*m.b+q.y*m.d+m.f;
+        if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+          return {x,y};
+      }
+      return null;
+    },relationId);
+    assert.ok(hit,"E05 real connector must retain a clickable segment");
+    await e05Tab.mouse.click(hit.x,hit.y);
+    await e05Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+      .waitFor({state:"visible"});
+  };
+  const e05NodePos=()=>e05Tab.evaluate(()=>[...document.querySelectorAll(
+    "[data-eidos-diagram-node]")].map(n=>({
+      id:n.getAttribute("data-eidos-diagram-node"),
+      x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)
+    })));
+  const e05Waypoint=async()=>{
+    await e05SelectEdge();
+    const box=e05Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]');
+    await box.waitFor({state:"visible"});
+    const inputs=box.locator('input[type="number"]');
+    assert.ok((await inputs.count())>=2,"E05 manual path points cannot disappear");
+    return {
+      x:Number(await inputs.nth(0).inputValue()),
+      y:Number(await inputs.nth(1).inputValue()),
+      path:await e05Route()
+    };
+  };
+  const e05Move=async(nodeId,dx,dy)=>{
+    const node=e05Tab.locator('[data-eidos-diagram-node="'+nodeId+'"]');
+    const b=await node.boundingBox();
+    const x=b.x+b.width/2,y=b.y+b.height/2;
+    await e05Tab.mouse.move(x,y);
+    await e05Tab.mouse.down({button:"left"});
+    await e05Tab.mouse.move(x+dx,y+dy,{steps:9});
+    await e05Tab.mouse.up({button:"left"});
+  };
+  await e05SelectEdge();
+  await e05Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .selectOption("orthogonal");
+  await e05Tab.getByRole("button",{name:"Add path point"}).click();
+  const e05Manual=await e05Waypoint();
+  const e05BeforeNodes=await e05NodePos();
+  await e05Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await e05Move("sale",42,19);
+  const e05OneMoved=await e05NodePos();
+  assert.ok(Math.hypot(e05OneMoved[0].x-e05BeforeNodes[0].x,
+    e05OneMoved[0].y-e05BeforeNodes[0].y)>7,
+    "E05 first endpoint must really move under native mouse");
+  assert.deepEqual(e05OneMoved[1],e05BeforeNodes[1],
+    "E05 moving one endpoint must preserve the other endpoint");
+  const e05AfterOne=await e05Waypoint();
+  assert.deepEqual({x:e05AfterOne.x,y:e05AfterOne.y},
+    {x:e05Manual.x,y:e05Manual.y},
+    "E05 single-endpoint move must preserve manually placed world points");
+  assert.notEqual(e05AfterOne.path,e05Manual.path,
+    "E05 one endpoint movement must update the SVG route");
+  await e05Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e05Tab.keyboard.press("Control+a");
+  assert.equal(await e05Tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await e05Tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  await e05Move("sale",36,26);
+  const e05BothMoved=await e05NodePos();
+  const dx0=e05BothMoved[0].x-e05OneMoved[0].x;
+  const dy0=e05BothMoved[0].y-e05OneMoved[0].y;
+  const dx1=e05BothMoved[1].x-e05OneMoved[1].x;
+  const dy1=e05BothMoved[1].y-e05OneMoved[1].y;
+  assert.ok(Math.hypot(dx0,dy0)>5 && Math.abs(dx0-dx1)<.05
+    &&Math.abs(dy0-dy1)<.05,
+    "E05 group moving both endpoints must keep their relative geometry");
+  const e05AfterBoth=await e05Waypoint();
+  assert.ok(Math.abs(e05AfterBoth.x-e05Manual.x-dx0)<.1
+    &&Math.abs(e05AfterBoth.y-e05Manual.y-dy0)<.1,
+    "E05 moving both endpoints must translate manual path controls together");
+  assert.match(e05AfterBoth.path,/^M /);
+  assert.match(await e05Tab.locator('[data-eidos-diagram-edge-visual="'+relationId+'"]')
+    .getAttribute("marker-end"),/url\(#/);
+  assert.equal(store.getVersion(id),0,
+    "E05 node and waypoint movement cannot Save implicitly");
+  assert.deepEqual(await e05Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E05",browser:"Chromium "+browser.version(),
+    manual:e05Manual,afterOne:e05AfterOne,afterBoth:e05AfterBoth,
+    oneEndpointNativeDrag:true,bothEndpointsNativeGroupDrag:true,
+    manualPointsStableOnSingleMove:true,translatedOnGroupMove:true,
+    businessArrowPreserved:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e05Tab.close();
+  // E06: manual curve and orthogonal path => straight is a destructive
+  // presentation reset, with an explicit warning and exact one-step Undo.
+  for(const e06Mode of ["curve","orthogonal"]){
+    const e06Tab=await browser.newPage({viewport:{width:1250,height:820}});
+    await e06Tab.goto(base+"/designer",{waitUntil:"load"});
+    await waitReady(e06Tab);
+    const e06Select=async()=>{
+      if(await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]').count())return;
+      const point=await e06Tab.evaluate(edgeId=>{
+        const hit=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+        const matrix=hit.getScreenCTM(),len=hit.getTotalLength();
+        for(let i=10;i<=90;i+=2){
+          const p=hit.getPointAtLength(len*i/100);
+          const x=p.x*matrix.a+p.y*matrix.c+matrix.e,
+            y=p.x*matrix.b+p.y*matrix.d+matrix.f;
+          if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+            return {x,y};
+        }
+        return null;
+      },relationId);
+      assert.ok(point,"E06 business edge should remain click-selectable");
+      await e06Tab.mouse.click(point.x,point.y);
+      await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+        .waitFor({state:"visible",timeout:10000});
+    };
+    await e06Select();
+    const e06Dropdown=e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+    await e06Dropdown.selectOption(e06Mode);
+    await e06Tab.getByRole("button",{name:"Add path point"}).click();
+    const e06Panel=e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]');
+    const e06Inputs=e06Panel.locator('input[type="number"]');
+    assert.ok((await e06Inputs.count())>=2);
+    const e06Before={
+      path:await shape(e06Tab),x:await e06Inputs.nth(0).inputValue(),
+      y:await e06Inputs.nth(1).inputValue()
+    };
+    let cancelledWarning="";
+    e06Tab.once("dialog",async dialog=>{
+      cancelledWarning=dialog.message();await dialog.dismiss();
+    });
+    await e06Dropdown.selectOption("straight");
+    assert.match(cancelledWarning,/resets manual path points/i,
+      "E06 destructive route reset must warn the user explicitly");
+    assert.equal(await e06Dropdown.inputValue(),e06Mode,
+      "E06 decline must restore the previous path-kind selector");
+    assert.equal(await shape(e06Tab),e06Before.path,
+      "E06 declined reset must not mutate SVG geometry");
+    assert.equal(await e06Inputs.nth(0).inputValue(),e06Before.x);
+    let acceptedWarning="";
+    e06Tab.once("dialog",async dialog=>{
+      acceptedWarning=dialog.message();await dialog.accept();
+    });
+    await e06Dropdown.selectOption("straight");
+    assert.match(acceptedWarning,/Undo restores them/i);
+    assert.equal(await e06Dropdown.inputValue(),"straight");
+    const e06Straight=await shape(e06Tab);
+    assert.match(e06Straight,/^M .* L /);
+    assert.notEqual(e06Straight,e06Before.path,
+      "E06 approved reset actually removes custom path");
+    assert.equal(await e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]').count(),0);
+    await e06Tab.locator("[data-eidos-diagram-canvas]").focus();
+    await e06Tab.keyboard.press("Control+z");
+    assert.equal(await shape(e06Tab),e06Before.path,
+      "E06 single Undo restores complete original routed SVG path");
+    await e06Select();
+    const e06Restored=e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"] input[type="number"]');
+    await e06Restored.first().waitFor({state:"visible"});
+    assert.equal(await e06Restored.nth(0).inputValue(),e06Before.x);
+    assert.equal(await e06Restored.nth(1).inputValue(),e06Before.y);
+    assert.equal(await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+      .inputValue(),e06Mode);
+    assert.equal(store.getVersion(id),0,
+      "E06 manual path reset and Undo must not Save business projection");
+    assert.deepEqual(await e06Tab.evaluate(()=>window.__errors),[]);
+    console.log("DIAGRAM_E06_BROWSER_SUBGATE="+JSON.stringify({
+      case:"E06",mode:e06Mode,browser:"Chromium "+browser.version(),
+      actualNativeWarning:true,cancelLeavesPathUnchanged:true,
+      acceptDeletesManualPath:true,oneUndoRestoresExactControls:true,
+      noImplicitSave:true,physicalDeviceVerified:false
+    }));
+    await e06Tab.close();
+  }
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
@@ -1553,6 +1863,141 @@ try{
     formalHumanSignedCases:0,formalTotalCases:39,
     warning:"NOT a device/customer/production commercial acceptance PASS"
   }));
+  // E07: native label drag -> Undo/Redo -> node movement follows new
+  // path anchor -> explicit CAS Save -> reload -> independent readonly Viewer.
+  const e07Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e07Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e07Tab);
+  const e07EdgePoint=await e07Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let i=12;i<=88;i+=2){
+      const p=path.getPointAtLength(len*i/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e07EdgePoint,"E07 edge must be selectable before label drag");
+  await e07Tab.mouse.click(e07EdgePoint.x,e07EdgePoint.y);
+  await e07Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .waitFor({state:"visible"});
+  const e07Label=e07Tab.locator('[data-eidos-diagram-edge-label="'+relationId+'"]');
+  await e07Label.waitFor({state:"visible"});
+  const e07Snapshot=()=>e07Tab.evaluate(edgeId=>{
+    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    const route=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    return {x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
+      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
+      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y")),
+      path:route.getAttribute("d")};
+  },relationId);
+  const e07Initial=await e07Snapshot();
+  assert.equal(e07Initial.offsetX,0);
+  assert.equal(e07Initial.offsetY,0);
+  const e07Hit=await e07Tab.evaluate(edgeId=>{
+    const el=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    const box=el.getBoundingClientRect();
+    const ys=[.25,.55,.75,.1,.9],xs=[.2,.35,.5,.65,.8,.1,.9];
+    for(const yf of ys)for(const xf of xs){
+      const x=box.left+box.width*xf,y=box.top+box.height*yf;
+      const top=document.elementFromPoint(x,y);
+      if(top?.closest?.('[data-eidos-diagram-edge-label="'+edgeId+'"]'))
+        return {x,y,rect:box.toJSON()};
+    }
+    return null;
+  },relationId);
+  assert.ok(e07Hit,"E07 selected label must expose a native mouse hit surface");
+  await e07Tab.mouse.move(e07Hit.x,e07Hit.y);
+  await e07Tab.mouse.down({button:"left"});
+  await e07Tab.mouse.move(e07Hit.x+45,e07Hit.y-26,{steps:8});
+  const e07During=await e07Snapshot();
+  assert.ok(Math.hypot(e07During.x-e07Initial.x,e07During.y-e07Initial.y)>12,
+    "E07 label SVG ink must follow the actual mouse before release");
+  await e07Tab.mouse.up({button:"left"});
+  const e07Dragged=await e07Snapshot();
+  assert.ok(Math.hypot(e07Dragged.offsetX,e07Dragged.offsetY)>20,
+    "E07 drag must commit a presentation offset, not merely move DOM");
+  assert.equal(e07Dragged.path,e07Initial.path,
+    "E07 text move cannot rewrite business route geometry");
+  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e07Tab.keyboard.press("Control+z");
+  const e07Undo=await e07Snapshot();
+  assert.equal(e07Undo.offsetX,0,"E07 Undo must restore automatic label position");
+  assert.equal(e07Undo.offsetY,0);
+  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e07Tab.keyboard.press("Control+y");
+  const e07Redo=await e07Snapshot();
+  assert.ok(Math.abs(e07Redo.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07Redo.offsetY-e07Dragged.offsetY)<.001,
+    "E07 Redo restores exact caption offset");
+  await e07Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  const e07Node=e07Tab.locator('[data-eidos-diagram-node="sale"]');
+  const e07NodeBox=await e07Node.boundingBox();
+  const ex=e07NodeBox.x+e07NodeBox.width/2,
+    ey=e07NodeBox.y+e07NodeBox.height/2;
+  await e07Tab.mouse.move(ex,ey);
+  await e07Tab.mouse.down({button:"left"});
+  await e07Tab.mouse.move(ex+44,ey+25,{steps:8});
+  await e07Tab.mouse.up({button:"left"});
+  const e07AfterNode=await e07Snapshot();
+  assert.equal(e07AfterNode.offsetX,e07Dragged.offsetX,
+    "E07 moving a node retains the label displacement");
+  assert.equal(e07AfterNode.offsetY,e07Dragged.offsetY);
+  assert.ok(Math.hypot(e07AfterNode.x-e07Dragged.x,
+    e07AfterNode.y-e07Dragged.y)>4,
+    "E07 label must follow the real route after an endpoint moves");
+  const e07Save=e07Tab.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"});
+  await e07Save.click();
+  await e07Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),2,"E07 explicit Save adds exactly one CAS revision after the V01–V04 baseline save");
+  await e07Tab.reload({waitUntil:"load"});
+  await waitReady(e07Tab);
+  const e07Reloaded=await e07Snapshot();
+  assert.ok(Math.abs(e07Reloaded.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07Reloaded.offsetY-e07Dragged.offsetY)<.001,
+    "E07 label position must persist after a new Designer mount");
+  const e07Viewer=await browser.newPage({viewport:{width:1250,height:820}});
+  await e07Viewer.goto(base+"/viewer",{waitUntil:"load"});
+  await waitReady(e07Viewer);
+  const e07ReadOnly=await e07Viewer.evaluate(edgeId=>{
+    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    return l && {
+      x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
+      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
+      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y"))
+    };
+  },relationId);
+  assert.ok(e07ReadOnly,"E07 independent readonly Viewer should render caption");
+  assert.ok(Math.abs(e07ReadOnly.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07ReadOnly.offsetY-e07Dragged.offsetY)<.001,
+    "E07 Viewer must use exactly the Designer-saved caption displacement");
+  assert.equal(await e07Viewer.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).count(),0,
+    "E07 Viewer cannot offer write action");
+  const e07Saved=await read.execute(request(READ,id),ctx);
+  assert.equal(e07Saved.ok,true);
+  assert.equal(e07Saved.result.edges[0].arrow,"end");
+  assert.ok(Math.abs(e07Saved.result.edges[0].labelOffset.x-e07Dragged.offsetX)<.001);
+  assert.equal(repo.listHistory({enterpriseId:id.enterpriseId,definitionId:id.definitionId}).length,1,
+    "E07 presentation Save cannot create a new business definition version");
+  assert.deepEqual(await e07Tab.evaluate(()=>window.__errors),[]);
+  assert.deepEqual(await e07Viewer.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E07_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E07",browser:"Chromium "+browser.version(),
+    nativeMouseLabelDrag:true,undoRedo:true,nodeMovementFollowsPath:true,
+    explicitSaveAndFreshDesigner:true,independentViewerMatches:true,
+    captionOffset:{x:e07Dragged.offsetX,y:e07Dragged.offsetY},
+    businessArrowAndDefinitionRevisionPreserved:true,
+    physicalDeviceVerified:false
+  }));
+  await e07Viewer.close();
+  await e07Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();

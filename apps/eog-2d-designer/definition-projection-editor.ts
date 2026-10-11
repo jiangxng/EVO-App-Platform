@@ -387,6 +387,7 @@ function editorState(input: {
       ...(edge.waypoints?.length ? { waypoints: edge.waypoints.map(p => ({ ...p })) } : {}),
       ...(edge.sourceAnchor ? { sourceAnchor: edge.sourceAnchor } : {}),
       ...(edge.targetAnchor ? { targetAnchor: edge.targetAnchor } : {}),
+      ...(edge.labelOffset ? { labelOffset: { ...edge.labelOffset } } : {}),
       ...(edge.detail ? { detail: edge.detail } : {}),
       ...(edge.properties
         ? { properties: edge.properties.map(property => ({ ...property })) }
@@ -579,9 +580,24 @@ function parsedViewState(value: JsonValue | undefined): {
         }
         return { x: point.x, y: point.y };
       });
+      const offset = path.labelOffset;
+      let labelOffset: { x: number; y: number } | undefined;
+      if (offset !== undefined) {
+        if (!offset || typeof offset !== "object" || Array.isArray(offset)) {
+          throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+        }
+        const point = offset as Record<string, JsonValue>;
+        if (typeof point.x !== "number" || typeof point.y !== "number"
+          || !Number.isFinite(point.x) || !Number.isFinite(point.y)
+          || Math.abs(point.x) > 10000000 || Math.abs(point.y) > 10000000) {
+          throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+        }
+        labelOffset = { x: point.x, y: point.y };
+      }
       return {
         edgeId: path.edgeId.trim(),
         pathKind: kind,
+        ...(labelOffset ? { labelOffset } : {}),
         ...(waypoints?.length ? { waypoints } : {}),
         ...(path.sourceAnchor && path.sourceAnchor !== "auto"
           ? { sourceAnchor: path.sourceAnchor as TemplateProjectionEdgePathV010["sourceAnchor"] } : {}),

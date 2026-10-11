@@ -449,7 +449,8 @@ export function applyDefinitionProjectionV010(input: {
         pathKind: routeByEdgeId.get(edge.id)!.pathKind,
         ...(routeByEdgeId.get(edge.id)!.waypoints?.length ? { waypoints: routeByEdgeId.get(edge.id)!.waypoints!.map(p => ({ ...p })) } : {}),
         ...(routeByEdgeId.get(edge.id)!.sourceAnchor ? { sourceAnchor: routeByEdgeId.get(edge.id)!.sourceAnchor } : {}),
-        ...(routeByEdgeId.get(edge.id)!.targetAnchor ? { targetAnchor: routeByEdgeId.get(edge.id)!.targetAnchor } : {})
+        ...(routeByEdgeId.get(edge.id)!.targetAnchor ? { targetAnchor: routeByEdgeId.get(edge.id)!.targetAnchor } : {}),
+        ...(routeByEdgeId.get(edge.id)!.labelOffset ? { labelOffset: { ...routeByEdgeId.get(edge.id)!.labelOffset! } } : {})
       } : {})
     }));
 
