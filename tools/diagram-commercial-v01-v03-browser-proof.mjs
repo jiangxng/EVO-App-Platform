@@ -120,11 +120,30 @@ const e01State={
   ],
   edges:initial.result.edges.map(edge=>({...edge,pathKind:"orthogonal"}))
 };
+const e02Edges={
+  forwardA:"e02-forward-a",forwardB:"e02-forward-b",
+  reverse:"e02-reverse",loop:"e02-loop"
+};
+const e02Base=initial.result.edges[0];
+const e02State={
+  ...initial.result,
+  nodes:[
+    {...initial.result.nodes[0],x:100,y:200},
+    {...initial.result.nodes[1],x:720,y:210}
+  ],
+  edges:[
+    {...e02Base,id:e02Edges.forwardA,pathKind:"orthogonal"},
+    {...e02Base,id:e02Edges.forwardB,pathKind:"orthogonal"},
+    {...e02Base,id:e02Edges.reverse,source:"receipt",target:"sale",pathKind:"orthogonal"},
+    {...e02Base,id:e02Edges.loop,source:"sale",target:"sale",pathKind:"orthogonal"}
+  ]
+};
 const html=(mode)=>{
   const readOnly=mode==="viewer";
   const v06=mode==="v06";
   const phone=mode==="phone";
   const e01=mode==="e01";
+  const e02=mode==="e02";
   const definition=readOnly?viewer:editor;
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
@@ -135,19 +154,21 @@ const html=(mode)=>{
   const json=JSON.stringify(definition).replaceAll("<","\\u003c");
   const issueState=v06?JSON.stringify(v06State).replaceAll("<","\\u003c"):"null";
   const obstacleState=e01?JSON.stringify(e01State).replaceAll("<","\\u003c"):"null";
+  const parallelState=e02?JSON.stringify(e02State).replaceAll("<","\\u003c"):"null";
   return '<!doctype html><html><head><meta charset="utf-8">'
     +'<meta name="viewport" content="width=device-width,initial-scale=1">'
     +'<style>html,body{margin:0}main{width:'+(phone?'100vw':'1200px')+';height:'+(phone?'100dvh':'760px')+'}'
     +'[data-eidos-diagram-editor]{height:'+(phone?'100%':'750px')+'!important;min-height:'+(phone?'700px':'560px')+'}</style></head>'
     +'<body><main id="root">'+shell+'</main>'
     +'<script>window.__definition='+json
+    +';window.__e02State='+parallelState
     +';window.__e01State='+obstacleState
     +';window.__v06State='+issueState
     +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
     +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
     +'</script><script type="module">'
     +'import {'+mountName+'} from '+JSON.stringify(modulePath)+';'
-    +'const actionHost={async execute(request){if(window.__e01State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__e01State};if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
+    +'const actionHost={async execute(request){if(window.__e02State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__e02State};if(window.__e01State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__e01State};if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
     +'headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
     +'if(!res.ok)throw Error("HTTP "+res.status);return res.json()}};'
     +'window.__mounted='+mountName+'({definition:window.__definition,'
@@ -157,7 +178,7 @@ const html=(mode)=>{
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
-    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"){
+    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"||url.pathname==="/e02"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
       res.end(html(url.pathname.slice(1)));return;
     }
@@ -1212,6 +1233,75 @@ try{
     physicalDeviceVerified:false
   }));
   await e01Tab.close();
+  // E02: true native Chrome multi-edge business graph. Same-direction
+  // parallel routes, reversed direction and self-loop must be visually
+  // discriminable and independently clickable without mutating semantics.
+  const e02Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  const e02Ready=async()=>{
+    await e02Tab.waitForFunction(()=>
+      document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready."
+      &&document.querySelectorAll("[data-eidos-diagram-edge-visual]").length===4,
+      {timeout:30000});
+  };
+  await e02Tab.goto(base+"/e02",{waitUntil:"load"});
+  await e02Ready();
+  const e02Visuals=await e02Tab.evaluate(ids=>{
+    return Object.entries(ids).map(([kind,id])=>{
+      const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+id+'"]');
+      const hit=document.querySelector('[data-eidos-diagram-edge="'+id+'"]');
+      return {kind,id,path:visual?.getAttribute("d"),
+        length:visual?.getTotalLength()??0,
+        markerEnd:visual?.getAttribute("marker-end"),
+        markerStart:visual?.getAttribute("marker-start"),
+        hit:!!hit};
+    });
+  },e02Edges);
+  assert.equal(e02Visuals.length,4);
+  for(const v of e02Visuals){
+    assert.ok(v.hit && v.path?.startsWith("M ") && v.length>35,
+      "E02 all parallel, reverse and self-loop routes must have non-degenerate geometry");
+    assert.match(v.markerEnd,/url\(#/,"E02 each business direction retains end arrow");
+    assert.equal(v.markerStart,null,"E02 style cannot invert original direction");
+  }
+  const e02ByKind=Object.fromEntries(e02Visuals.map(v=>[v.kind,v]));
+  assert.notEqual(e02ByKind.forwardA.path,e02ByKind.forwardB.path,
+    "E02 two same-direction edges must have visibly distinct lanes");
+  assert.notEqual(e02ByKind.reverse.path,e02ByKind.forwardA.path,
+    "E02 reverse business route cannot paint over a forward arrow");
+  assert.notEqual(e02ByKind.loop.path,e02ByKind.forwardA.path,
+    "E02 self-loop must render as separate non-degenerate path");
+  const e02Selections=[];
+  for(const [kind,id] of Object.entries(e02Edges)){
+    await e02Tab.goto(base+"/e02",{waitUntil:"load"});
+    await e02Ready();
+    const pointer=await e02Tab.evaluate(edgeId=>{
+      const edge=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+      const m=edge.getScreenCTM(),len=edge.getTotalLength();
+      const box=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+      for(let i=2;i<=98;i+=2){
+        const p=edge.getPointAtLength(len*i/100);
+        const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+        if(x<=box.left+4||x>=box.right-4||y<=box.top+4||y>=box.bottom-4)continue;
+        const top=document.elementFromPoint(x,y);
+        if(top?.getAttribute("data-eidos-diagram-edge")===edgeId)return {x,y};
+      }
+      return null;
+    },id);
+    assert.ok(pointer,"E02 "+kind+" must have a native mouse-clickable SVG path segment");
+    await e02Tab.mouse.click(pointer.x,pointer.y);
+    const panel=e02Tab.locator('select[data-eidos-diagram-edge-path-kind="'+id+'"]');
+    await panel.waitFor({state:"visible",timeout:10000});
+    e02Selections.push({kind,id,mouseSelected:true});
+  }
+  assert.equal(store.getVersion(id),0,"E02 selection cannot Save presentation");
+  assert.deepEqual(await e02Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E02",browser:"Chromium "+browser.version(),
+    rendered:e02Visuals,selection:e02Selections,
+    parallelDistinct:true,reverseArrowPreserved:true,selfLoopNonDegenerate:true,
+    nativeMouseSelection:true,syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e02Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
