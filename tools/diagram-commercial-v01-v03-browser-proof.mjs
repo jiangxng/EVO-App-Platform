@@ -890,6 +890,98 @@ try{
     navigationTookOver:true,positionRestored:true,
     implicitSave:false,syntheticTouch:true,physicalDeviceVerified:false
   }));
+  // T05: two-finger navigation becoming one-finger pan must NOT resume
+  // the formerly cancelled node edit. Synthetic Chrome only.
+  const t05Context=await browser.newContext({viewport:{width:1250,height:820},hasTouch:true});
+  const t05Tab=await t05Context.newPage();
+  await t05Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(t05Tab);
+  const t05Node=t05Tab.locator('[data-eidos-diagram-node="sale"]');
+  let t05Rect=await t05Node.boundingBox();
+  await t05Tab.touchscreen.tap(t05Rect.x+t05Rect.width/2,t05Rect.y+t05Rect.height/2);
+  assert.equal(await t05Node.getAttribute("aria-pressed"),"true");
+  t05Rect=await t05Node.boundingBox();
+  const t05X=t05Rect.x+t05Rect.width/2,t05Y=t05Rect.y+t05Rect.height/2;
+  const t05Snapshot=()=>t05Tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const m=new DOMMatrix(node.parentElement.style.transform);
+    return {nodeX:Number.parseFloat(node.style.left),
+      nodeY:Number.parseFloat(node.style.top),
+      scale:m.a,cameraX:m.e,cameraY:m.f};
+  });
+  const t05Start=await t05Snapshot();
+  await t05Tab.evaluate(()=>{
+    window.__t05PointerEvents=[];
+    for(const name of ["pointerdown","pointermove","pointerup","pointercancel","lostpointercapture"]){
+      document.addEventListener(name,e=>{
+        window.__t05PointerEvents.push({name,id:e.pointerId,
+          target:e.target.getAttribute?.("data-eidos-diagram-node")??e.target.tagName,
+          isPrimary:e.isPrimary,x:e.clientX,y:e.clientY,
+          touch:e.pointerType==="touch"});
+      },true);
+    }
+  });
+  const t05Cdp=await t05Context.newCDPSession(t05Tab);
+  const t05A=(x=t05X,y=t05Y)=>({x,y,id:31});
+  const t05B=(x=t05X+150,y=t05Y+72)=>({x,y,id:32});
+  await t05Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[t05A()]
+  });
+  for(let i=1;i<=5;i++)await t05Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[t05A(t05X+i*8,t05Y+i*4)]
+  });
+  const t05Moving=await t05Snapshot();
+  assert.ok(Math.hypot(t05Moving.nodeX-t05Start.nodeX,
+    t05Moving.nodeY-t05Start.nodeY)>12,"T05 must first be actively dragging a selected node");
+  const t05Ax=t05X+40,t05Ay=t05Y+20;
+  await t05Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[t05A(t05Ax,t05Ay),t05B()]
+  });
+  const t05Cancelled=await t05Snapshot();
+  assert.ok(Math.abs(t05Cancelled.nodeX-t05Start.nodeX)<.001
+    &&Math.abs(t05Cancelled.nodeY-t05Start.nodeY)<.001,
+    "T05 adding finger must cancel former node drag");
+  for(let i=1;i<=4;i++)await t05Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[
+      t05A(t05Ax-i*3,t05Ay-i*2),
+      t05B(t05X+150+i*16,t05Y+72+i*8)]
+  });
+  const t05Two=await t05Snapshot();
+  const t05OneX=t05Ax-12,t05OneY=t05Ay-8;
+  await t05Cdp.send("Input.dispatchTouchEvent",{
+    // CDP touchEnd points are the touches BEING RELEASED, not survivors.
+    // End finger B (id 32), leaving the original A (id 31) down.
+    type:"touchEnd",touchPoints:[t05B(t05X+214,t05Y+104)]
+  });
+  const t05Transition=await t05Snapshot();
+  for(let i=1;i<=5;i++)await t05Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[t05A(t05OneX+i*9,t05OneY+i*6)]
+  });
+  const t05Single=await t05Snapshot();
+  await t05Cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  const t05Final=await t05Snapshot();
+  console.log("T05_TOUCH_SEQUENCE_DIAGNOSTIC="+JSON.stringify({
+    start:t05Start,moving:t05Moving,cancelled:t05Cancelled,
+    twoFinger:t05Two,transition:t05Transition,
+    singleFinger:t05Single,final:t05Final,
+    eventTrace:await t05Tab.evaluate(()=>window.__t05PointerEvents)
+  }));
+  assert.ok(Math.hypot(t05Single.cameraX-t05Transition.cameraX,
+    t05Single.cameraY-t05Transition.cameraY)>12,
+    "T05 after second finger lifts remaining finger must pan viewport");
+  assert.ok(Math.abs(t05Single.scale-t05Transition.scale)<.0001,
+    "T05 remaining single finger must not continue pinch zoom");
+  assert.ok(Math.abs(t05Final.nodeX-t05Start.nodeX)<.001
+    &&Math.abs(t05Final.nodeY-t05Start.nodeY)<.001,
+    "T05 remaining finger must never revive cancelled node drag");
+  assert.equal(store.getVersion(id),0,"T05 touch navigation never implicitly saves");
+  await t05Context.close();
+  console.log("DIAGRAM_T05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T05",browser:"Chromium "+browser.version(),
+    secondFingerCancelsNodeDrag:true,singleFingerContinuesPan:true,
+    noZoomAfterLift:true,nodeDoesNotResumeDrag:true,
+    syntheticTouch:true,physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
