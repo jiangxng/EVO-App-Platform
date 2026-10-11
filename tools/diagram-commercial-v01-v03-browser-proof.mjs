@@ -1510,7 +1510,21 @@ try{
   await e04Tab.mouse.click(e04Geometry.chord.x,e04Geometry.chord.y);
   assert.equal(await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]').count(),0,
     "E04 clicking ghost-chord location must NOT select edited edge");
-  await e04Tab.mouse.click(e04Geometry.p.x,e04Geometry.p.y);
+  // Blank click collapses the inspector and may move/refit the canvas.
+  // Re-measure the painted curve after that layout change, not stale pixels.
+  const e04Reselect=await e04Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let i=15;i<=85;i++){
+      const q=path.getPointAtLength(len*i/100);
+      const x=q.x*m.a+q.y*m.c+m.e,y=q.x*m.b+q.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e04Reselect,"E04 curve must remain hit-testable after inspector collapse");
+  await e04Tab.mouse.click(e04Reselect.x,e04Reselect.y);
   await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
     .waitFor({state:"visible"});
   assert.equal(store.getVersion(id),0,"E04 hit-testing cannot save business graph");
