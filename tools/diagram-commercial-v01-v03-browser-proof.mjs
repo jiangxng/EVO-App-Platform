@@ -1451,6 +1451,77 @@ try{
     syntheticOnly:true,physicalDeviceVerified:false
   }));
   await e03Tab.close();
+  // E04: click the actual curved ink far away from its endpoint chord.
+  // A point on the ghost straight chord must NOT hit this SVG edge.
+  const e04Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e04Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e04Tab);
+  const e04GetPoint=await e04Tab.evaluate(edgeId=>{
+    const e=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=e.getScreenCTM(),len=e.getTotalLength();
+    for(let i=12;i<=88;i+=2){
+      const p=e.getPointAtLength(len*i/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e04GetPoint,"E04 source relation must have actual pointer-hit segment");
+  await e04Tab.mouse.click(e04GetPoint.x,e04GetPoint.y);
+  const e04Kind=e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await e04Kind.waitFor({state:"visible"});
+  await e04Kind.selectOption("curve");
+  assert.match(await shape(e04Tab),/ C /,"E04 must actually render a cubic, not a fake straight edge");
+  const e04Geometry=await e04Tab.evaluate(edgeId=>{
+    const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    const hit=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=hit.getScreenCTM(),len=hit.getTotalLength();
+    const pointAt=t=>{
+      const p=hit.getPointAtLength(len*t);
+      return {x:p.x*m.a+p.y*m.c+m.e,y:p.x*m.b+p.y*m.d+m.f};
+    };
+    const a=pointAt(0),b=pointAt(1);
+    let best=null;
+    const rect=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+    for(let i=10;i<=90;i++){
+      const f=i/100,p=pointAt(f);
+      const vx=b.x-a.x,vy=b.y-a.y;
+      const k=Math.max(0,Math.min(1,((p.x-a.x)*vx+(p.y-a.y)*vy)/(vx*vx+vy*vy)));
+      const chord={x:a.x+k*vx,y:a.y+k*vy};
+      const distance=Math.hypot(p.x-chord.x,p.y-chord.y);
+      if(p.x<rect.left+12||p.x>rect.right-12||p.y<rect.top+12||p.y>rect.bottom-12)continue;
+      if(chord.x<rect.left+12||chord.x>rect.right-12||chord.y<rect.top+12||chord.y>rect.bottom-12)continue;
+      if(document.elementFromPoint(p.x,p.y)?.getAttribute("data-eidos-diagram-edge")!==edgeId)continue;
+      if(!best||distance>best.distance)best={fraction:f,p,chord,distance};
+    }
+    if(!best)return null;
+    return {...best,
+      chordTarget:document.elementFromPoint(best.chord.x,best.chord.y)?.getAttribute("data-eidos-diagram-edge")??null,
+      chordStack:[...document.elementsFromPoint(best.chord.x,best.chord.y)].slice(0,4)
+        .map(x=>x.getAttribute("data-eidos-diagram-edge")),
+      actualTarget:document.elementFromPoint(best.p.x,best.p.y)?.getAttribute("data-eidos-diagram-edge")??null,
+      visual:visual.getAttribute("d")};
+  },relationId);
+  assert.ok(e04Geometry && e04Geometry.distance>15,
+    "E04 cubic must have clickable ink visibly displaced >15px from endpoint chord");
+  assert.equal(e04Geometry.actualTarget,relationId);
+  assert.notEqual(e04Geometry.chordTarget,relationId,
+    "E04 old endpoint straight chord cannot retain a ghost hit corridor");
+  await e04Tab.mouse.click(e04Geometry.chord.x,e04Geometry.chord.y);
+  assert.equal(await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]').count(),0,
+    "E04 clicking ghost-chord location must NOT select edited edge");
+  await e04Tab.mouse.click(e04Geometry.p.x,e04Geometry.p.y);
+  await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .waitFor({state:"visible"});
+  assert.equal(store.getVersion(id),0,"E04 hit-testing cannot save business graph");
+  assert.deepEqual(await e04Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E04_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E04",browser:"Chromium "+browser.version(),
+    maxChordDistance:e04Geometry.distance,
+    realCurveClick:true,ghostChordNotClickable:true,
+    cubicSVG:e04Geometry.visual,syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e04Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
