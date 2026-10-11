@@ -135,13 +135,13 @@
         {
           "path": "src/diagram/surface.ts",
           "upstreamBlob": "5e84b31995df4024c68309ee918b9700ca2952b2",
-          "vendoredBlob": "21e610553357c836519d960ce3e98279299ec690",
+          "vendoredBlob": "4464c508087aeaec3bd322b470e2c1a9eaaf6adf",
           "owner": "EVO-App-Platform",
-          "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync."
+          "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync. V04 narrow forward-port of Eidos Draft PR #161 adds a non-scaling transparent hit stroke; main 3fde... remains the pinned upstream baseline until the Eidos owner merges and repins the component."
         }
       ],
       "status": "SCOPED_PIN_WITH_EXPLICIT_HOST_OVERLAY",
-      "note": "Top-level sourceCommit records the older broad Eidos runtime snapshot, not this newer independently pinned 2D component. Exactly 15 of 16 diagram files must match the upstream commit byte-for-byte. Scope does not imply all other vendored Eidos assets have been synchronized."
+      "note": "Top-level sourceCommit records the older broad Eidos runtime snapshot, not this newer independently pinned 2D component. Exactly 15 of 16 diagram files must match the upstream commit byte-for-byte. Scope does not imply all other vendored Eidos assets have been synchronized. As of 2026-10-11, the declared Platform Host overlay also contains a scoped forward-port from eidos Draft #161; this is NOT an assertion that the upstream main 3fde source includes that change."
     }
   ]
 }
