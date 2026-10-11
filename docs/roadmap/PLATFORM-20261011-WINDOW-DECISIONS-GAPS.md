@@ -122,3 +122,10 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - **F3 原始合成浏览器演示资产：SOURCE_REVIEWED / ARCHIVED_BY_SHA**。旧固定源码可演示 Ed25519 WebCrypto 和合成 nonce 负例，但不具有真实数据库、真实 Host、真实 finance owner 或用户录单。旧可选 Railway Bun Function 使用 process-local nonce；其历史记录明确创建在线 Preview 失败；绝不可当线上核验或部署合同。该 3-file DEMO 不复制到 main，不启动另一个 Railway 服务，不删除原源分支。
 - **F4 旧六份 workflow：SOURCE_REVIEWED**。购买收货与四 peer 只调测试及演示预览；六/十二门禁和 descriptor 部分是静态拒绝清单。现代 main 已有对应 protocol tests，F0 的新增有效断言已被 #775 复用；其余旧 workflow 暂不整组恢复。未来若补充实际跨实例、Nonce、SQL/HTTP 独立负例，必须在现代正式接口上重新做小 CI，不能冒称六/十二条生产线已经 certified。
 - **退出条件仍保持 OPEN**：F0–F4 源资产完整关闭需进一步对照同路径功能差异与剩余 F1/F2 运行时真实证据。F3/F4 的文件取舍已有明确结论，但还不能据此提前删除涉及其他工作包的 14 个源分支。
+
+
+## 2026-10-12 F1 Client 传输小项最终决定
+
+- **F1-HOST-TRANSPORT-01：CODE_PRESENT + CI_PROVEN + MERGED_MAIN**，合并 #779 / 09fee6f。主线已有真正 Ed25519 Client，不再恢复旧 #594 的同 blob；新增局部 socket 回归检测签名边界与写权限禁止，作为 Host 侧合同保护。
+- **明确仍为 OPEN**：EVO Owner 服务端 Crypto verification + durable PostgreSQL nonce + 限权数据库访问 + 真实 immutable finance facts；外部 OIDC 身份、TLS、跨多实例、密钥托管与线上部署。#108 与 #594 仍是 Draft，且不能用“本地 HTTP 接收端返回匹配 JSON”宣称实际经济结果。
+- **完整 PR 取舍**：第一次/第二次全量 CI 对已有拒绝码前缀误判，失败如实保留，第三次全绿后才合并；从未修改正式 Host Client、Ledger Runtime、Agent、EOG/2D、全局状态文件。
