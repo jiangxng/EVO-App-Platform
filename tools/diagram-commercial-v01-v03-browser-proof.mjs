@@ -38,13 +38,13 @@ const relationId="v01-v03-sales-to-receipt";
 const graph={
   contractVersion:"0.1.0",
   nodes:[
-    {id:"sale",kind:"subject",label:"Synthetic Sales Order",
+    {id:"sale",kind:"subject",label:"销售到收款业务流程节点与多法人应收账款管理中文长标题",
       shape:"rounded-rectangle",x:80,y:130,width:150,height:68},
-    {id:"receipt",kind:"subject",label:"Synthetic Cash Receipt",
+    {id:"receipt",kind:"subject",label:"Synthetic Global Cash Receipt Reconciliation and Multi-Entity Settlement",
       shape:"rounded-rectangle",x:640,y:335,width:150,height:68}
   ],
   edges:[{id:relationId,source:"sale",target:"receipt",
-    kind:"business-flow",label:"Synthetic relationship",arrow:"end"}]
+    kind:"business-flow",label:"销售到收款跨企业应收收款关联 Long English Relationship Label with extensive settlement information",arrow:"end"}]
 };
 const repo=createMemoryBusinessDefinitionRepositoryV010();
 const bundle=ledgerRuntimeBaselineBundleV010;
@@ -177,6 +177,49 @@ try{
   const tab=await browser.newPage({viewport:{width:1250,height:820}});
   await tab.goto(base+"/designer",{waitUntil:"load"});
   await waitReady(tab);
+  // V05 genuine Chrome DOM: full titles remain retrievable, node labels stay
+  // within bounded cards, long multilingual SVG edge captions are readable
+  // via intrinsic title and do not silently change graph meaning.
+  const v05=await tab.evaluate(()=>{
+    const nodes=[...document.querySelectorAll("[data-eidos-diagram-node]")];
+    const svgCaption=document.querySelector("[data-eidos-diagram-edge-label]");
+    const edge=document.querySelector("[data-eidos-diagram-edge-visual]");
+    return {
+      nodes:nodes.map(n=>({id:n.getAttribute("data-eidos-diagram-node"),
+        fullText:n.querySelector("strong")?.textContent??"",
+        cardWidth:n.clientWidth,
+        labelWidth:n.querySelector("strong")?.scrollWidth??0,
+        labelClient:n.querySelector("strong")?.clientWidth??0,
+        cardHeight:n.clientHeight,
+        labelHeight:n.querySelector("strong")?.getBoundingClientRect().height??0,
+        clipped:getComputedStyle(n.querySelector("strong")).overflow==="hidden",
+        tooltipIncludesLabel:n.getAttribute("title")?.includes(n.querySelector("strong")?.textContent??"")??false,
+        title:n.getAttribute("title")})),
+      captionExists:Boolean(svgCaption),
+      captionText:svgCaption?.textContent??"",
+      captionTitle:svgCaption?.querySelector("title")?.textContent??"",
+      captionTruncated:svgCaption?.getAttribute("data-eidos-diagram-caption-truncated")??null,
+      edgeTitle:edge?.querySelector("title")?.textContent??"",
+      browserErrors:window.__errors
+    };
+  });
+  assert.equal(v05.nodes.length,2,"V05: long Chinese/English nodes should remain visible");
+  assert.ok(v05.nodes[0].fullText.includes("销售到收款业务流程节点"));
+  assert.ok(v05.nodes[1].fullText.includes("Multi-Entity Settlement"));
+  assert.ok(v05.nodes.every(n=>n.labelWidth<=n.labelClient+2),
+    "V05: Chinese/English long labels must wrap or clamp inside actual DOM width");
+  assert.ok(v05.nodes.every(n=>n.clipped && n.tooltipIncludesLabel && n.labelHeight<=n.cardHeight),
+    "V05: rendered long labels must not vertically escape the node card");
+  assert.equal(v05.captionExists,true,"V05: long edge caption remains visible in small graph");
+  assert.ok(v05.captionText.length>0,"V05: caption cannot vanish");
+  assert.ok(v05.captionTitle.includes("Long English Relationship Label"),
+    "V05: truncated SVG edge caption needs complete accessible tooltip");
+  assert.deepEqual(v05.browserErrors,[]);
+  console.log("DIAGRAM_V05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"V05",browser:"Chromium "+browser.version(),nodeSummary:v05.nodes,
+    captionTruncated:v05.captionTruncated,captionTitleAccessible:true,
+    syntheticOnly:true,formalHumanSignedCases:0,formalTotalCases:39
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
