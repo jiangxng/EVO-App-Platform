@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "scope": "tr01-independent-plugin-convergence-retirement-20261012",
+  "baselineMainSha": "8b8b1634256f96b06e1a9e5aa978d919c39e8024",
+  "oldTR01": [
+    {
+      "name": "demo/tr01b2d3-isolated-live-stage-20261011",
+      "expectedHeadSha": "bd67f320dce5ed6d4a023b58546b619ce4a03aa0",
+      "classification": "obsolete-standalone-demo"
+    },
+    {
+      "name": "docs/tr01b2d3-mainline-recovery-20261011",
+      "expectedHeadSha": "b67e84375c9247faa69b01a3cf93d3cf1daf9adb",
+      "classification": "document-in-main"
+    },
+    {
+      "name": "docs/tr01b2d3-railway-runtime-preflight-evidence-20261011",
+      "expectedHeadSha": "3e7d5182bc5f4ae03ca638c76524872086a0cbec",
+      "classification": "document-in-main"
+    },
+    {
+      "name": "feat/tr01-trading-peer-purchasing-receiving-20261011",
+      "expectedHeadSha": "7e23173250a23aa396555fed77a1470ebd099708",
+      "classification": "six-independent-applications-in-main"
+    },
+    {
+      "name": "feat/tr01b2d3-definer-owner-strict-admission-20261011",
+      "expectedHeadSha": "0560386e0915ebb607f183e215fb0f728cfe3220",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "feat/tr01b2d3-deployment-descriptor-gate-20261011",
+      "expectedHeadSha": "c589f0bf1b79aed8700e601648ee335e913d5ba2",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "feat/tr01b2d3-finance-owner-prod-preflight-20261011",
+      "expectedHeadSha": "718215136f79efd79d7e755954d686d77cf73356",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "feat/tr01b2d3-four-peer-business-plugins-stage-20261011",
+      "expectedHeadSha": "fb3db99272ef047aa7686715fd495545f9342ccf",
+      "classification": "six-independent-applications-in-main"
+    },
+    {
+      "name": "feat/tr01b2d3-host-owner-delegation-20261010",
+      "expectedHeadSha": "1d6149bd05136d642e49aab5196d12ab243cbe4e",
+      "classification": "finance-provider-legacy-draft594"
+    },
+    {
+      "name": "feat/tr01b2d3-six-lane-production-admission-20261011",
+      "expectedHeadSha": "8a0a27dca96ac69cb1fcef2eaffca6a43bc75dc4",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "feat/tr01b2d3-twelve-lane-preprod-20261011",
+      "expectedHeadSha": "75e8565708433c3ed046016bc76bf45e054a03c0",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "test/tr01b2d3-cross-instance-nonce-revocation-race-20261011",
+      "expectedHeadSha": "33675b9e9ec739d8a50d60277731030abeb3b284",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "test/tr01b2d3-distinct-db-login-http-20261010",
+      "expectedHeadSha": "ff2fd23e83ebf72a5fc0c21757f729fd800594ac",
+      "classification": "finance-provider-legacy"
+    },
+    {
+      "name": "test/tr01b2d3-isolated-finance-owner-credential-http-20261011",
+      "expectedHeadSha": "c8cfda818d5226086b6a9c0124b3187c0d8a7f9a",
+      "classification": "finance-provider-legacy"
+    }
+  ],
+  "otherConverged": [
+    {
+      "name": "chore/audit-and-retire-platform-tail-20261011",
+      "expectedHeadSha": "3a499f1524048741307f134aa14f7c4a871e3729",
+      "classification": "already-content-subsumed"
+    },
+    {
+      "name": "chore/retire-platform-merged-f0-f1-f2-heads-20261012",
+      "expectedHeadSha": "7bd9709ee0d812827476cdb0e6c1a07eddb44eb2",
+      "classification": "merged-pr-781"
+    },
+    {
+      "name": "fix/plugin-card-descriptions-20261012",
+      "expectedHeadSha": "9e783438587a4b2b2bed41670235c445e0fbe1aa",
+      "classification": "merged-pr-783"
+    }
+  ],
+  "knownOpenDraftToClose": 594
+}
