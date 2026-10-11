@@ -2423,10 +2423,24 @@ export function mountDiagramEditorPageV010(
         }
         select.value = edge.pathKind ?? "straight";
         select.onchange = () => {
-          if (!isDiagramEdgePathKindV010(select.value) || select.value === (edge.pathKind ?? "straight")) return;
+          const previousKind = edge.pathKind ?? "straight";
+          if (!isDiagramEdgePathKindV010(select.value) || select.value === previousKind) return;
+          // E06: switching a manually routed connector to Straight is
+          // destructive for presentation controls, but never for business
+          // relation semantics. A native confirmation explains Undo.
+          if (select.value === "straight"
+            && Boolean(edge.waypoints?.length || edge.sourceAnchor || edge.targetAnchor)
+            && !window.confirm("Switching to Straight resets manual path points and anchors. Undo restores them. Continue?")) {
+            select.value = previousKind;
+            return;
+          }
           checkpoint();
           edge.pathKind = select.value;
-          if (select.value === "straight") delete edge.waypoints;
+          if (select.value === "straight") {
+            delete edge.waypoints;
+            delete edge.sourceAnchor;
+            delete edge.targetAnchor;
+          }
           render();
           report("Connector presentation updated locally. Save the projection to persist.");
         };
