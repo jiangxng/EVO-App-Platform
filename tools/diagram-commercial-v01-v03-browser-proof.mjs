@@ -242,6 +242,94 @@ try{
     .filter({hasText:"Save projection"}).count(),0);
   assert.deepEqual(await readOnlyTab.evaluate(()=>window.__errors),[]);
   assert.equal(store.getVersion(id),1,"Viewer must never implicitly write");
+  // V04 extra automated subgate: real Chrome renders and hit-tests the exact
+  // same connector at the §14 zoom extremes. This does NOT certify subjective
+  // visual quality or physical mouse/trackpad devices.
+  const v04=[];
+  const resetZoom=tab.locator('[data-eidos-diagram-view-controls] button[aria-label="Reset view"]');
+  const zoomOut=tab.locator('[data-eidos-diagram-view-controls] button[aria-label="Zoom out"]');
+  const zoomIn=tab.locator('[data-eidos-diagram-view-controls] button[aria-label="Zoom in"]');
+  for(const scenario of [
+    {display:"10%",direction:"down",times:20},
+    {display:"100%",direction:"reset",times:0},
+    {display:"300%",direction:"up",times:20}
+  ]){
+    await resetZoom.click();
+    for(let index=0;index<scenario.times;index++){
+      await (scenario.direction==="down"?zoomOut:zoomIn).click();
+    }
+    assert.equal((await resetZoom.textContent())?.trim(),scenario.display,
+      "V04 zoom control must reach exactly "+scenario.display);
+    const result=await tab.evaluate(edge=>{
+      const hit=document.querySelector('[data-eidos-diagram-edge="'+edge+'"]');
+      const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+edge+'"]');
+      if(!hit||!visual)throw Error("V04 missing SVG elements");
+      const length=hit.getTotalLength();
+      const p=hit.getPointAtLength(length*.74);
+      const before=hit.getPointAtLength(length*.72);
+      const after=hit.getPointAtLength(length*.76);
+      const matrix=hit.getScreenCTM();
+      if(!matrix)throw Error("V04 missing path screen matrix");
+      const toScreen=v=>({x:v.x*matrix.a+v.y*matrix.c+matrix.e,
+        y:v.x*matrix.b+v.y*matrix.d+matrix.f});
+      const middle=toScreen(p),a=toScreen(before),b=toScreen(after);
+      const tangent={x:b.x-a.x,y:b.y-a.y};
+      const norm=Math.hypot(tangent.x,tangent.y);
+      if(!(norm>0))throw Error("V04 path has no tangent");
+      const x=middle.x-6*tangent.y/norm;
+      const y=middle.y+6*tangent.x/norm;
+      const element=document.elementFromPoint(x,y);
+      const hitDetected=element?.getAttribute("data-eidos-diagram-edge")===edge;
+      const centerElement=document.elementFromPoint(middle.x,middle.y);
+      const topElements=document.elementsFromPoint(x,y).slice(0,6)
+        .map(el=>({tag:el.tagName,id:el.getAttribute("data-eidos-diagram-edge"),
+          className:String(el.getAttribute("class")??"").slice(0,50)}));
+      const marker=visual.getAttribute("marker-end");
+      return {
+        hitWidth:hit.getAttribute("stroke-width"),
+        hitVectorEffect:hit.getAttribute("vector-effect"),
+        visualVectorEffect:visual.getAttribute("vector-effect"),
+        markerEnd:marker,
+        markerStart:visual.getAttribute("marker-start"),
+        hitDetected,
+        diagnostic:{zoomDisplay:document.querySelector('[aria-label="Reset view"]')?.textContent,
+          center:[middle.x,middle.y],point:[x,y],
+          centerTag:centerElement?.tagName,centerHit:centerElement?.getAttribute("data-eidos-diagram-edge"),
+          topElements,computedHitStroke:getComputedStyle(hit).strokeWidth,
+          hitRect:hit.getBoundingClientRect().toJSON()},
+        sampledPointInsideViewport:x>=0&&y>=0
+          &&x<document.documentElement.clientWidth&&y<innerHeight
+      };
+    },relationId);
+    console.log("V04_NATIVE_HIT_DIAGNOSTIC="+JSON.stringify({scenario:scenario.display,...result}));
+    assert.equal(result.hitWidth,"18","V04 hit region must have 18px nominal stroke");
+    assert.equal(result.hitVectorEffect,null,
+      "V04 CSS world-width compensation must not double-apply SVG vector-effect");
+    assert.ok(Math.abs(Number.parseFloat(result.diagnostic.computedHitStroke)
+      * (Number.parseFloat(scenario.display)/100) - 18) < .15,
+      "V04 actual computed CSS stroke must remain 18 screen pixels at "+scenario.display);
+    assert.equal(result.visualVectorEffect,"non-scaling-stroke",
+      "V04 visible line thickness must remain stable at every scale");
+    assert.ok(result.markerEnd?.startsWith("url(#"),
+      "V04 visible arrow is not allowed to vanish on zoom");
+    assert.equal(result.markerStart,null,
+      "V04 zoom cannot reverse arrow semantics");
+    assert.equal(result.sampledPointInsideViewport,true,
+      "V04 sampled connector segment must remain in the real canvas viewport");
+    assert.equal(result.hitDetected,true,
+      "V04 at "+scenario.display+" real Chrome 6px perpendicular pointer hit must select the relation");
+    v04.push({zoom:scenario.display,hitSixPixelsFromCurve:true,
+      computedHitStrokeWorldPx:result.diagnostic.computedHitStroke,
+      visibleVectorEffect:result.visualVectorEffect,arrowPreserved:true});
+  }
+  assert.equal(store.getVersion(id),1,"V04 zooming must not write projection CAS");
+  console.log("DIAGRAM_V04_BROWSER_SUBGATE="+JSON.stringify({
+    browser:"Chromium "+browser.version(),case:"V04",
+    zoomEvidence:v04,nativeChromeDomHitTesting:true,
+    syntheticOnly:true,formalHumanSignedCases:0,formalTotalCases:39,
+    disclaimer:"V04 subjective visual/physical-device acceptance still NOT TESTED"
+  }));
+
   console.log("DIAGRAM_V01_V03_BROWSER_SUBGATE="+JSON.stringify({
     browser:"Chromium "+browser.version(),
     cases:["V01","V02","V03"],fourDistinctRenderedPaths:true,
