@@ -1,0 +1,36 @@
+name: TR01B2D3 Isolated Browser Preview
+
+on:
+  pull_request:
+    paths:
+      - "demos/tr01b2d3-isolated-stage/**"
+      - "tests/protocol/tr01b2d3-online-stage-preview.test.mjs"
+      - ".github/workflows/tr01b2d3-online-stage-preview.yml"
+      - "docs/roadmap/TR01B2D3-STAGE-DEMO-ONLINE-20261011.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webcrypto-synthetic-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+      - name: Browser-compatible WebCrypto isolated demo positive and negative matrix
+        run: node --test tests/protocol/tr01b2d3-online-stage-preview.test.mjs
+      - name: Ensure no production credentials, servers or storage are required by static demo
+        run: |
+          set -euo pipefail
+          test -f demos/tr01b2d3-isolated-stage/index.html
+          test -f demos/tr01b2d3-isolated-stage/static-demo.mjs
+          ! grep -Eiq 'BEGIN (RSA |EC )?PRIVATE KEY|postgresql?://|DATABASE_URL[=:]|APP_PLATFORM_STATIC_SESSION_JSON[=:]' \
+             demos/tr01b2d3-isolated-stage/index.html \
+             demos/tr01b2d3-isolated-stage/static-demo.mjs
+          grep -q 'BROWSER SIMULATION' demos/tr01b2d3-isolated-stage/index.html
+          grep -q 'NOT_CERTIFIED' demos/tr01b2d3-isolated-stage/index.html
+          echo 'TR01B2D3_SYNTHETIC_BROWSER_PREVIEW_ONLY=PASS; FINANCE_WRITES=0'
