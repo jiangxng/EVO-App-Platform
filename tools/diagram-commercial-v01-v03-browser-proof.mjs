@@ -596,6 +596,48 @@ try{
     preservedSelection:true,positionsStable:true,withoutImplicitSave:true,
     physicalDeviceVerified:false
   }));
+  // M06: stationary secondary click shows the application context menu.
+  // If a selected node belongs to a group, the group's selection survives.
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.press("Control+a");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  const m06Before=await tab.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {camera:n.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(el=>({
+        id:el.getAttribute("data-eidos-diagram-node"),x:el.style.left,y:el.style.top
+      }))};
+  });
+  await tab.locator('[data-eidos-diagram-node="sale"]').click({button:"right"});
+  const menu=tab.locator("[data-eidos-diagram-context-menu]");
+  await menu.waitFor({state:"visible",timeout:7000});
+  assert.equal(await menu.getAttribute("role"),"menu");
+  assert.equal((await menu.locator("[data-eidos-diagram-context-subject]").textContent())?.trim(),
+    "2 nodes selected","M06 right click on group member keeps whole selection context");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  const m06After=await tab.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {camera:n.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(el=>({
+        id:el.getAttribute("data-eidos-diagram-node"),x:el.style.left,y:el.style.top
+      }))};
+  });
+  assert.deepEqual(m06After,m06Before,
+    "M06 stationary secondary click cannot pan camera or mutate graph");
+  assert.equal(await menu.locator('[role="menuitem"]').filter({hasText:"Close"}).count(),1,
+    "M06 a discoverable dismiss action must be present");
+  await menu.locator('[role="menuitem"]').filter({hasText:"Close"}).click();
+  assert.equal(await tab.locator("[data-eidos-diagram-context-menu]").count(),0);
+  assert.equal(store.getVersion(id),0,"M06 context menu must never save on open/close");
+  console.log("DIAGRAM_M06_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M06",browser:"Chromium "+browser.version(),
+    nativeStationaryRightClick:true,applicationMenuVisible:true,
+    groupContextPreserved:true,cameraAndPositionsUnchanged:true,
+    explicitMenuDismiss:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
