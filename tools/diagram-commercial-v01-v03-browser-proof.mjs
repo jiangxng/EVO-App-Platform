@@ -2663,6 +2663,55 @@ try{
   }));
   await d06Tab.close();
 
+  // A01: genuine Host Designer user controls; pin is session-only, not a
+  // business-definition field. Hidden nodes are never reintroduced by layout.
+  const a01Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await a01Tab.goto(base+"/designer?projectionId="+encodeURIComponent(id.projectionId),{waitUntil:"load"});
+  await a01Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  const a01NodePos=(page,nodeId)=>page.evaluate(id=>{
+    const n=document.querySelector('[data-eidos-diagram-node="'+id+'"]');
+    return n?{x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)}:null;
+  },nodeId);
+  const a01SaleBefore=await a01NodePos(a01Tab,"sale");
+  const a01ReceiptBefore=await a01NodePos(a01Tab,"receipt");
+  assert.ok(a01SaleBefore && a01ReceiptBefore);
+  await a01Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await a01Tab.locator('[data-eidos-diagram-more-actions] summary').click();
+  await a01Tab.locator('[data-eidos-diagram-position-lock]').click();
+  await a01Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await a01Tab.keyboard.press("ArrowRight");
+  assert.deepEqual(await a01NodePos(a01Tab,"sale"),a01SaleBefore,
+    "A01 position-locked node must reject keyboard movement");
+  await a01Tab.locator('[data-eidos-diagram-auto-layout]').click();
+  assert.deepEqual(await a01NodePos(a01Tab,"sale"),a01SaleBefore,
+    "A01 auto-layout cannot move pinned business node");
+  const a01ReceiptLayout=await a01NodePos(a01Tab,"receipt");
+  assert.notDeepEqual(a01ReceiptLayout,a01ReceiptBefore,
+    "A01 unpinned node must still receive automatic layout");
+  await a01Tab.locator('[data-eidos-diagram-history="undo"]').click();
+  assert.deepEqual(await a01NodePos(a01Tab,"receipt"),a01ReceiptBefore,
+    "A01 one Undo must restore unpinned node placement");
+  assert.deepEqual(await a01NodePos(a01Tab,"sale"),a01SaleBefore);
+  await a01Tab.locator('[data-eidos-diagram-node="receipt"]').click();
+  await a01Tab.locator("[data-eidos-diagram-local-hide]").click();
+  assert.equal(await a01NodePos(a01Tab,"receipt"),null);
+  await a01Tab.locator('[data-eidos-diagram-auto-layout]').click();
+  assert.equal(await a01NodePos(a01Tab,"receipt"),null,
+    "A01 layout cannot revive hidden node");
+  assert.deepEqual(await a01NodePos(a01Tab,"sale"),a01SaleBefore);
+  assert.equal(store.getVersion(id),7,"A01 layout and pin never cause implicit CAS write");
+  assert.equal(repo.listHistory({enterpriseId:id.enterpriseId,definitionId:id.definitionId}).length,1);
+  assert.deepEqual(await a01Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_A01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"A01",browser:"Chromium "+browser.version(),
+    pinnedNodeFixed:true,unpinnedNodeArranged:true,
+    oneStepUndo:true,hiddenNodeStaysHidden:true,
+    keyboardCannotMovePinned:true,sessionPinNotPersisted:true,
+    businessDefinitionRevisions:1,physicalDeviceVerified:false,formalHumanSignedCases:0
+  }));
+  await a01Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
