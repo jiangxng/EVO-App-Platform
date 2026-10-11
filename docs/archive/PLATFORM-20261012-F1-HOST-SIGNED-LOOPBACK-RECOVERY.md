@@ -25,3 +25,5 @@
 ## 首次 CI 负例留痕
 
 初版 head `c5ba387012473ac7075ceb9af4b8e23ee2d419f4` 的 [Platform CI #38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269) 失败：808 个测试 PASS、1 FAIL；真实签名拒绝返回 `TR01B2D3_SIGNING_KEY_INVALID`，新测试错误预期为 `TR01B2D3_OWNER_SIGNING_KEY_INVALID`。生产代码未改、拒绝条件未放松；更新新测试预期后必须等待新的完整 CI，**不得将首次失败写成通过**。
+
+复测 [Platform CI #38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) 仍为失败：新增测试中的另一个错误码前缀预期不符，实际为 `TR01B2D3_HOST_IDENTITY_INVALID`，误期待 `TR01B2D3_OWNER_HOST_IDENTITY_INVALID`。其他新增组通过；修订时同样仅改测试断言，生产代码不变。第三次 CI 须单独验证，不能声称以前两次红色运行通过。
