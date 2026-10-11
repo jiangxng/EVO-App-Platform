@@ -115,3 +115,22 @@ PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既�
 3. 保存准确代码heads、浏览器/运行命令、网络请求与真实Run/receipt、断言、截图、失败控制与清理；无此证据不标 `BROWSER_PASS`。
 4. 完成后再进入PA-02A异步Run/receipt端口；不得把CI、本预检或Run文字成功升级为业务写入或生产认证。
 
+
+
+## 2026-10-11 五倍推进：PA-01B2 隔离真实 App Host + Chromium 验收通过
+
+**新增限定门禁：`PA01B2_ISOLATED_FULL_HOST_BROWSER_PASS_DETERMINISTIC_MODEL`**；原 PA-01A/B1/B2 实现head和Draft依赖链 #575→#577→#579 / Eidos #142 未变，尚未合并、部署。PA-00不重新启动，业务主线TR及2D专项均不接管。
+
+- 在原独立测试Draft PR [#638](https://github.com/jiangxng/EVO-App-Platform/pull/638) 补充 **真实编译后 Host、Workbench、企业上下文创建、四个相关安装包、Agent thread/Run、Data Import 与 Chromium** 的E2E运行器；仅模型Responses API通过 `127.0.0.1` 确定性替身返回文本，避免外部API Key和不可控副作用。
+- 最终测试准确 head `56a18615efdd6029ddf9057b85510b43b835fe8c`、[full-browser GitHub run 38097668578](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097668578)，job `114346855709`，**SUCCESS 8/8**，Chromium `141.0.7390.37`；[报告及截图 artifact 11686346415](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097668578/artifacts/11686346415)。
+- 实测内容：干净来源页 `thread.send` 的assistanceRequest定位准确且源页**恰好一次HTTP重读**、已有草稿保持且零重读、等待中修改保持且零重读、离开再进同path旧结果不刷新、Responses受控503不刷新且按钮恢复、普通聊天仍走thread不混入assistanceRequest、真实 `stage-file → review → commit` 后同结构第二份CSV自动采用Recipe并达到 `DRY_RUN_READY`。
+- 3轮早期CI [5/8](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097262322)、[7/8](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097433261)、[7/8](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097557504) 均为浏览器观测脚本问题（response监听、重复按钮定位、百分号编码route GET计数），修正后才关闭这8项；产品权限/dirty校验未放宽。详细失败记录和证据： [PA01B2-FULL-HOST-CHROMIUM-ACCEPTANCE-20261011.md](PA01B2-FULL-HOST-CHROMIUM-ACCEPTANCE-20261011.md)。
+- 本次记录是**隔离确定性模型下的真实浏览器与Host端到端**，不宣称真实外部LLM字段映射、Agent真实调用 `enterprise.data-import.mapping.apply`、正式ActionReceipt/业务写入、生产环境/恢复演练、富文本dirty接口或PA-01整包完结。
+- 代码/自动化都留在独立Draft PR #638，文档只更新Agent专属 `docs/agent-line/*`，没有改 `project.status.json` 或 `HANDOFF-LATEST.md`，无merge、部署、vendor整包覆盖或生产迁移。
+
+### 后续独立推进顺序
+
+1. **PA-01B3/受控AI业务动作端到端**：模拟确定性函数调用，经 Host 授权的正式 `mapping.inspect/apply` 写入测试隔离Job，核真实Run/actionReceipt并做权限拒绝无副作用；区分Run成功/业务写成功。避免把只返回文本的模拟LLM标记为AI字段映射完成。
+2. **PA-02A**：读取当前State Context宪法、Run/receipt sync store与公开端口，先独立设计async接口和一次可撤销的隔离持久存储唯一性/恢复证明；不先改 `manager/server.ts`、不重新搬会话层、不做生产迁移。
+3. 更后的PA-01提案/回执UX、跨进程租约/outbox/正式取消、丰富表单dirty provider仍为独立门禁。进度继续只写本线专属文档。
+
