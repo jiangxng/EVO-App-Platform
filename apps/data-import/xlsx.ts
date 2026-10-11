@@ -7,6 +7,8 @@ import type {
 } from "./types.js";
 
 const XLSX_MAX_ZIP_ENTRIES_V010 = 512;
+// CP-03 legacy anti-sparse-column bound; also prevents unbounded null-array growth.
+const XLSX_MAX_COLUMNS_V010 = 2_048;
 const XLSX_MAX_ENTRY_UNCOMPRESSED_BYTES_V010 = 32 * 1024 * 1024;
 const XLSX_MAX_TOTAL_UNCOMPRESSED_BYTES_V010 = 64 * 1024 * 1024;
 
@@ -245,7 +247,8 @@ function cellValue(
 
 function worksheetRows(
   xml: string,
-  strings: readonly string[]
+  strings: readonly string[],
+  maxRows: number
 ): FoundationObjectImportCellV010[][] {
   const rows: FoundationObjectImportCellV010[][] = [];
   for (const rowMatch of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/gu)) {
@@ -255,11 +258,17 @@ function worksheetRows(
       const reference = attr(cellMatch[1], "r");
       const index = reference ? columnIndex(reference) : cells.length;
       if (index < 0) continue;
+      if (index >= XLSX_MAX_COLUMNS_V010) {
+        throw new Error("DATA_IMPORT_XLSX_TOO_MANY_COLUMNS");
+      }
       while (cells.length <= index) cells.push(null);
       cells[index] = cellValue(cellMatch[1], cellMatch[2], strings);
     }
     if (cells.some(value => value !== null && String(value).trim() !== "")) {
       rows.push(cells);
+      if (rows.length > maxRows + 1) {
+        throw new Error("DATA_IMPORT_XLSX_ROW_LIMIT_EXCEEDED");
+      }
     }
   }
   return rows;
@@ -282,7 +291,7 @@ export function parseXlsxSourceV010(input: {
     throw new Error("DATA_IMPORT_XLSX_FILE_INVALID");
   }
   const maxRows = input.maxRows ?? 10000;
-  if (!Number.isInteger(maxRows) || maxRows < 1) {
+  if (!Number.isSafeInteger(maxRows) || maxRows < 1) {
     throw new Error("DATA_IMPORT_XLSX_MAX_ROWS_INVALID");
   }
 
@@ -302,7 +311,7 @@ export function parseXlsxSourceV010(input: {
   if (!worksheet) throw new Error("DATA_IMPORT_XLSX_WORKSHEET_NOT_FOUND");
 
   const strings = sharedStrings(readText("xl/sharedStrings.xml"));
-  const rawRows = worksheetRows(worksheet, strings);
+  const rawRows = worksheetRows(worksheet, strings, maxRows);
   if (rawRows.length === 0) {
     throw new Error("DATA_IMPORT_XLSX_EMPTY");
   }
@@ -318,7 +327,10 @@ export function parseXlsxSourceV010(input: {
     throw new Error("DATA_IMPORT_XLSX_ROW_LIMIT_EXCEEDED");
   }
 
-  const rows = body.map(cells => {
+  const rows = body.map((cells, index) => {
+    if (cells.length > headers.length) {
+      throw new Error("DATA_IMPORT_XLSX_TOO_MANY_COLUMNS_AT_ROW_" + (index + 2));
+    }
     const row: Record<string, FoundationObjectImportCellV010> = {};
     headers.forEach((header, index) => {
       row[header] = cells[index] ?? null;
