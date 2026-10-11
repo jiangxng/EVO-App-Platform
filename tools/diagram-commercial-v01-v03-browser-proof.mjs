@@ -371,6 +371,60 @@ try{
     aboveThresholdMoved:true,otherNodePreserved:true,undoRestored:true,
     syntheticOnly:true,physicalDeviceVerified:false
   }));
+  // M03: native Shift click and Shift marquee must add, never replace
+  // selection. Avoid synthetic DOM click() and use actual pointer+keyboard.
+  const m03Zoom=tab.locator('[data-eidos-diagram-view-controls] button[aria-label="Zoom out"]');
+  let m03Region;
+  for(let attempt=0;attempt<8;attempt++){
+    m03Region=await tab.evaluate(()=>{
+      const r=document.querySelector('[data-eidos-diagram-node="receipt"]').getBoundingClientRect();
+      const c=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+      const start={x:r.left-12,y:r.top-12};
+      const end={x:r.right+12,y:r.bottom+12};
+      return {start,end,fits:start.x>c.left+10&&start.y>c.top+10
+        &&end.x<c.right-10&&end.y<c.bottom-10};
+    });
+    if(m03Region.fits)break;
+    await m03Zoom.click();
+  }
+  assert.ok(m03Region.fits,"M03 both rectangle endpoints must be on visible canvas");
+  await tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await tab.locator('[data-eidos-diagram-node="receipt"]').click({modifiers:["Shift"]});
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true",
+    "M03 Shift click must preserve first node");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true",
+    "M03 Shift click must add second node");
+  await tab.locator('[data-eidos-diagram-node="sale"]').click();
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"false",
+    "M03 ordinary click correctly resets additive selection");
+  // Recompute after the new selection renders a potentially wider inspector.
+  m03Region=await tab.evaluate(()=>{
+    const r=document.querySelector('[data-eidos-diagram-node="receipt"]').getBoundingClientRect();
+    const c=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+    const start={x:r.left-12,y:r.top-12},end={x:r.right+12,y:r.bottom+12};
+    return {start,end,fits:start.x>c.left+8&&start.y>c.top+8
+      &&end.x<c.right-8&&end.y<c.bottom-8};
+  });
+  assert.ok(m03Region.fits,"M03 target must stay entirely inside the selected canvas");
+  await tab.keyboard.down("Shift");
+  await tab.mouse.move(m03Region.start.x,m03Region.start.y);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(m03Region.end.x,m03Region.end.y,{steps:8});
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),1,
+    "M03 additive marquee visibly follows Shift+pointer");
+  await tab.mouse.up({button:"left"});
+  await tab.keyboard.up("Shift");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true",
+    "M03 Shift marquee must not clear the first selection");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true",
+    "M03 Shift marquee must add the second node");
+  assert.equal(store.getVersion(id),0,"M03 selection cannot save business presentation");
+  console.log("DIAGRAM_M03_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M03",browser:"Chromium "+browser.version(),
+    nativeShiftClickAdditive:true,nativeShiftMarqueeAdditive:true,
+    ordinaryClickReplaces:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
