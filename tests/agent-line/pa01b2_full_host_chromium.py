@@ -72,7 +72,8 @@ with sync_playwright() as p:
   start=time.monotonic()
   while time.monotonic()-start<timeout:
    if condition():return
-   time.sleep(.1)
+   # Pump Playwright's protocol event loop; time.sleep delays response callbacks.
+   context.pages[-1].wait_for_timeout(100)
   raise AssertionError(message)
  def wait_response(old):
   wait_until(lambda:len(requests()['requests'])>old,'MOCK_MODEL_CALL_NOT_SEEN')
@@ -165,7 +166,7 @@ with sync_playwright() as p:
    page.locator('[data-eidos-agent-action="ai-auto-map"]').click()
    wait_response(old)
    expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_enabled(timeout=30000)
-   time.sleep(.5)
+   page.wait_for_timeout(500)
    assert page_reads(job)==before
    return {'provider503':True,'refreshDelta':0,'actionRestored':True}
   finally:control('success');page.close()
