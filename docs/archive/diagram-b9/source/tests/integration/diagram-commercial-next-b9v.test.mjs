@@ -1,0 +1,4 @@
+import test from "node:test";import assert from "node:assert/strict";import {validateAuthorizedEnterpriseFixtureV010 as check} from "../../tools/diagram-enterprise-fixture-intake-b9k.mjs";
+const sample=()=>({contractVersion:"0.1.0",purpose:"diagram-commercial-local-qa",process:"P2P",deidentified:true,ownerApprovedForLocalQa:true,preview2d:{contractVersion:"0.1.0",nodes:[{id:"a",kind:"subject",label:"a",x:0,y:0,width:80,height:40},{id:"b",kind:"subject",label:"b",x:200,y:0,width:80,height:40}],edges:[{id:"e",kind:"rel",source:"a",target:"b"}]}});
+test("B9v permits negative world coordinates and valid large canvases",()=>{const x=sample();x.preview2d.nodes[0].x=-999999;assert.equal(check(x).nodes,2)});
+test("B9v blocks extreme world coordinate and node area inputs",()=>{for(const [key,value] of [["x",1e12],["y",-1e12],["width",1e8],["height",1e8],["x",Number.MAX_VALUE]]){const x=sample();x.preview2d.nodes[0][key]=value;assert.throws(()=>check(x),/geometry/)}});

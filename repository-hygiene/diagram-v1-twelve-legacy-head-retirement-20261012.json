@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "scope": "evo-2d-legacy-twelve-20261012",
+  "semantics": "history-only ours reconciliation, does not port superseded runtime code",
+  "baselineMainSha": "09fee6f8f327871b71e0b37a9e19a7f16161db57",
+  "records": [
+    {
+      "head": "accept/diagram-m03-shift-additive-20261011",
+      "expectedHeadSha": "264f352e5efa5df183265f6d9945abf989802872",
+      "relatedPr": 733
+    },
+    {
+      "head": "accept/diagram-m05-right-pan-20261011",
+      "expectedHeadSha": "6416cc110f1f830a6acdfb04e9bf627a82b70d77",
+      "relatedPr": 737
+    },
+    {
+      "head": "accept/diagram-v06-state-layer-20261011",
+      "expectedHeadSha": "c05701bd4de8f7e27432dfa9f28df83e786d1a9a",
+      "relatedPr": 727
+    },
+    {
+      "head": "eog/extract-2d-designer-semantic-actions",
+      "expectedHeadSha": "ffd34030aacc494858b88393ea76313e3047b73d",
+      "relatedPr": null
+    },
+    {
+      "head": "eog/extract-2d-observatory",
+      "expectedHeadSha": "f0d255626cd885faa082553e3ee985f76ffd73d0",
+      "relatedPr": null
+    },
+    {
+      "head": "feat/diagram-commercial-acceptance-v01-v03-20261011",
+      "expectedHeadSha": "000cb2f5b6bbb2264d390e52c61d5b9dfc852957",
+      "relatedPr": 718
+    },
+    {
+      "head": "feat/diagram-commercial-acceptance-v04-zoom-20261011",
+      "expectedHeadSha": "e7e44e82f765d3d433a7f7c99efe728a41417a38",
+      "relatedPr": 720
+    },
+    {
+      "head": "feat/enterprise-software-projection-designer",
+      "expectedHeadSha": "25448493485d40196fd87bd0b9b36135e94c3587",
+      "relatedPr": null
+    },
+    {
+      "head": "feat/eog-projection-edit-save-flow",
+      "expectedHeadSha": "9a0bac97c12e03d6c690f88d9fae871ada753d88",
+      "relatedPr": 388
+    },
+    {
+      "head": "feat/projection-gallery-management-v0.1",
+      "expectedHeadSha": "cbbd78d1335c529e24b3b75d0a435de050c54571",
+      "relatedPr": null
+    },
+    {
+      "head": "feat/2d-viewer-map-controls",
+      "expectedHeadSha": "29342eaf1479b357689975ed8fc5e779a43face9",
+      "relatedPr": null
+    },
+    {
+      "head": "fix/eog-viewer-back-to-ledger-detail",
+      "expectedHeadSha": "525249c1682ca9dc1bea82f8f46a76419a953b1a",
+      "relatedPr": null
+    }
+  ],
+  "specialOpenPR": 388
+}

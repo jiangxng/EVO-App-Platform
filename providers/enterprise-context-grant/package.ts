@@ -9,6 +9,12 @@ export const hostEnterpriseContextGrantProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID,
   displayName: "Host Enterprise Context Grant Provider",
+  displayNameTranslations: {
+    "en": "Host Enterprise Context Grant Provider",
+    "zh-CN": "企业上下文访问授权服务",
+    "ja": "企業コンテキストアクセス権サービス",
+    "zh-TW": "企業上下文存取授權服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "0.1.0",
+  "assurance": "CANDIDATE_ONLY",
+  "environment": "staging",
+  "owner": {
+    "entrypoint": "node dist/apps/api/src/finance-owner-readonly-main.js",
+    "isolatedReadOnly": true,
+    "trustAuthority": "POSTGRES",
+    "staticTrustFallback": false,
+    "generalApiMounted": false,
+    "financeWritesEnabled": false,
+    "dedicatedWorkloadIdentity": true,
+    "explicitListen": true,
+    "serviceIdentity": "finance_owner_candidate",
+    "imageDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "database": {
+    "independentRuntimeLogin": true,
+    "independentOperatorLogin": true,
+    "noMigrationCredentialInOwner": true,
+    "primaryNonceAuthority": true,
+    "runtimeDbTlsVerified": true,
+    "operatorCredentialInOwner": false,
+    "runtimeCanWriteCostOrAllocation": false,
+    "runtimePrincipal": "finance_runtime_candidate",
+    "operatorPrincipal": "finance_operator_candidate"
+  },
+  "network": {
+    "privateOwnerIngress": true,
+    "publicOwnerIngress": false,
+    "hostToOwnerHttps": true,
+    "ownerTlsHostnameVerified": true,
+    "ownerPeerIdentityVerified": true,
+    "untrustedProxyIdentityAccepted": false,
+    "onlyHostWorkloadAllowed": true,
+    "ownerPrivateHostname": "finance-owner.staging.invalid"
+  },
+  "identity": {
+    "realExternalOidcConfigured": true,
+    "managedSessionRequired": true,
+    "staticSessionFallback": false,
+    "serverDerivedPrincipalAndEnterprise": true,
+    "expiredOrRevokedSessionDenied": true,
+    "oidcIssuer": "https://idp.staging.invalid",
+    "oidcClientRegistration": "oidc_client_candidate"
+  },
+  "signing": {
+    "hostSecretProvider": true,
+    "ownerHasSigningPrivateKey": false,
+    "keyPointerFailClosed": true,
+    "rotationAuditEnabled": true,
+    "revocationWithoutRestart": true
+  },
+  "operations": {
+    "ownerResponseExecutionAllowed": false,
+    "b2d4WriteAdmissionEnabled": false,
+    "unreachableDependencyFailsClosed": true,
+    "secretRedactedObservability": true,
+    "rollbackRevokesActiveSigningKey": true
+  }
+}

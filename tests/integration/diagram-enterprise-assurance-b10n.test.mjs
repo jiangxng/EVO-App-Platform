@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {cycleGroupsV010 as inspect} from "../../tools/diagram-enterprise-assurance-b10n.mjs";
+test("B10n cycle-groups: synthetic aggregate-only evidence",()=>{const g={nodes:[{id:"a"},{id:"b"},{id:"c"}],edges:[{source:"a",target:"b"},{source:"b",target:"a"},{source:"b",target:"c"}]};assert.equal(inspect(g).cyclicGroups,1);assert.equal(inspect(g).stronglyConnectedGroups,2);assert.equal(inspect(g).maxGroup,2);});

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "platform-squash-pr-retirement-20261011",
+  "baselineMainSha": "ab8de6d3942d2905205061e079daa0086d55fccb",
+  "records": [
+    {
+      "number": 728,
+      "head": "fix/platform-branch-hygiene-leased-20261011",
+      "expectedHeadSha": "4d37a029c93a9a94136545e1d2d7d230d4d9588d",
+      "mergeCommitSha": "4867d7a25f47fde47fa37be14fbd1ef568834e68"
+    },
+    {
+      "number": 731,
+      "head": "feat/tr01-six-stage-host-preview-discovery-20261011",
+      "expectedHeadSha": "54ba58e3d720802fb48e6f39df0a619d19e9b27c",
+      "mergeCommitSha": "89320e118b97f358b4fdab0ec4c198d1cf8a57c7"
+    },
+    {
+      "number": 736,
+      "head": "fix/tr01-finance-signer-pointer-fd-20261011",
+      "expectedHeadSha": "5ba74c150f9838029e66e48e46982fcbf702a86c",
+      "mergeCommitSha": "7c0be5f391d32a83eab515afad39adc8cfc5f247"
+    },
+    {
+      "number": 740,
+      "head": "chore/retire-verified-platform-source-refs-20261011",
+      "expectedHeadSha": "1433c9bfa052bc321ae4edb9040e7b5d1928ebb5",
+      "mergeCommitSha": "4690ff813fc076e3d0d8bf18641f2ca145d56b4b"
+    },
+    {
+      "number": 741,
+      "head": "docs/platform-convergence-cleanup-results-20261011",
+      "expectedHeadSha": "b920d7b9830dcf84a322d61fead85092ace11c28",
+      "mergeCommitSha": "ab8de6d3942d2905205061e079daa0086d55fccb"
+    }
+  ]
+}

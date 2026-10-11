@@ -1,0 +1,122 @@
+name: Diagram v1 Twelve-Head Historical Reconciliation
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/diagram-v1-twelve-legacy-head-retirement-20261012.json"
+      - ".github/workflows/diagram-v1-twelve-legacy-retirement-20261012.yml"
+      - "docs/architecture/DIAGRAM-V1-12-LEGACY-HEADS-RECONCILIATION-20261012.md"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/diagram-v1-twelve-legacy-head-retirement-20261012.json"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  verify-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Verify main history and retire exactly 12 reconciled 2D heads
+        uses: actions/github-script@v7
+        env:
+          EXECUTE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          script: |
+            const fs=require('node:fs');
+            const {owner,repo}=context.repo;
+            const execute=process.env.EXECUTE==='true';
+            const selfPrNumber=780;
+            const selfBranch='chore/diagram-v1-legacy-reconciliation-20261012';
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repository');
+            const manifest=JSON.parse(fs.readFileSync('repository-hygiene/diagram-v1-twelve-legacy-head-retirement-20261012.json','utf8'));
+            if(manifest.schemaVersion!==1||manifest.scope!=='evo-2d-legacy-twelve-20261012'||
+               !Array.isArray(manifest.records)||manifest.records.length!==12||
+               manifest.specialOpenPR!==388)throw Error('Invalid twelve-head manifest');
+            const allowed=new Set([
+              'accept/diagram-m03-shift-additive-20261011',
+              'accept/diagram-m05-right-pan-20261011',
+              'accept/diagram-v06-state-layer-20261011',
+              'eog/extract-2d-designer-semantic-actions',
+              'eog/extract-2d-observatory',
+              'feat/diagram-commercial-acceptance-v01-v03-20261011',
+              'feat/diagram-commercial-acceptance-v04-zoom-20261011',
+              'feat/enterprise-software-projection-designer',
+              'feat/eog-projection-edit-save-flow',
+              'feat/projection-gallery-management-v0.1',
+              'feat/2d-viewer-map-controls',
+              'fix/eog-viewer-back-to-ledger-detail'
+            ]);
+            const sha=/^[a-f0-9]{40}$/i,seen=new Set();
+            for(const item of manifest.records){
+              if(!allowed.has(item.head)||seen.has(item.head)||!sha.test(item.expectedHeadSha))
+                throw Error('Unexpected branch or SHA '+item.head);
+              seen.add(item.head);
+              if(item.head==='feat/eog-projection-edit-save-flow'&&item.relatedPr!==388)
+                throw Error('Unidentified open PR');
+            }
+            if(seen.size!==12)throw Error('Incomplete manifest');
+            const getOpen=()=>github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            const open=await getOpen();
+            for(const item of manifest.records){
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+item.head})).data;
+              if(ref.object.sha!==item.expectedHeadSha)throw Error('SHA changed '+item.head);
+              if((await github.rest.repos.getBranch({owner,repo,branch:item.head})).data.protected)
+                throw Error('Protected branch '+item.head);
+              for(const pr of open)if(pr.base.ref===item.head||
+                 (pr.head.repo?.full_name===owner+'/'+repo&&pr.head.ref===item.head&&
+                 !(item.head==='feat/eog-projection-edit-save-flow'&&pr.number===388)))
+                throw Error('Open PR reserves '+item.head);
+              core.info('DIAGRAM_HISTORY_REF_VERIFIED '+item.head);
+            }
+            const oldPr=(await github.rest.pulls.get({owner,repo,pull_number:388})).data;
+            if(oldPr.head.sha!==manifest.records.find(x=>x.head==='feat/eog-projection-edit-save-flow').expectedHeadSha||
+               oldPr.head.ref!=='feat/eog-projection-edit-save-flow'||oldPr.base.ref!=='main')
+              throw Error('Legacy #388 head/base moved');
+            if(!execute){core.info('DIAGRAM_HISTORY_AUDIT_ONLY=12');return;}
+            if(context.eventName!=='push'||context.ref!=='refs/heads/main')
+              throw Error('Main push required');
+            const mainSha=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const complete=(await github.rest.repos.compareCommits({owner,repo,base:manifest.baselineMainSha,head:mainSha})).data;
+            if(complete.behind_by!==0||complete.merge_base_commit?.sha!==manifest.baselineMainSha)
+              throw Error('Baseline main not an ancestor');
+            for(const item of manifest.records){
+              const cmp=(await github.rest.repos.compareCommits({owner,repo,base:item.expectedHeadSha,head:mainSha})).data;
+              if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==item.expectedHeadSha||
+                 !['ahead','identical'].includes(cmp.status))
+                throw Error('History not incorporated into main '+item.head);
+              core.info('DIAGRAM_HISTORY_ANCESTOR_PROVEN '+item.head);
+            }
+            const self=(await github.rest.pulls.get({owner,repo,pull_number:selfPrNumber})).data;
+            if(!self.merged||self.state!=='closed'||self.base.ref!=='main'||
+               self.head.ref!==selfBranch||self.head.repo?.full_name!==owner+'/'+repo||
+               !sha.test(self.head.sha))throw Error('Cleanup PR not merged');
+            const selfCheck=(await github.rest.repos.compareCommits({owner,repo,base:self.head.sha,head:mainSha})).data;
+            if(selfCheck.behind_by!==0||selfCheck.merge_base_commit?.sha!==self.head.sha)
+              throw Error('Cleanup branch history not merged');
+            if(oldPr.state==='open'){
+              await github.rest.pulls.update({owner,repo,pull_number:388,state:'closed'});
+              core.info('DIAGRAM_LEGACY_PR_CLOSED_388');
+            }else if(oldPr.merged){throw Error('Unexpected historic #388 merge');}
+            const fresh=await getOpen();
+            const targets=[...manifest.records,{head:selfBranch,expectedHeadSha:self.head.sha}];
+            for(const item of targets){
+              if(fresh.some(pr=>pr.base.ref===item.head||
+                 (pr.head.repo?.full_name===owner+'/'+repo&&pr.head.ref===item.head)))
+                throw Error('New open PR reserves '+item.head);
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+item.head})).data;
+              if(ref.object.sha!==item.expectedHeadSha)throw Error('Ref changed '+item.head);
+              if((await github.rest.repos.getBranch({owner,repo,branch:item.head})).data.protected)
+                throw Error('Protected branch '+item.head);
+            }
+            for(const item of targets){
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+item.head})).data;
+              if(ref.object.sha!==item.expectedHeadSha)throw Error('Ref lease changed '+item.head);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+item.head});
+              core.info('DIAGRAM_HISTORY_REF_DELETED '+item.head);
+            }
+            core.info('DIAGRAM_HISTORY_DELETED_COUNT='+targets.length);

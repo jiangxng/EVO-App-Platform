@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 1,
+  "repository": "jiangxng/EVO-App-Platform",
+  "archivePR": 705,
+  "archiveMainCommit": "d83dbe22cab53515a490af9dab09fd6ad3070a11",
+  "originalArchivedPRCount": 54,
+  "archiveArtifacts": 92,
+  "eligibleCount": 53,
+  "held": {
+    "pr": 537,
+    "head": "feat/diagram-projection-route-integration-20261009",
+    "reason": "Open non-Draft PR #547 targets this branch; preserve its base and unchanged code until #547 integration."
+  },
+  "formalCommercial": {
+    "cases": 39,
+    "signed": 0
+  },
+  "eligible": [
+    {
+      "pr": 553,
+      "headRef": "feat/diagram-commercial-visual-waypoint-integration-b5a-20261010",
+      "headSha": "5f5846a1d7b7b7c61cfae55a646aa58c2d9c3c40"
+    },
+    {
+      "pr": 554,
+      "headRef": "docs/diagram-commercial-acceptance-matrix-20261010",
+      "headSha": "4a5f96fdf36061ccc456d9b05d7d6b4464d6cb2c"
+    },
+    {
+      "pr": 561,
+      "headRef": "feat/diagram-commercial-projection-cas-b7-20261010",
+      "headSha": "5043852c7b23c325368938e1ba6563f5aa39ca59"
+    },
+    {
+      "pr": 563,
+      "headRef": "feat/diagram-commercial-agent-cas-b7b-20261010",
+      "headSha": "efa8dacf443704a1ab15150b2fdd3eceb3d88559"
+    },
+    {
+      "pr": 566,
+      "headRef": "feat/diagram-commercial-snapping-integration-b6a-20261010",
+      "headSha": "0d56bdaa8717d133f0c79b7b3520c2bbebb3fdc8"
+    },
+    {
+      "pr": 568,
+      "headRef": "feat/diagram-commercial-snapping-tools-integration-b6b-20261010",
+      "headSha": "7a5546082f840cfcde2efd6c449c07077fccc9b5"
+    },
+    {
+      "pr": 573,
+      "headRef": "feat/diagram-commercial-perf-integration-p01a-20261010",
+      "headSha": "48d67ab2796dac064d6da0b702313f4437d3cf02"
+    },
+    {
+      "pr": 581,
+      "headRef": "feat/diagram-commercial-auto-route-segment-integration-b8a-20261010",
+      "headSha": "474d62040d45d3dd23e66a3564f5eb5c1dbcb7ed"
+    },
+    {
+      "pr": 583,
+      "headRef": "test/diagram-b8b-save-viewer-roundtrip-20261010",
+      "headSha": "e50f06581be5f0c7186c1621a9be7669f9967f2d"
+    },
+    {
+      "pr": 586,
+      "headRef": "feat/diagram-commercial-overlap-regrab-integration-b8c-20261010",
+      "headSha": "2e76ea6e83d1438b17f5239089fa0768c4e3e1cb"
+    },
+    {
+      "pr": 590,
+      "headRef": "feat/diagram-commercial-overlap-cycle-integration-b8d-20261010",
+      "headSha": "f5776cdd5a8a6e7fb4bd8c8da6b92bc42a5b84c7"
+    },
+    {
+      "pr": 591,
+      "headRef": "test/diagram-commercial-rounded-dense-integration-b8e-20261010",
+      "headSha": "4e475831798dc622837d4306ab2242e47f8e6022"
+    },
+    {
+      "pr": 593,
+      "headRef": "feat/diagram-commercial-loop-curve-integration-b8f-20261010",
+      "headSha": "84d6297710f68a2e456f856d15e1fafb92d83c7f"
+    },
+    {
+      "pr": 595,
+      "headRef": "feat/diagram-commercial-self-loop-obstacle-integration-b8g-20261010",
+      "headSha": "4095e886a2a4a1e92acba95ed1793acb2bd056d2"
+    },
+    {
+      "pr": 596,
+      "headRef": "feat/diagram-commercial-loop-congestion-integration-b8h-20261010",
+      "headSha": "d26933dadc30ca5f8cdee3861c7b6dce401f1e22"
+    },
+    {
+      "pr": 597,
+      "headRef": "feat/diagram-commercial-loop-edge-label-integration-b8i-20261010",
+      "headSha": "874dfc8362af4e8285bab366a7086532e1c65569"
+    },
+    {
+      "pr": 598,
+      "headRef": "feat/diagram-commercial-precise-ink-index-integration-b8jk-20261010",
+      "headSha": "bcfaca11209d8a18ad5e09fa0a766fbcb01aaf10"
+    },
+    {
+      "pr": 599,
+      "headRef": "feat/diagram-commercial-label-metrics-density-integration-b8lm-20261010",
+      "headSha": "8c21be3bec7f91f591c1df3c03f86b830388dcdc"
+    },
+    {
+      "pr": 600,
+      "headRef": "feat/diagram-commercial-multilingual-density-integration-b8no-20261010",
+      "headSha": "ba33e14160ebdef3d02b57879060be76618c9aa7"
+    },
+    {
+      "pr": 601,
+      "headRef": "feat/diagram-commercial-word-bidi-perf-integration-b8pq-20261010",
+      "headSha": "f3ce5313954f19c1fbfe9bddb7a1b43d6b7a65cc"
+    },
+    {
+      "pr": 602,
+      "headRef": "feat/diagram-commercial-auto-routing-cross-browser-integration-b8rs-20261010",
+      "headSha": "ed69eb538cee6eb13b5575f0af7cd5f3f9f667f5"
+    },
+    {
+      "pr": 604,
+      "headRef": "feat/diagram-commercial-budget-text-integration-b8tu-20261010",
+      "headSha": "b21de6d35ae1a924a96b14174f1b65fc2fb4f57b"
+    },
+    {
+      "pr": 606,
+      "headRef": "feat/diagram-commercial-congestion-summary-postselect-integration-b8vw-20261010",
+      "headSha": "77d951921c14e0a82088e77150159947bdcca980"
+    },
+    {
+      "pr": 607,
+      "headRef": "feat/diagram-commercial-multi-instance-isolation-b8x-20261010",
+      "headSha": "ae4fe559cbfa1c71292859f63341b02824402cb7"
+    },
+    {
+      "pr": 608,
+      "headRef": "feat/diagram-commercial-congestion-undo-refresh-b8y-20261010",
+      "headSha": "b914a8c67a162290e76f04ad717c49f211be375c"
+    },
+    {
+      "pr": 610,
+      "headRef": "feat/diagram-commercial-native-drag-congestion-b8z-20261010",
+      "headSha": "2bd077eb6aca612bdee2cede8557c45d4a5e5e3b"
+    },
+    {
+      "pr": 611,
+      "headRef": "feat/diagram-commercial-unsaved-refresh-boundary-b9a-20261010",
+      "headSha": "016005b2785cc5172c6f7fcf66ba82c1187dd1cd"
+    },
+    {
+      "pr": 612,
+      "headRef": "feat/diagram-commercial-saved-viewer-congestion-b9b-20261011",
+      "headSha": "6b9616c6fcffd441539273998740a44e4c31cd03"
+    },
+    {
+      "pr": 614,
+      "headRef": "feat/diagram-commercial-positive-viewer-congestion-b9c-20261011",
+      "headSha": "f9babc194cbca7770c2573660af212909f75e79c"
+    },
+    {
+      "pr": 615,
+      "headRef": "feat/diagram-commercial-file-store-reopen-b9d-20261011",
+      "headSha": "8b1a7c51332a762f629b0dd082c94914d3564716"
+    },
+    {
+      "pr": 617,
+      "headRef": "feat/diagram-commercial-crossprocess-cas-b9e-20261011",
+      "headSha": "4e85117c96df36b4cb1d651e2746580812b31281"
+    },
+    {
+      "pr": 618,
+      "headRef": "feat/diagram-commercial-app-handler-process-race-b9f-20261011",
+      "headSha": "b01a91ad8891b263d09a24aef0012e5e5e8cd157"
+    },
+    {
+      "pr": 619,
+      "headRef": "feat/diagram-commercial-denied-file-save-b9g-20261011",
+      "headSha": "9b7944fbd7739643393896ddfd555c1228b79b76"
+    },
+    {
+      "pr": 620,
+      "headRef": "feat/diagram-commercial-persist-positive-congestion-b9h-20261011",
+      "headSha": "8384c13950eb716b51d89afb3ae1d8792b05f48e"
+    },
+    {
+      "pr": 621,
+      "headRef": "feat/diagram-commercial-saved-positive-browser-b9i-20261011",
+      "headSha": "6adbb3467a5e5b17b6f56f103ece2a1217181b64"
+    },
+    {
+      "pr": 622,
+      "headRef": "feat/diagram-commercial-native-save-positive-b9j-20261011",
+      "headSha": "6740000086577a15c257e813ca6340ab2027410c"
+    },
+    {
+      "pr": 623,
+      "headRef": "docs/diagram-commercial-research-decision-handoff-b9j-20261011",
+      "headSha": "d027ed8eab06ad3d4f549f5466f6c36dbd3cfed8"
+    },
+    {
+      "pr": 625,
+      "headRef": "feat/diagram-commercial-enterprise-fixture-intake-b9k-20261011",
+      "headSha": "df674faa7818b194a8719cdaf5f7a861d8473e7f"
+    },
+    {
+      "pr": 626,
+      "headRef": "feat/diagram-commercial-enterprise-native-save-b9l-20261011",
+      "headSha": "d6af618914798a3712f9e610f56e7672cf6694f7"
+    },
+    {
+      "pr": 628,
+      "headRef": "feat/diagram-commercial-fixture-filesystem-b9m-20261011",
+      "headSha": "1682b4678a2536ecfe1cd6e8c699229dd6d75d63"
+    },
+    {
+      "pr": 629,
+      "headRef": "feat/diagram-commercial-single-read-b9n-20261011",
+      "headSha": "8111abcfcea72c257b8fb90a4ed4407e81b832d7"
+    },
+    {
+      "pr": 630,
+      "headRef": "feat/diagram-commercial-route-risk-b9o-20261011",
+      "headSha": "ad64922d8449e03f4c905be5d77e6c9205548c20"
+    },
+    {
+      "pr": 631,
+      "headRef": "feat/diagram-commercial-browser-stale-cas-b9p-20261011",
+      "headSha": "447b923d4674aacd15a15d434c259df7a66e8c36"
+    },
+    {
+      "pr": 632,
+      "headRef": "feat/diagram-commercial-responsive-chrome-b9q-20261011",
+      "headSha": "96438977aef701992578b92772966ddf501d30d8"
+    },
+    {
+      "pr": 634,
+      "headRef": "feat/diagram-commercial-acceptance-gate-b9r-20261011",
+      "headSha": "0d846bf6beb559cc81daf1a789403d6e8544e63c"
+    },
+    {
+      "pr": 635,
+      "headRef": "feat/diagram-commercial-responsive-clipping-b9s-20261011",
+      "headSha": "f5254fe6540b7711e0a617c89176f4b904de9cdd"
+    },
+    {
+      "pr": 637,
+      "headRef": "feat/diagram-commercial-mobile-toolbar-wrap-b9t-20261011",
+      "headSha": "23b6d4b07231de2afc2e0e0b47f5766a4e7180b8"
+    },
+    {
+      "pr": 640,
+      "headRef": "feat/diagram-commercial-b9u-control-text-20261011",
+      "headSha": "70f493f592e75872326ee76cf675f0f54f940277"
+    },
+    {
+      "pr": 641,
+      "headRef": "feat/diagram-commercial-bounded-world-geometry-b9v-20261011",
+      "headSha": "478a3a733e72f429289f51bc9ac5f6e0f5c57846"
+    },
+    {
+      "pr": 642,
+      "headRef": "feat/diagram-commercial-topology-fingerprint-b9w-20261011",
+      "headSha": "25b9c736dc570bb2419d8061bdf203a584a46eac"
+    },
+    {
+      "pr": 643,
+      "headRef": "feat/diagram-commercial-deny-save-after-commit-b9x-20261011",
+      "headSha": "917874ef2e15a57efd989e9b61a5d6cdf1da1d40"
+    },
+    {
+      "pr": 644,
+      "headRef": "feat/diagram-commercial-readonly-get-no-write-b9y-20261011",
+      "headSha": "baf9d149592dbbc8d79fb84adf3dfc28971da73f"
+    },
+    {
+      "pr": 645,
+      "headRef": "feat/diagram-commercial-source-target-semantics-b9z-20261011",
+      "headSha": "a70c55ead2b936d6e0c24116854998f2675cd0b9"
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "scope": "diagram-v1-sha-pinned-retirement-20261011",
+  "baselineMainSha": "fbbead0a271408b7f97227631f3d9344cf7a7393",
+  "retirementCategory": "exact merged-PR heads only; preserve nonmerged, open, and non-diagram refs",
+  "records": [
+    {
+      "head": "accept/diagram-e01-obstacle-routing-20261011",
+      "expectedHeadSha": "18c303748da87c865d70f188651219961bb6e600",
+      "number": 753,
+      "mergeCommitSha": "63a51ea36e0be44ad52368b33144c4cb44cea843"
+    },
+    {
+      "head": "accept/diagram-e02-parallel-reverse-loop-20261011",
+      "expectedHeadSha": "6dcaa1e07fef7b2ad1e90f806fb0287aeea14382",
+      "number": 754,
+      "mergeCommitSha": "c5f569ab0ba8c60c7d7616940794647bf49dcda9"
+    },
+    {
+      "head": "accept/diagram-e03-route-handles-undo-20261011",
+      "expectedHeadSha": "4b7f876f1bb6abd15b571927f5edfedda7283d2f",
+      "number": 755,
+      "mergeCommitSha": "a117dbc07217ec7924b25a3a0321456ff4e9c42f"
+    },
+    {
+      "head": "accept/diagram-e04-curve-hit-20261011",
+      "expectedHeadSha": "3e76ab5652e83ecf6873704102f96b1ad64d9ddd",
+      "number": 756,
+      "mergeCommitSha": "70af9e2b9767ae2df26fea4fcdb97e6ab5798ed5"
+    },
+    {
+      "head": "accept/diagram-e05-endpoint-move-20261011",
+      "expectedHeadSha": "99948e6a6202a77fd270041868a0362b6274b65f",
+      "number": 758,
+      "mergeCommitSha": "42e56b4c916a3379ce8bd4ec6d25b74fc55fa204"
+    },
+    {
+      "head": "accept/diagram-e06-route-reset-undo-20261011",
+      "expectedHeadSha": "a9ac32a1aa753f253670df0771b8493c11b7762d",
+      "number": 760,
+      "mergeCommitSha": "9235da00ec4e4d3070ddb3960bb31876a934e52c"
+    },
+    {
+      "head": "accept/diagram-e07-edge-caption-drag-20261011",
+      "expectedHeadSha": "f9a7e253eb6a75226fdb04c084f3052b07b855e8",
+      "number": 761,
+      "mergeCommitSha": "3908d862c8a86d6a684907ac721066202c22b777"
+    },
+    {
+      "head": "accept/diagram-m01-marquee-20261011",
+      "expectedHeadSha": "64fc3e97b19f729e58583aeafa8be6fa85f182a3",
+      "number": 730,
+      "mergeCommitSha": "f74aee19a1a3ba9bd08d8eb5d4ee0ba6b2bcc51d"
+    },
+    {
+      "head": "accept/diagram-m02-node-gesture-20261011",
+      "expectedHeadSha": "e774eca440873483d4d9c4e8ba318e05e08d3e36",
+      "number": 732,
+      "mergeCommitSha": "8a85fe638c7c5fb3266778a824d19999d24ff4e6"
+    },
+    {
+      "head": "accept/diagram-m03-current-main-20261011",
+      "expectedHeadSha": "dea5757fb6fff65021f3b4467c358fe7ad65959c",
+      "number": 734,
+      "mergeCommitSha": "48e12e495abde9607ae413eab126f263c3d8aef6"
+    },
+    {
+      "head": "accept/diagram-m04-group-drag-20261011",
+      "expectedHeadSha": "b053d1a027b8c6ebe359ce765541f90679a32cff",
+      "number": 735,
+      "mergeCommitSha": "6c5234c892803374c75f77f6d421fc0fd5af0790"
+    },
+    {
+      "head": "accept/diagram-m05-current-main-20261011",
+      "expectedHeadSha": "72e056cc79d78e4d36fefd62ba48989a9c00bfb7",
+      "number": 738,
+      "mergeCommitSha": "5c479d9934c38ed37948eb21cd90de8546c77219"
+    },
+    {
+      "head": "accept/diagram-m06-stationary-context-menu-20261011",
+      "expectedHeadSha": "996debff30c6de601d591e30af9adf20fc3c267e",
+      "number": 739,
+      "mergeCommitSha": "e2bd62b9915d42be0bd6d4e70a26346e6e59c4b7"
+    },
+    {
+      "head": "accept/diagram-m07-middle-space-pan-20261011",
+      "expectedHeadSha": "4bdfbde22445e3d596196ee2bb9a5b8a8ee97325",
+      "number": 742,
+      "mergeCommitSha": "d0e4657f9e0d65988fcbb1acd57f29db72fda8ae"
+    },
+    {
+      "head": "accept/diagram-m08-input-shortcuts-20261011",
+      "expectedHeadSha": "acc52cd9440ea260a6e62d0cb5c5e7ae1e42a232",
+      "number": 744,
+      "mergeCommitSha": "9a4f05a066a5cf07b66aca1b8eb73ce40df90ac8"
+    },
+    {
+      "head": "accept/diagram-m09-blur-cancel-20261011",
+      "expectedHeadSha": "75ee0c449455e607538f62e39342a45fced21ae5",
+      "number": 745,
+      "mergeCommitSha": "0e78e4d387b95e4c4f4cd73c96ce8f4f740da5ac"
+    },
+    {
+      "head": "accept/diagram-t01-trackpad-wheel-20261011",
+      "expectedHeadSha": "6947bbe10774eae50a7ddb23bf8c3ed719d8c9f9",
+      "number": 746,
+      "mergeCommitSha": "cf4d110807358fd7cd7dda0a2c048f1a951761f0"
+    },
+    {
+      "head": "accept/diagram-t02-unselected-touch-pan-20261011",
+      "expectedHeadSha": "cfc9df150ae89ef0f13adf4cd3706b752f3eac61",
+      "number": 747,
+      "mergeCommitSha": "ce9551183287c5432b14cf597937d7a7991f6594"
+    },
+    {
+      "head": "accept/diagram-t03-selected-touch-drag-20261011",
+      "expectedHeadSha": "f73ae6995d3c38977692f32ec6ab50782a0ddf01",
+      "number": 748,
+      "mergeCommitSha": "4be5ec9fea4a1ed27d31fd10f742189348f1dd67"
+    },
+    {
+      "head": "accept/diagram-t04-second-finger-cancel-20261011",
+      "expectedHeadSha": "9e3a23f740f234a1eef00076bda4ba1b16222cce",
+      "number": 749,
+      "mergeCommitSha": "6716884dc2935f7a9f4507566ee1c09e9bdff804"
+    },
+    {
+      "head": "accept/diagram-t05-two-to-one-touch-20261011",
+      "expectedHeadSha": "498d65595c375c1ed48f9326eb4a509d8d7c9b3c",
+      "number": 750,
+      "mergeCommitSha": "275b4a634436607dae257ae296beb33e1babbd1b"
+    },
+    {
+      "head": "accept/diagram-t06-touch-selection-20261011",
+      "expectedHeadSha": "09487f1d24df3f52dff17087e963d8ed7b8b2841",
+      "number": 751,
+      "mergeCommitSha": "227e661f246d743e9ebee7d2c1b2ddeedc2af366"
+    },
+    {
+      "head": "accept/diagram-t07-phone-rotation-keyboard-20261011",
+      "expectedHeadSha": "a94cb323566b65812ae7b19d93bf52f427792100",
+      "number": 752,
+      "mergeCommitSha": "fe382eb470c84cb75442e434f479ce43afb332c5"
+    },
+    {
+      "head": "accept/diagram-v06-current-main-20261011",
+      "expectedHeadSha": "ae721c83d7ac51005139a577e9aeac5dc14db062",
+      "number": 729,
+      "mergeCommitSha": "aee9f3a28aca3c1d6994286521dcebde0ebe40e5"
+    },
+    {
+      "head": "test/diagram-v1-a01-pin-layout-20261011",
+      "expectedHeadSha": "9f3185d9c9a049a6a8bc6e135e4d89d9890a900c",
+      "number": 770,
+      "mergeCommitSha": "d4af50da264c1ee1a715bfe8fb37da8478b244bf"
+    },
+    {
+      "head": "test/diagram-v1-a02-large-text-keyboard-20261011",
+      "expectedHeadSha": "8570fd1df60b283b12850f6763522cc3aeb9263a",
+      "number": 772,
+      "mergeCommitSha": "db3fd2d53c7a28fcc2ba438e67ac54ceae0f3438"
+    },
+    {
+      "head": "test/diagram-v1-d01-projection-hidden-save-20261011",
+      "expectedHeadSha": "49225db8c97a92585fd87dd6242421fc4e18cb4c",
+      "number": 763,
+      "mergeCommitSha": "ea49ce916e9bdc4d7982681f66a0a0aacdcdf862"
+    },
+    {
+      "head": "test/diagram-v1-d02-undo-save-baseline-20261011",
+      "expectedHeadSha": "c7bbc4c6c80e938996a227653fb28a585f553635",
+      "number": 765,
+      "mergeCommitSha": "606258e02b9d71b2a0379337aafd7cf66a4f2bce"
+    },
+    {
+      "head": "test/diagram-v1-d03-save-failure-retry-20261011",
+      "expectedHeadSha": "0c5a1d8d7e9364e9fdf615763eca27c143225e66",
+      "number": 766,
+      "mergeCommitSha": "32387704ffb11f28c834cfe1a2b024e98f886b2f"
+    },
+    {
+      "head": "test/diagram-v1-d04-viewer-template-thumbnail-20261011",
+      "expectedHeadSha": "c71907bc4b26c170116cb7bc6855a82d969d5fa3",
+      "number": 767,
+      "mergeCommitSha": "1aa92acc8ad62a21b4a9bbcafac4c7c7b71931b2"
+    },
+    {
+      "head": "test/diagram-v1-d05-concurrent-conflict-save-as-20261011",
+      "expectedHeadSha": "cb26e1ff6cb4ab0b39a488c87ce824339b2b4189",
+      "number": 768,
+      "mergeCommitSha": "9a53e72fae6118cfad68a2465255e22859fe6acf"
+    },
+    {
+      "head": "test/diagram-v1-d06-projection-switch-isolation-20261011",
+      "expectedHeadSha": "f7904bf7aad9854dc96af74b6eca106b83e9e438",
+      "number": 769,
+      "mergeCommitSha": "92b3712779f660172233ff4759d666e6c25b22c1"
+    },
+    {
+      "head": "test/diagram-v1-p01-current-main-performance-20261011",
+      "expectedHeadSha": "2d5122dbc04ab8fd0276b70a15a5b2d2d5be1e30",
+      "number": 773,
+      "mergeCommitSha": "fbbead0a271408b7f97227631f3d9344cf7a7393"
+    },
+    {
+      "head": "test/diagram-v1-p02-real-same-page-isolation-20261011",
+      "expectedHeadSha": "9773bd0db2046942adb5f7bff50a4b99ec8d0a9c",
+      "number": 774,
+      "mergeCommitSha": "40ed2c064ad60ef2671c714d69bb4b30955389da"
+    }
+  ]
+}

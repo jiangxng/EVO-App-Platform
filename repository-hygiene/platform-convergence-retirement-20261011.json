@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "scope": "platform-convergence-retirement-20261011",
+  "baselineMainSha": "5c479d9934c38ed37948eb21cd90de8546c77219",
+  "note": "One-time safety-reviewed retirement of fully merged legacy non-Agent/non-2D source refs; never use this manifest as an invitation to delete other branches.",
+  "branches": [
+    {
+      "name": "feature/template-store-actions-v0.1",
+      "expectedHeadSha": "f32e07698a0b54c72ca65fb3c81d36fed3551d0c",
+      "mergedViaPr": 716,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "fix/template-store-copy-authorization-v01",
+      "expectedHeadSha": "d36659c052f1281b7d33f9f30c8bef69f2907ffb",
+      "mergedViaPr": 716,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "feat/cp03-atomic-bulk-import",
+      "expectedHeadSha": "8fc2247ae40b1422a25f71e00471d5020cc7a343",
+      "mergedViaPr": 717,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "feat/cp03-xlsx-human-import",
+      "expectedHeadSha": "d0ef6f1c8b47716f35f4da26dd2f9d500e36c93d",
+      "mergedViaPr": 717,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "fix/login-assets-binary-v02",
+      "expectedHeadSha": "4cd090be941219f95a26288ce8298dad4dcf77a0",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "fix/login-assets-valid-binary-v01",
+      "expectedHeadSha": "844583709268ef09f0ed9282ebfe10dd415495b3",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "improve/login-assets-cache-revision-v01",
+      "expectedHeadSha": "771e194f3b6c706e43fdaeb750d15f05317a8047",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "improve/login-assets-real-binary-v01",
+      "expectedHeadSha": "9a1a14d9bb074bf56ff940217261295b1ea1bba9",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "improve/login-final-reference-v03",
+      "expectedHeadSha": "8c2f70962bd231b6c749b00bfaf25986de8b3dcc",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "improve/login-final-tuge-v03",
+      "expectedHeadSha": "50e3768acede4060c02c90d029e6fa256b3c803c",
+      "mergedViaPr": 719,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "feat/ea2b-ledger-capability-operations-20260930-v2",
+      "expectedHeadSha": "0cb910386a2e8c91584d7283c210127dc81b1e91",
+      "mergedViaPr": 721,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "integration/evo-explicit-runtime-scope-proof",
+      "expectedHeadSha": "18db6c1744b4ad20ea44c46cde513b1c6728638e",
+      "mergedViaPr": 721,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "integration/evo-runtime-observation-adapter",
+      "expectedHeadSha": "2f939dc67a4bfbd30aac8bff2a0ca003b608daf7",
+      "mergedViaPr": 721,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "fix/template-store-eidos-compliance-v0.1",
+      "expectedHeadSha": "ecf196d2c439a1ead243f7d13a3e94a449bf2e09",
+      "mergedViaPr": 721,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "tr01/purchase-receipt-reversal-app-20261010",
+      "expectedHeadSha": "81fcc46f4a3888b0107641c7bac5d58a3e19311b",
+      "mergedViaPr": 722,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    },
+    {
+      "name": "tr01/purchase-receipt-reversal-a2-20261010",
+      "expectedHeadSha": "b3163293f1bc203319d3a8bab9906b20d57bfda1",
+      "mergedViaPr": 722,
+      "reason": "Functionally converged, Git ancestry preserved in main; see docs/archive/platform-convergence-branch-retirement-20261011.md"
+    }
+  ]
+}

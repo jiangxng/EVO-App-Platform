@@ -543,6 +543,22 @@ test("CP-03D first confirmed import teaches a recipe and second same-structure i
   );
   assert.equal(first.state, "COMMITTED");
   assert.equal(first.mappingOrigin, "HUMAN");
+  // An unmapped vendor column remains durable import-source evidence after commit.
+  // It is NOT silently written into a Counterparty core/profile/extension field.
+  assert.deepEqual(first.source.headers, [
+    "往来编码", "往来名称", "主体类型", "备注"
+  ]);
+  assert.equal(first.source.rows[0]["备注"], "保留原始备注");
+  assert.equal(first.mapping.some(item => item.sourceColumn === "备注"), false);
+  const importedSubject = counterparties.list("enterprise-context:a")
+    .find(item => item.code === "C101");
+  assert.ok(importedSubject);
+  assert.equal(importedSubject.notes, undefined);
+  assert.equal(values.listForObject({
+    contextId: "enterprise-context:a",
+    objectType: "counterparty.subject",
+    objectId: importedSubject.counterpartyId
+  }).length, 0);
   assert.ok(first.appliedRecipeId);
   assert.ok(recipes.get(
     "enterprise-context:a",

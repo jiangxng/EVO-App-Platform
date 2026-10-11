@@ -1,0 +1,2 @@
+# B10a | Mobile width matrix expanded
+Extend previously successful 390px & 768px actual Linux Chrome resize checks to 320, 360, 390, 414, and 768 CSS px. Both Designer and Viewer must keep full document width within viewport (+2px tolerance), clipped visible canvas, honest congestion, no errors and no readonly Save. This is real Chrome *emulated* viewport, NOT physical iPhone/Android screen/touch or responsive customer acceptance. If any width fails, retain CI and fix actual cause; do not remove narrow widths. All §14 formal NOT TESTED.

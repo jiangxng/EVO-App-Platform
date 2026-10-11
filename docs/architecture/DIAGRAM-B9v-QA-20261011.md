@@ -1,0 +1,2 @@
+# B9v | Bounded world geometry QA
+Prevents a 2 MiB input from requesting near-infinite SVG stage dimensions or absurd node extent. New **offline intake** limits: absolute x/y <= 1,000,000 world units and dimensions <=100,000, plus finite node extents. Negative coordinates and realistic wide graphs remain valid. These are local test fixture safety limits, not an Eidos diagram engine world bound or proof of production graph limits. Pure synthetic tests; no customer input, §14 39 NOT TESTED. Draft isolated on B9u.

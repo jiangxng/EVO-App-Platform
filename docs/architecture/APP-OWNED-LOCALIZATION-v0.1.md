@@ -220,3 +220,23 @@ At design/contract time:
 8. let Eidos generic components own their own four-locale chrome.
 
 Fallback remains deterministic: exact locale -> explicitly supported language variant -> `en`. Fallback is resilience, not permission to omit planned translations for a newly delivered P0.4 surface.
+
+## 14. Package catalog titles (2026-10-11)
+
+`PackageManifestV010.displayNameTranslations` is optional locale-to-string catalog
+metadata owned by each Package. Unlike Feature-owned UI resource bundles, it can
+be read before installation and while disabled so the Plugin Store and Settings
+can identify a plugin in the user's language without activating it. This exception
+is limited to package presentation metadata; it does not expose inactive pages,
+capabilities, services or ordinary UI bundles.
+
+Keep `displayName` as the legacy/default fallback and machine identifiers unchanged.
+Built-in package titles ship explicit `en`, `zh-CN`, `ja`, `zh-TW` entries. Generic
+Host page factories resolve them through the pinned Eidos localization runtime,
+with deterministic locale/Chinese-script variants and English fallback. Unknown
+third-party packages without metadata continue to use `displayName`. The portable
+schema and semantic validator must agree; older strict schema consumers require
+an updated schema before accepting the additional field. Do not rewrite signed
+manifests in transit to add translations.
+
+Coverage and rationale: `docs/localization/PLUGIN-TITLES-20261011.md`.

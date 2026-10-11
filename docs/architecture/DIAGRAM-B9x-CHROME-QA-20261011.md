@@ -1,0 +1,2 @@
+# B9x | Explicit Save DENY after native Chrome persisted commit
+After browser UI Save advances projection CAS 1→2, toggle only the *isolated test authorization hook* to deny a conflicting fresh request. Verify handler returns not-ok, CAS remains at 2 and winning hidden node persists on fresh Designer/Viewer. This is in addition to stale token checks: one is permission refusal, the other CAS conflict. **Not** a verified production enterprise permission provider, roles or tenant boundary. Entire CI uses synthetic S2C/P2P, no §14 formal signed results.

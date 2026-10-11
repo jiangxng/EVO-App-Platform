@@ -1,0 +1,24 @@
+name: Diagram B9 Draft Source Archive
+on:
+  pull_request:
+    paths:
+      - "docs/architecture/DIAGRAM-B9-DRAFT-**"
+      - "docs/archive/diagram-b9/**"
+      - "tools/diagram-b9-archive-validate.mjs"
+      - ".github/workflows/diagram-b9-archive-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/architecture/DIAGRAM-B9-DRAFT-**"
+      - "docs/archive/diagram-b9/**"
+permissions:
+  contents: read
+jobs:
+  archive-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node tools/diagram-b9-archive-validate.mjs

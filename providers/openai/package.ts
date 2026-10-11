@@ -8,6 +8,12 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: OPENAI_LLM_PACKAGE_ID,
   displayName: "OpenAI LLM Provider",
+  displayNameTranslations: {
+    "en": "OpenAI LLM Provider",
+    "zh-CN": "OpenAI 模型服务",
+    "ja": "OpenAI モデルサービス",
+    "zh-TW": "OpenAI 模型服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   secrets: [
@@ -95,7 +101,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
             namespace: OPENAI_LLM_PACKAGE_ID,
             locale: "zh-CN",
             messages: {
-              "settings.title": "OpenAI LLM Provider",
+              "settings.title": "OpenAI 模型服务",
               "settings.description": "OpenAI Provider 的运行设置。API Key 继续由安全 Secrets 边界管理。",
               "settings.saveLabel": "保存",
               "settings.model.label": "模型",
@@ -120,7 +126,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
             namespace: OPENAI_LLM_PACKAGE_ID,
             locale: "ja",
             messages: {
-              "settings.title": "OpenAI LLM Provider",
+              "settings.title": "OpenAI モデルサービス",
               "settings.description": "OpenAI Provider のランタイム設定です。API Key は安全な Secrets 境界で管理されます。",
               "settings.saveLabel": "保存",
               "settings.model.label": "モデル",
@@ -145,7 +151,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
             namespace: OPENAI_LLM_PACKAGE_ID,
             locale: "zh-TW",
             messages: {
-              "settings.title": "OpenAI LLM Provider",
+              "settings.title": "OpenAI 模型服務",
               "settings.description": "OpenAI Provider 的執行設定。API Key 仍由安全的 Secrets 邊界管理。",
               "settings.saveLabel": "儲存",
               "settings.model.label": "模型",

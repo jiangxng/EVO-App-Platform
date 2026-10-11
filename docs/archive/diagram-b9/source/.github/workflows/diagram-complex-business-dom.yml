@@ -1,0 +1,44 @@
+name: Diagram Complex Business DOM CI
+
+on:
+  pull_request:
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-performance-browser-proof.mjs"
+      - "tests/integration/diagram-caption-word-bidi.test.mjs"
+      - ".github/workflows/diagram-complex-business-dom.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-word-bidi-perf-integration-b8pq-20261010"
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-performance-browser-proof.mjs"
+      - ".github/workflows/diagram-complex-business-dom.yml"
+jobs:
+  complex-dom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: "B8q real Chrome mixed S2C P2P 160/480 and 320/960 full DOM"
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Missing real Chrome" >&2; exit 1; fi
+          export CHROME
+          EVO_COMPLEX_B8Q=1 node tools/diagram-performance-browser-proof.mjs | tee /tmp/b8q-business-mixed-dom.log
+          grep -q 'B8Q_COMPLEX_BROWSER_RESULT=' /tmp/b8q-business-mixed-dom.log
+      - name: Keep reproducible Chrome evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b8q-s2c-p2p-complex-dom-evidence
+          path: /tmp/b8q-business-mixed-dom.log
+          if-no-files-found: ignore

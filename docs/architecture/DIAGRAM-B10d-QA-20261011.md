@@ -1,0 +1,2 @@
+# B10d | Distinguish corridor proxy from real Chrome Eidos congestion
+Compute B9o straight-corridor approximate risk counts from **the same validated graph** as B9l, and report alongside actual Chrome-rendered `data-eidos-diagram-congested-count`. Include evidence labels, never assert equality, do not hide real congestion or increase existing 22/2600 router budget. Tests run only synthetic graphs in GitHub CI; actual customer congestion remains unknown. §14 39 NOT TESTED.

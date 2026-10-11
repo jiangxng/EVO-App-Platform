@@ -105,6 +105,12 @@ export const companyNotesPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "company-notes",
   displayName: "Company Notes",
+  displayNameTranslations: {
+    "en": "Company Notes",
+    "zh-CN": "企业笔记",
+    "ja": "企業ノート",
+    "zh-TW": "企業筆記"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   features: [
@@ -175,6 +181,12 @@ export const evoFoundationPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo.core",
   displayName: "EVO Foundation",
+  displayNameTranslations: {
+    "en": "EVO Foundation",
+    "zh-CN": "EVO 基础运行时",
+    "ja": "EVO 基盤ランタイム",
+    "zh-TW": "EVO 基礎執行環境"
+  },
   version: "0.1.0",
   type: "FOUNDATION_RUNTIME",
   features: [
@@ -221,6 +233,12 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
   displayName: "EVO Ledger Runtime Compiler",
+  displayNameTranslations: {
+    "en": "EVO Ledger Runtime Compiler",
+    "zh-CN": "EVO 账本运行时编译器",
+    "ja": "EVO 台帳ランタイムコンパイラ",
+    "zh-TW": "EVO 帳本執行環境編譯器"
+  },
   version: "0.1.0",
   type: "RUNTIME_EXTENSION",
   features: [
@@ -248,6 +266,12 @@ export const tradingLitePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "trading-lite",
   displayName: "Trading Lite",
+  displayNameTranslations: {
+    "en": "Trading Lite",
+    "zh-CN": "轻量交易示例",
+    "ja": "軽量取引サンプル",
+    "zh-TW": "輕量交易範例"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   features: [

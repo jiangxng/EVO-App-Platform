@@ -1,0 +1,78 @@
+name: TR01 Six Peer Application Packages
+
+on:
+  pull_request:
+    paths:
+      - "apps/trading-stage/**"
+      - "apps/trading-stage-purchasing/**"
+      - "apps/trading-stage-receiving/**"
+      - "apps/trading-stage-sales/**"
+      - "apps/trading-stage-shipment/**"
+      - "apps/trading-stage-receivable/**"
+      - "apps/trading-stage-cash/**"
+      - "tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs"
+      - ".github/workflows/tr01-six-peer-native-plugins.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  six-peer-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Six independent native packages with Eidos lifecycle
+        run: node --test tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs
+      - name: Host Store preview lifecycle and opt-in isolation
+        run: node --test tests/protocol/tr01-six-stage-host-preview.test.mjs
+      - name: Preview registration admission and retained Host integration
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const original=execFileSync('git',['show','origin/'+process.env.BASE_BRANCH+':manager/server.ts'],{encoding:'utf8'});
+          const changes=[
+            ['} from "../catalog/seed.js";','} from "../catalog/seed.js";\nimport { createTradingStagePreviewContributionV010 } from "../apps/trading-stage/host-preview.js";'],
+            ['const catalog = createPackageCatalog([','const tradingStagePreviewContribution = createTradingStagePreviewContributionV010();\nconst catalog = createPackageCatalog(['],
+            ['  tradingLitePackage\n]);','  tradingLitePackage,\n  ...tradingStagePreviewContribution.packages\n]);'],
+            ['  referenceExperienceAssets,\n  event => {','  new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),\n  event => {']
+          ];
+          const current=readFileSync('manager/server.ts','utf8');
+          // The exact-diff gate certifies FIRST admission, not every later PR.
+          // After admission, preserve all four registration sites and continue
+          // running the lifecycle/default-off isolation tests above.
+          const admitted=original.includes('const tradingStagePreviewContribution = createTradingStagePreviewContributionV010();');
+          if (admitted) {
+            for (const [,registration] of changes) {
+              assert.equal(current.split(registration).length,2,
+                'Retain each admitted preview registration exactly once');
+            }
+          } else {
+            execFileSync('git',['diff','--exit-code','origin/'+process.env.BASE_BRANCH+'...HEAD','--','catalog/seed.ts','contracts/package.ts'],{stdio:'inherit'});
+            let expected=original;
+            for(const [from,to] of changes){
+              assert.equal(expected.split(from).length,2,'Host integration anchor must occur exactly once');
+              expected=expected.replace(from,to);
+            }
+            assert.equal(current,expected,
+              'First admission allows only four explicitly gated preview registration sites');
+          }
+          NODE
+      - name: Eidos design and Experience validation
+        run: |
+          node tools/eidos-design-language-validate.mjs
+          node tools/eidos-experience-architecture-validate.mjs

@@ -1,0 +1,71 @@
+name: Retire archived EOG B10 B11 Draft branches
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/architecture/DIAGRAM-B10-B11-RETIREMENT-20261011.json"
+      - ".github/workflows/diagram-b10-b11-retire.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  delete-archived-diagram-drafts:
+    if: github.repository == 'jiangxng/EVO-App-Platform'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify archive, closed PRs, immutable branch heads; delete scoped refs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner, repo=context.repo.repo;
+            const getJson=async(path)=>{
+              const response=await github.rest.repos.getContent({owner,repo,path,ref:context.sha});
+              if(Array.isArray(response.data)||response.data.type!=="file") throw Error("Invalid archive file: "+path);
+              return JSON.parse(Buffer.from(response.data.content,"base64").toString("utf8"));
+            };
+            const retirement=await getJson("docs/architecture/DIAGRAM-B10-B11-RETIREMENT-20261011.json");
+            const archive=await getJson("docs/architecture/DIAGRAM-B10-B11-CONSOLIDATED-CATALOG-20261011.json");
+            const main=await github.rest.git.getRef({owner,repo,ref:"heads/main"});
+            if(retirement.kind!=="EOG_2D_B10_B11_DRAFT_BRANCH_RETIREMENT"||
+               retirement.repository!==owner+"/"+repo||
+               retirement.archivePr!==699||retirement.requireDraftBranches!==42||
+               retirement.originalFormalCases!==39||retirement.originalSigned!==0||
+               archive.archivedFiles?.length!==108||archive.draftPRs?.length!==42||
+               retirement.entries?.length!==42) throw Error("Evidence retirement catalog mismatch");
+            const archivedPR=await github.rest.pulls.get({owner,repo,pull_number:699});
+            if(!archivedPR.data.merged_at || archivedPR.data.merge_commit_sha!==retirement.archiveMergeCommit)
+              throw Error("Consolidation PR #699 not merged into main as recorded");
+            const expected=new Map(archive.draftPRs.map(e=>[e.pr,e]));
+            const seenPrs=new Set(),seenBranches=new Set(),candidates=[];
+            // PRE-FLIGHT ALL 42: no deletions until every source ref is checked.
+            for(const entry of retirement.entries){
+              if(seenPrs.has(entry.pr))throw Error("Duplicate retired PR: "+entry.pr);
+              seenPrs.add(entry.pr);
+              const saved=expected.get(entry.pr);
+              if(!saved||saved.stage!==entry.stage||saved.sourceHead!==entry.headSha||
+                 !/^B10[a-z]$|^B11[a-p]$/.test(entry.stage)||
+                 !/^[0-9a-f]{40}$/.test(entry.headSha)) throw Error("Wrong saved PR provenance: "+entry.pr);
+              const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:entry.pr});
+              if(p.state!=="closed"||p.merged_at||!p.draft||p.head?.repo?.full_name!==owner+"/"+repo||
+                 p.head.sha!==entry.headSha||!p.head.ref?.startsWith("feat/diagram-commercial-")||
+                 !p.head.ref.toLowerCase().includes("-"+entry.stage.toLowerCase()+"-")||
+                 seenBranches.has(p.head.ref)) throw Error("Unsafe/modified Draft PR #"+entry.pr);
+              seenBranches.add(p.head.ref);
+              const ref=await github.rest.git.getRef({owner,repo,ref:"heads/"+p.head.ref});
+              if(ref.data.object.sha!==entry.headSha) throw Error("Branch updated since archive: "+p.head.ref);
+              candidates.push({pr:entry.pr,name:p.head.ref,sha:entry.headSha});
+            }
+            if(candidates.length!==42) throw Error("Incomplete retirement preflight");
+            core.info("All 42 historical Draft PRs closed, fully archived and SHA verified. Now deleting exact refs.");
+            let deleted=0;
+            for(const item of candidates){
+              // Lease check again immediately before deletion to minimize race risk.
+              const current=await github.rest.git.getRef({owner,repo,ref:"heads/"+item.name});
+              if(current.data.object.sha!==item.sha)throw Error("Concurrent branch change: "+item.name);
+              await github.rest.git.deleteRef({owner,repo,ref:"heads/"+item.name});
+              core.info("Deleted "+item.pr+" "+item.name+" @ "+item.sha);
+              deleted++;
+            }
+            core.setOutput("deleted",deleted);
+            if(deleted!==42)throw Error("Retirement incomplete: "+deleted);

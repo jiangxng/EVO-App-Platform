@@ -14,6 +14,12 @@ export const ledgerManagerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: LEDGER_MANAGER_PACKAGE_ID,
   displayName: "EVO Ledger Manager",
+  displayNameTranslations: {
+    "en": "EVO Ledger Manager",
+    "zh-CN": "EVO 账本管理",
+    "ja": "EVO 台帳管理",
+    "zh-TW": "EVO 帳本管理"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

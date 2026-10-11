@@ -1,0 +1,21 @@
+name: Diagram B10k-B11p Enterprise Assurance CI
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-enterprise-assurance-*.mjs"
+      - "tests/integration/diagram-enterprise-assurance-*.test.mjs"
+      - ".github/workflows/diagram-enterprise-assurance-b10k.yml"
+      - "docs/architecture/DIAGRAM-B11P-32-STEP-INDEX-20261011.json"
+permissions:
+  contents: read
+jobs:
+  synthetic-assurance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test tests/integration/diagram-enterprise-assurance-*.test.mjs
+      - run: node --test tests/integration/diagram-commercial-next-*.test.mjs

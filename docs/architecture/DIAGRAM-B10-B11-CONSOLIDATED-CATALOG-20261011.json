@@ -1,0 +1,929 @@
+{
+  "schemaVersion": 1,
+  "kind": "EOG_2D_B10_B11_SYNTHETIC_EVIDENCE_ARCHIVE",
+  "archivedAt": "2026-10-11",
+  "historicalSource": {
+    "repo": "jiangxng/EVO-App-Platform",
+    "sourceBranch": "feat/diagram-commercial-evidence-b11p-20261011",
+    "head": "fb2bbe71e2b14edb7b8c6dce4b2efd0debbcc7ec",
+    "previousBaseline": "89ac4accda79540eede3449514db63917b3bcf84",
+    "originPR": 689
+  },
+  "integrationBase": "0a6ca860095fe6b675e5742f82c49832daf481ad",
+  "draftPRs": [
+    {
+      "stage": "B10a",
+      "pr": 646,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/646",
+      "sourceHead": "fb4bd505c005d2e16cc1f54599eaea1a0c1c0409"
+    },
+    {
+      "stage": "B10b",
+      "pr": 647,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/647",
+      "sourceHead": "83b768dd9f5ece23dc595fc46cf602585257f86e"
+    },
+    {
+      "stage": "B10c",
+      "pr": 648,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/648",
+      "sourceHead": "72517c6fed3b3a203743a1d7e2f3f7d60d30e1bd"
+    },
+    {
+      "stage": "B10d",
+      "pr": 649,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/649",
+      "sourceHead": "97131d17d7993648c3aff0963bc671d03bf3c4b2"
+    },
+    {
+      "stage": "B10e",
+      "pr": 650,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/650",
+      "sourceHead": "10724c87cc07111f8dd47a8242686640897a1c7b"
+    },
+    {
+      "stage": "B10f",
+      "pr": 651,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/651",
+      "sourceHead": "01afc9103e35a4035d4d345c65df8e0f628a8a51"
+    },
+    {
+      "stage": "B10g",
+      "pr": 652,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/652",
+      "sourceHead": "d29e61ed4d32bed4adca16ce4cfb8ae5e8d873e2"
+    },
+    {
+      "stage": "B10h",
+      "pr": 653,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/653",
+      "sourceHead": "51355d56ea46679f2bf52569d71b570f2c710016"
+    },
+    {
+      "stage": "B10i",
+      "pr": 655,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/655",
+      "sourceHead": "d3fb3a1800fb875e5cb67d658e423c6f9bf9169b"
+    },
+    {
+      "stage": "B10j",
+      "pr": 656,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/656",
+      "sourceHead": "89ac4accda79540eede3449514db63917b3bcf84"
+    },
+    {
+      "stage": "B10k",
+      "pr": 658,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/658",
+      "sourceHead": "63f9315d60f7c11dbe37923bf166a1e5658674e5"
+    },
+    {
+      "stage": "B10l",
+      "pr": 659,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/659",
+      "sourceHead": "614b7fa5920717e0a9a9030d990a8f1e1c346c7c"
+    },
+    {
+      "stage": "B10m",
+      "pr": 660,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/660",
+      "sourceHead": "73fc854f14a84c43a6fe51bc570e1d88aef4e619"
+    },
+    {
+      "stage": "B10n",
+      "pr": 661,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/661",
+      "sourceHead": "42365c58e3d15a5988ddd75c80ae911ac094d54f"
+    },
+    {
+      "stage": "B10o",
+      "pr": 662,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/662",
+      "sourceHead": "5420b15aca9fe8b776e961a2f69e6405ce38fcfa"
+    },
+    {
+      "stage": "B10p",
+      "pr": 663,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/663",
+      "sourceHead": "8cbf6b59e04bfb5f5f7ff71827b56605b7640a67"
+    },
+    {
+      "stage": "B10q",
+      "pr": 664,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/664",
+      "sourceHead": "ef73d19f790296e07c868783daa58b4d13cf6b22"
+    },
+    {
+      "stage": "B10r",
+      "pr": 665,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/665",
+      "sourceHead": "99bbdc4bca044fc50ae95e1a52e7c7f5840fc403"
+    },
+    {
+      "stage": "B10s",
+      "pr": 666,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/666",
+      "sourceHead": "2ec49894f7000d147d38ab2e311c1c9af0987403"
+    },
+    {
+      "stage": "B10t",
+      "pr": 667,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/667",
+      "sourceHead": "4ba95ff19cae73a41b442e39b58373f6a23375b0"
+    },
+    {
+      "stage": "B10u",
+      "pr": 668,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/668",
+      "sourceHead": "7cd091b447215d943230cf8c1f768651d949d74c"
+    },
+    {
+      "stage": "B10v",
+      "pr": 669,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/669",
+      "sourceHead": "9c04cc265cfb76c00c9f826aab22ef43e3a8fcb5"
+    },
+    {
+      "stage": "B10w",
+      "pr": 670,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/670",
+      "sourceHead": "8926a9efd9d8e41b1f9161bab311f7b1d1c83652"
+    },
+    {
+      "stage": "B10x",
+      "pr": 671,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/671",
+      "sourceHead": "958743a880ccb9932cdd24ca76a82fdae0196f61"
+    },
+    {
+      "stage": "B10y",
+      "pr": 672,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/672",
+      "sourceHead": "530ec9fc81cf3980cbc5778833f90e52183e718b"
+    },
+    {
+      "stage": "B10z",
+      "pr": 673,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/673",
+      "sourceHead": "e78b908c6948d75f1e6dd3ae2fc64de6b31a3387"
+    },
+    {
+      "stage": "B11a",
+      "pr": 674,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/674",
+      "sourceHead": "c94f01be0fc85740e28811cfedb8b7d23e8ddd77"
+    },
+    {
+      "stage": "B11b",
+      "pr": 675,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/675",
+      "sourceHead": "b60066c4a5cdd0098992d4e76b6b661de8efaf38"
+    },
+    {
+      "stage": "B11c",
+      "pr": 676,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/676",
+      "sourceHead": "6446e91093e59872f182d563978209cc4248750f"
+    },
+    {
+      "stage": "B11d",
+      "pr": 677,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/677",
+      "sourceHead": "925cddf39546b7992fefd35842a4b5db7d64efaf"
+    },
+    {
+      "stage": "B11e",
+      "pr": 678,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/678",
+      "sourceHead": "80657fc84cc6a3accf438ebb75bdce9742ee1818"
+    },
+    {
+      "stage": "B11f",
+      "pr": 679,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/679",
+      "sourceHead": "bb8e6a58c7fbe03f2ee45c8f7be130b369bbe72f"
+    },
+    {
+      "stage": "B11g",
+      "pr": 680,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/680",
+      "sourceHead": "27126e701b75b3079868347b6022640e817624fc"
+    },
+    {
+      "stage": "B11h",
+      "pr": 681,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/681",
+      "sourceHead": "cb3970c98e37e2e4e13ac3710937444d2d13636c"
+    },
+    {
+      "stage": "B11i",
+      "pr": 682,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/682",
+      "sourceHead": "ac259f0e3746cd0f3139c2913c252dd4cae3ef96"
+    },
+    {
+      "stage": "B11j",
+      "pr": 683,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/683",
+      "sourceHead": "8d1ceaa1c90fa0a5a5ecd78985c01e13c98ec644"
+    },
+    {
+      "stage": "B11k",
+      "pr": 684,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/684",
+      "sourceHead": "24c400a7d7000d10d257b16737eb0248feede6e8"
+    },
+    {
+      "stage": "B11l",
+      "pr": 685,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/685",
+      "sourceHead": "a3bedc9a2aed049aed35a4d04865acbb258c52f2"
+    },
+    {
+      "stage": "B11m",
+      "pr": 686,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/686",
+      "sourceHead": "8742061aff51c16294942471029aaecc19deea2d"
+    },
+    {
+      "stage": "B11n",
+      "pr": 687,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/687",
+      "sourceHead": "3782052ede01bc1648c66b2168d78142742bbfbd"
+    },
+    {
+      "stage": "B11o",
+      "pr": 688,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/688",
+      "sourceHead": "2c22a934158354c002f392d117ad68de248712c5"
+    },
+    {
+      "stage": "B11p",
+      "pr": 689,
+      "url": "https://github.com/jiangxng/EVO-App-Platform/pull/689",
+      "sourceHead": "fb2bbe71e2b14edb7b8c6dce4b2efd0debbcc7ec"
+    }
+  ],
+  "retirementPolicy": "Retire only after this evidence package is merged and validated. Historical Draft state in source indexes remains unchanged. Do not erase old PR discussions.",
+  "originalFormalCommercialCases": 39,
+  "originalFormallySigned": 0,
+  "customerDeviceOrProductionProof": false,
+  "archivedFiles": [
+    {
+      "path": "docs/architecture/DIAGRAM-B10F-HTML-LABEL-PROBE-20261011.md",
+      "gitBlob": "e32330316c72d2bcf0bf6a51b63c8dc8245c379e",
+      "bytes": 662,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10I-DISTINCT-P2P-20261011.md",
+      "gitBlob": "181c87fce92f8a65b345253c75b92db28fc69ed1",
+      "bytes": 785,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10J-16-INCREMENT-MANIFEST-20261011.json",
+      "gitBlob": "a3660d37ca165b36581551c8493e583d145d8b90",
+      "bytes": 9838,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10J-RESEARCH-DECISIONS-HANDOFF-20261011.md",
+      "gitBlob": "5886c50848f80b6d2e4f2e8ac11d72b5d3dec471",
+      "bytes": 3726,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10K-QA-20261011.md",
+      "gitBlob": "087d4ce5cb67781b279a9cb991714b7f8f2ef15f",
+      "bytes": 583,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10L-QA-20261011.md",
+      "gitBlob": "e30b2c19d610fc9d98e91329e86d2d84d2645cd7",
+      "bytes": 550,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10M-QA-20261011.md",
+      "gitBlob": "3fa6a5c7bdab77747157362ee93bea9d07d57126",
+      "bytes": 537,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10N-QA-20261011.md",
+      "gitBlob": "9389d88bdcb204d2a401bec8572eb8b10282ba78",
+      "bytes": 535,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10O-QA-20261011.md",
+      "gitBlob": "76f1511552ca97237b44e3892a52c6e13fe9d8ae",
+      "bytes": 511,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10a-CHROME-QA-20261011.md",
+      "gitBlob": "c00dcf1f7ec9b178670ef04fd09ec95a48217b3e",
+      "bytes": 543,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10b-CHROME-QA-20261011.md",
+      "gitBlob": "ca0dca36b175cf7e6b30ff7f4d4e51565340e6f6",
+      "bytes": 439,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10c-CHROME-QA-20261011.md",
+      "gitBlob": "bdc5dfef1e342dc0d3a522a3b955b630f58db774",
+      "bytes": 516,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10d-QA-20261011.md",
+      "gitBlob": "3382c8851c56543a72dfe44da81b37ca6f550e17",
+      "bytes": 477,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10e-QA-20261011.md",
+      "gitBlob": "a9795c7ee0241c8fc26a8e522b33f89543dd74e0",
+      "bytes": 633,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10g-QA-20261011.md",
+      "gitBlob": "6f27c2849bd4b27c72e0e71da98b710830a42d33",
+      "bytes": 605,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10h-QA-20261011.md",
+      "gitBlob": "2dd07a845d16234c5aef15ad7835a0699480184b",
+      "bytes": 486,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10p-QA-20261011.md",
+      "gitBlob": "325835b85c2dcc9c8561989edca32ad755f7e95f",
+      "bytes": 558,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10q-QA-20261011.md",
+      "gitBlob": "ee7bf96ff64ef716205560d685dfb05a71fba2e9",
+      "bytes": 555,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10r-QA-20261011.md",
+      "gitBlob": "690afd38473aa97d01ad85b76563407449a399bd",
+      "bytes": 515,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10s-QA-20261011.md",
+      "gitBlob": "c42053ff7f4e04f36dd7d325c9379e6ad872b4b4",
+      "bytes": 512,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10t-QA-20261011.md",
+      "gitBlob": "d24f952a19c4cb9e21dc24b12029b46dc4318b0b",
+      "bytes": 404,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10u-QA-20261011.md",
+      "gitBlob": "6f7ffa06a955f5325523f740ffecd49294a5e457",
+      "bytes": 404,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10v-QA-20261011.md",
+      "gitBlob": "a0ac8ec1a802d8f6a4836ef1acc82aa4b709157b",
+      "bytes": 413,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10w-QA-20261011.md",
+      "gitBlob": "23364983a60fcd71c017dcc357dfca5850cc2109",
+      "bytes": 406,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10x-QA-20261011.md",
+      "gitBlob": "367d486ad9d76fa59b077396501bcfb8df62a745",
+      "bytes": 402,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10y-QA-20261011.md",
+      "gitBlob": "10a0ec8b261043478877c3e15bd8c280a9bafd2b",
+      "bytes": 412,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B10z-QA-20261011.md",
+      "gitBlob": "a5f6f58a2f93493011fb1e8269a67370bfa5e968",
+      "bytes": 371,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11P-32-STEP-HANDOFF-20261011.md",
+      "gitBlob": "3020178997f78c76ca5901464ef4e6ddf0bc0792",
+      "bytes": 3302,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11P-32-STEP-INDEX-20261011.json",
+      "gitBlob": "42072ed5a5d3b4fad3888903066f5731ac6d927b",
+      "bytes": 15306,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11a-QA-20261011.md",
+      "gitBlob": "28c1a4e70bc98f354d878ed48d08662b3d48bae0",
+      "bytes": 381,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11b-QA-20261011.md",
+      "gitBlob": "c0e5d389b79cc8531818b8e41aa4468d50e8bd50",
+      "bytes": 381,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11c-CHROME-20261011.md",
+      "gitBlob": "dbe3cfb3939b8cfbaa2a4a9e3eaad7b18a563bb2",
+      "bytes": 535,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11d-CHROME-20261011.md",
+      "gitBlob": "63214ae3b24c59e6c45a64259e2b235fe3b1f7d7",
+      "bytes": 542,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11e-CHROME-20261011.md",
+      "gitBlob": "a37ccbe261597aee3bf21022533d25574a54e2f8",
+      "bytes": 465,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11f-CHROME-20261011.md",
+      "gitBlob": "d97255aa18c985493bff15be5698eeab513ae4a7",
+      "bytes": 456,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11g-QA-20261011.md",
+      "gitBlob": "16c9b29035c95d002f205398fc8e265dac424789",
+      "bytes": 427,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11h-QA-20261011.md",
+      "gitBlob": "df17545a0251d6a946f44b5b235911ad62375783",
+      "bytes": 425,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11i-QA-20261011.md",
+      "gitBlob": "81e96816858bca116c01278ff79f4f80d9529af4",
+      "bytes": 426,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11j-QA-20261011.md",
+      "gitBlob": "b91c29cdaba2404d17a7973afdc0dfb5809f301e",
+      "bytes": 461,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11k-QA-20261011.md",
+      "gitBlob": "fd9ba8a25f090dcaef255d6028fb51b5134b6424",
+      "bytes": 454,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11l-QA-20261011.md",
+      "gitBlob": "abab942d11da27fbd42d11d6a2968ded2d5745d7",
+      "bytes": 459,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11m-QA-20261011.md",
+      "gitBlob": "5d9f2707fc23b8d6fd151f861e055f395e7554ee",
+      "bytes": 507,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11n-QA-20261011.md",
+      "gitBlob": "c263ad6a5ea97e91981b84d9844479fa210e73e0",
+      "bytes": 521,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-B11o-QA-20261011.md",
+      "gitBlob": "8f7549b6a9e3eb9cb30fabd97a68028d6e49a170",
+      "bytes": 513,
+      "scope": "research-evidence"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10k.mjs",
+      "gitBlob": "aa09c057f5b64bca567345232b88dcaefcb710ac",
+      "bytes": 734,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10l.mjs",
+      "gitBlob": "6ebd7d4b90727e5746efc49aa7e412e3bc34a216",
+      "bytes": 976,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10m.mjs",
+      "gitBlob": "1d1656349c0f1346efb270e769d924cfd1954129",
+      "bytes": 980,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10n.mjs",
+      "gitBlob": "08941d8f9de3b3844922db537ad09a6bea38ac8e",
+      "bytes": 1428,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10o.mjs",
+      "gitBlob": "c885c2046dcacd28c3b8f19e1285ff60d20801dc",
+      "bytes": 774,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10p.mjs",
+      "gitBlob": "98645dbbd066bce4f1b6d661b6d9c4a0826aa2b9",
+      "bytes": 812,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10q.mjs",
+      "gitBlob": "603f20ace8f192e7d09f38bdcfcadab0963b47e4",
+      "bytes": 911,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10r.mjs",
+      "gitBlob": "0090565095307b54c7abc4242a1995b9d73ebd99",
+      "bytes": 715,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10s.mjs",
+      "gitBlob": "d49eba5264461dd06e61ac5e0a9ffa59ef1ba661",
+      "bytes": 894,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10t.mjs",
+      "gitBlob": "555395f204968ede78cfb3db7c812729bcf68743",
+      "bytes": 945,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10u.mjs",
+      "gitBlob": "2406bb201d00be17d7527bef734d689b80cdbf66",
+      "bytes": 742,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10v.mjs",
+      "gitBlob": "c58fb54c467401ea5e56861ffef6ef6c623d9389",
+      "bytes": 1052,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10w.mjs",
+      "gitBlob": "c6e65de60e9a856806a051e5404179ebfcc26fdf",
+      "bytes": 585,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10x.mjs",
+      "gitBlob": "c6054f934f10e716a731ceba8c5452321993d6dd",
+      "bytes": 917,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10y.mjs",
+      "gitBlob": "81b4ce4b3ee69aec423e0a01f4f5a9494f813a22",
+      "bytes": 839,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b10z.mjs",
+      "gitBlob": "c4ce6a42b9ded4354af426941cc1ffc56c7a8683",
+      "bytes": 717,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11a.mjs",
+      "gitBlob": "a159c46e1205508be41b16fe4d93c0f2900dad00",
+      "bytes": 781,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11b.mjs",
+      "gitBlob": "dab106633ed3676e3ed9fe4c85bd59fbcb7760bd",
+      "bytes": 684,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11g.mjs",
+      "gitBlob": "167576599900de2452cd784a8727b3be3307086b",
+      "bytes": 1000,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11h.mjs",
+      "gitBlob": "96a8ffc45a5de308c54fab7e2c975899b0758518",
+      "bytes": 662,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11i.mjs",
+      "gitBlob": "12624f6d6c306bd69e9557dd79f2d5a945c4e306",
+      "bytes": 684,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11j.mjs",
+      "gitBlob": "69aa58eb35a73ca618c2571785c766fc2ac51dda",
+      "bytes": 862,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11k.mjs",
+      "gitBlob": "7ac37a49bf8cc28deac250771aef0246705283c5",
+      "bytes": 553,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11l.mjs",
+      "gitBlob": "ed76c16c32c22f4bd5c6868c7a7a5866b3b90ef0",
+      "bytes": 850,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11m.mjs",
+      "gitBlob": "d9e8f0237d28d747609def77fcb2e9c9f4dcb67c",
+      "bytes": 396,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11n.mjs",
+      "gitBlob": "41d2dc0f40e48008bdc979e6187da8059430d79a",
+      "bytes": 749,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11o.mjs",
+      "gitBlob": "7a848ba85f8bcbe08b0c07ebd079b4092489dc0d",
+      "bytes": 874,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-assurance-b11p.mjs",
+      "gitBlob": "8c7fadea3862affb37275a819ecfaa65eafe76bf",
+      "bytes": 1429,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-browser-proof-b9l.mjs",
+      "gitBlob": "321092f682b06de5af8e804e7e928c93c9baca23",
+      "bytes": 29402,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-fixture-intake-b9k.mjs",
+      "gitBlob": "86f9c02342edde4afe416385f095b169158daa1a",
+      "bytes": 8176,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tools/diagram-enterprise-synthetic-fixture-b9l.mjs",
+      "gitBlob": "d54fbf6b38af74bb823c4ba962372caff902515b",
+      "bytes": 2025,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "tests/integration/diagram-commercial-next-b10i.test.mjs",
+      "gitBlob": "f52a9c7c477680d341a457dc616dc61d1bdee85c",
+      "bytes": 1147,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-commercial-next-b10j.test.mjs",
+      "gitBlob": "eec7ca7c4876292b0e6cb55cb928623e752a2a4c",
+      "bytes": 1628,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10k.test.mjs",
+      "gitBlob": "d374c664320dd2b356ca66d76cbf25e7f8d74a1e",
+      "bytes": 648,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10l.test.mjs",
+      "gitBlob": "36495e70b3ab30f2bb8fbae0bec327b2a6a7e891",
+      "bytes": 642,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10m.test.mjs",
+      "gitBlob": "236a2a45fefe2d4b562065d4189b8a0cda530c98",
+      "bytes": 619,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10n.test.mjs",
+      "gitBlob": "483d2415d8d37cabcb4dcd4d91440ad3ce39ae4b",
+      "bytes": 484,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10o.test.mjs",
+      "gitBlob": "67226fa7cc98134abda568705d720227a5bb56af",
+      "bytes": 501,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10p.test.mjs",
+      "gitBlob": "6183d466435d2d1a70f76902b86e37b2b43f1b7c",
+      "bytes": 563,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10q.test.mjs",
+      "gitBlob": "136b2ca0505d91869b958b987199edccb09ae010",
+      "bytes": 495,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10r.test.mjs",
+      "gitBlob": "2e397f45996ce13690113cd81f1e73d1a772f999",
+      "bytes": 425,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10s.test.mjs",
+      "gitBlob": "927904a0ee6a6c68ef6ed753f471cc9c42bdf543",
+      "bytes": 478,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10t.test.mjs",
+      "gitBlob": "465c7aca1cb92d9e83a8d82aa8c828aa33cf9124",
+      "bytes": 458,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10u.test.mjs",
+      "gitBlob": "cef323690048fb2d34ee0975215c25dc6baa07ae",
+      "bytes": 467,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10v.test.mjs",
+      "gitBlob": "ec8a57f54f8aa176a97f04e2ae29053ba44efb02",
+      "bytes": 517,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10w.test.mjs",
+      "gitBlob": "9bee7a97cea8b8312dd6195a54dd373ad0066732",
+      "bytes": 513,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10x.test.mjs",
+      "gitBlob": "d2995d907ed79bf2c3e5edcb00da59c5047f522b",
+      "bytes": 456,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10y.test.mjs",
+      "gitBlob": "85dafc0fcffd9ac1c750d66c39d7708dd2b312fc",
+      "bytes": 541,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b10z.test.mjs",
+      "gitBlob": "1ff6c959f79c1468810b43edca7d0310645a9f35",
+      "bytes": 412,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11a.test.mjs",
+      "gitBlob": "7f7e586980c003e1b5e99c1f256f0d1a4905fd07",
+      "bytes": 500,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11b.test.mjs",
+      "gitBlob": "90a089f55e7dd53e9a4cb29b3996f874079a4728",
+      "bytes": 466,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11g.test.mjs",
+      "gitBlob": "0d01db1b8db1e73b1aff761e8babc94b1c576d1b",
+      "bytes": 501,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11h.test.mjs",
+      "gitBlob": "281509983c0ed60bdee00187f9dd66a0156aecce",
+      "bytes": 437,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11i.test.mjs",
+      "gitBlob": "f97a21fe6622625f26ac1e6ea43efc9f03868091",
+      "bytes": 375,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11j.test.mjs",
+      "gitBlob": "b6de1dd53113e559d3fda22f6daca7617e96e0eb",
+      "bytes": 571,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11k.test.mjs",
+      "gitBlob": "899945c0eaabb0b9a848b567adc4a3b7468200e4",
+      "bytes": 544,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11l.test.mjs",
+      "gitBlob": "cdc93d1aa54f1a9ed1554c6ed07231cbc215acf0",
+      "bytes": 520,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11m.test.mjs",
+      "gitBlob": "806b004dc75b5a32013ff6fb7cc1c7e3303812ad",
+      "bytes": 541,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11n.test.mjs",
+      "gitBlob": "d262211376187d9824147b0ed27ca3c6aafeca8e",
+      "bytes": 536,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11o.test.mjs",
+      "gitBlob": "29da213bd1da7d2bbff8a64b39cf22c8531a8d24",
+      "bytes": 639,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tests/integration/diagram-enterprise-assurance-b11p.test.mjs",
+      "gitBlob": "8749cb4e11e9f57abd791e5763cf15eb798007ed",
+      "bytes": 1062,
+      "scope": "synthetic-test"
+    },
+    {
+      "path": "tools/diagram-formal-acceptance-audit-b9r.mjs",
+      "gitBlob": "f92ad82f53f89bcccce7922639f31fd8f0626b86",
+      "bytes": 2480,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md",
+      "gitBlob": "3411791f6dc1c6196492a92a595a86c9d71efaed",
+      "bytes": 48661,
+      "scope": "formal-matrix"
+    },
+    {
+      "path": "tests/integration/diagram-formal-acceptance-audit-b9r.test.mjs",
+      "gitBlob": "250e7711bf9a43c68a918dea8f94716eb2220abe",
+      "bytes": 1697,
+      "scope": "synthetic-test"
+    }
+  ],
+  "excluded": [
+    "EOG app/business production code",
+    "vendor/eidos runtime",
+    "Platform Core and Railway configuration",
+    "B9 research branches and not-yet-integrated feature changes"
+  ],
+  "acceptanceClaim": "Synthetic/offline QA only, no formal commercial certification",
+  "supportingFormalMatrixAudit": true
+}

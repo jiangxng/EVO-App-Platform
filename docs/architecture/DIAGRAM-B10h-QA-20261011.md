@@ -1,0 +1,2 @@
+# B10h | Browser QA host server error privacy
+The B9l standalone HTTP fixture server previously sent internal exception stack text to the browser for malformed requests. This QA server now returns only `500 Internal error`; an actual Node HTTP malformed-body call proves exactly that sanitized response. This change is limited to the isolated test harness, not evidence that production Host endpoints were audited or fixed. Synthetic CI only, no customer records or formal §14 signoff.

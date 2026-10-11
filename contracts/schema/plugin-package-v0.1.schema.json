@@ -549,6 +549,17 @@
           }
         }
       }
+    },
+    "displayNameTranslations": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
     }
   },
   "allOf": [

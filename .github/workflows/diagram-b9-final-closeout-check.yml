@@ -1,0 +1,18 @@
+name: Diagram B9 final closure check
+on:
+  pull_request:
+    paths:
+      - "docs/architecture/DIAGRAM-B9-FINAL-CHAIN-CLOSEOUT-*"
+      - "docs/archive/diagram-b9/research/original-552/**"
+      - "tools/diagram-b9-final-closeout-validate.mjs"
+permissions:
+  contents: read
+jobs:
+  validate-retained-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node tools/diagram-b9-final-closeout-validate.mjs

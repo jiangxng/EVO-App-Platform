@@ -1,0 +1,2 @@
+import {auditFormalAcceptanceMatrixV010} from "./diagram-formal-acceptance-audit-b9r.mjs";
+export function formalCaseCoverageV010(markdown){const report=auditFormalAcceptanceMatrixV010(markdown);return{schema:"B11m-formal-coverage",all39Present:report.total===39,counts:report.statuses,formalComplete:report.statuses.PASS===39,note:"machine parses matrix but cannot authenticate human signoff"};}

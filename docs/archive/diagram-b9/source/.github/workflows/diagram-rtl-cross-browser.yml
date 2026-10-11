@@ -1,0 +1,46 @@
+name: Diagram RTL Cross Browser CI
+
+on:
+  pull_request:
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-cross-browser-label-proof.mjs"
+      - ".github/workflows/diagram-rtl-cross-browser.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-auto-routing-cross-browser-integration-b8rs-20261010"
+jobs:
+  firefox-webkit-labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install isolated pinned Firefox and WebKit drivers
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps firefox webkit
+      - name: B8s+B8u real Firefox/WebKit Arabic Hebrew CJK complex SVG rendering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/diagram-cross-browser-label-proof.mjs | tee /tmp/b8s-cross-browser.log
+          grep -q 'B8S_CROSS_BROWSER_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8U_COMPLEX_TEXT_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8W_POST_SELECT_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8X_MULTI_INSTANCE_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8Y_VISIBILITY_UNDO_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B8Z_DRAG_UNDO_RESULT=' /tmp/b8s-cross-browser.log
+          grep -q 'B9A_UNSAVED_REFRESH_RESULT=' /tmp/b8s-cross-browser.log
+      - name: Preserve cross-engine evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b8u-complex-real-firefox-webkit-label-proof
+          path: /tmp/b8s-cross-browser.log
+          if-no-files-found: ignore

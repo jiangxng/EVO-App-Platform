@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "mainBase": "296d9c444ae50ba802fd01c1584caccd205f356c",
+  "kind": "PA_DRAFT_SAFE_ADDITIVE_SOURCE_CONVERGENCE",
+  "sources": [
+    {
+      "line": "PA01B3",
+      "sha": "4692555eaa730c013f7c044f1b25e2e61825e350"
+    },
+    {
+      "line": "PA02A",
+      "sha": "9f794cf928d9a01e55a22c6d5742ea23fd7bc456"
+    }
+  ],
+  "additiveFiles": [
+    {
+      "path": "agents/enterprise-agent/assistance-request.ts",
+      "sha": "10cc471367efcb4462ce3bf2596b4b52dcf0854a",
+      "source": "PA01B3"
+    },
+    {
+      "path": "agents/enterprise-agent/pa02a-postgres-durability-proof.ts",
+      "sha": "7672d0ef621cd5f804fd521300e28d57a8cfa8f1",
+      "source": "PA02A"
+    },
+    {
+      "path": "contracts/agent-assistance.ts",
+      "sha": "e8e7f78ef43e2929d7d20f991b6c150c813ce559",
+      "source": "PA01B3"
+    },
+    {
+      "path": "contracts/agent-durability-async.ts",
+      "sha": "dab468f49c8805cb469f4232eae8d4636db18785",
+      "source": "PA02A"
+    },
+    {
+      "path": "docs/agent-line/PA01A-CONTEXTUAL-TURN-IDENTITY-20261010.md",
+      "sha": "5530ffa95ff083b75005bbf3cf3005480efec7c8",
+      "source": "PA01B3"
+    },
+    {
+      "path": "docs/agent-line/PA01B1-ASSISTANCE-CONTRACT-20261010.md",
+      "sha": "92ceb707c0a8037d3010492d1646e215d775f321",
+      "source": "PA01B3"
+    },
+    {
+      "path": "docs/agent-line/PA01B2-PAGE-ASSISTANCE-20261010.md",
+      "sha": "c07b2ee26c1effbcc30b84c085c3b6c31ddd0cf4",
+      "source": "PA01B3"
+    },
+    {
+      "path": "tests/agent-line/pa01b2_chromium_preflight.py",
+      "sha": "aaf27fd972353ec890c9c5545213457633fe2d08",
+      "source": "PA01B3"
+    },
+    {
+      "path": "tests/agent-line/pa01b2_full_host_chromium.py",
+      "sha": "8d21dccd2e9167e34f07323bf4f08b71f4ccd269",
+      "source": "PA01B3"
+    },
+    {
+      "path": "tests/agent-line/pa01b3_authorized_mapping_browser.py",
+      "sha": "ec4b4958fc6de45ad1e75dc3bc04889e48ec605f",
+      "source": "PA01B3"
+    },
+    {
+      "path": "tests/agent-line/pa01b3_denied_mapping_browser.py",
+      "sha": "cb0109d281316c1d676dc5189ab7bbbf3d676b39",
+      "source": "PA01B3"
+    },
+    {
+      "path": "tests/agent-line/pa02a-postgres-proof.test.mjs",
+      "sha": "f1a6a6bc52bb6528fff87e8639076c1f827e624b",
+      "source": "PA02A"
+    },
+    {
+      "path": "tools/agent-line/pa01b2-full-host-fixture.mjs",
+      "sha": "a5749f3e72fc2f0ae0165944f926637a4f8d4c3b",
+      "source": "PA01B3"
+    }
+  ],
+  "remainingDraftPRs": [
+    575,
+    577,
+    579,
+    638,
+    691,
+    692
+  ],
+  "status": "PARTIAL_IMPLEMENTATION_ADDED_NON_ACTIVATED",
+  "safety": "Do not delete original agent PR branches until full Host and authorization integration is independently proven."
+}

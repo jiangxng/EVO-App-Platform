@@ -175,6 +175,25 @@ test("TR-01B1 enforces active item and Warehouse references without inventing st
  assert.deepEqual(f.submissions,[]);
 });
 
+test("TR-01B1 carrying basis for formal settlement is paired and same-currency consistent",async()=>{
+ const f=setup();grant(f);
+ await assert.rejects(f.service.approveSalesOrder({
+  ...salesInput(),localCarryingAmount:"1000.00"
+ }),/LOCAL_CARRYING_PAIR_REQUIRED/);
+ await assert.rejects(f.service.approveSalesOrder({
+  ...salesInput(),localCurrency:"CNY"
+ }),/LOCAL_CARRYING_PAIR_REQUIRED/);
+ await assert.rejects(f.service.approveSalesOrder({
+  ...salesInput(),localCarryingAmount:"900.00",localCurrency:"CNY"
+ }),/LOCAL_CARRYING_SAME_CURRENCY_MISMATCH/);
+ assert.equal(f.submissions.length,0);
+ await f.service.approveSalesOrder({
+  ...salesInput(),localCarryingAmount:"1000.00",localCurrency:"CNY"
+ });
+ assert.equal(f.submissions[0].payload.localCarryingAmount,"1000.00");
+ assert.equal(f.submissions[0].payload.localCurrency,"CNY");
+});
+
 test("TR-01B1 does not pretend a raw BusinessData relation certifies FX allocation or Bank Account",async()=>{
  const f=setup();grant(f);
  const order=await f.service.approveSalesOrder(salesInput());

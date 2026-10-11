@@ -1,0 +1,142 @@
+name: One-time Verified Platform Convergence Ref Retirement
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/platform-convergence-retirement-20261011.json"
+      - ".github/workflows/platform-convergence-one-time-retirement-20261011.yml"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/platform-convergence-retirement-20261011.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-and-retire-platform-source-refs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Audit exact 16 SHA-pinned source refs; execute only on approved main manifest push
+        uses: actions/github-script@v7
+        env:
+          RETIRE_EXECUTE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const owner = context.repo.owner, repo = context.repo.repo;
+            const execution = process.env.RETIRE_EXECUTE === 'true';
+            if (context.repo.owner !== 'jiangxng' || context.repo.repo !== 'EVO-App-Platform') {
+              throw new Error('Unexpected repository');
+            }
+            if (execution && (context.eventName !== 'push' || context.ref !== 'refs/heads/main')) {
+              throw new Error('Deletion is permitted only on a main push');
+            }
+            const approvedNames = new Set([
+                          "feature/template-store-actions-v0.1",
+                          "fix/template-store-copy-authorization-v01",
+                          "feat/cp03-atomic-bulk-import",
+                          "feat/cp03-xlsx-human-import",
+                          "fix/login-assets-binary-v02",
+                          "fix/login-assets-valid-binary-v01",
+                          "improve/login-assets-cache-revision-v01",
+                          "improve/login-assets-real-binary-v01",
+                          "improve/login-final-reference-v03",
+                          "improve/login-final-tuge-v03",
+                          "feat/ea2b-ledger-capability-operations-20260930-v2",
+                          "integration/evo-explicit-runtime-scope-proof",
+                          "integration/evo-runtime-observation-adapter",
+                          "fix/template-store-eidos-compliance-v0.1",
+                          "tr01/purchase-receipt-reversal-app-20261010",
+                          "tr01/purchase-receipt-reversal-a2-20261010",
+            ]);
+            const manifest = JSON.parse(fs.readFileSync('repository-hygiene/platform-convergence-retirement-20261011.json','utf8'));
+            if (manifest.schemaVersion !== 1 || manifest.scope !== 'platform-convergence-retirement-20261011'
+                || !Array.isArray(manifest.branches) || manifest.branches.length !== approvedNames.size) {
+              throw new Error('Unexpected or incomplete retirement manifest');
+            }
+            const shaRe=/^[0-9a-f]{40}$/i;
+            const restricted=/(^|\/)(agent|eog|2d|diagram|projection)(\/|-|$)|personal-agent|external-agent|sop-designer/i;
+            const seen = new Set();
+            for (const entry of manifest.branches) {
+              if (!entry || !approvedNames.has(entry.name) || seen.has(entry.name)
+                  || restricted.test(entry.name) || !shaRe.test(entry.expectedHeadSha)
+                  || ![716,717,719,721,722].includes(entry.mergedViaPr)) {
+                throw new Error('Unexpected, protected, duplicated or unpinned retirement target');
+              }
+              seen.add(entry.name);
+            }
+            const getOpenHeadsAndBases=async()=>{
+              const prs = await github.rest.pulls.list({owner, repo, state:'open', per_page:100});
+              if (prs.data.length >= 100) throw new Error('Open PR set unbounded: fail closed');
+              const reserved = new Set(['main']);
+              for (const pr of prs.data) {
+                reserved.add(pr.base.ref);
+                if (pr.head.repo?.full_name === owner+'/'+repo) reserved.add(pr.head.ref);
+              }
+              return reserved;
+            };
+            const reserved = await getOpenHeadsAndBases();
+            const mainRef = await github.rest.git.getRef({owner, repo, ref:'heads/main'});
+            const actualMain = mainRef.data.object.sha;
+            const baseline = await github.rest.repos.compareCommits({
+              owner,repo,base:manifest.baselineMainSha,head:actualMain
+            });
+            if (baseline.data.behind_by !== 0 ||
+                baseline.data.merge_base_commit?.sha !== manifest.baselineMainSha) {
+              throw new Error('Main history unexpectedly rewound; fail closed');
+            }
+            for (const entry of manifest.branches) {
+              if (reserved.has(entry.name)) throw new Error('Open PR uses protected ref: '+entry.name);
+              let ref;
+              try {
+                ref=await github.rest.git.getRef({owner,repo,ref:'heads/'+entry.name});
+              } catch(error) {
+                if (error.status === 404 && execution) {
+                  core.info('ALREADY_DELETED '+entry.name);
+                  continue;
+                }
+                throw error;
+              }
+              if (ref.data.object.sha !== entry.expectedHeadSha) {
+                throw new Error('Ref SHA moved, refuse delete: '+entry.name);
+              }
+              const branch=await github.rest.repos.getBranch({owner,repo,branch:entry.name});
+              if (branch.data.protected) throw new Error('Ref protected: '+entry.name);
+              const comparison=await github.rest.repos.compareCommits({
+                owner,repo,base:entry.expectedHeadSha,head:actualMain
+              });
+              if (comparison.data.behind_by !== 0 ||
+                  comparison.data.merge_base_commit?.sha !== entry.expectedHeadSha ||
+                  !['ahead','identical'].includes(comparison.data.status)) {
+                throw new Error('Not an ancestor of main: '+entry.name);
+              }
+              core.info('PREFLIGHT_OK '+entry.name+' @ '+entry.expectedHeadSha);
+            }
+            if (!execution) {
+              core.info('AUDIT_ONLY: no branch refs changed');
+              return;
+            }
+            // Recheck all currently open PRs after preflight and before beginning deletes.
+            const recentReserved=await getOpenHeadsAndBases();
+            for (const entry of manifest.branches) {
+              if (recentReserved.has(entry.name)) throw new Error('PR opened during audit: '+entry.name);
+            }
+            for (const entry of manifest.branches) {
+              let ref;
+              try {
+                ref=await github.rest.git.getRef({owner,repo,ref:'heads/'+entry.name});
+              } catch(error) {
+                if (error.status===404) {core.info('ALREADY_DELETED '+entry.name);continue;}
+                throw error;
+              }
+              if (ref.data.object.sha !== entry.expectedHeadSha) {
+                throw new Error('Ref moved immediately before deletion: '+entry.name);
+              }
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+entry.name});
+              core.info('DELETED '+entry.name+' @ '+entry.expectedHeadSha);
+            }
+            core.info('ONE_TIME_RETIREMENT_EXECUTED 16 source refs; verify final branch inventory separately');
+            

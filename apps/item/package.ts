@@ -36,6 +36,12 @@ export const itemPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ITEM_PACKAGE_ID,
   displayName: "EVO Item",
+  displayNameTranslations: {
+    "en": "EVO Item",
+    "zh-CN": "EVO 物料",
+    "ja": "EVO 品目",
+    "zh-TW": "EVO 物料"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

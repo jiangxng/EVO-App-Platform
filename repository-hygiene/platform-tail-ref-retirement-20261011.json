@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "scope": "platform-tail-five-refs-20261011",
+  "baselineMainSha": "a35d68ddef5abbf1adfa3290317e9a069ddc449f",
+  "records": [
+    {
+      "head": "chore/prune-functionally-converged-nonparallel-20261011",
+      "expectedHeadSha": "56063b50802697fcbdddf772683a4b9d174907ba",
+      "kind": "ancestor"
+    },
+    {
+      "head": "chore/retire-merged-platform-squash-heads-20261011",
+      "expectedHeadSha": "95845cdde006f63df67e766cc9e3153c8a81e960",
+      "kind": "merged-pr",
+      "number": 743,
+      "mergeCommitSha": "8f32e0d348e5e9268612f1402afc72ab66d288cd"
+    },
+    {
+      "head": "docs/platform-convergence-research-handoff-20261011",
+      "expectedHeadSha": "c51e9d7889af030d1365de309aa28bbfd234e6d4",
+      "kind": "merged-pr",
+      "number": 723,
+      "mergeCommitSha": "a53edbc257d98e233b45d3ca55f73dfad99c554d"
+    },
+    {
+      "head": "fix/plugin-title-localization-20261011",
+      "expectedHeadSha": "5933fe64a997da1322c594f29f7a3b04fc0e5da7",
+      "kind": "merged-pr",
+      "number": 757,
+      "mergeCommitSha": "a35d68ddef5abbf1adfa3290317e9a069ddc449f"
+    },
+    {
+      "head": "fix/tr01-runtime-authority-guard-20261011",
+      "expectedHeadSha": "1435fccd8e191db3e908ba1d06851ff2cbf19213",
+      "kind": "merged-pr",
+      "number": 759,
+      "mergeCommitSha": "f29a5e22053a23fca2c3f5dd8b89e822b470aef5"
+    }
+  ]
+}

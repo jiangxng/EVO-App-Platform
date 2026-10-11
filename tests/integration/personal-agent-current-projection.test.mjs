@@ -498,6 +498,7 @@ function salesToCashModel(expectedKind) {
                 "app:cash-receipt"
               ],
               visibleEdgeIds: wantedEdges,
+              expectedWriteToken: material.writeToken,
               rationale: "根据当前素材保留销售、应收与收款相关节点及关系。"
             }
           }

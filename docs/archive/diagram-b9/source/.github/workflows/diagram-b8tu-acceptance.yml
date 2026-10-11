@@ -1,0 +1,44 @@
+name: Diagram B8t Automatic Routing Budget CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-performance-browser-proof.mjs"
+      - "tests/integration/diagram-b8tu-budget-grapheme.test.mjs"
+      - "tests/integration/diagram-b8vw-congestion-summary.test.mjs"
+      - "vendor/eidos/src/diagram/**"
+      - ".github/workflows/diagram-b8tu-acceptance.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-budget-text-integration-b8tu-20261010"
+
+jobs:
+  bounded-auto-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: B8t+B8u+B8v pure safety, grapheme and accessible summary guards
+        run: node --test tests/integration/diagram-b8tu-budget-grapheme.test.mjs tests/integration/diagram-b8vw-congestion-summary.test.mjs
+      - name: B8t 300/900 and 400/1200 real fully automatic orthogonal Chrome DOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Missing real Chrome" >&2; exit 1; fi
+          export CHROME
+          EVO_AUTO_B8T=1 node tools/diagram-performance-browser-proof.mjs | tee /tmp/b8t-auto-router.log
+          grep -q 'B8T_AUTO_BROWSER_RESULT=' /tmp/b8t-auto-router.log
+      - name: Preserve browser and budget evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b8t-chrome-all-automatic-orthogonal-evidence
+          path: /tmp/b8t-auto-router.log
+          if-no-files-found: ignore

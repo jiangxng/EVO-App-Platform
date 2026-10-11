@@ -1,0 +1,19 @@
+name: Diagram B9o Offline Congestion Risk Proxy CI
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-corridor-risk-b9o.mjs"
+      - "tests/integration/diagram-corridor-risk-b9o.test.mjs"
+      - ".github/workflows/diagram-corridor-risk-b9o.yml"
+permissions:
+  contents: read
+jobs:
+  corridor-risk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test tests/integration/diagram-corridor-risk-b9o.test.mjs

@@ -14,6 +14,12 @@ export const genericOidcIdentityProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: GENERIC_OIDC_PACKAGE_ID,
   displayName: "Generic OIDC Identity Provider",
+  displayNameTranslations: {
+    "en": "Generic OIDC Identity Provider",
+    "zh-CN": "OIDC 身份认证服务",
+    "ja": "OIDC 認証サービス",
+    "zh-TW": "OIDC 身分驗證服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

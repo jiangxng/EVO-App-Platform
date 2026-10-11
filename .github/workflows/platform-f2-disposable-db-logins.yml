@@ -1,0 +1,43 @@
+name: Platform F2 Disposable PostgreSQL Independent LOGIN
+on:
+  pull_request:
+    paths:
+      - 'tools/platform-f2-distinct-db-login-ci.mjs'
+      - 'tests/protocol/platform-f2-distinct-db-login-guard.test.mjs'
+      - '.github/workflows/platform-f2-disposable-db-logins.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  two-real-login-sessions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: f2_disposable_ci_only
+          POSTGRES_DB: f2_ci_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d f2_ci_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NODE_ENV: test
+      F2_DISPOSABLE_POSTGRES: '1'
+      DATABASE_URL: postgresql://postgres:f2_disposable_ci_only@127.0.0.1:5432/f2_ci_platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Fail-closed environment and ownership guard tests
+        run: node --test tests/protocol/platform-f2-distinct-db-login-guard.test.mjs
+      - name: Real disposable PostgreSQL login/denial/revocation proof
+        run: node tools/platform-f2-distinct-db-login-ci.mjs

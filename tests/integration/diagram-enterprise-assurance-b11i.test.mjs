@@ -1,0 +1,1 @@
+import test from "node:test";import assert from "node:assert/strict";import {twoWriterRaceV010 as inspect} from "../../tools/diagram-enterprise-assurance-b11i.mjs";test("B11i two-writer-model",()=>{const a=inspect("4","4","4");assert.deepEqual([a.wins,a.rejected,a.finalToken],[1,1,"5"]);const b=inspect("4","4","5");assert.equal(b.wins,2);assert.equal(b.finalToken,"6");});

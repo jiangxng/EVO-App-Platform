@@ -1,3 +1,4 @@
+import { resolvePackageDisplayNameV010 } from "./package-display-name.js";
 import type { AppManagerService } from "./service.js";
 import type { SettingsStore } from "./settings-store.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
@@ -212,7 +213,7 @@ function installedConfigurablePackages(manager: AppManagerService): PackageManif
     .sort((a, b) => a.packageId.localeCompare(b.packageId));
 }
 
-export function createSettingsExperienceManifest(manager: AppManagerService) {
+export function createSettingsExperienceManifest(manager: AppManagerService, locale = "en") {
   const packages = installedConfigurablePackages(manager);
   const groups: SettingsNavigationGroupV010[] = [
     "business",
@@ -240,7 +241,7 @@ export function createSettingsExperienceManifest(manager: AppManagerService) {
       })),
       ...packages.map(pkg => ({
         id: `evo-settings.${pkg.packageId}`,
-        title: pkg.displayName,
+        title: resolvePackageDisplayNameV010(pkg, locale),
         source: settingsPackagePageSource(pkg.packageId)
       }))
     ],
@@ -416,7 +417,7 @@ export function createSettingsGroupPage(
             },
             ...packages.map(pkg => ({
               id: pkg.packageId,
-              title: pkg.displayName,
+              title: resolvePackageDisplayNameV010(pkg, locale),
               category: ui.system,
               summary: (pkg.secrets?.length ?? 0) > 0
                 ? "Plugin settings and Host-managed credentials"
@@ -626,7 +627,9 @@ export async function createSettingsPage(
     kind: "settings-editor",
     id: `evo-settings.${packageId}`,
     namespace,
-    title: merged?.title ?? pkg.displayName,
+    title: pkg.displayNameTranslations
+      ? resolvePackageDisplayNameV010(pkg, locale)
+      : merged?.title ?? pkg.displayName,
     description: merged?.description ?? ui.hostCredentials,
     ...(hasSecrets
       ? {

@@ -1,0 +1,45 @@
+name: Diagram Dense Full DOM CI
+
+on:
+  pull_request:
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-performance-browser-proof.mjs"
+      - "tests/integration/diagram-caption-multilingual.test.mjs"
+      - ".github/workflows/diagram-dense-full-dom.yml"
+      - "docs/architecture/DIAGRAM-B8NO-**"
+  push:
+    branches:
+      - "feat/diagram-commercial-multilingual-density-integration-b8no-20261010"
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-performance-browser-proof.mjs"
+      - ".github/workflows/diagram-dense-full-dom.yml"
+jobs:
+  dense-full-dom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: "B8o Chromium 1200/2400/12001-edge DOM, node-only fallback and native drag"
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Chrome unavailable; no performance evidence" >&2; exit 1; fi
+          export CHROME
+          EVO_DENSE_B8O=1 node tools/diagram-performance-browser-proof.mjs | tee /tmp/b8o-dense-full-dom.log
+          grep -q 'B8O_DENSE_BROWSER_RESULT=' /tmp/b8o-dense-full-dom.log
+      - name: Retain Chrome evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b8o-dense-full-dom-evidence
+          path: /tmp/b8o-dense-full-dom.log
+          if-no-files-found: ignore

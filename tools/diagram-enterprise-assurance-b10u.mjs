@@ -1,0 +1,3 @@
+/** B10u: aggregate-only offline QA on synthetic or prevalidated projections. */
+export function unicodeLabelRiskV010(graph){if(!Array.isArray(graph?.nodes)||!Array.isArray(graph?.edges))throw Error("graph required");let longNodes=0,longEdges=0,rtlLabels=0,newlineLabels=0;const walk=(s,type)=>{if(typeof s!=="string")return;if([...s].length>32){if(type==="node")longNodes++;else longEdges++}if(/[\u0590-\u08ff]/u.test(s))rtlLabels++;if(/[\r\n]/u.test(s))newlineLabels++};for(const n of graph.nodes)walk(n.label,"node");for(const e of graph.edges)walk(e.label,"edge");return {schema:"B10u-label-risk-heuristic",longNodes,longEdges,rtlLabels,newlineLabels,thresholdCodepoints:32,note:"heuristic, not browser font shaping or accessibility"};
+}

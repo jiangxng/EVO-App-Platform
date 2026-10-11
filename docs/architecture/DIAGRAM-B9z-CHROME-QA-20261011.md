@@ -1,0 +1,2 @@
+# B9z | Source/target invariants after native Chrome Save
+After actual mouse hide and UI Save, the independent App Editor GET (with hidden elements available) must contain exactly the same business relation ID, kind, source and target as the original lawful preview2d. This verifies projection visibility edit did not rewire business graph semantics; CAS is projection-only and business revision count remains one. CI uses synthetic S2C/P2P, no real enterprise evidence or §14 human signoff.

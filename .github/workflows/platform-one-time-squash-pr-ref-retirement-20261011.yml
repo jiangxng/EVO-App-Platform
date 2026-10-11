@@ -1,0 +1,82 @@
+name: One-time Platform Squash-Merged PR Head Retirement (Batch 2026-10-12)
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/platform-merged-squash-heads-20261012.json"
+      - ".github/workflows/platform-one-time-squash-pr-ref-retirement-20261011.yml"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/platform-merged-squash-heads-20261012.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-merged-pr-heads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Audit PR merge provenance and optionally delete exact squash PR heads
+        uses: actions/github-script@v7
+        env:
+          SQUASH_REF_EXECUTE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          script: |
+            const fs=require('node:fs');
+            const owner=context.repo.owner,repo=context.repo.repo;
+            const execute=process.env.SQUASH_REF_EXECUTE==='true';
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repository');
+            if(execute && (context.eventName!=='push'||context.ref!=='refs/heads/main'))throw Error('Execution on main push only');
+            const approved=new Map([[775,'test/platform-f0-four-peer-lifecycle-convergence-20261011'],
+            [777,'test/platform-f2-disposable-postgres-logins-20261012'],
+            [779,'test/platform-f1-host-signed-loopback-proof-20261012']]);
+            const manifest=JSON.parse(fs.readFileSync('repository-hygiene/platform-merged-squash-heads-20261012.json','utf8'));
+            if(manifest.schemaVersion!==1 || manifest.scope!=='platform-squash-pr-retirement-20261012' ||
+            !Array.isArray(manifest.records) || manifest.records.length!==3)throw Error('Invalid squash retirement manifest');
+            const shaRe=/^[0-9a-f]{40}$/i;
+            const seen=new Set();
+            for(const r of manifest.records){
+              if(approved.get(r.number)!==r.head || seen.has(r.number) ||
+                !shaRe.test(r.expectedHeadSha)||!shaRe.test(r.mergeCommitSha))throw Error('Unapproved target');
+              seen.add(r.number);
+            }
+            const open=async()=>{
+            const p=await github.rest.pulls.list({owner,repo,state:'open',per_page:100});
+            if(p.data.length>=100)throw Error('Unbounded open PR set');
+            const reserved=new Set(['main']);
+            for(const pr of p.data){reserved.add(pr.base.ref);if(pr.head.repo?.full_name===owner+'/'+repo)reserved.add(pr.head.ref);}
+            return reserved;
+            };
+            const reserved=await open();
+            const actualMain=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const baseline=await github.rest.repos.compareCommits({owner,repo,base:manifest.baselineMainSha,head:actualMain});
+            if(baseline.data.behind_by!==0||baseline.data.merge_base_commit?.sha!==manifest.baselineMainSha)throw Error('Main history changed');
+            for(const r of manifest.records){
+              if(reserved.has(r.head))throw Error('Open PR uses '+r.head);
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:r.number})).data;
+              if(!pr.merged || pr.state!=='closed' || pr.base.ref!=='main' ||
+               pr.head.repo?.full_name!==owner+'/'+repo || pr.head.ref!==r.head ||
+               pr.head.sha!==r.expectedHeadSha || pr.merge_commit_sha!==r.mergeCommitSha)
+                throw Error('Merged PR provenance mismatch #'+r.number);
+              const cmp=await github.rest.repos.compareCommits({owner,repo,base:r.mergeCommitSha,head:actualMain});
+              if(cmp.data.behind_by!==0||cmp.data.merge_base_commit?.sha!==r.mergeCommitSha ||
+               !['ahead','identical'].includes(cmp.data.status))throw Error('PR merge not in main #'+r.number);
+              const ref=await github.rest.git.getRef({owner,repo,ref:'heads/'+r.head});
+              if(ref.data.object.sha!==r.expectedHeadSha)throw Error('Moved source ref '+r.head);
+              const branch=(await github.rest.repos.getBranch({owner,repo,branch:r.head})).data;
+              if(branch.protected)throw Error('Protected branch '+r.head);
+              core.info('PR_MERGE_VERIFIED #'+r.number+' '+r.head+' '+r.expectedHeadSha);
+            }
+            if(!execute){core.info('AUDIT_ONLY (no deletion)');return;}
+            const latest=await open();
+            for(const r of manifest.records)if(latest.has(r.head))throw Error('Opened PR during audit: '+r.head);
+            for(const r of manifest.records){
+              const ref=await github.rest.git.getRef({owner,repo,ref:'heads/'+r.head});
+              if(ref.data.object.sha!==r.expectedHeadSha)throw Error('Ref moved: '+r.head);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+r.head});
+              core.info('DELETED_SQUASH_HEAD #'+r.number+' '+r.head+' '+r.expectedHeadSha);
+            }
+            core.info('EXECUTED_3_MERGED_PR_HEADS; separately enumerate branches to verify');
+            

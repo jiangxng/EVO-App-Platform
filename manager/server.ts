@@ -799,6 +799,7 @@ import {
   templateStorePackage,
   tradingLitePackage
 } from "../catalog/seed.js";
+import { createTradingStagePreviewContributionV010 } from "../apps/trading-stage/host-preview.js";
 import {
   PURCHASE_OPERATIONS_READ_COMMAND_V010,
   PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
@@ -1030,6 +1031,7 @@ import {
   TEMPLATE_STORE_PREVIEW_2D_COMMAND
 } from "../apps/template-store/package.js";
 
+const tradingStagePreviewContribution = createTradingStagePreviewContributionV010();
 const catalog = createPackageCatalog([
   biWorkbenchPackage,
   companyNotesPackage,
@@ -1071,7 +1073,8 @@ const catalog = createPackageCatalog([
   eogBottleneckAnalysisProviderPackage,
   applicationRuntimeBindingProviderPackage,
   templateStorePackage,
-  tradingLitePackage
+  tradingLitePackage,
+  ...tradingStagePreviewContribution.packages
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
@@ -2188,7 +2191,7 @@ const manager = createAppManagerService(
   catalog,
   store,
   () => new Date(),
-  referenceExperienceAssets,
+  new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
@@ -6653,7 +6656,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
-        createSettingsExperienceManifest(manager),
+        createSettingsExperienceManifest(manager, requestedLocale(url)),
         createProviderManagerExperienceManifest(manager),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
@@ -8269,6 +8272,7 @@ const server = createServer(async (request, response) => {
           manager.listCatalog(),
           manager.getSnapshot(),
           {
+            locale: requestedLocale(url),
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
@@ -8474,7 +8478,8 @@ const server = createServer(async (request, response) => {
           providerRuntimeRegistry,
           providerBindings,
           providerCapability,
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         );
         if (!providerPage) {
           return json(response, 404, {

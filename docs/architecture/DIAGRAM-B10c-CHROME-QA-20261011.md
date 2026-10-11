@@ -1,0 +1,2 @@
+# B10c | Cold independent FileStore read after Chrome Save
+After real browser Save and failed stale/authorization writes, construct a **new App Handler and new FileDefinitionProjectionStore instance** pointing at the existing CI temporary file. Re-read hiddenNodeIds and compare to prior Handler, enforce no CAS increment. This complements Viewer fresh browser reload and prevents false confidence from in-memory UI-only state. Not a production database, cloud service restart or customer sample; §14 39 NOT TESTED.
