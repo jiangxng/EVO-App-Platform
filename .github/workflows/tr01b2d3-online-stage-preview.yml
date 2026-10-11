@@ -34,3 +34,17 @@ jobs:
           grep -q 'BROWSER SIMULATION' demos/tr01b2d3-isolated-stage/index.html
           grep -q 'NOT_CERTIFIED' demos/tr01b2d3-isolated-stage/index.html
           echo 'TR01B2D3_SYNTHETIC_BROWSER_PREVIEW_ONLY=PASS; FINANCE_WRITES=0'
+
+      - name: Independent public CDN smoke probe (third party, NOT a secure service)
+        id: cdn_probe
+        continue-on-error: true
+        env:
+          PREVIEW_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          base="https://rawcdn.githack.com/jiangxng/EVO-App-Platform/$PREVIEW_SHA/demos/tr01b2d3-isolated-stage"
+          curl -fsSL --retry 3 --max-time 30 "$base/index.html" -o /tmp/b2d3-preview.html
+          curl -fsSL --retry 3 --max-time 30 "$base/static-demo.mjs" -o /tmp/b2d3-preview.mjs
+          grep -q 'BROWSER SIMULATION' /tmp/b2d3-preview.html
+          grep -q 'runSimulatedScenario' /tmp/b2d3-preview.mjs
+          echo "TR01B2D3_PUBLIC_STATIC_CDN_FETCH=PASS"
