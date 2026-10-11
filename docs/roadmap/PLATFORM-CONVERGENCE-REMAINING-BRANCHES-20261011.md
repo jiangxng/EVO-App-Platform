@@ -79,3 +79,29 @@
 - 用户源品牌 TUGE Logo / 背景、实际 Railway 数据卷与数据库：不因清理分支而修改或删除。
 
 **完成定义：**待办对象不仅是把剩余 14 个分支删除，而是逐个确认该功能在现代 main 能被真正安装、使用、授权、跨项目调用；实在没有价值的旧变更需留下明确“为何被更优当前实现覆盖”的证据，才可安全退休。
+
+
+## 2026-10-11 新窗口：16 条历史 source ref 逐条安全审计（未删除）
+
+审计定点 main `48e12e495abde9607ae413eab126f263c3d8aef6`，GitHub REST branches 返回 65 个 branch，开放 PR 集合为 12 个。**下表 16 条均仍存在、不是开放 PR 的 head/base**。每项直接调用 GitHub compare（base=旧 head SHA、head=该 main）返回 `status=ahead`、`behind_by=0`、`merge_base=旧 SHA`，故源提交是 main 的祖先。它们属于五个之前合并的功能级 PR 已审查过的源分支，不属于 Agent/2D。
+
+| 原分支 | 2026-10-11 实时 ref SHA | compare ancestor | 清理进度 |
+|---|---|---|---|
+| feature/template-store-actions-v0.1 | f32e07698a0b54c72ca65fb3c81d36fed3551d0c | 是 | 待删除 |
+| fix/template-store-copy-authorization-v01 | d36659c052f1281b7d33f9f30c8bef69f2907ffb | 是 | 待删除 |
+| feat/cp03-atomic-bulk-import | 8fc2247ae40b1422a25f71e00471d5020cc7a343 | 是 | 待删除 |
+| feat/cp03-xlsx-human-import | d0ef6f1c8b47716f35f4da26dd2f9d500e36c93d | 是 | 待删除 |
+| fix/login-assets-binary-v02 | 4cd090be941219f95a26288ce8298dad4dcf77a0 | 是 | 待删除 |
+| fix/login-assets-valid-binary-v01 | 844583709268ef09f0ed9282ebfe10dd415495b3 | 是 | 待删除 |
+| improve/login-assets-cache-revision-v01 | 771e194f3b6c706e43fdaeb750d15f05317a8047 | 是 | 待删除 |
+| improve/login-assets-real-binary-v01 | 9a1a14d9bb074bf56ff940217261295b1ea1bba9 | 是 | 待删除 |
+| improve/login-final-reference-v03 | 8c2f70962bd231b6c749b00bfaf25986de8b3dcc | 是 | 待删除 |
+| improve/login-final-tuge-v03 | 50e3768acede4060c02c90d029e6fa256b3c803c | 是 | 待删除 |
+| feat/ea2b-ledger-capability-operations-20260930-v2 | 0cb910386a2e8c91584d7283c210127dc81b1e91 | 是 | 待删除 |
+| integration/evo-explicit-runtime-scope-proof | 18db6c1744b4ad20ea44c46cde513b1c6728638e | 是 | 待删除 |
+| integration/evo-runtime-observation-adapter | 2f939dc67a4bfbd30aac8bff2a0ca003b608daf7 | 是 | 待删除 |
+| fix/template-store-eidos-compliance-v0.1 | ecf196d2c439a1ead243f7d13a3e94a449bf2e09 | 是 | 待删除 |
+| tr01/purchase-receipt-reversal-app-20261010 | 81fcc46f4a3888b0107641c7bac5d58a3e19311b | 是 | 待删除 |
+| tr01/purchase-receipt-reversal-a2-20261010 | b3163293f1bc203319d3a8bab9906b20d57bfda1 | 是 | 待删除 |
+
+安全条件：实际删除时须重新读取精确 ref SHA、开放 PR head/base 和 main ancestry，且有 archive/provenance；预案 PR #728 的 workflow 是手工默认 audit，不能将本表当成执行记录。**本轮没有实际删除任何历史源 ref**。
