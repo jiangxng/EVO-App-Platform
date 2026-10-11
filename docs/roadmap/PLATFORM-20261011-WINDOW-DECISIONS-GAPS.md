@@ -129,3 +129,11 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - **F1-HOST-TRANSPORT-01：CODE_PRESENT + CI_PROVEN + MERGED_MAIN**，合并 #779 / 09fee6f。主线已有真正 Ed25519 Client，不再恢复旧 #594 的同 blob；新增局部 socket 回归检测签名边界与写权限禁止，作为 Host 侧合同保护。
 - **明确仍为 OPEN**：EVO Owner 服务端 Crypto verification + durable PostgreSQL nonce + 限权数据库访问 + 真实 immutable finance facts；外部 OIDC 身份、TLS、跨多实例、密钥托管与线上部署。#108 与 #594 仍是 Draft，且不能用“本地 HTTP 接收端返回匹配 JSON”宣称实际经济结果。
 - **完整 PR 取舍**：第一次/第二次全量 CI 对已有拒绝码前缀误判，失败如实保留，第三次全绿后才合并；从未修改正式 Host Client、Ledger Runtime、Agent、EOG/2D、全局状态文件。
+
+
+## 2026-10-12 14 树哈希级二次盘点决策
+
+- 已按完整 Git Tree（15/15 `truncated=false`）对比 main `09fee6f8f327871b71e0b37a9e19a7f16161db57` 与 14 条 TR-01 历史 tip。**24 个 distinct missing paths、23 单 blob + 1 个三版本 login 脚本的旧结论仍成立**；变更集中在旧 workflow、依赖 Draft 的 tools、demo、两个旧 stage tests，而非新缺失经济引擎。
+- 旧 tip 每条有 72–79 个已存在但 blob 不同的 main 路径；这代表代码差异，不代表应当 cherry-pick。明确维持旧 Host Core / manager / catalog / semantic-finance SQL 不回灌；#594 不合。
+- 三个已经经过 CI 的微步是 **F0 #775（四 peer 独立可见性）**、**F2 #777（一次性独立 PG 登录）**、**F1 #779（真实 loopback Socket + Ed25519 Client 拒绝合同）**。它们分别证明不同受控边界，**不能相加声称 B2D3 全生产认证**。
+- 对 14 条旧 ref 的退役条件仍是：完成单路径功能差异审查、留存需继续的历史真实安全证据、原 head SHA 无变更、没有开放 PR head/base 关联、无 branch protection，最后才可逐条删除；此轮 **0 删除**。
