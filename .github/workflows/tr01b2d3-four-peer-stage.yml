@@ -36,6 +36,10 @@ jobs:
       - run: npm run build
       - name: Four independent installed packages, Eidos surfaces, disable and restore
         run: node --test tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs
+      - name: Ordinary Host has ZERO synthetic stage assets by default
+        run: |
+          env -u APP_PLATFORM_STAGE_MODE -u APP_PLATFORM_TR01B_STAGE_DEMO \
+            node --input-type=module -e "import {tradingStageExperienceAssetsV010} from './dist/catalog/seed.js'; if(tradingStageExperienceAssetsV010.size !== 0) process.exit(1); console.log('STAGE_DEMO_DEFAULT_OFF=PASS');"
       - name: Real App Platform Eidos plugin platform integration
         run: node --test tests/integration/app-platform-eidos-plugin-platform.test.mjs
       - name: Eidos language + Experience architecture gates
