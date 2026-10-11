@@ -46,6 +46,7 @@ jobs:
           export CHROME
           node tools/diagram-commercial-v01-v03-browser-proof.mjs | tee /tmp/diagram-commercial-v01-v03.log
           grep -q 'DIAGRAM_V01_V03_BROWSER_SUBGATE=' /tmp/diagram-commercial-v01-v03.log
+          grep -q 'DIAGRAM_D01_BROWSER_SUBGATE=' /tmp/diagram-commercial-v01-v03.log
       - name: Keep synthetic, noncustomer evidence log
         if: always()
         uses: actions/upload-artifact@v4
