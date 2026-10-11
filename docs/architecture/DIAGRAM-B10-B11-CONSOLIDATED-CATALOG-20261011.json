@@ -898,6 +898,24 @@
       "gitBlob": "8749cb4e11e9f57abd791e5763cf15eb798007ed",
       "bytes": 1062,
       "scope": "synthetic-test"
+    },
+    {
+      "path": "tools/diagram-formal-acceptance-audit-b9r.mjs",
+      "gitBlob": "f92ad82f53f89bcccce7922639f31fd8f0626b86",
+      "bytes": 2480,
+      "scope": "offline-QA-tool"
+    },
+    {
+      "path": "docs/architecture/DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md",
+      "gitBlob": "3411791f6dc1c6196492a92a595a86c9d71efaed",
+      "bytes": 48661,
+      "scope": "formal-matrix"
+    },
+    {
+      "path": "tests/integration/diagram-formal-acceptance-audit-b9r.test.mjs",
+      "gitBlob": "250e7711bf9a43c68a918dea8f94716eb2220abe",
+      "bytes": 1697,
+      "scope": "synthetic-test"
     }
   ],
   "excluded": [
@@ -906,5 +924,6 @@
     "Platform Core and Railway configuration",
     "B9 research branches and not-yet-integrated feature changes"
   ],
-  "acceptanceClaim": "Synthetic/offline QA only, no formal commercial certification"
+  "acceptanceClaim": "Synthetic/offline QA only, no formal commercial certification",
+  "supportingFormalMatrixAudit": true
 }

@@ -1,7 +1,7 @@
 # EOG 2D B10/B11 Evidence Consolidation — 2026-10-11
 
 ## Decision: preserve research assets, do not merge the divergent product branch
-The upstream B10/B11 stack contains **42 historical Draft PR increments** (10 B10a–B10j; 32 B10k–B11p). Its branch `fb2bbe71e2b14edb7b8c6dce4b2efd0debbcc7ec` diverged from platform main; independent Designer/Viewer product functions were already integrated through PR #693 and architecture boundary changes through PR #695. This consolidation copies only **44 unmodified research/evidence files, 31 offline QA tools, and 30 synthetic tests**, plus a narrow stand-alone CI definition, onto the latest main.
+The upstream B10/B11 stack contains **42 historical Draft PR increments** (10 B10a–B10j; 32 B10k–B11p). Its branch `fb2bbe71e2b14edb7b8c6dce4b2efd0debbcc7ec` diverged from platform main; independent Designer/Viewer product functions were already integrated through PR #693 and architecture boundary changes through PR #695. This consolidation copies only **44 unmodified research/evidence files, 32 offline QA tools, and 31 synthetic tests**, plus the original 39-case matrix and its standalone audit/helper test, and a narrow stand-alone CI definition, onto the latest main.
 
 ## Stable navigation
 - [B10j 16-step historical decision research handoff](./DIAGRAM-B10J-RESEARCH-DECISIONS-HANDOFF-20261011.md)
