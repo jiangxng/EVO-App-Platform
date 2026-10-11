@@ -134,3 +134,16 @@ PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既�
 2. **PA-02A**：读取当前State Context宪法、Run/receipt sync store与公开端口，先独立设计async接口和一次可撤销的隔离持久存储唯一性/恢复证明；不先改 `manager/server.ts`、不重新搬会话层、不做生产迁移。
 3. 更后的PA-01提案/回执UX、跨进程租约/outbox/正式取消、丰富表单dirty provider仍为独立门禁。进度继续只写本线专属文档。
 
+
+
+## 2026-10-11 五倍推进后续：PA-01B3能力写入/拒绝与PA-02A PostgreSQL独立证明
+
+**当前隔离证据状态（不代表生产）：**
+- PA-01B2 [full-browser](PA01B2-FULL-HOST-CHROMIUM-ACCEPTANCE-20261011.md)：独立#638 head `56a18615efdd6029ddf9057b85510b43b835fe8c`，[CI 38097668578](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097668578)，Chromium 141、真实Host/Workbench/Thread/Run/Data Import 8/8 PASS。模型是受控localhost Responses服务，**非真实LLM自主映射**。
+- PA-01B3 [正向授权写入](PA01B3-ISOLATED-AUTHORIZED-MAPPING-20261011.md)：独立Draft [#691](https://github.com/jiangxng/EVO-App-Platform/pull/691)先在[CI 38097917163](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38097917163)成功运行8/8 B2，再经真实 `evo_capabilities_invoke_write`→`enterprise.data-import.mapping.apply` 完成AGENT来源的导入映射及DRY_RUN_READY，返回真实ActionReceipt ID，浏览器重新读取页面一次。**不等于数据正式COMMIT或真实大模型语义质量合格**。
+- PA-01B3 [显式AI拒绝](PA01B3-EXPLICIT-AI-DENY-BROWSER-20261011.md)：同一#691最终测试head `4692555eaa730c013f7c044f1b25e2e61825e350`，[双分支CI 38098385340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38098385340) allow与deny两个独立Chromium jobs均SUCCESS。deny要求源作业STAGED状态及DETERMINISTIC映射保持未改；有审计关联Receipt ID，但未独立读取其终态，不能将它称为成功写入。首次负向测试假设错误：Data Import [authorization.ts](https://github.com/jiangxng/EVO-App-Platform/blob/db555162370b3c3c992c7aef88f605f9ebf2d0cd/apps/data-import/authorization.ts)现行baseline本就允许Owner/Admin的HUMAN/AI，必须用明确DENY覆盖才能构造真实拒绝。产品授权策略没有被修改。
+- PA-02A [异步持久端口候选](PA02A-ASYNC-RUN-RECEIPT-PORT-DESIGN-20261011.md)+[PostgreSQL唯一性proof](PA02A-POSTGRES-UNIQUENESS-PROOF-20261011.md)：独立Draft [#692](https://github.com/jiangxng/EVO-App-Platform/pull/692)，base #579，不叠加其它测试PR。head `9f794cf928d9a01e55a22c6d5742ea23fd7bc456`，[CI 38098470224](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38098470224) PASS。一次性PostgreSQL 18随机schema+两个独立DB连接：32并发同turn仅1创建、131新turn后可重取原身份、scope隔离、run事件revision CAS、32并发receipt begin/terminal只转移一次、关连接再连接可读取；**仅DB连接重连，不是完整业务进程崩溃恢复**。原同步 V010 仍原样、server/生产未切换。先前两次失败都是JSONB文本/对象反序列化差异，已修复并保留CI原始记录。
+
+**下一Agent专线门禁**：PA-01B3侧补授权拒绝后Receipt终态确证、错企业/身份及多个字段语义边界、审批/提案真实UX；PA-02A侧补真正独立Node进程重启、PostgreSQL掉线/事务回滚、receipt与业务写入不确定结果reconciliation，再阶段性制定异步handler迁移路线；PA-02B lease/fencing/outbox及PA-02C正式cancel仍OPEN。
+
+全部新代码在#638/#691/#692隔离Draft PR，未改原#575/#577/#579实现或Eidos#142 owner分支，未合并、未部署、未访问生产、不碰TR主线、2D专项、`project.status.json`、`docs/roadmap/HANDOFF-LATEST.md`、全量vendor。原研究14项外链阅读级别未被虚构升级。
