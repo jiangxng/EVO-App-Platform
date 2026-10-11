@@ -1637,6 +1637,88 @@ try{
     syntheticOnly:true,physicalDeviceVerified:false
   }));
   await e05Tab.close();
+  // E06: manual curve and orthogonal path => straight is a destructive
+  // presentation reset, with an explicit warning and exact one-step Undo.
+  for(const e06Mode of ["curve","orthogonal"]){
+    const e06Tab=await browser.newPage({viewport:{width:1250,height:820}});
+    await e06Tab.goto(base+"/designer",{waitUntil:"load"});
+    await waitReady(e06Tab);
+    const e06Select=async()=>{
+      if(await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]').count())return;
+      const point=await e06Tab.evaluate(edgeId=>{
+        const hit=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+        const matrix=hit.getScreenCTM(),len=hit.getTotalLength();
+        for(let i=10;i<=90;i+=2){
+          const p=hit.getPointAtLength(len*i/100);
+          const x=p.x*matrix.a+p.y*matrix.c+matrix.e,
+            y=p.x*matrix.b+p.y*matrix.d+matrix.f;
+          if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+            return {x,y};
+        }
+        return null;
+      },relationId);
+      assert.ok(point,"E06 business edge should remain click-selectable");
+      await e06Tab.mouse.click(point.x,point.y);
+      await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+        .waitFor({state:"visible",timeout:10000});
+    };
+    await e06Select();
+    const e06Dropdown=e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+    await e06Dropdown.selectOption(e06Mode);
+    await e06Tab.getByRole("button",{name:"Add path point"}).click();
+    const e06Panel=e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]');
+    const e06Inputs=e06Panel.locator('input[type="number"]');
+    assert.ok((await e06Inputs.count())>=2);
+    const e06Before={
+      path:await shape(e06Tab),x:await e06Inputs.nth(0).inputValue(),
+      y:await e06Inputs.nth(1).inputValue()
+    };
+    let cancelledWarning="";
+    e06Tab.once("dialog",async dialog=>{
+      cancelledWarning=dialog.message();await dialog.dismiss();
+    });
+    await e06Dropdown.selectOption("straight");
+    assert.match(cancelledWarning,/resets manual path points/i,
+      "E06 destructive route reset must warn the user explicitly");
+    assert.equal(await e06Dropdown.inputValue(),e06Mode,
+      "E06 decline must restore the previous path-kind selector");
+    assert.equal(await shape(e06Tab),e06Before.path,
+      "E06 declined reset must not mutate SVG geometry");
+    assert.equal(await e06Inputs.nth(0).inputValue(),e06Before.x);
+    let acceptedWarning="";
+    e06Tab.once("dialog",async dialog=>{
+      acceptedWarning=dialog.message();await dialog.accept();
+    });
+    await e06Dropdown.selectOption("straight");
+    assert.match(acceptedWarning,/Undo restores them/i);
+    assert.equal(await e06Dropdown.inputValue(),"straight");
+    const e06Straight=await shape(e06Tab);
+    assert.match(e06Straight,/^M .* L /);
+    assert.notEqual(e06Straight,e06Before.path,
+      "E06 approved reset actually removes custom path");
+    assert.equal(await e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]').count(),0);
+    await e06Tab.locator("[data-eidos-diagram-canvas]").focus();
+    await e06Tab.keyboard.press("Control+z");
+    assert.equal(await shape(e06Tab),e06Before.path,
+      "E06 single Undo restores complete original routed SVG path");
+    await e06Select();
+    const e06Restored=e06Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"] input[type="number"]');
+    await e06Restored.first().waitFor({state:"visible"});
+    assert.equal(await e06Restored.nth(0).inputValue(),e06Before.x);
+    assert.equal(await e06Restored.nth(1).inputValue(),e06Before.y);
+    assert.equal(await e06Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+      .inputValue(),e06Mode);
+    assert.equal(store.getVersion(id),0,
+      "E06 manual path reset and Undo must not Save business projection");
+    assert.deepEqual(await e06Tab.evaluate(()=>window.__errors),[]);
+    console.log("DIAGRAM_E06_BROWSER_SUBGATE="+JSON.stringify({
+      case:"E06",mode:e06Mode,browser:"Chromium "+browser.version(),
+      actualNativeWarning:true,cancelLeavesPathUnchanged:true,
+      acceptDeletesManualPath:true,oneUndoRestoresExactControls:true,
+      noImplicitSave:true,physicalDeviceVerified:false
+    }));
+    await e06Tab.close();
+  }
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
