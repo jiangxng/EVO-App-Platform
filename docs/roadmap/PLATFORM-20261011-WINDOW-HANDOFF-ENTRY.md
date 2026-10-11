@@ -80,3 +80,8 @@
 - 固定 head **c65447b2478c56ca8a808ce560f2b1fdabcdf2f7**：[Platform CI 38155748502](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748502) SUCCESS、[Continuity CI 38155748491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748491) SUCCESS。
 - 真实 loopback TCP socket + Ed25519 Host assertion、actor/tenant/context/order/45 秒/jti 绑定、Host 对未经授权 scope/endpoint/key 的拒绝和远端越权/不只读结果的拒绝。**接收端为刻意设计的本地测试桩，不是 EVO Owner 真实金融事实查询，也不代表真实 Finance-only HTTP 服务上线。**
 - 初次 [CI 38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269) 与二次 [CI 38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) 失败，均为新测试对既有精确错误码前缀预期写错；只修正测试、不改生产代码。失败与纠正原文已保留于归档文件。
+
+
+## 2026-10-12 全量旧分支哈希再盘点
+
+本窗口新增第三个合并的 F1 Host-side 回归 #779，随后重新扫描 GitHub 最新 main `09fee6f8f327871b71e0b37a9e19a7f16161db57` 及 14 条旧 TR01 分支的所有 blob（15 个完整 recursive trees，truncated=false）。与原交接保持一致：**24 条旧源缺失路径不变**，23 个单一 blob + 三版 `certify-tr01b2d3-distinct-db-logins.mjs`。主线与旧分支同名 72–79 个文件的 blob 不同，不能直接整文件迁移。详细逐源计数及分类保留在本交接 Execution Evidence §J；14 条源分支全部留存。后续重点仍是功能级审查跨实例 nonce、Host Session 与生产 Owner 独立接口，不能因 CI 的局部成功跳过实际安全门槛。
