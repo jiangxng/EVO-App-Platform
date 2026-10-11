@@ -593,6 +593,41 @@ try{
   assert.match(arrowBefore,/url\(#/,"V03 semantic direction keeps the end arrow");
   assert.equal(await edgeVisual.getAttribute("marker-start"),null,
     "V03 presentation control must not invent reverse business arrow");
+  // M08: actual product waypoint number editor keeps Ctrl+A, Delete and
+  // Space within input focus, never invoking canvas select-all or pan.
+  await select.selectOption("orthogonal");
+  await tab.getByRole("button",{name:"Add path point"}).click();
+  const m08Number=tab.locator('[data-eidos-diagram-waypoint-controls] input[type="number"]').first();
+  await m08Number.waitFor({state:"visible",timeout:12000});
+  const m08Original=await m08Number.inputValue();
+  const m08SelectedBefore=await tab.locator('[data-eidos-diagram-node="sale"]')
+    .getAttribute("aria-pressed");
+  const m08CameraBefore=await tab.evaluate(()=>document.querySelector(
+    '[data-eidos-diagram-node="sale"]').parentElement.style.transform);
+  await m08Number.focus();
+  await m08Number.press("ControlOrMeta+A");
+  await m08Number.press("Delete");
+  assert.equal(await m08Number.inputValue(),"",
+    "M08 Delete must act inside the real waypoint number editor");
+  await m08Number.press("Space");
+  assert.equal(await m08Number.evaluate(el=>document.activeElement===el),true,
+    "M08 Space inside input must not move focus to the canvas");
+  await m08Number.fill(m08Original);
+  await m08Number.press("Tab");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),
+    m08SelectedBefore,"M08 Ctrl+A inside editor cannot select every business node");
+  assert.equal(await tab.evaluate(()=>document.querySelector(
+    '[data-eidos-diagram-node="sale"]').parentElement.style.transform),
+    m08CameraBefore,"M08 Space within input must not pan camera");
+  await tab.getByRole("button",{name:"Restore automatic routing"}).click();
+  await select.selectOption("curve");
+  assert.equal(store.getVersion(id),0,"M08 input edits must not implicitly persist projection");
+  console.log("DIAGRAM_M08_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M08",browser:"Chromium "+browser.version(),
+    realWaypointNumericEditor:true,nativeCtrlA:true,nativeDelete:true,
+    spaceRespectsInputFocus:true,canvasSelectionAndCameraUnchanged:true,
+    noImplicitSave:true,physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
