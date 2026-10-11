@@ -33,10 +33,33 @@ jobs:
       - run: npm run build
       - name: Six independent native packages with Eidos lifecycle
         run: node --test tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs
-      - name: Zero Host and Catalog core edits
+      - name: Host Store preview lifecycle and opt-in isolation
+        run: node --test tests/protocol/tr01-six-stage-host-preview.test.mjs
+      - name: Exact preview-only Host integration; zero Catalog and contracts changes
         if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
         run: |
-          git diff --exit-code "origin/${{ github.base_ref }}...HEAD" -- manager/server.ts catalog/seed.ts contracts/package.ts
+          git diff --exit-code "origin/$BASE_BRANCH...HEAD" -- catalog/seed.ts contracts/package.ts
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const original=execFileSync('git',['show','origin/'+process.env.BASE_BRANCH+':manager/server.ts'],{encoding:'utf8'});
+          const changes=[
+            ['} from "../catalog/seed.js";','} from "../catalog/seed.js";\nimport { createTradingStagePreviewContributionV010 } from "../apps/trading-stage/host-preview.js";'],
+            ['const catalog = createPackageCatalog([','const tradingStagePreviewContribution = createTradingStagePreviewContributionV010();\nconst catalog = createPackageCatalog(['],
+            ['  tradingLitePackage\n]);','  tradingLitePackage,\n  ...tradingStagePreviewContribution.packages\n]);'],
+            ['  referenceExperienceAssets,\n  event => {','  new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),\n  event => {']
+          ];
+          let expected=original;
+          for(const [from,to] of changes){
+            assert.equal(expected.split(from).length,2,'Host integration anchor must occur exactly once');
+            expected=expected.replace(from,to);
+          }
+          assert.equal(readFileSync('manager/server.ts','utf8'),expected,
+            'No Host edits other than four explicitly gated preview registration sites');
+          NODE
       - name: Eidos design and Experience validation
         run: |
           node tools/eidos-design-language-validate.mjs
