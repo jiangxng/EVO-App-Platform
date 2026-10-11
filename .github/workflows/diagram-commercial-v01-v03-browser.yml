@@ -1,0 +1,55 @@
+name: Diagram Commercial V01-V03 Native Browser Subgate
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-commercial-v01-v03-browser-proof.mjs"
+      - ".github/workflows/diagram-commercial-v01-v03-browser.yml"
+      - "vendor/eidos/src/diagram/**"
+      - "apps/eog-2d-designer/**"
+      - "apps/eog-2d-viewer/**"
+      - "contracts/template-projection-gallery.ts"
+      - "providers/enterprise-context/definition-projection-store.ts"
+  push:
+    branches:
+      - "feat/diagram-commercial-acceptance-v01-v03-20261011"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagram-commercial-v01-v03-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-chrome-v01-v03:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned project dependencies
+        run: npm ci
+      - name: Compile actual Designer/Viewer/Host
+        run: npm run build
+      - name: Install isolated pinned Playwright controller
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Execute native Chrome V01-V03 subgate
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Chrome executable unavailable" >&2; exit 1; fi
+          export CHROME
+          node tools/diagram-commercial-v01-v03-browser-proof.mjs | tee /tmp/diagram-commercial-v01-v03.log
+          grep -q 'DIAGRAM_V01_V03_BROWSER_SUBGATE=' /tmp/diagram-commercial-v01-v03.log
+      - name: Keep synthetic, noncustomer evidence log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagram-commercial-v01-v03-chrome
+          path: /tmp/diagram-commercial-v01-v03.log
+          if-no-files-found: ignore
