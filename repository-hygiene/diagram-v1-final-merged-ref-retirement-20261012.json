@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "scope": "diagram-v1-final-three-merged-refs-20261012",
+  "baselineMainSha": "4795b25c5848d3d04fcde6414af1bea742eb3d0b",
+  "note": "Exactly three merged EOG Designer docs/history refs. Separate one-time workflow also safely deletes its own merged PR branch using actual GitHub PR merge evidence.",
+  "records": [
+    {
+      "head": "chore/diagram-v1-retire-merged-refs-20261011",
+      "expectedHeadSha": "beb5d288e7e5a26badf92021b00b551910794803",
+      "number": 776,
+      "mergeCommitSha": "4a1ebd4a8a05f62f11bb67ff4a11cef9b582ca22"
+    },
+    {
+      "head": "docs/diagram-v1-batch1-window-handoff-20261011",
+      "expectedHeadSha": "dfd41ee8bdb051a2a108306131ac68222399df1d",
+      "number": 762,
+      "mergeCommitSha": "4795b25c5848d3d04fcde6414af1bea742eb3d0b"
+    },
+    {
+      "head": "docs/diagram-v1-recovery-20261011",
+      "expectedHeadSha": "4ba9fa0919ce73e6c1f5514fec0701f88949fc42",
+      "number": 715,
+      "mergeCommitSha": "a14eb9b624163cbf33a687988ae93eddffcc95d4"
+    }
+  ]
+}
