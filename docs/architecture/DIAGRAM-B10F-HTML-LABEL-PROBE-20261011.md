@@ -1,0 +1,3 @@
+# B10f | HTML-like synthetic label must never execute as HTML
+
+The third CI-only graph uses valid but malicious-looking **synthetic** node title \`</script><img src=x onerror=…>\`. Real Chrome mounts official Designer/readonly Viewer, navigates, hides and saves; page must never set injected \`window.__b10fRan\` marker. This is a **browser injection regression** for a controlled token, not a formal penetration test or general security guarantee. CI now runs S2C, P2P, and a third synthetic S2C probe; existing browser evidence markers should appear three times. No true customer records, native iOS/Android, production auth/storage or §14 human acceptance.
