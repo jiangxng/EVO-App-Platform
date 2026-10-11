@@ -397,14 +397,19 @@ try{
   await tab.locator('[data-eidos-diagram-node="sale"]').click();
   assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"false",
     "M03 ordinary click correctly resets additive selection");
-  // Recompute after the new selection renders a potentially wider inspector.
-  m03Region=await tab.evaluate(()=>{
-    const r=document.querySelector('[data-eidos-diagram-node="receipt"]').getBoundingClientRect();
-    const c=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
-    const start={x:r.left-12,y:r.top-12},end={x:r.right+12,y:r.bottom+12};
-    return {start,end,fits:start.x>c.left+8&&start.y>c.top+8
-      &&end.x<c.right-8&&end.y<c.bottom-8};
-  });
+  // Selection opens the inspector, shrinking canvas width. Recompute then
+  // zoom until the target rectangle itself, not just its center, is visible.
+  for(let attempt=0;attempt<8;attempt++){
+    m03Region=await tab.evaluate(()=>{
+      const r=document.querySelector('[data-eidos-diagram-node="receipt"]').getBoundingClientRect();
+      const c=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+      const start={x:r.left-12,y:r.top-12},end={x:r.right+12,y:r.bottom+12};
+      return {start,end,fits:start.x>c.left+8&&start.y>c.top+8
+        &&end.x<c.right-8&&end.y<c.bottom-8};
+    });
+    if(m03Region.fits)break;
+    await m03Zoom.click();
+  }
   assert.ok(m03Region.fits,"M03 target must stay entirely inside the selected canvas");
   await tab.keyboard.down("Shift");
   await tab.mouse.move(m03Region.start.x,m03Region.start.y);
