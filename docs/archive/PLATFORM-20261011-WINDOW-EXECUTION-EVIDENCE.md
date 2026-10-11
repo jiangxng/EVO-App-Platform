@@ -140,3 +140,11 @@
 - [Platform CI 38154708378](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708378) SUCCESS；[Project Continuity 38154708397](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708397) SUCCESS。
 - 保留三版旧工具 blob：V1 79f998e4、V2 e18eb2ce、V3 56b0a439，均未整支恢复；不删 14 条历史 refs，不合并 Finance Draft，未触发 Railway 部署。
 - 新详细决策在主线 [PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/docs/archive/PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md)。
+
+
+## I. F1 真实 Host 签名客户端（非 EVO Owner）回归合并证据
+
+- [#779](https://github.com/jiangxng/EVO-App-Platform/pull/779) MERGED；固定 head c65447b2478c56ca8a808ce560f2b1fdabcdf2f7、main merge **09fee6f8f327871b71e0b37a9e19a7f16161db57**；仅增加一个 `tests/protocol/platform-f1-signed-owner-loopback-boundary.test.mjs` 和 `docs/archive/PLATFORM-20261012-F1-HOST-SIGNED-LOOPBACK-RECOVERY.md`。
+- [Platform CI 38155748502](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748502) SUCCESS，[Continuity CI 38155748491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748491) SUCCESS。
+- 两次红 CI [38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269)、[38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) 均为测试断言把 `TR01B2D3_SIGNING_KEY_INVALID` / `TR01B2D3_HOST_IDENTITY_INVALID` 错误预期带 `OWNER_`；只更正测试。没有放宽生产客户端安全码。
+- 测试用 Node 本地回环网络 + real Ed25519 key/verification；**没有** EVO 服务端真实 Owner 路由、真实 PostgreSQL finance trust、经济事实和真实部署证据；仍标明 NOT_CERTIFIED / executionAllowed=false。
