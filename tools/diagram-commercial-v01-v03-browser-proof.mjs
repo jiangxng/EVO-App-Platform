@@ -708,6 +708,47 @@ try{
     noDoubleZoom:true,continuousDelta:true,noImplicitSave:true,
     realMacTrackpadVerified:false,physicalDeviceVerified:false
   }));
+  // T02 synthetic touch: beginning a swipe over an UNSELECTED node must
+  // pan canvas rather than move the business node. Physical iOS/Android
+  // gestures remain a separate manual device signoff.
+  const t02Context=await browser.newContext({viewport:{width:1250,height:820},hasTouch:true});
+  const t02Tab=await t02Context.newPage();
+  await t02Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(t02Tab);
+  const t02Node=t02Tab.locator('[data-eidos-diagram-node="sale"]');
+  assert.equal(await t02Node.getAttribute("aria-pressed"),"false");
+  const t02Snapshot=()=>t02Tab.evaluate(()=>{
+    const el=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const m=new DOMMatrix(el.parentElement.style.transform);
+    return {x:el.style.left,y:el.style.top,camX:m.e,camY:m.f,scale:m.a};
+  });
+  const t02Start=await t02Snapshot();
+  const t02Rect=await t02Node.boundingBox();
+  const t02X=t02Rect.x+t02Rect.width/2,t02Y=t02Rect.y+t02Rect.height/2;
+  const t02Cdp=await t02Context.newCDPSession(t02Tab);
+  await t02Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[{x:t02X,y:t02Y}]
+  });
+  for(let i=1;i<=7;i++)await t02Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[{x:t02X+i*8,y:t02Y+i*4}]
+  });
+  await t02Cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  const t02End=await t02Snapshot();
+  assert.equal(t02End.x,t02Start.x,
+    "T02 touch swipe over an unselected node must not change node X");
+  assert.equal(t02End.y,t02Start.y,
+    "T02 touch swipe over an unselected node must not change node Y");
+  assert.ok(Math.hypot(t02End.camX-t02Start.camX,t02End.camY-t02Start.camY)>20,
+    "T02 unselected-node swipe should navigate the viewport");
+  assert.equal(t02End.scale,t02Start.scale,"T02 one-finger touch must not pinch zoom");
+  assert.equal(store.getVersion(id),0,"T02 browsing gesture cannot implicitly Save");
+  await t02Context.close();
+  console.log("DIAGRAM_T02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T02",browser:"Chromium "+browser.version(),
+    syntheticTouchOverUnselectedNode:true,
+    pannedCamera:true,nodePositionStable:true,noImplicitSave:true,
+    realTouchscreenVerified:false,physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
