@@ -98,3 +98,12 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - F0–F4 中**优先做历史资产与合法性审计**，可分多个小 PR；一个旧源分支的 unique code 不等于应原样继承，原分支 SHA 和 Git PR/branch 先保存再退役。
 - 14 分支全部功能级关闭后，进入用户指定的六应用节奏；单一当前待验收对象永远是 Purchasing（除非用户之后重新排序），让新窗口从实际“一个按钮、一笔业务、一条事实”开始，不再把六个插件一起设计三天。
 - 每个实际开发 PR 添加与需求对应的验收链接/截图/Runtime ID；用户不通过则修改同一小闭环；一旦人验通过把 verdict 与当时源码 SHA 写入项目文档后再开始 Receiving。
+
+
+## 6. 2026-10-11 增量决定（保留原 U/F/D/C 的历史证据口径）
+
+- **F0 / CODE_PRESENT + CI_PROVEN + MERGED_MAIN（仅单一小项）**：沿用 main 的六 Application Package；从旧 `fb3db992...` 源测试只迁移四 peer 同时渲染、独立启停/卸载和财务写入禁止的独特断言。PR [#775](https://github.com/jiangxng/EVO-App-Platform/pull/775) 已合 `014196f7...`，不能据此声称六应用真实 BusinessData 已上线。
+- **F1 / 源码差异确认**：旧 Draft #594 与 main 的 `finance-intent-admission.ts` blob `d480b019...`、`finance-owner-remote.ts` blob `85ebfd58...` 完全一致；`providers/trading-finance-owner/package.ts` 现代版补充四种显示语言，不构成新的金融运行时语义接口。维持 #594/#108 Draft、不恢复旧 Host Core、不合并经济解释 SQL。
+- **F2 / 仍 BLOCKED**：12 个遗留 CI 脚本已逐个读取 import / 主要条件，绝大多数依赖旧 `../evo/dist` 和 Finance Owner Draft；选择 V1+V2 的安全意图重新构造独立真实数据库/HTTP 负例，绝不整组无条件搬迁。
+- **F4 / 仍 OPEN**：六份旧 workflow 均已查看原文：Purchase/Receiving 与四 peer 主要重复现有测试；online stage 只是 synthetic CDN probe；Finance descriptor 和 six/twelve lanes 只是 candidate fail-closed。是否补独立 CI 仅由未覆盖的真实安全断言决定。
+- **并行处理与权限**：合并前 GitHub 曾以缺少 `continuity` 必需检查阻断落后 main 的 PR；通过保留并行主线完整 tree 的双父提交及新 CI 后才 merge，未强推/绕过检查。14 旧 refs 均未在该操作退役。
