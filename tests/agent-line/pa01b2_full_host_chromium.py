@@ -47,9 +47,22 @@ with sync_playwright() as p:
      events.append({'kind':'thread','code':a['command']['code'],'assistanceRequest':values.get('assistanceRequest'),
       'clientTurnId':values.get('clientTurnId'),'status':response.status,'at':time.time()})
   except Exception as e: events.append({'kind':'log-error','error':repr(e)})
+ def observe_request(request):
+  try:
+   if '/v1/actions' not in request.url or request.method!='POST':return
+   payload=request.post_data_json
+   if not isinstance(payload,dict):return
+   code=payload.get('command',{}).get('code','')
+   if not code.startswith('enterprise-agent.thread'):return
+   values=payload.get('values',{})
+   events.append({'kind':'thread-request','code':code,
+     'assistanceRequest':values.get('assistanceRequest'),
+     'clientTurnId':values.get('clientTurnId'),'at':time.time()})
+  except Exception as e:events.append({'kind':'request-log-error','error':repr(e)})
  def new_page(job):
   page=context.new_page()
   page.on('response',observe)
+  page.on('request',observe_request)
   page.goto(HOST+'/?surface=desktop#/data-import/jobs/'+quote(job,safe='')+'/map',wait_until='domcontentloaded')
   expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible(timeout=30000)
   return page
@@ -64,7 +77,7 @@ with sync_playwright() as p:
  def wait_response(old):
   wait_until(lambda:len(requests()['requests'])>old,'MOCK_MODEL_CALL_NOT_SEEN')
  def wait_thread(mark):
-  wait_until(lambda:any(e.get('kind')=='thread' and e.get('code')=='enterprise-agent.thread.send' for e in events[mark:]),
+  wait_until(lambda:any(e.get('kind')=='thread-request' and e.get('code')=='enterprise-agent.thread.send' for e in events[mark:]),
    'REAL_THREAD_SEND_NOT_SEEN')
  def run(name,fn):
   try:
@@ -72,7 +85,7 @@ with sync_playwright() as p:
    print('PA01B2_FULL_BROWSER_PASS:'+name,flush=True)
   except Exception as e:
    checks.append({'case':name,'status':'FAIL','error':repr(e)})
-   print('PA01B2_FULL_BROWSER_FAIL:'+name+':'+repr(e),flush=True)
+   print('PA01B2_FULL_BROWSER_FAIL:'+name+':'+repr(e)+' RECENT='+repr(events[-8:]),flush=True)
  def bootstrap():
   page=new_page(fixture['jobId'])
   try:
@@ -88,7 +101,7 @@ with sync_playwright() as p:
    page.locator('[data-eidos-agent-action="ai-auto-map"]').click()
    wait_response(old);wait_thread(mark)
    wait_until(lambda:page_reads(job)>before,'CLEAN_SOURCE_DID_NOT_REFRESH')
-   sends=[x for x in events[mark:] if x.get('kind')=='thread' and x.get('code')=='enterprise-agent.thread.send']
+   sends=[x for x in events[mark:] if x.get('kind')=='thread-request' and x.get('code')=='enterprise-agent.thread.send']
    assert sends and sends[0]['assistanceRequest']['context']['importJobId']==job,sends
    assert sends[0]['assistanceRequest']['taskKind']=='data-import.mapping'
    return {'refreshReads':page_reads(job)-before,'correlatedJob':job,'threadSent':True}
@@ -158,16 +171,16 @@ with sync_playwright() as p:
   finally:control('success');page.close()
  run('real-provider-failure-no-refresh',failure)
  def ordinary():
-  control('success');page=context.new_page();page.on('response',observe)
+  control('success');page=context.new_page();page.on('response',observe);page.on('request',observe_request)
   try:
    page.goto(HOST+'/?surface=desktop#/enterprise-agent',wait_until='domcontentloaded')
-   composer=page.locator('[data-eidos-chat-composer] textarea').first
+   composer=page.locator('[data-eidos-workspace-content] [data-eidos-chat-composer] textarea').first
    expect(composer).to_be_visible(timeout=30000)
    old=len(requests()['requests']);mark=len(events)
    composer.fill('Fixture ordinary conversation without task context')
-   page.locator('[data-eidos-chat-composer] button[type="submit"]').click()
+   composer.press('Enter')
    wait_response(old);wait_thread(mark)
-   sent=[x for x in events[mark:] if x.get('kind')=='thread' and x.get('code')=='enterprise-agent.thread.send']
+   sent=[x for x in events[mark:] if x.get('kind')=='thread-request' and x.get('code')=='enterprise-agent.thread.send']
    assert sent and sent[0]['assistanceRequest'] is None,sent
    return {'realThreadSend':True,'assistanceRequest':False}
   finally:page.close()
