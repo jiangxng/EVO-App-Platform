@@ -11,6 +11,16 @@ on:
       - "contracts/template-preview.ts"
       - "providers/enterprise-context/definition-projection-store.ts"
       - "vendor/eidos/src/diagram/**"
+      - "vendor/eidos/source.manifest.json"
+      - "vendor/eidos/src/2d/**"
+      - "apps/eog-2d/**"
+      - "tools/eidos-2d-core-source-validate.mjs"
+      - "tests/integration/eog-2d-viewer-cutover.test.mjs"
+      - "vendor/eidos/source.manifest.json"
+      - "vendor/eidos/src/2d/**"
+      - "apps/eog-2d/**"
+      - "tools/eidos-2d-core-source-validate.mjs"
+      - "tests/integration/eog-2d-viewer-cutover.test.mjs"
       - "tests/integration/definition-projection-*.test.mjs"
       - "tests/integration/diagram-visual-handles.test.mjs"
       - "tests/integration/diagram-snapping.test.mjs"
@@ -71,6 +81,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
+      - run: node tools/eidos-2d-core-source-validate.mjs
       - run: >-
           node --test
           tests/integration/definition-projection-edit-save.test.mjs
@@ -83,6 +94,7 @@ jobs:
           tests/integration/personal-agent-current-projection.test.mjs
           tests/integration/definition-projection-edge-routes.test.mjs
           tests/integration/eog-2d-designer-cutover.test.mjs
+          tests/integration/eog-2d-viewer-cutover.test.mjs
           tests/integration/diagram-professional-routing.test.mjs
           tests/integration/diagram-touch-cancel-wiring.test.mjs
           tests/integration/diagram-visual-handles.test.mjs

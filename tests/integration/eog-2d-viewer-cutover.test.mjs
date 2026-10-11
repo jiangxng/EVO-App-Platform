@@ -9,6 +9,8 @@ import {
   EOG_2D_VIEWER_FEATURE_ID,
   EOG_2D_VIEWER_PACKAGE_ID,
   EOG_2D_VIEWER_WORKSPACE_ROUTE,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
+  EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE,
   eog2dViewerPackage
 } from "../../dist/apps/eog-2d-viewer/package.js";
 import {
@@ -50,7 +52,9 @@ test("EOG 2D Viewer is the interactive Workspace feature inside the unified 2D p
 
   const routes = viewer.routes ?? [];
   assert.deepEqual(routes.map(route => route.path), [
-    EOG_2D_VIEWER_WORKSPACE_ROUTE
+    EOG_2D_VIEWER_WORKSPACE_ROUTE,
+    EOG_2D_VIEWER_TEMPLATE_PREVIEW_ROUTE,
+    EOG_2D_VIEWER_DEFINITION_PREVIEW_ROUTE
   ]);
   assert.equal(routes.some(route => route.path.includes("/observe")), false);
 });
