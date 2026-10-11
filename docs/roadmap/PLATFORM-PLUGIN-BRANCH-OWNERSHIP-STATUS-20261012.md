@@ -93,3 +93,63 @@
 - merge 后 main push [Actions #38157759718](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157759718) **SUCCESS**；日志实际对 [#775](https://github.com/jiangxng/EVO-App-Platform/pull/775)、[#777](https://github.com/jiangxng/EVO-App-Platform/pull/777)、[#779](https://github.com/jiangxng/EVO-App-Platform/pull/779) 对应的三条 SHA pinned 源分支逐个 `DELETED_SQUASH_HEAD`。
 - **执行后的独立分支枚举：31 branches，三条 `test/platform-f*` 已全部不存在；TR01 仍为 14 refs、Agent 仍为 11 refs。** 从本批开始前 33 条变 31 条，是 3 条已删 + 1 条 cleanup PR 源分支新增仍留着（`chore/retire-platform-merged-f0-f1-f2-heads-20261012`），不虚报净减 3。
 - 六个业务 APPLICATION 和 Finance Owner PROVIDER **继续全部未完成**；原有 14 条旧 TR-01 source tips 无删除，#594 Draft 和 #771 Draft 仍应保留。后续仅处理已有分支本身的安全归档与退役判定，不建立新业务开发任务。
+
+
+## 2026-10-12 第二轮实时分支对账（main 8997e68）
+
+**此次仅核对，不删除、不合并、不创建开发任务。** 固定 GitHub main `8997e68b65336717ce50e7227baa874485d2ea31`，实时读取分支 26 条、开放 PR 3 条。主线已从上次 `fd915983d108f860215276dcfe9e78af173544ee` 前进；本轮按当前树而非旧历史数字判断。
+
+### 精确分组与变动来源
+
+| 归属 | refs 数 | 保留/清理判断 |
+| --- | ---: | --- |
+| `main` | 1 | 保护 |
+| TR-01/B2D3 14 条旧来源 | 14 | 尚未完成逐项语义收敛，保留；六个业务 Application + Finance Provider 全部 **PRODUCT_UNFINISHED** |
+| Agent/External Agent | 5 | 外部专项，不动；`agent/pa02a-postgres-async-uniqueness-proof-20261011` PR #692 已 **closed/unmerged**，但分支还在，不能误报合并 |
+| SOP Designer | 2 | `architecture/sop-designer-package-identity`、`-v2` 属于独立 Designer；不覆盖新 Host/Catalog |
+| Platform 清理 | 2 | 两个原始改动文件集合与 main Blob 完全一致，**内容已被 main 收敛，可优先安全退役** |
+| Plugin Store 描述 | 1 | `fix/plugin-card-descriptions-20261012`，开放 PR #783，保护；这条只涉及插件描述/契约/UI，并非本窗口新增任务 |
+| Platform 交接 | 1 | 本 Draft #771，保护 |
+
+2026-10-12 上次清单为 31。对比仓库本次实际 ref：Agent 的 `agent/pa01a-contextual-turn-identity-20261010`、`agent/pa01b2-native-chromium-preflight-20261011`、`agent/pa01b2-page-assistance-20261010`、`agent/pa01b3-authorized-mapping-receipt-browser-20261011`、`agent/pa01b-assistance-contract-20261010`、`docs/personal-agent-blueprint-20261010` 已不在分支列表；另增加 `fix/plugin-card-descriptions-20261012`，因此 31 - 6 + 1 = **26**。六项 Agent PR #570/#575/#577/#579/#638/#691 的查询结果都为 `merged:true`，**但删除动作不归本收敛窗口认领**。
+
+三条开放 PR：[#594](https://github.com/jiangxng/EVO-App-Platform/pull/594) Finance Owner Draft、[#771](https://github.com/jiangxng/EVO-App-Platform/pull/771) 交接 Draft、[#783](https://github.com/jiangxng/EVO-App-Platform/pull/783) Plugin Store 描述。三条对应分支不可删除。#783 当前 head `9e783438587a4b2b2bed41670235c445e0fbe1aa` 对本次 main 前进 1 提交、落后 0；Git compare 50 个文件（多数 package.ts 增加一行，另有契约、Eidos/测试等变动），由原专项审查，本窗口不合并。
+
+### 2 条 Platform 收敛分支：已精确核对全部修改文件的 Blob
+
+- `chore/audit-and-retire-platform-tail-20261011`，固定 head `3a499f1524048741307f134aa14f7c4a871e3729`。相对自身 merge-base 新增的 3 个文件 `.github/workflows/platform-tail-ref-retirement-20261011.yml`、`docs/roadmap/PLATFORM-REMAINING-BRANCH-LEDGER-20261011.md`、`repository-hygiene/platform-tail-ref-retirement-20261011.json`，三者逐一与 **当次 main blob SHA 完全相同**。该 ref 比 main 领先 3 commit、落后 197 commit，历史分叉不等于功能缺失。标记 `CONTENT_SUBSUMED_RETIRE_CANDIDATE`，删除前仍要求固定 SHA、open PR head/base、protected、历史 tag 安全门。
+- `chore/retire-platform-merged-f0-f1-f2-heads-20261012`，固定 head `7bd9709ee0d812827476cdb0e6c1a07eddb44eb2`。相对自身 merge-base 的 3 个文件：`.github/workflows/platform-one-time-squash-pr-ref-retirement-20261011.yml`、`docs/archive/platform-merged-f0-f1-f2-heads-retirement-20261012.md`、`repository-hygiene/platform-merged-squash-heads-20261012.json`，三者与 main blob **完全相同**。其 [PR #781](https://github.com/jiangxng/EVO-App-Platform/pull/781) 已 squash merged 至 `fd915983d108f860215276dcfe9e78af173544ee`。标记 `MERGED_PR_RETIRE_CANDIDATE`，当前仍未删除。
+- 这两条不携带新的未完成插件工作；其历史独立性应借 PR/commit 或固定档案保存，**不能以一个比较报表的 `diverged` 字样擅自合并旧 Host**。
+
+### TR-01：14 条旧分支逐行对 main 历史对账
+
+以下 `ahead/behind` 为 GitHub API `compare(base=main, head=branch)` 结果；**不是“差异功能完成量”**。每条都是 `diverged`，共同落后 main **415 提交**。相对于同一旧 base 的旧提交被不同分支重复携带，不得将 ahead 数求和。
+
+| Branch 缩写（均为原固定全名） | Ahead / Behind | 源码所属插件或性质 | 判定 |
+| --- | ---: | --- | --- |
+| `demo/tr01b2d3-isolated-live-stage-20261011` | 112 / 415 | 独立模拟舞台；仅 Web/测试证据 | 演示**非产品插件**，来源暂留 |
+| `docs/tr01b2d3-mainline-recovery-20261011` | 121 / 415 | 混合旧 Provider 来源与交接资料 | 文档历史，来源暂留 |
+| `docs/tr01b2d3-railway-runtime-preflight-evidence-20261011` | 69 / 415 | Finance Owner 老预检资料 | 未认证，来源暂留 |
+| `feat/tr01-trading-peer-purchasing-receiving-20261011` | 131 / 415 | Purchasing + Receiving（同时携带共同旧 Provider base） | 两个 APPLICATION **未完成**；来源暂留 |
+| `feat/tr01b2d3-definer-owner-strict-admission-20261011` | 87 / 415 | Finance Owner 旧安全 gate | Provider 未完成；来源暂留 |
+| `feat/tr01b2d3-deployment-descriptor-gate-20261011` | 85 / 415 | Finance Owner 旧部署 gate | Provider 未完成；来源暂留 |
+| `feat/tr01b2d3-finance-owner-prod-preflight-20261011` | 88 / 415 | Finance Owner 老预检 gate | Provider 未完成；来源暂留 |
+| `feat/tr01b2d3-four-peer-business-plugins-stage-20261011` | 119 / 415 | Sales + Shipment + Receivable + Cash 演示来源 | 四 APPLICATION **未完成**；来源暂留 |
+| `feat/tr01b2d3-host-owner-delegation-20261010` | 132 / 415 | Finance Owner 源及 [开放 Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) | **保留，禁止整体合并** |
+| `feat/tr01b2d3-six-lane-production-admission-20261011` | 99 / 415 | Finance Owner 六层 gate | 未完成；来源暂留 |
+| `feat/tr01b2d3-twelve-lane-preprod-20261011` | 104 / 415 | Finance Owner 十二层 gate | 未完成；来源暂留 |
+| `test/tr01b2d3-cross-instance-nonce-revocation-race-20261011` | 62 / 415 | Provider nonce 旧测试 | 未认证；来源暂留 |
+| `test/tr01b2d3-distinct-db-login-http-20261010` | 57 / 415 | Provider DB/HTTP 旧测试 | 未认证；来源暂留 |
+| `test/tr01b2d3-isolated-finance-owner-credential-http-20261011` | 67 / 415 | Provider credential 旧测试 | 未认证；来源暂留 |
+
+### 14 个完整 Git trees 对账：新 main 缺失路径的含义
+
+本次对 main + 14 源头共 **15 个 recursive Git tree** 做 Blob SHA 对比，所有树 `truncated=false`。main 有 1580 个 blob，14 个老分支各为 1152–1189。老树中相对当前 main 缺失的**不同路径并集仍为 24**（不是 14×24）：**6 工作流、12 tools 测试/脚本、3 孤立 demo 文件、2 protocol tests、1 旧 online demo 文档**。其中 23 个路径各 1 版历史 SHA；`tools/certify-tr01b2d3-distinct-db-logins.mjs` 有三版。
+
+**本次未发现 main 缺失一个新的 `apps/trading-stage-*/package.ts` 独立 APPLICATION 包路径**；六包实际已在 main。剩余 24 条路径属于实验、CI、预检和文档，不能自动称为缺失业务功能。重要限制：14 条旧分支相对 main 的**同名文件也存在 83–90 条 blob 不一致**，不能只比较不存在的路径就声称代码功能已 100% 收敛。先前 F0/F1/F2 的有限 CI 不等于 Finance Owner 正式功能完成。
+
+### 终局收敛次序（不创建研发任务）
+
+1. **只退役经过核对的两个旧 Platform 清理 ref**，须满足固定 SHA + PR 依赖重检 + 必要历史归档；本次未执行删除。
+2. 继续保存 #594/#771/#783 开放 PR 及其 head/base。Agent 5、SOP 2 全交回各自 owner；#692 **closed/unmerged** 不能被误判为已合。
+3. 14 条 TR-01 旧 ref 继续做**归档/去重判定**，未完成 Provider / APPLICATION 始终维持未完成。不要据此新增 24 项工具研发、6 项业务研发或任何 CI、Railway 任务。
