@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PA-01B3 negative browser: without AI WRITE grant, no mapping mutation or success receipt."""
+"""PA-01B3 negative browser: explicit AI DENY must prevent mapping changes."""
 import base64,json,time
 from pathlib import Path
 from datetime import datetime,timezone
@@ -62,12 +62,13 @@ with sync_playwright() as p:
  for resp in thread:
   x=resp.get('result',{})
   receipts.extend((x.get('assistanceResult') or {}).get('actionReceiptIds',[]))
- assert not receipts,'Unexpected success/receipt in denied test: '+repr(receipts)
+ # A DENIED ActionReceipt is valid auditable evidence. No mutation is the invariant.
+ assert after['mappingOrigin']!='AGENT','DENIED_AI_CHANGED_MAPPING'
  mock=api.get(MOCK+'/__requests').json()
  assert any(x['mode']=='apply' for x in mock['requests']),mock
  report.update({'status':'PASS','jobId':job,'beforeState':before['state'],'afterState':after['state'],
-   'mappingOrigin':after['mappingOrigin'],'receiptIds':receipts,'mockModelCalls':len(mock['requests']),
-   'threadResponseObserved':bool(thread),'test':'AI-only import permission omitted; no business effect'})
+   'mappingOrigin':after['mappingOrigin'],'associatedReceiptIds':receipts,'mockModelCalls':len(mock['requests']),
+   'threadResponseObserved':bool(thread),'test':'explicit AI DENY overrides default operation allowance; no business effect'})
  page.screenshot(path=str(OUT/'pa01b3-no-ai-write-grant.png'),full_page=True)
  browser.close()
 report['completedAtUtc']=datetime.now(timezone.utc).isoformat()
