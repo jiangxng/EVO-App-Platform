@@ -469,6 +469,54 @@ try{
     case:"M04",browser:"Chromium "+browser.version(),mouseGroupDrag:true,
     deltaShared:true,oneUndoExact:true,noImplicitSave:true,physicalDeviceVerified:false
   }));
+  // M05: right drag starting on a node pans the camera only, without
+  // moving selected business nodes or summoning any context menu.
+  await tab.locator('[data-eidos-diagram-node="sale"]').click();
+  const m05Before=await tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const r=node.getBoundingClientRect();
+    return {x:r.x+r.width/2,y:r.y+r.height/2,
+      transform:node.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(n=>({
+        id:n.getAttribute("data-eidos-diagram-node"),
+        x:n.style.left,y:n.style.top
+      })),selected:node.getAttribute("aria-pressed")};
+  });
+  assert.equal(m05Before.selected,"true");
+  await tab.evaluate(()=>{
+    window.__m05Menus=[];
+    document.querySelector("[data-eidos-diagram-canvas]").addEventListener("contextmenu",e=>{
+      window.__m05Menus.push({defaultPrevented:e.defaultPrevented});
+    });
+  });
+  await tab.mouse.move(m05Before.x,m05Before.y);
+  await tab.mouse.down({button:"right"});
+  await tab.mouse.move(m05Before.x+60,m05Before.y+27,{steps:10});
+  await tab.mouse.up({button:"right"});
+  const m05After=await tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    return {transform:node.parentElement.style.transform,
+      positions:[...document.querySelectorAll("[data-eidos-diagram-node]")].map(n=>({
+        id:n.getAttribute("data-eidos-diagram-node"),x:n.style.left,y:n.style.top
+      })),selected:node.getAttribute("aria-pressed"),
+      customMenu:document.querySelectorAll("[data-eidos-diagram-context-menu]").length,
+      nativeMenus:window.__m05Menus};
+  });
+  assert.notEqual(m05After.transform,m05Before.transform,
+    "M05 real right drag must pan canvas camera");
+  assert.deepEqual(m05After.positions,m05Before.positions,
+    "M05 right drag must not move nodes");
+  assert.equal(m05After.selected,"true","M05 right drag keeps current selection");
+  assert.equal(m05After.customMenu,0,
+    "M05 dragging cannot open the application context menu");
+  assert.ok(m05After.nativeMenus.every(m=>m.defaultPrevented),
+    "M05 right drag must suppress native browser context menu");
+  assert.equal(store.getVersion(id),0,"M05 navigation cannot Save");
+  console.log("DIAGRAM_M05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M05",browser:"Chromium "+browser.version(),
+    rightDragPanned:true,nodesUnchanged:true,selectionUnchanged:true,
+    menuNotShown:true,noImplicitSave:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
