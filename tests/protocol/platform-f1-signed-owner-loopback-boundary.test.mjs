@@ -153,7 +153,7 @@ test('F1 Host denies missing install, cross-enterprise, untrusted endpoint and i
         [()=>createClient(),{...makeInput(),actorSubjectId:''},'HOST_IDENTITY_INVALID']
       ];
       for(const [factory,input,code] of samples)
-        await assert.rejects(factory().verify(input),new RegExp('TR01B2D3_OWNER_'+code));
+        await assert.rejects(factory().verify(input),new RegExp(code==='SIGNING_KEY_INVALID' ? 'TR01B2D3_SIGNING_KEY_INVALID' : 'TR01B2D3_OWNER_'+code));
       assert.equal(getRequests(),0,'preflight denial must never send HTTP');
       assert.equal(secretLookups.length,0,'scope/endpoint failures must not consult Host private key');
     });
