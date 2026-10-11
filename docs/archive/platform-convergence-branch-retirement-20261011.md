@@ -30,4 +30,8 @@
 
 ## Execution status
 
-**Awaiting audited PR merge and Actions execution.** Do not rewrite this line as success without referencing the resulting action run and actual branch recheck.
+**EXECUTED AND VERIFIED — 2026-10-11.** [PR #740](https://github.com/jiangxng/EVO-App-Platform/pull/740) merged to main at `4690ff813fc076e3d0d8bf18641f2ca145d56b4b`. The [read-only PR preflight run #38140337021](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140337021) completed SUCCESS; [execution run #38140393664](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140393664) was a `push` to main and completed SUCCESS. The post-run GitHub branches listing returned 54 branches and **none of the 16 listed exact names above remained**. This is a verified ref deletion, not a claim that all older branches were retired.
+
+**Still intentionally retained:** all open PR head/base branches (including Draft #594 Finance Owner, Agent PRs and 2D/EOG work), approximately 14 independent TR-01 B2D3 feature branches, and other unreviewed refs. The recently squash-merged Platform PR heads `fix/platform-branch-hygiene-leased-20261011`, `feat/tr01-six-stage-host-preview-discovery-20261011`, `fix/tr01-finance-signer-pointer-fd-20261011`, and this cleanup PR head also remain; GitHub compare reports their head commits **diverged** from main (because of squash merges). Do not delete them under the strict ancestor-only mechanism without an explicit separate content/provenance review.
+
+**Railway release isolation:** No deployment was triggered for this pruning change. The designated public integration test Host remains pinned to application test SHA `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`; branch cleanup never changes that service source or data volume.
