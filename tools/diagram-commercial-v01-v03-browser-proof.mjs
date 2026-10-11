@@ -280,6 +280,10 @@ try{
       const y=middle.y+6*tangent.x/norm;
       const element=document.elementFromPoint(x,y);
       const hitDetected=element?.getAttribute("data-eidos-diagram-edge")===edge;
+      const centerElement=document.elementFromPoint(middle.x,middle.y);
+      const topElements=document.elementsFromPoint(x,y).slice(0,6)
+        .map(el=>({tag:el.tagName,id:el.getAttribute("data-eidos-diagram-edge"),
+          className:String(el.getAttribute("class")??"").slice(0,50)}));
       const marker=visual.getAttribute("marker-end");
       return {
         hitWidth:hit.getAttribute("stroke-width"),
@@ -288,10 +292,16 @@ try{
         markerEnd:marker,
         markerStart:visual.getAttribute("marker-start"),
         hitDetected,
+        diagnostic:{zoomDisplay:document.querySelector('[aria-label="Reset view"]')?.textContent,
+          center:[middle.x,middle.y],point:[x,y],
+          centerTag:centerElement?.tagName,centerHit:centerElement?.getAttribute("data-eidos-diagram-edge"),
+          topElements,computedHitStroke:getComputedStyle(hit).strokeWidth,
+          hitRect:hit.getBoundingClientRect().toJSON()},
         sampledPointInsideViewport:x>=0&&y>=0
           &&x<document.documentElement.clientWidth&&y<innerHeight
       };
     },relationId);
+    console.log("V04_NATIVE_HIT_DIAGNOSTIC="+JSON.stringify({scenario:scenario.display,...result}));
     assert.equal(result.hitWidth,"18","V04 hit region must have 18px nominal stroke");
     assert.equal(result.hitVectorEffect,"non-scaling-stroke",
       "V04 transparent hit region must not shrink at 10% or balloon at 300%");
