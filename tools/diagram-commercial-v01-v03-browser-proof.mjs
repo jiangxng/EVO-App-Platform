@@ -132,7 +132,7 @@ const html=(mode)=>{
     +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
     +'</script><script type="module">'
     +'import {'+mountName+'} from '+JSON.stringify(modulePath)+';'
-    +'const actionHost={async execute(request){if(window.__v06State)return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
+    +'const actionHost={async execute(request){if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
     +'headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
     +'if(!res.ok)throw Error("HTTP "+res.status);return res.json()}};'
     +'window.__mounted='+mountName+'({definition:window.__definition,'
