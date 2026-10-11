@@ -1,0 +1,3 @@
+/** B11b synthetic/prevalidated offline QA; no production write. */
+export function canonicalHideMaskV010(graph,nodes=[],edges=[]){if(!Array.isArray(graph?.nodes)||!Array.isArray(graph?.edges)||!Array.isArray(nodes)||!Array.isArray(edges))throw Error("graph/masks required");const validNodes=new Set(graph.nodes.map(n=>n.id)),validEdges=new Set(graph.edges.map(e=>e.id));if(nodes.some(x=>!validNodes.has(x))||edges.some(x=>!validEdges.has(x)))throw Error("unknown ID");const hiddenNodes=[...new Set(nodes)].sort(),hiddenEdges=[...new Set(edges)].sort();return {schema:"B11b-stable-mask",hiddenNodes,hiddenEdges,note:"local deterministic presentation snapshot, no write performed"};
+}
