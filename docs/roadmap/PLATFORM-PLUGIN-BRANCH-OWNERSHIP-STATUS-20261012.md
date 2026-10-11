@@ -82,3 +82,14 @@
 2. Finance security 与合成 stage 演示属于该 Provider 或各 Application 的历史**来源和证据**，不是可新增安装插件，不增加插件数/工作流/业务任务。
 3. 分支清理候选的必要条件：具体 merged PR、对应已合 main 的变更、原 head SHA 与开放 PR head/base 双重检查、非保护状态、无其他用法；不满足或无法执行删除，就保持候选/保留状态。**本次没有删除分支**。
 4. **不创建功能 PR，不启动六应用开发、Finance Owner 开发、F1/F2 专项、安全扩张、Railway 部署或 Agent/2D 改造。** 本次交付仅为插件独立归属 + 完成状态保真 + 现有分支退出/保留边界。
+
+
+## 最新执行补记：清理三条已合验证 PR 源分支（2026-10-12）
+
+**以本段为最新 Git Ref 状态；上文“33 branches / 三个候选尚未删除”是之前的历史快照，不应按现状继续解读。**
+
+- [清理 PR #781](https://github.com/jiangxng/EVO-App-Platform/pull/781) 已 squash merged，main merge `fd915983d108f860215276dcfe9e78af173544ee`，只影响一次性 source ref 退役工作流、精确 SHA 清单和审计文档。**不是新增插件开发、测试或功能**。
+- PR audit [Actions #38157635596](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157635596) SUCCESS，日志逐个 `PR_MERGE_VERIFIED` 后标记 `AUDIT_ONLY`。
+- merge 后 main push [Actions #38157759718](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157759718) **SUCCESS**；日志实际对 [#775](https://github.com/jiangxng/EVO-App-Platform/pull/775)、[#777](https://github.com/jiangxng/EVO-App-Platform/pull/777)、[#779](https://github.com/jiangxng/EVO-App-Platform/pull/779) 对应的三条 SHA pinned 源分支逐个 `DELETED_SQUASH_HEAD`。
+- **执行后的独立分支枚举：31 branches，三条 `test/platform-f*` 已全部不存在；TR01 仍为 14 refs、Agent 仍为 11 refs。** 从本批开始前 33 条变 31 条，是 3 条已删 + 1 条 cleanup PR 源分支新增仍留着（`chore/retire-platform-merged-f0-f1-f2-heads-20261012`），不虚报净减 3。
+- 六个业务 APPLICATION 和 Finance Owner PROVIDER **继续全部未完成**；原有 14 条旧 TR-01 source tips 无删除，#594 Draft 和 #771 Draft 仍应保留。后续仅处理已有分支本身的安全归档与退役判定，不建立新业务开发任务。
