@@ -21,3 +21,7 @@
 ## 后续
 
 合并前待实时 CI SUCCESS；与 F2 disposable DB [#777](https://github.com/jiangxng/EVO-App-Platform/pull/777) 共同形成 Platform 原有 Host 侧隔离守卫，但**不可组合推断为跨进程真实 EVO owner 认证**。等 owner 公开正式只读契约后，再做独立进程+数据库+安装会话真实合约验收。
+
+## 首次 CI 负例留痕
+
+初版 head `c5ba387012473ac7075ceb9af4b8e23ee2d419f4` 的 [Platform CI #38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269) 失败：808 个测试 PASS、1 FAIL；真实签名拒绝返回 `TR01B2D3_SIGNING_KEY_INVALID`，新测试错误预期为 `TR01B2D3_OWNER_SIGNING_KEY_INVALID`。生产代码未改、拒绝条件未放松；更新新测试预期后必须等待新的完整 CI，**不得将首次失败写成通过**。
