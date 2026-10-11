@@ -799,6 +799,10 @@ import {
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
+  salesStagePackageV010,
+  shipmentStagePackageV010,
+  receivableStagePackageV010,
+  cashStagePackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -1052,6 +1056,11 @@ const catalog = createPackageCatalog([
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
+  ...(process.env.APP_PLATFORM_STAGE_MODE === "isolated-preview" &&
+      process.env.APP_PLATFORM_TR01B_STAGE_DEMO === "enabled"
+    ? [salesStagePackageV010, shipmentStagePackageV010,
+       receivableStagePackageV010, cashStagePackageV010]
+    : []),
   tradingFinanceOwnerProviderPackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
