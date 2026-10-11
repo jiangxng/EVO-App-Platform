@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, chmodSync, symlinkSync, rmSync, renameSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, chmodSync, symlinkSync, rmSync, renameSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readFinanceOwnerActiveKeyIdV010 } from
