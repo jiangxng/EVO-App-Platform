@@ -40,13 +40,7 @@ const forbidden = Object.freeze([
 // This covers raw SQL FROM/JOIN and query-builder selectFrom(), with optional
 // schema qualification; the EVO runtime's own internal persistence code is
 // deliberately outside this repository and outside this guard's scope.
-const evoEconomicTable = String.raw`(?:business_data|posting_input|ledger_entry|ledger_balance|enterprise_runtime_state|position_definition|allocation_instruction|allocation_relation|allocation_run|cost_run|cost_result|valuation_policy|valuation_rule|valuation_result)`;
-const tableRef = String.raw`(?:["'\`]?\\w+["'\`]?\\s*\\.\\s*)?["'\`]?` + evoEconomicTable + String.raw`["'\`]?`;
-const directEvoEconomicRead = new RegExp(
-  String.raw`(?:\\b(?:FROM|JOIN)\\s+|\\bselectFrom\\s*\\(\\s*)` + tableRef,
-  'iu'
-);
-
+const directEvoEconomicRead = /(?:\b(?:FROM|JOIN)\s+|\bselectFrom\s*\(\s*)(?:(?:["'`]?\w+["'`]?)\s*\.\s*)?["'`]?(?:business_data|posting_input|ledger_entry|ledger_balance|enterprise_runtime_state|position_definition|allocation_instruction|allocation_relation|allocation_run|cost_run|cost_result|valuation_policy|valuation_rule|valuation_result)["'`]?/iu;
 // Inspect module code rather than textual descriptions/comments.
 function executableSource(source) {
   return source.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/[^\n]*/gm,'');
