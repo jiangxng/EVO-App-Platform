@@ -5,6 +5,8 @@ on:
     paths:
       - "tools/agent-line/pa01b2-full-host-fixture.mjs"
       - "tests/agent-line/pa01b2_full_host_chromium.py"
+      - "tests/agent-line/pa01b3_authorized_mapping_browser.py"
+      - "tests/agent-line/pa01b3_denied_mapping_browser.py"
       - ".github/workflows/agent-pa01b2-full-browser.yml"
       - "agents/enterprise-agent/**"
       - "vendor/eidos/src/app-host/**"
@@ -18,7 +20,12 @@ jobs:
   full-host-chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        auth: [allow, deny]
     env:
+      PA01B3_DENY_AI_WRITE: ${{ matrix.auth == 'deny' && '1' || '0' }}
       NODE_ENV: test
       APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
       APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
@@ -49,7 +56,14 @@ jobs:
           if [ "$ready" -ne 1 ]; then cat artifacts/agent-pa01b2-full-browser/bootstrap.log; exit 1; fi
           cat artifacts/agent-pa01b2-full-browser/fixture.json
       - name: Full real Workbench to Thread to Run to source browser proof
+        if: matrix.auth == 'allow'
         run: python tests/agent-line/pa01b2_full_host_chromium.py
+      - name: Verify authorized AI Capability write and true ActionReceipt IDs
+        if: matrix.auth == 'allow'
+        run: python tests/agent-line/pa01b3_authorized_mapping_browser.py
+      - name: Verify denied AI scope produces no mapping mutation or receipt
+        if: matrix.auth == 'deny'
+        run: python tests/agent-line/pa01b3_denied_mapping_browser.py
       - name: Show isolated log on failure
         if: failure()
         run: cat artifacts/agent-pa01b2-full-browser/bootstrap.log || true
@@ -62,6 +76,6 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pa01b2-full-host-chromium-evidence
+          name: pa01b2-host-chromium-${{ matrix.auth }}-evidence
           path: artifacts/agent-pa01b2-full-browser/
           if-no-files-found: warn
