@@ -21,6 +21,12 @@ export const objectExtensionPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: OBJECT_EXTENSION_PACKAGE_ID,
   displayName: "EVO Object Extension",
+  displayNameTranslations: {
+    "en": "EVO Object Extension",
+    "zh-CN": "EVO 对象扩展",
+    "ja": "EVO オブジェクト拡張",
+    "zh-TW": "EVO 物件擴充"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

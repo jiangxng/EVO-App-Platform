@@ -13,6 +13,12 @@ export const remoteContextMemorySemanticProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
   displayName: "Remote Context Memory Semantic Provider",
+  displayNameTranslations: {
+    "en": "Remote Context Memory Semantic Provider",
+    "zh-CN": "远程记忆语义检索服务",
+    "ja": "リモートメモリ意味検索サービス",
+    "zh-TW": "遠端記憶語意檢索服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   secrets: [{

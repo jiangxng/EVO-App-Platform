@@ -354,6 +354,8 @@ export interface PackageManifestV010 {
   contractVersion: "0.1.0";
   packageId: string;
   displayName: string;
+  /** Catalog presentation metadata; available before install and while disabled. */
+  displayNameTranslations?: Record<string, string>;
   version: string;
   type: PackageType;
   compatibility?: PluginCompatibilityV010;

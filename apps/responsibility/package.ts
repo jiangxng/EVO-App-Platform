@@ -18,6 +18,12 @@ export const responsibilityPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: RESPONSIBILITY_PACKAGE_ID,
   displayName: "EVO Responsibility",
+  displayNameTranslations: {
+    "en": "EVO Responsibility",
+    "zh-CN": "EVO 职责管理",
+    "ja": "EVO 職責管理",
+    "zh-TW": "EVO 職責管理"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

@@ -4,6 +4,8 @@ import {stagePackageV010,stagePageV010,stagePageSourceV010} from "../trading-sta
 export const shipmentStageDemoSpecV010 = {
   "domain": "shipment",
   "titleZh": "出库发货",
+  "titleJa": "出荷",
+  "titleTw": "出貨",
   "titleEn": "Sales Shipments",
   "descriptionZh": "发货插件独立展示从销售订单引用的出库履约事件",
   "recordId": "DEMO-SHIP-1001",

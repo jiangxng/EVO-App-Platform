@@ -9,6 +9,12 @@ export const hostBearerSessionProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_BEARER_SESSION_PACKAGE_ID,
   displayName: "Host Bearer Session Provider",
+  displayNameTranslations: {
+    "en": "Host Bearer Session Provider",
+    "zh-CN": "Bearer 令牌会话服务",
+    "ja": "Bearer トークンセッションサービス",
+    "zh-TW": "Bearer 權杖工作階段服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

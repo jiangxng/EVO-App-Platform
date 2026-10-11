@@ -14,6 +14,8 @@ export interface TradingStageDemoSpecV010 {
   domain: "purchasing" | "receiving" | "sales" | "shipment" | "receivable" | "cash";
   titleZh: string;
   titleEn: string;
+  titleJa?: string;
+  titleTw?: string;
   descriptionZh: string;
   recordId: string;
   referenceOrderNo: string;
@@ -42,6 +44,12 @@ export function stagePackageV010(s: TradingStageDemoSpecV010): PackageManifestV0
     contractVersion:"0.1.0",
     packageId,
     displayName:"EVO " + s.titleEn + " (Synthetic Stage Demo)",
+    displayNameTranslations: {
+      en: "EVO " + s.titleEn + " (Synthetic Stage Demo)",
+      "zh-CN": "EVO " + s.titleZh + "（合成数据演示）",
+      ja: "EVO " + (s.titleJa ?? s.titleEn) + "（合成データデモ）",
+      "zh-TW": "EVO " + (s.titleTw ?? s.titleEn) + "（合成資料示範）"
+    },
     version:"0.1.0",
     type:"APPLICATION",
     publisher:{id:"evo",displayName:"EVO",trust:"FIRST_PARTY",source:"built-in"},

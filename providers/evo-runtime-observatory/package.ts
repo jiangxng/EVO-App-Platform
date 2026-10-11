@@ -15,6 +15,12 @@ export const evoRuntimeObservatoryProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EVO_RUNTIME_OBSERVATORY_PACKAGE_ID,
   displayName: "EVO Runtime Observatory Provider",
+  displayNameTranslations: {
+    "en": "EVO Runtime Observatory Provider",
+    "zh-CN": "EVO 运行时事实观测服务",
+    "ja": "EVO ランタイム事実観測サービス",
+    "zh-TW": "EVO 執行環境事實觀測服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   features: [

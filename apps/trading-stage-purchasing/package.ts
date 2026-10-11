@@ -9,6 +9,8 @@ import { stagePackageV010, stagePageV010, stagePageSourceV010 } from "../trading
 export const purchasingStageDemoSpecV010 = {
   "domain": "purchasing",
   "titleZh": "采购订单",
+  "titleJa": "購買発注",
+  "titleTw": "採購訂單",
   "titleEn": "Purchase Orders",
   "descriptionZh": "采购插件独立展示经授权采购订单事实",
   "recordId": "DEMO-PO-1001",

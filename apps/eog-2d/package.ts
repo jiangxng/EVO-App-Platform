@@ -80,6 +80,12 @@ export const eog2dPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EOG_2D_PACKAGE_ID,
   displayName: "EOG 2D",
+  displayNameTranslations: {
+    "en": "EOG 2D",
+    "zh-CN": "EOG 二维运行图",
+    "ja": "EOG 2D 業務グラフ",
+    "zh-TW": "EOG 二維運行圖"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

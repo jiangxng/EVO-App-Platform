@@ -6656,7 +6656,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experiences/effective") {
       return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
-        createSettingsExperienceManifest(manager),
+        createSettingsExperienceManifest(manager, requestedLocale(url)),
         createProviderManagerExperienceManifest(manager),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
@@ -8272,6 +8272,7 @@ const server = createServer(async (request, response) => {
           manager.listCatalog(),
           manager.getSnapshot(),
           {
+            locale: requestedLocale(url),
             integrityTrustStore: pluginIntegrityTrustStore,
             runtimeDiagnostics: runtimeObservability.listDiagnostics(),
             runtimeEvents: runtimeObservability.listEvents(),
@@ -8477,7 +8478,8 @@ const server = createServer(async (request, response) => {
           providerRuntimeRegistry,
           providerBindings,
           providerCapability,
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         );
         if (!providerPage) {
           return json(response, 404, {

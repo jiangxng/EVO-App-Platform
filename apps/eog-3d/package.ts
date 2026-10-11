@@ -17,6 +17,12 @@ export const eog3dPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EOG_3D_PACKAGE_ID,
   displayName: "EOG 3D",
+  displayNameTranslations: {
+    "en": "EOG 3D",
+    "zh-CN": "EOG 三维运行图",
+    "ja": "EOG 3D 業務グラフ",
+    "zh-TW": "EOG 三維運行圖"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

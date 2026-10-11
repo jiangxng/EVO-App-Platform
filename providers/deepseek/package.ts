@@ -8,6 +8,12 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: DEEPSEEK_LLM_PACKAGE_ID,
   displayName: "DeepSeek LLM Provider",
+  displayNameTranslations: {
+    "en": "DeepSeek LLM Provider",
+    "zh-CN": "DeepSeek 模型服务",
+    "ja": "DeepSeek モデルサービス",
+    "zh-TW": "DeepSeek 模型服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   secrets: [
@@ -97,7 +103,7 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
             namespace: DEEPSEEK_LLM_PACKAGE_ID,
             locale: "zh-CN",
             messages: {
-              "settings.title": "DeepSeek LLM Provider",
+              "settings.title": "DeepSeek 模型服务",
               "settings.description": "DeepSeek Responses API Provider 的运行设置。API Key 由安全的 Host Secrets 边界管理。",
               "settings.saveLabel": "保存",
               "settings.model.label": "模型",
@@ -123,7 +129,7 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
             namespace: DEEPSEEK_LLM_PACKAGE_ID,
             locale: "ja",
             messages: {
-              "settings.title": "DeepSeek LLM Provider",
+              "settings.title": "DeepSeek モデルサービス",
               "settings.description": "DeepSeek Responses API Provider のランタイム設定です。API Key は安全な Host Secrets 境界で管理されます。",
               "settings.saveLabel": "保存",
               "settings.model.label": "モデル",
@@ -149,7 +155,7 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
             namespace: DEEPSEEK_LLM_PACKAGE_ID,
             locale: "zh-TW",
             messages: {
-              "settings.title": "DeepSeek LLM Provider",
+              "settings.title": "DeepSeek 模型服務",
               "settings.description": "DeepSeek Responses API Provider 的執行設定。API Key 由安全的 Host Secrets 邊界管理。",
               "settings.saveLabel": "儲存",
               "settings.model.label": "模型",

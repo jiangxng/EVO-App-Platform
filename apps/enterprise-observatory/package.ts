@@ -48,6 +48,12 @@ export const enterpriseObservatoryPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
   displayName: "Enterprise Observatory",
+  displayNameTranslations: {
+    "en": "Enterprise Observatory",
+    "zh-CN": "企业运营观测",
+    "ja": "企業オペレーション観測",
+    "zh-TW": "企業營運觀測"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

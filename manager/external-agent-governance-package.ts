@@ -11,6 +11,12 @@ export const externalAgentGovernancePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID,
   displayName: "EVO External Agent Governance",
+  displayNameTranslations: {
+    "en": "EVO External Agent Governance",
+    "zh-CN": "EVO 外部代理授权管理",
+    "ja": "EVO 外部エージェント権限管理",
+    "zh-TW": "EVO 外部代理授權管理"
+  },
   version: "0.1.0",
   type: "FOUNDATION_RUNTIME",
   publisher: {
