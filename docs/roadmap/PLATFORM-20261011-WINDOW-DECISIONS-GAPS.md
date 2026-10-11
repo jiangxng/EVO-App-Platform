@@ -115,3 +115,10 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - **明确排除**：将旧 V1/V2/V3 数据库登录脚本整文件迁移、接旧 EVO dist、使用 full EVO API 冒充 finance-only Listener、启用真实 Finance Owner 财务写入。V1 的严格 katalog/owner 判断与 V2 Finance-only 路由隔离仍需依赖正式 owner 边界的后续专门测试。
 - **仍 OPEN**：EVO Draft #108 中存在专用 finance-only app/main 源码，但 EVO main 不包含这些文件；旧 HTTP 404 断言在正式新接口上未被验证。跨实例 nonce、签名、Replay 和成本/Allocation 语义接口更不属于本小项。#594/#108 不合并。
 - **六应用流程不变**：其余 F0-F4 审完再开始 Purchasing；没有用户当前应用验收前不做 Receiving。
+
+
+## 2026-10-12 F3/F4 历史资产审查增量
+
+- **F3 原始合成浏览器演示资产：SOURCE_REVIEWED / ARCHIVED_BY_SHA**。旧固定源码可演示 Ed25519 WebCrypto 和合成 nonce 负例，但不具有真实数据库、真实 Host、真实 finance owner 或用户录单。旧可选 Railway Bun Function 使用 process-local nonce；其历史记录明确创建在线 Preview 失败；绝不可当线上核验或部署合同。该 3-file DEMO 不复制到 main，不启动另一个 Railway 服务，不删除原源分支。
+- **F4 旧六份 workflow：SOURCE_REVIEWED**。购买收货与四 peer 只调测试及演示预览；六/十二门禁和 descriptor 部分是静态拒绝清单。现代 main 已有对应 protocol tests，F0 的新增有效断言已被 #775 复用；其余旧 workflow 暂不整组恢复。未来若补充实际跨实例、Nonce、SQL/HTTP 独立负例，必须在现代正式接口上重新做小 CI，不能冒称六/十二条生产线已经 certified。
+- **退出条件仍保持 OPEN**：F0–F4 源资产完整关闭需进一步对照同路径功能差异与剩余 F1/F2 运行时真实证据。F3/F4 的文件取舍已有明确结论，但还不能据此提前删除涉及其他工作包的 14 个源分支。
