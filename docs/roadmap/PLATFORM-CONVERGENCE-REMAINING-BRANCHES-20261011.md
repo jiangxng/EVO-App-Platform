@@ -105,3 +105,10 @@
 | tr01/purchase-receipt-reversal-a2-20261010 | b3163293f1bc203319d3a8bab9906b20d57bfda1 | 是 | 待删除 |
 
 安全条件：实际删除时须重新读取精确 ref SHA、开放 PR head/base 和 main ancestry，且有 archive/provenance；预案 PR #728 的 workflow 是手工默认 audit，不能将本表当成执行记录。**本轮没有实际删除任何历史源 ref**。
+
+
+## 2026-10-11 后续执行：历史源 ref 删除复核结项
+
+本文件 A 部分表格原写“待安全删除”，属于**执行前的历史快照**。实际已在 [PR #740](https://github.com/jiangxng/EVO-App-Platform/pull/740) 经一次性 SHA 固定工作流合并和执行，先审计 [#38140337021](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140337021) SUCCESS，再正式执行 [#38140393664](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140393664) SUCCESS；随后逐条查实 A 部分 **16/16 Git refs 不存在**。故 A 表的“待删除”已经被本节状态 **DELETED_VERIFIED** 取代。Git 分支总量在该验证时点为 **54**，不能拿它代替独立功能待收敛数。
+
+B 部分约 14 条 TR-01 B2D3 分支（包括 #594）**完全未动、未删**。各 Agent / 2D / EOG 与 open PR head/base **完全未动、未删**。#728/#731/#736/#740 等 squash 合并头与 main 历史 diverged，不能只按 `behind_by=0` 认定可删。后续需要独立功能评估、PR CI、主线合并及安全 refs 处置，Railway 测试 SHA 保持固定。
