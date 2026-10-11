@@ -749,6 +749,66 @@ try{
     pannedCamera:true,nodePositionStable:true,noImplicitSave:true,
     realTouchscreenVerified:false,physicalDeviceVerified:false
   }));
+  // T03: synthetic native-Chromium touch gesture on an explicitly selected
+  // node must move presentation coordinates, unlike T02 unselected swipe.
+  const t03Context=await browser.newContext({viewport:{width:1250,height:820},hasTouch:true});
+  const t03Tab=await t03Context.newPage();
+  await t03Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(t03Tab);
+  const t03Node=t03Tab.locator('[data-eidos-diagram-node="sale"]');
+  const t03Box=await t03Node.boundingBox();
+  const t03X=t03Box.x+t03Box.width/2,t03Y=t03Box.y+t03Box.height/2;
+  await t03Tab.touchscreen.tap(t03X,t03Y);
+  assert.equal(await t03Node.getAttribute("aria-pressed"),"true",
+    "T03 first tap must explicitly select node before a drag is allowed");
+  const t03Pos=()=>t03Node.evaluate(el=>({
+    x:Number.parseFloat(el.style.left),y:Number.parseFloat(el.style.top)
+  }));
+  const t03Before=await t03Pos();
+  // Selecting a node opens the inspector and reflows/adjusts its screen
+  // bounding box; recompute true hit target after the first tap.
+  const t03SelectedBox=await t03Node.boundingBox();
+  const t03DragX=t03SelectedBox.x+t03SelectedBox.width/2;
+  const t03DragY=t03SelectedBox.y+t03SelectedBox.height/2;
+  await t03Tab.evaluate(()=>{
+    window.__t03PointerLog=[];
+    const sale=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    for(const el of [sale,canvas]){
+      for(const type of ["pointerdown","pointermove","pointerup","pointercancel"]){
+        el.addEventListener(type,e=>{
+          window.__t03PointerLog.push({type,pointerType:e.pointerType,
+            target:e.target.getAttribute?.("data-eidos-diagram-node"),
+            current:el.getAttribute("data-eidos-diagram-node")??"canvas",
+            capture:sale.hasPointerCapture(e.pointerId),x:e.clientX,y:e.clientY});
+        },true);
+      }
+    }
+  });
+  const t03Cdp=await t03Context.newCDPSession(t03Tab);
+  await t03Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[{x:t03DragX,y:t03DragY}]
+  });
+  for(let i=1;i<=8;i++)await t03Cdp.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[{x:t03DragX+i*7,y:t03DragY+i*4}]
+  });
+  await t03Cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  const t03After=await t03Pos();
+  console.log("T03_POINTER_DIAGNOSTIC="+JSON.stringify({
+    before:t03Before,after:t03After,
+    events:await t03Tab.evaluate(()=>window.__t03PointerLog)
+  }));
+  assert.ok(Math.hypot(t03After.x-t03Before.x,t03After.y-t03Before.y)>12,
+    "T03 selected node must move after explicit touch dragging threshold");
+  assert.equal(store.getVersion(id),0,
+    "T03 touch node edit must remain an unsaved local presentation edit");
+  await t03Context.close();
+  console.log("DIAGRAM_T03_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T03",browser:"Chromium "+browser.version(),
+    explicitFirstTapSelection:true,syntheticTouchDraggedSelectedNode:true,
+    localPresentationOnly:true,readonlyViewerGestureNotCovered:true,
+    physicalDeviceVerified:false
+  }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
