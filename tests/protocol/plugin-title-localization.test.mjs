@@ -109,3 +109,32 @@ test('protocol validates optional title metadata while retaining old-manifest co
   }
   assert.equal(validatePluginManifestV010({...fixture, displayNameTranslations: undefined}).ok, true);
 });
+
+test('catalog descriptions stay within 50 characters and render inside collapsed details in every locale', async () => {
+  const { renderExtensionManagerToHtml } = await import('../../dist/vendor/eidos/src/extension-manager/index.js');
+  const snapshot = { contractVersion: '0.1.0', installedPackages: [], activeFeatures: [] };
+  for (const pkg of packages.values()) {
+    assert.ok(pkg.description?.trim(), pkg.packageId);
+    assert.ok([...pkg.description].length <= 50, `${pkg.packageId}: ${[...pkg.description].length}`);
+    assert.match(pkg.description, /[\u4e00-\u9fff]/);
+    if (pkg.type === 'FOUNDATION_RUNTIME') continue;
+    for (const locale of [...locales, 'fr-FR']) {
+      const page = createPluginStorePage([pkg], snapshot, { locale });
+      assert.equal(page.items[0].detailsDescription, pkg.description);
+      const html = renderExtensionManagerToHtml(page);
+      assert.match(html, /<details data-eidos-extension-technical><summary>/);
+      const details = html.slice(html.indexOf('<details data-eidos-extension-technical>'));
+      assert.ok(details.includes(`<p data-eidos-extension-details-description>${pkg.description}</p>`));
+      assert.ok(!html.slice(0, html.indexOf('<details data-eidos-extension-technical>')).includes(pkg.description));
+    }
+  }
+});
+
+test('optional description preserves legacy manifests and rejects invalid metadata', () => {
+  const pkg = packages.values().next().value;
+  for (const description of [null, 7, '', '  ']) {
+    const result = validatePluginManifestV010({ ...pkg, description });
+    assert.ok(result.issues.some(issue => issue.code === 'PLUGIN_DESCRIPTION_INVALID'));
+  }
+  assert.ok(!validatePluginManifestV010({ ...pkg, description: undefined }).issues.some(issue => issue.code === 'PLUGIN_DESCRIPTION_INVALID'));
+});

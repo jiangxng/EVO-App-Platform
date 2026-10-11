@@ -17,6 +17,7 @@ on:
       - 'manager/provider-manager-page.ts'
       - 'manager/server.ts'
       - 'vendor/eidos/src/localization/**'
+      - 'vendor/eidos/src/extension-manager/**'
       - 'tests/protocol/plugin-title-localization.test.mjs'
       - '.github/workflows/plugin-title-localization.yml'
 jobs:

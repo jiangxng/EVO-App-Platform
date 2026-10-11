@@ -356,6 +356,8 @@ export interface PackageManifestV010 {
   displayName: string;
   /** Catalog presentation metadata; available before install and while disabled. */
   displayNameTranslations?: Record<string, string>;
+  /** Optional catalog purpose; currently Chinese fallback shared by all locales. */
+  description?: string;
   version: string;
   type: PackageType;
   compatibility?: PluginCompatibilityV010;

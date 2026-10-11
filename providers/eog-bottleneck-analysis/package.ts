@@ -15,6 +15,7 @@ export const eogBottleneckAnalysisProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID,
   displayName: "EOG Bottleneck Analysis Provider",
+  description: "分析企业运行图与运行事实，辅助识别业务瓶颈。",
   displayNameTranslations: {
     "en": "EOG Bottleneck Analysis Provider",
     "zh-CN": "EOG 运行瓶颈分析服务",

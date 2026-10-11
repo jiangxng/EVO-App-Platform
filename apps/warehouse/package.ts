@@ -30,6 +30,7 @@ export const warehousePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: WAREHOUSE_PACKAGE_ID,
   displayName: "EVO Warehouse",
+  description: "管理仓库与库位基础资料，供业务单据引用存放位置。",
   displayNameTranslations: {
     "en": "EVO Warehouse",
     "zh-CN": "EVO 仓库与库位",

@@ -9,6 +9,7 @@ export const hostEncryptedSecretsProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_ENCRYPTED_SECRETS_PACKAGE_ID,
   displayName: "Host Encrypted Secrets Provider",
+  description: "加密保管模型密钥等敏感凭据，向获授权插件提供凭据解析。",
   displayNameTranslations: {
     "en": "Host Encrypted Secrets Provider",
     "zh-CN": "加密凭据管理服务",

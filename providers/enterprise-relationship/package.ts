@@ -9,6 +9,7 @@ export const hostEnterpriseRelationshipProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID,
   displayName: "Host Enterprise Relationship Provider",
+  description: "管理企业成员关系与邀请状态，支持成员加入、退出和角色治理。",
   displayNameTranslations: {
     "en": "Host Enterprise Relationship Provider",
     "zh-CN": "企业成员关系服务",

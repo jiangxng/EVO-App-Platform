@@ -11,6 +11,7 @@ export const hostMemoryIntakeProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_MEMORY_INTAKE_PACKAGE_ID,
   displayName: "Host Memory Intake Provider",
+  description: "接收记忆来源资料并保留证据，支持后续提案与人工审核。",
   displayNameTranslations: {
     "en": "Host Memory Intake Provider",
     "zh-CN": "记忆资料接入服务",

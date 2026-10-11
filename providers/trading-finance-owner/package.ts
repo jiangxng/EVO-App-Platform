@@ -14,6 +14,7 @@ export const tradingFinanceOwnerProviderPackageV010: PackageManifestV010 = {
   contractVersion:"0.1.0",
   packageId:TRADING_FINANCE_OWNER_PACKAGE_ID_V010,
   displayName:"EVO Trusted Trading Finance Owner (Read-only)",
+  description:"只读核验交易财务事实及版本凭据，不执行财务写入。",
   displayNameTranslations: {
     "en": "EVO Trusted Trading Finance Owner (Read-only)",
     "zh-CN": "EVO 可信交易财务核验服务（只读）",

@@ -110,6 +110,10 @@ export function validatePluginManifestV010(
     }
   }
 
+  if (pkg.description !== undefined && (typeof pkg.description !== "string" || !pkg.description.trim())) {
+    add("PLUGIN_DESCRIPTION_INVALID", "description", "Expected a non-empty description.");
+  }
+
   if (!pkg.version.trim()) {
     add("PLUGIN_VERSION_REQUIRED", "version", "version is required.");
   }

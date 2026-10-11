@@ -142,6 +142,21 @@
       ],
       "status": "SCOPED_PIN_WITH_EXPLICIT_HOST_OVERLAY",
       "note": "Top-level sourceCommit records the older broad Eidos runtime snapshot, not this newer independently pinned 2D component. Exactly 15 of 16 diagram files must match the upstream commit byte-for-byte. Scope does not imply all other vendored Eidos assets have been synchronized. As of 2026-10-11, the declared Platform Host overlay also contains a scoped forward-port from the earlier Eidos owner branch #161; this is NOT an assertion that the upstream main 3fde source includes that change."
+    },
+    {
+      "component": "eidos.extension-manager",
+      "sourceRepository": "jiangxng/eidos",
+      "sourceCommit": "7b346ca60d1c5fc9922c9010951f37463258cc78",
+      "sourcePath": "src/extension-manager",
+      "vendoredPath": "vendor/eidos/src/extension-manager",
+      "status": "SCOPED_PIN_OWNER_PR_PENDING",
+      "ownerPullRequest": "https://github.com/jiangxng/eidos/pull/175",
+      "upstreamFileBlobs": {
+        "contracts.ts": "719c14bad09a7e70f67329ac1914ed282ecb3e48",
+        "render.ts": "35009f5eed399d10652d21607afc9302bf5e428e",
+        "index.ts": "0dbc0818b7ef01f37e5659209ebf093102990f59"
+      },
+      "note": "Only Extension Manager is pinned here. Optional detailsDescription adds escaped text inside existing collapsed details; no other Eidos modules or Host overlays are synchronized."
     }
   ]
 }

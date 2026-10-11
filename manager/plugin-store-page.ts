@@ -164,6 +164,7 @@ export function createPluginStorePage(
         return {
           id: pkg.packageId,
           title: resolvePackageDisplayNameV010(pkg, options.locale),
+          detailsDescription: pkg.description,
           description: `${pkg.features.length} Feature(s) · ${provides.length} provided Capability(ies) · ${requires.length} required Capability(ies)`,
           version: pkg.version,
           category: pkg.type,

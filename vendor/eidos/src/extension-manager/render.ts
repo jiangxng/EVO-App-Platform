@@ -97,7 +97,8 @@ function technicalDetails(item: ExtensionManagerItemV010): string {
     ? "<span data-eidos-extension-runtime-tag>Events: " + esc(item.events.publish.length) + " pub / " + esc(item.events.subscribe.length) + " sub</span>"
     : "";
 
-  return compatibility
+  return (item.detailsDescription ? "<p data-eidos-extension-details-description>" + esc(item.detailsDescription) + "</p>" : "")
+    + compatibility
     + integrity
     + "<div data-eidos-extension-section><span data-eidos-extension-section-title>Activation & Runtime</span>"
     + "<div data-eidos-extension-tags>" + activation + runtime + runtimeMetrics + storage + eventSummary

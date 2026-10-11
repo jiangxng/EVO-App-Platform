@@ -11,6 +11,7 @@ export const externalAgentGovernancePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID,
   displayName: "EVO External Agent Governance",
+  description: "管理外部代理的接入授权与访问范围，支持审计和撤销。",
   displayNameTranslations: {
     "en": "EVO External Agent Governance",
     "zh-CN": "EVO 外部代理授权管理",

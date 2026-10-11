@@ -26,6 +26,7 @@ export const tradingReferencePackageV010: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
   displayName: "EVO Trading Reference",
+  description: "提供采购等交易参考流程，验证基础对象与业务插件的协作。",
   displayNameTranslations: {
     "en": "EVO Trading Reference",
     "zh-CN": "EVO 交易参考流程",

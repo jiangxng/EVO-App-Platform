@@ -18,6 +18,7 @@ export const responsibilityPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: RESPONSIBILITY_PACKAGE_ID,
   displayName: "EVO Responsibility",
+  description: "定义职责及其业务范围，为个人工作视图提供职责依据。",
   displayNameTranslations: {
     "en": "EVO Responsibility",
     "zh-CN": "EVO 职责管理",

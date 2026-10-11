@@ -36,6 +36,7 @@ export const itemPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ITEM_PACKAGE_ID,
   displayName: "EVO Item",
+  description: "管理物料基础资料，为采购、销售等业务提供统一物料引用。",
   displayNameTranslations: {
     "en": "EVO Item",
     "zh-CN": "EVO 物料",

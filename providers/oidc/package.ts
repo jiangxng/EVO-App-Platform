@@ -14,6 +14,7 @@ export const genericOidcIdentityProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: GENERIC_OIDC_PACKAGE_ID,
   displayName: "Generic OIDC Identity Provider",
+  description: "通过 OIDC 对接身份服务，支持用户登录与身份认证。",
   displayNameTranslations: {
     "en": "Generic OIDC Identity Provider",
     "zh-CN": "OIDC 身份认证服务",
