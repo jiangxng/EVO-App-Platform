@@ -1,0 +1,108 @@
+name: Final Diagram v1 Merged Ref Retirement
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/diagram-v1-final-merged-ref-retirement-20261012.json"
+      - ".github/workflows/diagram-v1-final-merged-ref-retirement-20261012.yml"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/diagram-v1-final-merged-ref-retirement-20261012.json"
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  audit-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Audit exact merged heads and retire only on main
+        uses: actions/github-script@v7
+        env:
+          EXECUTE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          script: |
+            const fs=require('node:fs');
+            const {owner,repo}=context.repo;
+            const execute=process.env.EXECUTE==='true';
+            const selfNumber=778;
+            const selfHead='chore/diagram-v1-final-converge-refs-20261012';
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Repository mismatch');
+            if(execute&&(context.eventName!=='push'||context.ref!=='refs/heads/main'))
+              throw Error('Main push required for deletion');
+            const manifest=JSON.parse(fs.readFileSync('repository-hygiene/diagram-v1-final-merged-ref-retirement-20261012.json','utf8'));
+            if(manifest.schemaVersion!==1||manifest.scope!=='diagram-v1-final-three-merged-refs-20261012'||
+               !Array.isArray(manifest.records)||manifest.records.length!==3)
+              throw Error('Invalid retirement manifest');
+            const approved=new Map([
+              [715,'docs/diagram-v1-recovery-20261011'],
+              [762,'docs/diagram-v1-batch1-window-handoff-20261011'],
+              [776,'chore/diagram-v1-retire-merged-refs-20261011']
+            ]);
+            const sha=/^[0-9a-f]{40}$/i,seen=new Set();
+            for(const r of manifest.records){
+              if(approved.get(r.number)!==r.head||seen.has(r.head)||
+                 !sha.test(r.expectedHeadSha)||!sha.test(r.mergeCommitSha))
+                throw Error('Unapproved or duplicate candidate '+r.head);
+              seen.add(r.head);
+            }
+            if(seen.size!==approved.size)throw Error('Incomplete candidate set');
+            const latestMain=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const base=await github.rest.repos.compareCommits({owner,repo,base:manifest.baselineMainSha,head:latestMain});
+            if(base.data.behind_by!==0||base.data.merge_base_commit?.sha!==manifest.baselineMainSha)
+              throw Error('Main history changed since audit');
+            const reserved=async()=>{
+              const prs=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+              const refs=new Set(['main']);
+              for(const pr of prs){refs.add(pr.base.ref);
+                if(pr.head.repo?.full_name===owner+'/'+repo)refs.add(pr.head.ref);}
+              return refs;
+            };
+            const verify=async(r)=>{
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:r.number})).data;
+              if(!pr.merged||pr.state!=='closed'||pr.base.ref!=='main'||
+                 pr.head.repo?.full_name!==owner+'/'+repo||
+                 pr.head.ref!==r.head||pr.head.sha!==r.expectedHeadSha||
+                 pr.merge_commit_sha!==r.mergeCommitSha)
+                throw Error('PR provenance mismatch #'+r.number);
+              const cmp=await github.rest.repos.compareCommits({owner,repo,base:r.mergeCommitSha,head:latestMain});
+              if(cmp.data.behind_by!==0||cmp.data.merge_base_commit?.sha!==r.mergeCommitSha||
+                 !['ahead','identical'].includes(cmp.data.status))
+                throw Error('Missing merged commit in main #'+r.number);
+              const current=(await github.rest.git.getRef({owner,repo,ref:'heads/'+r.head})).data;
+              if(current.object.sha!==r.expectedHeadSha)throw Error('Branch SHA drift '+r.head);
+              if((await github.rest.repos.getBranch({owner,repo,branch:r.head})).data.protected)
+                throw Error('Protected source branch '+r.head);
+            };
+            const used=await reserved();
+            for(const r of manifest.records){
+              if(used.has(r.head))throw Error('Open PR reserves '+r.head);
+              await verify(r);
+              core.info('FINAL_DIAGRAM_VERIFIED '+r.head+' '+r.expectedHeadSha);
+            }
+            if(!execute){core.info('AUDIT_ONLY_FINAL_DIAGRAM_REFS='+manifest.records.length);return;}
+            const selfPR=(await github.rest.pulls.get({owner,repo,pull_number:selfNumber})).data;
+            if(!selfPR.merged||selfPR.state!=='closed'||selfPR.base.ref!=='main'||
+               selfPR.head.repo?.full_name!==owner+'/'+repo||selfPR.head.ref!==selfHead||
+               !sha.test(selfPR.head.sha)||!sha.test(selfPR.merge_commit_sha))
+              throw Error('Self retirement PR not safely merged');
+            const self={number:selfNumber,head:selfHead,expectedHeadSha:selfPR.head.sha,
+              mergeCommitSha:selfPR.merge_commit_sha};
+            if(used.has(selfHead))throw Error('Open PR uses cleanup branch');
+            await verify(self);
+            core.info('FINAL_DIAGRAM_VERIFIED '+self.head+' '+self.expectedHeadSha);
+            const latestUsed=await reserved();
+            const targets=[...manifest.records,self];
+            for(const r of targets)if(latestUsed.has(r.head))
+              throw Error('Open PR appeared for '+r.head);
+            for(const r of targets){
+              const now=(await github.rest.git.getRef({owner,repo,ref:'heads/'+r.head})).data;
+              if(now.object.sha!==r.expectedHeadSha)throw Error('SHA lease changed '+r.head);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+r.head});
+              core.info('FINAL_DIAGRAM_DELETED '+r.head+' '+r.expectedHeadSha);
+            }
+            core.info('FINAL_DIAGRAM_DELETED_COUNT='+targets.length);
