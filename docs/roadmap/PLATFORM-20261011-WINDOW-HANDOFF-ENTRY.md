@@ -58,3 +58,10 @@
 2. 新窗口开始先重查 GitHub main、branches、open PR、Railway pinned deploy、EVO main。遇到变更只修正增量，不覆盖独立 2D/Agent 工作。
 3. 当前交接分支为 **docs/platform-convergence-window-handoff-20261011**；精确 handoff commit SHA 与 PR 由完成交接时 GitHub 实际返回值确定，不在文档中猜测。
 4. 没有从公网抓取第三方商业技术文章、没有本窗口截图或附件；官方外链若未直接访问，标为待核查。不要补造作者、发布时间或截图位置。
+
+
+## 2026-10-11 本窗口接续增量（不同于以上交接时点快照）
+
+- **F0 小步已合 main**：[PR #775](https://github.com/jiangxng/EVO-App-Platform/pull/775)，squash merge `014196f7a52f7051ef9a0fa8ea524e14b23169de`。仅提取旧四 peer 源码中现代测试未覆盖的 Eidos 渲染、插件独立启停、禁止财务写入回归；包含 [F0/F2 源码回收证据](https://github.com/jiangxng/EVO-App-Platform/blob/014196f7a52f7051ef9a0fa8ea524e14b23169de/docs/archive/PLATFORM-20261011-F0-FOUR-PEER-SOURCE-RECOVERY.md)。
+- 最新 head `d2f560074b4a46290cec6e6e784e7deb6b8a94d3` 的 [Platform CI 38153528258](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528258) 和 [Continuity 38153528267](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528267) 均 SUCCESS。因 main 并行 2D 前进而触发的 GitHub required-check 阻断，已通过非强制正常同步 main + 新 CI 合法解决。**没有触发 Railway 新部署；没有删除 14 条 TR-01 源分支。**
+- 当前只完成 **F0 的第一小项**，不是 F0–F4 全部关闭，亦未开始 Purchasing 真实实现。最新的 F1/F2/F4 审查在同批 Evidence、Decisions、Source Index 追加小节中；以上旧 SHA/count 保留为历史快照，不直接覆盖。
