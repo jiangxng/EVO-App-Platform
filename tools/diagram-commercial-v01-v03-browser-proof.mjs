@@ -279,6 +279,50 @@ try{
     syntheticOnly:true,physicalDeviceVerified:false
   }));
   await v06Tab.close();
+  // M01: native left-button drag on blank canvas creates a marquee and selects
+  // the enclosed node without changing the camera or saved projection.
+  const m01Before=await tab.evaluate(()=>{
+    const sale=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const other=document.querySelector('[data-eidos-diagram-node="receipt"]');
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    const a=sale.getBoundingClientRect(), b=other.getBoundingClientRect();
+    const v=canvas.getBoundingClientRect();
+    const start={x:a.left-24,y:a.top-24};
+    const end={x:a.right+24,y:a.bottom+24};
+    return {start,end,canvas:{left:v.left,top:v.top,right:v.right,bottom:v.bottom},
+      other:{left:b.left,top:b.top},
+      transform:sale.parentElement.style.transform,
+      startTarget:document.elementFromPoint(start.x,start.y)?.getAttribute("data-eidos-diagram-node"),
+      endTarget:document.elementFromPoint(end.x,end.y)?.getAttribute("data-eidos-diagram-node")};
+  });
+  assert.equal(m01Before.startTarget,null,"M01 marquee must start on blank canvas");
+  assert.equal(m01Before.endTarget,null,"M01 marquee must end on blank canvas");
+  assert.ok(m01Before.start.x>m01Before.canvas.left
+    &&m01Before.end.x<m01Before.canvas.right
+    &&m01Before.start.y>m01Before.canvas.top
+    &&m01Before.end.y<m01Before.canvas.bottom,"M01 drag stays inside canvas");
+  await tab.mouse.move(m01Before.start.x,m01Before.start.y);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(m01Before.end.x,m01Before.end.y,{steps:10});
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),1,
+    "M01 real left-drag draws an active selection rectangle");
+  await tab.mouse.up({button:"left"});
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),0);
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),
+    "true","M01 enclosed node must be selected");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),
+    "false","M01 excluded node must remain unselected");
+  const m01After=await tab.evaluate(()=>document.querySelector(
+    '[data-eidos-diagram-node="sale"]').parentElement.style.transform);
+  assert.equal(m01After,m01Before.transform,
+    "M01 dragging to marquee may not accidentally pan/zoom the canvas");
+  assert.equal(store.getVersion(id),0,"M01 marquee is presentation-only and unsaved");
+  console.log("DIAGRAM_M01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M01",browser:"Chromium "+browser.version(),
+    nativeBlankCanvasLeftDrag:true,marqueeVisibleDuringDrag:true,
+    enclosedNodeSelected:true,excludedNodeNotSelected:true,cameraUnchanged:true,
+    syntheticOnly:true,physicalMouseDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
