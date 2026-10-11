@@ -110,10 +110,21 @@ const v06State={...initial.result,nodes:initial.result.nodes.map((node,i)=>({
   ...node,issue:i===0?{level:"error",message:"Required business mapping is missing"}
     :{level:"warning",message:"Settlement review pending"}
 }))};
+const e01State={
+  ...initial.result,
+  nodes:[
+    {...initial.result.nodes[0],x:80,y:210},
+    {...initial.result.nodes[1],x:640,y:210},
+    {id:"obstacle",kind:"subject",label:"Mandatory approval checkpoint",
+      shape:"rounded-rectangle",x:355,y:180,width:140,height:130}
+  ],
+  edges:initial.result.edges.map(edge=>({...edge,pathKind:"orthogonal"}))
+};
 const html=(mode)=>{
   const readOnly=mode==="viewer";
   const v06=mode==="v06";
   const phone=mode==="phone";
+  const e01=mode==="e01";
   const definition=readOnly?viewer:editor;
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
@@ -123,18 +134,20 @@ const html=(mode)=>{
   const mountName=readOnly?"mountDiagramWorkspacePageV010":"mountDiagramEditorPageV010";
   const json=JSON.stringify(definition).replaceAll("<","\\u003c");
   const issueState=v06?JSON.stringify(v06State).replaceAll("<","\\u003c"):"null";
+  const obstacleState=e01?JSON.stringify(e01State).replaceAll("<","\\u003c"):"null";
   return '<!doctype html><html><head><meta charset="utf-8">'
     +'<meta name="viewport" content="width=device-width,initial-scale=1">'
     +'<style>html,body{margin:0}main{width:'+(phone?'100vw':'1200px')+';height:'+(phone?'100dvh':'760px')+'}'
     +'[data-eidos-diagram-editor]{height:'+(phone?'100%':'750px')+'!important;min-height:'+(phone?'700px':'560px')+'}</style></head>'
     +'<body><main id="root">'+shell+'</main>'
     +'<script>window.__definition='+json
+    +';window.__e01State='+obstacleState
     +';window.__v06State='+issueState
     +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
     +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
     +'</script><script type="module">'
     +'import {'+mountName+'} from '+JSON.stringify(modulePath)+';'
-    +'const actionHost={async execute(request){if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
+    +'const actionHost={async execute(request){if(window.__e01State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__e01State};if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
     +'headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
     +'if(!res.ok)throw Error("HTTP "+res.status);return res.json()}};'
     +'window.__mounted='+mountName+'({definition:window.__definition,'
@@ -144,7 +157,7 @@ const html=(mode)=>{
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
-    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"){
+    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
       res.end(html(url.pathname.slice(1)));return;
     }
@@ -1152,6 +1165,53 @@ try{
     physicalSafeAreaVerified:false,physicalDeviceVerified:false
   }));
   await t07Context.close();
+  // E01: 3-node native Chrome business graph, with one blocking node
+  // directly between the endpoints of an automatically routed orthogonal edge.
+  const e01Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e01Tab.goto(base+"/e01",{waitUntil:"load"});
+  await waitReady(e01Tab);
+  const e01Result=await e01Tab.evaluate(edgeId=>{
+    const edge=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    const hit=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const obstacle=document.querySelector('[data-eidos-diagram-node="obstacle"]');
+    if(!edge||!hit||!obstacle)throw Error("E01 missing route/obstacle DOM");
+    const bounds={
+      x:Number.parseFloat(obstacle.style.left),y:Number.parseFloat(obstacle.style.top),
+      width:Number.parseFloat(obstacle.style.width),height:Number.parseFloat(obstacle.style.height)
+    };
+    const samples=400;
+    const length=edge.getTotalLength();
+    const collisions=[];
+    for(let i=0;i<=samples;i++){
+      const p=edge.getPointAtLength(i*length/samples);
+      if(p.x>bounds.x+2 && p.x<bounds.x+bounds.width-2
+        && p.y>bounds.y+2 && p.y<bounds.y+bounds.height-2){
+        collisions.push({x:p.x,y:p.y});
+      }
+    }
+    return {
+      path:edge.getAttribute("d"),obstacle:bounds,
+      count:collisions.length,firstCollision:collisions[0]??null,
+      congested:hit.getAttribute("data-eidos-diagram-route-congested")==="true",
+      warningCount:document.querySelectorAll('[data-eidos-diagram-congestion-warning]').length,
+      summary:document.querySelector('[data-eidos-diagram-congestion-summary]')?.textContent??null,
+      hitCount:document.querySelectorAll('[data-eidos-diagram-edge]').length
+    };
+  },relationId);
+  assert.equal(e01Result.hitCount,1);
+  assert.match(e01Result.path,/^M /,"E01 should render a real SVG route");
+  assert.ok(e01Result.count===0 || (
+    e01Result.congested && e01Result.warningCount>0 && e01Result.summary),
+    "E01 a routed connector may not pass through an obstacle while falsely claiming success");
+  assert.deepEqual(await e01Tab.evaluate(()=>window.__errors),[]);
+  assert.equal(store.getVersion(id),0,"E01 rendering must not persist presentation");
+  console.log("DIAGRAM_E01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E01",browser:"Chromium "+browser.version(),
+    ...e01Result,
+    noSilentObstacleCollision:true,syntheticBusinessFixture:true,
+    physicalDeviceVerified:false
+  }));
+  await e01Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
