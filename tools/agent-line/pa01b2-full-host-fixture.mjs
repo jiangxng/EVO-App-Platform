@@ -66,11 +66,15 @@ const profile=createPersonalAgentExperienceProfileV010({...process.env,
  APP_PLATFORM_STATE_FILE:join(temp,'host-state.json'),
  APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE:join(temp,'governance.json'),
  APP_PLATFORM_ENTERPRISE_RESOURCES_FILE:join(temp,'resources.json'),
- // Explicit narrow AI write permission in disposable fixture only. No production policy changes.
- APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:JSON.stringify({contractVersion:'0.1.0',rules:[{
-  id:'pa01b3-local-ai-import-only',effect:'ALLOW',actions:['data-import.read','data-import.write'],
-  resourceTypes:['enterprise.data-import.job'],subjectIds:['pa01b2-fixture-user'],actorTypes:['AI']
- }]}),
+ // The negative job omits AI WRITE grants entirely; never alters production authorization.
+ ...(process.env.PA01B3_DENY_AI_WRITE==='1' ? {
+   APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:JSON.stringify({contractVersion:'0.1.0',rules:[]})
+ } : {
+   APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:JSON.stringify({contractVersion:'0.1.0',rules:[{
+    id:'pa01b3-local-ai-import-only',effect:'ALLOW',actions:['data-import.read','data-import.write'],
+    resourceTypes:['enterprise.data-import.job'],subjectIds:['pa01b2-fixture-user'],actorTypes:['AI']
+   }]})
+ }),
  NODE_ENV:'test',LOG_LEVEL:'silent'
 });
 const child=spawn(process.execPath,['dist/manager/server.js'],{env:profile.environment,stdio:['ignore','pipe','pipe']});
