@@ -131,3 +131,12 @@
 | F2 / F4 审核 | 12 old CLI tools 完整读取 import、生产限制线索；6 old workflows 完整读取调度及静态/合成门禁；具体依赖矩阵见 #775 新增 archive 文档 | 这些旧脚本未在现代主线及真实 PostgreSQL 全部重跑，不把原 CI 宣称本次 CI_PASS |
 
 **仍待执行**：14 个 B2D3 old source 的同路径功能级差异还需继续 F1/F2/F3/F4；Purchasing 真实应用及人验尚未开始；#771 仍只作 Docs Draft。
+
+
+## 2026-10-12：F2 PostgreSQL 小 PR 实证
+
+- GitHub [PR #777](https://github.com/jiangxng/EVO-App-Platform/pull/777) closed/merged，merge SHA **aa6432f0d525b2ef3ad02c358c9ab83e093238f3**；合并前 head **78a9d299aabf0aaf6d276196645549e7d8f8d945**，同步 main 使用非强制 merge commit，未改并行 Agent/2D 文件。
+- [一次性 PG 16 workflow 38154708390](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708390) SUCCESS，日志实际输出 status=PASS、checks=16、TWO_DISTINCT_REAL_POSTGRES_LOGINS、revokeWithoutReconnect=true、financeTablesTouched=false、actualEvoOwnerListener=NOT_TESTED、productionCertification=NOT_CERTIFIED、executionAllowed=false。
+- [Platform CI 38154708378](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708378) SUCCESS；[Project Continuity 38154708397](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708397) SUCCESS。
+- 保留三版旧工具 blob：V1 79f998e4、V2 e18eb2ce、V3 56b0a439，均未整支恢复；不删 14 条历史 refs，不合并 Finance Draft，未触发 Railway 部署。
+- 新详细决策在主线 [PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/docs/archive/PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md)。
