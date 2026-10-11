@@ -147,3 +147,16 @@ PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既�
 **下一Agent专线门禁**：PA-01B3侧补授权拒绝后Receipt终态确证、错企业/身份及多个字段语义边界、审批/提案真实UX；PA-02A侧补真正独立Node进程重启、PostgreSQL掉线/事务回滚、receipt与业务写入不确定结果reconciliation，再阶段性制定异步handler迁移路线；PA-02B lease/fencing/outbox及PA-02C正式cancel仍OPEN。
 
 全部新代码在#638/#691/#692隔离Draft PR，未改原#575/#577/#579实现或Eidos#142 owner分支，未合并、未部署、未访问生产、不碰TR主线、2D专项、`project.status.json`、`docs/roadmap/HANDOFF-LATEST.md`、全量vendor。原研究14项外链阅读级别未被虚构升级。
+
+
+## 2026-10-12 Agent 专项单阶段分支收敛（最新状态，优先于以上历史快照）
+
+用户要求以“一步一步、一个阶段完成再进main”的方式推进，停止之前拆分成过多活跃分支的流程。此处只记录已经执行的PR操作，不声称历史CI代表当前main全量验收。
+
+- **当前唯一待主线集成的PA-01应用PR为 [#575](https://github.com/jiangxng/EVO-App-Platform/pull/575)**，分支 `agent/pa01a-contextual-turn-identity-20261010`。实际集成内容已不是只含PA-01A：它已依赖顺序吸收 **#577 (PA-01B1) → #579 (PA-01B2) → #638 (B2 native/Host Chromium验收) → #691 (B3能力写入/显式拒绝验收)**；准确集成head在文档写入时为 `e49cdea7d1f192131b59e1e70ffb500facdce8d3`。这些PR的合并目标均是Agent集成分支，**没有合进main或部署生产**。
+- 各中间PR #577、#579、#638、#691 **已merged/closed**；因为仓库 `delete_branch_on_merge=false`，关闭PR不代表其Git ref已删除。不要将剩余Source refs冒称已删除；后续须在确认无open PR依赖且精确head一致后按GitHub的受保护分支退休流程另行清理。
+- [#692](https://github.com/jiangxng/EVO-App-Platform/pull/692) PA-02A PostgreSQL实验已**关闭但未合并**，head `9f794cf928d9a01e55a22c6d5742ea23fd7bc456` 和原源码/CI仍保留为明确的**PAUSED / UNFINISHED**。它不是PA-01的依赖，也绝不能因收敛而混入PA-01功能实现或生产。
+- [#570](https://github.com/jiangxng/EVO-App-Platform/pull/570) 仍承载独立Agent专项研究/验收证据文件；尝试直接合入main时被仓库必需检查 `continuity`（up-to-date/required check）阻止。绝不绕过规则。下一步为将本线文档跟随唯一PA-01集成分支归档，避免第二条活跃开发线。
+- Eidos组件正式owner仍为 [eidos#142](https://github.com/jiangxng/eidos/pull/142)，目前独立Draft/未合并。不得把Platform的vendor窄适配误称为Eidos owner正式合入。
+- **当前尚未完成**：PA-01和变动较大的main重对账、up-to-date CI/required status checks、主线合并、Eidos owner审核、产线部署、真实LLM质量、PA-02持久状态集成/恢复。PA-01分支最初落后main数百提交；不能只凭旧head测试自动合入。
+- **执行规则**：从现在起不新建新的Agent开发分支，单阶段仅保留一个活跃集成PR；测试/文档随本阶段收口。当前先完成PA-01对当前main的集成门禁，再考虑下一阶段。TR/EVO Ledger Runtime/2D和全局 `project.status.json` 不动。
