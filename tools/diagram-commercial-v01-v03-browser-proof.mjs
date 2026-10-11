@@ -1302,6 +1302,82 @@ try{
     nativeMouseSelection:true,syntheticOnly:true,physicalDeviceVerified:false
   }));
   await e02Tab.close();
+  // E03: actual mouse drag of an editable path point and orthogonal segment;
+  // each operation must be a single undoable presentation edit.
+  const e03Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e03Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e03Tab);
+  const e03Route=()=>shape(e03Tab);
+  const e03Hit=await e03Tab.evaluate(edgeId=>{
+    const h=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=h.getScreenCTM(),length=h.getTotalLength();
+    for(let f=.12;f<.89;f+=.04){
+      const p=h.getPointAtLength(length*f);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e03Hit,"E03 actual business edge must be clickable");
+  await e03Tab.mouse.click(e03Hit.x,e03Hit.y);
+  const e03Kind=e03Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await e03Kind.waitFor({state:"visible"});
+  await e03Kind.selectOption("orthogonal");
+  await e03Tab.getByRole("button",{name:"Add path point"}).click();
+  const e03Initial=await e03Route();
+  const e03DragCenter=async (selector,requiresTop=true)=>e03Tab.evaluate(args=>{
+    for(const handle of document.querySelectorAll(args.selector)){
+      const cx=Number(handle.getAttribute("cx"));
+      const cy=Number(handle.getAttribute("cy"));
+      const m=handle.getScreenCTM();
+      const x=cx*m.a+cy*m.c+m.e,y=cx*m.b+cy*m.d+m.f;
+      const top=document.elementFromPoint(x,y);
+      if(!args.requiresTop||top===handle)return {x,y,axis:handle.getAttribute("aria-label")};
+    }
+    return null;
+  },{selector,requiresTop});
+  const e03Waypoint=await e03DragCenter(
+    '[data-eidos-diagram-waypoint-handle="'+relationId+':0"]');
+  assert.ok(e03Waypoint,"E03 actual waypoint needs a pointer-hit control");
+  await e03Tab.mouse.move(e03Waypoint.x,e03Waypoint.y);
+  await e03Tab.mouse.down({button:"left"});
+  await e03Tab.mouse.move(e03Waypoint.x+46,e03Waypoint.y-31,{steps:8});
+  assert.notEqual(await e03Route(),e03Initial,
+    "E03 path point drag must visibly update SVG before mouse release");
+  await e03Tab.mouse.up({button:"left"});
+  const e03WaypointCommitted=await e03Route();
+  assert.notEqual(e03WaypointCommitted,e03Initial);
+  await e03Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e03Tab.keyboard.press("Control+z");
+  assert.equal(await e03Route(),e03Initial,
+    "E03 one Undo must restore exact pre-drag waypoint path");
+  const e03Segment=await e03DragCenter(
+    '[data-eidos-diagram-segment-handle^="'+relationId+':"]');
+  assert.ok(e03Segment,
+    "E03 at least one actual orthogonal segment must be directly hit-testable");
+  await e03Tab.mouse.move(e03Segment.x,e03Segment.y);
+  await e03Tab.mouse.down({button:"left"});
+  await e03Tab.mouse.move(e03Segment.x+55,e03Segment.y+45,{steps:8});
+  assert.notEqual(await e03Route(),e03Initial,
+    "E03 orthogonal segment drag must visibly change actual SVG geometry");
+  await e03Tab.mouse.up({button:"left"});
+  assert.notEqual(await e03Route(),e03Initial);
+  await e03Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e03Tab.keyboard.press("Control+z");
+  assert.equal(await e03Route(),e03Initial,
+    "E03 one Undo must restore exact pre-drag orthogonal segment");
+  assert.equal(store.getVersion(id),0,
+    "E03 editing and Undo without explicit Save must not write CAS");
+  assert.deepEqual(await e03Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E03_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E03",browser:"Chromium "+browser.version(),
+    nativeWaypointDrag:true,nativeSegmentDrag:true,
+    inMotionSVGPreview:true,oneUndoPerOperation:true,
+    businessSourceTargetUnchanged:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e03Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
