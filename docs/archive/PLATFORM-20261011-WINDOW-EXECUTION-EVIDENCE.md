@@ -116,3 +116,18 @@
 2. 最新 main/PR/ref 与 Railway 固定部署再核验，因为交接期间 2D 专项持续写 main；不要照搬历史 totals。
 3. 将 B2D3 14 条按 F0–F4 做逐项源 SHA、同路径 diff、可复用测试、受管 runtime 语义边界 review。能以小 PR 验证并合入的做；不能安全吸收的留下归档原因，不强删。
 4. 用户明确选定的开发节奏是**一个应用一个验收**，从 Purchasing 开始，未等到上一应用用户签收前不并行做下一个。
+
+
+## G. 新窗口实际执行增量（2026-10-11）
+
+| 事项 | 当前状态/精确证据 | 边界 |
+| --- | --- | --- |
+| 14 TR-01 源 refs 重查 | GitHub branch API 查得原先列明的 14 个名字及 SHA 完全一致；读取时全库 77 branches（此前交接分支已增加，另有并行 Diagram 新 refs） | 数量是此轮操作前快照，当前不把 77 写成永久数 |
+| 13 open PR 快照 | PR API 共 13；#771 Docs Draft open，#594 Finance Draft open，EVO #108 open/draft；新增 #775 后计数另有变化 | 并行窗口增减属正常，旧数字不直接比较宣称漏项 |
+| Railway 部署重查 | `Ledger Configurator` service a8622238...，commit pin `a35d68ddef5abbf1adfa3290317e9a069ddc449f`；deployment `ded25373-a791-498c-a6c4-15cd1309d62a` SUCCESS，1/1 Online、无 severe issues、无 staged changes | 没有变更源或重部署；production 仅集成测试名 |
+| F0 源码回收 | [#775](https://github.com/jiangxng/EVO-App-Platform/pull/775) 合 main `014196f7a52f7051ef9a0fa8ea524e14b23169de`；原 head 经非强制并行 main merge 更新到 `d2f560074b4a46290cec6e6e784e7deb6b8a94d3` | 仅新增 `tests/protocol/platform-f0-four-peer-source-recovery.test.mjs` 和 `docs/archive/PLATFORM-20261011-F0-FOUR-PEER-SOURCE-RECOVERY.md` |
+| CI 定版 | [Platform CI 38153528258](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528258) SUCCESS；[Continuity 38153528267](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528267) SUCCESS；合并 API 返回 `merged:true` | 不等于 Railway 部署/真经营账本/用户验收 |
+| F1 功能同名审核 | finance-intent-admission、finance-owner-remote 两文件主线与 #594 旧分支相同 blob；Provider Manifest main 包含后补 title locale，仍标注 executionAllowed false | Draft #594 禁止合并，经济合约未获正式认证 |
+| F2 / F4 审核 | 12 old CLI tools 完整读取 import、生产限制线索；6 old workflows 完整读取调度及静态/合成门禁；具体依赖矩阵见 #775 新增 archive 文档 | 这些旧脚本未在现代主线及真实 PostgreSQL 全部重跑，不把原 CI 宣称本次 CI_PASS |
+
+**仍待执行**：14 个 B2D3 old source 的同路径功能级差异还需继续 F1/F2/F3/F4；Purchasing 真实应用及人验尚未开始；#771 仍只作 Docs Draft。
