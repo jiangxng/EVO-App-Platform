@@ -11,7 +11,7 @@ export const stagePreviewEnabledV010 = () =>
   process.env.APP_PLATFORM_TR01B_STAGE_DEMO === "enabled";
 
 export interface TradingStageDemoSpecV010 {
-  domain: "sales" | "shipment" | "receivable" | "cash";
+  domain: "purchasing" | "receiving" | "sales" | "shipment" | "receivable" | "cash";
   titleZh: string;
   titleEn: string;
   descriptionZh: string;
@@ -19,7 +19,7 @@ export interface TradingStageDemoSpecV010 {
   referenceOrderNo: string;
   statusZh: string;
   fields: Readonly<Record<string, string | number | boolean>>;
-  nextDomain?: "sales" | "shipment" | "receivable" | "cash";
+  nextDomain?: TradingStageDemoSpecV010["domain"];
 }
 
 export const stageRouteV010 = (domain: TradingStageDemoSpecV010["domain"]) =>
@@ -107,7 +107,7 @@ export function stagePageV010(s: TradingStageDemoSpecV010): CatalogBrowserV010 {
       badges:["SYNTHETIC","READ-ONLY"],
       status:{label:s.statusZh+"（模拟）",tone:"neutral"},
       metadata:{
-        "来源":"TR-01B 阶段合成样例",
+        "来源":"TR-01 阶段合成样例",
         "业务链订单":s.referenceOrderNo,
         ...s.fields,
         "财务写入":"禁止",
