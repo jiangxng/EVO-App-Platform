@@ -1,5 +1,8 @@
 # 平台分支收敛与六应用逐项验收 — 决策、方案比较、冲突及未决问题
 
+> **最新用户约束（2026-10-12）**：此窗口停止开发扩张，只清理和归档插件平台现有分支。历史建议中的 F1/F2 新 CI、Finance Owner 实施、Purchasing 等六应用开发已暂停。具体 [按七个独立插件的当前真实状态和 33 条分支归属](./PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md)：六个 Trading APPLICATION + Finance Owner PROVIDER 全部标记 **PRODUCT_UNFINISHED**；其余现有平台插件不擅自重判完成。
+
+
 > 2026-10-11 的决策记录。**用户明确决定**、**GitHub/EVO/Railway 可复核事实**及**本窗口工程判断**分别标注。不是 Runtime 新架构 ADR，不是财务投产签收，不替代各独立窗口的决策。
 
 ## 1. 明确目标、用户指令和工作边界
