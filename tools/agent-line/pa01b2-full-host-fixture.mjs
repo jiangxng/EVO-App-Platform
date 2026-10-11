@@ -11,7 +11,7 @@ const temp=mkdtempSync(join(tmpdir(),'evo-pa01b2-e2e-'));
 const artifact=resolve('artifacts/agent-pa01b2-full-browser');
 mkdirSync(artifact,{recursive:true});
 const hostPort=41237,mockPort=41238,hostUrl='http://127.0.0.1:'+hostPort,mockUrl='http://127.0.0.1:'+mockPort;
-let mode='success',requestNo=0,closed=false,hostLog='';
+let mode='success',requestNo=0,closed=false,hostLog='',applyJobId='',applySent=false;
 const mockRequests=[],held=[];
 const json=(r,status,v)=>{r.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});r.end(JSON.stringify(v));};
 async function read(req){const parts=[];for await(const c of req)parts.push(c);return JSON.parse(Buffer.concat(parts).toString()||'{}');}
@@ -21,14 +21,35 @@ const mock=createServer(async(req,res)=>{
   if(req.method==='POST'&&req.url==='/__control'){
    const value=await read(req);
    if(value.mode==='release'){for(const wake of held.splice(0))wake();}
-   else if(['success','hold','fail'].includes(value.mode))mode=value.mode;
+   else if(['success','hold','fail','apply'].includes(value.mode)){
+    mode=value.mode;
+    if(mode==='apply'){
+     if(typeof value.importJobId!=='string'||!value.importJobId.startsWith('import-'))return json(res,400,{error:'APPLY_JOB_REQUIRED'});
+     applyJobId=value.importJobId;applySent=false;
+    }
+   }
    else return json(res,400,{error:'INVALID_MODE'});
    return json(res,200,{mode,holding:held.length});
   }
   if(req.method==='POST'&&req.url==='/v1/responses'){
-   await read(req);const action=mode,id=++requestNo;mockRequests.push({id,mode:action});
+   const requestBody=await read(req);const action=mode,id=++requestNo;mockRequests.push({id,mode:action});
    if(action==='hold')await new Promise(resolve=>held.push(resolve));
    if(action==='fail')return json(res,503,{error:{message:'PA01B2_ISOLATED_MODEL_FAILURE'}});
+   if(action==='apply' && !applySent){
+    applySent=true;
+    const available=(requestBody.tools??[]).some(tool=>tool.name==='evo_capabilities_invoke_write');
+    if(!available)return json(res,422,{error:{message:'AGENT_WRITER_CAPABILITY_NOT_AUTHORIZED_IN_TEST'}}); 
+    const argumentsText=JSON.stringify({operationId:'enterprise.data-import.mapping.apply',
+      input:{importJobId:applyJobId,mapping:[
+       {sourceColumn:'往来编码',targetFieldId:'code'},
+       {sourceColumn:'往来名称',targetFieldId:'displayName'},
+       {sourceColumn:'主体类型',targetFieldId:'subjectType'}
+      ],dryRun:true}});
+    return json(res,200,{id:'resp-write-'+id,object:'response',status:'completed',
+      model:'agent-pa01b2-test-model',
+      output:[{type:'function_call',call_id:'call-fixture-'+id,name:'evo_capabilities_invoke_write',arguments:argumentsText}],
+      usage:{input_tokens:9,output_tokens:16}});
+   }
    return json(res,200,{id:'resp-fixture-'+id,object:'response',status:'completed',model:'agent-pa01b2-test-model',
      output:[{type:'message',role:'assistant',content:[{type:'output_text',text:'Fixture response completed without business write.'}]}],
      usage:{input_tokens:6,output_tokens:8}});
@@ -45,6 +66,18 @@ const profile=createPersonalAgentExperienceProfileV010({...process.env,
  APP_PLATFORM_STATE_FILE:join(temp,'host-state.json'),
  APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE:join(temp,'governance.json'),
  APP_PLATFORM_ENTERPRISE_RESOURCES_FILE:join(temp,'resources.json'),
+ // Product default deliberately allows scoped AI; negative fixture must use explicit DENY precedence.
+ ...(process.env.PA01B3_DENY_AI_WRITE==='1' ? {
+   APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:JSON.stringify({contractVersion:'0.1.0',rules:[{
+    id:'pa01b3-local-ai-import-deny',effect:'DENY',actions:['data-import.read','data-import.write'],
+    resourceTypes:['enterprise.data-import.job'],subjectIds:['pa01b2-fixture-user'],actorTypes:['AI']
+   }]})
+ } : {
+   APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:JSON.stringify({contractVersion:'0.1.0',rules:[{
+    id:'pa01b3-local-ai-import-only',effect:'ALLOW',actions:['data-import.read','data-import.write'],
+    resourceTypes:['enterprise.data-import.job'],subjectIds:['pa01b2-fixture-user'],actorTypes:['AI']
+   }]})
+ }),
  NODE_ENV:'test',LOG_LEVEL:'silent'
 });
 const child=spawn(process.execPath,['dist/manager/server.js'],{env:profile.environment,stdio:['ignore','pipe','pipe']});
