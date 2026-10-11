@@ -107,3 +107,11 @@ EVO Architecture Freeze 是经济模型边界/Replay、可重建一致性承诺�
 - **F2 / 仍 BLOCKED**：12 个遗留 CI 脚本已逐个读取 import / 主要条件，绝大多数依赖旧 `../evo/dist` 和 Finance Owner Draft；选择 V1+V2 的安全意图重新构造独立真实数据库/HTTP 负例，绝不整组无条件搬迁。
 - **F4 / 仍 OPEN**：六份旧 workflow 均已查看原文：Purchase/Receiving 与四 peer 主要重复现有测试；online stage 只是 synthetic CDN probe；Finance descriptor 和 six/twelve lanes 只是 candidate fail-closed。是否补独立 CI 仅由未覆盖的真实安全断言决定。
 - **并行处理与权限**：合并前 GitHub 曾以缺少 `continuity` 必需检查阻断落后 main 的 PR；通过保留并行主线完整 tree 的双父提交及新 CI 后才 merge，未强推/绕过检查。14 旧 refs 均未在该操作退役。
+
+
+## 2026-10-12 F2 决定增量
+
+- **F2-PG-01 DONE（仅小项）**：真正的两组 Postgres LOGIN 而非 SET ROLE，真实权限 42501 拒绝、即时撤权、独立 workflow 和 Platform 全套 CI 通过，合并 #777（aa6432f0）。
+- **明确排除**：将旧 V1/V2/V3 数据库登录脚本整文件迁移、接旧 EVO dist、使用 full EVO API 冒充 finance-only Listener、启用真实 Finance Owner 财务写入。V1 的严格 katalog/owner 判断与 V2 Finance-only 路由隔离仍需依赖正式 owner 边界的后续专门测试。
+- **仍 OPEN**：EVO Draft #108 中存在专用 finance-only app/main 源码，但 EVO main 不包含这些文件；旧 HTTP 404 断言在正式新接口上未被验证。跨实例 nonce、签名、Replay 和成本/Allocation 语义接口更不属于本小项。#594/#108 不合并。
+- **六应用流程不变**：其余 F0-F4 审完再开始 Purchasing；没有用户当前应用验收前不做 Receiving。
