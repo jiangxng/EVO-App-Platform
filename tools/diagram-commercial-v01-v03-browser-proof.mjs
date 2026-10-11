@@ -765,6 +765,11 @@ try{
     x:Number.parseFloat(el.style.left),y:Number.parseFloat(el.style.top)
   }));
   const t03Before=await t03Pos();
+  // Selecting a node opens the inspector and reflows/adjusts its screen
+  // bounding box; recompute true hit target after the first tap.
+  const t03SelectedBox=await t03Node.boundingBox();
+  const t03DragX=t03SelectedBox.x+t03SelectedBox.width/2;
+  const t03DragY=t03SelectedBox.y+t03SelectedBox.height/2;
   await t03Tab.evaluate(()=>{
     window.__t03PointerLog=[];
     const sale=document.querySelector('[data-eidos-diagram-node="sale"]');
@@ -782,10 +787,10 @@ try{
   });
   const t03Cdp=await t03Context.newCDPSession(t03Tab);
   await t03Cdp.send("Input.dispatchTouchEvent",{
-    type:"touchStart",touchPoints:[{x:t03X,y:t03Y}]
+    type:"touchStart",touchPoints:[{x:t03DragX,y:t03DragY}]
   });
   for(let i=1;i<=8;i++)await t03Cdp.send("Input.dispatchTouchEvent",{
-    type:"touchMove",touchPoints:[{x:t03X+i*7,y:t03Y+i*4}]
+    type:"touchMove",touchPoints:[{x:t03DragX+i*7,y:t03DragY+i*4}]
   });
   await t03Cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
   const t03After=await t03Pos();
