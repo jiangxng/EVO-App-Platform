@@ -25,6 +25,7 @@ Host适配器复用已固定Eidos createLocalizationRuntime.resolve，通过包�
 - Eidos设计语言与Experience架构校验通过。
 - 真实浏览器尝试因本地未安装Chromium可执行文件而未运行，不能称浏览器/生产验收通过。
 - CI由plugin-title-localization工作流覆盖未来manifest标题回归；PR完整结果以GitHub检查为准。
+- 首轮标题专项与Platform CI通过；演示工作流的历史首次接入精确diff门禁误套用于后续变更而失败。将首次接入的原严格检查保留在尚未接入的base上；已接入时检查四个注册点各存在一次，并继续原生命周期/默认关闭/隔离测试，不删除或放松实际演示隔离规则。
 
 复现：npm ci；npm run build；node --test tests/protocol/plugin-title-localization.test.mjs tests/protocol/plugin-protocol.test.mjs tests/settings/plugin-settings.test.mjs tests/integration/provider-manager-page.test.mjs tests/app-host/runtime-localization.test.mjs；npm run experience:validate。
 
