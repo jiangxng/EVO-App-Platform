@@ -12,6 +12,10 @@ import {
   receivableStagePackageV010,cashStagePackageV010,
   tradingStageExperienceAssetsV010
 } from '../../dist/catalog/seed.js';
+import {salesStagePageV010} from '../../dist/apps/trading-stage-sales/package.js';
+import {shipmentStagePageV010} from '../../dist/apps/trading-stage-shipment/package.js';
+import {receivableStagePageV010} from '../../dist/apps/trading-stage-receivable/package.js';
+import {cashStagePageV010} from '../../dist/apps/trading-stage-cash/package.js';
 import {
   stagePackageIdV010,stagePageSourceV010,stageRouteV010,
   stagePreviewEnabledV010
@@ -20,6 +24,11 @@ import {
 const domains=['sales','shipment','receivable','cash'];
 const packages=[salesStagePackageV010,shipmentStagePackageV010,
   receivableStagePackageV010,cashStagePackageV010];
+const syntheticAssets=new Map([
+  ...domains.map((d,i)=>[stagePageSourceV010(d),
+    [salesStagePageV010,shipmentStagePageV010,
+     receivableStagePageV010,cashStagePageV010][i]])
+]);
 
 test('TR-01B four peer apps are separate native installable APPLICATION packages with own Eidos Experience',()=>{
   assert.equal(new Set(packages.map(p=>p.packageId)).size,4);
@@ -69,10 +78,11 @@ test('TR-01B stage flag is OFF by default and requires two exact nonproduction c
 });
 
 test('TR-01B real plugin Host lifecycle: install / independently open / disable / enable / uninstall via Eidos',()=>{
-  const assets=new Map([
-    ...tradingStageExperienceAssetsV010
-  ]);
-  assert.equal(assets.size,4,'CI opt-in stage flag must register exactly 4 page fixtures');
+  // Explicit fixture injection tests lifecycle in BOTH ordinary and preview CI.
+  // Real Host seed MUST remain empty unless its two preview settings are present.
+  assert.equal(tradingStageExperienceAssetsV010.size,stagePreviewEnabledV010()?4:0);
+  const assets=new Map(syntheticAssets);
+  assert.equal(assets.size,4);
   const manager=createAppManagerService(createPackageCatalog(packages),
     createMemoryLifecycleStore(),()=>new Date(),assets);
   let page=createPluginStorePage(packages,manager.getSnapshot());
@@ -121,7 +131,7 @@ test('TR-01B real plugin Host lifecycle: install / independently open / disable 
 });
 
 test('TR-01B cross-plugin business reference is deterministic; each plugin owns one synthetic object',()=>{
-  const pages=domains.map(k=>tradingStageExperienceAssetsV010.get(stagePageSourceV010(k)));
+  const pages=domains.map(k=>syntheticAssets.get(stagePageSourceV010(k)));
   const ids=['DEMO-SO-1001','DEMO-SHIP-1001','DEMO-AR-1001','DEMO-REC-1001'];
   assert.deepEqual(pages.map(p=>p.items[0].id),ids);
   for(let i=0;i<pages.length;i++){
