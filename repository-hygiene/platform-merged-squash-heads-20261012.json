@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "scope": "platform-squash-pr-retirement-20261012",
+  "baselineMainSha": "1d9b301f418ef17b0d15aa8df982bab17810e9ca",
+  "records": [
+    {
+      "number": 775,
+      "head": "test/platform-f0-four-peer-lifecycle-convergence-20261011",
+      "expectedHeadSha": "d2f560074b4a46290cec6e6e784e7deb6b8a94d3",
+      "mergeCommitSha": "014196f7a52f7051ef9a0fa8ea524e14b23169de"
+    },
+    {
+      "number": 777,
+      "head": "test/platform-f2-disposable-postgres-logins-20261012",
+      "expectedHeadSha": "78a9d299aabf0aaf6d276196645549e7d8f8d945",
+      "mergeCommitSha": "aa6432f0d525b2ef3ad02c358c9ab83e093238f3"
+    },
+    {
+      "number": 779,
+      "head": "test/platform-f1-host-signed-loopback-proof-20261012",
+      "expectedHeadSha": "c65447b2478c56ca8a808ce560f2b1fdabcdf2f7",
+      "mergeCommitSha": "09fee6f8f327871b71e0b37a9e19a7f16161db57"
+    }
+  ]
+}
