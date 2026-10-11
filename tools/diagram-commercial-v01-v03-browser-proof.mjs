@@ -23,11 +23,16 @@ import {createEnterpriseDefinition2dPreviewPageV010,
   createEnterpriseDefinition2dPreviewReadActionV010} from "../dist/apps/eog-2d-viewer/definition-preview.js";
 import {renderDiagramEditorPageShellToHtmlV010} from "../dist/vendor/eidos/src/diagram/surface.js";
 import {renderDiagramWorkspacePageShellToHtmlV010} from "../dist/vendor/eidos/src/diagram/workspace.js";
-import {ledgerRuntimeBaselineBundleV010} from "../dist/apps/template-store/seed-records.js";
+import {ledgerRuntimeBaselineBundleV010,templateStoreSeedRecordsV010} from "../dist/apps/template-store/seed-records.js";
+import {createMemoryTemplateStoreRepositoryV010} from "../dist/apps/template-store/repository.js";
+import {createTemplateStorePreviewArtifactSourceV010} from "../dist/apps/template-store/preview-source.js";
+import {createTemplate2dPreviewPageV010,
+  createTemplate2dPreviewReadActionV010} from "../dist/apps/eog-2d-viewer/template-preview.js";
 import {EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION as READ,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION as SAVE}
   from "../dist/apps/eog-2d-designer/package.js";
-import {EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION as VIEW}
+import {EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION as VIEW,
+  EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION as TEMPLATE_VIEW}
   from "../dist/apps/eog-2d-viewer/package.js";
 
 const chrome=process.env.CHROME;
@@ -78,6 +83,17 @@ const request=(code,values)=>({
 });
 const store=createFileDefinitionProjectionStoreV010(storage);
 const artifactSource=createEnterpriseDefinitionProjectionArtifactSourceV010(repo,store);
+const templateRepository=createMemoryTemplateStoreRepositoryV010(templateStoreSeedRecordsV010);
+const templateSource=createTemplateStorePreviewArtifactSourceV010(templateRepository);
+const templateRecord=templateStoreSeedRecordsV010.find(item=>item.version===3);
+assert.ok(templateRecord,"D04 needs a real immutable published Template Store version");
+const templateProjectionId=templateRecord.bundle.definition.projectionGallery?.primaryProjectionId;
+assert.ok(templateProjectionId,"D04 published Template Store needs its own projection");
+const templateInput={templateId:templateRecord.templateId,
+  templateVersion:templateRecord.version,projectionId:templateProjectionId};
+const templateArtifact=templateSource.get(templateInput);
+assert.ok(templateArtifact?.diagram2d?.nodes?.length,
+  "D04 actual Template Store projection must have visible diagram nodes");
 const handlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
   repository:repo,projectionStore:store,source:artifactSource,
   sessions:createMemoryDefinitionProjectionSessionStoreV010(),
@@ -87,7 +103,8 @@ const handlers=createEnterpriseDefinitionProjectionEditorActionHandlersV010({
 });
 const actionByCode=new Map([
   ...handlers.map(handler=>[handler.commandCode,handler]),
-  [VIEW,createEnterpriseDefinition2dPreviewReadActionV010({source:artifactSource})]
+  [VIEW,createEnterpriseDefinition2dPreviewReadActionV010({source:artifactSource})],
+  [TEMPLATE_VIEW,createTemplate2dPreviewReadActionV010({source:templateSource})]
 ]);
 const read=actionByCode.get(READ);
 assert.ok(read && actionByCode.has(SAVE),"real projection App handlers must be present");
@@ -105,6 +122,9 @@ const editor=createEnterpriseDefinitionProjectionEditorPageV010({
 });
 const viewer=createEnterpriseDefinition2dPreviewPageV010({
   ...id,title:"Synthetic commercial Viewer",locale:"en-US",camera
+});
+const templateViewer=createTemplate2dPreviewPageV010({
+  ...templateInput,title:"Real immutable Template Store preview"
 });
 const v06State={...initial.result,nodes:initial.result.nodes.map((node,i)=>({
   ...node,issue:i===0?{level:"error",message:"Required business mapping is missing"}
@@ -139,12 +159,12 @@ const e02State={
   ]
 };
 const html=(mode)=>{
-  const readOnly=mode==="viewer";
+  const readOnly=mode==="viewer"||mode==="template";
   const v06=mode==="v06";
   const phone=mode==="phone";
   const e01=mode==="e01";
   const e02=mode==="e02";
-  const definition=readOnly?viewer:editor;
+  const definition=mode==="template"?templateViewer:readOnly?viewer:editor;
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
     : renderDiagramEditorPageShellToHtmlV010(definition);
@@ -178,7 +198,7 @@ const html=(mode)=>{
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
-    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"||url.pathname==="/e02"){
+    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/template"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"||url.pathname==="/e02"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
       res.end(html(url.pathname.slice(1)));return;
     }
@@ -2322,6 +2342,117 @@ try{
     physicalDeviceVerified:false
   }));
   await d03Tab.close();
+
+  // D04: saved Enterprise projection has the same route, placements and
+  // visibility across fresh Designer, readonly Viewer and persisted thumbnail.
+  // Template Store preview is a DIFFERENT immutable source: certify its own
+  // versioned render, never invent automatic Enterprise→Template sync.
+  assert.equal(store.getVersion(id),5,"D04 begins at the committed D03 baseline");
+  const d04Gallery=store.get(id);
+  const d04Item=d04Gallery?.projections.find(x=>x.projectionId===id.projectionId);
+  assert.ok(d04Item,"D04 must read persisted versioned projection item");
+  const d04Saved=await read.execute(request(READ,id),ctx);
+  assert.equal(d04Saved.ok,true);
+  assert.equal(d04Saved.result.edges[0].pathKind,"curve");
+  assert.ok(d04Saved.result.edges[0].waypoints?.length,
+    "D04 saved manual path must remain present in model");
+  const d04Editor=await browser.newPage({viewport:{width:1250,height:820}});
+  const d04Viewer=await browser.newPage({viewport:{width:1250,height:820}});
+  await d04Editor.goto(base+"/designer",{waitUntil:"load"});
+  await d04Viewer.goto(base+"/viewer",{waitUntil:"load"});
+  await waitReady(d04Editor);
+  await waitReady(d04Viewer);
+  const d04Visual=page=>page.evaluate(edgeId=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const edge=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    return {x:Number.parseFloat(node?.style.left),y:Number.parseFloat(node?.style.top),
+      d:edge?.getAttribute("d"),
+      editableButtons:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")]
+        .filter(b=>b.textContent.includes("Save projection")).length};
+  },relationId);
+  const d04Design=await d04Visual(d04Editor);
+  const d04Read=await d04Visual(d04Viewer);
+  assert.deepEqual({...d04Design,editableButtons:0},d04Read,
+    "D04 freshly loaded Designer and real readonly Viewer must have identical painted geometry");
+  assert.equal(d04Design.editableButtons,1);
+  assert.match(d04Design.d,/ C /);
+  const d04SavedPlacement=d04Item.view.placements.find(x=>x.nodeId==="sale");
+  assert.ok(d04SavedPlacement);
+  assert.equal(d04SavedPlacement.x,d04Design.x,
+    "D04 captured node world x must match persisted Gallery placement");
+  assert.equal(d04SavedPlacement.y,d04Design.y,
+    "D04 captured node world y must match persisted Gallery placement");
+  const d04EdgeSaved=d04Item.view.edgePaths?.find(x=>x.edgeId===relationId);
+  assert.equal(d04EdgeSaved?.pathKind,"curve");
+  assert.ok(d04EdgeSaved.waypoints?.length>=1);
+  const d04Src=d04Item.thumbnail.src;
+  assert.ok(d04Src.startsWith("data:image/svg+xml;charset=UTF-8,"),
+    "D04 thumbnail link must be actual readable inline SVG, not an empty placeholder");
+  const d04Thumbnail=decodeURIComponent(d04Src.slice(d04Src.indexOf(",")+1));
+  assert.match(d04Thumbnail,/<svg[^>]+viewBox=/);
+  assert.match(d04Thumbnail,/<path d="/,
+    "D04 thumbnail must render saved visible relation, not just a blank image");
+  assert.match(d04Thumbnail,/<rect /,
+    "D04 thumbnail must render the saved visible business nodes");
+  assert.match(d04Thumbnail,/ C /,
+    "D04 thumbnail route must retain the saved cubic path family");
+  const d04ThumbRendered=await d04Editor.evaluate(src=>new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight});
+    image.onerror=()=>reject(Error("D04 persisted SVG thumbnail does not decode in native Chromium"));
+    image.src=src;
+  }),d04Src);
+  assert.equal(d04ThumbRendered.width,640);
+  assert.ok(d04ThumbRendered.height>=240);
+  assert.equal(store.getVersion(id),5,
+    "D04 Designer+Viewer+thumbnail are read-only until explicit Save");
+  assert.deepEqual(await d04Editor.evaluate(()=>window.__errors),[]);
+  assert.deepEqual(await d04Viewer.evaluate(()=>window.__errors),[]);
+
+  // Use the actual Template Store versioned repository, projection artifact
+  // source, preview read handler and Eidos Workspace to prove independent
+  // template rendering; do NOT claim this template auto-inherits Enterprise Save.
+  const d04Template=await browser.newPage({viewport:{width:1250,height:820}});
+  await d04Template.goto(base+"/template",{waitUntil:"load"});
+  await d04Template.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready."
+    && document.querySelectorAll("[data-eidos-diagram-node]").length>0,
+    {timeout:30000});
+  const d04TemplateNodes=await d04Template.locator("[data-eidos-diagram-node]").count();
+  assert.equal(d04TemplateNodes,templateArtifact.diagram2d.nodes.length,
+    "D04 native Template Preview must render exactly its versioned source nodes");
+  const d04TemplateFirst=templateArtifact.diagram2d.nodes[0];
+  const d04TemplateXY=await d04Template.evaluate(nodeId=>{
+    const n=document.querySelector('[data-eidos-diagram-node="'+nodeId+'"]');
+    return n?{x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)}:null;
+  },d04TemplateFirst.id);
+  assert.deepEqual(d04TemplateXY,{x:d04TemplateFirst.x,y:d04TemplateFirst.y},
+    "D04 Template Preview respects its own immutable projection layout");
+  assert.equal(await d04Template.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).count(),0);
+  assert.equal(templateRepository.getVersion(
+    templateInput.templateId,templateInput.templateVersion)?.version,
+    templateInput.templateVersion);
+  assert.equal(store.getVersion(id),5,
+    "D04 reading immutable Template Store cannot mutate Enterprise gallery");
+  assert.deepEqual(await d04Template.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D04_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D04",browser:"Chromium "+browser.version(),
+    freshDesignerViewerGeometryIdentical:true,
+    persistedCurveAndWaypoint:true,
+    galleryPlacementMatches:true,svgThumbnailDecoded:true,
+    svgThumbnailDimensions:d04ThumbRendered,
+    immutableTemplateStoreActualPreview:true,
+    templateStoreVersion:templateInput.templateVersion,
+    templateStoreNodes:d04TemplateNodes,
+    templatePreviewAutomaticallyReflectsEnterpriseSave:false,
+    originalEnterpriseCasVersion:5,businessRevisions:repo.listHistory({
+      enterpriseId:id.enterpriseId,definitionId:id.definitionId}).length,
+    physicalDeviceVerified:false,formalHumanSignedCases:0
+  }));
+  await d04Template.close();
+  await d04Viewer.close();
+  await d04Editor.close();
 
 }finally{
   await browser?.close();
