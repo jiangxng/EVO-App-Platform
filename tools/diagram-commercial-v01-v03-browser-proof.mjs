@@ -647,7 +647,11 @@ try{
   const m09Other=await tab.context().newPage();
   await m09Other.goto("about:blank");
   await m09Other.bringToFront();
-  await tab.waitForFunction(()=>!document.hasFocus(),{timeout:10000});
+  // Headless Chromium does not reliably emit an OS focus-loss event when
+  // switching tabs. Dispatch the browser blur event explicitly after the
+  // real tab transition; this verifies the product cancel handler, not an
+  // actual physical cross-window blur.
+  await tab.evaluate(()=>window.dispatchEvent(new Event("blur")));
   await tab.mouse.up({button:"left"});
   await tab.bringToFront();
   const m09AfterBlur=await m09Pos();
@@ -661,7 +665,8 @@ try{
     "M09 cancelled drag must not persist business projection");
   console.log("DIAGRAM_M09_BROWSER_SUBGATE="+JSON.stringify({
     case:"M09",browser:"Chromium "+browser.version(),
-    actualMouseDragBeforeBlur:true,realTabFocusLoss:true,
+    actualMouseDragBeforeBlur:true,tabTransition:true,simulatedBlurEvent:true,
+    physicalWindowBlurVerified:false,
     rollbackExact:true,ghostDragAbsent:true,noImplicitSave:true,
     physicalDeviceVerified:false
   }));
