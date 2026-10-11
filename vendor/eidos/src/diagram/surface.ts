@@ -1479,6 +1479,8 @@ export function mountDiagramEditorPageV010(
       `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
     const gridStep = diagramGridStepV010(camera.scale);
     stageElement.style.backgroundSize = gridStep + "px " + gridStep + "px";
+    // 18 CSS px hit width across 10–300% zoom; O(1) inherited CSS variable.
+    stageElement.style.setProperty("--eidos-diagram-hit-world", (18 / camera.scale) + "px");
     // A zoom updates the transform without a full DOM redraw. Keep handle hit
     // targets at 44 CSS px and visible markers at a fixed screen radius.
     for (const target of Array.from(stageElement.querySelectorAll<SVGCircleElement>(
@@ -2883,6 +2885,10 @@ export function mountDiagramEditorPageV010(
       hit.setAttribute("fill", "none");
       hit.setAttribute("stroke", "transparent");
       hit.setAttribute("stroke-width", "18");
+      // Scoped forward-port from Eidos #161; preserve Host navigation overlay.
+      // CSS matrix zoom needs compensated world-space stroke width for Chrome
+      // to actually hit the transparent connector at low zoom.
+      hit.style.strokeWidth = "var(--eidos-diagram-hit-world)";
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
       hit.setAttribute("data-eidos-diagram-edge", edge.id);
