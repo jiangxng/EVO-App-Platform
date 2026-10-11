@@ -2189,7 +2189,8 @@ try{
     (await d02XY()).y-d02Moved.y)>8,
     "D02 new edit after Save must become unsaved");
   assert.match(await d02Tab.locator("[data-eidos-diagram-status]").textContent(),
-    /Save to persist changes/);
+    /No changes were saved/,
+    "D02 an actual new node move remains a local, unsaved edit");
   await d02Undo.click();
   assert.deepEqual(await d02XY(),d02Moved,
     "D02 undo after Save must return to the new saved node baseline");
