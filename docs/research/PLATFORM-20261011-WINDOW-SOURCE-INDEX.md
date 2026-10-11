@@ -87,3 +87,15 @@
 - **易变化元数据**：保留原始 PR、Actions run ID、Railway deployment ID、14 个 head exact SHA（详见证据文件），后续用新 API 查最新状态，不能覆盖历史快照。
 - **网页截图 / PDF / 附件**：本窗口没有生成、保存或读取本轮截图，也没有外部 PDF。**截图/附件位置：无**，不得虚构文件名。
 - **网络查阅分类统计**：Github/EVO 源码及文档 A/B；GitHub/Railway 原始服务元数据 C；“仅搜索摘要” 0；未重新访问的外部参照 D。
+
+
+## 6. 接续窗口新增直接来源（2026-10-11，独立增量）
+
+| 新 ID / 级别 | 源标题与固定原始地址 | 核查结果与用途 |
+| --- | --- | --- |
+| S29 / **A 原文** | [旧 F0 四 peer 协议测试（fixed source）](https://github.com/jiangxng/EVO-App-Platform/blob/fb3db99272ef047aa7686715fd495545f9342ccf/tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs)；[现代六 Stage smoke](https://github.com/jiangxng/EVO-App-Platform/blob/db3fd2d53c7a28fcc2ba438e67ac54ceae0f3438/tests/protocol/tr01-six-stage-host-preview.test.mjs)；[现代购买/收货以及六包协议](https://github.com/jiangxng/EVO-App-Platform/blob/db3fd2d53c7a28fcc2ba438e67ac54ceae0f3438/tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs) | 旧测试中独立停用后的四 peer 存活和 Eidos 全部渲染值得复用，其余重复断言不原样搬；用于 F0 代码级采纳决策 |
+| S30 / **A 原文** | [旧 V1 separate login script](https://github.com/jiangxng/EVO-App-Platform/blob/1d6149bd05136d642e49aab5196d12ab243cbe4e/tools/certify-tr01b2d3-distinct-db-logins.mjs)；[旧 V2 script](https://github.com/jiangxng/EVO-App-Platform/blob/3e7d5182bc5f4ae03ca638c76524872086a0cbec/tools/certify-tr01b2d3-distinct-db-logins.mjs)；[旧 V3](https://github.com/jiangxng/EVO-App-Platform/blob/ff2fd23e83ebf72a5fc0c21757f729fd800594ac/tools/certify-tr01b2d3-distinct-db-logins.mjs) | 实际读取 3 个完整源码并比较具体断言；V1 owner catalog + V2 readonly listener 不应简化为 V3 full EVO main；本轮没运行现代 PostgreSQL |
+| S31 / **A 原文 + C 执行元数据** | [F0 新测试与证据 #775](https://github.com/jiangxng/EVO-App-Platform/pull/775)；[Platform CI 38153528258](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528258)；[Continuity 38153528267](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153528267) | F0 小项 merge `014196f7`、CI SUCCESS；只证明测试和源码集成，不证明业务写入、人验或整套旧源可删 |
+| S32 / **A 原文/部分文件** | [F1 Finance Owner Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 以及两版本 `apps/trading-reference/{finance-intent-admission,finance-owner-remote}.ts`、`providers/trading-finance-owner/package.ts`；[F4 6 个旧 workflow 源头索引](https://github.com/jiangxng/EVO-App-Platform/blob/014196f7a52f7051ef9a0fa8ea524e14b23169de/docs/archive/PLATFORM-20261011-F0-FOUR-PEER-SOURCE-RECOVERY.md) | 两个 finance admission/remote 文件相同 blob；Provider Manifest 旧/新主要为四语标题差异，不是新的经济语义执行合同。六份 workflow 已逐个读取，主要调度历史脚本/合成准入，不等于外部部署认证 |
+
+上述资料不改变原 S01–S28 的阅读分级，不声称已完成独立真实 Railway 浏览器业务验收。
