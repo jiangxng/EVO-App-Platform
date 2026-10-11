@@ -411,19 +411,32 @@ try{
       const visual=document.querySelector('[data-eidos-diagram-edge-visual="'+edge+'"]');
       if(!hit||!visual)throw Error("V04 missing SVG elements");
       const length=hit.getTotalLength();
-      const p=hit.getPointAtLength(length*.74);
-      const before=hit.getPointAtLength(length*.72);
-      const after=hit.getPointAtLength(length*.76);
       const matrix=hit.getScreenCTM();
       if(!matrix)throw Error("V04 missing path screen matrix");
       const toScreen=v=>({x:v.x*matrix.a+v.y*matrix.c+matrix.e,
         y:v.x*matrix.b+v.y*matrix.d+matrix.f});
-      const middle=toScreen(p),a=toScreen(before),b=toScreen(after);
-      const tangent={x:b.x-a.x,y:b.y-a.y};
-      const norm=Math.hypot(tangent.x,tangent.y);
-      if(!(norm>0))throw Error("V04 path has no tangent");
-      const x=middle.x-6*tangent.y/norm;
-      const y=middle.y+6*tangent.x/norm;
+      const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+      const rect=canvas.getBoundingClientRect();
+      // After M01 selection freezes camera, the inspector may cover some
+      // connector screen positions. Sample an actually visible segment, not
+      // the former hard-coded 74% position hidden behind the inspector.
+      let sample;
+      for(const fraction of [.74,.62,.50,.38,.26,.14]){
+        const p=hit.getPointAtLength(length*fraction);
+        const before=hit.getPointAtLength(length*Math.max(0,fraction-.02));
+        const after=hit.getPointAtLength(length*Math.min(1,fraction+.02));
+        const middle=toScreen(p),a=toScreen(before),b=toScreen(after);
+        const tangent={x:b.x-a.x,y:b.y-a.y};
+        const norm=Math.hypot(tangent.x,tangent.y);
+        if(!(norm>0))continue;
+        const x=middle.x-6*tangent.y/norm;
+        const y=middle.y+6*tangent.x/norm;
+        if(x<rect.left+9||x>=rect.right-9||y<rect.top+9||y>=rect.bottom-9)continue;
+        sample={fraction,middle,x,y};
+        break;
+      }
+      if(!sample)throw Error("V04 no actually visible connector point to hit at this zoom");
+      const {middle,x,y}=sample;
       const element=document.elementFromPoint(x,y);
       const hitDetected=element?.getAttribute("data-eidos-diagram-edge")===edge;
       const centerElement=document.elementFromPoint(middle.x,middle.y);
@@ -438,13 +451,14 @@ try{
         markerEnd:marker,
         markerStart:visual.getAttribute("marker-start"),
         hitDetected,
+        sampleFraction:sample.fraction,
         diagnostic:{zoomDisplay:document.querySelector('[aria-label="Reset view"]')?.textContent,
           center:[middle.x,middle.y],point:[x,y],
           centerTag:centerElement?.tagName,centerHit:centerElement?.getAttribute("data-eidos-diagram-edge"),
           topElements,computedHitStroke:getComputedStyle(hit).strokeWidth,
           hitRect:hit.getBoundingClientRect().toJSON()},
-        sampledPointInsideViewport:x>=0&&y>=0
-          &&x<document.documentElement.clientWidth&&y<innerHeight
+        sampledPointInsideViewport:x>=rect.left&&y>=rect.top
+          &&x<rect.right&&y<rect.bottom
       };
     },relationId);
     console.log("V04_NATIVE_HIT_DIAGNOSTIC="+JSON.stringify({scenario:scenario.display,...result}));
