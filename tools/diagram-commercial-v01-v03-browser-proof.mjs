@@ -158,13 +158,26 @@ const e02State={
     {...e02Base,id:e02Edges.loop,source:"sale",target:"sale",pathKind:"orthogonal"}
   ]
 };
-const html=(mode)=>{
+const html=(mode,requestedProjectionId)=>{
   const readOnly=mode==="viewer"||mode==="template";
   const v06=mode==="v06";
   const phone=mode==="phone";
   const e01=mode==="e01";
   const e02=mode==="e02";
-  const definition=mode==="template"?templateViewer:readOnly?viewer:editor;
+  const dynamicId=requestedProjectionId
+    ? {...id,projectionId:requestedProjectionId} : id;
+  const definition=mode==="template"?templateViewer
+    : readOnly
+      ? (requestedProjectionId
+          ? createEnterpriseDefinition2dPreviewPageV010({
+              ...dynamicId,title:"Synthetic commercial Viewer",locale:"en-US",camera
+            })
+          : viewer)
+      : (requestedProjectionId
+          ? createEnterpriseDefinitionProjectionEditorPageV010({
+              ...dynamicId,title:"Synthetic commercial Designer",locale:"en-US",initialCamera:camera
+            })
+          : editor);
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
     : renderDiagramEditorPageShellToHtmlV010(definition);
@@ -200,7 +213,7 @@ const server=createServer(async(req,res)=>{
     const url=new URL(req.url,"http://127.0.0.1");
     if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/template"||url.pathname==="/v06"||url.pathname==="/phone"||url.pathname==="/e01"||url.pathname==="/e02"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
-      res.end(html(url.pathname.slice(1)));return;
+      res.end(html(url.pathname.slice(1),url.searchParams.get("projectionId")||undefined));return;
     }
     if(url.pathname==="/action"&&req.method==="POST"){
       let raw="";for await(const chunk of req)raw+=chunk;
@@ -2560,6 +2573,95 @@ try{
   }));
   await d05Stale.close();
   await d05Writer.close();
+
+  // D06: switching two independent projection routes in the SAME browser
+  // tab must discard uncommitted view A, not carry its hidden set/camera/history
+  // to view B, and not overwrite either saved Gallery item.
+  const d06Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  const d06OriginalUrl=base+"/designer?projectionId="+encodeURIComponent(id.projectionId);
+  const d06CopyUrl=base+"/designer?projectionId="+encodeURIComponent(d05NewProjectionId);
+  const d06ProjectionReady=page=>page.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+    {timeout:30000});
+  const d06Snapshot=page=>page.evaluate(edgeId=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const path=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    const zoom=document.querySelector('[data-eidos-diagram-view-controls] button[aria-label="Reset view"]');
+    const undo=document.querySelector('[data-eidos-diagram-history="undo"]');
+    return {saleVisible:Boolean(node),relationVisible:Boolean(path),
+      nodeX:node?Number.parseFloat(node.style.left):null,
+      nodeY:node?Number.parseFloat(node.style.top):null,
+      zoom:zoom?.textContent?.trim(),undoDisabled:undo?.disabled};
+  },relationId);
+  assert.equal(store.getVersion(id),7);
+  await d06Tab.goto(d06OriginalUrl,{waitUntil:"load"});
+  await d06ProjectionReady(d06Tab);
+  const d06Original=await d06Snapshot(d06Tab);
+  assert.equal(d06Original.saleVisible,true);
+  assert.equal(d06Original.relationVisible,true);
+  assert.equal(d06Original.undoDisabled,true);
+  // Different zoom and hidden local presentation are intentionally unsaved.
+  await d06Tab.locator('[data-eidos-diagram-view-controls] button[aria-label="Zoom in"]').click();
+  await d06Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await d06Tab.locator("[data-eidos-diagram-local-hide]").click();
+  const d06DirtyOriginal=await d06Snapshot(d06Tab);
+  assert.equal(d06DirtyOriginal.saleVisible,false);
+  assert.equal(d06DirtyOriginal.relationVisible,false);
+  assert.notEqual(d06DirtyOriginal.zoom,d06Original.zoom,
+    "D06 original projection has a temporary unsaved zoom");
+  assert.equal(d06DirtyOriginal.undoDisabled,false);
+  assert.equal(store.getVersion(id),7,"D06 local A edits do not write Gallery");
+
+  // Route switch remounts actual Eidos Designer on projection B.
+  await d06Tab.goto(d06CopyUrl,{waitUntil:"load"});
+  await d06ProjectionReady(d06Tab);
+  const d06Copy=await d06Snapshot(d06Tab);
+  assert.equal(d06Copy.saleVisible,true,
+    "D06 A hidden node must not leak into separately saved projection B");
+  assert.equal(d06Copy.relationVisible,false,
+    "D06 B intentionally saved hidden relation stays hidden");
+  assert.equal(d06Copy.zoom,d06Original.zoom,
+    "D06 temporary zoom/camera from A must not leak to B");
+  assert.equal(d06Copy.undoDisabled,true,
+    "D06 B new editor must not inherit A's Undo checkpoints");
+
+  // A separate local draft in B must be discarded on route switch.
+  await d06Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await d06Tab.locator("[data-eidos-diagram-local-hide]").click();
+  assert.equal((await d06Snapshot(d06Tab)).saleVisible,false);
+  assert.equal(store.getVersion(id),7);
+  await d06Tab.goto(d06OriginalUrl,{waitUntil:"load"});
+  await d06ProjectionReady(d06Tab);
+  const d06OriginalAgain=await d06Snapshot(d06Tab);
+  assert.deepEqual(d06OriginalAgain,d06Original,
+    "D06 returning to original must restore its own saved visibility, placement, camera and empty Undo");
+  await d06Tab.goto(d06CopyUrl,{waitUntil:"load"});
+  await d06ProjectionReady(d06Tab);
+  assert.deepEqual(await d06Snapshot(d06Tab),d06Copy,
+    "D06 B's unsaved hidden node must not be persisted or leak back after switching");
+  const d06Gallery=store.get(id);
+  const d06SourceA=d06Gallery.projections.find(x=>x.projectionId===id.projectionId);
+  const d06SourceB=d06Gallery.projections.find(x=>x.projectionId===d05NewProjectionId);
+  assert.ok(d06SourceA && d06SourceB);
+  assert.equal(d06SourceA.view.hiddenNodeIds?.includes("sale")??false,false);
+  assert.equal(d06SourceA.view.hiddenEdgeIds?.includes(relationId)??false,false);
+  assert.equal(d06SourceB.view.hiddenNodeIds?.includes("sale")??false,false);
+  assert.ok(d06SourceB.view.hiddenEdgeIds?.includes(relationId));
+  assert.equal(store.getVersion(id),7,"D06 routing and unsaved editing never write CAS");
+  assert.equal(repo.listHistory({
+    enterpriseId:id.enterpriseId,definitionId:id.definitionId
+  }).length,1,"D06 never creates business definition version");
+  assert.deepEqual(await d06Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D06_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D06",browser:"Chromium "+browser.version(),
+    twoRealProjectionRoutes:true,sameBrowserTabRouteSwitch:true,
+    hiddenNodeNoLeak:true,hiddenEdgeIndependent:true,
+    cameraNoLeak:true,undoHistoryNoLeak:true,unsavedDraftNoLeak:true,
+    originalAndCopyUnchanged:true,casVersion:7,
+    businessDefinitionRevisions:1,physicalDeviceVerified:false,
+    formalHumanSignedCases:0
+  }));
+  await d06Tab.close();
 
 }finally{
   await browser?.close();
