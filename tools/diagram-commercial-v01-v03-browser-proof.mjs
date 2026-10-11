@@ -2712,6 +2712,68 @@ try{
   }));
   await a01Tab.close();
 
+  // A02: system-scale typography simulation, native keyboard focus/controls
+  // and a non-drag node move/hide alternative. This does not assert WCAG
+  // conformance or actual assistive-technology/physical-device testing.
+  const a02Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await a02Tab.goto(base+"/designer?projectionId="+encodeURIComponent(id.projectionId),{waitUntil:"load"});
+  await a02Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  const a02LargeText=await a02Tab.evaluate(()=>{
+    document.documentElement.style.fontSize="200%";
+    const menu=document.querySelector('[data-eidos-diagram-more-actions] summary');
+    const box=menu?.getBoundingClientRect();
+    return {
+      rootPx:Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      menuVisible:Boolean(box && box.width>0 && box.height>0 && box.right<=innerWidth),
+      menuLabel:menu?.getAttribute("aria-label")
+    };
+  });
+  assert.ok(a02LargeText.rootPx>=30,"A02 simulated system-large font must be applied");
+  assert.ok(a02LargeText.menuVisible,"A02 actions menu must remain reachable at large font");
+  const a02More=a02Tab.locator('[data-eidos-diagram-more-actions] summary');
+  await a02More.focus();
+  await a02Tab.keyboard.press("Enter");
+  assert.equal(await a02Tab.locator('[data-eidos-diagram-more-actions]').evaluate(x=>x.open),true,
+    "A02 keyboard Enter opens real actions menu");
+  await a02Tab.keyboard.press("Escape");
+  const a02NodePos=(page,nodeId)=>page.evaluate(id=>{
+    const n=document.querySelector('[data-eidos-diagram-node="'+id+'"]');
+    return n?{x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)}:null;
+  },nodeId);
+  const a02Initial=await a02NodePos(a02Tab,"sale");
+  await a02Tab.locator('[data-eidos-diagram-node="sale"]').focus();
+  await a02Tab.keyboard.press("Enter");
+  assert.equal(await a02Tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  await a02Tab.keyboard.press("ArrowRight");
+  assert.deepEqual(await a02NodePos(a02Tab,"sale"),
+    {x:a02Initial.x+1,y:a02Initial.y},
+    "A02 non-drag native keyboard arrow must move presentation by one");
+  await a02Tab.keyboard.press("Shift+ArrowDown");
+  assert.deepEqual(await a02NodePos(a02Tab,"sale"),
+    {x:a02Initial.x+1,y:a02Initial.y+10});
+  await a02Tab.locator('[data-eidos-diagram-history="undo"]').click();
+  await a02Tab.locator('[data-eidos-diagram-history="undo"]').click();
+  assert.deepEqual(await a02NodePos(a02Tab,"sale"),a02Initial);
+  await a02Tab.locator('[data-eidos-diagram-node="sale"]').focus();
+  await a02Tab.keyboard.press("Enter");
+  await a02Tab.keyboard.press("Delete");
+  assert.equal(await a02NodePos(a02Tab,"sale"),null,
+    "A02 Delete from canvas focus provides non-drag visibility adjustment");
+  await a02Tab.locator('[data-eidos-diagram-history="undo"]').click();
+  assert.deepEqual(await a02NodePos(a02Tab,"sale"),a02Initial);
+  assert.equal(store.getVersion(id),7,"A02 keyboard operations must not silently save");
+  assert.deepEqual(await a02Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_A02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"A02",browser:"Chromium "+browser.version(),
+    simulatedFontPercent:200,accessibleMenuKeyboard:true,
+    nativeEnterSelect:true,nonDragNodeMove:true,nonDragHide:true,
+    undoWorks:true,uiFormInOtherSubgates:true,
+    realAssistiveTechnologyVerified:false,physicalDeviceVerified:false,
+    fullWCAGConformanceAsserted:false,formalHumanSignedCases:0
+  }));
+  await a02Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
