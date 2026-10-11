@@ -1,79 +1,91 @@
 name: Branch Hygiene
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      execute:
+        description: "Delete only SHA-pinned, verified retired branches (default audit only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   pull-requests: read
 
 jobs:
-  delete-merged-main-branches:
+  safe-retired-branch-audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete branches whose PRs are merged into main
+      - name: Verify explicit retirement manifest and optionally prune
         uses: actions/github-script@v7
+        env:
+          EXECUTE: ${{ inputs.execute }}
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const defaultBranch = context.payload.repository?.default_branch ?? "main";
-            const pulls = await github.paginate(github.rest.pulls.list, {
-              owner,
-              repo,
-              state: "closed",
-              per_page: 100,
-              sort: "updated",
-              direction: "desc"
+            const defaultBranch = context.payload.repository?.default_branch ?? 'main';
+            const execute = process.env.EXECUTE === 'true';
+            const manifestResponse = await github.rest.repos.getContent({
+              owner, repo, path: 'repository-hygiene/retired-branches.json', ref: defaultBranch
             });
-
-            const branches = new Set();
-            for (const pr of pulls) {
-              if (!pr.merged_at) continue;
-              if (pr.base?.ref !== defaultBranch) continue;
-              if (pr.head?.repo?.full_name !== `${owner}/${repo}`) continue;
-              if (!pr.head?.ref || pr.head.ref === defaultBranch) continue;
-              branches.add(pr.head.ref);
+            if (Array.isArray(manifestResponse.data) || manifestResponse.data.type !== 'file') {
+              throw new Error('Retirement manifest must be a file');
             }
-
-            try {
-              const retiredFile = await github.rest.repos.getContent({
-                owner,
-                repo,
-                path: "repository-hygiene/retired-branches.json",
-                ref: defaultBranch
-              });
-              if (!Array.isArray(retiredFile.data) && retiredFile.data.type === "file") {
-                const manifest = JSON.parse(
-                  Buffer.from(retiredFile.data.content, "base64").toString("utf8")
-                );
-                for (const item of manifest.retiredBranches ?? []) {
-                  if (typeof item?.name !== "string") continue;
-                  if (!item.name || item.name === defaultBranch) continue;
-                  branches.add(item.name);
-                }
+            const manifest = JSON.parse(Buffer.from(manifestResponse.data.content, 'base64').toString('utf8'));
+            // A single bounded query protects heads AND bases of all currently open PRs.
+            // Do not silently proceed when the result exceeds the bounded set.
+            const open = await github.rest.pulls.list({owner, repo, state: 'open', per_page: 100});
+            if (open.data.length === 100) throw new Error('Open PR set may exceed 100; fail closed');
+            const reserved = new Set([defaultBranch]);
+            for (const pr of open.data) {
+              if (pr.head?.repo?.full_name === `${owner}/${repo}`) reserved.add(pr.head.ref);
+              reserved.add(pr.base.ref);
+            }
+            const restricted = /(^|\/)(agent|eog|2d|diagram|projection)(\/|-|$)|personal-agent|external-agent|sop-designer/i;
+            const entries = manifest.retiredBranches ?? [];
+            const seen = new Set();
+            for (const item of entries) {
+              const name = item?.name;
+              const expected = item?.expectedHeadSha;
+              if (typeof name !== 'string' || !name || seen.has(name)) {
+                throw new Error('Duplicate or invalid retirement entry');
               }
-            } catch (error) {
-              if (error.status !== 404) throw error;
-              core.info("No retired branch manifest found.");
-            }
-
-            for (const branch of [...branches].sort()) {
+              seen.add(name);
+              // Legacy entries without an exact 40-digit pin are never deletion authorization.
+              if (typeof expected !== 'string' || !/^[a-f0-9]{40}$/i.test(expected)) {
+                core.info(`SKIP_UNPINNED ${name}`);
+                continue;
+              }
+              if (reserved.has(name) || restricted.test(name)) {
+                core.info(`SKIP_PROTECTED ${name}`);
+                continue;
+              }
+              let ref;
               try {
-                await github.rest.git.deleteRef({
-                  owner,
-                  repo,
-                  ref: `heads/${branch}`
-                });
-                core.info(`Deleted merged branch: ${branch}`);
+                ref = await github.rest.git.getRef({owner, repo, ref: `heads/${name}`});
               } catch (error) {
-                if (error.status === 404 || error.status === 422) {
-                  core.info(`Branch already absent or not deletable: ${branch}`);
-                  continue;
-                }
+                if (error.status === 404) {core.info(`ALREADY_ABSENT ${name}`); continue;}
                 throw error;
               }
+              if (ref.data.object.sha !== expected) {
+                core.warning(`SKIP_MOVED ${name}`);
+                continue;
+              }
+              // GitHub compare(base=head, head=main): behind_by=0 means source is
+              // an ancestor of main; divergent branches must not be retired.
+              const comparison = await github.rest.repos.compareCommits({
+                owner, repo, base: expected, head: defaultBranch
+              });
+              if (comparison.data.behind_by !== 0 || comparison.data.status === 'diverged') {
+                core.info(`SKIP_NOT_MERGED ${name}`);
+                continue;
+              }
+              if (!execute) {core.info(`AUDIT_ELIGIBLE ${name} @ ${expected}`); continue;}
+              // Re-read immediately before deletion; any movement fails closed.
+              const latest = await github.rest.git.getRef({owner, repo, ref: `heads/${name}`});
+              if (latest.data.object.sha !== expected) {core.warning(`SKIP_RACED ${name}`); continue;}
+              await github.rest.git.deleteRef({owner, repo, ref: `heads/${name}`});
+              core.info(`DELETED ${name} @ ${expected}`);
             }
+            core.info(`Retirement ${execute ? 'execute' : 'audit'} complete`);
