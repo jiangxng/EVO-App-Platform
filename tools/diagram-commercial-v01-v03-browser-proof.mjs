@@ -181,7 +181,9 @@ try{
   const base="http://127.0.0.1:"+server.address().port;
   browser=await chromium.launch({headless:true,executablePath:chrome,
     args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
-  const tab=await browser.newPage({viewport:{width:1250,height:820}});
+  // Main tab uses an explicit context so M09 can open a second tab in it.
+  const mainContext=await browser.newContext({viewport:{width:1250,height:820}});
+  const tab=await mainContext.newPage();
   await tab.goto(base+"/designer",{waitUntil:"load"});
   await waitReady(tab);
   // V05 genuine Chrome DOM: full titles remain retrievable, node labels stay
@@ -627,6 +629,46 @@ try{
     realWaypointNumericEditor:true,nativeCtrlA:true,nativeDelete:true,
     spaceRespectsInputFocus:true,canvasSelectionAndCameraUnchanged:true,
     noImplicitSave:true,physicalDeviceVerified:false
+  }));
+  // M09: native mouse node drag interrupted by actual browser-tab
+  // focus loss must roll back preview coordinates and release pointer state.
+  const m09Node=tab.locator('[data-eidos-diagram-node="sale"]');
+  const m09Pos=()=>m09Node.evaluate(el=>({x:el.style.left,y:el.style.top}));
+  const m09Before=await m09Pos();
+  const m09Box=await m09Node.boundingBox();
+  const m09X=m09Box.x+m09Box.width/2,m09Y=m09Box.y+m09Box.height/2;
+  await tab.mouse.move(m09X,m09Y);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(m09X+40,m09Y+22,{steps:9});
+  const m09Moving=await m09Pos();
+  assert.notDeepEqual(m09Moving,m09Before,
+    "M09 must first prove that a real native node drag is in progress");
+  // Same browser context, not a separate isolated Playwright context.
+  const m09Other=await tab.context().newPage();
+  await m09Other.goto("about:blank");
+  await m09Other.bringToFront();
+  // Headless Chromium does not reliably emit an OS focus-loss event when
+  // switching tabs. Dispatch the browser blur event explicitly after the
+  // real tab transition; this verifies the product cancel handler, not an
+  // actual physical cross-window blur.
+  await tab.evaluate(()=>window.dispatchEvent(new Event("blur")));
+  await tab.mouse.up({button:"left"});
+  await tab.bringToFront();
+  const m09AfterBlur=await m09Pos();
+  assert.deepEqual(m09AfterBlur,m09Before,
+    "M09 switching tabs during native drag must roll back the unsaved preview");
+  await tab.mouse.move(m09X+76,m09Y+41,{steps:5});
+  assert.deepEqual(await m09Pos(),m09Before,
+    "M09 after losing capture, subsequent mouse movement must not drag a ghost node");
+  await m09Other.close();
+  assert.equal(store.getVersion(id),0,
+    "M09 cancelled drag must not persist business projection");
+  console.log("DIAGRAM_M09_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M09",browser:"Chromium "+browser.version(),
+    actualMouseDragBeforeBlur:true,tabTransition:true,simulatedBlurEvent:true,
+    physicalWindowBlurVerified:false,
+    rollbackExact:true,ghostDragAbsent:true,noImplicitSave:true,
+    physicalDeviceVerified:false
   }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
