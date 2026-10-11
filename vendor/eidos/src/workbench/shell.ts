@@ -1,3 +1,4 @@
+import { contextualRefreshDecisionV010, trackContextualFormDraftV010 } from "../app-host/contextual-assistance.js";
 import type { ActionHost } from "../adapters/ports.js";
 import { createEidosIconElement } from "../design-language/icons/index.js";
 import type { LocalizationRuntime } from "../localization/contracts.js";
@@ -393,6 +394,7 @@ export async function mountWorkbenchShell(
 
   browserToolbar.append(globalControls);
 
+  let workspaceDraft: ReturnType<typeof trackContextualFormDraftV010> | undefined;
   const workspaceContent = document.createElement("div");
   workspaceContent.setAttribute("data-eidos-workspace-content", "");
 
@@ -402,6 +404,7 @@ export async function mountWorkbenchShell(
   statusBar.setAttribute("data-eidos-status-bar", "");
   const statusLeft = document.createElement("span");
   const statusRight = document.createElement("span");
+  statusRight.setAttribute("role", "status");
   statusBar.append(statusLeft, statusRight);
 
   root.append(activityBar, sidePanel, splitter, workspace, statusBar);
@@ -495,6 +498,9 @@ export async function mountWorkbenchShell(
   async function handleContextualAgentAction(
     interaction: ContextualAgentInteractionV010
   ): Promise<void> {
+    const sourceMount = workspaceMount;
+    const sourceDraft = workspaceDraft;
+    const requestId = `assistance:${globalThis.crypto.randomUUID()}`;
     const activityId =
       options.resolveAgentActivity?.(interaction.agentCapability);
     if (!activityId) {
@@ -522,10 +528,11 @@ export async function mountWorkbenchShell(
       throw new Error("EIDOS_CONTEXTUAL_AGENT_CHAT_UNAVAILABLE");
     }
 
-    await sideMount.submitChatPrompt(
+    const result = await sideMount.submitChatPrompt(
       interaction.prompt,
       {
         contractVersion: "0.1.0",
+        requestId,
         source: {
           pageId: interaction.source.pageId,
           route: interaction.source.route,
@@ -540,12 +547,19 @@ export async function mountWorkbenchShell(
       }
     );
 
-    if (
-      interaction.refreshSourceOnComplete === true
-      && workspaceMode === "app"
-      && state.workspaceTarget === interaction.source.route
-    ) {
+    if (interaction.refreshSourceOnComplete !== true) return;
+    const decision = contextualRefreshDecisionV010({
+      result, requestId, source: interaction.source,
+      taskKind: typeof interaction.context?.taskKind === "string" ? interaction.context.taskKind : "",
+      sameMount: !disposed && !!sourceMount && sourceMount === workspaceMount
+        && workspaceMode === "app" && state.workspaceTarget === interaction.source.route,
+      dirty: !sourceDraft || sourceDraft.isDirty()
+    });
+    if (decision === "REFRESH") {
       await renderInternalWorkspace(state.workspaceTarget);
+    } else if (decision === "PRESERVE_DRAFT") {
+      statusRight.textContent = hostText("shell.agentDraftPreserved",
+        "Agent result is ready. Your unsaved changes were kept; review the result before reloading.");
     }
   }
 
@@ -645,6 +659,8 @@ export async function mountWorkbenchShell(
 
   function renderWeb(url: string): void {
     workspaceReadGate.cancel();
+    workspaceDraft?.dispose();
+    workspaceDraft = undefined;
     workspaceMount?.dispose();
     workspaceMount = undefined;
     workspaceContent.replaceChildren();
@@ -664,6 +680,8 @@ export async function mountWorkbenchShell(
 
   async function renderInternalWorkspace(path: string): Promise<void> {
     const read = workspaceReadGate.begin();
+    workspaceDraft?.dispose();
+    workspaceDraft = undefined;
     workspaceMount?.dispose();
     workspaceMount = undefined;
     workspaceContent.replaceChildren();
@@ -740,6 +758,7 @@ export async function mountWorkbenchShell(
       }
     });
     statusRight.textContent = loaded.page.title ?? resolvedPath;
+    workspaceDraft = trackContextualFormDraftV010(workspaceContent);
   }
 
   async function navigateWorkspace(target: string): Promise<void> {
@@ -1146,6 +1165,7 @@ export async function mountWorkbenchShell(
     pendingResourceRefreshes.clear();
     sideReadGate.dispose();
     workspaceReadGate.dispose();
+    workspaceDraft?.dispose();
     sideMount?.dispose();
     workspaceMount?.dispose();
     unsubscribeHost();
@@ -1178,3 +1198,4 @@ export async function mountWorkbenchShell(
     dispose
   };
 }
+
