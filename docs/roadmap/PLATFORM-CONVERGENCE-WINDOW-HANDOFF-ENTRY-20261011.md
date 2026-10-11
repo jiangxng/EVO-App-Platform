@@ -84,3 +84,13 @@ https://ledger-configurator-production.up.railway.app
 - **实际铁路部署**：Railway 项目 `EVO Ledger Runtime MVP`、environment `production`（只是**公网集成测试**）、服务 `Ledger Configurator`；由原先明确 pinned SHA `296d9c444ae50ba802fd01c1584caccd205f356c` 改为明确 pinned `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`。部署 `bcc40ccc-ed2e-4746-8a56-45d9289ca3ca` 为 **SUCCESS**，build log 报 `/health` 第 1/1 次成功、Node `EVO App Manager listening on http://localhost:8080`；`/data` 原始持久卷保留，Railway 配置无 pending patch。仅设置 `APP_PLATFORM_STAGE_MODE=isolated-preview` 和 `APP_PLATFORM_TR01B_STAGE_DEMO=enabled`。
 - 可供用户浏览器验收：https://ledger-configurator-production.up.railway.app/store 、`/trading-stage/{sales,shipment,receivable,cash,purchasing,receiving}`（先安装）。**浏览器里真实登录、安装、页面视觉、权限、跨服务业务数据仍待用户签收**；这是 `Synthetic Stage Demo` / `READ-ONLY` / `NOT_CERTIFIED`，不得写成业务上线。
 - **测试版本冻结**：用户测试期间不能将此 Host 自动升级到后续 `main`；后续专项代码继续独立 PR 和审查，不扰动 Railway 的 pinned SHA。Railway 的 environment 名字为 `production` 不代表业务正式投产。
+
+
+### 2026-10-11 实际清理结项：16 个旧源分支（修正此前“待删除”快照）
+
+- [PR #740](https://github.com/jiangxng/EVO-App-Platform/pull/740) 合入 main `4690ff813fc076e3d0d8bf18641f2ca145d56b4b`。审计 workflow [#38140337021](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140337021) **SUCCESS** 且未删；执行 workflow [#38140393664](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140393664) **SUCCESS**。
+- 实际重新枚举 GitHub branches 结果为 54，交接矩阵列举的 **16 条历史源 refs 均不存在**；源码仍在 main 的 Git 历史和先前五批合并 PR 中。此前目录显示“待安全删除”的条目现已全部更正为 **DELETED_VERIFIED**。
+- [主线实际删除证据档案](https://github.com/jiangxng/EVO-App-Platform/blob/4690ff813fc076e3d0d8bf18641f2ca145d56b4b/docs/archive/platform-convergence-branch-retirement-20261011.md)（随后 docs 修订 [#741](https://github.com/jiangxng/EVO-App-Platform/pull/741) 将预案改为结项）。
+- GitHub open PR 中仍有 #723（本交接）、#594（Finance Owner Draft）、Agent/2D/EOG 等；剩余约 14 条 TR-01 B2D3 仍有独立差异，未误删。
+- 近期 #728/#731/#736/#740 的 squash PR 源分支因历史 `diverged`，不符合祖先-only 自动删除条件，不能用第一批方式假装清理完毕。下一步需做比对与显式审批。
+- Railway 公网集成测试服务保持 pinned `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`，部署并未随 GitHub main 变化；不能打断用户测试。
