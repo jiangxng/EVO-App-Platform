@@ -13,14 +13,14 @@
 
 | ID | 原始 §14 要求 | 源码/方案事实 | 本 PR 自动化动作 | 本次运行结果 | 商业人工签收 |
 | --- | --- | --- | --- | --- | --- |
-| V01 | 同一关系切换直线、直角、圆角、曲线，图形确实不同，含义不变 | Eidos edge-paths 已有四种几何 + 编辑器下拉 | 原生 Chrome 指针选中同一边，实际下拉轮流选 `orthogonal`、`rounded-orthogonal`、`curve`、`straight`；比较真实 SVG `d` 路径唯一性和 Q/C 语义，保存后独立 Viewer SVG 路径一致 | **待本 PR CI**，不得预填 PASS | NOT TESTED |
-| V02 | 老投影没有新增字段时，保持旧直线，不被动迁移保存 | Gallery schema 的 `edgePaths` 可选；旧边没有 pathKind | 实际旧数据 GET + Chrome 初次打开，确认默认只含直线 L，文件 CAS 仍 0；明确 Save 前不发生内容写入 | **待本 PR CI** | NOT TESTED |
-| V03 | 线型/箭头业务方向不可伪造 | 业务关系 `source`/`target`/`arrow` 在业务图，展示路径独立 | Chrome 切换路径、检查 `marker-end` 没有新 `marker-start`；真实 Save 后 GET 与 Viewer 仍为原 source/target/arrow；业务定义历史数量仍 1 | **待本 PR CI** | NOT TESTED |
+| V01 | 同一关系切换直线、直角、圆角、曲线，图形确实不同，含义不变 | Eidos edge-paths 已有四种几何 + 编辑器下拉 | 原生 Chrome 指针选中同一边，实际下拉轮流选 `orthogonal`、`rounded-orthogonal`、`curve`、`straight`；比较真实 SVG `d` 路径唯一性和 Q/C 语义，保存后独立 Viewer SVG 路径一致 | **机器子门禁 PASS**（Chromium 154；Actions #38113320706；准确提交 c3ac389；非人工） | NOT TESTED |
+| V02 | 老投影没有新增字段时，保持旧直线，不被动迁移保存 | Gallery schema 的 `edgePaths` 可选；旧边没有 pathKind | 实际旧数据 GET + Chrome 初次打开，确认默认只含直线 L，文件 CAS 仍 0；明确 Save 前不发生内容写入 | **机器子门禁 PASS**（Chromium 154；Actions #38113320706；准确提交 c3ac389；非人工） | NOT TESTED |
+| V03 | 线型/箭头业务方向不可伪造 | 业务关系 `source`/`target`/`arrow` 在业务图，展示路径独立 | Chrome 切换路径、检查 `marker-end` 没有新 `marker-start`；真实 Save 后 GET 与 Viewer 仍为原 source/target/arrow；业务定义历史数量仍 1 | **机器子门禁 PASS**（Chromium 154；Actions #38113320706；准确提交 c3ac389；非人工） | NOT TESTED |
 
 ### 实际 CI 执行证据（不要凭代码存在填写）
 
 - 工作流 URL：`https://github.com/jiangxng/EVO-App-Platform/actions/workflows/diagram-commercial-v01-v03-browser.yml`
-- 实际运行 ID / exact head SHA / 浏览器版本 / PASS 或 FAIL / 失败步骤：**由 Actions 运行后写入后续本分支文档或 PR 评论；目前尚无可信结果**。
+- 已验证浏览器运行：[Actions #38113320706](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38113320706)，准确 head `c3ac389ac2c3e6138164d2054f132ab33977ed50`；`native-chrome-v01-v03` **SUCCESS**；实际 Chromium `154.0.8037.97`。日志 `DIAGRAM_V01_V03_BROWSER_SUBGATE` 标记四种路径 SVG 均不同、旧图直线无迁移、原生鼠标选边、原生表单切换、真实 App CAS/UI Save 到 version 1、新 Viewer SVG 一致、业务箭头/关系/定义版本未变。该证据不是实机/客户或正式签署。截图未产生，留存的是合成自动化文本日志 Artifacts。更新本文之后产生的新 head 仍需单独查其 Actions 结果。
 - 一旦 CI 失败，不降低断言质量、也不修改正式主矩阵为 PASS；先定位真实产品缺陷还是 fixture 设定错误，再用精确 SHA 补齐结果。
 
 ## V01–V03 真正人工/实机签收仍需执行
