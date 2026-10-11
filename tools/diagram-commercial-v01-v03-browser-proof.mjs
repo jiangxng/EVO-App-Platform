@@ -1719,140 +1719,6 @@ try{
     }));
     await e06Tab.close();
   }
-  // E07: native label drag -> Undo/Redo -> node movement follows new
-  // path anchor -> explicit CAS Save -> reload -> independent readonly Viewer.
-  const e07Tab=await browser.newPage({viewport:{width:1250,height:820}});
-  await e07Tab.goto(base+"/designer",{waitUntil:"load"});
-  await waitReady(e07Tab);
-  const e07EdgePoint=await e07Tab.evaluate(edgeId=>{
-    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
-    const m=path.getScreenCTM(),len=path.getTotalLength();
-    for(let i=12;i<=88;i+=2){
-      const p=path.getPointAtLength(len*i/100);
-      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
-      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
-        return {x,y};
-    }
-    return null;
-  },relationId);
-  assert.ok(e07EdgePoint,"E07 edge must be selectable before label drag");
-  await e07Tab.mouse.click(e07EdgePoint.x,e07EdgePoint.y);
-  await e07Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
-    .waitFor({state:"visible"});
-  const e07Label=e07Tab.locator('[data-eidos-diagram-edge-label="'+relationId+'"]');
-  await e07Label.waitFor({state:"visible"});
-  const e07Snapshot=()=>e07Tab.evaluate(edgeId=>{
-    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
-    const route=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
-    return {x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
-      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
-      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y")),
-      path:route.getAttribute("d")};
-  },relationId);
-  const e07Initial=await e07Snapshot();
-  assert.equal(e07Initial.offsetX,0);
-  assert.equal(e07Initial.offsetY,0);
-  const e07Hit=await e07Tab.evaluate(edgeId=>{
-    const el=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
-    const box=el.getBoundingClientRect();
-    const ys=[.25,.55,.75,.1,.9],xs=[.2,.35,.5,.65,.8,.1,.9];
-    for(const yf of ys)for(const xf of xs){
-      const x=box.left+box.width*xf,y=box.top+box.height*yf;
-      const top=document.elementFromPoint(x,y);
-      if(top?.closest?.('[data-eidos-diagram-edge-label="'+edgeId+'"]'))
-        return {x,y,rect:box.toJSON()};
-    }
-    return null;
-  },relationId);
-  assert.ok(e07Hit,"E07 selected label must expose a native mouse hit surface");
-  await e07Tab.mouse.move(e07Hit.x,e07Hit.y);
-  await e07Tab.mouse.down({button:"left"});
-  await e07Tab.mouse.move(e07Hit.x+45,e07Hit.y-26,{steps:8});
-  const e07During=await e07Snapshot();
-  assert.ok(Math.hypot(e07During.x-e07Initial.x,e07During.y-e07Initial.y)>12,
-    "E07 label SVG ink must follow the actual mouse before release");
-  await e07Tab.mouse.up({button:"left"});
-  const e07Dragged=await e07Snapshot();
-  assert.ok(Math.hypot(e07Dragged.offsetX,e07Dragged.offsetY)>20,
-    "E07 drag must commit a presentation offset, not merely move DOM");
-  assert.equal(e07Dragged.path,e07Initial.path,
-    "E07 text move cannot rewrite business route geometry");
-  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
-  await e07Tab.keyboard.press("Control+z");
-  const e07Undo=await e07Snapshot();
-  assert.equal(e07Undo.offsetX,0,"E07 Undo must restore automatic label position");
-  assert.equal(e07Undo.offsetY,0);
-  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
-  await e07Tab.keyboard.press("Control+y");
-  const e07Redo=await e07Snapshot();
-  assert.ok(Math.abs(e07Redo.offsetX-e07Dragged.offsetX)<.001
-    &&Math.abs(e07Redo.offsetY-e07Dragged.offsetY)<.001,
-    "E07 Redo restores exact caption offset");
-  await e07Tab.locator('[data-eidos-diagram-node="sale"]').click();
-  const e07Node=e07Tab.locator('[data-eidos-diagram-node="sale"]');
-  const e07NodeBox=await e07Node.boundingBox();
-  const ex=e07NodeBox.x+e07NodeBox.width/2,
-    ey=e07NodeBox.y+e07NodeBox.height/2;
-  await e07Tab.mouse.move(ex,ey);
-  await e07Tab.mouse.down({button:"left"});
-  await e07Tab.mouse.move(ex+44,ey+25,{steps:8});
-  await e07Tab.mouse.up({button:"left"});
-  const e07AfterNode=await e07Snapshot();
-  assert.equal(e07AfterNode.offsetX,e07Dragged.offsetX,
-    "E07 moving a node retains the label displacement");
-  assert.equal(e07AfterNode.offsetY,e07Dragged.offsetY);
-  assert.ok(Math.hypot(e07AfterNode.x-e07Dragged.x,
-    e07AfterNode.y-e07Dragged.y)>4,
-    "E07 label must follow the real route after an endpoint moves");
-  const e07Save=e07Tab.locator("[data-eidos-diagram-toolbar] button")
-    .filter({hasText:"Save projection"});
-  await e07Save.click();
-  await e07Tab.waitForFunction(()=>
-    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
-    {timeout:30000});
-  assert.equal(store.getVersion(id),1,"E07 explicit Save should increment projection CAS exactly once");
-  await e07Tab.reload({waitUntil:"load"});
-  await waitReady(e07Tab);
-  const e07Reloaded=await e07Snapshot();
-  assert.ok(Math.abs(e07Reloaded.offsetX-e07Dragged.offsetX)<.001
-    &&Math.abs(e07Reloaded.offsetY-e07Dragged.offsetY)<.001,
-    "E07 label position must persist after a new Designer mount");
-  const e07Viewer=await browser.newPage({viewport:{width:1250,height:820}});
-  await e07Viewer.goto(base+"/viewer",{waitUntil:"load"});
-  await waitReady(e07Viewer);
-  const e07ReadOnly=await e07Viewer.evaluate(edgeId=>{
-    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
-    return l && {
-      x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
-      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
-      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y"))
-    };
-  },relationId);
-  assert.ok(e07ReadOnly,"E07 independent readonly Viewer should render caption");
-  assert.ok(Math.abs(e07ReadOnly.offsetX-e07Dragged.offsetX)<.001
-    &&Math.abs(e07ReadOnly.offsetY-e07Dragged.offsetY)<.001,
-    "E07 Viewer must use exactly the Designer-saved caption displacement");
-  assert.equal(await e07Viewer.locator("[data-eidos-diagram-toolbar] button")
-    .filter({hasText:"Save projection"}).count(),0,
-    "E07 Viewer cannot offer write action");
-  const e07Saved=await read.execute(request(READ,id),ctx);
-  assert.equal(e07Saved.ok,true);
-  assert.equal(e07Saved.result.edges[0].arrow,"end");
-  assert.ok(Math.abs(e07Saved.result.edges[0].labelOffset.x-e07Dragged.offsetX)<.001);
-  assert.equal(repo.listHistory({enterpriseId:id.enterpriseId,definitionId:id.definitionId}).length,1,
-    "E07 presentation Save cannot create a new business definition version");
-  assert.deepEqual(await e07Tab.evaluate(()=>window.__errors),[]);
-  assert.deepEqual(await e07Viewer.evaluate(()=>window.__errors),[]);
-  console.log("DIAGRAM_E07_BROWSER_SUBGATE="+JSON.stringify({
-    case:"E07",browser:"Chromium "+browser.version(),
-    nativeMouseLabelDrag:true,undoRedo:true,nodeMovementFollowsPath:true,
-    explicitSaveAndFreshDesigner:true,independentViewerMatches:true,
-    captionOffset:{x:e07Dragged.offsetX,y:e07Dragged.offsetY},
-    businessArrowAndDefinitionRevisionPreserved:true,
-    physicalDeviceVerified:false
-  }));
-  await e07Viewer.close();
-  await e07Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
@@ -1997,6 +1863,141 @@ try{
     formalHumanSignedCases:0,formalTotalCases:39,
     warning:"NOT a device/customer/production commercial acceptance PASS"
   }));
+  // E07: native label drag -> Undo/Redo -> node movement follows new
+  // path anchor -> explicit CAS Save -> reload -> independent readonly Viewer.
+  const e07Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e07Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e07Tab);
+  const e07EdgePoint=await e07Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const m=path.getScreenCTM(),len=path.getTotalLength();
+    for(let i=12;i<=88;i+=2){
+      const p=path.getPointAtLength(len*i/100);
+      const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(e07EdgePoint,"E07 edge must be selectable before label drag");
+  await e07Tab.mouse.click(e07EdgePoint.x,e07EdgePoint.y);
+  await e07Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .waitFor({state:"visible"});
+  const e07Label=e07Tab.locator('[data-eidos-diagram-edge-label="'+relationId+'"]');
+  await e07Label.waitFor({state:"visible"});
+  const e07Snapshot=()=>e07Tab.evaluate(edgeId=>{
+    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    const route=document.querySelector('[data-eidos-diagram-edge-visual="'+edgeId+'"]');
+    return {x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
+      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
+      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y")),
+      path:route.getAttribute("d")};
+  },relationId);
+  const e07Initial=await e07Snapshot();
+  assert.equal(e07Initial.offsetX,0);
+  assert.equal(e07Initial.offsetY,0);
+  const e07Hit=await e07Tab.evaluate(edgeId=>{
+    const el=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    const box=el.getBoundingClientRect();
+    const ys=[.25,.55,.75,.1,.9],xs=[.2,.35,.5,.65,.8,.1,.9];
+    for(const yf of ys)for(const xf of xs){
+      const x=box.left+box.width*xf,y=box.top+box.height*yf;
+      const top=document.elementFromPoint(x,y);
+      if(top?.closest?.('[data-eidos-diagram-edge-label="'+edgeId+'"]'))
+        return {x,y,rect:box.toJSON()};
+    }
+    return null;
+  },relationId);
+  assert.ok(e07Hit,"E07 selected label must expose a native mouse hit surface");
+  await e07Tab.mouse.move(e07Hit.x,e07Hit.y);
+  await e07Tab.mouse.down({button:"left"});
+  await e07Tab.mouse.move(e07Hit.x+45,e07Hit.y-26,{steps:8});
+  const e07During=await e07Snapshot();
+  assert.ok(Math.hypot(e07During.x-e07Initial.x,e07During.y-e07Initial.y)>12,
+    "E07 label SVG ink must follow the actual mouse before release");
+  await e07Tab.mouse.up({button:"left"});
+  const e07Dragged=await e07Snapshot();
+  assert.ok(Math.hypot(e07Dragged.offsetX,e07Dragged.offsetY)>20,
+    "E07 drag must commit a presentation offset, not merely move DOM");
+  assert.equal(e07Dragged.path,e07Initial.path,
+    "E07 text move cannot rewrite business route geometry");
+  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e07Tab.keyboard.press("Control+z");
+  const e07Undo=await e07Snapshot();
+  assert.equal(e07Undo.offsetX,0,"E07 Undo must restore automatic label position");
+  assert.equal(e07Undo.offsetY,0);
+  await e07Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e07Tab.keyboard.press("Control+y");
+  const e07Redo=await e07Snapshot();
+  assert.ok(Math.abs(e07Redo.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07Redo.offsetY-e07Dragged.offsetY)<.001,
+    "E07 Redo restores exact caption offset");
+  await e07Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  const e07Node=e07Tab.locator('[data-eidos-diagram-node="sale"]');
+  const e07NodeBox=await e07Node.boundingBox();
+  const ex=e07NodeBox.x+e07NodeBox.width/2,
+    ey=e07NodeBox.y+e07NodeBox.height/2;
+  await e07Tab.mouse.move(ex,ey);
+  await e07Tab.mouse.down({button:"left"});
+  await e07Tab.mouse.move(ex+44,ey+25,{steps:8});
+  await e07Tab.mouse.up({button:"left"});
+  const e07AfterNode=await e07Snapshot();
+  assert.equal(e07AfterNode.offsetX,e07Dragged.offsetX,
+    "E07 moving a node retains the label displacement");
+  assert.equal(e07AfterNode.offsetY,e07Dragged.offsetY);
+  assert.ok(Math.hypot(e07AfterNode.x-e07Dragged.x,
+    e07AfterNode.y-e07Dragged.y)>4,
+    "E07 label must follow the real route after an endpoint moves");
+  const e07Save=e07Tab.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"});
+  await e07Save.click();
+  await e07Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),2,"E07 explicit Save adds exactly one CAS revision after the V01–V04 baseline save");
+  await e07Tab.reload({waitUntil:"load"});
+  await waitReady(e07Tab);
+  const e07Reloaded=await e07Snapshot();
+  assert.ok(Math.abs(e07Reloaded.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07Reloaded.offsetY-e07Dragged.offsetY)<.001,
+    "E07 label position must persist after a new Designer mount");
+  const e07Viewer=await browser.newPage({viewport:{width:1250,height:820}});
+  await e07Viewer.goto(base+"/viewer",{waitUntil:"load"});
+  await waitReady(e07Viewer);
+  const e07ReadOnly=await e07Viewer.evaluate(edgeId=>{
+    const l=document.querySelector('[data-eidos-diagram-edge-label="'+edgeId+'"]');
+    return l && {
+      x:Number(l.getAttribute("x")),y:Number(l.getAttribute("y")),
+      offsetX:Number(l.getAttribute("data-eidos-diagram-label-offset-x")),
+      offsetY:Number(l.getAttribute("data-eidos-diagram-label-offset-y"))
+    };
+  },relationId);
+  assert.ok(e07ReadOnly,"E07 independent readonly Viewer should render caption");
+  assert.ok(Math.abs(e07ReadOnly.offsetX-e07Dragged.offsetX)<.001
+    &&Math.abs(e07ReadOnly.offsetY-e07Dragged.offsetY)<.001,
+    "E07 Viewer must use exactly the Designer-saved caption displacement");
+  assert.equal(await e07Viewer.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).count(),0,
+    "E07 Viewer cannot offer write action");
+  const e07Saved=await read.execute(request(READ,id),ctx);
+  assert.equal(e07Saved.ok,true);
+  assert.equal(e07Saved.result.edges[0].arrow,"end");
+  assert.ok(Math.abs(e07Saved.result.edges[0].labelOffset.x-e07Dragged.offsetX)<.001);
+  assert.equal(repo.listHistory({enterpriseId:id.enterpriseId,definitionId:id.definitionId}).length,1,
+    "E07 presentation Save cannot create a new business definition version");
+  assert.deepEqual(await e07Tab.evaluate(()=>window.__errors),[]);
+  assert.deepEqual(await e07Viewer.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E07_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E07",browser:"Chromium "+browser.version(),
+    nativeMouseLabelDrag:true,undoRedo:true,nodeMovementFollowsPath:true,
+    explicitSaveAndFreshDesigner:true,independentViewerMatches:true,
+    captionOffset:{x:e07Dragged.offsetX,y:e07Dragged.offsetY},
+    businessArrowAndDefinitionRevisionPreserved:true,
+    physicalDeviceVerified:false
+  }));
+  await e07Viewer.close();
+  await e07Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
