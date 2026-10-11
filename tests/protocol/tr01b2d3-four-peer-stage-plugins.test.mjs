@@ -106,6 +106,14 @@ test('TR-01B real plugin Host lifecycle: install / independently open / disable 
     manager.enable(p.packageId);
     assert.ok(manager.loadExperiencePage(stagePageSourceV010(domains[i])));
   }
+  // True peer independence: stopping only SHIPMENT cannot remove other domains.
+  manager.disable(stagePackageIdV010('shipment'));
+  assert.equal(manager.loadExperiencePage(stagePageSourceV010('shipment')),undefined);
+  for(const peer of ['sales','receivable','cash']){
+    assert.ok(manager.loadExperiencePage(stagePageSourceV010(peer)),peer+' remains effective');
+  }
+  manager.enable(stagePackageIdV010('shipment'));
+  assert.ok(manager.loadExperiencePage(stagePageSourceV010('shipment')));
   for(const p of packages)manager.uninstall(p.packageId);
   for(const domain of domains)assert.equal(manager.loadExperiencePage(stagePageSourceV010(domain)),undefined);
   page=createPluginStorePage(packages,manager.getSnapshot());
