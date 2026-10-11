@@ -303,8 +303,11 @@ try{
     },relationId);
     console.log("V04_NATIVE_HIT_DIAGNOSTIC="+JSON.stringify({scenario:scenario.display,...result}));
     assert.equal(result.hitWidth,"18","V04 hit region must have 18px nominal stroke");
-    assert.equal(result.hitVectorEffect,"non-scaling-stroke",
-      "V04 transparent hit region must not shrink at 10% or balloon at 300%");
+    assert.equal(result.hitVectorEffect,null,
+      "V04 CSS world-width compensation must not double-apply SVG vector-effect");
+    assert.ok(Math.abs(Number.parseFloat(result.diagnostic.computedHitStroke)
+      * (Number.parseFloat(scenario.display)/100) - 18) < .15,
+      "V04 actual computed CSS stroke must remain 18 screen pixels at "+scenario.display);
     assert.equal(result.visualVectorEffect,"non-scaling-stroke",
       "V04 visible line thickness must remain stable at every scale");
     assert.ok(result.markerEnd?.startsWith("url(#"),
@@ -316,7 +319,7 @@ try{
     assert.equal(result.hitDetected,true,
       "V04 at "+scenario.display+" real Chrome 6px perpendicular pointer hit must select the relation");
     v04.push({zoom:scenario.display,hitSixPixelsFromCurve:true,
-      hitVectorEffect:result.hitVectorEffect,
+      computedHitStrokeWorldPx:result.diagnostic.computedHitStroke,
       visibleVectorEffect:result.visualVectorEffect,arrowPreserved:true});
   }
   assert.equal(store.getVersion(id),1,"V04 zooming must not write projection CAS");
