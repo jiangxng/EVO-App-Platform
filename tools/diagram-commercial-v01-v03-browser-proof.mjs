@@ -323,6 +323,54 @@ try{
     enclosedNodeSelected:true,excludedNodeNotSelected:true,cameraUnchanged:true,
     syntheticOnly:true,physicalMouseDeviceVerified:false
   }));
+  // M02: click selects but does not move; 2px motion below the 4px
+  // pointer threshold does not drag; real 48px mouse move does drag. Undo
+  // restores geometry before subsequent existing V01-V06 regression.
+  const m02Node=tab.locator('[data-eidos-diagram-node="sale"]');
+  const m02Pos=async()=>tab.evaluate(()=>[...document.querySelectorAll(
+    '[data-eidos-diagram-node]')].map(n=>({
+      id:n.getAttribute("data-eidos-diagram-node"),
+      x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)
+    })));
+  const beforeClick=await m02Pos();
+  await m02Node.click();
+  assert.equal(await m02Node.getAttribute("aria-pressed"),"true",
+    "M02 clicking a node selects it");
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 click alone may not move node coordinates");
+  let rect=await m02Node.boundingBox();
+  let cx=rect.x+rect.width/2,cy=rect.y+rect.height/2;
+  await tab.mouse.move(cx,cy);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(cx+2,cy+2);
+  await tab.mouse.up({button:"left"});
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 pointer motion below 4 CSS px must not move the node");
+  rect=await m02Node.boundingBox();
+  cx=rect.x+rect.width/2;cy=rect.y+rect.height/2;
+  await tab.mouse.move(cx,cy);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(cx+48,cy+15,{steps:9});
+  await tab.mouse.up({button:"left"});
+  const movedM02=await m02Pos();
+  const oldNode=beforeClick.find(x=>x.id==="sale"),newNode=movedM02.find(x=>x.id==="sale");
+  assert.ok(Math.abs(newNode.x-oldNode.x)>12,
+    "M02 native left drag past threshold must move selected node");
+  assert.deepEqual(movedM02.find(x=>x.id==="receipt"),
+    beforeClick.find(x=>x.id==="receipt"),
+    "M02 dragging one node cannot silently move the other");
+  assert.equal(store.getVersion(id),0,
+    "M02 moving presentation nodes is not an implicit Save");
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.press("Control+z");
+  assert.deepEqual(await m02Pos(),beforeClick,
+    "M02 one Undo must restore the exact original node positions");
+  console.log("DIAGRAM_M02_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M02",browser:"Chromium "+browser.version(),
+    actualClickSelectNoMove:true,subthresholdMotionNoMove:true,
+    aboveThresholdMoved:true,otherNodePreserved:true,undoRestored:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
