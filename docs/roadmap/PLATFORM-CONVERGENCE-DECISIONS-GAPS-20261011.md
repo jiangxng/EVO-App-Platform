@@ -113,3 +113,11 @@
 - **排除** 无条件将六包注册所有环境、绕过安装生命周期直接公开静态 HTML、将 synthetic finance fact 作为真实读写、把旧 `manager/server.ts` 整文件合并。
 - **已证实** Railway 同一现有公网集成测试服务新 pinned 版本 `89320e11` 部署 SUCCESS、健康检查 PASS，原持久卷未删改。用户测试未签收，不能称为真正 BusinessData/ERP 生产已完成。
 - **保持原决定** 真实销售/出库/应收/收款操作与 Finance Owner 授权 #594、EVO Ledger owner 的安全合同属于下一批独立专项，本次未打开财务写入门。
+
+
+### 2026-10-11 新窗口：Finance Owner key pointer 最小安全加固结项
+
+- **来源事实（已读原文）**：`apps/trading-reference/finance-owner-key-pointer.ts` 先 `lstatSync(file)`，再 `readFileSync(file)`，两次路径访问间可能被替换。旧回归已验证原子 rename、权限和软链接拒绝，但不是同一 fd 读。
+- **采用** 在原工具函数内通过 `O_NOFOLLOW`、`fstatSync(fd)` 验证打开对象、匹配 inode/dev，`readFileSync(fd)` 后保证关闭。补代码形态和目录/rename 回归；保留既有显式拒绝错误码。
+- **实际结果** [PR #736](https://github.com/jiangxng/EVO-App-Platform/pull/736) 4/4 CI 成功并合入 main `7c0be5f391d32a83eab515afad39adc8cfc5f247`；该修复是 Host finance key pointer 单项，不验证跨实例 nonce、真实 OIDC/部署 TLS、财务写入，也不暗中解锁 #594 Draft。
+- **公网测试保护**：Railway 仍 pinned `89320e11` 的六插件 synthetic preview，用户在测；后续 main 安全修复不可自动上公网。
