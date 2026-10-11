@@ -106,8 +106,13 @@ const editor=createEnterpriseDefinitionProjectionEditorPageV010({
 const viewer=createEnterpriseDefinition2dPreviewPageV010({
   ...id,title:"Synthetic commercial Viewer",locale:"en-US",camera
 });
+const v06State={...initial.result,nodes:initial.result.nodes.map((node,i)=>({
+  ...node,issue:i===0?{level:"error",message:"Required business mapping is missing"}
+    :{level:"warning",message:"Settlement review pending"}
+}))};
 const html=(mode)=>{
   const readOnly=mode==="viewer";
+  const v06=mode==="v06";
   const definition=readOnly?viewer:editor;
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
@@ -116,16 +121,18 @@ const html=(mode)=>{
     :"/dist/vendor/eidos/src/diagram/surface.js";
   const mountName=readOnly?"mountDiagramWorkspacePageV010":"mountDiagramEditorPageV010";
   const json=JSON.stringify(definition).replaceAll("<","\\u003c");
+  const issueState=v06?JSON.stringify(v06State).replaceAll("<","\\u003c"):"null";
   return '<!doctype html><html><head><meta charset="utf-8">'
     +'<style>html,body{margin:0}main{width:1200px;height:760px}'
     +'[data-eidos-diagram-editor]{height:750px!important;min-height:560px}</style></head>'
     +'<body><main id="root">'+shell+'</main>'
     +'<script>window.__definition='+json
+    +';window.__v06State='+issueState
     +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
     +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
     +'</script><script type="module">'
     +'import {'+mountName+'} from '+JSON.stringify(modulePath)+';'
-    +'const actionHost={async execute(request){const res=await fetch("/action",{method:"POST",'
+    +'const actionHost={async execute(request){if(window.__v06State && request.command?.code==='+JSON.stringify(READ)+')return {ok:true,result:window.__v06State};const res=await fetch("/action",{method:"POST",'
     +'headers:{"content-type":"application/json"},body:JSON.stringify(request)});'
     +'if(!res.ok)throw Error("HTTP "+res.status);return res.json()}};'
     +'window.__mounted='+mountName+'({definition:window.__definition,'
@@ -135,7 +142,7 @@ const html=(mode)=>{
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
-    if(url.pathname==="/designer"||url.pathname==="/viewer"){
+    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
       res.end(html(url.pathname.slice(1)));return;
     }
@@ -220,6 +227,58 @@ try{
     captionTruncated:v05.captionTruncated,captionTitleAccessible:true,
     syntheticOnly:true,formalHumanSignedCases:0,formalTotalCases:39
   }));
+  // V06: an actual Eidos-rendered state with independently declared error
+  // and warning. Never infer business errors from colors, arbitrary labels,
+  // or mutate the projection Store. Click, pointer hover and keyboard focus
+  // are genuinely dispatched to Chrome; inspect computed styles and DOM.
+  const v06Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await v06Tab.goto(base+"/v06",{waitUntil:"load"});
+  await waitReady(v06Tab);
+  const errorNode=v06Tab.locator('[data-eidos-diagram-node="sale"]');
+  const warningNode=v06Tab.locator('[data-eidos-diagram-node="receipt"]');
+  assert.equal(await errorNode.locator('[data-eidos-diagram-issue="error"]').count(),1);
+  assert.equal(await warningNode.locator('[data-eidos-diagram-issue="warning"]').count(),1);
+  assert.match(await errorNode.getAttribute("title"),/ERROR: Required business mapping is missing/);
+  assert.match(await warningNode.getAttribute("title"),/WARNING: Settlement review pending/);
+  assert.equal(await errorNode.getAttribute("aria-pressed"),"false");
+  await errorNode.hover();
+  const hovered=await errorNode.evaluate(el=>({
+    outline:getComputedStyle(el).outlineStyle,
+    border:getComputedStyle(el).borderColor,
+    badge:el.querySelector('[data-eidos-diagram-issue]')?.textContent
+  }));
+  assert.notEqual(hovered.outline,"none","V06 hover needs a distinct outline");
+  await errorNode.click();
+  assert.equal(await errorNode.getAttribute("aria-pressed"),"true");
+  assert.equal(await warningNode.getAttribute("aria-pressed"),"false");
+  await v06Tab.keyboard.press("Tab");
+  await errorNode.focus();
+  const compound=await errorNode.evaluate(el=>({
+    focused:document.activeElement===el,
+    focusVisible:el.matches(":focus-visible"),
+    outlineStyle:getComputedStyle(el).outlineStyle,
+    borderStyle:getComputedStyle(el).borderStyle,
+    borderColor:getComputedStyle(el).borderColor,
+    selected:el.getAttribute("data-eidos-diagram-selected"),
+    badge:el.querySelector('[data-eidos-diagram-issue]')?.textContent,
+    issueAria:el.querySelector('[data-eidos-diagram-issue]')?.getAttribute("aria-label")
+  }));
+  assert.equal(compound.focused,true);
+  assert.equal(compound.focusVisible,true,"V06 keyboard focus must be independently visible");
+  assert.equal(compound.outlineStyle,"dashed",
+    "V06 focus ring must be distinct from solid selection border");
+  assert.equal(compound.selected,"true","V06 focus cannot erase selected state");
+  assert.match(compound.badge,/Error/,"V06 issue indicator remains when selected and focused");
+  assert.match(compound.issueAria,/Required business mapping/);
+  assert.deepEqual(await v06Tab.evaluate(()=>window.__errors),[]);
+  assert.equal(store.getVersion(id),0,"V06 visual states may never write business presentation");
+  console.log("DIAGRAM_V06_BROWSER_SUBGATE="+JSON.stringify({
+    case:"V06",browser:"Chromium "+browser.version(),
+    selectedFocusError:compound,hoverOutline:hovered.outline,
+    warningSurvived:true,colorNotSoleSignal:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await v06Tab.close();
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
