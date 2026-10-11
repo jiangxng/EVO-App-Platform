@@ -1,5 +1,7 @@
 # 数据导入主线 → TR-01 B2D3 扩张 → 六插件只读壳：研究与用户验收审计
 
+> **2026-10-11 用户确认：本审计发现的两项核心偏移（B2D3 平行财务事实解释风险；六个业务插件未继承真实 EVO 运行时调用链）已正式上升为本轮治理目标。** 以 [《EVO 账本运行时事实解释主权与 TR-01 / B2D3 治理目标》](../governance/EVO-LEDGER-RUNTIME-AUTHORITY-AND-TR01-CORRECTION-GOAL-20261011.md) 的 G0–G5 验收门槛为准。此处的风险判断不是指当前已发生生产错账，也不代表治理已经完成。
+
 **核查日期 2026-10-11，非业务验收。** 对比当前检查时 EVO-App-Platform main `ce9551183287c5432b14cf597937d7a7991f6594`、未合并 Draft [#594](https://github.com/jiangxng/EVO-App-Platform/pull/594) head `1d6149bd05136d642e49aab5196d12ab243cbe4e`。只记录研究，不修改 main、Railway、project.status.json、Agent/2D。
 
 ## 1. 主线与范围偏移
