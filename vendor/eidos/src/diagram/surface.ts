@@ -3072,7 +3072,83 @@ export function mountDiagramEditorPageV010(
           tooltip.textContent=edgeCaption;
           label.appendChild(tooltip);
         }
-        label.style.pointerEvents = "none";
+        // E07: selected connector labels are draggable presentation, not
+        // a business relationship field. Viewer labels remain read-only.
+        const captionEditable = edgeSelected && page.viewInteraction?.localEdgePathEdit === true;
+        label.style.pointerEvents = captionEditable ? "visiblePainted" : "none";
+        if (captionEditable) {
+          label.style.cursor = "move";
+          label.style.touchAction = "none";
+          label.setAttribute("aria-label", "Drag relationship label; Undo restores position");
+          label.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+          });
+          label.addEventListener("pointerdown", (event: PointerEvent) => {
+            if (event.pointerType !== "touch" && event.button !== 0) return;
+            event.preventDefault();
+            event.stopPropagation();
+            cancelActiveLabelDrag?.();
+            const pointerId = event.pointerId;
+            const downX = event.clientX, downY = event.clientY;
+            const startOffset = { x: edge.labelOffset?.x ?? 0, y: edge.labelOffset?.y ?? 0 };
+            const startY = Number(label.getAttribute("y"));
+            let active = true, moved = false;
+            const visualPreview = (dx: number, dy: number): void => {
+              const x = captionX + dx, y = startY + dy;
+              label.setAttribute("x", String(x));
+              label.setAttribute("y", String(y));
+              label.querySelectorAll("tspan").forEach(tspan => tspan.setAttribute("x", String(x)));
+            };
+            const cleanup = (): void => {
+              label.removeEventListener("pointermove", onMove);
+              label.removeEventListener("pointerup", onUp);
+              label.removeEventListener("pointercancel", onCancel);
+              label.removeEventListener("lostpointercapture", onCancel);
+              if (cancelActiveLabelDrag === onCancel) cancelActiveLabelDrag = undefined;
+              if (label.hasPointerCapture(pointerId)) label.releasePointerCapture(pointerId);
+            };
+            const onCancel = (): void => {
+              if (!active) return;
+              active = false;
+              visualPreview(0, 0);
+              cleanup();
+            };
+            const onMove = (move: PointerEvent): void => {
+              if (!active || move.pointerId !== pointerId) return;
+              move.preventDefault();
+              move.stopPropagation();
+              const screenDx = move.clientX - downX, screenDy = move.clientY - downY;
+              if (!moved && Math.hypot(screenDx, screenDy) < 4) return;
+              moved = true;
+              visualPreview(screenDx / camera.scale, screenDy / camera.scale);
+            };
+            const onUp = (up: PointerEvent): void => {
+              if (!active || up.pointerId !== pointerId) return;
+              up.preventDefault();
+              up.stopPropagation();
+              active = false;
+              cleanup();
+              if (!moved) return;
+              checkpoint();
+              edge.labelOffset = {
+                x: Math.max(-10000000, Math.min(10000000,
+                  startOffset.x + (up.clientX - downX) / camera.scale)),
+                y: Math.max(-10000000, Math.min(10000000,
+                  startOffset.y + (up.clientY - downY) / camera.scale))
+              };
+              followsFitToCanvas = false;
+              render();
+              report("Relationship label adjusted locally. Save projection to persist.");
+            };
+            label.addEventListener("pointermove", onMove);
+            label.addEventListener("pointerup", onUp);
+            label.addEventListener("pointercancel", onCancel);
+            label.addEventListener("lostpointercapture", onCancel);
+            cancelActiveLabelDrag = onCancel;
+            label.setPointerCapture(pointerId);
+          });
+        }
         svg.appendChild(label);
         liveEdges.get(edge.id)!.label = label;
       }
