@@ -107,6 +107,7 @@ test('new peer packages are app-local, no host/core/EVO engine import or finance
     const body=readFileSync(new URL('../../apps/trading-stage-'+domain+
       '/package.ts',import.meta.url),'utf8');
     assert.match(body,/stagePackageV010/);
-    assert.doesNotMatch(body,/manager\/|catalog\/seed|node:.*|ledger-entry|fifo|valuation|allocation|database|postgres|\.\.\/\.\.\/modules\//i);
+    const executable=body.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,'');
+    assert.doesNotMatch(executable,/manager\/|catalog\/seed|node:.*|ledger-entry|fifo|valuation|allocation|database|postgres|\.\.\/\.\.\/modules\//i);
   }
 });
