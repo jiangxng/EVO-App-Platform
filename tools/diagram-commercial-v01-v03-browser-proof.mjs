@@ -1522,6 +1522,107 @@ try{
     cubicSVG:e04Geometry.visual,syntheticOnly:true,physicalDeviceVerified:false
   }));
   await e04Tab.close();
+  // E05: move one, then both business endpoints of a manual orthogonal route.
+  // Hand-authored path controls must survive, not silently reset.
+  const e05Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await e05Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(e05Tab);
+  const e05Route=()=>shape(e05Tab);
+  const e05SelectEdge=async()=>{
+    const hit=await e05Tab.evaluate(edgeId=>{
+      const p=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+      const m=p.getScreenCTM(),len=p.getTotalLength();
+      for(let i=8;i<=92;i+=2){
+        const q=p.getPointAtLength(len*i/100);
+        const x=q.x*m.a+q.y*m.c+m.e,y=q.x*m.b+q.y*m.d+m.f;
+        if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+          return {x,y};
+      }
+      return null;
+    },relationId);
+    assert.ok(hit,"E05 real connector must retain a clickable segment");
+    await e05Tab.mouse.click(hit.x,hit.y);
+    await e05Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+      .waitFor({state:"visible"});
+  };
+  const e05NodePos=()=>e05Tab.evaluate(()=>[...document.querySelectorAll(
+    "[data-eidos-diagram-node]")].map(n=>({
+      id:n.getAttribute("data-eidos-diagram-node"),
+      x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)
+    })));
+  const e05Waypoint=async()=>{
+    await e05SelectEdge();
+    const box=e05Tab.locator('[data-eidos-diagram-waypoint-controls="'+relationId+'"]');
+    await box.waitFor({state:"visible"});
+    const inputs=box.locator('input[type="number"]');
+    assert.ok((await inputs.count())>=2,"E05 manual path points cannot disappear");
+    return {
+      x:Number(await inputs.nth(0).inputValue()),
+      y:Number(await inputs.nth(1).inputValue()),
+      path:await e05Route()
+    };
+  };
+  const e05Move=async(nodeId,dx,dy)=>{
+    const node=e05Tab.locator('[data-eidos-diagram-node="'+nodeId+'"]');
+    const b=await node.boundingBox();
+    const x=b.x+b.width/2,y=b.y+b.height/2;
+    await e05Tab.mouse.move(x,y);
+    await e05Tab.mouse.down({button:"left"});
+    await e05Tab.mouse.move(x+dx,y+dy,{steps:9});
+    await e05Tab.mouse.up({button:"left"});
+  };
+  await e05SelectEdge();
+  await e05Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
+    .selectOption("orthogonal");
+  await e05Tab.getByRole("button",{name:"Add path point"}).click();
+  const e05Manual=await e05Waypoint();
+  const e05BeforeNodes=await e05NodePos();
+  await e05Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await e05Move("sale",42,19);
+  const e05OneMoved=await e05NodePos();
+  assert.ok(Math.hypot(e05OneMoved[0].x-e05BeforeNodes[0].x,
+    e05OneMoved[0].y-e05BeforeNodes[0].y)>7,
+    "E05 first endpoint must really move under native mouse");
+  assert.deepEqual(e05OneMoved[1],e05BeforeNodes[1],
+    "E05 moving one endpoint must preserve the other endpoint");
+  const e05AfterOne=await e05Waypoint();
+  assert.deepEqual({x:e05AfterOne.x,y:e05AfterOne.y},
+    {x:e05Manual.x,y:e05Manual.y},
+    "E05 single-endpoint move must preserve manually placed world points");
+  assert.notEqual(e05AfterOne.path,e05Manual.path,
+    "E05 one endpoint movement must update the SVG route");
+  await e05Tab.locator("[data-eidos-diagram-canvas]").focus();
+  await e05Tab.keyboard.press("Control+a");
+  assert.equal(await e05Tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await e05Tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  await e05Move("sale",36,26);
+  const e05BothMoved=await e05NodePos();
+  const dx0=e05BothMoved[0].x-e05OneMoved[0].x;
+  const dy0=e05BothMoved[0].y-e05OneMoved[0].y;
+  const dx1=e05BothMoved[1].x-e05OneMoved[1].x;
+  const dy1=e05BothMoved[1].y-e05OneMoved[1].y;
+  assert.ok(Math.hypot(dx0,dy0)>5 && Math.abs(dx0-dx1)<.05
+    &&Math.abs(dy0-dy1)<.05,
+    "E05 group moving both endpoints must keep their relative geometry");
+  const e05AfterBoth=await e05Waypoint();
+  assert.ok(Math.abs(e05AfterBoth.x-e05Manual.x-dx0)<.1
+    &&Math.abs(e05AfterBoth.y-e05Manual.y-dy0)<.1,
+    "E05 moving both endpoints must translate manual path controls together");
+  assert.match(e05AfterBoth.path,/^M /);
+  assert.match(await e05Tab.locator('[data-eidos-diagram-edge-visual="'+relationId+'"]')
+    .getAttribute("marker-end"),/url\(#/);
+  assert.equal(store.getVersion(id),0,
+    "E05 node and waypoint movement cannot Save implicitly");
+  assert.deepEqual(await e05Tab.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_E05_BROWSER_SUBGATE="+JSON.stringify({
+    case:"E05",browser:"Chromium "+browser.version(),
+    manual:e05Manual,afterOne:e05AfterOne,afterBoth:e05AfterBoth,
+    oneEndpointNativeDrag:true,bothEndpointsNativeGroupDrag:true,
+    manualPointsStableOnSingleMove:true,translatedOnGroupMove:true,
+    businessArrowPreserved:true,noImplicitSave:true,
+    syntheticOnly:true,physicalDeviceVerified:false
+  }));
+  await e05Tab.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
