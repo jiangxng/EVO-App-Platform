@@ -19,6 +19,53 @@ export interface TemplateStoreRecordV010 {
   publishedAt: string;
 }
 
+/** Stable catalog identity for an immutable Template Store version.
+ * The template ID is URI encoded so separators inside IDs cannot be confused
+ * with the trailing version separator. Origin: archived Template Store actions.
+ */
+export function templateStoreRecordItemIdV010(
+  templateId: string,
+  version: number
+): string {
+  const normalized = required(templateId, "TEMPLATE_STORE_TEMPLATE_ID_REQUIRED");
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new Error("TEMPLATE_STORE_VERSION_INVALID");
+  }
+  return encodeURIComponent(normalized) + "@" + String(version);
+}
+
+export function parseTemplateStoreRecordItemIdV010(
+  itemId: string
+): { templateId: string; version: number } {
+  const normalized = required(itemId, "TEMPLATE_STORE_ITEM_ID_REQUIRED");
+  const separator = normalized.lastIndexOf("@");
+  if (separator < 1) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  const encodedId = normalized.slice(0, separator);
+  const versionText = normalized.slice(separator + 1);
+  if (!/^[1-9][0-9]*$/u.test(versionText)) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  const version = Number(versionText);
+  if (!Number.isSafeInteger(version)) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  let templateId: string;
+  try {
+    templateId = decodeURIComponent(encodedId);
+  } catch {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  if (!templateId.trim() || templateId !== templateId.trim()) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  if (encodeURIComponent(templateId) !== encodedId) {
+    throw new Error("TEMPLATE_STORE_ITEM_ID_INVALID");
+  }
+  return { templateId, version };
+}
+
 interface TemplateStoreSnapshotV010 {
   contractVersion: "0.1.0";
   records: TemplateStoreRecordV010[];
